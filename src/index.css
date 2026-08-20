@@ -1,0 +1,12 @@
+/* client/src/index.css */
+/* FF-2 FIX: background #eef2f7 removed — was overriding --bg (#f8fafc) from theme.css */
+/* FF-1 FIX: Google Fonts CDN removed — offline environment, use system font stack */
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* background intentionally NOT set here — theme.css html,body,#root owns this */
+  color: #0f172a;
+}

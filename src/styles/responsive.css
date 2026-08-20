@@ -1,0 +1,231 @@
+/* src/styles/responsive.css
+ * VFRB Enterprise — Responsive utility classes
+ * Import once in main.jsx: import './styles/responsive.css'
+ *
+ * Breakpoints (locked, matches master prompt + AdminLayout):
+ *   Mobile:  ≤ 767px  — single column, bottom nav, 44px touch targets
+ *   Tablet:  768–1023px — 2 col, collapsible sidebar icons-only
+ *   Desktop: ≥ 1024px — full sidebar, multi-col layouts
+ *
+ * Usage in JSX — combine with inline styles:
+ *   <div className="vfrb-grid-2">   → 2-col desktop, 1-col mobile
+ *   <div className="vfrb-grid-3">   → 3-col desktop, 2-col tablet, 1-col mobile
+ *   <div className="vfrb-grid-4">   → 4-col desktop, 2-col tablet/mobile
+ *   <div className="vfrb-stack">    → always single column
+ *   <div className="mob-hide">      → hidden on mobile
+ *   <div className="desk-hide">     → hidden on desktop
+ *   <div className="tab-hide">      → hidden on tablet
+ */
+
+/* ── Grid helpers ──────────────────────────────────────────────────────────── */
+.vfrb-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+.vfrb-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+  align-items: start;
+}
+.vfrb-grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+.vfrb-grid-auto {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+}
+.vfrb-grid-auto-sm {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+.vfrb-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.vfrb-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+/* ── Visibility helpers ────────────────────────────────────────────────────── */
+.mob-hide  { }  /* visible by default — hidden by @media below */
+.desk-hide { display: none !important; }
+.tab-hide  { }
+
+/* ── Card ──────────────────────────────────────────────────────────────────── */
+.vfrb-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 20px 22px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.05);
+}
+.vfrb-card-sm {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+}
+
+/* ── Touch targets — 44px minimum per master prompt ───────────────────────── */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* ── Page header — always responsive flex ──────────────────────────────────── */
+.vfrb-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.vfrb-page-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 4px;
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+.vfrb-page-sub {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+/* ── Table wrapper — horizontal scroll on mobile ───────────────────────────── */
+.vfrb-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+.vfrb-table-wrap table {
+  width: 100%;
+  min-width: 560px;   /* always show full table, scroll if needed */
+  border-collapse: collapse;
+}
+
+/* ── Form inputs — full width on all screens ──────────────────────────────── */
+.vfrb-input {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #0f172a;
+  font-size: 13px;
+  outline: none;
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  transition: border .15s, box-shadow .15s;
+  box-sizing: border-box;
+}
+.vfrb-input:focus {
+  border-color: #028090;
+  box-shadow: 0 0 0 3px rgba(2,128,144,.1);
+}
+
+/* ── Stat card row ─────────────────────────────────────────────────────────── */
+.vfrb-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+/* ── Filter / action bar ───────────────────────────────────────────────────── */
+.vfrb-filter-bar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.vfrb-filter-bar input,
+.vfrb-filter-bar select {
+  flex: 1;
+  min-width: 160px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TABLET — 768px to 1023px
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 1023px) {
+  .vfrb-grid-3 { grid-template-columns: 1fr 1fr; }
+  .vfrb-grid-4 { grid-template-columns: 1fr 1fr; }
+  .tab-hide    { display: none !important; }
+  .desk-hide   { display: revert !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   MOBILE — ≤ 767px
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 767px) {
+
+  /* Grid → single column */
+  .vfrb-grid-2,
+  .vfrb-grid-3,
+  .vfrb-grid-4 {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  /* Auto grids: tighter minwidth on mobile */
+  .vfrb-grid-auto    { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .vfrb-grid-auto-sm { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+
+  /* Visibility */
+  .mob-hide  { display: none !important; }
+  .desk-hide { display: revert !important; }
+
+  /* Cards: less padding */
+  .vfrb-card    { padding: 14px 16px; border-radius: 12px; }
+  .vfrb-card-sm { padding: 12px 14px; border-radius: 10px; }
+
+  /* Page title smaller on mobile */
+  .vfrb-page-title { font-size: 18px; }
+  .vfrb-page-sub   { font-size: 12px; }
+
+  /* Filter bar: stack vertically */
+  .vfrb-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .vfrb-filter-bar input,
+  .vfrb-filter-bar select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  /* Stats: 2-col on mobile */
+  .vfrb-stats {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  /* Table: full horizontal scroll */
+  .vfrb-table-wrap { border-radius: 10px; }
+
+  /* Row → stack on mobile */
+  .vfrb-row { flex-direction: column; align-items: stretch; }
+
+  /* Touch target enforcement */
+  button, a, select, input[type=button], input[type=submit] {
+    min-height: 44px;
+  }
+}
