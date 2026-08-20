@@ -107,20 +107,39 @@ function ActionListCard({ icon, title, accent, items, loading, emptyLabel,
                            renderItem, footerLabel, onFooter, unavailable, unavailableNote }) {
   return (
     <div style={{
-      background: '#fff', border: `1px solid ${accent}33`, borderRadius: 14,
+      background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14,
       overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,.05)',
       display: 'flex', flexDirection: 'column', minHeight: 220,
     }}>
+      {/* Neutral header — same chrome for every card. Color is reserved for
+          the count badge and footer link below, not painted across the
+          whole header; that's what makes 5 cards read as one coherent
+          family instead of 5 separately-branded widgets. */}
       <div style={{
-        padding: '12px 14px', background: `${accent}10`,
-        borderBottom: `1px solid ${accent}33`,
+        padding: '12px 14px', background: '#f8fafc',
+        borderBottom: '1px solid #e2e8f0',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       }}>
-        <p style={{ fontSize: 12, fontWeight: 800, color: accent, margin: 0,
-          display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span>{icon}</span> {title}
-          {!loading && !unavailable && <span style={{ fontWeight: 700, opacity: .6 }}>({items.length})</span>}
+        <p style={{ fontSize: 12, fontWeight: 700, color: '#334155', margin: 0,
+          display: 'flex', alignItems: 'center', gap: 7 }}>
+          {/* Small persistent accent dot — this is what actually makes the
+              accent color visible on a card whose count badge and footer
+              are both hidden (the "unavailable" Production Delays case);
+              without it, changing accent had no visible effect at all. */}
+          <span style={{
+            width: 6, height: 6, borderRadius: '50%',
+            background: accent, flexShrink: 0,
+          }}/>
+          <span style={{ fontSize: 13 }}>{icon}</span> {title}
         </p>
+        {!loading && !unavailable && items.length > 0 && (
+          <span style={{
+            fontSize: 10, fontWeight: 800, color: accent, background: `${accent}14`,
+            borderRadius: 99, padding: '2px 8px', flexShrink: 0,
+          }}>
+            {items.length}
+          </span>
+        )}
       </div>
 
       <div style={{ flex: 1 }}>
@@ -151,7 +170,7 @@ function ActionListCard({ icon, title, accent, items, loading, emptyLabel,
             width: '100%', padding: '10px', border: 'none',
             background: 'transparent', color: accent, fontSize: 11,
             fontWeight: 700, cursor: 'pointer',
-            borderTop: `1px solid ${accent}33`,
+            borderTop: '1px solid #e2e8f0',
           }}>
           {footerLabel} →
         </button>
@@ -513,10 +532,10 @@ export default function AdminDashboard() {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
           gap: 14px;
-          margin-bottom: 26px;
+          margin-bottom: 18px;
         }
         @media (max-width: 767px) {
-          .adm-action-grid { grid-template-columns: 1fr; gap: 12px; margin-bottom: 20px; }
+          .adm-action-grid { grid-template-columns: 1fr; gap: 12px; margin-bottom: 14px; }
         }
         @media (min-width: 2560px) {
           .adm-action-grid { grid-template-columns: repeat(5, 1fr); }
@@ -739,7 +758,7 @@ export default function AdminDashboard() {
       <div className="adm-action-grid">
 
         <ActionListCard
-          icon="📥" title="Orders Needing Action" accent="#3b82f6"
+          icon="📥" title="Orders Needing Action" accent="#028090"
           items={pendingOrders} loading={poLoading}
           emptyLabel="No pending orders — all caught up"
           footerLabel="View All Pending Orders" onFooter={() => nav('/admin/orders?status=pending')}
@@ -788,7 +807,7 @@ export default function AdminDashboard() {
         />
 
         <ActionListCard
-          icon="⏱" title="Production Delays" accent="#f97316"
+          icon="⏱" title="Production Delays" accent="#f59e0b"
           items={[]} loading={false}
           unavailable
           unavailableNote="Not available yet — the backend has no concept of a 'delayed' or 'stalled' stage today (no timestamp-per-stage or threshold exists). Needs a backend decision on what counts as delayed before this can show real data."
@@ -796,7 +815,7 @@ export default function AdminDashboard() {
         />
 
         <ActionListCard
-          icon="📨" title="RFQs Awaiting Response" accent="#8b5cf6"
+          icon="📨" title="RFQs Awaiting Response" accent="#028090"
           items={rfqsPending} loading={rfqLoading}
           emptyLabel="No RFQs waiting on a supplier"
           footerLabel="View Procurement" onFooter={() => nav('/admin/procurement')}
@@ -825,7 +844,7 @@ export default function AdminDashboard() {
         />
 
         <ActionListCard
-          icon="🚚" title="Upcoming Deliveries" accent="#06b6d4"
+          icon="🚚" title="Upcoming Deliveries" accent="#028090"
           items={deliveries} loading={delivLoading}
           emptyLabel="No deliveries in progress"
           footerLabel="View Delivery Tracking" onFooter={() => nav('/admin/delivery')}
@@ -915,7 +934,13 @@ export default function AdminDashboard() {
           { icon: '⚙️', label: 'In Production',  value: s.active_orders  ?? 0,  sub: 'Active now',     bg: '#f5f3ff', path: '/admin/orders' },
           { icon: '💰', label: 'Revenue (Month)', value: `₱${Number(s.monthly_revenue ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 0 })}`, sub: 'This month', bg: '#f0fdf4' },
           { icon: '⚠️', label: 'Low Stock',       value: s.low_stock_count ?? 0, sub: 'Needs reorder',  bg: '#fef3c7', path: '/admin/inventory' },
-          { icon: '🚚', label: 'Deliveries',      value: s.pending_deliveries ?? 0, sub: 'Pending',     bg: '#eff6ff', path: '/admin/delivery' },
+          // FIX: this card and the new "Upcoming Deliveries" action block
+          // above were both labeled "Deliveries" but count different things
+          // — this KPI is dispatched+in_transit only (production.delivering),
+          // the action block also includes 'preparing'. Same real number,
+          // just relabeled so the two don't look like a data bug when
+          // they're actually two different (both correct) metrics.
+          { icon: '🚚', label: 'In Transit',       value: s.pending_deliveries ?? 0, sub: 'Dispatched',  bg: '#eff6ff', path: '/admin/delivery' },
           { icon: '📊', label: 'Pending Count',   value: s.unreconciled_counts ?? 0, sub: 'Physical count', bg: '#e0e7ff', path: '/admin/physical-count' },
         ].map(k => (
           <KPICard key={k.label} {...k} loading={loading}
