@@ -37,7 +37,18 @@ export default function CustomerLayout() {
   const [name,      setName]      = useState('Customer');
   const [unread,    setUnread]    = useState(0);
   const [collapsed, setCollapsed] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('vfrb_cust_sb') || 'false'); } catch { return false; }
+    // MOBILE AUDIT FIX (Aug 22) — same fix as AdminLayout.jsx: only applies
+    // when no preference has been saved yet; an explicit manual toggle
+    // always wins after that.
+    try {
+      const stored = localStorage.getItem('vfrb_cust_sb');
+      if (stored !== null) return JSON.parse(stored);
+    } catch { /* fall through to width-based default */ }
+    if (typeof window !== 'undefined' &&
+        window.innerWidth >= 768 && window.innerWidth <= 1023) {
+      return true;
+    }
+    return false;
   });
   const [moreOpen, setMoreOpen] = useState(false);
 

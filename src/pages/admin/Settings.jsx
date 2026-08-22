@@ -211,7 +211,7 @@ export default function Settings() {
                   onChange={e => setField('address', e.target.value)} placeholder="31 San Guillermo St., Bayanan, Muntinlupa City"
                   style={isManager ? inp : inpDisabled} onFocus={isManager ? fi : undefined} onBlur={isManager ? fo : undefined}/>
               </div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+              <div className="set-contact-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
                 <div>
                   <label style={lbl}>Contact Number</label>
                   <input value={company.contact_number ?? ''} disabled={!isManager}
@@ -265,10 +265,21 @@ export default function Settings() {
                     </p>
                   )}
                 </div>
+                {/* MOBILE AUDIT FIX (Aug 22): the visible pill is 44×26 —
+                    below the project's 44px touch-target minimum on the
+                    vertical axis. Rather than grow the pill itself (which
+                    would change its look), the BUTTON is now the 44×44 hit
+                    area and the pill is a centered inner element, same
+                    visual size as before. */}
                 <button onClick={() => togglePref(row.key)} disabled={prefsBusy}
-                  style={{ flexShrink:0, width:44, height:26, borderRadius:999, border:'none', cursor: prefsBusy ? 'wait' : 'pointer', background: prefs[row.key] ? T : '#e2e8f0', position:'relative', transition:'background .15s' }}>
-                  <motion.div animate={{ x: prefs[row.key] ? 20 : 2 }} transition={{ type:'spring', stiffness:500, damping:30 }}
-                    style={{ position:'absolute', top:2, width:22, height:22, borderRadius:'50%', background:'#fff', boxShadow:'0 1px 3px rgba(0,0,0,.2)' }}/>
+                  style={{ flexShrink:0, width:44, height:44, padding:0, border:'none',
+                    background:'transparent', cursor: prefsBusy ? 'wait' : 'pointer',
+                    display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  <span style={{ width:44, height:26, borderRadius:999, position:'relative',
+                    background: prefs[row.key] ? T : '#e2e8f0', transition:'background .15s' }}>
+                    <motion.span animate={{ x: prefs[row.key] ? 20 : 2 }} transition={{ type:'spring', stiffness:500, damping:30 }}
+                      style={{ position:'absolute', top:2, width:22, height:22, borderRadius:'50%', background:'#fff', boxShadow:'0 1px 3px rgba(0,0,0,.2)' }}/>
+                  </span>
                 </button>
               </div>
             ))}
@@ -290,6 +301,19 @@ export default function Settings() {
       <AnimatePresence>
         {toast && <Toast key={toast.msg+toast.type} msg={toast.msg} type={toast.type} onDone={() => setToast(null)}/>}
       </AnimatePresence>
+
+      {/* MOBILE AUDIT FIX (Aug 22): Contact Number / Contact Email were a
+          hardcoded 2-column grid with no mobile override anywhere in this
+          file, unlike every other 2-col form grid in the app (which uses
+          the .adm-grid-2 convention already stacking at ≤767px). Native
+          input text-scroll kept it from visually breaking, but it was
+          inconsistent and cramped. Stacks to 1 column at ≤767px, same as
+          every other form grid in the codebase. */}
+      <style>{`
+        @media (max-width: 767px) {
+          .set-contact-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </div>
   );
 }

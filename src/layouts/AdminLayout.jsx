@@ -35,6 +35,7 @@ const STAFF_NAV = [
 ];
 const MANAGER_EXTRA = [
   { to:'/admin/reports',      icon:'📊', label:'Reports'              },
+  { to:'/admin/activity-log', icon:'📋', label:'Activity Log'         },
   { to:'/admin/invoice',      icon:'🧾', label:'Invoice'              },
   { to:'/admin/suppliers',    icon:'🏪', label:'Suppliers'            },
   { to:'/admin/users',        icon:'👥', label:'Users'                },

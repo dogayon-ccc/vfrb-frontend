@@ -67,6 +67,7 @@ const AdminDeliveryTracking  = lazy(() => import('./pages/admin/DeliveryTracking
 const AdminSuppliers         = lazy(() => import('./pages/admin/Suppliers'));
 const AdminUserManagement    = lazy(() => import('./pages/admin/UserManagement'));
 const AdminSettings          = lazy(() => import('./pages/admin/Settings'));
+const AdminActivityLog       = lazy(() => import('./pages/admin/ActivityLog'));
 const AdminInvoice           = lazy(() => import('./pages/admin/Invoice'));
 const AdminOrderDetail       = lazy(() => import('./pages/admin/OrderDetail'));
 const AdminProductionTracking= lazy(() => import('./pages/admin/ProductionTracking')); // TASK R: was missing
@@ -90,6 +91,11 @@ const DesignStudio = lazy(() => import('./pages/customer/DesignStudio'));
 // ── Auth extras — lazy ────────────────────────────────────────────────────────
 const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'));
 const ResetPassword  = lazy(() => import('./pages/auth/ResetPassword'));
+
+// ── Public info pages — lazy, no auth required ────────────────────────────────
+const GuidePage = lazy(() => import('./pages/Guide'));
+const FAQPage    = lazy(() => import('./pages/FAQ'));
+const TeamPage   = lazy(() => import('./pages/Team'));
 
 // ── Page loader — shown during lazy bundle download ───────────────────────────
 function Loader() {
@@ -186,6 +192,11 @@ export default function App() {
           {/* ── ADMIN AUTH ────────────────────────────────────────────────── */}
           <Route path="/admin/login" element={<AdminLogin/>}/>
 
+          {/* ── PUBLIC INFO PAGES — no auth required ─────────────────────── */}
+          <Route path="/guide"    element={<GuidePage/>}/>
+          <Route path="/faq"      element={<FAQPage/>}/>
+          <Route path="/our-team" element={<TeamPage/>}/>
+
           {/* ── ADMIN PORTAL ──────────────────────────────────────────────── */}
           <Route path="/admin/*" element={
             <RequireAuth role="admin"><AdminLayout/></RequireAuth>
@@ -218,6 +229,7 @@ export default function App() {
 
             {/* Manager Only */}
             <Route path="reports"   element={<RequireManager><AdminReports/></RequireManager>}/>
+            <Route path="activity-log" element={<RequireManager><AdminActivityLog/></RequireManager>}/>
             <Route path="invoice"   element={<RequireManager><AdminInvoice/></RequireManager>}/>
             <Route path="suppliers" element={<RequireManager><AdminSuppliers/></RequireManager>}/>
             <Route path="users"     element={<RequireManager><AdminUserManagement/></RequireManager>}/>

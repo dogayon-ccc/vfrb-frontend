@@ -189,7 +189,6 @@ export default function AdminUserManagement() {
         .adm-filter { flex-direction: column; }
         .adm-filter input,
         .adm-filter select { min-width: 0; width: 100%; }
-        .adm-mob-hide { display: none !important; }
       }
 @keyframes sk{0%{background-position:-400px 0}100%{background-position:400px 0}}`}</style>
       {modal && <CreateUserModal onClose={() => setModal(false)} onDone={() => { setModal(false); load(); }}/>}
