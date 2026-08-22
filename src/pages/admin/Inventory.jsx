@@ -94,6 +94,9 @@ export default function AdminInventory() {
   const [loading,   setLoading]   = useState(true);
   const [tab,       setTab]       = useState('stock'); // stock | logs
   const [search,    setSearch]    = useState('');
+  const [winW, setWinW] = useState(typeof window!=='undefined'?window.innerWidth:1280);
+  useEffect(() => { const h=()=>setWinW(window.innerWidth); window.addEventListener('resize',h); return()=>window.removeEventListener('resize',h); }, []);
+  const isMobile = winW <= 767;
   const [modal,     setModal]     = useState(null); // 'in' | 'out'
 
   const load = useCallback((force = false) => {
@@ -153,6 +156,7 @@ export default function AdminInventory() {
           overflow-x: auto; -webkit-overflow-scrolling: touch;
         }
         .inv-table-wrap table { width:100%; min-width:560px; border-collapse:collapse; }
+        .inv-card { background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:12px 14px; margin-bottom:8px; }
 
         @media (max-width:767px) {
           .adm-stats { grid-template-columns: 1fr 1fr; gap:10px; }
@@ -226,6 +230,31 @@ export default function AdminInventory() {
             placeholder="Search materials…"
             style={{ ...inp,marginBottom:14 }} onFocus={fi} onBlur={fo}/>
 
+          {loading ? Array(5).fill(0).map((_,i)=>(
+            <div key={i} className="inv-card"><div style={{ ...SK,height:14,width:'60%' }}/></div>
+          )) : filtered.length===0 ? (
+            <p style={{ color:'#64748b',fontSize:13,fontWeight:600,textAlign:'center',padding:'30px 0' }}>No materials found</p>
+          ) : isMobile ? filtered.map(m=>{
+            const low = m.quantity_in_stock <= (m.reorder_threshold??0);
+            return (
+              <div key={m.material_id} className="inv-card">
+                <div style={{ display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8 }}>
+                  <div style={{ minWidth:0 }}>
+                    <p style={{ fontSize:13,fontWeight:700,color:'#0f172a',margin:0 }}>{m.material_name}</p>
+                    <p style={{ fontSize:11,color:'#64748b',margin:'2px 0 0' }}>{m.category??'—'} · {m.unit}</p>
+                  </div>
+                  <span style={{ flexShrink:0,padding:'3px 10px',borderRadius:99,fontSize:10,fontWeight:700,
+                    background:low?'#fee2e2':'#dcfce7',color:low?'#991b1b':'#166534' }}>
+                    {low ? '⚠ Low' : '✓ OK'}
+                  </span>
+                </div>
+                <div style={{ display:'flex',justifyContent:'space-between',marginTop:8,fontSize:12 }}>
+                  <span style={{ fontWeight:800,color:low?'#ef4444':'#22c55e' }}>{m.quantity_in_stock} in stock</span>
+                  <span style={{ color:'#94a3b8' }}>reorder @ {m.reorder_threshold??0}</span>
+                </div>
+              </div>
+            );
+          }) : (
           <div className="inv-table-wrap">
             <table>
               <thead>
@@ -236,17 +265,7 @@ export default function AdminInventory() {
                 </tr>
               </thead>
               <tbody>
-                {loading ? Array(5).fill(0).map((_,i)=>(
-                  <tr key={i} style={{ borderBottom:'1px solid #f1f5f9' }}>
-                    {Array(6).fill(0).map((_,j)=>(
-                      <td key={j} style={{ padding:'12px 14px' }}><div style={{ ...SK,height:10,width:'70%' }}/></td>
-                    ))}
-                  </tr>
-                )) : filtered.length===0 ? (
-                  <tr><td colSpan={6} style={{ padding:'40px',textAlign:'center' }}>
-                    <p style={{ color:'#64748b',fontSize:13,fontWeight:600 }}>No materials found</p>
-                  </td></tr>
-                ) : filtered.map(m=>{
+                {filtered.map(m=>{
                   const low = m.quantity_in_stock <= (m.reorder_threshold??0);
                   const pct = m.reorder_threshold > 0
                     ? Math.min(100,Math.round((m.quantity_in_stock/m.reorder_threshold)*100)) : 100;
@@ -278,11 +297,37 @@ export default function AdminInventory() {
               </tbody>
             </table>
           </div>
+          )}
         </>
       )}
 
       {/* Transaction Log Tab */}
       {tab==='logs' && (
+        loading ? Array(5).fill(0).map((_,i)=>(
+          <div key={i} className="inv-card"><div style={{ ...SK,height:14,width:'60%' }}/></div>
+        )) : logs.length===0 ? (
+          <p style={{ color:'#64748b',fontSize:13,textAlign:'center',padding:'30px 0' }}>No transactions yet</p>
+        ) : isMobile ? logs.slice(0,30).map((l,i)=>{
+          const TYPE_C = { stock_in:'#22c55e',stock_out:'#ef4444',adjustment:'#f59e0b',wastage:'#8b5cf6' };
+          const tc = TYPE_C[l.type]??'#64748b';
+          return (
+            <div key={l.log_id??i} className="inv-card">
+              <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center' }}>
+                <p style={{ fontSize:13,fontWeight:700,color:'#0f172a',margin:0 }}>{l.material?.material_name??`#${l.material_id}`}</p>
+                <span style={{ padding:'3px 9px',borderRadius:99,fontSize:10,fontWeight:700,background:`${tc}18`,color:tc,textTransform:'capitalize' }}>
+                  {(l.type??'—').replace('_',' ')}
+                </span>
+              </div>
+              <p style={{ fontSize:13,fontWeight:800,color:Number(l.change_qty)>=0?'#22c55e':'#ef4444',margin:'6px 0 2px' }}>
+                {Number(l.change_qty)>0?'+':''}{l.change_qty} {l.material?.unit??''}
+              </p>
+              <p style={{ fontSize:11,color:'#64748b',margin:0 }}>{l.reason??'—'}</p>
+              <p style={{ fontSize:10,color:'#94a3b8',margin:'4px 0 0' }}>
+                {l.log_date ? new Date(l.log_date).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) : '—'} · {l.recorder?.name??'—'}
+              </p>
+            </div>
+          );
+        }) : (
         <div className="inv-table-wrap">
           <table>
             <thead>
@@ -293,17 +338,7 @@ export default function AdminInventory() {
               </tr>
             </thead>
             <tbody>
-              {loading ? Array(5).fill(0).map((_,i)=>(
-                <tr key={i} style={{ borderBottom:'1px solid #f1f5f9' }}>
-                  {Array(6).fill(0).map((_,j)=>(
-                    <td key={j} style={{ padding:'12px 14px' }}><div style={{ ...SK,height:10,width:'70%' }}/></td>
-                  ))}
-                </tr>
-              )) : logs.length===0 ? (
-                <tr><td colSpan={6} style={{ padding:'40px',textAlign:'center' }}>
-                  <p style={{ color:'#64748b',fontSize:13 }}>No transactions yet</p>
-                </td></tr>
-              ) : logs.slice(0,30).map((l,i)=>{
+              {logs.slice(0,30).map((l,i)=>{
                 const TYPE_C = { stock_in:'#22c55e',stock_out:'#ef4444',adjustment:'#f59e0b',wastage:'#8b5cf6' };
                 const tc = TYPE_C[l.type]??'#64748b';
                 return (
@@ -336,6 +371,7 @@ export default function AdminInventory() {
             </tbody>
           </table>
         </div>
+        )
       )}
     </>
   );
