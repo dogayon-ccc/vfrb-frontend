@@ -39,8 +39,21 @@ const fo   = e => { e.target.style.borderColor='#e2e8f0'; e.target.style.boxShad
 const lbl  = { display:'block', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'#64748b', marginBottom:7, fontFamily:FONT };
 const card = { background:'#fff', border:'1px solid #e2e8f0', borderRadius:16, boxShadow:'0 1px 3px rgba(0,0,0,.05)', padding:'22px 24px' };
 
-const user      = (() => { try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}'); } catch { return {}; } })();
-const isManager = user.role === 'manager';
+// NOTE (Aug 22 2026 fix): user/isManager used to be declared here at module
+// scope. Since this page is lazy-loaded, that code only ran ONCE per browser
+// tab, on first import — so switching accounts (manager -> staff) within the
+// same tab without a hard reload left isManager permanently stuck at
+// whatever the FIRST login's role was. Confirmed in production: a staff
+// login inherited a manager's edit rights because manager had opened this
+// page first in the same tab. Fixed by moving the read inside the
+// component (getIsManager()) so it's re-evaluated on every mount — do not
+// hoist this back to module scope.
+function getIsManager() {
+  try {
+    return (JSON.parse(localStorage.getItem('vfrb_user') || '{}').role) === 'manager';
+  } catch { return false; }
+}
+
 
 function Toast({ msg, type, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 3000); return () => clearTimeout(t); }, [onDone]);
@@ -62,6 +75,10 @@ function NotConfiguredBadge() {
 }
 
 export default function Settings() {
+  // Read fresh on every mount — see getIsManager() note above for why this
+  // can't be a module-level constant.
+  const isManager = getIsManager();
+
   const [company, setCompany] = useState({ company_name:'', logo_url:null, address:'', contact_number:'', contact_email:'' });
   const [companyLoading, setCompanyLoading] = useState(true);
   const [companyBusy, setCompanyBusy] = useState(false);
