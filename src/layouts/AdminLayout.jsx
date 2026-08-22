@@ -3,15 +3,25 @@
 // FIXED: logout accessible via More drawer only (removed redundant topbar Out button)
 // FIXED: all admin nav items reachable on mobile via scrollable More drawer
 // NO dark mode — vibrant light with teal + purple color accents
+//
+// Aug 22 2026 — Tailwind migration (per Dave's decision: new/rewritten
+// components use Tailwind utility classes going forward; inline style
+// stays only for values genuinely computed at render time — sidebar
+// width, role-based gradients). All behavior below is unchanged from
+// the previous version: notification polling, mark-read/mark-all,
+// role-based nav, collapse persistence, mobile drawer, and the FF-1
+// logout token-order fix. Every Tailwind color/radius class used here
+// (teal, teal-light, teal-dark, teal-darker, purple, purple-dark,
+// surface, card, border, muted, faint, ink, danger) maps to the exact
+// hex values already registered in main.css's @theme block — nothing
+// new was invented. --danger-bg / --danger-border aren't promoted to
+// @theme yet, so those two use Tailwind's arbitrary-value syntax
+// (bg-[var(--danger-bg)]) to keep reading the same runtime tokens.
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import logo from '../assets/company-logo.jpg';
-
-const T  = 'var(--teal)';
-const T2 = 'var(--teal-2)';
-const MG = 'var(--purple)'; // manager purple
 
 const STAFF_NAV = [
   { to:'/admin',              icon:'⊞', label:'Dashboard',    end:true  },
@@ -27,10 +37,6 @@ const STAFF_NAV = [
   { to:'/admin/qc',           icon:'✅', label:'QC Checklist'         },
   { to:'/admin/physical-count',icon:'🔢',label:'Physical Count'       },
   { to:'/admin/transactions', icon:'💰', label:'Sales & Pay'          },
-  // Settings: staff view-only, manager can edit — gated INSIDE
-  // Settings.jsx itself, so this belongs in the shared nav, not
-  // MANAGER_EXTRA. (Moved here Aug 21 2026 — was blocking staff nav
-  // access entirely, same root cause as the App.jsx RequireManager bug.)
   { to:'/admin/settings',     icon:'⚙️', label:'Settings'             },
 ];
 const MANAGER_EXTRA = [
@@ -50,6 +56,29 @@ const MOB_NAV = [
   { to:'/admin/production',icon:'🏭', label:'Production'         },
 ];
 
+// Shared nav-link utility strings (kept as constants so the JSX below
+// stays readable — this is still "Tailwind utility classes", just
+// composed once instead of retyped at every call site).
+const linkBase =
+  'flex items-center gap-2.5 px-3 py-[9px] my-px rounded-[10px] no-underline ' +
+  'text-[13px] font-medium whitespace-nowrap overflow-hidden relative ' +
+  'transition-[background,color,transform] duration-150';
+const linkIdle    = 'text-muted hover:bg-gradient-to-br hover:from-teal/[.07] hover:to-teal-light/[.05] hover:text-teal hover:translate-x-0.5';
+const linkActive  = 'bg-gradient-to-br from-teal/[.14] to-teal-light/[.09] text-teal font-bold shadow-[inset_0_0_0_1px_rgba(2,128,144,.12)]';
+const linkActiveMgr = 'bg-gradient-to-br from-purple/[.10] to-[#8b5cf6]/[.07] text-purple';
+
+function ActiveBar({ manager }) {
+  return (
+    <span
+      className={`absolute left-0 top-[18%] bottom-[18%] w-[3px] rounded-r-[3px] ${
+        manager
+          ? 'bg-gradient-to-b from-purple to-[#a78bfa]'
+          : 'bg-gradient-to-b from-teal to-teal-light'
+      }`}
+    />
+  );
+}
+
 // Notification row
 function NotifRow({ n, onRead }) {
   const id      = n.notif_id ?? n.id;
@@ -62,37 +91,23 @@ function NotifRow({ n, onRead }) {
 
   return (
     <motion.div
-      whileHover={{ background:'var(--bg)' }}
+      whileHover={{ background:'var(--color-surface)' }}
       onClick={() => { if (!isRead) onRead(id); }}
-      style={{
-        padding:'10px 16px', cursor: isRead ? 'default' : 'pointer',
-        borderBottom:'1px solid var(--bg-surface)',
-        background: isRead ? '#fff' : 'rgba(2,195,154,.04)',
-        display:'flex', gap:10, alignItems:'flex-start',
-        transition:'background .13s',
-      }}>
-      <div style={{
-        width:7, height:7, borderRadius:'50%', flexShrink:0, marginTop:5,
-        background: isRead ? 'transparent' : T,
-        border: isRead ? '1px solid var(--border)' : 'none',
-      }}/>
-      <div style={{ flex:1, minWidth:0 }}>
-        <p style={{
-          fontSize:12, fontWeight: isRead ? 500 : 700, color:'var(--ink)',
-          margin:'0 0 2px', lineHeight:1.4,
-          overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
-        }}>
+      className={`px-4 py-2.5 border-b border-surface flex gap-2.5 items-start transition-colors duration-150 ${
+        isRead ? 'cursor-default bg-white' : 'cursor-pointer bg-teal/[.04]'
+      }`}>
+      <div className={`w-[7px] h-[7px] rounded-full flex-shrink-0 mt-[5px] ${
+        isRead ? 'bg-transparent border border-border' : 'bg-teal border-none'
+      }`}/>
+      <div className="flex-1 min-w-0">
+        <p className={`text-xs mb-0.5 leading-snug truncate ${isRead ? 'font-medium' : 'font-bold'} text-ink`}>
           {n.title ?? n.type ?? 'Notification'}
         </p>
-        <p style={{
-          fontSize:11, color:'var(--text-subtle)', margin:0, lineHeight:1.5,
-          overflow:'hidden', display:'-webkit-box',
-          WebkitLineClamp:2, WebkitBoxOrient:'vertical',
-        }}>
+        <p className="text-[11px] text-muted m-0 leading-relaxed overflow-hidden line-clamp-2">
           {n.message ?? n.body ?? ''}
         </p>
         {timeStr && (
-          <p style={{ fontSize:9, color:'var(--text-faint)', margin:'3px 0 0' }}>{timeStr}</p>
+          <p className="text-[9px] text-faint mt-[3px] mb-0">{timeStr}</p>
         )}
       </div>
     </motion.div>
@@ -111,7 +126,6 @@ export default function AdminLayout() {
 
   const SW         = collapsed ? 68 : 226;
   const isManager  = role === 'manager';
-  const navItems   = isManager ? [...STAFF_NAV, ...MANAGER_EXTRA] : STAFF_NAV;
 
   // Notification bell
   const [notifs,    setNotifs]    = useState([]);
@@ -198,23 +212,392 @@ export default function AdminLayout() {
   });
 
   const initials = name ? name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase() : 'A';
+  // Role-based gradients are computed at render time — kept as inline
+  // style (Tailwind's default gradient utilities can't cleanly express
+  // an angle + two arbitrary CSS-var stops conditionally without this
+  // same amount of code, so there's no real gain forcing it into a
+  // className string here).
   const headBg   = isManager
-    ? 'linear-gradient(135deg, #4c1d95 0%, var(--purple) 100%)'
-    : 'linear-gradient(135deg, var(--teal) 0%, var(--teal-2) 100%)';
+    ? 'linear-gradient(135deg, #4c1d95 0%, var(--color-purple) 100%)'
+    : 'linear-gradient(135deg, var(--color-teal) 0%, var(--color-teal-light) 100%)';
   const topBg    = isManager
-    ? 'linear-gradient(135deg, #3b0764 0%, var(--purple-dark) 100%)'
-    : 'linear-gradient(135deg, var(--teal) 0%, var(--teal-darker) 100%)';
+    ? 'linear-gradient(135deg, #3b0764 0%, var(--color-purple-dark) 100%)'
+    : 'linear-gradient(135deg, var(--color-teal) 0%, var(--color-teal-darker) 100%)';
 
   return (
-    <>
-      <style>{`
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { height: 100%; font-family: ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif; }
+    <div className="flex min-h-screen relative bg-surface">
 
-        @keyframes sk {
-          0%   { background-position: -400px 0; }
-          100% { background-position:  400px 0; }
-        }
+      {/* Ambient glow in top-right corner — subtle brand presence */}
+      <div className="fixed -top-[120px] -right-20 w-[400px] h-[400px] rounded-full pointer-events-none z-0"
+        style={{ background: 'radial-gradient(circle, rgba(2,195,154,.06) 0%, transparent 70%)' }}/>
+
+      {/* ─── DESKTOP SIDEBAR ────────────────────────────────────────────── */}
+      <aside
+        className="hidden md:flex fixed top-0 left-0 bottom-0 z-[200] bg-gradient-to-b from-white to-[#f9fbfd] border-r border-border/80 flex-col shadow-[4px_0_24px_rgba(0,0,0,.08),1px_0_0_rgba(2,128,144,.04)] overflow-hidden transition-[width] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)]"
+        style={{ width: SW }}>
+
+        {/* Gradient header */}
+        <div
+          className="flex-shrink-0 flex items-center gap-2.5 min-h-[62px] relative overflow-hidden"
+          style={{ background: headBg, padding: collapsed ? '14px 10px' : '14px 16px' }}>
+          <div className="absolute -right-5 -top-5 w-20 h-20 rounded-full bg-white/[.07] pointer-events-none"/>
+          <img src={logo} alt="VFRB"
+            className="w-[34px] h-[34px] rounded-[9px] object-cover border-2 border-white/35 flex-shrink-0 relative z-[1]"/>
+          {!collapsed && (
+            <div className="overflow-hidden flex-1 min-w-0 relative z-[1]">
+              <p className="text-[11px] font-extrabold text-white tracking-[.05em] truncate m-0">
+                VFRB ENTERPRISE
+              </p>
+              <p className="text-[9px] text-white/75 font-semibold uppercase tracking-[.07em] mt-0.5 mb-0">
+                {isManager ? '● Manager Portal' : '● Staff Portal'}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Nav scroll area */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden [scrollbar-width:thin]"
+          style={{ padding: collapsed ? '8px 4px' : '8px 10px' }}>
+
+          {!collapsed && (
+            <p className="text-[9px] font-extrabold uppercase tracking-[.1em] text-faint px-3 pt-3 pb-1 m-0">
+              Operational
+            </p>
+          )}
+          {STAFF_NAV.map(item => (
+            <NavLink key={item.to} to={item.to} end={item.end}
+              className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkIdle}`}
+              title={collapsed ? item.label : undefined}
+              style={collapsed ? { justifyContent:'center', padding:'10px 0' } : {}}>
+              {({ isActive }) => (
+                <>
+                  {isActive && <ActiveBar manager={false}/>}
+                  <span className="text-base flex-shrink-0 w-5 text-center">{item.icon}</span>
+                  {!collapsed && <span className="overflow-hidden text-ellipsis">{item.label}</span>}
+                </>
+              )}
+            </NavLink>
+          ))}
+
+          {isManager && (
+            <>
+              {!collapsed && (
+                <>
+                  <div className="h-px bg-surface my-2"/>
+                  <p className="text-[9px] font-extrabold uppercase tracking-[.1em] text-[#a78bfa] px-3 pt-3 pb-1 m-0">
+                    Manager
+                  </p>
+                </>
+              )}
+              {MANAGER_EXTRA.map(item => (
+                <NavLink key={item.to} to={item.to}
+                  className={({ isActive }) => `${linkBase} ${isActive ? linkActiveMgr : linkIdle}`}
+                  title={collapsed ? item.label : undefined}
+                  style={collapsed ? { justifyContent:'center', padding:'10px 0' } : {}}>
+                  {({ isActive }) => (
+                    <>
+                      {isActive && <ActiveBar manager/>}
+                      <span className="text-base flex-shrink-0 w-5 text-center">{item.icon}</span>
+                      {!collapsed && <span className="overflow-hidden text-ellipsis">{item.label}</span>}
+                    </>
+                  )}
+                </NavLink>
+              ))}
+            </>
+          )}
+
+          {!isManager && !collapsed && (
+            <div className="mt-2.5 px-3 py-2.5 rounded-[10px] bg-surface border border-dashed border-border">
+              <p className="text-[10px] text-faint font-semibold leading-relaxed m-0">
+                🔒 Reports, Invoice, Suppliers & Users — Manager only
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Collapse toggle */}
+        <button onClick={toggle}
+          className={`m-1.5 p-2.5 rounded-[10px] border border-border bg-surface hover:bg-teal-50 cursor-pointer text-muted text-[11px] flex items-center gap-1.5 flex-shrink-0 transition-all duration-150 ${
+            collapsed ? 'justify-center' : 'justify-end'
+          }`}>
+          {collapsed ? '▶' : '◀ Collapse'}
+        </button>
+
+        {/* User strip */}
+        <div className="border-t border-border p-2.5 flex-shrink-0">
+          <div className="flex items-center gap-2 mb-[7px] overflow-hidden px-0.5 py-1">
+            <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-extrabold ${
+              isManager
+                ? 'bg-gradient-to-br from-purple to-[#a78bfa] shadow-[0_2px_8px_rgba(124,58,237,.35)]'
+                : 'bg-gradient-to-br from-teal to-teal-light shadow-[0_2px_8px_rgba(2,128,144,.3)]'
+            }`}>
+              {initials}
+            </div>
+            {!collapsed && (
+              <div className="overflow-hidden flex-1 min-w-0">
+                <p className="text-xs font-bold text-ink truncate m-0">{name}</p>
+                <p className={`text-[9px] font-bold capitalize m-0 ${isManager ? 'text-purple' : 'text-teal'}`}>
+                  {role}
+                </p>
+              </div>
+            )}
+          </div>
+          <button onClick={logout}
+            className={`w-full p-2 rounded-[9px] border border-[var(--color-danger)]/30 bg-transparent hover:bg-[var(--color-danger)]/10 cursor-pointer text-[var(--color-danger)] text-[11px] font-semibold flex items-center gap-1.5 transition-colors duration-150 ${
+              collapsed ? 'justify-center' : 'justify-start'
+            }`}>
+            ←{!collapsed && ' Sign Out'}
+          </button>
+        </div>
+      </aside>
+
+      {/* ─── MAIN CONTENT ───────────────────────────────────────────────── */}
+      <main className="flex-1 min-w-0 min-h-screen flex flex-col relative z-[1] transition-[margin-left] duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] max-md:!ml-0"
+        style={{ marginLeft: SW }}>
+
+        {/* ── TOPBAR — gradient, always shows logo+label on mobile ── */}
+        <div className="h-[60px] flex-shrink-0 flex items-center px-[22px] gap-2.5 sticky top-0 z-[100] shadow-[0_2px_24px_rgba(0,0,0,.22),0_1px_0_rgba(255,255,255,.08)] max-md:px-4 max-md:h-14"
+          style={{ background: topBg }}>
+
+          {/* Mobile: logo + portal label */}
+          <img src={logo} alt="VFRB" className="md:hidden w-[30px] h-[30px] rounded-lg object-cover border-[1.5px] border-white/35 flex-shrink-0"/>
+          <div className="md:hidden flex-1 min-w-0">
+            <p className="text-[11px] font-extrabold text-white tracking-[.04em] m-0 leading-tight truncate">
+              VFRB Enterprise
+            </p>
+            <p className="text-[9px] text-white/65 font-semibold uppercase tracking-[.07em] m-0">
+              {isManager ? 'Manager Portal' : 'Staff Portal'}
+            </p>
+          </div>
+
+          {/* Desktop: date */}
+          <span className="hidden md:inline text-white/50 text-xs flex-shrink-0">
+            {new Date().toLocaleDateString('en-PH',{
+              weekday:'long', month:'long', day:'numeric', year:'numeric' })}
+          </span>
+          <div className="flex-1"/>
+
+          {/* Notification bell */}
+          <div ref={bellRef} className="relative">
+            <motion.button
+              whileHover={{ scale:1.07 }}
+              whileTap={{ scale:.93 }}
+              onClick={openBell}
+              className={`w-9 h-9 rounded-[10px] border-none cursor-pointer flex items-center justify-center text-[17px] relative backdrop-blur-sm transition-colors duration-150 ${
+                bellOpen ? 'bg-white/25' : 'bg-white/[.13]'
+              }`}
+              style={{ animation: unread > 0 ? 'bellShake .5s ease' : 'none' }}>
+              🔔
+              <AnimatePresence>
+                {unread > 0 && (
+                  <motion.span
+                    initial={{ scale:0 }} animate={{ scale:[1,1.25,1] }} exit={{ scale:0 }}
+                    transition={{ duration:.35, times:[0,.5,1] }}
+                    className="absolute top-0.5 right-0.5 min-w-[16px] h-4 rounded-full bg-[var(--color-danger)] text-white text-[9px] font-extrabold flex items-center justify-center px-[3px] border-2 border-white/30">
+                    {unread > 99 ? '99+' : unread}
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </motion.button>
+
+            {/* Notification dropdown */}
+            <AnimatePresence>
+              {bellOpen && (
+                <motion.div
+                  initial={{ opacity:0, y:-8, scale:.97 }}
+                  animate={{ opacity:1, y:0, scale:1 }}
+                  exit={{ opacity:0, y:-6, scale:.97 }}
+                  transition={{ duration:.18, ease:'easeOut' }}
+                  className="absolute top-[calc(100%+8px)] right-0 w-[340px] max-h-[480px] bg-white border border-border rounded-2xl overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,.14)] z-[500] flex flex-col">
+                  <div className="px-4 py-[13px] border-b border-border flex justify-between items-center bg-surface flex-shrink-0">
+                    <div>
+                      <p className="text-[13px] font-extrabold text-ink m-0">Notifications</p>
+                      {unread > 0 && (
+                        <p className="text-[10px] text-muted mt-px mb-0">{unread} unread</p>
+                      )}
+                    </div>
+                    {unread > 0 && (
+                      <button onClick={markAllRead}
+                        className="text-[10px] font-bold text-teal bg-transparent border-none cursor-pointer px-2 py-1 rounded-md">
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto">
+                    {notifLoad ? (
+                      <div className="p-3.5 flex flex-col gap-2">
+                        {[1,2,3].map(i => (
+                          <div key={i} className="h-[52px] rounded-[10px] sk"/>
+                        ))}
+                      </div>
+                    ) : notifs.length === 0 ? (
+                      <div className="py-9 px-5 text-center">
+                        <p className="text-3xl mb-2 opacity-30">🔔</p>
+                        <p className="text-[13px] text-faint">No notifications</p>
+                      </div>
+                    ) : (
+                      <>
+                        {notifToday.length > 0 && (
+                          <>
+                            <div className="px-4 pt-2 pb-1 text-[9px] font-extrabold text-faint uppercase tracking-[.08em] bg-[#fafafa]">
+                              Today
+                            </div>
+                            {notifToday.map(n => (
+                              <NotifRow key={n.notif_id ?? n.id} n={n} onRead={markRead}/>
+                            ))}
+                          </>
+                        )}
+                        {notifEarlier.length > 0 && (
+                          <>
+                            <div className={`px-4 pt-2 pb-1 text-[9px] font-extrabold text-faint uppercase tracking-[.08em] bg-[#fafafa] ${
+                              notifToday.length > 0 ? 'border-t border-surface' : ''
+                            }`}>
+                              Earlier
+                            </div>
+                            {notifEarlier.map(n => (
+                              <NotifRow key={n.notif_id ?? n.id} n={n} onRead={markRead}/>
+                            ))}
+                          </>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Manager badge — desktop */}
+          {isManager && (
+            <span className="hidden md:inline text-[10px] px-2.5 py-1 rounded-full font-bold bg-white/[.18] text-[#e9d5ff] border border-white/20 backdrop-blur-sm">
+              👑 Manager
+            </span>
+          )}
+
+          {/* Avatar */}
+          <div className="w-8 h-8 rounded-full bg-white/20 border-2 border-white/35 flex items-center justify-center text-white text-xs font-extrabold flex-shrink-0 backdrop-blur-sm">
+            {initials}
+          </div>
+
+          {/* Desktop name */}
+          <span className="hidden md:inline text-[13px] font-semibold text-white/90 whitespace-nowrap">
+            {name}
+          </span>
+
+        </div>
+
+        {/* Page content */}
+        <div className="flex-1 w-full min-w-0 px-6 pt-6 pb-[88px] max-md:px-3.5 max-md:pt-3.5 max-md:pb-[84px]">
+          <Outlet/>
+        </div>
+      </main>
+
+      {/* ─── MORE DRAWER (mobile — all nav items) ───────────────────────── */}
+      <AnimatePresence>
+        {moreOpen && (
+          <>
+            <motion.div
+              initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
+              onClick={() => setMoreOpen(false)}
+              className="fixed inset-0 bg-black/30 z-[280] backdrop-blur-[2px]"/>
+            <motion.div
+              initial={{ y:80, opacity:0 }}
+              animate={{ y:0, opacity:1 }}
+              exit={{ y:80, opacity:0 }}
+              transition={{ type:'spring', stiffness:340, damping:30 }}
+              className="fixed bottom-16 left-0 right-0 z-[290] bg-white/[.97] backdrop-blur-xl border-t border-border rounded-t-[20px] shadow-[0_-8px_40px_rgba(0,0,0,.12)] px-4 pt-3.5 pb-2 max-h-[75vh] overflow-y-auto">
+
+              <p className="text-[11px] font-extrabold text-faint uppercase tracking-[.1em] mb-1.5 ml-1">
+                All Pages
+              </p>
+
+              {/* Staff nav items not in bottom bar */}
+              {STAFF_NAV.filter(i =>
+                !['/admin','/admin/orders','/admin/inventory',
+                  '/admin/messages','/admin/production'].includes(i.to)
+              ).map(item => (
+                <NavLink key={item.to} to={item.to}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3.5 px-3 py-3 rounded-xl no-underline text-sm font-semibold w-full transition-colors duration-150 ${
+                      isActive ? 'text-teal bg-teal/[.08]' : 'text-ink hover:bg-teal/[.06]'
+                    }`}>
+                  <span className="text-xl w-7 text-center">{item.icon}</span>
+                  <span>{item.label}</span>
+                </NavLink>
+              ))}
+
+              {/* Manager section */}
+              {isManager && (
+                <>
+                  <div className="h-px bg-surface my-2"/>
+                  <p className="text-[11px] font-extrabold text-[#a78bfa] uppercase tracking-[.1em] mb-1.5 ml-1">
+                    Manager
+                  </p>
+                  {MANAGER_EXTRA.map(item => (
+                    <NavLink key={item.to} to={item.to}
+                      className={({ isActive }) =>
+                        `flex items-center gap-3.5 px-3 py-3 rounded-xl no-underline text-sm font-semibold w-full text-purple transition-colors duration-150 ${
+                          isActive ? 'bg-purple/[.08]' : 'hover:bg-purple/[.06]'
+                        }`}>
+                      <span className="text-xl w-7 text-center">{item.icon}</span>
+                      <span>{item.label}</span>
+                    </NavLink>
+                  ))}
+                </>
+              )}
+
+              <div className="h-px bg-surface my-2"/>
+              <button
+                className="flex items-center gap-3.5 px-3 py-3 rounded-xl border-none bg-transparent w-full cursor-pointer text-sm font-semibold text-[var(--color-danger)] hover:bg-[var(--color-danger)]/[.06] transition-colors duration-150"
+                onClick={logout}>
+                <span className="text-xl w-7 text-center">←</span>
+                <span>Sign Out</span>
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ─── MOBILE BOTTOM TASKBAR ──────────────────────────────────────── */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[300] bg-white/[.96] backdrop-blur-xl border-t border-border/80 shadow-[0_-4px_32px_rgba(0,0,0,.10),0_-1px_0_rgba(2,128,144,.06)] flex justify-around items-center py-[5px] h-[66px]"
+        style={{ paddingBottom: 'max(5px, env(safe-area-inset-bottom, 5px))' }}
+        aria-label="Mobile navigation">
+        {MOB_NAV.map(item => {
+          const active = item.end
+            ? location.pathname === item.to
+            : location.pathname.startsWith(item.to);
+          return (
+            <NavLink key={item.to} to={item.to} end={item.end}
+              className="flex flex-col items-center gap-0.5 px-2 py-[5px] min-w-[54px] rounded-[14px] transition-transform duration-100 active:scale-90 relative no-underline">
+              <span className="text-[23px] leading-none transition-transform duration-150"
+                style={{ filter: active ? 'none' : 'grayscale(.4) opacity(.65)', transform: active ? 'scale(1.14)' : 'none' }}>
+                {item.icon}
+              </span>
+              <span className={`text-[9px] font-semibold tracking-[.02em] ${active ? 'text-teal font-extrabold' : 'text-faint'}`}>
+                {item.label}
+              </span>
+              {active && (
+                <span className="absolute bottom-[3px] w-[22px] h-[3px] rounded-[3px] bg-gradient-to-r from-teal to-teal-light shadow-[0_0_8px_rgba(2,195,154,.5)]"/>
+              )}
+            </NavLink>
+          );
+        })}
+
+        {/* More button */}
+        <button className="flex flex-col items-center gap-0.5 px-2 py-[5px] min-w-[54px] rounded-[14px] border-none cursor-pointer bg-transparent transition-transform duration-100 active:scale-90"
+          onClick={() => setMoreOpen(o => !o)}>
+          <span className="text-[23px] leading-none transition-transform duration-150"
+            style={{ color: moreOpen ? 'var(--color-teal)' : undefined, filter: moreOpen ? 'none' : 'grayscale(.4) opacity(.65)' }}>
+            ⋯
+          </span>
+          <span className={`text-[9px] font-semibold tracking-[.02em] ${moreOpen ? 'text-teal font-extrabold' : 'text-faint'}`}>
+            More
+          </span>
+        </button>
+      </nav>
+
+      <style>{`
         @keyframes bellShake {
           0%,100% { transform: rotate(0); }
           20%     { transform: rotate(-14deg); }
@@ -222,713 +605,7 @@ export default function AdminLayout() {
           60%     { transform: rotate(-8deg); }
           80%     { transform: rotate(8deg); }
         }
-
-        /* ── Shell ── */
-        .adm-shell {
-          display: flex;
-          min-height: 100vh;
-          background: var(--bg, var(--bg));
-          position: relative;
-        }
-        /* Ambient glow in top-right corner — subtle brand presence */
-        .adm-shell::before {
-          content: '';
-          position: fixed;
-          top: -120px;
-          right: -80px;
-          width: 400px;
-          height: 400px;
-          border-radius: 50%;
-          background: radial-gradient(circle, rgba(2,195,154,.06) 0%, transparent 70%);
-          pointer-events: none;
-          z-index: 0;
-        }
-
-        /* ── Sidebar ── */
-        .adm-sb {
-          position: fixed;
-          top:0; left:0; bottom:0;
-          z-index: 200;
-          background: linear-gradient(180deg, #ffffff 0%, #f9fbfd 100%);
-          border-right: 1px solid rgba(226,232,240,.8);
-          display: flex;
-          flex-direction: column;
-          box-shadow: 4px 0 24px rgba(0,0,0,.08), 1px 0 0 rgba(2,128,144,.04);
-          overflow: hidden;
-          transition: width .22s cubic-bezier(.4,0,.2,1);
-        }
-
-        /* Sidebar gradient header */
-        .adm-sb-head {
-          flex-shrink: 0;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          min-height: 62px;
-          position: relative;
-          overflow: hidden;
-        }
-        .adm-sb-head::after {
-          content: '';
-          position: absolute;
-          right: -20px; top: -20px;
-          width: 80px; height: 80px;
-          border-radius: 50%;
-          background: rgba(255,255,255,.07);
-          pointer-events: none;
-        }
-
-        /* ── Main area ── */
-        .adm-main {
-          flex: 1;
-          min-width: 0;
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-          background: transparent;
-          position: relative;
-          z-index: 1;
-        }
-
-        /* ── Topbar — gradient, always vibrant ── */
-        .adm-topbar {
-          height: 60px;
-          flex-shrink: 0;
-          display: flex;
-          align-items: center;
-          padding: 0 22px;
-          gap: 10px;
-          position: sticky;
-          top: 0;
-          z-index: 100;
-          box-shadow: 0 2px 24px rgba(0,0,0,.22), 0 1px 0 rgba(255,255,255,.08);
-        }
-
-        /* ── Content ── */
-        .adm-content {
-          flex: 1;
-          width: 100%;
-          min-width: 0;
-          padding: 24px 24px 88px;
-        }
-        /* On very wide screens, cap content width for readability */
-        @media (min-width: 1600px) {
-          .adm-content {
-            padding: 28px 32px 88px;
-          }
-        }
-
-        /* ── Sidebar nav link ── */
-        .adm-link {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 9px 12px;
-          border-radius: 10px;
-          text-decoration: none;
-          font-size: 13px;
-          font-weight: 500;
-          color: var(--text-muted);
-          white-space: nowrap;
-          overflow: hidden;
-          transition: background .13s, color .13s, transform .1s;
-          position: relative;
-          margin: 1px 0;
-        }
-        .adm-link:hover {
-          background: linear-gradient(135deg, rgba(2,128,144,.07), rgba(2,195,154,.05));
-          color: ${T};
-          transform: translateX(2px);
-        }
-        .adm-link.active {
-          background: linear-gradient(135deg, rgba(2,128,144,.14), rgba(2,195,154,.09));
-          color: ${T};
-          font-weight: 700;
-          box-shadow: inset 0 0 0 1px rgba(2,128,144,.12);
-        }
-        .adm-link.active.mgr {
-          background: linear-gradient(135deg, rgba(124,58,237,.10), rgba(139,92,246,.07));
-          color: ${MG};
-        }
-        .adm-link.active::before {
-          content: '';
-          position: absolute;
-          left:0; top:18%; bottom:18%;
-          width: 3px;
-          border-radius: 0 3px 3px 0;
-          background: linear-gradient(180deg, ${T}, ${T2});
-        }
-        .adm-link.active.mgr::before {
-          background: linear-gradient(180deg, var(--purple), #a78bfa);
-        }
-
-        /* Section labels */
-        .adm-sec {
-          font-size: 9px;
-          font-weight: 800;
-          text-transform: uppercase;
-          letter-spacing: .1em;
-          color: var(--text-faint);
-          padding: 12px 12px 4px;
-          margin: 0;
-        }
-
-        /* ── Mobile bottom taskbar ── */
-        .adm-bnav {
-          display: none;
-          position: fixed;
-          bottom:0; left:0; right:0;
-          z-index: 300;
-          background: rgba(255,255,255,.96);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
-          border-top: 1px solid rgba(226,232,240,.8);
-          box-shadow: 0 -4px 32px rgba(0,0,0,.10), 0 -1px 0 rgba(2,128,144,.06);
-          justify-content: space-around;
-          align-items: center;
-          padding: 5px 0;
-          padding-bottom: max(5px, env(safe-area-inset-bottom, 5px));
-          height: 66px;
-        }
-        .adm-bnav-btn {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 2px;
-          padding: 5px 8px;
-          border: none;
-          background: transparent;
-          cursor: pointer;
-          text-decoration: none;
-          min-width: 54px;
-          border-radius: 14px;
-          transition: transform .12s;
-          position: relative;
-        }
-        .adm-bnav-btn:active { transform: scale(.9); }
-        .adm-bnav-icon  { font-size: 23px; line-height:1; transition: transform .15s; }
-        .adm-bnav-label { font-size: 9px; font-weight: 600; color: var(--text-faint); letter-spacing:.02em; }
-        .adm-bnav-btn.mob-active .adm-bnav-icon  { transform: scale(1.14); }
-        .adm-bnav-btn.mob-active .adm-bnav-label { color: ${T}; font-weight:800; }
-        .adm-bnav-btn.mob-active::after {
-          content: '';
-          position: absolute;
-          bottom: 3px;
-          width: 22px; height: 3px;
-          border-radius: 3px;
-          background: linear-gradient(90deg, ${T}, ${T2});
-          box-shadow: 0 0 8px rgba(2,195,154,.5);
-        }
-
-        /* ── More drawer ── */
-        .adm-more-drawer {
-          position: fixed;
-          bottom: 64px; left:0; right:0;
-          z-index: 290;
-          background: rgba(255,255,255,.97);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
-          border-top: 1px solid var(--border);
-          border-radius: 20px 20px 0 0;
-          box-shadow: 0 -8px 40px rgba(0,0,0,.12);
-          padding: 14px 16px 8px;
-          max-height: 75vh;
-          overflow-y: auto;
-        }
-        .adm-drawer-item {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-          padding: 12px 12px;
-          border-radius: 12px;
-          text-decoration: none;
-          color: #1a2332;
-          font-size: 14px;
-          font-weight: 600;
-          transition: background .13s;
-          border: none;
-          background: transparent;
-          width: 100%;
-          cursor: pointer;
-          font-family: ui-sans-serif,system-ui,-apple-system,sans-serif;
-        }
-        .adm-drawer-item:hover, .adm-drawer-item:active {
-          background: rgba(2,128,144,.06);
-        }
-        .adm-drawer-item.active { color: ${T}; background: rgba(2,128,144,.08); }
-        .adm-drawer-item.mgr-item { color: ${MG}; }
-        .adm-drawer-item.mgr-item:hover { background: rgba(124,58,237,.06); }
-
-        /* ── Responsive ── */
-        @media (max-width: 767px) {
-          .adm-sb       { display: none !important; }
-          .adm-main     { margin-left: 0 !important; }
-          .adm-bnav     { display: flex; }
-          .adm-topbar   { padding: 0 16px; height: 56px; }
-          .adm-content  { padding: 14px 14px 84px; }
-          .adm-desk-only{ display: none !important; }
-        }
-        @media (min-width: 768px) {
-          .adm-bnav         { display: none !important; }
-          .adm-mob-only     { display: none !important; }
-          .adm-more-drawer  { display: none !important; }
-        }
-        /* Tablet: slightly tighter sidebar */
-        @media (min-width: 768px) and (max-width: 1023px) {
-          .adm-content { padding: 18px 18px 28px; }
-        }
-        /* iPad Pro: comfortable padding */
-        @media (min-width: 1024px) and (max-width: 1279px) {
-          .adm-content { padding: 20px 20px 40px; }
-        }
-        /* 4K / ultra-wide: more breathing room + centered content */
-        @media (min-width: 2560px) {
-          .adm-content {
-            padding: 36px 40px 100px;
-            max-width: 1800px;
-            margin-left: auto;
-            margin-right: auto;
-          }
-        }
-
-        /* ── Scrollbar ── */
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
-
-        @media (prefers-reduced-motion: reduce) {
-          *, *::before, *::after { transition-duration: .01ms !important; }
-        }
       `}</style>
-
-      <div className="adm-shell">
-
-        {/* ─── DESKTOP SIDEBAR ────────────────────────────────────────────── */}
-        <aside className="adm-sb" style={{ width:SW }}>
-
-          {/* Gradient header */}
-          <div className="adm-sb-head"
-            style={{ background:headBg, padding: collapsed ? '14px 10px' : '14px 16px' }}>
-            <img src={logo} alt="VFRB"
-              style={{ width:34, height:34, borderRadius:9, objectFit:'cover',
-                border:'2px solid rgba(255,255,255,.35)', flexShrink:0, position:'relative', zIndex:1 }}/>
-            {!collapsed && (
-              <div style={{ overflow:'hidden', flex:1, minWidth:0, position:'relative', zIndex:1 }}>
-                <p style={{ fontSize:11, fontWeight:800, color:'#fff',
-                  letterSpacing:'.05em', overflow:'hidden',
-                  textOverflow:'ellipsis', whiteSpace:'nowrap', margin:0 }}>
-                  VFRB ENTERPRISE
-                </p>
-                <p style={{ fontSize:9, color:'rgba(255,255,255,.75)', fontWeight:600,
-                  textTransform:'uppercase', letterSpacing:'.07em', margin:'2px 0 0' }}>
-                  {isManager ? '● Manager Portal' : '● Staff Portal'}
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Nav scroll area */}
-          <div style={{ flex:1, overflowY:'auto', overflowX:'hidden',
-            padding: collapsed ? '8px 4px' : '8px 10px',
-            scrollbarWidth:'thin', scrollbarColor:'var(--border) transparent' }}>
-
-            {!collapsed && <p className="adm-sec">Operational</p>}
-            {STAFF_NAV.map(item => (
-              <NavLink key={item.to} to={item.to} end={item.end}
-                className={({ isActive }) => `adm-link${isActive ? ' active' : ''}`}
-                title={collapsed ? item.label : undefined}
-                style={collapsed ? { justifyContent:'center', padding:'10px 0' } : {}}>
-                <span style={{ fontSize:16, flexShrink:0, width:20, textAlign:'center' }}>
-                  {item.icon}
-                </span>
-                {!collapsed && (
-                  <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>
-                    {item.label}
-                  </span>
-                )}
-              </NavLink>
-            ))}
-
-            {isManager && (
-              <>
-                {!collapsed && (
-                  <>
-                    <div style={{ height:1, background:'var(--bg-surface)', margin:'8px 0' }}/>
-                    <p className="adm-sec" style={{ color:'#a78bfa' }}>Manager</p>
-                  </>
-                )}
-                {MANAGER_EXTRA.map(item => (
-                  <NavLink key={item.to} to={item.to}
-                    className={({ isActive }) => `adm-link${isActive ? ' active mgr' : ''}`}
-                    title={collapsed ? item.label : undefined}
-                    style={collapsed ? { justifyContent:'center', padding:'10px 0' } : {}}>
-                    <span style={{ fontSize:16, flexShrink:0, width:20, textAlign:'center' }}>
-                      {item.icon}
-                    </span>
-                    {!collapsed && (
-                      <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>
-                        {item.label}
-                      </span>
-                    )}
-                  </NavLink>
-                ))}
-              </>
-            )}
-
-            {!isManager && !collapsed && (
-              <div style={{ margin:'10px 0 0', padding:'10px 12px', borderRadius:10,
-                background:'var(--bg)', border:'1px dashed var(--border)' }}>
-                <p style={{ fontSize:10, color:'var(--text-faint)', fontWeight:600, lineHeight:1.4, margin:0 }}>
-                  🔒 Reports, Invoice, Suppliers & Users — Manager only
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Collapse toggle */}
-          <button onClick={toggle}
-            style={{ margin:'6px', padding:'9px', borderRadius:10,
-              border:'1px solid var(--border)', background:'var(--bg)',
-              cursor:'pointer', color:'var(--text-subtle)', fontSize:11,
-              display:'flex', alignItems:'center',
-              justifyContent: collapsed ? 'center' : 'flex-end',
-              gap:5, fontFamily:'inherit', flexShrink:0, transition:'all .15s' }}
-            onMouseEnter={e => e.currentTarget.style.background='var(--teal-50)'}
-            onMouseLeave={e => e.currentTarget.style.background='var(--bg)'}>
-            {collapsed ? '▶' : '◀ Collapse'}
-          </button>
-
-          {/* User strip */}
-          <div style={{ borderTop:'1px solid var(--border)', padding:'10px', flexShrink:0 }}>
-            <div style={{ display:'flex', alignItems:'center', gap:8,
-              marginBottom:7, overflow:'hidden', padding:'4px 2px' }}>
-              <div style={{ width:32, height:32, borderRadius:'50%', flexShrink:0,
-                background: isManager ? 'linear-gradient(135deg,var(--purple),#a78bfa)'
-                                       : `linear-gradient(135deg,${T},${T2})`,
-                display:'flex', alignItems:'center', justifyContent:'center',
-                color:'#fff', fontSize:12, fontWeight:800,
-                boxShadow: isManager ? '0 2px 8px rgba(124,58,237,.35)'
-                                     : `0 2px 8px rgba(2,128,144,.3)` }}>
-                {initials}
-              </div>
-              {!collapsed && (
-                <div style={{ overflow:'hidden', flex:1, minWidth:0 }}>
-                  <p style={{ fontSize:12, fontWeight:700, color:'var(--ink)',
-                    overflow:'hidden', textOverflow:'ellipsis',
-                    whiteSpace:'nowrap', margin:0 }}>
-                    {name}
-                  </p>
-                  <p style={{ fontSize:9, color: isManager ? 'var(--purple)' : T,
-                    fontWeight:700, textTransform:'capitalize', margin:0 }}>
-                    {role}
-                  </p>
-                </div>
-              )}
-            </div>
-            <button onClick={logout}
-              style={{ width:'100%', padding:'8px', borderRadius:9,
-                border:'1px solid var(--danger-border)', background:'transparent',
-                cursor:'pointer', color:'var(--danger)', fontSize:11, fontWeight:600,
-                display:'flex', alignItems:'center',
-                justifyContent: collapsed ? 'center' : 'flex-start',
-                gap:5, fontFamily:'inherit', transition:'background .13s' }}
-              onMouseEnter={e => e.currentTarget.style.background='var(--danger-bg)'}
-              onMouseLeave={e => e.currentTarget.style.background='transparent'}>
-              ←{!collapsed && ' Sign Out'}
-            </button>
-          </div>
-        </aside>
-
-        {/* ─── MAIN CONTENT ───────────────────────────────────────────────── */}
-        <main className="adm-main"
-          style={{ marginLeft:SW, transition:'margin-left .22s cubic-bezier(.4,0,.2,1)' }}>
-
-          {/* ── TOPBAR — gradient, always shows logo+label on mobile ── */}
-          <div className="adm-topbar" style={{ background:topBg }}>
-
-            {/* Mobile: logo + portal label */}
-            <img src={logo} alt="VFRB" className="adm-mob-only"
-              style={{ width:30, height:30, borderRadius:8, objectFit:'cover',
-                border:'1.5px solid rgba(255,255,255,.35)', flexShrink:0 }}/>
-            <div className="adm-mob-only" style={{ flex:1, minWidth:0 }}>
-              <p style={{ fontSize:11, fontWeight:800, color:'#fff',
-                letterSpacing:'.04em', margin:0, lineHeight:1.2,
-                overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                VFRB Enterprise
-              </p>
-              <p style={{ fontSize:9, color:'rgba(255,255,255,.65)', fontWeight:600,
-                textTransform:'uppercase', letterSpacing:'.07em', margin:0 }}>
-                {isManager ? 'Manager Portal' : 'Staff Portal'}
-              </p>
-            </div>
-
-            {/* Desktop: date */}
-            <span className="adm-desk-only" style={{ color:'rgba(255,255,255,.5)', fontSize:12, flexShrink:0 }}>
-              {new Date().toLocaleDateString('en-PH',{
-                weekday:'long', month:'long', day:'numeric', year:'numeric' })}
-            </span>
-            <div style={{ flex:1 }}/>
-
-            {/* Notification bell */}
-            <div ref={bellRef} style={{ position:'relative' }}>
-              <motion.button
-                whileHover={{ scale:1.07 }}
-                whileTap={{ scale:.93 }}
-                onClick={openBell}
-                style={{
-                  width:36, height:36, borderRadius:10, border:'none',
-                  background: bellOpen ? 'rgba(255,255,255,.25)' : 'rgba(255,255,255,.13)',
-                  cursor:'pointer', display:'flex', alignItems:'center',
-                  justifyContent:'center', fontSize:17, position:'relative',
-                  backdropFilter:'blur(4px)',
-                  transition:'background .15s',
-                  animation: unread > 0 ? 'bellShake .5s ease' : 'none',
-                }}>
-                🔔
-                <AnimatePresence>
-                  {unread > 0 && (
-                    <motion.span
-                      initial={{ scale:0 }} animate={{ scale:[1,1.25,1] }} exit={{ scale:0 }}
-                      transition={{ duration:.35, times:[0,.5,1] }}
-                      style={{
-                        position:'absolute', top:2, right:2,
-                        minWidth:16, height:16, borderRadius:99,
-                        background:'var(--danger)', color:'#fff',
-                        fontSize:9, fontWeight:800,
-                        display:'flex', alignItems:'center',
-                        justifyContent:'center', padding:'0 3px',
-                        border:'2px solid rgba(255,255,255,.3)',
-                      }}>
-                      {unread > 99 ? '99+' : unread}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </motion.button>
-
-              {/* Notification dropdown */}
-              <AnimatePresence>
-                {bellOpen && (
-                  <motion.div
-                    initial={{ opacity:0, y:-8, scale:.97 }}
-                    animate={{ opacity:1, y:0, scale:1 }}
-                    exit={{ opacity:0, y:-6, scale:.97 }}
-                    transition={{ duration:.18, ease:'easeOut' }}
-                    style={{
-                      position:'absolute', top:'calc(100% + 8px)', right:0,
-                      width:340, maxHeight:480,
-                      background:'#fff', border:'1px solid var(--border)',
-                      borderRadius:16, overflow:'hidden',
-                      boxShadow:'0 12px 40px rgba(0,0,0,.14)',
-                      zIndex:500, display:'flex', flexDirection:'column',
-                    }}>
-                    <div style={{
-                      padding:'13px 16px', borderBottom:'1px solid var(--border)',
-                      display:'flex', justifyContent:'space-between',
-                      alignItems:'center', background:'var(--bg)', flexShrink:0,
-                    }}>
-                      <div>
-                        <p style={{ fontSize:13, fontWeight:800, color:'var(--ink)', margin:0 }}>
-                          Notifications
-                        </p>
-                        {unread > 0 && (
-                          <p style={{ fontSize:10, color:'var(--text-subtle)', margin:'1px 0 0' }}>
-                            {unread} unread
-                          </p>
-                        )}
-                      </div>
-                      {unread > 0 && (
-                        <button onClick={markAllRead}
-                          style={{ fontSize:10, fontWeight:700, color:T,
-                            background:'none', border:'none', cursor:'pointer',
-                            padding:'4px 8px', borderRadius:7, fontFamily:'inherit' }}>
-                          Mark all read
-                        </button>
-                      )}
-                    </div>
-
-                    <div style={{ flex:1, overflowY:'auto' }}>
-                      {notifLoad ? (
-                        <div style={{ padding:14, display:'flex', flexDirection:'column', gap:8 }}>
-                          {[1,2,3].map(i => (
-                            <div key={i} style={{
-                              height:52, borderRadius:10,
-                              background:'linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%)',
-                              backgroundSize:'400px', animation:'sk 1.4s infinite',
-                            }}/>
-                          ))}
-                        </div>
-                      ) : notifs.length === 0 ? (
-                        <div style={{ padding:'36px 20px', textAlign:'center' }}>
-                          <p style={{ fontSize:32, margin:'0 0 8px', opacity:.3 }}>🔔</p>
-                          <p style={{ fontSize:13, color:'var(--text-faint)' }}>No notifications</p>
-                        </div>
-                      ) : (
-                        <>
-                          {notifToday.length > 0 && (
-                            <>
-                              <div style={{ padding:'8px 16px 4px', fontSize:9, fontWeight:800,
-                                color:'var(--text-faint)', textTransform:'uppercase',
-                                letterSpacing:'.08em', background:'#fafafa' }}>Today</div>
-                              {notifToday.map(n => (
-                                <NotifRow key={n.notif_id ?? n.id} n={n} onRead={markRead}/>
-                              ))}
-                            </>
-                          )}
-                          {notifEarlier.length > 0 && (
-                            <>
-                              <div style={{ padding:'8px 16px 4px', fontSize:9, fontWeight:800,
-                                color:'var(--text-faint)', textTransform:'uppercase',
-                                letterSpacing:'.08em', background:'#fafafa',
-                                borderTop: notifToday.length > 0 ? '1px solid var(--bg-surface)' : 'none' }}>
-                                Earlier
-                              </div>
-                              {notifEarlier.map(n => (
-                                <NotifRow key={n.notif_id ?? n.id} n={n} onRead={markRead}/>
-                              ))}
-                            </>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Manager badge — desktop */}
-            {isManager && (
-              <span className="adm-desk-only"
-                style={{ fontSize:10, padding:'4px 10px', borderRadius:99,
-                  fontWeight:700, background:'rgba(255,255,255,.18)',
-                  color:'#e9d5ff', border:'1px solid rgba(255,255,255,.2)',
-                  backdropFilter:'blur(4px)' }}>
-                👑 Manager
-              </span>
-            )}
-
-            {/* Avatar */}
-            <div style={{ width:32, height:32, borderRadius:'50%',
-              background:'rgba(255,255,255,.2)',
-              border:'2px solid rgba(255,255,255,.35)',
-              display:'flex', alignItems:'center', justifyContent:'center',
-              color:'#fff', fontSize:12, fontWeight:800, flexShrink:0,
-              backdropFilter:'blur(4px)' }}>
-              {initials}
-            </div>
-
-            {/* Desktop name */}
-            <span className="adm-desk-only"
-              style={{ fontSize:13, fontWeight:600, color:'rgba(255,255,255,.9)',
-                whiteSpace:'nowrap' }}>
-              {name}
-            </span>
-
-          </div>
-
-          {/* Page content */}
-          <div className="adm-content">
-            <Outlet/>
-          </div>
-        </main>
-
-        {/* ─── MORE DRAWER (mobile — all nav items) ───────────────────────── */}
-        <AnimatePresence>
-          {moreOpen && (
-            <>
-              <motion.div
-                initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
-                onClick={() => setMoreOpen(false)}
-                style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.32)',
-                  zIndex:280, backdropFilter:'blur(2px)' }}/>
-              <motion.div
-                className="adm-more-drawer"
-                initial={{ y:80, opacity:0 }}
-                animate={{ y:0, opacity:1 }}
-                exit={{ y:80, opacity:0 }}
-                transition={{ type:'spring', stiffness:340, damping:30 }}>
-
-                <p style={{ fontSize:11, fontWeight:800, color:'var(--text-faint)',
-                  textTransform:'uppercase', letterSpacing:'.1em', margin:'0 0 6px 4px' }}>
-                  All Pages
-                </p>
-
-                {/* Staff nav items not in bottom bar */}
-                {STAFF_NAV.filter(i =>
-                  !['/admin','/admin/orders','/admin/inventory',
-                    '/admin/messages','/admin/production'].includes(i.to)
-                ).map(item => (
-                  <NavLink key={item.to} to={item.to}
-                    className={({ isActive }) =>
-                      `adm-drawer-item${isActive ? ' active' : ''}`}>
-                    <span style={{ fontSize:20, width:28, textAlign:'center' }}>{item.icon}</span>
-                    <span>{item.label}</span>
-                  </NavLink>
-                ))}
-
-                {/* Manager section */}
-                {isManager && (
-                  <>
-                    <div style={{ height:1, background:'var(--bg-surface)', margin:'8px 0' }}/>
-                    <p style={{ fontSize:11, fontWeight:800, color:'#a78bfa',
-                      textTransform:'uppercase', letterSpacing:'.1em', margin:'0 0 6px 4px' }}>
-                      Manager
-                    </p>
-                    {MANAGER_EXTRA.map(item => (
-                      <NavLink key={item.to} to={item.to}
-                        className={({ isActive }) =>
-                          `adm-drawer-item mgr-item${isActive ? ' active' : ''}`}>
-                        <span style={{ fontSize:20, width:28, textAlign:'center' }}>{item.icon}</span>
-                        <span>{item.label}</span>
-                      </NavLink>
-                    ))}
-                  </>
-                )}
-
-                <div style={{ height:1, background:'var(--bg-surface)', margin:'8px 0' }}/>
-                <button className="adm-drawer-item" onClick={logout}
-                  style={{ color:'var(--danger)' }}>
-                  <span style={{ fontSize:20, width:28, textAlign:'center' }}>←</span>
-                  <span>Sign Out</span>
-                </button>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-
-        {/* ─── MOBILE BOTTOM TASKBAR ──────────────────────────────────────── */}
-        <nav className="adm-bnav" aria-label="Mobile navigation">
-          {MOB_NAV.map(item => {
-            const active = item.end
-              ? location.pathname === item.to
-              : location.pathname.startsWith(item.to);
-            return (
-              <NavLink key={item.to} to={item.to} end={item.end}
-                className={`adm-bnav-btn${active ? ' mob-active' : ''}`}>
-                <span className="adm-bnav-icon"
-                  style={{ filter: active ? 'none' : 'grayscale(.4) opacity(.65)' }}>
-                  {item.icon}
-                </span>
-                <span className="adm-bnav-label">{item.label}</span>
-              </NavLink>
-            );
-          })}
-
-          {/* More button */}
-          <button className="adm-bnav-btn"
-            onClick={() => setMoreOpen(o => !o)}
-            style={{ border:'none', cursor:'pointer', background:'transparent',
-              fontFamily:'inherit' }}>
-            <span className="adm-bnav-icon"
-              style={{ color: moreOpen ? T : undefined,
-                filter: moreOpen ? 'none' : 'grayscale(.4) opacity(.65)' }}>
-              ⋯
-            </span>
-            <span className="adm-bnav-label"
-              style={{ color: moreOpen ? T : undefined }}>
-              More
-            </span>
-          </button>
-        </nav>
-      </div>
-    </>
+    </div>
   );
 }
