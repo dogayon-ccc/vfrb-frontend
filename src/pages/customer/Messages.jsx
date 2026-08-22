@@ -20,7 +20,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence }                   from 'framer-motion';
 import axios                                         from 'axios';
 
-const T    = '#028090';
+const T    = 'var(--teal)';
 const T2   = '#02C39A';
 const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif`;
 

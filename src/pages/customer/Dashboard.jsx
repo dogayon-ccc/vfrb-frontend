@@ -24,7 +24,7 @@ import { motion, AnimatePresence }                   from 'framer-motion';
 import axios                                         from 'axios';
 import { cacheGet, cacheSet, cacheClear, TTL }       from '../../utils/cache';
 
-const T    = '#028090';
+const T    = 'var(--teal)';
 const T2   = '#02C39A';
 const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif`;
 
@@ -459,7 +459,7 @@ export default function CustomerDashboard() {
             style={{
               margin:'0 0 18px', padding:'16px 22px',
               borderRadius:14, display:'flex', alignItems:'center', gap:14,
-              background:'linear-gradient(135deg,#028090,#02C39A)',
+              background:'linear-gradient(135deg,var(--teal),var(--teal-2))',
               boxShadow:'0 6px 24px rgba(2,128,144,.3)',
             }}
           >

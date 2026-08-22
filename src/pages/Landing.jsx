@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, useInView, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import logo from '../assets/company-logo.jpg';
+import Footer from '../components/Footer';
 
 const T = {
   teal:   '#028090',
@@ -169,49 +170,10 @@ export default function Landing() {
     }, 60); // 60ms delay lets menu close animation complete first
   };
 
-  // ── FOOTER STYLES ──
-const iconStyle = {
-  width:36,
-  height:36,
-  display:'flex',
-  alignItems:'center',
-  justifyContent:'center',
-  borderRadius:10,
-  background:'rgba(255,255,255,0.05)',
-  border:'1px solid rgba(255,255,255,0.12)',
-  color:'#fff',
-  textDecoration:'none',
-  fontWeight:700,
-  transition:'all .2s'
-};
-
-const footerHead = {
-  fontSize:10,
-  fontWeight:600,
-  letterSpacing:'0.1em',
-  textTransform:'uppercase',
-  color:'rgba(255,255,255,0.28)',
-  marginBottom:16
-};
-
-const footerLink = {
-  display:'block',
-  background:'none',
-  border:'none',
-  color:'rgba(255,255,255,0.5)',
-  fontSize:14,
-  cursor:'pointer',
-  textAlign:'left',
-  padding:'6px 0',
-  fontFamily:"'DM Sans',sans-serif",
-  transition:'all .2s'
-};
-
   return (
-    <div style={{ fontFamily:"'DM Sans',sans-serif", background:T.dark, color:'#fff',
+    <div style={{ fontFamily:'var(--font)', background:T.dark, color:'#fff',
       minHeight:'100vh', overflowX:'hidden' }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap');
         *,*::before,*::after{box-sizing:border-box;}
         html{scroll-behavior:smooth;}
         body{margin:0;background:${T.dark};}
@@ -308,7 +270,7 @@ const footerLink = {
                 border:'2px solid rgba(2,195,154,0.35)', flexShrink:0 }}/>
             <div style={{ textAlign:'left' }}>
               <p style={{ color:'#fff', fontWeight:700, fontSize:13, lineHeight:1,
-                fontFamily:"'Cormorant Garamond',serif", whiteSpace:'nowrap' }}>
+                fontFamily:"Georgia,'Times New Roman',serif", whiteSpace:'nowrap' }}>
                 VFRB Enterprise
               </p>
               <p style={{ color:'rgba(255,255,255,0.32)', fontSize:10, marginTop:2,
@@ -325,7 +287,7 @@ const footerLink = {
                 onClick={() => scrollTo(n.id)}
                 style={{ background:'none', border:'none', color:'rgba(255,255,255,0.5)',
                   fontSize:14, cursor:'pointer', padding:'6px 0',
-                  fontFamily:"'DM Sans',sans-serif", transition:'color .2s' }}>
+                  fontFamily:'var(--font)', transition:'color .2s' }}>
                 {n.label}
               </button>
             ))}
@@ -337,7 +299,7 @@ const footerLink = {
               onClick={() => go('/login')}
               style={{ background:'none', border:'1px solid rgba(255,255,255,0.14)',
                 color:'rgba(255,255,255,0.6)', fontSize:13, cursor:'pointer',
-                padding:'9px 18px', borderRadius:9, fontFamily:"'DM Sans',sans-serif",
+                padding:'9px 18px', borderRadius:9, fontFamily:'var(--font)',
                 minHeight:40, whiteSpace:'nowrap' }}
               onMouseEnter={e => { e.currentTarget.style.borderColor='rgba(255,255,255,0.3)'; e.currentTarget.style.color='#fff'; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor='rgba(255,255,255,0.14)'; e.currentTarget.style.color='rgba(255,255,255,0.6)'; }}>
@@ -349,7 +311,7 @@ const footerLink = {
                 border:'none', color:'#fff', fontSize:13, fontWeight:600,
                 padding:'9px 20px', borderRadius:9, cursor:'pointer',
                 boxShadow:'0 4px 18px rgba(2,195,154,0.3)',
-                fontFamily:"'DM Sans',sans-serif", minHeight:40, whiteSpace:'nowrap' }}>
+                fontFamily:'var(--font)', minHeight:40, whiteSpace:'nowrap' }}>
               Get Started →
             </motion.button>
           </div>
@@ -408,7 +370,7 @@ const footerLink = {
                       textAlign:'left', background:'none', border:'none',
                       color:'rgba(255,255,255,0.7)', fontSize:16, fontWeight:500,
                       padding:'14px 4px', cursor:'pointer',
-                      fontFamily:"'DM Sans',sans-serif",
+                      fontFamily:'var(--font)',
                       borderBottom:'1px solid rgba(255,255,255,0.05)',
                       minHeight:48 }}
                     onTouchStart={e => e.currentTarget.style.color='#fff'}
@@ -425,14 +387,14 @@ const footerLink = {
                       border:'1px solid rgba(255,255,255,0.15)',
                       background:'rgba(255,255,255,0.04)',
                       color:'rgba(255,255,255,0.8)', fontSize:15, fontWeight:600,
-                      cursor:'pointer', fontFamily:"'DM Sans',sans-serif", minHeight:48 }}>
+                      cursor:'pointer', fontFamily:'var(--font)', minHeight:48 }}>
                     Log In
                   </button>
                   <button onClick={() => go('/register')}
                     style={{ flex:2, padding:'14px', borderRadius:10, border:'none',
                       background:`linear-gradient(135deg,${T.teal},${T.accent})`,
                       color:'#fff', fontSize:15, fontWeight:700,
-                      cursor:'pointer', fontFamily:"'DM Sans',sans-serif",
+                      cursor:'pointer', fontFamily:'var(--font)',
                       minHeight:48,
                       boxShadow:'0 4px 20px rgba(2,195,154,0.3)' }}>
                     Get Started →
@@ -501,7 +463,7 @@ const footerLink = {
                 <motion.h1 className="hero-title"
                   variants={{ hidden:{ opacity:0, y:24 }, show:{ opacity:1, y:0 } }}
                   transition={{ duration:.8 }}
-                  style={{ fontFamily:"'Cormorant Garamond',serif",
+                  style={{ fontFamily:"Georgia,'Times New Roman',serif",
                     fontSize:'clamp(38px,5vw,68px)', fontWeight:700,
                     lineHeight:1.08, marginBottom:22, letterSpacing:'-0.01em' }}>
                   Tailor-made{' '}
@@ -533,7 +495,7 @@ const footerLink = {
                       border:'none', color:'#fff', fontWeight:700, fontSize:15,
                       padding:'14px 28px', borderRadius:12, cursor:'pointer',
                       boxShadow:'0 8px 32px rgba(2,195,154,0.35)',
-                      fontFamily:"'DM Sans',sans-serif", minHeight:48 }}>
+                      fontFamily:'var(--font)', minHeight:48 }}>
                     Register Account →
                   </motion.button>
                   <motion.button whileHover={{ scale:1.02 }} whileTap={{ scale:.97 }}
@@ -542,7 +504,7 @@ const footerLink = {
                       border:'1px solid rgba(255,255,255,0.14)',
                       color:'rgba(255,255,255,0.75)', fontWeight:600, fontSize:15,
                       padding:'14px 28px', borderRadius:12, cursor:'pointer',
-                      fontFamily:"'DM Sans',sans-serif", minHeight:48 }}>
+                      fontFamily:'var(--font)', minHeight:48 }}>
                     Browse Designs
                   </motion.button>
                 </motion.div>
@@ -555,7 +517,7 @@ const footerLink = {
                   {[['21+','Designs'],['100%','Custom Orders'],['24 yrs','In Operation'],['₱0','Free Registration']].map(([v,l]) => (
                     <div key={l}>
                       <div className="hero-stat-num"
-                        style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:26,
+                        style={{ fontFamily:"Georgia,'Times New Roman',serif", fontSize:26,
                           fontWeight:700, color:T.accent, lineHeight:1 }}>{v}</div>
                       <div style={{ color:'rgba(255,255,255,0.3)', fontSize:11, marginTop:4 }}>{l}</div>
                     </div>
@@ -605,7 +567,7 @@ const footerLink = {
                     background:'rgba(255,255,255,0.04)',
                     border:'1px solid rgba(255,255,255,0.07)',
                     color:'rgba(255,255,255,0.65)', fontSize:14, fontWeight:500,
-                    fontFamily:"'DM Sans',sans-serif", minHeight:44 }}
+                    fontFamily:'var(--font)', minHeight:44 }}
                   onMouseEnter={e => { e.currentTarget.style.background=c.color+'18'; e.currentTarget.style.borderColor=c.color+'55'; e.currentTarget.style.color='#fff'; }}
                   onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.07)'; e.currentTarget.style.color='rgba(255,255,255,0.65)'; }}>
                   <span style={{ fontSize:18 }}>{c.icon}</span>
@@ -673,7 +635,7 @@ const footerLink = {
                 letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:18 }}>
                 About VFRB Enterprise
               </p>
-              <h2 style={{ fontFamily:"'Cormorant Garamond',serif",
+              <h2 style={{ fontFamily:"Georgia,'Times New Roman',serif",
                 fontSize:'clamp(28px,3.5vw,46px)', fontWeight:700, lineHeight:1.15,
                 marginBottom:22, color:'#fff' }}>
                 25 years of quality{' '}
@@ -707,7 +669,7 @@ const footerLink = {
                   background:`linear-gradient(135deg,${T.teal},${T.accent})`,
                   border:'none', color:'#fff', fontWeight:600, fontSize:14,
                   padding:'13px 28px', borderRadius:11, cursor:'pointer',
-                  fontFamily:"'DM Sans',sans-serif",
+                  fontFamily:'var(--font)',
                   boxShadow:'0 4px 20px rgba(2,195,154,0.25)', minHeight:48 }}>
                 Place Your Order →
               </motion.button>
@@ -725,7 +687,7 @@ const footerLink = {
               letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:14 }}>
               The Process
             </p>
-            <h2 style={{ fontFamily:"'Cormorant Garamond',serif",
+            <h2 style={{ fontFamily:"Georgia,'Times New Roman',serif",
               fontSize:'clamp(26px,3.5vw,44px)', fontWeight:700, color:'#fff',
               marginBottom:14, lineHeight:1.15 }}>
               From design idea to VFRB's inbox.
@@ -745,7 +707,7 @@ const footerLink = {
                 style={{ padding:26, borderRadius:16,
                   background:'rgba(255,255,255,0.03)',
                   border:'1px solid rgba(255,255,255,0.07)' }}>
-                <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:42,
+                <div style={{ fontFamily:"Georgia,'Times New Roman',serif", fontSize:42,
                   fontWeight:700, marginBottom:18,
                   background:'linear-gradient(135deg,rgba(2,128,144,0.5),rgba(2,195,154,0.5))',
                   WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent' }}>
@@ -767,7 +729,7 @@ const footerLink = {
               letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:14 }}>
               Why VFRB System
             </p>
-            <h2 style={{ fontFamily:"'Cormorant Garamond',serif",
+            <h2 style={{ fontFamily:"Georgia,'Times New Roman',serif",
               fontSize:'clamp(26px,3.5vw,44px)', fontWeight:700, color:'#fff',
               marginBottom:14 }}>
               Purpose-built for real uniform orders.
@@ -822,7 +784,7 @@ const footerLink = {
                 background:'radial-gradient(circle at 70% 30%,rgba(2,195,154,0.15),transparent 60%)',
                 pointerEvents:'none' }}/>
               <div style={{ position:'relative', zIndex:1 }}>
-                <h2 style={{ fontFamily:"'Cormorant Garamond',serif",
+                <h2 style={{ fontFamily:"Georgia,'Times New Roman',serif",
                   fontSize:'clamp(26px,3vw,40px)', fontWeight:700, color:'#fff',
                   marginBottom:14, lineHeight:1.2 }}>
                   Ready to design your next uniform?
@@ -838,7 +800,7 @@ const footerLink = {
                     style={{ background:T.accent, border:'none', color:'#06101a',
                       fontWeight:700, fontSize:15, padding:'14px 32px', borderRadius:12,
                       cursor:'pointer', boxShadow:'0 8px 32px rgba(2,195,154,0.45)',
-                      fontFamily:"'DM Sans',sans-serif", minHeight:48 }}>
+                      fontFamily:'var(--font)', minHeight:48 }}>
                     Create Free Account →
                   </motion.button>
                   <motion.button whileHover={{ scale:1.02 }} whileTap={{ scale:.97 }}
@@ -847,7 +809,7 @@ const footerLink = {
                       border:'1px solid rgba(255,255,255,0.2)',
                       color:'rgba(255,255,255,0.8)', fontWeight:600, fontSize:15,
                       padding:'14px 32px', borderRadius:12, cursor:'pointer',
-                      fontFamily:"'DM Sans',sans-serif", minHeight:48 }}>
+                      fontFamily:'var(--font)', minHeight:48 }}>
                     Log In
                   </motion.button>
                 </div>
@@ -858,161 +820,7 @@ const footerLink = {
       </section>
 
       {/* ── FOOTER ─────────────────────────────────── */}
-{/* ── FOOTER ─────────────────────────────────── */}
-<motion.footer
-  initial={{ opacity:0, y:40 }}
-  whileInView={{ opacity:1, y:0 }}
-  viewport={{ once:true }}
-  transition={{ duration:0.8, ease:[0.22,1,0.36,1] }}
-  style={{
-    borderTop:'1px solid rgba(255,255,255,0.06)',
-    background:'linear-gradient(to top, rgba(0,0,0,0.6), rgba(0,0,0,0.25))'
-  }}
->
-  <div className="footer-inner"
-    style={{ maxWidth:1280, margin:'0 auto', padding:'56px 40px 32px' }}>
-
-    <div className="footer-grid"
-      style={{
-        display:'grid',
-        gridTemplateColumns:'2fr 1fr 1.5fr',
-        gap:40,
-        marginBottom:40
-      }}>
-
-      {/* ── LEFT: COMPANY INFO ── */}
-      <div>
-        <div
-          style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16, cursor:'pointer' }}
-          onClick={() => window.scrollTo({ top:0, behavior:'smooth' })}
-        >
-          <img src={logo} alt="VFRB"
-            style={{
-              width:38,
-              height:38,
-              borderRadius:10,
-              objectFit:'cover',
-              border:'1px solid rgba(2,195,154,0.4)'
-            }}/>
-          <div>
-            <p style={{
-              color:'#fff',
-              fontWeight:700,
-              fontSize:14,
-              margin:0,
-              fontFamily:"'Cormorant Garamond',serif"
-            }}>
-              VFRB Enterprise
-            </p>
-            <p style={{ color:'rgba(255,255,255,0.3)', fontSize:11, margin:0 }}>
-              Tailor Centre Manila
-            </p>
-          </div>
-        </div>
-
-        <p style={{ color:'rgba(255,255,255,0.35)', fontSize:13, lineHeight:1.8 }}>
-          Muntinlupa City, Philippines 1772<br/>
-          Production: Sto. Tomas, Batangas<br/>
-          0921 791 6259
-        </p>
-
-        {/* SOCIAL ICONS */}
-        <div style={{ display:'flex', gap:12, marginTop:16 }}>
-          {/* Facebook */}
-          <a
-            href="https://www.facebook.com/tailorcentrevfrbmanila"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={iconStyle}
-          >
-            f
-          </a>
-
-          {/* Gmail */}
-          <a
-            href="mailto:vfrb.enterprise@gmail.com"
-            style={iconStyle}
-          >
-            ✉
-          </a>
-        </div>
-      </div>
-
-      {/* ── NAVIGATION ── */}
-      <div>
-        <p style={footerHead}>Navigation</p>
-
-        {[
-          { label:'About', id:'about' },
-          { label:'Features', id:'features' },
-          { label:'How It Works', id:'how' },
-          { label:'Designs', id:'categories' },
-        ].map(link => (
-          <button
-            key={link.label}
-            onClick={() => {
-              const el = document.getElementById(link.id);
-              if (el) el.scrollIntoView({ behavior:'smooth' });
-            }}
-            style={footerLink}
-            onMouseEnter={e => {
-              e.currentTarget.style.color = '#fff';
-              e.currentTarget.style.transform = 'translateX(4px)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.color = 'rgba(255,255,255,0.5)';
-              e.currentTarget.style.transform = 'translateX(0)';
-            }}
-          >
-            {link.label}
-          </button>
-        ))}
-      </div>
-
-      {/* ── GOOGLE MAP ── */}
-      <div>
-        <p style={footerHead}>Location</p>
-
-        <div style={{
-          borderRadius:14,
-          overflow:'hidden',
-          border:'1px solid rgba(255,255,255,0.08)'
-        }}>
-          <iframe
-  title="VFRB Location"
-  src="https://www.google.com/maps?q=31+San+Guillermo+St+Bayanan+Muntinlupa+City+Philippines+1770&output=embed"
-  width="100%"
-  height="180"
-  style={{ border:0, borderRadius:12 }}
-  loading="lazy"
-/>
-        </div>
-
-        <p style={{
-          color:'rgba(255,255,255,0.35)',
-          fontSize:12,
-          marginTop:8
-        }}>
-          Muntinlupa City, Philippines
-        </p>
-      </div>
-    </div>
-
-    {/* ── BOTTOM BAR ── */}
-    <div style={{
-      borderTop:'1px solid rgba(255,255,255,0.06)',
-      paddingTop:20,
-      textAlign:'center'
-    }}>
-      <p style={{
-        color:'rgba(255,255,255,0.2)',
-        fontSize:12
-      }}>
-        © {new Date().getFullYear()} VFRB Enterprise · AI-Enabled Sales and Inventory Management System
-      </p>
-    </div>
-  </div>
-</motion.footer>
+      <Footer/>
     </div>
   );
 }

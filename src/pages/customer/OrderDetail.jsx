@@ -36,7 +36,7 @@ import { getStorageUrl, isImageFile }        from '../../utils/fileUrl';
 
 const GarmentPreview3D = lazy(() => import('../../components/GarmentPreview3D'));
 
-const T    = '#028090';
+const T    = 'var(--teal)';
 const T2   = '#02C39A';
 const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif`;
 
@@ -706,7 +706,7 @@ export default function CustomerOrderDetail() {
                 <a href={getStorageUrl(order.client_design_ref_file)} target="_blank" rel="noopener noreferrer"
                   style={{ display:'inline-flex', alignItems:'center', gap:8,
                     padding:'10px 16px', borderRadius:10, background:'#f0fdfa',
-                    border:'1px solid #99f6e4', color:'#028090', fontSize:13,
+                    border:'1px solid #99f6e4', color:'var(--teal)', fontSize:13,
                     fontWeight:700, fontFamily:FONT, textDecoration:'none' }}>
                   📄 View Reference PDF
                 </a>

@@ -8,6 +8,7 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import logo from '../assets/company-logo.jpg';
+import { loadAccent, getAccentVars, ACCENT_CHANGE_EVENT } from '../utils/accentColor';
 
 const T  = 'var(--teal)';
 const T2 = 'var(--teal-2)';
@@ -39,6 +40,23 @@ export default function CustomerLayout() {
     try { return JSON.parse(localStorage.getItem('vfrb_cust_sb') || 'false'); } catch { return false; }
   });
   const [moreOpen, setMoreOpen] = useState(false);
+
+  // ── CUSTOMER-ONLY accent preference ──────────────────────────────────────
+  // Scoped override, applied as inline CSS vars on the .cm-shell root below.
+  // Because --teal/--teal-2/--teal-dark are read via var(...) throughout this
+  // subtree, setting them here cascades to every descendant without touching
+  // theme.css (VFRB's locked brand teal) or anything outside this layout —
+  // admin/staff portals never read these overridden values.
+  const [accentVars, setAccentVars] = useState(() => {
+    const u = JSON.parse(localStorage.getItem('vfrb_user') || '{}');
+    return getAccentVars(loadAccent(u.user_id));
+  });
+
+  useEffect(() => {
+    const onAccentChange = (e) => setAccentVars(getAccentVars(e.detail));
+    window.addEventListener(ACCENT_CHANGE_EVENT, onAccentChange);
+    return () => window.removeEventListener(ACCENT_CHANGE_EVENT, onAccentChange);
+  }, []);
 
   const SW = collapsed ? 68 : 222;
 
@@ -387,7 +405,7 @@ export default function CustomerLayout() {
         }
       `}</style>
 
-      <div className="cm-shell">
+      <div className="cm-shell" style={accentVars || undefined}>
 
         {/* ─── DESKTOP SIDEBAR ──────────────────────────────────────────── */}
         <aside className="cm-sb" style={{ width: SW }}>

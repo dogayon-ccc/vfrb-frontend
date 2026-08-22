@@ -3,6 +3,13 @@
 //   Before: path="production"           → orderId always undefined in component
 //   After:  path="production/:orderId"  → useParams() reads real order_id
 //
+// SETTINGS FIX (Aug 21 2026, Account 2): the "settings" route was wrapped
+//   in <RequireManager>, which fully blocked staff from ever reaching the
+//   page — contradicts the confirmed rule (manager edits, staff views).
+//   Gating now happens INSIDE Settings.jsx itself (fields disabled, no
+//   Save/logo buttons for staff), same pattern as PhysicalCount.jsx.
+//   Route itself is open to any authenticated admin/staff user.
+//
 // All admin + customer pages lazy-loaded — only layouts and auth pages eager.
 // DesignStudio + DesignStudio3D separately lazy-loaded (Three.js is 600KB+).
 
@@ -59,6 +66,7 @@ const AdminMessages          = lazy(() => import('./pages/admin/Messages'));
 const AdminDeliveryTracking  = lazy(() => import('./pages/admin/DeliveryTracking'));
 const AdminSuppliers         = lazy(() => import('./pages/admin/Suppliers'));
 const AdminUserManagement    = lazy(() => import('./pages/admin/UserManagement'));
+const AdminSettings          = lazy(() => import('./pages/admin/Settings'));
 const AdminInvoice           = lazy(() => import('./pages/admin/Invoice'));
 const AdminOrderDetail       = lazy(() => import('./pages/admin/OrderDetail'));
 const AdminProductionTracking= lazy(() => import('./pages/admin/ProductionTracking')); // TASK R: was missing
@@ -201,6 +209,12 @@ export default function App() {
             <Route path="physical-count" element={<AdminPhysicalCount/>}/>
             <Route path="output-log"     element={<AdminDailyOutputLog/>}/>
             <Route path="qc"             element={<AdminQCChecklist/>}/>
+
+            {/* Settings: staff view-only, manager can edit — gated INSIDE
+                the component (see Settings.jsx), NOT wrapped in
+                RequireManager, since staff must still be able to reach
+                this page. (Fixed Aug 21 2026 — was incorrectly wrapped.) */}
+            <Route path="settings"  element={<AdminSettings/>}/>
 
             {/* Manager Only */}
             <Route path="reports"   element={<RequireManager><AdminReports/></RequireManager>}/>

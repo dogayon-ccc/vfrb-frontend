@@ -27,6 +27,11 @@ const STAFF_NAV = [
   { to:'/admin/qc',           icon:'✅', label:'QC Checklist'         },
   { to:'/admin/physical-count',icon:'🔢',label:'Physical Count'       },
   { to:'/admin/transactions', icon:'💰', label:'Sales & Pay'          },
+  // Settings: staff view-only, manager can edit — gated INSIDE
+  // Settings.jsx itself, so this belongs in the shared nav, not
+  // MANAGER_EXTRA. (Moved here Aug 21 2026 — was blocking staff nav
+  // access entirely, same root cause as the App.jsx RequireManager bug.)
+  { to:'/admin/settings',     icon:'⚙️', label:'Settings'             },
 ];
 const MANAGER_EXTRA = [
   { to:'/admin/reports',      icon:'📊', label:'Reports'              },

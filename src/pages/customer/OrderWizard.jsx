@@ -19,7 +19,7 @@ import axios                                             from 'axios';
 
 const GarmentPreview3D = lazy(() => import('../../components/GarmentPreview3D'));
 
-const T    = '#028090';
+const T    = 'var(--teal)';
 const T2   = '#02C39A';
 const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif`;
 

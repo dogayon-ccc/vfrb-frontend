@@ -602,8 +602,16 @@ export default function AdminPhysicalCount() {
       </div>
 
       {/* Counts table */}
-      <div style={{ ...card, overflow:'hidden' }}>
-        <table style={{ width:'100%', borderCollapse:'collapse' }}>
+      {/* MOBILE FIX (Aug 22): was overflow:'hidden' only, which clipped the
+          Status/Action columns off-screen at ≤767px with no way to reach
+          them. Matches the overflow-x:auto + min-width pattern already used
+          in Inventory.jsx/Suppliers.jsx/UserManagement.jsx — same convention,
+          not a new one. overflow:'hidden' is kept for the rounded-corner
+          mask on the y-axis; overflowX:'auto' overrides just the x-axis so
+          the table scrolls horizontally instead of clipping. */}
+      <div style={{ ...card, overflow:'hidden', overflowX:'auto',
+        WebkitOverflowScrolling:'touch' }}>
+        <table style={{ width:'100%', minWidth:640, borderCollapse:'collapse' }}>
           <thead>
             <tr style={{ background:'#f8fafc' }}>
               {['Material','Category','System Qty','Physical Qty','Variance','Date','Status','Action'].map(h => (

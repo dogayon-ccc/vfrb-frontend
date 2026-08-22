@@ -22,7 +22,7 @@ import { motion, AnimatePresence }             from 'framer-motion';
 import axios                                   from 'axios';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
 
-const T    = '#028090';
+const T    = 'var(--teal)';
 const T2   = '#02C39A';
 const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif`;
 const SK   = {
