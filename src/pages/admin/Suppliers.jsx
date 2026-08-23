@@ -126,7 +126,7 @@ export default function AdminSuppliers() {
     <>
       {modal && <SupplierModal item={modal === 'add' ? null : modal} onClose={() => setModal(null)} onDone={() => { setModal(null); cacheClear('suppliers_list'); load(true); }}/>}
       <div style={{ fontFamily:FONT, color:'#0f172a' }}>
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:22, flexWrap:'wrap', gap:12 }}>
+        <div className="sup-header" style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:22, flexWrap:'wrap', gap:12 }}>
           <div>
             <h1 style={{ fontSize:22, fontWeight:800, color:'#0f172a', marginBottom:4 }}>Suppliers</h1>
             <p style={{ color:'#64748b', fontSize:13 }}>{suppliers.length} supplier{suppliers.length!==1?'s':''} · Master data (admin-managed, no supplier login)</p>
@@ -169,48 +169,16 @@ export default function AdminSuppliers() {
         </div>
       </div>
       <style>{`
-      /* ── Responsive — injected by v10 mobile sweep ── */
-      .adm-stats {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-        gap: 12px;
-        margin-bottom: 20px;
-      }
-      .adm-grid-2 {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 16px;
-        align-items: start;
-      }
-      .adm-filter {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        align-items: center;
-        margin-bottom: 16px;
-      }
-      .adm-filter input,
-      .adm-filter select { flex: 1; min-width: 150px; }
-      .adm-table-wrap {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        border-radius: 12px;
-        border: 1px solid #e2e8f0;
-      }
-      .adm-table-wrap table { width: 100%; min-width: 520px; border-collapse: collapse; }
-      /* ── TABLET 768–1023px ── */
-      @media (max-width: 1023px) {
-        .adm-grid-2 { grid-template-columns: 1fr; gap: 14px; }
-      }
-      /* ── MOBILE ≤ 767px ── */
+      @keyframes sk{0%{background-position:-400px 0}100%{background-position:400px 0}}
+      /* Header row: title+subtitle vs Add Supplier button. Grid already
+         handles the card list responsively (auto-fill collapses to 1
+         column on narrow screens on its own) — this is the only real
+         mobile need this page has. */
       @media (max-width: 767px) {
-        .adm-stats { grid-template-columns: 1fr 1fr; gap: 10px; }
-        .adm-grid-2 { grid-template-columns: 1fr; gap: 12px; }
-        .adm-filter { flex-direction: column; }
-        .adm-filter input,
-        .adm-filter select { min-width: 0; width: 100%; }
+        .sup-header { flex-direction: column; align-items: stretch !important; }
+        .sup-header button { width: 100%; justify-content: center; }
       }
-@keyframes sk{0%{background-position:-400px 0}100%{background-position:400px 0}}`}</style>
+      `}</style>
     </>
   );
 }
