@@ -27,13 +27,19 @@ const STAFF_NAV = [
   { to:'/admin/qc',           icon:'✅', label:'QC Checklist'         },
   { to:'/admin/physical-count',icon:'🔢',label:'Physical Count'       },
   { to:'/admin/transactions', icon:'💰', label:'Sales & Pay'          },
+  // Settings: staff view-only, manager can edit — gated INSIDE
+  // Settings.jsx itself, so this belongs in the shared nav, not
+  // MANAGER_EXTRA. (Fixed here Aug 23 2026 — this UI/UX branch had
+  // regressed back to the pre-fix placement; same root cause as the
+  // App.jsx RequireManager bug fixed earlier this session.)
+  { to:'/admin/settings',     icon:'⚙️', label:'Settings'             },
 ];
 const MANAGER_EXTRA = [
   { to:'/admin/reports',      icon:'📊', label:'Reports'              },
+  { to:'/admin/activity-log', icon:'📋', label:'Activity Log'         },
   { to:'/admin/invoice',      icon:'🧾', label:'Invoice'              },
   { to:'/admin/suppliers',    icon:'🏪', label:'Suppliers'            },
   { to:'/admin/users',        icon:'👥', label:'Users'                },
-  { to:'/admin/settings',     icon:'⚙️', label:'Settings'             },
 ];
 
 // Mobile bottom nav — 5 most critical
@@ -118,6 +124,16 @@ export default function AdminLayout() {
     return false;
   });
   const [moreOpen,  setMoreOpen]  = useState(false);
+  // Dynamic company logo (Aug 23 2026) — pulls the uploaded Settings logo
+  // instead of the static bundled asset. Falls back to the bundled `logo`
+  // import if nothing has been uploaded yet, or if this fetch fails —
+  // never shows a broken image while waiting/erroring.
+  const [companyLogo, setCompanyLogo] = useState(logo);
+  useEffect(() => {
+    axios.get('/api/admin/settings/company')
+      .then(r => { if (r.data?.logo_url) setCompanyLogo(r.data.logo_url); })
+      .catch(() => {}); // keep the bundled fallback on any failure
+  }, []);
 
   const SW         = collapsed ? 68 : 226;
   const isManager  = role === 'manager';
@@ -218,8 +234,14 @@ export default function AdminLayout() {
   });
 
   const initials = name ? name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase() : 'A';
-  const headBg   = 'rgba(255,255,255,.92)';
-  const topBg    = 'rgba(255,255,255,.92)';
+  // Aug 23 correction: previously a full vibrant gradient background on
+  // both the sidebar header and topbar. Dave called this out directly —
+  // that's not what "Cruip look" means; Cruip's actual header is white
+  // with a thin border, and role color should read as a small accent,
+  // not the whole surface. Role distinction now lives in: the portal
+  // label text color, the small "Manager"/"Staff" badge, and the avatar
+  // ring — not a background fill.
+  const roleColor = isManager ? 'var(--purple)' : T;
 
   return (
     <>
@@ -261,11 +283,15 @@ export default function AdminLayout() {
         }
 
         /* ── Sidebar ── */
-        /* CRUIP-INSPIRED RESKIN (Aug 23): rounded-right "floating card" sidebar
-           matching Mosaic Lite's visual language (rounded-r-2xl, shadow-xs),
-           done in VFRB's existing inline-style/scoped-CSS system — no Tailwind
-           utility classes introduced, no new styling mechanism to conflict
-           with anything. Zero JS/logic changes below this style block. */
+        /* CRUIP-INSPIRED RESKIN (Aug 23, corrected same day): floating
+           rounded card sidebar matching Mosaic Lite's visual language
+           (rounded-2xl, shadow-xs, light surfaces) — done in VFRB's
+           existing inline-style/scoped-CSS system, no Tailwind utility
+           classes introduced. First pass kept a vibrant gradient header/
+           topbar "because it looked better" — that wasn't actually the
+           Cruip look and wasn't what was asked for, so it's been replaced
+           with genuine light surfaces below; role color (teal/purple) now
+           shows up as text/badge/ring accents, not a background fill. */
         .adm-sb {
           position: fixed;
           top:8px; left:8px; bottom:8px;
@@ -280,7 +306,8 @@ export default function AdminLayout() {
           transition: width .22s cubic-bezier(.4,0,.2,1);
         }
 
-        /* Sidebar gradient header */
+        /* Sidebar header — light, Cruip-style. Role color lives in the
+           portal-label text (see roleColor in JS), not the background. */
         .adm-sb-head {
           flex-shrink: 0;
           display: flex;
@@ -289,15 +316,8 @@ export default function AdminLayout() {
           min-height: 62px;
           position: relative;
           overflow: hidden;
-        }
-        .adm-sb-head::after {
-          content: '';
-          position: absolute;
-          right: -20px; top: -20px;
-          width: 80px; height: 80px;
-          border-radius: 50%;
-          background: rgba(255,255,255,.07);
-          pointer-events: none;
+          background: #fff;
+          border-bottom: 1px solid var(--border);
         }
 
         /* ── Main area ── */
@@ -312,7 +332,11 @@ export default function AdminLayout() {
           z-index: 1;
         }
 
-        /* ── Topbar — gradient, always vibrant, Cruip-style sticky polish ── */
+        /* ── Topbar — genuine Cruip look: white, thin border-bottom, subtle
+           shadow. Aug 23 correction — this was previously a vibrant
+           gradient with a comment that literally contradicted "Cruip-
+           style" in the same breath. Role color now reads through the
+           portal label, the Manager badge, and the avatar ring only. ── */
         .adm-topbar {
           height: 60px;
           flex-shrink: 0;
@@ -323,8 +347,11 @@ export default function AdminLayout() {
           position: sticky;
           top: 0;
           z-index: 100;
-          box-shadow: 0 1px 0 var(--border) inset, 0 1px 3px rgba(15,23,42,.06);
+          background: rgba(255,255,255,.85);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
           border-bottom: 1px solid var(--border);
+          box-shadow: 0 1px 3px rgba(15,23,42,.04);
         }
 
         /* ── Content ── */
@@ -522,10 +549,12 @@ export default function AdminLayout() {
         {/* ─── DESKTOP SIDEBAR ────────────────────────────────────────────── */}
         <aside className="adm-sb" style={{ width:SW }}>
 
-          {/* Gradient header */}
+          {/* Light header — logo + brand text, role color as a small accent only.
+              Clickable (Aug 23 2026): returns to Dashboard from any admin page. */}
           <div className="adm-sb-head"
-            style={{ background:headBg, padding: collapsed ? '14px 10px' : '14px 16px' }}>
-            <img src={logo} alt="VFRB"
+            onClick={() => navigate('/admin/dashboard')}
+            style={{ padding: collapsed ? '14px 10px' : '14px 16px', cursor:'pointer' }}>
+            <img src={companyLogo} alt="VFRB"
               style={{ width:34, height:34, borderRadius:9, objectFit:'cover',
                 border:'2px solid var(--border)', flexShrink:0, position:'relative', zIndex:1 }}/>
             {!collapsed && (
@@ -535,7 +564,7 @@ export default function AdminLayout() {
                   textOverflow:'ellipsis', whiteSpace:'nowrap', margin:0 }}>
                   VFRB ENTERPRISE
                 </p>
-                <p style={{ fontSize:9, color:'var(--text-faint)', fontWeight:600,
+                <p style={{ fontSize:9, color:roleColor, fontWeight:700,
                   textTransform:'uppercase', letterSpacing:'.07em', margin:'2px 0 0' }}>
                   {isManager ? '● Manager Portal' : '● Staff Portal'}
                 </p>
@@ -624,27 +653,27 @@ export default function AdminLayout() {
               plus an 8px breathing gap before content — sidebar itself still
               occupies exactly SW px of width, unchanged. */}
 
-          {/* ── TOPBAR — gradient, always shows logo+label on mobile ── */}
-          <div className="adm-topbar" style={{ background:topBg }}>
+          {/* ── TOPBAR — light, Cruip-style: white bg, thin border, dark text ── */}
+          <div className="adm-topbar">
 
-            {/* Mobile: logo + portal label */}
-            <img src={logo} alt="VFRB" className="adm-mob-only"
-              style={{ width:30, height:30, borderRadius:8, objectFit:'cover',
+            {/* Mobile: logo + portal label — click to go back to Dashboard */}
+            <img src={companyLogo} alt="VFRB" className="adm-mob-only" onClick={() => navigate('/admin/dashboard')}
+              style={{ width:30, height:30, borderRadius:8, objectFit:'cover', cursor:'pointer',
                 border:'1.5px solid var(--border)', flexShrink:0 }}/>
-            <div className="adm-mob-only" style={{ flex:1, minWidth:0 }}>
+            <div className="adm-mob-only" onClick={() => navigate('/admin/dashboard')} style={{ flex:1, minWidth:0, cursor:'pointer' }}>
               <p style={{ fontSize:11, fontWeight:800, color:'var(--ink)',
                 letterSpacing:'.04em', margin:0, lineHeight:1.2,
                 overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                 VFRB Enterprise
               </p>
-              <p style={{ fontSize:9, color:'var(--text-faint)', fontWeight:600,
+              <p style={{ fontSize:9, color:roleColor, fontWeight:700,
                 textTransform:'uppercase', letterSpacing:'.07em', margin:0 }}>
                 {isManager ? 'Manager Portal' : 'Staff Portal'}
               </p>
             </div>
 
             {/* Desktop: date */}
-            <span className="adm-desk-only" style={{ color:'var(--text-subtle)', fontSize:12, flexShrink:0 }}>
+            <span className="adm-desk-only" style={{ color:'var(--text-faint)', fontSize:12, flexShrink:0 }}>
               {new Date().toLocaleDateString('en-PH',{
                 weekday:'long', month:'long', day:'numeric', year:'numeric' })}
             </span>
@@ -658,10 +687,9 @@ export default function AdminLayout() {
                 onClick={openBell}
                 style={{
                   width:36, height:36, borderRadius:10, border:'none',
-                  background: bellOpen ? 'var(--teal-50)' : 'var(--bg-surface)',
+                  background: bellOpen ? 'var(--teal-50, rgba(2,128,144,.10))' : 'var(--bg)',
                   cursor:'pointer', display:'flex', alignItems:'center',
                   justifyContent:'center', fontSize:17, position:'relative',
-                  backdropFilter:'blur(4px)',
                   transition:'background .15s',
                   animation: unread > 0 ? 'bellShake .5s ease' : 'none',
                 }}>
@@ -780,26 +808,25 @@ export default function AdminLayout() {
             {isManager && (
               <span className="adm-desk-only"
                 style={{ fontSize:10, padding:'4px 10px', borderRadius:99,
-                  fontWeight:700, background:'var(--purple-50, #f3e8ff)',
-                  color:'var(--purple)', border:'1px solid rgba(124,58,237,.2)',
-                  backdropFilter:'blur(4px)' }}>
+                  fontWeight:700, background:'rgba(124,58,237,.08)',
+                  color:'var(--purple)', border:'1px solid rgba(124,58,237,.2)' }}>
                 👑 Manager
               </span>
             )}
 
-            {/* Profile — click for Sign Out (Cruip-style dropdown, replaces old sidebar button) */}
+            {/* Profile — click for Sign Out (Cruip-style dropdown) */}
             <div ref={profileRef} style={{ position:'relative' }}>
               <button onClick={() => setProfileOpen(o => !o)}
                 style={{ display:'flex', alignItems:'center', gap:8, border:'none',
-                  background: profileOpen ? 'var(--bg-surface)' : 'transparent',
+                  background: profileOpen ? 'var(--bg)' : 'transparent',
                   borderRadius:99, padding:'4px 8px 4px 4px', cursor:'pointer',
                   transition:'background .13s' }}>
                 <div style={{ width:32, height:32, borderRadius:'50%',
-                  background: isManager ? 'linear-gradient(135deg,var(--purple),#a78bfa)' : `linear-gradient(135deg,${T},${T2})`,
+                  background: isManager ? 'var(--purple)' : T,
                   border:'2px solid var(--border)',
                   display:'flex', alignItems:'center', justifyContent:'center',
                   color:'#fff', fontSize:12, fontWeight:800, flexShrink:0,
-                  backdropFilter:'blur(4px)', overflow:'hidden' }}>
+                  overflow:'hidden' }}>
                   {avatar ? <img src={avatar} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : initials}
                 </div>
                 <span className="adm-desk-only"
