@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import PageErrorBoundary from '../components/PageErrorBoundary';
 import logo from '../assets/company-logo.jpg';
 import { loadAccent, getAccentVars, ACCENT_CHANGE_EVENT } from '../utils/accentColor';
 
@@ -639,7 +640,13 @@ flexShrink:0,
                 animate={{ opacity:1, y:0 }}
                 exit={{ opacity:0, y:-6 }}
                 transition={{ duration:.22, ease:'easeOut' }}>
-                <Outlet/>
+                {/* Page-level error boundary (Aug 23 2026) — a crash here
+                    no longer takes the sidebar/nav down with it. This
+                    motion.div already remounts on pathname change (via its
+                    key prop), which naturally resets the boundary too. */}
+                <PageErrorBoundary resetKey={location.pathname}>
+                  <Outlet/>
+                </PageErrorBoundary>
               </motion.div>
             </AnimatePresence>
           </div>

@@ -52,6 +52,7 @@ import CustomerLogin    from './pages/auth/Login';
 import CustomerRegister from './pages/auth/Register';
 import AdminLogin       from './pages/admin/Login';
 import VerifyEmail      from './pages/auth/VerifyEmail';
+import GoogleComplete   from './pages/auth/GoogleComplete';
 
 // ── Admin Pages — all lazy ────────────────────────────────────────────────────
 const AdminDashboard         = lazy(() => import('./pages/admin/Dashboard'));
@@ -188,6 +189,7 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPassword/>}/>
           <Route path="/reset-password"  element={<ResetPassword/>}/>
           <Route path="/verify-email"    element={<VerifyEmail/>}/>
+          <Route path="/auth/google/complete" element={<GoogleComplete/>}/>
 
           {/* ── ADMIN AUTH ────────────────────────────────────────────────── */}
           <Route path="/admin/login" element={<AdminLogin/>}/>

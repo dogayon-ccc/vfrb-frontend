@@ -7,6 +7,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import PageErrorBoundary from '../components/PageErrorBoundary';
 import logo from '../assets/company-logo.jpg';
 
 const T  = 'var(--teal)';
@@ -27,19 +28,13 @@ const STAFF_NAV = [
   { to:'/admin/qc',           icon:'✅', label:'QC Checklist'         },
   { to:'/admin/physical-count',icon:'🔢',label:'Physical Count'       },
   { to:'/admin/transactions', icon:'💰', label:'Sales & Pay'          },
-  // Settings: staff view-only, manager can edit — gated INSIDE
-  // Settings.jsx itself, so this belongs in the shared nav, not
-  // MANAGER_EXTRA. (Fixed here Aug 23 2026 — this UI/UX branch had
-  // regressed back to the pre-fix placement; same root cause as the
-  // App.jsx RequireManager bug fixed earlier this session.)
-  { to:'/admin/settings',     icon:'⚙️', label:'Settings'             },
 ];
 const MANAGER_EXTRA = [
   { to:'/admin/reports',      icon:'📊', label:'Reports'              },
-  { to:'/admin/activity-log', icon:'📋', label:'Activity Log'         },
   { to:'/admin/invoice',      icon:'🧾', label:'Invoice'              },
   { to:'/admin/suppliers',    icon:'🏪', label:'Suppliers'            },
   { to:'/admin/users',        icon:'👥', label:'Users'                },
+  { to:'/admin/settings',     icon:'⚙️', label:'Settings'             },
 ];
 
 // Mobile bottom nav — 5 most critical
@@ -124,16 +119,6 @@ export default function AdminLayout() {
     return false;
   });
   const [moreOpen,  setMoreOpen]  = useState(false);
-  // Dynamic company logo (Aug 23 2026) — pulls the uploaded Settings logo
-  // instead of the static bundled asset. Falls back to the bundled `logo`
-  // import if nothing has been uploaded yet, or if this fetch fails —
-  // never shows a broken image while waiting/erroring.
-  const [companyLogo, setCompanyLogo] = useState(logo);
-  useEffect(() => {
-    axios.get('/api/admin/settings/company')
-      .then(r => { if (r.data?.logo_url) setCompanyLogo(r.data.logo_url); })
-      .catch(() => {}); // keep the bundled fallback on any failure
-  }, []);
 
   const SW         = collapsed ? 68 : 226;
   const isManager  = role === 'manager';
@@ -262,10 +247,13 @@ export default function AdminLayout() {
         }
 
         /* ── Shell ── */
+        /* Hybrid style (Aug 23) — tinted page bg (Horizon UI direction),
+           confirmed against the mockup before applying. Cards/tables on
+           top of this stay minimal/white — only the page canvas changes. */
         .adm-shell {
           display: flex;
           min-height: 100vh;
-          background: var(--bg, var(--bg));
+          background: #f4f7fe;
           position: relative;
         }
         /* Ambient glow in top-right corner — subtle brand presence */
@@ -549,12 +537,10 @@ export default function AdminLayout() {
         {/* ─── DESKTOP SIDEBAR ────────────────────────────────────────────── */}
         <aside className="adm-sb" style={{ width:SW }}>
 
-          {/* Light header — logo + brand text, role color as a small accent only.
-              Clickable (Aug 23 2026): returns to Dashboard from any admin page. */}
+          {/* Light header — logo + brand text, role color as a small accent only */}
           <div className="adm-sb-head"
-            onClick={() => navigate('/admin/dashboard')}
-            style={{ padding: collapsed ? '14px 10px' : '14px 16px', cursor:'pointer' }}>
-            <img src={companyLogo} alt="VFRB"
+            style={{ padding: collapsed ? '14px 10px' : '14px 16px' }}>
+            <img src={logo} alt="VFRB"
               style={{ width:34, height:34, borderRadius:9, objectFit:'cover',
                 border:'2px solid var(--border)', flexShrink:0, position:'relative', zIndex:1 }}/>
             {!collapsed && (
@@ -656,11 +642,11 @@ export default function AdminLayout() {
           {/* ── TOPBAR — light, Cruip-style: white bg, thin border, dark text ── */}
           <div className="adm-topbar">
 
-            {/* Mobile: logo + portal label — click to go back to Dashboard */}
-            <img src={companyLogo} alt="VFRB" className="adm-mob-only" onClick={() => navigate('/admin/dashboard')}
-              style={{ width:30, height:30, borderRadius:8, objectFit:'cover', cursor:'pointer',
+            {/* Mobile: logo + portal label */}
+            <img src={logo} alt="VFRB" className="adm-mob-only"
+              style={{ width:30, height:30, borderRadius:8, objectFit:'cover',
                 border:'1.5px solid var(--border)', flexShrink:0 }}/>
-            <div className="adm-mob-only" onClick={() => navigate('/admin/dashboard')} style={{ flex:1, minWidth:0, cursor:'pointer' }}>
+            <div className="adm-mob-only" style={{ flex:1, minWidth:0 }}>
               <p style={{ fontSize:11, fontWeight:800, color:'var(--ink)',
                 letterSpacing:'.04em', margin:0, lineHeight:1.2,
                 overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
@@ -861,9 +847,13 @@ export default function AdminLayout() {
 
           </div>
 
-          {/* Page content */}
+          {/* Page content — wrapped in a page-level error boundary (Aug 23
+              2026): a crash in one page no longer takes the sidebar/nav
+              down with it. resetKey=pathname clears the error on navigation. */}
           <div className="adm-content">
-            <Outlet/>
+            <PageErrorBoundary resetKey={location.pathname}>
+              <Outlet/>
+            </PageErrorBoundary>
           </div>
         </main>
 

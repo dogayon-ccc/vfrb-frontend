@@ -34,6 +34,18 @@ import axios from 'axios';
 import { getStorageUrl, isImageFile } from '../../utils/fileUrl';
 import GarmentPreview3D from '../../components/GarmentPreview3D';
 
+// Fresh-per-mount role check (Aug 23 2026) — NEVER hoist this to module
+// scope. A module-scope const here reproduced the exact stale-permission
+// bug already fixed once in Settings.jsx: switching accounts in the same
+// browser tab without a hard reload would leave a manager's permissions
+// stuck on a staff account. This function is called inside the component
+// body instead, so it re-reads localStorage on every mount.
+function getIsManager() {
+  try {
+    return (JSON.parse(localStorage.getItem('vfrb_user') || '{}').role) === 'manager';
+  } catch { return false; }
+}
+
 const TEAL  = '#028090';
 const TEAL2 = '#02C39A';
 const FONT  = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif`;
@@ -74,6 +86,101 @@ function Card({ title, children, right }) {
         {right}
       </div>
       {children}
+    </div>
+  );
+}
+
+// ── Review & Confirm panel (Aug 23 2026) ─────────────────────────────────────
+// Real, demo-relevant gap closed here: the backend (OrderController::
+// adminUpdate) and schema (orders.status, .negotiated_delivery_date,
+// .agreed_total) already supported this negotiation-before-production
+// workflow — described directly by Ma'am Fe in the interview transcript
+// (capacity-check negotiation on bulk POs) — but there was no manager-
+// facing UI to actually do it. This is that missing piece.
+// Manager-only, and only shown while status is still 'pending' — once
+// confirmed or cancelled, this panel disappears and the read-only
+// "Negotiated Delivery" field above (already existing) takes over.
+function ReviewPanel({ order, onUpdated }) {
+  const [negotiatedDate, setNegotiatedDate] = useState(order.target_delivery_date ?? '');
+  const [agreedTotal,    setAgreedTotal]    = useState('');
+  const [notes,          setNotes]          = useState('');
+  const [busy,           setBusy]           = useState(false);
+  const [err,            setErr]            = useState('');
+
+  const submit = async (status) => {
+    if (status === 'cancelled' && !notes.trim()) {
+      setErr('A reason is required to cancel an order — this is sent to the customer.');
+      return;
+    }
+    setErr('');
+    setBusy(true);
+    try {
+      const payload = { status, notes };
+      if (negotiatedDate) payload.negotiated_delivery_date = negotiatedDate;
+      if (agreedTotal)    payload.agreed_total = agreedTotal;
+      const r = await axios.patch(`/api/admin/orders/${order.order_id}`, payload);
+      onUpdated(r.data);
+    } catch (e) {
+      setErr(e.response?.data?.message ?? 'Could not update the order. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div style={{ background:'#fffbeb', border:'1px solid #fde68a', borderRadius:14,
+      padding:20, marginBottom:16 }}>
+      <h3 style={{ margin:'0 0 4px', fontSize:13, fontWeight:800, color:'#92400e',
+        textTransform:'uppercase', letterSpacing:'.04em' }}>⚠ Review & Confirm</h3>
+      <p style={{ fontSize:12, color:'#92400e', margin:'0 0 16px' }}>
+        This order is pending — nothing proceeds to production until it's confirmed here.
+        Propose a delivery date and total if the customer's request needs adjusting, or cancel with a reason.
+      </p>
+
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))', gap:14, marginBottom:14 }}>
+        <div>
+          <label style={{ display:'block', fontSize:11, fontWeight:700, color:'#78716c',
+            textTransform:'uppercase', marginBottom:6 }}>Negotiated Delivery Date</label>
+          <input type="date" value={negotiatedDate} onChange={e => setNegotiatedDate(e.target.value)}
+            style={{ width:'100%', padding:'9px 12px', borderRadius:9, border:'1px solid #e2e8f0',
+              fontSize:13, boxSizing:'border-box' }}/>
+          <p style={{ fontSize:11, color:'#a8a29e', margin:'4px 0 0' }}>
+            Customer requested: {order.target_delivery_date ?? '—'}. Leave unchanged to accept it as-is.
+          </p>
+        </div>
+        <div>
+          <label style={{ display:'block', fontSize:11, fontWeight:700, color:'#78716c',
+            textTransform:'uppercase', marginBottom:6 }}>Agreed Total (₱)</label>
+          <input type="number" min="0" step="0.01" value={agreedTotal}
+            onChange={e => setAgreedTotal(e.target.value)} placeholder="Optional — can be set later at payment"
+            style={{ width:'100%', padding:'9px 12px', borderRadius:9, border:'1px solid #e2e8f0',
+              fontSize:13, boxSizing:'border-box' }}/>
+        </div>
+      </div>
+
+      <div style={{ marginBottom:14 }}>
+        <label style={{ display:'block', fontSize:11, fontWeight:700, color:'#78716c',
+          textTransform:'uppercase', marginBottom:6 }}>Notes (required if cancelling)</label>
+        <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
+          placeholder="e.g. Quantity exceeds this week's production quota, proposing split delivery"
+          style={{ width:'100%', padding:'9px 12px', borderRadius:9, border:'1px solid #e2e8f0',
+            fontSize:13, fontFamily:'inherit', resize:'vertical', boxSizing:'border-box' }}/>
+      </div>
+
+      {err && <p style={{ color:'#dc2626', fontSize:12, fontWeight:600, margin:'0 0 12px' }}>{err}</p>}
+
+      <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+        <button onClick={() => submit('confirmed')} disabled={busy}
+          style={{ padding:'10px 20px', borderRadius:9, border:'none', cursor: busy ? 'wait' : 'pointer',
+            background:'#16a34a', color:'#fff', fontSize:13, fontWeight:700, fontFamily:'inherit' }}>
+          {busy ? 'Working…' : '✓ Confirm Order'}
+        </button>
+        <button onClick={() => submit('cancelled')} disabled={busy}
+          style={{ padding:'10px 20px', borderRadius:9, border:'1px solid #dc2626', cursor: busy ? 'wait' : 'pointer',
+            background:'#fff', color:'#dc2626', fontSize:13, fontWeight:700, fontFamily:'inherit' }}>
+          ✕ Cancel Order
+        </button>
+      </div>
     </div>
   );
 }
@@ -186,6 +293,11 @@ export default function AdminOrderDetail() {
           </button>
         </div>
       </div>
+
+      {/* Review & Confirm — manager-only, pending orders only */}
+      {order.status === 'pending' && getIsManager() && (
+        <ReviewPanel order={order} onUpdated={(updated) => setOrder(o => ({ ...o, ...updated }))}/>
+      )}
 
       {/* Design visual — the core of this page */}
       <Card title="Submitted Design">

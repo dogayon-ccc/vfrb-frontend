@@ -1,5 +1,14 @@
 // src/pages/admin/UserManagement.jsx
 // Manager-only: create staff accounts, view all users, toggle status
+//
+// Aug 23 2026 — mobile fix. The table wrapper had overflow:'hidden' (not
+// overflow-x:auto), so the 7-column table was genuinely clipping content
+// on narrow screens, not just scrolling awkwardly. Added an isMobile card
+// fallback matching the pattern already proven in Inventory.jsx/Orders.jsx.
+// Also removed the "v10 mobile sweep" .adm-stats/.adm-grid-2/.adm-filter/
+// .adm-table-wrap CSS block — none of those classNames were ever actually
+// applied to any element in this file (same dead-code pattern found and
+// fixed in Suppliers.jsx). Zero business-logic changes below.
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
@@ -109,6 +118,9 @@ export default function AdminUserManagement() {
   const [roleF,   setRoleF]   = useState('all');
   const [modal,   setModal]   = useState(false);
   const [toggling,setToggling]= useState(null);
+  const [winW, setWinW] = useState(typeof window!=='undefined'?window.innerWidth:1280);
+  useEffect(() => { const h=()=>setWinW(window.innerWidth); window.addEventListener('resize',h); return()=>window.removeEventListener('resize',h); }, []);
+  const isMobile = winW <= 767;
   const me = JSON.parse(localStorage.getItem('vfrb_user') || '{}');
 
   const load = useCallback((force = false) => {
@@ -148,49 +160,7 @@ export default function AdminUserManagement() {
 
   return (
     <>
-      <style>{`
-      /* ── Responsive — injected by v10 mobile sweep ── */
-      .adm-stats {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-        gap: 12px;
-        margin-bottom: 20px;
-      }
-      .adm-grid-2 {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 16px;
-        align-items: start;
-      }
-      .adm-filter {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        align-items: center;
-        margin-bottom: 16px;
-      }
-      .adm-filter input,
-      .adm-filter select { flex: 1; min-width: 150px; }
-      .adm-table-wrap {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        border-radius: 12px;
-        border: 1px solid #e2e8f0;
-      }
-      .adm-table-wrap table { width: 100%; min-width: 520px; border-collapse: collapse; }
-      /* ── TABLET 768–1023px ── */
-      @media (max-width: 1023px) {
-        .adm-grid-2 { grid-template-columns: 1fr; gap: 14px; }
-      }
-      /* ── MOBILE ≤ 767px ── */
-      @media (max-width: 767px) {
-        .adm-stats { grid-template-columns: 1fr 1fr; gap: 10px; }
-        .adm-grid-2 { grid-template-columns: 1fr; gap: 12px; }
-        .adm-filter { flex-direction: column; }
-        .adm-filter input,
-        .adm-filter select { min-width: 0; width: 100%; }
-      }
-@keyframes sk{0%{background-position:-400px 0}100%{background-position:400px 0}}`}</style>
+      <style>{`@keyframes sk{0%{background-position:-400px 0}100%{background-position:400px 0}}`}</style>
       {modal && <CreateUserModal onClose={() => setModal(false)} onDone={() => { setModal(false); load(); }}/>}
 
       <div style={{ fontFamily:FONT, color:'#0f172a' }}>
@@ -230,7 +200,67 @@ export default function AdminUserManagement() {
           placeholder="Search by name or email…"
           style={{ ...inp, marginBottom:16 }} onFocus={fi} onBlur={fo}/>
 
-        {/* Users table */}
+        {/* Users — mobile cards vs desktop table */}
+        {loading ? (
+          isMobile ? (
+            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              {[1,2,3].map(i => <div key={i} style={{ ...card, padding:14 }}><div style={{ ...SK, height:14, width:'60%' }}/></div>)}
+            </div>
+          ) : (
+            <div style={{ ...card, overflow:'hidden', padding:30 }}>
+              {[1,2,3,4].map(i => <div key={i} style={{ ...SK, height:11, marginBottom:10 }}/>)}
+            </div>
+          )
+        ) : filtered.length === 0 ? (
+          <div style={{ ...card, padding:'40px', textAlign:'center' }}>
+            <p style={{ fontSize:36, margin:'0 0 10px', opacity:.3 }}>👥</p>
+            <p style={{ color:'#64748b', fontSize:13, fontWeight:600 }}>No users found</p>
+          </div>
+        ) : isMobile ? (
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {filtered.map((u, i) => {
+              const rc = ROLE_CFG[u.role] ?? { c:'#64748b', bg:'#f1f5f9', l:u.role };
+              const isActive = u.is_active !== false;
+              const isMe = u.user_id === me.user_id;
+              return (
+                <div key={u.user_id ?? i} style={{ ...card, padding:14, opacity: isActive ? 1 : .6 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
+                    <div style={{ width:36, height:36, borderRadius:'50%', flexShrink:0, background:`linear-gradient(135deg,${T},${T2})`, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:14, fontWeight:800 }}>
+                      {(u.name??'?').charAt(0).toUpperCase()}
+                    </div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <p style={{ fontSize:13, fontWeight:700, color:'#0f172a', margin:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                        {u.name}{isMe && <span style={{ marginLeft:6, fontSize:9, padding:'1px 6px', borderRadius:99, background:'#f0fdfa', color:T, fontWeight:700 }}>YOU</span>}
+                      </p>
+                      <p style={{ fontSize:11, color:'#64748b', margin:'2px 0 0', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{u.email}</p>
+                    </div>
+                    <span style={{ padding:'4px 10px', borderRadius:99, fontSize:10, fontWeight:700, background:rc.bg, color:rc.c, flexShrink:0 }}>{rc.l}</span>
+                  </div>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingTop:10, borderTop:'1px solid #f1f5f9' }}>
+                    <div style={{ display:'flex', gap:14 }}>
+                      <div>
+                        <p style={{ fontSize:9, color:'#94a3b8', margin:0, textTransform:'uppercase', letterSpacing:'.04em' }}>Orders</p>
+                        <p style={{ fontSize:13, fontWeight:700, color:'#0f172a', margin:0 }}>{u.orders_count ?? 0}</p>
+                      </div>
+                      <div>
+                        <p style={{ fontSize:9, color:'#94a3b8', margin:0, textTransform:'uppercase', letterSpacing:'.04em' }}>Status</p>
+                        <span style={{ display:'inline-block', marginTop:2, padding:'2px 8px', borderRadius:99, fontSize:9, fontWeight:700, background: isActive ? '#dcfce7' : '#fee2e2', color: isActive ? '#166534' : '#991b1b' }}>
+                          {isActive ? '● Active' : '○ Inactive'}
+                        </span>
+                      </div>
+                    </div>
+                    {me.role === 'manager' && !isMe && (
+                      <button onClick={() => toggleStatus(u)} disabled={toggling === u.user_id}
+                        style={{ padding:'6px 12px', borderRadius:8, border:`1px solid ${isActive ? '#fecaca' : '#bbf7d0'}`, background: isActive ? '#fff' : '#f0fdf4', color: isActive ? '#ef4444' : '#22c55e', fontSize:11, fontWeight:600, cursor:'pointer', fontFamily:FONT, opacity: toggling===u.user_id ? .6 : 1 }}>
+                        {toggling === u.user_id ? '⏳' : isActive ? 'Deactivate' : 'Activate'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
         <div style={{ ...card, overflow:'hidden' }}>
           <table style={{ width:'100%', borderCollapse:'collapse' }}>
             <thead>
@@ -241,16 +271,7 @@ export default function AdminUserManagement() {
               </tr>
             </thead>
             <tbody>
-              {loading ? (
-                <tr><td colSpan={7} style={{ padding:30 }}>
-                  {[1,2,3,4].map(i => <div key={i} style={{ ...SK, height:11, marginBottom:10 }}/>)}
-                </td></tr>
-              ) : filtered.length === 0 ? (
-                <tr><td colSpan={7} style={{ padding:'40px', textAlign:'center' }}>
-                  <p style={{ fontSize:36, margin:'0 0 10px', opacity:.3 }}>👥</p>
-                  <p style={{ color:'#64748b', fontSize:13, fontWeight:600 }}>No users found</p>
-                </td></tr>
-              ) : filtered.map((u, i) => {
+              {filtered.map((u, i) => {
                 const rc = ROLE_CFG[u.role] ?? { c:'#64748b', bg:'#f1f5f9', l:u.role };
                 const isActive = u.is_active !== false;
                 const isMe = u.user_id === me.user_id;
@@ -298,6 +319,7 @@ export default function AdminUserManagement() {
             </tbody>
           </table>
         </div>
+        )}
       </div>
     </>
   );

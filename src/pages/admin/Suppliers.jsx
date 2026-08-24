@@ -137,16 +137,18 @@ export default function AdminSuppliers() {
           style={{ ...inp, marginBottom:18 }} onFocus={fi} onBlur={fo}/>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))', gap:14 }}>
           {loading ? [1,2,3].map(i => (
-            <div key={i} style={{ background:'#fff', border:'1px solid #e2e8f0', borderRadius:14, padding:18, boxShadow:'0 1px 3px rgba(0,0,0,.05)' }}>
+            <div key={i} style={{ background:'#fff', border:'1px solid #f1f5f9', borderRadius:14, padding:18, boxShadow:'0 4px 14px rgba(2,128,144,.08)' }}>
               {[70,50,40].map(w => <div key={w} style={{ height:10, width:`${w}%`, borderRadius:5, background:'linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%)', backgroundSize:'400px', animation:'sk 1.4s infinite', marginBottom:10 }}/>)}
             </div>
           )) : filtered.length === 0 ? (
-            <div style={{ gridColumn:'1/-1', background:'#fff', border:'1px solid #e2e8f0', borderRadius:14, padding:'40px', textAlign:'center', boxShadow:'0 1px 3px rgba(0,0,0,.05)' }}>
+            <div style={{ gridColumn:'1/-1', background:'#fff', border:'1px solid #f1f5f9', borderRadius:14, padding:'40px', textAlign:'center', boxShadow:'0 4px 14px rgba(2,128,144,.08)' }}>
               <p style={{ fontSize:36, margin:'0 0 10px', opacity:.3 }}>🏭</p>
               <p style={{ color:'#64748b', fontSize:13, fontWeight:600 }}>No suppliers found</p>
             </div>
           ) : filtered.map(s => (
-            <div key={s.supplier_id} style={{ background:'#fff', border:'1px solid #e2e8f0', borderRadius:14, padding:'18px', boxShadow:'0 1px 3px rgba(0,0,0,.05)' }}>
+            <div key={s.supplier_id} style={{ background:'#fff', border:'1px solid #f1f5f9', borderRadius:14, padding:'18px', boxShadow:'0 4px 14px rgba(2,128,144,.08)', transition:'box-shadow .15s, transform .15s' }}
+              onMouseEnter={e => { e.currentTarget.style.boxShadow='0 8px 22px rgba(2,128,144,.14)'; e.currentTarget.style.transform='translateY(-1px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow='0 4px 14px rgba(2,128,144,.08)'; e.currentTarget.style.transform='translateY(0)'; }}>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:12 }}>
                 <div style={{ flex:1, minWidth:0 }}>
                   <p style={{ fontSize:15, fontWeight:800, color:'#0f172a', margin:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{s.supplier_name}</p>
@@ -158,7 +160,7 @@ export default function AdminSuppliers() {
                 {s.contact_number && <p style={{ fontSize:12, color:'#64748b', margin:0 }}>📞 {s.contact_number}</p>}
                 {s.email && <p style={{ fontSize:12, color:'#64748b', margin:0 }}>✉️ {s.email}</p>}
                 {s.payment_terms_with_supplier && (
-                  <span style={{ display:'inline-block', marginTop:4, padding:'3px 10px', borderRadius:99, fontSize:10, fontWeight:700, background:'#f0fdfa', color:T, border:`1px solid #99f6e4` }}>
+                  <span style={{ display:'inline-block', marginTop:4, padding:'3px 10px', borderRadius:99, fontSize:10, fontWeight:700, background:'linear-gradient(135deg,#f0fdfa,#ccfbf1)', color:T, border:`1px solid #99f6e4` }}>
                     {s.payment_terms_with_supplier}
                   </span>
                 )}

@@ -69,32 +69,39 @@ function Toast({ msg, type, onDone }) {
 }
 
 // ── KPI card ──────────────────────────────────────────────────────────────────
-function KPICard({ icon, label, value, sub, bg, loading, onClick }) {
+// Aug 23 — hybrid style pass: gradient fill + white icon badge + soft
+// colored shadow, matching the confirmed mockup (Bold/TailAdmin direction
+// for headline stat cards specifically — everything else on this page,
+// the action-list cards, notification panel, MRP alerts, stays minimal/
+// white per the same mockup, since dense lists shouldn't compete visually
+// with the cards meant to draw the eye first).
+function KPICard({ icon, label, value, sub, grad, shadow, loading, onClick }) {
   return (
     <motion.div
-      whileHover={{ y: -2 }}
+      whileHover={{ y: -3 }}
       onClick={onClick}
       style={{
-        background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14,
+        background: grad, borderRadius: 14,
         padding: '18px 16px', cursor: onClick ? 'pointer' : 'default',
-        boxShadow: '0 1px 3px rgba(0,0,0,.05)',
+        boxShadow: shadow,
       }}>
       <div style={{
-        width: 38, height: 38, borderRadius: 10, background: bg,
+        width: 34, height: 34, borderRadius: 10, background: 'rgba(255,255,255,.22)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 20, marginBottom: 12,
+        fontSize: 17, marginBottom: 12,
       }}>
         {icon}
       </div>
       {loading
-        ? <div style={{ ...SK_STYLE, height: 28, width: '55%', marginBottom: 6 }} />
+        ? <div style={{ ...SK_STYLE, height: 28, width: '55%', marginBottom: 6,
+            background: 'linear-gradient(90deg,rgba(255,255,255,.2) 25%,rgba(255,255,255,.35) 50%,rgba(255,255,255,.2) 75%)' }} />
         : <p className="adm-kpi-val"
-            style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', margin: '0 0 4px' }}>
+            style={{ fontSize: 26, fontWeight: 800, color: '#fff', margin: '0 0 4px' }}>
             {value}
           </p>
       }
-      <p style={{ fontSize: 12, fontWeight: 600, color: '#0f172a', margin: 0 }}>{label}</p>
-      {sub && <p style={{ fontSize: 11, color: '#64748b', margin: '3px 0 0' }}>{sub}</p>}
+      <p style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,.9)', margin: 0 }}>{label}</p>
+      {sub && <p style={{ fontSize: 11, color: 'rgba(255,255,255,.7)', margin: '3px 0 0' }}>{sub}</p>}
     </motion.div>
   );
 }
@@ -930,18 +937,18 @@ export default function AdminDashboard() {
       {/* ── KPI grid ── */}
       <div className="adm-kpi-grid">
         {[
-          { icon: '📋', label: 'Total Orders',    value: s.total_orders   ?? 0,  sub: 'All time',       bg: '#f0fdfa', path: '/admin/orders' },
-          { icon: '⚙️', label: 'In Production',  value: s.active_orders  ?? 0,  sub: 'Active now',     bg: '#f5f3ff', path: '/admin/orders' },
-          { icon: '💰', label: 'Revenue (Month)', value: `₱${Number(s.monthly_revenue ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 0 })}`, sub: 'This month', bg: '#f0fdf4' },
-          { icon: '⚠️', label: 'Low Stock',       value: s.low_stock_count ?? 0, sub: 'Needs reorder',  bg: '#fef3c7', path: '/admin/inventory' },
+          { icon: '📋', label: 'Total Orders',    value: s.total_orders   ?? 0,  sub: 'All time',       grad: 'linear-gradient(135deg,#028090,#02c39a)', shadow: '0 6px 18px rgba(2,128,144,.24)', path: '/admin/orders' },
+          { icon: '⚙️', label: 'In Production',  value: s.active_orders  ?? 0,  sub: 'Active now',     grad: 'linear-gradient(135deg,#7c3aed,#a78bfa)', shadow: '0 6px 18px rgba(124,58,237,.22)', path: '/admin/orders' },
+          { icon: '💰', label: 'Revenue (Month)', value: `₱${Number(s.monthly_revenue ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 0 })}`, sub: 'This month', grad: 'linear-gradient(135deg,#16a34a,#4ade80)', shadow: '0 6px 18px rgba(22,163,74,.22)' },
+          { icon: '⚠️', label: 'Low Stock',       value: s.low_stock_count ?? 0, sub: 'Needs reorder',  grad: 'linear-gradient(135deg,#d97706,#fbbf24)', shadow: '0 6px 18px rgba(217,119,6,.24)', path: '/admin/inventory' },
           // FIX: this card and the new "Upcoming Deliveries" action block
           // above were both labeled "Deliveries" but count different things
           // — this KPI is dispatched+in_transit only (production.delivering),
           // the action block also includes 'preparing'. Same real number,
           // just relabeled so the two don't look like a data bug when
           // they're actually two different (both correct) metrics.
-          { icon: '🚚', label: 'In Transit',       value: s.pending_deliveries ?? 0, sub: 'Dispatched',  bg: '#eff6ff', path: '/admin/delivery' },
-          { icon: '📊', label: 'Pending Count',   value: s.unreconciled_counts ?? 0, sub: 'Physical count', bg: '#e0e7ff', path: '/admin/physical-count' },
+          { icon: '🚚', label: 'In Transit',       value: s.pending_deliveries ?? 0, sub: 'Dispatched',  grad: 'linear-gradient(135deg,#2563eb,#60a5fa)', shadow: '0 6px 18px rgba(37,99,235,.22)', path: '/admin/delivery' },
+          { icon: '📊', label: 'Pending Count',   value: s.unreconciled_counts ?? 0, sub: 'Physical count', grad: 'linear-gradient(135deg,#4f46e5,#818cf8)', shadow: '0 6px 18px rgba(79,70,229,.22)', path: '/admin/physical-count' },
         ].map(k => (
           <KPICard key={k.label} {...k} loading={loading}
             onClick={k.path ? () => nav(k.path) : undefined} />
