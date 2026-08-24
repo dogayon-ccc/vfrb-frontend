@@ -19,9 +19,66 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig(({ mode }) => ({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    // PWA support (Aug 24 2026) — makes VFRB installable to the home
+    // screen with a splash screen and full-screen app chrome (no browser
+    // address bar), and caches static assets + recently-viewed pages for
+    // offline access. This is pure build/infra config — zero changes to
+    // any existing component or page.
+    VitePWA({
+      registerType: "autoUpdate",
+      includeAssets: ["favicon.svg", "apple-touch-icon.png"],
+      manifest: {
+        name: "VFRB Enterprise",
+        short_name: "VFRB",
+        description: "AI-Enabled Sales and Inventory Management System with Raw Materials Recommendation",
+        theme_color: "#028090",
+        background_color: "#f1f5f9",
+        display: "standalone",
+        orientation: "portrait",
+        scope: "/",
+        start_url: "/",
+        icons: [
+          { src: "pwa-192x192.png", sizes: "192x192", type: "image/png" },
+          { src: "pwa-512x512.png", sizes: "512x512", type: "image/png" },
+          { src: "maskable-icon-512x512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+        ],
+      },
+      workbox: {
+        // NetworkFirst for API calls: always try live data first (this is
+        // a real-time operational system — stock counts, order status —
+        // stale-while-offline is only a fallback, never the default),
+        // falling back to the last successful response if the network is
+        // down. Static assets (JS/CSS/images) use the default
+        // precache-and-serve strategy, safe since they're versioned by
+        // build hash.
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        runtimeCaching: [
+          {
+            urlPattern: /\/api\/.*/,
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "vfrb-api-cache",
+              networkTimeoutSeconds: 10,
+              cacheableResponse: { statuses: [0, 200] },
+              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 }, // 1 day
+            },
+          },
+        ],
+      },
+      devOptions: {
+        // Disabled in dev by default — avoids service-worker caching
+        // interfering with Vite's HMR during daily development. Only
+        // active in production builds (Railway deploys).
+        enabled: false,
+      },
+    }),
+  ],
   server: {
     port: 5173,
     proxy: {
