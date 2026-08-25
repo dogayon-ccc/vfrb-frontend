@@ -497,6 +497,8 @@ export default function AdminDashboard() {
   const monthly = data?.monthly_sales               ?? [];
   const recent  = data?.recent_orders              ?? [];
   const low     = data?.inventory?.low_stock_materials ?? [];
+  const delayed = data?.production?.delayed_orders     ?? [];
+  const delayedThresholdDays = data?.production?.delayed_threshold_days ?? 3;
   const unreadCount = notifs.filter(n => !n.is_read).length;
 
   const h = new Date().getHours();
@@ -815,10 +817,29 @@ export default function AdminDashboard() {
 
         <ActionListCard
           icon="⏱" title="Production Delays" accent="#f59e0b"
-          items={[]} loading={false}
-          unavailable
-          unavailableNote="Not available yet — the backend has no concept of a 'delayed' or 'stalled' stage today (no timestamp-per-stage or threshold exists). Needs a backend decision on what counts as delayed before this can show real data."
-          emptyLabel="" footerLabel="" onFooter={() => {}}
+          items={delayed} loading={loading}
+          emptyLabel={`No stages stalled ${delayedThresholdDays}+ days`}
+          footerLabel="View Production" onFooter={() => nav('/admin/production')}
+          renderItem={(o) => (
+            <div key={o.order_id} onClick={() => nav(`/admin/orders/${o.order_id}`)}
+              style={{ padding: '9px 14px', borderBottom: '1px solid #f8fafc', cursor: 'pointer',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}
+              onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+              <div style={{ minWidth: 0 }}>
+                <p style={{ fontSize: 12, fontWeight: 600, color: '#0f172a', margin: 0,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  Order #{o.order_id} — {o.customer_name}
+                </p>
+                <p style={{ fontSize: 10, color: '#94a3b8', margin: '2px 0 0', textTransform: 'capitalize' }}>
+                  {o.stage} · {o.qty_completed}/{o.qty_target} pcs
+                </p>
+              </div>
+              <p style={{ fontSize: 11, fontWeight: 800, color: '#f59e0b', margin: 0, flexShrink: 0 }}>
+                {o.days_stalled}d stalled
+              </p>
+            </div>
+          )}
         />
 
         <ActionListCard

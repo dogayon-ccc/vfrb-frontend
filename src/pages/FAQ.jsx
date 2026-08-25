@@ -10,8 +10,7 @@
 // input before publishing.
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import logo from '../assets/company-logo.jpg';
+import MarketingNav from '../components/MarketingNav';
 import Footer from '../components/Footer';
 
 const T = { teal: '#028090', accent: '#02C39A', dark: '#06101a' };
@@ -23,15 +22,15 @@ const FAQS = [
   },
   {
     q: 'Do I have to use the Design Studio, or can I order without it?',
-    a: 'The Design Studio is optional. You can place an order without it \u2014 New Order lets you enter garment type, sizes, quantity, and color directly.',
+    a: 'The Design Studio is optional. You can place an order without it — New Order lets you enter garment type, sizes, quantity, and color directly.',
   },
   {
     q: 'How does AI Material Recommendation work?',
     a: 'After you submit your order specs, Gemini AI reviews the garment type, quantity, and details, then recommends the categories of raw materials the order is expected to need (for example: fabric, collar lining, buttons, thread, labels). You review this on the AI Materials page and accept it, which notifies VFRB staff to prepare materials. Exact quantities for every material are still confirmed by VFRB\u2019s production team.',
   },
   {
-    q: 'Why do some materials show \u201cnot yet configured\u201d on my AI recommendation?',
-    a: 'VFRB is still finalizing exact usage rates for some materials (only fabric has a confirmed rate right now). Those items still appear so you know they\u2019re part of your order \u2014 the quantity will be confirmed by staff once the rate is set.',
+    q: 'Why do some materials show "not yet configured" on my AI recommendation?',
+    a: 'VFRB is still finalizing exact usage rates for some materials (only fabric has a confirmed rate right now). Those items still appear so you know they\u2019re part of your order — the quantity will be confirmed by staff once the rate is set.',
   },
   {
     q: 'How do I track my order\u2019s production status?',
@@ -39,18 +38,18 @@ const FAQS = [
   },
   {
     q: 'What are the 7 production stages?',
-    a: 'Pattern \u2192 Segregation \u2192 Cutting \u2192 Sewing \u2192 QC \u2192 Pressing \u2192 Packing. An order only moves to the next stage once the required quantity for the current stage is finished.',
+    a: 'Pattern → Segregation → Cutting → Sewing → QC → Pressing → Packing. An order only moves to the next stage once the required quantity for the current stage is finished.',
   },
   {
     q: 'How will I know when my order moves to the next stage?',
-    a: 'Your order status updates automatically in My Orders as VFRB staff log progress on the floor. Check back anytime \u2014 no need to call to ask.',
+    a: 'Your order status updates automatically in My Orders as VFRB staff log progress on the floor. Check back anytime — no need to call to ask.',
   },
   {
     q: 'Can I message VFRB staff about my order?',
     a: 'Yes. Use Messages in your customer portal to reach VFRB staff directly about a specific order.',
   },
   {
-    q: 'I signed up with Google \u2014 is my account different from an email account?',
+    q: 'I signed up with Google — is my account different from an email account?',
     a: 'No. Customers can self-register with either email or Google, and both create the same type of customer account with the same access.',
   },
   {
@@ -58,34 +57,6 @@ const FAQS = [
     a: 'No. There is no supplier login or supplier portal. Suppliers are managed internally by VFRB staff as reference records only.',
   },
 ];
-
-function Header() {
-  const navigate = useNavigate();
-  return (
-    <div style={{
-      position: 'sticky', top: 0, zIndex: 50,
-      background: 'rgba(6,16,26,0.97)', backdropFilter: 'blur(20px)',
-      borderBottom: '1px solid rgba(255,255,255,0.07)',
-    }}>
-      <div style={{
-        maxWidth: 1000, margin: '0 auto', padding: '0 24px', height: 64,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-      }}>
-        <button onClick={() => navigate('/')}
-          style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'none', border: 'none', cursor: 'pointer' }}>
-          <img src={logo} alt="VFRB" style={{ width: 34, height: 34, borderRadius: 9, objectFit: 'cover', border: '2px solid rgba(2,195,154,0.35)' }}/>
-          <span style={{ color: '#fff', fontWeight: 700, fontSize: 14, fontFamily: "Georgia,'Times New Roman',serif" }}>VFRB Enterprise</span>
-        </button>
-        <button onClick={() => navigate('/')}
-          style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
-            color: 'rgba(255,255,255,0.8)', fontSize: 13, fontWeight: 600, padding: '8px 16px',
-            borderRadius: 9, cursor: 'pointer', fontFamily: 'var(--font)' }}>
-          ← Back to Home
-        </button>
-      </div>
-    </div>
-  );
-}
 
 function FAQItem({ q, a, open, onToggle }) {
   return (
@@ -128,7 +99,7 @@ export default function FAQ() {
         body{margin:0;background:${T.dark};}
       `}</style>
 
-      <Header/>
+      <MarketingNav/>
 
       <div style={{ maxWidth: 760, margin: '0 auto', padding: '64px 24px 40px' }}>
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
@@ -149,7 +120,7 @@ export default function FAQ() {
         }}>
           <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6 }}>
             Note: questions about pricing, minimum order quantity, lead/turnaround time, and payment or
-            cancellation policy aren\u2019t listed here yet \u2014 those need VFRB\u2019s confirmed business answers
+            cancellation policy aren\u2019t listed here yet — those need VFRB\u2019s confirmed business answers
             before publishing. Please contact VFRB Enterprise directly for those details in the meantime.
           </p>
         </div>

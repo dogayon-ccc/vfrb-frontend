@@ -6,8 +6,7 @@
 // added, this page must be updated alongside it — don't get ahead of the
 // real system.
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
-import logo from '../assets/company-logo.jpg';
+import MarketingNav from '../components/MarketingNav';
 import Footer from '../components/Footer';
 
 const T = { teal: '#028090', accent: '#02C39A', dark: '#06101a' };
@@ -31,47 +30,19 @@ const STEPS = [
   {
     n: '04',
     title: 'Order enters production',
-    desc: 'Your order moves through VFRB\u2019s real 7-stage production line: Pattern \u2192 Segregation \u2192 Cutting \u2192 Sewing \u2192 QC \u2192 Pressing \u2192 Packing. Each stage only advances once the required quantity for that stage is complete.',
+    desc: 'Your order moves through VFRB\u2019s real 7-stage production line: Pattern → Segregation → Cutting → Sewing → QC → Pressing → Packing. Each stage only advances once the required quantity for that stage is complete.',
   },
   {
     n: '05',
     title: 'Track progress anytime',
-    desc: 'Open My Orders to see exactly which stage your order is on, in real time \u2014 no need to call or visit to ask.',
+    desc: 'Open My Orders to see exactly which stage your order is on, in real time — no need to call or visit to ask.',
   },
   {
     n: '06',
     title: 'Payment & delivery',
-    desc: 'Payment terms follow your order type \u2014 VFRB staff will confirm the exact terms that apply to your order. Once production and payment are complete, your order is scheduled for delivery.',
+    desc: 'Payment terms follow your order type — VFRB staff will confirm the exact terms that apply to your order. Once production and payment are complete, your order is scheduled for delivery.',
   },
 ];
-
-function Header() {
-  const navigate = useNavigate();
-  return (
-    <div style={{
-      position: 'sticky', top: 0, zIndex: 50,
-      background: 'rgba(6,16,26,0.97)', backdropFilter: 'blur(20px)',
-      borderBottom: '1px solid rgba(255,255,255,0.07)',
-    }}>
-      <div style={{
-        maxWidth: 1000, margin: '0 auto', padding: '0 24px', height: 64,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-      }}>
-        <button onClick={() => navigate('/')}
-          style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'none', border: 'none', cursor: 'pointer' }}>
-          <img src={logo} alt="VFRB" style={{ width: 34, height: 34, borderRadius: 9, objectFit: 'cover', border: '2px solid rgba(2,195,154,0.35)' }}/>
-          <span style={{ color: '#fff', fontWeight: 700, fontSize: 14, fontFamily: "Georgia,'Times New Roman',serif" }}>VFRB Enterprise</span>
-        </button>
-        <button onClick={() => navigate('/')}
-          style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
-            color: 'rgba(255,255,255,0.8)', fontSize: 13, fontWeight: 600, padding: '8px 16px',
-            borderRadius: 9, cursor: 'pointer', fontFamily: 'var(--font)' }}>
-          ← Back to Home
-        </button>
-      </div>
-    </div>
-  );
-}
 
 export default function Guide() {
   return (
@@ -81,7 +52,7 @@ export default function Guide() {
         body{margin:0;background:${T.dark};}
       `}</style>
 
-      <Header/>
+      <MarketingNav/>
 
       <div style={{ maxWidth: 800, margin: '0 auto', padding: '64px 24px 40px' }}>
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
