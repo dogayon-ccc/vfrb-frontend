@@ -46,8 +46,8 @@ export default function Login() {
         setError('Staff accounts must use the Admin Portal at /admin/login.');
         return;
       }
-      sessionStorage.setItem('vfrb_token', data.token);
-      sessionStorage.setItem('vfrb_user', JSON.stringify(data.user));
+      localStorage.setItem('vfrb_token', data.token);
+      localStorage.setItem('vfrb_user', JSON.stringify(data.user));
       axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
       // Dev bypass: on localhost skip email verification gate so team can test
       // In production this will correctly redirect unverified users
