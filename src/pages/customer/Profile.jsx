@@ -123,8 +123,8 @@ export default function CustomerProfile() {
         organization_name: form.organization_name,
         client_type:       form.client_type,
       });
-      const u = JSON.parse(localStorage.getItem('vfrb_user') || '{}');
-      localStorage.setItem('vfrb_user', JSON.stringify({ ...u, name:form.name }));
+      const u = JSON.parse(sessionStorage.getItem('vfrb_user') || '{}');
+      sessionStorage.setItem('vfrb_user', JSON.stringify({ ...u, name:form.name }));
       setMsg('Profile updated successfully.');
     } catch(e) {
       setErr(e.response?.data?.message ?? 'Failed to update profile.');

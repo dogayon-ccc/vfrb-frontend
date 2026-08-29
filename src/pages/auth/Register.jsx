@@ -53,6 +53,7 @@ export default function CustomerRegister() {
   });
   const [errors,  setErrors]  = useState({});
   const [loading, setLoading] = useState(false);
+  const [agreed, setAgreed] = useState(false); // NEW Aug 28 2026 — real gate, not decorative
   const [showPw,  setShowPw]  = useState(false);
   const [focused, setFocused] = useState('');
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -61,6 +62,10 @@ export default function CustomerRegister() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrors({});
+    if (!agreed) {
+      setErrors({ agreed: ['Please agree to the Terms of Service and Privacy Policy to continue.'] });
+      return;
+    }
     if (form.password !== form.password_confirmation) {
       setErrors({ password_confirmation: ['Passwords do not match.'] });
       return;
@@ -68,8 +73,8 @@ export default function CustomerRegister() {
     setLoading(true);
     try {
       const { data } = await axios.post('/api/register', form);
-      localStorage.setItem('vfrb_token', data.token);
-      localStorage.setItem('vfrb_user', JSON.stringify(data.user));
+      sessionStorage.setItem('vfrb_token', data.token);
+      sessionStorage.setItem('vfrb_user', JSON.stringify(data.user));
       axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
       const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
       const verified = data.user?.email_verified_at || isLocalhost;
@@ -248,11 +253,25 @@ export default function CustomerRegister() {
                 )}
               </div>
 
+              <label style={{ display:'flex', alignItems:'flex-start', gap:8, cursor:'pointer' }}>
+                <input type="checkbox" checked={agreed} onChange={e => { setAgreed(e.target.checked); setErrors(x => ({ ...x, agreed: undefined })); }}
+                  style={{ marginTop:3, width:16, height:16, accentColor:TEAL, cursor:'pointer', flexShrink:0 }}/>
+                <span style={{ fontSize:12, color:'rgba(255,255,255,0.6)', lineHeight:1.5 }}>
+                  I agree to VFRB Enterprise's{' '}
+                  <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color:TEAL }}>Terms of Service</a>
+                  {' '}and{' '}
+                  <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color:TEAL }}>Privacy Policy</a>.
+                </span>
+              </label>
+              {firstError('agreed') && (
+                <p style={{ color:'#fca5a5', fontSize:11, marginTop:-8 }}>{firstError('agreed')}</p>
+              )}
+
               <motion.button whileHover={{ scale:1.01 }} whileTap={{ scale:.98 }}
-                type="submit" disabled={loading}
+                type="submit" disabled={loading || !agreed}
                 style={{ width:'100%', padding:'13px', borderRadius:11, border:'none', marginTop:6,
-                  background: loading ? 'rgba(2,195,154,0.4)' : `linear-gradient(135deg,${TEAL},#028090)`,
-                  color:'#06101a', fontSize:14, fontWeight:700, cursor: loading ? 'not-allowed' : 'pointer',
+                  background: (loading || !agreed) ? 'rgba(2,195,154,0.4)' : `linear-gradient(135deg,${TEAL},#028090)`,
+                  color:'#06101a', fontSize:14, fontWeight:700, cursor: (loading || !agreed) ? 'not-allowed' : 'pointer',
                   fontFamily:"ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif" }}>
                 {loading ? 'Creating account…' : 'Create Account'}
               </motion.button>

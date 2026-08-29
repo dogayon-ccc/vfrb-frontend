@@ -33,7 +33,8 @@ const ACTION_LABELS = {
   delivery_updated:       { label: 'Delivery Update',     icon: '🚚', color: '#EA580C' },
   po_created:              { label: 'PO Created',          icon: '🧾', color: '#7C3AED' },
   rfq_created:             { label: 'RFQ Created',         icon: '📨', color: '#7C3AED' },
-  usage_rate_set:          { label: 'Usage Rate Set',      icon: '📐', color: '#0891B2' },
+  // usage_rate_set entry removed Aug 29 2026 — backend no longer emits this
+  // action_type (source data was deleted in the no-formula redesign).
   settings_updated:        { label: 'Settings Updated',    icon: '⚙️', color: '#64748B' },
 };
 

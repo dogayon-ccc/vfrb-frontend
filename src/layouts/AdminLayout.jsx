@@ -14,36 +14,56 @@ const T  = 'var(--teal)';
 const T2 = 'var(--teal-2)';
 const MG = 'var(--purple)'; // manager purple
 
+// area: null = always visible to every staff account regardless of job_function
+// (Dashboard/Orders/Messages/Delivery/Sales stay general-purpose on purpose —
+// only the areas Dave explicitly called out — production vs inventory — gate).
 const STAFF_NAV = [
-  { to:'/admin',              icon:'⊞', label:'Dashboard',    end:true  },
-  { to:'/admin/orders',       icon:'📋', label:'Orders'               },
-  { to:'/admin/inventory',    icon:'📦', label:'Inventory'            },
-  { to:'/admin/messages',     icon:'💬', label:'Messages'             },
-  { to:'/admin/procurement',  icon:'🛒', label:'Procurement'          },
-  { to:'/admin/delivery',     icon:'🚚', label:'Delivery'             },
-  { to:'/admin/materials',    icon:'🧵', label:'Materials'            },
-  { to:'/admin/material-rates',icon:'📐',label:'Usage Rates'          },
-  { to:'/admin/production',   icon:'🏭', label:'Production'           },
-  { to:'/admin/output-log',   icon:'📝', label:'Output Log'           },
-  { to:'/admin/qc',           icon:'✅', label:'QC Checklist'         },
-  { to:'/admin/physical-count',icon:'🔢',label:'Physical Count'       },
-  { to:'/admin/transactions', icon:'💰', label:'Sales & Pay'          },
+  { to:'/admin',              icon:'⊞', label:'Dashboard',    end:true, area:null        },
+  { to:'/admin/orders',       icon:'📋', label:'Orders',                area:null        },
+  { to:'/admin/inventory',    icon:'📦', label:'Inventory',             area:'inventory' },
+  { to:'/admin/messages',     icon:'💬', label:'Messages',              area:null        },
+  { to:'/admin/procurement',  icon:'🛒', label:'Procurement',           area:'inventory' },
+  { to:'/admin/delivery',     icon:'🚚', label:'Delivery',              area:null        },
+  { to:'/admin/materials',    icon:'🧵', label:'Materials',             area:'inventory' },
+  // 'Usage Rates' nav entry removed Aug 28 2026 — MaterialRates.jsx deleted,
+  // no formula/BOM exists in this system anymore.
+  { to:'/admin/production',   icon:'🏭', label:'Production',            area:'production'},
+  { to:'/admin/output-log',   icon:'📝', label:'Output Log',            area:'production'},
+  { to:'/admin/qc',           icon:'✅', label:'QC Checklist',          area:'production'},
+  { to:'/admin/physical-count',icon:'🔢',label:'Physical Count',        area:'inventory' },
+  { to:'/admin/production-incidents',icon:'⚠️',label:'Incidents',       area:'production'}, // NEW Aug 25 2026
+  { to:'/admin/transactions', icon:'💰', label:'Sales & Pay',           area:null        },
 ];
+
+// job_function -> areas it may see. 'general' (default/unset) always sees
+// everything, so this is additive restriction, never a silent lockout.
+const JOB_FUNCTION_AREAS = {
+  general:    ['inventory', 'production'],
+  inventory:  ['inventory'],
+  production: ['production'],
+  sales:      [],
+};
+
+function visibleForJobFunction(navArray, jobFunction) {
+  const allowed = JOB_FUNCTION_AREAS[jobFunction] ?? JOB_FUNCTION_AREAS.general;
+  return navArray.filter(item => item.area === null || allowed.includes(item.area));
+}
 const MANAGER_EXTRA = [
   { to:'/admin/reports',      icon:'📊', label:'Reports'              },
   { to:'/admin/invoice',      icon:'🧾', label:'Invoice'              },
   { to:'/admin/suppliers',    icon:'🏪', label:'Suppliers'            },
   { to:'/admin/users',        icon:'👥', label:'Users'                },
+  { to:'/admin/feedback',     icon:'💬', label:'Feedback'             }, // NEW Aug 27 2026
   { to:'/admin/settings',     icon:'⚙️', label:'Settings'             },
 ];
 
 // Mobile bottom nav — 5 most critical
 const MOB_NAV = [
-  { to:'/admin',           icon:'⊞', label:'Home',     end:true  },
-  { to:'/admin/orders',    icon:'📋', label:'Orders'             },
-  { to:'/admin/inventory', icon:'📦', label:'Stock'              },
-  { to:'/admin/messages',  icon:'💬', label:'Chat'               },
-  { to:'/admin/production',icon:'🏭', label:'Production'         },
+  { to:'/admin',           icon:'⊞', label:'Home',     end:true, area:null        },
+  { to:'/admin/orders',    icon:'📋', label:'Orders',            area:null        },
+  { to:'/admin/inventory', icon:'📦', label:'Stock',              area:'inventory' },
+  { to:'/admin/messages',  icon:'💬', label:'Chat',               area:null        },
+  { to:'/admin/production',icon:'🏭', label:'Production',        area:'production'},
 ];
 
 // Notification row
@@ -101,6 +121,7 @@ export default function AdminLayout() {
   const [role,      setRole]      = useState('staff');
   const [name,      setName]      = useState('');
   const [avatar,    setAvatar]    = useState(null);
+  const [jobFn,     setJobFn]     = useState('general');
   const [collapsed, setCollapsed] = useState(() => {
     // MOBILE AUDIT FIX (Aug 22): previously always defaulted to false
     // (full 226px sidebar) with no viewport awareness at all, so a first-
@@ -122,7 +143,8 @@ export default function AdminLayout() {
 
   const SW         = collapsed ? 68 : 226;
   const isManager  = role === 'manager';
-  const navItems   = isManager ? [...STAFF_NAV, ...MANAGER_EXTRA] : STAFF_NAV;
+  const visibleStaffNav = isManager ? STAFF_NAV : visibleForJobFunction(STAFF_NAV, jobFn);
+  const navItems   = isManager ? [...STAFF_NAV, ...MANAGER_EXTRA] : visibleStaffNav;
 
   // Notification bell
   const [notifs,    setNotifs]    = useState([]);
@@ -172,6 +194,7 @@ export default function AdminLayout() {
     setRole(u.role || 'staff');
     setName(u.name || 'Staff');
     setAvatar(u.avatar || null);
+    setJobFn(u.job_function || 'general');
   }, [location.pathname]);
 
   // Close More drawer on route change
@@ -564,7 +587,7 @@ export default function AdminLayout() {
             scrollbarWidth:'thin', scrollbarColor:'var(--border) transparent' }}>
 
             {!collapsed && <p className="adm-sec">Operational</p>}
-            {STAFF_NAV.map(item => (
+            {visibleStaffNav.map(item => (
               <NavLink key={item.to} to={item.to} end={item.end}
                 className={({ isActive }) => `adm-link${isActive ? ' active' : ''}`}
                 title={collapsed ? item.label : undefined}
@@ -879,7 +902,7 @@ export default function AdminLayout() {
                 </p>
 
                 {/* Staff nav items not in bottom bar */}
-                {STAFF_NAV.filter(i =>
+                {visibleStaffNav.filter(i =>
                   !['/admin','/admin/orders','/admin/inventory',
                     '/admin/messages','/admin/production'].includes(i.to)
                 ).map(item => (
@@ -923,7 +946,7 @@ export default function AdminLayout() {
 
         {/* ─── MOBILE BOTTOM TASKBAR ──────────────────────────────────────── */}
         <nav className="adm-bnav" aria-label="Mobile navigation">
-          {MOB_NAV.map(item => {
+          {(isManager ? MOB_NAV : visibleForJobFunction(MOB_NAV, jobFn)).map(item => {
             const active = item.end
               ? location.pathname === item.to
               : location.pathname.startsWith(item.to);

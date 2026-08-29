@@ -44,7 +44,7 @@ const card = { background:'#fff', border:'1px solid #e2e8f0', borderRadius:14, b
 
 // (QR scanning removed — manual material selection only)
 
-const user      = (() => { try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}'); } catch { return {}; } })();
+const user      = (() => { try { return JSON.parse(sessionStorage.getItem('vfrb_user') || '{}'); } catch { return {}; } })();
 const isManager = user.role === 'manager';
 
 // ── Toast ─────────────────────────────────────────────────────────────────────

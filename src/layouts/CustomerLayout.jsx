@@ -8,6 +8,7 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import PageErrorBoundary from '../components/PageErrorBoundary';
+import FeedbackWidget from '../components/FeedbackWidget'; // NEW Aug 27 2026
 import logo from '../assets/company-logo.jpg';
 import { loadAccent, getAccentVars, ACCENT_CHANGE_EVENT } from '../utils/accentColor';
 
@@ -18,7 +19,9 @@ const NAV = [
   { to:'/customer',               icon:'⊞', label:'Dashboard',    short:'Home',     end:true  },
   { to:'/customer/order/create',  icon:'✏️',  label:'New Order',    short:'Order',    end:false },
   { to:'/customer/orders',        icon:'📋', label:'My Orders',    short:'Orders',   end:false },
-  { to:'/customer/ai-materials',  icon:'🤖', label:'AI Materials', short:'BOM',      end:false },
+  // 'AI Materials' nav entry removed Aug 28 2026 — that flow is now the
+  // blocking MaterialsReveal screen shown right after order submit
+  // (OrderWizard.jsx), not a standalone page reachable from nav.
   { to:'/customer/messages',      icon:'💬', label:'Messages',     short:'Chat',     end:false },
   { to:'/customer/profile',       icon:'👤', label:'Profile',      short:'Profile',  end:false },
 ];
@@ -28,7 +31,7 @@ const MOB_NAV = [
   { to:'/customer',              icon:'⊞', short:'Home',    end:true  },
   { to:'/customer/orders',       icon:'📋', short:'Orders',  end:false },
   { to:'/customer/messages',     icon:'💬', short:'Chat',    end:false },
-  { to:'/customer/ai-materials', icon:'🤖', short:'BOM',     end:false },
+  // 'BOM'/ai-materials entry removed Aug 28 2026 — see NAV comment above.
   { to:'/customer/profile',      icon:'👤', short:'Profile', end:false },
 ];
 
@@ -649,6 +652,7 @@ flexShrink:0,
                 </PageErrorBoundary>
               </motion.div>
             </AnimatePresence>
+            <FeedbackWidget/>
           </div>
         </main>
 

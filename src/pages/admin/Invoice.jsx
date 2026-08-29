@@ -301,7 +301,10 @@ export default function AdminInvoice() {
               </div>
             )}
 
-            {/* BOM Table */}
+            {/* BOM Table — Aug 28 2026: "Qty Required" column removed (no
+                formula/BOM exists in this system). Replaced with "Actual
+                Used", sourced from actual_qty_issued — the real,
+                staff-entered quantity from Pattern-stage completion. */}
             {recs.length > 0 && (
               <div style={{ marginBottom:24 }}>
                 <p style={{ fontSize:13, fontWeight:700, color:TEAL, marginBottom:10,
@@ -311,7 +314,7 @@ export default function AdminInvoice() {
                 <div className="inv-bom-wrap"><table>
                   <thead>
                     <tr style={{ background:'#f8fafc' }}>
-                      {['Material','Unit','Qty Required','In Stock','Status'].map(h => (
+                      {['Material','Unit','Actual Used','In Stock','Status'].map(h => (
                         <th key={h} style={{ padding:'8px 12px', textAlign:'left',
                           fontSize:10, fontWeight:700, color:'#64748b',
                           textTransform:'uppercase', letterSpacing:'.05em',
@@ -321,7 +324,6 @@ export default function AdminInvoice() {
                   </thead>
                   <tbody>
                     {recs.map((rec, i) => {
-                      // estimated_range is a varchar string e.g. "350 yards" — locked column name
                       const inStock = rec.material?.quantity_in_stock ?? 0;
                       const hasStock = inStock > 0;
                       return (
@@ -332,7 +334,7 @@ export default function AdminInvoice() {
                             {rec.material?.unit ?? '—'}
                           </td>
                           <td style={{ padding:'9px 12px', color:'#0f172a', fontSize:13,
-                            fontWeight:600 }}>{rec.estimated_range ?? '—'}</td>
+                            fontWeight:600 }}>{rec.actual_qty_issued != null ? rec.actual_qty_issued : 'Not yet issued'}</td>
                           <td style={{ padding:'9px 12px', color:'#0f172a', fontSize:12 }}>
                             {inStock > 0 ? inStock : '—'}
                           </td>

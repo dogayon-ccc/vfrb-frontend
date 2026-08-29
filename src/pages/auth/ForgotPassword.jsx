@@ -32,8 +32,8 @@ export default function ForgotPassword() {
   return (
     <div style={{ minHeight:'100vh', background:'#06101a', display:'flex',
       alignItems:'center', justifyContent:'center', padding:'20px',
-      fontFamily:"'DM Sans',sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,600;9..40,700&display=swap');*{box-sizing:border-box;margin:0;padding:0;}`}</style>
+      fontFamily:'var(--font)' }}>
+      <style>{`*{box-sizing:border-box;margin:0;padding:0;}`}</style>
 
       <motion.div initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }}
         style={{ width:'100%', maxWidth:400 }}>
@@ -72,7 +72,7 @@ export default function ForgotPassword() {
                 style={{ padding:'12px 24px', borderRadius:10, border:'none',
                   background:`linear-gradient(135deg,#028090,${TEAL})`,
                   color:'#fff', fontSize:14, fontWeight:600,
-                  cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>
+                  cursor:'pointer', fontFamily:'var(--font)' }}>
                 Back to Login
               </button>
             </div>
@@ -106,7 +106,7 @@ export default function ForgotPassword() {
                   style={{ width:'100%', padding:'11px 14px', borderRadius:10,
                     border:'1px solid rgba(255,255,255,0.1)',
                     background:'rgba(255,255,255,0.05)', color:'#fff',
-                    fontSize:14, outline:'none', fontFamily:"'DM Sans',sans-serif" }}
+                    fontSize:14, outline:'none', fontFamily:'var(--font)' }}
                   onFocus={e => e.target.style.borderColor=TEAL}
                   onBlur={e => e.target.style.borderColor='rgba(255,255,255,0.1)'}/>
               </label>
@@ -117,7 +117,7 @@ export default function ForgotPassword() {
                   background: loading ? 'rgba(2,195,154,0.4)' : `linear-gradient(135deg,#028090,${TEAL})`,
                   color:'#fff', fontSize:14, fontWeight:700,
                   cursor: loading ? 'not-allowed' : 'pointer',
-                  fontFamily:"'DM Sans',sans-serif", marginBottom:14 }}>
+                  fontFamily:'var(--font)', marginBottom:14 }}>
                 {loading ? 'Sending…' : 'Send Reset Link'}
               </motion.button>
 
@@ -125,7 +125,7 @@ export default function ForgotPassword() {
                 style={{ width:'100%', padding:'11px', borderRadius:10,
                   background:'none', border:'1px solid rgba(255,255,255,0.1)',
                   color:'rgba(255,255,255,0.5)', fontSize:13, cursor:'pointer',
-                  fontFamily:"'DM Sans',sans-serif" }}>
+                  fontFamily:'var(--font)' }}>
                 ← Back to Login
               </button>
             </form>

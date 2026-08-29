@@ -5,8 +5,10 @@
 //   1. CDN font removed — system font stack
 //   2. Field keys fixed to match actual DB columns from vfrb_db.sql:
 //      r.material.material_name → r.material_name  (direct column)
-//      r.estimated_qty          → r.estimated_range (string from Gemini)
 //      r.material.unit          → r.unit
+//      (estimated_range REMOVED from this file's data as of the SCOPE-001
+//       fix — customer sees material type + Gemini's narrative only, per
+//       the locked "types only, never quantities" rule)
 //   3. Gemini narrative card shows ai_note per material (the explanation Gemini writes)
 //   4. Full motion: whileHover, whileTap, stagger animations, card entrance
 //   5. Accepting shows confetti burst on the accept button
@@ -36,7 +38,11 @@ const SK = {
 };
 
 // Category config — colors, icons per material category from Gemini
-const CAT = {
+// EXPORTED (Aug 28 2026): reused by MaterialsReveal.jsx (the blocking
+// post-submit screen in OrderWizard.jsx) so there is exactly one
+// implementation of "what the customer sees" for a recommendation,
+// not two versions that can silently drift apart.
+export const CAT = {
   Fabric:       { icon:'🧶', color:'#3b82f6', bg:'#dbeafe' },
   Thread:       { icon:'🪡', color:'#8b5cf6', bg:'#ede9fe' },
   Elastic:      { icon:'〰️',  color:'#f97316', bg:'#ffedd5' },
@@ -61,7 +67,8 @@ const STATUS_C = {
 };
 
 // ── Confetti burst on accept ─────────────────────────────────────────────────
-function ConfettiBurst() {
+// EXPORTED — reused by MaterialsReveal.jsx, see CAT export note above.
+export function ConfettiBurst() {
   const particles = Array.from({ length:20 }, (_, i) => ({
     id:i, color:[T,T2,'#22c55e','#f59e0b','#3b82f6','#ec4899'][i%6],
     x: (Math.random()-0.5)*200, y: -(60+Math.random()*100),
@@ -83,7 +90,8 @@ function ConfettiBurst() {
 }
 
 // ── Accept confirmation modal ─────────────────────────────────────────────────
-function AcceptModal({ order, recs, onClose, onDone }) {
+// EXPORTED — reused by MaterialsReveal.jsx, see CAT export note above.
+export function AcceptModal({ order, recs, onClose, onDone }) {
   const [notes, setNotes] = useState('');
   const [busy,  setBusy]  = useState(false);
   const [err,   setErr]   = useState('');
@@ -148,9 +156,6 @@ function AcceptModal({ order, recs, onClose, onDone }) {
                         </p>
                       </div>
                     </div>
-                    <span style={{ fontSize:12, fontWeight:700, color:T, fontFamily:FONT }}>
-                      {r.estimated_range}
-                    </span>
                   </div>
                 );
               })}
@@ -202,7 +207,8 @@ function AcceptModal({ order, recs, onClose, onDone }) {
 // NEW — customer bypasses the AI entirely and picks materials themselves
 // from the real catalog. Same deterministic engine computes quantities on
 // the backend; VFRB gets notified exactly like an AI acceptance.
-function SelfPickModal({ order, onClose, onDone }) {
+// EXPORTED — reused by MaterialsReveal.jsx, see CAT export note above.
+export function SelfPickModal({ order, onClose, onDone }) {
   const [catalog, setCatalog] = useState([]);
   const [picked,  setPicked]  = useState(new Set());
   const [loading, setLoading] = useState(true);
@@ -321,7 +327,13 @@ function SelfPickModal({ order, onClose, onDone }) {
 }
 
 
-function RecCard({ rec, index }) {
+// EXPORTED — reused by MaterialsReveal.jsx, see CAT export note above.
+// SCOPE-001 boundary lives here: only material_name, category, and ai_note
+// are rendered. estimated_range is intentionally never read by this
+// component — it's a real field, still used server-side for inventory
+// deduction (ProductionController::materialCheck/confirm), just never
+// shown to the customer.
+export function RecCard({ rec, index }) {
   const cat = CAT[rec.category] ?? CAT.Other;
   return (
     <motion.div
@@ -356,18 +368,6 @@ function RecCard({ rec, index }) {
           </div>
         </div>
 
-        {/* Quantity range */}
-        <div style={{ textAlign:'right', flexShrink:0 }}>
-          <p style={{ fontSize:13, fontWeight:800, color:T,
-            margin:0, fontFamily:FONT }}>
-            {rec.estimated_range}
-          </p>
-          {rec.total_estimated_range && (
-            <p style={{ fontSize:10, color:'#64748b', margin:'2px 0 0', fontFamily:FONT }}>
-              {rec.total_estimated_range}
-            </p>
-          )}
-        </div>
       </div>
 
       {/* AI explanation (the ai_note Gemini writes) */}

@@ -80,6 +80,14 @@ export default function AdminMaterials() {
   const [search,  setSearch]  = useState('');
   const [modal,   setModal]   = useState(null); // null | 'add' | item
 
+  // MOBILE FIX (Aug 27 2026): this table had overflow:'hidden' (not
+  // overflow-x:auto) and zero mobile handling of any kind — genuinely
+  // clipping content at narrow widths, not just cramped. isMobile pattern
+  // matches Inventory.jsx exactly, same card fallback approach.
+  const [winW, setWinW] = useState(typeof window !== 'undefined' ? window.innerWidth : 1280);
+  useEffect(() => { const h = () => setWinW(window.innerWidth); window.addEventListener('resize', h); return () => window.removeEventListener('resize', h); }, []);
+  const isMobile = winW <= 767;
+
   const load = useCallback(() => {
     setLoading(true);
     axios.get('/api/admin/materials').then(r => setMats(r.data?.data ?? r.data ?? [])).catch(() => {}).finally(() => setLoading(false));
@@ -103,8 +111,42 @@ export default function AdminMaterials() {
         </div>
         <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search materials…"
           style={{ ...inp, marginBottom:18 }} onFocus={fi} onBlur={fo}/>
-        <div style={{ background:'#fff', border:'1px solid #e2e8f0', borderRadius:14, overflow:'hidden', boxShadow:'0 1px 3px rgba(0,0,0,.05)' }}>
-          <table style={{ width:'100%', borderCollapse:'collapse' }}>
+        {isMobile ? (
+          loading ? (
+            <div style={{ padding:40, textAlign:'center' }}>
+              {[1,2,3].map(i => <div key={i} style={{ ...SK, height:60, marginBottom:10 }}/>)}
+            </div>
+          ) : filtered.length === 0 ? (
+            <div style={{ padding:'40px 20px', textAlign:'center', background:'#fff', borderRadius:14, border:'1px solid #e2e8f0' }}>
+              <p style={{ fontSize:36, margin:'0 0 10px', opacity:.3 }}>🧵</p>
+              <p style={{ color:'#64748b', fontSize:13, fontWeight:600 }}>No materials found</p>
+            </div>
+          ) : (
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              {filtered.map(m => {
+                const low = (m.quantity_in_stock ?? 0) <= (m.reorder_threshold ?? 0);
+                return (
+                  <div key={m.material_id} style={{ background:'#fff', border:'1px solid #e2e8f0', borderRadius:12, padding:14 }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8 }}>
+                      <div>
+                        <p style={{ fontSize:14, fontWeight:700, color:'#0f172a', margin:0 }}>{m.material_name}</p>
+                        <p style={{ fontSize:11, color:'#64748b', margin:'2px 0 0' }}>{m.category ?? '—'} · {m.unit}</p>
+                      </div>
+                      <button onClick={() => setModal(m)} style={{ padding:'6px 14px', borderRadius:8, border:'1px solid #e2e8f0', background:'#f8fafc', color:'#0f172a', fontSize:11, fontWeight:600, cursor:'pointer', minHeight:44 }}>Edit</button>
+                    </div>
+                    <div style={{ display:'flex', gap:16, fontSize:12, color:'#64748b' }}>
+                      <span>Stock: <b style={{ color: low ? '#ef4444' : '#22c55e' }}>{m.quantity_in_stock ?? 0}</b>{low && <span style={{ marginLeft:4, fontSize:9, padding:'2px 7px', borderRadius:99, background:'#fee2e2', color:'#991b1b', fontWeight:700 }}>LOW</span>}</span>
+                      <span>Reorder at: {m.reorder_threshold ?? 0}</span>
+                      <span>{m.unit_cost ? `₱${Number(m.unit_cost).toFixed(2)}` : '—'}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )
+        ) : (
+        <div style={{ background:'#fff', border:'1px solid #e2e8f0', borderRadius:14, overflow:'hidden', overflowX:'auto', boxShadow:'0 1px 3px rgba(0,0,0,.05)' }}>
+          <table style={{ width:'100%', borderCollapse:'collapse', minWidth:640 }}>
             <thead><tr style={{ background:'#f8fafc' }}>
               {['Material Name','Category','Unit','In Stock','Reorder Threshold','Unit Cost','Action'].map(h => (
                 <th key={h} style={{ padding:'10px 14px', textAlign:'left', fontSize:10, fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'.06em', borderBottom:'2px solid #e2e8f0', whiteSpace:'nowrap' }}>{h}</th>
@@ -150,6 +192,7 @@ export default function AdminMaterials() {
             </tbody>
           </table>
         </div>
+        )}
       </div>
     </>
   );

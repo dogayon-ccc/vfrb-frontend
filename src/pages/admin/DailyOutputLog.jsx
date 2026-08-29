@@ -34,6 +34,22 @@ export default function AdminDailyOutputLog() {
   const [success, setSuccess] = useState('');
   const [tab,     setTab]     = useState('log'); // log | history
 
+  // ── Material actuals — Aug 29 2026 (Account 2, Step 3) ────────────────────
+  // No formula/BOM exists in this system: Gemini recommends material TYPES
+  // only, and the ONE place a real quantity now enters the system is here —
+  // staff typing what was actually used, only relevant when logging the
+  // Pattern stage (the only stage ProductionStageService::logOutput() gates
+  // on material_actuals). orderMaterials = this order's accepted+linked
+  // material_recommendations rows, sourced from the SAME admin order-detail
+  // endpoint ProductionTracking.jsx already uses (GET /api/admin/orders/{id}
+  // → order.recommendations) — no new backend endpoint needed.
+  // materialQty is kept as strings, not numbers: an empty string means
+  // "staff hasn't entered anything yet" (omitted from the submit payload,
+  // so the backend's gate correctly treats it as missing), which is a real,
+  // distinguishable state from an explicit "0" (confirmed, none used).
+  const [orderMaterials, setOrderMaterials] = useState([]);
+  const [materialQty,    setMaterialQty]    = useState({});
+
   const set = (k,v) => setForm(f=>({...f,[k]:v}));
 
   // Load orders + today's logs
@@ -58,6 +74,37 @@ export default function AdminDailyOutputLog() {
       .catch(() => setSummary(null));
   }, [form.order_id]);
 
+  // Load this order's accepted+linked materials (for the Pattern-stage
+  // actual-usage inputs below). Reuses the existing admin order-detail
+  // endpoint — same one ProductionTracking.jsx already calls — rather than
+  // adding a new route. Resets the entered quantities whenever the order
+  // selection changes, since a stale material_id → qty_used map from a
+  // previously-selected order must never silently attach to a different one.
+  useEffect(() => {
+    setMaterialQty({});
+    if (!form.order_id) { setOrderMaterials([]); return; }
+    axios.get(`/api/admin/orders/${form.order_id}`)
+      .then(r => {
+        const recs = r.data?.order?.recommendations ?? [];
+        setOrderMaterials(recs.filter(rec => rec.customer_accepted && rec.material_id));
+      })
+      .catch(() => setOrderMaterials([]));
+  }, [form.order_id]);
+
+  const setMatQty = (materialId, val) =>
+    setMaterialQty(m => ({ ...m, [materialId]: val }));
+
+  // Only entries the staff actually typed a value into are sent — an
+  // untouched field must stay indistinguishable from "not provided" so
+  // ProductionStageService::checkMaterialActualsGate() can correctly hold
+  // the stage advance and say which materials are still missing, rather
+  // than the frontend silently sending a fabricated 0 for every material
+  // the staff member hasn't gotten to yet.
+  const materialActualsPayload = () =>
+    Object.entries(materialQty)
+      .filter(([, v]) => v !== '' && v !== null && v !== undefined)
+      .map(([material_id, qty_used]) => ({ material_id: Number(material_id), qty_used: Number(qty_used) }));
+
   const totalInForm = SIZES.reduce((sum, s) => sum + (Number(form[`qty_${s}`]) || 0), 0);
 
   const submit = async () => {
@@ -65,9 +112,35 @@ export default function AdminDailyOutputLog() {
     if (totalInForm === 0) { setErr('Enter at least 1 piece completed.'); return; }
     setSaving(true); setErr(''); setSuccess('');
     try {
-      const r = await axios.post('/api/admin/output-logs', form);
-      setSuccess(`✓ Logged ${r.data.total_output} pieces for Order #${form.order_id}`);
+      const payload = { ...form, material_actuals: materialActualsPayload() };
+      const r = await axios.post('/api/admin/output-logs', payload);
+
+      // materials_blocked (Aug 29 2026): the output log + tracking row
+      // still committed — real physical progress isn't erased by a
+      // paperwork gap — but the stage advance itself was held because one
+      // or more accepted materials still don't have an actual usage entry.
+      // Distinct message, not an error: the log succeeded, the advance
+      // didn't.
+      if (r.data.materials_blocked) {
+        const names = (r.data.materials_needing_actual ?? [])
+          .map(m => m.material_name).join(', ');
+        setSuccess(
+          `✓ Logged ${r.data.total_output} pieces for Order #${form.order_id}. `
+          + `Stage advance is on hold until actual usage is entered for: ${names}.`
+        );
+      } else {
+        const deducted = r.data.deduction_log?.length
+          ? ` · ${r.data.deduction_log.length} material(s) deducted from stock.`
+          : '';
+        setSuccess(`✓ Logged ${r.data.total_output} pieces for Order #${form.order_id}.${deducted}`);
+      }
+
+      if (r.data.low_stock?.length) {
+        setErr(`⚠️ Low stock after deduction: ${r.data.low_stock.map(m => m.material_name).join(', ')}`);
+      }
+
       setForm(emptyForm());
+      setMaterialQty({});
       load();
     } catch(e) { setErr(e.response?.data?.message ?? 'Failed to log output.'); }
     finally { setSaving(false); }
@@ -225,6 +298,44 @@ export default function AdminDailyOutputLog() {
                   ))}
                 </div>
               </div>
+
+              {/* Actual materials used — Pattern stage only. Shown when this
+                  order has accepted+linked material recommendations; the
+                  backend gate (checkMaterialActualsGate) only checks these
+                  when the Pattern stage's quantity target is met, but the
+                  input is offered here on every Pattern-stage log so staff
+                  can enter it progressively rather than being surprised by
+                  a hold on the exact log that completes the stage. */}
+              {form.stage === 'pattern' && orderMaterials.length > 0 && (
+                <div style={{
+                  padding:'14px', borderRadius:12, background:'#f0fdfa',
+                  border:`1px solid ${T}30`,
+                }}>
+                  <label style={{ ...lbl, marginBottom:10 }}>
+                    Actual Materials Used <span style={{ color:'#94a3b8', fontWeight:400, textTransform:'none' }}>
+                      (required before Pattern can advance)
+                    </span>
+                  </label>
+                  <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                    {orderMaterials.map(m => (
+                      <div key={m.material_id} style={{ display:'flex', alignItems:'center', gap:10 }}>
+                        <span style={{ flex:1, fontSize:12, color:'#0f172a', fontWeight:600 }}>
+                          {m.material_name}
+                          <span style={{ color:'#94a3b8', fontWeight:400 }}> ({m.unit})</span>
+                        </span>
+                        <input
+                          type="number" min={0} step="any"
+                          placeholder="qty used"
+                          value={materialQty[m.material_id] ?? ''}
+                          onChange={e => setMatQty(m.material_id, e.target.value)}
+                          style={{ ...inp, width:110, textAlign:'right' }}
+                          onFocus={fi} onBlur={fo}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Defects */}
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>

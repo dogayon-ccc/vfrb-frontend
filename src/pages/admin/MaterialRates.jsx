@@ -241,8 +241,8 @@ export default function MaterialRates() {
                 {list.map(r => {
                   const cfg = CAT_CFG[r.category] ?? CAT_CFG.Other;
                   return (
-                    <div key={r.rate_id} style={{ display:'flex', alignItems:'center',
-                      justifyContent:'space-between', padding:'9px 0',
+                    <div key={r.rate_id} style={{ display:'flex', alignItems:'center', flexWrap:'wrap',
+                      justifyContent:'space-between', gap:8, padding:'9px 0',
                       borderTop:'1px solid #f1f5f9' }}>
                       <div style={{ display:'flex', alignItems:'center', gap:9 }}>
                         <span style={{ fontSize:15 }}>{cfg.icon}</span>

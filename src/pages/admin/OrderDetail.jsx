@@ -20,7 +20,7 @@
 //     this page shows a plain "No design submitted" placeholder instead.
 //
 // Production/BOM/payment sections reuse the exact field names already
-// proven correct in Invoice.jsx (rec.material_name / rec.estimated_range,
+// proven correct in Invoice.jsx (rec.material_name / rec.actual_qty_issued,
 // txn.amount_paid / txn.amount_total) — not reinvented.
 //
 // PDF: reuses the existing GET /api/admin/orders/:id/invoice-pdf endpoint
@@ -362,16 +362,21 @@ export default function AdminOrderDetail() {
         </div>
       </Card>
 
-      {/* Material recommendations / BOM — same field names as Invoice.jsx */}
+      {/* Material recommendations — Aug 28 2026: estimated_range column
+          removed (no formula/BOM exists in this system). Replaced with
+          Actual Used, sourced from actual_qty_issued — the real,
+          staff-entered quantity from Pattern-stage completion. Null until
+          Pattern actually completes for this order. */}
       <Card title="Material Recommendations">
         {recs.length === 0 ? (
           <div style={{ color:'#94a3b8', fontSize:13 }}>No material recommendations recorded yet.</div>
         ) : (
-          <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13 }}>
+          <div style={{ overflowX:'auto', WebkitOverflowScrolling:'touch' }}>
+          <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13, minWidth:400 }}>
             <thead>
               <tr style={{ textAlign:'left', color:'#94a3b8', fontSize:11, textTransform:'uppercase' }}>
                 <th style={{ padding:'6px 8px' }}>Material</th>
-                <th style={{ padding:'6px 8px' }}>Estimated Range</th>
+                <th style={{ padding:'6px 8px' }}>Actual Used</th>
                 <th style={{ padding:'6px 8px' }}>In Stock</th>
               </tr>
             </thead>
@@ -381,7 +386,9 @@ export default function AdminOrderDetail() {
                   <td style={{ padding:'8px', fontWeight:500 }}>
                     {rec.material_name ?? rec.material?.material_name ?? rec.category ?? '—'}
                   </td>
-                  <td style={{ padding:'8px', fontWeight:600 }}>{rec.estimated_range ?? '—'}</td>
+                  <td style={{ padding:'8px', fontWeight:600 }}>
+                    {rec.actual_qty_issued != null ? `${rec.actual_qty_issued} ${rec.unit ?? ''}` : 'Not yet issued'}
+                  </td>
                   <td style={{ padding:'8px', color:'#64748b' }}>
                     {rec.material?.quantity_in_stock ?? '—'} {rec.material?.unit ?? ''}
                   </td>
@@ -389,6 +396,7 @@ export default function AdminOrderDetail() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </Card>
 

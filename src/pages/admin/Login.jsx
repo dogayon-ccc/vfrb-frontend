@@ -22,8 +22,8 @@ export default function AdminLogin() {
     setLoading(true); setError('');
     try {
       const { data } = await axios.post('/api/admin/login', form);
-      localStorage.setItem('vfrb_token', data.token);
-      localStorage.setItem('vfrb_user', JSON.stringify(data.user));
+      sessionStorage.setItem('vfrb_token', data.token);
+      sessionStorage.setItem('vfrb_user', JSON.stringify(data.user));
       axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
       navigate('/admin/dashboard');
     } catch (err) {

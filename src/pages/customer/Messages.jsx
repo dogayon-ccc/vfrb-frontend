@@ -142,7 +142,7 @@ export default function CustomerMessages() {
   const [sending, setSending] = useState(false);
 
   const msgEnd = useRef(null);
-  const meId   = JSON.parse(localStorage.getItem('vfrb_user') || '{}')?.user_id;
+  const meId   = JSON.parse(sessionStorage.getItem('vfrb_user') || '{}')?.user_id;
 
   // Load order list for thread selector
   useEffect(() => {

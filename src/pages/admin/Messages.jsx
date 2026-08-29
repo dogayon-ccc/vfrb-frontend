@@ -18,7 +18,7 @@ export default function AdminMessages() {
 
   const msgEnd = useRef(null);
 
-  const meId = JSON.parse(localStorage.getItem('vfrb_user') || '{}')?.user_id;
+  const meId = JSON.parse(sessionStorage.getItem('vfrb_user') || '{}')?.user_id;
 
   const loadThreads = useCallback(async () => {
     try {

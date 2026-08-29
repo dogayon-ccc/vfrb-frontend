@@ -35,8 +35,8 @@ export default function GoogleComplete() {
 
     try {
       const user = JSON.parse(userJson);
-      localStorage.setItem('vfrb_token', token);
-      localStorage.setItem('vfrb_user', JSON.stringify(user));
+      sessionStorage.setItem('vfrb_token', token);
+      sessionStorage.setItem('vfrb_user', JSON.stringify(user));
       // Full navigation (not React Router push) so axios interceptors and
       // any already-mounted layout state pick up the fresh token cleanly —
       // same reasoning as the login page's own post-auth redirect.

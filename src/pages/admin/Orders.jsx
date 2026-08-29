@@ -443,7 +443,7 @@ export default function AdminOrders() {
   }, []);
   const isMobile = winW <= 767;
 
-  const user      = JSON.parse(localStorage.getItem('vfrb_user') || '{}');
+  const user      = JSON.parse(sessionStorage.getItem('vfrb_user') || '{}');
   const isManager = user.role === 'manager';
 
   // ── Load orders with cache (TTL.ORDERS = 30s) ─────────────────────────────

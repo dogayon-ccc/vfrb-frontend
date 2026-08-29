@@ -59,7 +59,8 @@ const AdminDashboard         = lazy(() => import('./pages/admin/Dashboard'));
 const AdminOrders            = lazy(() => import('./pages/admin/Orders'));
 const AdminInventory         = lazy(() => import('./pages/admin/Inventory'));
 const AdminMaterials         = lazy(() => import('./pages/admin/Materials'));
-const AdminMaterialRates     = lazy(() => import('./pages/admin/MaterialRates'));
+// AdminMaterialRates removed Aug 28 2026 — no formula/BOM exists in this
+// system; nothing computes from material_usage_rates anymore.
 const AdminPurchaseOrders    = lazy(() => import('./pages/admin/PurchaseOrders'));
 const AdminReports           = lazy(() => import('./pages/admin/Reports'));
 const AdminSalesTransactions = lazy(() => import('./pages/admin/SalesTransactions'));
@@ -69,6 +70,7 @@ const AdminSuppliers         = lazy(() => import('./pages/admin/Suppliers'));
 const AdminUserManagement    = lazy(() => import('./pages/admin/UserManagement'));
 const AdminSettings          = lazy(() => import('./pages/admin/Settings'));
 const AdminActivityLog       = lazy(() => import('./pages/admin/ActivityLog'));
+const AdminFeedback          = lazy(() => import('./pages/admin/Feedback')); // NEW Aug 27 2026
 const AdminInvoice           = lazy(() => import('./pages/admin/Invoice'));
 const AdminOrderDetail       = lazy(() => import('./pages/admin/OrderDetail'));
 const AdminProductionTracking= lazy(() => import('./pages/admin/ProductionTracking')); // TASK R: was missing
@@ -76,6 +78,7 @@ const AdminProductionList    = lazy(() => import('./pages/admin/ProductionList')
 const AdminPhysicalCount     = lazy(() => import('./pages/admin/PhysicalCount'));
 const AdminDailyOutputLog    = lazy(() => import('./pages/admin/DailyOutputLog'));
 const AdminQCChecklist       = lazy(() => import('./pages/admin/QCChecklist'));
+const AdminProductionIncidents = lazy(() => import('./pages/admin/ProductionIncidents')); // NEW Aug 25 2026
 
 // ── Customer Pages — all lazy ─────────────────────────────────────────────────
 const CustomerDashboard   = lazy(() => import('./pages/customer/Dashboard'));
@@ -97,6 +100,8 @@ const ResetPassword  = lazy(() => import('./pages/auth/ResetPassword'));
 const GuidePage = lazy(() => import('./pages/Guide'));
 const FAQPage    = lazy(() => import('./pages/FAQ'));
 const TeamPage   = lazy(() => import('./pages/Team'));
+const PrivacyPage = lazy(() => import('./pages/PrivacyPolicy')); // NEW Aug 28 2026
+const TermsPage    = lazy(() => import('./pages/TermsOfService')); // NEW Aug 28 2026
 
 // ── Page loader — shown during lazy bundle download ───────────────────────────
 function Loader() {
@@ -198,6 +203,8 @@ export default function App() {
           <Route path="/guide"    element={<GuidePage/>}/>
           <Route path="/faq"      element={<FAQPage/>}/>
           <Route path="/our-team" element={<TeamPage/>}/>
+          <Route path="/privacy"  element={<PrivacyPage/>}/>
+          <Route path="/terms"    element={<TermsPage/>}/>
 
           {/* ── ADMIN PORTAL ──────────────────────────────────────────────── */}
           <Route path="/admin/*" element={
@@ -215,13 +222,17 @@ export default function App() {
             <Route path="procurement" element={<AdminPurchaseOrders/>}/>
             <Route path="delivery"    element={<AdminDeliveryTracking/>}/>
             <Route path="materials"   element={<AdminMaterials/>}/>
-            <Route path="material-rates" element={<AdminMaterialRates/>}/>
+            {/* material-rates route removed Aug 28 2026 — see App.jsx lazy-import comment */}
             <Route path="transactions"element={<AdminSalesTransactions/>}/>
 
             {/* Month 2 operational */}
             <Route path="physical-count" element={<AdminPhysicalCount/>}/>
             <Route path="output-log"     element={<AdminDailyOutputLog/>}/>
             <Route path="qc"             element={<AdminQCChecklist/>}/>
+            {/* NEW Aug 25 2026 — machine breakdown / cutting damage reporting,
+                interview-grounded. Staff+Manager tier, same as QC/Physical
+                Count — NOT wrapped in RequireManager. */}
+            <Route path="production-incidents" element={<AdminProductionIncidents/>}/>
 
             {/* Settings: staff view-only, manager can edit — gated INSIDE
                 the component (see Settings.jsx), NOT wrapped in
@@ -231,6 +242,7 @@ export default function App() {
 
             {/* Manager Only */}
             <Route path="reports"   element={<RequireManager><AdminReports/></RequireManager>}/>
+            <Route path="feedback"  element={<RequireManager><AdminFeedback/></RequireManager>}/>
             <Route path="activity-log" element={<RequireManager><AdminActivityLog/></RequireManager>}/>
             <Route path="invoice"   element={<RequireManager><AdminInvoice/></RequireManager>}/>
             <Route path="suppliers" element={<RequireManager><AdminSuppliers/></RequireManager>}/>

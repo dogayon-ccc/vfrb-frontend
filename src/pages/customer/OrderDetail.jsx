@@ -8,7 +8,9 @@
 //   target_delivery_date, po_reference, qc_required, qc_passed_at
 //   delivery_tracking.delivery_status (NOT .status)
 //   order_messages.body (NOT .message), message_id, sender_id
-//   material_recommendations.estimated_range, customer_accepted
+//   material_recommendations.customer_accepted (estimated_range is
+//     staff/inventory-only as of the SCOPE-001 fix — this file never
+//     receives it; material_id → type/category/unit only)
 //
 // FEATURES:
 //   7-stage animated pipeline (horizontal desktop, vertical mobile)
@@ -344,7 +346,7 @@ export default function CustomerOrderDetail() {
 
   // Current user id (to identify own messages)
   const meId = (() => {
-    try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}').user_id; }
+    try { return JSON.parse(sessionStorage.getItem('vfrb_user') || '{}').user_id; }
     catch { return null; }
   })();
 
@@ -786,8 +788,7 @@ export default function CustomerOrderDetail() {
                     <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:14 }}>
                       {Object.entries(mats).map(([mat, info]) => (
                         <div key={mat} style={{
-                          display:'flex', justifyContent:'space-between',
-                          alignItems:'center', padding:'8px 12px',
+                          display:'flex', alignItems:'center', padding:'8px 12px',
                           background:'#f8fafc', borderRadius:9,
                           border:'1px solid #f1f5f9',
                         }}>
@@ -797,33 +798,12 @@ export default function CustomerOrderDetail() {
                           }}>
                             {mat}
                           </span>
-                          <span style={{ fontSize:11, fontWeight:700, color:T, fontFamily:FONT }}>
-                            {typeof info === 'object'
-                              ? (info.estimated_range ?? info.range ?? '—')
-                              : info}
-                          </span>
                         </div>
                       ))}
                     </div>
                   );
                 } catch { return null; }
               })()}
-
-              {/* Total range — estimated_range column */}
-              {aiRec.total_estimated_range && (
-                <div style={{
-                  padding:'10px 14px', background:`${T}10`,
-                  border:`1px solid ${T}20`, borderRadius:9, marginBottom:14,
-                  display:'flex', justifyContent:'space-between', alignItems:'center',
-                }}>
-                  <span style={{ fontSize:12, fontWeight:700, color:T, fontFamily:FONT }}>
-                    Total Estimate
-                  </span>
-                  <span style={{ fontSize:13, fontWeight:800, color:T, fontFamily:FONT }}>
-                    {aiRec.total_estimated_range}
-                  </span>
-                </div>
-              )}
 
               {/* Narrative notes */}
               {aiRec.notes && (

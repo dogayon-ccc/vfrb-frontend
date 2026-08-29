@@ -44,6 +44,8 @@ const RESOURCES = [
   { label: 'Guide',     to: '/guide' },
   { label: 'FAQ',       to: '/faq' },
   { label: 'Our Team',  to: '/our-team' },
+  { label: 'Privacy Policy', to: '/privacy' },
+  { label: 'Terms of Service', to: '/terms' },
 ];
 
 function hoverProps() {

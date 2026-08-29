@@ -16,6 +16,10 @@ import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useNavigate }                                   from 'react-router-dom';
 import { motion, AnimatePresence }                       from 'framer-motion';
 import axios                                             from 'axios';
+// Aug 28 2026 — post-submit AI-materials reveal, replaces the old
+// immediate-navigate-to-order-detail flow. See MaterialsReveal.jsx header
+// for the full locked requirements and SCOPE-001 boundary.
+import MaterialsReveal                                   from './MaterialsReveal';
 
 const GarmentPreview3D = lazy(() => import('../../components/GarmentPreview3D'));
 
@@ -330,6 +334,7 @@ function StepDesign({ form, set, errors, studio, onClearStudio }) {
           set('garment_type', g);
           if (!spec.needsCollar) set('collar_type', '');
           if (!spec.needsSleeve) set('sleeve_type', '');
+          if (!spec.needsPocket) set('pocket_type', '');
         }}
           style={{ ...inp, cursor:'pointer' }} onFocus={fi} onBlur={fo}>
           <option value="">Select garment type…</option>
@@ -404,6 +409,26 @@ function StepDesign({ form, set, errors, studio, onClearStudio }) {
               Not specified in your design — please choose one
             </p>
           )}
+        </div>
+      )}
+
+      {/* Pocket Type — POCKETS constant + backend pocket_type field both
+          already existed; this control was the missing piece (confirmed
+          gap, Aug 27 2026). Optional, unlike collar/sleeve — matches
+          pocket_type's nullable backend validation. */}
+      {gSpec.needsPocket && (
+        <div>
+          <label style={lbl}>
+            Pocket Type{' '}
+            <span style={{ color:'#94a3b8', fontWeight:400, textTransform:'none', letterSpacing:0 }}>
+              (optional)
+            </span>
+          </label>
+          <select value={form.pocket_type||''} onChange={e=>set('pocket_type',e.target.value)}
+            style={{ ...inp, cursor:'pointer' }} onFocus={fi} onBlur={fo}>
+            <option value="">Select pocket style…</option>
+            {POCKETS.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
         </div>
       )}
 
@@ -514,16 +539,16 @@ function StepConfig({ form, set, errors, studio }) {
         <label style={lbl}>Total Quantity (pieces) <span style={{ color:'#ef4444' }}>*</span></label>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
           <motion.button whileTap={{ scale:.9 }} type="button"
-            onClick={() => set('quantity_ordered', Math.max(1, (form.quantity_ordered||0) - 10))}
+            onClick={() => set('quantity_ordered', Math.max(100, (form.quantity_ordered||0) - 10))}
             style={{ width:40, height:40, borderRadius:10, border:'1px solid #e2e8f0',
               background:'#f8fafc', fontSize:18, cursor:'pointer', flexShrink:0,
               display:'flex', alignItems:'center', justifyContent:'center',
               color:'#64748b', fontWeight:700 }}>
             −
           </motion.button>
-          <input type="number" min={1} value={form.quantity_ordered||''}
-            onChange={e => set('quantity_ordered', Math.max(1, Number(e.target.value)||1))}
-            placeholder="e.g. 100" style={{ ...inp, textAlign:'center', fontWeight:700 }}
+          <input type="number" min={100} value={form.quantity_ordered||''}
+            onChange={e => set('quantity_ordered', Math.max(0, Number(e.target.value)||0))}
+            placeholder="e.g. 100 (bulk orders only — 100 pcs minimum)" style={{ ...inp, textAlign:'center', fontWeight:700 }}
             onFocus={fi} onBlur={fo}/>
           <motion.button whileTap={{ scale:.9 }} type="button"
             onClick={() => set('quantity_ordered', (form.quantity_ordered||0) + 10)}
@@ -591,7 +616,11 @@ function StepConfig({ form, set, errors, studio }) {
 // ── Step 2: Sizing — stepper buttons ─────────────────────────────────────────
 const STD = ['XS','S','M','L','XL','XXL','3XL'];
 
-function SteP({ label, value, onChange }) {
+function SteP({ label, value, onChange, remaining }) {
+  // remaining = how many more pieces can still be added across ALL sizes
+  // before hitting quantity_ordered. undefined/null = no cap known yet
+  // (e.g. quantity_ordered not entered), so don't block anything.
+  const atCap = remaining != null && remaining <= 0;
   return (
     <motion.div whileHover={{ y:-1, boxShadow:'0 4px 12px rgba(0,0,0,.07)' }}
       style={{ background:'#fff', border:`1.5px solid ${value>0?T:'#e2e8f0'}`,
@@ -614,11 +643,14 @@ function SteP({ label, value, onChange }) {
           width:30, textAlign:'center', fontFamily:FONT }}>
           {value}
         </span>
-        <motion.button whileTap={{ scale:.85 }} type="button"
+        <motion.button whileTap={{ scale: atCap ? 1 : .85 }} type="button"
+          disabled={atCap}
           onClick={() => onChange(value + 1)}
+          title={atCap ? 'Total quantity reached — reduce another size first' : undefined}
           style={{ width:28, height:28, borderRadius:8, border:'1px solid #e2e8f0',
-            background:'#f8fafc', fontSize:16, cursor:'pointer', lineHeight:1,
-            color:'#64748b', fontWeight:700, display:'flex',
+            background: atCap ? '#f1f5f9' : '#f8fafc', fontSize:16,
+            cursor: atCap ? 'not-allowed' : 'pointer', lineHeight:1,
+            color: atCap ? '#cbd5e1' : '#64748b', fontWeight:700, display:'flex',
             alignItems:'center', justifyContent:'center' }}>
           +
         </motion.button>
@@ -698,6 +730,7 @@ function StepSize({ form, set, errors, onShowChart }) {
               {STD.map(sz => (
                 <SteP key={sz} label={sz}
                   value={form.sizes?.[sz] || 0}
+                  remaining={form.quantity_ordered > 0 ? form.quantity_ordered - total : null}
                   onChange={v => set('sizes', { ...form.sizes, [sz]:v })}/>
               ))}
             </div>
@@ -727,10 +760,13 @@ function StepSize({ form, set, errors, onShowChart }) {
           {/* Check vs quantity_ordered */}
           {total > 0 && form.quantity_ordered > 0 && total !== form.quantity_ordered && (
             <div style={{ padding:'10px 14px', borderRadius:10,
-              background:'#fef3c7', border:'1px solid #fde68a' }}>
-              <p style={{ fontSize:11, color:'#92400e', margin:0, fontFamily:FONT }}>
-                ⚠️ Size total ({total} pcs) differs from quantity ordered ({form.quantity_ordered} pcs).
-                This is OK — VFRB staff will confirm final breakdown.
+              background: total > form.quantity_ordered ? '#fef2f2' : '#fef3c7',
+              border: `1px solid ${total > form.quantity_ordered ? '#fecaca' : '#fde68a'}` }}>
+              <p style={{ fontSize:11, color: total > form.quantity_ordered ? '#991b1b' : '#92400e',
+                margin:0, fontFamily:FONT, fontWeight:600 }}>
+                {total > form.quantity_ordered ? '❌' : '⚠️'} Size total ({total} pcs) must exactly match
+                quantity ordered ({form.quantity_ordered} pcs) — {Math.abs(form.quantity_ordered - total)} pcs
+                {total > form.quantity_ordered ? ' over' : ' short'}. This blocks submission until it matches.
               </p>
             </div>
           )}
@@ -812,6 +848,7 @@ function StepReview({ form, studio }) {
       rows:[
         ['Garment',     form.garment_type || '—'],
         ['Collar',      form.collar_type  || '—'],
+        ['Pocket',      form.pocket_type  || '—'],
         ['Sleeve',      form.sleeve_type  || '—'],
         ['Description', (form.client_design_notes||'').slice(0,80) + ((form.client_design_notes||'').length>80?'…':'')],
         ['Reference',   form.design_ref_file?.name || 'None'],
@@ -1284,7 +1321,7 @@ function ConfettiBurst() {
 
 // ── Form state ────────────────────────────────────────────────────────────────
 const INIT = {
-  garment_type:'', collar_type:'', sleeve_type:'', client_design_notes:'',
+  garment_type:'', collar_type:'', sleeve_type:'', pocket_type:'', client_design_notes:'',
   design_ref_file:null, order_type:'direct', quantity_ordered:'', color:'',
   deadline:'', po_reference:'', special_notes:'', sizing_type:'standard',
   sizes:{}, measurements:{}, custom_qty:'',
@@ -1303,6 +1340,11 @@ export default function OrderWizard() {
   const [dir,    setDir]    = useState(1); // 1=forward, -1=back (for slide direction)
   const [showSizeChart,  setShowSizeChart]  = useState(false);
   const [showConfetti,   setShowConfetti]   = useState(false);
+  // Aug 28 2026 — once the order is created, we stop rendering the wizard
+  // and render the blocking MaterialsReveal screen instead, right here in
+  // this component. Navigation to /customer/orders/{id} now happens from
+  // MaterialsReveal's onDone callback, not immediately on submit success.
+  const [createdOrder,   setCreatedOrder]   = useState(null);
 
   // Read studio_config from DesignStudio on mount
   useEffect(() => {
@@ -1371,13 +1413,17 @@ export default function OrderWizard() {
     }
     if (step===1) {
       if (!form.order_type)                  e.order_type          = 'Required';
-      if (!form.quantity_ordered || form.quantity_ordered < 1)
-                                             e.quantity_ordered    = 'Must be at least 1';
+      if (!form.quantity_ordered || form.quantity_ordered < 100)
+                                             e.quantity_ordered    = 'VFRB accepts bulk orders only — minimum 100 pieces';
       if (!form.color?.trim())               e.color               = 'Required';
     }
     if (step===2 && form.sizing_type==='standard') {
-      if (STD.reduce((a,sz)=>a+(form.sizes?.[sz]||0),0) < 1)
-                                             e.sizes               = 'Enter at least 1 piece';
+      const sizeTotal = STD.reduce((a,sz)=>a+(form.sizes?.[sz]||0),0);
+      if (sizeTotal < 1) {
+        e.sizes = 'Enter at least 1 piece';
+      } else if (sizeTotal !== form.quantity_ordered) {
+        e.sizes = `Size breakdown (${sizeTotal} pcs) must exactly match quantity ordered (${form.quantity_ordered} pcs)`;
+      }
     }
     setErrs(e);
     return !Object.keys(e).length;
@@ -1400,7 +1446,7 @@ export default function OrderWizard() {
     setBusy(true); setApiErr('');
     try {
       const fd = new FormData();
-      ['garment_type','collar_type','sleeve_type','client_design_notes',
+      ['garment_type','collar_type','sleeve_type','pocket_type','client_design_notes',
        'order_type','color'].forEach(k => fd.append(k, form[k]));
       if (form.quantity_ordered) fd.append('quantity_ordered', form.quantity_ordered);
       if (form.deadline)         fd.append('deadline',         form.deadline);
@@ -1452,12 +1498,22 @@ export default function OrderWizard() {
       ['studio_config','studio_color','studio_garment','studio_category']
         .forEach(k => sessionStorage.removeItem(k));
 
-      // Confetti burst — fires immediately on success, then navigate after 1.4s
+      // Confetti burst — fires immediately on success. FIX (Aug 28 2026):
+      // this used to navigate straight to /customer/orders/{id} after
+      // 1.4s. It now instead mounts the blocking MaterialsReveal screen
+      // (see import above) once the confetti finishes — the customer must
+      // accept the AI's material recommendation or choose their own
+      // before landing on the order detail page. order_id is required for
+      // MaterialsReveal's API calls; garment_type/quantity_ordered are
+      // used for display only and fall back to the form values if the
+      // backend response happens not to echo them.
       setShowConfetti(true);
-      setTimeout(() => {
-        nav(`/customer/orders/${r.data.order?.order_id ?? r.data.order_id ?? ''}`,
-          { state: { justCreated: true } });
-      }, 1400);
+      const created = r.data.order ?? {
+        order_id:         r.data.order_id,
+        garment_type:     form.garment_type,
+        quantity_ordered: form.quantity_ordered,
+      };
+      setTimeout(() => setCreatedOrder(created), 1400);
 
     } catch(e) {
       // FIX (Aug 8 2026): backend's exception handler (bootstrap/app.php)
@@ -1488,6 +1544,18 @@ export default function OrderWizard() {
 
   return (
     <>
+      {/* Aug 28 2026 — blocking post-submit reveal. Once an order has been
+          created, short-circuit the wizard entirely and render this instead
+          of the multi-step form; nothing below this point should show while
+          createdOrder is set. */}
+      {createdOrder && (
+        <MaterialsReveal
+          order={createdOrder}
+          onDone={() => nav(`/customer/orders/${createdOrder.order_id}`, { state: { justCreated: true } })}
+        />
+      )}
+      {!createdOrder && (
+      <>
       <style>{`
         @keyframes sk { 0% { background-position:-400px 0 } 100% { background-position:400px 0 } }
 
@@ -1598,6 +1666,8 @@ export default function OrderWizard() {
           </motion.button>
         </div>
       </div>
+      </>
+      )}
     </>
   );
 }

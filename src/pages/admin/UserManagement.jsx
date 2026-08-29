@@ -30,7 +30,7 @@ const ROLE_CFG = {
   customer: { c:'#8b5cf6', bg:'#f5f3ff', l:'Customer' },
 };
 
-const INIT = { name:'', email:'', password:'', password_confirmation:'', role:'staff', contact_number:'' };
+const INIT = { name:'', email:'', password:'', password_confirmation:'', role:'staff', job_function:'general', contact_number:'' };
 
 function CreateUserModal({ onClose, onDone }) {
   const [form, setForm] = useState({ ...INIT });
@@ -79,6 +79,20 @@ function CreateUserModal({ onClose, onDone }) {
               </select>
             </div>
           </div>
+          {form.role === 'staff' && (
+            <div>
+              <label style={lbl}>Job Function</label>
+              <select value={form.job_function} onChange={e=>set('job_function',e.target.value)} style={{ ...inp, cursor:'pointer' }}>
+                <option value="general">General (sees all operational pages — default)</option>
+                <option value="production">Production (Production, Output Log, QC, Incidents only)</option>
+                <option value="inventory">Inventory (Inventory, Materials, Usage Rates, Physical Count only)</option>
+                <option value="sales">Sales (Orders, Delivery, Sales & Pay only)</option>
+              </select>
+              <p style={{ fontSize:10.5, color:'#94a3b8', margin:'4px 0 0' }}>
+                Restricts which admin pages this account can see and use. Enforced server-side, not just hidden in the nav.
+              </p>
+            </div>
+          )}
           <div>
             <label style={lbl}>Email Address *</label>
             <input type="email" value={form.email} onChange={e=>set('email',e.target.value)} placeholder="staff@vfrb.com" style={inp} onFocus={fi} onBlur={fo}/>
@@ -121,7 +135,7 @@ export default function AdminUserManagement() {
   const [winW, setWinW] = useState(typeof window!=='undefined'?window.innerWidth:1280);
   useEffect(() => { const h=()=>setWinW(window.innerWidth); window.addEventListener('resize',h); return()=>window.removeEventListener('resize',h); }, []);
   const isMobile = winW <= 767;
-  const me = JSON.parse(localStorage.getItem('vfrb_user') || '{}');
+  const me = JSON.parse(sessionStorage.getItem('vfrb_user') || '{}');
 
   const load = useCallback((force = false) => {
     if (!force) {

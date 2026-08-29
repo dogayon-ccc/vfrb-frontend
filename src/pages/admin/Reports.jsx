@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
+  Tooltip, ResponsiveContainer
 } from 'recharts';
 import axios                            from 'axios';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
@@ -72,19 +72,6 @@ function buildCSV(data, tab) {
     ];
     return rows;
   }
-  if (tab === 'orders') {
-    const pipeline = data.pipeline_snapshot ?? {};
-    const rows = [
-      ['VFRB Enterprise — Order Breakdown', '', ''],
-      ['Generated', new Date().toLocaleString('en-PH'), ''],
-      ['', '', ''],
-      ['Stage/Status', 'Order Count', 'Total Pieces'],
-      ...Object.entries(pipeline).map(([status, info]) => [
-        status, info.count ?? 0, info.total_pieces ?? 0,
-      ]),
-    ];
-    return rows;
-  }
   return null;
 }
 const SK = {
@@ -96,7 +83,6 @@ const card = {
   background: '#fff', border: '1px solid #e2e8f0',
   borderRadius: 14, boxShadow: '0 1px 3px rgba(0,0,0,.05)'
 };
-const PIE_COLORS = ['#028090','#3b82f6','#8b5cf6','#22c55e','#f59e0b','#ef4444'];
 
 export default function AdminReports() {
   const [data,    setData]    = useState(null);
@@ -145,7 +131,6 @@ export default function AdminReports() {
 
   const alerts    = data?.prescriptive_alerts ?? [];
   const monthly   = data?.monthly_sales ?? [];
-  const byStatus  = data?.orders_by_status ?? [];
   const topMats   = data?.top_materials ?? [];
   const summary   = {
     total_revenue:    data?.total_revenue    ?? 0,
@@ -157,7 +142,6 @@ export default function AdminReports() {
   const TABS = [
     { k:'overview',     l:'📊 Overview'          },
     { k:'prescriptive', l:`⚠️ Alerts${alerts.length ? ` (${alerts.length})` : ''}` },
-    { k:'orders',       l:'📋 Order Breakdown'   },
   ];
 
   return (
@@ -488,57 +472,6 @@ export default function AdminReports() {
         )}
 
         {/* ── Orders Breakdown Tab ── */}
-        {tab === 'orders' && (
-          <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
-            {byStatus.length > 0 && (
-              <div className="rpt-orders-grid">
-                <div style={{ ...card, padding:'20px' }}>
-                  <h3 style={{ fontSize:14, fontWeight:800, color:'#0f172a', marginBottom:16 }}>
-                    Orders by Status
-                  </h3>
-                  <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                    {byStatus.map((s, i) => (
-                      <div key={i} style={{ display:'flex', justifyContent:'space-between',
-                        alignItems:'center', padding:'8px 12px', borderRadius:9,
-                        background:'#f8fafc', border:'1px solid #f1f5f9' }}>
-                        <span style={{ fontSize:12, fontWeight:600, color:'#0f172a',
-                          textTransform:'capitalize' }}>{s.status}</span>
-                        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                          <div style={{ width:60, height:5, background:'#e2e8f0', borderRadius:99, overflow:'hidden' }}>
-                            <div style={{ height:'100%', borderRadius:99,
-                              background:PIE_COLORS[i % PIE_COLORS.length],
-                              width:`${Math.round((s.count / (summary.total_orders||1)) * 100)}%` }}/>
-                          </div>
-                          <span style={{ fontSize:13, fontWeight:700, color:'#0f172a',
-                            minWidth:24, textAlign:'right' }}>{s.count}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div style={{ ...card, padding:'20px' }}>
-                  <h3 style={{ fontSize:14, fontWeight:800, color:'#0f172a', marginBottom:16 }}>
-                    Distribution
-                  </h3>
-                  <ResponsiveContainer width="100%" height={220}>
-                    <PieChart>
-                      <Pie data={byStatus} dataKey="count" nameKey="status"
-                        cx="50%" cy="50%" outerRadius={80} paddingAngle={3}>
-                        {byStatus.map((_, i) => (
-                          <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]}/>
-                        ))}
-                      </Pie>
-                      <Tooltip contentStyle={{ background:'#fff', border:'1px solid #e2e8f0',
-                        borderRadius:10, fontSize:12 }}/>
-                      <Legend iconType="circle" iconSize={10}
-                        formatter={v => <span style={{ color:'#64748b', fontSize:11 }}>{v}</span>}/>
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </>
   );

@@ -29,7 +29,7 @@ export default function VerifyEmail() {
   // Read the status set by the Laravel redirect after the user clicks the link
   const verifyStatus = searchParams.get('status'); // 'verified' | 'already_verified' | 'invalid' | null
 
-  const user    = JSON.parse(localStorage.getItem('vfrb_user') || '{}');
+  const user    = JSON.parse(sessionStorage.getItem('vfrb_user') || '{}');
   const [sending, setSending] = useState(false);
   const [sent,    setSent]    = useState(false);
   const [error,   setError]   = useState('');
@@ -43,7 +43,7 @@ export default function VerifyEmail() {
       axios.get('/api/user')
         .then(({ data }) => {
           if (data.email_verified_at) {
-            localStorage.setItem('vfrb_user', JSON.stringify(data));
+            sessionStorage.setItem('vfrb_user', JSON.stringify(data));
           }
         })
         .catch(() => {
@@ -66,7 +66,7 @@ export default function VerifyEmail() {
     try {
       const { data } = await axios.get('/api/user');
       if (data.email_verified_at) {
-        localStorage.setItem('vfrb_user', JSON.stringify(data));
+        sessionStorage.setItem('vfrb_user', JSON.stringify(data));
         navigate('/customer');
       } else {
         setError('Email not verified yet. Please check your inbox and click the link.');
@@ -78,8 +78,8 @@ export default function VerifyEmail() {
   };
 
   const logout = () => {
-    localStorage.removeItem('vfrb_token');
-    localStorage.removeItem('vfrb_user');
+    sessionStorage.removeItem('vfrb_token');
+    sessionStorage.removeItem('vfrb_user');
     navigate('/login');
   };
 

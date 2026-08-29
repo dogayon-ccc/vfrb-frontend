@@ -76,7 +76,7 @@ function Navbar({ onLogin }) {
       backdropFilter: scrolled ? 'blur(22px)'          : 'none',
       borderBottom:   scrolled ? '1px solid rgba(255,255,255,0.07)' : '1px solid transparent',
       boxShadow:      scrolled ? '0 4px 32px rgba(0,0,0,0.4)'       : 'none',
-      fontFamily:     "'DM Sans', sans-serif",
+      fontFamily:     "var(--font)",
     }}>
       <div style={{
         maxWidth:       1280, margin:      '0 auto',
@@ -117,7 +117,7 @@ function Navbar({ onLogin }) {
                 padding:     '8px 16px', borderRadius: 9,
                 background:  'transparent', border: 'none', cursor: 'pointer',
                 color:       'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: 500,
-                fontFamily:  "'DM Sans', sans-serif", transition: 'color .2s',
+                fontFamily:  "var(--font)", transition: 'color .2s',
               }}
               onMouseEnter={e => e.currentTarget.style.color = '#fff'}
               onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.6)'}>
@@ -129,7 +129,7 @@ function Navbar({ onLogin }) {
               marginLeft:   14, padding:     '10px 22px', borderRadius:   11,
               background:   'linear-gradient(135deg, #4338ca, #818cf8)',
               border:       'none', cursor:    'pointer', color:    '#fff',
-              fontSize:     13,    fontWeight: 700, fontFamily: "'DM Sans', sans-serif",
+              fontSize:     13,    fontWeight: 700, fontFamily: "var(--font)",
               boxShadow:    '0 4px 16px rgba(99,102,241,0.35)', transition: 'all .2s',
             }}
             onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(99,102,241,0.45)'; }}
@@ -171,7 +171,7 @@ function Navbar({ onLogin }) {
                 display:'block', width:'100%', padding:'14px 0',
                 border:'none', background:'transparent',
                 color:'rgba(255,255,255,0.75)', fontSize:15, fontWeight:500,
-                fontFamily:"'DM Sans',sans-serif", cursor:'pointer', textAlign:'left',
+                fontFamily:'var(--font)', cursor:'pointer', textAlign:'left',
                 borderBottom:'1px solid rgba(255,255,255,0.05)',
               }}>
               {label}
@@ -183,7 +183,7 @@ function Navbar({ onLogin }) {
               borderRadius:12, border:'none', cursor:'pointer',
               background:'linear-gradient(135deg,#4338ca,#818cf8)',
               color:'#fff', fontSize:14, fontWeight:700,
-              fontFamily:"'DM Sans',sans-serif",
+              fontFamily:'var(--font)',
             }}>
             Login to Admin Portal →
           </button>
@@ -235,7 +235,7 @@ function Hero({ onLogin }) {
       <div style={{
         position:'relative', zIndex:1, textAlign:'center',
         padding:'140px 24px 80px', maxWidth:820, margin:'0 auto',
-        fontFamily:"'DM Sans',sans-serif",
+        fontFamily:'var(--font)',
       }}>
         {/* Pill badge */}
         <div style={{ display:'inline-flex', alignItems:'center', gap:8, marginBottom:28,
@@ -281,7 +281,7 @@ function Hero({ onLogin }) {
             style={{
               padding:'14px 32px', borderRadius:12, border:'none', cursor:'pointer',
               background:'linear-gradient(135deg,#4338ca,#818cf8)', color:'#fff',
-              fontSize:15, fontWeight:700, fontFamily:"'DM Sans',sans-serif",
+              fontSize:15, fontWeight:700, fontFamily:'var(--font)',
               boxShadow:'0 6px 24px rgba(99,102,241,0.4)', transition:'all .25s',
             }}
             onMouseEnter={e => { e.currentTarget.style.transform='translateY(-3px)'; e.currentTarget.style.boxShadow='0 12px 32px rgba(99,102,241,0.5)'; }}
@@ -292,7 +292,7 @@ function Hero({ onLogin }) {
             style={{
               padding:'14px 32px', borderRadius:12, cursor:'pointer',
               background:'rgba(255,255,255,0.05)', color:'rgba(255,255,255,0.8)',
-              fontSize:15, fontWeight:600, fontFamily:"'DM Sans',sans-serif",
+              fontSize:15, fontWeight:600, fontFamily:'var(--font)',
               border:'1px solid rgba(255,255,255,0.15)', transition:'all .25s',
             }}
             onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,0.09)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.3)'; }}
@@ -327,7 +327,7 @@ function AboutSection() {
   return (
     <section id="about" ref={ref} style={{
       padding:'100px 24px', background:'#07091c',
-      fontFamily:"'DM Sans',sans-serif",
+      fontFamily:'var(--font)',
     }}>
       <div style={{
         maxWidth:1100, margin:'0 auto',
@@ -423,7 +423,7 @@ function ModulesSection() {
   return (
     <section id="modules" ref={ref} style={{
       padding:'100px 24px', background:'#060919',
-      fontFamily:"'DM Sans',sans-serif",
+      fontFamily:'var(--font)',
     }}>
       <div style={{ maxWidth:1100, margin:'0 auto' }}>
         <div style={{
@@ -518,7 +518,7 @@ function StatsSection() {
       background:'linear-gradient(135deg,#0d1235,#070a1c)',
       borderTop:'1px solid rgba(255,255,255,0.06)',
       borderBottom:'1px solid rgba(255,255,255,0.06)',
-      fontFamily:"'DM Sans',sans-serif",
+      fontFamily:'var(--font)',
     }}>
       <div style={{
         maxWidth:1100, margin:'0 auto',
@@ -576,7 +576,7 @@ function ProcessSection() {
   return (
     <section id="process" ref={ref} style={{
       padding:'100px 24px', background:'#07091c',
-      fontFamily:"'DM Sans',sans-serif",
+      fontFamily:'var(--font)',
     }}>
       <div style={{ maxWidth:1100, margin:'0 auto' }}>
         <div style={{
@@ -647,7 +647,7 @@ function Footer({ onLogin }) {
   return (
     <footer id="footer" style={{
       background:'#04060f', borderTop:'1px solid rgba(255,255,255,0.07)',
-      fontFamily:"'DM Sans',sans-serif",
+      fontFamily:'var(--font)',
     }}>
       {/* Main footer */}
       <div style={{ maxWidth:1100, margin:'0 auto', padding:'60px 24px 44px' }}>
@@ -705,7 +705,7 @@ function Footer({ onLogin }) {
               <button key={l} onClick={() => scrollTo(id)}
                 style={{ display:'block', padding:'6px 0', background:'none', border:'none',
                   color:'rgba(255,255,255,0.38)', fontSize:13, cursor:'pointer',
-                  fontFamily:"'DM Sans',sans-serif", textAlign:'left', transition:'color .2s' }}
+                  fontFamily:'var(--font)', textAlign:'left', transition:'color .2s' }}
                 onMouseEnter={e => e.currentTarget.style.color='#fff'}
                 onMouseLeave={e => e.currentTarget.style.color='rgba(255,255,255,0.38)'}>
                 {l}
@@ -727,7 +727,7 @@ function Footer({ onLogin }) {
               style={{
                 width:'100%', padding:'12px', borderRadius:11, border:'none', cursor:'pointer',
                 background:'linear-gradient(135deg,#4338ca,#818cf8)', color:'#fff',
-                fontSize:13, fontWeight:700, fontFamily:"'DM Sans',sans-serif",
+                fontSize:13, fontWeight:700, fontFamily:'var(--font)',
                 boxShadow:'0 4px 16px rgba(99,102,241,0.3)', transition:'all .2s',
               }}
               onMouseEnter={e => e.currentTarget.style.transform='translateY(-2px)'}
@@ -761,7 +761,11 @@ export default function AdminLanding() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap');
+        /* FONT FIX (Aug 25): was @import from fonts.googleapis.com — a live
+           violation of the project's "fonts local only, zero CDN" rule
+           (already fixed once in the customer-facing Landing.jsx). Every
+           'DM Sans' reference below now falls through to var(--font), the
+           same system-font stack theme.css/main.css already define. */
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html { scroll-behavior: smooth; }
         body { background: #06091a; }

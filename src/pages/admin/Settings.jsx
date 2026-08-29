@@ -50,7 +50,7 @@ const card = { background:'#fff', border:'1px solid #e2e8f0', borderRadius:16, b
 // hoist this back to module scope.
 function getIsManager() {
   try {
-    return (JSON.parse(localStorage.getItem('vfrb_user') || '{}').role) === 'manager';
+    return (JSON.parse(sessionStorage.getItem('vfrb_user') || '{}').role) === 'manager';
   } catch { return false; }
 }
 
