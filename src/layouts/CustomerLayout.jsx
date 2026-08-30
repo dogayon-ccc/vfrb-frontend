@@ -9,30 +9,35 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import PageErrorBoundary from '../components/PageErrorBoundary';
 import FeedbackWidget from '../components/FeedbackWidget'; // NEW Aug 27 2026
+import NavIcon from '../components/ui/NavIcon';
 import logo from '../assets/company-logo.jpg';
 import { loadAccent, getAccentVars, ACCENT_CHANGE_EVENT } from '../utils/accentColor';
+// FF-4 FIX (Aug 30 2026): emoji nav icons replaced with lucide-react —
+// see design-system reshaping pass. Icon values below are components,
+// rendered as <item.icon size={N}/> at each call site, not raw text.
+import { LayoutDashboard, PenSquare, ClipboardList, MessageSquare, User, Palette, LogOut } from 'lucide-react';
 
 const T  = 'var(--teal)';
 const T2 = 'var(--teal-2)';
 
 const NAV = [
-  { to:'/customer',               icon:'⊞', label:'Dashboard',    short:'Home',     end:true  },
-  { to:'/customer/order/create',  icon:'✏️',  label:'New Order',    short:'Order',    end:false },
-  { to:'/customer/orders',        icon:'📋', label:'My Orders',    short:'Orders',   end:false },
+  { to:'/customer',               icon:LayoutDashboard, label:'Dashboard',    short:'Home',     end:true  },
+  { to:'/customer/order/create',  icon:PenSquare,       label:'New Order',    short:'Order',    end:false },
+  { to:'/customer/orders',        icon:ClipboardList,   label:'My Orders',    short:'Orders',   end:false },
   // 'AI Materials' nav entry removed Aug 28 2026 — that flow is now the
   // blocking MaterialsReveal screen shown right after order submit
   // (OrderWizard.jsx), not a standalone page reachable from nav.
-  { to:'/customer/messages',      icon:'💬', label:'Messages',     short:'Chat',     end:false },
-  { to:'/customer/profile',       icon:'👤', label:'Profile',      short:'Profile',  end:false },
+  { to:'/customer/messages',      icon:MessageSquare,   label:'Messages',     short:'Chat',     end:false },
+  { to:'/customer/profile',       icon:User,            label:'Profile',      short:'Profile',  end:false },
 ];
 
 // Bottom nav — 5 items (Profile removed, accessible via More)
 const MOB_NAV = [
-  { to:'/customer',              icon:'⊞', short:'Home',    end:true  },
-  { to:'/customer/orders',       icon:'📋', short:'Orders',  end:false },
-  { to:'/customer/messages',     icon:'💬', short:'Chat',    end:false },
+  { to:'/customer',              icon:LayoutDashboard, short:'Home',    end:true  },
+  { to:'/customer/orders',       icon:ClipboardList,   short:'Orders',  end:false },
+  { to:'/customer/messages',     icon:MessageSquare,   short:'Chat',    end:false },
   // 'BOM'/ai-materials entry removed Aug 28 2026 — see NAV comment above.
-  { to:'/customer/profile',      icon:'👤', short:'Profile', end:false },
+  { to:'/customer/profile',      icon:User,            short:'Profile', end:false },
 ];
 
 export default function CustomerLayout() {
@@ -466,15 +471,13 @@ export default function CustomerLayout() {
                   className={({ isActive }) => `cm-link${isActive ? ' active' : ''}`}
                   title={collapsed ? item.label : undefined}
                   style={collapsed ? { justifyContent:'center', padding:'10px 0' } : {}}>
-                  <span style={{ fontSize:16, flexShrink:0, width:20, textAlign:'center',
-                    position:'relative' }}>
-                    {item.icon}
+                  <NavIcon icon={item.icon} size={16} width={20}>
                     {collapsed && showBadge && (
                       <span style={{ position:'absolute', top:-2, right:-2,
                         width:8, height:8, borderRadius:'50%', background:'var(--danger)',
                         border:'1.5px solid #fff' }}/>
                     )}
-                  </span>
+                  </NavIcon>
                   {!collapsed && (
                     <>
                       <span style={{ flex:1, overflow:'hidden', textOverflow:'ellipsis' }}>
@@ -505,7 +508,7 @@ export default function CustomerLayout() {
               <button className="cm-studio-btn" onClick={openStudio}
                 title={collapsed ? 'Design Studio' : undefined}
                 style={collapsed ? { justifyContent:'center', padding:'10px 0', borderRadius:10 } : {}}>
-                <span style={{ fontSize:16, flexShrink:0, width:20, textAlign:'center' }}>🎨</span>
+                <span style={{ display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, width:20 }}><Palette size={16} strokeWidth={2}/></span>
                 {!collapsed && (
                   <>
                     <span style={{ flex:1 }}>Design Studio</span>
@@ -567,7 +570,7 @@ flexShrink:0,
                 transition:'background .13s' }}
               onMouseEnter={e => e.currentTarget.style.background='var(--danger-bg)'}
               onMouseLeave={e => e.currentTarget.style.background='transparent'}>
-              ←{!collapsed && ' Sign Out'}
+              <LogOut size={13} strokeWidth={2}/>{!collapsed && ' Sign Out'}
             </button>
           </div>
         </aside>
@@ -613,7 +616,7 @@ flexShrink:0,
                 backdropFilter:'blur(4px)' }}
               onMouseEnter={e => e.currentTarget.style.background='rgba(255,255,255,.25)'}
               onMouseLeave={e => e.currentTarget.style.background='rgba(255,255,255,.15)'}>
-              🎨 Design Studio
+              <Palette size={14} strokeWidth={2}/> Design Studio
             </button>
 
             {/* User avatar — desktop shows name */}
@@ -658,7 +661,7 @@ flexShrink:0,
 
         {/* ─── Studio FAB (mobile) ───────────────────────────────────────── */}
         <button className="cm-studio-fab" onClick={openStudio} aria-label="Design Studio">
-          🎨
+          <Palette size={24} strokeWidth={2}/>
         </button>
 
         {/* ─── MORE DRAWER (mobile) ─────────────────────────────────────── */}
@@ -682,7 +685,7 @@ flexShrink:0,
 
                 <button className="cm-drawer-item" onClick={openStudio}
                   style={{ color:T }}>
-                  <span style={{ fontSize:20 }}>🎨</span>
+                  <span style={{ display:'flex', alignItems:'center', justifyContent:'center' }}><Palette size={20} strokeWidth={2}/></span>
                   <span>Design Studio</span>
                   <span style={{ marginLeft:'auto', fontSize:9, padding:'2px 7px',
                     borderRadius:99, background:'rgba(2,195,154,.12)', color:T,
@@ -691,7 +694,7 @@ flexShrink:0,
 
                 <NavLink to="/customer/order/create" className="cm-drawer-item"
                   onClick={() => setMoreOpen(false)}>
-                  <span style={{ fontSize:20 }}>✏️</span>
+                  <span style={{ display:'flex', alignItems:'center', justifyContent:'center' }}><PenSquare size={20} strokeWidth={2}/></span>
                   <span>New Order</span>
                 </NavLink>
 
@@ -699,7 +702,7 @@ flexShrink:0,
 
                 <button className="cm-drawer-item" onClick={logout}
                   style={{ color:'var(--danger)' }}>
-                  <span style={{ fontSize:20 }}>←</span>
+                  <span style={{ display:'flex', alignItems:'center', justifyContent:'center' }}><LogOut size={20} strokeWidth={2}/></span>
                   <span>Sign Out</span>
                 </button>
               </motion.div>
@@ -720,7 +723,7 @@ flexShrink:0,
                 style={{ position:'relative' }}>
                 <span className="cm-bnav-icon"
                   style={{ filter: active ? 'none' : 'grayscale(.3) opacity(.65)' }}>
-                  {item.icon}
+                  <item.icon size={22} strokeWidth={2}/>
                 </span>
                 <span className="cm-bnav-label">{item.short}</span>
                 {showBadge && (

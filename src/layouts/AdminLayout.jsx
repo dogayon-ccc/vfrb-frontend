@@ -8,7 +8,17 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import PageErrorBoundary from '../components/PageErrorBoundary';
+import NavIcon from '../components/ui/NavIcon';
 import logo from '../assets/company-logo.jpg';
+// FF-4 FIX (Aug 30 2026): emoji nav icons replaced with lucide-react —
+// see design-system reshaping pass. Icon values below are components,
+// rendered as <item.icon size={N}/> at each call site, not raw text.
+import {
+  LayoutDashboard, ClipboardList, Package, MessageSquare, ShoppingCart,
+  Truck, Layers, Factory, FileText, ShieldCheck, ScanLine, AlertTriangle,
+  Wallet, BarChart3, Receipt, Building2, Users, MessageCircle, Settings,
+  LogOut, Lock, Bell, Crown,
+} from 'lucide-react';
 
 const T  = 'var(--teal)';
 const T2 = 'var(--teal-2)';
@@ -18,21 +28,21 @@ const MG = 'var(--purple)'; // manager purple
 // (Dashboard/Orders/Messages/Delivery/Sales stay general-purpose on purpose —
 // only the areas Dave explicitly called out — production vs inventory — gate).
 const STAFF_NAV = [
-  { to:'/admin',              icon:'⊞', label:'Dashboard',    end:true, area:null        },
-  { to:'/admin/orders',       icon:'📋', label:'Orders',                area:null        },
-  { to:'/admin/inventory',    icon:'📦', label:'Inventory',             area:'inventory' },
-  { to:'/admin/messages',     icon:'💬', label:'Messages',              area:null        },
-  { to:'/admin/procurement',  icon:'🛒', label:'Procurement',           area:'inventory' },
-  { to:'/admin/delivery',     icon:'🚚', label:'Delivery',              area:null        },
-  { to:'/admin/materials',    icon:'🧵', label:'Materials',             area:'inventory' },
+  { to:'/admin',              icon:LayoutDashboard, label:'Dashboard',    end:true, area:null        },
+  { to:'/admin/orders',       icon:ClipboardList,   label:'Orders',                area:null        },
+  { to:'/admin/inventory',    icon:Package,         label:'Inventory',             area:'inventory' },
+  { to:'/admin/messages',     icon:MessageSquare,   label:'Messages',              area:null        },
+  { to:'/admin/procurement',  icon:ShoppingCart,    label:'Procurement',           area:'inventory' },
+  { to:'/admin/delivery',     icon:Truck,           label:'Delivery',              area:null        },
+  { to:'/admin/materials',    icon:Layers,          label:'Materials',             area:'inventory' },
   // 'Usage Rates' nav entry removed Aug 28 2026 — MaterialRates.jsx deleted,
   // no formula/BOM exists in this system anymore.
-  { to:'/admin/production',   icon:'🏭', label:'Production',            area:'production'},
-  { to:'/admin/output-log',   icon:'📝', label:'Output Log',            area:'production'},
-  { to:'/admin/qc',           icon:'✅', label:'QC Checklist',          area:'production'},
-  { to:'/admin/physical-count',icon:'🔢',label:'Physical Count',        area:'inventory' },
-  { to:'/admin/production-incidents',icon:'⚠️',label:'Incidents',       area:'production'}, // NEW Aug 25 2026
-  { to:'/admin/transactions', icon:'💰', label:'Sales & Pay',           area:null        },
+  { to:'/admin/production',   icon:Factory,         label:'Production',            area:'production'},
+  { to:'/admin/output-log',   icon:FileText,        label:'Output Log',            area:'production'},
+  { to:'/admin/qc',           icon:ShieldCheck,     label:'QC Checklist',          area:'production'},
+  { to:'/admin/physical-count',icon:ScanLine,       label:'Physical Count',        area:'inventory' },
+  { to:'/admin/production-incidents',icon:AlertTriangle,label:'Incidents',         area:'production'}, // NEW Aug 25 2026
+  { to:'/admin/transactions', icon:Wallet,          label:'Sales & Pay',           area:null        },
 ];
 
 // job_function -> areas it may see. 'general' (default/unset) always sees
@@ -49,21 +59,21 @@ function visibleForJobFunction(navArray, jobFunction) {
   return navArray.filter(item => item.area === null || allowed.includes(item.area));
 }
 const MANAGER_EXTRA = [
-  { to:'/admin/reports',      icon:'📊', label:'Reports'              },
-  { to:'/admin/invoice',      icon:'🧾', label:'Invoice'              },
-  { to:'/admin/suppliers',    icon:'🏪', label:'Suppliers'            },
-  { to:'/admin/users',        icon:'👥', label:'Users'                },
-  { to:'/admin/feedback',     icon:'💬', label:'Feedback'             }, // NEW Aug 27 2026
-  { to:'/admin/settings',     icon:'⚙️', label:'Settings'             },
+  { to:'/admin/reports',      icon:BarChart3,   label:'Reports'              },
+  { to:'/admin/invoice',      icon:Receipt,     label:'Invoice'              },
+  { to:'/admin/suppliers',    icon:Building2,   label:'Suppliers'            },
+  { to:'/admin/users',        icon:Users,       label:'Users'                },
+  { to:'/admin/feedback',     icon:MessageCircle,label:'Feedback'            }, // NEW Aug 27 2026
+  { to:'/admin/settings',     icon:Settings,    label:'Settings'             },
 ];
 
 // Mobile bottom nav — 5 most critical
 const MOB_NAV = [
-  { to:'/admin',           icon:'⊞', label:'Home',     end:true, area:null        },
-  { to:'/admin/orders',    icon:'📋', label:'Orders',            area:null        },
-  { to:'/admin/inventory', icon:'📦', label:'Stock',              area:'inventory' },
-  { to:'/admin/messages',  icon:'💬', label:'Chat',               area:null        },
-  { to:'/admin/production',icon:'🏭', label:'Production',        area:'production'},
+  { to:'/admin',           icon:LayoutDashboard, label:'Home',     end:true, area:null        },
+  { to:'/admin/orders',    icon:ClipboardList,   label:'Orders',            area:null        },
+  { to:'/admin/inventory', icon:Package,         label:'Stock',              area:'inventory' },
+  { to:'/admin/messages',  icon:MessageSquare,   label:'Chat',               area:null        },
+  { to:'/admin/production',icon:Factory, label:'Production',        area:'production'},
 ];
 
 // Notification row
@@ -592,9 +602,7 @@ export default function AdminLayout() {
                 className={({ isActive }) => `adm-link${isActive ? ' active' : ''}`}
                 title={collapsed ? item.label : undefined}
                 style={collapsed ? { justifyContent:'center', padding:'10px 0' } : {}}>
-                <span style={{ fontSize:16, flexShrink:0, width:20, textAlign:'center' }}>
-                  {item.icon}
-                </span>
+                <NavIcon icon={item.icon} size={16} width={20}/>
                 {!collapsed && (
                   <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>
                     {item.label}
@@ -616,9 +624,7 @@ export default function AdminLayout() {
                     className={({ isActive }) => `adm-link${isActive ? ' active mgr' : ''}`}
                     title={collapsed ? item.label : undefined}
                     style={collapsed ? { justifyContent:'center', padding:'10px 0' } : {}}>
-                    <span style={{ fontSize:16, flexShrink:0, width:20, textAlign:'center' }}>
-                      {item.icon}
-                    </span>
+                    <NavIcon icon={item.icon} size={16} width={20}/>
                     {!collapsed && (
                       <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>
                         {item.label}
@@ -632,8 +638,10 @@ export default function AdminLayout() {
             {!isManager && !collapsed && (
               <div style={{ margin:'10px 0 0', padding:'10px 12px', borderRadius:10,
                 background:'var(--bg)', border:'1px dashed var(--border)' }}>
-                <p style={{ fontSize:10, color:'var(--text-faint)', fontWeight:600, lineHeight:1.4, margin:0 }}>
-                  🔒 Reports, Invoice, Suppliers & Users — Manager only
+                <p style={{ fontSize:10, color:'var(--text-faint)', fontWeight:600, lineHeight:1.4, margin:0,
+                  display:'flex', alignItems:'flex-start', gap:5 }}>
+                  <Lock size={11} strokeWidth={2} style={{ flexShrink:0, marginTop:1 }}/>
+                  Reports, Invoice, Suppliers & Users — Manager only
                 </p>
               </div>
             )}
@@ -702,7 +710,7 @@ export default function AdminLayout() {
                   transition:'background .15s',
                   animation: unread > 0 ? 'bellShake .5s ease' : 'none',
                 }}>
-                🔔
+                <Bell size={17} strokeWidth={2}/>
                 <AnimatePresence>
                   {unread > 0 && (
                     <motion.span
@@ -777,7 +785,7 @@ export default function AdminLayout() {
                         </div>
                       ) : notifs.length === 0 ? (
                         <div style={{ padding:'36px 20px', textAlign:'center' }}>
-                          <p style={{ fontSize:32, margin:'0 0 8px', opacity:.3 }}>🔔</p>
+                          <Bell size={32} strokeWidth={1.5} style={{ opacity:.3, marginBottom:8 }}/>
                           <p style={{ fontSize:13, color:'var(--text-faint)' }}>No notifications</p>
                         </div>
                       ) : (
@@ -818,8 +826,9 @@ export default function AdminLayout() {
               <span className="adm-desk-only"
                 style={{ fontSize:10, padding:'4px 10px', borderRadius:99,
                   fontWeight:700, background:'rgba(124,58,237,.08)',
-                  color:'var(--purple)', border:'1px solid rgba(124,58,237,.2)' }}>
-                👑 Manager
+                  color:'var(--purple)', border:'1px solid rgba(124,58,237,.2)',
+                  display:'inline-flex', alignItems:'center', gap:4 }}>
+                <Crown size={11} strokeWidth={2}/> Manager
               </span>
             )}
 
@@ -861,7 +870,9 @@ export default function AdminLayout() {
                         textAlign:'left', fontFamily:'inherit' }}
                       onMouseEnter={e => e.currentTarget.style.background='var(--danger-bg)'}
                       onMouseLeave={e => e.currentTarget.style.background='transparent'}>
-                      ← Sign Out
+                      <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+                        <LogOut size={14} strokeWidth={2}/> Sign Out
+                      </span>
                     </button>
                   </motion.div>
                 )}
@@ -909,7 +920,7 @@ export default function AdminLayout() {
                   <NavLink key={item.to} to={item.to}
                     className={({ isActive }) =>
                       `adm-drawer-item${isActive ? ' active' : ''}`}>
-                    <span style={{ fontSize:20, width:28, textAlign:'center' }}>{item.icon}</span>
+                    <NavIcon icon={item.icon} size={20} width={28}/>
                     <span>{item.label}</span>
                   </NavLink>
                 ))}
@@ -926,7 +937,7 @@ export default function AdminLayout() {
                       <NavLink key={item.to} to={item.to}
                         className={({ isActive }) =>
                           `adm-drawer-item mgr-item${isActive ? ' active' : ''}`}>
-                        <span style={{ fontSize:20, width:28, textAlign:'center' }}>{item.icon}</span>
+                        <NavIcon icon={item.icon} size={20} width={28}/>
                         <span>{item.label}</span>
                       </NavLink>
                     ))}
@@ -936,7 +947,7 @@ export default function AdminLayout() {
                 <div style={{ height:1, background:'var(--bg-surface)', margin:'8px 0' }}/>
                 <button className="adm-drawer-item" onClick={logout}
                   style={{ color:'var(--danger)' }}>
-                  <span style={{ fontSize:20, width:28, textAlign:'center' }}>←</span>
+                  <NavIcon icon={LogOut} size={20} width={28}/>
                   <span>Sign Out</span>
                 </button>
               </motion.div>
@@ -955,7 +966,7 @@ export default function AdminLayout() {
                 className={`adm-bnav-btn${active ? ' mob-active' : ''}`}>
                 <span className="adm-bnav-icon"
                   style={{ filter: active ? 'none' : 'grayscale(.4) opacity(.65)' }}>
-                  {item.icon}
+                  <item.icon size={22} strokeWidth={2}/>
                 </span>
                 <span className="adm-bnav-label">{item.label}</span>
               </NavLink>

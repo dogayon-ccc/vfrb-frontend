@@ -16,6 +16,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import InlineColorPicker from '../../components/InlineColorPicker';
 import { removeLogoBackground } from '../../lib/bgRemove';
+import { NavIcon } from '../../components/ui/icons';
 
 const T = '#028090', T2 = '#02C39A', DARK = '#060d1a', DARK2 = '#0a1628';
 // UI font for labels, buttons, tooltips — offline-safe system stack
@@ -1558,14 +1559,19 @@ const inputStyle = {
 // ─────────────────────────────────────────────────────────────
 // TOOLS CONFIG
 // ─────────────────────────────────────────────────────────────
+// FIX (visual redesign, Aug 30 2026): icons are now lucide-react names
+// resolved via NavIcon (src/components/ui/icons.jsx), matching the
+// Figma reference's clean line-icon language instead of emoji — same
+// fix direction as the design-system audit's src/components/ui/
+// primitives (item 13), now extended to Design Studio's tool strip.
 const TOOLS = [
-  { id:'type',    icon:'👕', label:'Type'    },
-  { id:'color',   icon:'🎨', label:'Colors'  },
-  { id:'logo',    icon:'🖼️', label:'Logo'    },
-  { id:'text',    icon:'✏️', label:'Text'    },
-  { id:'ai',      icon:'🤖', label:'AI'      },
-  { id:'pattern', icon:'📐', label:'Pattern' },
-  { id:'layers',  icon:'🗂️', label:'Layers'  },
+  { id:'type',    icon:'garmentType', label:'Type'    },
+  { id:'color',   icon:'colorZone',   label:'Colors'  },
+  { id:'logo',    icon:'logo',        label:'Logo'    },
+  { id:'text',    icon:'text',        label:'Text'    },
+  { id:'ai',      icon:'ai',          label:'AI'      },
+  { id:'pattern', icon:'pattern',     label:'Pattern' },
+  { id:'layers',  icon:'layersPanel', label:'Layers'  },
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -1911,29 +1917,40 @@ export default function DesignStudio() {
         }
         /* BODY ROW */
         .ds-body{flex:1;display:flex;overflow:hidden;min-height:0;}
-        /* TOOL STRIP — left icon bar */
+        /* TOOL STRIP — left icon bar. FIX (visual redesign, Aug 30 2026):
+           tokens realigned to the Figma reference — transparent strip
+           (inherits .ds body background, no dark overlay tint) and a
+           translucent-teal + teal-border active state instead of a
+           solid teal fill, so the active tab reads as "selected" rather
+           than "filled button". Functional logic (setTool, tool state)
+           is unchanged — CSS/token-only. */
         .ds-strip{
-          width:56px;flex-shrink:0;background:rgba(0,0,0,.22);
-          border-right:1px solid rgba(255,255,255,.06);
+          width:48px;flex-shrink:0;background:transparent;
+          border-right:1px solid rgba(255,255,255,.04);
           display:flex;flex-direction:column;align-items:center;
-          padding:8px 0;gap:2px;
+          padding:12px 0;gap:2px;
         }
         .ds-tool-btn{
-          width:46px;height:46px;border-radius:11px;border:none;cursor:pointer;
-          background:transparent;display:flex;flex-direction:column;
+          width:40px;height:46px;border-radius:10px;
+          border:1px solid transparent;cursor:pointer;
+          background:rgba(255,255,255,.04);display:flex;flex-direction:column;
           align-items:center;justify-content:center;gap:2px;
-          transition:background .14s;position:relative;
+          transition:background .14s,border-color .14s;position:relative;
         }
         .ds-tool-btn.active{
-          background:${T};
+          background:rgba(2,195,154,.15);
+          border-color:rgba(2,195,154,.4);
           animation:toolGlow 2s ease-in-out;
         }
-        .ds-tool-btn:hover:not(.active){background:rgba(255,255,255,.06);}
-        /* SLIDE PANEL */
+        .ds-tool-btn:hover:not(.active){background:rgba(255,255,255,.08);}
+        /* SLIDE PANEL — FIX (visual redesign): solid navy fill (DARK2,
+           the same token already used elsewhere in this file) with a
+           teal-tinted border, matching the Figma drawer exactly, instead
+           of a translucent white overlay on the page background. */
         .ds-panel{
           width:224px;flex-shrink:0;
-          background:rgba(255,255,255,.025);
-          border-right:1px solid rgba(255,255,255,.07);
+          background:${DARK2};
+          border-right:1px solid rgba(2,195,154,.12);
           display:flex;flex-direction:column;overflow:hidden;
         }
         /* CANVAS AREA */
@@ -2018,7 +2035,15 @@ export default function DesignStudio() {
             ← Back
           </button>
 
-          <span style={{ fontSize:14,fontWeight:800,flexShrink:0 }}>🎨 Design Studio</span>
+          {/* FIX (visual redesign, Aug 30 2026): pulsing teal status dot
+              replaces the 🎨 emoji, matching the Figma reference header. */}
+          <div style={{ display:'flex',alignItems:'center',gap:6,flexShrink:0 }}>
+            <motion.div
+              animate={{ opacity:[1,.4,1] }}
+              transition={{ duration:1.6, repeat:Infinity, ease:'easeInOut' }}
+              style={{ width:6,height:6,borderRadius:'50%',background:T2 }}/>
+            <span style={{ fontSize:14,fontWeight:800 }}>Design Studio</span>
+          </div>
 
           {/* Category badge — color matches body zone */}
           <motion.span
@@ -2150,9 +2175,10 @@ export default function DesignStudio() {
               <button key={t.id}
                 className={`ds-tool-btn${tool===t.id?' active':''}`}
                 onClick={() => setTool(t.id)} title={t.label}>
-                <span style={{ fontSize:20 }}>{t.icon}</span>
+                <NavIcon name={t.icon} size={18} strokeWidth={2}
+                  color={tool===t.id ? T2 : 'rgba(255,255,255,.45)'}/>
                 <span style={{ fontSize:7,
-                  color: tool===t.id ? '#fff' : 'rgba(255,255,255,.28)',
+                  color: tool===t.id ? T2 : 'rgba(255,255,255,.28)',
                   fontWeight:700 }}>
                   {t.label}
                 </span>
