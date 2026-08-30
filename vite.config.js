@@ -50,6 +50,20 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       workbox: {
+        // Aug 30 2026 hardening — verified live Railway bug: a browser
+        // tab's old service worker (or its precached index.html) can keep
+        // serving a stale asset manifest after a redeploy, so a
+        // lazy-loaded route requests a chunk hash that no longer exists
+        // on the server → MIME error, page crash (see
+        // PageErrorBoundary.jsx's chunk-load fix, added same session,
+        // which is the other half of this). skipWaiting + clientsClaim
+        // make a new service worker take over immediately instead of
+        // waiting for every open tab to close first; cleanupOutdatedCaches
+        // drops any precache entries from a prior build the moment the
+        // new one activates.
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         // NetworkFirst for API calls: always try live data first (this is
         // a real-time operational system — stock counts, order status —
         // stale-while-offline is only a fallback, never the default),
