@@ -73,8 +73,8 @@ export default function CustomerRegister() {
     setLoading(true);
     try {
       const { data } = await axios.post('/api/register', form);
-      sessionStorage.setItem('vfrb_token', data.token);
-      sessionStorage.setItem('vfrb_user', JSON.stringify(data.user));
+      localStorage.setItem('vfrb_token', data.token);
+      localStorage.setItem('vfrb_user', JSON.stringify(data.user));
       axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
       const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
       const verified = data.user?.email_verified_at || isLocalhost;

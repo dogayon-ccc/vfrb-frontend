@@ -16,6 +16,13 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense, useEffect } from 'react';
 import axios from 'axios';
+// Task 1 (PWA install-to-home-screen, Aug 30 2026): Android's native
+// install prompt already works off vite-plugin-pwa's generated manifest
+// (Aug 24 2026 commit) — no code needed there. iOS Safari has no native
+// equivalent at all, so this component is the actual missing half. Mounted
+// once at the app root (not per-portal) so it appears regardless of
+// whether the visitor lands on the customer or admin/staff side first.
+import PWAPrompt from 'react-ios-pwa-prompt';
 
 // ── Axios Setup ───────────────────────────────────────────────────────────────
 // LOCAL DEV:   No baseURL — all /api/* go through Vite proxy → localhost:8000
@@ -181,6 +188,18 @@ export default function App() {
   return (
     <BrowserRouter>
       <ScrollTop/>
+      {/* appIconPath overridden to the local apple-touch-icon.png that's
+          already shipped in /public — the package's own default falls
+          back to Google's public favicon-fetch service, which is a CDN
+          call this project's "offline-tolerant, no CDN calls" rule
+          explicitly forbids. promptOnVisit/timesToShow left at the
+          package defaults (shows on visit 2, twice total) so it doesn't
+          interrupt someone's very first look at the site. */}
+      <PWAPrompt
+        copyTitle="Install VFRB Enterprise"
+        copyDescription="Add VFRB to your home screen for faster access and a full-screen app view — no browser address bar."
+        appIconPath="/apple-touch-icon.png"
+      />
       <Suspense fallback={<Loader/>}>
         <Routes>
 

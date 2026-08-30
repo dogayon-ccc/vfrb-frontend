@@ -309,7 +309,7 @@ function ConfettiBurst() {
 export default function CustomerDashboard() {
   const nav      = useNavigate();
   const location = useLocation();
-  const user     = JSON.parse(sessionStorage.getItem('vfrb_user') || '{}');
+  const user     = JSON.parse(localStorage.getItem('vfrb_user') || '{}');
 
   const [stats,        setStats]        = useState(null);
   const [orders,       setOrders]       = useState([]);

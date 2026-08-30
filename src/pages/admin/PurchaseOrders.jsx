@@ -648,7 +648,7 @@ export default function AdminPurchaseOrders() {
   const [convertPO,  setConvertPO]  = useState(null);  // RFQ to convert (manager selects response)
   const [toast,      setToast]      = useState(null);
 
-  const user      = (() => { try { return JSON.parse(sessionStorage.getItem('vfrb_user')||'{}'); } catch { return {}; } })();
+  const user      = (() => { try { return JSON.parse(localStorage.getItem('vfrb_user')||'{}'); } catch { return {}; } })();
   const isManager = user.role === 'manager';
 
   const showToast = (msg, type='success') => setToast({ msg, type });

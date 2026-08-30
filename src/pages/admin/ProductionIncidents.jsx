@@ -45,7 +45,7 @@ const TYPE_LABEL = {
 };
 
 function getIsManager() {
-  return (JSON.parse(sessionStorage.getItem('vfrb_user') || '{}').role) === 'manager';
+  return (JSON.parse(localStorage.getItem('vfrb_user') || '{}').role) === 'manager';
 }
 
 export default function ProductionIncidents() {

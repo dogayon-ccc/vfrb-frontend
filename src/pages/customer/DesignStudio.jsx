@@ -15,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import InlineColorPicker from '../../components/InlineColorPicker';
+import { removeLogoBackground } from '../../lib/bgRemove';
 
 const T = '#028090', T2 = '#02C39A', DARK = '#060d1a', DARK2 = '#0a1628';
 // UI font for labels, buttons, tooltips — offline-safe system stack
@@ -332,6 +333,15 @@ function useGarmentCanvas(canvasRef, garment, sleeve, colors, patterns, onSelect
   // canUndo/canRedo re-evaluate against the refs' current values.
   const [, setHistoryTick] = useState(0);
 
+  // ── LAYERS PANEL: same "tick forces re-render, refs hold truth" pattern
+  // as historyTick above. The layer list itself is computed fresh from
+  // fc.current.getObjects() on every render (see `layers` below) — this
+  // tick's only job is to force that recomputation after a mutation that
+  // doesn't otherwise touch React state (add/delete/reorder/rename/toggle,
+  // undo/redo, face switch load).
+  const [, setLayersTick] = useState(0);
+  const bumpLayers = useCallback(() => setLayersTick(t => t + 1), []);
+
   // ── INIT: mount once ──────────────────────────────────────
   // FIX (BUG-007): useLayoutEffect, not useEffect — see note above the
   // hook body's cleanup function for why this is what actually closes
@@ -583,7 +593,7 @@ function useGarmentCanvas(canvasRef, garment, sleeve, colors, patterns, onSelect
     const snapshot = canvas.getObjects()
       .filter(o => !o.__garmentBase && !o.__hoverGlow)
       .filter(o => typeof o.toObject === 'function')  // guard: skip non-Fabric objects
-      .map(o => o.toObject(['__logo','__text']));
+      .map(o => o.toObject(['__logo','__text','__layerId','__layerName']));
     // Trim forward history when branching
     historyStack.current = historyStack.current.slice(0, historyIdx.current + 1);
     historyStack.current.push(snapshot);
@@ -602,17 +612,18 @@ function useGarmentCanvas(canvasRef, garment, sleeve, colors, patterns, onSelect
     if (!canvas) { historyLock.current = false; return; }
     canvas.getObjects().filter(o => !o.__garmentBase && !o.__hoverGlow).forEach(o => canvas.remove(o));
     import('fabric').then((mod) => { const fabric = mod.fabric ?? mod.default ?? mod;
-      if (!snapshot || snapshot.length === 0) { canvas.renderAll(); historyLock.current = false; return; }
+      if (!snapshot || snapshot.length === 0) { canvas.renderAll(); historyLock.current = false; bumpLayers(); return; }
       // Fabric v6: enlivenObjects returns Promise (no callback)
       Promise.resolve(fabric.util.enlivenObjects(snapshot))
         .then(enlivened => {
           (enlivened ?? []).forEach(obj => canvas.add(obj));
           canvas.renderAll();
           historyLock.current = false;
+          bumpLayers();
         })
         .catch(() => { historyLock.current = false; });
     }).catch(() => { historyLock.current = false; });
-  }, []);
+  }, [bumpLayers]);
 
   const redo = useCallback(() => {
     if (historyIdx.current >= historyStack.current.length - 1) return;
@@ -624,17 +635,18 @@ function useGarmentCanvas(canvasRef, garment, sleeve, colors, patterns, onSelect
     if (!canvas) { historyLock.current = false; return; }
     canvas.getObjects().filter(o => !o.__garmentBase && !o.__hoverGlow).forEach(o => canvas.remove(o));
     import('fabric').then((mod) => { const fabric = mod.fabric ?? mod.default ?? mod;
-      if (!snapshot || snapshot.length === 0) { canvas.renderAll(); historyLock.current = false; return; }
+      if (!snapshot || snapshot.length === 0) { canvas.renderAll(); historyLock.current = false; bumpLayers(); return; }
       // Fabric v6: enlivenObjects returns Promise (no callback)
       Promise.resolve(fabric.util.enlivenObjects(snapshot))
         .then(enlivened => {
           (enlivened ?? []).forEach(obj => canvas.add(obj));
           canvas.renderAll();
           historyLock.current = false;
+          bumpLayers();
         })
         .catch(() => { historyLock.current = false; });
     }).catch(() => { historyLock.current = false; });
-  }, []);
+  }, [bumpLayers]);
 
   const canUndo = historyIdx.current > 0;
   const canRedo = historyIdx.current < historyStack.current.length - 1;
@@ -656,14 +668,19 @@ function useGarmentCanvas(canvasRef, garment, sleeve, colors, patterns, onSelect
       // argument, so CORS mode was never actually being set either.
       fabric.Image.fromURL(dataUrl, { crossOrigin: 'anonymous' }).then((img) => {
         img.scaleToWidth(72);
-        img.set({ left: paths.w * preset.x, top: paths.h * preset.y, __logo: true });
+        img.set({
+          left: paths.w * preset.x, top: paths.h * preset.y, __logo: true,
+          __layerId:   crypto.randomUUID(),
+          __layerName: 'Logo',
+        });
         canvas.add(img);
         canvas.setActiveObject(img);
         canvas.renderAll();
         pushHistory();
+        bumpLayers();
       }).catch(() => {});
     }).catch(() => {});
-  }, [garment, sleeve, pushHistory]);
+  }, [garment, sleeve, pushHistory, bumpLayers]);
 
   const addText = useCallback((text, color, fontCss, sizePx) => {
     const canvas = fc.current;
@@ -677,13 +694,19 @@ function useGarmentCanvas(canvasRef, garment, sleeve, colors, patterns, onSelect
         fill:       color,
         fontWeight: 'bold',
         __text:     true,
+        __layerId:   crypto.randomUUID(),
+        // Default layer name = the text itself (truncated) so the layers
+        // panel is identifiable at a glance without an extra rename step;
+        // still renameable via the panel like any other layer.
+        __layerName: text.length > 20 ? text.slice(0, 20) + '…' : text,
       });
       canvas.add(t);
       canvas.setActiveObject(t);
       canvas.renderAll();
       pushHistory();
+      bumpLayers();
     }).catch(() => {});
-  }, [pushHistory]);
+  }, [pushHistory, bumpLayers]);
 
   const deleteSelected = useCallback(() => {
     const canvas = fc.current;
@@ -694,14 +717,15 @@ function useGarmentCanvas(canvasRef, garment, sleeve, colors, patterns, onSelect
       canvas.discardActiveObject();
       canvas.renderAll();
       pushHistory();
+      bumpLayers();
     }
-  }, [pushHistory]);
+  }, [pushHistory, bumpLayers]);
 
   const exportOverlays = useCallback(() =>
     fc.current?.getObjects()
       .filter(o => !o.__garmentBase && !o.__hoverGlow)
       .filter(o => typeof o.toObject === 'function')  // guard: skip non-Fabric objects
-      .map(o => o.toObject(['__logo','__text'])) ?? []
+      .map(o => o.toObject(['__logo','__text','__layerId','__layerName'])) ?? []
   , []);
 
   const exportPNG = useCallback(() =>
@@ -716,7 +740,7 @@ function useGarmentCanvas(canvasRef, garment, sleeve, colors, patterns, onSelect
     return canvas.getObjects()
       .filter(o => !o.__garmentBase && !o.__hoverGlow)
       .filter(o => typeof o.toObject === 'function')  // guard: v6 safety
-      .map(o => o.toObject(['__logo', '__text']));
+      .map(o => o.toObject(['__logo', '__text', '__layerId', '__layerName']));
   }, []);
 
   const loadCanvasJSON = useCallback((objects) => {
@@ -735,10 +759,11 @@ function useGarmentCanvas(canvasRef, garment, sleeve, colors, patterns, onSelect
         .then(enlivened => {
           (enlivened ?? []).forEach(obj => canvas.add(obj));
           canvas.renderAll();
+          bumpLayers();
         })
         .catch(() => {});
     }).catch(() => {});
-  }, []);
+  }, [bumpLayers]);
 
   // Task U fix: dismissOnboarding() (in the main component) needs to force a
   // canvas resize+redraw after the tutorial overlay closes — it can cover the
@@ -762,7 +787,93 @@ function useGarmentCanvas(canvasRef, garment, sleeve, colors, patterns, onSelect
     canvas.renderAll();
   }, []);
 
-  return { addLogo, addText, deleteSelected, exportOverlays, exportPNG, getCanvasJSON, loadCanvasJSON, pushHistory, undo, redo, canUndo, canRedo, resizeCanvas };
+  // ── LAYERS PANEL ACTIONS ─────────────────────────────────────
+  // Layer list is read fresh from the live canvas on every render (see
+  // `layers` below) — no separate metadata store to drift out of sync.
+  // Legacy overlay objects saved before this feature existed won't have
+  // __layerId yet; it's lazily assigned the first time they're listed,
+  // then persists from then on (including through the next save/undo,
+  // since __layerId is now part of the toObject() prop list above).
+  const findLayer = useCallback((id) =>
+    fc.current?.getObjects().find(o => o.__layerId === id) ?? null
+  , []);
+
+  const layers = (fc.current?.getObjects() ?? [])
+    .filter(o => !o.__garmentBase && !o.__hoverGlow)
+    .filter(o => typeof o.toObject === 'function')
+    .map(o => {
+      if (!o.__layerId) o.__layerId = crypto.randomUUID(); // lazy-assign for legacy objects
+      return {
+        id:      o.__layerId,
+        type:    o.__logo ? 'logo' : 'text',
+        name:    o.__layerName || (o.__logo ? 'Logo' : 'Text'),
+        visible: o.visible !== false,
+      };
+    })
+    .reverse(); // canvas array is back→front; panel shows front-most first
+
+  const selectLayer = useCallback((id) => {
+    const canvas = fc.current;
+    const obj = findLayer(id);
+    if (!canvas || !obj) return;
+    canvas.setActiveObject(obj);
+    canvas.renderAll();
+  }, [findLayer]);
+
+  const toggleLayerVisibility = useCallback((id) => {
+    const canvas = fc.current;
+    const obj = findLayer(id);
+    if (!canvas || !obj) return;
+    obj.set('visible', !(obj.visible !== false));
+    canvas.renderAll();
+    pushHistory();
+    bumpLayers();
+  }, [findLayer, pushHistory, bumpLayers]);
+
+  const renameLayer = useCallback((id, name) => {
+    const obj = findLayer(id);
+    if (!obj) return;
+    obj.__layerName = name;
+    pushHistory();
+    bumpLayers();
+  }, [findLayer, pushHistory, bumpLayers]);
+
+  const deleteLayer = useCallback((id) => {
+    const canvas = fc.current;
+    const obj = findLayer(id);
+    if (!canvas || !obj) return;
+    if (canvas.getActiveObject() === obj) canvas.discardActiveObject();
+    canvas.remove(obj);
+    canvas.renderAll();
+    pushHistory();
+    bumpLayers();
+  }, [findLayer, pushHistory, bumpLayers]);
+
+  // orderedIds: front-to-back (panel top-to-bottom). Garment-base zone
+  // paths always occupy the lowest indices on the real canvas stack (they're
+  // reinserted at indices 0..N on every color/pattern redraw — see the
+  // garment redraw effect above) and are never part of this list, so we
+  // offset every overlay's target index by however many base objects
+  // currently exist rather than assuming a fixed count (some garments have
+  // no pocket/sleeve path and so fewer base objects than others).
+  const reorderLayers = useCallback((orderedIds) => {
+    const canvas = fc.current;
+    if (!canvas) return;
+    const baseCount = canvas.getObjects().filter(o => o.__garmentBase).length;
+    [...orderedIds].reverse().forEach((id, i) => {
+      const obj = findLayer(id);
+      if (obj) canvas.moveObjectTo(obj, baseCount + i);
+    });
+    canvas.renderAll();
+    pushHistory();
+    bumpLayers();
+  }, [findLayer, pushHistory, bumpLayers]);
+
+  return {
+    addLogo, addText, deleteSelected, exportOverlays, exportPNG, getCanvasJSON, loadCanvasJSON,
+    pushHistory, undo, redo, canUndo, canRedo, resizeCanvas,
+    layers, selectLayer, toggleLayerVisibility, renameLayer, deleteLayer, reorderLayers,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -954,15 +1065,34 @@ function LogoPanel({ onAdd }) {
   const [drag,    setDrag]    = useState(false);
   const [preview, setPreview] = useState(null);
   const [preset,  setPreset]  = useState('left_chest');
+  // Task 2 (logo auto-transparency): background removal runs client-side
+  // and the RMBG-1.4 model is ~176MB on first use in a browser (cached
+  // after) — this can take a few seconds to tens of seconds, so the
+  // customer needs to see *something* is happening, not a frozen panel.
+  const [removingBg, setRemovingBg] = useState(false);
 
-  const handle = file => {
+  const handle = async file => {
     if (!file) return;
     const ok = ['image/png','image/svg+xml','image/jpeg','image/webp'];
     if (!ok.includes(file.type)) { alert('PNG, SVG, JPG only'); return; }
     if (file.size > 5*1024*1024) { alert('Max 5 MB'); return; }
+
+    // SVGs are already vector/transparent by nature — running raster
+    // background removal on one would just rasterize it for no benefit,
+    // so skip straight to the original path for that type only.
+    let toAdd = file;
+    if (file.type !== 'image/svg+xml') {
+      setRemovingBg(true);
+      try {
+        toAdd = await removeLogoBackground(file);
+      } finally {
+        setRemovingBg(false);
+      }
+    }
+
     const r = new FileReader();
     r.onload = e => { setPreview(e.target.result); onAdd(e.target.result, preset); };
-    r.readAsDataURL(file);
+    r.readAsDataURL(toAdd);
   };
 
   return (
@@ -984,30 +1114,46 @@ function LogoPanel({ onAdd }) {
       </div>
 
       <div
-        onDragOver={e=>{e.preventDefault();setDrag(true);}}
+        onDragOver={e=>{e.preventDefault();if(!removingBg)setDrag(true);}}
         onDragLeave={()=>setDrag(false)}
-        onDrop={e=>{e.preventDefault();setDrag(false);handle(e.dataTransfer.files?.[0]);}}
-        onClick={()=>fileRef.current?.click()}
+        onDrop={e=>{e.preventDefault();setDrag(false);if(!removingBg)handle(e.dataTransfer.files?.[0]);}}
+        onClick={()=>{if(!removingBg)fileRef.current?.click();}}
         style={{
-          padding:'22px 12px', borderRadius:12, textAlign:'center', cursor:'pointer',
+          padding:'22px 12px', borderRadius:12, textAlign:'center',
+          cursor: removingBg ? 'wait' : 'pointer',
           border:`2px dashed ${drag?T2:'rgba(2,195,154,.3)'}`,
           background: drag ? 'rgba(2,195,154,.07)' : 'rgba(255,255,255,.02)',
-          transition:'all .15s',
+          transition:'all .15s', opacity: removingBg ? 0.6 : 1,
         }}>
-        <p style={{ fontSize:24, margin:'0 0 6px' }}>📁</p>
-        <p style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,.6)', margin:'0 0 3px' }}>
-          Drop logo or click to browse
-        </p>
-        <p style={{ fontSize:9, color:'rgba(255,255,255,.25)', margin:0 }}>
-          PNG · SVG · JPG · WEBP · max 5 MB
-        </p>
-        <p style={{ fontSize:9, color:'rgba(2,195,154,.4)', margin:'4px 0 0' }}>
-          📷 Mobile: tap to use camera
-        </p>
+        {removingBg ? (
+          <>
+            <p style={{ fontSize:24, margin:'0 0 6px' }}>✨</p>
+            <p style={{ fontSize:11, fontWeight:700, color:T2, margin:'0 0 3px' }}>
+              Removing background…
+            </p>
+            <p style={{ fontSize:9, color:'rgba(255,255,255,.25)', margin:0 }}>
+              First logo on this device may take longer
+            </p>
+          </>
+        ) : (
+          <>
+            <p style={{ fontSize:24, margin:'0 0 6px' }}>📁</p>
+            <p style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,.6)', margin:'0 0 3px' }}>
+              Drop logo or click to browse
+            </p>
+            <p style={{ fontSize:9, color:'rgba(255,255,255,.25)', margin:0 }}>
+              PNG · SVG · JPG · WEBP · max 5 MB
+            </p>
+            <p style={{ fontSize:9, color:'rgba(2,195,154,.4)', margin:'4px 0 0' }}>
+              📷 Mobile: tap to use camera · background removed automatically
+            </p>
+          </>
+        )}
         {/* capture=environment: opens rear camera on mobile for logo capture */}
         <input ref={fileRef} type="file"
           accept="image/png,image/svg+xml,image/jpeg,image/webp"
           capture="environment"
+          disabled={removingBg}
           style={{ display:'none' }}
           onChange={e=>handle(e.target.files?.[0])}/>
       </div>
@@ -1278,6 +1424,123 @@ function PatternPanel({ cfg, setCfg, activeZone }) {
 }
 
 // ─────────────────────────────────────────────────────────────
+// PANEL: LAYERS — lists overlay objects (logos/text) on the current
+// face, front-most first. Reorder via native HTML5 drag-and-drop —
+// matches this file's existing LogoPanel dropzone pattern, no drag
+// library dependency added.
+// ─────────────────────────────────────────────────────────────
+function LayersPanel({ layers, selectedId, onSelect, onToggleVisibility, onRename, onDelete, onReorder }) {
+  const [dragId, setDragId]       = useState(null);
+  const [overId, setOverId]       = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [editVal, setEditVal]     = useState('');
+
+  const commitRename = () => {
+    if (editingId && editVal.trim()) onRename(editingId, editVal.trim());
+    setEditingId(null);
+  };
+
+  const handleDrop = (targetId) => {
+    if (!dragId || dragId === targetId) { setDragId(null); setOverId(null); return; }
+    const ids  = layers.map(l => l.id);
+    const from = ids.indexOf(dragId);
+    const to   = ids.indexOf(targetId);
+    if (from === -1 || to === -1) { setDragId(null); setOverId(null); return; }
+    const next = [...ids];
+    next.splice(from, 1);
+    next.splice(to, 0, dragId);
+    onReorder(next);
+    setDragId(null);
+    setOverId(null);
+  };
+
+  return (
+    <div style={{ padding:'12px', display:'flex', flexDirection:'column', gap:6,
+      flex:1, overflowY:'auto' }}>
+      <p style={secLabel}>Layers on this side · {layers.length}</p>
+
+      {layers.length === 0 ? (
+        <div style={{ padding:'26px 10px', textAlign:'center' }}>
+          <p style={{ fontSize:22, margin:'0 0 6px', opacity:.35 }}>🗂️</p>
+          <p style={{ fontSize:11, color:'rgba(255,255,255,.35)', margin:0 }}>
+            Add a logo or text to see it here
+          </p>
+        </div>
+      ) : (
+        <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+          {layers.map(layer => {
+            const isSel  = layer.id === selectedId;
+            const isOver = overId === layer.id && dragId && dragId !== layer.id;
+            return (
+              <div key={layer.id}
+                draggable
+                onDragStart={() => setDragId(layer.id)}
+                onDragOver={e => { e.preventDefault(); if (overId !== layer.id) setOverId(layer.id); }}
+                onDragLeave={() => setOverId(o => o === layer.id ? null : o)}
+                onDrop={e => { e.preventDefault(); handleDrop(layer.id); }}
+                onDragEnd={() => { setDragId(null); setOverId(null); }}
+                onClick={() => onSelect(layer.id)}
+                style={{
+                  display:'flex', alignItems:'center', gap:7,
+                  padding:'7px 8px', borderRadius:8, cursor:'grab',
+                  background: isSel ? 'rgba(2,195,154,.14)' : 'rgba(255,255,255,.03)',
+                  border: isSel ? `1px solid ${T2}` : '1px solid rgba(255,255,255,.06)',
+                  outline: isOver ? `2px solid ${T2}` : 'none',
+                  opacity: dragId === layer.id ? .4 : 1,
+                  transition:'background .12s, opacity .12s',
+                }}>
+                <span style={{ fontSize:9, color:'rgba(255,255,255,.22)' }}>⠿</span>
+                <span style={{ fontSize:13 }}>{layer.type === 'logo' ? '🖼️' : '✏️'}</span>
+
+                {editingId === layer.id ? (
+                  <input autoFocus value={editVal}
+                    onChange={e => setEditVal(e.target.value)}
+                    onBlur={commitRename}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') commitRename();
+                      if (e.key === 'Escape') setEditingId(null);
+                      e.stopPropagation();
+                    }}
+                    onClick={e => e.stopPropagation()}
+                    maxLength={24}
+                    style={{ flex:1, fontSize:11, background:'transparent', border:'none',
+                      borderBottom:`1px solid ${T2}`, color:'#fff', outline:'none', minWidth:0 }}/>
+                ) : (
+                  <span
+                    onDoubleClick={e => { e.stopPropagation(); setEditingId(layer.id); setEditVal(layer.name); }}
+                    title={`${layer.name} — double-click to rename`}
+                    style={{ flex:1, fontSize:11, color: isSel ? '#fff' : 'rgba(255,255,255,.7)',
+                      overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', minWidth:0 }}>
+                    {layer.name}
+                  </span>
+                )}
+
+                <button onClick={e => { e.stopPropagation(); onToggleVisibility(layer.id); }}
+                  title={layer.visible ? 'Hide layer' : 'Show layer'}
+                  style={{ background:'none', border:'none', cursor:'pointer', padding:2,
+                    fontSize:12, opacity: layer.visible ? .6 : .28, lineHeight:1 }}>
+                  {layer.visible ? '👁️' : '🚫'}
+                </button>
+                <button onClick={e => { e.stopPropagation(); onDelete(layer.id); }}
+                  title="Delete layer"
+                  style={{ background:'none', border:'none', cursor:'pointer', padding:2,
+                    fontSize:12, opacity:.45, lineHeight:1 }}>
+                  🗑️
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <p style={{ fontSize:9, color:'rgba(255,255,255,.2)', textAlign:'center', margin:'8px 0 0' }}>
+        Top = front · Drag to reorder · Double-click to rename
+      </p>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
 // SHARED STYLE HELPERS
 // ─────────────────────────────────────────────────────────────
 const secLabel = {
@@ -1302,6 +1565,7 @@ const TOOLS = [
   { id:'text',    icon:'✏️', label:'Text'    },
   { id:'ai',      icon:'🤖', label:'AI'      },
   { id:'pattern', icon:'📐', label:'Pattern' },
+  { id:'layers',  icon:'🗂️', label:'Layers'  },
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -1437,7 +1701,8 @@ export default function DesignStudio() {
 
   // BUG 2 FIX: pass canvasEl (ref object), not canvasEl.current (null at render)
   const { addLogo, addText, deleteSelected, exportOverlays, exportPNG, getCanvasJSON, loadCanvasJSON,
-          pushHistory, undo, redo, canUndo, canRedo, resizeCanvas } =
+          pushHistory, undo, redo, canUndo, canRedo, resizeCanvas,
+          layers, selectLayer, toggleLayerVisibility, renameLayer, deleteLayer, reorderLayers } =
     useGarmentCanvas(
       canvasEl,
       cfg.garment,
@@ -1913,6 +2178,9 @@ export default function DesignStudio() {
                                        onTexture={()=>{}}/>}
                 {tool==='pattern' && <PatternPanel cfg={cfg} setCfg={setCfg}
                                        activeZone={activeZone}/>}
+                {tool==='layers'  && <LayersPanel  layers={layers} selectedId={selObj?.__layerId}
+                                       onSelect={selectLayer} onToggleVisibility={toggleLayerVisibility}
+                                       onRename={renameLayer} onDelete={deleteLayer} onReorder={reorderLayers}/>}
 
               </motion.div>
             </AnimatePresence>
@@ -1927,10 +2195,18 @@ export default function DesignStudio() {
               ].join(','),
             }}
             onDragOver={e=>e.preventDefault()}
-            onDrop={e=>{
+            onDrop={async e=>{
               e.preventDefault();
               const f=e.dataTransfer.files?.[0];
-              if(f){ const r=new FileReader(); r.onload=ev=>addLogo(ev.target.result,'left_chest'); r.readAsDataURL(f); }
+              if(!f) return;
+              // Same auto-transparency pass as LogoPanel's own upload —
+              // this is the canvas' own drag-drop entry point, a second,
+              // separate path into addLogo() that would otherwise skip it
+              // (and, pre-existing/out of scope for this task: it also
+              // skips LogoPanel's type/size validation entirely — flagging
+              // that as a separate gap, not fixed here).
+              const toAdd = f.type === 'image/svg+xml' ? f : await removeLogoBackground(f);
+              const r=new FileReader(); r.onload=ev=>addLogo(ev.target.result,'left_chest'); r.readAsDataURL(toAdd);
             }}>
 
             {/* 2D pane — mounted for the component's whole lifetime now, never

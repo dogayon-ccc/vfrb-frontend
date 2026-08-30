@@ -96,6 +96,13 @@ export default defineConfig(({ mode }) => ({
         manualChunks(id) {
           if (!id.includes("node_modules")) return;
           if (id.includes("@react-three") || id.includes("/three/")) return "three";
+          // Task 2 (logo auto-transparency): @huggingface/transformers pulls
+          // in onnxruntime-web (WASM/ONNX runtime) — large and lazy-loaded
+          // only when a customer uploads a non-SVG logo in Design Studio,
+          // so it earns its own chunk rather than bloating the main bundle
+          // every visitor downloads. Mirrors the reference repo's own
+          // vite.config.js, which does exactly this split.
+          if (id.includes("@huggingface/transformers") || id.includes("onnxruntime")) return "bg-remove";
           if (id.includes("framer-motion")) return "motion";
           if (id.includes("recharts")) return "charts";
           if (id.includes("axios")) return "utils";
@@ -118,6 +125,12 @@ export default defineConfig(({ mode }) => ({
       "@react-three/fiber",
       "@react-three/drei",
     ],
+    // @huggingface/transformers manages its own WASM/worker loading
+    // internally — letting esbuild pre-bundle it breaks that at dev
+    // time. This matches the reference repo's own vite.config.js
+    // (`optimizeDeps: { exclude: ['@huggingface/transformers'] }`),
+    // confirmed by reading it directly rather than assumed.
+    exclude: ["@huggingface/transformers"],
   },
   envPrefix: "VITE_",
 }));

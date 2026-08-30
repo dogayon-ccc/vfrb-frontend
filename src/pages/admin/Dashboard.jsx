@@ -280,7 +280,7 @@ const STATUS_COLORS = {
 // ─────────────────────────────────────────────────────────────────────────────
 export default function AdminDashboard() {
   const nav  = useNavigate();
-  const user = (() => { try { return JSON.parse(sessionStorage.getItem('vfrb_user') || '{}'); } catch { return {}; } })();
+  const user = (() => { try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}'); } catch { return {}; } })();
   const isManager = user.role === 'manager';
 
   // ── State ──────────────────────────────────────────────────────────────────

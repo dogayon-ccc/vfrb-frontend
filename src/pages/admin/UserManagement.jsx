@@ -135,7 +135,7 @@ export default function AdminUserManagement() {
   const [winW, setWinW] = useState(typeof window!=='undefined'?window.innerWidth:1280);
   useEffect(() => { const h=()=>setWinW(window.innerWidth); window.addEventListener('resize',h); return()=>window.removeEventListener('resize',h); }, []);
   const isMobile = winW <= 767;
-  const me = JSON.parse(sessionStorage.getItem('vfrb_user') || '{}');
+  const me = JSON.parse(localStorage.getItem('vfrb_user') || '{}');
 
   const load = useCallback((force = false) => {
     if (!force) {

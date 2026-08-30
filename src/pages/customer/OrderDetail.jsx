@@ -346,7 +346,7 @@ export default function CustomerOrderDetail() {
 
   // Current user id (to identify own messages)
   const meId = (() => {
-    try { return JSON.parse(sessionStorage.getItem('vfrb_user') || '{}').user_id; }
+    try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}').user_id; }
     catch { return null; }
   })();
 
