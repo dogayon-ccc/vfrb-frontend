@@ -249,6 +249,8 @@ export default function DesignStudio() {
           sleeve:   sc.sleeve   ?? sc.sleeveType  ?? p.sleeve,
           colors:   sc.colors   ?? p.colors,
           patterns: sc.patterns ?? p.patterns,
+          patternParams: sc.patternParams ?? p.patternParams,
+          fit:      sc.fit      ?? p.fit,
         }));
         if (Array.isArray(sc.overlays) && sc.overlays.length > 0) {
           setTimeout(() => loadCanvasJSON(sc.overlays), 350);

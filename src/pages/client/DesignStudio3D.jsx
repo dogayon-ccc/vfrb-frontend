@@ -316,7 +316,7 @@ function GarmentMesh({ cfg, referenceTexture, overlays }) {
     const fit = cfg.fit ?? cfg.gender;
     return (
       <GarmentMeshErrorBoundary key={`${gt}-${fit}`} fallback={shirt}>
-        <ScannedGarmentMesh manifest={scanned} colors={colors} fit={fit} garment={cfg.garment} sleeve={cfg.sleeve} overlays={overlays}/>
+        <ScannedGarmentMesh manifest={scanned} colors={colors} patterns={cfg.patterns} patternParams={cfg.patternParams} fit={fit} garment={cfg.garment} sleeve={cfg.sleeve} overlays={overlays}/>
       </GarmentMeshErrorBoundary>
     );
   }

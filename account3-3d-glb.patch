@@ -1,0 +1,483 @@
+diff --git a/docs/engineering/VFRB-HANDOFF.md b/docs/engineering/VFRB-HANDOFF.md
+new file mode 100644
+index 0000000..3e587e7
+--- /dev/null
++++ b/docs/engineering/VFRB-HANDOFF.md
+@@ -0,0 +1,110 @@
++# VFRB Handoff
++
++## ACCOUNT 3 (3D / GLB) — branch `agent/account3-3d-glb`
++
++If another account already created this file on a different branch, MERGE this section; do not overwrite.
++
++### ACCOUNT 3 OBJECTIVE
++Find why 2D zone customisation (collar / sleeve / patterns) does not reach the real GLB, and implement the 2D -> 3D mapping only where the real GLB assets support it. No fake 3D.
++
++### WHAT WAS VERIFIED
++Legend: CODE = read in source. STATIC = parsed from the GLB files / scripts. BUILD = `npm run build`. BROWSER(harness) = headless Chrome + WebGL rendering the repo's own `DesignStudio3D` through `tools/glb-harness`. UNTESTED = not run.
++
++| Item | Level |
++|---|---|
++| GLB node / mesh / material / UV / texture structure (4 files) | STATIC |
++| `collar` node of lab-coverall is an interior waist band (y 0.18-0.24), not the neck collar | STATIC + BROWSER(harness): baseline render showed no green when collar = green |
++| `body` UV islands = cut panels (coverall 22, male tee 5, female tee 43) | STATIC |
++| 3D code never read `cfg.patterns` / `cfg.patternParams`; scanned parts only used per-node `colorKey` | CODE |
++| Text / shape overlays reach 3D as Decals from Fabric `toObject` JSON (mechanism unchanged) | CODE + BROWSER(harness) |
++| Coverall: body / sleeve / neck collar / pocket colours on the real mesh | BROWSER(harness) |
++| Coverall: H-stripes on sleeves only | BROWSER(harness) |
++| T-shirt male + female: sleeve colour, neck-rib colour, V-stripes on sleeve | BROWSER(harness) |
++| Text + rectangle decal still render on coverall after the change | BROWSER(harness) |
++| Production build (`npm run build`), before and after the change | BUILD (exit 0) |
++| package-lock.json / package.json unchanged | STATIC (`git diff` = 0 lines) |
++| Full Design Studio flow 2D -> 3D -> save -> reload -> 3D | **UNTESTED / INCOMPLETE** (see BROWSER STATUS) |
++| Image logo -> decal | UNTESTED (same Decal path as text, not run separately) |
++| Front/Back face toggle in 3D | UNTESTED |
++| ESLint | UNTESTED (`@eslint/js` missing from devDependencies; config cannot load) |
++| Deployment | UNTESTED |
++
++### GLB ASSET FINDINGS
++All under `public/models/`. Embedded textures are 2x2 placeholder PNGs; base colour factor 0.4 grey.
++
++| File | Meshes | Materials | UV |
++|---|---|---|---|
++| lab-coverall.glb | `collar` (145 v), `body` (10195 v, coat + separate trousers), `buttons`, `stitching` | 1 shared (body/collar/buttons); stitching has none | yes on collar/body/buttons, none on stitching |
++| t-shirt-male.glb | `body` (25812 v, non-indexed triangle soup) | 1 | yes |
++| t-shirt-female.glb | `body` (5107 v) | 1 | yes |
++| school-set-female.glb | blouse, collar, tie, buttons, skirt | 0 | **none** |
++
++- lab-coverall `collar` node: horizontal band at waist height inside the coat. Previously the manifest bound it to the 2D collar colour, so 2D collar changes recoloured an invisible mesh.
++- Real neck collar and both sleeves are NOT separate meshes; they are UV islands inside `body` (one shared material). Region-level colour therefore needs a region mask; solid colour and patterns are both done through a generated UV texture.
++- Islands used (island centroid in model units):
++  - coverall: sleeve L/R |x| 0.36 (+ cuffs |x| 0.54); neck band y 0.73 (155 v); chest pocket + 2 lower pockets (z > 0.06, small islands); rest = body (front, back, trousers, hems).
++  - tees: sleeve islands |x| >= 0.13, y > 0.05; neck rib islands y > 0.19, |x| < 0.1 (male: 1 island, female: 2).
++- school-set-female has no UV and no materials: per-node solid colour is possible, patterns are UNSUPPORTED BY CURRENT ASSET (no UVs). It is not wired in the manifest (unchanged from before).
++- `stitching` has no UV and stays a fixed colour.
++
++### CURRENT 2D -> 3D ARCHITECTURE (after this change)
++Design Studio state `cfg` (`colors`, `patterns`, `patternParams`, `fit`, `garment`) is the single source of truth.
++- Zone colour / pattern: `cfg` -> `DesignStudio3D` -> `ScannedGarmentMesh` -> `regionTexture.buildRegionTexture` paints each UV island of the part with its zone colour or pattern into a canvas texture (`map`, flipY=false, sRGB) -> `MeshPhysicalMaterial` on the real GLB geometry.
++- Text / shapes / drawings / logos: Fabric `toObject` JSON (`overlays`) -> `overlayDecals.renderDecals` -> `Decal` on the `decals:true` part. UNCHANGED.
++- Pattern tiles replicate the 2D PATTERNS tile geometry and width/spacing (hstripes, vstripes, diagonal, checker, polka, geometric). Each island gets a least-squares affine UV -> model(x, y) fit, so pattern direction follows model axes as in the 2D front view (horizontal stripes stay horizontal on arms).
++- Primitive (non-scanned) garments are untouched.
++
++### IMPLEMENTED
++1. Region masks from real UV islands (`regionTexture.js`, `regionOf` rules in manifest).
++2. Zone colour for body / sleeve / collar / pocket on coverall; sleeve / collar on both tee fits.
++3. Pattern mapping for the 6 tiled patterns above.
++4. Coverall `collar` node now follows body colour (it is an interior band).
++5. Persistence gap: draft restore now also restores `patternParams` and `fit` (they were saved but not restored).
++6. r150 workaround: one uv transform per material, so grain normal map is tiled inside a canvas when a zone `map` is present.
++
++### FILES CHANGED
++- `src/pages/client/design-studio/regionTexture.js` (NEW) — UV island detection (UV-welded union-find), per-island affine fit, generated zone texture.
++- `src/pages/client/design-studio/garmentMeshManifest.js` — `coverallRegion` / `teeRegion` rules; `regionOf` on body parts; coverall `collar` node -> `colorKey: 'body'`.
++- `src/pages/client/design-studio/ScannedGarmentMesh.jsx` — `useRegionTexture`, `map` support in `partMaterial`, tiled grain normal map, `patterns` / `patternParams` props.
++- `src/pages/client/DesignStudio3D.jsx` — passes `cfg.patterns`, `cfg.patternParams` to `ScannedGarmentMesh` (1 line).
++- `src/pages/client/DesignStudio.jsx` — draft restore adds `patternParams` and `fit` (2 lines).
++- `tools/glb-harness/index.html`, `tools/glb-harness/main.jsx` (NEW, dev-only) — renders `DesignStudio3D` with an injected `cfg` (`window.__set(cfg, overlays)`); served by `npx vite` at `/tools/glb-harness/index.html`. Safe to delete or to leave out of the merge.
++- `docs/engineering/VFRB-HANDOFF.md` (NEW) — this file.
++- package.json / package-lock.json: NOT changed.
++
++### BUILD STATUS
++`npm run build`: exit 0 before and after the change (only the existing >800 kB chunk warning). `dist/` is gitignored. Lint not run (see above).
++
++### BROWSER STATUS
++Environment: headless Chromium (`@sparticuz/chromium`) with SwiftShader WebGL2, no GPU, no Laravel backend.
++- HARNESS (BROWSER VERIFIED, renderer only): coverall, male tee, female tee with distinct zone colours; coverall sleeve H-stripes; text + rect decals. No console errors in those runs. Screenshots were inspected manually; no automated pixel assertions.
++- FULL STUDIO (`/design-studio`, auth and `/api/*` mocked, config seeded through `sessionStorage.studio_config`): the page loaded, the onboarding overlay blocked the 2D view, the 3D toggle click was accepted, and one 3D screenshot was written but not reviewed. The tab then crashed (`Target closed`) during repeated 2D <-> 3D toggling. Cause unknown: could be the software-GL test environment or a real problem (two WebGL/canvas contexts, 2048^2 texture rebuilds). **Full 2D -> 3D -> save -> reload -> 3D and repeated 2D/3D switching are NOT verified.**
++
++### DEPLOYMENT STATUS
++UNTESTED. Nothing pushed by this session beyond the branch creation Dave did.
++
++### REMAINING LIMITATIONS
++- Pattern colours are a design choice: 2D replaces the zone fill with a 35%-opacity tile, which is pale on screen. 3D uses ground = zone colour mixed 65% toward white, ink = zone colour. Change `GROUND_MIX` in `regionTexture.js` to alter it.
++- Not mapped: `gradient` pattern (2D handles it specially), `tipping`, and per-side (L/R) sleeve colours (2D has one `sleeve` key).
++- All 3 pocket pieces on the coverall follow the pocket colour (2D draws one pocket).
++- Pattern direction is an affine approximation per cut panel; stripes on curved tube surfaces (sleeves) are slightly skewed and tile phase is anchored to model origin.
++- Tee collar: 3D supports it, but `zonesFor` (dsShared.js) still hides the T-Shirt collar swatch because OrderWizard reads it through `garmentRequirements`. Left alone deliberately.
++- Logos remain decals; they are not painted into region textures.
++- school-set-female is not wired (no UVs, no materials).
++- Texture rebuilds (2048^2, 1024^2 on coarse pointer) on every colour/pattern change; no extra debounce added. Slider dragging for stripe width may be heavy on weak devices (UNTESTED on a phone).
++- Region rules are tuned to the current three GLBs; a re-exported model needs new `regionOf` thresholds.
++
++### BLOCKERS
++None for merging. Human verification in a real GPU browser is required before calling the workflow done.
++
++### DO-NOT-REDO
++- Do not re-map the coverall `collar` node to the 2D collar colour: it is an interior band.
++- Do not re-inspect the GLB structure: findings above are measured.
++- Do not set `normalMap.repeat` while a zone `map` is present (r150 uses one uv transform).
++- Do not treat harness results as proof of the full Studio flow.
++
++### NEXT ACTION
++1. Apply the patch on `agent/account3-3d-glb`, run `npm install` (repo `npm ci` failed in the sandbox: lockfile out of sync with `package.json`, not investigated) and `npm run build`.
++2. In a real browser: Lab Coverall -> change body / collar / sleeve / pocket colours -> set sleeve H-stripes -> 3D. Repeat with T-Shirt male + female. Add text and a logo. Save, reload, open 3D. Toggle 2D <-> 3D repeatedly and watch for context loss or the crash seen in the headless run.
++3. Decide the pattern ground/ink look (`GROUND_MIX`).
++4. Open a PR to `main` only after step 2 passes.
+diff --git a/src/pages/client/DesignStudio.jsx b/src/pages/client/DesignStudio.jsx
+index cd91cef..6ddf40e 100644
+--- a/src/pages/client/DesignStudio.jsx
++++ b/src/pages/client/DesignStudio.jsx
+@@ -249,6 +249,8 @@ export default function DesignStudio() {
+           sleeve:   sc.sleeve   ?? sc.sleeveType  ?? p.sleeve,
+           colors:   sc.colors   ?? p.colors,
+           patterns: sc.patterns ?? p.patterns,
++          patternParams: sc.patternParams ?? p.patternParams,
++          fit:      sc.fit      ?? p.fit,
+         }));
+         if (Array.isArray(sc.overlays) && sc.overlays.length > 0) {
+           setTimeout(() => loadCanvasJSON(sc.overlays), 350);
+diff --git a/src/pages/client/DesignStudio3D.jsx b/src/pages/client/DesignStudio3D.jsx
+index 1fd8093..e064473 100644
+--- a/src/pages/client/DesignStudio3D.jsx
++++ b/src/pages/client/DesignStudio3D.jsx
+@@ -316,7 +316,7 @@ function GarmentMesh({ cfg, referenceTexture, overlays }) {
+     const fit = cfg.fit ?? cfg.gender;
+     return (
+       <GarmentMeshErrorBoundary key={`${gt}-${fit}`} fallback={shirt}>
+-        <ScannedGarmentMesh manifest={scanned} colors={colors} fit={fit} garment={cfg.garment} sleeve={cfg.sleeve} overlays={overlays}/>
++        <ScannedGarmentMesh manifest={scanned} colors={colors} patterns={cfg.patterns} patternParams={cfg.patternParams} fit={fit} garment={cfg.garment} sleeve={cfg.sleeve} overlays={overlays}/>
+       </GarmentMeshErrorBoundary>
+     );
+   }
+diff --git a/src/pages/client/design-studio/ScannedGarmentMesh.jsx b/src/pages/client/design-studio/ScannedGarmentMesh.jsx
+index 7a5edde..10cea84 100644
+--- a/src/pages/client/design-studio/ScannedGarmentMesh.jsx
++++ b/src/pages/client/design-studio/ScannedGarmentMesh.jsx
+@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
+ import * as THREE from 'three';
+ import { Decal, useGLTF } from '@react-three/drei';
+ import { renderDecals, bodyBounds } from './overlayDecals';
++import { buildRegionTexture } from './regionTexture';
+ 
+ let grain;
+ // Fine deterministic fabric grain (blurred noise) as a shared normal map; periodic weaves alias into streaks.
+@@ -26,12 +27,26 @@ function grainNormal() {
+   return grain;
+ }
+ 
+-function partMaterial(color, part) {
++// three r150 applies ONE uv transform (the `map`'s) to every map on a material, so with a zone `map` the grain cannot rely on
++// repeat.set(14, 14); the same grain is tiled inside a canvas instead and used with repeat 1.
++let tiledGrain;
++function tiledGrainNormal(size) {
++  if (tiledGrain?.image.width === size) return tiledGrain;
++  const base = grainNormal().image, c = document.createElement('canvas');
++  c.width = c.height = size;
++  const g = c.getContext('2d');
++  g.fillStyle = g.createPattern(base, 'repeat');
++  g.fillRect(0, 0, size, size);
++  tiledGrain = new THREE.CanvasTexture(c);
++  return tiledGrain;
++}
++
++function partMaterial(color, part, map = null) {
+   if (part.plain) return new THREE.MeshStandardMaterial({ color, roughness: part.roughness ?? 0.4, metalness: part.metalness ?? 0, side: THREE.DoubleSide });
+   return new THREE.MeshPhysicalMaterial({
+     color, roughness: part.roughness ?? 0.88, metalness: 0,
+     sheen: 0.4, sheenRoughness: 0.6, sheenColor: new THREE.Color(color).lerp(new THREE.Color('#ffffff'), 0.2),
+-    normalMap: grainNormal(), normalScale: new THREE.Vector2(0.35, 0.35), side: THREE.DoubleSide,
++    map, normalMap: map ? tiledGrainNormal(map.image.width) : grainNormal(), normalScale: new THREE.Vector2(0.35, 0.35), side: THREE.DoubleSide,
+   });
+ }
+ 
+@@ -76,9 +91,25 @@ function placeDecals(geometry, decals, frame, torso) {
+   })).filter(Boolean);
+ }
+ 
+-function ScannedPart({ geometry, part, colors, decals, frame, torso }) {
++const TEX_SIZE = window.matchMedia('(pointer: coarse)').matches ? 1024 : 2048;
++
++// Zone colours and patterns painted into the part's own UV layout (see regionTexture.js); rebuilt only when they change.
++function useRegionTexture(geometry, part, colors, patterns, patternParams, pxToModel) {
++  const dep = JSON.stringify([colors, patterns, patternParams]);
++  const tex = useMemo(() => (part.regionOf
++    ? buildRegionTexture({ geometry, regionOf: part.regionOf, colors, patterns, patternParams, pxToModel, size: TEX_SIZE })
++    : null),
++  // eslint-disable-next-line react-hooks/exhaustive-deps
++  [geometry, part, dep, pxToModel]);
++  useEffect(() => () => tex?.dispose(), [tex]);
++  return tex;
++}
++
++function ScannedPart({ geometry, part, colors, patterns, patternParams, decals, frame, torso }) {
+   const color = part.fixedColor ?? colors[part.colorKey] ?? colors[part.fallbackKey] ?? '#028090';
+-  const material = useMemo(() => partMaterial(color, part), [color, part]);
++  const pxToModel = (2 * torso) / (frame.x1 - frame.x0);
++  const zoneMap = useRegionTexture(geometry, part, colors, patterns, patternParams, pxToModel);
++  const material = useMemo(() => partMaterial(zoneMap ? '#ffffff' : color, part, zoneMap), [color, part, zoneMap]);
+   const placed = useMemo(() => (part.decals ? placeDecals(geometry, decals, frame, torso) : []), [geometry, decals, frame, torso, part]);
+   return (
+     <mesh geometry={geometry} material={material}>
+@@ -87,7 +118,7 @@ function ScannedPart({ geometry, part, colors, decals, frame, torso }) {
+   );
+ }
+ 
+-export default function ScannedGarmentMesh({ manifest, colors = {}, fit, garment, sleeve, overlays }) {
++export default function ScannedGarmentMesh({ manifest, colors = {}, patterns, patternParams, fit, garment, sleeve, overlays }) {
+   const key = String(fit ?? '').toLowerCase();
+   const { nodes } = useGLTF(manifest.models[key] ?? Object.values(manifest.models)[0]);
+   const decals = useDecals(overlays);
+@@ -97,7 +128,7 @@ export default function ScannedGarmentMesh({ manifest, colors = {}, fit, garment
+   return (
+     <group rotation={rotation} scale={scale} position={position}>
+       {manifest.parts.map(part => nodes[part.node]?.geometry && (
+-        <ScannedPart key={part.node} geometry={nodes[part.node].geometry} part={part} colors={colors} decals={decals} frame={frame} torso={torso} />
++        <ScannedPart key={part.node} geometry={nodes[part.node].geometry} part={part} colors={colors} patterns={patterns} patternParams={patternParams} decals={decals} frame={frame} torso={torso} />
+       ))}
+     </group>
+   );
+diff --git a/src/pages/client/design-studio/garmentMeshManifest.js b/src/pages/client/design-studio/garmentMeshManifest.js
+index 93d2895..8adcef6 100644
+--- a/src/pages/client/design-studio/garmentMeshManifest.js
++++ b/src/pages/client/design-studio/garmentMeshManifest.js
+@@ -1,5 +1,19 @@
+ import { useGLTF } from '@react-three/drei';
+ 
++// Zone of each UV island (cut panel), measured from the real GLBs (island centroid in model units, x = left/right, y = up, z = front).
++// lab-coverall body: sleeves |x| 0.36 + cuffs 0.54; neck band y 0.73; chest/lower pocket pieces z > 0.06. t-shirts: sleeves |x| >= 0.13, neck rib y > 0.19 with |x| < 0.1.
++const coverallRegion = ({ n, c: [x, y, z] }) => {
++  if (Math.abs(x) > 0.3) return 'sleeve';
++  if (y > 0.68) return 'collar';
++  if (n < 100 && z > 0.06 && y > 0.05 && y < 0.6 && Math.abs(x) < 0.2) return 'pocket';
++  return 'body';
++};
++const teeRegion = ({ c: [x, y] }) => {
++  if (Math.abs(x) > 0.12 && y > 0.05) return 'sleeve';
++  if (y > 0.19 && Math.abs(x) < 0.1) return 'collar';
++  return 'body';
++};
++
+ // Scanned garments. Both scans face +z (the camera). `decals` marks the part that carries logos and text.
+ export const SCANNED_GARMENTS = [
+   {
+@@ -7,7 +21,7 @@ export const SCANNED_GARMENTS = [
+     models: { male: '/models/t-shirt-male.glb', female: '/models/t-shirt-female.glb' },
+     torso: { male: 0.19, female: 0.16 },
+     transform: { rotation: [0, 0, 0], scale: 1.7, position: [0, -0.05, 0] },
+-    parts: [{ node: 'body', colorKey: 'body', decals: true }],
++    parts: [{ node: 'body', colorKey: 'body', decals: true, regionOf: teeRegion }],
+   },
+   {
+     match: /coverall|boiler.?suit/i,
+@@ -15,8 +29,9 @@ export const SCANNED_GARMENTS = [
+     torso: { default: 0.2 },
+     transform: { rotation: [0, 0, 0], scale: 1.3, position: [0, -0.02, 0] },
+     parts: [
+-      { node: 'body', colorKey: 'body', decals: true },
+-      { node: 'collar', colorKey: 'collar' },
++      { node: 'body', colorKey: 'body', decals: true, regionOf: coverallRegion },
++      // The GLB's `collar` node is an interior waist band (y 0.18-0.24) hidden inside the coat, not the neck collar; it follows the body colour.
++      { node: 'collar', colorKey: 'body' },
+       { node: 'buttons', fixedColor: '#1a1a1a', plain: true, roughness: 0.35, metalness: 0.4 },
+       { node: 'stitching', fixedColor: '#d9d3c4', plain: true, roughness: 0.9 },
+     ],
+diff --git a/src/pages/client/design-studio/regionTexture.js b/src/pages/client/design-studio/regionTexture.js
+new file mode 100644
+index 0000000..bafe0e4
+--- /dev/null
++++ b/src/pages/client/design-studio/regionTexture.js
+@@ -0,0 +1,174 @@
++import * as THREE from 'three';
++import { PATTERNS } from './dsShared';
++
++// Region-level customisation for scanned GLBs whose zones share one mesh and one material.
++// The GLBs are pattern-piece exports: every UV island is a cut panel (sleeve, front, neck band, pocket...).
++// Islands are found from the UV data, classified into 2D zone keys by the manifest's `regionOf`, and
++// painted into a generated UV texture, so solid colour and patterns follow the real garment surface.
++
++// Patterned zone: `ink` is the zone colour, `ground` is that colour mixed toward white (see 2D: stripes are zone colour at 35% opacity).
++const GROUND_MIX = 0.65;
++const TILE_SCALE = 4;
++
++const islandCache = new WeakMap();
++
++// Welds vertices by UV, then unions triangles that share a welded UV vertex -> one island per cut panel.
++export function getIslands(geometry) {
++  if (islandCache.has(geometry)) return islandCache.get(geometry);
++  const uv = geometry.attributes.uv, pos = geometry.attributes.position, index = geometry.index;
++  if (!uv) { islandCache.set(geometry, null); return null; }
++  const vcount = pos.count, weld = new Int32Array(vcount), keys = new Map();
++  for (let i = 0; i < vcount; i++) {
++    const key = `${Math.round(uv.getX(i) * 1e5)},${Math.round(uv.getY(i) * 1e5)}`;
++    if (!keys.has(key)) keys.set(key, keys.size);
++    weld[i] = keys.get(key);
++  }
++  const parent = Int32Array.from({ length: keys.size }, (_, i) => i);
++  const find = a => { while (parent[a] !== a) { parent[a] = parent[parent[a]]; a = parent[a]; } return a; };
++  const tcount = (index ? index.count : vcount) / 3;
++  const tri = t => (index ? [index.getX(t * 3), index.getX(t * 3 + 1), index.getX(t * 3 + 2)] : [t * 3, t * 3 + 1, t * 3 + 2]);
++  for (let t = 0; t < tcount; t++) {
++    const [a, b, c] = tri(t);
++    parent[find(weld[b])] = find(weld[a]);
++    parent[find(weld[c])] = find(weld[a]);
++  }
++  const byRoot = new Map(), islands = [];
++  const of = v => {
++    const r = find(weld[v]);
++    if (!byRoot.has(r)) { byRoot.set(r, islands.length); islands.push({ tris: [], verts: new Set() }); }
++    return islands[byRoot.get(r)];
++  };
++  for (let t = 0; t < tcount; t++) { const v = tri(t); const isl = of(v[0]); isl.tris.push(v); v.forEach(i => isl.verts.add(i)); }
++  islands.forEach(isl => {
++    const n = isl.verts.size, c = [0, 0, 0];
++    isl.verts.forEach(i => { c[0] += pos.getX(i); c[1] += pos.getY(i); c[2] += pos.getZ(i); });
++    isl.n = n; isl.c = c.map(v => v / n);
++    isl.map = fitPlanar(isl, pos, uv);
++  });
++  islandCache.set(geometry, islands);
++  return islands;
++}
++
++// Least-squares affine map from UV to model-space (x, y): [X, Y] = M * [u, v] + t. Null when the island is degenerate.
++function fitPlanar(isl, pos, uv) {
++  let s = [0, 0, 0, 0, 0, 0, 0, 0, 0], bx = [0, 0, 0], by = [0, 0, 0];
++  isl.verts.forEach(i => {
++    const u = uv.getX(i), v = uv.getY(i), p = [u, v, 1], X = pos.getX(i), Y = pos.getY(i);
++    for (let r = 0; r < 3; r++) { for (let c = 0; c < 3; c++) s[r * 3 + c] += p[r] * p[c]; bx[r] += p[r] * X; by[r] += p[r] * Y; }
++  });
++  const inv = invert3(s);
++  if (!inv) return null;
++  const mul = b => [0, 1, 2].map(r => inv[r * 3] * b[0] + inv[r * 3 + 1] * b[1] + inv[r * 3 + 2] * b[2]);
++  const [a1, b1, c1] = mul(bx), [a2, b2, c2] = mul(by);
++  const det = a1 * b2 - b1 * a2;
++  return Math.abs(det) < 1e-7 ? null : { a1, b1, c1, a2, b2, c2, det };
++}
++
++function invert3(m) {
++  const [a, b, c, d, e, f, g, h, i] = m;
++  const A = e * i - f * h, B = -(d * i - f * g), C = d * h - e * g;
++  const det = a * A + b * B + c * C;
++  if (Math.abs(det) < 1e-12) return null;
++  return [A, -(b * i - c * h), b * f - c * e, B, a * i - c * g, -(a * f - c * d), C, -(a * h - b * g), a * e - b * d].map(v => v / det);
++}
++
++export function regionMap(geometry, regionOf) {
++  const islands = getIslands(geometry);
++  return islands ? islands.map(isl => regionOf({ n: isl.n, c: isl.c })) : null;
++}
++
++const hexMix = (hex, toward, t) => {
++  const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
++  const a = p(hex), b = p(toward);
++  return `#${a.map((v, i) => Math.round(v + (b[i] - v) * t).toString(16).padStart(2, '0')).join('')}`;
++};
++
++const REGION_COLOR = {
++  body: c => c.body,
++  sleeve: c => c.sleeve ?? c.body,
++  collar: c => c.collar ?? c.body,
++  pocket: c => c.pocket ?? c.collar ?? c.body,
++};
++
++// Same tile geometry as the 2D PATTERNS svg strings (20x20, or 24x24 for geometric); `w`/`s` are the 2D slider values.
++function tileCanvas(id, ink, w, s) {
++  const size = id === 'geometric' ? 24 : 20;
++  const c = document.createElement('canvas');
++  c.width = c.height = size * TILE_SCALE;
++  const g = c.getContext('2d');
++  g.scale(TILE_SCALE, TILE_SCALE);
++  g.fillStyle = g.strokeStyle = ink;
++  if (id === 'hstripes') { g.fillRect(0, 0, 20, w); g.fillRect(0, w + s, 20, w); }
++  else if (id === 'vstripes') { g.fillRect(0, 0, w, 20); g.fillRect(w + s, 0, w, 20); }
++  else if (id === 'diagonal') {
++    g.lineWidth = w;
++    [[0, 20, 20, 0], [-10 - s, 20, 10 - s, 0], [10 + s, 20, 30 + s, 0]].forEach(([x1, y1, x2, y2]) => { g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); });
++  } else if (id === 'checker') { g.fillRect(0, 0, 10, 10); g.fillRect(10, 10, 10, 10); }
++  else if (id === 'polka') { [[5, 5], [15, 15]].forEach(([x, y]) => { g.beginPath(); g.arc(x, y, 3, 0, Math.PI * 2); g.fill(); }); }
++  else if (id === 'geometric') { g.lineWidth = 1.5; g.beginPath(); g.moveTo(12, 2); g.lineTo(22, 20); g.lineTo(2, 20); g.closePath(); g.stroke(); }
++  return { canvas: c };
++}
++
++// Patterns without a tile above (solid, gradient) paint as solid colour.
++const PATTERN_IDS = new Set(['hstripes', 'vstripes', 'diagonal', 'checker', 'polka', 'geometric']);
++
++function trianglePath(g, geometry, isl, S) {
++  const uv = geometry.attributes.uv;
++  g.beginPath();
++  isl.tris.forEach(([a, b, c]) => {
++    g.moveTo(uv.getX(a) * S, uv.getY(a) * S);
++    g.lineTo(uv.getX(b) * S, uv.getY(b) * S);
++    g.lineTo(uv.getX(c) * S, uv.getY(c) * S);
++    g.closePath();
++  });
++}
++
++// pxToModel: model units per 2D sketch pixel, so pattern width/spacing match what the 2D canvas shows.
++export function buildRegionTexture({ geometry, regionOf, colors, patterns = {}, patternParams = {}, pxToModel, size }) {
++  const islands = getIslands(geometry);
++  if (!islands) return null;
++  const regions = islands.map(isl => regionOf({ n: isl.n, c: isl.c }));
++  const canvas = document.createElement('canvas');
++  canvas.width = canvas.height = size;
++  const g = canvas.getContext('2d');
++  const base = colors.body ?? '#028090';
++  g.fillStyle = base;
++  g.fillRect(0, 0, size, size);
++
++  const fills = {};
++  Object.keys(REGION_COLOR).forEach(r => {
++    const ink = REGION_COLOR[r](colors) ?? base;
++    const id = PATTERN_IDS.has(patterns[r]) ? patterns[r] : 'solid';
++    fills[r] = { ink, id, ground: id === 'solid' ? ink : hexMix(ink, '#ffffff', GROUND_MIX) };
++  });
++
++  islands.forEach((isl, k) => {
++    const f = fills[regions[k]] ?? fills.body;
++    g.save();
++    trianglePath(g, geometry, isl, size);
++    g.fillStyle = f.ground; g.strokeStyle = f.ground; g.lineWidth = 2; g.lineJoin = 'round';
++    g.fill(); g.stroke(); // stroke bleeds a texel past the island so mipmaps do not pull in the base colour
++    if (f.id !== 'solid' && isl.map) {
++      const def = PATTERNS.find(p => p.id === f.id);
++      const params = patternParams[regions[k]] ?? def?.defaultParams ?? {};
++      const { canvas: tile } = tileCanvas(f.id, f.ink, params.width ?? def?.defaultParams?.width ?? 5, params.spacing ?? def?.defaultParams?.spacing ?? 5);
++      const pattern = g.createPattern(tile, 'repeat');
++      pattern.setTransform(new DOMMatrix().scale(1 / TILE_SCALE));
++      // model (X, Y) -> UV is the inverse of the island fit; sketch px -> model is (k, -k).
++      const { a1, b1, c1, a2, b2, c2, det } = isl.map;
++      const i00 = b2 / det, i01 = -b1 / det, i10 = -a2 / det, i11 = a1 / det;
++      const k2 = pxToModel * size;
++      g.clip();
++      g.setTransform(i00 * k2, i10 * k2, -i01 * k2, -i11 * k2, -(i00 * c1 + i01 * c2) * size, -(i10 * c1 + i11 * c2) * size);
++      g.fillStyle = pattern;
++      g.fillRect(-4000, -4000, 8000, 8000);
++    }
++    g.restore();
++  });
++
++  const tex = new THREE.CanvasTexture(canvas);
++  tex.flipY = false; // glTF UV origin is top-left
++  tex.encoding = THREE.sRGBEncoding;
++  tex.anisotropy = 8;
++  return tex;
++}
+diff --git a/tools/glb-harness/index.html b/tools/glb-harness/index.html
+new file mode 100644
+index 0000000..c3641dc
+--- /dev/null
++++ b/tools/glb-harness/index.html
+@@ -0,0 +1,5 @@
++<!doctype html>
++<html><head><meta charset="utf-8"><title>GLB harness</title>
++<style>html,body,#root{margin:0;width:100%;height:100%;background:#f1f5f9}</style></head>
++<body><div id="root" style="width:900px;height:900px"></div>
++<script type="module" src="./main.jsx"></script></body></html>
+diff --git a/tools/glb-harness/main.jsx b/tools/glb-harness/main.jsx
+new file mode 100644
+index 0000000..f822b07
+--- /dev/null
++++ b/tools/glb-harness/main.jsx
+@@ -0,0 +1,12 @@
++// Dev-only harness: renders the repo's own DesignStudio3D with a cfg injected via window.__set().
++import { createRoot } from 'react-dom/client';
++import { useState } from 'react';
++import DesignStudio3D from '../../src/pages/client/DesignStudio3D';
++
++function App() {
++  const [s, set] = useState({ cfg: {}, overlays: null });
++  window.__set = (cfg, overlays = null) => set({ cfg, overlays });
++  return <DesignStudio3D cfg={s.cfg} overlays={s.overlays} />;
++}
++createRoot(document.getElementById('root')).render(<App />);
++window.__ready = true;
