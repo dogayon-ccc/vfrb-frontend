@@ -163,8 +163,9 @@ export default function TopBar({
           says the fix elsewhere was white text; this button never got that
           fix (TopBar.jsx was only "lightly edited" per that same doc). */}
       <motion.button whileHover={{ scale:1.03 }} whileTap={{ scale:.97 }}
-        onClick={orderThis}
-        style={{ padding:'8px 18px',borderRadius:9,border:'none',
+        onClick={orderThis} disabled={!cfg.garment}
+        title={cfg.garment ? undefined : 'Pick a garment first'}
+        style={{ padding:'8px 18px',borderRadius:9,border:'none',opacity:cfg.garment?1:.45,
           background:`linear-gradient(135deg,${T},${T2})`,
           color:'#fff',fontSize:13,fontWeight:800,cursor:'pointer',
           boxShadow:`0 4px 16px rgba(2,195,154,.3)`,flexShrink:0 }}>

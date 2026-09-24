@@ -103,6 +103,7 @@ export default function DesignStudioStyles() {
         border:1px solid var(--border-strong);border-radius:var(--r-md);background:var(--bg-card);color:var(--ink);
         font-size:var(--text-xs);font-weight:700;cursor:pointer;
       }
+      .ds-act:disabled{opacity:.45;cursor:not-allowed;}
       .ds-act--primary{background:var(--teal);border-color:var(--teal);color:var(--text-on-accent);}
 
       .ds-hints{

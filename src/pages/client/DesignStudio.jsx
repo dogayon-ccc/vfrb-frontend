@@ -16,7 +16,6 @@ import axios from 'axios';
 import { NavIcon } from '../../components/ui/icons';
 import DesignStudioStyles from './design-studio/DesignStudioStyles';
 import { useGarmentCanvas, compositeFrontBack } from './design-studio/useGarmentCanvas';
-import { BASE_PATHS } from './design-studio/garmentPaths';
 import CanvasViewport from './design-studio/CanvasViewport';
 import TopBar from './design-studio/TopBar';
 import ToolDrawer from './design-studio/ToolDrawer';
@@ -85,27 +84,8 @@ export default function DesignStudio() {
   // undo/redo below.
 
   // ── Keyboard shortcuts: Ctrl+Z undo, Ctrl+Y / Ctrl+Shift+Z redo ──────────
-  // ── Responsive canvas scaling — fills .ds-cv container ───────────────────
-  // Uses ResizeObserver to scale the canvas wrapper whenever the container
-  // changes size (window resize, sidebar collapse). The SVG paths keep their
-  // natural coordinates; we just CSS-scale the canvas wrapper element.
-  useEffect(() => {
-    const wrap = canvasWrapRef.current;
-    if (!wrap) return;
-    const parent = wrap.closest('.ds-cv');
-    if (!parent) return;
-    const scale = () => {
-      const available = parent.offsetWidth - 32; // 16px padding each side
-      const svgW = BASE_PATHS[cfg.garment]?.w ?? 320;
-      const ratio = Math.min(1.4, Math.max(0.5, available / svgW)); // clamp 50%–140%
-      wrap.style.transform = `scale(${ratio})`;
-      wrap.style.transformOrigin = 'center top';
-    };
-    scale();
-    const ro = new ResizeObserver(scale);
-    ro.observe(parent);
-    return () => ro.disconnect();
-  }, [cfg.garment]);
+  // Canvas scaling (fit-to-pane × zoom) is owned solely by CanvasViewport — a second
+  // writer on the same wrapper's style.transform made the zoom buttons fight it.
 
   // BUG 2 FIX: pass canvasEl (ref object), not canvasEl.current (null at render)
   const { addLogo, addText, addShape, updateSelected, deleteSelected, duplicateSelected, exportOverlays, exportPNG, getCanvasJSON, loadCanvasJSON,
@@ -301,6 +281,7 @@ export default function DesignStudio() {
 
   // ── Manual save: sessionStorage + DB ─────────────────────────────────────
   const saveDesign = useCallback(async () => {
+    if (!cfg.garment) return;
     const snap = {
       ...cfg,
       garmentType:   cfg.garment,
@@ -327,6 +308,7 @@ export default function DesignStudio() {
 
   // Order This → pass design to OrderWizard
   const downloadImage = useCallback(async () => {
+    if (!cfg.garment) return;
     const dataUrl = await exportFrontBack();
     if (!dataUrl) return;
     const a = document.createElement('a');
@@ -338,6 +320,7 @@ export default function DesignStudio() {
   }, [exportFrontBack, cfg.garment]);
 
   const orderThis = useCallback(async () => {
+    if (!cfg.garment) return;
     // exportFrontBack() leaves faceJSON.current and the live canvas back on the original face.
     const previewPng = await exportFrontBack();
     const snap = {
@@ -360,6 +343,8 @@ export default function DesignStudio() {
     axios.delete('/api/customer/drafts/latest').catch(() => {});
     nav('/order/create');
   }, [cfg, exportOverlays, exportFrontBack, nav]);
+
+  const clearGarment = useCallback(() => setCfg(p => ({ ...p, garment: null })), []);
 
   const catData   = useMemo(() => CATS.find(c=>c.id===cfg.category) ?? CATS[0], [cfg.category]);
   const zone = zonesFor(cfg.garment, cfg.sleeve).includes(activeZone) ? activeZone : 'body';
@@ -405,7 +390,7 @@ export default function DesignStudio() {
 
           {/* ── TOOL STRIP + PANEL DRAWER ── */}
           <ToolDrawer tool={tool} setTool={setTool} sheetOpen={sheetOpen} setSheetOpen={setSheetOpen}
-            summary={{ cfg, saved, saveDesign, orderThis, downloadImage }} cfg={cfg} setCfg={setCfg}
+            summary={{ cfg, saved, saveDesign, orderThis, downloadImage, clearGarment }} cfg={cfg} setCfg={setCfg}
             activeZone={zone} setActiveZone={setActiveZone}
             addLogo={addLogo} addText={addText} addShape={addShape} updateSelected={updateSelected}
             brushSize={brushSize} brushColor={brushColor}
@@ -418,9 +403,10 @@ export default function DesignStudio() {
           <CanvasViewport cfg={cfg} canvasWrapRef={canvasWrapRef} canvasEl={canvasEl} initFailed={initFailed}
             aiPulse={aiPulse} face={face} switchFace={switchFace}
             selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected}
+            viewMode={viewMode} has3DLoaded={has3DLoaded} addLogo={addLogo}
             zoom={zoom} setZoom={setZoom} snapshot={snapshot} overlays={overlays}/>
           {/* ── RIGHT INFO PANEL ── */}
-          <RightInfoPanel cfg={cfg} saved={saved} saveDesign={saveDesign} orderThis={orderThis} downloadImage={downloadImage}
+          <RightInfoPanel cfg={cfg} saved={saved} saveDesign={saveDesign} orderThis={orderThis} downloadImage={downloadImage} clearGarment={clearGarment}
             selObj={selObj} updateSelected={updateSelected} deleteSelected={deleteSelected}/>
         </div>
 

@@ -193,6 +193,12 @@ export default function CanvasViewport({
               <Scene3D cfg={cfg} overlayDataUrl={snapshot} overlays={overlays}/>
             </Suspense>
           </ThreeEB>
+          {!cfg.garment && (
+            <p style={{ position:'absolute', top:'46%', left:0, right:0, textAlign:'center', margin:0,
+              color:'rgba(15,23,42,.45)', fontSize:12, lineHeight:1.6, pointerEvents:'none' }}>
+              Pick a garment from the <strong>Type</strong> tab to see it in 3D.
+            </p>
+          )}
           <div style={{ position:'absolute',bottom:18,left:'50%',
             transform:'translateX(-50%)',padding:'4px 16px',borderRadius:99,
             background:'rgba(0,0,0,.58)',border:'1px solid rgba(255,255,255,.1)',

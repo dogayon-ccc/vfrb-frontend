@@ -266,25 +266,29 @@ export async function processImage(file) {
 // connection trying to pull ~176MB on first use) would leave this pending
 // forever with no timeout, showing "Removing background…" indefinitely
 // with nothing the user could distinguish from the feature being broken.
-// A 20s timeout now falls back to the original file the same way an
+// A timeout now falls back to the original file the same way an
 // outright error already does, so a slow/blocked network degrades to
 // "logo added without background removal" instead of "nothing happens."
-const MODEL_TIMEOUT_MS = 20_000;
+// REGRESSION FIX: one flat 20s timeout covered the FIRST-USE model download
+// (~176MB) as well as inference, so on a cold cache the race lost, the original
+// file (white background intact) was returned, and the download kept running
+// unseen in the background. Load and matting now have separate ceilings: the
+// load one is long enough for a cold download, the matting one stays short.
+const MODEL_LOAD_TIMEOUT_MS = 180_000;
+const MATTING_TIMEOUT_MS = 30_000;
+
+function withTimeout(promise, ms, label) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
 
 export async function removeLogoBackground(file) {
   try {
-    return await Promise.race([
-      (async () => {
-        await initializeModel();
-        return processImage(file);
-      })(),
-      new Promise((_, reject) =>
-        setTimeout(
-          () => reject(new Error(`Timed out after ${MODEL_TIMEOUT_MS}ms`)),
-          MODEL_TIMEOUT_MS,
-        ),
-      ),
-    ]);
+    await withTimeout(initializeModel(), MODEL_LOAD_TIMEOUT_MS, "Model load");
+    return await withTimeout(processImage(file), MATTING_TIMEOUT_MS, "Background matting");
   } catch (error) {
     console.error("VFRB bg-remove: falling back to original logo file:", error);
     return file;

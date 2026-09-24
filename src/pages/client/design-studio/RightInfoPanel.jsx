@@ -100,7 +100,7 @@ function SelectionInspector({ selObj, updateSelected, deleteSelected }) {
   );
 }
 
-export function SummaryContent({ cfg, saved, saveDesign, orderThis, downloadImage }) {
+export function SummaryContent({ cfg, saved, saveDesign, orderThis, downloadImage, clearGarment }) {
   const zones = zonesFor(cfg.garment, cfg.sleeve);
   const swatches = zones.filter(z => z !== 'tipping' || cfg.colors.tipping);
   const details = [zones.includes('sleeve') && `${cfg.sleeve} sleeve`, cfg.category].filter(Boolean).join(' · ');
@@ -121,13 +121,18 @@ export function SummaryContent({ cfg, saved, saveDesign, orderThis, downloadImag
       </ul>
       <p className="ds-sum-title">{cfg.garment}</p>
       <p className="ds-sum-sub">{details}</p>
-      <button type="button" className="ds-act" onClick={saveDesign}>
+      <button type="button" className="ds-act" onClick={saveDesign} disabled={!cfg.garment}>
         <NavIcon name={saved ? 'success' : 'save'} size={16}/> {saved ? 'Saved' : 'Save design'}
       </button>
-      <button type="button" className="ds-act" onClick={downloadImage}>
+      <button type="button" className="ds-act" onClick={downloadImage} disabled={!cfg.garment}>
         <NavIcon name="image" size={16}/> Download image
       </button>
-      <button type="button" className="ds-act ds-act--primary" onClick={orderThis}>Order this design</button>
+      <button type="button" className="ds-act ds-act--primary" onClick={orderThis} disabled={!cfg.garment}>Order this design</button>
+      {cfg.garment && clearGarment && (
+        <button type="button" className="ds-act" onClick={clearGarment}>
+          <NavIcon name="delete" size={16}/> Remove garment
+        </button>
+      )}
       <AIDesignChat docked/>
     </>
   );

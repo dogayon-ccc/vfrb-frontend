@@ -294,6 +294,7 @@ function SkirtMesh({ colors, referenceTexture }) {
 // ── Garment selector — picks the right mesh ───────────────────────────────────
 function GarmentMesh({ cfg, referenceTexture, overlays }) {
   const gt = (cfg.garmentType ?? cfg.garment ?? '').toLowerCase();
+  if (!gt) return null; // nothing chosen yet: render no garment instead of a generic shirt
   const colors = cfg.colors ?? {};
   const sleeve = cfg.sleeveType ?? cfg.sleeve ?? 'short';
   // No dedicated collar-style field exists on cfg — "collar" there is only
