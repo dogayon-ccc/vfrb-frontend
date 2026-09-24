@@ -74,8 +74,8 @@ function SelectionInspector({ selObj, updateSelected, deleteSelected }) {
       {hasFill && (
         <div>
           <p style={secLabel}>Color</p>
-          <input type="color" value={selObj.fill || '#02C39A'}
-            onChange={e => updateSelected({ fill: e.target.value })}
+          <input type="color" value={(isLine ? selObj.stroke : selObj.fill) || '#02C39A'}
+            onChange={e => updateSelected(isLine ? { stroke: e.target.value } : { fill: e.target.value })}
             style={{ width: '100%', height: 34, borderRadius: 8, border: '1px solid rgba(15,23,42,.12)',
               cursor: 'pointer', padding: 2 }}/>
         </div>

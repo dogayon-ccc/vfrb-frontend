@@ -20,6 +20,7 @@ import CanvasViewport from './design-studio/CanvasViewport';
 import TopBar from './design-studio/TopBar';
 import ToolDrawer from './design-studio/ToolDrawer';
 import RightInfoPanel from './design-studio/RightInfoPanel';
+import { useLogoUpload } from './design-studio/useLogoUpload';
 import OnboardingOverlay from './design-studio/OnboardingOverlay';
 import InspoGallery from './design-studio/InspoGallery';
 import ShowcaseGallery from './design-studio/ShowcaseGallery';
@@ -37,6 +38,7 @@ export default function DesignStudio() {
   const [cfg,        setCfg]        = useState(INIT_CFG);
   const [zoom,       setZoom]       = useState(1);
   const [tool,       setTool]       = useState('type');
+  const [assetsTab,  setAssetsTab]  = useState('logo');
   const [sheetOpen,  setSheetOpen]  = useState(false);
   const [viewMode,   setViewMode]   = useState('2d');
   const [snapshot,   setSnapshot]   = useState(null);
@@ -103,6 +105,14 @@ export default function DesignStudio() {
       setSelObj,
       (zone) => { setActiveZone(zone); setTool('color'); }  // zone click → open color tab
     );
+
+  const logoUpload = useLogoUpload(addLogo);
+  // A file dropped on the canvas goes through the same pipeline as the panel, and
+  // the panel opens so the customer can see progress, errors and the result.
+  const onLogoFile = useCallback((file) => {
+    setTool('assets'); setAssetsTab('logo'); setSheetOpen(true);
+    logoUpload.upload(file);
+  }, [logoUpload]);
 
   // Snapshot the live 2D canvas as a texture for the 3D view — was declared
   // in DesignStudio3D.jsx but never actually wired to a real data source,
@@ -392,7 +402,9 @@ export default function DesignStudio() {
           <ToolDrawer tool={tool} setTool={setTool} sheetOpen={sheetOpen} setSheetOpen={setSheetOpen}
             summary={{ cfg, saved, saveDesign, orderThis, downloadImage, clearGarment }} cfg={cfg} setCfg={setCfg}
             activeZone={zone} setActiveZone={setActiveZone}
-            addLogo={addLogo} addText={addText} addShape={addShape} updateSelected={updateSelected}
+            addText={addText} addShape={addShape} updateSelected={updateSelected}
+            assetsTab={assetsTab} setAssetsTab={setAssetsTab} logoUpload={logoUpload}
+            setShowInspo={setShowInspo} setShowShowcase={setShowShowcase}
             brushSize={brushSize} brushColor={brushColor}
             changeBrushSize={changeBrushSize} changeBrushColor={changeBrushColor}
             applyAI={applyAI} layers={layers} selObj={selObj}
@@ -403,7 +415,7 @@ export default function DesignStudio() {
           <CanvasViewport cfg={cfg} canvasWrapRef={canvasWrapRef} canvasEl={canvasEl} initFailed={initFailed}
             aiPulse={aiPulse} face={face} switchFace={switchFace}
             selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected}
-            viewMode={viewMode} has3DLoaded={has3DLoaded} addLogo={addLogo}
+            viewMode={viewMode} has3DLoaded={has3DLoaded} onLogoFile={onLogoFile}
             zoom={zoom} setZoom={setZoom} snapshot={snapshot} overlays={overlays}/>
           {/* ── RIGHT INFO PANEL ── */}
           <RightInfoPanel cfg={cfg} saved={saved} saveDesign={saveDesign} orderThis={orderThis} downloadImage={downloadImage} clearGarment={clearGarment}

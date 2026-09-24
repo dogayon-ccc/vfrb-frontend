@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Decal, useGLTF } from '@react-three/drei';
 import { renderDecals, bodyBounds } from './overlayDecals';
+import { buildRegionTexture } from './regionTexture';
 
 let grain;
 // Fine deterministic fabric grain (blurred noise) as a shared normal map; periodic weaves alias into streaks.
@@ -26,12 +27,26 @@ function grainNormal() {
   return grain;
 }
 
-function partMaterial(color, part) {
+// three r150 applies ONE uv transform (the `map`'s) to every map on a material, so with a zone `map` the grain cannot rely on
+// repeat.set(14, 14); the same grain is tiled inside a canvas instead and used with repeat 1.
+let tiledGrain;
+function tiledGrainNormal(size) {
+  if (tiledGrain?.image.width === size) return tiledGrain;
+  const base = grainNormal().image, c = document.createElement('canvas');
+  c.width = c.height = size;
+  const g = c.getContext('2d');
+  g.fillStyle = g.createPattern(base, 'repeat');
+  g.fillRect(0, 0, size, size);
+  tiledGrain = new THREE.CanvasTexture(c);
+  return tiledGrain;
+}
+
+function partMaterial(color, part, map = null) {
   if (part.plain) return new THREE.MeshStandardMaterial({ color, roughness: part.roughness ?? 0.4, metalness: part.metalness ?? 0, side: THREE.DoubleSide });
   return new THREE.MeshPhysicalMaterial({
     color, roughness: part.roughness ?? 0.88, metalness: 0,
     sheen: 0.4, sheenRoughness: 0.6, sheenColor: new THREE.Color(color).lerp(new THREE.Color('#ffffff'), 0.2),
-    normalMap: grainNormal(), normalScale: new THREE.Vector2(0.35, 0.35), side: THREE.DoubleSide,
+    map, normalMap: map ? tiledGrainNormal(map.image.width) : grainNormal(), normalScale: new THREE.Vector2(0.35, 0.35), side: THREE.DoubleSide,
   });
 }
 
@@ -76,9 +91,25 @@ function placeDecals(geometry, decals, frame, torso) {
   })).filter(Boolean);
 }
 
-function ScannedPart({ geometry, part, colors, decals, frame, torso }) {
+const TEX_SIZE = window.matchMedia('(pointer: coarse)').matches ? 1024 : 2048;
+
+// Zone colours and patterns painted into the part's own UV layout (see regionTexture.js); rebuilt only when they change.
+function useRegionTexture(geometry, part, colors, patterns, patternParams, pxToModel) {
+  const dep = JSON.stringify([colors, patterns, patternParams]);
+  const tex = useMemo(() => (part.regionOf
+    ? buildRegionTexture({ geometry, regionOf: part.regionOf, colors, patterns, patternParams, pxToModel, size: TEX_SIZE })
+    : null),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [geometry, part, dep, pxToModel]);
+  useEffect(() => () => tex?.dispose(), [tex]);
+  return tex;
+}
+
+function ScannedPart({ geometry, part, colors, patterns, patternParams, decals, frame, torso }) {
   const color = part.fixedColor ?? colors[part.colorKey] ?? colors[part.fallbackKey] ?? '#028090';
-  const material = useMemo(() => partMaterial(color, part), [color, part]);
+  const pxToModel = (2 * torso) / (frame.x1 - frame.x0);
+  const zoneMap = useRegionTexture(geometry, part, colors, patterns, patternParams, pxToModel);
+  const material = useMemo(() => partMaterial(zoneMap ? '#ffffff' : color, part, zoneMap), [color, part, zoneMap]);
   const placed = useMemo(() => (part.decals ? placeDecals(geometry, decals, frame, torso) : []), [geometry, decals, frame, torso, part]);
   return (
     <mesh geometry={geometry} material={material}>
@@ -87,7 +118,7 @@ function ScannedPart({ geometry, part, colors, decals, frame, torso }) {
   );
 }
 
-export default function ScannedGarmentMesh({ manifest, colors = {}, fit, garment, sleeve, overlays }) {
+export default function ScannedGarmentMesh({ manifest, colors = {}, patterns, patternParams, fit, garment, sleeve, overlays }) {
   const key = String(fit ?? '').toLowerCase();
   const { nodes } = useGLTF(manifest.models[key] ?? Object.values(manifest.models)[0]);
   const decals = useDecals(overlays);
@@ -97,7 +128,7 @@ export default function ScannedGarmentMesh({ manifest, colors = {}, fit, garment
   return (
     <group rotation={rotation} scale={scale} position={position}>
       {manifest.parts.map(part => nodes[part.node]?.geometry && (
-        <ScannedPart key={part.node} geometry={nodes[part.node].geometry} part={part} colors={colors} decals={decals} frame={frame} torso={torso} />
+        <ScannedPart key={part.node} geometry={nodes[part.node].geometry} part={part} colors={colors} patterns={patterns} patternParams={patternParams} decals={decals} frame={frame} torso={torso} />
       ))}
     </group>
   );

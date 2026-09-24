@@ -9,6 +9,9 @@ export default function ColorsPanel({ cfg, setCfg, activeZone, setActiveZone }) 
 
   return (
     <div style={{ overflowY:'auto', flex:1, padding:'8px 10px 16px' }}>
+      {!cfg.garment && (
+        <p className="ds-note" style={{ marginBottom:8 }}>Pick a garment in the Type tab to color its collar, sleeves and pocket.</p>
+      )}
       <p style={secLabel}>Color Zone</p>
       <div style={{ display:'flex', gap:4, marginBottom:12, flexWrap:'wrap' }}>
         {zonesFor(cfg.garment, cfg.sleeve).map(z => (
@@ -41,13 +44,13 @@ export default function ColorsPanel({ cfg, setCfg, activeZone, setActiveZone }) 
       ) : (
         <>
           <p style={secLabel}>Philippine Colors</p>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:5, marginBottom:12 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(34px,1fr))', gap:6, marginBottom:12 }}>
             {PH_SWATCHES.map(sw => (
               <motion.button key={sw.hex} type="button" className="ds-touch" title={sw.name} aria-label={sw.name}
                 whileHover={{ scale:1.15 }} whileTap={{ scale:0.95 }}
                 onClick={() => setColor(activeZone, sw.hex)}
                 style={{
-                  height:28, borderRadius:6, cursor:'pointer', border:'none', background: sw.hex,
+                  height:30, minWidth:0, borderRadius:6, cursor:'pointer', border:'none', background: sw.hex,
                   outline: (cfg.colors[activeZone]??'').toLowerCase()===sw.hex.toLowerCase()
                     ? '3px solid rgba(15,23,42,.9)' : '2px solid rgba(15,23,42,.08)',
                 }}/>

@@ -5,7 +5,7 @@
 // panel file was missing, which broke ToolDrawer.jsx's static import (and
 // therefore the whole DesignStudio.jsx bundle). Same pattern as DrawPanel.jsx:
 // presentational only, all real canvas work stays in useGarmentCanvas.js.
-import { T, T2, secLabel } from './dsShared';
+import { T, T2, secLabel, SHAPES } from './dsShared';
 
 const COLORS = [
   { hex:'#02C39A', label:'Accent teal'  },
@@ -16,32 +16,40 @@ const COLORS = [
   { hex:'#000000', label:'Black'        },
 ];
 
+const star = Array.from({ length:10 }, (_, i) => {
+  const r = i % 2 ? 4.5 : 10, a = -Math.PI / 2 + i * Math.PI / 5;
+  return `${(12 + r * Math.cos(a)).toFixed(1)},${(12 + r * Math.sin(a)).toFixed(1)}`;
+}).join(' ');
+
+function ShapeGlyph({ kind }) {
+  const p = { fill:T2, stroke:T2 };
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true">
+      {kind === 'rect' && <rect x="3" y="6" width="18" height="12" rx="2" {...p}/>}
+      {kind === 'circle' && <circle cx="12" cy="12" r="9" {...p}/>}
+      {kind === 'triangle' && <polygon points="12,3 22,20 2,20" {...p}/>}
+      {kind === 'ellipse' && <ellipse cx="12" cy="12" rx="10" ry="6" {...p}/>}
+      {kind === 'line' && <line x1="3" y1="20" x2="21" y2="4" stroke={T2} strokeWidth="3" strokeLinecap="round"/>}
+      {kind === 'star' && <polygon points={star} {...p}/>}
+    </svg>
+  );
+}
+
 export default function ShapesPanel({ selObj, onAdd, onUpdate }) {
   const isShapeSelected = !!selObj?.__shape;
+  const colorProp = selObj?.type === 'line' ? 'stroke' : 'fill';
 
   return (
     <div style={{ padding:'12px', display:'flex', flexDirection:'column', gap:14, flex:1, overflowY:'auto' }}>
       <div>
         <p style={secLabel}>Add Shape</p>
-        <div style={{ display:'flex', gap:8 }}>
-          <button type="button" onClick={() => onAdd('rect')}
-            style={{
-              flex:1, padding:'16px 8px', borderRadius:10, cursor:'pointer',
-              border:'1px solid rgba(15,23,42,.1)', background:'rgba(15,23,42,.03)',
-              display:'flex', flexDirection:'column', alignItems:'center', gap:6,
-            }}>
-            <div style={{ width:28, height:20, background:T2, borderRadius:3 }}/>
-            <span style={{ fontSize:11, fontWeight:600, color:'rgba(15,23,42,.6)' }}>Rectangle</span>
-          </button>
-          <button type="button" onClick={() => onAdd('circle')}
-            style={{
-              flex:1, padding:'16px 8px', borderRadius:10, cursor:'pointer',
-              border:'1px solid rgba(15,23,42,.1)', background:'rgba(15,23,42,.03)',
-              display:'flex', flexDirection:'column', alignItems:'center', gap:6,
-            }}>
-            <div style={{ width:24, height:24, background:T2, borderRadius:'50%' }}/>
-            <span style={{ fontSize:11, fontWeight:600, color:'rgba(15,23,42,.6)' }}>Circle</span>
-          </button>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8 }}>
+          {SHAPES.map(sh => (
+            <button key={sh.id} type="button" className="ds-shape-btn" onClick={() => onAdd(sh.kind)}>
+              <ShapeGlyph kind={sh.kind}/>
+              <span>{sh.label}</span>
+            </button>
+          ))}
         </div>
       </div>
 
@@ -51,11 +59,11 @@ export default function ShapesPanel({ selObj, onAdd, onUpdate }) {
             <p style={secLabel}>Fill Color</p>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:4 }}>
               {COLORS.map(c => (
-                <button key={c.hex} type="button" onClick={() => onUpdate({ fill: c.hex })}
+                <button key={c.hex} type="button" onClick={() => onUpdate({ [colorProp]: c.hex })}
                   aria-label={c.label} title={c.label}
                   style={{
                     height:26, borderRadius:6, cursor:'pointer', background:c.hex,
-                    border: (selObj.fill || '').toLowerCase() === c.hex.toLowerCase()
+                    border: (selObj[colorProp] || '').toLowerCase() === c.hex.toLowerCase()
                       ? `2px solid ${T}` : '1px solid rgba(15,23,42,.12)',
                   }}/>
               ))}

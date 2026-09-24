@@ -73,7 +73,18 @@ const state = {
   // Promise cache so concurrent/repeat calls in the same session reuse
   // one in-flight or completed init instead of re-downloading the model.
   initPromise: null,
+  onProgress: null,
 };
+
+// Aggregates transformers.js per-file download events into one {pct, loadedMB, totalMB}.
+const files = new Map();
+function reportProgress(evt) {
+  if (evt?.status !== "progress" || !evt.total) return;
+  files.set(evt.file, { loaded: evt.loaded, total: evt.total });
+  let loaded = 0, total = 0;
+  files.forEach((f) => { loaded += f.loaded; total += f.total; });
+  state.onProgress?.({ pct: Math.min(100, Math.round((loaded / total) * 100)), loadedMB: loaded / 1e6, totalMB: total / 1e6 });
+}
 
 async function initializeWebGPU() {
   const gpu = navigator.gpu;
@@ -114,6 +125,7 @@ async function doInitializeModel(forceModelId) {
 
     state.model = await AutoModel.from_pretrained(FALLBACK_MODEL_ID, {
       config: { model_type: "custom" },
+      progress_callback: reportProgress,
     });
     state.processor = await AutoProcessor.from_pretrained(FALLBACK_MODEL_ID, {
       config: {
@@ -150,7 +162,7 @@ async function doInitializeModel(forceModelId) {
     env.backends.onnx.wasm.proxy = true;
   }
 
-  state.model = await AutoModel.from_pretrained(FALLBACK_MODEL_ID, {});
+  state.model = await AutoModel.from_pretrained(FALLBACK_MODEL_ID, { progress_callback: reportProgress });
   state.processor = await AutoProcessor.from_pretrained(FALLBACK_MODEL_ID, {
     revision: "main",
     config: {
@@ -221,6 +233,12 @@ export async function processImage(file) {
       )
     ).data;
 
+    let opaque = 0;
+    for (let i = 0; i < maskData.length; ++i) if (maskData[i] > 127) opaque++;
+    if (opaque / maskData.length < 0.01) {
+      throw Object.assign(new Error("The AI found no logo in this image."), { code: "EMPTY_MATTE" });
+    }
+
     const canvas = document.createElement("canvas");
     canvas.width = img.width;
     canvas.height = img.height;
@@ -251,46 +269,27 @@ export async function processImage(file) {
   }
 }
 
-// removeLogoBackground(File) -> Promise<File>
-// The one function DesignStudio.jsx actually calls. Wraps init+process
-// into a single call and NEVER throws — on any failure (model load
-// failure, unsupported browser, network blip fetching model weights),
-// it logs and returns the ORIGINAL file unchanged, so a logo upload can
-// never be blocked by this feature. Matches this project's own stated
-// pattern for AI-adjacent features (Gemini key rotation: "all keys
-// blocked → return fallback, do not crash").
-//
-// FIX (reported "drag and drop doesn't work"): that guarantee only held
-// for outright failures — a genuinely SLOW or stalled model download
-// (huggingface.co unreachable on a restrictive network, or just a slow
-// connection trying to pull ~176MB on first use) would leave this pending
-// forever with no timeout, showing "Removing background…" indefinitely
-// with nothing the user could distinguish from the feature being broken.
-// A timeout now falls back to the original file the same way an
-// outright error already does, so a slow/blocked network degrades to
-// "logo added without background removal" instead of "nothing happens."
-// REGRESSION FIX: one flat 20s timeout covered the FIRST-USE model download
-// (~176MB) as well as inference, so on a cold cache the race lost, the original
-// file (white background intact) was returned, and the download kept running
-// unseen in the background. Load and matting now have separate ceilings: the
-// load one is long enough for a cold download, the matting one stays short.
+// removeBackgroundAI(File, {onProgress}) -> Promise<File>
+// THROWS on any failure (offline, blocked host, timeout, empty matte) so the UI
+// can show a real error state. Load and matting have separate time ceilings: the
+// first-use model download is large, inference is short.
 const MODEL_LOAD_TIMEOUT_MS = 180_000;
-const MATTING_TIMEOUT_MS = 30_000;
+const MATTING_TIMEOUT_MS = 45_000;
 
-function withTimeout(promise, ms, label) {
+function withTimeout(promise, ms, code, message) {
   let timer;
   const timeout = new Promise((_, reject) => {
-    timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+    timer = setTimeout(() => reject(Object.assign(new Error(message), { code })), ms);
   });
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
-export async function removeLogoBackground(file) {
+export async function removeBackgroundAI(file, { onProgress } = {}) {
+  state.onProgress = onProgress ?? null;
   try {
-    await withTimeout(initializeModel(), MODEL_LOAD_TIMEOUT_MS, "Model load");
-    return await withTimeout(processImage(file), MATTING_TIMEOUT_MS, "Background matting");
-  } catch (error) {
-    console.error("VFRB bg-remove: falling back to original logo file:", error);
-    return file;
+    await withTimeout(initializeModel(), MODEL_LOAD_TIMEOUT_MS, "MODEL_TIMEOUT", "The AI model took too long to download.");
+    return await withTimeout(processImage(file), MATTING_TIMEOUT_MS, "MATTING_TIMEOUT", "The AI took too long on this image.");
+  } finally {
+    state.onProgress = null;
   }
 }
