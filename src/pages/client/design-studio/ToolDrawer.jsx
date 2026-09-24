@@ -2,10 +2,9 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NavIcon } from '../../../components/ui/icons';
 import LayersPanel from './LayersPanel';
-import LogoPanel from './LogoPanel';
+import AssetsPanel from './AssetsPanel';
 import PatternPanel from './PatternPanel';
 import DrawPanel from './DrawPanel';
-import ShapesPanel from './ShapesPanel';
 import TypePanel from './TypePanel';
 import ColorsPanel from './ColorsPanel';
 import TextPanel from './TextPanel';
@@ -23,10 +22,11 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, sum
   const PANELS = {
     type:    () => <TypePanel cfg={p.cfg} setCfg={p.setCfg}/>,
     color:   () => <ColorsPanel cfg={p.cfg} setCfg={p.setCfg} activeZone={p.activeZone} setActiveZone={p.setActiveZone}/>,
-    logo:    () => <LogoPanel cfg={p.cfg} onAdd={p.addLogo}/>,
+    assets:  () => <AssetsPanel tab={p.assetsTab} setTab={p.setAssetsTab} cfg={p.cfg} logo={p.logoUpload}
+                     shapes={{ selObj:p.selObj, onAdd:p.addShape, onUpdate:p.updateSelected }}
+                     onInspo={() => p.setShowInspo(true)} onShowcase={() => p.setShowShowcase(true)}/>,
     text:    () => <TextPanel onAdd={p.addText}/>,
     draw:    () => <DrawPanel size={p.brushSize} color={p.brushColor} onSizeChange={p.changeBrushSize} onColorChange={p.changeBrushColor}/>,
-    shapes:  () => <ShapesPanel selObj={p.selObj} onAdd={p.addShape} onUpdate={p.updateSelected}/>,
     ai:      () => <AIPanel onApply={p.applyAI} onTexture={noop}/>,
     pattern: () => <PatternPanel cfg={p.cfg} setCfg={p.setCfg} activeZone={p.activeZone}/>,
     layers:  () => <LayersPanel layers={p.layers} selectedId={p.selObj?.__layerId} onSelect={p.selectLayer}
@@ -52,7 +52,7 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, sum
     <>
       <div className="ds-strip" role="toolbar" aria-label="Design tools">
         {TOOLS.map(t => (
-          <button key={t.id} type="button" className="ds-tool-btn"
+          <button key={t.id} type="button" className="ds-tool-btn" title={t.label}
             data-group={t.primary ? 'primary' : 'more'} data-narrow-only={t.id === 'summary' || undefined}
             aria-pressed={tool === t.id && sheetOpen && !more} onClick={() => pick(t.id)}>
             <NavIcon name={t.icon} size={18}/>
@@ -67,7 +67,10 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, sum
 
       <section className="ds-panel" aria-label={title}>
         <header className="ds-sheet-head">
-          <h2>{title}</h2>
+          <div className="ds-sheet-title">
+            <h2>{title}</h2>
+            {!more && active.hint && <p>{active.hint}</p>}
+          </div>
           <button type="button" className="ds-sheet-close" aria-label="Close panel" onClick={close}>
             <NavIcon name="chevronDown" size={20}/>
           </button>

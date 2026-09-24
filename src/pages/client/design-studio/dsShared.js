@@ -221,15 +221,14 @@ export const inputStyle = {
 };
 
 export const TOOLS = [
-  { id:'type',    icon:'garmentType', label:'Type',    primary:true },
-  { id:'color',   icon:'colorZone',   label:'Colors',  primary:true },
-  { id:'logo',    icon:'logo',        label:'Logo',    primary:true },
-  { id:'text',    icon:'text',        label:'Text',    primary:true },
-  { id:'draw',    icon:'draw',        label:'Draw'    },
-  { id:'shapes',  icon:'shapes',      label:'Shapes'  },
-  { id:'ai',      icon:'ai',          label:'AI'      },
-  { id:'pattern', icon:'pattern',     label:'Pattern' },
-  { id:'layers',  icon:'layersPanel', label:'Layers'  },
+  { id:'type',    icon:'garmentType', label:'Type',    primary:true, hint:'Choose a garment and sleeve' },
+  { id:'color',   icon:'colorZone',   label:'Colors',  primary:true, hint:'Color each part of the garment' },
+  { id:'assets',  icon:'logo',        label:'Assets',  primary:true, hint:'Logos, shapes and starter templates' },
+  { id:'text',    icon:'text',        label:'Text',    primary:true, hint:'Add names, slogans or numbers' },
+  { id:'draw',    icon:'draw',        label:'Draw',    hint:'Sketch freehand on the garment' },
+  { id:'ai',      icon:'ai',          label:'AI',      hint:'Describe a design in words' },
+  { id:'pattern', icon:'pattern',     label:'Pattern', hint:'Stripes, checks and more' },
+  { id:'layers',  icon:'layersPanel', label:'Layers',  hint:'Reorder, hide or rename items' },
   { id:'summary', icon:'info',        label:'Summary' },
 ];
 

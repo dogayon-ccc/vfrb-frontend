@@ -1,8 +1,7 @@
 import { Component, Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NavIcon } from '../../../components/ui/icons';
-import { removeLogoBackground } from '../../../lib/bgRemove';
-import { T, T2, DARK, ZONE_LABEL, zonesFor } from './dsShared';
+import { T, T2, DARK, ZONE_LABEL, SHAPE_TYPE_LABEL, zonesFor } from './dsShared';
 
 const Scene3D = lazy(() => import('../DesignStudio3D'));
 
@@ -50,23 +49,15 @@ class ThreeEB extends Component {
 
 export default function CanvasViewport({
   cfg, canvasWrapRef, canvasEl, aiPulse, face, switchFace, initFailed,
-  selObj, deleteSelected, duplicateSelected, viewMode, has3DLoaded, addLogo, zoom, setZoom, snapshot, overlays,
+  selObj, deleteSelected, duplicateSelected, viewMode, has3DLoaded, onLogoFile, zoom, setZoom, snapshot, overlays,
 }) {
   const paneRef = useRef(null);
   const fit = useFit(paneRef, canvasWrapRef);
 
-  const onDrop = async (e) => {
+  const onDrop = (e) => {
     e.preventDefault();
     const f = e.dataTransfer.files?.[0];
-    if (!f) return;
-    // Same auto-transparency pass as LogoPanel's own upload — this is the
-    // canvas' own drag-drop entry point, a second, separate path into
-    // addLogo() that would otherwise skip it (pre-existing, out of scope:
-    // it also skips LogoPanel's type/size validation — flagging, not fixing).
-    const toAdd = f.type === 'image/svg+xml' ? f : await removeLogoBackground(f);
-    const r = new FileReader();
-    r.onload = ev => addLogo(ev.target.result, 'left_chest');
-    r.readAsDataURL(toAdd);
+    if (f) onLogoFile(f);
   };
 
   return (
@@ -160,7 +151,7 @@ export default function CanvasViewport({
                     predates both. Mirrors the same kind derivation the
                     layers getter in useGarmentCanvas.js already uses. */}
                 {selObj.__logo ? 'Logo'
-                  : selObj.__shape ? (selObj.type === 'circle' ? 'Circle' : 'Rectangle')
+                  : selObj.__shape ? (SHAPE_TYPE_LABEL[selObj.type] ?? 'Shape')
                   : selObj.__draw ? 'Drawing' : 'Text'}, drag to move
               </span>
               <button type="button" onClick={duplicateSelected} title="Duplicate">Duplicate</button>

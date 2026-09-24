@@ -5,7 +5,7 @@ export default function BottomHints({ tool }) {
   return (
     <div className="ds-hints">
       {[
-        ['garmentType','Type'],['colorZone','Colors'],['logo','Logo'],
+        ['garmentType','Type'],['colorZone','Colors'],['logo','Assets'],
         ['text','Text'],['ai','AI'],['pattern','Pattern'],['order','Order'],
       ].map(([iconName,l],i)=>(
         <p key={i} style={{ fontSize:9,color:'rgba(15,23,42,.18)',margin:0,

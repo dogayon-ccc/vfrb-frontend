@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { NavIcon } from '../../../components/ui/icons';
-import { T, T2, secLabel, CATS, SLEEVE_OPTS } from './dsShared';
+import { T, T2, secLabel, CATS, SLEEVE_OPTS, FIT_GARMENTS } from './dsShared';
 import { BASE_PATHS } from './garmentPaths';
 
 export default function TypePanel({ cfg, setCfg }) {
@@ -101,6 +101,19 @@ export default function TypePanel({ cfg, setCfg }) {
               </button>
             ))}
           </div>
+        </>
+      )}
+
+      {FIT_GARMENTS.includes(cfg.garment) && (
+        <>
+          <p style={{ ...secLabel, marginTop:12 }}>Fit</p>
+          <div className="ds-seg ds-seg--sm" role="radiogroup" aria-label="Garment fit" style={{ margin:0 }}>
+            {[['male', 'Male'], ['female', 'Female']].map(([id, label]) => (
+              <button key={id} type="button" role="radio" aria-checked={(cfg.fit ?? 'male') === id}
+                onClick={() => setCfg(p => ({ ...p, fit:id }))}>{label}</button>
+            ))}
+          </div>
+          <p className="ds-note">Switches the 3D model between the male and female cut.</p>
         </>
       )}
     </div>
