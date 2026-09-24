@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Decal, useGLTF } from '@react-three/drei';
 import { renderDecals, bodyBounds } from './overlayDecals';
-import { buildRegionTexture } from './regionTexture';
+import { buildRegionTexture, DEFAULT_GARMENT_COLOR } from './regionTexture';
+import { ensureZoneMask, createZoneUniforms, setZoneUniforms, patchZoneMaterial } from './regionShader';
 
 let grain;
 // Fine deterministic fabric grain (blurred noise) as a shared normal map; periodic weaves alias into streaks.
@@ -46,7 +47,9 @@ function partMaterial(color, part, map = null) {
   return new THREE.MeshPhysicalMaterial({
     color, roughness: part.roughness ?? 0.88, metalness: 0,
     sheen: 0.4, sheenRoughness: 0.6, sheenColor: new THREE.Color(color).lerp(new THREE.Color('#ffffff'), 0.2),
-    map, normalMap: map ? tiledGrainNormal(map.image.width) : grainNormal(), normalScale: new THREE.Vector2(0.35, 0.35), side: THREE.DoubleSide,
+    // No UVs (zone-mask path) means no normal map.
+    map, normalMap: part.zoneOf ? null : (map ? tiledGrainNormal(map.image.width) : grainNormal()),
+    normalScale: new THREE.Vector2(0.35, 0.35), side: THREE.DoubleSide,
   });
 }
 
@@ -93,23 +96,47 @@ function placeDecals(geometry, decals, frame, torso) {
 
 const TEX_SIZE = window.matchMedia('(pointer: coarse)').matches ? 1024 : 2048;
 
-// Zone colours and patterns painted into the part's own UV layout (see regionTexture.js); rebuilt only when they change.
+// Colour-picker drags fire many changes; the 2048px zone texture is only rebuilt once the value settles.
+function useDebounced(value, ms) {
+  const [v, setV] = useState(value);
+  useEffect(() => { const t = setTimeout(() => setV(value), ms); return () => clearTimeout(t); }, [value, ms]);
+  return v;
+}
+
+// UV path: zone colours and patterns painted into the part's own UV layout (see regionTexture.js).
 function useRegionTexture(geometry, part, colors, patterns, patternParams, pxToModel) {
-  const dep = JSON.stringify([colors, patterns, patternParams]);
-  const tex = useMemo(() => (part.regionOf
-    ? buildRegionTexture({ geometry, regionOf: part.regionOf, colors, patterns, patternParams, pxToModel, size: TEX_SIZE })
-    : null),
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  [geometry, part, dep, pxToModel]);
+  const settled = useDebounced(JSON.stringify([colors, patterns, patternParams]), 120);
+  const tex = useMemo(() => {
+    if (!part.regionOf) return null;
+    const [c, p, pp] = JSON.parse(settled);
+    return buildRegionTexture({ geometry, regionOf: part.regionOf, colors: c ?? {}, patterns: p ?? {}, patternParams: pp ?? {}, pxToModel, size: TEX_SIZE });
+  }, [geometry, part, settled, pxToModel]);
   useEffect(() => () => tex?.dispose(), [tex]);
   return tex;
 }
 
+// No-UV path: per-vertex zone mask + shader uniforms (see regionShader.js). One material per part; edits only change uniforms.
+function useZoneMaterial(geometry, part, colors, patterns, patternParams, pxToModel) {
+  const state = useMemo(() => {
+    if (!part.zoneOf) return null;
+    ensureZoneMask(geometry, part.zoneOf);
+    const uniforms = createZoneUniforms();
+    return { uniforms, material: patchZoneMaterial(partMaterial('#ffffff', part), uniforms) };
+  }, [geometry, part]);
+  const dep = JSON.stringify([colors, patterns, patternParams, pxToModel]);
+  useMemo(() => { if (state) setZoneUniforms(state.uniforms, { colors, patterns, patternParams, pxToModel }); }, // eslint-disable-line react-hooks/exhaustive-deps
+  [state, dep]);
+  useEffect(() => () => state?.material.dispose(), [state]);
+  return state?.material ?? null;
+}
+
 function ScannedPart({ geometry, part, colors, patterns, patternParams, decals, frame, torso }) {
-  const color = part.fixedColor ?? colors[part.colorKey] ?? colors[part.fallbackKey] ?? '#028090';
+  const color = part.fixedColor ?? colors[part.colorKey] ?? colors[part.fallbackKey] ?? DEFAULT_GARMENT_COLOR;
   const pxToModel = (2 * torso) / (frame.x1 - frame.x0);
   const zoneMap = useRegionTexture(geometry, part, colors, patterns, patternParams, pxToModel);
-  const material = useMemo(() => partMaterial(zoneMap ? '#ffffff' : color, part, zoneMap), [color, part, zoneMap]);
+  const zoneMaterial = useZoneMaterial(geometry, part, colors, patterns, patternParams, pxToModel);
+  const material = useMemo(() => zoneMaterial ?? partMaterial(zoneMap ? '#ffffff' : color, part, zoneMap), [zoneMaterial, color, part, zoneMap]);
+  useEffect(() => () => { if (!zoneMaterial) material.dispose(); }, [material, zoneMaterial]);
   const placed = useMemo(() => (part.decals ? placeDecals(geometry, decals, frame, torso) : []), [geometry, decals, frame, torso, part]);
   return (
     <mesh geometry={geometry} material={material}>

@@ -16,10 +16,11 @@
 //   const Scene3D = lazy(() => import('./DesignStudio3D'))
 
 import { useRef, useMemo, useState, useEffect, Suspense } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, ContactShadows, Float, Environment, Lightformer } from '@react-three/drei';
 import * as THREE from 'three';
 import { SCANNED_GARMENTS } from './design-studio/garmentMeshManifest';
+import { DEFAULT_GARMENT_COLOR } from './design-studio/regionTexture';
 import ScannedGarmentMesh from './design-studio/ScannedGarmentMesh';
 import GarmentMeshErrorBoundary from './design-studio/GarmentMeshErrorBoundary';
 
@@ -70,9 +71,9 @@ function useOverlayTexture(dataUrl) {
 function ShirtMesh({ colors, sleeveType, collarType, referenceTexture }) {
   const groupRef = useRef();
 
-  const body   = colors?.body   ?? '#028090';
+  const body   = colors?.body   ?? DEFAULT_GARMENT_COLOR;
   const collar = colors?.collar ?? '#02C39A';
-  const sleeve = colors?.sleeve ?? colors?.body ?? '#028090';
+  const sleeve = colors?.sleeve ?? colors?.body ?? DEFAULT_GARMENT_COLOR;
   const pocket = colors?.pocket ?? colors?.collar ?? '#016070';
 
   const matBody   = useMemo(() => mat(body, 0.72, 0.03, referenceTexture), [body, referenceTexture]);
@@ -190,7 +191,7 @@ function ShirtMesh({ colors, sleeveType, collarType, referenceTexture }) {
 
 // ── PANTS / SCRUB PANTS MESH ─────────────────────────────────────────────────
 function PantsMesh({ colors, referenceTexture }) {
-  const body   = colors?.body   ?? '#028090';
+  const body   = colors?.body   ?? DEFAULT_GARMENT_COLOR;
   const collar = colors?.collar ?? colors?.body ?? '#02C39A';
 
   const matBody = useMemo(() => mat(body, 0.72, 0.03, referenceTexture), [body, referenceTexture]);
@@ -231,7 +232,7 @@ function PantsMesh({ colors, referenceTexture }) {
 
 // ── SHORTS MESH ───────────────────────────────────────────────────────────────
 function ShortsMesh({ colors, referenceTexture }) {
-  const body   = colors?.body   ?? '#028090';
+  const body   = colors?.body   ?? DEFAULT_GARMENT_COLOR;
   const collar = colors?.collar ?? '#02C39A';
 
   const matBody = useMemo(() => mat(body, 0.72, 0.03, referenceTexture), [body, referenceTexture]);
@@ -267,7 +268,7 @@ function ShortsMesh({ colors, referenceTexture }) {
 // Single flared cone (no leg split) — wider at hem than at waist, matching
 // the trapezoid silhouette used by the 2D GarmentSVG/Fabric.js skirt asset.
 function SkirtMesh({ colors, referenceTexture }) {
-  const body  = colors?.body   ?? '#028090';
+  const body  = colors?.body   ?? DEFAULT_GARMENT_COLOR;
   const band  = colors?.collar ?? '#02C39A';
 
   const matBody = useMemo(() => mat(body, 0.72, 0.03, referenceTexture), [body, referenceTexture]);
@@ -316,7 +317,7 @@ function GarmentMesh({ cfg, referenceTexture, overlays }) {
     const fit = cfg.fit ?? cfg.gender;
     return (
       <GarmentMeshErrorBoundary key={`${gt}-${fit}`} fallback={shirt}>
-        <ScannedGarmentMesh manifest={scanned} colors={colors} fit={fit} garment={cfg.garment} sleeve={cfg.sleeve} overlays={overlays}/>
+        <ScannedGarmentMesh manifest={scanned} colors={colors} patterns={cfg.patterns} patternParams={cfg.patternParams} fit={fit} garment={cfg.garment} sleeve={cfg.sleeve} overlays={overlays}/>
       </GarmentMeshErrorBoundary>
     );
   }
@@ -325,6 +326,25 @@ function GarmentMesh({ cfg, referenceTexture, overlays }) {
   if (isShorts) return <ShortsMesh colors={colors} referenceTexture={referenceTexture}/>;
 
   return shirt;
+}
+
+// The Studio keeps this Canvas mounted (visibility:hidden) while the 2D view is active; stop rendering frames then.
+function PauseWhenHidden() {
+  const { gl, setFrameloop, invalidate } = useThree();
+  useEffect(() => {
+    let last;
+    const tick = () => {
+      const hidden = getComputedStyle(gl.domElement).visibility === 'hidden' || document.hidden;
+      if (hidden === last) return;
+      last = hidden;
+      setFrameloop(hidden ? 'never' : 'always');
+      if (!hidden) invalidate();
+    };
+    tick();
+    const id = setInterval(tick, 300);
+    return () => clearInterval(id);
+  }, [gl, setFrameloop, invalidate]);
+  return null;
 }
 
 // ── Full scene ─────────────────────────────────────────────────────────────────
@@ -342,6 +362,8 @@ export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overla
       camera={{ position:[0, 0.15, 3.8], fov:40 }}
       gl={{ antialias:true, alpha:true, powerPreference:'high-performance', toneMapping:THREE.ACESFilmicToneMapping, toneMappingExposure:0.85 }}
       style={{ width:'100%', height:'100%', background:'transparent' }}>
+
+      <PauseWhenHidden/>
 
       {/* Offline studio: soft-box reflections instead of a fetched HDR */}
       <Environment resolution={256} frames={1}>

@@ -83,12 +83,26 @@ const hexMix = (hex, toward, t) => {
   return `#${a.map((v, i) => Math.round(v + (b[i] - v) * t).toString(16).padStart(2, '0')).join('')}`;
 };
 
+// Neutral starting appearance for any zone the config does not define (saved colours always win).
+export const DEFAULT_GARMENT_COLOR = '#FFFFFF';
+
 const REGION_COLOR = {
   body: c => c.body,
   sleeve: c => c.sleeve ?? c.body,
   collar: c => c.collar ?? c.body,
   pocket: c => c.pocket ?? c.collar ?? c.body,
 };
+
+// Per-zone ink/ground colours and pattern id, shared by the UV-texture path and the vertex-mask shader path.
+export function zoneFills(colors, patterns = {}) {
+  const base = colors.body ?? DEFAULT_GARMENT_COLOR, fills = {};
+  Object.keys(REGION_COLOR).forEach(r => {
+    const ink = REGION_COLOR[r](colors) ?? base;
+    const id = PATTERN_IDS.has(patterns[r]) ? patterns[r] : 'solid';
+    fills[r] = { ink, id, ground: id === 'solid' ? ink : hexMix(ink, '#ffffff', GROUND_MIX) };
+  });
+  return fills;
+}
 
 // Same tile geometry as the 2D PATTERNS svg strings (20x20, or 24x24 for geometric); `w`/`s` are the 2D slider values.
 function tileCanvas(id, ink, w, s) {
@@ -131,16 +145,11 @@ export function buildRegionTexture({ geometry, regionOf, colors, patterns = {}, 
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = size;
   const g = canvas.getContext('2d');
-  const base = colors.body ?? '#028090';
+  const base = colors.body ?? DEFAULT_GARMENT_COLOR;
   g.fillStyle = base;
   g.fillRect(0, 0, size, size);
 
-  const fills = {};
-  Object.keys(REGION_COLOR).forEach(r => {
-    const ink = REGION_COLOR[r](colors) ?? base;
-    const id = PATTERN_IDS.has(patterns[r]) ? patterns[r] : 'solid';
-    fills[r] = { ink, id, ground: id === 'solid' ? ink : hexMix(ink, '#ffffff', GROUND_MIX) };
-  });
+  const fills = zoneFills(colors, patterns);
 
   islands.forEach((isl, k) => {
     const f = fills[regions[k]] ?? fills.body;
