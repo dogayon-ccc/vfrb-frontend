@@ -45,17 +45,23 @@ import {
   AutoModel,
   AutoProcessor,
   RawImage,
-} from '@huggingface/transformers';
+} from "@huggingface/transformers";
 
-const WEBGPU_MODEL_ID   = 'Xenova/modnet';
-const FALLBACK_MODEL_ID = 'briaai/RMBG-1.4';
+const WEBGPU_MODEL_ID = "Xenova/modnet";
+const FALLBACK_MODEL_ID = "briaai/RMBG-1.4";
 
 const isIOS = () => {
-  return [
-    'iPad Simulator', 'iPhone Simulator', 'iPod Simulator',
-    'iPad', 'iPhone', 'iPod',
-  ].includes(navigator.platform)
-  || (navigator.userAgent.includes('Mac') && 'ontouchend' in document);
+  return (
+    [
+      "iPad Simulator",
+      "iPhone Simulator",
+      "iPod Simulator",
+      "iPad",
+      "iPhone",
+      "iPod",
+    ].includes(navigator.platform) ||
+    (navigator.userAgent.includes("Mac") && "ontouchend" in document)
+  );
 };
 
 const state = {
@@ -82,17 +88,17 @@ async function initializeWebGPU() {
       env.backends.onnx.wasm.proxy = false;
     }
 
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
     state.model = await AutoModel.from_pretrained(WEBGPU_MODEL_ID, {
-      device: 'webgpu',
-      config: { model_type: 'modnet', architectures: ['MODNet'] },
+      device: "webgpu",
+      config: { model_type: "modnet", architectures: ["MODNet"] },
     });
     state.processor = await AutoProcessor.from_pretrained(WEBGPU_MODEL_ID);
     state.isWebGPUSupported = true;
     return true;
   } catch (error) {
-    console.error('VFRB bg-remove: WebGPU initialization failed:', error);
+    console.error("VFRB bg-remove: WebGPU initialization failed:", error);
     return false;
   }
 }
@@ -107,13 +113,16 @@ async function doInitializeModel(forceModelId) {
     }
 
     state.model = await AutoModel.from_pretrained(FALLBACK_MODEL_ID, {
-      config: { model_type: 'custom' },
+      config: { model_type: "custom" },
     });
     state.processor = await AutoProcessor.from_pretrained(FALLBACK_MODEL_ID, {
       config: {
-        do_normalize: true, do_pad: false, do_rescale: true, do_resize: true,
+        do_normalize: true,
+        do_pad: false,
+        do_rescale: true,
+        do_resize: true,
         image_mean: [0.5, 0.5, 0.5],
-        feature_extractor_type: 'ImageFeatureExtractor',
+        feature_extractor_type: "ImageFeatureExtractor",
         image_std: [1, 1, 1],
         resample: 2,
         rescale_factor: 0.00392156862745098,
@@ -143,11 +152,14 @@ async function doInitializeModel(forceModelId) {
 
   state.model = await AutoModel.from_pretrained(FALLBACK_MODEL_ID, {});
   state.processor = await AutoProcessor.from_pretrained(FALLBACK_MODEL_ID, {
-    revision: 'main',
+    revision: "main",
     config: {
-      do_normalize: true, do_pad: true, do_rescale: true, do_resize: true,
+      do_normalize: true,
+      do_pad: true,
+      do_rescale: true,
+      do_resize: true,
       image_mean: [0.5, 0.5, 0.5],
-      feature_extractor_type: 'ImageFeatureExtractor',
+      feature_extractor_type: "ImageFeatureExtractor",
       image_std: [0.5, 0.5, 0.5],
       resample: 2,
       rescale_factor: 0.00392156862745098,
@@ -156,7 +168,7 @@ async function doInitializeModel(forceModelId) {
   });
 
   if (!state.model || !state.processor) {
-    throw new Error('Failed to initialize model or processor');
+    throw new Error("Failed to initialize model or processor");
   }
   state.currentModelId = FALLBACK_MODEL_ID;
   return true;
@@ -192,7 +204,7 @@ export function getModelInfo() {
 // actually hold the transparency this function exists to produce).
 export async function processImage(file) {
   if (!state.model || !state.processor) {
-    throw new Error('Model not initialized. Call initializeModel() first.');
+    throw new Error("Model not initialized. Call initializeModel() first.");
   }
 
   const objectUrl = URL.createObjectURL(file);
@@ -203,16 +215,17 @@ export async function processImage(file) {
     const { output } = await state.model({ input: pixel_values });
 
     const maskData = (
-      await RawImage.fromTensor(output[0].mul(255).to('uint8')).resize(
-        img.width, img.height,
+      await RawImage.fromTensor(output[0].mul(255).to("uint8")).resize(
+        img.width,
+        img.height,
       )
     ).data;
 
-    const canvas = document.createElement('canvas');
+    const canvas = document.createElement("canvas");
     canvas.width = img.width;
     canvas.height = img.height;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Could not get 2d context');
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Could not get 2d context");
 
     ctx.drawImage(img.toCanvas(), 0, 0);
 
@@ -224,13 +237,15 @@ export async function processImage(file) {
 
     const blob = await new Promise((resolve, reject) =>
       canvas.toBlob(
-        (b) => (b ? resolve(b) : reject(new Error('Failed to create blob'))),
-        'image/png',
-      )
+        (b) => (b ? resolve(b) : reject(new Error("Failed to create blob"))),
+        "image/png",
+      ),
     );
 
-    const [fileName] = file.name.split('.');
-    return new File([blob], `${fileName}-transparent.png`, { type: 'image/png' });
+    const [fileName] = file.name.split(".");
+    return new File([blob], `${fileName}-transparent.png`, {
+      type: "image/png",
+    });
   } finally {
     URL.revokeObjectURL(objectUrl);
   }
@@ -244,12 +259,34 @@ export async function processImage(file) {
 // never be blocked by this feature. Matches this project's own stated
 // pattern for AI-adjacent features (Gemini key rotation: "all keys
 // blocked → return fallback, do not crash").
+//
+// FIX (reported "drag and drop doesn't work"): that guarantee only held
+// for outright failures — a genuinely SLOW or stalled model download
+// (huggingface.co unreachable on a restrictive network, or just a slow
+// connection trying to pull ~176MB on first use) would leave this pending
+// forever with no timeout, showing "Removing background…" indefinitely
+// with nothing the user could distinguish from the feature being broken.
+// A 20s timeout now falls back to the original file the same way an
+// outright error already does, so a slow/blocked network degrades to
+// "logo added without background removal" instead of "nothing happens."
+const MODEL_TIMEOUT_MS = 20_000;
+
 export async function removeLogoBackground(file) {
   try {
-    await initializeModel();
-    return await processImage(file);
+    return await Promise.race([
+      (async () => {
+        await initializeModel();
+        return processImage(file);
+      })(),
+      new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error(`Timed out after ${MODEL_TIMEOUT_MS}ms`)),
+          MODEL_TIMEOUT_MS,
+        ),
+      ),
+    ]);
   } catch (error) {
-    console.error('VFRB bg-remove: falling back to original logo file:', error);
+    console.error("VFRB bg-remove: falling back to original logo file:", error);
     return file;
   }
 }

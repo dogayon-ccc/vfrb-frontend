@@ -1,6 +1,4 @@
-/* client/src/index.css */
-/* FF-2 FIX: background #eef2f7 removed — was overriding --bg (#f8fafc) from theme.css */
-/* FF-1 FIX: Google Fonts CDN removed — offline environment, use system font stack */
+/* client/src/index.css — no Google Fonts CDN (offline environment); system font stack only. */
 
 * { box-sizing: border-box; }
 

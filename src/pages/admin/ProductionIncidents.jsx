@@ -11,37 +11,53 @@
 // Any staff can report + acknowledge + resolve — this is an operational
 // tool like QCChecklist/PhysicalCount, NOT manager-exclusive (unlike
 // Reports/Suppliers/UserManagement).
+//
+// RESHAPED (Sept 4 2026): unlike ActivityLog/ProductionList, this page's
+// 3 status colors are a genuine severity/status trio, not a categorical
+// taxonomy — and they were already extremely close to real tokens
+// (reported's #fef2f2/#dc2626 vs --danger-bg's exact #fef2f2, etc.), so
+// this is the first reshaped page where the status pill maps onto
+// Badge directly rather than needing a judgment call. TYPE_LABEL's
+// icons also both already exist from the last two pages (Wrench for
+// mechanical breakdown, Scissors for cutting damage — added originally
+// for Materials.jsx/ProductionList.jsx, reused here as-is).
+//
+// Preserved deliberately, not "improved": the incident card's left
+// border is hardcoded teal regardless of status (reported/
+// acknowledged/resolved all get the same teal stripe) — that's the
+// original's actual behavior, not an oversight, so it stays var(--teal)
+// rather than becoming status-colored. Also preserved: the success-type
+// toast uses brand teal, not semantic green — an existing app-wide
+// choice (positive action = brand color), not something to "correct"
+// into --success as part of a token-compliance pass.
+//
+// Logic (report/acknowledge/resolve, optimistic UI, the filters)
+// completely untouched.
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence }           from 'framer-motion';
 import axios                                 from 'axios';
-
-const T    = '#028090';
-const T2   = '#02C39A';
-const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif`;
+import { Card, Badge, NavIcon }              from '../../components/ui';
 
 const STAGES = ['pattern','segregation','cutting','sewing','qc','pressing','packing'];
 
 const inp = {
-  width: '100%', padding: '10px 14px', borderRadius: 10,
-  border: '1px solid #e2e8f0', background: '#fff', color: '#0f172a',
-  fontSize: 13, outline: 'none', boxSizing: 'border-box', fontFamily: FONT,
+  width: '100%', padding: '10px 14px', borderRadius: 'var(--r-md)',
+  border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--ink)',
+  fontSize: 13, outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font)',
 };
 const lbl = {
   display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '.07em', color: '#64748b', marginBottom: 7, fontFamily: FONT,
+  letterSpacing: '.07em', color: 'var(--text-subtle)', marginBottom: 7, fontFamily: 'var(--font)',
 };
-const fi = e => { e.target.style.borderColor = T; e.target.style.boxShadow = `0 0 0 3px rgba(2,128,144,.1)`; };
-const fo = e => { e.target.style.borderColor = '#e2e8f0'; e.target.style.boxShadow = 'none'; };
+const fi = e => { e.target.style.borderColor = 'var(--teal)'; e.target.style.boxShadow = '0 0 0 3px rgba(2,128,144,.1)'; };
+const fo = e => { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none'; };
 
-const STATUS_STYLE = {
-  reported:     { bg: '#fef2f2', fg: '#dc2626', label: 'Reported' },
-  acknowledged: { bg: '#fffbeb', fg: '#d97706', label: 'Acknowledged' },
-  resolved:     { bg: '#f0fdf4', fg: '#16a34a', label: 'Resolved' },
-};
+const STATUS_TONE = { reported: 'danger', acknowledged: 'warning', resolved: 'success' };
+const STATUS_LABEL = { reported: 'Reported', acknowledged: 'Acknowledged', resolved: 'Resolved' };
 const TYPE_LABEL = {
-  machine_breakdown: { icon: '⚙️', label: 'Machine Breakdown' },
-  cutting_damage:     { icon: '✂️', label: 'Cutting Damage' },
+  machine_breakdown: { icon: 'adjustment', label: 'Machine Breakdown' },
+  cutting_damage:     { icon: 'cutting',    label: 'Cutting Damage' },
 };
 
 function getIsManager() {
@@ -141,7 +157,7 @@ export default function ProductionIncidents() {
   };
 
   return (
-    <div style={{ fontFamily: FONT, paddingBottom: 40 }}>
+    <div style={{ fontFamily: 'var(--font)', paddingBottom: 40 }}>
       <style>{`
         @media (max-width: 480px) {
           .pi-filters { flex-direction: column; align-items: stretch; }
@@ -150,16 +166,19 @@ export default function ProductionIncidents() {
       `}</style>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', margin: 0 }}>Production Incidents</h1>
-          <p style={{ fontSize: 13, color: '#64748b', margin: '4px 0 0' }}>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>Production Incidents</h1>
+          <p style={{ fontSize: 13, color: 'var(--text-subtle)', margin: '4px 0 0' }}>
             Machine breakdowns and cutting damage — report, acknowledge, resolve.
           </p>
         </div>
         <button onClick={() => setShowForm(true)} style={{
-          background: T, color: '#fff', border: 'none', borderRadius: 10,
+          display: 'flex', alignItems: 'center', gap: 6,
+          background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r-md)',
           padding: '10px 18px', fontWeight: 700, fontSize: 13, cursor: 'pointer',
-          minHeight: 44,
-        }}>+ Report Incident</button>
+          minHeight: 44, fontFamily: 'var(--font)',
+        }}>
+          <NavIcon name="add" size={14} color="#fff" /> Report Incident
+        </button>
       </div>
 
       {/* Filters */}
@@ -179,39 +198,41 @@ export default function ProductionIncidents() {
 
       {/* List */}
       {loading ? (
-        <p style={{ color: '#64748b', fontSize: 13 }}>Loading…</p>
+        <p style={{ color: 'var(--text-subtle)', fontSize: 13 }}>Loading…</p>
       ) : items.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '48px 20px', color: '#94a3b8' }}>
-          <div style={{ fontSize: 36, marginBottom: 8 }}>✅</div>
-          <p style={{ fontSize: 14 }}>No incidents reported. Shop floor running clean.</p>
-        </div>
+        <Card>
+          <div style={{ textAlign: 'center', padding: '32px 20px' }}>
+            <NavIcon name="success" size={36} color="var(--text-faint)" style={{ marginBottom: 8 }} />
+            <p style={{ fontSize: 14, color: 'var(--text-faint)' }}>No incidents reported. Shop floor running clean.</p>
+          </div>
+        </Card>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {items.map(item => {
-            const st = STATUS_STYLE[item.status] ?? STATUS_STYLE.reported;
             const ty = TYPE_LABEL[item.incident_type] ?? {};
             return (
               <div key={item.incident_id} style={{
-                background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12,
-                padding: 16, borderLeft: `4px solid ${T}`,
+                background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)',
+                padding: 16, borderLeft: '4px solid var(--teal)',
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-                  <div>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{ty.icon} {ty.label}</span>
-                    {item.order_id && <span style={{ marginLeft: 8, fontSize: 12, color: '#64748b' }}>Order #{item.order_id}</span>}
-                    {item.stage && <span style={{ marginLeft: 8, fontSize: 12, color: '#64748b', textTransform: 'capitalize' }}>· {item.stage}</span>}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    {ty.icon && <NavIcon name={ty.icon} size={14} color="var(--text-subtle)" />}
+                    <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{ty.label}</span>
+                    {item.order_id && <span style={{ marginLeft: 4, fontSize: 12, color: 'var(--text-subtle)' }}>Order #{item.order_id}</span>}
+                    {item.stage && <span style={{ marginLeft: 4, fontSize: 12, color: 'var(--text-subtle)', textTransform: 'capitalize' }}>· {item.stage}</span>}
                   </div>
-                  <span style={{ background: st.bg, color: st.fg, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, height: 'fit-content' }}>{st.label}</span>
+                  <Badge tone={STATUS_TONE[item.status] ?? 'danger'}>{STATUS_LABEL[item.status] ?? 'Reported'}</Badge>
                 </div>
-                <p style={{ fontSize: 13, color: '#334155', margin: '8px 0' }}>{item.description}</p>
-                {item.qty_affected != null && <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 8px' }}>Pieces affected: {item.qty_affected}</p>}
+                <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '8px 0' }}>{item.description}</p>
+                {item.qty_affected != null && <p style={{ fontSize: 12, color: 'var(--text-subtle)', margin: '0 0 8px' }}>Pieces affected: {item.qty_affected}</p>}
 
                 {item.status !== 'resolved' && (
                   <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
                     {item.status === 'reported' && (
                       <button onClick={() => acknowledge(item.incident_id)} style={{
-                        background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a',
-                        borderRadius: 8, padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', minHeight: 44,
+                        background: 'var(--warning-bg)', color: 'var(--warning)', border: '1px solid var(--warning-border)',
+                        borderRadius: 'var(--r-sm)', padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', minHeight: 44, fontFamily: 'var(--font)',
                       }}>Acknowledge</button>
                     )}
                     {resolvingId === item.incident_id ? (
@@ -219,20 +240,22 @@ export default function ProductionIncidents() {
                         <input autoFocus value={resolutionNotes} onChange={e => setResolutionNotes(e.target.value)}
                           placeholder="Resolution notes…" style={{ ...inp, flex: 1 }} onFocus={fi} onBlur={fo} />
                         <button onClick={() => submitResolve(item.incident_id)} style={{
-                          background: T2, color: '#fff', border: 'none', borderRadius: 8, padding: '8px 14px',
-                          fontSize: 12, fontWeight: 700, cursor: 'pointer', minHeight: 44,
+                          background: 'var(--teal-2)', color: '#fff', border: 'none', borderRadius: 'var(--r-sm)', padding: '8px 14px',
+                          fontSize: 12, fontWeight: 700, cursor: 'pointer', minHeight: 44, fontFamily: 'var(--font)',
                         }}>Save</button>
                       </div>
                     ) : (
                       <button onClick={() => { setResolvingId(item.incident_id); setResolutionNotes(''); }} style={{
-                        background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0',
-                        borderRadius: 8, padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', minHeight: 44,
+                        background: 'var(--success-bg)', color: 'var(--success)', border: '1px solid var(--success-border)',
+                        borderRadius: 'var(--r-sm)', padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', minHeight: 44, fontFamily: 'var(--font)',
                       }}>Resolve</button>
                     )}
                   </div>
                 )}
                 {item.status === 'resolved' && item.resolution_notes && (
-                  <p style={{ fontSize: 12, color: '#16a34a', margin: '4px 0 0', fontStyle: 'italic' }}>✓ {item.resolution_notes}</p>
+                  <p style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--success)', margin: '4px 0 0', fontStyle: 'italic' }}>
+                    <NavIcon name="success" size={12} color="var(--success)" />{item.resolution_notes}
+                  </p>
                 )}
               </div>
             );
@@ -248,8 +271,8 @@ export default function ProductionIncidents() {
             onClick={() => setShowForm(false)}>
             <motion.form initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
               onSubmit={submitReport} onClick={e => e.stopPropagation()}
-              style={{ background: '#fff', borderRadius: 16, padding: 24, width: '100%', maxWidth: 440 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: '0 0 16px' }}>Report Incident</h3>
+              style={{ background: 'var(--bg-card)', borderRadius: 'var(--r-xl)', padding: 24, width: '100%', maxWidth: 440, boxShadow: 'var(--shadow-xl)' }}>
+              <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', margin: '0 0 16px' }}>Report Incident</h3>
 
               <label style={lbl}>Type</label>
               <select value={form.incident_type} onChange={e => setForm({ ...form, incident_type: e.target.value })} style={{ ...inp, marginBottom: 12 }}>
@@ -282,12 +305,12 @@ export default function ProductionIncidents() {
 
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                 <button type="button" onClick={() => setShowForm(false)} style={{
-                  background: '#f1f5f9', color: '#334155', border: 'none', borderRadius: 10,
-                  padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 44,
+                  background: 'var(--bg-surface)', color: 'var(--text-muted)', border: 'none', borderRadius: 'var(--r-md)',
+                  padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 44, fontFamily: 'var(--font)',
                 }}>Cancel</button>
                 <button type="submit" style={{
-                  background: T, color: '#fff', border: 'none', borderRadius: 10,
-                  padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 44,
+                  background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r-md)',
+                  padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 44, fontFamily: 'var(--font)',
                 }}>Submit Report</button>
               </div>
             </motion.form>
@@ -301,9 +324,9 @@ export default function ProductionIncidents() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
             style={{
               position: 'fixed', bottom: 24, right: 24, zIndex: 200,
-              background: toast.type === 'error' ? '#E53E3E' : T,
-              color: '#fff', padding: '12px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600,
-              boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+              background: toast.type === 'error' ? 'var(--danger)' : 'var(--teal)',
+              color: '#fff', padding: '12px 20px', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 600,
+              boxShadow: 'var(--shadow-lg)', fontFamily: 'var(--font)',
             }}>{toast.message}</motion.div>
         )}
       </AnimatePresence>

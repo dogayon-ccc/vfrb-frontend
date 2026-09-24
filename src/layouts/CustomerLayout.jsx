@@ -1,54 +1,45 @@
-// src/layouts/CustomerLayout.jsx
-// FIXED: mobile topbar shows logo + "Customer Portal" label (teal gradient)
-// FIXED: logout accessible via More drawer only (removed redundant topbar Out button)
-// FIXED: all nav items reachable on mobile via More drawer
-// NO dark mode — vibrant light with teal color accents
+// src/layouts/CustomerLayout.jsx — customer shell: sidebar (desktop), bottom nav (mobile), topbar, Studio FAB.
 import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import PageErrorBoundary from '../components/PageErrorBoundary';
-import FeedbackWidget from '../components/FeedbackWidget'; // NEW Aug 27 2026
-import NavIcon from '../components/ui/NavIcon';
+import IconBox from '../components/ui/IconBox';
+import FeedbackWidget from '../components/FeedbackWidget';
 import logo from '../assets/company-logo.jpg';
 import { loadAccent, getAccentVars, ACCENT_CHANGE_EVENT } from '../utils/accentColor';
-// FF-4 FIX (Aug 30 2026): emoji nav icons replaced with lucide-react —
-// see design-system reshaping pass. Icon values below are components,
-// rendered as <item.icon size={N}/> at each call site, not raw text.
-import { LayoutDashboard, PenSquare, ClipboardList, MessageSquare, User, Palette, LogOut } from 'lucide-react';
+// Icon values below are components, rendered as <item.icon size={N}/> at each call site.
+import { LayoutDashboard, PenSquare, ClipboardList, MessageSquare, Receipt, Settings, User, Palette, LogOut } from 'lucide-react';
 
 const T  = 'var(--teal)';
 const T2 = 'var(--teal-2)';
 
 const NAV = [
-  { to:'/customer',               icon:LayoutDashboard, label:'Dashboard',    short:'Home',     end:true  },
-  { to:'/customer/order/create',  icon:PenSquare,       label:'New Order',    short:'Order',    end:false },
-  { to:'/customer/orders',        icon:ClipboardList,   label:'My Orders',    short:'Orders',   end:false },
-  // 'AI Materials' nav entry removed Aug 28 2026 — that flow is now the
-  // blocking MaterialsReveal screen shown right after order submit
-  // (OrderWizard.jsx), not a standalone page reachable from nav.
-  { to:'/customer/messages',      icon:MessageSquare,   label:'Messages',     short:'Chat',     end:false },
-  { to:'/customer/profile',       icon:User,            label:'Profile',      short:'Profile',  end:false },
+  { to:'/dashboard',               icon:LayoutDashboard, label:'Dashboard',    short:'Home',     end:true  },
+  { to:'/order/create',  icon:PenSquare,       label:'New Order',    short:'Order',    end:false },
+  { to:'/orders',        icon:ClipboardList,   label:'My Orders',    short:'Orders',   end:false },
+  // AI Materials has no nav entry — it's the blocking MaterialsReveal screen after order submit, not a standalone page.
+  { to:'/messages',      icon:MessageSquare,   label:'Messages',     short:'Chat',     end:false },
+  { to:'/billing',       icon:Receipt,         label:'Billing',      short:'Billing',  end:false },
+  { to:'/settings',      icon:Settings,        label:'Settings',     short:'Settings', end:false },
+  { to:'/profile',       icon:User,            label:'Profile',      short:'Profile',  end:false },
 ];
 
 // Bottom nav — 5 items (Profile removed, accessible via More)
 const MOB_NAV = [
-  { to:'/customer',              icon:LayoutDashboard, short:'Home',    end:true  },
-  { to:'/customer/orders',       icon:ClipboardList,   short:'Orders',  end:false },
-  { to:'/customer/messages',     icon:MessageSquare,   short:'Chat',    end:false },
-  // 'BOM'/ai-materials entry removed Aug 28 2026 — see NAV comment above.
-  { to:'/customer/profile',      icon:User,            short:'Profile', end:false },
+  { to:'/dashboard',              icon:LayoutDashboard, short:'Home',    end:true  },
+  { to:'/orders',       icon:ClipboardList,   short:'Orders',  end:false },
+  { to:'/messages',     icon:MessageSquare,   short:'Chat',    end:false },
+  { to:'/profile',      icon:User,            short:'Profile', end:false },
 ];
 
 export default function CustomerLayout() {
   const navigate  = useNavigate();
   const location  = useLocation();
-  const [name,      setName]      = useState('Customer');
+  const [name,      setName]      = useState('Client');
   const [unread,    setUnread]    = useState(0);
   const [collapsed, setCollapsed] = useState(() => {
-    // MOBILE AUDIT FIX (Aug 22) — same fix as AdminLayout.jsx: only applies
-    // when no preference has been saved yet; an explicit manual toggle
-    // always wins after that.
+    // A saved manual toggle always wins; this default only applies on first load.
     try {
       const stored = localStorage.getItem('vfrb_cust_sb');
       if (stored !== null) return JSON.parse(stored);
@@ -61,12 +52,8 @@ export default function CustomerLayout() {
   });
   const [moreOpen, setMoreOpen] = useState(false);
 
-  // ── CUSTOMER-ONLY accent preference ──────────────────────────────────────
-  // Scoped override, applied as inline CSS vars on the .cm-shell root below.
-  // Because --teal/--teal-2/--teal-dark are read via var(...) throughout this
-  // subtree, setting them here cascades to every descendant without touching
-  // theme.css (VFRB's locked brand teal) or anything outside this layout —
-  // admin/staff portals never read these overridden values.
+  // Per-customer accent override, applied as CSS vars on .cm-shell — scoped to this
+  // subtree only; theme.css's brand teal and the admin/staff portals are untouched.
   const [accentVars, setAccentVars] = useState(() => {
     const u = JSON.parse(localStorage.getItem('vfrb_user') || '{}');
     return getAccentVars(loadAccent(u.user_id));
@@ -84,7 +71,7 @@ export default function CustomerLayout() {
     const n = !c; localStorage.setItem('vfrb_cust_sb', JSON.stringify(n)); return n;
   });
 
-  // FF-1 FIX: pass token explicitly before removing from localStorage → prevents 401
+  // Token must be passed explicitly before it's removed from localStorage, or the request 401s.
   const logout = () => {
     const tok = localStorage.getItem('vfrb_token');
     axios.post('/api/logout', {}, {
@@ -95,14 +82,26 @@ export default function CustomerLayout() {
     navigate('/login', { replace: true });
   };
 
-  const openStudio = () => navigate('/customer/design-studio');
+  const openStudio = () => navigate('/design-studio');
 
   useEffect(() => {
     const u = JSON.parse(localStorage.getItem('vfrb_user') || '{}');
-    setName(u.name || 'Customer');
-    axios.get('/api/customer/notifications/summary')
-      .then(r => setUnread(r.data?.unread_count ?? 0)).catch(() => {});
+    setName(u.name || 'Client');
   }, [location.pathname]);
+
+  // Polls every 60s rather than refetching per navigation — avoids stacking
+  // requests against the dev server on rapid route changes.
+  useEffect(() => {
+    let cancelled = false;
+    const fetchSummary = () => {
+      axios.get('/api/customer/notifications/summary')
+        .then(r => { if (!cancelled) setUnread(r.data?.unread_count ?? 0); })
+        .catch(() => {});
+    };
+    fetchSummary();
+    const id = setInterval(fetchSummary, 60000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
 
   // Close "More" drawer on route change
   useEffect(() => { setMoreOpen(false); }, [location.pathname]);
@@ -131,7 +130,7 @@ export default function CustomerLayout() {
           z-index: 200;
           background: #ffffff;
           border-right: 1px solid var(--border);
-          display: flex;
+          display: none;
           flex-direction: column;
           overflow: hidden;
           box-shadow: 3px 0 20px rgba(2,128,144,.08);
@@ -145,7 +144,7 @@ export default function CustomerLayout() {
           display: flex;
           align-items: center;
           gap: 10px;
-          min-height: 62px;
+          height: 58px;
           position: relative;
           overflow: hidden;
         }
@@ -171,13 +170,13 @@ export default function CustomerLayout() {
 
         /* ── Topbar — VIBRANT gradient on mobile, tinted on desktop ── */
         .cm-topbar {
-          height: 58px;
+          height: 54px;
           flex-shrink: 0;
           background: linear-gradient(135deg, var(--teal) 0%, var(--teal-darker) 100%);
           border-bottom: none;
           display: flex;
           align-items: center;
-          padding: 0 18px;
+          padding: 0 14px;
           gap: 10px;
           position: sticky;
           top: 0;
@@ -190,7 +189,10 @@ export default function CustomerLayout() {
           flex: 1;
           width: 100%;
           min-width: 0;
-          padding: 22px 22px 80px;
+          padding: 14px 14px 80px;
+        }
+        @media (max-width: 767px) {
+          .cm-desk-only { display: none !important; }
         }
 
         /* ── Sidebar nav link ─────────────────────────────────────────────── */
@@ -258,7 +260,7 @@ export default function CustomerLayout() {
 
         /* ── Mobile bottom taskbar ───────────────────────────────────────── */
         .cm-bnav {
-          display: none;
+          display: flex;
           position: fixed;
           bottom: 0; left: 0; right: 0;
           z-index: 300;
@@ -355,11 +357,12 @@ export default function CustomerLayout() {
         .cm-drawer-item:hover, .cm-drawer-item:active { background: rgba(2,128,144,.06); }
         .cm-drawer-item.active { color: ${T}; background: rgba(2,128,144,.08); }
 
-        /* ── Studio FAB (mobile) ─────────────────────────────────────────── */
+        /* Studio FAB (mobile) — sits at bottom:58 so it dips into the nav bar, matching the Figma reference's "punched through" look.
+           Mobile-first base rule: visible by default (flex), the >=768px query below hides it on desktop. */
         .cm-studio-fab {
-          display: none;
+          display: flex;
           position: fixed;
-          bottom: 76px;
+          bottom: 58px;
           right: 16px;
           z-index: 310;
           width: 52px;
@@ -372,39 +375,31 @@ export default function CustomerLayout() {
           font-size: 22px;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 6px 24px rgba(2,128,144,.48);
+          box-shadow: 0 0 0 4px rgba(255,255,255,.95), 0 6px 24px rgba(2,128,144,.48), 0 0 28px rgba(2,195,154,.2);
           transition: transform .15s, box-shadow .15s;
         }
         .cm-studio-fab:active {
           transform: scale(.92);
-          box-shadow: 0 2px 12px rgba(2,128,144,.3);
+          box-shadow: 0 0 0 4px rgba(255,255,255,.95), 0 2px 12px rgba(2,128,144,.3);
         }
 
-        /* ── Responsive ─────────────────────────────────────────────────── */
-        @media (max-width: 767px) {
-          .cm-sb         { display: none !important; }
-          .cm-main       { margin-left: 0 !important; }
-          .cm-bnav       { display: flex; }
-          .cm-content    { padding: 14px 14px 80px; }
-          .cm-topbar     { padding: 0 14px; height: 54px; }
-          .cm-desk-only  { display: none !important; }
-          .cm-studio-fab { display: flex; }
-        }
+        /* ── Responsive (mobile-first: base above is the phone layout) ────── */
         @media (min-width: 768px) {
+          .cm-sb          { display: flex !important; }
+          .cm-main        { margin-left: ${SW}px; }
           .cm-bnav        { display: none !important; }
           .cm-studio-fab  { display: none !important; }
           .cm-mob-only    { display: none !important; }
           .cm-more-drawer { display: none !important; }
+          .cm-content     { padding: 18px 18px 40px; }
+          .cm-topbar      { height: 58px; padding: 0 18px; }
         }
-        /* Tablet 768–1023px */
-        @media (min-width: 768px) and (max-width: 1023px) {
-          .cm-content { padding: 18px 18px 40px; }
-        }
-        /* iPad Pro 1024–1279px */
         @media (min-width: 1024px) and (max-width: 1279px) {
           .cm-content { padding: 20px 20px 40px; }
         }
-        /* 4K ≥ 2560px */
+        @media (min-width: 1280px) {
+          .cm-content { padding: 22px 22px 80px; }
+        }
         @media (min-width: 2560px) {
           .cm-content {
             padding: 36px 40px 100px;
@@ -420,6 +415,11 @@ export default function CustomerLayout() {
 
         @keyframes fadein { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 
+        .cm-link:focus-visible, .cm-bnav-item:focus-visible, .cm-drawer-item:focus-visible,
+        .cm-studio-btn:focus-visible, .cm-studio-fab:focus-visible {
+          outline: 2px solid ${T}; outline-offset: 2px;
+        }
+
         @media (prefers-reduced-motion: reduce) {
           *, *::before, *::after { transition-duration: .01ms !important; }
         }
@@ -432,7 +432,7 @@ export default function CustomerLayout() {
 
           {/* Gradient header */}
           <div className="cm-sb-head"
-            style={{ padding: collapsed ? '14px 10px' : '14px 16px' }}>
+            style={{ padding: collapsed ? '12px 10px' : '12px 16px' }}>
             <img src={logo} alt="VFRB"
               style={{ width:34, height:34, borderRadius:9, objectFit:'cover',
                 border:'2px solid rgba(255,255,255,.35)', flexShrink:0, position:'relative', zIndex:1 }}/>
@@ -446,7 +446,7 @@ export default function CustomerLayout() {
                 </p>
                 <p style={{ fontSize:9, color:'rgba(255,255,255,.75)', fontWeight:600,
                   textTransform:'uppercase', letterSpacing:'.08em', margin:'2px 0 0' }}>
-                  Customer Portal
+                  Client Site
                 </p>
               </div>
             )}
@@ -465,19 +465,19 @@ export default function CustomerLayout() {
             )}
 
             {NAV.map(item => {
-              const showBadge = item.to === '/customer/messages' && unread > 0;
+              const showBadge = item.to === '/messages' && unread > 0;
               return (
                 <NavLink key={item.to} to={item.to} end={item.end}
                   className={({ isActive }) => `cm-link${isActive ? ' active' : ''}`}
                   title={collapsed ? item.label : undefined}
                   style={collapsed ? { justifyContent:'center', padding:'10px 0' } : {}}>
-                  <NavIcon icon={item.icon} size={16} width={20}>
+                  <IconBox icon={item.icon} size={16} width={20}>
                     {collapsed && showBadge && (
                       <span style={{ position:'absolute', top:-2, right:-2,
                         width:8, height:8, borderRadius:'50%', background:'var(--danger)',
                         border:'1.5px solid #fff' }}/>
                     )}
-                  </NavIcon>
+                  </IconBox>
                   {!collapsed && (
                     <>
                       <span style={{ flex:1, overflow:'hidden', textOverflow:'ellipsis' }}>
@@ -508,7 +508,7 @@ export default function CustomerLayout() {
               <button className="cm-studio-btn" onClick={openStudio}
                 title={collapsed ? 'Design Studio' : undefined}
                 style={collapsed ? { justifyContent:'center', padding:'10px 0', borderRadius:10 } : {}}>
-                <span style={{ display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, width:20 }}><Palette size={16} strokeWidth={2}/></span>
+                <IconBox icon={Palette} size={16} width={20}/>
                 {!collapsed && (
                   <>
                     <span style={{ flex:1 }}>Design Studio</span>
@@ -556,7 +556,7 @@ flexShrink:0,
                     whiteSpace:'nowrap', margin:0 }}>
                     {name}
                   </p>
-                  <p style={{ fontSize:9, color:'var(--text-subtle)', margin:0 }}>Customer</p>
+                  <p style={{ fontSize:9, color:'var(--text-subtle)', margin:0 }}>Client</p>
                 </div>
               )}
             </div>
@@ -577,7 +577,7 @@ flexShrink:0,
 
         {/* ─── MAIN CONTENT ──────────────────────────────────────────────── */}
         <main className="cm-main"
-          style={{ marginLeft:SW, transition:'margin-left .22s cubic-bezier(.4,0,.2,1)' }}>
+          style={{ transition:'margin-left .22s cubic-bezier(.4,0,.2,1)' }}>
 
           {/* ── TOPBAR — gradient, always shows logo + portal label + actions ── */}
           <div className="cm-topbar">
@@ -594,7 +594,7 @@ flexShrink:0,
               </p>
               <p style={{ fontSize:9, color:'rgba(255,255,255,.65)', fontWeight:600,
                 textTransform:'uppercase', letterSpacing:'.07em', margin:0 }}>
-                Customer Portal
+                Client Portal
               </p>
             </div>
 
@@ -685,24 +685,36 @@ flexShrink:0,
 
                 <button className="cm-drawer-item" onClick={openStudio}
                   style={{ color:T }}>
-                  <span style={{ display:'flex', alignItems:'center', justifyContent:'center' }}><Palette size={20} strokeWidth={2}/></span>
+                  <IconBox icon={Palette} size={20} width={28}/>
                   <span>Design Studio</span>
                   <span style={{ marginLeft:'auto', fontSize:9, padding:'2px 7px',
                     borderRadius:99, background:'rgba(2,195,154,.12)', color:T,
                     fontWeight:700 }}>NEW</span>
                 </button>
 
-                <NavLink to="/customer/order/create" className="cm-drawer-item"
+                <NavLink to="/order/create" className="cm-drawer-item"
                   onClick={() => setMoreOpen(false)}>
-                  <span style={{ display:'flex', alignItems:'center', justifyContent:'center' }}><PenSquare size={20} strokeWidth={2}/></span>
+                  <IconBox icon={PenSquare} size={20} width={28}/>
                   <span>New Order</span>
+                </NavLink>
+
+                <NavLink to="/billing" className="cm-drawer-item"
+                  onClick={() => setMoreOpen(false)}>
+                  <IconBox icon={Receipt} size={20} width={28}/>
+                  <span>Billing</span>
+                </NavLink>
+
+                <NavLink to="/settings" className="cm-drawer-item"
+                  onClick={() => setMoreOpen(false)}>
+                  <IconBox icon={Settings} size={20} width={28}/>
+                  <span>Settings</span>
                 </NavLink>
 
                 <div style={{ height:1, background:'var(--bg-surface)', margin:'6px 0' }}/>
 
                 <button className="cm-drawer-item" onClick={logout}
                   style={{ color:'var(--danger)' }}>
-                  <span style={{ display:'flex', alignItems:'center', justifyContent:'center' }}><LogOut size={20} strokeWidth={2}/></span>
+                  <IconBox icon={LogOut} size={20} width={28}/>
                   <span>Sign Out</span>
                 </button>
               </motion.div>
@@ -716,7 +728,7 @@ flexShrink:0,
             const active = item.end
               ? location.pathname === item.to
               : location.pathname.startsWith(item.to);
-            const showBadge = item.to === '/customer/messages' && unread > 0;
+            const showBadge = item.to === '/messages' && unread > 0;
             return (
               <NavLink key={item.to} to={item.to} end={item.end}
                 className={`cm-bnav-item${active ? ' mob-active' : ''}`}

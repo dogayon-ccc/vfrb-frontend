@@ -1,27 +1,7 @@
 // src/pages/admin/DeliveryTracking.jsx
 // Uses correct DB column: delivery_status (NOT status)
 // delivery_tracking table (NO 's')
-import { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
-import axios from 'axios';
-import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
-
-const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif`;
-
-const T = '#028090', T2 = '#02C39A';
-const SK = { borderRadius:6, background:'linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%)', backgroundSize:'400px', animation:'sk 1.4s infinite' };
-const inp = { width:'100%', padding:'10px 14px', borderRadius:10, border:'1px solid #e2e8f0', background:'#fff', color:'#0f172a', fontSize:13, outline:'none', fontFamily:FONT, boxSizing:'border-box' };
-const fi = e => { e.target.style.borderColor=T; e.target.style.boxShadow=`0 0 0 3px rgba(2,128,144,.1)`; };
-const fo = e => { e.target.style.borderColor='#e2e8f0'; e.target.style.boxShadow='none'; };
-
-const DEL_CFG = {
-  preparing:  { l:'Preparing',  c:'#f59e0b', bg:'#fef3c7' },
-  dispatched: { l:'Dispatched', c:'#3b82f6', bg:'#dbeafe' },
-  in_transit: { l:'In Transit', c:'#8b5cf6', bg:'#ede9fe' },
-  delivered:  { l:'Delivered',  c:'#22c55e', bg:'#dcfce7' },
-  returned:   { l:'Returned',   c:'#ef4444', bg:'#fee2e2' },
-};
-
+//
 // FIX (Task 6): payment recording used to be a completely separate manual
 // step on a different page (SalesTransactions.jsx) — nothing connected the
 // two. Per the client interview, payment IS typically tied to delivery
@@ -30,13 +10,58 @@ const DEL_CFG = {
 // order on another page and re-enter it. This merges an OPTIONAL payment
 // section into the same modal — reuses the exact same POST /api/admin/transactions
 // endpoint SalesTransactions.jsx already calls, so no backend duplication.
+//
+// RESHAPED (Sept 6 2026): hex -> theme.css tokens, emoji -> NavIcon.
+// DEL_CFG's 5 statuses map cleanly (preparing=warning, dispatched=info,
+// in_transit=purple, delivered=success, returned=danger). METHOD_CFG
+// reuses the EXACT same 4-method mapping already established on
+// SalesTransactions.jsx (cash=success/gcash=purple/ewallet=info/
+// bank_transfer=warning) rather than reinventing it — same reasoning as
+// OrderDetail.jsx reusing ProductionList.jsx's stage colors: a manager
+// recording a GCash payment here should see the same purple GCash chip
+// they'd see on Sales & Pay, not an independently-chosen color.
+//
+// Dropped the unused `TTL` import (checked first this time -- confirmed
+// genuinely dead, not repeating the near-miss from Inventory.jsx where
+// it WAS actually used). Also removed a real dead-CSS block: the
+// ".adm-stats/.adm-grid-2/.adm-filter/.adm-table-wrap" classes were
+// defined in this file's injected <style> tag but never applied via
+// className anywhere in the JSX -- same "v10 mobile sweep never
+// actually wired up" pattern already found and removed from
+// UserManagement.jsx. Replaced with real, actually-applied responsive
+// classes below instead of leaving the page with zero mobile handling.
+//
+// The customer_name flat-field bug-fix comment (backend returns a
+// joined flat field, not nested d.order.user) and the whole payment-
+// at-delivery merge logic are real, load-bearing, and untouched.
+
+import { useState, useEffect, useCallback } from 'react';
+import { motion } from 'framer-motion';
+import axios from 'axios';
+import { cacheGet, cacheSet } from '../../utils/cache';
+import { NavIcon } from '../../components/ui';
+
+const SK  = { borderRadius:'var(--r-sm)', background:'linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%)', backgroundSize:'400px', animation:'dt-shimmer 1.4s infinite' };
+const inp = { width:'100%', padding:'10px 14px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)', fontSize:13, outline:'none', fontFamily:'var(--font)', boxSizing:'border-box' };
+const fi  = e => { e.target.style.borderColor='var(--teal)'; e.target.style.boxShadow='0 0 0 3px rgba(2,128,144,.1)'; };
+const fo  = e => { e.target.style.borderColor='var(--border)'; e.target.style.boxShadow='none'; };
+
+const DEL_CFG = {
+  preparing:  { l:'Preparing',  c:'var(--warning)', bg:'var(--warning-bg)' },
+  dispatched: { l:'Dispatched', c:'var(--info)',     bg:'var(--info-bg)'    },
+  in_transit: { l:'In Transit', c:'var(--purple)',   bg:'var(--purple-50)'  },
+  delivered:  { l:'Delivered',  c:'var(--success)',  bg:'var(--success-bg)' },
+  returned:   { l:'Returned',   c:'var(--danger)',   bg:'var(--danger-bg)'  },
+};
+
 const METHODS = ['cash','gcash','ewallet','bank_transfer'];
 const TERMS   = ['full_payment','down_payment','net_30'];
+// Same mapping as SalesTransactions.jsx -- see file header note.
 const METHOD_CFG = {
-  cash:          { label:'Cash',          color:'#22c55e', icon:'💵' },
-  gcash:         { label:'GCash',         color:'#7c3aed', icon:'📱' },
-  ewallet:       { label:'E-Wallet',      color:'#3b82f6', icon:'💳' },
-  bank_transfer: { label:'Bank Transfer', color:'#f59e0b', icon:'🏦' },
+  cash:          { label:'Cash',          c:'var(--success)', bg:'var(--success-bg)', icon:'salesPay' },
+  gcash:         { label:'GCash',         c:'var(--purple)',  bg:'var(--purple-50)',  icon:'phone'    },
+  ewallet:       { label:'E-Wallet',      c:'var(--info)',    bg:'var(--info-bg)',    icon:'ewallet'  },
+  bank_transfer: { label:'Bank Transfer', c:'var(--warning)', bg:'var(--warning-bg)', icon:'bank'     },
 };
 
 function MarkDeliveredModal({ delivery, onClose, onDone }) {
@@ -98,16 +123,18 @@ function MarkDeliveredModal({ delivery, onClose, onDone }) {
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(15,23,42,.45)', backdropFilter:'blur(4px)', zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
       <motion.div initial={{ opacity:0, scale:.95 }} animate={{ opacity:1, scale:1 }}
-        style={{ background:'#fff', borderRadius:18, width:'min(460px,100%)', maxHeight:'90vh', overflowY:'auto', boxShadow:'0 20px 60px rgba(0,0,0,.15)' }}>
-        <div style={{ padding:'16px 22px', background:'#f0fdf4', borderBottom:'1px solid #bbf7d0' }}>
-          <h3 style={{ fontSize:15, fontWeight:800, color:'#0f172a', margin:0 }}>✅ Mark as Delivered</h3>
-          <p style={{ fontSize:11, color:'#64748b', margin:'3px 0 0' }}>
-            Order #{delivery.order_id} · SAP VL01N → Outbound Delivery
+        style={{ background:'var(--bg-card)', borderRadius:'var(--r-xl)', width:'min(460px,100%)', maxHeight:'90vh', overflowY:'auto', boxShadow:'var(--shadow-xl)' }}>
+        <div style={{ padding:'16px 22px', background:'var(--success-bg)', borderBottom:'1px solid var(--success-border)' }}>
+          <h3 style={{ display:'flex', alignItems:'center', gap:7, fontSize:15, fontWeight:800, color:'var(--ink)', margin:0 }}>
+            <NavIcon name="success" size={16} color="var(--success)" /> Mark as Delivered
+          </h3>
+          <p style={{ fontSize:11, color:'var(--text-subtle)', margin:'3px 0 0' }}>
+            Order #{delivery.order_id} · Outbound Delivery
           </p>
         </div>
         <div style={{ padding:'18px 22px', display:'flex', flexDirection:'column', gap:14 }}>
           <div>
-            <label style={{ display:'block', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'#64748b', marginBottom:7 }}>
+            <label style={{ display:'block', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'var(--text-subtle)', marginBottom:7 }}>
               Delivery Notes
             </label>
             <textarea value={notes} onChange={e=>setNotes(e.target.value)}
@@ -116,15 +143,17 @@ function MarkDeliveredModal({ delivery, onClose, onDone }) {
           </div>
 
           <button type="button" onClick={()=>setRecordPayment(v=>!v)}
-            style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px', borderRadius:10, border:'1px solid #e2e8f0', background:'#f8fafc', cursor:'pointer', fontFamily:FONT }}>
-            <span style={{ fontSize:12, fontWeight:700, color:'#0f172a' }}>💰 Record payment for this delivery</span>
-            <span style={{ fontSize:11, color:'#64748b' }}>{recordPayment ? 'Hide' : 'Show'} — optional</span>
+            style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg)', cursor:'pointer', fontFamily:'var(--font)' }}>
+            <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, fontWeight:700, color:'var(--ink)' }}>
+              <NavIcon name="salesPay" size={13} color="var(--ink)" /> Record payment for this delivery
+            </span>
+            <span style={{ fontSize:11, color:'var(--text-subtle)' }}>{recordPayment ? 'Hide' : 'Show'} — optional</span>
           </button>
 
           {recordPayment && (
-            <div style={{ display:'flex', flexDirection:'column', gap:12, padding:'14px', borderRadius:10, background:'#f8fafc', border:'1px solid #e2e8f0' }}>
+            <div style={{ display:'flex', flexDirection:'column', gap:12, padding:'14px', borderRadius:'var(--r-md)', background:'var(--bg)', border:'1px solid var(--border)' }}>
               <div>
-                <label style={{ display:'block', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'#64748b', marginBottom:7 }}>
+                <label style={{ display:'block', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'var(--text-subtle)', marginBottom:7 }}>
                   Amount Paid (₱)
                 </label>
                 <input type="number" min={0} step={0.01} value={amountPaid}
@@ -134,7 +163,7 @@ function MarkDeliveredModal({ delivery, onClose, onDone }) {
               </div>
 
               <div>
-                <label style={{ display:'block', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'#64748b', marginBottom:7 }}>
+                <label style={{ display:'block', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'var(--text-subtle)', marginBottom:7 }}>
                   Payment Terms
                 </label>
                 <select value={terms} onChange={e=>setTerms(e.target.value)} style={inp} onFocus={fi} onBlur={fo}>
@@ -143,7 +172,7 @@ function MarkDeliveredModal({ delivery, onClose, onDone }) {
               </div>
 
               <div>
-                <label style={{ display:'block', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'#64748b', marginBottom:7 }}>
+                <label style={{ display:'block', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'var(--text-subtle)', marginBottom:7 }}>
                   Payment Method
                 </label>
                 <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
@@ -152,8 +181,8 @@ function MarkDeliveredModal({ delivery, onClose, onDone }) {
                     const on = method === m;
                     return (
                       <button key={m} type="button" onClick={()=>setMethod(m)}
-                        style={{ padding:'8px 12px', borderRadius:9, border:`1px solid ${on?cfg.color+'55':'#e2e8f0'}`, background:on?cfg.color+'15':'#fff', color:on?cfg.color:'#64748b', fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:FONT }}>
-                        {cfg.icon} {cfg.label}
+                        style={{ display:'flex', alignItems:'center', gap:5, padding:'8px 12px', borderRadius:'var(--r-md)', border:`1px solid ${on ? cfg.c : 'var(--border)'}`, background: on ? cfg.bg : 'var(--bg-card)', color: on ? cfg.c : 'var(--text-subtle)', fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'var(--font)' }}>
+                        <NavIcon name={cfg.icon} size={12} color={on ? cfg.c : 'var(--text-subtle)'} /> {cfg.label}
                       </button>
                     );
                   })}
@@ -161,7 +190,7 @@ function MarkDeliveredModal({ delivery, onClose, onDone }) {
               </div>
 
               <div>
-                <label style={{ display:'block', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'#64748b', marginBottom:7 }}>
+                <label style={{ display:'block', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'var(--text-subtle)', marginBottom:7 }}>
                   {method === 'cash' ? 'OR Number' : 'Reference Number'}
                 </label>
                 <input value={orNumber} onChange={e=>setOrNumber(e.target.value)}
@@ -171,14 +200,15 @@ function MarkDeliveredModal({ delivery, onClose, onDone }) {
             </div>
           )}
 
-          {err  && <p style={{ color:'#ef4444', fontSize:12 }}>⚠️ {err}</p>}
-          {warn && <p style={{ color:'#f59e0b', fontSize:12 }}>⚠️ {warn}</p>}
+          {err  && <p style={{ display:'flex', alignItems:'center', gap:6, color:'var(--danger)', fontSize:12 }}><NavIcon name="warning" size={13} color="var(--danger)" />{err}</p>}
+          {warn && <p style={{ display:'flex', alignItems:'center', gap:6, color:'var(--warning)', fontSize:12 }}><NavIcon name="warning" size={13} color="var(--warning)" />{warn}</p>}
         </div>
-        <div style={{ padding:'14px 22px', borderTop:'1px solid #e2e8f0', display:'flex', gap:10, justifyContent:'flex-end', background:'#f8fafc' }}>
-          <button onClick={onClose} style={{ padding:'9px 16px', borderRadius:9, border:'1px solid #e2e8f0', background:'#fff', color:'#0f172a', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:FONT }}>Cancel</button>
+        <div style={{ padding:'14px 22px', borderTop:'1px solid var(--border)', display:'flex', gap:10, justifyContent:'flex-end', background:'var(--bg)' }}>
+          <button onClick={onClose} style={{ padding:'9px 16px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)' }}>Cancel</button>
           <button onClick={submit} disabled={busy}
-            style={{ padding:'9px 20px', borderRadius:9, border:'none', background:busy?'#94a3b8':'linear-gradient(135deg,#22c55e,#16a34a)', color:'#fff', fontSize:12, fontWeight:700, cursor:busy?'not-allowed':'pointer', fontFamily:FONT }}>
-            {busy ? '⏳…' : '✓ Confirm Delivery'}
+            style={{ display:'flex', alignItems:'center', gap:6, padding:'9px 20px', borderRadius:'var(--r-md)', border:'none', background: busy ? 'var(--text-faint)' : 'var(--success)', color:'#fff', fontSize:12, fontWeight:700, cursor: busy ? 'not-allowed' : 'pointer', fontFamily:'var(--font)' }}>
+            <NavIcon name={busy ? 'loading' : 'success'} size={13} color="#fff" style={busy ? { animation:'dt-spin .8s linear infinite' } : undefined} />
+            {busy ? '…' : 'Confirm Delivery'}
           </button>
         </div>
       </motion.div>
@@ -204,18 +234,18 @@ function UpdateStatusModal({ delivery, onClose, onDone }) {
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(15,23,42,.45)', backdropFilter:'blur(4px)', zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
       <motion.div initial={{ opacity:0, scale:.95 }} animate={{ opacity:1, scale:1 }}
-        style={{ background:'#fff', borderRadius:18, width:'min(400px,100%)', overflow:'hidden', boxShadow:'0 20px 60px rgba(0,0,0,.15)' }}>
-        <div style={{ padding:'16px 22px', borderBottom:'1px solid #e2e8f0', background:'#f8fafc' }}>
-          <h3 style={{ fontSize:15, fontWeight:800, color:'#0f172a', margin:0 }}>Update Delivery Status</h3>
-          <p style={{ fontSize:11, color:'#64748b', margin:'3px 0 0' }}>Order #{delivery.order_id}</p>
+        style={{ background:'var(--bg-card)', borderRadius:'var(--r-xl)', width:'min(400px,100%)', overflow:'hidden', boxShadow:'var(--shadow-xl)' }}>
+        <div style={{ padding:'16px 22px', borderBottom:'1px solid var(--border)', background:'var(--bg)' }}>
+          <h3 style={{ fontSize:15, fontWeight:800, color:'var(--ink)', margin:0 }}>Update Delivery Status</h3>
+          <p style={{ fontSize:11, color:'var(--text-subtle)', margin:'3px 0 0' }}>Order #{delivery.order_id}</p>
         </div>
         <div style={{ padding:'18px 22px', display:'flex', flexDirection:'column', gap:12 }}>
           <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
             {Object.entries(DEL_CFG).map(([k,cfg]) => (
               <button key={k} onClick={()=>setStatus(k)} type="button"
-                style={{ padding:'10px 14px', borderRadius:10, border:'none', cursor:'pointer', textAlign:'left', fontFamily:FONT, background:status===k?cfg.bg:'#f8fafc', outline:`2px solid ${status===k?cfg.c+'55':'#e2e8f0'}` }}>
-                <span style={{ fontSize:13, fontWeight:700, color:status===k?cfg.c:'#0f172a' }}>
-                  {status===k?'● ':'○ '}{cfg.l}
+                style={{ padding:'10px 14px', borderRadius:'var(--r-md)', border:'none', cursor:'pointer', textAlign:'left', fontFamily:'var(--font)', background: status===k ? cfg.bg : 'var(--bg)', outline:`2px solid ${status===k ? cfg.c : 'var(--border)'}` }}>
+                <span style={{ fontSize:13, fontWeight:700, color: status===k ? cfg.c : 'var(--ink)' }}>
+                  {status===k ? '● ' : '○ '}{cfg.l}
                 </span>
               </button>
             ))}
@@ -223,13 +253,14 @@ function UpdateStatusModal({ delivery, onClose, onDone }) {
           <textarea value={notes} onChange={e=>setNotes(e.target.value)}
             placeholder="Notes (optional)…" rows={2}
             style={{ ...inp, resize:'none' }} onFocus={fi} onBlur={fo}/>
-          {err && <p style={{ color:'#ef4444', fontSize:12 }}>⚠️ {err}</p>}
+          {err && <p style={{ display:'flex', alignItems:'center', gap:6, color:'var(--danger)', fontSize:12 }}><NavIcon name="warning" size={13} color="var(--danger)" />{err}</p>}
         </div>
-        <div style={{ padding:'14px 22px', borderTop:'1px solid #e2e8f0', display:'flex', gap:10, justifyContent:'flex-end', background:'#f8fafc' }}>
-          <button onClick={onClose} style={{ padding:'9px 16px', borderRadius:9, border:'1px solid #e2e8f0', background:'#fff', color:'#0f172a', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:FONT }}>Cancel</button>
+        <div style={{ padding:'14px 22px', borderTop:'1px solid var(--border)', display:'flex', gap:10, justifyContent:'flex-end', background:'var(--bg)' }}>
+          <button onClick={onClose} style={{ padding:'9px 16px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)' }}>Cancel</button>
           <button onClick={submit} disabled={busy}
-            style={{ padding:'9px 20px', borderRadius:9, border:'none', background:busy?'#94a3b8':`linear-gradient(135deg,${T},${T2})`, color:'#fff', fontSize:12, fontWeight:700, cursor:busy?'not-allowed':'pointer', fontFamily:FONT }}>
-            {busy?'⏳…':'✓ Update'}
+            style={{ display:'flex', alignItems:'center', gap:6, padding:'9px 20px', borderRadius:'var(--r-md)', border:'none', background: busy ? 'var(--text-faint)' : 'linear-gradient(135deg,var(--teal),var(--teal-2))', color:'#fff', fontSize:12, fontWeight:700, cursor: busy ? 'not-allowed' : 'pointer', fontFamily:'var(--font)' }}>
+            <NavIcon name={busy ? 'loading' : 'success'} size={13} color="#fff" style={busy ? { animation:'dt-spin .8s linear infinite' } : undefined} />
+            {busy ? '…' : 'Update'}
           </button>
         </div>
       </motion.div>
@@ -275,80 +306,51 @@ export default function AdminDeliveryTracking() {
   return (
     <>
       <style>{`
-      /* ── Responsive — injected by v10 mobile sweep ── */
-      .adm-stats {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-        gap: 12px;
-        margin-bottom: 20px;
+      @keyframes dt-shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+      @keyframes dt-spin{to{transform:rotate(360deg)}}
+      .dt-stats { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px; margin-bottom:20px; }
+      .dt-wrap  { overflow-x:auto; -webkit-overflow-scrolling:touch; border-radius:var(--r-lg); border:1px solid var(--border); }
+      .dt-wrap table { width:100%; min-width:560px; border-collapse:collapse; }
+      @media (max-width:767px) {
+        .dt-stats { grid-template-columns:1fr 1fr; }
+        .dt-header { flex-direction:column; align-items:stretch !important; }
+        .dt-header button { width:100%; justify-content:center; }
       }
-      .adm-grid-2 {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 16px;
-        align-items: start;
+      @media (min-width:2560px) {
+        .dt-stats { grid-template-columns:repeat(5,1fr); }
       }
-      .adm-filter {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        align-items: center;
-        margin-bottom: 16px;
-      }
-      .adm-filter input,
-      .adm-filter select { flex: 1; min-width: 150px; }
-      .adm-table-wrap {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        border-radius: 12px;
-        border: 1px solid #e2e8f0;
-      }
-      .adm-table-wrap table { width: 100%; min-width: 520px; border-collapse: collapse; }
-      /* ── TABLET 768–1023px ── */
-      @media (max-width: 1023px) {
-        .adm-grid-2 { grid-template-columns: 1fr; gap: 14px; }
-      }
-      /* ── MOBILE ≤ 767px ── */
-      @media (max-width: 767px) {
-        .adm-stats { grid-template-columns: 1fr 1fr; gap: 10px; }
-        .adm-grid-2 { grid-template-columns: 1fr; gap: 12px; }
-        .adm-filter { flex-direction: column; }
-        .adm-filter input,
-        .adm-filter select { min-width: 0; width: 100%; }
-        .adm-mob-hide { display: none !important; }
-      }
-@keyframes sk{0%{background-position:-400px 0}100%{background-position:400px 0}}`}</style>
+      `}</style>
 
       {modal?.type === 'delivered' && (
         <MarkDeliveredModal delivery={modal.delivery}
-          onClose={()=>setModal(null)} onDone={()=>{ setModal(null); load(); }}/>
+          onClose={()=>setModal(null)} onDone={()=>{ setModal(null); load(true); }}/>
       )}
       {modal?.type === 'status' && (
         <UpdateStatusModal delivery={modal.delivery}
-          onClose={()=>setModal(null)} onDone={()=>{ setModal(null); load(); }}/>
+          onClose={()=>setModal(null)} onDone={()=>{ setModal(null); load(true); }}/>
       )}
 
       {/* Header */}
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:20, flexWrap:'wrap', gap:12 }}>
+      <div className="dt-header" style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:20, flexWrap:'wrap', gap:12, fontFamily:'var(--font)' }}>
         <div>
-          <h1 style={{ fontSize:22, fontWeight:800, color:'#0f172a', margin:'0 0 4px' }}>Delivery Tracking</h1>
-          <p style={{ color:'#64748b', fontSize:13, margin:0 }}>SAP VL01N · {deliveries.length} total deliveries</p>
+          <h1 style={{ fontSize:22, fontWeight:800, color:'var(--ink)', margin:'0 0 4px' }}>Delivery Tracking</h1>
+          <p style={{ color:'var(--text-subtle)', fontSize:13, margin:0 }}>{deliveries.length} total deliveries</p>
         </div>
-        <button onClick={load}
-          style={{ padding:'9px 18px', borderRadius:10, border:'1px solid #e2e8f0', background:'#fff', color:'#0f172a', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:FONT }}>
-          ⟳ Refresh
+        <button onClick={()=>load(true)}
+          style={{ display:'flex', alignItems:'center', gap:6, padding:'9px 18px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)' }}>
+          <NavIcon name="refresh" size={13} color="var(--ink)" /> Refresh
         </button>
       </div>
 
       {/* Summary cards */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))', gap:10, marginBottom:20 }}>
+      <div className="dt-stats">
         {Object.entries(DEL_CFG).map(([k,cfg]) => (
           <button key={k} onClick={()=>setFilter(k===filter?'all':k)}
-            style={{ padding:'12px 14px', borderRadius:12, border:`1px solid ${filter===k?cfg.c+'40':'#e2e8f0'}`, background:filter===k?cfg.bg:'#fff', cursor:'pointer', textAlign:'left', fontFamily:FONT, transition:'all .14s' }}>
-            <p style={{ fontSize:20, fontWeight:800, color:filter===k?cfg.c:'#0f172a', margin:'0 0 3px' }}>
+            style={{ padding:'12px 14px', borderRadius:'var(--r-lg)', border:`1px solid ${filter===k?cfg.c:'var(--border)'}`, background: filter===k ? cfg.bg : 'var(--bg-card)', cursor:'pointer', textAlign:'left', fontFamily:'var(--font)', transition:'all .14s' }}>
+            <p style={{ fontSize:20, fontWeight:800, color: filter===k ? cfg.c : 'var(--ink)', margin:'0 0 3px' }}>
               {counts[k] ?? 0}
             </p>
-            <p style={{ fontSize:11, color:'#64748b', margin:0 }}>{cfg.l}</p>
+            <p style={{ fontSize:11, color:'var(--text-subtle)', margin:0 }}>{cfg.l}</p>
           </button>
         ))}
       </div>
@@ -356,11 +358,11 @@ export default function AdminDeliveryTracking() {
       {/* Filter tabs */}
       <div style={{ display:'flex', gap:6, marginBottom:16, flexWrap:'wrap' }}>
         {['all', ...Object.keys(DEL_CFG)].map(s => {
-          const cfg = DEL_CFG[s] ?? { l:'All', c:'#64748b', bg:'#f1f5f9' };
+          const cfg = DEL_CFG[s] ?? { l:'All', c:'var(--text-subtle)', bg:'var(--bg-surface)' };
           const act = filter === s;
           return (
             <button key={s} onClick={()=>setFilter(s)}
-              style={{ padding:'7px 13px', borderRadius:9, border:`1px solid ${act?cfg.c+'40':'#e2e8f0'}`, background:act?cfg.bg:'#fff', color:act?cfg.c:'#64748b', fontSize:11, fontWeight:act?700:500, cursor:'pointer', fontFamily:FONT, whiteSpace:'nowrap' }}>
+              style={{ padding:'7px 13px', borderRadius:'var(--r-md)', border:`1px solid ${act?cfg.c:'var(--border)'}`, background:act?cfg.bg:'var(--bg-card)', color:act?cfg.c:'var(--text-subtle)', fontSize:11, fontWeight:act?700:500, cursor:'pointer', fontFamily:'var(--font)', whiteSpace:'nowrap' }}>
               {s === 'all' ? 'All' : cfg.l}
               {s!=='all' && counts[s]>0 && <span style={{ marginLeft:5, fontSize:9, opacity:.7 }}>({counts[s]})</span>}
             </button>
@@ -369,19 +371,19 @@ export default function AdminDeliveryTracking() {
       </div>
 
       {/* Table */}
-      <div style={{ background:'#fff', border:'1px solid #e2e8f0', borderRadius:14, overflow:'hidden', boxShadow:'0 1px 3px rgba(0,0,0,.05)' }}>
-        <table style={{ width:'100%', borderCollapse:'collapse' }}>
+      <div className="dt-wrap" style={{ background:'var(--bg-card)', boxShadow:'var(--shadow-xs)' }}>
+        <table>
           <thead>
-            <tr style={{ background:'#f8fafc' }}>
-              {['Tracking #','Order','Customer','Scheduled','Address','Status','Actions'].map(h=>(
-                <th key={h} style={{ padding:'10px 14px', textAlign:'left', fontSize:10, fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'.06em', borderBottom:'2px solid #e2e8f0', whiteSpace:'nowrap' }}>{h}</th>
+            <tr style={{ background:'var(--bg)' }}>
+              {['Tracking #','Order','Client','Scheduled','Address','Status','Actions'].map(h=>(
+                <th key={h} style={{ padding:'10px 14px', textAlign:'left', fontSize:10, fontWeight:700, color:'var(--text-subtle)', textTransform:'uppercase', letterSpacing:'.06em', borderBottom:'2px solid var(--border)', whiteSpace:'nowrap' }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {loading ? (
               Array(4).fill(0).map((_,i) => (
-                <tr key={i} style={{ borderBottom:'1px solid #f1f5f9' }}>
+                <tr key={i} style={{ borderBottom:'1px solid var(--bg-surface)' }}>
                   {Array(7).fill(0).map((_,j) => (
                     <td key={j} style={{ padding:'12px 14px' }}>
                       <div style={{ ...SK, height:10, width:'70%' }}/>
@@ -391,9 +393,9 @@ export default function AdminDeliveryTracking() {
               ))
             ) : filtered.length === 0 ? (
               <tr><td colSpan={7} style={{ padding:'50px', textAlign:'center' }}>
-                <p style={{ fontSize:36, margin:'0 0 12px', opacity:.3 }}>🚚</p>
-                <p style={{ color:'#64748b', fontSize:13, fontWeight:600 }}>No deliveries found</p>
-                <p style={{ color:'#94a3b8', fontSize:12, margin:'4px 0 0' }}>Deliveries are auto-created when orders reach Packing stage.</p>
+                <NavIcon name="delivery" size={36} color="var(--text-faint)" style={{ marginBottom:12 }} />
+                <p style={{ color:'var(--text-subtle)', fontSize:13, fontWeight:600 }}>No deliveries found</p>
+                <p style={{ color:'var(--text-faint)', fontSize:12, margin:'4px 0 0' }}>Deliveries are auto-created when orders reach Packing stage.</p>
               </td></tr>
             ) : filtered.map((d, i) => {
               // FIX: use delivery_status not status
@@ -401,37 +403,37 @@ export default function AdminDeliveryTracking() {
               const cfg = DEL_CFG[ds] ?? DEL_CFG.preparing;
               const isDone = ds === 'delivered';
               return (
-                <tr key={d.tracking_id ?? i} style={{ borderBottom:'1px solid #f1f5f9' }}
-                  onMouseEnter={e=>e.currentTarget.style.background='#f8fafc'}
+                <tr key={d.tracking_id ?? i} style={{ borderBottom:'1px solid var(--bg-surface)' }}
+                  onMouseEnter={e=>e.currentTarget.style.background='var(--bg)'}
                   onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                  <td style={{ padding:'11px 14px', fontSize:12, fontWeight:700, color:T }}>
+                  <td style={{ padding:'11px 14px', fontSize:12, fontWeight:700, color:'var(--teal)' }}>
                     #{d.tracking_id}
                   </td>
-                  <td style={{ padding:'11px 14px', fontSize:12, fontWeight:600, color:'#0f172a' }}>
+                  <td style={{ padding:'11px 14px', fontSize:12, fontWeight:600, color:'var(--ink)' }}>
                     #{d.order_id}
                   </td>
-                  <td style={{ padding:'11px 14px', fontSize:12, color:'#0f172a' }}>
+                  <td style={{ padding:'11px 14px', fontSize:12, color:'var(--ink)' }}>
                     {/* FIX: backend returns flat customer_name (joined from users),
                         there is no nested d.order.user — that always resolved
                         to undefined and silently showed '—' for every row. */}
                     {d.customer_name ?? '—'}
                   </td>
-                  <td style={{ padding:'11px 14px', fontSize:11, color:'#64748b', whiteSpace:'nowrap' }}>
+                  <td style={{ padding:'11px 14px', fontSize:11, color:'var(--text-subtle)', whiteSpace:'nowrap' }}>
                     {d.estimated_delivery_date
                       ? new Date(d.estimated_delivery_date).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})
                       : d.expected_delivery_date
                       ? new Date(d.expected_delivery_date).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})
                       : '—'}
                   </td>
-                  <td style={{ padding:'11px 14px', fontSize:11, color:'#64748b', maxWidth:160, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                  <td style={{ padding:'11px 14px', fontSize:11, color:'var(--text-subtle)', maxWidth:160, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                     {d.delivery_address ?? d.customer_address ?? '—'}
                   </td>
                   <td style={{ padding:'11px 14px' }}>
-                    <span style={{ padding:'4px 10px', borderRadius:99, fontSize:10, fontWeight:700, background:cfg.bg, color:cfg.c }}>
+                    <span style={{ padding:'4px 10px', borderRadius:'var(--r-full)', fontSize:10, fontWeight:700, background:cfg.bg, color:cfg.c }}>
                       {cfg.l}
                     </span>
                     {d.actual_delivery_date && (
-                      <p style={{ fontSize:9, color:'#94a3b8', margin:'3px 0 0' }}>
+                      <p style={{ fontSize:9, color:'var(--text-faint)', margin:'3px 0 0' }}>
                         {new Date(d.actual_delivery_date).toLocaleDateString('en-PH',{month:'short',day:'numeric'})}
                       </p>
                     )}
@@ -441,17 +443,19 @@ export default function AdminDeliveryTracking() {
                       {!isDone && (
                         <>
                           <button onClick={()=>setModal({ type:'status', delivery:d })}
-                            style={{ padding:'5px 10px', borderRadius:8, border:'1px solid #e2e8f0', background:'#f8fafc', color:'#0f172a', fontSize:11, fontWeight:600, cursor:'pointer', fontFamily:FONT }}>
+                            style={{ padding:'5px 10px', borderRadius:'var(--r-sm)', border:'1px solid var(--border)', background:'var(--bg)', color:'var(--ink)', fontSize:11, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)' }}>
                             Update
                           </button>
                           <button onClick={()=>setModal({ type:'delivered', delivery:d })}
-                            style={{ padding:'5px 10px', borderRadius:8, border:'none', background:'linear-gradient(135deg,#22c55e,#16a34a)', color:'#fff', fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:FONT }}>
-                            ✓ Delivered
+                            style={{ display:'flex', alignItems:'center', gap:4, padding:'5px 10px', borderRadius:'var(--r-sm)', border:'none', background:'var(--success)', color:'#fff', fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'var(--font)' }}>
+                            <NavIcon name="success" size={11} color="#fff" /> Delivered
                           </button>
                         </>
                       )}
                       {isDone && (
-                        <span style={{ fontSize:11, color:'#22c55e', fontWeight:700 }}>✓ Done</span>
+                        <span style={{ display:'flex', alignItems:'center', gap:4, fontSize:11, color:'var(--success)', fontWeight:700 }}>
+                          <NavIcon name="success" size={11} color="var(--success)" /> Done
+                        </span>
                       )}
                     </div>
                   </td>

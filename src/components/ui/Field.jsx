@@ -8,6 +8,14 @@
 // page individually. This component is the single implementation; pages
 // import it instead of re-declaring the same style objects.
 //
+// BUG FIX (Sept 6 2026, caught before this file was ever wired into a
+// page): same class of bug as Button.jsx alongside this one — every
+// var(--color-*) / var(--radius-md) reference below pointed at custom
+// properties that don't exist anywhere in theme.css. Remapped to the real
+// tokens. Unlike Button.jsx's disabled-background case, every reference
+// here maps cleanly to a real, semantically-correct token — no judgment
+// calls needed in this file.
+//
 // Usage:
 //   <Field label="Contact Number" value={form.contact_number}
 //     onChange={e => set('contact_number', e.target.value)}
@@ -21,15 +29,17 @@
 import { useState } from 'react';
 
 export default function Field({
-  as = 'input', label, error, disabled, style, children, ...rest
+  as = 'input', label, error, disabled, style, children, id, ...rest
 }) {
   const [focused, setFocused] = useState(false);
+  // Auto id from label text when the caller doesn't pass one — keeps existing call sites working unchanged.
+  const fieldId = id ?? (label ? `f-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}` : undefined);
 
   const inputStyle = {
-    width: '100%', padding: '11px 14px', borderRadius: 'var(--radius-md)',
-    border: `1px solid ${error ? 'var(--color-danger)' : focused ? 'var(--color-teal)' : 'var(--color-border)'}`,
-    background: disabled ? 'var(--color-surface)' : 'var(--color-card)',
-    color: disabled ? 'var(--color-faint)' : 'var(--color-text)',
+    width: '100%', padding: '11px 14px', borderRadius: 'var(--r-md)',
+    border: `1px solid ${error ? 'var(--danger)' : focused ? 'var(--teal)' : 'var(--border)'}`,
+    background: disabled ? 'var(--bg-surface)' : 'var(--bg-card)',
+    color: disabled ? 'var(--text-faint)' : 'var(--ink)',
     fontSize: 13, outline: 'none', boxSizing: 'border-box',
     boxShadow: focused && !error ? '0 0 0 3px rgba(2,128,144,.10)' : 'none',
     transition: 'border-color .15s, box-shadow .15s',
@@ -42,15 +52,16 @@ export default function Field({
   return (
     <div>
       {label && (
-        <label style={{
+        <label htmlFor={fieldId} style={{
           display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
-          letterSpacing: '.07em', color: 'var(--color-muted)', marginBottom: 7,
+          letterSpacing: '.07em', color: 'var(--text-muted)', marginBottom: 7,
         }}>
           {label}
         </label>
       )}
       {as === 'input' ? (
         <input
+          id={fieldId}
           disabled={disabled}
           style={inputStyle}
           onFocus={() => setFocused(true)}
@@ -59,6 +70,7 @@ export default function Field({
         />
       ) : (
         <Tag
+          id={fieldId}
           disabled={disabled}
           style={inputStyle}
           onFocus={() => setFocused(true)}
@@ -68,7 +80,7 @@ export default function Field({
         </Tag>
       )}
       {error && (
-        <p style={{ fontSize: 11, color: 'var(--color-danger)', margin: '5px 0 0' }}>
+        <p style={{ fontSize: 11, color: 'var(--danger)', margin: '5px 0 0' }}>
           {error}
         </p>
       )}

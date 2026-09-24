@@ -13,7 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import MarketingNav from '../components/MarketingNav';
 import Footer from '../components/Footer';
 
-const T = { teal: '#028090', accent: '#02C39A', dark: '#06101a' };
+const T = { teal: 'var(--teal)', accent: 'var(--teal-2)', dark: 'var(--bg-surface)' };
 
 const FAQS = [
   {
@@ -60,12 +60,12 @@ const FAQS = [
 
 function FAQItem({ q, a, open, onToggle }) {
   return (
-    <div style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+    <div style={{ borderBottom: '1px solid rgba(15,23,42,0.07)' }}>
       <button onClick={onToggle}
         style={{
           width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           gap: 16, background: 'none', border: 'none', cursor: 'pointer', padding: '20px 0',
-          textAlign: 'left', color: '#fff', fontFamily: 'var(--font)',
+          textAlign: 'left', color: 'var(--ink)', fontFamily: 'var(--font)',
         }}>
         <span style={{ fontSize: 15, fontWeight: 600 }}>{q}</span>
         <span style={{
@@ -79,7 +79,7 @@ function FAQItem({ q, a, open, onToggle }) {
         {open && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.25 }} style={{ overflow: 'hidden' }}>
-            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, lineHeight: 1.7, paddingBottom: 20 }}>
+            <p style={{ color: 'rgba(15,23,42,0.5)', fontSize: 14, lineHeight: 1.7, paddingBottom: 20 }}>
               {a}
             </p>
           </motion.div>
@@ -93,15 +93,17 @@ export default function FAQ() {
   const [openIdx, setOpenIdx] = useState(0);
 
   return (
-    <div style={{ fontFamily: 'var(--font)', background: T.dark, color: '#fff', minHeight: '100vh' }}>
+    <div style={{ fontFamily: 'var(--font)', background: T.dark, color: 'var(--ink)', minHeight: '100vh' }}>
       <style>{`
         *,*::before,*::after{box-sizing:border-box;}
         body{margin:0;background:${T.dark};}
+        .faq-wrap { padding:48px 18px 32px; }
+        @media (min-width:640px) { .faq-wrap { padding:64px 24px 40px; } }
       `}</style>
 
       <MarketingNav/>
 
-      <div style={{ maxWidth: 760, margin: '0 auto', padding: '64px 24px 40px' }}>
+      <div className="faq-wrap" style={{ maxWidth: 760, margin: '0 auto' }}>
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <p style={{ color: T.accent, fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
             FAQ
@@ -109,7 +111,7 @@ export default function FAQ() {
           <h1 style={{ fontFamily: "Georgia,'Times New Roman',serif", fontSize: 'clamp(28px,4vw,40px)', fontWeight: 700, marginBottom: 14, lineHeight: 1.15 }}>
             Frequently asked questions
           </h1>
-          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 15, lineHeight: 1.7, maxWidth: 600 }}>
+          <p style={{ color: 'rgba(15,23,42,0.5)', fontSize: 15, lineHeight: 1.7, maxWidth: 600 }}>
             Answers about how the ordering, design, and tracking system works.
           </p>
         </motion.div>
@@ -118,7 +120,7 @@ export default function FAQ() {
           marginTop: 28, padding: '14px 18px', borderRadius: 12,
           background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)',
         }}>
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6 }}>
+          <p style={{ fontSize: 13, color: 'rgba(15,23,42,0.6)', lineHeight: 1.6 }}>
             Note: questions about pricing, minimum order quantity, lead/turnaround time, and payment or
             cancellation policy aren\u2019t listed here yet — those need VFRB\u2019s confirmed business answers
             before publishing. Please contact VFRB Enterprise directly for those details in the meantime.
@@ -132,7 +134,7 @@ export default function FAQ() {
         </div>
       </div>
 
-      <Footer/>
+      <Footer light/>
     </div>
   );
 }

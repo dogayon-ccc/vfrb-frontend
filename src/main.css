@@ -1,6 +1,4 @@
-/* src/main.css — VFRB Enterprise */
-/* Tailwind v4 CSS-first configuration */
-/* Task FF-2: Design Tokens — expanded breakpoints, new sidebar tokens, DM Sans removed */
+/* src/main.css — VFRB Enterprise, Tailwind v4 CSS-first config */
 @import "tailwindcss";
 
 /* ── VFRB Design Tokens (Tailwind v4 @theme block) ──────────────────────────
@@ -30,7 +28,7 @@
   --color-card:         #ffffff;
   --color-border:       #e2e8f0;
   --color-text:         #0f172a;
-  --color-muted:        #64748b;
+  --color-muted:        #475569;
   --color-faint:        #94a3b8;
   --color-ink:          #0f172a;
 
@@ -112,7 +110,7 @@ body {
   z-index: 100;
   background: var(--color-card);
   border-right: 1px solid var(--color-border);
-  display: flex;
+  display: none;
   flex-direction: column;
   overflow: hidden;
   box-shadow: 2px 0 12px rgba(0, 0, 0, 0.05);
@@ -139,13 +137,13 @@ body {
 
 /* Sticky topbar */
 .vfrb-topbar {
-  height: 54px;
+  height: 52px;
   flex-shrink: 0;
   background: var(--color-card);
   border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: center;
-  padding: 0 22px;
+  padding: 0 14px;
   gap: 12px;
   position: sticky;
   top: 0;
@@ -158,16 +156,7 @@ body {
   flex: 1;
   width: 100%;
   min-width: 0;
-  padding: 22px 22px 72px;
-}
-
-/* 4K: center content with max-width */
-@media (min-width: 2560px) {
-  .vfrb-content {
-    max-width: var(--content-max);
-    margin: 0 auto;
-    padding: 28px 32px 80px;
-  }
+  padding: 14px 14px 84px;
 }
 
 
@@ -224,7 +213,7 @@ body {
 /* ── Mobile bottom taskbar ───────────────────────────────────────────────── */
 
 .vfrb-taskbar {
-  display: none;
+  display: flex;
   position: fixed;
   bottom: 0; left: 0; right: 0;
   z-index: 200;
@@ -331,37 +320,28 @@ body {
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   RESPONSIVE LAYOUT RULES
+   RESPONSIVE LAYOUT RULES (mobile-first — base rules above are the phone layout)
    5 breakpoints — each with a UNIQUE layout per the master plan.
 
    These rules control the SHELL (sidebar + main + taskbar).
    Content grids (grid-2, grid-3, stat-row) are overridden in theme.css.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ── Mobile ≤ 767px ─────────────────────────────────────────────────────── */
+/* ── Mobile ≤ 767px (base, above) — sidebar hidden, bottom taskbar shown ── */
+/* margin-left is set inline by the consuming layout (desktop sidebar width) —
+   CSS can only zero it out for mobile, not author it mobile-first. */
 @media (max-width: 767px) {
-  /* Sidebar: hidden, replaced by bottom taskbar */
-  .vfrb-sidebar  { display: none !important; }
-  .vfrb-main     { margin-left: 0 !important; }
-  .vfrb-taskbar  { display: flex; }
-
-  /* Content: less padding, extra bottom for taskbar */
-  .vfrb-content  { padding: 14px 14px 84px; }
-  .vfrb-topbar   { padding: 0 14px; height: 52px; }
-
-  /* Visibility shortcuts */
-  .desk-only { display: none !important; }
-  .tab-only  { display: none !important; }
-  .mob-only  { display: revert !important; }
+  .vfrb-main { margin-left: 0 !important; }
 }
+.desk-only { display: none !important; }
+.tab-only  { display: none !important; }
+.mob-only  { display: revert; }
 
 /* ── Tablet 768–1023px ──────────────────────────────────────────────────── */
-@media (min-width: 768px) and (max-width: 1023px) {
-  /* Taskbar: hidden on tablet+, sidebar takes over */
-  .vfrb-taskbar  { display: none !important; }
-
-  /* Content: standard padding */
-  .vfrb-content  { padding: 18px 18px 60px; }
+@media (min-width: 768px) {
+  .vfrb-sidebar { display: flex !important; }
+  .vfrb-taskbar { display: none !important; }
+  .vfrb-content { padding: 18px 18px 60px; }
 
   .mob-only  { display: none  !important; }
   .tab-only  { display: revert !important; }
@@ -370,19 +350,14 @@ body {
 
 /* ── iPad Pro 1024–1279px ───────────────────────────────────────────────── */
 @media (min-width: 1024px) and (max-width: 1279px) {
-  .vfrb-taskbar  { display: none !important; }
-  .vfrb-content  { padding: 20px 20px 60px; }
+  .vfrb-content { padding: 20px 20px 60px; }
 
-  .mob-only  { display: none   !important; }
   .tab-only  { display: none   !important; }
   .desk-only { display: revert !important; }
 }
 
 /* ── Desktop 1280–2559px ────────────────────────────────────────────────── */
 @media (min-width: 1280px) {
-  .vfrb-taskbar  { display: none !important; }
-
-  .mob-only  { display: none   !important; }
   .tab-only  { display: none   !important; }
   .desk-only { display: revert !important; }
 }
@@ -392,6 +367,11 @@ body {
   .vfrb-topbar {
     height: 60px;
     padding: 0 32px;
+  }
+  .vfrb-content {
+    max-width: var(--content-max);
+    margin: 0 auto;
+    padding: 28px 32px 80px;
   }
 }
 

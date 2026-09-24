@@ -32,7 +32,7 @@ export default defineConfig(({ mode }) => ({
     // any existing component or page.
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg", "apple-touch-icon.png"],
+      includeAssets: ["favicon.svg", "favicon-16x16.png", "favicon-32x32.png", "favicon-48x48.png", "apple-touch-icon.png"],
       manifest: {
         name: "VFRB Enterprise",
         short_name: "VFRB",

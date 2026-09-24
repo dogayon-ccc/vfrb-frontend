@@ -1,18 +1,9 @@
-// src/pages/PrivacyPolicy.jsx
-// VFRB Enterprise — Privacy Policy
-//
-// Grounded ONLY in what this system actually collects and does — checked
-// against the real users table schema (vfrb_db.sql) and controllers
-// before writing a single claim here. No invented third-party sharing,
-// no invented analytics/tracking, no invented cookie categories — if a
-// future feature adds any of those, this page must be updated alongside
-// it, same discipline as Guide.jsx.
-
+// src/pages/PrivacyPolicy.jsx — VFRB Enterprise Privacy Policy, grounded in the real schema/controllers.
 import { motion } from 'framer-motion';
 import MarketingNav from '../components/MarketingNav';
 import Footer from '../components/Footer';
 
-const T = { teal: '#028090', accent: '#02C39A', dark: '#06101a' };
+const T = { teal: 'var(--teal)', accent: 'var(--teal-2)', dark: 'var(--bg-surface)' };
 
 const SECTIONS = [
   {
@@ -77,12 +68,16 @@ const SECTIONS = [
 
 export default function PrivacyPolicy() {
   return (
-    <div style={{ fontFamily: 'var(--font)', background: T.dark, color: '#fff', minHeight: '100vh' }}>
-      <style>{`*,*::before,*::after{box-sizing:border-box;} body{margin:0;background:${T.dark};}`}</style>
+    <div style={{ fontFamily: 'var(--font)', background: T.dark, color: 'var(--ink)', minHeight: '100vh' }}>
+      <style>{`
+        *,*::before,*::after{box-sizing:border-box;} body{margin:0;background:${T.dark};}
+        .pp-wrap { padding:48px 18px 32px; }
+        @media (min-width:640px) { .pp-wrap { padding:64px 24px 40px; } }
+      `}</style>
 
       <MarketingNav/>
 
-      <div style={{ maxWidth: 800, margin: '0 auto', padding: '64px 24px 40px' }}>
+      <div className="pp-wrap" style={{ maxWidth: 800, margin: '0 auto' }}>
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <p style={{ color: T.accent, fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
             Legal
@@ -90,14 +85,14 @@ export default function PrivacyPolicy() {
           <h1 style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontSize: 'clamp(28px,4vw,42px)', margin: '0 0 8px' }}>
             Privacy Policy
           </h1>
-          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, margin: '0 0 40px' }}>
+          <p style={{ color: 'rgba(15,23,42,0.5)', fontSize: 13, margin: '0 0 40px' }}>
             Last updated: August 28, 2026
           </p>
 
           {SECTIONS.map((s, i) => (
             <div key={i} style={{ marginBottom: 32 }}>
               <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 10 }}>{s.title}</h2>
-              <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 14, lineHeight: 1.7, whiteSpace: 'pre-line' }}>
+              <p style={{ color: 'rgba(15,23,42,0.75)', fontSize: 14, lineHeight: 1.7, whiteSpace: 'pre-line' }}>
                 {s.body}
               </p>
             </div>
@@ -105,7 +100,7 @@ export default function PrivacyPolicy() {
         </motion.div>
       </div>
 
-      <Footer/>
+      <Footer light/>
     </div>
   );
 }

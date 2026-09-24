@@ -25,9 +25,20 @@
 
 const DEV_BACKEND_ORIGIN = 'http://vfrb-capstone.test';
 
+// FIX (Task B, Aug 31 2026): the backend now resolves design_ref_file to a
+// real URL server-side (OrderController::resolveDesignRefUrl(), mirroring
+// SettingsController's logo_url pattern) instead of returning a bare path
+// for this component to reconstruct. That resolved value is a full,
+// absolute URL once Cloudinary is configured — pass it through unchanged.
+// The relative-path branch below stays as a fallback for any order rows
+// created before this fix, where client_design_ref_file may still be a
+// bare local-disk path (e.g. "design-refs/xxxxx.jpg") in the database.
 export function getStorageUrl(path) {
   if (!path) return null;
-  const clean = String(path).replace(/^\/+/, ''); // strip any leading slash
+  const raw = String(path);
+  if (/^https?:\/\//i.test(raw)) return raw;
+
+  const clean = raw.replace(/^\/+/, ''); // strip any leading slash
 
   const apiUrl = import.meta.env.VITE_API_URL;
   const origin = apiUrl

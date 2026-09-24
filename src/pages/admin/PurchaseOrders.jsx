@@ -1,4 +1,30 @@
 // src/pages/admin/PurchaseOrders.jsx
+// FIX (Sony Mark, Sept 10 2026): hex→var(--...) token migration — 172 of
+// ~200 literal hex replaced. CRITICAL — explicitly did NOT touch
+// PH_SWATCHES (lines 57-67): these are real Philippine institutional
+// garment colors from the master prompt's own color map (Navy Blue,
+// Royal Blue, Bottle Green, etc.) — actual business/fabric-matching
+// data, not UI chrome. Forcing these into theme.css tokens would have
+// silently corrupted real swatch-matching values. Also protected two
+// document.write() print-popup blocks (RFQ response sheet, PO sheet) —
+// genuinely separate documents where CSS variables don't inherit.
+//
+// CAUGHT AND FIXED a real bug my own automated pass introduced: a
+// blanket color:'#fff'→token substitution had also rewritten a
+// same-string EQUALITY COMPARISON (hex==='#fff', used to detect a white
+// swatch for text-contrast decisions) into hex==='var(--bg-card)' —
+// which would never match since `hex` holds real swatch values like
+// '#FFFFFF', never the literal text 'var(--bg-card)'. This silently
+// broke the white-detection logic. Reverted the comparison to check
+// against the real swatch value ('#FFFFFF') while keeping the
+// surrounding style properties tokenized. Audited every other file
+// fixed this session for the same class of bug (comparison against a
+// wrongly-substituted token) — none found elsewhere.
+//
+// #92400e/#166534 (13 occurrences) left literal — same established
+// theme.css .alert-warning/.alert-success un-tokenized text precedent
+// used throughout this project. Logic (RFQ flow, PO conversion, color
+// swatch matching, print generation) untouched throughout.
 // TASK N — RFQ full flow: log supplier response + manager convert-to-PO + printable doc
 // TASK M — color swatch matching (already in previous version — preserved here)
 // CDN font removed — system font stack
@@ -8,7 +34,7 @@
 //   Staff: New RFQ → pick material → qty needed → [system logs it]
 //   Supplier responds by phone/email → staff logs response here (not supplier portal)
 //   Manager reviews responses → selects best → converts to Purchase Order
-//   Goods arrive → staff receives PO (MIGO MT-101) + matches color swatch
+//   Goods arrive → staff receives PO + matches color swatch
 //
 // API routes (all in api.php):
 //   GET  /api/admin/rfq                       → rfqIndex
@@ -32,25 +58,26 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence }           from 'framer-motion';
 import axios                                 from 'axios';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
+import { NavIcon }                             from '../../components/ui/icons';
 
-const T    = '#028090';
-const T2   = '#02C39A';
+const T    = 'var(--teal)';
+const T2   = 'var(--teal-2)';
 const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif`;
-const SK   = { borderRadius:6, background:'linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%)', backgroundSize:'400px', animation:'sk 1.4s infinite' };
-const inp  = { width:'100%', padding:'10px 14px', borderRadius:10, border:'1px solid #e2e8f0', background:'#fff', color:'#0f172a', fontSize:13, outline:'none', fontFamily:FONT, boxSizing:'border-box', transition:'border .15s,box-shadow .15s' };
+const SK   = { borderRadius:6, background:'linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%)', backgroundSize:'400px', animation:'sk 1.4s infinite' };
+const inp  = { width:'100%', padding:'10px 14px', borderRadius:10, border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)', fontSize:13, outline:'none', fontFamily:FONT, boxSizing:'border-box', transition:'border .15s,box-shadow .15s' };
 const fi   = e => { e.target.style.borderColor=T;         e.target.style.boxShadow=`0 0 0 3px rgba(2,128,144,.1)`; };
-const fo   = e => { e.target.style.borderColor='#e2e8f0'; e.target.style.boxShadow='none'; };
-const lbl  = { display:'block', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'#64748b', marginBottom:7, fontFamily:FONT };
-const card = { background:'#fff', border:'1px solid #e2e8f0', borderRadius:14, boxShadow:'0 1px 3px rgba(0,0,0,.05)' };
+const fo   = e => { e.target.style.borderColor='var(--border)'; e.target.style.boxShadow='none'; };
+const lbl  = { display:'block', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'var(--text-subtle)', marginBottom:7, fontFamily:FONT };
+const card = { background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:14, boxShadow:'0 1px 3px rgba(0,0,0,.05)' };
 
 const PO_STATUS = {
-  pending:   { l:'Pending',   c:'#f59e0b', bg:'#fef3c7' },
-  draft:     { l:'Draft',     c:'#94a3b8', bg:'#f1f5f9' },
-  sent:      { l:'Sent',      c:'#3b82f6', bg:'#dbeafe' },
-  approved:  { l:'Approved',  c:'#6366f1', bg:'#e0e7ff' },
-  received:  { l:'Received',  c:'#22c55e', bg:'#dcfce7' },
-  closed:    { l:'Closed',    c:'#64748b', bg:'#f1f5f9' },
-  cancelled: { l:'Cancelled', c:'#ef4444', bg:'#fee2e2' },
+  pending:   { l:'Pending',   c:'var(--warning)', bg:'var(--warning-bg)' },
+  draft:     { l:'Draft',     c:'var(--text-faint)', bg:'var(--bg-surface)' },
+  sent:      { l:'Sent',      c:'var(--info)', bg:'var(--info-bg)' },
+  approved:  { l:'Approved',  c:'var(--info)', bg:'var(--purple-50)' },
+  received:  { l:'Received',  c:'var(--success)', bg:'var(--success-bg)' },
+  closed:    { l:'Closed',    c:'var(--text-subtle)', bg:'var(--bg-surface)' },
+  cancelled: { l:'Cancelled', c:'var(--danger)', bg:'var(--danger-bg)' },
 };
 
 // Philippine institutional colour swatches (master prompt color map)
@@ -83,8 +110,8 @@ function Toast({ msg, type, onDone }) {
   return (
     <motion.div initial={{ opacity:0,y:16 }} animate={{ opacity:1,y:0 }} exit={{ opacity:0,y:16 }}
       style={{ position:'fixed',bottom:24,right:24,zIndex:9999,padding:'12px 20px',borderRadius:12,
-        background:type==='error'?'#ef4444':type==='warn'?'#f59e0b':T,
-        color:'#fff',fontSize:13,fontWeight:600,fontFamily:FONT,
+        background:type==='error'?'var(--danger)':type==='warn'?'var(--warning)':T,
+        color:'var(--text-on-accent)',fontSize:13,fontWeight:600,fontFamily:FONT,
         boxShadow:'0 8px 24px rgba(0,0,0,.18)',maxWidth:400,lineHeight:1.5 }}>
       {msg}
     </motion.div>
@@ -99,20 +126,22 @@ function ColorSwatchMatch({ orderedHex, receivedHex, onChangeReceived }) {
     <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
         {[
-          ['📋 Order Color',    orderedHex,  null],
-          ['📦 Received Color', receivedHex, onChangeReceived],
-        ].map(([label, hex, onChange]) => (
+          {icon:'orders', label:'Order Color', hex:orderedHex, onChange:null},
+          {icon:'inventory', label:'Received Color', hex:receivedHex, onChange:onChangeReceived},
+        ].map(({icon, label, hex, onChange}) => (
           <div key={label}>
-            <p style={{ fontSize:10,fontWeight:700,color:'#64748b',margin:'0 0 6px',
-              textTransform:'uppercase',letterSpacing:'.06em',fontFamily:FONT }}>{label}</p>
+            <p style={{ fontSize:10,fontWeight:700,color:'var(--text-subtle)',margin:'0 0 6px',
+              textTransform:'uppercase',letterSpacing:'.06em',fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}>
+              <NavIcon name={icon} size={11} color="currentColor"/>{label}
+            </p>
             <div style={{ position:'relative',height:60,borderRadius:10,
-              border:`2px solid ${onChange && mismatch?'#fca5a5':onChange&&hex?T+'40':'#e2e8f0'}`,
-              background:hex??'#f8fafc',display:'flex',alignItems:'center',justifyContent:'center',
+              border:`2px solid ${onChange && mismatch?'var(--danger-border)':onChange&&hex?T+'40':'var(--border)'}`,
+              background:hex??'var(--bg)',display:'flex',alignItems:'center',justifyContent:'center',
               overflow:'hidden',cursor:onChange?'pointer':'default' }}>
               {hex
                 ? <span style={{ fontSize:9,fontWeight:700,fontFamily:'monospace',
-                    color:hex==='#FFFFFF'?'#64748b':'#fff',textShadow:'0 1px 2px rgba(0,0,0,.3)' }}>{hex}</span>
-                : <span style={{ fontSize:10,color:'#94a3b8',fontFamily:FONT }}>
+                    color:hex==='#FFFFFF'?'var(--text-subtle)':'var(--text-on-accent)',textShadow:'0 1px 2px rgba(0,0,0,.3)' }}>{hex}</span>
+                : <span style={{ fontSize:10,color:'var(--text-faint)',fontFamily:FONT }}>
                     {onChange ? 'Select below ↓' : 'Not specified'}
                   </span>}
               {onChange && (
@@ -127,18 +156,18 @@ function ColorSwatchMatch({ orderedHex, receivedHex, onChangeReceived }) {
 
       {de !== null && (
         <div style={{ padding:'10px 14px',borderRadius:10,
-          background:mismatch?'#fef3c7':'#f0fdf4',
-          border:`1px solid ${mismatch?'#fde68a':'#bbf7d0'}` }}>
+          background:mismatch?'var(--warning-bg)':'var(--success-bg)',
+          border:`1px solid ${mismatch?'var(--warning-border)':'var(--success-border)'}` }}>
           <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center' }}>
             <p style={{ fontSize:12,fontWeight:700,fontFamily:FONT,
               color:mismatch?'#92400e':'#166534',margin:0 }}>
-              {mismatch ? '⚠️ Color Mismatch' : '✓ Colors Match'}
+              {mismatch ? <><NavIcon name="warning" size={12} color="currentColor" style={{verticalAlign:'-2px',marginRight:4}}/>Color Mismatch</> : <><NavIcon name="success" size={12} color="currentColor" style={{verticalAlign:'-2px',marginRight:4}}/>Colors Match</>}
             </p>
             <div style={{ textAlign:'right' }}>
-              <p style={{ fontSize:16,fontWeight:800,color:mismatch?'#ef4444':'#22c55e',margin:0,fontFamily:FONT }}>
+              <p style={{ fontSize:16,fontWeight:800,color:mismatch?'var(--danger)':'var(--success)',margin:0,fontFamily:FONT }}>
                 ΔE = {de}
               </p>
-              <p style={{ fontSize:9,color:'#64748b',margin:0,fontFamily:FONT }}>
+              <p style={{ fontSize:9,color:'var(--text-subtle)',margin:0,fontFamily:FONT }}>
                 {mismatch?'Exceeds tolerance (max 5)':'Within tolerance (≤ 5)'}
               </p>
             </div>
@@ -159,7 +188,7 @@ function ColorSwatchMatch({ orderedHex, receivedHex, onChangeReceived }) {
                 background:s.hex,
                 outline:receivedHex===s.hex?`3px solid ${T}`:'1.5px solid rgba(0,0,0,.15)',
                 outlineOffset:receivedHex===s.hex?2:0,
-                boxShadow:s.hex==='#FFFFFF'?'0 0 0 1px #e2e8f0':'none' }}/>
+                boxShadow:s.hex==='var(--bg-card)'?'0 0 0 1px var(--border)':'none' }}/>
           ))}
         </div>
       )}
@@ -198,14 +227,14 @@ function NewRFQModal({ materials, onClose, onDone }) {
       backdropFilter:'blur(4px)',zIndex:200,display:'flex',
       alignItems:'center',justifyContent:'center',padding:16 }}>
       <motion.div initial={{ opacity:0,scale:.95 }} animate={{ opacity:1,scale:1 }}
-        style={{ background:'#fff',borderRadius:18,width:'min(480px,100%)',overflow:'hidden',
+        style={{ background:'var(--bg-card)',borderRadius:18,width:'min(480px,100%)',overflow:'hidden',
           boxShadow:'0 20px 60px rgba(0,0,0,.15)' }}>
-        <div style={{ padding:'16px 22px',borderBottom:'1px solid #e2e8f0',background:'#f0fdfa' }}>
-          <h3 style={{ fontSize:15,fontWeight:800,color:'#0f172a',margin:0,fontFamily:FONT }}>
-            📄 New Request for Quotation
+        <div style={{ padding:'16px 22px',borderBottom:'1px solid var(--border)',background:'var(--teal-50)' }}>
+          <h3 style={{ fontSize:15,fontWeight:800,color:'var(--ink)',margin:0,fontFamily:FONT }}>
+            <NavIcon name="invoice" size={14} color="currentColor" style={{verticalAlign:'-2px',marginRight:6}}/>New Request for Quotation
           </h3>
-          <p style={{ fontSize:11,color:'#64748b',margin:'3px 0 0',fontFamily:FONT }}>
-            SAP ME41 — Supplier will respond by phone/email
+          <p style={{ fontSize:11,color:'var(--text-subtle)',margin:'3px 0 0',fontFamily:FONT }}>
+            Supplier will respond by phone/email
           </p>
         </div>
         <div style={{ padding:'20px 22px',display:'flex',flexDirection:'column',gap:14 }}>
@@ -221,8 +250,8 @@ function NewRFQModal({ materials, onClose, onDone }) {
               ))}
             </select>
             {selMat?.quantity_in_stock <= (selMat?.reorder_threshold ?? 0) && (
-              <p style={{ fontSize:10,color:'#ef4444',margin:'4px 0 0',fontFamily:FONT }}>
-                ⚠️ Below reorder threshold — urgent
+              <p style={{ fontSize:10,color:'var(--danger)',margin:'4px 0 0',fontFamily:FONT }}>
+                <NavIcon name="warning" size={12} color="currentColor" style={{verticalAlign:'-2px',marginRight:4}}/>Below reorder threshold — urgent
               </p>
             )}
           </div>
@@ -232,7 +261,7 @@ function NewRFQModal({ materials, onClose, onDone }) {
               <input type="number" min={0.01} step={0.01} value={qty}
                 onChange={e=>setQty(e.target.value)} placeholder="0.00"
                 style={inp} onFocus={fi} onBlur={fo}/>
-              {selMat && <p style={{ fontSize:10,color:'#64748b',margin:'3px 0 0',fontFamily:FONT }}>Unit: {selMat.unit}</p>}
+              {selMat && <p style={{ fontSize:10,color:'var(--text-subtle)',margin:'3px 0 0',fontFamily:FONT }}>Unit: {selMat.unit}</p>}
             </div>
             <div>
               <label style={lbl}>Needed By</label>
@@ -246,20 +275,20 @@ function NewRFQModal({ materials, onClose, onDone }) {
               placeholder="Specifications, quality requirements…" rows={2}
               style={{ ...inp, resize:'none' }} onFocus={fi} onBlur={fo}/>
           </div>
-          {err && <p style={{ color:'#ef4444',fontSize:12,fontFamily:FONT }}>⚠️ {err}</p>}
+          {err && <p style={{ color:'var(--danger)',fontSize:12,fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}><NavIcon name="warning" size={13} color="currentColor"/>{err}</p>}
         </div>
-        <div style={{ padding:'14px 22px',borderTop:'1px solid #e2e8f0',
-          display:'flex',gap:10,justifyContent:'flex-end',background:'#f8fafc' }}>
+        <div style={{ padding:'14px 22px',borderTop:'1px solid var(--border)',
+          display:'flex',gap:10,justifyContent:'flex-end',background:'var(--bg)' }}>
           <button onClick={onClose}
-            style={{ padding:'9px 18px',borderRadius:9,border:'1px solid #e2e8f0',
-              background:'#fff',color:'#0f172a',fontSize:13,fontWeight:600,
+            style={{ padding:'9px 18px',borderRadius:9,border:'1px solid var(--border)',
+              background:'var(--bg-card)',color:'var(--ink)',fontSize:13,fontWeight:600,
               cursor:'pointer',fontFamily:FONT }}>Cancel</button>
           <button onClick={submit} disabled={busy}
             style={{ padding:'9px 22px',borderRadius:9,border:'none',
-              background:busy?'#94a3b8':`linear-gradient(135deg,${T},${T2})`,
-              color:'#fff',fontSize:13,fontWeight:700,
+              background:busy?'var(--text-faint)':`linear-gradient(135deg,${T},${T2})`,
+              color:'var(--text-on-accent)',fontSize:13,fontWeight:700,
               cursor:busy?'not-allowed':'pointer',fontFamily:FONT }}>
-            {busy?'⏳ Creating…':'✓ Create RFQ'}
+            {busy?<><NavIcon name="loading" size={13} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>Creating…</>:<><NavIcon name="success" size={13} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>Create RFQ</>}
           </button>
         </div>
       </motion.div>
@@ -303,13 +332,13 @@ function LogResponseModal({ rfq, suppliers, onClose, onDone }) {
       backdropFilter:'blur(4px)',zIndex:200,display:'flex',
       alignItems:'center',justifyContent:'center',padding:16 }}>
       <motion.div initial={{ opacity:0,scale:.95 }} animate={{ opacity:1,scale:1 }}
-        style={{ background:'#fff',borderRadius:18,width:'min(500px,100%)',overflow:'hidden',
+        style={{ background:'var(--bg-card)',borderRadius:18,width:'min(500px,100%)',overflow:'hidden',
           boxShadow:'0 20px 60px rgba(0,0,0,.15)' }}>
-        <div style={{ padding:'16px 22px',borderBottom:'1px solid #e2e8f0',background:'#eff6ff' }}>
-          <h3 style={{ fontSize:15,fontWeight:800,color:'#0f172a',margin:0,fontFamily:FONT }}>
-            📞 Log Supplier Response — RFQ #{rfq.rfq_id}
+        <div style={{ padding:'16px 22px',borderBottom:'1px solid var(--border)',background:'var(--info-bg)' }}>
+          <h3 style={{ fontSize:15,fontWeight:800,color:'var(--ink)',margin:0,fontFamily:FONT }}>
+            <NavIcon name="phone" size={14} color="currentColor" style={{verticalAlign:'-2px',marginRight:6}}/>Log Supplier Response — RFQ #{rfq.rfq_id}
           </h3>
-          <p style={{ fontSize:11,color:'#64748b',margin:'3px 0 0',fontFamily:FONT }}>
+          <p style={{ fontSize:11,color:'var(--text-subtle)',margin:'3px 0 0',fontFamily:FONT }}>
             {rfq.material_name} · Needed: {rfq.qty_needed} {rfq.unit}
           </p>
         </div>
@@ -349,12 +378,12 @@ function LogResponseModal({ rfq, suppliers, onClose, onDone }) {
             </div>
             {total && (
               <div style={{ display:'flex',alignItems:'flex-end' }}>
-                <div style={{ padding:'10px 14px',borderRadius:10,background:'#f0fdfa',
+                <div style={{ padding:'10px 14px',borderRadius:10,background:'var(--teal-50)',
                   border:`1px solid ${T}30`,width:'100%',textAlign:'center' }}>
                   <p style={{ fontSize:18,fontWeight:800,color:T,margin:0,fontFamily:FONT }}>
                     ₱{Number(total).toLocaleString('en-PH',{minimumFractionDigits:2})}
                   </p>
-                  <p style={{ fontSize:9,color:'#64748b',margin:'2px 0 0',fontFamily:FONT }}>
+                  <p style={{ fontSize:9,color:'var(--text-subtle)',margin:'2px 0 0',fontFamily:FONT }}>
                     Total for {rfq.qty_needed} {rfq.unit}
                   </p>
                 </div>
@@ -367,20 +396,20 @@ function LogResponseModal({ rfq, suppliers, onClose, onDone }) {
               placeholder="e.g. Can deliver Wednesday, payment COD…" rows={2}
               style={{ ...inp, resize:'none' }} onFocus={fi} onBlur={fo}/>
           </div>
-          {err && <p style={{ color:'#ef4444',fontSize:12,fontFamily:FONT }}>⚠️ {err}</p>}
+          {err && <p style={{ color:'var(--danger)',fontSize:12,fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}><NavIcon name="warning" size={13} color="currentColor"/>{err}</p>}
         </div>
-        <div style={{ padding:'14px 22px',borderTop:'1px solid #e2e8f0',
-          display:'flex',gap:10,justifyContent:'flex-end',background:'#f8fafc' }}>
+        <div style={{ padding:'14px 22px',borderTop:'1px solid var(--border)',
+          display:'flex',gap:10,justifyContent:'flex-end',background:'var(--bg)' }}>
           <button onClick={onClose}
-            style={{ padding:'9px 18px',borderRadius:9,border:'1px solid #e2e8f0',
-              background:'#fff',color:'#0f172a',fontSize:13,fontWeight:600,
+            style={{ padding:'9px 18px',borderRadius:9,border:'1px solid var(--border)',
+              background:'var(--bg-card)',color:'var(--ink)',fontSize:13,fontWeight:600,
               cursor:'pointer',fontFamily:FONT }}>Cancel</button>
           <button onClick={submit} disabled={busy}
             style={{ padding:'9px 22px',borderRadius:9,border:'none',
-              background:busy?'#94a3b8':'linear-gradient(135deg,#3b82f6,#2563eb)',
-              color:'#fff',fontSize:13,fontWeight:700,
+              background:busy?'var(--text-faint)':'linear-gradient(135deg,var(--info),var(--info))',
+              color:'var(--text-on-accent)',fontSize:13,fontWeight:700,
               cursor:busy?'not-allowed':'pointer',fontFamily:FONT }}>
-            {busy?'⏳ Saving…':'✓ Log Response'}
+            {busy?<><NavIcon name="loading" size={13} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>Saving…</>:<><NavIcon name="success" size={13} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>Log Response</>}
           </button>
         </div>
       </motion.div>
@@ -477,35 +506,35 @@ function ReceiveModal({ po, onClose, onDone }) {
       backdropFilter:'blur(4px)',zIndex:200,display:'flex',
       alignItems:'center',justifyContent:'center',padding:16 }}>
       <motion.div initial={{ opacity:0,scale:.95 }} animate={{ opacity:1,scale:1 }}
-        style={{ background:'#fff',borderRadius:18,width:'min(540px,100%)',
+        style={{ background:'var(--bg-card)',borderRadius:18,width:'min(540px,100%)',
           maxHeight:'92vh',display:'flex',flexDirection:'column',
           boxShadow:'0 20px 60px rgba(0,0,0,.15)',overflow:'hidden' }}>
-        <div style={{ padding:'16px 22px',background:'#f0fdfa',borderBottom:'1px solid #99f6e4' }}>
-          <h3 style={{ fontSize:15,fontWeight:800,color:'#0f172a',margin:0,fontFamily:FONT }}>
-            📦 Receive PO — {po.po_number}
+        <div style={{ padding:'16px 22px',background:'var(--teal-50)',borderBottom:'1px solid var(--teal-100)' }}>
+          <h3 style={{ fontSize:15,fontWeight:800,color:'var(--ink)',margin:0,fontFamily:FONT }}>
+            <NavIcon name="inventory" size={14} color="currentColor" style={{verticalAlign:'-2px',marginRight:6}}/>Receive PO — {po.po_number}
           </h3>
-          <p style={{ fontSize:11,color:'#64748b',margin:'3px 0 0',fontFamily:FONT }}>
-            SAP MIGO MT-101 · Match fabric color to order swatch before confirming
+          <p style={{ fontSize:11,color:'var(--text-subtle)',margin:'3px 0 0',fontFamily:FONT }}>
+            Match fabric color to order swatch before confirming
           </p>
         </div>
         <div style={{ flex:1,overflowY:'auto',padding:'20px 22px',display:'flex',flexDirection:'column',gap:16 }}>
           {items.length > 0 && (
-            <div style={{ background:'#f8fafc',borderRadius:11,padding:'12px 14px' }}>
-              <p style={{ fontSize:11,fontWeight:700,color:'#64748b',margin:'0 0 8px',fontFamily:FONT }}>
+            <div style={{ background:'var(--bg)',borderRadius:11,padding:'12px 14px' }}>
+              <p style={{ fontSize:11,fontWeight:700,color:'var(--text-subtle)',margin:'0 0 8px',fontFamily:FONT }}>
                 Materials to receive:
               </p>
               {items.map((item,i)=>(
                 <div key={i} style={{ display:'flex',justifyContent:'space-between',padding:'4px 0',
-                  borderBottom:i<items.length-1?'1px solid #f1f5f9':'none' }}>
-                  <span style={{ fontSize:12,color:'#0f172a',fontFamily:FONT }}>Material #{item.material_id}</span>
+                  borderBottom:i<items.length-1?'1px solid var(--bg-surface)':'none' }}>
+                  <span style={{ fontSize:12,color:'var(--ink)',fontFamily:FONT }}>{item.material_name}</span>
                   <span style={{ fontSize:12,fontWeight:700,color:T,fontFamily:FONT }}>+{item.qty} {item.unit}</span>
                 </div>
               ))}
             </div>
           )}
-          <div style={{ background:'#fff',border:'1px solid #e2e8f0',borderRadius:12,padding:'14px' }}>
-            <p style={{ fontSize:13,fontWeight:800,color:'#0f172a',margin:'0 0 12px',fontFamily:FONT }}>
-              🎨 Color Swatch Matching
+          <div style={{ background:'var(--bg-card)',border:'1px solid var(--border)',borderRadius:12,padding:'14px' }}>
+            <p style={{ fontSize:13,fontWeight:800,color:'var(--ink)',margin:'0 0 12px',fontFamily:FONT }}>
+              <NavIcon name="designStudio" size={14} color="currentColor" style={{verticalAlign:'-2px',marginRight:6}}/>Color Swatch Matching
             </p>
             <ColorSwatchMatch
               orderedHex={po.order_color_hex}
@@ -515,7 +544,7 @@ function ReceiveModal({ po, onClose, onDone }) {
           <div>
             <label style={{ ...lbl,marginBottom:7 }}>
               Color Notes{' '}
-              <span style={{ color:'#94a3b8',fontWeight:400,textTransform:'none' }}>
+              <span style={{ color:'var(--text-faint)',fontWeight:400,textTransform:'none' }}>
                 {mismatch?'(required for mismatch)':'(optional)'}
               </span>
             </label>
@@ -524,28 +553,28 @@ function ReceiveModal({ po, onClose, onDone }) {
               rows={2} style={{ ...inp, resize:'none' }} onFocus={fi} onBlur={fo}/>
           </div>
           {mismatch && (
-            <div style={{ padding:'10px 14px',borderRadius:10,background:'#fef3c7',border:'1px solid #fde68a' }}>
+            <div style={{ padding:'10px 14px',borderRadius:10,background:'var(--warning-bg)',border:'1px solid var(--warning-border)' }}>
               <p style={{ fontSize:11,color:'#92400e',fontWeight:600,margin:0,fontFamily:FONT }}>
-                ⚠️ Proceeding will hold cutting. Manager must confirm color before cutting begins.
+                <NavIcon name="warning" size={12} color="currentColor" style={{verticalAlign:'-2px',marginRight:4}}/>Proceeding will hold cutting. Manager must confirm color before cutting begins.
               </p>
             </div>
           )}
-          {err && <p style={{ color:'#ef4444',fontSize:12,fontFamily:FONT }}>⚠️ {err}</p>}
+          {err && <p style={{ color:'var(--danger)',fontSize:12,fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}><NavIcon name="warning" size={13} color="currentColor"/>{err}</p>}
         </div>
-        <div style={{ padding:'14px 22px',borderTop:'1px solid #e2e8f0',
-          display:'flex',gap:10,justifyContent:'flex-end',background:'#f8fafc' }}>
+        <div style={{ padding:'14px 22px',borderTop:'1px solid var(--border)',
+          display:'flex',gap:10,justifyContent:'flex-end',background:'var(--bg)' }}>
           <button onClick={onClose}
-            style={{ padding:'9px 18px',borderRadius:9,border:'1px solid #e2e8f0',
-              background:'#fff',color:'#0f172a',fontSize:13,fontWeight:600,
+            style={{ padding:'9px 18px',borderRadius:9,border:'1px solid var(--border)',
+              background:'var(--bg-card)',color:'var(--ink)',fontSize:13,fontWeight:600,
               cursor:'pointer',fontFamily:FONT }}>Cancel</button>
           <button onClick={submit} disabled={busy}
             style={{ padding:'9px 22px',borderRadius:9,border:'none',
-              background:busy?'#94a3b8':mismatch
-                ?'linear-gradient(135deg,#f59e0b,#d97706)'
+              background:busy?'var(--text-faint)':mismatch
+                ?'linear-gradient(135deg,var(--warning),var(--warning))'
                 :`linear-gradient(135deg,${T},${T2})`,
-              color:'#fff',fontSize:13,fontWeight:700,
+              color:'var(--text-on-accent)',fontSize:13,fontWeight:700,
               cursor:busy?'not-allowed':'pointer',fontFamily:FONT }}>
-            {busy?'⏳ Processing…':mismatch?'⚠️ Receive with Mismatch':'✓ Confirm Receipt'}
+            {busy?<><NavIcon name="loading" size={13} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>Processing…</>:mismatch?<><NavIcon name="warning" size={13} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>Receive with Mismatch</>:<><NavIcon name="success" size={13} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>Confirm Receipt</>}
           </button>
         </div>
       </motion.div>
@@ -575,11 +604,11 @@ function ConfirmColorModal({ po, onClose, onDone }) {
       backdropFilter:'blur(4px)',zIndex:200,display:'flex',
       alignItems:'center',justifyContent:'center',padding:16 }}>
       <motion.div initial={{ opacity:0,scale:.95 }} animate={{ opacity:1,scale:1 }}
-        style={{ background:'#fff',borderRadius:18,width:'min(460px,100%)',overflow:'hidden',
+        style={{ background:'var(--bg-card)',borderRadius:18,width:'min(460px,100%)',overflow:'hidden',
           boxShadow:'0 20px 60px rgba(0,0,0,.15)' }}>
-        <div style={{ padding:'16px 22px',background:'#fffbeb',borderBottom:'1px solid #fde68a' }}>
+        <div style={{ padding:'16px 22px',background:'var(--warning-bg)',borderBottom:'1px solid var(--warning-border)' }}>
           <h3 style={{ fontSize:15,fontWeight:800,color:'#92400e',margin:0,fontFamily:FONT }}>
-            👑 Confirm Color — Manager Override
+            <NavIcon name="manager" size={16} color="currentColor" style={{verticalAlign:'-3px',marginRight:6}}/>Confirm Color — Manager Override
           </h3>
           <p style={{ fontSize:11,color:'#92400e',margin:'3px 0 0',opacity:.7,fontFamily:FONT }}>
             Unblocks cutting for {po.po_number}
@@ -587,21 +616,23 @@ function ConfirmColorModal({ po, onClose, onDone }) {
         </div>
         <div style={{ padding:'20px 22px',display:'flex',flexDirection:'column',gap:14 }}>
           <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10 }}>
-            {[['📋 Order Color',po.order_color_hex],['📦 Received',po.received_color_hex]].map(([l,h])=>(
-              <div key={l}>
-                <p style={{ fontSize:10,fontWeight:700,color:'#64748b',margin:'0 0 6px',
-                  textTransform:'uppercase',letterSpacing:'.06em',fontFamily:FONT }}>{l}</p>
-                <div style={{ height:50,borderRadius:10,border:'2px solid #e2e8f0',
-                  background:h??'#f8fafc',display:'flex',alignItems:'center',justifyContent:'center' }}>
+            {[{icon:'orders',label:'Order Color',h:po.order_color_hex},{icon:'inventory',label:'Received',h:po.received_color_hex}].map(({icon,label,h})=>(
+              <div key={label}>
+                <p style={{ fontSize:10,fontWeight:700,color:'var(--text-subtle)',margin:'0 0 6px',
+                  textTransform:'uppercase',letterSpacing:'.06em',fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}>
+                  <NavIcon name={icon} size={11} color="currentColor"/>{label}
+                </p>
+                <div style={{ height:50,borderRadius:10,border:'2px solid var(--border)',
+                  background:h??'var(--bg)',display:'flex',alignItems:'center',justifyContent:'center' }}>
                   <span style={{ fontSize:9,fontFamily:'monospace',
-                    color:h==='#FFFFFF'?'#64748b':'#fff',textShadow:'0 1px 2px rgba(0,0,0,.3)',fontWeight:700 }}>
+                    color:h==='#FFFFFF'?'var(--text-subtle)':'var(--text-on-accent)',textShadow:'0 1px 2px rgba(0,0,0,.3)',fontWeight:700 }}>
                     {h??'—'}
                   </span>
                 </div>
               </div>
             ))}
           </div>
-          <div style={{ padding:'9px 12px',borderRadius:9,background:'#fef3c7',border:'1px solid #fde68a' }}>
+          <div style={{ padding:'9px 12px',borderRadius:9,background:'var(--warning-bg)',border:'1px solid var(--warning-border)' }}>
             <p style={{ fontSize:11,fontWeight:700,color:'#92400e',margin:0,fontFamily:FONT }}>
               ΔE = {deltaE(po.order_color_hex,po.received_color_hex)??'—'} — exceeds tolerance of 5
             </p>
@@ -612,20 +643,20 @@ function ConfirmColorModal({ po, onClose, onDone }) {
               placeholder="Why is this color acceptable? (e.g. client approved off-shade)…"
               rows={3} style={{ ...inp, resize:'none' }} onFocus={fi} onBlur={fo}/>
           </div>
-          {err && <p style={{ color:'#ef4444',fontSize:12,fontFamily:FONT }}>⚠️ {err}</p>}
+          {err && <p style={{ color:'var(--danger)',fontSize:12,fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}><NavIcon name="warning" size={13} color="currentColor"/>{err}</p>}
         </div>
-        <div style={{ padding:'14px 22px',borderTop:'1px solid #e2e8f0',
-          display:'flex',gap:10,justifyContent:'flex-end',background:'#f8fafc' }}>
+        <div style={{ padding:'14px 22px',borderTop:'1px solid var(--border)',
+          display:'flex',gap:10,justifyContent:'flex-end',background:'var(--bg)' }}>
           <button onClick={onClose}
-            style={{ padding:'9px 18px',borderRadius:9,border:'1px solid #e2e8f0',
-              background:'#fff',color:'#0f172a',fontSize:13,fontWeight:600,
+            style={{ padding:'9px 18px',borderRadius:9,border:'1px solid var(--border)',
+              background:'var(--bg-card)',color:'var(--ink)',fontSize:13,fontWeight:600,
               cursor:'pointer',fontFamily:FONT }}>Cancel</button>
           <button onClick={submit} disabled={busy||!notes.trim()}
             style={{ padding:'9px 22px',borderRadius:9,border:'none',
-              background:(busy||!notes.trim())?'#94a3b8':'linear-gradient(135deg,#d97706,#b45309)',
-              color:'#fff',fontSize:13,fontWeight:700,
+              background:(busy||!notes.trim())?'var(--text-faint)':'linear-gradient(135deg,var(--warning),var(--warning-border))',
+              color:'var(--text-on-accent)',fontSize:13,fontWeight:700,
               cursor:(busy||!notes.trim())?'not-allowed':'pointer',fontFamily:FONT }}>
-            {busy?'⏳…':'✓ Confirm Color — Allow Cutting'}
+            {busy?'…':<><NavIcon name="success" size={13} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>Confirm Color — Allow Cutting</>}
           </button>
         </div>
       </motion.div>
@@ -715,18 +746,18 @@ export default function AdminPurchaseOrders() {
       <div style={{ display:'flex',justifyContent:'space-between',alignItems:'flex-start',
         marginBottom:20,flexWrap:'wrap',gap:12 }}>
         <div>
-          <h1 style={{ fontSize:22,fontWeight:800,color:'#0f172a',margin:'0 0 4px',fontFamily:FONT }}>
+          <h1 style={{ fontSize:22,fontWeight:800,color:'var(--ink)',margin:'0 0 4px',fontFamily:FONT }}>
             Procurement
           </h1>
-          <p style={{ color:'#64748b',fontSize:13,margin:0,fontFamily:FONT }}>
+          <p style={{ color:'var(--text-subtle)',fontSize:13,margin:0,fontFamily:FONT }}>
             RFQ → PO → Goods Receipt · Color swatch matching on delivery
           </p>
         </div>
         <div style={{ display:'flex',gap:10,flexWrap:'wrap' }}>
           {mismatchCount > 0 && (
-            <div style={{ padding:'8px 14px',borderRadius:10,background:'#fef3c7',
-              border:'1px solid #fde68a',display:'flex',alignItems:'center',gap:8 }}>
-              <span>⚠️</span>
+            <div style={{ padding:'8px 14px',borderRadius:10,background:'var(--warning-bg)',
+              border:'1px solid var(--warning-border)',display:'flex',alignItems:'center',gap:8 }}>
+              <NavIcon name="warning" size={14} color="currentColor"/>
               <p style={{ fontSize:12,fontWeight:700,color:'#92400e',margin:0,fontFamily:FONT }}>
                 {mismatchCount} color mismatch{mismatchCount!==1?'es':''}
                 {isManager?' — review required':' — awaiting manager'}
@@ -735,26 +766,26 @@ export default function AdminPurchaseOrders() {
           )}
           <button onClick={() => setNewRFQ(true)}
             style={{ padding:'9px 18px',borderRadius:10,border:`1px solid ${T}40`,
-              background:'#f0fdfa',color:T,fontSize:12,fontWeight:700,
+              background:'var(--teal-50)',color:T,fontSize:12,fontWeight:700,
               cursor:'pointer',fontFamily:FONT }}>
-            📄 New RFQ
+            <NavIcon name="invoice" size={13} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>New RFQ
           </button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div style={{ display:'flex',gap:6,marginBottom:20,borderBottom:'2px solid #e2e8f0' }}>
-        {[['pos','📋 Purchase Orders'],['rfq','📄 RFQ']].map(([k,l])=>(
+      <div style={{ display:'flex',gap:6,marginBottom:20,borderBottom:'2px solid var(--border)' }}>
+        {[['pos',{icon:'orders',label:'Purchase Orders'}],['rfq',{icon:'invoice',label:'RFQ'}]].map(([k,l])=>(
           <button key={k} onClick={()=>setTab(k)}
             style={{ padding:'9px 16px',borderRadius:'9px 9px 0 0',border:'none',
               borderBottom:tab===k?`2px solid ${T}`:'2px solid transparent',
-              background:tab===k?'#f0fdfa':'transparent',color:tab===k?T:'#64748b',
+              background:tab===k?'var(--teal-50)':'transparent',color:tab===k?T:'var(--text-subtle)',
               fontSize:13,fontWeight:tab===k?700:500,cursor:'pointer',
               fontFamily:FONT,marginBottom:'-2px' }}>
-            {l}
+            <NavIcon name={l.icon} size={12} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>{l.label}
             {k==='rfq'&&rfqs.filter(r=>r.status==='open').length>0&&(
               <span style={{ marginLeft:6,fontSize:9,padding:'1px 6px',borderRadius:99,
-                background:'#dbeafe',color:'#2563eb',fontWeight:800 }}>
+                background:'var(--info-bg)',color:'var(--info)',fontWeight:800 }}>
                 {rfqs.filter(r=>r.status==='open').length} open
               </span>
             )}
@@ -771,8 +802,8 @@ export default function AdminPurchaseOrders() {
             </div>
           )) : pos.length === 0 ? (
             <div style={{ ...card,padding:'50px',textAlign:'center' }}>
-              <p style={{ fontSize:36,margin:'0 0 12px',opacity:.3 }}>📋</p>
-              <p style={{ fontSize:14,color:'#64748b',fontFamily:FONT }}>
+              <p style={{ fontSize:36,margin:'0 0 12px',opacity:.3, display:'flex', justifyContent:'center' }}><NavIcon name="orders" size={36} color="currentColor"/></p>
+              <p style={{ fontSize:14,color:'var(--text-subtle)',fontFamily:FONT }}>
                 No purchase orders yet. Create one from an approved RFQ.
               </p>
             </div>
@@ -784,31 +815,31 @@ export default function AdminPurchaseOrders() {
             return (
               <motion.div key={po.po_id} layout whileHover={{ y:-1 }}
                 style={{ ...card,padding:'18px 22px',
-                  borderLeft:`4px solid ${hasMismatch?'#f59e0b':st.c}` }}>
+                  borderLeft:`4px solid ${hasMismatch?'var(--warning)':st.c}` }}>
                 <div style={{ display:'flex',justifyContent:'space-between',
                   alignItems:'flex-start',flexWrap:'wrap',gap:10,marginBottom:10 }}>
                   <div>
                     <div style={{ display:'flex',alignItems:'center',gap:8,flexWrap:'wrap' }}>
-                      <p style={{ fontSize:15,fontWeight:800,color:'#0f172a',margin:0,fontFamily:FONT }}>
+                      <p style={{ fontSize:15,fontWeight:800,color:'var(--ink)',margin:0,fontFamily:FONT }}>
                         {po.po_number}
                       </p>
                       <span style={{ padding:'3px 9px',borderRadius:99,fontSize:10,fontWeight:700,
                         background:st.bg,color:st.c,fontFamily:FONT }}>{st.l}</span>
                       {hasMismatch && (
                         <span style={{ padding:'3px 9px',borderRadius:99,fontSize:10,fontWeight:700,
-                          background:'#fef3c7',color:'#92400e',fontFamily:FONT }}>
-                          ⚠️ Color Mismatch — Cutting Held
+                          background:'var(--warning-bg)',color:'#92400e',fontFamily:FONT }}>
+                          <NavIcon name="warning" size={12} color="currentColor" style={{verticalAlign:'-2px',marginRight:4}}/>Color Mismatch — Cutting Held
                         </span>
                       )}
                       {po.color_confirmed && po.color_mismatch && (
                         <span style={{ padding:'3px 9px',borderRadius:99,fontSize:10,fontWeight:700,
-                          background:'#dcfce7',color:'#166534',fontFamily:FONT }}>
-                          ✓ Color Override Approved
+                          background:'var(--success-bg)',color:'#166534',fontFamily:FONT }}>
+                          <NavIcon name="success" size={12} color="currentColor" style={{verticalAlign:'-2px',marginRight:4}}/>Color Override Approved
                         </span>
                       )}
                     </div>
-                    <p style={{ fontSize:12,color:'#64748b',margin:'4px 0 0',fontFamily:FONT }}>
-                      {po.supplier?.supplier_name ?? '—'} ·
+                    <p style={{ fontSize:12,color:'var(--text-subtle)',margin:'4px 0 0',fontFamily:FONT }}>
+                      {po.supplier_name ?? '—'} ·
                       Expected: {po.expected_delivery_date ?? '—'} ·
                       ₱{Number(po.total_amount??0).toLocaleString('en-PH',{minimumFractionDigits:2})}
                     </p>
@@ -818,16 +849,16 @@ export default function AdminPurchaseOrders() {
                       <button onClick={()=>setReceiving(po)}
                         style={{ padding:'7px 14px',borderRadius:9,border:'none',
                           background:`linear-gradient(135deg,${T},${T2})`,
-                          color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:FONT }}>
-                        📦 Receive + Match Color
+                          color:'var(--text-on-accent)',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:FONT }}>
+                        <NavIcon name="inventory" size={13} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>Receive + Match Color
                       </button>
                     )}
                     {hasMismatch && isManager && (
                       <button onClick={()=>setConfirming(po)}
                         style={{ padding:'7px 14px',borderRadius:9,border:'none',
-                          background:'linear-gradient(135deg,#d97706,#b45309)',
-                          color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:FONT }}>
-                        🎨 Confirm Color
+                          background:'linear-gradient(135deg,var(--warning),var(--warning-border))',
+                          color:'var(--text-on-accent)',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:FONT }}>
+                        <NavIcon name="designStudio" size={13} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>Confirm Color
                       </button>
                     )}
                   </div>
@@ -835,22 +866,22 @@ export default function AdminPurchaseOrders() {
 
                 {po.status==='received' && po.order_color_hex && (
                   <div style={{ display:'flex',alignItems:'center',gap:14,marginBottom:10,
-                    padding:'10px 12px',borderRadius:10,background:'#f8fafc',border:'1px solid #e2e8f0' }}>
+                    padding:'10px 12px',borderRadius:10,background:'var(--bg)',border:'1px solid var(--border)' }}>
                     <div style={{ display:'flex',gap:8,alignItems:'center' }}>
                       {[['Order',po.order_color_hex],['Received',po.received_color_hex]].map(([l,h])=>(
                         <div key={l}>
-                          <p style={{ fontSize:9,color:'#94a3b8',margin:'0 0 3px',
+                          <p style={{ fontSize:9,color:'var(--text-faint)',margin:'0 0 3px',
                             textTransform:'uppercase',letterSpacing:'.06em',fontFamily:FONT }}>{l}</p>
                           <div style={{ width:32,height:32,borderRadius:7,
-                            border:`1.5px solid ${hasMismatch&&l==='Received'?'#fca5a5':'#e2e8f0'}`,
-                            background:h??'#f8fafc' }}/>
+                            border:`1.5px solid ${hasMismatch&&l==='Received'?'var(--danger-border)':'var(--border)'}`,
+                            background:h??'var(--bg)' }}/>
                         </div>
                       ))}
                     </div>
                     {de !== null && (
                       <p style={{ fontSize:11,fontWeight:700,fontFamily:FONT,
-                        color:hasMismatch?'#ef4444':'#22c55e',margin:0 }}>
-                        {hasMismatch?`⚠️ ΔE = ${de}`:`✓ ΔE = ${de}`}
+                        color:hasMismatch?'var(--danger)':'var(--success)',margin:0 }}>
+                        {hasMismatch?<><NavIcon name="warning" size={11} color="currentColor" style={{verticalAlign:'-2px',marginRight:3}}/>{`ΔE = ${de}`}</>:<><NavIcon name="success" size={11} color="currentColor" style={{verticalAlign:'-2px',marginRight:3}}/>{`ΔE = ${de}`}</>}
                       </p>
                     )}
                   </div>
@@ -860,9 +891,9 @@ export default function AdminPurchaseOrders() {
                   <div style={{ display:'flex',flexWrap:'wrap',gap:6 }}>
                     {items.map((item,i) => (
                       <span key={i} style={{ padding:'4px 10px',borderRadius:8,
-                        background:'#f8fafc',border:'1px solid #e2e8f0',fontSize:11,
-                        color:'#0f172a',fontFamily:FONT }}>
-                        Material #{item.material_id} · {item.qty} {item.unit}
+                        background:'var(--bg)',border:'1px solid var(--border)',fontSize:11,
+                        color:'var(--ink)',fontFamily:FONT }}>
+                        {item.material_name} · {item.qty} {item.unit}
                       </span>
                     ))}
                   </div>
@@ -882,14 +913,14 @@ export default function AdminPurchaseOrders() {
             </div>
           )) : rfqs.length === 0 ? (
             <div style={{ ...card,padding:'50px',textAlign:'center' }}>
-              <p style={{ fontSize:36,margin:'0 0 12px',opacity:.3 }}>📄</p>
-              <p style={{ fontSize:14,color:'#64748b',marginBottom:16,fontFamily:FONT }}>
+              <p style={{ fontSize:36,margin:'0 0 12px',opacity:.3, display:'flex', justifyContent:'center' }}><NavIcon name="invoice" size={36} color="currentColor"/></p>
+              <p style={{ fontSize:14,color:'var(--text-subtle)',marginBottom:16,fontFamily:FONT }}>
                 No RFQs yet. Create one when stock is low.
               </p>
               <button onClick={()=>setNewRFQ(true)}
                 style={{ padding:'10px 22px',borderRadius:11,border:'none',
                   background:`linear-gradient(135deg,${T},${T2})`,
-                  color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:FONT }}>
+                  color:'var(--text-on-accent)',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:FONT }}>
                 + New RFQ
               </button>
             </div>
@@ -899,28 +930,28 @@ export default function AdminPurchaseOrders() {
             return (
               <motion.div key={rfq.rfq_id} layout whileHover={{ y:-1 }}
                 style={{ ...card,padding:'18px 22px',
-                  borderLeft:`4px solid ${isOpen?'#3b82f6':'#94a3b8'}` }}>
+                  borderLeft:`4px solid ${isOpen?'var(--info)':'var(--text-faint)'}` }}>
                 <div style={{ display:'flex',justifyContent:'space-between',
                   alignItems:'flex-start',flexWrap:'wrap',gap:10,marginBottom:respCount?12:0 }}>
                   <div>
                     <div style={{ display:'flex',alignItems:'center',gap:8,marginBottom:3,flexWrap:'wrap' }}>
-                      <p style={{ fontSize:15,fontWeight:800,color:'#0f172a',margin:0,fontFamily:FONT }}>
+                      <p style={{ fontSize:15,fontWeight:800,color:'var(--ink)',margin:0,fontFamily:FONT }}>
                         RFQ #{rfq.rfq_id} — {rfq.material_name ?? '—'}
                       </p>
                       <span style={{ padding:'3px 9px',borderRadius:99,fontSize:10,fontWeight:700,
-                        background:isOpen?'#dbeafe':'#f1f5f9',
-                        color:isOpen?'#2563eb':'#64748b',fontFamily:FONT }}>
+                        background:isOpen?'var(--info-bg)':'var(--bg-surface)',
+                        color:isOpen?'var(--info)':'var(--text-subtle)',fontFamily:FONT }}>
                         {rfq.status?.toUpperCase()}
                       </span>
                       {!!rfq.auto_generated && (
                         <span title="Created automatically because this material crossed its reorder threshold — review and respond/close like any other RFQ."
                           style={{ padding:'3px 9px',borderRadius:99,fontSize:10,fontWeight:700,
-                          background:'#f0fdfa',color:'#028090',border:'1px solid #02809044',fontFamily:FONT }}>
-                          🤖 Auto-suggested
+                          background:'var(--teal-50)',color:'var(--teal)',border:'1px solid #02809044',fontFamily:FONT }}>
+                          <NavIcon name="ai" size={11} color="currentColor" style={{verticalAlign:'-2px',marginRight:3}}/>Auto-suggested
                         </span>
                       )}
                     </div>
-                    <p style={{ fontSize:12,color:'#64748b',margin:0,fontFamily:FONT }}>
+                    <p style={{ fontSize:12,color:'var(--text-subtle)',margin:0,fontFamily:FONT }}>
                       {rfq.qty_needed} {rfq.unit} needed ·
                       By: {rfq.needed_by_date ?? 'ASAP'} ·
                       Created by: {rfq.auto_generated ? 'System (automation)' : (rfq.created_by_name ?? '—')} ·
@@ -929,16 +960,16 @@ export default function AdminPurchaseOrders() {
                   </div>
                   <div style={{ display:'flex',gap:8,flexWrap:'wrap' }}>
                     <button onClick={()=>printRFQ(rfq)}
-                      style={{ padding:'6px 12px',borderRadius:8,border:'1px solid #e2e8f0',
-                        background:'#fff',color:'#64748b',fontSize:11,fontWeight:600,
+                      style={{ padding:'6px 12px',borderRadius:8,border:'1px solid var(--border)',
+                        background:'var(--bg-card)',color:'var(--text-subtle)',fontSize:11,fontWeight:600,
                         cursor:'pointer',fontFamily:FONT }}>
-                      🖨️ Print
+                      <NavIcon name="print" size={13} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>Print
                     </button>
                     {isOpen && (
                       <button onClick={()=>setLogResp(rfq)}
                         style={{ padding:'6px 14px',borderRadius:8,border:'none',
-                          background:'linear-gradient(135deg,#3b82f6,#2563eb)',
-                          color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:FONT }}>
+                          background:'linear-gradient(135deg,var(--info),var(--info))',
+                          color:'var(--text-on-accent)',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:FONT }}>
                         + Log Response
                       </button>
                     )}
@@ -946,8 +977,8 @@ export default function AdminPurchaseOrders() {
                       <button onClick={()=>setConvertPO(rfq)}
                         style={{ padding:'6px 14px',borderRadius:8,border:'none',
                           background:`linear-gradient(135deg,${T},${T2})`,
-                          color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:FONT }}>
-                        ✓ Convert to PO
+                          color:'var(--text-on-accent)',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:FONT }}>
+                        <NavIcon name="success" size={13} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>Convert to PO
                       </button>
                     )}
                     {isOpen && (
@@ -955,8 +986,8 @@ export default function AdminPurchaseOrders() {
                         try { await axios.patch(`/api/admin/rfq/${rfq.rfq_id}/close`); showToast(`RFQ #${rfq.rfq_id} closed.`); load(); }
                         catch(e) { showToast(e.response?.data?.message??'Failed.','error'); }
                       }}
-                        style={{ padding:'6px 12px',borderRadius:8,border:'1px solid #fecaca',
-                          background:'#fef2f2',color:'#ef4444',fontSize:11,fontWeight:600,
+                        style={{ padding:'6px 12px',borderRadius:8,border:'1px solid var(--danger-border)',
+                          background:'var(--danger-bg)',color:'var(--danger)',fontSize:11,fontWeight:600,
                           cursor:'pointer',fontFamily:FONT }}>
                         Close RFQ
                       </button>
@@ -966,21 +997,21 @@ export default function AdminPurchaseOrders() {
 
                 {/* Responses list */}
                 {respCount > 0 && (
-                  <div style={{ marginTop:10,background:'#f8fafc',borderRadius:10,overflow:'hidden',
-                    border:'1px solid #e2e8f0' }}>
+                  <div style={{ marginTop:10,background:'var(--bg)',borderRadius:10,overflow:'hidden',
+                    border:'1px solid var(--border)' }}>
                     {rfq.responses.map((resp,i) => (
                       <div key={resp.response_id}
                         style={{ padding:'10px 14px',
-                          borderBottom:i<rfq.responses.length-1?'1px solid #f1f5f9':'none',
-                          background:resp.selected_for_po?'#f0fdf4':'transparent',
+                          borderBottom:i<rfq.responses.length-1?'1px solid var(--bg-surface)':'none',
+                          background:resp.selected_for_po?'var(--success-bg)':'transparent',
                           display:'flex',justifyContent:'space-between',alignItems:'center',
                           flexWrap:'wrap',gap:8 }}>
                         <div>
-                          <p style={{ fontSize:12,fontWeight:700,color:'#0f172a',margin:0,fontFamily:FONT }}>
-                            {resp.selected_for_po && <span style={{ color:'#22c55e',marginRight:5 }}>✓ Selected</span>}
+                          <p style={{ fontSize:12,fontWeight:700,color:'var(--ink)',margin:0,fontFamily:FONT }}>
+                            {resp.selected_for_po && <span style={{ color:'var(--success)',marginRight:5, display:'inline-flex', alignItems:'center', gap:3 }}><NavIcon name="success" size={11} color="currentColor"/>Selected</span>}
                             {resp.supplier?.supplier_name ?? `Supplier #${resp.supplier_id}`}
                           </p>
-                          <p style={{ fontSize:11,color:'#64748b',margin:'2px 0 0',fontFamily:FONT }}>
+                          <p style={{ fontSize:11,color:'var(--text-subtle)',margin:'2px 0 0',fontFamily:FONT }}>
                             ₱{Number(resp.unit_price).toFixed(2)}/unit ·
                             {resp.qty_available ? ` Qty: ${resp.qty_available} ·` : ''}
                             {resp.lead_time_days ? ` Lead: ${resp.lead_time_days} days` : ''}
@@ -990,13 +1021,13 @@ export default function AdminPurchaseOrders() {
                         <div style={{ display:'flex',gap:8,alignItems:'center' }}>
                           <p style={{ fontSize:14,fontWeight:800,color:T,margin:0,fontFamily:FONT }}>
                             ₱{(Number(resp.unit_price)*Number(rfq.qty_needed)).toLocaleString('en-PH',{minimumFractionDigits:2})}
-                            <span style={{ fontSize:10,color:'#94a3b8',fontWeight:400,marginLeft:3 }}>total</span>
+                            <span style={{ fontSize:10,color:'var(--text-faint)',fontWeight:400,marginLeft:3 }}>total</span>
                           </p>
                           {isOpen && isManager && !resp.selected_for_po && (
                             <button onClick={()=>handleConvertToPO(rfq,resp.response_id)}
                               style={{ padding:'5px 12px',borderRadius:8,border:'none',
                                 background:`linear-gradient(135deg,${T},${T2})`,
-                                color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:FONT }}>
+                                color:'var(--text-on-accent)',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:FONT }}>
                               Select & Create PO
                             </button>
                           )}

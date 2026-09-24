@@ -7,8 +7,9 @@ import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import { enqueue, flushQueue, queueSize } from '../utils/offlineQueue';
 import PageErrorBoundary from '../components/PageErrorBoundary';
-import NavIcon from '../components/ui/NavIcon';
+import IconBox from '../components/ui/IconBox';
 import logo from '../assets/company-logo.jpg';
 // FF-4 FIX (Aug 30 2026): emoji nav icons replaced with lucide-react —
 // see design-system reshaping pass. Icon values below are components,
@@ -17,7 +18,7 @@ import {
   LayoutDashboard, ClipboardList, Package, MessageSquare, ShoppingCart,
   Truck, Layers, Factory, FileText, ShieldCheck, ScanLine, AlertTriangle,
   Wallet, BarChart3, Receipt, Building2, Users, MessageCircle, Settings,
-  LogOut, Lock, Bell, Crown,
+  LogOut, Lock, Bell, Crown, Trophy,
 } from 'lucide-react';
 
 const T  = 'var(--teal)';
@@ -58,11 +59,25 @@ function visibleForJobFunction(navArray, jobFunction) {
   const allowed = JOB_FUNCTION_AREAS[jobFunction] ?? JOB_FUNCTION_AREAS.general;
   return navArray.filter(item => item.area === null || allowed.includes(item.area));
 }
+// One reusable tile for the More-menu grid — General and Manager Only
+// sections both render through this, color cycling by position so no
+// per-item color field is needed on the nav arrays.
+const TILE_COLORS = ['#0284c7','#7c3aed','#059669','#d97706','#dc2626','#4338ca','#be185d','#0369a1'];
+function DrawerTile({ item, i }) {
+  return (
+    <NavLink to={item.to} className={({ isActive }) => `adm-drawer-tile${isActive ? ' active' : ''}`}>
+      <IconBox icon={item.icon} size={18} width={40} style={{ height:40, borderRadius:12, background:TILE_COLORS[i % TILE_COLORS.length], color:'#fff' }}/>
+      <span>{item.label}</span>
+    </NavLink>
+  );
+}
+
 const MANAGER_EXTRA = [
   { to:'/admin/reports',      icon:BarChart3,   label:'Reports'              },
   { to:'/admin/invoice',      icon:Receipt,     label:'Invoice'              },
   { to:'/admin/suppliers',    icon:Building2,   label:'Suppliers'            },
   { to:'/admin/users',        icon:Users,       label:'Users'                },
+  { to:'/admin/designs/showcase-queue', icon:Trophy, label:'Showcase'           },
   { to:'/admin/feedback',     icon:MessageCircle,label:'Feedback'            }, // NEW Aug 27 2026
   { to:'/admin/settings',     icon:Settings,    label:'Settings'             },
 ];
@@ -154,6 +169,7 @@ export default function AdminLayout() {
   const SW         = collapsed ? 68 : 226;
   const isManager  = role === 'manager';
   const visibleStaffNav = isManager ? STAFF_NAV : visibleForJobFunction(STAFF_NAV, jobFn);
+  const roleLabel = isManager ? 'Manager' : jobFn === 'sales' ? 'Sales Staff' : jobFn === 'production' ? 'Production Staff' : 'Staff';
   const navItems   = isManager ? [...STAFF_NAV, ...MANAGER_EXTRA] : visibleStaffNav;
 
   // Notification bell
@@ -164,6 +180,7 @@ export default function AdminLayout() {
   const bellRef = useRef(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef(null);
+  const [pendingSync, setPendingSync] = useState(queueSize());
 
   const fetchCount = () =>
     axios.get('/api/admin/notifications/unread-count')
@@ -212,17 +229,34 @@ export default function AdminLayout() {
 
   const openBell = () => { setBellOpen(b => !b); if (!bellOpen) fetchNotifs(); };
 
+  // Offline-aware: optimistic update always applies; the network call is
+  // queued (not lost) if it fails or there's no connection, and flushed
+  // automatically on reconnect. Shared by markRead/markAllRead below.
+  const syncOrQueue = (method, url) => {
+    if (!navigator.onLine) { enqueue({ method, url }); setPendingSync(queueSize()); return; }
+    axios({ method, url }).catch((e) => {
+      if (!e.response) { enqueue({ method, url }); setPendingSync(queueSize()); }
+    });
+  };
+
   const markRead = id => {
     setNotifs(prev => prev.map(n => (n.notif_id ?? n.id) === id ? { ...n, is_read:1 } : n));
     setUnread(p => Math.max(0, p - 1));
-    axios.patch(`/api/admin/notifications/${id}/read`).catch(() => {});
+    syncOrQueue('patch', `/api/admin/notifications/${id}/read`);
   };
 
   const markAllRead = () => {
     setNotifs(prev => prev.map(n => ({ ...n, is_read:1 })));
     setUnread(0);
-    axios.post('/api/admin/notifications/read-all').catch(() => {});
+    syncOrQueue('post', '/api/admin/notifications/read-all');
   };
+
+  useEffect(() => {
+    const flush = () => flushQueue(axios).then(n => { setPendingSync(queueSize()); if (n > 0) fetchNotifs(); });
+    if (navigator.onLine) flush();
+    window.addEventListener('online', flush);
+    return () => window.removeEventListener('online', flush);
+  }, []);
 
   const toggle = () => setCollapsed(c => {
     const n = !c; localStorage.setItem('vfrb_adm_sb', JSON.stringify(n)); return n;
@@ -238,7 +272,7 @@ export default function AdminLayout() {
     }).catch(() => {});
     localStorage.removeItem('vfrb_token');
     localStorage.removeItem('vfrb_user');
-    navigate('/admin/login', { replace: true });
+    navigate('/login', { replace: true });
   };
 
   const todayKey      = new Date().toLocaleDateString('en-PH');
@@ -265,7 +299,7 @@ export default function AdminLayout() {
     <>
       <style>{`
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { height: 100%; font-family: ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif; }
+        html, body { height: 100%; overflow-x: hidden; font-family: ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif; }
 
         @keyframes sk {
           0%   { background-position: -400px 0; }
@@ -304,25 +338,29 @@ export default function AdminLayout() {
         }
 
         /* ── Sidebar ── */
-        /* CRUIP-INSPIRED RESKIN (Aug 23, corrected same day): floating
-           rounded card sidebar matching Mosaic Lite's visual language
-           (rounded-2xl, shadow-xs, light surfaces) — done in VFRB's
-           existing inline-style/scoped-CSS system, no Tailwind utility
-           classes introduced. First pass kept a vibrant gradient header/
-           topbar "because it looked better" — that wasn't actually the
-           Cruip look and wasn't what was asked for, so it's been replaced
-           with genuine light surfaces below; role color (teal/purple) now
-           shows up as text/badge/ring accents, not a background fill. */
+        /* FLUSH RESKIN (Aug 31, corrected same day): the prior "floating
+           rounded card" treatment (8px offset, border-radius:20px) only
+           applied to the sidebar — .adm-topbar right below it stayed
+           flush/square the whole time, so the two never actually
+           matched despite both being touched in the same earlier pass.
+           Verified against the actual reference screenshot supplied for
+           this fix (a "Stocked" inventory dashboard): its sidebar sits
+           flush to the edge, full height, no radius, no gap — same
+           treatment as its topbar. Matching that here instead of
+           inventing a floating-card look nobody asked for. Content-area
+           CARDS still get real border-radius (see .adm-content children
+           and KPICard/ActionListCard components) — it's specifically the
+           outer shell (sidebar + topbar) that's now consistently flush. */
         .adm-sb {
           position: fixed;
-          top:8px; left:8px; bottom:8px;
+          top:0; left:0; bottom:0;
           z-index: 200;
           background: linear-gradient(180deg, #ffffff 0%, #f9fbfd 100%);
-          border: 1px solid rgba(226,232,240,.7);
-          border-radius: 20px;
+          border-right: 1px solid rgba(226,232,240,.7);
+          border-radius: 0;
           display: flex;
           flex-direction: column;
-          box-shadow: 0 4px 24px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
+          box-shadow: 1px 0 3px rgba(15,23,42,.04);
           overflow: hidden;
           transition: width .22s cubic-bezier(.4,0,.2,1);
         }
@@ -500,29 +538,30 @@ export default function AdminLayout() {
           max-height: 75vh;
           overflow-y: auto;
         }
-        .adm-drawer-item {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-          padding: 12px 12px;
-          border-radius: 12px;
-          text-decoration: none;
-          color: #1a2332;
-          font-size: 14px;
-          font-weight: 600;
-          transition: background .13s;
-          border: none;
-          background: transparent;
-          width: 100%;
-          cursor: pointer;
+        .adm-drawer-sec {
+          font-size: 11; font-weight: 800; text-transform: uppercase;
+          letter-spacing: .1em; color: var(--text-faint);
+          margin: 14px 4px 8px;
+        }
+        .adm-drawer-grid {
+          display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+        }
+        .adm-drawer-tile {
+          display: flex; flex-direction: column; align-items: center; gap: 6px;
+          padding: 10px 4px; border-radius: 12px; text-decoration: none;
+          color: #1a2332; font-size: 10px; font-weight: 600; text-align: center;
+          border: 1px solid var(--border); background: #fff;
           font-family: ui-sans-serif,system-ui,-apple-system,sans-serif;
         }
-        .adm-drawer-item:hover, .adm-drawer-item:active {
-          background: rgba(2,128,144,.06);
+        .adm-drawer-tile.active { border-color: ${T}; background: rgba(2,128,144,.06); }
+        .adm-drawer-signout {
+          width: 100%; margin-top: 18px; padding: 12px;
+          border-radius: 12px; border: 1px solid var(--danger, #dc2626);
+          background: transparent; color: var(--danger, #dc2626);
+          font-size: 14px; font-weight: 700; cursor: pointer;
+          font-family: ui-sans-serif,system-ui,-apple-system,sans-serif;
         }
-        .adm-drawer-item.active { color: ${T}; background: rgba(2,128,144,.08); }
-        .adm-drawer-item.mgr-item { color: ${MG}; }
-        .adm-drawer-item.mgr-item:hover { background: rgba(124,58,237,.06); }
+        .adm-drawer-signout:hover { background: rgba(220,38,38,.06); }
 
         /* ── Responsive ── */
         @media (max-width: 767px) {
@@ -602,7 +641,7 @@ export default function AdminLayout() {
                 className={({ isActive }) => `adm-link${isActive ? ' active' : ''}`}
                 title={collapsed ? item.label : undefined}
                 style={collapsed ? { justifyContent:'center', padding:'10px 0' } : {}}>
-                <NavIcon icon={item.icon} size={16} width={20}/>
+                <IconBox icon={item.icon} size={16} width={20}/>
                 {!collapsed && (
                   <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>
                     {item.label}
@@ -624,7 +663,7 @@ export default function AdminLayout() {
                     className={({ isActive }) => `adm-link${isActive ? ' active mgr' : ''}`}
                     title={collapsed ? item.label : undefined}
                     style={collapsed ? { justifyContent:'center', padding:'10px 0' } : {}}>
-                    <NavIcon icon={item.icon} size={16} width={20}/>
+                    <IconBox icon={item.icon} size={16} width={20}/>
                     {!collapsed && (
                       <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>
                         {item.label}
@@ -665,10 +704,9 @@ export default function AdminLayout() {
 
         {/* ─── MAIN CONTENT ───────────────────────────────────────────────── */}
         <main className="adm-main"
-          style={{ marginLeft: SW + 16, transition:'margin-left .22s cubic-bezier(.4,0,.2,1)' }}>
-          {/* +16 accounts for the sidebar's new 8px floating inset (left:8px)
-              plus an 8px breathing gap before content — sidebar itself still
-              occupies exactly SW px of width, unchanged. */}
+          style={{ marginLeft: SW, transition:'margin-left .22s cubic-bezier(.4,0,.2,1)' }}>
+          {/* Sidebar is now flush (left:0, no inset) after the topbar-match
+              fix above — margin-left is exactly SW, no extra gap needed. */}
 
           {/* ── TOPBAR — light, Cruip-style: white bg, thin border, dark text ── */}
           <div className="adm-topbar">
@@ -885,6 +923,12 @@ export default function AdminLayout() {
               2026): a crash in one page no longer takes the sidebar/nav
               down with it. resetKey=pathname clears the error on navigation. */}
           <div className="adm-content">
+            {pendingSync > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', marginBottom: 14, borderRadius: 10, border: '1px solid #fed7aa', background: '#fff7ed' }}>
+                <span style={{ fontSize: 12 }}>↻</span>
+                <span style={{ fontSize: 11, color: '#92400e', fontWeight: 600 }}>{pendingSync} change{pendingSync > 1 ? 's' : ''} waiting to sync — will send automatically once you're back online.</span>
+              </div>
+            )}
             <PageErrorBoundary resetKey={location.pathname}>
               <Outlet/>
             </PageErrorBoundary>
@@ -907,49 +951,29 @@ export default function AdminLayout() {
                 exit={{ y:80, opacity:0 }}
                 transition={{ type:'spring', stiffness:340, damping:30 }}>
 
-                <p style={{ fontSize:11, fontWeight:800, color:'var(--text-faint)',
-                  textTransform:'uppercase', letterSpacing:'.1em', margin:'0 0 6px 4px' }}>
-                  All Pages
-                </p>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', margin:'0 4px 12px' }}>
+                  <p style={{ fontSize:11, fontWeight:800, color:'var(--text-faint)', textTransform:'uppercase', letterSpacing:'.1em', margin:0 }}>Menu</p>
+                  <span style={{ padding:'3px 11px', borderRadius:99, fontSize:11, fontWeight:700, color:'#fff', background:'#9333ea' }}>{roleLabel}</span>
+                </div>
 
-                {/* Staff nav items not in bottom bar */}
-                {visibleStaffNav.filter(i =>
-                  !['/admin','/admin/orders','/admin/inventory',
-                    '/admin/messages','/admin/production'].includes(i.to)
-                ).map(item => (
-                  <NavLink key={item.to} to={item.to}
-                    className={({ isActive }) =>
-                      `adm-drawer-item${isActive ? ' active' : ''}`}>
-                    <NavIcon icon={item.icon} size={20} width={28}/>
-                    <span>{item.label}</span>
-                  </NavLink>
-                ))}
+                <p className="adm-drawer-sec">General</p>
+                <div className="adm-drawer-grid">
+                  {visibleStaffNav.filter(i =>
+                    !['/admin','/admin/orders','/admin/inventory',
+                      '/admin/messages','/admin/production'].includes(i.to)
+                  ).map((item, i) => <DrawerTile key={item.to} item={item} i={i}/>)}
+                </div>
 
-                {/* Manager section */}
                 {isManager && (
                   <>
-                    <div style={{ height:1, background:'var(--bg-surface)', margin:'8px 0' }}/>
-                    <p style={{ fontSize:11, fontWeight:800, color:'#a78bfa',
-                      textTransform:'uppercase', letterSpacing:'.1em', margin:'0 0 6px 4px' }}>
-                      Manager
-                    </p>
-                    {MANAGER_EXTRA.map(item => (
-                      <NavLink key={item.to} to={item.to}
-                        className={({ isActive }) =>
-                          `adm-drawer-item mgr-item${isActive ? ' active' : ''}`}>
-                        <NavIcon icon={item.icon} size={20} width={28}/>
-                        <span>{item.label}</span>
-                      </NavLink>
-                    ))}
+                    <p className="adm-drawer-sec" style={{ color:'#a78bfa' }}>Manager Only</p>
+                    <div className="adm-drawer-grid">
+                      {MANAGER_EXTRA.map((item, i) => <DrawerTile key={item.to} item={item} i={i}/>)}
+                    </div>
                   </>
                 )}
 
-                <div style={{ height:1, background:'var(--bg-surface)', margin:'8px 0' }}/>
-                <button className="adm-drawer-item" onClick={logout}
-                  style={{ color:'var(--danger)' }}>
-                  <NavIcon icon={LogOut} size={20} width={28}/>
-                  <span>Sign Out</span>
-                </button>
+                <button className="adm-drawer-signout" onClick={logout}>Sign Out</button>
               </motion.div>
             </>
           )}

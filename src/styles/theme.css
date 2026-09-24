@@ -18,7 +18,7 @@
  *   - NO Google Fonts CDN. NO external @import. Offline Laragon environment.
  *   - NO hardcoded colors in component files — use these vars.
  *   - Every new color must be added HERE first, then used.
- *   - Dark mode: Login pages + Design Studio (#060d1a) only. All portals: light.
+ *   - Dark mode: Design Studio only (#060d1a). All portals + auth flow: light.
  *
  * FF-1 FIX: Google Fonts CDN import removed (was breaking offline rendering).
  * FF-2 FIX: DM Sans references removed throughout — system font stack only.
@@ -48,14 +48,19 @@
   --success:           #22c55e;
   --success-bg:        #f0fdf4;
   --success-border:    #bbf7d0;
+  --success-text:      #166534;
   --warning:           #f59e0b;
   --warning-bg:        #fffbeb;
   --warning-border:    #fde68a;
+  --warning-text:      #92400e;
   --danger:            #ef4444;
   --danger-bg:         #fef2f2;
   --danger-border:     #fecaca;
+  --danger-text:       #991b1b;
   --info:              #3b82f6;
   --info-bg:           #eff6ff;
+  --info-text:         #1e40af;
+  --purple-text:       #5b21b6;
   --info-border:       #bfdbfe;
 
   /* ── Neutrals (Slate scale — matches Tailwind slate) ── */
@@ -407,11 +412,11 @@ input:focus, textarea:focus, select:focus {
   font-family: var(--font);
 }
 .badge-teal    { background: var(--teal-50);     color: var(--teal-dark);  border: 1px solid var(--teal-100); }
-.badge-green   { background: var(--success-bg);  color: #166534; }
-.badge-red     { background: var(--danger-bg);   color: #991b1b; }
-.badge-amber   { background: var(--warning-bg);  color: #92400e; }
-.badge-blue    { background: var(--info-bg);     color: #1e40af; }
-.badge-purple  { background: var(--purple-100);  color: #5b21b6; }
+.badge-green   { background: var(--success-bg);  color: var(--success-text); }
+.badge-red     { background: var(--danger-bg);   color: var(--danger-text); }
+.badge-amber   { background: var(--warning-bg);  color: var(--warning-text); }
+.badge-blue    { background: var(--info-bg);     color: var(--info-text); }
+.badge-purple  { background: var(--purple-100);  color: var(--purple-text); }
 .badge-gray    { background: var(--bg-surface);  color: var(--text-muted); }
 
 /* Buttons */

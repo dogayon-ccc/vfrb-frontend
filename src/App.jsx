@@ -1,36 +1,12 @@
-// src/App.jsx — VFRB Enterprise v10.4
-// TASK FF-1 BUG FIX: production route now includes :orderId param.
-//   Before: path="production"           → orderId always undefined in component
-//   After:  path="production/:orderId"  → useParams() reads real order_id
-//
-// SETTINGS FIX (Aug 21 2026, Account 2): the "settings" route was wrapped
-//   in <RequireManager>, which fully blocked staff from ever reaching the
-//   page — contradicts the confirmed rule (manager edits, staff views).
-//   Gating now happens INSIDE Settings.jsx itself (fields disabled, no
-//   Save/logo buttons for staff), same pattern as PhysicalCount.jsx.
-//   Route itself is open to any authenticated admin/staff user.
-//
-// All admin + customer pages lazy-loaded — only layouts and auth pages eager.
-// DesignStudio + DesignStudio3D separately lazy-loaded (Three.js is 600KB+).
+// src/App.jsx — route config. All admin + customer pages lazy-loaded; only
 
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense, useEffect } from 'react';
 import axios from 'axios';
-// Task 1 (PWA install-to-home-screen, Aug 30 2026): Android's native
-// install prompt already works off vite-plugin-pwa's generated manifest
-// (Aug 24 2026 commit) — no code needed there. iOS Safari has no native
-// equivalent at all, so this component is the actual missing half. Mounted
-// once at the app root (not per-portal) so it appears regardless of
-// whether the visitor lands on the customer or admin/staff side first.
+// iOS has no native install prompt (Android gets one from the manifest); this fills that gap.
 import PWAPrompt from 'react-ios-pwa-prompt';
 
-// ── Axios Setup ───────────────────────────────────────────────────────────────
-// LOCAL DEV:   No baseURL — all /api/* go through Vite proxy → localhost:8000
-//              (CORS eliminated entirely in dev — no changes needed)
-// PRODUCTION:  VITE_API_URL is set in .env.production before `npm run build`
-//              Vite bakes the URL into the bundle at build time.
-//              axios.defaults.baseURL = 'https://vfrb-api.railway.app'
-//              All /api/* calls then go directly to the Railway backend.
+// Dev: no baseURL, /api/* goes through the Vite proxy. Prod: VITE_API_URL points straight at Railway.
 if (import.meta.env.VITE_API_URL) {
   axios.defaults.baseURL = import.meta.env.VITE_API_URL;
 }
@@ -51,18 +27,25 @@ import AdminLayout    from './layouts/AdminLayout';
 import CustomerLayout from './layouts/CustomerLayout';
 
 // ── Landing Pages — eager (public, lightweight) ───────────────────────────────
+// No admin landing page — those accounts are provisioned directly, never self-registered.
 import Landing      from './pages/Landing';
-import AdminLanding from './pages/admin/Landing';
 
 // ── Auth — eager (small, always needed for login flow) ───────────────────────
 import CustomerLogin    from './pages/auth/Login';
 import CustomerRegister from './pages/auth/Register';
-import AdminLogin       from './pages/admin/Login';
 import VerifyEmail      from './pages/auth/VerifyEmail';
 import GoogleComplete   from './pages/auth/GoogleComplete';
 
 // ── Admin Pages — all lazy ────────────────────────────────────────────────────
 const AdminDashboard         = lazy(() => import('./pages/admin/Dashboard'));
+const StaffDashboard         = lazy(() => import('./pages/admin/StaffDashboard'));
+
+// Manager gets AdminDashboard.jsx; every other job_function gets the
+// role-specific StaffDashboard.jsx instead — same route, different home.
+function DashboardHome() {
+  const user = JSON.parse(localStorage.getItem('vfrb_user') || '{}');
+  return user.role === 'manager' ? <AdminDashboard/> : <StaffDashboard/>;
+}
 const AdminOrders            = lazy(() => import('./pages/admin/Orders'));
 const AdminInventory         = lazy(() => import('./pages/admin/Inventory'));
 const AdminMaterials         = lazy(() => import('./pages/admin/Materials'));
@@ -75,6 +58,7 @@ const AdminMessages          = lazy(() => import('./pages/admin/Messages'));
 const AdminDeliveryTracking  = lazy(() => import('./pages/admin/DeliveryTracking'));
 const AdminSuppliers         = lazy(() => import('./pages/admin/Suppliers'));
 const AdminUserManagement    = lazy(() => import('./pages/admin/UserManagement'));
+const AdminShowcaseQueue     = lazy(() => import('./pages/admin/ShowcaseModerationQueue'));
 const AdminSettings          = lazy(() => import('./pages/admin/Settings'));
 const AdminActivityLog       = lazy(() => import('./pages/admin/ActivityLog'));
 const AdminFeedback          = lazy(() => import('./pages/admin/Feedback')); // NEW Aug 27 2026
@@ -88,16 +72,19 @@ const AdminQCChecklist       = lazy(() => import('./pages/admin/QCChecklist'));
 const AdminProductionIncidents = lazy(() => import('./pages/admin/ProductionIncidents')); // NEW Aug 25 2026
 
 // ── Customer Pages — all lazy ─────────────────────────────────────────────────
-const CustomerDashboard   = lazy(() => import('./pages/customer/Dashboard'));
-const CustomerOrders      = lazy(() => import('./pages/customer/Orders'));
-const CustomerOrderDetail = lazy(() => import('./pages/customer/OrderDetail'));
-const CustomerOrderWizard = lazy(() => import('./pages/customer/OrderWizard'));
-const CustomerAIMaterials = lazy(() => import('./pages/customer/AIMaterials'));
-const CustomerMessages    = lazy(() => import('./pages/customer/Messages'));
-const CustomerProfile     = lazy(() => import('./pages/customer/Profile'));
+const CustomerDashboard   = lazy(() => import('./pages/client/Dashboard'));
+const CustomerOrders      = lazy(() => import('./pages/client/Orders'));
+const CustomerOrderDetail = lazy(() => import('./pages/client/OrderDetail'));
+const CustomerOrderWizard = lazy(() => import('./pages/client/OrderWizard'));
+const CustomerAIMaterials = lazy(() => import('./pages/client/AIMaterials'));
+const CustomerMessages    = lazy(() => import('./pages/client/Messages'));
+const CustomerBilling     = lazy(() => import('./pages/client/BillingProfiles'));
+const CustomerSettings    = lazy(() => import('./pages/client/AccountSettings'));
+const CustomerHelp        = lazy(() => import('./pages/client/settings/HelpSupport'));
+const CustomerProfile     = lazy(() => import('./pages/client/Profile'));
 
 // ── Design Studio — separately lazy (Fabric.js + Three.js are heavy) ─────────
-const DesignStudio = lazy(() => import('./pages/customer/DesignStudio'));
+const DesignStudio = lazy(() => import('./pages/client/DesignStudio'));
 
 // ── Auth extras — lazy ────────────────────────────────────────────────────────
 const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'));
@@ -157,7 +144,7 @@ function RequireManager({ children }) {
 function CustomerRootRoute() {
   const tok  = localStorage.getItem('vfrb_token');
   const user = JSON.parse(localStorage.getItem('vfrb_user') || '{}');
-  if (tok && user.role === 'customer')                       return <Navigate to="/customer"          replace/>;
+  if (tok && user.role === 'customer')                       return <Navigate to="/dashboard"        replace/>;
   if (tok && ['manager','staff'].includes(user.role))        return <Navigate to="/admin/dashboard"   replace/>;
   return <Landing/>;
 }
@@ -165,20 +152,15 @@ function CustomerRootRoute() {
 function AdminRootRoute() {
   const tok  = localStorage.getItem('vfrb_token');
   const user = JSON.parse(localStorage.getItem('vfrb_user') || '{}');
-  if (tok && ['manager','staff'].includes(user.role))        return <Navigate to="/admin/dashboard"   replace/>;
-  return <AdminLanding/>;
+  if (tok && ['manager','staff'].includes(user.role))        return <Navigate to="/admin/dashboard" replace/>;
+  // No landing page for admin/staff (Sept 3 2026) — straight to login.
+  return <Navigate to="/admin/login" replace/>;
 }
 
 function ScrollTop() {
   const { pathname } = useLocation();
   useEffect(() => {
     window.scrollTo(0, 0);
-    // no return — a block body with a bare statement always returns
-    // undefined, regardless of what window.scrollTo() itself returns.
-    // Persisted "destroy is not a function" crash across a fresh rebuild
-    // (new bundle hash, same crash) pointed at something external
-    // overriding window.scrollTo (commonly a browser extension) rather
-    // than a real bug in this code — this makes the effect safe either way.
   }, [pathname]);
   return null;
 }
@@ -188,13 +170,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <ScrollTop/>
-      {/* appIconPath overridden to the local apple-touch-icon.png that's
-          already shipped in /public — the package's own default falls
-          back to Google's public favicon-fetch service, which is a CDN
-          call this project's "offline-tolerant, no CDN calls" rule
-          explicitly forbids. promptOnVisit/timesToShow left at the
-          package defaults (shows on visit 2, twice total) so it doesn't
-          interrupt someone's very first look at the site. */}
+      {/* appIconPath points at the local icon — the package default falls back to a
+          Google CDN call, which this project's offline-tolerant rule forbids. */}
       <PWAPrompt
         copyTitle="Install VFRB Enterprise"
         copyDescription="Add VFRB to your home screen for faster access and a full-screen app view — no browser address bar."
@@ -215,8 +192,8 @@ export default function App() {
           <Route path="/verify-email"    element={<VerifyEmail/>}/>
           <Route path="/auth/google/complete" element={<GoogleComplete/>}/>
 
-          {/* ── ADMIN AUTH ────────────────────────────────────────────────── */}
-          <Route path="/admin/login" element={<AdminLogin/>}/>
+          {/* ── ADMIN AUTH — one shared login, role decides the redirect ───── */}
+          <Route path="/admin/login" element={<Navigate to="/login" replace/>}/>
 
           {/* ── PUBLIC INFO PAGES — no auth required ─────────────────────── */}
           <Route path="/guide"    element={<GuidePage/>}/>
@@ -229,7 +206,7 @@ export default function App() {
           <Route path="/admin/*" element={
             <RequireAuth role="admin"><AdminLayout/></RequireAuth>
           }>
-            <Route path="dashboard"   element={<AdminDashboard/>}/>
+            <Route path="dashboard"   element={<DashboardHome/>}/>
 
             {/* Staff + Manager */}
             <Route path="orders"      element={<AdminOrders/>}/>
@@ -266,23 +243,27 @@ export default function App() {
             <Route path="invoice"   element={<RequireManager><AdminInvoice/></RequireManager>}/>
             <Route path="suppliers" element={<RequireManager><AdminSuppliers/></RequireManager>}/>
             <Route path="users"     element={<RequireManager><AdminUserManagement/></RequireManager>}/>
+            <Route path="designs/showcase-queue" element={<RequireManager><AdminShowcaseQueue/></RequireManager>}/>
           </Route>
 
-          {/* ── CUSTOMER PORTAL ───────────────────────────────────────────── */}
-          <Route path="/customer" element={
+          {/* ── CUSTOMER PORTAL — root-level paths, no /client or /customer prefix ── */}
+          <Route element={
             <RequireAuth role="customer"><CustomerLayout/></RequireAuth>
           }>
-            <Route index              element={<CustomerDashboard/>}/>
+            <Route path="dashboard"   element={<CustomerDashboard/>}/>
             <Route path="orders"      element={<CustomerOrders/>}/>
             <Route path="orders/:id"  element={<CustomerOrderDetail/>}/>
             <Route path="order/create"element={<CustomerOrderWizard/>}/>
             <Route path="ai-materials"element={<CustomerAIMaterials/>}/>
             <Route path="messages"    element={<CustomerMessages/>}/>
+            <Route path="billing"     element={<CustomerBilling/>}/>
+            <Route path="settings"    element={<CustomerSettings/>}/>
+            <Route path="help"        element={<CustomerHelp/>}/>
             <Route path="profile"     element={<CustomerProfile/>}/>
           </Route>
 
           {/* ── DESIGN STUDIO — full-screen, outside CustomerLayout ───────── */}
-          <Route path="/customer/design-studio" element={
+          <Route path="/design-studio" element={
             <RequireAuth role="customer">
               <Suspense fallback={<Loader/>}><DesignStudio/></Suspense>
             </RequireAuth>

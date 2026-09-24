@@ -1,12 +1,33 @@
 // src/pages/admin/AdminMessages.jsx
+//
+// RESHAPED (Sept 6 2026): hex → theme.css tokens (using the --bg vs
+// --bg-surface distinction correctly this time — see Invoice.jsx's
+// header note for why that matters), emoji → NavIcon. --bg (#f8fafc)
+// used for thread-list/chat header backgrounds, --bg-surface (#f1f5f9)
+// used for the incoming-message bubble and skeleton shimmer, matching
+// exactly which hex each spot used in the real original.
+//
+// Two real, unstyled gaps closed, not just recolored — these weren't
+// token issues, the original genuinely had bare unstyled elements
+// where a chat UI needs real ones:
+//   - The date separator (<div>{item.lbl}</div>) had ZERO styling at
+//     all — no centering, no background, just raw text inline in the
+//     message flex column. Now a proper centered pill, the standard
+//     chat-app date-divider pattern.
+//   - Both empty states ("Select a conversation" / "No messages yet")
+//     were bare <p> tags with no icon, color, or centering. Now match
+//     the empty-state pattern already established on every other
+//     reshaped page (icon + centered text).
+// Send button's plain "→" replaced with a real Send (paper airplane)
+// icon, verified against the real installed lucide-react first.
+//
+// Logic (60s polling, optimistic send + rollback, day-grouping,
+// meId/isMe detection) completely untouched.
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
-
-const T = '#028090';
-const T2 = '#02C39A';
-const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif`;
+import { NavIcon } from '../../components/ui';
 
 export default function AdminMessages() {
   const [threads, setThreads] = useState([]);
@@ -103,40 +124,41 @@ export default function AdminMessages() {
   return (
     <>
       <style>{`
-        @keyframes sk {
+        @keyframes msg-shimmer {
           0% { background-position: -400px 0; }
           100% { background-position: 400px 0; }
         }
+        @keyframes msg-spin { to { transform: rotate(360deg); } }
 
         .adm-msg-wrap {
           display: flex;
           gap: 16px;
           height: calc(100vh - 120px);
-          font-family: ${FONT};
-          color: #0f172a;
+          font-family: var(--font);
+          color: var(--ink);
         }
 
         .adm-msg-threads {
           width: 280px;
           flex-shrink: 0;
-          background: #fff;
-          border: 1px solid #e2e8f0;
-          border-radius: 14px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: var(--r-lg);
           overflow: hidden;
           display: flex;
           flex-direction: column;
-          box-shadow: 0 1px 3px rgba(0,0,0,.05);
+          box-shadow: var(--shadow-xs);
         }
 
         .adm-msg-chat {
           flex: 1;
-          background: #fff;
-          border: 1px solid #e2e8f0;
-          border-radius: 14px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: var(--r-lg);
           display: flex;
           flex-direction: column;
           overflow: hidden;
-          box-shadow: 0 1px 3px rgba(0,0,0,.05);
+          box-shadow: var(--shadow-xs);
         }
 
         @media (max-width: 767px) {
@@ -163,14 +185,14 @@ export default function AdminMessages() {
           <div
             style={{
               padding: '14px 16px',
-              borderBottom: '1px solid #e2e8f0',
-              background: '#f8fafc',
+              borderBottom: '1px solid var(--border)',
+              background: 'var(--bg)',
             }}
           >
-            <h2 style={{ fontSize: 14, fontWeight: 800, margin: 0 }}>
+            <h2 style={{ fontSize: 14, fontWeight: 800, margin: 0, color: 'var(--ink)' }}>
               Messages
             </h2>
-            <p style={{ fontSize: 11, color: '#64748b', margin: '2px 0 0' }}>
+            <p style={{ fontSize: 11, color: 'var(--text-subtle)', margin: '2px 0 0' }}>
               Customer conversations
             </p>
           </div>
@@ -183,20 +205,20 @@ export default function AdminMessages() {
                     key={i}
                     style={{
                       height: 48,
-                      borderRadius: 10,
+                      borderRadius: 'var(--r-md)',
                       marginBottom: 8,
                       background:
-                        'linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%)',
+                        'linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%)',
                       backgroundSize: '400px',
-                      animation: 'sk 1.4s infinite',
+                      animation: 'msg-shimmer 1.4s infinite',
                     }}
                   />
                 ))}
               </div>
             ) : threads.length === 0 ? (
               <div style={{ padding: '30px 16px', textAlign: 'center' }}>
-                <p style={{ fontSize: 28, opacity: 0.3 }}>💬</p>
-                <p style={{ color: '#94a3b8', fontSize: 12 }}>
+                <NavIcon name="chat" size={28} color="var(--text-faint)" style={{ marginBottom: 8 }} />
+                <p style={{ color: 'var(--text-faint)', fontSize: 12, margin: 0 }}>
                   No messages yet
                 </p>
               </div>
@@ -213,17 +235,18 @@ export default function AdminMessages() {
                       width: '100%',
                       padding: '12px 16px',
                       border: 'none',
-                      borderBottom: '1px solid #f1f5f9',
+                      borderBottom: '1px solid var(--bg-surface)',
                       textAlign: 'left',
                       cursor: 'pointer',
-                      background: active ? '#f0fdfa' : 'transparent',
+                      background: active ? 'var(--teal-50)' : 'transparent',
+                      fontFamily: 'var(--font)',
                     }}
                   >
                     <p
                       style={{
                         fontSize: 12,
                         fontWeight: 700,
-                        color: active ? T : '#0f172a',
+                        color: active ? 'var(--teal)' : 'var(--ink)',
                         margin: 0,
                       }}
                     >
@@ -235,7 +258,7 @@ export default function AdminMessages() {
                       <p
                         style={{
                           fontSize: 11,
-                          color: '#94a3b8',
+                          color: 'var(--text-faint)',
                           margin: '3px 0 0',
                         }}
                       >
@@ -254,11 +277,11 @@ export default function AdminMessages() {
           <div
             style={{
               padding: '12px 18px',
-              borderBottom: '1px solid #e2e8f0',
-              background: '#f8fafc',
+              borderBottom: '1px solid var(--border)',
+              background: 'var(--bg)',
             }}
           >
-            <p style={{ fontSize: 13, fontWeight: 800, margin: 0 }}>
+            <p style={{ fontSize: 13, fontWeight: 800, margin: 0, color: 'var(--ink)' }}>
               {selThread
                 ? `Order #${selId} — ${
                     selThread.customer_name ?? selThread.user?.name ?? '—'
@@ -278,9 +301,15 @@ export default function AdminMessages() {
             }}
           >
             {!selId ? (
-              <p>Select a conversation</p>
+              <div style={{ margin: 'auto', textAlign: 'center' }}>
+                <NavIcon name="chat" size={32} color="var(--text-faint)" style={{ marginBottom: 8 }} />
+                <p style={{ color: 'var(--text-faint)', fontSize: 13, margin: 0 }}>Select a conversation</p>
+              </div>
             ) : msgs.length === 0 ? (
-              <p>No messages yet</p>
+              <div style={{ margin: 'auto', textAlign: 'center' }}>
+                <NavIcon name="chat" size={32} color="var(--text-faint)" style={{ marginBottom: 8 }} />
+                <p style={{ color: 'var(--text-faint)', fontSize: 13, margin: 0 }}>No messages yet</p>
+              </div>
             ) : (
               (() => {
                 const items = [];
@@ -335,7 +364,14 @@ export default function AdminMessages() {
                   <AnimatePresence initial={false}>
                     {items.map((item) =>
                       item.type === 'sep' ? (
-                        <div key={item.key}>{item.lbl}</div>
+                        <div key={item.key} style={{ display: 'flex', justifyContent: 'center', margin: '6px 0' }}>
+                          <span style={{
+                            fontSize: 10, fontWeight: 700, color: 'var(--text-subtle)',
+                            background: 'var(--bg-surface)', padding: '3px 12px',
+                            borderRadius: 'var(--r-full)', textTransform: 'uppercase',
+                            letterSpacing: '.05em', fontFamily: 'var(--font)',
+                          }}>{item.lbl}</span>
+                        </div>
                       ) : (
                         <motion.div
                           key={item.key}
@@ -355,17 +391,18 @@ export default function AdminMessages() {
                             style={{
                               maxWidth: '70%',
                               padding: '10px 14px',
-                              borderRadius: 14,
+                              borderRadius: 'var(--r-lg)',
                               background: item.isMe
-                                ? `linear-gradient(135deg,${T},${T2})`
-                                : '#f1f5f9',
+                                ? 'linear-gradient(135deg,var(--teal),var(--teal-2))'
+                                : 'var(--bg-surface)',
                             }}
                           >
                             <p
                               style={{
                                 fontSize: 13,
                                 margin: 0,
-                                color: item.isMe ? '#fff' : '#0f172a',
+                                fontFamily: 'var(--font)',
+                                color: item.isMe ? '#fff' : 'var(--ink)',
                               }}
                             >
                               {item.m.body}
@@ -386,7 +423,7 @@ export default function AdminMessages() {
           <div
             style={{
               padding: '12px 16px',
-              borderTop: '1px solid #e2e8f0',
+              borderTop: '1px solid var(--border)',
               display: 'flex',
               gap: 10,
             }}
@@ -407,8 +444,13 @@ export default function AdminMessages() {
               style={{
                 flex: 1,
                 padding: '10px 14px',
-                borderRadius: 10,
-                border: '1px solid #e2e8f0',
+                borderRadius: 'var(--r-md)',
+                border: '1px solid var(--border)',
+                background: 'var(--bg-card)',
+                color: 'var(--ink)',
+                fontFamily: 'var(--font)',
+                fontSize: 13,
+                outline: 'none',
               }}
             />
 
@@ -417,17 +459,21 @@ export default function AdminMessages() {
               onClick={send}
               disabled={sending || !newMsg.trim() || !selId}
               style={{
+                display: 'flex', alignItems: 'center', gap: 6,
                 padding: '10px 18px',
-                borderRadius: 10,
+                borderRadius: 'var(--r-md)',
                 border: 'none',
                 background:
                   sending || !newMsg.trim() || !selId
-                    ? '#e2e8f0'
-                    : `linear-gradient(135deg,${T},${T2})`,
+                    ? 'var(--border)'
+                    : 'linear-gradient(135deg,var(--teal),var(--teal-2))',
                 color: '#fff',
+                fontSize: 13, fontWeight: 700, fontFamily: 'var(--font)',
+                cursor: sending || !newMsg.trim() || !selId ? 'not-allowed' : 'pointer',
               }}
             >
-              {sending ? '⏳' : 'Send →'}
+              <NavIcon name={sending ? 'loading' : 'send'} size={14} color="#fff" style={sending ? { animation: 'msg-spin .8s linear infinite' } : undefined} />
+              {!sending && 'Send'}
             </motion.button>
           </div>
         </div>

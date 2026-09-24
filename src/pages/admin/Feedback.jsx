@@ -2,19 +2,28 @@
 // NEW — added Aug 27 2026. Manager-only triage view for the minimal
 // feedback system (see backend migration comment for scope rationale —
 // deliberately no upvoting/public board).
+//
+// RESHAPED (Sept 2 2026): brought into compliance with theme.css's own
+// stated rule ("NO hardcoded colors in component files — use these
+// vars") — this file previously had zero var(--) usage, same as every
+// other admin page except Landing.jsx (checked all 24, this wasn't a
+// one-off). Also swapped emoji category icons for NavIcon (matching the
+// icon-cleanup convention already applied to AdminLayout/CustomerLayout/
+// DesignStudio), and switched the status pill to the shared Badge
+// component instead of a hand-rolled span — Badge already existed but
+// was unused here. Logic below (axios calls, optimistic status update,
+// filter state) is untouched — this is a visual-layer-only pass.
+//
+// Dropped: an unused `const T = '#028090'` that was never actually
+// referenced anywhere in the file — dead code, not a functional change.
 
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { Card, Badge, NavIcon } from '../../components/ui';
 
-const T    = '#028090';
-const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif`;
-
-const STATUS_STYLE = {
-  new:      { bg: '#fef2f2', fg: '#dc2626', label: 'New' },
-  reviewed: { bg: '#fffbeb', fg: '#d97706', label: 'Reviewed' },
-  archived: { bg: '#f1f5f9', fg: '#64748b', label: 'Archived' },
-};
-const CATEGORY_ICON = { bug: '🐛', suggestion: '💡', other: '💬' };
+const CATEGORY_ICON = { bug: 'bug', suggestion: 'suggestion', other: 'chat' };
+const STATUS_TONE   = { new: 'danger', reviewed: 'warning', archived: 'neutral' };
+const STATUS_LABEL  = { new: 'New', reviewed: 'Reviewed', archived: 'Archived' };
 
 export default function AdminFeedback() {
   const [items, setItems]     = useState([]);
@@ -43,17 +52,20 @@ export default function AdminFeedback() {
   };
 
   return (
-    <div style={{ fontFamily: FONT, paddingBottom: 40 }}>
+    <div style={{ fontFamily: 'var(--font)', paddingBottom: 40 }}>
       <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', margin: 0 }}>Feedback</h1>
-        <p style={{ fontSize: 13, color: '#64748b', margin: '4px 0 0' }}>
+        <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, color: 'var(--ink)', margin: 0 }}>
+          Feedback
+        </h1>
+        <p style={{ fontSize: 'var(--text-base)', color: 'var(--text-subtle)', margin: '4px 0 0' }}>
           What customers and staff have said about the system itself.
         </p>
       </div>
 
       <select value={filter} onChange={e => setFilter(e.target.value)} style={{
-        padding: '10px 14px', borderRadius: 10, border: '1px solid #e2e8f0',
-        background: '#fff', fontSize: 13, marginBottom: 16, fontFamily: FONT,
+        padding: '10px 14px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)',
+        background: 'var(--bg-card)', color: 'var(--ink)', fontSize: 'var(--text-base)',
+        fontFamily: 'var(--font)', marginBottom: 16, minHeight: 44,
       }}>
         <option value="">All statuses</option>
         <option value="new">New</option>
@@ -62,44 +74,50 @@ export default function AdminFeedback() {
       </select>
 
       {loading ? (
-        <p style={{ color: '#64748b', fontSize: 13 }}>Loading…</p>
+        <p style={{ color: 'var(--text-subtle)', fontSize: 'var(--text-base)' }}>Loading…</p>
       ) : items.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '48px 20px', color: '#94a3b8' }}>
-          <div style={{ fontSize: 36, marginBottom: 8 }}>💬</div>
-          <p style={{ fontSize: 14 }}>No feedback yet.</p>
+        <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-faint)' }}>
+          <NavIcon name="chat" size={36} color="var(--text-faint)" style={{ marginBottom: 8 }} />
+          <p style={{ fontSize: 'var(--text-md)' }}>No feedback yet.</p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {items.map(item => {
-            const st = STATUS_STYLE[item.status] ?? STATUS_STYLE.new;
-            return (
-              <div key={item.feedback_id} style={{
-                background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: 16,
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>
-                    {CATEGORY_ICON[item.category] ?? '💬'} {item.user?.name ?? 'Unknown user'}
-                  </span>
-                  <span style={{ background: st.bg, color: st.fg, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999 }}>{st.label}</span>
-                </div>
-                <p style={{ fontSize: 13, color: '#334155', margin: '0 0 10px' }}>{item.message}</p>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {item.status !== 'reviewed' && (
-                    <button onClick={() => setStatus(item.feedback_id, 'reviewed')} style={{
-                      background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a',
-                      borderRadius: 8, padding: '6px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer', minHeight: 36,
-                    }}>Mark Reviewed</button>
-                  )}
-                  {item.status !== 'archived' && (
-                    <button onClick={() => setStatus(item.feedback_id, 'archived')} style={{
-                      background: '#f1f5f9', color: '#64748b', border: '1px solid #e2e8f0',
-                      borderRadius: 8, padding: '6px 12px', fontSize: 11, fontWeight: 700, cursor: 'pointer', minHeight: 36,
-                    }}>Archive</button>
-                  )}
-                </div>
+          {items.map(item => (
+            <Card key={item.feedback_id} padding="sm">
+              <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--text-base)', fontWeight: 700, color: 'var(--ink)' }}>
+                  <NavIcon name={CATEGORY_ICON[item.category] ?? 'chat'} size={14} color="var(--text-subtle)" />
+                  {item.user?.name ?? 'Unknown user'}
+                </span>
+                <Badge tone={STATUS_TONE[item.status] ?? 'danger'}>
+                  {STATUS_LABEL[item.status] ?? 'New'}
+                </Badge>
               </div>
-            );
-          })}
+              <p style={{ fontSize: 'var(--text-base)', color: 'var(--text-muted)', margin: '0 0 10px' }}>
+                {item.message}
+              </p>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {item.status !== 'reviewed' && (
+                  <button onClick={() => setStatus(item.feedback_id, 'reviewed')} style={{
+                    background: 'var(--warning-bg)', color: 'var(--warning)', border: '1px solid var(--warning-border)',
+                    borderRadius: 'var(--r-md)', padding: '6px 12px', fontSize: 'var(--text-xs)', fontWeight: 700,
+                    fontFamily: 'var(--font)', cursor: 'pointer', minHeight: 44,
+                  }}>
+                    Mark Reviewed
+                  </button>
+                )}
+                {item.status !== 'archived' && (
+                  <button onClick={() => setStatus(item.feedback_id, 'archived')} style={{
+                    background: 'var(--bg-surface)', color: 'var(--text-subtle)', border: '1px solid var(--border)',
+                    borderRadius: 'var(--r-md)', padding: '6px 12px', fontSize: 'var(--text-xs)', fontWeight: 700,
+                    fontFamily: 'var(--font)', cursor: 'pointer', minHeight: 44,
+                  }}>
+                    Archive
+                  </button>
+                )}
+              </div>
+            </Card>
+          ))}
         </div>
       )}
     </div>

@@ -23,21 +23,35 @@
 // DO have view access here — only the edit affordances are gated
 // inside this component, matching the reconcile-button pattern in
 // PhysicalCount.jsx.
+//
+// RESHAPED (Sept 4 2026): token-compliance pass only — the module-scope
+// isManager staleness fix, the 44px touch-target fix on the toggle
+// switches, and the mobile contact-grid stacking fix (all three
+// documented in the original's own comments below) are real bug
+// histories, not decoration, and are preserved exactly as written.
+// NotConfiguredBadge's hand-rolled amber pill replaced with the shared
+// Badge (tone="warning") — its own render (padding 3px 9px, radius 999,
+// fontWeight 700) was already almost identical, one fewer local
+// component duplicating what Badge already does. The three card
+// sections now use the shared Card component instead of a local `card`
+// style const. 👥 → NavIcon. Toast/error red mapped to --danger
+// (#ef4444) rather than the original's literal #E53E3E — same red
+// family (within a few points), and consistent with how every other
+// reshaped page's error states already map to --danger; introducing a
+// second, slightly different "error red" token would be the
+// inconsistency, not fixing one.
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import { Card, Badge, NavIcon } from '../../components/ui';
 
-const T    = '#028090';
-const T2   = '#02C39A';
-const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif`;
-const inp  = { width:'100%', padding:'10px 14px', borderRadius:10, border:'1px solid #e2e8f0', background:'#fff', color:'#0f172a', fontSize:13, outline:'none', fontFamily:FONT, transition:'border .15s, box-shadow .15s', boxSizing:'border-box' };
-const inpDisabled = { ...inp, background:'#f8fafc', color:'#64748b', cursor:'not-allowed' };
-const fi   = e => { e.target.style.borderColor=T; e.target.style.boxShadow=`0 0 0 3px rgba(2,128,144,.1)`; };
-const fo   = e => { e.target.style.borderColor='#e2e8f0'; e.target.style.boxShadow='none'; };
-const lbl  = { display:'block', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'#64748b', marginBottom:7, fontFamily:FONT };
-const card = { background:'#fff', border:'1px solid #e2e8f0', borderRadius:16, boxShadow:'0 1px 3px rgba(0,0,0,.05)', padding:'22px 24px' };
+const inp  = { width:'100%', padding:'10px 14px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)', fontSize:13, outline:'none', fontFamily:'var(--font)', transition:'border .15s, box-shadow .15s', boxSizing:'border-box' };
+const inpDisabled = { ...inp, background:'var(--bg-surface)', color:'var(--text-subtle)', cursor:'not-allowed' };
+const fi   = e => { e.target.style.borderColor='var(--teal)'; e.target.style.boxShadow='0 0 0 3px rgba(2,128,144,.1)'; };
+const fo   = e => { e.target.style.borderColor='var(--border)'; e.target.style.boxShadow='none'; };
+const lbl  = { display:'block', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'var(--text-subtle)', marginBottom:7, fontFamily:'var(--font)' };
 
 // NOTE (Aug 22 2026 fix): user/isManager used to be declared here at module
 // scope. Since this page is lazy-loaded, that code only ran ONCE per browser
@@ -57,20 +71,12 @@ function getIsManager() {
 
 function Toast({ msg, type, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 3000); return () => clearTimeout(t); }, [onDone]);
-  const bg = type === 'error' ? '#E53E3E' : T;
+  const bg = type === 'error' ? 'var(--danger)' : 'var(--teal)';
   return (
     <motion.div initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:20 }}
-      style={{ position:'fixed', bottom:24, right:24, background:bg, color:'#fff', padding:'12px 18px', borderRadius:12, fontSize:13, fontWeight:600, fontFamily:FONT, boxShadow:'0 8px 24px rgba(0,0,0,.15)', zIndex:400 }}>
+      style={{ position:'fixed', bottom:24, right:24, background:bg, color:'#fff', padding:'12px 18px', borderRadius:'var(--r-lg)', fontSize:13, fontWeight:600, fontFamily:'var(--font)', boxShadow:'var(--shadow-lg)', zIndex:400 }}>
       {msg}
     </motion.div>
-  );
-}
-
-function NotConfiguredBadge() {
-  return (
-    <span style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:'.05em', color:'#B45309', background:'#FEF3C7', border:'1px solid #FDE68A', borderRadius:999, padding:'3px 9px', whiteSpace:'nowrap' }}>
-      Not yet active
-    </span>
   );
 }
 
@@ -154,31 +160,31 @@ export default function Settings() {
   };
 
   return (
-    <div style={{ maxWidth:760, margin:'0 auto', display:'flex', flexDirection:'column', gap:22, fontFamily:FONT }}>
+    <div style={{ maxWidth:760, margin:'0 auto', display:'flex', flexDirection:'column', gap:22, fontFamily:'var(--font)' }}>
       <div>
-        <h1 style={{ fontSize:22, fontWeight:800, color:'#0f172a', margin:'0 0 4px' }}>System Settings</h1>
-        <p style={{ fontSize:13, color:'#64748b', margin:0 }}>
+        <h1 style={{ fontSize:22, fontWeight:800, color:'var(--ink)', margin:'0 0 4px' }}>System Settings</h1>
+        <p style={{ fontSize:13, color:'var(--text-subtle)', margin:0 }}>
           {isManager ? 'Company branding, notification preferences, and user management shortcuts.' : 'View-only — company settings can be edited by a manager.'}
         </p>
       </div>
 
       {/* ── Company Info + Branding ─────────────────────────────────── */}
-      <div style={card}>
-        <h2 style={{ fontSize:15, fontWeight:800, color:'#0f172a', margin:'0 0 4px' }}>Company Info & Branding</h2>
-        <p style={{ fontSize:12, color:'#94a3b8', margin:'0 0 18px' }}>VFRB Enterprise's own identity — shown across the admin and customer portals.</p>
+      <Card>
+        <h2 style={{ fontSize:15, fontWeight:800, color:'var(--ink)', margin:'0 0 4px' }}>Company Info & Branding</h2>
+        <p style={{ fontSize:12, color:'var(--text-faint)', margin:'0 0 18px' }}>VFRB Enterprise's own identity — shown across the admin and customer portals.</p>
 
         {companyLoading ? (
           <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-            {[1,2,3].map(i => <div key={i} style={{ height:38, borderRadius:10, background:'linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%)', backgroundSize:'400px', animation:'sk 1.4s infinite' }}/>)}
+            {[1,2,3].map(i => <div key={i} style={{ height:38, borderRadius:'var(--r-md)', background:'linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%)', backgroundSize:'400px', animation:'set-shimmer 1.4s infinite' }}/>)}
           </div>
         ) : (
           <>
             {/* Logo */}
             <div style={{ display:'flex', alignItems:'center', gap:16, marginBottom:20 }}>
-              <div style={{ width:72, height:72, borderRadius:14, border:'1px solid #e2e8f0', background:'#f8fafc', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', flexShrink:0 }}>
+              <div style={{ width:72, height:72, borderRadius:'var(--r-lg)', border:'1px solid var(--border)', background:'var(--bg-surface)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', flexShrink:0 }}>
                 {company.logo_url
                   ? <img src={company.logo_url} alt="Company logo" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
-                  : <span style={{ fontSize:11, color:'#cbd5e1', fontWeight:700 }}>No logo</span>}
+                  : <span style={{ fontSize:11, color:'var(--text-faint)', fontWeight:700 }}>No logo</span>}
               </div>
               <div>
                 <label style={lbl}>Logo</label>
@@ -187,13 +193,13 @@ export default function Settings() {
                     <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" style={{ display:'none' }}
                       onChange={e => uploadLogo(e.target.files?.[0])}/>
                     <button onClick={() => fileRef.current?.click()} disabled={logoBusy}
-                      style={{ padding:'8px 16px', borderRadius:10, border:`1px solid ${T}`, background:'#fff', color:T, fontWeight:700, fontSize:12, cursor: logoBusy ? 'wait' : 'pointer', fontFamily:FONT }}>
+                      style={{ padding:'8px 16px', borderRadius:'var(--r-md)', border:'1px solid var(--teal)', background:'var(--bg-card)', color:'var(--teal)', fontWeight:700, fontSize:12, cursor: logoBusy ? 'wait' : 'pointer', fontFamily:'var(--font)' }}>
                       {logoBusy ? 'Uploading…' : 'Change Logo'}
                     </button>
-                    <p style={{ fontSize:11, color:'#94a3b8', margin:'6px 0 0' }}>PNG, JPG, or WebP · max 2MB</p>
+                    <p style={{ fontSize:11, color:'var(--text-faint)', margin:'6px 0 0' }}>PNG, JPG, or WebP · max 2MB</p>
                   </>
                 ) : (
-                  <p style={{ fontSize:12, color:'#94a3b8', margin:0 }}>Only a manager can change the logo.</p>
+                  <p style={{ fontSize:12, color:'var(--text-faint)', margin:0 }}>Only a manager can change the logo.</p>
                 )}
               </div>
             </div>
@@ -229,36 +235,36 @@ export default function Settings() {
 
             {isManager && (
               <button onClick={saveCompany} disabled={companyBusy}
-                style={{ marginTop:18, padding:'11px 22px', borderRadius:10, border:'none', background:`linear-gradient(135deg,${T},${T2})`, color:'#fff', fontWeight:700, fontSize:13, cursor: companyBusy ? 'wait' : 'pointer', fontFamily:FONT }}>
+                style={{ marginTop:18, padding:'11px 22px', borderRadius:'var(--r-md)', border:'none', background:'linear-gradient(135deg,var(--teal),var(--teal-2))', color:'#fff', fontWeight:700, fontSize:13, cursor: companyBusy ? 'wait' : 'pointer', fontFamily:'var(--font)' }}>
                 {companyBusy ? 'Saving…' : 'Save Changes'}
               </button>
             )}
           </>
         )}
-      </div>
+      </Card>
 
       {/* ── Notification Preferences ────────────────────────────────── */}
-      <div style={card}>
-        <h2 style={{ fontSize:15, fontWeight:800, color:'#0f172a', margin:'0 0 4px' }}>Notification Preferences</h2>
-        <p style={{ fontSize:12, color:'#94a3b8', margin:'0 0 18px' }}>Your own preferences — applies only to your account.</p>
+      <Card>
+        <h2 style={{ fontSize:15, fontWeight:800, color:'var(--ink)', margin:'0 0 4px' }}>Notification Preferences</h2>
+        <p style={{ fontSize:12, color:'var(--text-faint)', margin:'0 0 18px' }}>Your own preferences — applies only to your account.</p>
 
         {prefsLoading ? (
-          <div style={{ height:76, borderRadius:10, background:'linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%)', backgroundSize:'400px', animation:'sk 1.4s infinite' }}/>
+          <div style={{ height:76, borderRadius:'var(--r-md)', background:'linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%)', backgroundSize:'400px', animation:'set-shimmer 1.4s infinite' }}/>
         ) : (
           <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
             {[
               { key:'email_enabled', label:'Email Notifications', live:prefs.email_provider_live, note:'Order updates, AI recommendations ready, and account alerts.' },
               { key:'sms_enabled',   label:'SMS Notifications',   live:prefs.sms_provider_live,   note:'Text alerts for urgent order or delivery updates.' },
             ].map((row, i) => (
-              <div key={row.key} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 0', borderTop: i>0 ? '1px solid #f1f5f9' : 'none' }}>
+              <div key={row.key} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 0', borderTop: i>0 ? '1px solid var(--bg-surface)' : 'none' }}>
                 <div style={{ minWidth:0, paddingRight:16 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2 }}>
-                    <span style={{ fontSize:13, fontWeight:700, color:'#0f172a' }}>{row.label}</span>
-                    {!row.live && <NotConfiguredBadge/>}
+                    <span style={{ fontSize:13, fontWeight:700, color:'var(--ink)' }}>{row.label}</span>
+                    {!row.live && <Badge tone="warning">Not yet active</Badge>}
                   </div>
-                  <p style={{ fontSize:11.5, color:'#94a3b8', margin:0 }}>{row.note}</p>
+                  <p style={{ fontSize:11.5, color:'var(--text-faint)', margin:0 }}>{row.note}</p>
                   {!row.live && (
-                    <p style={{ fontSize:11, color:'#B45309', margin:'3px 0 0' }}>
+                    <p style={{ fontSize:11, color:'var(--warning)', margin:'3px 0 0' }}>
                       {row.key === 'email_enabled'
                         ? 'No production email provider is connected yet — this saves your preference but no real email is sent.'
                         : 'No SMS provider is connected — this reserves the setting for when one is added.'}
@@ -275,8 +281,8 @@ export default function Settings() {
                   style={{ flexShrink:0, width:44, height:44, padding:0, border:'none',
                     background:'transparent', cursor: prefsBusy ? 'wait' : 'pointer',
                     display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  <span style={{ width:44, height:26, borderRadius:999, position:'relative',
-                    background: prefs[row.key] ? T : '#e2e8f0', transition:'background .15s' }}>
+                  <span style={{ width:44, height:26, borderRadius:'var(--r-full)', position:'relative',
+                    background: prefs[row.key] ? 'var(--teal)' : 'var(--border)', transition:'background .15s' }}>
                     <motion.span animate={{ x: prefs[row.key] ? 20 : 2 }} transition={{ type:'spring', stiffness:500, damping:30 }}
                       style={{ position:'absolute', top:2, width:22, height:22, borderRadius:'50%', background:'#fff', boxShadow:'0 1px 3px rgba(0,0,0,.2)' }}/>
                   </span>
@@ -285,17 +291,17 @@ export default function Settings() {
             ))}
           </div>
         )}
-      </div>
+      </Card>
 
       {/* ── User & Role Shortcuts ───────────────────────────────────── */}
       {isManager && (
-        <div style={card}>
-          <h2 style={{ fontSize:15, fontWeight:800, color:'#0f172a', margin:'0 0 4px' }}>User Management</h2>
-          <p style={{ fontSize:12, color:'#94a3b8', margin:'0 0 16px' }}>Manage staff and manager accounts.</p>
-          <Link to="/admin/users" style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'10px 18px', borderRadius:10, border:'1px solid #e2e8f0', color:'#0f172a', fontWeight:700, fontSize:13, textDecoration:'none', fontFamily:FONT }}>
-            👥 Go to User Management →
+        <Card>
+          <h2 style={{ fontSize:15, fontWeight:800, color:'var(--ink)', margin:'0 0 4px' }}>User Management</h2>
+          <p style={{ fontSize:12, color:'var(--text-faint)', margin:'0 0 16px' }}>Manage staff and manager accounts.</p>
+          <Link to="/admin/users" style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'10px 18px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', color:'var(--ink)', fontWeight:700, fontSize:13, textDecoration:'none', fontFamily:'var(--font)' }}>
+            <NavIcon name="users" size={15} color="var(--ink)" /> Go to User Management →
           </Link>
-        </div>
+        </Card>
       )}
 
       <AnimatePresence>
@@ -310,6 +316,7 @@ export default function Settings() {
           inconsistent and cramped. Stacks to 1 column at ≤767px, same as
           every other form grid in the codebase. */}
       <style>{`
+        @keyframes set-shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
         @media (max-width: 767px) {
           .set-contact-grid { grid-template-columns: 1fr !important; }
         }
