@@ -83,7 +83,7 @@ function AddressForm({ initial, onCancel, onSaved }) {
 
 function AddressRow({ a, onEdit, onDelete }) {
   return (
-    <div style={{ padding: '14px 16px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-card)',
+    <div className="vfrb-row-card" style={{ padding: '14px 16px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-card)',
       display: 'flex', alignItems: 'flex-start', gap: 12, justifyContent: 'space-between', flexWrap: 'wrap' }}>
       <div style={{ minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -275,7 +275,7 @@ function FabricsSection() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {prefs.map(p => (
-            <div key={p.preference_id} style={{ padding: '12px 16px', borderRadius: 12, border: '1px solid var(--border)',
+            <div key={p.preference_id} className="vfrb-row-card" style={{ padding: '12px 16px', borderRadius: 12, border: '1px solid var(--border)',
               background: 'var(--bg-card)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
               <div style={{ minWidth: 0 }}>
                 <p style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)', margin: 0 }}>{p.material?.material_name ?? 'Fabric'}</p>
@@ -342,6 +342,13 @@ export default function AccountSettings() {
           -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
           mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
         }
+        /* Static list rows (addresses, fabrics) aren't full-row clickable — only
+           their edit/delete buttons are — so no hover lift/translate (that would
+           imply a click-through affordance that doesn't exist, unlike OrderCard's
+           whileHover on Orders.jsx). Just a subtle border/shadow shift on hover,
+           consistent with the "all .2s" transition already used on Dashboard cards. */
+        .vfrb-row-card { transition: border-color .18s, box-shadow .18s; }
+        .vfrb-row-card:hover { border-color: var(--teal); box-shadow: 0 2px 10px rgba(2,128,144,.08); }
         @media (min-width:640px) {
           .acct-field-row { grid-template-columns:1fr 1fr; }
           .acct-tabs { -webkit-mask-image:none; mask-image:none; } /* all 3 tabs fit unscrolled — no fade needed */

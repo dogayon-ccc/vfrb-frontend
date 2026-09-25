@@ -84,7 +84,7 @@ function ProfileForm({ initial, onCancel, onSaved }) {
 
 function ProfileRow({ p, onEdit, onDelete }) {
   return (
-    <div style={{ padding: '14px 16px', borderRadius: 12, border: '1px solid var(--border)',
+    <div className="vfrb-row-card" style={{ padding: '14px 16px', borderRadius: 12, border: '1px solid var(--border)',
       background: 'var(--bg-card)', display: 'flex', alignItems: 'flex-start', gap: 12,
       justifyContent: 'space-between', flexWrap: 'wrap' }}>
       <div style={{ minWidth: 0 }}>
@@ -149,7 +149,13 @@ export default function BillingProfiles() {
 
   return (
     <div style={{ width: '100%', maxWidth: 720, marginInline: 'auto' }}>
-      <style>{`@keyframes sk{0%{background-position:-400px 0}100%{background-position:400px 0}}`}</style>
+      <style>{`
+        @keyframes sk{0%{background-position:-400px 0}100%{background-position:400px 0}}
+        /* Row isn't fully clickable (only its edit/delete buttons are) — subtle border/shadow
+           shift on hover only, not a lift (matches the same choice in AccountSettings.jsx). */
+        .vfrb-row-card { transition: border-color .18s, box-shadow .18s; }
+        .vfrb-row-card:hover { border-color: var(--teal); box-shadow: 0 2px 10px rgba(2,128,144,.08); }
+      `}</style>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22, gap: 12, flexWrap: 'wrap' }}>
         <div>
