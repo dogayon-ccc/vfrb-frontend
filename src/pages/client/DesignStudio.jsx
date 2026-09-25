@@ -25,6 +25,7 @@ import OnboardingOverlay from './design-studio/OnboardingOverlay';
 import InspoGallery from './design-studio/InspoGallery';
 import ShowcaseGallery from './design-studio/ShowcaseGallery';
 import { T, T2, CATS, INIT_CFG, FONTS, zonesFor } from './design-studio/dsShared';
+import { deserializeDesign } from './design-studio/designSerialization';
 
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────
@@ -263,25 +264,23 @@ export default function DesignStudio() {
       .catch(() => {});
   }, []);
 
+  // 3D-contract fix: this used to hand-pick name/category/garment/sleeve/colors/patterns
+  // and drop `fit` and `patternParams` entirely, so restoring a draft silently reverted a
+  // saved female fit back to male and lost custom stripe width/spacing in the 3D preview
+  // (same class of bug INIT_CFG below now avoids by delegating to deserializeDesign).
+  // Also now restores front AND back overlays instead of only whichever face was live at
+  // save time (deserializeDesign falls back frontOverlays -> overlays for older drafts).
   const restoreDraft = useCallback(() => {
     if (!pendingDraft) return;
-    const sc = pendingDraft.studio_config;
-    setCfg(p => ({
-      ...p,
-      name:     sc.name ?? p.name,
-      category: sc.category ?? p.category,
-      garment:  sc.garment  ?? sc.garmentType ?? p.garment,
-      sleeve:   sc.sleeve   ?? sc.sleeveType  ?? p.sleeve,
-      colors:   sc.colors   ?? p.colors,
-      patterns: sc.patterns ?? p.patterns,
-    }));
-    if (Array.isArray(sc.overlays) && sc.overlays.length > 0) {
-      setTimeout(() => loadCanvasJSON(sc.overlays), 350);
-    }
+    const { cfg: restored, frontOverlays, backOverlays } = deserializeDesign(pendingDraft.studio_config);
+    setCfg(p => ({ ...p, ...restored }));
+    faceJSON.current = { front: frontOverlays, back: backOverlays };
+    const toLoad = faceJSON.current[face] ?? [];
+    if (toLoad.length > 0) setTimeout(() => loadCanvasJSON(toLoad), 350);
     setPendingDraft(null);
     setDraftRestored(true);
     setTimeout(() => setDraftRestored(false), 4000);
-  }, [pendingDraft, loadCanvasJSON]);
+  }, [pendingDraft, loadCanvasJSON, face]);
 
   const dismissDraft = useCallback(() => setPendingDraft(null), []);
 

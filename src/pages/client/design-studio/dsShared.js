@@ -9,8 +9,15 @@
 // truth for both DesignStudio.jsx and every extracted panel — duplicating
 // T2's hex value in two files would be a real, easy-to-miss divergence
 // risk the next time the brand color changes.
-import { getGarmentPaths } from './garmentPaths';
+import { getGarmentPaths, BASE_PATHS } from './garmentPaths';
 import { deserializeDesign } from './designSerialization';
+// Pure-data capability lookup only — NOT garmentMeshManifest.js. That file also calls
+// useGLTF.preload (a @react-three/drei / Three.js side effect) at import time; dsShared.js is
+// statically imported by ~20 files including OrderWizard.jsx, none of which touch 3D, and the
+// Studio's own 3D view is intentionally React.lazy()-loaded as its own chunk (CanvasViewport.jsx)
+// so those pages don't pay for Three.js. Importing garmentMeshManifest.js here would pull GLTF
+// loading into every one of those bundles and defeat that split.
+import { get3DCapabilities } from './garmentCapabilities';
 
 export const T     = '#028090';
 export const T2    = '#02C39A';
@@ -86,9 +93,12 @@ export const SLEEVE_OPTS = {
   'Pants': [], 'Shorts': [], 'Track Pants': [], 'Skirt': [],
 };
 
-// Garments with a real scanned 3D mesh that ships a male/female cut —
-// TypePanel shows the Fit toggle only for these.
-export const FIT_GARMENTS = ['T-Shirt'];
+// Garments with a real scanned 3D mesh that ships more than one fit — TypePanel shows the Fit
+// toggle only for these. Driven by the 3D capability contract (garmentMeshManifest.js) instead
+// of a second hand-maintained list: that's what left the female Polo model unreachable after it
+// was wired into SCANNED_GARMENTS — this array was never updated to match, so cfg.fit was never
+// set for a Polo Shirt / School Polo and the Studio always requested the male GLB.
+export const FIT_GARMENTS = Object.keys(BASE_PATHS).filter(name => (get3DCapabilities(name).fit?.length ?? 0) > 1);
 
 export const PH_SWATCHES = [
   { hex: '#1B2A4A', name: 'Navy'         }, { hex: '#2952A3', name: 'Royal Blue'   },
@@ -108,8 +118,21 @@ export const ZONE_KEYS = ['body','collar','sleeve','pocket','tipping'];
 export function zonesFor(garment, sleeve) {
   const p = getGarmentPaths(garment, sleeve);
   // T-Shirt's scanned GLB has no separate collar node — hide the swatch so it can't be picked and silently do nothing in 3D.
+  // NOTE (Account 3, verified against the current GLB): this is now stale. The wired t-shirt
+  // model's neck rib IS a real, colorable UV-island region (get3DCapabilities('T-Shirt').zones
+  // includes 'collar', browser-verified). Left exactly as-is rather than flipped on here: this
+  // file's own history records that OrderWizard's `needsCollar` used to drift out of sync with
+  // this flag for T-Shirt specifically, and re-enabling it changes order-validation behavior
+  // outside the 3D lane. Account 1: safe to remove `&& garment !== 'T-Shirt'` below once
+  // OrderWizard's T-Shirt collar handling is confirmed.
   const hasCollar = !!p.collar && garment !== 'T-Shirt';
-  const has = { body: true, collar: hasCollar, sleeve: !!(p.sleeveL || p.sleeveR), pocket: !!p.pocket, tipping: !!p.collar };
+  // Polo Shirt / School Polo's GLB has real body/sleeve/collar zones but no pocket geometry
+  // (GLB-CAPABILITY-MATRIX.md) — same class of mismatch as the line above: the 2D sketch has a
+  // pocket, changing its color did nothing in 3D. Driven by the capability data instead of a
+  // hardcoded garment name so it stays correct for any future garment in the same situation.
+  const cap = get3DCapabilities(garment);
+  const hasPocket = !!p.pocket && (!cap.supported || (cap.zones ?? []).includes('pocket'));
+  const has = { body: true, collar: hasCollar, sleeve: !!(p.sleeveL || p.sleeveR), pocket: hasPocket, tipping: !!p.collar };
   return ZONE_KEYS.filter(z => has[z]);
 }
 
