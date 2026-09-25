@@ -9,13 +9,14 @@ import FeedbackWidget from '../components/FeedbackWidget';
 import logo from '../assets/company-logo.jpg';
 import { loadAccent, getAccentVars, ACCENT_CHANGE_EVENT } from '../utils/accentColor';
 // Icon values below are components, rendered as <item.icon size={N}/> at each call site.
-import { LayoutDashboard, PenSquare, ClipboardList, MessageSquare, Receipt, Settings, User, Palette, LogOut } from 'lucide-react';
+import { LayoutDashboard, PenSquare, ClipboardList, MessageSquare, Receipt, Settings, User, Palette, LogOut, Shirt } from 'lucide-react';
 
 const T  = 'var(--teal)';
 const T2 = 'var(--teal-2)';
 
 const NAV = [
   { to:'/dashboard',               icon:LayoutDashboard, label:'Dashboard',    short:'Home',     end:true  },
+  { to:'/my-designs',    icon:Shirt,           label:'My Designs',   short:'Designs',  end:false },
   { to:'/order/create',  icon:PenSquare,       label:'New Order',    short:'Order',    end:false },
   { to:'/orders',        icon:ClipboardList,   label:'My Orders',    short:'Orders',   end:false },
   // AI Materials has no nav entry — it's the blocking MaterialsReveal screen after order submit, not a standalone page.
@@ -696,6 +697,12 @@ flexShrink:0,
                   onClick={() => setMoreOpen(false)}>
                   <IconBox icon={PenSquare} size={20} width={28}/>
                   <span>New Order</span>
+                </NavLink>
+
+                <NavLink to="/my-designs" className="cm-drawer-item"
+                  onClick={() => setMoreOpen(false)}>
+                  <IconBox icon={Shirt} size={20} width={28}/>
+                  <span>My Designs</span>
                 </NavLink>
 
                 <NavLink to="/billing" className="cm-drawer-item"

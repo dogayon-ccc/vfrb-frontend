@@ -242,34 +242,48 @@ export default function DesignStudio() {
   }, [addText]);
 
   // ── Draft restore on mount ────────────────────────────────────────────────
-  // Only restores if sessionStorage is empty (not mid-OrderWizard flow).
+  // REGRESSION FIX: this used to apply the saved draft's garment straight into
+  // live cfg the moment the DB responded — a blank studio (garment:null, the
+  // intended "new design" state) would silently pop back to whatever the user
+  // was last working on, with only a 4s toast as explanation. It's now an
+  // explicit, dismissible offer: the draft is held in `pendingDraft` and the
+  // blank canvas stays blank until the user chooses "Restore".
+  // Still skipped if sessionStorage already has a config (mid-OrderWizard /
+  // came from My Designs "Continue editing" or "Order again", which already
+  // set the config the caller wants — an unrelated older DB draft must not
+  // override that on the very next mount).
+  const [pendingDraft, setPendingDraft] = useState(null);
   useEffect(() => {
-    const hasSession = !!sessionStorage.getItem('studio_config');
-    if (hasSession) return;
+    if (sessionStorage.getItem('studio_config')) return;
     axios.get('/api/customer/drafts/latest')
       .then(r => {
         const draft = r.data?.draft;
-        if (!draft?.studio_config) return;
-        const sc = draft.studio_config;
-        setCfg(p => ({
-          ...p,
-          name:     sc.name ?? p.name,
-          category: sc.category ?? p.category,
-          garment:  sc.garment  ?? sc.garmentType ?? p.garment,
-          sleeve:   sc.sleeve   ?? sc.sleeveType  ?? p.sleeve,
-          colors:   sc.colors   ?? p.colors,
-          patterns: sc.patterns ?? p.patterns,
-        }));
-        if (Array.isArray(sc.overlays) && sc.overlays.length > 0) {
-          setTimeout(() => loadCanvasJSON(sc.overlays), 350);
-        }
-        setDraftRestored(true);
-        setTimeout(() => setDraftRestored(false), 4000);
+        if (draft?.studio_config?.garment) setPendingDraft(draft);
       })
       .catch(() => {});
-  // loadCanvasJSON is stable (useCallback), safe to include
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const restoreDraft = useCallback(() => {
+    if (!pendingDraft) return;
+    const sc = pendingDraft.studio_config;
+    setCfg(p => ({
+      ...p,
+      name:     sc.name ?? p.name,
+      category: sc.category ?? p.category,
+      garment:  sc.garment  ?? sc.garmentType ?? p.garment,
+      sleeve:   sc.sleeve   ?? sc.sleeveType  ?? p.sleeve,
+      colors:   sc.colors   ?? p.colors,
+      patterns: sc.patterns ?? p.patterns,
+    }));
+    if (Array.isArray(sc.overlays) && sc.overlays.length > 0) {
+      setTimeout(() => loadCanvasJSON(sc.overlays), 350);
+    }
+    setPendingDraft(null);
+    setDraftRestored(true);
+    setTimeout(() => setDraftRestored(false), 4000);
+  }, [pendingDraft, loadCanvasJSON]);
+
+  const dismissDraft = useCallback(() => setPendingDraft(null), []);
 
   // ── Auto-save debounce — fires 30s after last cfg change ─────────────────
   useEffect(() => {
@@ -374,16 +388,59 @@ export default function DesignStudio() {
           showShowcase={showShowcase} setShowShowcase={setShowShowcase}
           saved={saved} draftSaved={draftSaved} saveDesign={saveDesign} orderThis={orderThis}/>
 
+        {/* ── PENDING DRAFT OFFER ── an unfinished design exists; ask before applying it */}
+        <AnimatePresence>
+          {pendingDraft && (
+            // FIX: a plain wrapper carries left:50%/translateX(-50%) for horizontal centering.
+            // Framer Motion writes its own `transform` from the `y` animation prop straight onto
+            // the animated element's style, silently overwriting any translateX we set there —
+            // so the animated motion.div must not be the one doing the centering.
+            <div style={{ position:'absolute', top:58, left:'50%', transform:'translateX(-50%)',
+              zIndex:90, width:'max-content', maxWidth:'calc(100vw - 24px)' }}>
+            <motion.div
+              initial={{ opacity:0, y:-8 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-8 }}
+              style={{
+                padding:'10px 12px', borderRadius:14,
+                background:'#fff', border:`1px solid ${T}55`,
+                boxShadow:'0 8px 24px rgba(15,23,42,.14)',
+                display:'flex', flexWrap:'wrap', alignItems:'center', gap:'6px 10px',
+              }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8, minWidth:0 }}>
+                <NavIcon name="cloudSaved" size={14} style={{ color:T, flexShrink:0 }}/>
+                <span style={{ fontSize:12, fontWeight:600, color:'#1a2332', lineHeight:1.4 }}>
+                  You have an unfinished design{pendingDraft.studio_config?.garment ? ` (${pendingDraft.studio_config.garment})` : ''}.
+                </span>
+              </div>
+              <div style={{ display:'flex', gap:8, marginLeft:'auto' }}>
+                <button type="button" onClick={restoreDraft}
+                  style={{ fontSize:12, fontWeight:700, color:'#fff', background:T,
+                    border:'none', borderRadius:8, padding:'6px 12px', cursor:'pointer', whiteSpace:'nowrap' }}>
+                  Restore
+                </button>
+                <button type="button" onClick={dismissDraft}
+                  style={{ fontSize:12, fontWeight:600, color:'#64748b', background:'transparent',
+                    border:'none', cursor:'pointer', padding:'6px 4px', whiteSpace:'nowrap' }}>
+                  Start blank
+                </button>
+              </div>
+            </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
         {/* ── DRAFT RESTORED BANNER ── */}
         <AnimatePresence>
           {draftRestored && (
+            // Same centering fix as the pending-draft offer above: transform must live on a
+            // non-animated wrapper, not on the motion.div that also animates `y`.
+            <div style={{ position:'absolute', top:58, left:'50%', transform:'translateX(-50%)',
+              zIndex:90, width:'max-content', maxWidth:'calc(100vw - 24px)' }}>
             <motion.div
               initial={{ opacity:0, y:-8 }}
               animate={{ opacity:1, y:0, transition:{ duration:.25 } }}
               exit={{   opacity:0, y:-8, transition:{ duration:.2  } }}
               style={{
-                position:'absolute', top:58, left:'50%', transform:'translateX(-50%)',
-                zIndex:90, padding:'7px 18px', borderRadius:99,
+                padding:'7px 18px', borderRadius:99,
                 background:`linear-gradient(135deg,${T},${T2})`,
                 color:'#000', fontSize:11, fontWeight:700,
                 boxShadow:'0 4px 16px rgba(2,195,154,.35)',
@@ -392,6 +449,7 @@ export default function DesignStudio() {
               }}>
               <NavIcon name="cloudSaved" size={13}/> Design restored from your last session
             </motion.div>
+            </div>
           )}
         </AnimatePresence>
 

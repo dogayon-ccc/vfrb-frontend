@@ -10,6 +10,7 @@
 // T2's hex value in two files would be a real, easy-to-miss divergence
 // risk the next time the brand color changes.
 import { getGarmentPaths } from './garmentPaths';
+import { deserializeDesign } from './designSerialization';
 
 export const T     = '#028090';
 export const T2    = '#02C39A';
@@ -252,17 +253,17 @@ export const INSPO_TEMPLATES = [
 // to a genuinely fresh visit. `category` still defaults so the Type panel
 // opens on a sensible garment grid instead of an empty one; it has no
 // effect on the canvas by itself.
+//
+// Delegates to the single deserializeDesign() contract (designSerialization.js)
+// instead of its own JSON.parse/try-catch — same defaulting/legacy-alias
+// handling every other studio_config reader now shares, so a missing,
+// partial or malformed sessionStorage value degrades to DEFAULT_CFG here
+// exactly the same way it does everywhere else, instead of a second,
+// slightly-different fallback living in this file.
 export const INIT_CFG = () => {
-  try {
-    const s = sessionStorage.getItem('studio_config');
-    if (s) return JSON.parse(s);
-  } catch {}
-  return {
-    name: '',
-    category: 'School Uniform', garment: null, sleeve: 'Short',
-    colors:   { body:'#1e3a5f', collar:'#c8a96e', sleeve:'#1e3a5f', pocket:'#c8a96e', tipping:null },
-    patterns: { body:'solid', collar:'solid', sleeve:'solid', pocket:'solid' },
-  };
+  let raw = null;
+  try { raw = sessionStorage.getItem('studio_config'); } catch {}
+  return deserializeDesign(raw).cfg;
 };
 
 export function hexToRgb(hex) {

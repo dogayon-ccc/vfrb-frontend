@@ -74,6 +74,7 @@ const AdminProductionIncidents = lazy(() => import('./pages/admin/ProductionInci
 // ── Customer Pages — all lazy ─────────────────────────────────────────────────
 const CustomerDashboard   = lazy(() => import('./pages/client/Dashboard'));
 const CustomerOrders      = lazy(() => import('./pages/client/Orders'));
+const CustomerMyDesigns   = lazy(() => import('./pages/client/MyDesigns'));
 const CustomerOrderDetail = lazy(() => import('./pages/client/OrderDetail'));
 const CustomerOrderWizard = lazy(() => import('./pages/client/OrderWizard'));
 const CustomerAIMaterials = lazy(() => import('./pages/client/AIMaterials'));
@@ -251,6 +252,7 @@ export default function App() {
             <RequireAuth role="customer"><CustomerLayout/></RequireAuth>
           }>
             <Route path="dashboard"   element={<CustomerDashboard/>}/>
+            <Route path="my-designs"  element={<CustomerMyDesigns/>}/>
             <Route path="orders"      element={<CustomerOrders/>}/>
             <Route path="orders/:id"  element={<CustomerOrderDetail/>}/>
             <Route path="order/create"element={<CustomerOrderWizard/>}/>

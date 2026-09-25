@@ -5,7 +5,7 @@ import { NavIcon } from '../../../components/ui/icons';
 import { INSPO_TEMPLATES, T2 } from './dsShared';
 import { BASE_PATHS } from './garmentPaths';
 
-function MiniPreview({ garment, colors }) {
+export function MiniPreview({ garment, colors }) {
   const paths = BASE_PATHS[garment] ?? BASE_PATHS['Polo Shirt'];
   return (
     <svg viewBox={`0 0 ${paths.w} ${paths.h}`} width="54" height="66" style={{ display:'block' }}>
