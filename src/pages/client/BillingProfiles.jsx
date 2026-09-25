@@ -102,13 +102,13 @@ function ProfileRow({ p, onEdit, onDelete }) {
       <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
         <button onClick={() => onEdit(p)} aria-label={`Edit ${p.billing_name}`}
           style={{ border: '1px solid var(--border)', background: 'var(--bg-card)', borderRadius: 9,
-            padding: 8, cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', minWidth: 36, minHeight: 36,
+            padding: 8, cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', minWidth: 44, minHeight: 44,
             alignItems: 'center', justifyContent: 'center' }}>
           <NavIcon name="edit" size={14}/>
         </button>
         <button onClick={() => onDelete(p)} aria-label={`Delete ${p.billing_name}`}
           style={{ border: '1px solid var(--border)', background: 'var(--bg-card)', borderRadius: 9,
-            padding: 8, cursor: 'pointer', color: 'var(--danger)', display: 'flex', minWidth: 36, minHeight: 36,
+            padding: 8, cursor: 'pointer', color: 'var(--danger)', display: 'flex', minWidth: 44, minHeight: 44,
             alignItems: 'center', justifyContent: 'center' }}>
           <NavIcon name="delete" size={14}/>
         </button>
@@ -148,7 +148,7 @@ export default function BillingProfiles() {
     backgroundSize: '400px', animation: 'sk 1.4s infinite' };
 
   return (
-    <div style={{ width: '100%' }}>
+    <div style={{ width: '100%', maxWidth: 720, marginInline: 'auto' }}>
       <style>{`@keyframes sk{0%{background-position:-400px 0}100%{background-position:400px 0}}`}</style>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22, gap: 12, flexWrap: 'wrap' }}>

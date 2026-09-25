@@ -98,13 +98,13 @@ function AddressRow({ a, onEdit, onDelete }) {
       <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
         <button onClick={() => onEdit(a)} aria-label={`Edit ${a.label}`}
           style={{ border: '1px solid var(--border)', background: 'var(--bg-card)', borderRadius: 9, padding: 8,
-            cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', minWidth: 36, minHeight: 36,
+            cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', minWidth: 44, minHeight: 44,
             alignItems: 'center', justifyContent: 'center' }}>
           <NavIcon name="edit" size={14}/>
         </button>
         <button onClick={() => onDelete(a)} aria-label={`Delete ${a.label}`}
           style={{ border: '1px solid var(--border)', background: 'var(--bg-card)', borderRadius: 9, padding: 8,
-            cursor: 'pointer', color: 'var(--danger)', display: 'flex', minWidth: 36, minHeight: 36,
+            cursor: 'pointer', color: 'var(--danger)', display: 'flex', minWidth: 44, minHeight: 44,
             alignItems: 'center', justifyContent: 'center' }}>
           <NavIcon name="delete" size={14}/>
         </button>
@@ -283,7 +283,7 @@ function FabricsSection() {
               </div>
               <button onClick={() => setConfirmDelete(p)} aria-label={`Remove ${p.material?.material_name ?? 'fabric'}`}
                 style={{ border: '1px solid var(--border)', background: 'var(--bg-card)', borderRadius: 9, padding: 8,
-                  cursor: 'pointer', color: 'var(--danger)', display: 'flex', minWidth: 36, minHeight: 36,
+                  cursor: 'pointer', color: 'var(--danger)', display: 'flex', minWidth: 44, minHeight: 44,
                   alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <NavIcon name="delete" size={14}/>
               </button>
@@ -331,12 +331,21 @@ export default function AccountSettings() {
   const [tab, setTab] = useState('shipping');
 
   return (
-    <div style={{ width: '100%' }}>
+    <div style={{ width: '100%', maxWidth: 720, marginInline: 'auto' }}>
       <style>{`
         .acct-field-row { display:grid; grid-template-columns:1fr; gap:12px; }
         .acct-sk { border-radius:12px; height:68px; background:linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%); background-size:400px; animation:acct-sk 1.4s infinite; }
         @keyframes acct-sk { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
-        @media (min-width:640px) { .acct-field-row { grid-template-columns:1fr 1fr; } }
+        /* Mobile-first: the 3 tabs overflow narrow viewports (confirmed — "Preferred Fabrics" truncates below ~640px).
+           Fade the trailing edge so the cut-off tab reads as "scroll for more", not a broken layout. */
+        .acct-tabs {
+          -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+          mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+        }
+        @media (min-width:640px) {
+          .acct-field-row { grid-template-columns:1fr 1fr; }
+          .acct-tabs { -webkit-mask-image:none; mask-image:none; } /* all 3 tabs fit unscrolled — no fade needed */
+        }
       `}</style>
 
       <div style={{ marginBottom: 22 }}>
@@ -344,7 +353,7 @@ export default function AccountSettings() {
         <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>Manage delivery addresses, notification preferences, and fabric preferences.</p>
       </div>
 
-      <div role="tablist" aria-label="Account settings sections"
+      <div role="tablist" aria-label="Account settings sections" className="acct-tabs"
         style={{ display: 'flex', gap: 4, marginBottom: 18, borderBottom: '1px solid var(--border)', overflowX: 'auto' }}>
         {TABS.map(t => (
           <button key={t.id} role="tab" aria-selected={tab === t.id} id={`tab-${t.id}`}
