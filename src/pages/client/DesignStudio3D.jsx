@@ -384,8 +384,9 @@ export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overla
           never catches a suspend thrown from INSIDE the Canvas tree. With no
           Suspense boundary in here, GarmentMeshErrorBoundary (a plain error
           boundary, not a Suspense) had nothing to hand the pending promise to,
-          so any scanned garment (T-Shirt, Lab Coverall) whose GLB hadn't
-          already resolved from the manifest's useGLTF.preload() would blank
+          so any scanned garment (currently T-Shirt, Polo Shirt/School Polo —
+          Lab Coverall was removed from SCANNED_GARMENTS, see garmentCapabilities.js)
+          whose GLB hadn't already resolved from the manifest's useGLTF.preload() would blank
           the whole 3D pane instead of showing a fallback. fallback={null} is
           correct here (not a spinner) because CanvasViewport already shows its
           own "Loading 3D engine…" state for the lazy import; this only covers
