@@ -1,19 +1,44 @@
 import { motion } from 'framer-motion';
 import { NavIcon } from '../../../components/ui/icons';
-import { T, T2, secLabel, CATS, SLEEVE_OPTS, FIT_GARMENTS } from './dsShared';
+import { T, T2, secLabel } from './dsShared';
 import { BASE_PATHS } from './garmentPaths';
+import { CATALOG, familyFor, neighborFamily, STATUS_3D_LABEL } from './garmentCatalog';
+
+const BADGE_COLOR = { ok: '#0f766e', warn: '#b45309', muted: 'rgba(15,23,42,.4)' };
+const BADGE_BG    = { ok: '#f0fdfa', warn: '#fffbeb', muted: 'rgba(15,23,42,.05)' };
+
+function StatusBadge({ status }) {
+  const s = STATUS_3D_LABEL[status];
+  if (!s) return null;
+  return (
+    <span style={{
+      position: 'absolute', top: 4, left: 4, fontSize: 7.5, fontWeight: 800,
+      padding: '2px 5px', borderRadius: 6, color: BADGE_COLOR[s.tone], background: BADGE_BG[s.tone],
+      letterSpacing: '.02em',
+    }}>
+      {s.label}
+    </span>
+  );
+}
 
 export default function TypePanel({ cfg, setCfg }) {
-  const catData = CATS.find(c => c.id === cfg.category) ?? CATS[0];
-  const sleeves = SLEEVE_OPTS[cfg.garment] ?? [];
+  const catData = CATALOG.find(c => c.id === cfg.category) ?? CATALOG[0];
+  const family  = familyFor(cfg.garment);
+  const sleeves = family?.styles ?? [];
+
+  const goNeighbor = (dir) => {
+    const next = neighborFamily(cfg.category, cfg.garment, dir);
+    if (!next) return;
+    setCfg(p => ({ ...p, garment: next.id, sleeve: next.styles[0] ?? p.sleeve, fit: next.fits.length > 1 ? (p.fit ?? 'male') : undefined }));
+  };
 
   return (
     <div style={{ overflowY:'auto', flex:1, padding:'8px 8px 16px' }}>
       <p style={secLabel}>Category</p>
       <div style={{ display:'flex', gap:4, flexWrap:'wrap', marginBottom:10 }}>
-        {CATS.map(c => (
+        {CATALOG.map(c => (
           <button key={c.id}
-            onClick={() => setCfg(p => ({ ...p, category:c.id, garment:c.garments[0], sleeve:'Short' }))}
+            onClick={() => setCfg(p => ({ ...p, category:c.id, garment:c.families[0].id, sleeve:c.families[0].styles[0] ?? 'Short' }))}
             style={{
               padding:'5px 10px', borderRadius:20, border:'none', cursor:'pointer',
               fontSize:10, fontWeight:700,
@@ -30,22 +55,40 @@ export default function TypePanel({ cfg, setCfg }) {
 
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
         <p style={{ ...secLabel, marginBottom:0 }}>Garment</p>
-        {/* Bug fix: before this, a garment could be selected but never
-            removed — clicking another card swapped it, but there was no
-            path back to the blank-canvas state EMPTY_PATHS/INIT_CFG
-            already support. Click the selected card again, or this button,
-            to clear it. */}
-        {cfg.garment && (
-          <button type="button" onClick={() => setCfg(p => ({ ...p, garment:null }))}
-            style={{ fontSize:9, fontWeight:700, color:'rgba(15,23,42,.4)',
-              background:'none', border:'none', cursor:'pointer', padding:'2px 4px',
-              display:'flex', alignItems:'center', gap:3 }}>
-            <NavIcon name="delete" size={11} color="rgba(15,23,42,.4)"/> Remove
-          </button>
-        )}
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          {/* Previous/Next: browse the current category's garments without leaving the grid. */}
+          {cfg.garment && catData.families.length > 1 && (
+            <div style={{ display:'flex', gap:2 }}>
+              <button type="button" title="Previous garment" onClick={() => goNeighbor(-1)}
+                style={{ width:20, height:20, display:'flex', alignItems:'center', justifyContent:'center',
+                  border:'none', borderRadius:6, background:'rgba(15,23,42,.06)', cursor:'pointer' }}>
+                <NavIcon name="chevronLeft" size={11} color="rgba(15,23,42,.5)"/>
+              </button>
+              <button type="button" title="Next garment" onClick={() => goNeighbor(1)}
+                style={{ width:20, height:20, display:'flex', alignItems:'center', justifyContent:'center',
+                  border:'none', borderRadius:6, background:'rgba(15,23,42,.06)', cursor:'pointer' }}>
+                <NavIcon name="chevronRight" size={11} color="rgba(15,23,42,.5)"/>
+              </button>
+            </div>
+          )}
+          {/* Bug fix: before this, a garment could be selected but never
+              removed — clicking another card swapped it, but there was no
+              path back to the blank-canvas state EMPTY_PATHS/INIT_CFG
+              already support. Click the selected card again, or this button,
+              to clear it. */}
+          {cfg.garment && (
+            <button type="button" onClick={() => setCfg(p => ({ ...p, garment:null }))}
+              style={{ fontSize:9, fontWeight:700, color:'rgba(15,23,42,.4)',
+                background:'none', border:'none', cursor:'pointer', padding:'2px 4px',
+                display:'flex', alignItems:'center', gap:3 }}>
+              <NavIcon name="delete" size={11} color="rgba(15,23,42,.4)"/> Remove
+            </button>
+          )}
+        </div>
       </div>
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginBottom:12 }}>
-        {catData.garments.map(g => {
+        {catData.families.map(fam => {
+          const g = fam.id;
           const paths = BASE_PATHS[g] ?? BASE_PATHS['Polo Shirt'];
           const sel   = cfg.garment === g;
           return (
@@ -54,8 +97,8 @@ export default function TypePanel({ cfg, setCfg }) {
               // (back to the blank canvas), same as the Remove button above.
               onClick={() => setCfg(p => (sel
                 ? { ...p, garment:null }
-                : { ...p, garment:g, sleeve: (SLEEVE_OPTS[g]?.[0] ?? p.sleeve) }))}
-              title={sel ? `${g} — click to remove` : g}
+                : { ...p, garment:g, sleeve: (fam.styles[0] ?? p.sleeve), fit: fam.fits.length > 1 ? (p.fit ?? 'male') : undefined }))}
+              title={sel ? `${g} — click to remove` : `${g} — ${STATUS_3D_LABEL[fam.status3D]?.label}`}
               whileHover={{ scale: 1.03 }}
               whileTap={{   scale: 0.97 }}
               style={{
@@ -65,7 +108,8 @@ export default function TypePanel({ cfg, setCfg }) {
                 display:'flex', flexDirection:'column', alignItems:'center', gap:5,
                 position:'relative', overflow:'hidden',
               }}>
-              <svg viewBox={`0 0 ${paths.w} ${paths.h}`} width="44" height="52" style={{ display:'block', flexShrink:0 }}>
+              <StatusBadge status={fam.status3D}/>
+              <svg viewBox={`0 0 ${paths.w} ${paths.h}`} width="44" height="52" style={{ display:'block', flexShrink:0, marginTop:6 }}>
                 {paths.body    && <path d={paths.body}    fill={cfg.colors.body   ?? '#1e3a5f'} stroke="rgba(15,23,42,.18)" strokeWidth="1.5"/>}
                 {paths.collar  && <path d={paths.collar}  fill={cfg.colors.collar ?? '#c8a96e'} stroke="rgba(15,23,42,.15)" strokeWidth="1"/>}
                 {paths.sleeveL && <path d={paths.sleeveL} fill={cfg.colors.sleeve ?? cfg.colors.body ?? '#1e3a5f'} stroke="rgba(15,23,42,.15)" strokeWidth="1"/>}
@@ -104,7 +148,7 @@ export default function TypePanel({ cfg, setCfg }) {
         </>
       )}
 
-      {FIT_GARMENTS.includes(cfg.garment) && (
+      {(family?.fits.length ?? 0) > 1 && (
         <>
           <p style={{ ...secLabel, marginTop:12 }}>Fit</p>
           <div className="ds-seg ds-seg--sm" role="radiogroup" aria-label="Garment fit" style={{ margin:0 }}>

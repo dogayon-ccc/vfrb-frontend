@@ -117,6 +117,7 @@ const ICON_MAP = {
   remove:           Minus,
   close:            X,
   chevronRight:     ChevronRight,
+  chevronLeft:      ChevronLeft,
   chevronDown:      ChevronDown,
   search:           Search,
   download:         Download,

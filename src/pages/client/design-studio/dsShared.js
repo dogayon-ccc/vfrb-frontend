@@ -71,34 +71,22 @@ export const LOGO_PRESETS = [
   { id:'right_arm',    label:'Right Arm',     x: 0.70, y: 0.28 },
 ];
 
-// Garment categories, from the VFRB interview's garment list.
-export const CATS = [
-  { id: 'Medical / Scrubs', icon: 'medical',   garments: ['Scrub Top','V-Neck Shirt','Lab Coat','Lab Coverall','Pants','Shorts'] },
-  { id: 'School Uniform',   icon: 'school',    garments: ['School Polo','Round Neck','Polo Shirt','Pants','Shorts','Skirt'] },
-  { id: 'Corporate',        icon: 'corporate', garments: ['Polo Shirt','T-Shirt','Mandarin Collar','Button-Down','V-Neck Shirt','Pants'] },
-  { id: 'PE / Sports',      icon: 'sports',    garments: ['Round Neck','T-Shirt','Shorts','Track Pants'] },
-];
+// CATS / SLEEVE_OPTS / FIT_GARMENTS below are kept as re-exports for backward compatibility —
+// garmentCatalog.js (CATALOG, FAMILY_BY_NAME) is now the single source of truth for this data;
+// see that file for the real definitions and for the richer per-family facts (3D status, zones,
+// supported patterns/text/logo) TypePanel.jsx reads directly rather than through these three.
+import { CATALOG, FAMILY_BY_NAME } from './garmentCatalog';
 
-export const SLEEVE_OPTS = {
-  'Polo Shirt':      ['Sleeveless','Short','3/4','Long'],
-  'School Polo':     ['Short','3/4','Long'],
-  'Round Neck':      ['Sleeveless','Short','3/4','Long'],
-  'V-Neck Shirt':    ['Sleeveless','Short','3/4','Long'],
-  'Mandarin Collar': ['Short','3/4','Long'],
-  'Scrub Top':       ['Short','3/4'],
-  'Lab Coat':        ['Long'],
-  'Button-Down':     ['Short','Long'],
-  'T-Shirt':         ['Short'],
-  'Lab Coverall':    ['Long'],
-  'Pants': [], 'Shorts': [], 'Track Pants': [], 'Skirt': [],
-};
+export const CATS = CATALOG.map(c => ({ id: c.id, icon: c.icon, garments: c.families.map(f => f.id) }));
+
+export const SLEEVE_OPTS = Object.fromEntries(Object.values(FAMILY_BY_NAME).map(f => [f.id, f.styles]));
 
 // Garments with a real scanned 3D mesh that ships more than one fit — TypePanel shows the Fit
-// toggle only for these. Driven by the 3D capability contract (garmentMeshManifest.js) instead
+// toggle only for these. Driven by the 3D capability contract (via garmentCatalog.js) instead
 // of a second hand-maintained list: that's what left the female Polo model unreachable after it
 // was wired into SCANNED_GARMENTS — this array was never updated to match, so cfg.fit was never
 // set for a Polo Shirt / School Polo and the Studio always requested the male GLB.
-export const FIT_GARMENTS = Object.keys(BASE_PATHS).filter(name => (get3DCapabilities(name).fit?.length ?? 0) > 1);
+export const FIT_GARMENTS = Object.values(FAMILY_BY_NAME).filter(f => f.fits.length > 1).map(f => f.id);
 
 export const PH_SWATCHES = [
   { hex: '#1B2A4A', name: 'Navy'         }, { hex: '#2952A3', name: 'Royal Blue'   },
