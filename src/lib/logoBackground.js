@@ -3,7 +3,15 @@
 //   auto -> instant, offline flood-fill of a single solid background colour (typical logos)
 //   ai   -> RMBG-1.4 in the browser (lib/bgRemove.js) for photos / complex backgrounds
 // processLogo() never throws; it returns { status: 'removed'|'unchanged'|'failed', file, message, code }.
-import { removeBackgroundAI } from './bgRemove';
+//
+// PERF (Account 7): bgRemove.js statically imports @huggingface/transformers,
+// isolated by vite.config.js's manualChunks into its own ~716 KB chunk. A
+// top-level import here meant that chunk was fetched as soon as Design
+// Studio's own chunk loaded, for every visitor, not just the ones who pick
+// "ai" mode. Loading it via dynamic import() inside the one branch that
+// calls it defers that fetch until AI mode actually runs. No behavior
+// change: the import is awaited before removeBackgroundAI is called, same
+// as a top-level import resolving before first use.
 
 const MAX_SIDE = 2048;
 const TOL_LOW = 42;       // RGB distance treated as "the background colour"
@@ -101,6 +109,7 @@ function describeAiError(e) {
 export async function processLogo(file, { mode = 'auto', onProgress } = {}) {
   try {
     if (mode === 'ai') {
+      const { removeBackgroundAI } = await import('./bgRemove');
       const out = await removeBackgroundAI(file, { onProgress });
       return { status: 'removed', method: 'ai', file: out, message: 'Background removed with AI.' };
     }

@@ -71,7 +71,20 @@ function SelectThreadIllustration() {
   );
 }
 
-const ILLUSTRATIONS = { order:BoxIllustration, 'message-locked':MessageLockedIllustration, 'select-thread':SelectThreadIllustration };
+// Load-failed state — deliberately distinct from BoxIllustration so a failed fetch never
+// looks identical to a genuine "you have no orders yet". Same line-art language/palette,
+// warning-triangle motif instead of the box, red-leaning stroke so it reads as a fault, not content.
+function ErrorIllustration() {
+  return (
+    <svg viewBox="0 0 200 160" width="120" height="96" style={{ display:'block', margin:'0 auto 16px', opacity:.88, maxWidth:'100%' }}>
+      <circle cx="100" cy="80" r="52" fill="#fef2f2" stroke="#fca5a5" strokeWidth="2"/>
+      <path d="M100 56 L100 90" stroke="#dc2626" strokeWidth="6" strokeLinecap="round"/>
+      <circle cx="100" cy="104" r="4" fill="#dc2626"/>
+    </svg>
+  );
+}
+
+const ILLUSTRATIONS = { order:BoxIllustration, 'message-locked':MessageLockedIllustration, 'select-thread':SelectThreadIllustration, error:ErrorIllustration };
 
 export default function EmptyState({ illustration='order', headline, sub, cta, maxWidth=420, compact=false }) {
   const Illustration = ILLUSTRATIONS[illustration] ?? BoxIllustration;

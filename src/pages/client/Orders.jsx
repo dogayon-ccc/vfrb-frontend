@@ -290,22 +290,24 @@ export default function CustomerOrders() {
   const nav = useNavigate();
   const [orders,  setOrders]  = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState(false);
   const [tab,     setTab]     = useState('all');
   const [search,  setSearch]  = useState('');
 
   const load = useCallback((force = false) => {
     if (force) cacheClear('orders_list');
     const cached = cacheGet('orders_list');
-    if (cached) { setOrders(cached); setLoading(false); return; }
+    if (cached) { setOrders(cached); setError(false); setLoading(false); return; }
 
     setLoading(true);
     axios.get('/api/customer/orders')
       .then(r => {
         const list = r.data?.data ?? r.data ?? [];
         setOrders(list);
+        setError(false);
         cacheSet('orders_list', list, TTL?.ORDERS ?? 30_000);
       })
-      .catch(() => {})
+      .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
 
@@ -439,6 +441,10 @@ export default function CustomerOrders() {
             </div>
           ))}
         </div>
+      ) : error ? (
+        <EmptyState illustration="error" headline="Couldn't load your orders"
+          sub="Something went wrong reaching the server. Check your connection and try again."
+          cta={{ label:'Retry', onClick:() => load(true) }}/>
       ) : filtered.length === 0 ? (
         (() => { const ec = orderEmptyCopy(search, tab); return (
           <EmptyState illustration="order" headline={ec.headline} sub={ec.sub}

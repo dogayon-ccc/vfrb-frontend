@@ -103,19 +103,24 @@ const NoMessagesYet = () => (
 export default function CustomerMessages() {
   const nav = useNavigate();
   const [orders, setOrders] = useState([]);
+  const [ordersError, setOrdersError] = useState(false);
   const [selId, setSelId] = useState(null);
   const [msgs, setMsgs] = useState([]);
   const [newMsg, setNewMsg] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState(false);
   const [mobileView, setMobileView] = useState('list'); // list | thread — mobile-only nav, matches Figma's separate screens
   const msgEnd = useRef(null);
   const meId = JSON.parse(localStorage.getItem('vfrb_user') || '{}')?.user_id;
 
-  useEffect(() => {
-    axios.get('/api/customer/orders').then(r => setOrders(r.data?.data ?? r.data ?? []))
-      .catch(() => {}).finally(() => setLoading(false));
+  const loadOrders = useCallback(() => {
+    setLoading(true);
+    axios.get('/api/customer/orders').then(r => { setOrders(r.data?.data ?? r.data ?? []); setOrdersError(false); })
+      .catch(() => setOrdersError(true)).finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { loadOrders(); }, [loadOrders]);
 
   const loadMsgs = useCallback(() => {
     if (!selId) return;
@@ -132,13 +137,15 @@ export default function CustomerMessages() {
     const optimistic = { _optimistic: true, message_id: `opt_${Date.now()}`, sender_id: meId, user_id: meId, body: newMsg.trim(), created_at: new Date().toISOString() };
     setMsgs(p => [...p, optimistic]);
     const body = newMsg.trim();
-    setNewMsg(''); setSending(true);
+    setNewMsg(''); setSending(true); setSendError(false);
     try {
       await axios.post('/api/customer/messages', { order_id: selId, body });
       loadMsgs();
     } catch {
       setMsgs(p => p.filter(m => m.message_id !== optimistic.message_id));
       setNewMsg(body);
+      setSendError(true);
+      setTimeout(() => setSendError(false), 4000);
     } finally { setSending(false); }
   };
 
@@ -187,7 +194,13 @@ export default function CustomerMessages() {
       <div className="cust-msg-wrap">
         <div className={`cust-msg-list ${mobileView !== 'list' ? 'hide-mobile' : ''}`}>
           {orders.map(o => <ThreadRow key={o.order_id} order={o} active={o.order_id === selId} onClick={() => openThread(o.order_id)}/>)}
-          {!loading && orders.length === 0 && (
+          {!loading && ordersError && (
+            <EmptyState illustration="error" compact
+              headline="Couldn't load your orders"
+              sub="Check your connection and try again."
+              cta={{ label: 'Retry', onClick: loadOrders }}/>
+          )}
+          {!loading && !ordersError && orders.length === 0 && (
             <EmptyState illustration="message-locked" compact
               headline="No orders yet"
               sub="You'll be able to message VFRB staff once you place your first order."
@@ -209,7 +222,11 @@ export default function CustomerMessages() {
           <div role="log" aria-live="polite" aria-label="Message thread" style={{ flex: 1, overflowY: 'auto', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 6 }}>
             {loading ? <Loading/> : !selId ? (
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', padding: '16px 0' }}>
-                {orders.length === 0
+                {ordersError
+                  ? <EmptyState illustration="error" headline="Couldn't load your orders"
+                      sub="Check your connection and try again." maxWidth={320}
+                      cta={{ label: 'Retry', onClick: loadOrders }}/>
+                : orders.length === 0
                   // No CTA here — the list pane already has one; a second identical button
                   // right next to it is the exact redundancy pattern flagged on Dashboard.
                   ? <EmptyState illustration="select-thread" headline="Nothing to show yet"
@@ -227,6 +244,16 @@ export default function CustomerMessages() {
             <div ref={msgEnd}/>
           </div>
 
+          <AnimatePresence>
+            {sendError && (
+              <motion.p role="status" aria-live="polite"
+                initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                style={{ margin: 0, padding: '6px 16px', fontSize: 11, color: '#dc2626', background: '#fef2f2',
+                  borderTop: '1px solid #fecaca', fontFamily: FONT, flexShrink: 0 }}>
+                Message didn't send — check your connection. Your draft is back in the box.
+              </motion.p>
+            )}
+          </AnimatePresence>
           <div style={{ padding: '12px 16px', borderTop: '1px solid #e2e8f0', display: 'flex', gap: 10, flexShrink: 0, background: '#fff' }}>
             <label htmlFor="msg-input" className="sr-only">Message</label>
             <input id="msg-input" value={newMsg} onChange={e => setNewMsg(e.target.value)}
