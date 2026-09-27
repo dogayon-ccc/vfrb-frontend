@@ -65,6 +65,30 @@ export const UNSUPPORTED_3D_MODELS = [
   { file: 'Navy_Blue_Peplum_Dress.glb', appearsToBe: 'peplum top + skirt on a human figure', reason: 'fused human figure, single mesh, no materials/UVs; no 2D definition' },
   { file: 'Navy_Textured_Short.glb', appearsToBe: 'short-sleeve shirt + shorts on a human figure', reason: 'fused human figure, single mesh, no materials/UVs' },
   { file: 'Pink_Professional_Uni.glb', appearsToBe: 'blouse + trousers on a human figure', reason: 'fused human figure, single mesh, no materials/UVs; no 2D definition' },
+  // Added to public/models this session, present on disk but never previously entered here — the
+  // capability data was silently out of date with what's actually shipped in the bundle. Verdicts
+  // are STATIC evidence (pygltflib: mesh/material/UV structure + per-height-slice x-extent scan for
+  // a leg-bifurcation gap), not BROWSER-rendered — see GLB-CAPABILITY-MATRIX.md §7 for the method
+  // and full per-slice data.
+  { file: 'Female dress uniform.glb', appearsToBe: 'dress uniform on a human figure', reason: 'fused human figure (leg-bifurcation confirmed), single mesh, no materials/UVs; no 2D definition' },
+  { file: 'Female full set corporate uniform and trousers.glb', appearsToBe: 'blazer + trousers on a human figure', reason: 'fused human figure (leg-bifurcation confirmed), single mesh, no materials/UVs; no 2D definition' },
+  { file: 'Female teacher uniform (upper and pants).glb', appearsToBe: 'blouse + pants on a human figure', reason: 'fused human figure (leg-bifurcation confirmed), single mesh, no materials/UVs; no 2D definition' },
+  { file: 'Female_Cream_Dress_with_Bow.glb', appearsToBe: 'dress on a human figure', reason: 'fused human figure (leg-bifurcation confirmed), single mesh, no materials/UVs; no 2D definition' },
+  { file: 'Full set uniform female blazers plus slacks.glb', appearsToBe: 'blazer + slacks on a human figure', reason: 'fused human figure (leg-bifurcation confirmed), single mesh, no materials/UVs; no 2D definition' },
+  { file: 'Male Full set uniform polo shirt and pants.glb', appearsToBe: 'polo + pants on a human figure', reason: 'fused human figure (leg-bifurcation confirmed), single mesh, no materials/UVs; no 2D definition' },
+];
+
+// Present in public/models, NOT rejected as a fused figure (no leg-bifurcation found in either
+// this session's or the prior session's independent STATIC scans — see GLB-CAPABILITY-MATRIX.md
+// §7), but also NOT promoted to SCANNED_GARMENTS: no materials/UVs (same approximate-zone-only
+// ceiling as the polo entries), no scale/torso calibration against the Studio's other garments,
+// and — critically — never rendered through the actual renderer (no BROWSER evidence exists in
+// this environment; the repo's own tools/glb-harness needs a real browser, which this session did
+// not have). Calling this "supported" without that step would be exactly the false-CODE/RUNTIME-
+// VERIFIED claim the constitution forbids. Listed here (not silently omitted) so the UI/catalog
+// layer can see it exists and is explicitly pending, not forgotten.
+export const PENDING_3D_MODELS = [
+  { file: 'Work_Uniform_Shirt with pocket on chest.glb', appearsToBe: 'button-down work shirt with chest pocket (garment-only, no leg-split found)', reason: 'no materials/UVs, no scale calibration, never rendered/verified in the real renderer — needs a poloZone-style geometry-threshold pass plus a browser render before it can be called supported' },
 ];
 
 // Contract for Account 1's data-driven catalog: what the real 3D preview can do for a garment name (+ fit).

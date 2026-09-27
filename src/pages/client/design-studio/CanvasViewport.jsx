@@ -2,6 +2,7 @@ import { Component, Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NavIcon } from '../../../components/ui/icons';
 import { T, T2, DARK, ZONE_LABEL, SHAPE_TYPE_LABEL, zonesFor } from './dsShared';
+import { familyFor, STATUS_3D_LABEL } from './garmentCatalog';
 
 const Scene3D = lazy(() => import('../DesignStudio3D'));
 
@@ -190,6 +191,28 @@ export default function CanvasViewport({
               Pick a garment from the <strong>Type</strong> tab to see it in 3D.
             </p>
           )}
+          {/* Honesty label — a garment with no real scanned GLB (status3D:'none') renders a
+              generic parametric shape (see DesignStudio3D.jsx's ShirtMesh/PantsMesh/etc.), and
+              even a scanned GLB with 'partial' regions (Polo/School Polo — no UV panels in the
+              file, colour zones are geometry-threshold approximations, see garmentCapabilities.js)
+              is not an exact rendering. Constitution: "never fake unsupported 3D... keep
+              capability labeling honest" — this was previously only shown at garment-selection
+              time (TypePanel's STATUS_3D_LABEL badge) and silently dropped once inside the 3D
+              pane itself. */}
+          {cfg.garment && (() => {
+            const status = familyFor(cfg.garment)?.status3D;
+            const info = status && status !== 'supported' ? STATUS_3D_LABEL[status] : null;
+            return info ? (
+              <div style={{ position:'absolute', top:14, left:14, zIndex:2,
+                padding:'4px 10px', borderRadius:99,
+                background: status === 'partial' ? 'rgba(217,119,6,.85)' : 'rgba(0,0,0,.58)',
+                border:'1px solid rgba(255,255,255,.14)',
+                color:'#fff', fontSize:10, fontWeight:700, letterSpacing:.2,
+                pointerEvents:'none', whiteSpace:'nowrap' }}>
+                {status === 'none' ? 'Generic preview — exact shape not modeled' : info.label}
+              </div>
+            ) : null;
+          })()}
           <div style={{ position:'absolute',bottom:18,left:'50%',
             transform:'translateX(-50%)',padding:'4px 16px',borderRadius:99,
             background:'rgba(0,0,0,.58)',border:'1px solid rgba(255,255,255,.1)',
