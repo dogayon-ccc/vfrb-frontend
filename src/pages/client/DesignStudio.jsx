@@ -264,6 +264,40 @@ export default function DesignStudio() {
       .catch(() => {});
   }, []);
 
+  // ── Restore canvas overlays when sessionStorage already has a config ─────
+  // BUG FIX (this session): INIT_CFG (dsShared.js) restores cfg fields
+  // (garment/colors/fit/sleeve/patterns) from sessionStorage's studio_config
+  // via deserializeDesign — but that's only a useState lazy initializer, it
+  // never touches the canvas. The DB-draft path (restoreDraft, above) DOES
+  // reload frontOverlays/backOverlays onto the canvas, but pendingDraft is
+  // explicitly skipped whenever sessionStorage already has a config (the
+  // `if (sessionStorage.getItem('studio_config')) return;` guard right
+  // above), so that path never ran for a sessionStorage-based restore.
+  // Concrete repro this was verified against: MyDesigns' "Continue editing"
+  // (line ~125 in MyDesigns.jsx), "Order again", "Order this design", and
+  // OrderWizard's "Edit design" button (a full page reload to
+  // /design-studio, OrderWizard.jsx lines ~185/261) all leave studio_config
+  // sitting in sessionStorage — garment/colors came back correctly, but
+  // every logo, text box, or drawing the customer had placed silently
+  // vanished, even though the data was right there in sessionStorage the
+  // whole time. Same 350ms delay as restoreDraft — the canvas needs a beat
+  // to finish its own useLayoutEffect init (see useGarmentCanvas.js) before
+  // loadCanvasJSON has anything to load onto.
+  useEffect(() => {
+    let raw = null;
+    try { raw = sessionStorage.getItem('studio_config'); } catch { /* private mode */ }
+    if (!raw) return;
+    const { frontOverlays, backOverlays } = deserializeDesign(raw);
+    faceJSON.current = { front: frontOverlays, back: backOverlays };
+    const toLoad = faceJSON.current[face] ?? [];
+    if (toLoad.length > 0) setTimeout(() => loadCanvasJSON(toLoad), 350);
+    // Mount-once: this restores whatever sessionStorage held at the moment
+    // Design Studio opened, not a live sync — re-running on `face` or
+    // `loadCanvasJSON` identity changes would re-fire this on every face
+    // switch and stomp whatever the customer is actively drawing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // 3D-contract fix: this used to hand-pick name/category/garment/sleeve/colors/patterns
   // and drop `fit` and `patternParams` entirely, so restoring a draft silently reverted a
   // saved female fit back to male and lost custom stripe width/spacing in the 3D preview

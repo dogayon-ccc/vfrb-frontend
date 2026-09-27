@@ -44,6 +44,7 @@ import { motion, AnimatePresence }                           from 'framer-motion
 import axios                                                 from 'axios';
 import { cacheGet, cacheSet, cacheClear, TTL }              from '../../utils/cache';
 import { NavIcon }                                           from '../../components/ui/icons';
+import { escapeHtml }                                        from '../../utils/escapeHtml';
 import BottomSheet                                           from '../../components/ui/BottomSheet';
 
 const T    = 'var(--teal)';
@@ -441,17 +442,17 @@ export default function AdminPhysicalCount() {
       </style></head>
       <body>
       <div class="title">VFRB Enterprise — Physical Count Sheet</div>
-      <p>Generated: ${r.data.generated_at} | By: ${r.data.generated_by}</p>
+      <p>Generated: ${escapeHtml(r.data.generated_at)} | By: ${escapeHtml(r.data.generated_by)}</p>
       <table>
         <tr><th>#</th><th>Material</th><th>Category</th><th>Unit</th>
             <th>System Qty</th><th>Physical Count</th><th>Variance</th><th>Notes</th></tr>
         ${mats.map((m, i) => `
           <tr>
             <td>${i + 1}</td>
-            <td>${m.material_name}</td>
-            <td>${m.category ?? ''}</td>
-            <td>${m.unit}</td>
-            <td>${m.system_qty}</td>
+            <td>${escapeHtml(m.material_name)}</td>
+            <td>${escapeHtml(m.category ?? '')}</td>
+            <td>${escapeHtml(m.unit)}</td>
+            <td>${escapeHtml(m.system_qty)}</td>
             <td style="width:100px"></td>
             <td style="width:80px"></td>
             <td style="width:140px"></td>

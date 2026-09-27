@@ -59,6 +59,7 @@ import { motion, AnimatePresence }           from 'framer-motion';
 import axios                                 from 'axios';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
 import { NavIcon }                             from '../../components/ui/icons';
+import { escapeHtml }                          from '../../utils/escapeHtml';
 
 const T    = 'var(--teal)';
 const T2   = 'var(--teal-2)';
@@ -424,16 +425,16 @@ function printRFQ(rfq) {
     ? rfq.responses.map((r,i) => `
         <tr>
           <td>${i+1}</td>
-          <td>${r.supplier?.supplier_name ?? '—'}</td>
+          <td>${escapeHtml(r.supplier?.supplier_name ?? '—')}</td>
           <td>₱${Number(r.unit_price).toFixed(2)}</td>
-          <td>${r.qty_available ?? '—'}</td>
-          <td>${r.lead_time_days ? `${r.lead_time_days} days` : '—'}</td>
-          <td>${r.notes ?? '—'}</td>
+          <td>${escapeHtml(r.qty_available ?? '—')}</td>
+          <td>${r.lead_time_days ? `${escapeHtml(r.lead_time_days)} days` : '—'}</td>
+          <td>${escapeHtml(r.notes ?? '—')}</td>
           <td>${r.selected_for_po ? '✓ Selected' : ''}</td>
         </tr>`).join('')
     : '<tr><td colspan="7" style="text-align:center;color:#999">No responses yet</td></tr>';
 
-  w.document.write(`<html><head><title>RFQ #${rfq.rfq_id} — VFRB Enterprise</title>
+  w.document.write(`<html><head><title>RFQ #${escapeHtml(rfq.rfq_id)} — VFRB Enterprise</title>
     <style>
       body{font-family:Arial,sans-serif;font-size:12px;padding:30px;color:#000}
       h1{font-size:18px;margin-bottom:4px}
@@ -447,14 +448,14 @@ function printRFQ(rfq) {
       @media print{body{padding:0}}
     </style></head><body>
     <h1>🏭 VFRB Enterprise — Request for Quotation</h1>
-    <div class="sub">RFQ #${rfq.rfq_id} · Generated ${new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
+    <div class="sub">RFQ #${escapeHtml(rfq.rfq_id)} · Generated ${new Date().toLocaleDateString('en-PH',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
     <div class="section" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <div><div class="label">Material</div><div class="value">${rfq.material_name ?? '—'}</div></div>
-      <div><div class="label">Quantity Needed</div><div class="value">${rfq.qty_needed} ${rfq.unit ?? ''}</div></div>
-      <div><div class="label">Needed By</div><div class="value">${rfq.needed_by_date ?? 'ASAP'}</div></div>
-      <div><div class="label">Status</div><div class="value">${rfq.status?.toUpperCase()}</div></div>
+      <div><div class="label">Material</div><div class="value">${escapeHtml(rfq.material_name ?? '—')}</div></div>
+      <div><div class="label">Quantity Needed</div><div class="value">${escapeHtml(rfq.qty_needed)} ${escapeHtml(rfq.unit ?? '')}</div></div>
+      <div><div class="label">Needed By</div><div class="value">${escapeHtml(rfq.needed_by_date ?? 'ASAP')}</div></div>
+      <div><div class="label">Status</div><div class="value">${escapeHtml(rfq.status?.toUpperCase())}</div></div>
     </div>
-    ${rfq.notes ? `<div class="section"><div class="label">Notes</div><div>${rfq.notes}</div></div>` : ''}
+    ${rfq.notes ? `<div class="section"><div class="label">Notes</div><div>${escapeHtml(rfq.notes)}</div></div>` : ''}
     <h2 style="font-size:13px;margin-top:20px;border-top:2px solid #000;padding-top:12px">
       Supplier Quotations Received
     </h2>
