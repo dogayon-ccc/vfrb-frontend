@@ -44,6 +44,7 @@ import { motion, AnimatePresence }                           from 'framer-motion
 import axios                                                 from 'axios';
 import { cacheGet, cacheSet, cacheClear, TTL }              from '../../utils/cache';
 import { NavIcon }                                           from '../../components/ui/icons';
+import BottomSheet                                           from '../../components/ui/BottomSheet';
 
 const T    = 'var(--teal)';
 const T2   = 'var(--teal-2)';
@@ -79,7 +80,7 @@ function Toast({ msg, type, onDone }) {
 }
 
 // ── Count Entry Modal (Staff) ──────────────────────────────────────────────────
-function CountModal({ materials, onClose, onDone }) {
+function CountModal({ materials, onClose, onDone, isMobile }) {
   const [matId,   setMatId]   = useState('');
   const [physQty, setPhysQty] = useState('');
   const [reason,  setReason]  = useState('');
@@ -125,29 +126,13 @@ function CountModal({ materials, onClose, onDone }) {
   };
 
   return (
-    <>
+    <BottomSheet title="Log Physical Count" onClose={onClose} isMobile={isMobile} maxWidth={520}>
+        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+          <p style={{ fontSize:11, color:'var(--text-subtle)', margin:0, fontFamily:FONT }}>
+            Physical Inventory Count
+          </p>
 
-      <div style={{ position:'fixed', inset:0, background:'rgba(15,23,42,.45)',
-        backdropFilter:'blur(4px)', zIndex:200,
-        display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
-        <motion.div initial={{ opacity:0, scale:.95 }} animate={{ opacity:1, scale:1 }}
-          style={{ background:'var(--bg-card)', borderRadius:18, width:'min(520px,100%)',
-            maxHeight:'92vh', display:'flex', flexDirection:'column',
-            boxShadow:'0 20px 60px rgba(0,0,0,.15)', overflow:'hidden' }}>
-
-          <div style={{ padding:'16px 22px', borderBottom:'1px solid var(--border)', background:'var(--teal-50)' }}>
-            <h3 style={{ fontSize:15, fontWeight:800, color:'var(--ink)', margin:0, fontFamily:FONT }}>
-              <NavIcon name="physicalCount" size={14} color="currentColor" style={{verticalAlign:'-2px',marginRight:6}}/>Log Physical Count
-            </h3>
-            <p style={{ fontSize:11, color:'var(--text-subtle)', margin:'3px 0 0', fontFamily:FONT }}>
-              Physical Inventory Count
-            </p>
-          </div>
-
-          <div style={{ flex:1, overflowY:'auto', padding:'20px 22px',
-            display:'flex', flexDirection:'column', gap:14 }}>
-
-            {/* Material selector */}
+          {/* Material selector */}
             <div>
               <label style={{ ...lbl, marginBottom:7 }}>Material *</label>
               <select value={matId} onChange={e => setMatId(e.target.value)}
@@ -228,36 +213,33 @@ function CountModal({ materials, onClose, onDone }) {
             </div>
 
             {err && (
-              <p style={{ color:'var(--danger)', fontSize:12, fontWeight:600, fontFamily:FONT }}>
+              <p style={{ color:'var(--danger)', fontSize:12, fontWeight:600, fontFamily:FONT, margin:0 }}>
                 <NavIcon name="warning" size={13} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>{err}
               </p>
             )}
-          </div>
 
-          <div style={{ padding:'14px 22px', borderTop:'1px solid var(--border)',
-            display:'flex', gap:10, justifyContent:'flex-end', background:'var(--bg)' }}>
-            <button onClick={onClose}
-              style={{ padding:'9px 18px', borderRadius:9, border:'1px solid var(--border)',
-                background:'var(--bg-card)', color:'var(--ink)', fontSize:13, fontWeight:600,
-                cursor:'pointer', fontFamily:FONT }}>
-              Cancel
-            </button>
-            <button onClick={submit} disabled={busy}
-              style={{ padding:'9px 22px', borderRadius:9, border:'none',
-                background:busy?'var(--text-faint)':`linear-gradient(135deg,${T},${T2})`,
-                color:'var(--bg-card)', fontSize:13, fontWeight:700,
-                cursor:busy?'not-allowed':'pointer', fontFamily:FONT }}>
-              {busy ? 'Saving…' : <><NavIcon name="success" size={13} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>Log Count</>}
-            </button>
-          </div>
-        </motion.div>
-      </div>
-    </>
+            <div style={{ display:'flex', gap:10, justifyContent:'flex-end', marginTop:6 }}>
+              <button onClick={onClose}
+                style={{ padding:'9px 18px', borderRadius:9, border:'1px solid var(--border)',
+                  background:'var(--bg-card)', color:'var(--ink)', fontSize:13, fontWeight:600,
+                  cursor:'pointer', fontFamily:FONT }}>
+                Cancel
+              </button>
+              <button onClick={submit} disabled={busy}
+                style={{ padding:'9px 22px', borderRadius:9, border:'none',
+                  background:busy?'var(--text-faint)':`linear-gradient(135deg,${T},${T2})`,
+                  color:'var(--bg-card)', fontSize:13, fontWeight:700,
+                  cursor:busy?'not-allowed':'pointer', fontFamily:FONT }}>
+                {busy ? 'Saving…' : <><NavIcon name="success" size={13} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>Log Count</>}
+              </button>
+            </div>
+        </div>
+    </BottomSheet>
   );
 }
 
 // ── Reconcile Modal (Manager only) ─────────────────────────────────────────────
-function ReconcileModal({ count, onClose, onDone }) {
+function ReconcileModal({ count, onClose, onDone, isMobile }) {
   const [adjust, setAdjust] = useState(true);
   const [note,   setNote]   = useState('');
   const [busy,   setBusy]   = useState(false);
@@ -285,23 +267,12 @@ function ReconcileModal({ count, onClose, onDone }) {
   const isDeficit = variance < 0;
 
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(15,23,42,.45)',
-      backdropFilter:'blur(4px)', zIndex:200,
-      display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
-      <motion.div initial={{ opacity:0, scale:.95 }} animate={{ opacity:1, scale:1 }}
-        style={{ background:'var(--bg-card)', borderRadius:18, width:'min(480px,100%)',
-          overflow:'hidden', boxShadow:'0 20px 60px rgba(0,0,0,.15)' }}>
-
-        <div style={{ padding:'16px 22px', borderBottom:'1px solid var(--border)', background:'var(--purple-50)' }}>
-          <h3 style={{ fontSize:15, fontWeight:800, color:'var(--ink)', margin:0, fontFamily:FONT }}>
-            <NavIcon name="manager" size={16} color="currentColor" style={{verticalAlign:'-3px',marginRight:6}}/>Reconcile Count — {count.material?.material_name}
-          </h3>
-          <p style={{ fontSize:11, color:'var(--text-subtle)', margin:'3px 0 0', fontFamily:FONT }}>
-            Post Count & Reconcile
+    <BottomSheet title={`Reconcile Count — ${count.material?.material_name}`} onClose={onClose} isMobile={isMobile} maxWidth={480}>
+        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+          <p style={{ fontSize:11, color:'var(--text-subtle)', margin:0, fontFamily:FONT }}>
+            Post Count &amp; Reconcile
           </p>
-        </div>
 
-        <div style={{ padding:'20px 22px', display:'flex', flexDirection:'column', gap:14 }}>
           {/* Variance summary */}
           <div style={{ padding:'14px', borderRadius:12,
             background:Math.abs(varPct)>5?'var(--warning-bg)':'var(--success-bg)',
@@ -369,28 +340,26 @@ function ReconcileModal({ count, onClose, onDone }) {
           </div>
 
           {err && (
-            <p style={{ color:'var(--danger)', fontSize:12, fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}><NavIcon name="warning" size={13} color="currentColor"/>{err}</p>
+            <p style={{ color:'var(--danger)', fontSize:12, fontFamily:FONT, display:'flex', alignItems:'center', gap:5, margin:0 }}><NavIcon name="warning" size={13} color="currentColor"/>{err}</p>
           )}
-        </div>
 
-        <div style={{ padding:'14px 22px', borderTop:'1px solid var(--border)',
-          display:'flex', gap:10, justifyContent:'flex-end', background:'var(--bg)' }}>
-          <button onClick={onClose}
-            style={{ padding:'9px 18px', borderRadius:9, border:'1px solid var(--border)',
-              background:'var(--bg-card)', color:'var(--ink)', fontSize:13, fontWeight:600,
-              cursor:'pointer', fontFamily:FONT }}>
-            Cancel
-          </button>
-          <button onClick={submit} disabled={busy}
-            style={{ padding:'9px 22px', borderRadius:9, border:'none',
-              background:busy?'var(--text-faint)':'linear-gradient(135deg,var(--purple),var(--purple-dark))',
-              color:'var(--bg-card)', fontSize:13, fontWeight:700,
-              cursor:busy?'not-allowed':'pointer', fontFamily:FONT }}>
-            {busy ? '…' : <><NavIcon name="success" size={13} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>Reconcile</>}
-          </button>
+          <div style={{ display:'flex', gap:10, justifyContent:'flex-end', marginTop:6 }}>
+            <button onClick={onClose}
+              style={{ padding:'9px 18px', borderRadius:9, border:'1px solid var(--border)',
+                background:'var(--bg-card)', color:'var(--ink)', fontSize:13, fontWeight:600,
+                cursor:'pointer', fontFamily:FONT }}>
+              Cancel
+            </button>
+            <button onClick={submit} disabled={busy}
+              style={{ padding:'9px 22px', borderRadius:9, border:'none',
+                background:busy?'var(--text-faint)':'linear-gradient(135deg,var(--purple),var(--purple-dark))',
+                color:'var(--bg-card)', fontSize:13, fontWeight:700,
+                cursor:busy?'not-allowed':'pointer', fontFamily:FONT }}>
+              {busy ? '…' : <><NavIcon name="success" size={13} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>Reconcile</>}
+            </button>
+          </div>
         </div>
-      </motion.div>
-    </div>
+    </BottomSheet>
   );
 }
 
@@ -404,6 +373,9 @@ export default function AdminPhysicalCount() {
   const [showLog,     setShowLog]     = useState(false);
   const [reconciling, setReconciling] = useState(null);
   const [toast,       setToast]       = useState(null); // FIX 3: { msg, type }
+  const [winW, setWinW] = useState(typeof window!=='undefined'?window.innerWidth:1280);
+  useEffect(() => { const h=()=>setWinW(window.innerWidth); window.addEventListener('resize',h); return()=>window.removeEventListener('resize',h); }, []);
+  const isMobile = winW <= 767;
 
   const showToast = (msg, type = 'success') => setToast({ msg, type });
 
@@ -527,6 +499,7 @@ export default function AdminPhysicalCount() {
           materials={materials}
           onClose={() => setShowLog(false)}
           onDone={handleCountDone}
+          isMobile={isMobile}
         />
       )}
       {reconciling && (
@@ -534,6 +507,7 @@ export default function AdminPhysicalCount() {
           count={reconciling}
           onClose={() => setReconciling(null)}
           onDone={handleReconcileDone}
+          isMobile={isMobile}
         />
       )}
 

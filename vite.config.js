@@ -72,6 +72,20 @@ export default defineConfig(({ mode }) => ({
         // precache-and-serve strategy, safe since they're versioned by
         // build hash.
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        // Exclude the 3 heaviest, conditionally-used vendor chunks from the
+        // install-time precache (Account 7 perf pass, Sep 27 2026): Workbox's
+        // globPatterns ignores React.lazy() boundaries entirely and eagerly
+        // downloads every matching chunk right after SW install, so
+        // three-*.js (1.6MB, only Design Studio 3D / admin GarmentPreview3D),
+        // bg-remove-*.js (716KB onnxruntime, only on non-SVG logo upload),
+        // and charts-*.js (515KB recharts, admin Reports/Dashboard only)
+        // were being force-downloaded to every visitor's device shortly
+        // after landing, defeating the manualChunks lazy-load split in this
+        // same file. Left as normal on-demand fetches instead (still
+        // content-hashed + browser-cached); measured precache drop: ~4.9MB
+        // -> ~2.1MB. Runtime correctness is unaffected — dynamic import()
+        // doesn't depend on SW precache.
+        globIgnores: ["**/three-*.js", "**/bg-remove-*.js", "**/charts-*.js"],
         runtimeCaching: [
           {
             urlPattern: /\/api\/.*/,

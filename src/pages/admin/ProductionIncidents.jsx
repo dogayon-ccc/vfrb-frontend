@@ -38,6 +38,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence }           from 'framer-motion';
 import axios                                 from 'axios';
 import { Card, Badge, NavIcon }              from '../../components/ui';
+import BottomSheet                           from '../../components/ui/BottomSheet';
 
 const STAGES = ['pattern','segregation','cutting','sewing','qc','pressing','packing'];
 
@@ -74,6 +75,9 @@ export default function ProductionIncidents() {
   const [toast, setToast] = useState(null);
   const [resolvingId, setResolvingId] = useState(null);
   const [resolutionNotes, setResolutionNotes] = useState('');
+  const [winW, setWinW] = useState(typeof window!=='undefined'?window.innerWidth:1280);
+  useEffect(() => { const h=()=>setWinW(window.innerWidth); window.addEventListener('resize',h); return()=>window.removeEventListener('resize',h); }, []);
+  const isMobile = winW <= 767;
 
   const [form, setForm] = useState({
     order_id: '', incident_type: 'machine_breakdown', stage: '',
@@ -264,16 +268,9 @@ export default function ProductionIncidents() {
       )}
 
       {/* Report modal */}
-      <AnimatePresence>
-        {showForm && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 16 }}
-            onClick={() => setShowForm(false)}>
-            <motion.form initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              onSubmit={submitReport} onClick={e => e.stopPropagation()}
-              style={{ background: 'var(--bg-card)', borderRadius: 'var(--r-xl)', padding: 24, width: '100%', maxWidth: 440, boxShadow: 'var(--shadow-xl)' }}>
-              <h3 style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', margin: '0 0 16px' }}>Report Incident</h3>
-
+      {showForm && (
+        <BottomSheet title="Report Incident" onClose={() => setShowForm(false)} isMobile={isMobile} maxWidth={440}>
+            <form onSubmit={submitReport}>
               <label style={lbl}>Type</label>
               <select value={form.incident_type} onChange={e => setForm({ ...form, incident_type: e.target.value })} style={{ ...inp, marginBottom: 12 }}>
                 <option value="machine_breakdown">Machine Breakdown</option>
@@ -313,10 +310,9 @@ export default function ProductionIncidents() {
                   padding: '10px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 44, fontFamily: 'var(--font)',
                 }}>Submit Report</button>
               </div>
-            </motion.form>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </form>
+        </BottomSheet>
+      )}
 
       {/* Toast */}
       <AnimatePresence>

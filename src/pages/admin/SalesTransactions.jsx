@@ -38,6 +38,7 @@ import { motion, AnimatePresence }           from 'framer-motion';
 import axios                                 from 'axios';
 import { cacheGet, cacheSet, cacheClear }    from '../../utils/cache';
 import { Card, Badge, NavIcon }              from '../../components/ui';
+import BottomSheet                           from '../../components/ui/BottomSheet';
 
 const inp  = { width:'100%', padding:'10px 14px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)', fontSize:13, outline:'none', fontFamily:'var(--font)', transition:'border .15s, box-shadow .15s', boxSizing:'border-box' };
 const fi   = e => { e.target.style.borderColor='var(--teal)'; e.target.style.boxShadow='0 0 0 3px rgba(2,128,144,.1)'; };
@@ -57,7 +58,7 @@ const METHOD_CFG = {
 };
 
 // ── Record payment modal ──────────────────────────────────────────────────────
-function RecordModal({ onClose, onDone }) {
+function RecordModal({ onClose, onDone, isMobile }) {
   const [orders,    setOrders]    = useState([]);
   const [orderInfo, setOrderInfo] = useState(null);
   const [form,      setForm]      = useState({ order_id:'', amount_paid:'', amount_total:'', payment_method:'cash', payment_terms:'down_payment', or_number:'', notes:'' });
@@ -117,25 +118,11 @@ function RecordModal({ onClose, onDone }) {
   };
 
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(15,23,42,.45)', backdropFilter:'blur(4px)', zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
-      <motion.div initial={{ opacity:0, scale:.95 }} animate={{ opacity:1, scale:1 }}
-        style={{ background:'var(--bg-card)', borderRadius:'var(--r-xl)', width:'min(520px,100%)', maxHeight:'92vh', display:'flex', flexDirection:'column', boxShadow:'var(--shadow-xl)', overflow:'hidden' }}>
-
-        <div style={{ padding:'16px 22px', borderBottom:'1px solid var(--border)', display:'flex', justifyContent:'space-between', alignItems:'center', background:'linear-gradient(135deg,var(--teal-50),var(--bg-card))' }}>
-          <div>
-            <h3 style={{ display:'flex', alignItems:'center', gap:7, fontSize:15, fontWeight:800, color:'var(--ink)', margin:0, fontFamily:'var(--font)' }}>
-              <NavIcon name="salesPay" size={16} color="var(--teal)" /> Record Payment
-            </h3>
-            <p style={{ fontSize:11, color:'var(--text-subtle)', margin:'3px 0 0', fontFamily:'var(--font)' }}>
-              No payment gateway — record manually
-            </p>
-          </div>
-          <button onClick={onClose} style={{ width:28, height:28, borderRadius:'var(--r-sm)', border:'none', background:'var(--bg-surface)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--text-subtle)' }}>
-            <NavIcon name="close" size={14} />
-          </button>
-        </div>
-
-        <div style={{ flex:1, overflowY:'auto', padding:'20px 22px', display:'flex', flexDirection:'column', gap:14 }}>
+    <BottomSheet title="Record Payment" onClose={onClose} isMobile={isMobile} maxWidth={520}>
+        <p style={{ fontSize:11, color:'var(--text-subtle)', margin:'-8px 0 14px', fontFamily:'var(--font)' }}>
+          No payment gateway — record manually
+        </p>
+        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
               <div>
                 <label style={lbl}>Order *</label>
                 <select value={form.order_id} onChange={e => set('order_id', e.target.value)}
@@ -246,17 +233,15 @@ function RecordModal({ onClose, onDone }) {
                   <NavIcon name="warning" size={13} color="var(--danger)" />{err}
                 </p>
               )}
+          <div style={{ display:'flex', gap:10, justifyContent:'flex-end', marginTop:6 }}>
+            <button onClick={onClose} style={{ padding:'9px 18px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)' }}>Cancel</button>
+            <button onClick={submit} disabled={busy} style={{ padding:'9px 22px', borderRadius:'var(--r-md)', border:'none', background:'linear-gradient(135deg,var(--teal),var(--teal-2))', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'var(--font)', opacity:busy?0.7:1, minWidth:140, display:'flex', alignItems:'center', justifyContent:'center', gap:7 }}>
+              <NavIcon name={busy ? 'loading' : 'success'} size={13} color="#fff" style={busy ? { animation:'st-spin .8s linear infinite' } : undefined} />
+              {busy ? 'Recording…' : 'Record Payment'}
+            </button>
+          </div>
         </div>
-
-        <div style={{ padding:'14px 22px', borderTop:'1px solid var(--border)', display:'flex', gap:10, justifyContent:'flex-end', background:'var(--bg-surface)' }}>
-          <button onClick={onClose} style={{ padding:'9px 18px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)' }}>Cancel</button>
-          <button onClick={submit} disabled={busy} style={{ padding:'9px 22px', borderRadius:'var(--r-md)', border:'none', background:'linear-gradient(135deg,var(--teal),var(--teal-2))', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'var(--font)', opacity:busy?0.7:1, minWidth:140, display:'flex', alignItems:'center', justifyContent:'center', gap:7 }}>
-            <NavIcon name={busy ? 'loading' : 'success'} size={13} color="#fff" style={busy ? { animation:'st-spin .8s linear infinite' } : undefined} />
-            {busy ? 'Recording…' : 'Record Payment'}
-          </button>
-        </div>
-      </motion.div>
-    </div>
+    </BottomSheet>
   );
 }
 
@@ -266,6 +251,9 @@ export default function AdminSalesTransactions() {
   const [loading,    setLoading]    = useState(true);
   const [search,     setSearch]     = useState('');
   const [modal,      setModal]      = useState(false);
+  const [winW, setWinW] = useState(typeof window!=='undefined'?window.innerWidth:1280);
+  useEffect(() => { const h=()=>setWinW(window.innerWidth); window.addEventListener('resize',h); return()=>window.removeEventListener('resize',h); }, []);
+  const isMobile = winW <= 767;
   const [summary,    setSummary]    = useState({});
 
   const load = useCallback((force = false) => {
@@ -309,7 +297,7 @@ export default function AdminSalesTransactions() {
       `}</style>
 
       <AnimatePresence>
-        {modal && <RecordModal onClose={() => setModal(false)} onDone={() => { setModal(false); cacheClear('sales_transactions'); load(true); }}/>}
+        {modal && <RecordModal onClose={() => setModal(false)} onDone={() => { setModal(false); cacheClear('sales_transactions'); load(true); }} isMobile={isMobile}/>}
       </AnimatePresence>
 
       <div style={{ fontFamily:'var(--font)', color:'var(--ink)' }}>

@@ -94,3 +94,28 @@ The manifest holds no catalog. Account 1 reads `get3DCapabilities` for UI decisi
 - three.js unchanged (r150 behaviour: one uv transform per material, which is why the grain is tiled inside a canvas).
 - The Canvas stays mounted while the 2D view is active; it now stops rendering while `visibility:hidden`.
 
+
+## 7. Session addendum — 7 candidate GLBs supplied by Dave, NOT added to `public/models`
+
+Evidence: **STATIC** only (pygltflib/trimesh structural parse + a leg-bifurcation test on vertex
+x-position at 20 y-bins + rendered vertex-scatter silhouettes). No BROWSER evidence — these files
+were never copied into `public/models` or wired into `garmentMeshManifest.js`, per the session's
+explicit no-onboarding instruction. `garmentCapabilities.js` was NOT changed as a result of this
+section — none of these files are referenced by it.
+
+| File | Verts | Bbox y-range | Materials/UVs/Joints | Leg bifurcation? | Verdict |
+|---|---|---|---|---|---|
+| `Female_teacher_uniform (upper and pants).glb` | 28,380 | [-0.95, 0.95] | 0 / no / no | Yes (visible separate legs + head + hands in silhouette) | **FUSED HUMAN FIGURE — fails garment-only requirement** |
+| `Female_Cream_Dress_with_Bow.glb` | 32,440 | [-0.95, 0.95] | 0 / no / no | Yes | **FUSED HUMAN FIGURE** |
+| `Female_dress_uniform.glb` | 35,138 | [-0.95, 0.94] | 0 / no / no | Yes | **FUSED HUMAN FIGURE** |
+| `Full_set_uniform_female_blazers_plus_slacks.glb` | 33,659 | [-0.95, 0.95] | 0 / no / no | Yes | **FUSED HUMAN FIGURE** |
+| `Female_full_set_corporate_uniform_and_trousers.glb` | 36,650 | [-0.95, 0.95] | 0 / no / no | Yes | **FUSED HUMAN FIGURE** |
+| `Male_Full_set_uniform_polo_shirt_and_pants.glb` | 37,808 | [-0.95, 0.95] | 0 / no / no | Yes | **FUSED HUMAN FIGURE** |
+| `Work_Uniform_Shirt_with_pocket_on_chest.glb` | 57,521 | [-0.95, 0.95] | 0 / no / no | **No** (single continuous cross-section, no leg split; silhouette shows a shirt shape only — collar, sleeves, chest pocket, no head/limbs) | **NOT fused-human by this test — but NOT verified.** No UVs/materials (same approximate-zone-only ceiling as the polo files); vertical scale is non-physical (fills the full [-0.95,0.95] range same as the human figures, i.e. proportion/scale not yet calibrated); never rendered in the browser harness; no `SCANNED_GARMENTS` entry exists or was added. Left unintegrated per instruction — onboarding it would need the same scale-calibration + `poloZone`-style geometry-threshold work the polo entries already went through, plus a harness render, before it could be called supported. |
+
+All six rejected files match the same signature as the already-documented `Blue_Service_Uniform.glb`
+etc. in §1–4 above: single `mesh_node`, 0 materials, 0 UVs, `[-0.95, 0.95]` y-range, and — the
+distinguishing test this session added — a genuine leg/torso split starting around y ≈ -0.5 to -0.8
+(visually and via the x-gap-at-center check), which the polo/work-shirt files do not have at any
+height. Recolouring any of the six would recolour skin, hair, and the lower garment together, same
+failure mode as the existing rejected batch. None were copied into `public/models`.

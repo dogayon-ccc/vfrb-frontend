@@ -81,7 +81,11 @@ const GARMENT_SPECS = {
   'Round Neck':                 { needsCollar:true,  needsSleeve:true,  needsPocket:true,  needsWaist:false, cat:'top' },
   'Mandarin Collar':            { needsCollar:true,  needsSleeve:true,  needsPocket:false, needsWaist:false, cat:'top' },
   'Button-Down':                { needsCollar:true,  needsSleeve:true,  needsPocket:true,  needsWaist:false, cat:'top' },
-  'Track Pants':                { needsCollar:false, needsSleeve:false, needsPocket:true,  needsWaist:true,  cat:'bottom' },
+  // 'Track Pants' removed — it only ever appeared under the PE/Sports category, which is
+  // itself removed per the constitution ("NO SPORTS / PE CATEGORY"); leaving it here would
+  // make it a stale option this manual dropdown could still select even though no Studio
+  // category can reach it anymore. Its 2D path (garmentPaths.js) is left in place as inert
+  // data, not deleted, since that's shared geometry data outside this file's scope.
 };
 const GARMENTS = Object.keys(GARMENT_SPECS);
 
@@ -96,7 +100,7 @@ const GARMENTS = Object.keys(GARMENT_SPECS);
 const STUDIO_GARMENTS = new Set([
   'T-Shirt','Polo Shirt','Shorts','Pants','Skirt','Scrub Top','V-Neck Shirt',
   'Lab Coat','Lab Coverall','School Polo','Round Neck','Mandarin Collar',
-  'Button-Down','Track Pants',
+  'Button-Down',
 ]);
 for (const name of STUDIO_GARMENTS) {
   const zones = zonesFor(name);
@@ -104,7 +108,7 @@ for (const name of STUDIO_GARMENTS) {
   GARMENT_SPECS[name].needsSleeve = zones.includes('sleeve');
 }
 
-// Same completeness check drives both the mount-time auto-skip and StepConfig's banner — one definition, not two.
+// Same completeness check drives both the mount-time auto-skip and StepQuantitySize's banner — one definition, not two.
 function studioComplete(garmentType, collarType, sleeveType, notes) {
   const spec = GARMENT_SPECS[garmentType];
   if (!garmentType || !spec) return false;
@@ -429,8 +433,14 @@ function StepDesign({ form, set, errors, studio, onClearStudio }) {
 }
 
 // ── Step 1: Configure ─────────────────────────────────────────────────────────
-function StepConfig({ form, set, errors, studio, onEditDesign }) {
+// Step 2: Quantity + Size Breakdown — merges the old separate "Configure" (quantity/color)
+// and "Sizing" steps into one, per the Design Summary / Quantity+Size / Delivery+Notes /
+// Review flow. Design fields (garment/collar/sleeve/pocket) stay in Step 1 only — this step
+// never re-asks for them.
+function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart }) {
   const complete = studioComplete(form.garment_type, form.collar_type, form.sleeve_type, form.client_design_notes);
+  const isCustom = form.sizing_type === 'custom';
+  const total = STD.reduce((a, sz) => a + (form.sizes?.[sz] || 0), 0);
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:18 }}>
 
@@ -524,7 +534,152 @@ function StepConfig({ form, set, errors, studio, onEditDesign }) {
         {errMsg(errors.color)}
       </div>
 
-      {/* Delivery date */}
+      {/* Size breakdown — merged in from the old separate Sizing step */}
+      <div style={{ display:'flex', justifyContent:'space-between',
+        alignItems:'center', flexWrap:'wrap', gap:8, marginTop:6 }}>
+        <p style={{ fontSize:13, fontWeight:700, color:'#0f172a',
+          margin:0, fontFamily:FONT }}>
+          How many pieces per size?
+        </p>
+        <motion.button
+          whileHover={{ scale:1.03 }} whileTap={{ scale:.96 }}
+          type="button" onClick={onShowChart}
+          style={{ padding:'6px 14px', borderRadius:9, border:`1px solid ${T}30`,
+            background:'#f0fdfa', color:T, fontSize:11, fontWeight:700,
+            cursor:'pointer', fontFamily:FONT, display:'flex',
+            alignItems:'center', gap:5 }}>
+          <NavIcon name="pattern" size={13} color={T} style={{ verticalAlign:'-2px', marginRight:4 }}/>Size Chart
+        </motion.button>
+      </div>
+
+      <div>
+        <label style={lbl}>Sizing Method</label>
+        <div style={{ display:'flex', gap:10 }}>
+          {[
+            { v:'standard', l:'Standard Sizes', ic:'checklist' },
+            { v:'custom',   l:'Custom Measurements', ic:'edit' },
+          ].map(o => (
+            <motion.button key={o.v} type="button"
+              whileHover={{ y:-1 }} whileTap={{ scale:.97 }}
+              onClick={() => set('sizing_type', o.v)}
+              style={{ flex:1, padding:'14px 12px', borderRadius:12, border:'none',
+                cursor:'pointer', textAlign:'center', fontFamily:FONT,
+                background: form.sizing_type===o.v ? '#f0fdfa' : '#fff',
+                outline:`2px solid ${form.sizing_type===o.v ? T+'55' : '#e2e8f0'}`,
+                transition:'all .15s' }}>
+              <div style={{ display:'flex', justifyContent:'center', marginBottom:6 }}><NavIcon name={o.ic} size={20} color={form.sizing_method===o.v ? T : '#94a3b8'}/></div>
+              <p style={{ fontSize:12, fontWeight:700, margin:0, fontFamily:FONT,
+                color: form.sizing_type===o.v ? T : '#0f172a' }}>
+                {o.l}
+              </p>
+            </motion.button>
+          ))}
+        </div>
+      </div>
+
+      {!isCustom && (
+        <>
+          <div>
+            <label style={lbl}>
+              Size Breakdown{' '}
+              <span style={{ color:'#94a3b8', fontWeight:400, textTransform:'none', letterSpacing:0 }}>
+                (pieces per size)
+              </span>
+            </label>
+            <div className="wiz-size-grid">
+              {STD.map(sz => (
+                <SteP key={sz} label={sz}
+                  value={form.sizes?.[sz] || 0}
+                  remaining={form.quantity_ordered > 0 ? form.quantity_ordered - total : null}
+                  onChange={v => set('sizes', { ...form.sizes, [sz]:v })}/>
+              ))}
+            </div>
+            {errMsg(errors.sizes)}
+          </div>
+
+          <AnimatePresence>
+            {total > 0 && (
+              <motion.div
+                initial={{ opacity:0, y:-6, height:0 }}
+                animate={{ opacity:1, y:0, height:'auto' }}
+                exit={{ opacity:0, height:0 }}
+                style={{ padding:'12px 16px', borderRadius:11,
+                  background:'#f0fdfa', border:'1px solid #99f6e4',
+                  display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                <span style={{ fontSize:12, color:'#0f172a', fontFamily:FONT }}>
+                  Total pieces across all sizes
+                </span>
+                <span style={{ fontSize:18, fontWeight:800, color:T, fontFamily:FONT }}>
+                  {total} pcs
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {total > 0 && form.quantity_ordered > 0 && total !== form.quantity_ordered && (
+            <div style={{ padding:'10px 14px', borderRadius:10,
+              background: total > form.quantity_ordered ? '#fef2f2' : '#fef3c7',
+              border: `1px solid ${total > form.quantity_ordered ? '#fecaca' : '#fde68a'}` }}>
+              <p style={{ fontSize:11, color: total > form.quantity_ordered ? '#991b1b' : '#92400e',
+                margin:0, fontFamily:FONT, fontWeight:600, display:'flex', alignItems:'flex-start', gap:5 }}>
+                <NavIcon name={total > form.quantity_ordered ? 'error' : 'warning'} size={13} color={total > form.quantity_ordered ? '#991b1b' : '#92400e'} style={{ flexShrink:0, marginTop:1 }}/>
+                Size total ({total} pcs) must exactly match
+                quantity ordered ({form.quantity_ordered} pcs) — {Math.abs(form.quantity_ordered - total)} pcs
+                {total > form.quantity_ordered ? ' over' : ' short'}. This blocks submission until it matches.
+              </p>
+            </div>
+          )}
+        </>
+      )}
+
+      {isCustom && (
+        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+          <div style={{ padding:'12px 14px', borderRadius:10,
+            background:'#fffbeb', border:'1px solid #fde68a' }}>
+            <p style={{ color:'#92400e', fontSize:12, fontWeight:600,
+              marginBottom:3, fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}>
+              <NavIcon name="warning" size={13} color="#92400e"/> Custom Measurements
+            </p>
+            <p style={{ color:'#92400e', fontSize:11, marginTop:4,
+              lineHeight:1.5, fontFamily:FONT }}>
+              Custom measurements will be reviewed by VFRB production staff
+              who will confirm the final sizing specifications.
+            </p>
+          </div>
+
+          {[
+            ['chest_cm',  'Chest (cm)',  '96'],
+            ['waist_cm',  'Waist (cm)',  '76'],
+            ['hip_cm',    'Hip (cm)',    '98'],
+            ['length_cm', 'Length (cm)', '70'],
+            ['sleeve_cm', 'Sleeve (cm)', '24'],
+          ].map(([k, l, ph]) => (
+            <div key={k}>
+              <label style={lbl}>{l}</label>
+              <input type="number" min={0} step={0.5} placeholder={`e.g. ${ph}`}
+                value={form.measurements?.[k] || ''}
+                onChange={e => set('measurements', { ...form.measurements, [k]:Number(e.target.value)||0 })}
+                style={inp} onFocus={fi} onBlur={fo}/>
+            </div>
+          ))}
+
+          <div>
+            <label style={lbl}>Quantity (pieces) <span style={{ color:'#ef4444' }}>*</span></label>
+            <input type="number" min={1} value={form.custom_qty||''}
+              onChange={e => set('custom_qty', Number(e.target.value))}
+              placeholder="Total pieces" style={inp} onFocus={fi} onBlur={fo}/>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Step 3: Delivery + PO/Reference + Notes — split out of the old merged "Configure" step so
+// order logistics (quantity/sizing) and delivery/paperwork are two distinct, focused steps.
+function StepDelivery({ form, set, errors }) {
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:18 }}>
       <div>
         <label style={lbl}>Desired Delivery Date</label>
         <input type="date" value={form.deadline||''}
@@ -533,7 +688,6 @@ function StepConfig({ form, set, errors, studio, onEditDesign }) {
           style={inp} onFocus={fi} onBlur={fo}/>
       </div>
 
-      {/* PO reference */}
       <div>
         <label style={lbl}>
           PO Reference{' '}
@@ -547,7 +701,6 @@ function StepConfig({ form, set, errors, studio, onEditDesign }) {
           style={inp} onFocus={fi} onBlur={fo}/>
       </div>
 
-      {/* Notes */}
       <div>
         <label style={lbl}>
           Additional Notes{' '}
@@ -560,6 +713,7 @@ function StepConfig({ form, set, errors, studio, onEditDesign }) {
           placeholder="Any additional instructions for VFRB…"
           style={{ ...inp, resize:'vertical', minHeight:70 }}
           onFocus={fi} onBlur={fo}/>
+        {errMsg(errors.special_notes)}
       </div>
     </div>
   );
@@ -608,164 +762,6 @@ function SteP({ label, value, onChange, remaining }) {
         </motion.button>
       </div>
     </motion.div>
-  );
-}
-
-function StepSize({ form, set, errors, onShowChart }) {
-  const isCustom = form.sizing_type === 'custom';
-  const total = STD.reduce((a, sz) => a + (form.sizes?.[sz] || 0), 0);
-
-  return (
-    <div style={{ display:'flex', flexDirection:'column', gap:18 }}>
-
-      <div style={{
-        display: 'flex', justifyContent: 'space-between',
-        alignItems: 'center', flexWrap: 'wrap', gap: 8,
-      }}>
-        <p style={{ fontSize: 13, fontWeight: 700, color: '#0f172a',
-          margin: 0, fontFamily: FONT }}>
-          How many pieces per size?
-        </p>
-        <motion.button
-          whileHover={{ scale: 1.03 }} whileTap={{ scale: .96 }}
-          type="button"
-          onClick={onShowChart}
-          style={{
-            padding: '6px 14px', borderRadius: 9, border: `1px solid ${T}30`,
-            background: '#f0fdfa', color: T, fontSize: 11, fontWeight: 700,
-            cursor: 'pointer', fontFamily: FONT, display: 'flex',
-            alignItems: 'center', gap: 5,
-          }}
-        >
-          <NavIcon name="pattern" size={13} color={T} style={{ verticalAlign:'-2px', marginRight:4 }}/>Size Chart
-        </motion.button>
-      </div>
-
-      {/* Standard / Custom toggle */}
-      <div>
-        <label style={lbl}>Sizing Method</label>
-        <div style={{ display:'flex', gap:10 }}>
-          {[
-            { v:'standard', l:'Standard Sizes', ic:'checklist' },
-            { v:'custom',   l:'Custom Measurements', ic:'edit' },
-          ].map(o => (
-            <motion.button key={o.v} type="button"
-              whileHover={{ y:-1 }} whileTap={{ scale:.97 }}
-              onClick={() => set('sizing_type', o.v)}
-              style={{ flex:1, padding:'14px 12px', borderRadius:12, border:'none',
-                cursor:'pointer', textAlign:'center', fontFamily:FONT,
-                background: form.sizing_type===o.v ? '#f0fdfa' : '#fff',
-                outline:`2px solid ${form.sizing_type===o.v ? T+'55' : '#e2e8f0'}`,
-                transition:'all .15s' }}>
-              <div style={{ display:'flex', justifyContent:'center', marginBottom:6 }}><NavIcon name={o.ic} size={20} color={form.sizing_method===o.v ? T : '#94a3b8'}/></div>
-              <p style={{ fontSize:12, fontWeight:700, margin:0, fontFamily:FONT,
-                color: form.sizing_type===o.v ? T : '#0f172a' }}>
-                {o.l}
-              </p>
-            </motion.button>
-          ))}
-        </div>
-      </div>
-
-      {/* Standard: stepper grid */}
-      {!isCustom && (
-        <>
-          <div>
-            <label style={lbl}>
-              Size Breakdown{' '}
-              <span style={{ color:'#94a3b8', fontWeight:400, textTransform:'none', letterSpacing:0 }}>
-                (pieces per size)
-              </span>
-            </label>
-            <div className="wiz-size-grid">
-              {STD.map(sz => (
-                <SteP key={sz} label={sz}
-                  value={form.sizes?.[sz] || 0}
-                  remaining={form.quantity_ordered > 0 ? form.quantity_ordered - total : null}
-                  onChange={v => set('sizes', { ...form.sizes, [sz]:v })}/>
-              ))}
-            </div>
-            {errMsg(errors.sizes)}
-          </div>
-
-          {/* Running total */}
-          <AnimatePresence>
-            {total > 0 && (
-              <motion.div
-                initial={{ opacity:0, y:-6, height:0 }}
-                animate={{ opacity:1, y:0, height:'auto' }}
-                exit={{ opacity:0, height:0 }}
-                style={{ padding:'12px 16px', borderRadius:11,
-                  background:'#f0fdfa', border:'1px solid #99f6e4',
-                  display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                <span style={{ fontSize:12, color:'#0f172a', fontFamily:FONT }}>
-                  Total pieces across all sizes
-                </span>
-                <span style={{ fontSize:18, fontWeight:800, color:T, fontFamily:FONT }}>
-                  {total} pcs
-                </span>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Check vs quantity_ordered */}
-          {total > 0 && form.quantity_ordered > 0 && total !== form.quantity_ordered && (
-            <div style={{ padding:'10px 14px', borderRadius:10,
-              background: total > form.quantity_ordered ? '#fef2f2' : '#fef3c7',
-              border: `1px solid ${total > form.quantity_ordered ? '#fecaca' : '#fde68a'}` }}>
-              <p style={{ fontSize:11, color: total > form.quantity_ordered ? '#991b1b' : '#92400e',
-                margin:0, fontFamily:FONT, fontWeight:600, display:'flex', alignItems:'flex-start', gap:5 }}>
-                <NavIcon name={total > form.quantity_ordered ? 'error' : 'warning'} size={13} color={total > form.quantity_ordered ? '#991b1b' : '#92400e'} style={{ flexShrink:0, marginTop:1 }}/>
-                Size total ({total} pcs) must exactly match
-                quantity ordered ({form.quantity_ordered} pcs) — {Math.abs(form.quantity_ordered - total)} pcs
-                {total > form.quantity_ordered ? ' over' : ' short'}. This blocks submission until it matches.
-              </p>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Custom measurements */}
-      {isCustom && (
-        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-          <div style={{ padding:'12px 14px', borderRadius:10,
-            background:'#fffbeb', border:'1px solid #fde68a' }}>
-            <p style={{ color:'#92400e', fontSize:12, fontWeight:600,
-              marginBottom:3, fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}>
-              <NavIcon name="warning" size={13} color="#92400e"/> Custom Measurements
-            </p>
-            <p style={{ color:'#92400e', fontSize:11, marginTop:4,
-              lineHeight:1.5, fontFamily:FONT }}>
-              Custom measurements will be reviewed by VFRB production staff
-              who will confirm the final sizing specifications.
-            </p>
-          </div>
-
-          {[
-            ['chest_cm',  'Chest (cm)',  '96'],
-            ['waist_cm',  'Waist (cm)',  '76'],
-            ['hip_cm',    'Hip (cm)',    '98'],
-            ['length_cm', 'Length (cm)', '70'],
-            ['sleeve_cm', 'Sleeve (cm)', '24'],
-          ].map(([k, l, ph]) => (
-            <div key={k}>
-              <label style={lbl}>{l}</label>
-              <input type="number" min={0} step={0.5} placeholder={`e.g. ${ph}`}
-                value={form.measurements?.[k] || ''}
-                onChange={e => set('measurements', { ...form.measurements, [k]:Number(e.target.value)||0 })}
-                style={inp} onFocus={fi} onBlur={fo}/>
-            </div>
-          ))}
-
-          <div>
-            <label style={lbl}>Quantity (pieces) <span style={{ color:'#ef4444' }}>*</span></label>
-            <input type="number" min={1} value={form.custom_qty||''}
-              onChange={e => set('custom_qty', Number(e.target.value))}
-              placeholder="Total pieces" style={inp} onFocus={fi} onBlur={fo}/>
-          </div>
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -983,7 +979,7 @@ function StepReview({ form, studio }) {
 }
 
 // ── Step progress indicator ───────────────────────────────────────────────────
-const STEPS = ['Your Design', 'Configure', 'Sizing', 'Review'];
+const STEPS = ['Design Summary', 'Quantity & Sizes', 'Delivery & Notes', 'Review'];
 
 function StepBar({ step }) {
   return (
@@ -1040,7 +1036,7 @@ function StepBar({ step }) {
 
 // ── Philippine Standard Garment Size Chart ────────────────────────────────────
 // Source: common institutional uniform sizing used by PH school/hospital suppliers.
-// Measurements in centimeters. Shown as a modal in StepSize.
+// Measurements in centimeters. Shown as a modal from StepQuantitySize.
 const PH_SIZE_CHART = {
   tops: {
     label: 'Tops (Polo, Scrubs, Blouses)',
@@ -1318,7 +1314,8 @@ export default function OrderWizard() {
         color:               hexToName(cfg.colors?.body)  || prev.color,
         client_design_notes: prev.client_design_notes || notes,
       }));
-      // Studio already supplied everything this garment needs — skip the redundant Step 1 fields.
+      // Studio already supplied everything this garment needs — skip straight past the
+      // Design Summary step to order logistics (Quantity & Sizes).
       if (studioComplete(garmentName, derivedCollar, derivedSleeve, notes)) setStep(1);
     } catch { /* silent */ }
   }, []);
@@ -1348,19 +1345,22 @@ export default function OrderWizard() {
       else if (notes.length < 15) e.client_design_notes = 'Please give VFRB enough detail to work from (garment, color, key details) — a few words isn\'t enough to manufacture from';
     }
     if (step===1) {
-      // order_type is fixed to 'direct' (INIT default) — no longer a customer choice, see StepConfig.
+      // order_type is fixed to 'direct' (INIT default) — no longer a customer choice, see StepQuantitySize.
       if (!form.quantity_ordered || form.quantity_ordered < 100)
                                              e.quantity_ordered    = 'VFRB accepts bulk orders only — minimum 100 pieces';
       if (!form.color?.trim())               e.color               = 'Required';
-    }
-    if (step===2 && form.sizing_type==='standard') {
-      const sizeTotal = STD.reduce((a,sz)=>a+(form.sizes?.[sz]||0),0);
-      if (sizeTotal < 1) {
-        e.sizes = 'Enter at least 1 piece';
-      } else if (sizeTotal !== form.quantity_ordered) {
-        e.sizes = `Size breakdown (${sizeTotal} pcs) must exactly match quantity ordered (${form.quantity_ordered} pcs)`;
+      // Size breakdown check merged in from the old separate Sizing step.
+      if (form.sizing_type==='standard') {
+        const sizeTotal = STD.reduce((a,sz)=>a+(form.sizes?.[sz]||0),0);
+        if (sizeTotal < 1) {
+          e.sizes = 'Enter at least 1 piece';
+        } else if (form.quantity_ordered && sizeTotal !== form.quantity_ordered) {
+          e.sizes = `Size breakdown (${sizeTotal} pcs) must exactly match quantity ordered (${form.quantity_ordered} pcs)`;
+        }
       }
     }
+    // step===2 is Delivery & Notes — deadline/PO/notes are all optional server-side, so
+    // there is nothing to require here; goNext() still runs validate() for consistency.
     setErrs(e);
     return !Object.keys(e).length;
   };
@@ -1448,11 +1448,11 @@ export default function OrderWizard() {
   };
 
   const COMPS = [
-    <StepDesign key="d" form={form} set={set} errors={errs} studio={studio} onClearStudio={clearStudio}/>,
-    <StepConfig key="c" form={form} set={set} errors={errs} studio={studio}
-      onEditDesign={() => { setDir(-1); setStep(0); }}/>,
-    <StepSize   key="s" form={form} set={set} errors={errs} onShowChart={() => setShowSizeChart(true)}/>,
-    <StepReview key="r" form={form} studio={studio}/>,
+    <StepDesign       key="d" form={form} set={set} errors={errs} studio={studio} onClearStudio={clearStudio}/>,
+    <StepQuantitySize key="q" form={form} set={set} errors={errs} studio={studio}
+      onEditDesign={() => { setDir(-1); setStep(0); }} onShowChart={() => setShowSizeChart(true)}/>,
+    <StepDelivery     key="v" form={form} set={set} errors={errs}/>,
+    <StepReview       key="r" form={form} studio={studio}/>,
   ];
 
   return (

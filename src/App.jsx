@@ -22,9 +22,12 @@ axios.interceptors.request.use((config) => {
 
 const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif`;
 
-// ── Layouts — eager (always needed on login) ──────────────────────────────────
-import AdminLayout    from './layouts/AdminLayout';
-import CustomerLayout from './layouts/CustomerLayout';
+// ── Layouts — lazy (role-gated by RequireAuth; a visitor only ever needs
+// one, and neither is needed pre-login, so eager-importing both bloated
+// every user's initial bundle with the other role's shell). Existing
+// top-level <Suspense> (below) already covers this. ──────────────────────
+const AdminLayout    = lazy(() => import('./layouts/AdminLayout'));
+const CustomerLayout = lazy(() => import('./layouts/CustomerLayout'));
 
 // ── Landing Pages — eager (public, lightweight) ───────────────────────────────
 // No admin landing page — those accounts are provisioned directly, never self-registered.

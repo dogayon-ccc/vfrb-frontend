@@ -34,6 +34,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence }           from 'framer-motion';
 import axios                                 from 'axios';
 import { NavIcon }                           from '../../components/ui/icons';
+import BottomSheet                           from '../../components/ui/BottomSheet';
 
 const T  = 'var(--teal)';
 const T2   = 'var(--teal-2)';
@@ -550,51 +551,23 @@ export function QCChecklistForm({ orderId, orderData, onComplete, onClose }) {
 
 // ── Standalone QC Modal ───────────────────────────────────────────────────────
 export function QCModal({ order, onClose, onComplete }) {
+  const [winW, setWinW] = useState(typeof window!=='undefined'?window.innerWidth:1280);
+  useEffect(() => { const h=()=>setWinW(window.innerWidth); window.addEventListener('resize',h); return()=>window.removeEventListener('resize',h); }, []);
+  const isMobile = winW <= 767;
   return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(15,23,42,.5)',
-      backdropFilter: 'blur(5px)', zIndex: 400,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: 16, overflowY: 'auto',
-    }}>
-      <motion.div
-        initial={{ opacity: 0, scale: .95 }}
-        animate={{ opacity: 1, scale: 1  }}
-        style={{
-          background: 'var(--bg-card)', borderRadius: 18,
-          width: 'min(640px,100%)', maxHeight: '92vh',
-          display: 'flex', flexDirection: 'column',
-          boxShadow: '0 24px 64px rgba(0,0,0,.18)', overflow: 'hidden',
-        }}
-      >
-        <div style={{
-          padding: '16px 22px', borderBottom: '1px solid var(--border)',
-          background: 'var(--bg)', flexShrink: 0,
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        }}>
-          <div>
-            <h3 style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>
-              🔍 QC Checklist — Order #{order?.order_id}
-            </h3>
-            <p style={{ fontSize: 11, color: 'var(--text-subtle)', margin: '3px 0 0' }}>
-              80/20 rule · Must pass before advancing to Pressing
-            </p>
-          </div>
-          <button onClick={onClose} style={{
-            width: 28, height: 28, borderRadius: 8, border: 'none',
-            background: 'var(--bg-surface)', cursor: 'pointer', fontSize: 14, color: 'var(--text-subtle)',
-          }}>✕</button>
-        </div>
-        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 22px' }}>
-          <QCChecklistForm
-            orderId={order?.order_id}
-            orderData={order}
-            onComplete={data => { onComplete?.(data); onClose?.(); }}
-            onClose={onClose}
-          />
-        </div>
-      </motion.div>
-    </div>
+    <BottomSheet
+      title={`🔍 QC Checklist — Order #${order?.order_id}`}
+      onClose={onClose} isMobile={isMobile} maxWidth={640}>
+        <p style={{ fontSize: 11, color: 'var(--text-subtle)', margin: '-6px 0 16px' }}>
+          80/20 rule · Must pass before advancing to Pressing
+        </p>
+        <QCChecklistForm
+          orderId={order?.order_id}
+          orderData={order}
+          onComplete={data => { onComplete?.(data); onClose?.(); }}
+          onClose={onClose}
+        />
+    </BottomSheet>
   );
 }
 

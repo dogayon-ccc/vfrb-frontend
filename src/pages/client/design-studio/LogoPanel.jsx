@@ -2,7 +2,7 @@
 // Extracted from DesignStudio.jsx (Task E cleanup, Aug 31 2026) — second
 // slice of the file-size breakdown, same pattern as LayersPanel.jsx.
 import { useRef, useState } from 'react';
-import { removeLogoBackground } from '../../../lib/bgRemove';
+import { removeBackgroundAI as removeLogoBackground } from '../../../lib/bgRemove'; // BUG FIX (Account 7): named export was removeBackgroundAI, not removeLogoBackground — call site threw at runtime on every non-SVG upload
 import { NavIcon } from '../../../components/ui/icons';
 import { T, T2, secLabel, placementsFor } from './dsShared';
 
