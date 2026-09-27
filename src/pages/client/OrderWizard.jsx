@@ -1287,29 +1287,37 @@ export default function OrderWizard() {
       const raw = sessionStorage.getItem('studio_config');
       if (!raw) return;
       const cfg = JSON.parse(raw);
+      // Canonical fields (garment/sleeve/collar) with a legacy-alias fallback, matching the
+      // same cfg.garmentType ?? cfg.garment pattern StudioBanner already uses below (line ~117)
+      // — this mount effect was the one place in the file that only checked the legacy name,
+      // so a studio_config written with canonical-only fields (no serializeDesign aliases)
+      // would silently skip every pre-fill here while still rendering fine in the banner.
+      const garmentName = cfg.garmentType ?? cfg.garment ?? '';
+      const collarRaw   = cfg.collarType  ?? cfg.collar  ?? '';
+      const sleeveRaw   = cfg.sleeveType  ?? cfg.sleeve  ?? '';
       setStudio(cfg);
       // Only pre-fill from a real mapped value — never default to the garment name.
       const derivedCollar =
-        COLLAR_MAP[cfg.collarType] ??
-        (COLLAR_STYLE_GARMENTS.has(cfg.garmentType) ? cfg.garmentType : null);
-      const derivedSleeve = SLEEVE_MAP[cfg.sleeveType] ?? null;
+        COLLAR_MAP[collarRaw] ??
+        (COLLAR_STYLE_GARMENTS.has(garmentName) ? garmentName : null);
+      const derivedSleeve = SLEEVE_MAP[sleeveRaw] ?? null;
       const notes = [
-          cfg.category    ? `${cfg.category} uniform.` : '',
-          cfg.garmentType ? `${cfg.garmentType} style.` : '',
-          derivedCollar   ? `${derivedCollar} collar.` : '',
-          derivedSleeve   ? `${derivedSleeve}.` : '',
+          cfg.category  ? `${cfg.category} uniform.` : '',
+          garmentName   ? `${garmentName} style.` : '',
+          derivedCollar ? `${derivedCollar} collar.` : '',
+          derivedSleeve ? `${derivedSleeve}.` : '',
           cfg.colors?.body ? `Primary color: ${hexToName(cfg.colors.body)}.` : '',
         ].filter(Boolean).join(' ');
       setForm(prev => ({
         ...prev,
-        garment_type:        cfg.garmentType ?? prev.garment_type,
+        garment_type:        garmentName || prev.garment_type,
         collar_type:         derivedCollar ?? prev.collar_type,
         sleeve_type:         derivedSleeve  ?? prev.sleeve_type,
         color:               hexToName(cfg.colors?.body)  || prev.color,
         client_design_notes: prev.client_design_notes || notes,
       }));
       // Studio already supplied everything this garment needs — skip the redundant Step 1 fields.
-      if (studioComplete(cfg.garmentType, derivedCollar, derivedSleeve, notes)) setStep(1);
+      if (studioComplete(garmentName, derivedCollar, derivedSleeve, notes)) setStep(1);
     } catch { /* silent */ }
   }, []);
 

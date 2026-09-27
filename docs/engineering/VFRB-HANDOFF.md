@@ -189,3 +189,80 @@ Verification on a real GPU browser. Garment-only, region-separated re-exports fo
 3. Account 1: consume `get3DCapabilities`; add a fit toggle for polos if wanted; decide the default colours; do not offer 3D region controls for garments where `supported` is false.
 4. Asset owner: supply garment-only, region-separated GLBs (or panel-split exports) for coverall and any other garment.
 
+
+---
+
+## Account 1 — canonical garment catalog (2026-09-25, session 3)
+
+**Base:** fast-forwarded to `9880bdc` before starting (was 4 commits behind: `3ffcbbb`/`8d21bb3`/`2e616e2`/`9880bdc`). Those commits already added `designSerialization.js` (single save/load contract, matches this session's "ONE DESIGN STATE" ask) and `garmentCapabilities.js` (the 3D capability contract, explicitly commented "Contract for Account 1's data-driven catalog") — **not written this session**, credited to whoever pushed them. My session-2 work (`MyDesigns.jsx`, draft-restore-as-offer, the Framer-transform mobile fix) was already present on `main` in the same commits, so it's live — no action needed. An older, now-stashed local copy of that same session-2 work (`git stash list` → `account1-mydesigns-draftfix-session2`) was **not popped**, since it would conflict with/duplicate what's already merged; safe to drop once someone confirms the merged version covers everything, not dropped here in case anything is missing.
+
+### CODE VERIFIED before starting
+- `garmentCapabilities.js`: pure-data 3D contract (`SCANNED_GARMENTS`, `UNSUPPORTED_3D_MODELS`, `get3DCapabilities(garment, fit)`), deliberately import-free of Three.js so non-3D pages don't pull it in. `garmentMeshManifest.js` now re-exports from it for the renderer.
+- `designSerialization.js`: `serializeDesign`/`deserializeDesign`, replacing three previously-inconsistent inline snapshot builders in `DesignStudio.jsx`.
+- `dsShared.js`'s `CATS` (flat category→garment-name lists) and `SLEEVE_OPTS` and `FIT_GARMENTS` were three separately-maintained data sources, cross-referenced by hand with `BASE_PATHS` (2D) and `get3DCapabilities` (3D) — the literal gap this session's "CANONICAL GARMENT CATALOG" section asks to close. Only `TypePanel.jsx` consumed these three exports (checked with a repo-wide grep before changing them), so the refactor below had one real call site to update.
+- `OrderWizard.jsx` (1575 lines): already reads `zonesFor`/`garmentRequirements` from `dsShared.js` as "the single source of truth... so OrderWizard can't hand-maintain a second table" (its own comment), and already renders a `StudioBanner` + pre-fills `form.*` from `studio_config` when a design exists. It still always renders the manual garment/collar/sleeve/pocket fields below the banner ("or edit details below"), pre-filled rather than hidden — a real, smaller gap vs. this session's "OrderWizard collects only quantity/sizes/dates/notes" framing, **not fixed this session** (1575 lines, validation/submission logic not fully traced — too large to touch safely in the time left after the catalog work; see Next action).
+
+### IMPLEMENTED
+1. **`garmentCatalog.js` (new)** — the canonical CATEGORY → FAMILY tree. Each family (garment name) carries, computed once from the real underlying data (no new facts invented): `has2D` (from `BASE_PATHS`), `fits` / `status3D` (`supported`/`partial`/`none`) / `model3D` / `zones` / `patterns` / `supportsText` / `supportsLogo` / `frontBack` (all from `get3DCapabilities`). `status3D` is `'partial'` for Polo (matches `garmentCapabilities.js`'s own `regionAccuracy: 'approximate'`), `'supported'` only for T-Shirt, `'none'` for every 2D-only garment and every unwired human-figure GLB — no garment is marked supported that isn't. `neighborFamily(category, garment, dir)` gives wrap-around Previous/Next within a category. `dsShared.js`'s `CATS`/`SLEEVE_OPTS`/`FIT_GARMENTS` are now thin derivations from this file (same export names/shapes, so nothing else needed to change).
+2. **`TypePanel.jsx` reworked** to browse the catalog instead of the old flat lists: each garment card now shows an honest 3D-status badge (**3D** / **3D (partial)** / **2D only**) instead of the status only being discoverable after switching to the 3D tab; Previous/Next chevrons browse the current category's garments (wraps); the Fit toggle condition moved from the old `FIT_GARMENTS.includes(...)` array to `family.fits.length > 1`, same real effect, one source now. `icons.jsx` gained a `chevronLeft` entry (only `chevronRight` existed; the Previous button would otherwise have silently rendered blank — `NavIcon` returns an empty spacer for an unknown name, not an error, so this would not have failed the build, only failed silently in the browser. Caught by checking, not assumed.).
+
+### BROWSER VERIFIED (headless Chromium, `vite preview`, stubbed `/api/*`)
+- Switching to Corporate shows all 6 garments with correct badges (`3D (partial)` Polo, `3D` T-Shirt, `2D only` the other four) in one screenshot.
+- Polo Shirt (2 fits) shows the Fit toggle; clicking Next from Polo Shirt correctly advances to T-Shirt (verified both by an automated assertion and by re-inspecting the screenshot pixel-for-pixel — the highlighted card, sleeve chip, color-summary panel and 2D canvas all updated together).
+- Medical → Lab Coverall shows `2D only` (this session's "do not fake support" requirement checked against an actual unsupported-GLB garment, not just the supported ones).
+- 3D still renders after the refactor (T-Shirt, 3 canvases present — no regression from touching `dsShared.js`/`TypePanel.jsx`, which the 3D pane does not import).
+- 390×844 and 900×800: zero horizontal overflow; badges and Fit text present through the mobile bottom-sheet panel.
+- Two of my first ten assertions genuinely failed and were **not real bugs**: my test script clicked an already-selected card a second time, which correctly triggered the pre-existing "click the selected card again to clear it" behavior — confirmed by re-reading the screenshot before writing this up, not by assuming the lower pass count meant the feature was fine.
+- `npx vite build` passes; `git diff --check` clean.
+- **Not done:** a real backend, a real GPU browser. The catalog's `zones`/`patterns` fields are computed but not yet read by anything (PatternPanel/ColorsPanel still use their own zone logic via `zonesFor`) — they're there for the next consumer, not wired everywhere yet.
+
+### NOT STARTED (real remaining scope)
+- **StudioShell layout** (top command bar / rail / context panel / canvas / inspector / bottom status, with the desktop/tablet/mobile recomposition this session asked for) — the *existing* Studio layout (`ToolDrawer`/`RightInfoPanel`/bottom sheet) already roughly follows this shape per earlier sessions' work, but it was not audited or rebuilt this session. Do not assume it's done.
+- **CustomerShell vs AdminShell separation** — per the previous session's handoff entry, this was already largely true before any of my sessions (`cm-`/`adm-` CSS namespaces, card grids not tables). Not re-verified this session.
+- **OrderWizard consuming the full design without re-showing the fields** — see the gap noted above. `designSerialization.js`/`StudioBanner` already do most of the hand-off; hiding (not removing) the manual fields behind the existing "or edit details below" divider when `studioComplete()` is true is the concrete next step, deliberately not attempted this session given its size.
+- Layers panel select/visibility/reorder/rename/lock, deterministic pattern-to-3D, text control completeness (font/weight/spacing/rotation) — not inspected this session; treat as unknown, not as done or broken.
+
+### PUSH STATUS
+**Not pushed** — same anonymous-HTTPS-clone limitation as the previous session; no credentials in this sandbox. Patch/zip attached instead.
+
+### FILES CHANGED THIS SESSION
+`src/pages/client/design-studio/garmentCatalog.js` (new), `src/pages/client/design-studio/dsShared.js`, `src/pages/client/design-studio/TypePanel.jsx`, `src/components/ui/icons.jsx`.
+
+### NEXT ACTION
+1. Apply/push this patch, then decide whether `stash@{0}` (old session-2 work) is fully superseded and safe to drop.
+2. Wire `garmentCatalog.js`'s `zones`/`patterns` fields into `ColorsPanel.jsx`/`PatternPanel.jsx` in place of their own zone derivations, so there's truly one place that answers "what can this garment do" — the catalog computes this data now but doesn't gate anything yet.
+3. OrderWizard: collapse (not remove) the manual garment/collar/sleeve/pocket fields behind a disclosure when `studioComplete()` is true, after tracing `form.*`'s full read path through validation/submit — sized for its own session.
+
+---
+
+## Account 1 — one canonical snapshot path; OrderWizard field-read consistency (2026-09-26)
+
+**Base:** `a65435e` (previous checkpoint), verified present before starting, not redone.
+
+### CONFIRMED (by reading code before changing it)
+`designSerialization.js`'s `serializeDesign`/`deserializeDesign` existed but `serializeDesign` was **never called**. `DesignStudio.jsx` had three separate inline snapshot builders (autosave, `saveDesign`, `orderThis`):
+- Autosave and `saveDesign` each called `exportOverlays()` (the **currently visible face only**) into one `overlays` field — drawing on the back face, then autosaving or clicking Save while still on Back, silently dropped the front face's content from the saved draft.
+- `saveDesign` additionally still had the old `pocketType: 'left_chest'` bug (a logo-placement id, not a pocket type) that `orderThis` had already been fixed to send `null` for — the two paths had drifted.
+- `orderThis` was the only one of the three that actually captured both faces (via `exportFrontBack()`), but did it by hand instead of through the serializer that already existed for this.
+
+### IMPLEMENTED
+- Added `snapshotDesign(previewPng)` — one function, used by all three write paths — that flushes the on-screen face into `faceJSON.current`, then calls `serializeDesign(cfg, { overlays: faceJSON.current.front, frontOverlays, backOverlays }, previewPng)`. Autosave and `saveDesign` now capture both faces every time, regardless of which one is on screen; `pocketType` is now correct (via the serializer) everywhere instead of only in `orderThis`.
+- `OrderWizard.jsx`'s mount-time read of `studio_config` only checked `cfg.garmentType`/`collarType`/`sleeveType` (no canonical-field fallback) — inconsistent with `StudioBanner` a few hundred lines below it in the same file, which already does `cfg.garmentType ?? cfg.garment`. Added the same fallback to the mount effect, so a `studio_config` with only canonical field names (garment/sleeve/collar) still pre-fills correctly instead of silently skipping every Step-1 field.
+
+### BROWSER VERIFIED (headless Chromium, `vite preview`, stubbed `/api/*` with a real in-memory draft store for this test)
+- **Direct regression test for the fixed bug:** selected T-Shirt, added a star on the front face, flipped to back, added a circle, clicked **Save** while still viewing the back face (the exact failure condition) → the POSTed draft has `frontOverlays.length=1` **and** `backOverlays.length=1` (previously back would have been captured and front lost, or vice versa depending on which face was active). Loaded the Studio fresh (new page, new mount, simulating a real reload) → the pending-draft offer appeared (not silently applied) → clicked Restore → **both** the front star and the back circle are present, confirmed by screenshot on each face, not just by array length.
+- `orderThis` with no overlays: clicking "Order this design" navigates to `/order/create` and `sessionStorage.studio_config` has both the canonical fields (`garment`, `sleeve`, `fit`, `colors`, `patterns`, `patternParams`) and the legacy aliases (`garmentType`, `sleeveType`) `OrderWizard.jsx` reads.
+- `npx vite build` passes; `git diff --check` clean.
+- **CODE VERIFIED, not independently browser-verified:** `orderThis` with overlays present on both faces. It calls the same `snapshotDesign()` already proven correct above, after `exportFrontBack()` (read, confirms it flushes both faces via its own `capture()` closure) — so it's covered by combining those two verified facts, not by a standalone browser run. The browser attempt was blocked by a test-harness limitation (could not reliably deselect a Fabric object via Escape/canvas-click in headless Chrome to get back to the summary panel where the Order button lives), not by anything found wrong in the app — noted here rather than papered over.
+
+### NOT DONE this session (from the requested milestone list)
+- StudioShell layout audit/rebuild (#1) — not attempted.
+- Colors/Pattern panel capability wiring beyond what already existed (#3) — `ColorsPanel.jsx` already reads `zonesFor` (single source, no duplicate rule found). `PatternPanel.jsx` still offers all patterns regardless of `garmentCatalog.js`'s per-family `patterns` list (e.g. Polo's 3D-unsupported pattern subset) — not gated this session.
+- Full "OrderWizard never re-collects design facts" (#5) — the two paths (mount pre-fill, `StudioBanner`) are now consistent with each other; the manual garment/collar/sleeve/pocket form fields still render (pre-filled) below the banner rather than being hidden — unchanged from the prior session's note, not attempted here (1576-line file, submit/validation path not fully traced).
+- Responsive StudioShell recomposition (#7) — not attempted beyond what already existed.
+
+### FILES CHANGED
+`src/pages/client/DesignStudio.jsx`, `src/pages/client/OrderWizard.jsx`.
+
+### PUSH STATUS
+Not pushed — no credentials in this sandbox (confirmed again by attempting `git push`, same `could not read Username` failure as prior sessions). Committed locally.

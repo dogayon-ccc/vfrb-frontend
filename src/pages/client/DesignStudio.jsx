@@ -25,7 +25,7 @@ import OnboardingOverlay from './design-studio/OnboardingOverlay';
 import InspoGallery from './design-studio/InspoGallery';
 import ShowcaseGallery from './design-studio/ShowcaseGallery';
 import { T, T2, CATS, INIT_CFG, FONTS, zonesFor } from './design-studio/dsShared';
-import { deserializeDesign } from './design-studio/designSerialization';
+import { deserializeDesign, serializeDesign } from './design-studio/designSerialization';
 
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────
@@ -284,35 +284,45 @@ export default function DesignStudio() {
 
   const dismissDraft = useCallback(() => setPendingDraft(null), []);
 
+  // Flush the live canvas for whichever face is on-screen right now into
+  // faceJSON.current, then hand both faces to the one canonical serializer.
+  // REGRESSION FIX: autosave, saveDesign and orderThis each used to build
+  // their own inline studio_config object. Autosave and saveDesign only ever
+  // called exportOverlays() (the CURRENTLY VISIBLE face) into a single
+  // `overlays` field — draw on the back, then autosave fires (or the user
+  // clicks Save) while still viewing the back, and the front face's content
+  // was silently dropped from the save. orderThis was the only one of the
+  // three that captured both faces, and even it duplicated the snapshot
+  // shape designSerialization.js already exists to own (and had its own
+  // fixed-later pocketType bug that the other two didn't get). One call site
+  // now; every field this session's canonical DesignState is responsible for
+  // goes through it, and no save can lose the face you're not looking at.
+  const snapshotDesign = useCallback((previewPng) => {
+    faceJSON.current[face] = getCanvasJSON() ?? [];
+    return serializeDesign(cfg, {
+      overlays:      faceJSON.current.front,
+      frontOverlays: faceJSON.current.front,
+      backOverlays:  faceJSON.current.back,
+    }, previewPng);
+  }, [cfg, face, getCanvasJSON]);
+
   // ── Auto-save debounce — fires 30s after last cfg change ─────────────────
   useEffect(() => {
     clearTimeout(autoSaveTimer.current);
+    if (!cfg.garment) return; // nothing to persist yet
     autoSaveTimer.current = setTimeout(() => {
-      const snap = {
-        ...cfg,
-        garmentType: cfg.garment,
-        sleeveType:  cfg.sleeve,
-        overlays:    exportOverlays(),
-      };
       axios.post('/api/customer/drafts', {
-        studio_config: snap,
+        studio_config: snapshotDesign(),
         label: `${cfg.garment} — ${cfg.category}`,
       }).catch(() => {}); // silently ignore network errors
     }, 30_000);
     return () => clearTimeout(autoSaveTimer.current);
-  }, [cfg, exportOverlays]);
+  }, [cfg, snapshotDesign]);
 
   // ── Manual save: sessionStorage + DB ─────────────────────────────────────
   const saveDesign = useCallback(async () => {
     if (!cfg.garment) return;
-    const snap = {
-      ...cfg,
-      garmentType:   cfg.garment,
-      collarType:    null,
-      sleeveType:    cfg.sleeve,
-      pocketType:    'left_chest',
-      overlays:      exportOverlays(),
-    };
+    const snap = snapshotDesign();
     // Always write sessionStorage first (instant, works offline)
     sessionStorage.setItem('studio_config', JSON.stringify(snap));
     setSaved(true);
@@ -327,7 +337,7 @@ export default function DesignStudio() {
       setDraftSaved(true);
       setTimeout(() => setDraftSaved(false), 2500);
     } catch { /* offline — sessionStorage copy is enough */ }
-  }, [cfg, exportOverlays, exportPNG]);
+  }, [cfg, snapshotDesign, exportPNG]);
 
   // Order This → pass design to OrderWizard
   const downloadImage = useCallback(async () => {
@@ -344,19 +354,13 @@ export default function DesignStudio() {
 
   const orderThis = useCallback(async () => {
     if (!cfg.garment) return;
-    // exportFrontBack() leaves faceJSON.current and the live canvas back on the original face.
+    // exportFrontBack() captures both faces' PNGs and, as a side effect, leaves
+    // faceJSON.current populated for both (then restores the live canvas to the
+    // face the customer was on) — snapshotDesign's flush of the *current* face
+    // below is then a no-op for whichever face was just captured, and picks up
+    // the other one exactly as exportFrontBack left it.
     const previewPng = await exportFrontBack();
-    const snap = {
-      ...cfg,
-      garmentType: cfg.garment,
-      collarType:  null,
-      sleeveType:  cfg.sleeve,
-      pocketType:  null, // Design Studio has no pocket-type UI yet — was hardcoded to 'left_chest' (a logo-placement id, copy-paste bug), sending null instead of wrong data
-      overlays:    exportOverlays(),      // current face overlays
-      frontOverlays: faceJSON.current.front,
-      backOverlays:  faceJSON.current.back,
-      previewPng,
-    };
+    const snap = snapshotDesign(previewPng);
     sessionStorage.setItem('studio_config',   JSON.stringify(snap));
     sessionStorage.setItem('studio_preview',  snap.previewPng ?? '');
     sessionStorage.setItem('studio_color',    cfg.colors.body);
@@ -365,7 +369,7 @@ export default function DesignStudio() {
     // Clear DB draft — design is now an order, draft is no longer needed
     axios.delete('/api/customer/drafts/latest').catch(() => {});
     nav('/order/create');
-  }, [cfg, exportOverlays, exportFrontBack, nav]);
+  }, [cfg, snapshotDesign, exportFrontBack, nav]);
 
   const clearGarment = useCallback(() => setCfg(p => ({ ...p, garment: null })), []);
 
