@@ -122,7 +122,36 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks(id) {
+          // Account 7 perf fix (Sep 27 2026): Vite/Rolldown's own internal
+          // lazy-route preload helper (used by every React.lazy()/router
+          // dynamic import) had no chunk of its own under the rules below,
+          // so Rolldown's default placement fused it into whichever vendor
+          // chunk built first — in this repo, the 2.4MB "three" chunk. Every
+          // lazy route calls that helper, so the entire three chunk ended up
+          // as a top-level static import of the main entry (visible as a
+          // modulepreload of three-*.js in dist/index.html) — every visitor,
+          // even on the login page, downloaded 2.4MB of Three.js before the
+          // app could render anything. Giving the helper its own explicit
+          // tiny chunk fixed this (verified: three-*.js no longer appears in
+          // dist/index.html's modulepreload list or the entry's static
+          // imports after this change).
+          // Known residual, NOT fixed by this: "charts" (recharts, 515KB)
+          // is still eagerly pulled into the entry the same way, because
+          // recharts's own nested react-redux dependency requires() react
+          // synchronously — Rolldown keeps that CJS require chain in one
+          // chunk rather than honoring the manualChunks split, even with
+          // react/react-dom checked first below (tried, confirmed via
+          // build sourcemap it doesn't change the outcome). Leaving
+          // recharts unbucketed entirely was tried too — it stopped the
+          // chunk fusion but silently reintroduced the ~500KB into the PWA
+          // install-time precache under new, unpredictable chunk names not
+          // covered by globIgnores below, a worse regression. Kept bucketed
+          // as "charts" (excluded from precache) as the lesser of the two
+          // known issues; a real fix needs upstream Rolldown/recharts work,
+          // not more manualChunks guessing.
+          if (id.includes("vite/preload-helper")) return "preload-helper";
           if (!id.includes("node_modules")) return;
+          if (id.includes("react-router-dom") || id.includes("/react-dom/") || id.includes("/react/") || id.includes("/react-is/") || id.includes("/scheduler/")) return "react-vendor";
           if (id.includes("@react-three") || id.includes("/three/")) return "three";
           // Task 2 (logo auto-transparency): @huggingface/transformers pulls
           // in onnxruntime-web (WASM/ONNX runtime) — large and lazy-loaded
@@ -134,7 +163,6 @@ export default defineConfig(({ mode }) => ({
           if (id.includes("framer-motion")) return "motion";
           if (id.includes("recharts")) return "charts";
           if (id.includes("axios")) return "utils";
-          if (id.includes("react-router-dom") || id.includes("/react-dom/") || id.includes("/react/")) return "react-vendor";
         },
       },
     },

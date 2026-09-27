@@ -1,5 +1,4 @@
 // Per-order threads (real order_messages data) styled as a conversation list, like Figma's Chat screen — no fabricated departments.
-// src/pages/client/Messages.jsx
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';

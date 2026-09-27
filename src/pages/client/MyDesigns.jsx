@@ -22,7 +22,7 @@ const T    = 'var(--teal)';
 const T2   = 'var(--teal-2)';
 const TEAL_HEX = '#028090'; // same brand teal as --teal, but a literal hex: `${T}30` (T='var(--teal)') is invalid CSS and drops the border silently, a pre-existing pattern also present in Dashboard.jsx's own btn() helper.
 const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif`;
-const CARD = { background:'#fff', borderRadius:14, border:'1.5px solid #e2e8f0' };
+const CARD = { background:'var(--bg-card)', borderRadius:14, border:'1.5px solid var(--border)', boxShadow:'var(--shadow-xs)' };
 
 function reltime(ts) {
   if (!ts) return '';

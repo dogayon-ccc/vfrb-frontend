@@ -167,7 +167,9 @@ function SalesBody({ data, loading, nav }) {
 
       <div style={{ ...CARD, overflow: 'hidden' }}>
         <div style={{ padding: '12px 14px', borderBottom: '1px solid #f1f5f9' }}><p style={{ fontSize: 13, fontWeight: 800, margin: 0 }}>Payment Status</p></div>
-        {payments.map((o) => (
+        {loading ? <div style={{ padding: 14 }}><div style={{ ...SK, height: 32 }} /></div>
+          : payments.length === 0 ? <p style={{ padding: '18px 14px', fontSize: 12, color: '#64748b', margin: 0 }}>No orders to show yet.</p>
+          : payments.map((o) => (
           <div key={o.order_id} style={{ padding: '10px 14px', borderBottom: '1px solid #f8fafc' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <p style={{ fontSize: 12, fontWeight: 700, margin: 0 }}>ORD-{o.order_id} <span style={{ fontWeight: 400, color: '#64748b' }}>{o.customer_name}</span></p>

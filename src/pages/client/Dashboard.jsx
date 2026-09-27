@@ -12,7 +12,7 @@ const T2   = 'var(--teal-2)';
 const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif`;
 
 // Shared style generators (DRY — reused across cards/pills/buttons below)
-const CARD   = { background:'#fff', borderRadius:14, border:'1.5px solid #e2e8f0' };
+const CARD   = { background:'var(--bg-card)', borderRadius:14, border:'1.5px solid var(--border)', boxShadow:'var(--shadow-xs)' };
 const pill   = (bg, color) => ({ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:20, background:bg, color, display:'inline-flex', alignItems:'center', gap:4 });
 const btn    = (variant='primary') => variant === 'primary'
   ? { padding:'9px 18px', borderRadius:10, border:'none', cursor:'pointer', background:`linear-gradient(135deg,${T},${T2})`, color:'#fff', fontWeight:700, fontSize:12, boxShadow:`0 3px 12px ${T}30`, display:'inline-flex', alignItems:'center', gap:6 }

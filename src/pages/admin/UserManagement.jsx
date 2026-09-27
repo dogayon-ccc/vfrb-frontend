@@ -192,6 +192,27 @@ function EditUserModal({ user, onClose, onDone }) {
   );
 }
 
+function ConfirmModal({ title, body, confirmLabel, danger, busy, onConfirm, onClose }) {
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(15,23,42,.45)', backdropFilter:'blur(4px)', zIndex:210, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+      <motion.div initial={{ opacity:0, scale:.95 }} animate={{ opacity:1, scale:1 }}
+        style={{ background:'#fff', borderRadius:18, width:'min(380px,100%)', boxShadow:'0 20px 60px rgba(0,0,0,.15)', overflow:'hidden' }}>
+        <div style={{ padding:'20px 22px 4px' }}>
+          <h3 style={{ fontSize:16, fontWeight:800, color:'var(--ink)', margin:'0 0 8px' }}>{title}</h3>
+          <p style={{ fontSize:13, color:'var(--text-subtle)', margin:0, lineHeight:1.5 }}>{body}</p>
+        </div>
+        <div style={{ padding:'18px 22px 22px', display:'flex', gap:10, justifyContent:'flex-end' }}>
+          <button onClick={onClose} style={{ padding:'9px 18px', borderRadius:9, border:'1px solid var(--border)', background:'#fff', color:'var(--ink)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:FONT }}>Cancel</button>
+          <button onClick={onConfirm} disabled={busy}
+            style={{ padding:'9px 22px', borderRadius:9, border:'none', background: danger ? 'var(--danger)' : `linear-gradient(135deg,${T},${T2})`, color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:FONT, opacity:busy?.7:1 }}>
+            {busy ? 'Please wait…' : confirmLabel}
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 export default function AdminUserManagement() {
   const [users,   setUsers]   = useState([]);
   const [loading, setLoading] = useState(true);
@@ -200,6 +221,8 @@ export default function AdminUserManagement() {
   const [modal,   setModal]   = useState(false);
   const [editing, setEditing] = useState(null);
   const [toggling,setToggling]= useState(null);
+  const [toggleErr, setToggleErr] = useState('');
+  const [confirmDeactivate, setConfirmDeactivate] = useState(null); // user pending deactivate confirmation
   const [winW, setWinW] = useState(typeof window!=='undefined'?window.innerWidth:1280);
   useEffect(() => { const h=()=>setWinW(window.innerWidth); window.addEventListener('resize',h); return()=>window.removeEventListener('resize',h); }, []);
   const isMobile = winW <= 767;
@@ -225,11 +248,18 @@ export default function AdminUserManagement() {
 
   const toggleStatus = async (user) => {
     if (user.user_id === me.user_id) return;
-    setToggling(user.user_id);
+    const isActive = user.is_active !== false;
+    if (isActive) { setConfirmDeactivate(user); return; }
+    await runToggle(user);
+  };
+
+  const runToggle = async (user) => {
+    setToggling(user.user_id); setToggleErr('');
     try {
       await axios.patch(`/api/admin/users/${user.user_id}/toggle`);
       load();
-    } catch(e) {} finally { setToggling(null); }
+    } catch(e) { setToggleErr(e.response?.data?.message ?? 'Could not update user status.'); }
+    finally { setToggling(null); }
   };
 
   const filtered = users.filter(u => {
@@ -248,6 +278,17 @@ export default function AdminUserManagement() {
       `}</style>
       {modal && <CreateUserModal onClose={() => setModal(false)} onDone={() => { setModal(false); load(); }}/>}
       {editing && <EditUserModal user={editing} onClose={() => setEditing(null)} onDone={() => { setEditing(null); load(true); }}/>}
+      {confirmDeactivate && (
+        <ConfirmModal
+          title="Deactivate user?"
+          body={`${confirmDeactivate.name} will lose access immediately.`}
+          confirmLabel="Deactivate"
+          danger
+          busy={toggling === confirmDeactivate.user_id}
+          onClose={() => setConfirmDeactivate(null)}
+          onConfirm={async () => { const u = confirmDeactivate; setConfirmDeactivate(null); await runToggle(u); }}
+        />
+      )}
 
       <div style={{ fontFamily:FONT, color:'var(--ink)' }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:22, flexWrap:'wrap', gap:12 }}>
@@ -262,6 +303,12 @@ export default function AdminUserManagement() {
             </button>
           )}
         </div>
+
+        {toggleErr && (
+          <p style={{ color:'var(--danger)', fontSize:12, fontWeight:600, margin:'-10px 0 16px', display:'flex', alignItems:'center', gap:5 }}>
+            {toggleErr}
+          </p>
+        )}
 
         {/* Summary cards */}
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))', gap:12, marginBottom:22 }}>
