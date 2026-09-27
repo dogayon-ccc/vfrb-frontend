@@ -58,8 +58,10 @@ const GARMENT_SPECS = {
   'Polo Shirt':                { needsCollar:true,  needsSleeve:true,  needsPocket:true,  needsWaist:false, cat:'top' },
   'School Uniform Top':        { needsCollar:true,  needsSleeve:true,  needsPocket:true,  needsWaist:false, cat:'top' },
   'School Uniform Bottom':     { needsCollar:false, needsSleeve:false, needsPocket:false, needsWaist:true,  cat:'bottom' },
-  'PE Uniform Top':            { needsCollar:true,  needsSleeve:true,  needsPocket:false, needsWaist:false, cat:'top' },
-  'PE Uniform Bottom':         { needsCollar:false, needsSleeve:false, needsPocket:false, needsWaist:true,  cat:'bottom' },
+  // PE Uniform Top/Bottom removed per VFRB_ENGINEERING_CONSTITUTION.md ("NO SPORTS / PE
+  // CATEGORY") — same rule this session applied to garmentCatalog.js's CATEGORY_DEFS.
+  // garment_type is free-text server-side (OrderController.php: 'required|string|max:60',
+  // not an enum), so removing these two options here doesn't affect any backend contract.
   'Blouse':                    { needsCollar:true,  needsSleeve:true,  needsPocket:false, needsWaist:false, cat:'top' },
   'Polo Barong':                { needsCollar:true,  needsSleeve:true,  needsPocket:true,  needsWaist:false, cat:'top' },
   'Medical Scrubs Top':        { needsCollar:true,  needsSleeve:true,  needsPocket:true,  needsWaist:false, cat:'top' },

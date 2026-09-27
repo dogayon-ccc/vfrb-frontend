@@ -19,11 +19,14 @@ import { get3DCapabilities } from './garmentCapabilities';
 
 // Category -> its garments, in display order. Source: the VFRB interview's garment list
 // (unchanged from the previous CATS in dsShared.js — moved, not altered).
+// PE/Sports removed per VFRB_ENGINEERING_CONSTITUTION.md ("Target categories" list / "NO
+// SPORTS / PE CATEGORY") — it is a hard-locked business rule, not a style choice. 'Track
+// Pants' had a real 2D path (garmentPaths.js) but appeared in no other category, so it is
+// dropped from the catalog along with it rather than invented a new home to keep it visible.
 const CATEGORY_DEFS = [
   { id: 'Medical / Scrubs', icon: 'medical',   garments: ['Scrub Top', 'V-Neck Shirt', 'Lab Coat', 'Lab Coverall', 'Pants', 'Shorts'] },
   { id: 'School Uniform',   icon: 'school',    garments: ['School Polo', 'Round Neck', 'Polo Shirt', 'Pants', 'Shorts', 'Skirt'] },
   { id: 'Corporate',        icon: 'corporate', garments: ['Polo Shirt', 'T-Shirt', 'Mandarin Collar', 'Button-Down', 'V-Neck Shirt', 'Pants'] },
-  { id: 'PE / Sports',      icon: 'sports',    garments: ['Round Neck', 'T-Shirt', 'Shorts', 'Track Pants'] },
 ];
 
 // Garment -> its sleeve/style options (unchanged from the previous SLEEVE_OPTS in dsShared.js).
@@ -38,7 +41,7 @@ const SLEEVE_OPTS = {
   'Button-Down': ['Short', 'Long'],
   'T-Shirt': ['Short'],
   'Lab Coverall': ['Long'],
-  'Pants': [], 'Shorts': [], 'Track Pants': [], 'Skirt': [],
+  'Pants': [], 'Shorts': [], 'Skirt': [],
 };
 
 // Every distinct garment name across all categories, in first-seen order (a name can appear in
