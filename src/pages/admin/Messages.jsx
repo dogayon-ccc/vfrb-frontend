@@ -32,6 +32,7 @@ import { NavIcon } from '../../components/ui';
 export default function AdminMessages() {
   const [threads, setThreads] = useState([]);
   const [selId, setSelId] = useState(null);
+  const [mobileView, setMobileView] = useState('list'); // list | thread — mobile-only nav, matches customer Messages pattern
   const [msgs, setMsgs] = useState([]);
   const [newMsg, setNewMsg] = useState('');
   const [loading, setLoading] = useState(true);
@@ -164,24 +165,29 @@ export default function AdminMessages() {
         @media (max-width: 767px) {
           .adm-msg-wrap {
             flex-direction: column;
-            height: auto;
-            gap: 10px;
+            height: calc(100vh - 160px);
+            gap: 0;
           }
 
           .adm-msg-threads {
             width: 100%;
-            max-height: 220px;
+            height: 100%;
           }
 
           .adm-msg-chat {
-            min-height: 360px;
+            height: 100%;
           }
+
+          .adm-msg-threads.hide-mobile, .adm-msg-chat.hide-mobile { display: none; }
+          .adm-msg-back { display: flex; }
         }
+
+        .adm-msg-back { display: none; }
       `}</style>
 
       <div className="adm-msg-wrap">
         {/* THREADS */}
-        <div className="adm-msg-threads">
+        <div className={`adm-msg-threads ${mobileView !== 'list' ? 'hide-mobile' : ''}`}>
           <div
             style={{
               padding: '14px 16px',
@@ -230,7 +236,7 @@ export default function AdminMessages() {
                 return (
                   <button
                     key={tid}
-                    onClick={() => setSelId(tid)}
+                    onClick={() => { setSelId(tid); setMobileView('thread'); }}
                     style={{
                       width: '100%',
                       padding: '12px 16px',
@@ -273,14 +279,20 @@ export default function AdminMessages() {
         </div>
 
         {/* CHAT */}
-        <div className="adm-msg-chat">
+        <div className={`adm-msg-chat ${mobileView !== 'thread' ? 'hide-mobile' : ''}`}>
           <div
             style={{
               padding: '12px 18px',
               borderBottom: '1px solid var(--border)',
               background: 'var(--bg)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
             }}
           >
+            <button onClick={() => setMobileView('list')} className="adm-msg-back"
+              aria-label="Back to conversation list"
+              style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--text-subtle)', padding: 0 }}>←</button>
             <p style={{ fontSize: 13, fontWeight: 800, margin: 0, color: 'var(--ink)' }}>
               {selThread
                 ? `Order #${selId} — ${
