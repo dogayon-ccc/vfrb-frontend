@@ -98,6 +98,17 @@ export const cacheClearAll = () => {
 };
 
 /**
+ * Wipe every sessionStorage entry this app writes, not just the
+ * PREFIX-namespaced cache — Studio draft state (studio_config/preview/
+ * color/garment/category) and AIPanel's ai_d_* recommendation cache live
+ * outside PREFIX and were never cleared on logout. Call this, not
+ * cacheClearAll, from any logout handler.
+ */
+export const sessionWipeAll = () => {
+  try { sessionStorage.clear(); } catch {}
+};
+
+/**
  * Return the age of a cached entry in milliseconds.
  * Returns Infinity when the key is absent or expired.
  * Useful for showing "last updated X seconds ago".

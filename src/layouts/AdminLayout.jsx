@@ -7,7 +7,8 @@ import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
-import { enqueue, flushQueue, queueSize } from '../utils/offlineQueue';
+import { enqueue, flushQueue, queueSize, clearQueue } from '../utils/offlineQueue';
+import { sessionWipeAll } from '../utils/cache';
 import PageErrorBoundary from '../components/PageErrorBoundary';
 import IconBox from '../components/ui/IconBox';
 import logo from '../assets/company-logo.jpg';
@@ -272,6 +273,8 @@ export default function AdminLayout() {
     }).catch(() => {});
     localStorage.removeItem('vfrb_token');
     localStorage.removeItem('vfrb_user');
+    sessionWipeAll();
+    clearQueue();
     navigate('/login', { replace: true });
   };
 

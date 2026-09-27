@@ -8,6 +8,12 @@ const write = (q) => { try { localStorage.setItem(KEY, JSON.stringify(q)); } cat
 
 export const queueSize = () => read().length;
 
+// Drop any pending entries without flushing them. Call on logout — a queued
+// entry replays with whichever axios instance/token is live at flush time,
+// so an unflushed entry left behind at logout would fire under the next
+// staff/manager who logs in on this device, not the one who queued it.
+export const clearQueue = () => { try { localStorage.removeItem(KEY); } catch {} };
+
 // entry: { method, url, data? } — must be plain/serialisable, not a closure.
 export const enqueue = (entry) => write([...read(), { ...entry, id: crypto.randomUUID(), ts: Date.now() }]);
 
