@@ -18,9 +18,9 @@
 // applied to any element in this file (same dead-code pattern found and
 // fixed in Suppliers.jsx). Zero business-logic changes below.
 import { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
 import axios from 'axios';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
+import BottomSheet from '../../components/ui/BottomSheet';
 
 const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif`;
 
@@ -40,7 +40,7 @@ const ROLE_CFG = {
 
 const INIT = { name:'', email:'', password:'', password_confirmation:'', role:'staff', job_function:'general', contact_number:'' };
 
-function CreateUserModal({ onClose, onDone }) {
+function CreateUserModal({ onClose, onDone, isMobile }) {
   const [form, setForm] = useState({ ...INIT });
   const [busy, setBusy] = useState(false);
   const [err,  setErr]  = useState('');
@@ -62,17 +62,8 @@ function CreateUserModal({ onClose, onDone }) {
   };
 
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(15,23,42,.45)', backdropFilter:'blur(4px)', zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
-      <motion.div initial={{ opacity:0, scale:.95 }} animate={{ opacity:1, scale:1 }}
-        style={{ background:'#fff', borderRadius:18, width:'min(500px,100%)', maxHeight:'92vh', display:'flex', flexDirection:'column', boxShadow:'0 20px 60px rgba(0,0,0,.15)', overflow:'hidden' }}>
-        <div style={{ padding:'18px 22px', borderBottom:'1px solid var(--border)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-          <div>
-            <h3 style={{ fontSize:16, fontWeight:800, color:'var(--ink)', margin:0 }}>Create User Account</h3>
-            <p style={{ fontSize:11, color:'var(--text-subtle)', margin:'3px 0 0' }}>User Administration</p>
-          </div>
-          <button onClick={onClose} style={{ width:30, height:30, borderRadius:8, border:'none', background:'var(--bg-surface)', cursor:'pointer', fontSize:16, color:'var(--text-subtle)' }}>✕</button>
-        </div>
-        <div style={{ flex:1, overflowY:'auto', padding:'20px 22px', display:'flex', flexDirection:'column', gap:14 }}>
+    <BottomSheet title="Create User Account" onClose={onClose} isMobile={isMobile} maxWidth={500}>
+        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
           <div className="um-modal-grid2">
             <div>
               <label style={lbl}>Full Name *</label>
@@ -123,20 +114,19 @@ function CreateUserModal({ onClose, onDone }) {
             </div>
           </div>
           {err && <p style={{ color:'var(--danger)', fontSize:12, fontWeight:600 }}>⚠️ {err}</p>}
+          <div style={{ display:'flex', gap:10, justifyContent:'flex-end', paddingTop:12, marginTop:2, borderTop:'1px solid var(--border)' }}>
+            <button onClick={onClose} style={{ padding:'9px 18px', borderRadius:9, border:'1px solid var(--border)', background:'#fff', color:'var(--ink)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:FONT }}>Cancel</button>
+            <button onClick={submit} disabled={busy}
+              style={{ padding:'9px 22px', borderRadius:9, border:'none', background:`linear-gradient(135deg,${T},${T2})`, color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:FONT, opacity:busy?.7:1 }}>
+              {busy ? '⏳ Creating…' : '✓ Create User'}
+            </button>
+          </div>
         </div>
-        <div style={{ padding:'14px 22px', borderTop:'1px solid var(--border)', display:'flex', gap:10, justifyContent:'flex-end', background:'var(--bg)' }}>
-          <button onClick={onClose} style={{ padding:'9px 18px', borderRadius:9, border:'1px solid var(--border)', background:'#fff', color:'var(--ink)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:FONT }}>Cancel</button>
-          <button onClick={submit} disabled={busy}
-            style={{ padding:'9px 22px', borderRadius:9, border:'none', background:`linear-gradient(135deg,${T},${T2})`, color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:FONT, opacity:busy?.7:1 }}>
-            {busy ? '⏳ Creating…' : '✓ Create User'}
-          </button>
-        </div>
-      </motion.div>
-    </div>
+    </BottomSheet>
   );
 }
 
-function EditUserModal({ user, onClose, onDone }) {
+function EditUserModal({ user, onClose, onDone, isMobile }) {
   const [role, setRole] = useState(user.role);
   const [jobFn, setJobFn] = useState(user.job_function ?? 'general');
   const [busy, setBusy] = useState(false);
@@ -152,14 +142,8 @@ function EditUserModal({ user, onClose, onDone }) {
   };
 
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(15,23,42,.45)', backdropFilter:'blur(4px)', zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
-      <motion.div initial={{ opacity:0, scale:.95 }} animate={{ opacity:1, scale:1 }}
-        style={{ background:'#fff', borderRadius:18, width:'min(440px,100%)', boxShadow:'0 20px 60px rgba(0,0,0,.15)', overflow:'hidden' }}>
-        <div style={{ padding:'18px 22px', borderBottom:'1px solid var(--border)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-          <h3 style={{ fontSize:16, fontWeight:800, color:'var(--ink)', margin:0 }}>Edit {user.name}</h3>
-          <button onClick={onClose} style={{ width:30, height:30, borderRadius:8, border:'none', background:'var(--bg-surface)', cursor:'pointer', fontSize:16, color:'var(--text-subtle)' }}>✕</button>
-        </div>
-        <div style={{ padding:'20px 22px', display:'flex', flexDirection:'column', gap:14 }}>
+    <BottomSheet title={`Edit ${user.name}`} onClose={onClose} isMobile={isMobile} maxWidth={440}>
+        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
           <div>
             <label style={lbl}>Role</label>
             <select value={role} onChange={e=>setRole(e.target.value)} style={{ ...inp, cursor:'pointer' }}>
@@ -179,37 +163,32 @@ function EditUserModal({ user, onClose, onDone }) {
             </div>
           )}
           {err && <p style={{ color:'var(--danger)', fontSize:12, fontWeight:600 }}>⚠️ {err}</p>}
+          <div style={{ display:'flex', gap:10, justifyContent:'flex-end', paddingTop:12, marginTop:2, borderTop:'1px solid var(--border)' }}>
+            <button onClick={onClose} style={{ padding:'9px 18px', borderRadius:9, border:'1px solid var(--border)', background:'#fff', color:'var(--ink)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:FONT }}>Cancel</button>
+            <button onClick={submit} disabled={busy}
+              style={{ padding:'9px 22px', borderRadius:9, border:'none', background:`linear-gradient(135deg,${T},${T2})`, color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:FONT, opacity:busy?.7:1 }}>
+              {busy ? 'Saving…' : 'Save Changes'}
+            </button>
+          </div>
         </div>
-        <div style={{ padding:'14px 22px', borderTop:'1px solid var(--border)', display:'flex', gap:10, justifyContent:'flex-end', background:'var(--bg)' }}>
-          <button onClick={onClose} style={{ padding:'9px 18px', borderRadius:9, border:'1px solid var(--border)', background:'#fff', color:'var(--ink)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:FONT }}>Cancel</button>
-          <button onClick={submit} disabled={busy}
-            style={{ padding:'9px 22px', borderRadius:9, border:'none', background:`linear-gradient(135deg,${T},${T2})`, color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:FONT, opacity:busy?.7:1 }}>
-            {busy ? 'Saving…' : 'Save Changes'}
-          </button>
-        </div>
-      </motion.div>
-    </div>
+    </BottomSheet>
   );
 }
 
-function ConfirmModal({ title, body, confirmLabel, danger, busy, onConfirm, onClose }) {
+function ConfirmModal({ title, body, confirmLabel, danger, busy, onConfirm, onClose, isMobile }) {
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(15,23,42,.45)', backdropFilter:'blur(4px)', zIndex:210, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
-      <motion.div initial={{ opacity:0, scale:.95 }} animate={{ opacity:1, scale:1 }}
-        style={{ background:'#fff', borderRadius:18, width:'min(380px,100%)', boxShadow:'0 20px 60px rgba(0,0,0,.15)', overflow:'hidden' }}>
-        <div style={{ padding:'20px 22px 4px' }}>
-          <h3 style={{ fontSize:16, fontWeight:800, color:'var(--ink)', margin:'0 0 8px' }}>{title}</h3>
+    <BottomSheet title={title} onClose={onClose} isMobile={isMobile} maxWidth={380}>
+        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
           <p style={{ fontSize:13, color:'var(--text-subtle)', margin:0, lineHeight:1.5 }}>{body}</p>
+          <div style={{ display:'flex', gap:10, justifyContent:'flex-end' }}>
+            <button onClick={onClose} style={{ padding:'9px 18px', borderRadius:9, border:'1px solid var(--border)', background:'#fff', color:'var(--ink)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:FONT }}>Cancel</button>
+            <button onClick={onConfirm} disabled={busy}
+              style={{ padding:'9px 22px', borderRadius:9, border:'none', background: danger ? 'var(--danger)' : `linear-gradient(135deg,${T},${T2})`, color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:FONT, opacity:busy?.7:1 }}>
+              {busy ? 'Please wait…' : confirmLabel}
+            </button>
+          </div>
         </div>
-        <div style={{ padding:'18px 22px 22px', display:'flex', gap:10, justifyContent:'flex-end' }}>
-          <button onClick={onClose} style={{ padding:'9px 18px', borderRadius:9, border:'1px solid var(--border)', background:'#fff', color:'var(--ink)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:FONT }}>Cancel</button>
-          <button onClick={onConfirm} disabled={busy}
-            style={{ padding:'9px 22px', borderRadius:9, border:'none', background: danger ? 'var(--danger)' : `linear-gradient(135deg,${T},${T2})`, color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:FONT, opacity:busy?.7:1 }}>
-            {busy ? 'Please wait…' : confirmLabel}
-          </button>
-        </div>
-      </motion.div>
-    </div>
+    </BottomSheet>
   );
 }
 
@@ -276,8 +255,8 @@ export default function AdminUserManagement() {
         .um-modal-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
         @media(max-width:480px){.um-modal-grid2{grid-template-columns:1fr;}}
       `}</style>
-      {modal && <CreateUserModal onClose={() => setModal(false)} onDone={() => { setModal(false); load(); }}/>}
-      {editing && <EditUserModal user={editing} onClose={() => setEditing(null)} onDone={() => { setEditing(null); load(true); }}/>}
+      {modal && <CreateUserModal onClose={() => setModal(false)} onDone={() => { setModal(false); load(); }} isMobile={isMobile}/>}
+      {editing && <EditUserModal user={editing} onClose={() => setEditing(null)} onDone={() => { setEditing(null); load(true); }} isMobile={isMobile}/>}
       {confirmDeactivate && (
         <ConfirmModal
           title="Deactivate user?"
@@ -287,6 +266,7 @@ export default function AdminUserManagement() {
           busy={toggling === confirmDeactivate.user_id}
           onClose={() => setConfirmDeactivate(null)}
           onConfirm={async () => { const u = confirmDeactivate; setConfirmDeactivate(null); await runToggle(u); }}
+          isMobile={isMobile}
         />
       )}
 

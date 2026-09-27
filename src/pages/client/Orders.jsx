@@ -395,8 +395,8 @@ export default function CustomerOrders() {
         placeholder="Search by order ID, color, garment type…"
         style={{
           width: '100%', padding: '10px 16px', borderRadius: 11,
-          border: '1px solid #e2e8f0', background: '#fff',
-          color: '#0f172a', fontSize: 13, outline: 'none',
+          border: '1px solid var(--border)', background: 'var(--bg-card)',
+          color: 'var(--ink)', fontSize: 13, outline: 'none',
           fontFamily: FONT, marginBottom: 14, boxSizing: 'border-box',
         }}
         onFocus={e => { e.target.style.borderColor = T; e.target.style.boxShadow = `0 0 0 3px rgba(2,128,144,.1)`; }}
@@ -430,7 +430,7 @@ export default function CustomerOrders() {
       {loading ? (
         <div className="ord-grid">
           {[1,2,3,4].map(i => (
-            <div key={i} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14, overflow: 'hidden' }}>
+            <div key={i} style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
               <div style={{ ...SK, height: 7, borderRadius: 0 }}/>
               <div style={{ padding: '14px 16px' }}>
                 <div style={{ ...SK, height: 10, width: '35%', marginBottom: 8 }}/>

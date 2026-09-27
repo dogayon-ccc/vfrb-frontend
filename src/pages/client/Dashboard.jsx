@@ -287,6 +287,7 @@ export default function CustomerDashboard() {
         .dash-hero h1   { font-size:18px; }
         .dash-stat-grid { grid-template-columns:1fr 1fr; gap:10px; }
         .dash-cta-row   { grid-template-columns:1fr; }
+        .dash-body-grid { display:grid; grid-template-columns:1fr; gap:20px; }
 
         @media (min-width:768px) {
           .dash-hero      { padding:24px 26px; }
@@ -295,6 +296,8 @@ export default function CustomerDashboard() {
         }
         @media (min-width:1024px) {
           .dash-stat-grid { grid-template-columns:repeat(4,1fr); }
+          .dash-body-grid { grid-template-columns:1fr 340px; align-items:start; }
+          .dash-aside     { position:sticky; top:16px; }
         }
       `}</style>
 
@@ -339,7 +342,8 @@ export default function CustomerDashboard() {
         <StatCard icon="notifications" value={unreadCount}    label="Notifications" accent="#f59e0b" loading={false}   delay={0.20}/>
       </div>
 
-      <div style={{ display:'grid', gridTemplateColumns:'1fr', gap:20 }}>
+      <div className="dash-body-grid">
+       <div style={{ display:'grid', gap:20, minWidth:0 }}>
 
         {/* Active Orders */}
         <section>
@@ -374,8 +378,37 @@ export default function CustomerDashboard() {
           )}
         </section>
 
-        {/* Design Studio CTA + Notifications */}
-        <div className="dash-cta-row" style={{ display:'grid', gap:16 }}>
+        {/* Recently completed */}
+        {recentOrders.length > 0 && (
+          <section>
+            <h2 style={{ fontSize:15, fontWeight:800, color:'#0f172a', margin:'0 0 14px' }}>Recently Completed</h2>
+            <div style={{ ...CARD, overflow:'hidden' }}>
+              {recentOrders.map((order, i) => {
+                const sc  = S[order.status] ?? S.completed;
+                const cfg = order.studio_config ?? {};
+                const clr = cfg.colors?.body ?? order.color ?? '#028090';
+                return (
+                  <motion.div key={order.order_id} initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay: i * 0.06 }}
+                    onClick={() => nav(`/orders/${order.order_id}`)}
+                    style={{ display:'flex', alignItems:'center', gap:14, padding:'14px', borderBottom: i < recentOrders.length - 1 ? '1px solid #f8fafc' : 'none', cursor:'pointer' }}>
+                    <div style={{ width:32, height:32, borderRadius:8, background:clr, flexShrink:0, border:'1.5px solid rgba(0,0,0,.06)' }}/>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <p style={{ fontSize:13, fontWeight:700, color:'#0f172a', margin:'0 0 1px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                        {order.garment_type ?? 'Order'} #{order.order_id}
+                      </p>
+                      <p style={{ fontSize:11, color:'#94a3b8', margin:0 }}>{order.quantity_ordered} pcs · {reltime(order.updated_at)}</p>
+                    </div>
+                    <span style={pill(sc.bg, sc.color)}><NavIcon name={sc.icon} size={10} strokeWidth={2.5}/> {sc.label}</span>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+       </div>
+
+        {/* Design Studio CTA + Notifications — sidebar on desktop, stacked below on mobile/tablet */}
+        <aside className="dash-aside dash-cta-row" style={{ display:'grid', gap:16 }}>
           <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} transition={{ delay:.25 }} whileHover={{ scale:1.01 }}
             onClick={() => nav('/design-studio')}
             style={{ background:`linear-gradient(135deg,${T} 0%,${T2} 100%)`, borderRadius:16, padding:'22px 20px', cursor:'pointer', animation:'glowPulse 2.8s ease-in-out infinite', position:'relative', overflow:'hidden' }}>
@@ -423,35 +456,7 @@ export default function CustomerDashboard() {
               </div>
             )}
           </motion.div>
-        </div>
-
-        {/* Recently completed */}
-        {recentOrders.length > 0 && (
-          <section>
-            <h2 style={{ fontSize:15, fontWeight:800, color:'#0f172a', margin:'0 0 14px' }}>Recently Completed</h2>
-            <div style={{ ...CARD, overflow:'hidden' }}>
-              {recentOrders.map((order, i) => {
-                const sc  = S[order.status] ?? S.completed;
-                const cfg = order.studio_config ?? {};
-                const clr = cfg.colors?.body ?? order.color ?? '#028090';
-                return (
-                  <motion.div key={order.order_id} initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay: i * 0.06 }}
-                    onClick={() => nav(`/orders/${order.order_id}`)}
-                    style={{ display:'flex', alignItems:'center', gap:14, padding:'14px', borderBottom: i < recentOrders.length - 1 ? '1px solid #f8fafc' : 'none', cursor:'pointer' }}>
-                    <div style={{ width:32, height:32, borderRadius:8, background:clr, flexShrink:0, border:'1.5px solid rgba(0,0,0,.06)' }}/>
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <p style={{ fontSize:13, fontWeight:700, color:'#0f172a', margin:'0 0 1px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                        {order.garment_type ?? 'Order'} #{order.order_id}
-                      </p>
-                      <p style={{ fontSize:11, color:'#94a3b8', margin:0 }}>{order.quantity_ordered} pcs · {reltime(order.updated_at)}</p>
-                    </div>
-                    <span style={pill(sc.bg, sc.color)}><NavIcon name={sc.icon} size={10} strokeWidth={2.5}/> {sc.label}</span>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </section>
-        )}
+        </aside>
       </div>
     </div>
   );

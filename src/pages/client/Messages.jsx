@@ -254,7 +254,7 @@ export default function CustomerMessages() {
               </motion.p>
             )}
           </AnimatePresence>
-          <div style={{ padding: '12px 16px', borderTop: '1px solid #e2e8f0', display: 'flex', gap: 10, flexShrink: 0, background: '#fff' }}>
+          <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, flexShrink: 0, background: 'var(--bg-card)' }}>
             <label htmlFor="msg-input" className="sr-only">Message</label>
             <input id="msg-input" value={newMsg} onChange={e => setNewMsg(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), send())}

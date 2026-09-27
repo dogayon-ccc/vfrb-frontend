@@ -42,6 +42,16 @@
   --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
                'Helvetica Neue', Arial, sans-serif;
 
+  /* Elevation — FIGMA-VERIFIED (customer-ui-spec.md §1.2 frequency-ranked
+     scale). Additive only: no existing box-shadow is renamed or removed,
+     so nothing currently improvising its own inline shadow breaks.
+     Per ADR-1 Option A — shadows only, --color-card unchanged. */
+  --shadow-xs: 0 1px 4px rgba(0,0,0,0.04);        /* resting card */
+  --shadow-sm: 0 1px 6px rgba(0,0,0,0.06);        /* default elevated card */
+  --shadow-md: 0 2px 12px rgba(0,0,0,0.08);       /* hover/pressed, modals */
+  --shadow-lg: 0 4px 20px rgba(2,128,144,0.30);   /* primary CTA buttons */
+  --shadow-xl: 0 4px 24px rgba(2,195,154,0.35);   /* floating: FAB, dropdowns */
+
   /* Border radius */
   --radius-xs:   4px;
   --radius-sm:   6px;
