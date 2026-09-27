@@ -403,8 +403,8 @@ export default function CustomerOrderDetail() {
         .od-pipeline-h { display:none; }
         .od-pipeline-v { display:flex; flex-direction:column; }
 
-        .od-card { background:#fff; border:1px solid #e2e8f0; border-radius:12px;
-          box-shadow:0 1px 4px rgba(0,0,0,.05); margin-bottom:14px; overflow:hidden; }
+        .od-card { background:var(--bg-card); border:1px solid var(--border); border-radius:12px;
+          box-shadow:var(--shadow-xs); margin-bottom:14px; overflow:hidden; }
         .od-card-body { padding:14px 16px; }
 
         .od-section-title { font-size:11px; font-weight:800; text-transform:uppercase;

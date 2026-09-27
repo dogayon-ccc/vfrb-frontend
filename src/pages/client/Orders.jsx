@@ -187,13 +187,13 @@ function OrderCard({ order, onClick }) {
       tabIndex={0}
       aria-label={`View order ${title}, status ${cfg.label}`}
       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
-      whileHover={{ y: -3, boxShadow: '0 8px 24px rgba(0,0,0,.12), 0 2px 6px rgba(0,0,0,.06)' }}
+      whileHover={{ y: -3, boxShadow: 'var(--shadow-md)' }}
       whileTap={{ scale: .99 }}
       onClick={onClick}
       className="ord-card"
       style={{
-        background: '#fff', border: '1px solid #e2e8f0', borderRadius: 14,
-        cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,.05)',
+        background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14,
+        cursor: 'pointer', boxShadow: 'var(--shadow-xs)',
         overflow: 'hidden', transition: 'box-shadow .17s',
         display: 'flex', flexDirection: 'column',
       }}

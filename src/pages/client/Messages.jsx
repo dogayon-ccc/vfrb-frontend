@@ -1,4 +1,5 @@
 // Per-order threads (real order_messages data) styled as a conversation list, like Figma's Chat screen — no fabricated departments.
+// src/pages/client/Messages.jsx
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -169,7 +170,7 @@ export default function CustomerMessages() {
     <>
       <style>{`
         .cust-msg-wrap { display: flex; flex-direction: column; gap: 16px; min-height: 420px; font-family: ${FONT}; color: #0f172a; }
-        .cust-msg-list, .cust-msg-chat { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 6px rgba(0,0,0,.05); }
+        .cust-msg-list, .cust-msg-chat { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-xs); }
         .cust-msg-list { width: 100%; overflow-y: auto; padding: 8px; }
         .cust-msg-chat { display: flex; flex-direction: column; min-height: 420px; }
         .cust-msg-list.hide-mobile, .cust-msg-chat.hide-mobile { display: none; }
