@@ -9,7 +9,7 @@ import TypePanel from './TypePanel';
 import ColorsPanel from './ColorsPanel';
 import TextPanel from './TextPanel';
 import AIPanel from './AIPanel';
-import { SummaryContent } from './RightInfoPanel';
+import { SummaryContent, SelectionInspector, isEditableSelection } from './RightInfoPanel';
 import { TOOLS } from './dsShared';
 
 const noop = () => {};
@@ -18,6 +18,7 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, sum
   const [more, setMore] = useState(false);
   const active = TOOLS.find(t => t.id === tool);
   const title = more ? 'More tools' : active.label;
+  const hasSelection = isEditableSelection(p.selObj);
 
   const PANELS = {
     type:    () => <TypePanel cfg={p.cfg} setCfg={p.setCfg}/>,
@@ -31,7 +32,18 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, sum
     pattern: () => <PatternPanel cfg={p.cfg} setCfg={p.setCfg} activeZone={p.activeZone}/>,
     layers:  () => <LayersPanel layers={p.layers} selectedId={p.selObj?.__layerId} onSelect={p.selectLayer}
                      onToggleVisibility={p.toggleLayerVisibility} onRename={p.renameLayer} onDelete={p.deleteLayer} onReorder={p.reorderLayers}/>,
-    summary: () => <div className="ds-sum"><SummaryContent {...summary}/></div>,
+    summary:  () => <div className="ds-sum"><SummaryContent {...summary}/></div>,
+    // Tablet/mobile-only reach for the same SelectionInspector desktop always shows in
+    // RightInfoPanel — see the 'selected' entry in dsShared.js TOOLS for why this exists.
+    selected: () => (
+      <div className="ds-sum">
+        {hasSelection
+          ? <SelectionInspector selObj={p.selObj} updateSelected={p.updateSelected} deleteSelected={p.deleteSelected}/>
+          : <p className="ds-sum-sub" style={{ padding:'24px 4px', textAlign:'center' }}>
+              Tap a placed logo, text or shape on the canvas to edit it.
+            </p>}
+      </div>
+    ),
   };
 
   const close = () => { setSheetOpen(false); setMore(false); };
@@ -53,7 +65,8 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, sum
       <div className="ds-strip" role="toolbar" aria-label="Design tools">
         {TOOLS.map(t => (
           <button key={t.id} type="button" className="ds-tool-btn" title={t.label}
-            data-group={t.primary ? 'primary' : 'more'} data-narrow-only={t.id === 'summary' || undefined}
+            data-group={t.primary ? 'primary' : 'more'}
+            data-narrow-only={(t.id === 'summary' || t.id === 'selected') || undefined}
             aria-pressed={tool === t.id && sheetOpen && !more} onClick={() => pick(t.id)}>
             <NavIcon name={t.icon} size={18}/>
             <span>{t.label}</span>
