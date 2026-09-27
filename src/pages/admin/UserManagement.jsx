@@ -21,6 +21,7 @@ import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
 import BottomSheet from '../../components/ui/BottomSheet';
+import { NavIcon } from '../../components/ui/icons';
 
 const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif`;
 
@@ -113,12 +114,13 @@ function CreateUserModal({ onClose, onDone, isMobile }) {
               <input type="password" value={form.password_confirmation} onChange={e=>set('password_confirmation',e.target.value)} placeholder="Repeat password" style={inp} onFocus={fi} onBlur={fo}/>
             </div>
           </div>
-          {err && <p style={{ color:'var(--danger)', fontSize:12, fontWeight:600 }}>⚠️ {err}</p>}
+          {err && <p style={{ color:'var(--danger)', fontSize:12, fontWeight:600, display:'flex', alignItems:'center', gap:6 }}><NavIcon name="warning" size={13} color="var(--danger)"/>{err}</p>}
           <div style={{ display:'flex', gap:10, justifyContent:'flex-end', paddingTop:12, marginTop:2, borderTop:'1px solid var(--border)' }}>
             <button onClick={onClose} style={{ padding:'9px 18px', borderRadius:9, border:'1px solid var(--border)', background:'#fff', color:'var(--ink)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:FONT }}>Cancel</button>
             <button onClick={submit} disabled={busy}
-              style={{ padding:'9px 22px', borderRadius:9, border:'none', background:`linear-gradient(135deg,${T},${T2})`, color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:FONT, opacity:busy?.7:1 }}>
-              {busy ? '⏳ Creating…' : '✓ Create User'}
+              style={{ padding:'9px 22px', borderRadius:9, border:'none', background:`linear-gradient(135deg,${T},${T2})`, color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:FONT, opacity:busy?.7:1, display:'inline-flex', alignItems:'center', gap:7 }}>
+              {busy && <NavIcon name="loading" size={13} color="#fff" style={{ animation:'um-spin .8s linear infinite' }}/>}
+              {busy ? 'Creating…' : <><NavIcon name="add" size={13} color="#fff"/> Create User</>}
             </button>
           </div>
         </div>
@@ -162,7 +164,7 @@ function EditUserModal({ user, onClose, onDone, isMobile }) {
               </select>
             </div>
           )}
-          {err && <p style={{ color:'var(--danger)', fontSize:12, fontWeight:600 }}>⚠️ {err}</p>}
+          {err && <p style={{ color:'var(--danger)', fontSize:12, fontWeight:600, display:'flex', alignItems:'center', gap:6 }}><NavIcon name="warning" size={13} color="var(--danger)"/>{err}</p>}
           <div style={{ display:'flex', gap:10, justifyContent:'flex-end', paddingTop:12, marginTop:2, borderTop:'1px solid var(--border)' }}>
             <button onClick={onClose} style={{ padding:'9px 18px', borderRadius:9, border:'1px solid var(--border)', background:'#fff', color:'var(--ink)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:FONT }}>Cancel</button>
             <button onClick={submit} disabled={busy}
@@ -234,11 +236,15 @@ export default function AdminUserManagement() {
 
   const runToggle = async (user) => {
     setToggling(user.user_id); setToggleErr('');
+    // Optimistic flip — reversible, so update the list immediately and roll back on failure.
+    setUsers(prev => prev.map(u => u.user_id === user.user_id ? { ...u, is_active: !(user.is_active !== false) } : u));
     try {
       await axios.patch(`/api/admin/users/${user.user_id}/toggle`);
-      load();
-    } catch(e) { setToggleErr(e.response?.data?.message ?? 'Could not update user status.'); }
-    finally { setToggling(null); }
+      cacheClear('admin_users');
+    } catch(e) {
+      setUsers(prev => prev.map(u => u.user_id === user.user_id ? { ...u, is_active: user.is_active } : u));
+      setToggleErr(e.response?.data?.message ?? 'Could not update user status.');
+    } finally { setToggling(null); }
   };
 
   const filtered = users.filter(u => {
@@ -252,6 +258,7 @@ export default function AdminUserManagement() {
   return (
     <>
       <style>{`@keyframes sk{0%{background-position:-400px 0}100%{background-position:400px 0}}
+        @keyframes um-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
         .um-modal-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
         @media(max-width:480px){.um-modal-grid2{grid-template-columns:1fr;}}
       `}</style>
@@ -326,7 +333,7 @@ export default function AdminUserManagement() {
           )
         ) : filtered.length === 0 ? (
           <div style={{ ...card, padding:'40px', textAlign:'center' }}>
-            <p style={{ fontSize:36, margin:'0 0 10px', opacity:.3 }}>👥</p>
+            <NavIcon name="users" size={32} color="var(--text-faint)" style={{ marginBottom:10 }}/>
             <p style={{ color:'var(--text-subtle)', fontSize:13, fontWeight:600 }}>No users found</p>
           </div>
         ) : isMobile ? (
@@ -370,7 +377,7 @@ export default function AdminUserManagement() {
                         </button>
                         <button onClick={() => toggleStatus(u)} disabled={toggling === u.user_id}
                           style={{ padding:'6px 12px', borderRadius:8, border:`1px solid ${isActive ? 'var(--danger-border)' : 'var(--success-border)'}`, background: isActive ? '#fff' : 'var(--success-bg)', color: isActive ? 'var(--danger)' : 'var(--success)', fontSize:11, fontWeight:600, cursor:'pointer', fontFamily:FONT, opacity: toggling===u.user_id ? .6 : 1 }}>
-                          {toggling === u.user_id ? '⏳' : isActive ? 'Deactivate' : 'Activate'}
+                          {toggling === u.user_id ? <NavIcon name="loading" size={12} style={{ animation:'um-spin .8s linear infinite' }}/> : isActive ? 'Deactivate' : 'Activate'}
                         </button>
                       </div>
                     )}
@@ -433,7 +440,7 @@ export default function AdminUserManagement() {
                           </button>
                           <button onClick={() => toggleStatus(u)} disabled={toggling === u.user_id}
                             style={{ padding:'6px 12px', borderRadius:8, border:`1px solid ${isActive ? 'var(--danger-border)' : 'var(--success-border)'}`, background: isActive ? '#fff' : 'var(--success-bg)', color: isActive ? 'var(--danger)' : 'var(--success)', fontSize:11, fontWeight:600, cursor:'pointer', fontFamily:FONT, opacity: toggling===u.user_id ? .6 : 1 }}>
-                            {toggling === u.user_id ? '⏳' : isActive ? 'Deactivate' : 'Activate'}
+                            {toggling === u.user_id ? <NavIcon name="loading" size={12} style={{ animation:'um-spin .8s linear infinite' }}/> : isActive ? 'Deactivate' : 'Activate'}
                           </button>
                         </div>
                       )}

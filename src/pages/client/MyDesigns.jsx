@@ -45,9 +45,12 @@ function CurrentDesignCard({ draft, onContinue, onOrder }) {
           : <MiniPreview garment={cfg.garment} colors={cfg.colors ?? {}}/>}
       </div>
       <div style={{ flex:1, minWidth:0 }}>
-        <p style={{ fontSize:10, fontWeight:800, color:T, textTransform:'uppercase', letterSpacing:'.06em', margin:'0 0 3px', fontFamily:FONT }}>
-          Continue where you left off
-        </p>
+        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:3 }}>
+          <p style={{ fontSize:10, fontWeight:800, color:T, textTransform:'uppercase', letterSpacing:'.06em', margin:0, fontFamily:FONT }}>
+            Continue where you left off
+          </p>
+          <span style={{ fontSize:9.5, fontWeight:700, padding:'2px 8px', borderRadius:20, background:'#fef3c7', color:'#b45309', fontFamily:FONT }}>Draft</span>
+        </div>
         <h3 style={{ fontSize:15, fontWeight:800, color:'#0f172a', margin:'0 0 3px', fontFamily:FONT }}>
           {draft.label || cfg.garment || 'Untitled design'}
         </h3>
@@ -90,7 +93,7 @@ function PastDesignCard({ design, onOrderAgain, i }) {
         </p>
       </div>
       <div style={{ display:'flex', gap:6 }}>
-        <span style={{ fontSize:10, fontWeight:700, padding:'3px 8px', borderRadius:20, background:'#f0fdfa', color:'#0f766e' }}>Ordered before</span>
+        <span style={{ fontSize:10, fontWeight:700, padding:'3px 8px', borderRadius:20, background:'#f0fdfa', color:'#0f766e' }}>Ordered</span>
       </div>
       <button onClick={() => onOrderAgain(design)} disabled={!cfg.garment}
         style={{ padding:'8px 12px', borderRadius:9, border:`1.5px solid ${TEAL_HEX}30`, cursor: cfg.garment ? 'pointer' : 'not-allowed',
@@ -106,6 +109,7 @@ export default function MyDesigns() {
   const [draft, setDraft]   = useState(null);
   const [past,  setPast]    = useState([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState('all');
 
   useEffect(() => {
     let alive = true;
@@ -126,7 +130,20 @@ export default function MyDesigns() {
   const orderDraft      = () => { sessionStorage.setItem('studio_config', JSON.stringify(draft.studio_config)); nav('/order/create'); };
   const orderAgain      = (design) => { sessionStorage.setItem('studio_config', JSON.stringify(design.config)); nav('/design-studio'); };
 
-  const nothingYet = !loading && !draft && past.length === 0;
+  const nothingYet  = !loading && !draft && past.length === 0;
+  const draftCount  = draft ? 1 : 0;
+  const orderedCount = past.length;
+  const totalCount  = draftCount + orderedCount;
+
+  const TABS = [
+    { id:'all',     label:'All',     count:totalCount },
+    { id:'draft',   label:'Draft',   count:draftCount },
+    { id:'ordered', label:'Ordered', count:orderedCount },
+  ];
+  const showDraft = draft && (tab === 'all' || tab === 'draft');
+  const showPast  = tab === 'all' || tab === 'ordered';
+  const tabHasNothing = !loading && !nothingYet &&
+    ((tab === 'draft' && !draft) || (tab === 'ordered' && past.length === 0));
 
   return (
     <div style={{ maxWidth:1040, margin:'0 auto', padding:'4px 2px 40px', fontFamily:FONT }}>
@@ -142,12 +159,28 @@ export default function MyDesigns() {
         </button>
       </div>
 
+      {!loading && !nothingYet && (
+        <div role="tablist" aria-label="Filter designs" style={{ display:'flex', gap:6, marginBottom:18 }}>
+          {TABS.map(t => {
+            const act = tab === t.id;
+            return (
+              <button key={t.id} role="tab" aria-selected={act} onClick={() => setTab(t.id)}
+                style={{ padding:'7px 14px', borderRadius:9, border:`1px solid ${act ? `${TEAL_HEX}40` : '#e2e8f0'}`,
+                  background: act ? '#f0fdfa' : '#fff', color: act ? T : '#64748b',
+                  fontSize:12, fontWeight: act ? 700 : 500, cursor:'pointer', fontFamily:FONT, transition:'all .14s' }}>
+                {t.label} <span style={{ marginLeft:4, fontSize:10, opacity:.7 }}>({t.count})</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {loading && (
         <div style={{ ...CARD, padding:16, height:96, background:'linear-gradient(90deg,#f8fafc 25%,#f1f5f9 50%,#f8fafc 75%)',
           backgroundSize:'400px', animation:'sk 1.4s infinite' }}/>
       )}
 
-      {!loading && draft && (
+      {showDraft && (
         <div style={{ marginBottom:24 }}>
           <CurrentDesignCard draft={draft} onContinue={continueDraft} onOrder={orderDraft}/>
         </div>
@@ -159,7 +192,14 @@ export default function MyDesigns() {
           cta={{ label:'Open Design Studio', onClick: openStudioBlank }}/>
       )}
 
-      {!loading && past.length > 0 && (
+      {tabHasNothing && (
+        <EmptyState illustration="order"
+          headline={tab === 'draft' ? 'No draft in progress' : 'No ordered designs yet'}
+          sub={tab === 'draft' ? 'Start a new design in the Design Studio.' : 'Designs you order will show up here.'}
+          cta={{ label:'Open Design Studio', onClick: openStudioBlank }}/>
+      )}
+
+      {showPast && !loading && past.length > 0 && (
         <>
           <h2 style={{ fontSize:13, fontWeight:800, color:'#334155', textTransform:'uppercase', letterSpacing:'.04em', margin:'0 0 12px' }}>
             Past designs
