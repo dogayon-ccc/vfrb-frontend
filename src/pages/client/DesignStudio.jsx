@@ -54,6 +54,20 @@ export default function DesignStudio() {
 
   const [selObj,     setSelObj]     = useState(null);
   const [activeZone, setActiveZone] = useState('body');
+
+  // Mirrors DesignStudioStyles.jsx's own tablet/mobile breakpoint (<1024px), where
+  // .ds-info (RightInfoPanel) is CSS-hidden and the ToolDrawer's 'selected' tab becomes
+  // the only place SelectionInspector can be reached. A plain matchMedia listener, not a
+  // new dependency — same native-browser-API style as CanvasViewport.jsx's ResizeObserver.
+  const [isNarrow, setIsNarrow] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1023px)');
+    const onChange = (e) => setIsNarrow(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
   const [aiPulse,    setAiPulse]    = useState(false);     // teal pulse overlay on AI gen
   const [saved,      setSaved]      = useState(false);
   const [showInspo,  setShowInspo]  = useState(false); // inspiration gallery overlay
@@ -104,8 +118,25 @@ export default function DesignStudio() {
       cfg.patterns,
       cfg.patternParams,
       setSelObj,
-      (zone) => { setActiveZone(zone); setTool('color'); }  // zone click → open color tab
+      // zone click → open Colors tab. setSheetOpen was missing here — on desktop the left
+      // panel is always visible so the tab switch alone was enough to look like it worked,
+      // but on tablet/mobile that panel is a bottom sheet gated by sheetOpen, so tapping a
+      // garment zone silently did nothing visible until the customer separately opened it.
+      (zone) => { setActiveZone(zone); setTool('color'); setSheetOpen(true); }
     );
+
+  // Selecting a placed logo/text/shape surfaces its controls — desktop already does this
+  // unconditionally via RightInfoPanel regardless of `tool`, so this only matters on
+  // tablet/mobile (isNarrow), where RightInfoPanel is CSS-hidden and ToolDrawer's own
+  // 'selected' tab (dsShared.js TOOLS) is the only place SelectionInspector can show.
+  // Skipped whenever a sheet is already open so tapping an object never interrupts
+  // whatever the customer is actively doing in Colors/Layers/etc.
+  useEffect(() => {
+    if (isNarrow && selObj && !selObj.__garmentBase && !selObj.__hoverGlow && !sheetOpen) {
+      setTool('selected'); setSheetOpen(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selObj, isNarrow]);
 
   const logoUpload = useLogoUpload(addLogo);
   // A file dropped on the canvas goes through the same pipeline as the panel, and
@@ -502,7 +533,7 @@ export default function DesignStudio() {
             setShowInspo={setShowInspo} setShowShowcase={setShowShowcase}
             brushSize={brushSize} brushColor={brushColor}
             changeBrushSize={changeBrushSize} changeBrushColor={changeBrushColor}
-            applyAI={applyAI} layers={layers} selObj={selObj}
+            applyAI={applyAI} layers={layers} selObj={selObj} deleteSelected={deleteSelected}
             selectLayer={selectLayer} toggleLayerVisibility={toggleLayerVisibility}
             renameLayer={renameLayer} deleteLayer={deleteLayer} reorderLayers={reorderLayers}/>
 

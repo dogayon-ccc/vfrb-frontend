@@ -9,6 +9,13 @@ import AIDesignChat from '../AIDesignChat';
 // same mutate-in-place pattern ShapesPanel.jsx already uses (the ambient
 // re-render that makes the sliders track live comes from updateSelected's
 // own pushHistory(), not a duplicate state store).
+// A real, user-placed selection vs. Fabric's own internal helper objects (the garment
+// silhouette itself, the hover-glow highlight) — shared by both places that decide whether
+// to show selection controls, instead of two copies of the same two flag checks.
+export function isEditableSelection(o) {
+  return !!o && !o.__garmentBase && !o.__hoverGlow;
+}
+
 function kindOf(o) {
   // o.type is Fabric's own class tag (rect/circle/triangle/ellipse/line/
   // polygon) — reading it directly (via SHAPE_TYPE_LABEL) means Triangle/
@@ -20,7 +27,10 @@ function kindOf(o) {
   return 'Text';
 }
 
-function SelectionInspector({ selObj, updateSelected, deleteSelected }) {
+// Exported so ToolDrawer.jsx's 'selected' tab (tablet/mobile) can render the exact same
+// contextual controls this file already shows, unconditionally, in the desktop-only right
+// info panel — one control set, reachable from two places, not a second implementation.
+export function SelectionInspector({ selObj, updateSelected, deleteSelected }) {
   const kind    = kindOf(selObj);
   const hasFill = selObj.__shape || (!selObj.__logo && !selObj.__draw); // shapes + text
   // A Line has no fill (it's a stroked path, not an area) — its visible

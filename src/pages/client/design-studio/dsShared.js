@@ -241,7 +241,14 @@ export const TOOLS = [
   { id:'ai',      icon:'ai',          label:'AI',      hint:'Describe a design in words' },
   { id:'pattern', icon:'pattern',     label:'Pattern', hint:'Stripes, checks and more' },
   { id:'layers',  icon:'layersPanel', label:'Layers',  hint:'Reorder, hide or rename items' },
-  { id:'summary', icon:'info',        label:'Summary' },
+  { id:'summary',  icon:'info',   label:'Summary' },
+  // Desktop shows per-object controls (move/resize/rotate/color/opacity) in the always-on
+  // right info panel the instant something is selected — RightInfoPanel.jsx's
+  // SelectionInspector. That panel is CSS-hidden below 1024px (DesignStudioStyles.jsx),
+  // which left tablet/mobile customers with Duplicate/Delete only once they'd placed a
+  // logo/text/shape and no way to actually adjust it. This tab exposes the same, already-
+  // built SelectionInspector inside the tool drawer's own sheet so it's reachable there too.
+  { id:'selected', icon:'cursor', label:'Selected' },
 ];
 
 // 6 starter designs from VFRB's common garment types (PH institutional palette).
