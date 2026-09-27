@@ -20,7 +20,14 @@ export default function DesignStudioStyles() {
       .ds-bar{
         height:52px;flex-shrink:0;display:flex;align-items:center;padding:0 14px;gap:10px;
         background:var(--bg-card);border-bottom:1px solid var(--border);z-index:20;
+        box-shadow:var(--shadow-xs);
       }
+      /* Bar-cluster collapse defaults (desktop/tablet): full cluster visible,
+         mobile-only "More" trigger and short labels stay hidden until <768px. */
+      .ds-bar-back-icon{display:none;}
+      .ds-bar-save-label{display:inline;}
+      .ds-act-order-full{display:inline;}
+      .ds-act-order-short{display:none;}
       .ds-body{flex:1;display:flex;overflow:hidden;min-height:0;}
 
       .ds-strip{
@@ -43,7 +50,7 @@ export default function DesignStudioStyles() {
 
       .ds-panel{
         width:264px;flex-shrink:0;display:flex;flex-direction:column;overflow:hidden;
-        background:var(--bg-card);border-right:1px solid var(--border);
+        background:var(--bg-card);border-right:1px solid var(--border);box-shadow:var(--shadow-xs);
       }
       .ds-panel-body{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;}
       .ds-sheet-head{
@@ -89,7 +96,7 @@ export default function DesignStudioStyles() {
 
       .ds-info{
         width:280px;flex-shrink:0;display:flex;flex-direction:column;gap:8px;padding:12px;overflow-y:auto;
-        background:var(--bg-card);border-left:1px solid var(--border);
+        background:var(--bg-card);border-left:1px solid var(--border);box-shadow:var(--shadow-xs);
       }
       .ds-sum{display:flex;flex-direction:column;gap:8px;flex:1;min-height:0;padding:12px;overflow-y:auto;}
       .ds-eyebrow{font-size:var(--text-xs);font-weight:700;color:var(--text-muted);}
@@ -196,9 +203,24 @@ export default function DesignStudioStyles() {
       @media (max-width:767px){
         .ds{--ds-pad-b:calc(var(--ds-nav-h) + var(--ds-inset));}
         .ds[data-sheet="open"]{--ds-pad-b:calc(var(--ds-nav-h) + var(--ds-inset) + var(--ds-sheet-h));}
-        .ds-bar{padding:0 10px;gap:6px;}
+        .ds-bar{padding:0 8px;gap:5px;}
         .ds-bar .ds-bar-date{display:none;}
-        .ds-bar-name{width:76px!important;font-size:11px!important;padding:5px 7px!important;}
+        .ds-bar-name{width:auto!important;flex:1;min-width:0;font-size:11px!important;padding:5px 7px!important;}
+        /* Bar overflow fix: at this width the full command bar (brand mark, category
+           badge, undo/redo, 2D/3D toggle, Inspo, Showcase = ~13 controls) no longer
+           fits alongside Back/name/Save/Order — those two rows of the reference
+           mobile mockups collapse into a single "More" menu here instead of being
+           silently clipped by .ds's overflow:hidden. Save/Order This stay reachable
+           at all times as the two actions that actually matter on a phone. */
+        .ds-bar-back-label{display:none;}
+        .ds-bar-back-icon{display:inline;font-size:15px;font-weight:800;}
+        .ds-bar-brand,.ds-bar-cat,.ds-bar-secondary{display:none!important;}
+        .ds-bar-more{display:flex!important;}
+        .ds-bar-save{padding:6px 9px!important;}
+        .ds-bar-save-label{display:none;}
+        .ds-act-order{padding:8px 12px!important;}
+        .ds-act-order-full{display:none;}
+        .ds-act-order-short{display:inline;}
         .ds-strip{
           position:fixed;left:0;right:0;bottom:0;z-index:50;width:100%;
           height:calc(var(--ds-nav-h) + var(--ds-inset));padding:0 6px var(--ds-inset);
