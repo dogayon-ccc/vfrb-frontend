@@ -40,6 +40,7 @@ import { motion } from 'framer-motion';
 import axios from 'axios';
 import { cacheGet, cacheSet } from '../../utils/cache';
 import { NavIcon } from '../../components/ui';
+import { PageHeader, StatGrid, PillTabs, ErrorBlock } from '../../components/admin/AdminUI';
 
 const SK  = { borderRadius:'var(--r-sm)', background:'linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%)', backgroundSize:'400px', animation:'dt-shimmer 1.4s infinite' };
 const inp = { width:'100%', padding:'10px 14px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)', fontSize:13, outline:'none', fontFamily:'var(--font)', boxSizing:'border-box' };
@@ -330,45 +331,16 @@ export default function AdminDeliveryTracking() {
           onClose={()=>setModal(null)} onDone={()=>{ setModal(null); load(true); }}/>
       )}
 
-      {/* Header */}
-      <div className="dt-header" style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:20, flexWrap:'wrap', gap:12, fontFamily:'var(--font)' }}>
-        <div>
-          <h1 style={{ fontSize:22, fontWeight:800, color:'var(--ink)', margin:'0 0 4px' }}>Delivery Tracking</h1>
-          <p style={{ color:'var(--text-subtle)', fontSize:13, margin:0 }}>{deliveries.length} total deliveries</p>
-        </div>
-        <button onClick={()=>load(true)}
-          style={{ display:'flex', alignItems:'center', gap:6, padding:'9px 18px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)' }}>
-          <NavIcon name="refresh" size={13} color="var(--ink)" /> Refresh
-        </button>
-      </div>
+      <PageHeader title="Delivery Tracking" sub={`${deliveries.length} total deliveries`}>
+        <button className="adm-btn" onClick={()=>load(true)}><NavIcon name="refresh" size={13} color="currentColor" /> Refresh</button>
+      </PageHeader>
 
-      {/* Summary cards */}
-      <div className="dt-stats">
-        {Object.entries(DEL_CFG).map(([k,cfg]) => (
-          <button key={k} onClick={()=>setFilter(k===filter?'all':k)}
-            style={{ padding:'12px 14px', borderRadius:'var(--r-lg)', border:`1px solid ${filter===k?cfg.c:'var(--border)'}`, background: filter===k ? cfg.bg : 'var(--bg-card)', cursor:'pointer', textAlign:'left', fontFamily:'var(--font)', transition:'all .14s' }}>
-            <p style={{ fontSize:20, fontWeight:800, color: filter===k ? cfg.c : 'var(--ink)', margin:'0 0 3px' }}>
-              {counts[k] ?? 0}
-            </p>
-            <p style={{ fontSize:11, color:'var(--text-subtle)', margin:0 }}>{cfg.l}</p>
-          </button>
-        ))}
-      </div>
+      <StatGrid loading={loading} items={Object.entries(DEL_CFG).map(([k,cfg]) => ({ label:cfg.l, value:counts[k] ?? 0, color: filter===k ? cfg.c : undefined, onClick:()=>setFilter(k===filter?'all':k) }))} />
 
-      {/* Filter tabs */}
-      <div style={{ display:'flex', gap:6, marginBottom:16, flexWrap:'wrap' }}>
-        {['all', ...Object.keys(DEL_CFG)].map(s => {
-          const cfg = DEL_CFG[s] ?? { l:'All', c:'var(--text-subtle)', bg:'var(--bg-surface)' };
-          const act = filter === s;
-          return (
-            <button key={s} onClick={()=>setFilter(s)}
-              style={{ padding:'7px 13px', borderRadius:'var(--r-md)', border:`1px solid ${act?cfg.c:'var(--border)'}`, background:act?cfg.bg:'var(--bg-card)', color:act?cfg.c:'var(--text-subtle)', fontSize:11, fontWeight:act?700:500, cursor:'pointer', fontFamily:'var(--font)', whiteSpace:'nowrap' }}>
-              {s === 'all' ? 'All' : cfg.l}
-              {s!=='all' && counts[s]>0 && <span style={{ marginLeft:5, fontSize:9, opacity:.7 }}>({counts[s]})</span>}
-            </button>
-          );
-        })}
-      </div>
+      <PillTabs value={filter} onChange={setFilter} tabs={[
+        { key:'all', label:'All', count:deliveries.length },
+        ...Object.entries(DEL_CFG).map(([k,cfg]) => ({ key:k, label:cfg.l, count:counts[k] || undefined })),
+      ]} />
 
       {/* Table */}
       <div className="dt-wrap" style={{ background:'var(--bg-card)', boxShadow:'var(--shadow-xs)' }}>

@@ -35,6 +35,7 @@ import { motion, AnimatePresence }           from 'framer-motion';
 import axios                                 from 'axios';
 import { NavIcon }                           from '../../components/ui/icons';
 import BottomSheet                           from '../../components/ui/BottomSheet';
+import { PageHeader, StatGrid, PillTabs, ErrorBlock } from '../../components/admin/AdminUI';
 
 const T  = 'var(--teal)';
 const T2   = 'var(--teal-2)';
@@ -616,15 +617,7 @@ export default function AdminQCChecklist() {
         }
       `}</style>
 
-      <div style={{ marginBottom: 22 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', margin: '0 0 4px' }}>
-          QC Checklist
-        </h1>
-        <p style={{ color: 'var(--text-subtle)', fontSize: 13, margin: 0 }}>
-          80/20 inspection · Passes required before advancing to Pressing ·
-          Failed pieces = For Alteration (not rejected)
-        </p>
-      </div>
+      <PageHeader title="QC Checklist" sub="80/20 inspection · Passes required before advancing to Pressing · Failed pieces = For Alteration (not rejected)" />
 
       {/* Result banner */}
       {done && (

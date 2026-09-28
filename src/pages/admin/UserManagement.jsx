@@ -22,6 +22,7 @@ import axios from 'axios';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
 import BottomSheet from '../../components/ui/BottomSheet';
 import { NavIcon } from '../../components/ui/icons';
+import { PageHeader, StatGrid, PillTabs, ErrorBlock } from '../../components/admin/AdminUI';
 
 const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif`;
 
@@ -278,18 +279,9 @@ export default function AdminUserManagement() {
       )}
 
       <div style={{ fontFamily:FONT, color:'var(--ink)' }}>
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:22, flexWrap:'wrap', gap:12 }}>
-          <div>
-            <h1 style={{ fontSize:22, fontWeight:800, color:'var(--ink)', marginBottom:4 }}>User Management</h1>
-            <p style={{ color:'var(--text-subtle)', fontSize:13 }}>{users.length} total accounts</p>
-          </div>
-          {me.role === 'manager' && (
-            <button onClick={() => setModal(true)}
-              style={{ padding:'10px 22px', borderRadius:11, border:'none', background:`linear-gradient(135deg,${T},${T2})`, color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:FONT, boxShadow:`0 4px 14px rgba(2,128,144,.3)` }}>
-              + Create User
-            </button>
-          )}
-        </div>
+        <PageHeader title="User Management" sub={`${users.length} total accounts`}>
+          {me.role === 'manager' && <button className="adm-btn primary" onClick={() => setModal(true)}>+ Add User</button>}
+        </PageHeader>
 
         {toggleErr && (
           <p style={{ color:'var(--danger)', fontSize:12, fontWeight:600, margin:'-10px 0 16px', display:'flex', alignItems:'center', gap:5 }}>
@@ -297,23 +289,12 @@ export default function AdminUserManagement() {
           </p>
         )}
 
-        {/* Summary cards */}
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))', gap:12, marginBottom:22 }}>
-          {[
-            { r:'all',      l:'All Users',  c:'var(--text-subtle)', bg:'var(--bg-surface)' },
-            { r:'customer', l:'Clients',    ...ROLE_CFG.customer },
-            { r:'staff',    l:'Staff',      ...ROLE_CFG.staff    },
-            { r:'manager',  l:'Managers',   ...ROLE_CFG.manager  },
-          ].map(s => (
-            <button key={s.r} onClick={() => setRoleF(s.r)}
-              style={{ padding:'14px', borderRadius:12, border:`1px solid ${roleF===s.r ? s.c+'40' : 'var(--border)'}`, background: roleF===s.r ? s.bg : '#fff', cursor:'pointer', textAlign:'left', fontFamily:FONT, transition:'all .14s' }}>
-              <p style={{ fontSize:22, fontWeight:800, color: roleF===s.r ? s.c : 'var(--ink)', margin:'0 0 4px' }}>
-                {s.r === 'all' ? users.length : (counts[s.r] ?? 0)}
-              </p>
-              <p style={{ fontSize:11, color:'var(--text-subtle)', margin:0, fontWeight:500 }}>{s.l}</p>
-            </button>
-          ))}
-        </div>
+        <PillTabs value={roleF} onChange={setRoleF} tabs={[
+          { key:'all', label:'All Users', count:users.length },
+          { key:'customer', label:'Clients', count:counts.customer ?? 0 },
+          { key:'staff', label:'Staff', count:counts.staff ?? 0 },
+          { key:'manager', label:'Managers', count:counts.manager ?? 0 },
+        ]} />
 
         {/* Search */}
         <input type="text" value={search} onChange={e=>setSearch(e.target.value)}

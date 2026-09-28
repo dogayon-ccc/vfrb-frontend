@@ -33,6 +33,7 @@ import { motion } from 'framer-motion';
 import axios from 'axios';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
 import { Badge, NavIcon } from '../../components/ui';
+import { PageHeader, StatGrid, PillTabs, ErrorBlock } from '../../components/admin/AdminUI';
 
 const SK   = { borderRadius:'var(--r-sm)', background:'linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%)', backgroundSize:'400px', animation:'inv-shimmer 1.4s infinite' };
 const inp  = { width:'100%', padding:'10px 14px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)', fontSize:13, outline:'none', fontFamily:'var(--font)', boxSizing:'border-box', transition:'border .15s,box-shadow .15s' };
@@ -220,29 +221,17 @@ export default function AdminInventory() {
           onDone={()=>{ setModal(null); cacheClear('inventory_full'); load(true); }}/>
       )}
 
-      {/* Header */}
-      <div style={{ display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:20,flexWrap:'wrap',gap:12 }}>
-        <div>
-          <h1 style={{ fontSize:22,fontWeight:800,color:'var(--ink)',margin:'0 0 4px' }}>Inventory</h1>
-          <p style={{ color:'var(--text-subtle)',fontSize:13,margin:0 }}>
-            {totalMats} materials · {lowStock.length} below reorder threshold
-          </p>
-        </div>
-        <div className="inv-header-btns" style={{ display:'flex',gap:8,flexWrap:'wrap' }}>
-          <button onClick={()=>nav('/admin/physical-count')}
-            style={{ padding:'9px 16px',borderRadius:'var(--r-md)',border:'1px solid var(--border)',background:'var(--bg-card)',color:'var(--ink)',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'var(--font)',display:'flex',alignItems:'center',gap:6 }}>
-            <NavIcon name="physicalCount" size={14} color="var(--ink)" /> Physical Count
-          </button>
-          <button onClick={()=>setModal('out')}
-            style={{ padding:'9px 16px',borderRadius:'var(--r-md)',border:'1px solid var(--border)',background:'var(--bg-card)',color:'var(--teal)',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'var(--font)',display:'flex',alignItems:'center',gap:6 }}>
-            <NavIcon name="stockOut" size={14} color="var(--teal)" /> Stock Out
-          </button>
-          <button onClick={()=>setModal('in')}
-            style={{ padding:'10px 18px',borderRadius:'var(--r-md)',border:'none',background:'linear-gradient(135deg,var(--teal),var(--teal-2))',color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'var(--font)',boxShadow:'var(--shadow-teal)',display:'flex',alignItems:'center',gap:6 }}>
-            <NavIcon name="stockIn" size={14} color="#fff" /> Stock In
-          </button>
-        </div>
-      </div>
+      <PageHeader title="Inventory" sub={`${totalMats} materials · ${lowStock.length} below reorder threshold`}>
+        <button className="adm-btn" onClick={()=>nav('/admin/physical-count')}><NavIcon name="physicalCount" size={14} color="currentColor" /> Physical Count</button>
+        <button className="adm-btn" onClick={()=>setModal('out')} style={{ color:'var(--teal)' }}><NavIcon name="stockOut" size={14} color="currentColor" /> Stock Out</button>
+        <button className="adm-btn primary" onClick={()=>setModal('in')}><NavIcon name="stockIn" size={14} color="currentColor" /> Stock In</button>
+      </PageHeader>
+
+      <StatGrid loading={loading} items={[
+        { label:'Total Items', value:totalMats },
+        { label:'Low Stock', value:lowStock.length, color: lowStock.length ? 'var(--warning-text)' : undefined },
+        { label:'Out of Stock', value:materials.filter(m=>Number(m.quantity_in_stock)<=0).length, color:'var(--danger)' },
+      ]} />
 
       {/* Load error — distinct from "no materials yet" */}
       {loadError && !loading && (

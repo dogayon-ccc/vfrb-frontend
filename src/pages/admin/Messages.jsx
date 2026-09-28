@@ -242,6 +242,8 @@ export default function AdminMessages() {
                       padding: '12px 16px',
                       border: 'none',
                       borderBottom: '1px solid var(--bg-surface)',
+                      borderLeft: active ? '3px solid var(--teal)' : '3px solid transparent',
+                      transition: 'background .12s',
                       textAlign: 'left',
                       cursor: 'pointer',
                       background: active ? 'var(--teal-50)' : 'transparent',

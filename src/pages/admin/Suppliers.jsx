@@ -24,6 +24,7 @@ import { motion } from 'framer-motion';
 import axios from 'axios';
 import { cacheGet, cacheSet, cacheClear } from '../../utils/cache';
 import { Card, Badge, NavIcon } from '../../components/ui';
+import { PageHeader, StatGrid, PillTabs, ErrorBlock } from '../../components/admin/AdminUI';
 
 const inp = { width:'100%', padding:'10px 14px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)', fontSize:13, outline:'none', fontFamily:'var(--font)', transition:'border .15s, box-shadow .15s', boxSizing:'border-box' };
 const fi  = e => { e.target.style.borderColor='var(--teal)'; e.target.style.boxShadow='0 0 0 3px rgba(2,128,144,.1)'; };
@@ -151,17 +152,10 @@ export default function AdminSuppliers() {
     <>
       {modal && <SupplierModal item={modal === 'add' ? null : modal} onClose={() => setModal(null)} onDone={() => { setModal(null); cacheClear('suppliers_list'); load(true); }}/>}
       <div style={{ fontFamily:'var(--font)', color:'var(--ink)' }}>
-        <div className="sup-header" style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:22, flexWrap:'wrap', gap:12 }}>
-          <div>
-            <h1 style={{ fontSize:22, fontWeight:800, color:'var(--ink)', marginBottom:4 }}>Suppliers</h1>
-            <p style={{ color:'var(--text-subtle)', fontSize:13 }}>{suppliers.length} supplier{suppliers.length!==1?'s':''} · Master data (admin-managed, no supplier login)</p>
-          </div>
-          <button onClick={() => setModal('add')} style={{ display:'flex', alignItems:'center', gap:6, padding:'10px 22px', borderRadius:'var(--r-lg)', border:'none', background:'linear-gradient(135deg,var(--teal),var(--teal-2))', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'var(--font)', boxShadow:'var(--shadow-teal)' }}>
-            <NavIcon name="add" size={14} color="#fff" /> Add Supplier
-          </button>
-        </div>
-        <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search suppliers…"
-          style={{ ...inp, marginBottom:18 }} onFocus={fi} onBlur={fo}/>
+        <PageHeader title="Suppliers" sub={`${suppliers.length} supplier${suppliers.length!==1?'s':''} · Master data (admin-managed, no supplier login)`}>
+          <button className="adm-btn primary" onClick={() => setModal('add')}><NavIcon name="add" size={14} color="currentColor" /> Add Supplier</button>
+        </PageHeader>
+        <div className="adm-toolbar"><input type="search" className="adm-search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search suppliers…" aria-label="Search suppliers"/></div>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))', gap:14 }}>
           {loading ? [1,2,3].map(i => (
             <Card key={i} padding="md">

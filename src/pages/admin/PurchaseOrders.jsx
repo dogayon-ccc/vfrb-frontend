@@ -60,6 +60,7 @@ import axios                                 from 'axios';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
 import { NavIcon }                             from '../../components/ui/icons';
 import { escapeHtml }                          from '../../utils/escapeHtml';
+import { PageHeader, StatGrid, PillTabs, ErrorBlock } from '../../components/admin/AdminUI';
 
 const T    = 'var(--teal)';
 const T2   = 'var(--teal-2)';
@@ -743,56 +744,19 @@ export default function AdminPurchaseOrders() {
       {confirming && <ConfirmColorModal po={confirming} onClose={() => setConfirming(null)}
                       onDone={msg=>{ setConfirming(null); showToast(msg); load(); }}/>}
 
-      {/* Header */}
-      <div style={{ display:'flex',justifyContent:'space-between',alignItems:'flex-start',
-        marginBottom:20,flexWrap:'wrap',gap:12 }}>
-        <div>
-          <h1 style={{ fontSize:22,fontWeight:800,color:'var(--ink)',margin:'0 0 4px',fontFamily:FONT }}>
-            Procurement
-          </h1>
-          <p style={{ color:'var(--text-subtle)',fontSize:13,margin:0,fontFamily:FONT }}>
-            RFQ → PO → Goods Receipt · Color swatch matching on delivery
-          </p>
-        </div>
-        <div style={{ display:'flex',gap:10,flexWrap:'wrap' }}>
-          {mismatchCount > 0 && (
-            <div style={{ padding:'8px 14px',borderRadius:10,background:'var(--warning-bg)',
-              border:'1px solid var(--warning-border)',display:'flex',alignItems:'center',gap:8 }}>
-              <NavIcon name="warning" size={14} color="currentColor"/>
-              <p style={{ fontSize:12,fontWeight:700,color:'#92400e',margin:0,fontFamily:FONT }}>
-                {mismatchCount} color mismatch{mismatchCount!==1?'es':''}
-                {isManager?' — review required':' — awaiting manager'}
-              </p>
-            </div>
-          )}
-          <button onClick={() => setNewRFQ(true)}
-            style={{ padding:'9px 18px',borderRadius:10,border:`1px solid ${T}40`,
-              background:'var(--teal-50)',color:T,fontSize:12,fontWeight:700,
-              cursor:'pointer',fontFamily:FONT }}>
-            <NavIcon name="invoice" size={13} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>New RFQ
-          </button>
-        </div>
-      </div>
+      <PageHeader title="Procurement" sub="RFQ → PO → Goods Receipt · Color swatch matching on delivery">
+        {mismatchCount > 0 && (
+          <span className="adm-chip warn" style={{ padding:'8px 14px', fontSize:12 }}>
+            {mismatchCount} color mismatch{mismatchCount!==1?'es':''}{isManager?' — review required':' — awaiting manager'}
+          </span>
+        )}
+        <button className="adm-btn primary" onClick={() => setNewRFQ(true)}>+ New RFQ</button>
+      </PageHeader>
 
-      {/* Tabs */}
-      <div style={{ display:'flex',gap:6,marginBottom:20,borderBottom:'2px solid var(--border)' }}>
-        {[['pos',{icon:'orders',label:'Purchase Orders'}],['rfq',{icon:'invoice',label:'RFQ'}]].map(([k,l])=>(
-          <button key={k} onClick={()=>setTab(k)}
-            style={{ padding:'9px 16px',borderRadius:'9px 9px 0 0',border:'none',
-              borderBottom:tab===k?`2px solid ${T}`:'2px solid transparent',
-              background:tab===k?'var(--teal-50)':'transparent',color:tab===k?T:'var(--text-subtle)',
-              fontSize:13,fontWeight:tab===k?700:500,cursor:'pointer',
-              fontFamily:FONT,marginBottom:'-2px' }}>
-            <NavIcon name={l.icon} size={12} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>{l.label}
-            {k==='rfq'&&rfqs.filter(r=>r.status==='open').length>0&&(
-              <span style={{ marginLeft:6,fontSize:9,padding:'1px 6px',borderRadius:99,
-                background:'var(--info-bg)',color:'var(--info)',fontWeight:800 }}>
-                {rfqs.filter(r=>r.status==='open').length} open
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+      <PillTabs value={tab} onChange={setTab} tabs={[
+        { key:'pos', label:'Purchase Orders' },
+        { key:'rfq', label:'RFQ', count: rfqs.filter(r=>r.status==='open').length || undefined },
+      ]} />
 
       {/* ── PO TAB ── */}
       {tab === 'pos' && (

@@ -47,6 +47,7 @@ import { useNavigate }                                        from 'react-router
 import axios                                                  from 'axios';
 import { cacheGet, cacheSet, cacheClear, TTL }               from '../../utils/cache';
 import { NavIcon }                                            from '../../components/ui/icons';
+import { PageHeader, StatGrid, PillTabs, ErrorBlock }        from '../../components/admin/AdminUI';
 
 const T  = 'var(--teal)';
 const T2 = 'var(--teal-2)';
@@ -397,6 +398,7 @@ export default function AdminOrders() {
   const [search,    setSearch]    = useState('');
   const [confirming,setConfirming]= useState(null); // order_id being confirmed
   const [toast,     setToast]     = useState(null);
+  const [loadErr,   setLoadErr]   = useState(false);
   const searchRef = useRef(null);
 
   // Window width for mobile/desktop switch — updates on resize
@@ -418,14 +420,14 @@ export default function AdminOrders() {
       const cached = cacheGet('admin_orders_list');
       if (cached) { setOrders(cached); setLoading(false); return; }
     }
-    setLoading(true);
+    setLoading(true); setLoadErr(false);
     axios.get('/api/admin/orders')
       .then(r => {
         const list = r.data?.data ?? r.data ?? [];
         setOrders(list);
         cacheSet('admin_orders_list', list, TTL.ORDERS);
       })
-      .catch(() => {})
+      .catch(() => setLoadErr(true))
       .finally(() => setLoading(false));
   }, []);
 
@@ -528,7 +530,7 @@ export default function AdminOrders() {
         .orders-table-wrap{
           background:var(--bg-card); border:1px solid var(--border);
           border-radius:14px; overflow:hidden;
-          box-shadow:0 1px 3px rgba(0,0,0,.05);
+          box-shadow:var(--shadow-xs);
         }
         /* Deadline column: hide on tablet */
         @media(max-width:1023px){
@@ -567,136 +569,36 @@ export default function AdminOrders() {
         )}
       </AnimatePresence>
 
-      {/* ── Page header ── */}
-      <div style={{
-        display:'flex', justifyContent:'space-between', alignItems:'flex-start',
-        marginBottom:20, flexWrap:'wrap', gap:12,
-      }}>
-        <div>
-          <h1 style={{ fontSize:22, fontWeight:800, color:'var(--ink)', margin:'0 0 4px', fontFamily:FONT }}>
-            Orders
-          </h1>
-          <p style={{ color:'var(--text-subtle)', fontSize:13, margin:0, fontFamily:FONT }}>
-            {orders.length} total ·{' '}
-            {isManager ? 'View mode (Manager)' : 'Operational access (Staff)'}
-          </p>
-        </div>
+      <PageHeader title="Orders" sub={`${orders.length} total · ${isManager ? 'View mode (Manager)' : 'Operational access (Staff)'}`}>
+        <button className="adm-btn" onClick={() => { cacheClear('admin_orders_list'); load(true); }}>⟳ Refresh</button>
+      </PageHeader>
 
-        <button
-          onClick={() => { cacheClear('admin_orders_list'); load(true); }}
-          style={{
-            padding:'9px 18px', borderRadius:10,
-            border:'1px solid var(--border)', background:'var(--bg-card)',
-            color:'var(--ink)', fontSize:12, fontWeight:600,
-            cursor:'pointer', fontFamily:FONT,
-            display:'flex', alignItems:'center', gap:6,
-          }}
-        >
-          ⟳ Refresh
-        </button>
-      </div>
-
-      {/* Manager banner */}
       {isManager && (
-        <div style={{
-          padding:'10px 16px', borderRadius:11,
-          background:'var(--purple-50)', border:'1px solid var(--purple-100, #ddd6fe)',
-          marginBottom:18, display:'flex', alignItems:'center', gap:8,
-        }}>
+        <div style={{ padding:'10px 16px', borderRadius:11, background:'var(--purple-50)', border:'1px solid var(--purple-100)', marginBottom:16, display:'flex', alignItems:'center', gap:8 }}>
           <NavIcon name="manager" size={14} color="currentColor"/>
-          <p style={{ fontSize:12, color:'var(--purple-dark)', fontWeight:600, margin:0, fontFamily:FONT }}>
-            Manager view — You can view all order details. Confirm pending orders here.
-            Production stage advancement is Staff-only.
+          <p style={{ fontSize:12, color:'var(--purple-dark)', fontWeight:600, margin:0 }}>
+            Manager view — you can view all order details and confirm pending orders. Production stage advancement is Staff-only.
           </p>
         </div>
       )}
 
-      {/* Summary stat cards */}
-      <div className="orders-stat-grid">
-        {summaryStats.map((s, i) => (
-          <motion.div
-            key={s.l}
-            initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }}
-            transition={{ delay: i * 0.05 }}
-            style={{
-              background:'var(--bg-card)', borderRadius:12,
-              border:`1px solid ${s.bg}`,
-              padding:'12px 14px',
-              boxShadow:'0 1px 3px rgba(0,0,0,.04)',
-            }}
-          >
-            <p style={{ fontSize:20, fontWeight:800, color:s.c, margin:'0 0 3px', fontFamily:FONT }}>
-              {s.v}
-            </p>
-            <p style={{ fontSize:11, color:'var(--text-subtle)', margin:0, fontFamily:FONT }}>{s.l}</p>
-          </motion.div>
-        ))}
+      {loadErr && <div style={{ marginBottom:14 }}><ErrorBlock msg="Could not load orders." onRetry={() => load(true)} /></div>}
+
+      <StatGrid loading={loading} items={summaryStats.map(x => ({ label:x.l, value:x.v, color:x.l === 'Total' ? undefined : x.c }))} />
+
+      <div className="adm-toolbar">
+        <input ref={searchRef} type="search" className="adm-search" value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Search order ID, customer, garment, color…" aria-label="Search orders" />
       </div>
 
-      {/* Search */}
-      <input
-        ref={searchRef}
-        type="text"
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        placeholder="Search by order ID, customer name, garment, color…"
-        style={{
-          width:'100%', padding:'10px 16px', borderRadius:11,
-          border:'1px solid var(--border)', background:'var(--bg-card)',
-          color:'var(--ink)', fontSize:13, outline:'none',
-          fontFamily:FONT, marginBottom:14, boxSizing:'border-box',
-        }}
-        onFocus={e => {
-          e.target.style.borderColor = T;
-          e.target.style.boxShadow   = `0 0 0 3px rgba(2,128,144,.10)`;
-        }}
-        onBlur={e => {
-          e.target.style.borderColor = 'var(--border)';
-          e.target.style.boxShadow   = 'none';
-        }}
-      />
-
-      {/* Status tab strip — horizontal scroll on mobile */}
-      <div className="tab-strip" style={{ marginBottom:16 }}>
-        {ALL_TABS.map(s => {
-          const cfg    = STATUS_CFG[s];
-          const active = tab === s;
-          const cnt    = s === 'all' ? orders.length : (counts[s] ?? 0);
-          return (
-            <button key={s} onClick={() => setTab(s)} style={{
-              padding:'6px 12px', borderRadius:8, whiteSpace:'nowrap',
-              border:`1px solid ${active ? (cfg?.color ?? T)+'44' : 'var(--border)'}`,
-              background: active ? (cfg?.bg ?? 'var(--teal-50)') : 'var(--bg-card)',
-              color: active ? (cfg?.color ?? T) : 'var(--text-subtle)',
-              fontSize:11, fontWeight: active ? 700 : 500,
-              cursor:'pointer', fontFamily:FONT, transition:'all .13s', flexShrink:0,
-            }}>
-              {s === 'all' ? <><NavIcon name="orders" size={12} color="currentColor"/> All</> : <><NavIcon name={cfg?.icon} size={12} color="currentColor"/> {cfg?.label ?? s}</>}
-              {cnt > 0 && (
-                <span style={{ marginLeft:5, fontSize:9, opacity:.65 }}>({cnt})</span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      <PillTabs value={tab} onChange={setTab}
+        tabs={ALL_TABS.map(k => ({ key:k, label: k === 'all' ? 'All' : (STATUS_CFG[k]?.label ?? k), count: k === 'all' ? orders.length : (counts[k] ?? 0) }))} />
 
       {/* ── DESKTOP: table ── */}
       <div className="orders-table-wrap">
-        <table style={{ width:'100%', borderCollapse:'collapse' }}>
+        <table className="adm-table">
           <thead>
-            <tr style={{ background:'var(--bg)' }}>
-              {['Order #','Client','Garment','Status','Deadline','Actions'].map(h => (
-                <th key={h} style={{
-                  padding:'10px 14px', textAlign:'left', fontSize:10,
-                  fontWeight:700, color:'var(--text-subtle)',
-                  textTransform:'uppercase', letterSpacing:'.06em',
-                  borderBottom:'2px solid var(--border)', whiteSpace:'nowrap',
-                  fontFamily:FONT,
-                }}>
-                  {h}
-                </th>
-              ))}
-            </tr>
+            <tr>{['Order #','Client','Garment','Status','Deadline','Actions'].map(h => <th key={h} className={h === 'Deadline' ? 'adm-col-deadline' : undefined}>{h}</th>)}</tr>
           </thead>
           <tbody>
             {loading

@@ -213,10 +213,8 @@ export default function AdminReports() {
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start',
           marginBottom:22, flexWrap:'wrap', gap:12 }} className="rpt-noprint">
           <div>
-            <h1 style={{ fontSize:22, fontWeight:800, color:'var(--ink)', marginBottom:4 }}>Reports</h1>
-            <p style={{ color:'var(--text-subtle)', fontSize:13 }}>
-              Sales analytics · MRP prescriptive alerts · Production insights
-            </p>
+            <h1 className="adm-h1">Reports</h1>
+            <p className="adm-sub">Sales analytics · MRP prescriptive alerts · Production insights</p>
           </div>
           <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
             <button

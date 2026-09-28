@@ -40,6 +40,7 @@ import { useNavigate }                                from 'react-router-dom';
 import axios                                          from 'axios';
 import { cacheGet, cacheSet }                         from '../../utils/cache';
 import { Card, NavIcon }                              from '../../components/ui';
+import { PageHeader, StatGrid, PillTabs, ErrorBlock } from '../../components/admin/AdminUI';
 
 // DSA: hash map — O(1) status → color/icon
 const STAGE_CFG = {
@@ -124,56 +125,14 @@ export default function ProductionList() {
         }
       `}</style>
 
-      {/* Header */}
-      <div style={{ display:'flex',justifyContent:'space-between',alignItems:'flex-start',
-        marginBottom:20,flexWrap:'wrap',gap:12 }}>
-        <div>
-          <h1 style={{ fontSize:22,fontWeight:800,color:'var(--ink)',margin:'0 0 4px',fontFamily:'var(--font)' }}>
-            Production Tracking
-          </h1>
-          <p style={{ color:'var(--text-subtle)',fontSize:13,margin:0,fontFamily:'var(--font)' }}>
-            {orders.length} orders in production ·
-            Stage Confirmation
-          </p>
-        </div>
-        <button onClick={() => load(true)} style={{
-          display:'flex',alignItems:'center',gap:6,
-          padding:'9px 18px',borderRadius:'var(--r-md)',border:'1px solid var(--border)',
-          background:'var(--bg-card)',color:'var(--ink)',fontSize:12,fontWeight:600,
-          cursor:'pointer',fontFamily:'var(--font)',
-        }}>
-          <NavIcon name="refresh" size={13} color="var(--ink)" /> Refresh
-        </button>
-      </div>
+      <PageHeader title="Production Tracking" sub={`${orders.length} orders in production · Stage Confirmation`}>
+        <button className="adm-btn" onClick={() => load(true)}><NavIcon name="refresh" size={13} color="currentColor" /> Refresh</button>
+      </PageHeader>
 
-      {/* Stage filter tabs */}
-      <div className="prod-stage-strip">
-        <button onClick={() => setStage('all')} style={{
-          padding:'6px 14px',borderRadius:'var(--r-full)',border:`1px solid ${stage==='all'?'var(--teal)':'var(--border)'}`,
-          background:stage==='all'?'var(--teal-50)':'var(--bg-card)',color:stage==='all'?'var(--teal)':'var(--text-subtle)',
-          fontSize:11,fontWeight:stage==='all'?700:500,cursor:'pointer',fontFamily:'var(--font)',flexShrink:0,
-        }}>
-          All ({orders.length})
-        </button>
-        {STAGE_ORDER.map(s => {
-          const cfg = STAGE_CFG[s];
-          const cnt = counts[s] ?? 0;
-          if (cnt === 0) return null;
-          const active = stage === s;
-          return (
-            <button key={s} onClick={() => setStage(s)} style={{
-              display:'flex',alignItems:'center',gap:5,
-              padding:'6px 14px',borderRadius:'var(--r-full)',flexShrink:0,
-              border:`1px solid ${active?cfg.color:'var(--border)'}`,
-              background:active?cfg.bg:'var(--bg-card)',color:active?cfg.color:'var(--text-subtle)',
-              fontSize:11,fontWeight:active?700:500,cursor:'pointer',fontFamily:'var(--font)',
-            }}>
-              <NavIcon name={cfg.icon} size={12} color={active ? cfg.color : 'var(--text-subtle)'} />
-              {cfg.label} ({cnt})
-            </button>
-          );
-        })}
-      </div>
+      <PillTabs value={stage} onChange={setStage} tabs={[
+        { key:'all', label:'All', count:orders.length },
+        ...STAGE_ORDER.filter(k => (counts[k] ?? 0) > 0).map(k => ({ key:k, label:STAGE_CFG[k].label, count:counts[k] })),
+      ]} />
 
       {/* Search */}
       <input type="text" value={search} onChange={e=>setSearch(e.target.value)}

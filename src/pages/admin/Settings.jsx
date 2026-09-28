@@ -46,6 +46,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { Card, Badge, NavIcon } from '../../components/ui';
+import { PageHeader, StatGrid, PillTabs, ErrorBlock } from '../../components/admin/AdminUI';
 
 const inp  = { width:'100%', padding:'10px 14px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)', fontSize:13, outline:'none', fontFamily:'var(--font)', transition:'border .15s, box-shadow .15s', boxSizing:'border-box' };
 const inpDisabled = { ...inp, background:'var(--bg-surface)', color:'var(--text-subtle)', cursor:'not-allowed' };
@@ -161,12 +162,7 @@ export default function Settings() {
 
   return (
     <div style={{ maxWidth:760, margin:'0 auto', display:'flex', flexDirection:'column', gap:22, fontFamily:'var(--font)' }}>
-      <div>
-        <h1 style={{ fontSize:22, fontWeight:800, color:'var(--ink)', margin:'0 0 4px' }}>System Settings</h1>
-        <p style={{ fontSize:13, color:'var(--text-subtle)', margin:0 }}>
-          {isManager ? 'Company branding, notification preferences, and user management shortcuts.' : 'View-only — company settings can be edited by a manager.'}
-        </p>
-      </div>
+      <PageHeader title="System Settings" sub={isManager ? 'Company branding, notification preferences, and user management shortcuts.' : 'View-only — company settings can be edited by a manager.'} />
 
       {/* ── Company Info + Branding ─────────────────────────────────── */}
       <Card>

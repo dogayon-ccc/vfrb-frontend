@@ -11,6 +11,7 @@ import { enqueue, flushQueue, queueSize, clearQueue } from '../utils/offlineQueu
 import { sessionWipeAll } from '../utils/cache';
 import PageErrorBoundary from '../components/PageErrorBoundary';
 import IconBox from '../components/ui/IconBox';
+import '../styles/admin.css';
 import logo from '../assets/company-logo.jpg';
 // FF-4 FIX (Aug 30 2026): emoji nav icons replaced with lucide-react —
 // see design-system reshaping pass. Icon values below are components,

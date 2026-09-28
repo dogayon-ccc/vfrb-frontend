@@ -1,227 +1,74 @@
-// src/pages/admin/Dashboard.jsx — mobile-first reshape (Sept 15 2026)
-// Reshaped against the canonical Figma admin reference: gradient hero
-// with real stat pills, collapsible "Needs Attention" sections, icon-grid
-// quick actions, tap feedback everywhere. Data layer moved onto the shared
-// useCachedResource hook (stale-while-revalidate — cache shows instantly,
-// background refresh keeps it fresh) and an offline mutation queue so
-// notification actions survive a dropped connection.
-// hex→var(--...) token migration (Sept 20): 50 of 61 literals had an exact
-// theme.css match, swapped. Remaining 11 (dark-toast backgrounds, a few
-// manager-purple badge shades) have no token equivalent — left literal,
-// same documented-exception pattern as QCChecklist.jsx/Suppliers.jsx.
+// Admin/Manager dashboard — composed to wireframe boards 1–4: KPI row, Orders Overview chart,
+// Production Status donut, Recent Orders table, Quick Actions. All figures come from /api/admin/dashboard.
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate }                               from 'react-router-dom';
-import { motion, AnimatePresence }                   from 'framer-motion';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Cell, AreaChart, Area, LineChart, Line,
-} from 'recharts';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import axios from 'axios';
-import { TTL }                          from '../../utils/cache';
-import { useCachedResource }            from '../../hooks/useCachedResource';
+import { TTL } from '../../utils/cache';
+import { useCachedResource } from '../../hooks/useCachedResource';
 import { NavIcon } from '../../components/ui/icons';
 import { navColor } from '../../utils/navColors';
+import { PageHeader, StatGrid, PillTabs, Panel, StatusPill, SkeletonRows, EmptyBlock, ErrorBlock } from '../../components/admin/AdminUI';
 
-const T  = 'var(--teal)';
-const T2 = 'var(--teal-2)';
-const SK_STYLE = {
-  borderRadius: 6,
-  background:   'linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%)',
-  backgroundSize: '400px',
-  animation:    'sk 1.4s infinite',
-};
-const CARD = { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, boxShadow: 'var(--shadow-xs)' };
-const ROW  = { padding: '9px 14px', borderBottom: '1px solid var(--bg-surface)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, cursor: 'pointer' };
-const STATUS_COLORS = {
-  pending: 'var(--status-pending)', confirmed: 'var(--status-confirmed)', pattern: 'var(--status-pattern)',
-  cutting: 'var(--status-cutting)', sewing: 'var(--status-sewing)', qc: 'var(--status-qc)',
-  pressing: 'var(--status-pressing)', packing: 'var(--status-packing)', completed: 'var(--status-completed)',
-  cancelled: 'var(--status-cancelled)', segregation: 'var(--status-segregation)',
-};
+const T = 'var(--teal)', T2 = 'var(--teal-2)';
+const STAGE_ORDER = ['pending', 'confirmed', 'pattern', 'segregation', 'cutting', 'sewing', 'qc', 'pressing', 'packing', 'completed'];
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+const fmtDate = (d, o = { month: 'short', day: 'numeric' }) => (d ? new Date(d).toLocaleDateString('en-PH', o) : '—');
+const peso = (n) => `₱${Number(n).toLocaleString('en-PH')}`;
+const ageLabel = (ms) => (!ms || ms === Infinity ? null : ms < 10_000 ? 'just now' : ms < 60_000 ? `${Math.round(ms / 1000)}s ago` : `${Math.round(ms / 60_000)}m ago`);
 
-const ageLabel = (ms) => {
-  if (!ms || ms === Infinity) return null;
-  if (ms < 10_000) return 'just now';
-  if (ms < 60_000) return `${Math.round(ms / 1000)}s ago`;
-  return `${Math.round(ms / 60_000)}m ago`;
-};
-
-// ── Toast ─────────────────────────────────────────────────────────────────────
 function Toast({ msg, type, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 3000); return () => clearTimeout(t); }, [onDone]);
-  const bg = type === 'error' ? '#450a0a' : type === 'info' ? '#0c2d48' : '#022c22';
-  const bdr = type === 'error' ? 'var(--danger)' : type === 'info' ? '#38bdf8' : 'var(--success)';
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 24, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 12 }}
-      style={{
-        position: 'fixed', bottom: 28, right: 24, zIndex: 500,
-        padding: '12px 18px', borderRadius: 12,
-        background: bg, border: `1px solid ${bdr}`,
-        color: '#fff', fontSize: 13, fontWeight: 700,
-        maxWidth: 340, boxShadow: '0 8px 28px rgba(0,0,0,.3)',
-        display: 'flex', alignItems: 'center', gap: 10, lineHeight: 1.4,
-      }}>
-      <span style={{ fontSize: 18, flexShrink: 0 }}>
-        {type === 'error' ? '⚠️' : type === 'info' ? '↻' : '✓'}
-      </span>
+    <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }} transition={{ duration: 0.2 }}
+      role="status" style={{ position: 'fixed', bottom: 28, right: 24, zIndex: 500, padding: '12px 18px', borderRadius: 12, background: type === 'error' ? '#450a0a' : '#022c22', border: `1px solid ${type === 'error' ? 'var(--danger)' : 'var(--success)'}`, color: '#fff', fontSize: 13, fontWeight: 700, maxWidth: 340, boxShadow: '0 8px 28px rgba(0,0,0,.3)' }}>
       {msg}
     </motion.div>
   );
 }
 
-// ── KPI card — Figma reference: label + value + trend chip + real sparkline.
-// Distinct from the operational-stats tiles below; this is the "KPI Overview"
-// block, fed by kpi_daily_snapshots (real history, not invented).
-function SparkKPICard({ label, value, history, color, live, loading }) {
-  const pts = (history ?? []).map((v, i) => ({ i, v }));
-  const gradId = `spark-${label.replace(/[^a-z0-9]/gi, '')}`;
-  const first = pts[0]?.v, last = pts[pts.length - 1]?.v;
-  const hasEnoughHistory = pts.length >= 2 && first;
-  const change = hasEnoughHistory ? Math.round(((last - first) / first) * 100) : null;
-  const up = change > 0, flat = change === 0;
-  const chipBg = change === null ? 'var(--bg-surface)' : flat ? 'var(--bg-surface)' : up ? 'var(--success-bg)' : 'var(--danger-bg)';
-  const chipFg = change === null ? 'var(--text-faint)' : flat ? 'var(--text-subtle)' : up ? '#15803d' : '#dc2626';
-  return (
-    <div style={{ ...CARD, padding: 14, display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 11, color: 'var(--text-subtle)', fontWeight: 600 }}>{label}</span>
-        {live && (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: T2, animation: 'pulse 2s ease-in-out infinite' }} />
-            <span style={{ fontSize: 10, fontWeight: 600, color: T }}>Live</span>
-          </span>
-        )}
-      </div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
-        {loading ? <div style={{ ...SK_STYLE, height: 22, width: '55%' }} /> : <span style={{ fontSize: 19, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.1 }}>{value}</span>}
-        <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: chipBg, color: chipFg, whiteSpace: 'nowrap' }}>
-          {change === null ? 'New' : `${flat ? '→' : up ? '↑' : '↓'} ${Math.abs(change)}%`}
-        </span>
-      </div>
-      <div style={{ marginTop: 2, height: 36 }}>
-        {hasEnoughHistory ? (
-          <ResponsiveContainer width="100%" height={36}>
-            <AreaChart data={pts}>
-              <defs>
-                <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={color} stopOpacity={0.3} />
-                  <stop offset="100%" stopColor={color} stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <Area type="monotone" dataKey="v" stroke={color} strokeWidth={2} fill={`url(#${gradId})`} dot={false} />
-            </AreaChart>
-          </ResponsiveContainer>
-        ) : (
-          <div style={{ height: '100%', display: 'flex', alignItems: 'center' }}>
-            <p style={{ fontSize: 9, color: 'var(--text-disabled)', margin: 0 }}>Building history — check back tomorrow</p>
-          </div>
-        )}
-      </div>
-      <span style={{ fontSize: 9, color: 'var(--text-faint)' }}>vs 30 days ago</span>
+const ListRow = ({ title, sub, right, rightColor, onClick }) => (
+  <div onClick={onClick} className="adm-dash-row">
+    <div style={{ minWidth: 0 }}>
+      <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</p>
+      {sub && <p style={{ fontSize: 10, color: 'var(--text-faint)', margin: '2px 0 0', textTransform: 'capitalize' }}>{sub}</p>}
     </div>
-  );
-}
+    <p style={{ fontSize: 11, fontWeight: 700, color: rightColor ?? 'var(--text-faint)', margin: 0, flexShrink: 0 }}>{right}</p>
+  </div>
+);
 
-// ── KPI card ──────────────────────────────────────────────────────────────────
-function KPICard({ icon, label, value, sub, path, loading, onClick }) {
-  const { fg, bg } = navColor(path);
+function AttentionPanel({ title, color, items, loading, empty, render, footer, onFooter }) {
   return (
-    <motion.button
-      whileHover={onClick ? { y: -3 } : undefined}
-      whileTap={onClick ? { scale: 0.96 } : undefined}
-      onClick={onClick}
-      style={{ ...CARD, textAlign: 'left', padding: '18px 16px', cursor: onClick ? 'pointer' : 'default' }}>
-      <div style={{
-        width: 34, height: 34, borderRadius: 10, background: bg,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12,
-      }}>
-        <NavIcon name={icon} size={17} color={fg} />
-      </div>
-      {loading
-        ? <div style={{ ...SK_STYLE, height: 28, width: '55%', marginBottom: 6 }} />
-        : <p className="adm-kpi-val" style={{ fontSize: 26, fontWeight: 800, color: 'var(--ink)', margin: '0 0 4px' }}>{value}</p>}
-      <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-subtle)', margin: 0 }}>{label}</p>
-      {sub && <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '3px 0 0' }}>{sub}</p>}
-    </motion.button>
+    <Panel flush title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />{title}{!loading && items.length > 0 && <span className="adm-chip" style={{ background: color, color: '#fff' }}>{items.length}</span>}</span>}
+      action={!loading && items.length > 0 && <button className="adm-link-btn" onClick={onFooter}>{footer} →</button>}>
+      {loading ? <SkeletonRows rows={2} h={32} /> : items.length === 0 ? <EmptyBlock>{empty}</EmptyBlock> : items.map(render)}
+    </Panel>
   );
 }
 
-// ── Attention section — collapsible, mobile-first (native details/summary,
-// styled to match the canonical Figma admin reference). One component
-// covers all 5 "needs attention" blocks; only renderItem varies per block.
-function AttentionSection({ title, color, items, loading, emptyLabel, renderItem, onFooter, footerLabel }) {
-  return (
-    <details className="adm-attn" style={{ ...CARD, overflow: 'hidden' }} open>
-      <summary className="adm-attn-summary">
-        <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
-          {title}
-          {!loading && items.length > 0 && (
-            <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', background: color, borderRadius: 99, padding: '2px 8px' }}>
-              {items.length}
-            </span>
-          )}
-        </span>
-        <span className="adm-attn-chev" style={{ color: 'var(--text-faint)', fontSize: 13 }}>▾</span>
-      </summary>
-      <div style={{ borderTop: '1px solid var(--border)' }}>
-        {loading ? (
-          <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {[1, 2].map((i) => <div key={i} style={{ ...SK_STYLE, height: 36 }} />)}
-          </div>
-        ) : items.length === 0 ? (
-          <div style={{ padding: '20px 14px', textAlign: 'center' }}>
-            <p style={{ fontSize: 12, color: 'var(--text-faint)', margin: 0 }}>{emptyLabel}</p>
-          </div>
-        ) : items.map(renderItem)}
-      </div>
-      {!loading && items.length > 0 && (
-        <button onClick={onFooter} className="adm-tap"
-          style={{ width: '100%', padding: 10, border: 'none', borderTop: '1px solid var(--border)', background: 'transparent', color, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
-          {footerLabel} →
-        </button>
-      )}
-    </details>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 export default function AdminDashboard() {
-  const nav  = useNavigate();
+  const nav = useNavigate();
   const user = (() => { try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}'); } catch { return {}; } })();
   const isManager = user.role === 'manager';
-
   const [toast, setToast] = useState(null);
+  const [chartTab, setChartTab] = useState('orders');
 
-  // ── Data — one hook call per resource instead of a bespoke loader each ──────
-  const [data,     loading,   loadDashboard, dataAge] = useCachedResource('dashboard_stats', () => axios.get('/api/admin/dashboard').then((r) => r.data), TTL.DASHBOARD, { onError: () => setToast({ msg: 'Failed to load dashboard data.', type: 'error' }) });
-  const [pendingOrdersRaw, poLoading, loadPendingOrders] = useCachedResource('dashboard_pending_orders', () => axios.get('/api/admin/orders?status=pending&per_page=5').then((r) => r.data?.data ?? []), TTL.ORDERS);
-  const [rfqsRaw,  rfqLoading, loadRfqs]               = useCachedResource('dashboard_pending_rfqs', () => axios.get('/api/admin/rfq?status=sent&per_page=5').then((r) => r.data?.data ?? []), TTL.SUPPLIERS);
-  const [deliveriesRaw, delivLoading, loadDeliveries]  = useCachedResource('dashboard_upcoming_deliveries', () => axios.get('/api/admin/delivery?per_page=20').then((r) => (r.data?.data ?? []).filter((d) => !['delivered', 'returned'].includes(d.delivery_status)).slice(0, 5)), TTL.ORDERS);
-
-  const pendingOrders  = pendingOrdersRaw ?? [];
-  const rfqsPending    = rfqsRaw ?? [];
-  const deliveries     = deliveriesRaw ?? [];
+  const [data, loading, loadDashboard, dataAge] = useCachedResource('dashboard_stats', () => axios.get('/api/admin/dashboard').then((r) => r.data), TTL.DASHBOARD, { onError: () => setToast({ msg: 'Failed to load dashboard data.', type: 'error' }) });
+  const [pendingRaw, poLoading] = useCachedResource('dashboard_pending_orders', () => axios.get('/api/admin/orders?status=pending&per_page=5').then((r) => r.data?.data ?? []), TTL.ORDERS);
+  const [rfqRaw, rfqLoading] = useCachedResource('dashboard_pending_rfqs', () => axios.get('/api/admin/rfq?status=sent&per_page=5').then((r) => r.data?.data ?? []), TTL.SUPPLIERS);
+  const [delivRaw, delivLoading] = useCachedResource('dashboard_upcoming_deliveries', () => axios.get('/api/admin/delivery?per_page=20').then((r) => (r.data?.data ?? []).filter((d) => !['delivered', 'returned'].includes(d.delivery_status)).slice(0, 5)), TTL.ORDERS);
 
   const [aiText, setAiText] = useState('');
   const [aiLoading, setAiLoad] = useState(false);
   const fetchAI = useCallback(async () => {
     if (!isManager) return;
     setAiLoad(true);
-    try {
-      const { data: res } = await axios.get('/api/admin/ai/analytics-summary');
-      setAiText(res?.insight ?? '');
-    } catch {
-      setToast({ msg: 'AI summary unavailable.', type: 'error' });
-    } finally {
-      setAiLoad(false);
-    }
+    try { setAiText((await axios.get('/api/admin/ai/analytics-summary')).data?.insight ?? ''); }
+    catch { setToast({ msg: 'AI summary unavailable.', type: 'error' }); }
+    finally { setAiLoad(false); }
   }, [isManager]);
 
-  // ── Auto-refresh every TTL.DASHBOARD while the tab is visible ───────────────
   useEffect(() => {
     const tick = () => { if (document.visibilityState === 'visible') loadDashboard(); };
     const id = setInterval(tick, TTL.DASHBOARD);
@@ -229,250 +76,176 @@ export default function AdminDashboard() {
     return () => { clearInterval(id); document.removeEventListener('visibilitychange', tick); };
   }, [loadDashboard]);
 
-  // ── Derived data ──────────────────────────────────────────────────────────
-  const s = {
-    total_orders:        data?.orders?.total          ?? 0,
-    active_orders:       data?.orders?.in_production  ?? 0,
-    monthly_revenue:     data?.revenue?.month         ?? 0,
-    low_stock_count:     data?.inventory?.low_stock_count ?? 0,
-    stock_health_pct:    data?.stock_health_pct        ?? 0,
-    pending_deliveries:  data?.production?.delivering ?? 0,
-    unreconciled_counts: data?.unreconciled_counts    ?? 0,
-  };
-  const kpiHistory = data?.kpi_history ?? [];
-  const monthly = data?.monthly_sales ?? [];
-  const recent  = data?.recent_orders ?? [];
-  const low     = data?.inventory?.low_stock_materials ?? [];
+  const o = data?.orders ?? {};
+  const low = data?.inventory?.low_stock_materials ?? [];
   const delayed = data?.production?.delayed_orders ?? [];
-  const delayedThresholdDays = data?.production?.delayed_threshold_days ?? 3;
+  const delayDays = data?.production?.delayed_threshold_days ?? 3;
+  const recent = data?.recent_orders ?? [];
+  const stageDist = data?.production?.stage_dist ?? [];
+  const stageTotal = stageDist.reduce((a, x) => a + Number(x.count), 0);
+  const stageData = [...stageDist].sort((a, b) => STAGE_ORDER.indexOf(a.stage) - STAGE_ORDER.indexOf(b.stage)).map((x) => ({ name: cap(x.stage), value: Number(x.count), color: `var(--status-${x.stage})` }));
+  const chartData = chartTab === 'orders' ? (data?.order_trends ?? []).map((r) => ({ m: r.month, v: r.orders })) : (data?.monthly_sales ?? []).map((r) => ({ m: r.month, v: r.total }));
+  const mix = Object.entries(recent.reduce((a, r) => ({ ...a, [r.garment_type ?? 'Other']: (a[r.garment_type ?? 'Other'] ?? 0) + 1 }), {})).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
   const h = new Date().getHours();
   const greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
-  const ageLbl = ageLabel(dataAge);
+  const age = ageLabel(dataAge);
 
-  const stageDist = data?.production?.stage_dist ?? [];
-  const STAGE_ORDER = ['pending', 'confirmed', 'pattern', 'segregation', 'cutting', 'sewing', 'qc', 'pressing', 'packing', 'completed'];
-  const countByStage = Object.fromEntries(stageDist.map((x) => [x.stage, x.count]));
-  const stageData = STAGE_ORDER.filter((x) => (countByStage[x] ?? 0) > 0).map((x) => ({
-    stage: x.charAt(0).toUpperCase() + x.slice(1), count: countByStage[x] ?? 0, color: STATUS_COLORS[x] ?? T,
-  }));
-  const trends = data?.order_trends ?? [];
-
-  const QUICK_ACTIONS = [
-    { icon: 'orders',       l: 'View Orders',      path: '/admin/orders' },
-    { icon: 'inventory',    l: 'Inventory',         path: '/admin/inventory' },
-    { icon: 'production',   l: 'Production',        path: '/admin/production' },
-    { icon: 'procurement',  l: 'Purchase Orders',   path: '/admin/procurement' },
-    { icon: 'physicalCount',l: 'Physical Count',    path: '/admin/physical-count' },
-    ...(isManager ? [
-      { icon: 'reports', l: 'Reports & Alerts', path: '/admin/reports' },
-      { icon: 'users',   l: 'User Management',  path: '/admin/users' },
-    ] : []),
+  const kpis = [
+    { label: 'Total Orders', value: o.total ?? 0, chip: o.new_this_week != null ? `+${o.new_this_week} this week` : null, chipTone: 'up', onClick: () => nav('/admin/orders') },
+    { label: 'In Production', value: o.in_production ?? 0, sub: `${o.confirmed ?? 0} confirmed · ${o.pending ?? 0} pending`, onClick: () => nav('/admin/production') },
+    { label: 'Completed', value: o.completed ?? 0, onClick: () => nav('/admin/orders') },
+    { label: 'Low Stock', value: data?.inventory?.low_stock_count ?? 0, chip: (data?.inventory?.low_stock_count ?? 0) > 0 ? 'Reorder' : null, chipTone: 'down', color: (data?.inventory?.low_stock_count ?? 0) > 0 ? 'var(--danger)' : undefined, onClick: () => nav('/admin/inventory') },
+  ];
+  const snapshot = [
+    { label: 'Revenue (Month)', value: peso(data?.revenue?.month ?? 0) },
+    { label: 'Stock Health', value: `${data?.stock_health_pct ?? 0}%` },
+    { label: 'In Transit', value: data?.production?.delivering ?? 0, onClick: () => nav('/admin/delivery') },
+    { label: 'Pending Count', value: data?.unreconciled_counts ?? 0, sub: 'Physical count', onClick: () => nav('/admin/physical-count') },
+  ];
+  const quick = [
+    { icon: 'orders', l: 'View Orders', path: '/admin/orders' }, { icon: 'inventory', l: 'Inventory', path: '/admin/inventory' },
+    { icon: 'production', l: 'Production', path: '/admin/production' }, { icon: 'procurement', l: 'Purchase Orders', path: '/admin/procurement' },
+    { icon: 'physicalCount', l: 'Physical Count', path: '/admin/physical-count' },
+    ...(isManager ? [{ icon: 'reports', l: 'Reports', path: '/admin/reports' }, { icon: 'users', l: 'Users', path: '/admin/users' }] : []),
   ];
 
-  const ATTENTION_SECTIONS = [
-    {
-      title: 'Orders Needing Action', color: T, items: pendingOrders, loading: poLoading,
-      emptyLabel: 'No pending orders — all caught up', footerLabel: 'View All Pending Orders',
-      onFooter: () => nav('/admin/orders?status=pending'),
-      renderItem: (o) => (
-        <div key={o.order_id} onClick={() => nav(`/admin/orders/${o.order_id}`)} style={ROW}>
-          <div style={{ minWidth: 0 }}>
-            <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>#{o.order_id} · {o.garment_type ?? '—'}</p>
-            <p style={{ fontSize: 10, color: 'var(--text-faint)', margin: '2px 0 0' }}>{o.customer_name ?? '—'}</p>
-          </div>
-          <p style={{ fontSize: 10, color: 'var(--text-faint)', margin: 0, flexShrink: 0 }}>{o.created_at ? new Date(o.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) : '—'}</p>
-        </div>
-      ),
-    },
-    {
-      title: 'Materials Running Low', color: 'var(--danger)', items: low, loading,
-      emptyLabel: 'No materials below reorder threshold', footerLabel: 'Manage Inventory',
-      onFooter: () => nav('/admin/inventory'),
-      renderItem: (m) => (
-        <div key={m.material_id} onClick={() => nav('/admin/inventory')} style={ROW}>
-          <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.material_name}</p>
-          <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--danger)', margin: 0, flexShrink: 0 }}>{m.quantity_in_stock} {m.unit}</p>
-        </div>
-      ),
-    },
-    {
-      title: 'Production Delays', color: 'var(--warning)', items: delayed, loading,
-      emptyLabel: `No stages stalled ${delayedThresholdDays}+ days`, footerLabel: 'View Production',
-      onFooter: () => nav('/admin/production'),
-      renderItem: (o) => (
-        <div key={o.order_id} onClick={() => nav(`/admin/orders/${o.order_id}`)} style={ROW}>
-          <div style={{ minWidth: 0 }}>
-            <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Order #{o.order_id} — {o.customer_name}</p>
-            <p style={{ fontSize: 10, color: 'var(--text-faint)', margin: '2px 0 0', textTransform: 'capitalize' }}>{o.stage} · {o.qty_completed}/{o.qty_target} pcs</p>
-          </div>
-          <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--warning)', margin: 0, flexShrink: 0 }}>{o.days_stalled}d stalled</p>
-        </div>
-      ),
-    },
-    {
-      title: 'RFQs Awaiting Response', color: T, items: rfqsPending, loading: rfqLoading,
-      emptyLabel: 'No RFQs waiting on a supplier', footerLabel: 'View Procurement',
-      onFooter: () => nav('/admin/procurement'),
-      renderItem: (r) => (
-        <div key={r.rfq_id} onClick={() => nav('/admin/procurement')} style={ROW}>
-          <div style={{ minWidth: 0 }}>
-            <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.material_name}</p>
-            <p style={{ fontSize: 10, color: 'var(--text-faint)', margin: '2px 0 0' }}>{r.qty_needed} {r.unit}</p>
-          </div>
-          <p style={{ fontSize: 10, color: 'var(--text-faint)', margin: 0, flexShrink: 0 }}>{r.needed_by_date ? new Date(r.needed_by_date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) : 'No deadline'}</p>
-        </div>
-      ),
-    },
-    {
-      title: 'Upcoming Deliveries', color: T, items: deliveries, loading: delivLoading,
-      emptyLabel: 'No deliveries in progress', footerLabel: 'View Delivery Tracking',
-      onFooter: () => nav('/admin/delivery'),
-      renderItem: (d) => (
-        <div key={d.tracking_id} onClick={() => nav('/admin/delivery')} style={ROW}>
-          <div style={{ minWidth: 0 }}>
-            <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.customer_name ?? '—'} · {d.garment_type ?? '—'}</p>
-            <p style={{ fontSize: 10, color: 'var(--text-faint)', margin: '2px 0 0', textTransform: 'capitalize' }}>{d.delivery_status?.replace('_', ' ')}</p>
-          </div>
-          <p style={{ fontSize: 10, color: 'var(--text-faint)', margin: 0, flexShrink: 0 }}>{d.estimated_delivery_date ? new Date(d.estimated_delivery_date).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) : '—'}</p>
-        </div>
-      ),
-    },
+  const attention = [
+    { title: 'Orders Needing Action', color: T, items: pendingRaw ?? [], loading: poLoading, empty: 'No pending orders — all caught up', footer: 'All pending', onFooter: () => nav('/admin/orders?status=pending'),
+      render: (x) => <ListRow key={x.order_id} onClick={() => nav(`/admin/orders/${x.order_id}`)} title={`#${x.order_id} · ${x.garment_type ?? '—'}`} sub={x.customer_name} right={fmtDate(x.created_at)} /> },
+    { title: 'Materials Running Low', color: 'var(--danger)', items: low, loading, empty: 'No materials below reorder threshold', footer: 'Inventory', onFooter: () => nav('/admin/inventory'),
+      render: (m) => <ListRow key={m.material_id} onClick={() => nav('/admin/inventory')} title={m.material_name} right={`${m.quantity_in_stock} ${m.unit}`} rightColor="var(--danger)" /> },
+    { title: 'Production Delays', color: 'var(--warning)', items: delayed, loading, empty: `No stages stalled ${delayDays}+ days`, footer: 'Production', onFooter: () => nav('/admin/production'),
+      render: (x) => <ListRow key={x.order_id} onClick={() => nav(`/admin/orders/${x.order_id}`)} title={`Order #${x.order_id} — ${x.customer_name}`} sub={`${x.stage} · ${x.qty_completed}/${x.qty_target} pcs`} right={`${x.days_stalled}d stalled`} rightColor="var(--warning)" /> },
+    { title: 'RFQs Awaiting Response', color: T, items: rfqRaw ?? [], loading: rfqLoading, empty: 'No RFQs waiting on a supplier', footer: 'Procurement', onFooter: () => nav('/admin/procurement'),
+      render: (r) => <ListRow key={r.rfq_id} onClick={() => nav('/admin/procurement')} title={r.material_name} sub={`${r.qty_needed} ${r.unit}`} right={r.needed_by_date ? fmtDate(r.needed_by_date) : 'No deadline'} /> },
+    { title: 'Upcoming Deliveries', color: T, items: delivRaw ?? [], loading: delivLoading, empty: 'No deliveries in progress', footer: 'Delivery', onFooter: () => nav('/admin/delivery'),
+      render: (d) => <ListRow key={d.tracking_id} onClick={() => nav('/admin/delivery')} title={`${d.customer_name ?? '—'} · ${d.garment_type ?? '—'}`} sub={d.delivery_status?.replace('_', ' ')} right={fmtDate(d.estimated_delivery_date)} /> },
   ];
-
-  const SPARK_KPIS = [
-    { key: 'revenue',       label: 'Revenue (Month)', value: `₱${Number(s.monthly_revenue).toLocaleString('en-PH')}`, color: T,        live: true },
-    { key: 'orders_total',  label: 'Total Orders',    value: s.total_orders,                                          color: T2,       live: true },
-    { key: 'in_production', label: 'In Production',   value: s.active_orders,                                         color: 'var(--purple)', live: false },
-    { key: 'stock_health_pct', label: 'Stock Health', value: `${s.stock_health_pct}%`,                                 color: '#d97706', live: true },
-  ];
-
-  const KPIS = [
-    { icon: 'materials',   label: 'Low Stock',       value: s.low_stock_count, sub: 'Needs reorder', path: '/admin/inventory' },
-    { icon: 'delivery',    label: 'In Transit',      value: s.pending_deliveries, sub: 'Dispatched', path: '/admin/delivery' },
-    { icon: 'physicalCount', label: 'Pending Count', value: s.unreconciled_counts, sub: 'Physical count', path: '/admin/physical-count' },
-  ];
-
 
   return (
     <>
       <style>{`
-        @keyframes sk { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
-        @keyframes countUp { from { opacity:0; transform:translateY(6px) scale(.92);} to { opacity:1; transform:translateY(0) scale(1);} }
-        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.45; } }
-        * { box-sizing: border-box; }
-        .adm-kpi-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; margin-bottom:22px; }
-        @media (max-width:767px) { .adm-kpi-grid { grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; } }
-        @media (min-width:2560px) { .adm-kpi-grid { grid-template-columns:repeat(6,1fr); } }
-        .adm-attn-list { display:flex; flex-direction:column; gap:10px; margin-bottom:18px; }
-        .adm-attn-summary { display:flex; justify-content:space-between; align-items:center; padding:12px 14px; cursor:pointer; list-style:none; user-select:none; }
-        .adm-attn-summary::-webkit-details-marker { display:none; }
-        .adm-attn:active .adm-attn-summary, .adm-attn-summary:active { background:var(--bg); }
-        .adm-attn[open] .adm-attn-chev { transform:rotate(180deg); display:inline-block; transition:transform .15s; }
-        .adm-main-grid { display:grid; grid-template-columns:1fr 320px; gap:18px; align-items:start; }
-        @media (max-width:1023px) { .adm-main-grid { grid-template-columns:1fr; } }
-        .adm-kpi-val { animation:countUp .45s cubic-bezier(.34,1.56,.64,1) both; }
-        .adm-dash-hero { background:linear-gradient(135deg,var(--teal-dark),var(--teal),var(--teal-2)); border-radius:16px; padding:22px 26px; margin-bottom:16px; box-shadow:0 6px 24px rgba(2,128,144,.25); position:relative; overflow:hidden; }
-        @media (max-width:767px) { .adm-dash-hero { padding:16px 18px; border-radius:12px; } }
-        .adm-hero-stats { margin-top:16px; display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-        .adm-hero-stat { background:rgba(255,255,255,.15); border-radius:12px; padding:10px; text-align:center; backdrop-filter:blur(4px); }
-        .adm-quick-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
-        .adm-spark-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin-bottom:22px; }
-        @media (min-width:1024px) { .adm-spark-grid { grid-template-columns:repeat(4,minmax(0,1fr)); } }
-        .adm-tap:active { transform:scale(.96); }
-        .adm-table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+        @keyframes sk{0%{background-position:-400px 0}100%{background-position:400px 0}}
+        .adm-dash-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start;margin-bottom:16px}
+        .adm-dash-col{display:flex;flex-direction:column;gap:16px;min-width:0}
+        .adm-dash-row{padding:10px 18px;border-bottom:1px solid var(--bg-surface);display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer;transition:background .12s}
+        .adm-dash-row:hover{background:var(--bg)}.adm-dash-row:last-child{border-bottom:none}
+        .adm-attn-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+        .adm-quick{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+        .adm-quick button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;min-height:76px;border-radius:12px;border:1px solid var(--border);background:var(--bg-card);font-size:11px;font-weight:700;color:var(--ink);cursor:pointer;transition:transform .12s,box-shadow .15s}
+        .adm-quick button:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}.adm-quick button:active{transform:scale(.96)}
+        .adm-recent-cards{display:none}
+        @media(max-width:1023px){.adm-dash-grid{grid-template-columns:1fr}}
+        @media(max-width:767px){.adm-recent-table{display:none}.adm-recent-cards{display:block}.adm-attn-grid{grid-template-columns:1fr}}
+        @media(prefers-reduced-motion:reduce){.adm-quick button{transition:none}}
       `}</style>
 
-      {/* ── Hero ── */}
-      <div className="adm-dash-hero">
-        <div style={{ position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,.05)' }} />
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, position: 'relative' }}>
-          <div>
-            <p style={{ color: 'rgba(255,255,255,.75)', fontSize: 13, marginBottom: 3 }}>{greet}, {user.name?.split(' ')[0] ?? 'Admin'} 👋</p>
-            <h1 style={{ fontSize: 22, fontWeight: 800, color: '#fff', margin: '0 0 4px' }}>{isManager ? 'Manager Dashboard' : 'Staff Dashboard'}</h1>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <p style={{ color: 'rgba(255,255,255,.7)', fontSize: 12, margin: 0 }}>
-                VFRB Enterprise · {new Date().toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-              </p>
-              {ageLbl && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10, padding: '2px 8px', borderRadius: 99, background: 'rgba(255,255,255,.15)', color: 'rgba(255,255,255,.7)' }} title="Auto-refreshes while this tab is active">
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: T2, animation: 'pulse 2s ease-in-out infinite' }} />
-                  Updated {ageLbl}
-                </span>
-              )}
-            </div>
-          </div>
+      <PageHeader title={isManager ? 'Manager Dashboard' : 'Staff Dashboard'}
+        sub={`${greet}, ${user.name?.split(' ')[0] ?? 'Admin'} · ${new Date().toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}${age ? ` · Updated ${age}` : ''}`}>
+        <button className="adm-btn" onClick={() => loadDashboard(true)} disabled={loading} aria-label="Refresh"><NavIcon name="refresh" size={14} color="currentColor" /> Refresh</button>
+        {isManager && <button className="adm-btn" onClick={fetchAI} disabled={aiLoading}>{aiLoading ? 'Analyzing…' : 'AI Summary'}</button>}
+        <button className="adm-btn primary" onClick={() => nav('/admin/orders')}>View Orders →</button>
+      </PageHeader>
 
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-            <motion.button whileTap={{ scale: 0.95 }} onClick={() => nav('/admin/orders')} className="adm-tap"
-              style={{ padding: '9px 18px', borderRadius: 10, border: '1px solid rgba(255,255,255,.3)', background: 'rgba(255,255,255,.2)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-              View Orders →
-            </motion.button>
+      {!loading && !data && <div style={{ marginBottom: 16 }}><ErrorBlock msg="Dashboard data is unavailable." onRetry={() => loadDashboard(true)} /></div>}
 
-            {isManager && (
-              <motion.button whileTap={{ scale: 0.95 }} onClick={fetchAI} disabled={aiLoading} className="adm-tap"
-                style={{ padding: '9px 18px', borderRadius: 10, border: '1px solid rgba(255,255,255,.3)', background: 'rgba(255,255,255,.15)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                {aiLoading ? '⏳ Analyzing…' : '🤖 AI Summary'}
-              </motion.button>
+      <StatGrid items={kpis} loading={loading} />
+
+      <div className="adm-dash-grid">
+        <div className="adm-dash-col">
+          <Panel title="Orders Overview" action={<PillTabs tabs={[{ key: 'orders', label: 'Orders' }, { key: 'revenue', label: 'Revenue' }]} value={chartTab} onChange={setChartTab} />} style={{ overflow: 'visible' }}>
+            {loading ? <div className="adm-sk" style={{ height: 220 }} /> : chartData.length < 2 ? <EmptyBlock>Not enough history yet to draw a trend.</EmptyBlock> : (
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={chartData} margin={{ left: -12, right: 6, top: 6 }}>
+                  <defs><linearGradient id="admTrend" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#028090" stopOpacity={0.28} /><stop offset="100%" stopColor="#028090" stopOpacity={0} /></linearGradient></defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                  <XAxis dataKey="m" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} width={48} tickFormatter={(v) => (chartTab === 'revenue' && v >= 1000 ? `${Math.round(v / 1000)}k` : v)} />
+                  <Tooltip formatter={(v) => (chartTab === 'revenue' ? peso(v) : v)} contentStyle={{ borderRadius: 10, border: '1px solid #e2e8f0', fontSize: 12 }} />
+                  <Area type="monotone" dataKey="v" stroke="#028090" strokeWidth={2.5} fill="url(#admTrend)" dot={{ r: 3, fill: '#028090' }} isAnimationActive={!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches} />
+                </AreaChart>
+              </ResponsiveContainer>
             )}
+          </Panel>
 
-            <motion.button whileTap={{ scale: 0.9 }} onClick={() => loadDashboard(true)} disabled={loading} title="Force refresh" className="adm-tap"
-              style={{ padding: '9px 12px', borderRadius: 10, border: '1px solid rgba(255,255,255,.2)', background: 'rgba(255,255,255,.1)', color: 'rgba(255,255,255,.75)', cursor: loading ? 'not-allowed' : 'pointer', display: 'flex' }}>
-              <NavIcon name="refresh" size={14} color="rgba(255,255,255,.75)" />
-            </motion.button>
-          </div>
+          <Panel flush title="Recent Orders" action={<button className="adm-link-btn" onClick={() => nav('/admin/orders')}>View all →</button>}>
+            {loading ? <SkeletonRows /> : recent.length === 0 ? <EmptyBlock>No orders yet.</EmptyBlock> : (
+              <>
+                <div className="adm-recent-table" style={{ overflowX: 'auto' }}>
+                  <table className="adm-table">
+                    <thead><tr>{['Order', 'Customer', 'Garment', 'Qty', 'Status', 'Date'].map((c) => <th key={c}>{c}</th>)}</tr></thead>
+                    <tbody>{recent.map((r) => (
+                      <tr key={r.order_id} onClick={() => nav(`/admin/orders/${r.order_id}`)} style={{ cursor: 'pointer' }}>
+                        <td style={{ fontWeight: 700 }}>#{r.order_id}</td>
+                        <td>{r.organization_name || r.customer_name}</td>
+                        <td>{r.garment_type ?? '—'}</td>
+                        <td>{r.quantity_ordered ?? '—'}</td>
+                        <td><StatusPill status={r.status} /></td>
+                        <td style={{ color: 'var(--text-subtle)' }}>{fmtDate(r.created_at, { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                      </tr>))}</tbody>
+                  </table>
+                </div>
+                <div className="adm-recent-cards">{recent.map((r) => (
+                  <ListRow key={r.order_id} onClick={() => nav(`/admin/orders/${r.order_id}`)} title={`#${r.order_id} · ${r.garment_type ?? '—'}`} sub={r.organization_name || r.customer_name} right={<StatusPill status={r.status} />} />))}
+                </div>
+              </>
+            )}
+          </Panel>
         </div>
 
-        {/* Real-data stat pills — mirrors the canonical mobile reference's 3-stat row */}
-        <div className="adm-hero-stats">
-          {[{ label: 'Active Orders', value: s.total_orders }, { label: 'In Production', value: s.active_orders }, { label: 'Low Stock', value: s.low_stock_count }].map((stat) => (
-            <div key={stat.label} className="adm-hero-stat">
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>{loading ? '—' : stat.value}</div>
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,.8)', marginTop: 2 }}>{stat.label}</div>
-            </div>
-          ))}
+        <div className="adm-dash-col">
+          <Panel title="Production Status">
+            {loading ? <div className="adm-sk" style={{ height: 180 }} /> : stageTotal === 0 ? <EmptyBlock>No orders in production stages.</EmptyBlock> : (
+              <>
+                <div style={{ position: 'relative', height: 170 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart><Pie data={stageData} dataKey="value" innerRadius={52} outerRadius={76} paddingAngle={2} stroke="none" isAnimationActive={!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches}>
+                      {stageData.map((s) => <Cell key={s.name} fill={s.color} />)}</Pie></PieChart>
+                  </ResponsiveContainer>
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                    <span style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)' }}>{stageTotal}</span>
+                    <span style={{ fontSize: 10, color: 'var(--text-subtle)' }}>in production</span>
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px', marginTop: 10 }}>
+                  {stageData.map((s) => <span key={s.name} style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: s.color }} />{s.name} <b style={{ marginLeft: 'auto', color: 'var(--ink)' }}>{s.value}</b></span>)}
+                </div>
+                {(data?.production?.delayed_count ?? 0) > 0 && <p style={{ fontSize: 11, color: 'var(--warning-text)', margin: '12px 0 0' }}>{data.production.delayed_count} stalled {delayDays}+ days</p>}
+              </>
+            )}
+          </Panel>
+
+          <Panel title="Quick Actions">
+            <div className="adm-quick">{quick.map((q) => { const { fg, bg } = navColor(q.path); return (
+              <button key={q.path} onClick={() => nav(q.path)}>
+                <span style={{ width: 34, height: 34, borderRadius: 10, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><NavIcon name={q.icon} size={17} color={fg} /></span>{q.l}
+              </button>); })}</div>
+          </Panel>
+
+          <Panel title="Recent Order Mix" action={<span className="adm-chip">last {recent.length}</span>}>
+            {loading ? <div className="adm-sk" style={{ height: 90 }} /> : mix.length === 0 ? <EmptyBlock>No orders yet.</EmptyBlock> : mix.map(([name, n]) => (
+              <div key={name} style={{ marginBottom: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}><span style={{ color: 'var(--ink)', fontWeight: 600 }}>{name}</span><span style={{ color: 'var(--text-subtle)' }}>{Math.round((n / recent.length) * 100)}%</span></div>
+                <div style={{ height: 6, borderRadius: 99, background: 'var(--bg-surface)' }}><div style={{ height: '100%', width: `${(n / recent.length) * 100}%`, borderRadius: 99, background: `linear-gradient(90deg,${T},${T2})`, transition: 'width .3s' }} /></div>
+              </div>))}
+          </Panel>
         </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '18px 0 12px' }}>
-        <h2 style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>KPI Overview</h2>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: T2, animation: 'pulse 2s ease-in-out infinite' }} />
-          <span style={{ fontSize: 11, fontWeight: 600, color: T }}>Live</span>
-        </span>
-      </div>
-      <div className="adm-spark-grid">
-        {SPARK_KPIS.map((k) => <SparkKPICard key={k.key} label={k.label} value={k.value} color={k.color} live={k.live} loading={loading} history={kpiHistory.map((h) => h[k.key])} />)}
-      </div>
+      <h2 className="adm-panel-title" style={{ margin: '4px 0 12px' }}>Needs Your Attention</h2>
+      <div className="adm-attn-grid" style={{ marginBottom: 16 }}>{attention.map((a) => <AttentionPanel key={a.title} {...a} />)}</div>
 
-      <h2 style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', margin: '0 0 12px' }}>Needs Your Attention</h2>
-      <div className="adm-attn-list">
-        {ATTENTION_SECTIONS.map((sec) => <AttentionSection key={sec.title} {...sec} />)}
-      </div>
+      <StatGrid items={snapshot} loading={loading} />
 
       {isManager && (aiText || aiLoading) && (
-        <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
-          style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderLeft: '4px solid var(--purple)', borderRadius: 14, padding: '16px 20px', marginBottom: 22, display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-          <div style={{ flexShrink: 0, width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,var(--purple),var(--status-segregation))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, boxShadow: '0 2px 8px rgba(124,58,237,.25)' }}>✦</div>
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-              <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--purple)', margin: 0, textTransform: 'uppercase', letterSpacing: '.08em' }}>Gemini AI Insight</p>
-              <span style={{ fontSize: 9, padding: '1px 7px', borderRadius: 99, background: 'rgba(124,58,237,.1)', color: 'var(--purple)', fontWeight: 700, border: '1px solid rgba(124,58,237,.2)' }}>Manager Only</span>
-            </div>
-            {aiLoading ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {[72, 88, 55].map((w, i) => <div key={i} style={{ ...SK_STYLE, height: 10, width: `${w}%`, background: 'linear-gradient(90deg,var(--purple-100) 25%,#ddd6fe 50%,var(--purple-100) 75%)' }} />)}
-              </div>
-            ) : (
-              <p style={{ fontSize: 13, color: '#4c1d95', lineHeight: 1.85, margin: 0, fontStyle: 'italic' }}>"{aiText}"</p>
-            )}
-          </div>
+        <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}
+          style={{ background: 'var(--purple-50)', border: '1px solid var(--purple-100)', borderLeft: '4px solid var(--purple)', borderRadius: 14, padding: '16px 20px', marginBottom: 22 }}>
+          <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--purple)', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '.08em' }}>Gemini AI Insight · Manager only</p>
+          {aiLoading ? <SkeletonRows rows={3} h={10} /> : <p style={{ fontSize: 13, color: '#4c1d95', lineHeight: 1.8, margin: 0 }}>{aiText}</p>}
         </motion.div>
       )}
-
-      <AnimatePresence>
-        {toast && <Toast key="toast" msg={toast.msg} type={toast.type} onDone={() => setToast(null)} />}
-      </AnimatePresence>
+      <AnimatePresence>{toast && <Toast key="toast" msg={toast.msg} type={toast.type} onDone={() => setToast(null)} />}</AnimatePresence>
     </>
   );
 }
