@@ -148,7 +148,7 @@ export default function BillingProfiles() {
     backgroundSize: '400px', animation: 'sk 1.4s infinite' };
 
   return (
-    <div style={{ width: '100%', maxWidth: 720, marginInline: 'auto' }}>
+    <div className="cx-page" style={{ maxWidth: 760 }}>
       <style>{`
         @keyframes sk{0%{background-position:-400px 0}100%{background-position:400px 0}}
         /* Row isn't fully clickable (only its edit/delete buttons are) — subtle border/shadow
@@ -157,14 +157,10 @@ export default function BillingProfiles() {
         .vfrb-row-card:hover { border-color: var(--teal); box-shadow: 0 2px 10px rgba(2,128,144,.08); }
       `}</style>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22, gap: 12, flexWrap: 'wrap' }}>
+      <div className="cx-head" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
         <div>
-          <h1 style={{ fontSize: 'clamp(18px,3vw,22px)', fontWeight: 800, color: 'var(--ink)', margin: '0 0 4px' }}>
-            Billing Profiles
-          </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>
-            Saved invoice-recipient details for your orders — not a payment method.
-          </p>
+          <h1>Billing Profiles</h1>
+          <p>Saved invoice-recipient details for your orders — not a payment method.</p>
         </div>
         {!editing && profiles.length > 0 && (
           <Button variant="primary" icon="add" onClick={() => setEditing({})}>New Profile</Button>

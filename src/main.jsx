@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import './main.css';            // Tailwind v4 + VFRB design tokens (@theme tokens)
 import './styles/theme.css';    // :root CSS variables — colors, typography, spacing
 import './styles/modals.css';   // Modal, overlay, shared utility classes
+import './styles/customer.css'; // Customer portal kit
 import './styles/responsive.css'; // Breakpoint overrides
 import App from './App.jsx';
 

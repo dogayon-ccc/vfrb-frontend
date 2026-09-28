@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import { Link } from 'react-router-dom';
 import { Card, Button, Field, Badge, NavIcon } from '../../components/ui';
 
 const CLIENT_TYPES = ['individual', 'school', 'corporate', 'medical', 'government', 'other'];
@@ -137,16 +138,15 @@ export default function CustomerProfile() {
         }
       `}</style>
 
-      <div style={{ width: '100%' }}>
+      <div className="cx-page" style={{ maxWidth: 1000 }}>
 
         {/* Page header */}
-        <div style={{ marginBottom: 22 }}>
-          <h1 style={{ fontSize: 'clamp(18px,3vw,22px)', fontWeight: 800, color: 'var(--ink)', margin: '0 0 4px' }}>
-            Profile
-          </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>
-            Manage your account information and security settings.
-          </p>
+        <div className="cx-head">
+          <div>
+            <h1>Personal Information</h1>
+            <p>Manage your account details and password.</p>
+          </div>
+          <Link to="/settings" className="cx-btn cx-btn-s">← Account Settings</Link>
         </div>
 
         <div className="profile-grid">

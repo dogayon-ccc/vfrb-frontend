@@ -1,7 +1,16 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import InlineColorPicker from '../../../components/InlineColorPicker';
-import { T2, secLabel, ZONE_LABEL, PH_SWATCHES, zonesFor } from './dsShared';
+import { NavIcon } from '../../../components/ui/icons';
+import { T, T2, secLabel, ZONE_LABEL, PH_SWATCHES, zonesFor } from './dsShared';
+
+// Black check on light swatches, white on dark, so the selected tick is always visible.
+function isLight(hex) {
+  const h = (hex || '').replace('#', '');
+  if (h.length !== 6) return false;
+  const [r, g, b] = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16));
+  return (0.299 * r + 0.587 * g + 0.114 * b) > 170;
+}
 
 export default function ColorsPanel({ cfg, setCfg, activeZone, setActiveZone }) {
   const setColor = (zone, c) => setCfg(p => ({ ...p, colors:{ ...p.colors, [zone]:c } }));
@@ -11,6 +20,13 @@ export default function ColorsPanel({ cfg, setCfg, activeZone, setActiveZone }) 
     <div style={{ overflowY:'auto', flex:1, padding:'8px 10px 16px' }}>
       {!cfg.garment && (
         <p className="ds-note" style={{ marginBottom:8 }}>Pick a garment in the Type tab to color its collar, sleeves and pocket.</p>
+      )}
+      {cfg.garment && (
+        <div className="ds-zone-now">
+          <span className="ds-zone-dot" style={{ background: cfg.colors[activeZone] ?? '#028090' }}/>
+          <span>Editing <b>{ZONE_LABEL[activeZone] ?? activeZone}</b></span>
+          <code>{(cfg.colors[activeZone] ?? '').toUpperCase()}</code>
+        </div>
       )}
       <p style={secLabel}>Color Zone</p>
       <div style={{ display:'flex', gap:4, marginBottom:12, flexWrap:'wrap' }}>
@@ -45,16 +61,27 @@ export default function ColorsPanel({ cfg, setCfg, activeZone, setActiveZone }) 
         <>
           <p style={secLabel}>Philippine Colors</p>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(34px,1fr))', gap:6, marginBottom:12 }}>
-            {PH_SWATCHES.map(sw => (
-              <motion.button key={sw.hex} type="button" className="ds-touch" title={sw.name} aria-label={sw.name}
-                whileHover={{ scale:1.15 }} whileTap={{ scale:0.95 }}
-                onClick={() => setColor(activeZone, sw.hex)}
-                style={{
-                  height:30, minWidth:0, borderRadius:6, cursor:'pointer', border:'none', background: sw.hex,
-                  outline: (cfg.colors[activeZone]??'').toLowerCase()===sw.hex.toLowerCase()
-                    ? '3px solid rgba(15,23,42,.9)' : '2px solid rgba(15,23,42,.08)',
-                }}/>
-            ))}
+            {PH_SWATCHES.map(sw => {
+              const on = (cfg.colors[activeZone]??'').toLowerCase()===sw.hex.toLowerCase();
+              const light = isLight(sw.hex);
+              return (
+                <motion.button key={sw.hex} type="button" className="ds-touch" title={sw.name} aria-label={sw.name} aria-pressed={on}
+                  whileHover={{ scale:1.1 }} whileTap={{ scale:0.94 }} transition={{ duration:.12 }}
+                  onClick={() => setColor(activeZone, sw.hex)}
+                  style={{
+                    position:'relative', height:34, minWidth:0, borderRadius:8, cursor:'pointer', border:'none', background: sw.hex,
+                    boxShadow: on ? `0 0 0 2px #fff, 0 0 0 4px ${T}` : 'inset 0 0 0 1px rgba(15,23,42,.14)',
+                    transition:'box-shadow .14s',
+                  }}>
+                  {on && (
+                    <motion.span initial={{ scale:0 }} animate={{ scale:1 }} transition={{ type:'spring', stiffness:520, damping:26 }}
+                      style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                      <NavIcon name="success" size={15} color={light ? '#0f172a' : '#fff'}/>
+                    </motion.span>
+                  )}
+                </motion.button>
+              );
+            })}
           </div>
 
           <p style={secLabel}>Custom Color</p>

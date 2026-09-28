@@ -17,200 +17,106 @@ import axios from 'axios';
 import EmptyState from '../../components/EmptyState';
 import { NavIcon } from '../../components/ui/icons';
 import { MiniPreview } from './design-studio/InspoGallery';
+import { PageHeader, Chips, Skeleton, reltime, fmtDate } from '../../components/customer/kit';
 
-const T    = 'var(--teal)';
-const T2   = 'var(--teal-2)';
-const TEAL_HEX = '#028090'; // same brand teal as --teal, but a literal hex: `${T}30` (T='var(--teal)') is invalid CSS and drops the border silently, a pre-existing pattern also present in Dashboard.jsx's own btn() helper.
-const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif`;
-const CARD = { background:'var(--bg-card)', borderRadius:14, border:'1.5px solid var(--border)', boxShadow:'var(--shadow-xs)' };
-
-function reltime(ts) {
-  if (!ts) return '';
-  const s = (Date.now() - new Date(ts).getTime()) / 1000;
-  if (s < 60) return 'just now';
-  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
-  return new Date(ts).toLocaleDateString(undefined, { month:'short', day:'numeric' });
-}
-
-function CurrentDesignCard({ draft, onContinue, onOrder }) {
-  const cfg = draft.studio_config ?? {};
+function DesignCard({ img, garment, colors, title, meta, badge, tone, primary, secondary, i }) {
   return (
-    <motion.div initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
-      style={{ ...CARD, padding:16, display:'flex', gap:14, alignItems:'center' }}>
-      <div style={{ width:64, height:78, borderRadius:10, background:'#f8fafc', border:'1px solid #e2e8f0',
-        display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, overflow:'hidden' }}>
-        {draft.preview_dataurl
-          ? <img src={draft.preview_dataurl} alt="" style={{ width:'100%', height:'100%', objectFit:'contain' }}/>
-          : <MiniPreview garment={cfg.garment} colors={cfg.colors ?? {}}/>}
+    <motion.article initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 8) * 0.04 }}
+      whileHover={{ y: -3 }} className="cx-card" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ position: 'relative', aspectRatio: '1/1', background: 'linear-gradient(160deg,var(--bg-surface),var(--bg-card))',
+        display: 'grid', placeItems: 'center', overflow: 'hidden' }}>
+        {img ? <img src={img} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          : <div style={{ transform: 'scale(2.3)', lineHeight: 0 }}><MiniPreview garment={garment} colors={colors ?? {}} /></div>}
+        <span className="cx-pill" style={{ position: 'absolute', top: 10, left: 10, background: tone.bg, color: tone.fg }}>{badge}</span>
       </div>
-      <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:3 }}>
-          <p style={{ fontSize:10, fontWeight:800, color:T, textTransform:'uppercase', letterSpacing:'.06em', margin:0, fontFamily:FONT }}>
-            Continue where you left off
-          </p>
-          <span style={{ fontSize:9.5, fontWeight:700, padding:'2px 8px', borderRadius:20, background:'#fef3c7', color:'#b45309', fontFamily:FONT }}>Draft</span>
+      <div style={{ padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+        <div style={{ minWidth: 0 }}>
+          <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</h3>
+          <p style={{ margin: '3px 0 0', fontSize: 11, color: 'var(--text-subtle)' }}>{meta}</p>
         </div>
-        <h3 style={{ fontSize:15, fontWeight:800, color:'#0f172a', margin:'0 0 3px', fontFamily:FONT }}>
-          {draft.label || cfg.garment || 'Untitled design'}
-        </h3>
-        <p style={{ fontSize:11.5, color:'#64748b', margin:0, fontFamily:FONT }}>
-          {cfg.category ?? 'Design'} · updated {reltime(draft.updated_at)}
-        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 'auto' }}>
+          {primary && <button className="cx-btn cx-btn-p" style={{ minHeight: 40, padding: '0 10px', width: '100%' }} onClick={primary.onClick} disabled={primary.disabled}>{primary.label}</button>}
+          {secondary && <button className="cx-btn cx-btn-s" style={{ minHeight: 40, padding: '0 10px', width: '100%' }} onClick={secondary.onClick} disabled={secondary.disabled}>{secondary.label}</button>}
+        </div>
       </div>
-      <div style={{ display:'flex', flexDirection:'column', gap:8, flexShrink:0 }}>
-        <button onClick={onContinue} style={{ padding:'9px 16px', borderRadius:10, border:'none', cursor:'pointer',
-          background:`linear-gradient(135deg,${T},${T2})`, color:'#fff', fontWeight:700, fontSize:12, fontFamily:FONT, whiteSpace:'nowrap' }}>
-          Continue editing
-        </button>
-        <button onClick={onOrder} style={{ padding:'8px 16px', borderRadius:10, border:`1.5px solid ${TEAL_HEX}30`, cursor:'pointer',
-          background:'#fff', color:T, fontWeight:700, fontSize:11.5, fontFamily:FONT }}>
-          Order this design
-        </button>
-      </div>
-    </motion.div>
+    </motion.article>
   );
 }
 
-function PastDesignCard({ design, onOrderAgain, i }) {
-  const cfg = design.config ?? {};
-  return (
-    <motion.div initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} transition={{ delay: Math.min(i, 6) * 0.04 }}
-      style={{ ...CARD, padding:14, display:'flex', flexDirection:'column', gap:10 }}>
-      <div style={{ width:'100%', aspectRatio:'4/3', borderRadius:10, background:'#f8fafc', border:'1px solid #f1f5f9',
-        display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
-        {design.photo_path
-          ? <img src={design.photo_path} alt="" style={{ width:'100%', height:'100%', objectFit:'contain' }}/>
-          : <MiniPreview garment={design.garment} colors={cfg.colors ?? {}}/>}
-      </div>
-      <div>
-        <h4 style={{ fontSize:13, fontWeight:700, color:'#0f172a', margin:'0 0 2px', fontFamily:FONT,
-          whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-          {design.label || design.garment || 'Design'}
-        </h4>
-        <p style={{ fontSize:11, color:'#94a3b8', margin:0, fontFamily:FONT }}>
-          {[design.category, design.sleeve].filter(Boolean).join(' · ')}
-        </p>
-      </div>
-      <div style={{ display:'flex', gap:6 }}>
-        <span style={{ fontSize:10, fontWeight:700, padding:'3px 8px', borderRadius:20, background:'#f0fdfa', color:'#0f766e' }}>Ordered</span>
-      </div>
-      <button onClick={() => onOrderAgain(design)} disabled={!cfg.garment}
-        style={{ padding:'8px 12px', borderRadius:9, border:`1.5px solid ${TEAL_HEX}30`, cursor: cfg.garment ? 'pointer' : 'not-allowed',
-          opacity: cfg.garment ? 1 : .5, background:'#fff', color:T, fontWeight:700, fontSize:11.5, fontFamily:FONT }}>
-        Order again
-      </button>
-    </motion.div>
-  );
-}
+const DRAFT = { bg: '#fef3c7', fg: '#b45309' };
+const ORDERED = { bg: '#dcfce7', fg: '#15803d' };
 
 export default function MyDesigns() {
   const nav = useNavigate();
-  const [draft, setDraft]   = useState(null);
-  const [past,  setPast]    = useState([]);
+  const [draft, setDraft] = useState(null);
+  const [past, setPast] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [tab, setTab] = useState('all');
 
-  useEffect(() => {
-    let alive = true;
-    Promise.allSettled([
-      axios.get('/api/customer/drafts/latest'),
-      axios.get('/api/customer/designs'),
-    ]).then(([d, p]) => {
-      if (!alive) return;
-      if (d.status === 'fulfilled' && d.value.data?.draft?.studio_config?.garment) setDraft(d.value.data.draft);
-      if (p.status === 'fulfilled') setPast(p.value.data.filter(x => x.is_archived && x.config?.garment));
+  const load = () => {
+    setLoading(true); setError(false);
+    Promise.allSettled([axios.get('/api/customer/drafts/latest'), axios.get('/api/customer/designs')]).then(([d, p]) => {
+      if (d.status === 'fulfilled' && d.value.data?.draft?.studio_config?.garment) setDraft(d.value.data.draft); else setDraft(null);
+      if (p.status === 'fulfilled') setPast((p.value.data ?? []).filter(x => x.is_archived && x.config?.garment));
+      if (d.status === 'rejected' && p.status === 'rejected') setError(true);
       setLoading(false);
     });
-    return () => { alive = false; };
-  }, []);
+  };
+  useEffect(load, []);
 
   const openStudioBlank = () => { sessionStorage.removeItem('studio_config'); nav('/design-studio'); };
-  const continueDraft   = () => { sessionStorage.removeItem('studio_config'); nav('/design-studio'); }; // Studio's own draft-restore offer picks this up
-  const orderDraft      = () => { sessionStorage.setItem('studio_config', JSON.stringify(draft.studio_config)); nav('/order/create'); };
-  const orderAgain      = (design) => { sessionStorage.setItem('studio_config', JSON.stringify(design.config)); nav('/design-studio'); };
+  const continueDraft = () => { sessionStorage.removeItem('studio_config'); nav('/design-studio'); };
+  const orderDraft = () => { sessionStorage.setItem('studio_config', JSON.stringify(draft.studio_config)); nav('/order/create'); };
+  const orderAgain = (d) => { sessionStorage.setItem('studio_config', JSON.stringify(d.config)); nav('/design-studio'); };
 
-  const nothingYet  = !loading && !draft && past.length === 0;
-  const draftCount  = draft ? 1 : 0;
-  const orderedCount = past.length;
-  const totalCount  = draftCount + orderedCount;
-
-  const TABS = [
-    { id:'all',     label:'All',     count:totalCount },
-    { id:'draft',   label:'Draft',   count:draftCount },
-    { id:'ordered', label:'Ordered', count:orderedCount },
-  ];
+  const nDraft = draft ? 1 : 0, nOrdered = past.length, total = nDraft + nOrdered;
   const showDraft = draft && (tab === 'all' || tab === 'draft');
-  const showPast  = tab === 'all' || tab === 'ordered';
-  const tabHasNothing = !loading && !nothingYet &&
-    ((tab === 'draft' && !draft) || (tab === 'ordered' && past.length === 0));
+  const showPast = tab === 'all' || tab === 'ordered';
+  const empty = !loading && !error && total === 0;
+  const tabEmpty = !loading && !error && total > 0 && ((tab === 'draft' && !draft) || (tab === 'ordered' && !nOrdered));
+  const cfg = draft?.studio_config ?? {};
 
   return (
-    <div style={{ maxWidth:1040, margin:'0 auto', padding:'4px 2px 40px', fontFamily:FONT }}>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18, flexWrap:'wrap', gap:10 }}>
-        <div>
-          <h1 style={{ fontSize:20, fontWeight:800, color:'#0f172a', margin:'0 0 2px' }}>My Designs</h1>
-          <p style={{ fontSize:12.5, color:'#64748b', margin:0 }}>Your work in progress and past designs.</p>
-        </div>
-        <button onClick={openStudioBlank} style={{ padding:'10px 18px', borderRadius:10, border:'none', cursor:'pointer',
-          background:`linear-gradient(135deg,${T},${T2})`, color:'#fff', fontWeight:700, fontSize:12.5,
-          display:'inline-flex', alignItems:'center', gap:7, boxShadow:`0 3px 12px ${T}35` }}>
-          <NavIcon name="designStudio" size={15}/> New design
-        </button>
-      </div>
+    <div className="cx-page">
+      <PageHeader title="My Designs" subtitle={total ? `${total} design${total !== 1 ? 's' : ''} · draft and ordered` : 'Your work in progress and past designs'}>
+        <button className="cx-btn cx-btn-p" onClick={openStudioBlank}><NavIcon name="designStudio" size={15} color="#fff" /> New Design</button>
+      </PageHeader>
 
-      {!loading && !nothingYet && (
-        <div role="tablist" aria-label="Filter designs" style={{ display:'flex', gap:6, marginBottom:18 }}>
-          {TABS.map(t => {
-            const act = tab === t.id;
-            return (
-              <button key={t.id} role="tab" aria-selected={act} onClick={() => setTab(t.id)}
-                style={{ padding:'7px 14px', borderRadius:9, border:`1px solid ${act ? `${TEAL_HEX}40` : '#e2e8f0'}`,
-                  background: act ? '#f0fdfa' : '#fff', color: act ? T : '#64748b',
-                  fontSize:12, fontWeight: act ? 700 : 500, cursor:'pointer', fontFamily:FONT, transition:'all .14s' }}>
-                {t.label} <span style={{ marginLeft:4, fontSize:10, opacity:.7 }}>({t.count})</span>
-              </button>
-            );
-          })}
+      {!loading && !error && total > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <Chips label="Filter designs" value={tab} onChange={setTab}
+            items={[{ id: 'all', label: 'All', count: total }, { id: 'draft', label: 'Draft', count: nDraft }, { id: 'ordered', label: 'Ordered', count: nOrdered }]} />
         </div>
       )}
 
       {loading && (
-        <div style={{ ...CARD, padding:16, height:96, background:'linear-gradient(90deg,#f8fafc 25%,#f1f5f9 50%,#f8fafc 75%)',
-          backgroundSize:'400px', animation:'sk 1.4s infinite' }}/>
+        <div className="cx-dgrid">{[1, 2, 3].map(i => <div key={i} className="cx-card" style={{ overflow: 'hidden' }}><Skeleton h={200} style={{ borderRadius: 0 }} /><div style={{ padding: 14 }}><Skeleton h={14} w="60%" /><Skeleton h={40} style={{ marginTop: 14 }} /></div></div>)}</div>
       )}
 
-      {showDraft && (
-        <div style={{ marginBottom:24 }}>
-          <CurrentDesignCard draft={draft} onContinue={continueDraft} onOrder={orderDraft}/>
+      {error && <EmptyState illustration="error" headline="Couldn't load your designs" sub="Check your connection and try again." cta={{ label: 'Retry', onClick: load }} />}
+      {empty && <EmptyState illustration="order" headline="No designs yet" sub="Open the Design Studio to create your first custom uniform." cta={{ label: 'Open Design Studio', onClick: openStudioBlank }} />}
+      {tabEmpty && <EmptyState illustration="order" headline={tab === 'draft' ? 'No draft in progress' : 'No ordered designs yet'}
+        sub={tab === 'draft' ? 'Start a new design in the Design Studio.' : 'Designs you order will show up here.'} cta={{ label: 'Open Design Studio', onClick: openStudioBlank }} />}
+
+      {!loading && !error && total > 0 && (
+        <div className="cx-dgrid">
+          {showDraft && (
+            <DesignCard i={0} img={draft.preview_dataurl} garment={cfg.garment} colors={cfg.colors}
+              title={draft.label || cfg.garment || 'Untitled design'} meta={`${cfg.category ?? 'Design'} · edited ${reltime(draft.updated_at)}`}
+              badge="Draft" tone={DRAFT} primary={{ label: 'Continue editing', onClick: continueDraft }} secondary={{ label: 'Order this', onClick: orderDraft }} />
+          )}
+          {showPast && past.map((d, i) => (
+            <DesignCard key={d.id} i={i + 1} img={d.photo_path} garment={d.garment} colors={d.config?.colors}
+              title={d.label || d.garment || 'Design'} meta={[d.category, d.sleeve].filter(Boolean).join(' · ') || fmtDate(d.updated_at ?? d.created_at)}
+              badge="Ordered" tone={ORDERED} primary={{ label: 'Order again', onClick: () => orderAgain(d), disabled: !d.config?.garment }} />
+          ))}
         </div>
       )}
-
-      {!loading && nothingYet && (
-        <EmptyState illustration="order" headline="No designs yet"
-          sub="Open the Design Studio to create your first custom uniform."
-          cta={{ label:'Open Design Studio', onClick: openStudioBlank }}/>
-      )}
-
-      {tabHasNothing && (
-        <EmptyState illustration="order"
-          headline={tab === 'draft' ? 'No draft in progress' : 'No ordered designs yet'}
-          sub={tab === 'draft' ? 'Start a new design in the Design Studio.' : 'Designs you order will show up here.'}
-          cta={{ label:'Open Design Studio', onClick: openStudioBlank }}/>
-      )}
-
-      {showPast && !loading && past.length > 0 && (
-        <>
-          <h2 style={{ fontSize:13, fontWeight:800, color:'#334155', textTransform:'uppercase', letterSpacing:'.04em', margin:'0 0 12px' }}>
-            Past designs
-          </h2>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))', gap:14 }}>
-            {past.map((d, i) => <PastDesignCard key={d.id} design={d} onOrderAgain={orderAgain} i={i}/>)}
-          </div>
-        </>
-      )}
-
-      <style>{`@keyframes sk{0%{background-position:-400px 0}100%{background-position:400px 0}}`}</style>
+      <style>{`.cx-dgrid{display:grid;gap:14px;grid-template-columns:repeat(2,minmax(0,1fr))}
+        @media(min-width:768px){.cx-dgrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}}
+        @media(min-width:1100px){.cx-dgrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+        @media(max-width:339px){.cx-dgrid{grid-template-columns:1fr}}`}</style>
     </div>
   );
 }

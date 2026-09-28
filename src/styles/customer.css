@@ -1,0 +1,63 @@
+/* Customer portal kit — wireframe-driven. Uses existing theme.css tokens only. */
+.cx-page{width:100%;max-width:1200px;margin-inline:auto;padding-bottom:40px;color:var(--ink);overflow-x:hidden}
+.cx-head{display:flex;flex-direction:column;gap:12px;margin-bottom:18px}
+.cx-head h1{font-size:clamp(20px,3vw,26px);font-weight:800;margin:0 0 3px;letter-spacing:-.01em}
+.cx-head p{font-size:13px;color:var(--text-muted);margin:0}
+@media(min-width:640px){.cx-head{flex-direction:row;align-items:center;justify-content:space-between}}
+.cx-card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-xs)}
+.cx-card-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border)}
+.cx-card-h h2{font-size:14px;font-weight:800;margin:0}
+.cx-link{font-size:12px;font-weight:700;color:var(--teal);text-decoration:none;background:none;border:none;cursor:pointer;padding:6px 4px;min-height:32px}
+.cx-link:hover{text-decoration:underline}
+.cx-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:44px;padding:0 18px;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;border:1px solid transparent;transition:transform .15s,box-shadow .15s,background .15s;white-space:nowrap;text-decoration:none}
+.cx-btn:active{transform:scale(.97)}
+.cx-btn-p{background:linear-gradient(135deg,var(--teal),var(--teal-2));color:#fff;box-shadow:var(--shadow-teal)}
+.cx-btn-p:hover{box-shadow:var(--shadow-teal-lg)}
+.cx-btn-s{background:var(--bg-card);color:var(--teal);border-color:var(--border)}
+.cx-btn-s:hover{border-color:var(--teal);background:var(--teal-50)}
+.cx-btn:focus-visible,.cx-row:focus-visible,.cx-chip:focus-visible{outline:2.5px solid var(--teal);outline-offset:2px}
+.cx-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap}
+.cx-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.cx-chips::-webkit-scrollbar{display:none}
+.cx-chip{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 14px;border-radius:99px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-muted);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s}
+.cx-chip[aria-pressed=true]{background:var(--teal);border-color:var(--teal);color:#fff}
+.cx-chip small{font-size:10px;opacity:.75}
+.cx-kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:900px){.cx-kpis{grid-template-columns:repeat(4,1fr);gap:14px}}
+.cx-kpi{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-xs);text-decoration:none;color:inherit;transition:transform .15s,box-shadow .15s}
+a.cx-kpi:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.cx-kpi-i{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;flex-shrink:0}
+.cx-kpi b{display:block;font-size:22px;line-height:1;font-weight:800}
+.cx-kpi span{font-size:11px;color:var(--text-subtle);font-weight:600}
+.cx-sk{border-radius:8px;background:linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%);background-size:400px;animation:cx-sk 1.4s infinite}
+@keyframes cx-sk{0%{background-position:-400px 0}100%{background-position:400px 0}}
+.cx-thumb{display:grid;place-items:center;border-radius:12px;background:var(--bg-surface);border:1px solid var(--border);overflow:hidden;flex-shrink:0}
+.cx-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;background:none;border-left:0;border-right:0;border-top:0;width:100%;text-align:left;font:inherit;color:inherit;transition:background .15s}
+.cx-row:last-child{border-bottom:0}
+.cx-row:hover{background:var(--bg-surface)}
+.cx-toast{position:fixed;left:16px;right:16px;bottom:calc(var(--taskbar-h,64px) + 14px);max-width:360px;margin-inline:auto;z-index:9999;padding:12px 18px;border-radius:12px;color:#fff;font-size:13px;font-weight:600;box-shadow:var(--shadow-lg)}
+@media(min-width:768px){.cx-toast{bottom:24px}}
+.cx-hero{position:relative;overflow:hidden;border-radius:20px;color:#fff;padding:22px 20px;background:linear-gradient(120deg,var(--teal-darker) 0%,var(--teal) 60%,var(--teal-2) 130%)}
+.cx-hero h1{font-size:clamp(22px,4vw,32px);font-weight:800;margin:0 0 6px;line-height:1.15}
+.cx-hero p{font-size:13px;opacity:.85;margin:0 0 16px;max-width:420px}
+@media(min-width:768px){.cx-hero{padding:30px 32px}}
+.cx-stepper{display:flex;align-items:flex-start;width:100%}
+.cx-step{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;text-align:center;font-size:11px;font-weight:600;color:var(--text-faint);min-width:0}
+.cx-step i{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--bg-surface);border:2px solid var(--border);font-style:normal;font-size:12px;font-weight:800;z-index:1;transition:all .3s}
+.cx-step::before{content:"";position:absolute;top:13px;right:50%;width:100%;height:2px;background:var(--border)}
+.cx-step:first-child::before{display:none}
+.cx-step[data-s=done] i{background:var(--teal);border-color:var(--teal);color:#fff}
+.cx-step span{font-size:10px;line-height:1.2;padding:0 1px;overflow-wrap:anywhere}
+@media(min-width:520px){.cx-step span{font-size:11px}}
+.cx-step[data-s=done]::before,.cx-step[data-s=now]::before{background:var(--teal)}
+.cx-step[data-s=now] i{background:#fff;border-color:var(--teal);color:var(--teal);box-shadow:0 0 0 4px rgba(2,128,144,.15)}
+.cx-step[data-s=done],.cx-step[data-s=now]{color:var(--ink)}
+.cx-tbl{width:100%;border-collapse:collapse}
+.cx-tbl th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);font-weight:700;text-align:left;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--bg-surface)}
+.cx-tbl td{padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+.cx-tbl tbody tr{cursor:pointer;transition:background .15s}
+.cx-tbl tbody tr:hover{background:var(--bg-surface)}
+.cx-tbl tbody tr:focus-visible{outline:2.5px solid var(--teal);outline-offset:-2px}
+.cx-only-d{display:none}.cx-only-m{display:block}
+@media(min-width:900px){.cx-only-d{display:block}.cx-only-m{display:none}}
+@media(prefers-reduced-motion:reduce){.cx-page *{animation-duration:.01ms!important;transition-duration:.01ms!important}}

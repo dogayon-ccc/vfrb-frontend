@@ -20,6 +20,7 @@ import axios                                 from 'axios';
 import { cacheGet, cacheSet, cacheClear }    from '../../utils/cache';
 import { getStorageUrl, isImageFile }        from '../../utils/fileUrl';
 import { NavIcon }                           from '../../components/ui/icons';
+import { OrderThumb, Stepper, LIFECYCLE, lifecycleIndex, orderTitle, fmtDate } from '../../components/customer/kit';
 
 const GarmentPreview3D = lazy(() => import('../../components/GarmentPreview3D'));
 
@@ -351,7 +352,7 @@ export default function CustomerOrderDetail() {
   if (loading) return (
     <>
       <style>{`@keyframes sk{0%{background-position:-400px 0}100%{background-position:400px 0}}`}</style>
-      <div style={{ maxWidth:780, margin:'0 auto' }}>
+      <div className="cx-page" style={{ maxWidth:860 }}>
         <div style={{ ...SK, height:22, width:'50%', marginBottom:10 }}/>
         <div style={{ ...SK, height:10, width:'35%', marginBottom:24 }}/>
         <div style={{ ...SK, height:7, marginBottom:20 }}/>
@@ -486,6 +487,25 @@ export default function CustomerOrderDetail() {
             </span>
           </div>
         </div>
+
+        {/* ── Lifecycle summary (customer-facing 5 steps derived from real status) ── */}
+        {status !== 'cancelled' && (
+          <div className="od-card">
+            <div className="od-card-body" style={{ display:'flex', flexDirection:'column', gap:16 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:14 }}>
+                <OrderThumb order={order} size={64}/>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <p style={{ margin:0, fontSize:15, fontWeight:800, color:'var(--ink)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{orderTitle(order)}</p>
+                  <p style={{ margin:'3px 0 0', fontSize:12, color:'var(--text-subtle)' }}>
+                    {order.quantity_ordered ?? 0} pcs{order.target_delivery_date ? ` · Due ${fmtDate(order.target_delivery_date)}` : ''}
+                  </p>
+                </div>
+                <button className="cx-btn cx-btn-s" style={{ minHeight:40 }} onClick={() => nav('/messages')}>Messages</button>
+              </div>
+              <Stepper steps={LIFECYCLE} current={lifecycleIndex(status)}/>
+            </div>
+          </div>
+        )}
 
         {/* ── Swatch bar ────────────────────────────────────────────────── */}
         <div style={{ borderRadius:12, overflow:'hidden', marginBottom:14 }}>

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import EmptyState from '../../components/EmptyState';
+import { PageHeader, StatusPill, OrderThumb, Skeleton } from '../../components/customer/kit';
 
 const T = 'var(--teal)', T2 = '#02C39A';
 const FONT = "ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif";
@@ -30,24 +31,20 @@ function Avatar({ size = 28, mb = 0 }) {
 function ThreadRow({ order, active, onClick }) {
   const last = order._lastMsg;
   return (
-    <button onClick={onClick} style={{
-      display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left',
-      padding: '12px 14px', borderRadius: 14, border: 'none', cursor: 'pointer', fontFamily: FONT,
-      background: active ? 'rgba(2,128,144,.06)' : '#fff',
-    }}>
-      <Avatar size={44}/>
+    <button onClick={onClick} aria-current={active ? 'true' : undefined} className="cx-row"
+      style={{ borderRadius: 12, borderBottom: 0, background: active ? 'var(--teal-50)' : 'transparent', padding: '10px 12px' }}>
+      <OrderThumb order={order} size={44} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-          <p style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', margin: 0,
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            Order #{order.order_id} — {title(order)}
+          <p style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            Order #{order.order_id}
           </p>
-          {last && <span style={{ fontSize: 10, color: '#94a3b8', flexShrink: 0 }}>{timeOf(last)}</span>}
+          {last && <span style={{ fontSize: 10, color: 'var(--text-faint)', flexShrink: 0 }}>{timeOf(last)}</span>}
         </div>
-        <p style={{ fontSize: 12, color: '#64748b', margin: '2px 0 0',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {last?.body ?? `Status: ${order.status}`}
+        <p style={{ fontSize: 12, color: 'var(--text-subtle)', margin: '2px 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {last?.body ?? title(order)}
         </p>
+        <StatusPill status={order.status} />
       </div>
     </button>
   );
@@ -110,6 +107,7 @@ export default function CustomerMessages() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState(false);
+  const [q, setQ] = useState('');
   const [mobileView, setMobileView] = useState('list'); // list | thread — mobile-only nav, matches Figma's separate screens
   const msgEnd = useRef(null);
   const meId = JSON.parse(localStorage.getItem('vfrb_user') || '{}')?.user_id;
@@ -150,6 +148,7 @@ export default function CustomerMessages() {
   };
 
   const selOrder = orders.find(o => o.order_id === selId);
+  const shown = orders.filter(o => !q.trim() || String(o.order_id).includes(q.trim()) || title(o).toLowerCase().includes(q.trim().toLowerCase()));
 
   const renderItems = (() => {
     const items = []; let lastDay = null;
@@ -168,10 +167,11 @@ export default function CustomerMessages() {
   return (
     <>
       <style>{`
-        .cust-msg-wrap { display: flex; flex-direction: column; gap: 16px; min-height: 420px; font-family: ${FONT}; color: #0f172a; }
+        .cust-msg-wrap { display: flex; flex-direction: column; gap: 16px; height: calc(100dvh - var(--topbar-h,54px) - var(--taskbar-h,64px) - 130px); min-height: 380px; font-family: ${FONT}; color: #0f172a; }
         .cust-msg-list, .cust-msg-chat { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-xs); }
         .cust-msg-list { width: 100%; overflow-y: auto; padding: 8px; }
-        .cust-msg-chat { display: flex; flex-direction: column; min-height: 420px; }
+        .cust-msg-chat { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+        .cust-msg-list { flex: 1; min-height: 0; }
         .cust-msg-list.hide-mobile, .cust-msg-chat.hide-mobile { display: none; }
         .cust-msg-back { display: flex; }
         .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
@@ -180,8 +180,8 @@ export default function CustomerMessages() {
           .cust-msg-chat *, .cust-msg-list * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
         }
         @media (min-width: 768px) {
-          .cust-msg-wrap { flex-direction: row; height: calc(100vh - 120px); min-height: 0; }
-          .cust-msg-list { width: 320px; flex-shrink: 0; }
+          .cust-msg-wrap { flex-direction: row; height: calc(100dvh - var(--topbar-h,54px) - 130px); min-height: 0; }
+          .cust-msg-list { width: 320px; flex: none; }
           .cust-msg-chat { flex: 1; min-height: 0; }
           .cust-msg-list.hide-mobile { display: block; }
           .cust-msg-chat.hide-mobile { display: flex; }
@@ -189,11 +189,20 @@ export default function CustomerMessages() {
         }
       `}</style>
 
-      <h1 style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', margin: '0 0 14px', fontFamily: FONT }}>Messages</h1>
+      <PageHeader title="Messages" subtitle="Chat with VFRB staff about your orders"/>
 
       <div className="cust-msg-wrap">
         <div className={`cust-msg-list ${mobileView !== 'list' ? 'hide-mobile' : ''}`}>
-          {orders.map(o => <ThreadRow key={o.order_id} order={o} active={o.order_id === selId} onClick={() => openThread(o.order_id)}/>)}
+          <div style={{ padding: '4px 4px 8px' }}>
+            <label htmlFor="msg-q" className="sr-only">Search conversations</label>
+            <input id="msg-q" type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search conversations…"
+              style={{ width: '100%', minHeight: 40, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-surface)', fontSize: 13, outline: 'none', fontFamily: FONT }}/>
+          </div>
+          {loading && [1, 2, 3].map(i => <div key={i} style={{ display: 'flex', gap: 12, padding: 12 }}><Skeleton h={44} w={44}/><div style={{ flex: 1 }}><Skeleton h={12} w="50%"/><Skeleton h={10} w="80%" style={{ marginTop: 8 }}/></div></div>)}
+          {!loading && !ordersError && orders.length > 0 && shown.length === 0 && (
+            <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-faint)', padding: 20 }}>No conversations match "{q}".</p>
+          )}
+          {shown.map(o => <ThreadRow key={o.order_id} order={o} active={o.order_id === selId} onClick={() => openThread(o.order_id)}/>)}
           {!loading && ordersError && (
             <EmptyState illustration="error" compact
               headline="Couldn't load your orders"
@@ -211,12 +220,13 @@ export default function CustomerMessages() {
         <div className={`cust-msg-chat ${mobileView !== 'thread' ? 'hide-mobile' : ''}`}>
           <div style={{ padding: '12px 18px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
             <button onClick={() => setMobileView('list')} className="cust-msg-back" aria-label="Back to conversation list" style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16, color: '#64748b' }}>←</button>
-            <div>
-              <p style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', margin: 0, fontFamily: FONT }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', margin: 0, fontFamily: FONT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {selOrder ? `Order #${selId} — ${title(selOrder)}` : 'Select a conversation'}
               </p>
-              {selOrder && <p style={{ fontSize: 10, color: '#64748b', margin: '2px 0 0', fontFamily: FONT }}>Status: {selOrder.status}</p>}
+              {selOrder && <div style={{ marginTop: 4 }}><StatusPill status={selOrder.status}/></div>}
             </div>
+            {selOrder && <button className="cx-btn cx-btn-s" style={{ minHeight: 36, padding: '0 12px', fontSize: 12 }} onClick={() => nav(`/orders/${selId}`)}>View order</button>}
           </div>
 
           <div role="log" aria-live="polite" aria-label="Message thread" style={{ flex: 1, overflowY: 'auto', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -259,7 +269,7 @@ export default function CustomerMessages() {
             <input id="msg-input" value={newMsg} onChange={e => setNewMsg(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), send())}
               placeholder={selId ? 'Message VFRB staff…' : 'Select a conversation'} disabled={!selId}
-              style={{ flex: 1, padding: '10px 14px', borderRadius: 11, border: '1px solid #e2e8f0', background: selId ? '#fff' : '#f8fafc',
+              style={{ flex: 1, padding: '10px 14px', borderRadius: 22, border: '1px solid #e2e8f0', background: selId ? '#fff' : '#f8fafc',
                 color: '#0f172a', fontSize: 13, outline: 'none', fontFamily: FONT, minHeight: 44 }}/>
             <motion.button whileTap={{ scale: .95 }} onClick={send} disabled={sending || !newMsg.trim() || !selId}
               style={{ padding: '10px 20px', borderRadius: 11, border: 'none', minHeight: 44, minWidth: 80, fontSize: 13, fontWeight: 700, fontFamily: FONT,

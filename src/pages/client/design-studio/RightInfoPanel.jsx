@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { NavIcon } from '../../../components/ui/icons';
 import GarmentSilhouette from './GarmentSilhouette';
-import { ZONE_LABEL, zonesFor, T, T2, secLabel, SHAPE_TYPE_LABEL } from './dsShared';
+import { ZONE_LABEL, zonesFor, T, T2, secLabel, SHAPE_TYPE_LABEL, TOOLS } from './dsShared';
 import AIDesignChat from '../AIDesignChat';
 
 // Real contextual inspector for the currently-selected Fabric object — shown
@@ -112,7 +112,7 @@ export function SelectionInspector({ selObj, updateSelected, deleteSelected }) {
   );
 }
 
-export function SummaryContent({ cfg, saved, saveDesign, orderThis, ordering, downloadImage, clearGarment, onOpenTool }) {
+export function SummaryContent({ cfg, saved, saveDesign, orderThis, ordering, downloadImage, clearGarment, onOpenTool, activeTool, layerCount = 0, face = 'front' }) {
   const zones = zonesFor(cfg.garment, cfg.sleeve);
   const swatches = zones.filter(z => z !== 'tipping' || cfg.colors.tipping);
   const details = [zones.includes('sleeve') && `${cfg.sleeve} sleeve`, cfg.category].filter(Boolean).join(' · ');
@@ -147,15 +147,25 @@ export function SummaryContent({ cfg, saved, saveDesign, orderThis, ordering, do
           </li>
         ))}
       </ul>
+      {cfg.garment && (
+        <ul className="ds-stats" aria-label="Design at a glance">
+          <li><b>{swatches.length}</b><span>colour zones</span></li>
+          <li><b>{layerCount}</b><span>{layerCount === 1 ? 'layer' : 'layers'} · {face}</span></li>
+        </ul>
+      )}
       {cfg.garment && onOpenTool && (
         <nav className="ds-jump" aria-label="Jump to a design tool">
           {[['type', 'Garment & sleeve', cfg.sleeve], ['color', 'Colors', `${swatches.length} zones`],
-            ['pattern', 'Pattern'], ['assets', 'Logos & shapes'], ['text', 'Text']].map(([id, label, val]) => (
-            <button key={id} type="button" onClick={() => onOpenTool(id)}>
-              <span>{label}</span>{val && <em>{val}</em>}
-              <NavIcon name="chevronRight" size={13}/>
-            </button>
-          ))}
+            ['pattern', 'Pattern'], ['assets', 'Logos & shapes'], ['text', 'Text']].map(([id, label, val]) => {
+            const icon = TOOLS.find(t => t.id === id)?.icon ?? 'info';
+            return (
+              <button key={id} type="button" data-active={activeTool === id ? 'true' : undefined} onClick={() => onOpenTool(id)}>
+                <NavIcon name={icon} size={15}/>
+                <span>{label}</span>{val && <em>{val}</em>}
+                <NavIcon name="chevronRight" size={13}/>
+              </button>
+            );
+          })}
         </nav>
       )}
       <div className="ds-actions">

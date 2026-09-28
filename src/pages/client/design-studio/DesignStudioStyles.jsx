@@ -267,6 +267,54 @@ export default function DesignStudioStyles() {
       .ds-face:has(.ds-face-thumb){padding:5px;gap:6px;box-shadow:var(--shadow-md);border-radius:var(--r-lg);}
       @media (prefers-reduced-motion:reduce){.ds-tp-card,.ds-tp-cat,.ds-face .ds-face-thumb{transition:none;}.ds-tp-card:hover{transform:none;}}
 
+
+      /* ── Wireframe polish pass ── */
+      /* Rail: sliding active pill (framer layoutId) replaces the per-button background swap */
+      .ds-tool-btn{position:relative;isolation:isolate;}
+      .ds-tool-btn[aria-pressed="true"],.ds-tool-btn[aria-expanded="true"]{background:transparent;border-color:transparent;}
+      .ds-rail-pill{position:absolute;inset:0;z-index:-1;border-radius:var(--r-md);background:var(--teal-50);border:1px solid var(--teal);box-shadow:var(--shadow-xs);}
+      /* Canvas stage: soft dot grid + centre glow so the garment sits on a workspace, not a void */
+      .ds-cv::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+        background-image:radial-gradient(rgba(15,23,42,.085) 1px,transparent 1.2px);background-size:22px 22px;
+        -webkit-mask-image:radial-gradient(ellipse at 50% 46%,#000 30%,transparent 78%);mask-image:radial-gradient(ellipse at 50% 46%,#000 30%,transparent 78%);}
+      .ds-stage-floor{position:absolute;left:12%;right:12%;bottom:-16px;height:22px;border-radius:50%;pointer-events:none;
+        background:radial-gradient(ellipse at center,rgba(15,23,42,.22),transparent 70%);filter:blur(5px);}
+      .ds-ctx-chip{position:absolute;z-index:2;top:14px;left:50%;transform:translateX(-50%);display:flex;align-items:baseline;gap:8px;
+        padding:6px 14px;border-radius:99px;background:var(--bg-card);border:1px solid var(--border);box-shadow:var(--shadow-sm);white-space:nowrap;pointer-events:none;}
+      .ds-ctx-chip strong{font-size:var(--text-xs);font-weight:800;color:var(--ink);}
+      .ds-ctx-chip span{font-size:var(--text-2xs);font-weight:600;color:var(--text-muted);}
+      /* Front/Back: sliding selected pill */
+      .ds-face .ds-face-thumb{position:relative;isolation:isolate;}
+      .ds-face-pill{position:absolute;inset:0;z-index:-1;border-radius:var(--r-sm);background:var(--teal-50);box-shadow:inset 0 0 0 2px var(--teal);}
+      .ds-face .ds-face-thumb[aria-pressed="true"]{background:transparent;box-shadow:none;}
+      /* Summary: stat chips + icon jump rows with an active state */
+      .ds-stats{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+      .ds-stats li{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--bg-card);}
+      .ds-stats b{font-size:var(--text-lg,18px);font-weight:800;color:var(--ink);line-height:1;}
+      .ds-stats span{font-size:var(--text-2xs);color:var(--text-muted);font-weight:600;}
+      .ds-jump button svg:first-child{color:var(--text-subtle);flex-shrink:0;}
+      .ds-jump button[data-active="true"]{background:var(--teal-50);box-shadow:inset 3px 0 0 var(--teal);}
+      .ds-jump button[data-active="true"] svg:first-child{color:var(--teal-dark);}
+      .ds-zone-now{display:flex;align-items:center;gap:8px;padding:10px 12px;margin-bottom:12px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--bg-surface);font-size:var(--text-xs);color:var(--text-muted);}
+      .ds-zone-now b{color:var(--ink);}
+      .ds-zone-now code{margin-left:auto;font-size:var(--text-2xs);color:var(--text-muted);}
+      .ds-zone-dot{width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(15,23,42,.18);flex-shrink:0;transition:background .2s;}
+      .ds-toast{position:absolute;z-index:60;left:50%;bottom:92px;transform:translateX(-50%);display:flex;align-items:center;gap:8px;
+        padding:10px 16px;border-radius:99px;background:var(--ink);color:#fff;font-size:var(--text-xs);font-weight:700;box-shadow:var(--shadow-md);white-space:nowrap;}
+      .ds-toast svg{color:var(--teal-light,#02C39A);}
+      @media (max-width:767px){.ds-toast{bottom:calc(var(--ds-nav-h) + 24px);}}
+      /* Mobile sheet grabber (hidden on tablet/desktop) */
+      .ds-grab{display:none;}
+      @media (max-width:767px){
+        .ds-grab{display:flex;justify-content:center;align-items:center;height:22px;flex-shrink:0;cursor:grab;touch-action:none;}
+        .ds-grab span{width:38px;height:4px;border-radius:99px;background:var(--border-strong);}
+        .ds-panel[data-expanded="true"]{height:min(80dvh,40rem);}
+        .ds-panel{transition:transform .22s cubic-bezier(.22,.8,.3,1),height .22s ease,visibility 0s linear .22s;}
+        .ds-sheet-head{padding-top:0;}
+        .ds-ctx-chip{top:62px;}
+      }
+      @media (prefers-reduced-motion:reduce){.ds-panel{transition:none!important;}.ds-face-pill,.ds-rail-pill{transition:none;}}
+
       @media (min-width:768px) and (max-width:1023px){
         .ds-panel{width:248px;}
         /* Tablet: summary/inspector becomes a slide-over so the canvas keeps the width. */

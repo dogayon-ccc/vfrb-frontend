@@ -106,6 +106,15 @@ export default function CanvasViewport({
           pointerEvents: (viewMode==='2d' || !has3DLoaded) ? 'auto' : 'none',
           zIndex: (viewMode==='2d' || !has3DLoaded) ? 1 : 0,
         }}>
+        <AnimatePresence mode="wait" initial={false}>
+          {cfg.garment && (
+            <motion.div key={`${cfg.garment}-${face}`} className="ds-ctx-chip" aria-live="polite"
+              initial={{ opacity:0, y:-6 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-4 }}
+              transition={{ duration:.18 }}>
+              <strong>{cfg.garment}</strong><span>{face === 'front' ? 'Front view' : 'Back view'}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
         <div className="ds-zoom" role="group" aria-label="Zoom">
           <button type="button" aria-label="Zoom out" onClick={()=>setZoom(z=>Math.max(0.6, +(z-0.15).toFixed(2)))}>−</button>
           <button type="button" aria-label="Reset zoom" onClick={()=>setZoom(1)}>{Math.round(zoom*fit*100)}%</button>
@@ -142,6 +151,7 @@ export default function CanvasViewport({
             <>
               <canvas ref={canvasEl} style={{ display:'block', filter:'drop-shadow(0 18px 34px rgba(0,0,0,.55))' }}/>
               {aiPulse && <div className="ai-pulse"/>}
+              {cfg.garment && <div className="ds-stage-floor" aria-hidden="true"/>}
               {/* Bug fix: INIT_CFG starts cfg.garment at null (blank canvas
                   by design) and getGarmentPaths(null) returns EMPTY_PATHS,
                   so Fabric correctly draws nothing here — but nothing told
@@ -196,6 +206,10 @@ export default function CanvasViewport({
           {['front','back'].map(v=>(
             <button key={v} type="button" aria-pressed={face===v} onClick={()=>switchFace(v)}
               className={cfg.garment ? 'ds-face-thumb' : undefined} style={{ textTransform:'capitalize' }}>
+              {cfg.garment && face === v && (
+                <motion.span layoutId="ds-face-pill" className="ds-face-pill" aria-hidden="true"
+                  transition={{ type:'spring', stiffness:520, damping:38 }}/>
+              )}
               {cfg.garment && (
                 <GarmentSilhouette garment={cfg.garment} sleeve={cfg.sleeve} colors={cfg.colors} face={v} width={30} height={36}/>
               )}

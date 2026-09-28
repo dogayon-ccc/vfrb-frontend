@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useState, useRef } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { NavIcon } from '../../../components/ui/icons';
 import LayersPanel from './LayersPanel';
 import AssetsPanel from './AssetsPanel';
@@ -46,7 +46,33 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, sum
     ),
   };
 
-  const close = () => { setSheetOpen(false); setMore(false); };
+  const reduce = useReducedMotion();
+  // Mobile bottom sheet: grabber supports tap (expand/collapse), swipe up (expand) and
+  // swipe down (dismiss). The drag moves the panel imperatively via a ref so a swipe
+  // never triggers a React render per pointer move.
+  const panelRef = useRef(null);
+  const drag = useRef(null);
+  const [expanded, setExpanded] = useState(false);
+  const close = () => { setSheetOpen(false); setMore(false); setExpanded(false); };
+  const onGrabDown = (e) => {
+    drag.current = { y: e.clientY, dy: 0 };
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    if (panelRef.current) panelRef.current.style.transition = 'none';
+  };
+  const onGrabMove = (e) => {
+    if (!drag.current) return;
+    const dy = e.clientY - drag.current.y;
+    drag.current.dy = dy;
+    if (panelRef.current && dy > 0) panelRef.current.style.transform = `translateY(${dy}px)`;
+  };
+  const onGrabUp = () => {
+    const d = drag.current; drag.current = null;
+    if (panelRef.current) { panelRef.current.style.transition = ''; panelRef.current.style.transform = ''; }
+    if (!d) return;
+    if (d.dy > 80) close();
+    else if (d.dy < -40) setExpanded(true);
+    else if (Math.abs(d.dy) < 6) setExpanded(x => !x);
+  };
   const pick = id => {
     if (id === tool && sheetOpen && !more) return close();
     setTool(id); setMore(false); setSheetOpen(true);
@@ -68,6 +94,10 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, sum
             data-group={t.primary ? 'primary' : 'more'}
             data-narrow-only={(t.id === 'summary' || t.id === 'selected') || undefined}
             aria-pressed={tool === t.id && sheetOpen && !more} onClick={() => pick(t.id)}>
+            {tool === t.id && sheetOpen && !more && (
+              <motion.span layoutId="ds-rail-pill" className="ds-rail-pill" aria-hidden="true"
+                transition={reduce ? { duration: 0 } : { type: 'spring', stiffness: 520, damping: 38 }}/>
+            )}
             <NavIcon name={t.icon} size={18}/>
             <span>{t.label}</span>
           </button>
@@ -78,7 +108,11 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, sum
         </button>
       </div>
 
-      <section className="ds-panel" aria-label={title}>
+      <section className="ds-panel" ref={panelRef} data-expanded={expanded ? 'true' : 'false'} aria-label={title}>
+        <div className="ds-grab" role="separator" aria-label="Drag to resize or close the panel"
+          onPointerDown={onGrabDown} onPointerMove={onGrabMove} onPointerUp={onGrabUp} onPointerCancel={onGrabUp}>
+          <span/>
+        </div>
         <header className="ds-sheet-head">
           <span className="ds-sheet-icon" aria-hidden="true"><NavIcon name={more ? 'chevronUp' : active.icon} size={16}/></span>
           <div className="ds-sheet-title">

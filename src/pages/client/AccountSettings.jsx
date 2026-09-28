@@ -1,6 +1,7 @@
 // src/pages/client/AccountSettings.jsx — Shipping Addresses, Notification Preferences, Preferred Fabrics.
 // All three backends already existed with zero frontend consuming them — same gap class as BillingProfiles.jsx.
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { Card, Button, Field, Badge, NavIcon } from '../../components/ui';
@@ -320,64 +321,106 @@ function ConfirmModal({ item, label, onCancel, onConfirm }) {
   );
 }
 
-// ── Page shell with tabs ──────────────────────────────────────────────────
-const TABS = [
-  { id: 'shipping', label: 'Shipping Addresses' },
-  { id: 'notifications', label: 'Notifications' },
-  { id: 'fabrics', label: 'Preferred Fabrics' },
+// ── Page shell: settings hub (wireframe — profile card + section rows) ─────
+const SECTIONS = [
+  { id: 'profile',       label: 'Personal Information', hint: 'Name, contact, organization', icon: 'profile',       to: '/profile' },
+  { id: 'shipping',      label: 'Shipping Addresses',   hint: 'Where your orders are delivered', icon: 'delivery' },
+  { id: 'notifications', label: 'Notifications',        hint: 'Choose what you get notified about', icon: 'notifications' },
+  { id: 'fabrics',       label: 'Preferred Fabrics',    hint: 'Fabrics staff should know about', icon: 'package' },
+  { id: 'billing',       label: 'Billing Profiles',     hint: 'Invoice recipient details', icon: 'orders', to: '/billing' },
+  { id: 'password',      label: 'Change Password',      hint: 'Update your sign-in password', icon: 'settings', to: '/profile' },
+  { id: 'help',          label: 'Help & Support',       hint: 'Guides and contact', icon: 'notifications', to: '/help' },
 ];
 
 export default function AccountSettings() {
-  const [tab, setTab] = useState('shipping');
+  const nav = useNavigate();
+  const [sec, setSec] = useState(null);            // mobile: null = list view
+  const [wide, setWide] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width:900px)').matches);
+  const [me, setMe] = useState(() => { try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}'); } catch { return {}; } });
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width:900px)');
+    const h = e => setWide(e.matches);
+    mq.addEventListener('change', h);
+    return () => mq.removeEventListener('change', h);
+  }, []);
+  useEffect(() => {
+    axios.get('/api/customer/profile').then(r => setMe(m => ({ ...m, ...(r.data?.user ?? r.data ?? {}) }))).catch(() => {});
+  }, []);
+
+  const active = wide ? (sec && !SECTIONS.find(x => x.id === sec)?.to ? sec : 'shipping') : sec;
+  const open = (x) => x.to ? nav(x.to) : setSec(x.id);
+  const current = SECTIONS.find(x => x.id === active);
+
+  const list = (
+    <nav aria-label="Account settings sections" className="cx-card" style={{ overflow: 'hidden' }}>
+      {SECTIONS.map(x => {
+        const on = wide && active === x.id;
+        return (
+          <button key={x.id} className="cx-row" onClick={() => open(x)} aria-current={on ? 'page' : undefined}
+            style={{ background: on ? 'var(--teal-50)' : undefined, minHeight: 60, borderLeft: on ? '3px solid var(--teal)' : '3px solid transparent' }}>
+            <span style={{ width: 36, height: 36, borderRadius: 10, display: 'grid', placeItems: 'center', flexShrink: 0,
+              background: on ? 'var(--teal)' : 'var(--bg-surface)', color: on ? '#fff' : 'var(--teal)' }}>
+              <NavIcon name={x.icon} size={16} />
+            </span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: 'block', fontSize: 14, fontWeight: 700 }}>{x.label}</span>
+              <span style={{ display: 'block', fontSize: 11, color: 'var(--text-subtle)', marginTop: 1 }}>{x.hint}</span>
+            </span>
+            <span aria-hidden="true" style={{ color: 'var(--text-faint)', fontSize: 18 }}>›</span>
+          </button>
+        );
+      })}
+    </nav>
+  );
+
+  const panel = current && (
+    <motion.section key={active} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: .18 }}
+      aria-labelledby="acct-panel-h">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+        {!wide && <button className="cx-btn cx-btn-s" style={{ minHeight: 40, padding: '0 12px' }} onClick={() => setSec(null)} aria-label="Back to settings list">←</button>}
+        <h2 id="acct-panel-h" style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>{current.label}</h2>
+      </div>
+      {active === 'shipping' && <ShippingSection/>}
+      {active === 'notifications' && <NotificationsSection/>}
+      {active === 'fabrics' && <FabricsSection/>}
+    </motion.section>
+  );
 
   return (
-    <div style={{ width: '100%', maxWidth: 720, marginInline: 'auto' }}>
+    <div className="cx-page">
       <style>{`
         .acct-field-row { display:grid; grid-template-columns:1fr; gap:12px; }
         .acct-sk { border-radius:12px; height:68px; background:linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%); background-size:400px; animation:acct-sk 1.4s infinite; }
         @keyframes acct-sk { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
-        /* Mobile-first: the 3 tabs overflow narrow viewports (confirmed — "Preferred Fabrics" truncates below ~640px).
-           Fade the trailing edge so the cut-off tab reads as "scroll for more", not a broken layout. */
-        .acct-tabs {
-          -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
-          mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
-        }
-        /* Static list rows (addresses, fabrics) aren't full-row clickable — only
-           their edit/delete buttons are — so no hover lift/translate (that would
-           imply a click-through affordance that doesn't exist, unlike OrderCard's
-           whileHover on Orders.jsx). Just a subtle border/shadow shift on hover,
-           consistent with the "all .2s" transition already used on Dashboard cards. */
         .vfrb-row-card { transition: border-color .18s, box-shadow .18s; }
         .vfrb-row-card:hover { border-color: var(--teal); box-shadow: 0 2px 10px rgba(2,128,144,.08); }
-        @media (min-width:640px) {
-          .acct-field-row { grid-template-columns:1fr 1fr; }
-          .acct-tabs { -webkit-mask-image:none; mask-image:none; } /* all 3 tabs fit unscrolled — no fade needed */
-        }
+        .acct-split { display:grid; grid-template-columns:1fr; gap:18px; }
+        @media (min-width:640px) { .acct-field-row { grid-template-columns:1fr 1fr; } }
+        @media (min-width:900px) { .acct-split { grid-template-columns:320px minmax(0,1fr); align-items:start; } }
       `}</style>
 
-      <div style={{ marginBottom: 22 }}>
-        <h1 style={{ fontSize: 'clamp(18px,3vw,22px)', fontWeight: 800, color: 'var(--ink)', margin: '0 0 4px' }}>Account Settings</h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: 13, margin: 0 }}>Manage delivery addresses, notification preferences, and fabric preferences.</p>
-      </div>
+      {(wide || !sec) && (
+        <div className="cx-head"><div><h1>Account Settings</h1><p>Your profile, delivery, notifications and preferences.</p></div></div>
+      )}
 
-      <div role="tablist" aria-label="Account settings sections" className="acct-tabs"
-        style={{ display: 'flex', gap: 4, marginBottom: 18, borderBottom: '1px solid var(--border)', overflowX: 'auto' }}>
-        {TABS.map(t => (
-          <button key={t.id} role="tab" aria-selected={tab === t.id} id={`tab-${t.id}`}
-            onClick={() => setTab(t.id)}
-            style={{ padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer',
-              fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', color: tab === t.id ? 'var(--teal)' : 'var(--text-muted)',
-              borderBottom: tab === t.id ? '2px solid var(--teal)' : '2px solid transparent', marginBottom: -1 }}>
-            {t.label}
-          </button>
-        ))}
-      </div>
+      {(wide || !sec) && (
+        <div className="cx-card" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px', marginBottom: 16 }}>
+          <div aria-hidden="true" style={{ width: 54, height: 54, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center',
+            background: 'linear-gradient(135deg,var(--teal),var(--teal-2))', color: '#fff', fontSize: 22, fontWeight: 800 }}>
+            {(me.name ?? '?').charAt(0).toUpperCase()}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ margin: 0, fontSize: 16, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{me.name ?? 'Client'}</p>
+            <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-subtle)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{me.email ?? ''}</p>
+          </div>
+          <button className="cx-btn cx-btn-s" style={{ minHeight: 38 }} onClick={() => nav('/profile')}>Edit Profile</button>
+        </div>
+      )}
 
-      <div role="tabpanel" aria-labelledby={`tab-${tab}`}>
-        {tab === 'shipping' && <ShippingSection/>}
-        {tab === 'notifications' && <NotificationsSection/>}
-        {tab === 'fabrics' && <FabricsSection/>}
-      </div>
+      {wide ? (
+        <div className="acct-split"><div>{list}</div><div>{panel}</div></div>
+      ) : sec ? panel : list}
     </div>
   );
 }

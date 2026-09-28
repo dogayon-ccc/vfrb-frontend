@@ -88,6 +88,20 @@ export default function DesignStudio() {
   }, [showInspo, showShowcase]);
   const [draftSaved, setDraftSaved] = useState(false); // "Draft saved to cloud" feedback
   const [draftRestored, setDraftRestored] = useState(false); // banner on restore
+  // Transient success toast driven by the REAL save flags (local write first, then cloud draft).
+  const [toast, setToast] = useState(null);
+  const savedPrev = useRef({ saved: false, draftSaved: false });
+  useEffect(() => {
+    const prev = savedPrev.current;
+    let msg = null;
+    if (draftSaved && !prev.draftSaved) msg = 'Design saved to your account';
+    else if (saved && !prev.saved) msg = 'Design saved on this device';
+    savedPrev.current = { saved, draftSaved };
+    if (!msg) return undefined;
+    setToast(msg);
+    const t = setTimeout(() => setToast(null), 2400);
+    return () => clearTimeout(t);
+  }, [saved, draftSaved]);
   const [infoOpen, setInfoOpen] = useState(false); // tablet: summary/inspector slide-over
   const [ordering, setOrdering] = useState(false); // optimistic "Order This" in-flight state
   const autoSaveTimer = useRef(null);
@@ -554,6 +568,15 @@ export default function DesignStudio() {
 
         {/* ── BODY ── */}
         <div className="ds-body">
+          <AnimatePresence>
+            {toast && (
+              <motion.div key="toast" className="ds-toast" role="status"
+                initial={{ opacity:0, y:12, scale:.96 }} animate={{ opacity:1, y:0, scale:1 }} exit={{ opacity:0, y:8 }}
+                transition={{ duration:.2 }}>
+                <NavIcon name="success" size={16}/> {toast}
+              </motion.div>
+            )}
+          </AnimatePresence>
           <button type="button" className="ds-info-toggle" aria-expanded={infoOpen} onClick={() => setInfoOpen(o => !o)}>
             <NavIcon name="layersPanel" size={16}/> {infoOpen ? 'Hide' : 'Summary'}
           </button>
@@ -579,7 +602,7 @@ export default function DesignStudio() {
             zoom={zoom} setZoom={setZoom} snapshot={snapshot} overlays={overlays}
             onChooseGarment={() => { setTool('type'); setSheetOpen(true); }}/>
           {/* ── RIGHT INFO PANEL ── */}
-          <RightInfoPanel open={infoOpen} onClose={() => setInfoOpen(false)} onOpenTool={(id) => { setTool(id); setSheetOpen(true); }} cfg={cfg} saved={saved} saveDesign={saveDesign} orderThis={orderThis} ordering={ordering} downloadImage={downloadImage} clearGarment={clearGarment}
+          <RightInfoPanel activeTool={sheetOpen ? tool : null} layerCount={layers.length} face={face} open={infoOpen} onClose={() => setInfoOpen(false)} onOpenTool={(id) => { setTool(id); setSheetOpen(true); }} cfg={cfg} saved={saved} saveDesign={saveDesign} orderThis={orderThis} ordering={ordering} downloadImage={downloadImage} clearGarment={clearGarment}
             selObj={selObj} updateSelected={updateSelected} deleteSelected={deleteSelected}/>
         </div>
 
