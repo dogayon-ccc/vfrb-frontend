@@ -1,30 +1,62 @@
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { NavIcon } from '../../../components/ui/icons';
-import { T, T2, secLabel } from './dsShared';
 import { BASE_PATHS } from './garmentPaths';
 import { CATALOG, familyFor, neighborFamily, STATUS_3D_LABEL } from './garmentCatalog';
 
-const BADGE_COLOR = { ok: '#0f766e', warn: '#b45309', muted: 'rgba(15,23,42,.4)' };
-const BADGE_BG    = { ok: '#f0fdfa', warn: '#fffbeb', muted: 'rgba(15,23,42,.05)' };
+// Garment picker — laid out after the wireframes' "Garment" panel: category
+// cards on top, a visual garment grid, then collapsible Sleeve / Fit groups.
+// Every option comes from the real CATALOG (garmentCatalog.js); nothing here
+// invents a garment, style or fit. Styling lives in DesignStudioStyles.jsx
+// (.ds-tp-*) so hover/press/selected transitions are CSS-driven and honour
+// prefers-reduced-motion in one place.
 
-function StatusBadge({ status }) {
-  const s = STATUS_3D_LABEL[status];
-  if (!s) return null;
+function GarmentThumb({ paths, colors, size = 56 }) {
   return (
-    <span style={{
-      position: 'absolute', top: 4, left: 4, fontSize: 7.5, fontWeight: 800,
-      padding: '2px 5px', borderRadius: 6, color: BADGE_COLOR[s.tone], background: BADGE_BG[s.tone],
-      letterSpacing: '.02em',
-    }}>
-      {s.label}
-    </span>
+    <svg viewBox={`0 0 ${paths.w} ${paths.h}`} width={size} height={Math.round(size * 1.18)} aria-hidden="true"
+      style={{ display: 'block', flexShrink: 0 }}>
+      {paths.body    && <path d={paths.body}    fill={colors.body   ?? '#1e3a5f'} stroke="rgba(15,23,42,.18)" strokeWidth="1.5"/>}
+      {paths.collar  && <path d={paths.collar}  fill={colors.collar ?? '#c8a96e'} stroke="rgba(15,23,42,.15)" strokeWidth="1"/>}
+      {paths.sleeveL && <path d={paths.sleeveL} fill={colors.sleeve ?? colors.body ?? '#1e3a5f'} stroke="rgba(15,23,42,.15)" strokeWidth="1"/>}
+      {paths.sleeveR && <path d={paths.sleeveR} fill={colors.sleeve ?? colors.body ?? '#1e3a5f'} stroke="rgba(15,23,42,.15)" strokeWidth="1"/>}
+      {paths.pocket  && <path d={paths.pocket}  fill={colors.pocket ?? colors.collar ?? '#c8a96e'} stroke="rgba(15,23,42,.12)" strokeWidth="0.5"/>}
+    </svg>
+  );
+}
+
+function Group({ title, value, open, onToggle, children }) {
+  const reduce = useReducedMotion();
+  return (
+    <section className="ds-tp-group">
+      <button type="button" className="ds-tp-group-head" aria-expanded={open} onClick={onToggle}>
+        <span>{title}</span>
+        <span className="ds-tp-group-val">{value}</span>
+        <NavIcon name="chevronDown" size={14}
+          style={{ transform: open ? 'rotate(180deg)' : 'none', transition: reduce ? 'none' : 'transform .18s' }}/>
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div key="body" style={{ overflow: 'hidden' }}
+            initial={reduce ? false : { height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={reduce ? { opacity: 0 } : { height: 0, opacity: 0 }}
+            transition={{ duration: reduce ? 0 : 0.18, ease: 'easeOut' }}>
+            <div className="ds-tp-group-body">{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </section>
   );
 }
 
 export default function TypePanel({ cfg, setCfg }) {
+  const reduce  = useReducedMotion();
   const catData = CATALOG.find(c => c.id === cfg.category) ?? CATALOG[0];
   const family  = familyFor(cfg.garment);
   const sleeves = family?.styles ?? [];
+  const hasFit  = (family?.fits.length ?? 0) > 1;
+  const [openSleeve, setOpenSleeve] = useState(true);
+  const [openFit, setOpenFit]       = useState(true);
 
   const goNeighbor = (dir) => {
     const next = neighborFamily(cfg.category, cfg.garment, dir);
@@ -33,132 +65,97 @@ export default function TypePanel({ cfg, setCfg }) {
   };
 
   return (
-    <div style={{ overflowY:'auto', flex:1, padding:'8px 8px 16px' }}>
-      <p style={secLabel}>Category</p>
-      <div style={{ display:'flex', gap:4, flexWrap:'wrap', marginBottom:10 }}>
-        {CATALOG.map(c => (
-          <button key={c.id}
-            onClick={() => setCfg(p => ({ ...p, category:c.id, garment:c.families[0].id, sleeve:c.families[0].styles[0] ?? 'Short' }))}
-            style={{
-              padding:'5px 10px', borderRadius:20, border:'none', cursor:'pointer',
-              fontSize:10, fontWeight:700,
-              background: cfg.category===c.id ? T : 'rgba(15,23,42,.06)',
-              color:      cfg.category===c.id ? '#fff' : 'rgba(15,23,42,.45)',
-              transition: 'all .13s',
-            }}>
-            <NavIcon name={c.icon} size={12} color={cfg.category===c.id ? '#fff' : 'rgba(15,23,42,.45)'}
-              style={{ marginRight:4, verticalAlign:'-2px' }}/>
-            {c.id.split('/')[0].trim()}
-          </button>
-        ))}
-      </div>
-
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
-        <p style={{ ...secLabel, marginBottom:0 }}>Garment</p>
-        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          {/* Previous/Next: browse the current category's garments without leaving the grid. */}
-          {cfg.garment && catData.families.length > 1 && (
-            <div style={{ display:'flex', gap:2 }}>
-              <button type="button" title="Previous garment" onClick={() => goNeighbor(-1)}
-                style={{ width:20, height:20, display:'flex', alignItems:'center', justifyContent:'center',
-                  border:'none', borderRadius:6, background:'rgba(15,23,42,.06)', cursor:'pointer' }}>
-                <NavIcon name="chevronLeft" size={11} color="rgba(15,23,42,.5)"/>
-              </button>
-              <button type="button" title="Next garment" onClick={() => goNeighbor(1)}
-                style={{ width:20, height:20, display:'flex', alignItems:'center', justifyContent:'center',
-                  border:'none', borderRadius:6, background:'rgba(15,23,42,.06)', cursor:'pointer' }}>
-                <NavIcon name="chevronRight" size={11} color="rgba(15,23,42,.5)"/>
-              </button>
-            </div>
-          )}
-          {/* Bug fix: before this, a garment could be selected but never
-              removed — clicking another card swapped it, but there was no
-              path back to the blank-canvas state EMPTY_PATHS/INIT_CFG
-              already support. Click the selected card again, or this button,
-              to clear it. */}
-          {cfg.garment && (
-            <button type="button" onClick={() => setCfg(p => ({ ...p, garment:null }))}
-              style={{ fontSize:9, fontWeight:700, color:'rgba(15,23,42,.4)',
-                background:'none', border:'none', cursor:'pointer', padding:'2px 4px',
-                display:'flex', alignItems:'center', gap:3 }}>
-              <NavIcon name="delete" size={11} color="rgba(15,23,42,.4)"/> Remove
-            </button>
-          )}
-        </div>
-      </div>
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginBottom:12 }}>
-        {catData.families.map(fam => {
-          const g = fam.id;
-          const paths = BASE_PATHS[g] ?? BASE_PATHS['Polo Shirt'];
-          const sel   = cfg.garment === g;
+    <div className="ds-tp">
+      <p className="ds-h3">Category</p>
+      <div className="ds-tp-cats" role="tablist" aria-label="Uniform category">
+        {CATALOG.map(c => {
+          const on = cfg.category === c.id;
           return (
-            <motion.button key={g}
-              // Toggle: clicking the already-selected garment clears it
-              // (back to the blank canvas), same as the Remove button above.
-              onClick={() => setCfg(p => (sel
-                ? { ...p, garment:null }
-                : { ...p, garment:g, sleeve: (fam.styles[0] ?? p.sleeve), fit: fam.fits.length > 1 ? (p.fit ?? 'male') : undefined }))}
-              title={sel ? `${g} — click to remove` : `${g} — ${STATUS_3D_LABEL[fam.status3D]?.label}`}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{   scale: 0.97 }}
-              style={{
-                padding:'8px 5px 6px', borderRadius:10, border:'none', cursor:'pointer',
-                background: sel ? 'rgba(2,195,154,.14)' : 'rgba(15,23,42,.04)',
-                outline:    sel ? `2px solid ${T2}` : '1px solid rgba(15,23,42,.07)',
-                display:'flex', flexDirection:'column', alignItems:'center', gap:5,
-                position:'relative', overflow:'hidden',
-              }}>
-              <StatusBadge status={fam.status3D}/>
-              <svg viewBox={`0 0 ${paths.w} ${paths.h}`} width="44" height="52" style={{ display:'block', flexShrink:0, marginTop:6 }}>
-                {paths.body    && <path d={paths.body}    fill={cfg.colors.body   ?? '#1e3a5f'} stroke="rgba(15,23,42,.18)" strokeWidth="1.5"/>}
-                {paths.collar  && <path d={paths.collar}  fill={cfg.colors.collar ?? '#c8a96e'} stroke="rgba(15,23,42,.15)" strokeWidth="1"/>}
-                {paths.sleeveL && <path d={paths.sleeveL} fill={cfg.colors.sleeve ?? cfg.colors.body ?? '#1e3a5f'} stroke="rgba(15,23,42,.15)" strokeWidth="1"/>}
-                {paths.sleeveR && <path d={paths.sleeveR} fill={cfg.colors.sleeve ?? cfg.colors.body ?? '#1e3a5f'} stroke="rgba(15,23,42,.15)" strokeWidth="1"/>}
-                {paths.pocket  && <path d={paths.pocket}  fill={cfg.colors.pocket ?? cfg.colors.collar ?? '#c8a96e'} stroke="rgba(15,23,42,.12)" strokeWidth="0.5"/>}
-              </svg>
-              <span style={{ fontSize:9, fontWeight: sel?700:400, color: sel ? T2 : 'rgba(15,23,42,.5)', textAlign:'center' }}>
-                {g}
-              </span>
-              {sel && (
-                <span style={{ position:'absolute', top:5, right:5, fontSize:9, background:T2, color:'#000',
-                  borderRadius:99, padding:'1px 5px', fontWeight:800 }}>✓</span>
-              )}
-            </motion.button>
+            <button key={c.id} type="button" role="tab" aria-selected={on} className="ds-tp-cat"
+              onClick={() => setCfg(p => ({ ...p, category: c.id, garment: c.families[0].id, sleeve: c.families[0].styles[0] ?? 'Short' }))}>
+              <NavIcon name={c.icon} size={18}/>
+              <span>{c.id.split('/')[0].trim()}</span>
+            </button>
           );
         })}
       </div>
 
-      {sleeves.length > 0 && (
-        <>
-          <p style={secLabel}>Sleeve</p>
-          <div style={{ display:'flex', gap:5, overflowX:'auto', paddingBottom:4, scrollbarWidth:'none' }}>
-            {sleeves.map(s => (
-              <button key={s} onClick={() => setCfg(p => ({ ...p, sleeve:s }))}
-                style={{
-                  flexShrink:0, padding:'5px 12px', borderRadius:20, border:'none',
-                  cursor:'pointer', fontSize:10, fontWeight:cfg.sleeve===s?700:400,
-                  background: cfg.sleeve===s ? T : 'rgba(15,23,42,.06)',
-                  color:      cfg.sleeve===s ? '#fff' : 'rgba(15,23,42,.4)',
-                  whiteSpace:'nowrap', transition:'all .12s',
-                }}>
-                {s}
+      <div className="ds-tp-row">
+        <p className="ds-h3" style={{ margin: 0 }}>Garment · {catData.families.length}</p>
+        <div className="ds-tp-row-actions">
+          {cfg.garment && catData.families.length > 1 && (<>
+            <button type="button" className="ds-tp-mini" title="Previous garment" aria-label="Previous garment" onClick={() => goNeighbor(-1)}>
+              <NavIcon name="chevronLeft" size={12}/></button>
+            <button type="button" className="ds-tp-mini" title="Next garment" aria-label="Next garment" onClick={() => goNeighbor(1)}>
+              <NavIcon name="chevronRight" size={12}/></button>
+          </>)}
+          {cfg.garment && (
+            <button type="button" className="ds-tp-clear" onClick={() => setCfg(p => ({ ...p, garment: null }))}>
+              <NavIcon name="delete" size={12}/> Clear
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Keyed on category so switching category cross-fades the grid. */}
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div key={catData.id} className="ds-tp-grid"
+          initial={reduce ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+          exit={reduce ? { opacity: 0 } : { opacity: 0, y: -4 }} transition={{ duration: reduce ? 0 : 0.16 }}>
+          {catData.families.map(fam => {
+            const g = fam.id;
+            const paths = BASE_PATHS[g] ?? BASE_PATHS['Polo Shirt'];
+            const sel = cfg.garment === g;
+            const st = STATUS_3D_LABEL[fam.status3D];
+            return (
+              <button key={g} type="button" className="ds-tp-card" aria-pressed={sel}
+                title={sel ? `${g} — click to remove` : `${g}${st ? ` — ${st.label}` : ''}`}
+                onClick={() => setCfg(p => (sel
+                  ? { ...p, garment: null }
+                  : { ...p, garment: g, sleeve: (fam.styles[0] ?? p.sleeve), fit: fam.fits.length > 1 ? (p.fit ?? 'male') : undefined }))}>
+                <AnimatePresence>
+                  {sel && (
+                    <motion.span className="ds-tp-check" aria-hidden="true"
+                      initial={reduce ? false : { scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
+                      transition={{ type: 'spring', stiffness: 520, damping: 26 }}>
+                      <NavIcon name="success" size={12} color="#fff"/>
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+                <span className="ds-tp-thumb"><GarmentThumb paths={paths} colors={cfg.colors}/></span>
+                <span className="ds-tp-name">{g}</span>
+                {st && <span className="ds-tp-chip" data-tone={st.tone}>{st.label}</span>}
               </button>
-            ))}
-          </div>
-        </>
+            );
+          })}
+        </motion.div>
+      </AnimatePresence>
+
+      {!cfg.garment && (
+        <p className="ds-note" style={{ marginTop: 0 }}>Tap a garment to place it on the canvas.</p>
       )}
 
-      {(family?.fits.length ?? 0) > 1 && (
-        <>
-          <p style={{ ...secLabel, marginTop:12 }}>Fit</p>
-          <div className="ds-seg ds-seg--sm" role="radiogroup" aria-label="Garment fit" style={{ margin:0 }}>
+      {sleeves.length > 0 && (
+        <Group title="Sleeve" value={cfg.sleeve} open={openSleeve} onToggle={() => setOpenSleeve(o => !o)}>
+          <div className="ds-chips">
+            {sleeves.map(s => (
+              <button key={s} type="button" className="ds-chip" aria-pressed={cfg.sleeve === s}
+                onClick={() => setCfg(p => ({ ...p, sleeve: s }))}>{s}</button>
+            ))}
+          </div>
+        </Group>
+      )}
+
+      {hasFit && (
+        <Group title="Fit" value={(cfg.fit ?? 'male') === 'female' ? 'Female' : 'Male'} open={openFit} onToggle={() => setOpenFit(o => !o)}>
+          <div className="ds-seg ds-seg--sm" role="radiogroup" aria-label="Garment fit">
             {[['male', 'Male'], ['female', 'Female']].map(([id, label]) => (
               <button key={id} type="button" role="radio" aria-checked={(cfg.fit ?? 'male') === id}
-                onClick={() => setCfg(p => ({ ...p, fit:id }))}>{label}</button>
+                onClick={() => setCfg(p => ({ ...p, fit: id }))}>{label}</button>
             ))}
           </div>
           <p className="ds-note">Switches the 3D model between the male and female cut.</p>
-        </>
+        </Group>
       )}
     </div>
   );

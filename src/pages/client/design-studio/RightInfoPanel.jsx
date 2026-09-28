@@ -112,7 +112,7 @@ export function SelectionInspector({ selObj, updateSelected, deleteSelected }) {
   );
 }
 
-export function SummaryContent({ cfg, saved, saveDesign, orderThis, ordering, downloadImage, clearGarment }) {
+export function SummaryContent({ cfg, saved, saveDesign, orderThis, ordering, downloadImage, clearGarment, onOpenTool }) {
   const zones = zonesFor(cfg.garment, cfg.sleeve);
   const swatches = zones.filter(z => z !== 'tipping' || cfg.colors.tipping);
   const details = [zones.includes('sleeve') && `${cfg.sleeve} sleeve`, cfg.category].filter(Boolean).join(' · ');
@@ -150,6 +150,17 @@ export function SummaryContent({ cfg, saved, saveDesign, orderThis, ordering, do
           </li>
         ))}
       </ul>
+      {cfg.garment && onOpenTool && (
+        <nav className="ds-jump" aria-label="Jump to a design tool">
+          {[['type', 'Garment & sleeve', cfg.sleeve], ['color', 'Colors', `${swatches.length} zones`],
+            ['pattern', 'Pattern'], ['assets', 'Logos & shapes'], ['text', 'Text']].map(([id, label, val]) => (
+            <button key={id} type="button" onClick={() => onOpenTool(id)}>
+              <span>{label}</span>{val && <em>{val}</em>}
+              <NavIcon name="chevronRight" size={13}/>
+            </button>
+          ))}
+        </nav>
+      )}
       <button type="button" className="ds-act" onClick={saveDesign} disabled={!cfg.garment}>
         <NavIcon name={saved ? 'success' : 'save'} size={16}/> {saved ? 'Saved' : 'Save design'}
       </button>

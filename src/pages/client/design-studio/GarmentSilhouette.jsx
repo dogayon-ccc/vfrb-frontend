@@ -1,7 +1,7 @@
 import { getGarmentPaths } from './garmentPaths';
 
-export default function GarmentSilhouette({ garment, sleeve = 'Short', colors = {}, width = 44, height = 52 }) {
-  const p = getGarmentPaths(garment, sleeve, 'front');
+export default function GarmentSilhouette({ garment, sleeve = 'Short', colors = {}, width = 44, height = 52, face = 'front' }) {
+  const p = getGarmentPaths(garment, sleeve, face);
 
   const zones = [
     { d: p.body,    fill: colors.body },

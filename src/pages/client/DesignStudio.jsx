@@ -542,7 +542,7 @@ export default function DesignStudio() {
 
           {/* ── TOOL STRIP + PANEL DRAWER ── */}
           <ToolDrawer tool={tool} setTool={setTool} sheetOpen={sheetOpen} setSheetOpen={setSheetOpen}
-            summary={{ cfg, saved, saveDesign, orderThis, ordering, downloadImage, clearGarment }} cfg={cfg} setCfg={setCfg}
+            summary={{ cfg, saved, saveDesign, orderThis, ordering, onOpenTool: (id) => { setTool(id); setSheetOpen(true); }, downloadImage, clearGarment }} cfg={cfg} setCfg={setCfg}
             activeZone={zone} setActiveZone={setActiveZone}
             addText={addText} addShape={addShape} updateSelected={updateSelected}
             assetsTab={assetsTab} setAssetsTab={setAssetsTab} logoUpload={logoUpload}
@@ -561,7 +561,7 @@ export default function DesignStudio() {
             zoom={zoom} setZoom={setZoom} snapshot={snapshot} overlays={overlays}
             onChooseGarment={() => { setTool('type'); setSheetOpen(true); }}/>
           {/* ── RIGHT INFO PANEL ── */}
-          <RightInfoPanel cfg={cfg} saved={saved} saveDesign={saveDesign} orderThis={orderThis} ordering={ordering} downloadImage={downloadImage} clearGarment={clearGarment}
+          <RightInfoPanel onOpenTool={(id) => { setTool(id); setSheetOpen(true); }} cfg={cfg} saved={saved} saveDesign={saveDesign} orderThis={orderThis} ordering={ordering} downloadImage={downloadImage} clearGarment={clearGarment}
             selObj={selObj} updateSelected={updateSelected} deleteSelected={deleteSelected}/>
         </div>
 

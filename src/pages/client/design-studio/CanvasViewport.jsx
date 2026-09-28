@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { NavIcon } from '../../../components/ui/icons';
 import { T, T2, DARK, ZONE_LABEL, SHAPE_TYPE_LABEL, zonesFor } from './dsShared';
 import { familyFor, STATUS_3D_LABEL } from './garmentCatalog';
+import GarmentSilhouette from './GarmentSilhouette';
 
 const Scene3D = lazy(() => import('../DesignStudio3D'));
 
@@ -184,7 +185,12 @@ export default function CanvasViewport({
         <div className="ds-face" role="group" aria-label="Garment side">
           {['front','back'].map(v=>(
             <button key={v} type="button" aria-pressed={face===v} onClick={()=>switchFace(v)}
-              style={{ textTransform:'capitalize' }}>{v}</button>
+              className={cfg.garment ? 'ds-face-thumb' : undefined} style={{ textTransform:'capitalize' }}>
+              {cfg.garment && (
+                <GarmentSilhouette garment={cfg.garment} sleeve={cfg.sleeve} colors={cfg.colors} face={v} width={30} height={36}/>
+              )}
+              <span>{v}</span>
+            </button>
           ))}
         </div>
 
