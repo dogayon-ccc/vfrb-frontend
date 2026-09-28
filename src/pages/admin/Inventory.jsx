@@ -29,17 +29,11 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import axios from 'axios';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
-import { Badge, NavIcon } from '../../components/ui';
-import { PageHeader, StatGrid, PillTabs, ErrorBlock } from '../../components/admin/AdminUI';
-
-const SK   = { borderRadius:'var(--r-sm)', background:'linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%)', backgroundSize:'400px', animation:'inv-shimmer 1.4s infinite' };
-const inp  = { width:'100%', padding:'10px 14px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)', fontSize:13, outline:'none', fontFamily:'var(--font)', boxSizing:'border-box', transition:'border .15s,box-shadow .15s' };
-const fi   = e => { e.target.style.borderColor='var(--teal)'; e.target.style.boxShadow='0 0 0 3px rgba(2,128,144,.1)'; };
-const fo   = e => { e.target.style.borderColor='var(--border)'; e.target.style.boxShadow='none'; };
-const lbl  = { display:'block', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'var(--text-subtle)', marginBottom:7, fontFamily:'var(--font)' };
+import { NavIcon } from '../../components/ui';
+import BottomSheet from '../../components/ui/BottomSheet';
+import { PageHeader, StatGrid, PillTabs, ErrorBlock, Panel, StatusPill, SearchBox, Meter, Banner, SkeletonRows, useIsMobile } from '../../components/admin/AdminUI';
 
 const TYPE_CFG = {
   stock_in:   { color:'var(--success)', bg:'var(--success-bg)' },
@@ -48,7 +42,7 @@ const TYPE_CFG = {
   wastage:    { color:'var(--purple)',  bg:'var(--purple-50)'  },
 };
 
-function StockModal({ type, materials, onClose, onDone }) {
+function StockModal({ type, materials, onClose, onDone, isMobile }) {
   const [matId, setMatId] = useState('');
   const [qty,   setQty]   = useState('');
   const [note,  setNote]  = useState('');
@@ -69,63 +63,36 @@ function StockModal({ type, materials, onClose, onDone }) {
   };
 
   return (
-    <div style={{ position:'fixed',inset:0,background:'rgba(15,23,42,.45)',backdropFilter:'blur(4px)',zIndex:200,display:'flex',alignItems:'center',justifyContent:'center',padding:16 }}>
-      <motion.div initial={{ opacity:0,scale:.95 }} animate={{ opacity:1,scale:1 }}
-        style={{ background:'var(--bg-card)',borderRadius:'var(--r-xl)',width:'min(440px,100%)',overflow:'hidden',boxShadow:'var(--shadow-xl)' }}>
-        <div style={{ padding:'16px 22px',borderBottom:'1px solid var(--border)',
-          background: isIn ? 'var(--success-bg)' : 'var(--danger-bg)' }}>
-          <h3 style={{ display:'flex', alignItems:'center', gap:7, fontSize:15,fontWeight:800,color:'var(--ink)',margin:0 }}>
-            <NavIcon name={isIn ? 'stockIn' : 'stockOut'} size={16} color={isIn ? 'var(--success)' : 'var(--danger)'} />
-            {isIn ? 'Stock In' : 'Stock Out'}
-          </h3>
-          <p style={{ fontSize:11,color:'var(--text-subtle)',margin:'3px 0 0' }}>
-            {isIn ? 'Record goods receipt from supplier' : 'Issue materials to production'}
-          </p>
+    <BottomSheet title={isIn ? 'Stock In — record goods receipt' : 'Stock Out — issue to production'} onClose={onClose} isMobile={isMobile} maxWidth={440}>
+      <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+        <div>
+          <label className="adm-field">Material *</label>
+          <select className="adm-input" value={matId} onChange={e=>setMatId(e.target.value)}>
+            <option value="">Select material…</option>
+            {materials.map(m=>(
+              <option key={m.material_id} value={m.material_id}>{m.material_name} — {m.quantity_in_stock} {m.unit} in stock</option>
+            ))}
+          </select>
         </div>
-        <div style={{ padding:'20px 22px',display:'flex',flexDirection:'column',gap:14 }}>
-          <div>
-            <label style={lbl}>Material *</label>
-            <select value={matId} onChange={e=>setMatId(e.target.value)} style={{ ...inp,cursor:'pointer' }}>
-              <option value="">Select material…</option>
-              {materials.map(m=>(
-                <option key={m.material_id} value={m.material_id}>
-                  {m.material_name} — {m.quantity_in_stock} {m.unit} in stock
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label style={lbl}>Quantity *</label>
-            <input type="number" min={0.01} step={0.01} value={qty}
-              onChange={e=>setQty(e.target.value)} placeholder="0.00"
-              style={inp} onFocus={fi} onBlur={fo}/>
-          </div>
-          <div>
-            <label style={lbl}>Reason / Notes</label>
-            <input value={note} onChange={e=>setNote(e.target.value)}
-              placeholder={isIn ? 'e.g. Delivery from OTG Company' : 'e.g. Issued for Order #45'}
-              style={inp} onFocus={fi} onBlur={fo}/>
-          </div>
-          {err && (
-            <p style={{ display:'flex', alignItems:'center', gap:6, color:'var(--danger)',fontSize:12,fontWeight:600, margin:0 }}>
-              <NavIcon name="warning" size={13} color="var(--danger)" />{err}
-            </p>
-          )}
+        <div>
+          <label className="adm-field">Quantity *</label>
+          <input className="adm-input" type="number" inputMode="decimal" min={0.01} step={0.01} value={qty}
+            onChange={e=>setQty(e.target.value)} placeholder="0.00" />
         </div>
-        <div style={{ padding:'14px 22px',borderTop:'1px solid var(--border)',display:'flex',gap:10,justifyContent:'flex-end',background:'var(--bg-surface)' }}>
-          <button onClick={onClose} style={{ padding:'9px 18px',borderRadius:'var(--r-md)',border:'1px solid var(--border)',background:'var(--bg-card)',color:'var(--ink)',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'var(--font)' }}>Cancel</button>
-          <button onClick={submit} disabled={busy}
-            style={{ padding:'9px 22px',borderRadius:'var(--r-md)',border:'none',
-              background: busy ? 'var(--text-faint)' : isIn ? 'var(--success)' : 'linear-gradient(135deg,var(--teal),var(--teal-2))',
-              color:'#fff',fontSize:13,fontWeight:700,cursor:busy?'not-allowed':'pointer',fontFamily:'var(--font)',
-              display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
-            {busy
-              ? <><NavIcon name="loading" size={13} color="#fff" style={{ animation:'inv-spin .8s linear infinite' }} />…</>
-              : <><NavIcon name="success" size={13} color="#fff" />{isIn ? 'Record Receipt' : 'Issue Materials'}</>}
+        <div>
+          <label className="adm-field">Reason / Notes</label>
+          <input className="adm-input" value={note} onChange={e=>setNote(e.target.value)}
+            placeholder={isIn ? 'e.g. Delivery from OTG Company' : 'e.g. Issued for Order #45'} />
+        </div>
+        {err && <ErrorBlock msg={err} />}
+        <div className="adm-sheet-foot">
+          <button className="adm-btn" onClick={onClose}>Cancel</button>
+          <button className="adm-btn primary" onClick={submit} disabled={busy}>
+            {busy ? 'Saving…' : isIn ? 'Record Receipt' : 'Issue Materials'}
           </button>
         </div>
-      </motion.div>
-    </div>
+      </div>
+    </BottomSheet>
   );
 }
 
@@ -137,9 +104,8 @@ export default function AdminInventory() {
   const [loadError, setLoadError] = useState(false);
   const [tab,       setTab]       = useState('stock'); // stock | logs
   const [search,    setSearch]    = useState('');
-  const [winW, setWinW] = useState(typeof window!=='undefined'?window.innerWidth:1280);
-  useEffect(() => { const h=()=>setWinW(window.innerWidth); window.addEventListener('resize',h); return()=>window.removeEventListener('resize',h); }, []);
-  const isMobile = winW <= 767;
+  const isMobile = useIsMobile();
+  const [cat, setCat] = useState('all');
   const [modal,     setModal]     = useState(null); // 'in' | 'out'
 
   const load = useCallback((force = false) => {
@@ -175,9 +141,11 @@ export default function AdminInventory() {
   // DSA: useMemo — O(n) filter only reruns when materials or search changes
   const filtered  = useMemo(() =>
     materials.filter(m =>
-      !search || m.material_name?.toLowerCase().includes(search.toLowerCase())
-               || m.category?.toLowerCase().includes(search.toLowerCase())
-    ), [materials, search]);
+      (cat === 'all' || (m.category ?? '—') === cat) &&
+      (!search || m.material_name?.toLowerCase().includes(search.toLowerCase())
+               || m.category?.toLowerCase().includes(search.toLowerCase()))
+    ), [materials, search, cat]);
+  const categories = useMemo(() => [...new Set(materials.map(m => m.category ?? '—'))].sort(), [materials]);
 
   // DSA: useMemo — O(n) filter only reruns when materials changes
   const lowStock  = useMemo(() =>
@@ -186,37 +154,15 @@ export default function AdminInventory() {
 
   const totalMats = materials.length;
 
+  const isLow = (m) => Number(m.quantity_in_stock) <= (m.reorder_threshold ?? 0);
+  const outCount = materials.filter(m => Number(m.quantity_in_stock) <= 0).length;
+  const stockPct = (m) => m.reorder_threshold > 0 ? Math.min(100, Math.round((m.quantity_in_stock / (m.reorder_threshold * 2)) * 100)) : 100;
+  const fmtLog = (d) => d ? new Date(d).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) : '—';
+
   return (
     <>
-      <style>{`
-        @keyframes inv-shimmer { 0% { background-position:-400px 0 } 100% { background-position:400px 0 } }
-        @keyframes inv-spin { from { transform:rotate(0deg) } to { transform:rotate(360deg) } }
-
-        .adm-stats {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(160px,1fr));
-          gap: 12px; margin-bottom: 20px;
-        }
-        .inv-table-wrap {
-          background: var(--bg-card); border: 1px solid var(--border);
-          border-radius: var(--r-lg); overflow: hidden;
-          box-shadow: var(--shadow-xs);
-          overflow-x: auto; -webkit-overflow-scrolling: touch;
-        }
-        .inv-table-wrap table { width:100%; min-width:560px; border-collapse:collapse; }
-        .inv-card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--r-md); padding:12px 14px; margin-bottom:8px; }
-
-        @media (max-width:767px) {
-          .adm-stats { grid-template-columns: 1fr 1fr; gap:10px; }
-          .inv-header-btns { flex-direction:column; align-items:stretch !important; }
-          .inv-header-btns button { width:100%; justify-content:center !important; }
-        }
-        @media (min-width:2560px) {
-          .adm-stats { grid-template-columns: repeat(6,1fr); }
-        }
-      `}</style>
       {modal && (
-        <StockModal type={modal} materials={materials}
+        <StockModal type={modal} materials={materials} isMobile={isMobile}
           onClose={()=>setModal(null)}
           onDone={()=>{ setModal(null); cacheClear('inventory_full'); load(true); }}/>
       )}
@@ -229,188 +175,133 @@ export default function AdminInventory() {
 
       <StatGrid loading={loading} items={[
         { label:'Total Items', value:totalMats },
-        { label:'Low Stock', value:lowStock.length, color: lowStock.length ? 'var(--warning-text)' : undefined },
-        { label:'Out of Stock', value:materials.filter(m=>Number(m.quantity_in_stock)<=0).length, color:'var(--danger)' },
+        { label:'Low Stock', value:lowStock.length, color: lowStock.length ? 'var(--warning-text)' : undefined, chip: lowStock.length ? 'Reorder' : null, chipTone:'warn' },
+        { label:'Out of Stock', value:outCount, color: outCount ? 'var(--danger)' : undefined, chip: outCount ? 'Action' : null, chipTone:'down' },
       ]} />
 
-      {/* Load error — distinct from "no materials yet" */}
-      {loadError && !loading && (
-        <div style={{ padding:'12px 16px',borderRadius:'var(--r-md)',background:'var(--danger-bg)',border:'1px solid var(--danger-border)',marginBottom:18,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap' }}>
-          <NavIcon name="warning" size={17} color="var(--danger)" />
-          <p style={{ fontSize:12,color:'var(--danger)',fontWeight:600,margin:0 }}>Couldn't load inventory — check your connection.</p>
-          <button onClick={()=>load(true)}
-            style={{ marginLeft:'auto',padding:'5px 12px',borderRadius:'var(--r-sm)',border:'none',background:'var(--danger)',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'var(--font)',whiteSpace:'nowrap' }}>
-            Retry
-          </button>
-        </div>
-      )}
+      {loadError && !loading && <div style={{ marginBottom:14 }}><ErrorBlock msg="Couldn't load inventory — check your connection." onRetry={()=>load(true)} /></div>}
 
-      {/* Low stock banner */}
       {lowStock.length > 0 && (
-        <div style={{ padding:'12px 16px',borderRadius:'var(--r-md)',background:'var(--warning-bg)',border:'1px solid var(--warning-border)',marginBottom:18,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap' }}>
-          <NavIcon name="warning" size={17} color="var(--warning)" />
-          <p style={{ fontSize:12,color:'var(--warning)',fontWeight:600,margin:0 }}>
-            {lowStock.length} material{lowStock.length!==1?'s':''} below reorder threshold —{' '}
-            {lowStock.slice(0,3).map(m=>m.material_name).join(', ')}
-            {lowStock.length > 3 ? ` and ${lowStock.length-3} more` : ''}
-          </p>
-          <button onClick={()=>nav('/admin/procurement')}
-            style={{ marginLeft:'auto',padding:'5px 12px',borderRadius:'var(--r-sm)',border:'none',background:'var(--warning)',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'var(--font)',whiteSpace:'nowrap' }}>
-            Create PO →
-          </button>
-        </div>
+        <Banner tone="warn" icon="warning"
+          action={<button className="adm-btn primary" onClick={()=>nav('/admin/procurement')}>Create PO →</button>}>
+          {lowStock.length} material{lowStock.length!==1?'s':''} below reorder threshold — {lowStock.slice(0,3).map(m=>m.material_name).join(', ')}{lowStock.length > 3 ? ` and ${lowStock.length-3} more` : ''}
+        </Banner>
       )}
 
-      {/* Tabs */}
-      <div style={{ display:'flex',gap:6,marginBottom:18,borderBottom:'2px solid var(--border)',paddingBottom:0 }}>
-        {[['stock','stock','Stock Levels'],['logs','outputLog','Transaction Log']].map(([k,ic,l])=>(
-          <button key={k} onClick={()=>setTab(k)}
-            style={{ display:'flex', alignItems:'center', gap:6, padding:'9px 16px',borderRadius:'var(--r-md) var(--r-md) 0 0',border:'none',borderBottom:tab===k?'2px solid var(--teal)':'2px solid transparent',background:tab===k?'var(--teal-50)':'transparent',color:tab===k?'var(--teal)':'var(--text-subtle)',fontSize:13,fontWeight:tab===k?700:500,cursor:'pointer',fontFamily:'var(--font)',marginBottom:'-2px' }}>
-            <NavIcon name={ic} size={14} color={tab===k?'var(--teal)':'var(--text-subtle)'} />{l}
-          </button>
-        ))}
-      </div>
+      <PillTabs value={tab} onChange={setTab} tabs={[{ key:'stock', label:'Stock Levels', count:totalMats }, { key:'logs', label:'Transaction Log', count:logs.length }]} />
 
-      {/* Stock Levels Tab */}
       {tab==='stock' && (
         <>
-          <input type="text" value={search} onChange={e=>setSearch(e.target.value)}
-            placeholder="Search materials…"
-            style={{ ...inp,marginBottom:14 }} onFocus={fi} onBlur={fo}/>
-
-          {loading ? Array(5).fill(0).map((_,i)=>(
-            <div key={i} className="inv-card"><div style={{ ...SK,height:14,width:'60%' }}/></div>
-          )) : filtered.length===0 ? (
-            <p style={{ color:'var(--text-subtle)',fontSize:13,fontWeight:600,textAlign:'center',padding:'30px 0' }}>No materials found</p>
-          ) : isMobile ? filtered.map(m=>{
-            const low = m.quantity_in_stock <= (m.reorder_threshold??0);
-            return (
-              <div key={m.material_id} className="inv-card">
-                <div style={{ display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8 }}>
-                  <div style={{ minWidth:0 }}>
-                    <p style={{ fontSize:13,fontWeight:700,color:'var(--ink)',margin:0 }}>{m.material_name}</p>
-                    <p style={{ fontSize:11,color:'var(--text-subtle)',margin:'2px 0 0' }}>{m.category??'—'} · {m.unit}</p>
-                  </div>
-                  <Badge tone={low ? 'danger' : 'success'}>{low ? 'Low' : 'OK'}</Badge>
-                </div>
-                <div style={{ display:'flex',justifyContent:'space-between',marginTop:8,fontSize:12 }}>
-                  <span style={{ fontWeight:800,color:low?'var(--danger)':'var(--success)' }}>{m.quantity_in_stock} in stock</span>
-                  <span style={{ color:'var(--text-faint)' }}>reorder @ {m.reorder_threshold??0}</span>
-                </div>
-              </div>
-            );
-          }) : (
-          <div className="inv-table-wrap">
-            <table>
-              <thead>
-                <tr style={{ background:'var(--bg-surface)' }}>
-                  {['Material','Category','In Stock','Reorder Threshold','Unit','Status'].map(h=>(
-                    <th key={h} style={{ padding:'10px 14px',textAlign:'left',fontSize:10,fontWeight:700,color:'var(--text-subtle)',textTransform:'uppercase',letterSpacing:'.06em',borderBottom:'2px solid var(--border)',whiteSpace:'nowrap' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(m=>{
-                  const low = m.quantity_in_stock <= (m.reorder_threshold??0);
-                  const pct = m.reorder_threshold > 0
-                    ? Math.min(100,Math.round((m.quantity_in_stock/m.reorder_threshold)*100)) : 100;
-                  return (
-                    <tr key={m.material_id} style={{ borderBottom:'1px solid var(--bg-surface)' }}
-                      onMouseEnter={e=>e.currentTarget.style.background='var(--bg-surface)'}
-                      onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                      <td style={{ padding:'11px 14px' }}>
-                        <p style={{ fontSize:13,fontWeight:700,color:'var(--ink)',margin:0 }}>{m.material_name}</p>
-                      </td>
-                      <td style={{ padding:'11px 14px',fontSize:12,color:'var(--text-subtle)' }}>{m.category??'—'}</td>
-                      <td style={{ padding:'11px 14px' }}>
-                        <p style={{ fontSize:14,fontWeight:800,color:low?'var(--danger)':'var(--success)',margin:0 }}>{m.quantity_in_stock}</p>
-                        <div style={{ height:3,background:'var(--bg-surface)',borderRadius:'var(--r-full)',marginTop:4,overflow:'hidden',width:60 }}>
-                          <div style={{ height:'100%',width:`${pct}%`,background:low?'var(--danger)':'var(--success)',borderRadius:'var(--r-full)' }}/>
-                        </div>
-                      </td>
-                      <td style={{ padding:'11px 14px',fontSize:12,color:'var(--text-subtle)' }}>{m.reorder_threshold??0}</td>
-                      <td style={{ padding:'11px 14px',fontSize:12,color:'var(--text-subtle)' }}>{m.unit}</td>
-                      <td style={{ padding:'11px 14px' }}>
-                        <Badge tone={low ? 'danger' : 'success'}>{low ? 'Low Stock' : 'OK'}</Badge>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div className="adm-toolbar">
+            <SearchBox value={search} onChange={setSearch} placeholder="Search materials…" />
           </div>
+          {categories.length > 1 && (
+            <div className="adm-chip-row" style={{ marginBottom:12, overflowX:'auto', flexWrap:'nowrap', paddingBottom:2 }}>
+              {['all', ...categories].map(c => (
+                <button key={c} className={`adm-fchip${cat===c?' on':''}`} onClick={()=>setCat(c)} style={{ whiteSpace:'nowrap' }}>{c==='all' ? 'All categories' : c}</button>
+              ))}
+            </div>
+          )}
+
+          {loading ? <Panel flush><SkeletonRows rows={6} h={44} /></Panel>
+          : filtered.length===0 ? (
+            <Panel><div className="adm-empty"><NavIcon name="stock" size={30} color="currentColor" /><div style={{ marginTop:8, fontWeight:700 }}>No materials found</div>
+              {(search || cat!=='all') && <button className="adm-link-btn" onClick={()=>{ setSearch(''); setCat('all'); }}>Clear filters</button>}</div></Panel>
+          ) : (
+            <>
+              <div className="adm-only-d">
+                <Panel flush>
+                  <div className="adm-tbl-scroll">
+                    <table className="adm-table">
+                      <thead><tr><th>Material</th><th className="adm-hide-t">Category</th><th>In Stock</th><th className="adm-hide-t">Reorder at</th><th>Status</th></tr></thead>
+                      <tbody>
+                        {filtered.map(m => { const low = isLow(m); return (
+                          <tr key={m.material_id}>
+                            <td><div style={{ fontWeight:700 }}>{m.material_name}</div><div className="adm-hide-d-t" style={{ fontSize:11, color:'var(--text-subtle)' }}>{m.category ?? '—'}</div></td>
+                            <td className="adm-hide-t" style={{ color:'var(--text-subtle)' }}>{m.category ?? '—'}</td>
+                            <td style={{ minWidth:150 }}>
+                              <div style={{ display:'flex', alignItems:'baseline', gap:5 }}>
+                                <span style={{ fontSize:15, fontWeight:800, color: low ? 'var(--danger)' : 'var(--ink)' }}>{m.quantity_in_stock}</span>
+                                <span style={{ fontSize:11, color:'var(--text-faint)' }}>{m.unit}</span>
+                              </div>
+                              <div style={{ marginTop:5, maxWidth:120 }}><Meter pct={stockPct(m)} tone={low ? 'low' : 'ok'} /></div>
+                            </td>
+                            <td className="adm-hide-t" style={{ color:'var(--text-subtle)' }}>{m.reorder_threshold ?? 0} {m.unit}</td>
+                            <td><StatusPill status={low ? 'cancelled' : 'active'} label={low ? 'Low stock' : 'In stock'} /></td>
+                          </tr>); })}
+                      </tbody>
+                    </table>
+                  </div>
+                </Panel>
+              </div>
+              <div className="adm-only-m adm-stagger" key={`${cat}-${search}`}>
+                {filtered.map((m, i) => { const low = isLow(m); return (
+                  <div key={m.material_id} className="adm-mcard accent" style={{ '--i':Math.min(i,8), '--acc': low ? 'var(--danger)' : 'var(--success)' }}>
+                    <div className="adm-mrow">
+                      <div style={{ minWidth:0 }}>
+                        <div style={{ fontSize:14, fontWeight:800, color:'var(--ink)' }}>{m.material_name}</div>
+                        <div style={{ fontSize:11, color:'var(--text-subtle)', marginTop:2 }}>{m.category ?? '—'} · {m.unit}</div>
+                      </div>
+                      <StatusPill status={low ? 'cancelled' : 'active'} label={low ? 'Low' : 'OK'} />
+                    </div>
+                    <div className="adm-mrow" style={{ marginTop:10, alignItems:'baseline' }}>
+                      <span style={{ fontSize:20, fontWeight:800, color: low ? 'var(--danger)' : 'var(--ink)' }}>{m.quantity_in_stock}<span style={{ fontSize:11, fontWeight:600, color:'var(--text-faint)' }}> {m.unit}</span></span>
+                      <span style={{ fontSize:11, color:'var(--text-faint)' }}>reorder @ {m.reorder_threshold ?? 0}</span>
+                    </div>
+                    <div style={{ marginTop:8 }}><Meter pct={stockPct(m)} tone={low ? 'low' : 'ok'} /></div>
+                  </div>); })}
+              </div>
+            </>
           )}
         </>
       )}
 
-      {/* Transaction Log Tab */}
       {tab==='logs' && (
-        loading ? Array(5).fill(0).map((_,i)=>(
-          <div key={i} className="inv-card"><div style={{ ...SK,height:14,width:'60%' }}/></div>
-        )) : logs.length===0 ? (
-          <p style={{ color:'var(--text-subtle)',fontSize:13,textAlign:'center',padding:'30px 0' }}>No transactions yet</p>
-        ) : isMobile ? logs.slice(0,30).map((l,i)=>{
-          const tc = TYPE_CFG[l.type] ?? { color:'var(--text-subtle)', bg:'var(--bg-surface)' };
-          return (
-            <div key={l.log_id??i} className="inv-card">
-              <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center' }}>
-                <p style={{ fontSize:13,fontWeight:700,color:'var(--ink)',margin:0 }}>{l.material?.material_name??`#${l.material_id}`}</p>
-                <span style={{ padding:'3px 9px',borderRadius:'var(--r-full)',fontSize:10,fontWeight:700,background:tc.bg,color:tc.color,textTransform:'capitalize' }}>
-                  {(l.type??'—').replace('_',' ')}
-                </span>
-              </div>
-              <p style={{ fontSize:13,fontWeight:800,color:Number(l.change_qty)>=0?'var(--success)':'var(--danger)',margin:'6px 0 2px' }}>
-                {Number(l.change_qty)>0?'+':''}{l.change_qty} {l.material?.unit??''}
-              </p>
-              <p style={{ fontSize:11,color:'var(--text-subtle)',margin:0 }}>{l.reason??'—'}</p>
-              <p style={{ fontSize:10,color:'var(--text-faint)',margin:'4px 0 0' }}>
-                {l.log_date ? new Date(l.log_date).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) : '—'} · {l.recorder?.name??'—'}
-              </p>
+        loading ? <Panel flush><SkeletonRows rows={6} h={44} /></Panel>
+        : logs.length===0 ? <Panel><div className="adm-empty">No transactions yet</div></Panel>
+        : (
+          <>
+            <div className="adm-only-d">
+              <Panel flush>
+                <div className="adm-tbl-scroll">
+                  <table className="adm-table">
+                    <thead><tr><th>Material</th><th>Type</th><th>Change</th><th className="adm-hide-t">Reason</th><th>Date</th><th className="adm-hide-t">By</th></tr></thead>
+                    <tbody>
+                      {logs.slice(0,30).map((l,i)=>{
+                        const tc = TYPE_CFG[l.type] ?? { color:'var(--text-subtle)', bg:'var(--bg-surface)' };
+                        return (
+                          <tr key={l.log_id??i}>
+                            <td style={{ fontWeight:600 }}>{l.material?.material_name??`#${l.material_id}`}</td>
+                            <td><span className="adm-pill" style={{ background:tc.bg, color:tc.color }}>{(l.type??'—').replace('_',' ')}</span></td>
+                            <td style={{ fontWeight:800, color:Number(l.change_qty)>=0?'var(--success)':'var(--danger)' }}>{Number(l.change_qty)>0?'+':''}{l.change_qty} {l.material?.unit??''}</td>
+                            <td className="adm-hide-t" style={{ color:'var(--text-subtle)', maxWidth:220, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{l.reason??'—'}</td>
+                            <td style={{ color:'var(--text-faint)', whiteSpace:'nowrap' }}>{fmtLog(l.log_date)}</td>
+                            <td className="adm-hide-t" style={{ color:'var(--text-subtle)' }}>{l.recorder?.name??'—'}</td>
+                          </tr>);
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </Panel>
             </div>
-          );
-        }) : (
-        <div className="inv-table-wrap">
-          <table>
-            <thead>
-              <tr style={{ background:'var(--bg-surface)' }}>
-                {['Material','Type','Change','Reason','Date','By'].map(h=>(
-                  <th key={h} style={{ padding:'10px 14px',textAlign:'left',fontSize:10,fontWeight:700,color:'var(--text-subtle)',textTransform:'uppercase',letterSpacing:'.06em',borderBottom:'2px solid var(--border)',whiteSpace:'nowrap' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
+            <div className="adm-only-m adm-stagger">
               {logs.slice(0,30).map((l,i)=>{
                 const tc = TYPE_CFG[l.type] ?? { color:'var(--text-subtle)', bg:'var(--bg-surface)' };
                 return (
-                  <tr key={l.log_id??i} style={{ borderBottom:'1px solid var(--bg-surface)' }}
-                    onMouseEnter={e=>e.currentTarget.style.background='var(--bg-surface)'}
-                    onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                    <td style={{ padding:'10px 14px',fontSize:12,fontWeight:600,color:'var(--ink)' }}>
-                      {l.material?.material_name??`#${l.material_id}`}
-                    </td>
-                    <td style={{ padding:'10px 14px' }}>
-                      <span style={{ padding:'3px 9px',borderRadius:'var(--r-full)',fontSize:10,fontWeight:700,background:tc.bg,color:tc.color,textTransform:'capitalize' }}>
-                        {(l.type??'—').replace('_',' ')}
-                      </span>
-                    </td>
-                    <td style={{ padding:'10px 14px',fontSize:13,fontWeight:800,color:Number(l.change_qty)>=0?'var(--success)':'var(--danger)' }}>
-                      {Number(l.change_qty)>0?'+':''}{l.change_qty} {l.material?.unit??''}
-                    </td>
-                    <td style={{ padding:'10px 14px',fontSize:11,color:'var(--text-subtle)',maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>
-                      {l.reason??'—'}
-                    </td>
-                    <td style={{ padding:'10px 14px',fontSize:11,color:'var(--text-faint)',whiteSpace:'nowrap' }}>
-                      {l.log_date ? new Date(l.log_date).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'}) : '—'}
-                    </td>
-                    <td style={{ padding:'10px 14px',fontSize:11,color:'var(--text-subtle)' }}>
-                      {l.recorder?.name??'—'}
-                    </td>
-                  </tr>
-                );
+                  <div key={l.log_id??i} className="adm-mcard accent" style={{ '--i':Math.min(i,8), '--acc':tc.color }}>
+                    <div className="adm-mrow">
+                      <div style={{ fontSize:14, fontWeight:700 }}>{l.material?.material_name??`#${l.material_id}`}</div>
+                      <span className="adm-pill" style={{ background:tc.bg, color:tc.color }}>{(l.type??'—').replace('_',' ')}</span>
+                    </div>
+                    <div style={{ fontSize:18, fontWeight:800, margin:'6px 0 2px', color:Number(l.change_qty)>=0?'var(--success)':'var(--danger)' }}>
+                      {Number(l.change_qty)>0?'+':''}{l.change_qty} <span style={{ fontSize:11, fontWeight:600 }}>{l.material?.unit??''}</span>
+                    </div>
+                    <div style={{ fontSize:12, color:'var(--text-subtle)' }}>{l.reason??'—'}</div>
+                    <div style={{ fontSize:10, color:'var(--text-faint)', marginTop:4 }}>{fmtLog(l.log_date)} · {l.recorder?.name??'—'}</div>
+                  </div>);
               })}
-            </tbody>
-          </table>
-        </div>
+            </div>
+          </>
         )
       )}
     </>

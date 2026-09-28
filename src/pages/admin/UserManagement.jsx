@@ -22,7 +22,7 @@ import axios from 'axios';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
 import BottomSheet from '../../components/ui/BottomSheet';
 import { NavIcon } from '../../components/ui/icons';
-import { PageHeader, StatGrid, PillTabs, ErrorBlock } from '../../components/admin/AdminUI';
+import { PageHeader, StatGrid, PillTabs, ErrorBlock, Panel, StatusPill, SearchBox, Avatar, SkeletonRows, useIsMobile } from '../../components/admin/AdminUI';
 
 const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif`;
 
@@ -32,7 +32,6 @@ const fi  = e => { e.target.style.borderColor=T; e.target.style.boxShadow=`0 0 0
 const fo  = e => { e.target.style.borderColor='var(--border)'; e.target.style.boxShadow='none'; };
 const lbl = { display:'block', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'var(--text-subtle)', marginBottom:7 };
 const SK  = { borderRadius:6, background:'linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%)', backgroundSize:'400px', animation:'sk 1.4s infinite' };
-const card = { background:'#fff', border:'1px solid var(--border)', borderRadius:14, boxShadow:'0 1px 3px rgba(0,0,0,.05)' };
 
 const ROLE_CFG = {
   manager:  { c:'var(--teal)', bg:'var(--teal-50, #f0fdfa)', l:'Manager'  },
@@ -205,9 +204,8 @@ export default function AdminUserManagement() {
   const [toggling,setToggling]= useState(null);
   const [toggleErr, setToggleErr] = useState('');
   const [confirmDeactivate, setConfirmDeactivate] = useState(null); // user pending deactivate confirmation
-  const [winW, setWinW] = useState(typeof window!=='undefined'?window.innerWidth:1280);
-  useEffect(() => { const h=()=>setWinW(window.innerWidth); window.addEventListener('resize',h); return()=>window.removeEventListener('resize',h); }, []);
-  const isMobile = winW <= 767;
+  const isMobile = useIsMobile();
+  const [loadErr, setLoadErr] = useState(false);
   const me = JSON.parse(localStorage.getItem('vfrb_user') || '{}');
 
   const load = useCallback((force = false) => {
@@ -215,14 +213,14 @@ export default function AdminUserManagement() {
       const cached = cacheGet('admin_users');
       if (cached) { setUsers(cached); setLoading(false); return; }
     }
-    setLoading(true);
+    setLoading(true); setLoadErr(false);
     axios.get('/api/admin/users')
       .then(r => {
         const list = r.data?.data ?? r.data ?? [];
         setUsers(list);
         cacheSet('admin_users', list, 300_000); // 5min — users list is stable
       })
-      .catch(() => {})
+      .catch(() => setLoadErr(true))
       .finally(() => setLoading(false));
   }, []);
 
@@ -278,162 +276,117 @@ export default function AdminUserManagement() {
         />
       )}
 
-      <div style={{ fontFamily:FONT, color:'var(--ink)' }}>
-        <PageHeader title="User Management" sub={`${users.length} total accounts`}>
-          {me.role === 'manager' && <button className="adm-btn primary" onClick={() => setModal(true)}>+ Add User</button>}
-        </PageHeader>
+      <PageHeader title="User Management" sub={`${users.length} total accounts`}>
+        {me.role === 'manager' && <button className="adm-btn primary" onClick={() => setModal(true)}><NavIcon name="add" size={14} color="currentColor" /> Add User</button>}
+      </PageHeader>
 
-        {toggleErr && (
-          <p style={{ color:'var(--danger)', fontSize:12, fontWeight:600, margin:'-10px 0 16px', display:'flex', alignItems:'center', gap:5 }}>
-            {toggleErr}
-          </p>
-        )}
+      {toggleErr && <div style={{ marginBottom:14 }}><ErrorBlock msg={toggleErr} /></div>}
+      {loadErr && <div style={{ marginBottom:14 }}><ErrorBlock msg="Could not load users." onRetry={() => load(true)} /></div>}
 
-        <PillTabs value={roleF} onChange={setRoleF} tabs={[
-          { key:'all', label:'All Users', count:users.length },
-          { key:'customer', label:'Clients', count:counts.customer ?? 0 },
-          { key:'staff', label:'Staff', count:counts.staff ?? 0 },
-          { key:'manager', label:'Managers', count:counts.manager ?? 0 },
-        ]} />
+      <StatGrid loading={loading} items={[
+        { label:'Total Accounts', value:users.length },
+        { label:'Active', value:users.filter(u => u.is_active !== false).length, color:'var(--success)' },
+        { label:'Inactive', value:users.filter(u => u.is_active === false).length, color: users.some(u => u.is_active === false) ? 'var(--danger)' : undefined },
+        { label:'Staff & Managers', value:(counts.staff ?? 0) + (counts.manager ?? 0), color:'var(--teal)' },
+      ]} />
 
-        {/* Search */}
-        <input type="text" value={search} onChange={e=>setSearch(e.target.value)}
-          placeholder="Search by name or email…"
-          style={{ ...inp, marginBottom:16 }} onFocus={fi} onBlur={fo}/>
+      <div className="adm-toolbar">
+        <SearchBox value={search} onChange={setSearch} placeholder="Search by name or email…" />
+      </div>
+      <PillTabs value={roleF} onChange={setRoleF} tabs={[
+        { key:'all', label:'All Users', count:users.length },
+        { key:'customer', label:'Clients', count:counts.customer ?? 0 },
+        { key:'staff', label:'Staff', count:counts.staff ?? 0 },
+        { key:'manager', label:'Managers', count:counts.manager ?? 0 },
+      ]} />
 
-        {/* Users — mobile cards vs desktop table */}
-        {loading ? (
-          isMobile ? (
-            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-              {[1,2,3].map(i => <div key={i} style={{ ...card, padding:14 }}><div style={{ ...SK, height:14, width:'60%' }}/></div>)}
-            </div>
-          ) : (
-            <div style={{ ...card, overflow:'hidden', padding:30 }}>
-              {[1,2,3,4].map(i => <div key={i} style={{ ...SK, height:11, marginBottom:10 }}/>)}
-            </div>
-          )
-        ) : filtered.length === 0 ? (
-          <div style={{ ...card, padding:'40px', textAlign:'center' }}>
-            <NavIcon name="users" size={32} color="var(--text-faint)" style={{ marginBottom:10 }}/>
-            <p style={{ color:'var(--text-subtle)', fontSize:13, fontWeight:600 }}>No users found</p>
+      {loading ? <Panel flush><SkeletonRows rows={5} h={48} /></Panel>
+      : filtered.length === 0 ? (
+        <Panel><div className="adm-empty"><NavIcon name="users" size={30} color="currentColor" />
+          <div style={{ marginTop:8, fontWeight:700 }}>No users found</div>
+          {(search || roleF !== 'all') && <button className="adm-link-btn" onClick={() => { setSearch(''); setRoleF('all'); }}>Clear filters</button>}</div></Panel>
+      ) : (
+        <>
+          <div className="adm-only-d">
+            <Panel flush>
+              <div className="adm-tbl-scroll">
+                <table className="adm-table">
+                  <thead><tr><th>User</th><th className="adm-hide-t">Contact</th><th>Role</th><th style={{ textAlign:'center' }}>Orders</th><th>Status</th><th style={{ textAlign:'right' }}>Actions</th></tr></thead>
+                  <tbody>
+                    {filtered.map((u, i) => {
+                      const rc = ROLE_CFG[u.role] ?? { c:'var(--text-subtle)', bg:'var(--bg-surface)', l:u.role };
+                      const isActive = u.is_active !== false;
+                      const isMe = u.user_id === me.user_id;
+                      const canAct = me.role === 'manager' && !isMe;
+                      return (
+                        <tr key={u.user_id ?? i} className={canAct ? 'adm-row' : undefined} style={{ opacity: isActive ? 1 : .6 }}>
+                          <td>
+                            <div style={{ display:'flex', alignItems:'center', gap:11 }}>
+                              <Avatar name={u.name} size={36} tone={u.role === 'manager' ? 'purple' : u.role === 'staff' ? 'blue' : undefined} />
+                              <div style={{ minWidth:0 }}>
+                                <div style={{ fontWeight:700 }}>{u.name}{isMe && <span className="adm-chip" style={{ marginLeft:6, background:'var(--teal-50)', color:'var(--teal)' }}>YOU</span>}</div>
+                                <div style={{ fontSize:11, color:'var(--text-subtle)' }}>{u.email}</div>
+                                {u.organization_name && <div style={{ fontSize:10, color:'var(--text-faint)' }}>{u.organization_name}</div>}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="adm-hide-t" style={{ color:'var(--text-subtle)' }}>{u.contact_number ?? '—'}</td>
+                          <td><span className="adm-pill" style={{ background:rc.bg, color:rc.c }}>{rc.l}</span></td>
+                          <td style={{ textAlign:'center', fontWeight:700 }}>{u.orders_count ?? 0}</td>
+                          <td><StatusPill status={isActive ? 'active' : 'inactive'} label={isActive ? 'Active' : 'Inactive'} /></td>
+                          <td>
+                            {canAct && (
+                              <div className="adm-ra" style={{ display:'flex', gap:6, justifyContent:'flex-end' }}>
+                                <button className="adm-btn" onClick={() => setEditing(u)}><NavIcon name="edit" size={13} color="currentColor" /> Edit</button>
+                                <button className={`adm-btn ${isActive ? 'danger' : 'success'}`} onClick={() => toggleStatus(u)} disabled={toggling === u.user_id}>
+                                  {toggling === u.user_id ? '…' : isActive ? 'Deactivate' : 'Activate'}
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ padding:'10px 18px', borderTop:'1px solid var(--bg-surface)', fontSize:11, color:'var(--text-faint)' }}>Showing {filtered.length} of {users.length} accounts</div>
+            </Panel>
           </div>
-        ) : isMobile ? (
-          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+
+          <div className="adm-only-m adm-stagger" key={`${roleF}-${search}`}>
             {filtered.map((u, i) => {
               const rc = ROLE_CFG[u.role] ?? { c:'var(--text-subtle)', bg:'var(--bg-surface)', l:u.role };
               const isActive = u.is_active !== false;
               const isMe = u.user_id === me.user_id;
               return (
-                <div key={u.user_id ?? i} style={{ ...card, padding:14, opacity: isActive ? 1 : .6 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
-                    <div style={{ width:36, height:36, borderRadius:'50%', flexShrink:0, background:`linear-gradient(135deg,${T},${T2})`, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:14, fontWeight:800 }}>
-                      {(u.name??'?').charAt(0).toUpperCase()}
-                    </div>
+                <div key={u.user_id ?? i} className="adm-mcard" style={{ '--i':Math.min(i,8), opacity: isActive ? 1 : .65 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:11 }}>
+                    <Avatar name={u.name} size={40} tone={u.role === 'manager' ? 'purple' : u.role === 'staff' ? 'blue' : undefined} />
                     <div style={{ flex:1, minWidth:0 }}>
-                      <p style={{ fontSize:13, fontWeight:700, color:'var(--ink)', margin:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                        {u.name}{isMe && <span style={{ marginLeft:6, fontSize:9, padding:'1px 6px', borderRadius:99, background:'var(--teal-50, #f0fdfa)', color:T, fontWeight:700 }}>YOU</span>}
-                      </p>
-                      <p style={{ fontSize:11, color:'var(--text-subtle)', margin:'2px 0 0', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{u.email}</p>
+                      <div style={{ fontSize:14, fontWeight:800, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{u.name}{isMe && <span className="adm-chip" style={{ marginLeft:6, background:'var(--teal-50)', color:'var(--teal)' }}>YOU</span>}</div>
+                      <div style={{ fontSize:11, color:'var(--text-subtle)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{u.email}</div>
                     </div>
-                    <span style={{ padding:'4px 10px', borderRadius:99, fontSize:10, fontWeight:700, background:rc.bg, color:rc.c, flexShrink:0 }}>{rc.l}</span>
+                    <span className="adm-pill" style={{ background:rc.bg, color:rc.c }}>{rc.l}</span>
                   </div>
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingTop:10, borderTop:'1px solid var(--bg-surface)' }}>
-                    <div style={{ display:'flex', gap:14 }}>
-                      <div>
-                        <p style={{ fontSize:9, color:'var(--text-faint)', margin:0, textTransform:'uppercase', letterSpacing:'.04em' }}>Orders</p>
-                        <p style={{ fontSize:13, fontWeight:700, color:'var(--ink)', margin:0 }}>{u.orders_count ?? 0}</p>
-                      </div>
-                      <div>
-                        <p style={{ fontSize:9, color:'var(--text-faint)', margin:0, textTransform:'uppercase', letterSpacing:'.04em' }}>Status</p>
-                        <span style={{ display:'inline-block', marginTop:2, padding:'2px 8px', borderRadius:99, fontSize:9, fontWeight:700, background: isActive ? '#dcfce7' : '#fee2e2', color: isActive ? '#166534' : '#991b1b' }}>
-                          {isActive ? '● Active' : '○ Inactive'}
-                        </span>
-                      </div>
+                  <div className="adm-mrow" style={{ marginTop:12, paddingTop:10, borderTop:'1px solid var(--bg-surface)' }}>
+                    <span style={{ fontSize:12, color:'var(--text-subtle)' }}><b style={{ color:'var(--ink)' }}>{u.orders_count ?? 0}</b> orders</span>
+                    <StatusPill status={isActive ? 'active' : 'inactive'} label={isActive ? 'Active' : 'Inactive'} />
+                  </div>
+                  {me.role === 'manager' && !isMe && (
+                    <div className="adm-mfoot">
+                      <button className="adm-btn" onClick={() => setEditing(u)}>Edit</button>
+                      <button className={`adm-btn ${isActive ? 'danger' : 'success'}`} onClick={() => toggleStatus(u)} disabled={toggling === u.user_id}>
+                        {toggling === u.user_id ? '…' : isActive ? 'Deactivate' : 'Activate'}
+                      </button>
                     </div>
-                    {me.role === 'manager' && !isMe && (
-                      <div style={{ display:'flex', gap:6 }}>
-                        <button onClick={() => setEditing(u)}
-                          style={{ padding:'6px 12px', borderRadius:8, border:'1px solid var(--border)', background:'#fff', color:'var(--text-subtle)', fontSize:11, fontWeight:600, cursor:'pointer', fontFamily:FONT }}>
-                          Edit
-                        </button>
-                        <button onClick={() => toggleStatus(u)} disabled={toggling === u.user_id}
-                          style={{ padding:'6px 12px', borderRadius:8, border:`1px solid ${isActive ? 'var(--danger-border)' : 'var(--success-border)'}`, background: isActive ? '#fff' : 'var(--success-bg)', color: isActive ? 'var(--danger)' : 'var(--success)', fontSize:11, fontWeight:600, cursor:'pointer', fontFamily:FONT, opacity: toggling===u.user_id ? .6 : 1 }}>
-                          {toggling === u.user_id ? <NavIcon name="loading" size={12} style={{ animation:'um-spin .8s linear infinite' }}/> : isActive ? 'Deactivate' : 'Activate'}
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
               );
             })}
           </div>
-        ) : (
-        <div style={{ ...card, overflow:'hidden' }}>
-          <table style={{ width:'100%', borderCollapse:'collapse' }}>
-            <thead>
-              <tr style={{ background:'var(--bg)' }}>
-                {['User','Email','Role','Contact','Orders','Status','Action'].map(h => (
-                  <th key={h} style={{ padding:'10px 14px', textAlign:'left', fontSize:10, fontWeight:700, color:'var(--text-subtle)', textTransform:'uppercase', letterSpacing:'.06em', borderBottom:'2px solid var(--border)', whiteSpace:'nowrap' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((u, i) => {
-                const rc = ROLE_CFG[u.role] ?? { c:'var(--text-subtle)', bg:'var(--bg-surface)', l:u.role };
-                const isActive = u.is_active !== false;
-                const isMe = u.user_id === me.user_id;
-                return (
-                  <tr key={u.user_id ?? i} style={{ borderBottom:'1px solid var(--bg-surface)', opacity: isActive ? 1 : .6 }}
-                    onMouseEnter={e => e.currentTarget.style.background='var(--bg)'}
-                    onMouseLeave={e => e.currentTarget.style.background='transparent'}>
-                    <td style={{ padding:'12px 14px' }}>
-                      <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                        <div style={{ width:32, height:32, borderRadius:'50%', flexShrink:0, background:`linear-gradient(135deg,${T},${T2})`, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:13, fontWeight:800 }}>
-                          {(u.name??'?').charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <p style={{ fontSize:13, fontWeight:700, color:'var(--ink)', margin:0 }}>
-                            {u.name}{isMe && <span style={{ marginLeft:6, fontSize:9, padding:'1px 6px', borderRadius:99, background:'var(--teal-50, #f0fdfa)', color:T, fontWeight:700 }}>YOU</span>}
-                          </p>
-                          {u.organization_name && <p style={{ fontSize:10, color:'var(--text-faint)', margin:'1px 0 0' }}>{u.organization_name}</p>}
-                        </div>
-                      </div>
-                    </td>
-                    <td style={{ padding:'12px 14px', fontSize:12, color:'var(--text-subtle)' }}>{u.email}</td>
-                    <td style={{ padding:'12px 14px' }}>
-                      <span style={{ padding:'4px 10px', borderRadius:99, fontSize:10, fontWeight:700, background:rc.bg, color:rc.c }}>{rc.l}</span>
-                    </td>
-                    <td style={{ padding:'12px 14px', fontSize:12, color:'var(--text-subtle)' }}>{u.contact_number ?? '—'}</td>
-                    <td style={{ padding:'12px 14px', fontSize:13, fontWeight:700, color:'var(--ink)', textAlign:'center' }}>
-                      {u.orders_count ?? 0}
-                    </td>
-                    <td style={{ padding:'12px 14px' }}>
-                      <span style={{ padding:'4px 10px', borderRadius:99, fontSize:10, fontWeight:700, background: isActive ? '#dcfce7' : '#fee2e2', color: isActive ? '#166534' : '#991b1b' }}>
-                        {isActive ? '● Active' : '○ Inactive'}
-                      </span>
-                    </td>
-                    <td style={{ padding:'12px 14px' }}>
-                      {me.role === 'manager' && !isMe && (
-                        <div style={{ display:'flex', gap:6 }}>
-                          <button onClick={() => setEditing(u)}
-                            style={{ padding:'6px 12px', borderRadius:8, border:'1px solid var(--border)', background:'#fff', color:'var(--text-subtle)', fontSize:11, fontWeight:600, cursor:'pointer', fontFamily:FONT }}>
-                            Edit
-                          </button>
-                          <button onClick={() => toggleStatus(u)} disabled={toggling === u.user_id}
-                            style={{ padding:'6px 12px', borderRadius:8, border:`1px solid ${isActive ? 'var(--danger-border)' : 'var(--success-border)'}`, background: isActive ? '#fff' : 'var(--success-bg)', color: isActive ? 'var(--danger)' : 'var(--success)', fontSize:11, fontWeight:600, cursor:'pointer', fontFamily:FONT, opacity: toggling===u.user_id ? .6 : 1 }}>
-                            {toggling === u.user_id ? <NavIcon name="loading" size={12} style={{ animation:'um-spin .8s linear infinite' }}/> : isActive ? 'Deactivate' : 'Activate'}
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        )}
-      </div>
+        </>
+      )}
     </>
   );
 }

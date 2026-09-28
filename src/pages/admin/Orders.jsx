@@ -41,17 +41,13 @@
 //   filtered:  filter + String.includes — O(n) per keystroke (debounced)
 //   STATUS_SEQ: object as hash map — O(1) status → color/label/icon lookup
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { motion, AnimatePresence }                            from 'framer-motion';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate }                                        from 'react-router-dom';
 import axios                                                  from 'axios';
 import { cacheGet, cacheSet, cacheClear, TTL }               from '../../utils/cache';
 import { NavIcon }                                            from '../../components/ui/icons';
-import { PageHeader, StatGrid, PillTabs, ErrorBlock }        from '../../components/admin/AdminUI';
+import { PageHeader, StatGrid, PillTabs, ErrorBlock, Panel, StatusPill, SearchBox, Segments, Banner, Toast, useToast, useIsMobile, FilterSheet, FilterButton, SkeletonRows } from '../../components/admin/AdminUI';
 
-const T  = 'var(--teal)';
-const T2 = 'var(--teal-2)';
-const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif`;
 
 // ── Status config — O(1) lookup hash map ──────────────────────────────────────
 // DSA: JavaScript object used as hash map: status string → style/label O(1)
@@ -75,53 +71,24 @@ const ALL_TABS = [
   'completed','cancelled',
 ];
 
-// ── Skeleton style ────────────────────────────────────────────────────────────
-const SK = {
-  borderRadius: 6,
-  background: 'linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%)',
-  backgroundSize: '400px',
-  animation: 'sk 1.4s infinite',
-};
-
-// ── Mini pipeline dots ────────────────────────────────────────────────────────
-// DSA: linear scan of 8-element STAGES array — O(8) = O(1)
 const PROD_STAGES = ['confirmed','pattern','segregation','cutting','sewing','qc','pressing','packing'];
+const isLive = (st) => !['completed','cancelled'].includes(st);
+const fmtDate = (d, y = false) => d ? new Date(d).toLocaleDateString('en-PH', { month:'short', day:'numeric', ...(y ? { year:'numeric' } : {}) }) : '—';
 
-function PipelineStrip({ status }) {
-  const seq = STATUS_CFG[status]?.seq ?? -1;
-  if (seq < 0) return null;
+// Segmented stage bar: index of current stage among the 8 production stages
+function StageBar({ status }) {
+  if (!isLive(status)) return null;
+  const idx = status === 'pending' ? -1 : PROD_STAGES.indexOf(status);
   return (
-    <div style={{ display:'flex', alignItems:'center', gap:3, flexWrap:'wrap', marginTop:6 }}>
-      {PROD_STAGES.map((s, i) => {
-        const done   = (STATUS_CFG[s]?.seq ?? 0) < seq;
-        const active = s === status;
-        const cfg    = STATUS_CFG[s];
-        return (
-          <div key={s} style={{ display:'flex', alignItems:'center', gap:3 }}>
-            <div title={cfg.label} style={{
-              width:18, height:18, borderRadius:'50%', fontSize:8,
-              display:'flex', alignItems:'center', justifyContent:'center',
-              background: done ? 'var(--success-bg)' : active ? cfg.bg : 'var(--bg-surface)',
-              border: done
-                ? '1.5px solid var(--success)'
-                : active
-                  ? `2px solid ${cfg.color}`
-                  : '1.5px solid var(--border)',
-            }}>
-              <NavIcon name={done ? 'success' : cfg.icon} size={12} color="currentColor"/>
-            </div>
-            {i < PROD_STAGES.length - 1 && (
-              <div style={{ width:6, height:2, borderRadius:99,
-                background: done ? 'var(--success)' : 'var(--border)' }}/>
-            )}
-          </div>
-        );
-      })}
+    <div style={{ minWidth:96 }}>
+      <Segments total={PROD_STAGES.length} index={idx < 0 ? 0 : idx} />
+      <div style={{ fontSize:10, color:'var(--text-faint)', marginTop:4 }}>
+        {idx < 0 ? 'Awaiting confirmation' : `Stage ${idx + 1} of ${PROD_STAGES.length}`}
+      </div>
     </div>
   );
 }
 
-// ── Extract swatch color from order ──────────────────────────────────────────
 function getSwatchColor(order) {
   try {
     const sc = order.studio_config;
@@ -132,289 +99,110 @@ function getSwatchColor(order) {
   }
 }
 
-// ── Desktop table row ─────────────────────────────────────────────────────────
-function OrderRow({ order, isManager, onConfirm, confirming }) {
-  const navigate   = useNavigate();
-  const cfg        = STATUS_CFG[order.status] ?? STATUS_CFG.pending;
-  const pct        = cfg.seq >= 0 ? Math.round((cfg.seq / 9) * 100) : 0;
-  const isActive   = !['completed','cancelled'].includes(order.status);
-  const swatchClr  = getSwatchColor(order);
-
-  const goTrack = () => navigate(`/admin/production/${order.order_id}`);
-  const goView  = () => navigate(`/admin/orders/${order.order_id}`);
-
+function OrderActions({ order, isManager, onConfirm, confirming, stop }) {
+  const navigate = useNavigate();
+  const live = isLive(order.status);
+  const click = (fn) => (e) => { if (stop) e.stopPropagation(); fn(); };
   return (
-    <motion.tr
-      initial={{ opacity:0 }}
-      animate={{ opacity:1 }}
-      style={{ borderBottom:'1px solid var(--bg-surface)' }}
-      onMouseEnter={e => e.currentTarget.style.background='var(--bg)'}
-      onMouseLeave={e => e.currentTarget.style.background='transparent'}
-    >
-      {/* Order # + date */}
-      <td style={{ padding:'11px 14px' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          {/* Color swatch dot */}
-          {swatchClr && (
-            <div style={{
-              width:10, height:10, borderRadius:'50%', flexShrink:0,
-              background: swatchClr,
-              border:'1.5px solid rgba(0,0,0,.08)',
-              boxShadow:'0 1px 3px rgba(0,0,0,.12)',
-            }}/>
-          )}
-          <div>
-            <p style={{ fontSize:12, fontWeight:700, color:T, margin:0, whiteSpace:'nowrap' }}>
-              #{order.order_id}
-            </p>
-            <p style={{ fontSize:10, color:'var(--text-faint)', margin:'1px 0 0', whiteSpace:'nowrap' }}>
-              {order.created_at
-                ? new Date(order.created_at).toLocaleDateString('en-PH',{month:'short',day:'numeric'})
-                : '—'}
-            </p>
-          </div>
-        </div>
-      </td>
-
-      {/* Customer */}
-      <td style={{ padding:'11px 14px' }}>
-        <p style={{ fontSize:13, fontWeight:600, color:'var(--ink)', margin:0,
-          maxWidth:160, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-          {order.customer_name ?? '—'}
-        </p>
-        <p style={{ fontSize:10, color:'var(--text-subtle)', margin:'1px 0 0' }}>
-          {order.order_type === 'direct' ? 'Direct' : 'Institutional'}
-        </p>
-      </td>
-
-      {/* Garment / Design */}
-      <td style={{ padding:'11px 14px' }}>
-        <p style={{ fontSize:12, fontWeight:600, color:'var(--ink)', margin:0,
-          maxWidth:150, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-          {order.garment_type ?? order.design?.design_name ?? 'Custom'}
-        </p>
-        <p style={{ fontSize:10, color:'var(--text-subtle)', margin:'1px 0 0' }}>
-          {order.quantity_ordered ?? 0} pcs
-          {order.color ? ` · ${order.color}` : ''}
-        </p>
-      </td>
-
-      {/* Status + pipeline */}
-      <td style={{ padding:'11px 14px', minWidth:140 }}>
-        <span style={{
-          padding:'3px 9px', borderRadius:99, fontSize:10, fontWeight:700,
-          background:cfg.bg, color:cfg.color,
-          border:`1px solid ${cfg.color}28`, whiteSpace:'nowrap',
-        }}>
-          <NavIcon name={cfg.icon} size={12} color="currentColor"/> {cfg.label}
-        </span>
-        {isActive && (
-          <div style={{ marginTop:5 }}>
-            <div style={{ height:3, width:90, background:'var(--bg-surface)', borderRadius:99, overflow:'hidden' }}>
-              <div style={{ height:'100%', width:`${pct}%`, borderRadius:99,
-                background:`linear-gradient(90deg,${T},${T2})`,
-                transition:'width .4s ease' }}/>
-            </div>
-          </div>
-        )}
-      </td>
-
-      {/* Deadline */}
-      <td style={{ padding:'11px 14px', fontSize:11, color:'var(--text-subtle)', whiteSpace:'nowrap' }}
-        className="adm-col-deadline">
-        {order.target_delivery_date ?? order.deadline
-          ? new Date(order.target_delivery_date ?? order.deadline)
-              .toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})
-          : '—'}
-      </td>
-
-      {/* Actions */}
-      <td style={{ padding:'11px 14px' }}>
-        <div style={{ display:'flex', gap:6, alignItems:'center' }}>
-
-          {/* Track / View button */}
-          {isActive && !isManager ? (
-            <>
-              <button onClick={goTrack} style={{
-                padding:'5px 12px', borderRadius:8, border:'none', cursor:'pointer',
-                background:`linear-gradient(135deg,${T},${T2})`,
-                color:'var(--bg-card)', fontSize:11, fontWeight:700, fontFamily:FONT,
-                boxShadow:`0 2px 8px rgba(2,128,144,.22)`,
-                whiteSpace:'nowrap',
-              }}>
-                ▶ Track
-              </button>
-              <button onClick={goView} title="View Details" style={{
-                padding:'5px 10px', borderRadius:8,
-                border:'1px solid var(--border)', background:'var(--bg)',
-                color:'var(--text-subtle)', fontSize:12, cursor:'pointer',
-                fontFamily:FONT, whiteSpace:'nowrap',
-              }}>
-                <NavIcon name="show" size={14} color="currentColor"/>
-              </button>
-            </>
-          ) : (
-            <button onClick={goView} style={{
-              padding:'5px 12px', borderRadius:8,
-              border:'1px solid var(--border)', background:'var(--bg)',
-              color:'var(--text-subtle)', fontSize:11, fontWeight:600,
-              cursor:'pointer', fontFamily:FONT, whiteSpace:'nowrap',
-            }}>
-              View
-            </button>
-          )}
-
-          {/* Manager: Confirm pending order */}
-          {isManager && order.status === 'pending' && (
-            <button
-              onClick={() => onConfirm(order.order_id)}
-              disabled={confirming === order.order_id}
-              style={{
-                padding:'5px 10px', borderRadius:8, border:'none', cursor:'pointer',
-                background: confirming === order.order_id ? 'var(--bg-surface)' : 'var(--success-bg)',
-                color: confirming === order.order_id ? 'var(--text-faint)' : '#166534',
-                fontSize:11, fontWeight:700, fontFamily:FONT,
-                border:'1px solid var(--success-border)', whiteSpace:'nowrap',
-              }}>
-              {confirming === order.order_id ? '…' : <><NavIcon name="success" size={12} color="currentColor"/> Confirm</>}
-            </button>
-          )}
-        </div>
-      </td>
-    </motion.tr>
-  );
-}
-
-// ── Mobile card — replaces table row on ≤767px ────────────────────────────────
-// DSA: same O(1) STATUS_CFG lookup, rendered as card instead of row
-function OrderCard({ order, isManager, onConfirm, confirming, index }) {
-  const navigate  = useNavigate();
-  const cfg       = STATUS_CFG[order.status] ?? STATUS_CFG.pending;
-  const isActive  = !['completed','cancelled'].includes(order.status);
-  const swatchClr = getSwatchColor(order);
-  const goTrack   = () => navigate(`/admin/production/${order.order_id}`);
-  const goView    = () => navigate(`/admin/orders/${order.order_id}`);
-
-  return (
-    <motion.div
-      initial={{ opacity:0, y:12 }}
-      animate={{ opacity:1, y:0 }}
-      transition={{ delay: index * 0.04 }}
-      style={{
-        background:'var(--bg-card)', borderRadius:12,
-        border:'1.5px solid var(--border)',
-        overflow:'hidden',
-        boxShadow:'0 1px 4px rgba(0,0,0,.05)',
-        marginBottom:10,
-      }}
-    >
-      {/* Color swatch strip — full width top bar */}
-      {swatchClr && (
-        <div style={{ height:4, background:swatchClr, width:'100%' }}/>
+    <>
+      {live && !isManager && (
+        <button className="adm-btn primary" onClick={click(() => navigate(`/admin/production/${order.order_id}`))}>
+          <NavIcon name="production" size={13} color="currentColor" /> Track
+        </button>
       )}
-
-      <div style={{ padding:'13px 14px' }}>
-        {/* Row 1: order# + status badge */}
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
-          <span style={{ fontSize:13, fontWeight:800, color:T }}>
-            #{order.order_id}
-          </span>
-          <span style={{
-            padding:'3px 9px', borderRadius:99, fontSize:10, fontWeight:700,
-            background:cfg.bg, color:cfg.color, border:`1px solid ${cfg.color}28`,
-          }}>
-            <NavIcon name={cfg.icon} size={12} color="currentColor"/> {cfg.label}
-          </span>
-        </div>
-
-        {/* Row 2: customer + garment */}
-        <p style={{ fontSize:13, fontWeight:600, color:'var(--ink)', margin:'0 0 2px',
-          overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-          {order.customer_name ?? '—'}
-        </p>
-        <p style={{ fontSize:11, color:'var(--text-subtle)', margin:'0 0 10px' }}>
-          {order.garment_type ?? 'Custom'} · {order.quantity_ordered ?? 0} pcs
-          {order.color ? ` · ${order.color}` : ''}
-        </p>
-
-        {/* Pipeline strip */}
-        {isActive && <PipelineStrip status={order.status}/>}
-
-        {/* Action buttons */}
-        <div style={{ display:'flex', gap:8, marginTop:12 }}>
-          {isActive && !isManager ? (
-            <>
-              <button onClick={goTrack} style={{
-                flex:1, padding:'8px', borderRadius:9, border:'none', cursor:'pointer',
-                background:`linear-gradient(135deg,${T},${T2})`,
-                color:'var(--bg-card)', fontSize:12, fontWeight:700, fontFamily:FONT,
-              }}>
-                ▶ Track Production
-              </button>
-              <button onClick={goView} style={{
-                padding:'8px 14px', borderRadius:9,
-                border:'1px solid var(--border)', background:'var(--bg)',
-                color:'var(--text-subtle)', fontSize:12, fontWeight:600,
-                cursor:'pointer', fontFamily:FONT,
-              }}>
-                View
-              </button>
-            </>
-          ) : (
-            <button onClick={goView} style={{
-              flex:1, padding:'8px', borderRadius:9,
-              border:'1px solid var(--border)', background:'var(--bg)',
-              color:'var(--text-subtle)', fontSize:12, fontWeight:600,
-              cursor:'pointer', fontFamily:FONT,
-            }}>
-              View Details
-            </button>
-          )}
-
-          {isManager && order.status === 'pending' && (
-            <button
-              onClick={() => onConfirm(order.order_id)}
-              disabled={confirming === order.order_id}
-              style={{
-                padding:'8px 14px', borderRadius:9,
-                border:'1px solid var(--success-border)', background:'var(--success-bg)',
-                color:'#166534', fontSize:12, fontWeight:700,
-                cursor:'pointer', fontFamily:FONT,
-              }}>
-              {confirming === order.order_id ? '…' : <><NavIcon name="success" size={12} color="currentColor"/> Confirm</>}
-            </button>
-          )}
-        </div>
-      </div>
-    </motion.div>
+      <button className="adm-btn" onClick={click(() => navigate(`/admin/orders/${order.order_id}`))}>
+        <NavIcon name="show" size={13} color="currentColor" /> View
+      </button>
+      {isManager && order.status === 'pending' && (
+        <button className="adm-btn success" disabled={confirming === order.order_id}
+          onClick={click(() => onConfirm(order.order_id))}>
+          {confirming === order.order_id ? '…' : <><NavIcon name="success" size={13} color="currentColor" /> Confirm</>}
+        </button>
+      )}
+    </>
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
-export default function AdminOrders() {
-  const [orders,    setOrders]    = useState([]);
-  const [loading,   setLoading]   = useState(true);
-  const [tab,       setTab]       = useState('all');
-  const [search,    setSearch]    = useState('');
-  const [confirming,setConfirming]= useState(null); // order_id being confirmed
-  const [toast,     setToast]     = useState(null);
-  const [loadErr,   setLoadErr]   = useState(false);
-  const searchRef = useRef(null);
+function OrderRow({ order, isManager, onConfirm, confirming }) {
+  const navigate = useNavigate();
+  const cfg = STATUS_CFG[order.status] ?? STATUS_CFG.pending;
+  const swatch = getSwatchColor(order);
+  const due = order.target_delivery_date ?? order.deadline;
+  const open = () => navigate(`/admin/orders/${order.order_id}`);
+  return (
+    <tr className="adm-row" tabIndex={0} onClick={open}
+      onKeyDown={(e) => { if (e.key === 'Enter') open(); }}>
+      <td>
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <span style={{ width:12, height:12, borderRadius:4, flexShrink:0, background: swatch ?? 'var(--bg-surface)', border:'1px solid rgba(0,0,0,.1)' }} />
+          <div>
+            <div style={{ fontWeight:800, color:'var(--teal)' }}>#{order.order_id}</div>
+            <div style={{ fontSize:11, color:'var(--text-faint)' }}>{fmtDate(order.created_at)}</div>
+          </div>
+        </div>
+      </td>
+      <td>
+        <div style={{ fontWeight:600, maxWidth:180, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{order.customer_name ?? '—'}</div>
+        <div style={{ fontSize:11, color:'var(--text-subtle)' }}>{order.order_type === 'direct' ? 'Direct' : 'Institutional'}</div>
+      </td>
+      <td>
+        <div style={{ fontWeight:600 }}>{order.garment_type ?? order.design?.design_name ?? 'Custom'}</div>
+        <div style={{ fontSize:11, color:'var(--text-subtle)' }}>{order.quantity_ordered ?? 0} pcs{order.color ? ` · ${order.color}` : ''}</div>
+      </td>
+      <td>
+        <StatusPill status={order.status} label={cfg.label} />
+        <div className="adm-only-d" style={{ marginTop:8 }}><StageBar status={order.status} /></div>
+        <div className="adm-hide-d-t" style={{ fontSize:10, color:'var(--text-faint)', marginTop:4 }}>{due ? `Due ${fmtDate(due)}` : ''}</div>
+      </td>
+      <td className="adm-hide-t" style={{ whiteSpace:'nowrap', color:'var(--text-subtle)', fontSize:12 }}>{fmtDate(due, true)}</td>
+      <td>
+        <div className="adm-ra" style={{ display:'flex', gap:6, justifyContent:'flex-end' }}>
+          <OrderActions order={order} isManager={isManager} onConfirm={onConfirm} confirming={confirming} stop />
+        </div>
+      </td>
+    </tr>
+  );
+}
 
-  // Window width for mobile/desktop switch — updates on resize
-  const [winW, setWinW] = useState(typeof window !== 'undefined' ? window.innerWidth : 1280);
-  useEffect(() => {
-    const h = () => setWinW(window.innerWidth);
-    window.addEventListener('resize', h);
-    return () => window.removeEventListener('resize', h);
-  }, []);
-  const isMobile = winW <= 767;
+function OrderCard({ order, isManager, onConfirm, confirming, index }) {
+  const navigate = useNavigate();
+  const cfg = STATUS_CFG[order.status] ?? STATUS_CFG.pending;
+  const swatch = getSwatchColor(order);
+  const due = order.target_delivery_date ?? order.deadline;
+  return (
+    <div className="adm-mcard accent" style={{ '--i': Math.min(index, 8), '--acc': swatch ?? 'var(--teal)' }}
+      onClick={() => navigate(`/admin/orders/${order.order_id}`)}>
+      <div className="adm-mrow">
+        <span style={{ fontSize:14, fontWeight:800, color:'var(--teal)' }}>#{order.order_id}</span>
+        <StatusPill status={order.status} label={cfg.label} />
+      </div>
+      <div style={{ marginTop:8, fontSize:14, fontWeight:700, color:'var(--ink)' }}>{order.customer_name ?? '—'}</div>
+      <div style={{ fontSize:12, color:'var(--text-subtle)', marginTop:2 }}>
+        {order.garment_type ?? 'Custom'} · {order.quantity_ordered ?? 0} pcs{order.color ? ` · ${order.color}` : ''}
+      </div>
+      {due && <div style={{ fontSize:11, color:'var(--text-faint)', marginTop:2 }}>Due {fmtDate(due, true)}</div>}
+      {isLive(order.status) && <div style={{ marginTop:10 }}><StageBar status={order.status} /></div>}
+      <div className="adm-mfoot">
+        <OrderActions order={order} isManager={isManager} onConfirm={onConfirm} confirming={confirming} stop />
+      </div>
+    </div>
+  );
+}
+
+export default function AdminOrders() {
+  const [orders,     setOrders]     = useState([]);
+  const [loading,    setLoading]    = useState(true);
+  const [tab,        setTab]        = useState('all');
+  const [search,     setSearch]     = useState('');
+  const [confirming, setConfirming] = useState(null);
+  const [toast,      setToast]      = useToast();
+  const [loadErr,    setLoadErr]    = useState(false);
+  const [sheet,      setSheet]      = useState(false);
+  const isMobile = useIsMobile();
 
   const user      = JSON.parse(localStorage.getItem('vfrb_user') || '{}');
   const isManager = user.role === 'manager';
 
-  // ── Load orders with cache (TTL.ORDERS = 30s) ─────────────────────────────
-  // DSA: cacheGet is O(1) sessionStorage lookup — avoids network round-trip
   const load = useCallback((force = false) => {
     if (!force) {
       const cached = cacheGet('admin_orders_list');
@@ -433,17 +221,10 @@ export default function AdminOrders() {
 
   useEffect(() => { load(); }, [load]);
 
-  // ── Count per status — O(n) via useMemo, only reruns when orders changes ──
-  // DSA: reduce builds a hash map { status: count } in one O(n) pass
   const counts = useMemo(() =>
-    orders.reduce((acc, o) => {
-      acc[o.status] = (acc[o.status] ?? 0) + 1;
-      return acc;
-    }, {}),
+    orders.reduce((acc, o) => { acc[o.status] = (acc[o.status] ?? 0) + 1; return acc; }, {}),
   [orders]);
 
-  // ── Filter — O(n) per search/tab change ──────────────────────────────────
-  // DSA: Array.filter with String.includes — O(n·m) where m is search length
   const filtered = useMemo(() =>
     orders.filter(o => {
       const matchTab = tab === 'all' || o.status === tab;
@@ -458,242 +239,101 @@ export default function AdminOrders() {
     }),
   [orders, tab, search]);
 
-  // ── Confirm order — optimistic UI ─────────────────────────────────────────
-  // DSA: Array.map returns new array with one element mutated — O(n)
-  //
-  // CLEANUP (Aug 31 2026): this used to branch on a shortages[]/unverified[]
-  // response shape from an inline material-feasibility check that PATCH
-  // /confirm no longer performs — verified directly against the current
-  // ProductionController::confirm(), which only ever returns
-  // {message, new_stage} on success or {message} on a 404/422. Shortage
-  // checking now lives entirely at the Pattern-stage material-actuals gate
-  // (see the no-formula redesign), not here. Removed the dead override-
-  // reason payload, the unverified-materials toast branch, and the
-  // shortages catch branch along with it — this endpoint just confirms or
-  // fails on order state now.
-  const doConfirm = useCallback(async (orderId) => {
+  // Optimistic confirm — rolls back on failure. PATCH /confirm only returns {message,new_stage} or {message}.
+  const confirmOrder = useCallback(async (orderId) => {
     const prev = orders;
-    setOrders(os => os.map(o =>
-      o.order_id === orderId ? { ...o, status:'confirmed' } : o
-    ));
+    setOrders(os => os.map(o => o.order_id === orderId ? { ...o, status:'confirmed' } : o));
     setConfirming(orderId);
     cacheClear('admin_orders_list');
-
     try {
       await axios.patch(`/api/admin/orders/${orderId}/confirm`);
       setToast({ msg:`Order #${orderId} confirmed.`, type:'success' });
     } catch (e) {
-      setOrders(prev); // rollback
+      setOrders(prev);
       setToast({ msg: e.response?.data?.message ?? 'Could not confirm order. Please retry.', type:'error' });
     } finally {
       setConfirming(null);
     }
-  }, [orders]);
+  }, [orders, setToast]);
 
-  const confirmOrder = useCallback((orderId) => doConfirm(orderId), [doConfirm]);
-
-  // ── Toast auto-dismiss ────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 3000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
-  const summaryStats = [
-    { l:'Total',     v:orders.length,
-      c:'var(--text-subtle)', bg:'var(--bg-surface)' },
-    { l:'Active',    v:orders.filter(o=>!['completed','cancelled'].includes(o.status)).length,
-      c:T, bg:'var(--teal-50)' },
-    { l:'Completed', v:counts.completed ?? 0,
-      c:'var(--success)', bg:'var(--success-bg)' },
-    { l:'Cancelled', v:counts.cancelled ?? 0,
-      c:'var(--danger)', bg:'var(--danger-bg)' },
-  ];
+  const tabs = ALL_TABS.map(k => ({ key:k, label: k === 'all' ? 'All' : (STATUS_CFG[k]?.label ?? k), count: k === 'all' ? orders.length : (counts[k] ?? 0) }));
+  const activeCount = orders.filter(o => isLive(o.status)).length;
+  const tabLabel = tabs.find(t => t.key === tab)?.label ?? 'All';
 
   return (
     <>
-      <style>{`
-        @keyframes sk{
-          0%  { background-position:-400px 0 }
-          100%{ background-position: 400px 0 }
-        }
-        .tab-strip{
-          display:flex; gap:5px; overflow-x:auto;
-          scrollbar-width:none; padding-bottom:2px; flex-wrap:nowrap;
-        }
-        .tab-strip::-webkit-scrollbar{ display:none; }
-        .orders-stat-grid{
-          display:grid;
-          grid-template-columns:repeat(auto-fill,minmax(120px,1fr));
-          gap:10px; margin-bottom:20px;
-        }
-        .orders-table-wrap{
-          background:var(--bg-card); border:1px solid var(--border);
-          border-radius:14px; overflow:hidden;
-          box-shadow:var(--shadow-xs);
-        }
-        /* Deadline column: hide on tablet */
-        @media(max-width:1023px){
-          .adm-col-deadline{ display:none !important; }
-        }
-        /* Mobile: hide table entirely, show cards */
-        @media(max-width:767px){
-          .orders-stat-grid{ grid-template-columns:1fr 1fr; gap:8px; }
-          .orders-table-wrap{ display:none !important; }
-          .orders-card-list{ display:block !important; }
-          .tab-strip button{ font-size:10px; padding:5px 10px; }
-        }
-        @media(min-width:768px){
-          .orders-card-list{ display:none !important; }
-        }
-      `}</style>
-
-      {/* ── Toast ── */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ opacity:0, y:24, scale:.95 }}
-            animate={{ opacity:1, y:0,  scale:1   }}
-            exit={{    opacity:0, y:16, scale:.95  }}
-            style={{
-              position:'fixed', bottom:24, right:24, zIndex:9999,
-              padding:'11px 18px', borderRadius:11,
-              background: toast.type === 'error' ? 'var(--danger)' : toast.type === 'warning' ? 'var(--warning)' : T2,
-              color:'var(--bg-card)', fontWeight:700, fontSize:12,
-              boxShadow:'0 6px 20px rgba(0,0,0,.15)',
-              fontFamily:FONT,
-            }}
-          >
-            {toast.msg}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <Toast toast={toast} />
+      {sheet && <FilterSheet title="Filter by status" options={tabs.map(t => ({ key:t.key, label:t.label, count:t.count }))}
+        value={tab} onChange={setTab} onClose={() => setSheet(false)} isMobile={isMobile} />}
 
       <PageHeader title="Orders" sub={`${orders.length} total · ${isManager ? 'View mode (Manager)' : 'Operational access (Staff)'}`}>
-        <button className="adm-btn" onClick={() => { cacheClear('admin_orders_list'); load(true); }}>⟳ Refresh</button>
+        <button className="adm-btn" onClick={() => { cacheClear('admin_orders_list'); load(true); }}>
+          <NavIcon name="refresh" size={14} color="currentColor" /> Refresh
+        </button>
       </PageHeader>
 
       {isManager && (
-        <div style={{ padding:'10px 16px', borderRadius:11, background:'var(--purple-50)', border:'1px solid var(--purple-100)', marginBottom:16, display:'flex', alignItems:'center', gap:8 }}>
-          <NavIcon name="manager" size={14} color="currentColor"/>
-          <p style={{ fontSize:12, color:'var(--purple-dark)', fontWeight:600, margin:0 }}>
-            Manager view — you can view all order details and confirm pending orders. Production stage advancement is Staff-only.
-          </p>
-        </div>
+        <Banner tone="info" icon="manager">
+          Manager view — you can view all order details and confirm pending orders. Production stage advancement is Staff-only.
+        </Banner>
       )}
-
       {loadErr && <div style={{ marginBottom:14 }}><ErrorBlock msg="Could not load orders." onRetry={() => load(true)} /></div>}
 
-      <StatGrid loading={loading} items={summaryStats.map(x => ({ label:x.l, value:x.v, color:x.l === 'Total' ? undefined : x.c }))} />
+      <StatGrid loading={loading} items={[
+        { label:'Total',     value:orders.length },
+        { label:'Active',    value:activeCount, color:'var(--teal)', onClick:() => setTab('all') },
+        { label:'Pending',   value:counts.pending ?? 0, color:'var(--warning-text)', onClick:() => setTab('pending') },
+        { label:'Completed', value:counts.completed ?? 0, color:'var(--success)', onClick:() => setTab('completed') },
+        { label:'Cancelled', value:counts.cancelled ?? 0, color:'var(--danger)', onClick:() => setTab('cancelled') },
+      ]} />
 
       <div className="adm-toolbar">
-        <input ref={searchRef} type="search" className="adm-search" value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="Search order ID, customer, garment, color…" aria-label="Search orders" />
+        <SearchBox value={search} onChange={setSearch} placeholder="Search order, client, garment, color…" label="Search orders" />
+        <FilterButton label={`Status: ${tabLabel}`} onClick={() => setSheet(true)} />
       </div>
+      <div className="adm-only-d"><PillTabs value={tab} onChange={setTab} tabs={tabs} /></div>
 
-      <PillTabs value={tab} onChange={setTab}
-        tabs={ALL_TABS.map(k => ({ key:k, label: k === 'all' ? 'All' : (STATUS_CFG[k]?.label ?? k), count: k === 'all' ? orders.length : (counts[k] ?? 0) }))} />
-
-      {/* ── DESKTOP: table ── */}
-      <div className="orders-table-wrap">
-        <table className="adm-table">
-          <thead>
-            <tr>{['Order #','Client','Garment','Status','Deadline','Actions'].map(h => <th key={h} className={h === 'Deadline' ? 'adm-col-deadline' : undefined}>{h}</th>)}</tr>
-          </thead>
-          <tbody>
-            {loading
-              ? Array(5).fill(0).map((_, i) => (
-                  <tr key={i} style={{ borderBottom:'1px solid var(--bg-surface)' }}>
-                    {[100,140,160,80,80,60].map((w, j) => (
-                      <td key={j} style={{ padding:'13px 14px' }}>
-                        <div style={{ ...SK, height:10, width:w }}/>
-                      </td>
-                    ))}
-                  </tr>
-                ))
-              : filtered.length === 0
-                ? (
-                  <tr>
-                    <td colSpan={6} style={{ padding:'50px 20px', textAlign:'center' }}>
-                      <p style={{ fontSize:36, margin:'0 0 10px', opacity:.25, display:'flex', justifyContent:'center' }}><NavIcon name="orders" size={36} color="currentColor"/></p>
-                      <p style={{ fontSize:14, fontWeight:700, color:'var(--text-subtle)',
-                        margin:0, fontFamily:FONT }}>
-                        {search
-                          ? `No results for "${search}"`
-                          : `No ${tab === 'all' ? '' : tab} orders`}
-                      </p>
-                    </td>
-                  </tr>
-                )
-                : filtered.map(o => (
-                  <OrderRow
-                    key={o.order_id}
-                    order={o}
-                    isManager={isManager}
-                    onConfirm={confirmOrder}
-                    confirming={confirming}
-                  />
-                ))
-            }
-          </tbody>
-        </table>
-
-        {!loading && filtered.length > 0 && (
-          <div style={{
-            padding:'10px 16px', borderTop:'1px solid var(--bg-surface)',
-            background:'var(--bg)',
-          }}>
-            <p style={{ fontSize:11, color:'var(--text-faint)', margin:0, fontFamily:FONT }}>
-              Showing {filtered.length} of {orders.length} orders
-            </p>
+      <div className="adm-only-d">
+        <Panel flush>
+          <div className="adm-tbl-scroll">
+            <table className="adm-table">
+              <thead>
+                <tr><th>Order</th><th>Client</th><th>Garment</th><th>Status</th><th className="adm-hide-t">Deadline</th><th style={{ textAlign:'right' }}>Actions</th></tr>
+              </thead>
+              <tbody>
+                {loading ? null : filtered.map(o => (
+                  <OrderRow key={o.order_id} order={o} isManager={isManager} onConfirm={confirmOrder} confirming={confirming} />
+                ))}
+              </tbody>
+            </table>
           </div>
-        )}
+          {loading && <SkeletonRows rows={6} h={44} />}
+          {!loading && filtered.length === 0 && (
+            <div className="adm-empty">
+              <NavIcon name="orders" size={30} color="currentColor" />
+              <div style={{ marginTop:8, fontWeight:700 }}>{search ? `No results for “${search}”` : `No ${tab === 'all' ? '' : `${tab} `}orders`}</div>
+              {(search || tab !== 'all') && <button className="adm-link-btn" onClick={() => { setSearch(''); setTab('all'); }}>Clear filters</button>}
+            </div>
+          )}
+          {!loading && filtered.length > 0 && (
+            <div style={{ padding:'10px 18px', borderTop:'1px solid var(--bg-surface)', fontSize:11, color:'var(--text-faint)' }}>
+              Showing {filtered.length} of {orders.length} orders
+            </div>
+          )}
+        </Panel>
       </div>
 
-      {/* ── MOBILE: cards ── */}
-      <div className="orders-card-list">
-        {loading
-          ? Array(4).fill(0).map((_, i) => (
-              <div key={i} style={{
-                background:'var(--bg-card)', borderRadius:12, border:'1.5px solid var(--border)',
-                padding:'14px', marginBottom:10,
-              }}>
-                <div style={{ display:'flex', justifyContent:'space-between', marginBottom:10 }}>
-                  <div style={{ ...SK, height:12, width:60 }}/>
-                  <div style={{ ...SK, height:12, width:80 }}/>
-                </div>
-                <div style={{ ...SK, height:12, width:'70%', marginBottom:8 }}/>
-                <div style={{ ...SK, height:10, width:'50%', marginBottom:14 }}/>
-                <div style={{ ...SK, height:36, width:'100%', borderRadius:9 }}/>
-              </div>
-            ))
-          : filtered.length === 0
-            ? (
-              <div style={{ textAlign:'center', padding:'48px 20px' }}>
-                <p style={{ fontSize:36, margin:'0 0 10px', opacity:.25, display:'flex', justifyContent:'center' }}><NavIcon name="orders" size={36} color="currentColor"/></p>
-                <p style={{ fontSize:14, fontWeight:700, color:'var(--text-subtle)',
-                  margin:0, fontFamily:FONT }}>
-                  {search ? `No results for "${search}"` : `No ${tab === 'all' ? '' : tab} orders`}
-                </p>
-              </div>
-            )
-            : filtered.map((o, i) => (
-              <OrderCard
-                key={o.order_id}
-                order={o}
-                isManager={isManager}
-                onConfirm={confirmOrder}
-                confirming={confirming}
-                index={i}
-              />
-            ))
-        }
-
+      <div className="adm-only-m adm-stagger" key={`${tab}-${search}`}>
+        {loading ? <SkeletonRows rows={4} h={150} />
+          : filtered.length === 0 ? (
+            <div className="adm-empty"><NavIcon name="orders" size={30} color="currentColor" />
+              <div style={{ marginTop:8, fontWeight:700 }}>{search ? `No results for “${search}”` : `No ${tab === 'all' ? '' : `${tab} `}orders`}</div>
+            </div>
+          ) : filtered.map((o, i) => (
+            <OrderCard key={o.order_id} order={o} index={i} isManager={isManager} onConfirm={confirmOrder} confirming={confirming} />
+          ))}
         {!loading && filtered.length > 0 && (
-          <p style={{ fontSize:11, color:'var(--text-faint)', textAlign:'center',
-            margin:'4px 0 0', fontFamily:FONT }}>
-            {filtered.length} of {orders.length} orders
-          </p>
+          <p style={{ fontSize:11, color:'var(--text-faint)', textAlign:'center', margin:'4px 0 0' }}>{filtered.length} of {orders.length} orders</p>
         )}
       </div>
     </>

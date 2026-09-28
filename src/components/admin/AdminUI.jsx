@@ -1,4 +1,8 @@
+import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { STATUS_TONE } from './statusTone';
+import { NavIcon } from '../ui/icons';
+import BottomSheet from '../ui/BottomSheet';
 
 export const PageHeader = ({ title, sub, children }) => (
   <div className="adm-page-head adm-in">
@@ -61,4 +65,88 @@ export const EmptyBlock = ({ children }) => <div className="adm-empty">{children
 
 export const ErrorBlock = ({ msg = 'Could not load data.', onRetry }) => (
   <div className="adm-err"><span>{msg}</span>{onRetry && <button className="adm-btn" onClick={onRetry}>Retry</button>}</div>
+);
+
+export const useIsMobile = (bp = 767) => {
+  const [m, setM] = useState(() => typeof window !== 'undefined' && window.matchMedia(`(max-width:${bp}px)`).matches);
+  useEffect(() => {
+    const q = window.matchMedia(`(max-width:${bp}px)`);
+    const h = (e) => setM(e.matches);
+    q.addEventListener('change', h);
+    return () => q.removeEventListener('change', h);
+  }, [bp]);
+  return m;
+};
+
+export const SearchBox = ({ value, onChange, placeholder, label }) => (
+  <div className="adm-search-wrap">
+    <NavIcon name="search" size={15} color="currentColor" />
+    <input type="search" className="adm-search" value={value} onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder} aria-label={label ?? placeholder} />
+  </div>
+);
+
+export const Avatar = ({ name, size = 34, tone }) => (
+  <span className={`adm-avatar ${tone ?? ''}`} style={{ width: size, height: size, fontSize: Math.round(size * 0.4) }} aria-hidden="true">
+    {(name ?? '?').trim().charAt(0).toUpperCase() || '?'}
+  </span>
+);
+
+export const Meter = ({ pct, tone }) => (
+  <div className={`adm-meter ${tone ?? ''}`} role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
+    <i style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} />
+  </div>
+);
+
+export const Segments = ({ total, index }) => (
+  <div className="adm-segs" aria-hidden="true">
+    {Array.from({ length: total }, (_, i) => <i key={i} className={i < index ? 'done' : i === index ? 'now' : ''} />)}
+  </div>
+);
+
+export const Banner = ({ tone = 'info', icon, children, action }) => (
+  <div className={`adm-banner ${tone}`} role={tone === 'warn' ? 'alert' : 'note'}>
+    {icon && <NavIcon name={icon} size={16} color="currentColor" />}<span>{children}</span>{action}
+  </div>
+);
+
+export const Toast = ({ toast }) => (
+  <AnimatePresence>
+    {toast && (
+      <motion.div key={toast.msg} role="status" className={`adm-toast ${toast.type === 'error' ? 'error' : ''}`}
+        initial={{ opacity: 0, y: 20, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 12 }} transition={{ duration: 0.2 }}>
+        {toast.msg}
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
+
+export const useToast = () => {
+  const [toast, setToast] = useState(null);
+  useEffect(() => {
+    if (!toast) return undefined;
+    const t = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(t);
+  }, [toast]);
+  return [toast, setToast];
+};
+
+/* Filter picker: bottom sheet on phones, same component on desktop. */
+export const FilterSheet = ({ title = 'Filter', options, value, onChange, onClose, isMobile }) => (
+  <BottomSheet title={title} onClose={onClose} isMobile={isMobile} maxWidth={380}>
+    <div className="adm-sheet-list" style={{ margin: '-8px -8px 0' }}>
+      {options.map((o) => (
+        <button key={o.key} className={value === o.key ? 'on' : ''} onClick={() => { onChange(o.key); onClose(); }}>
+          <span>{o.label}</span><span style={{ opacity: 0.6, fontSize: 12 }}>{o.count}</span>
+        </button>
+      ))}
+    </div>
+  </BottomSheet>
+);
+
+export const FilterButton = ({ label, onClick }) => (
+  <button className="adm-btn adm-only-m" onClick={onClick} aria-haspopup="dialog">
+    <NavIcon name="checklist" size={14} color="currentColor" /> {label}
+  </button>
 );

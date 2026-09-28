@@ -28,22 +28,37 @@
 //     ...form fields...
 //   </BottomSheet>
 // ─────────────────────────────────────────────────────────────────────────
+import { useEffect } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
+
 export default function BottomSheet({
   title, onClose, children, isMobile, maxHeight = '85vh', maxWidth = 480,
 }) {
+  const reduce = useReducedMotion();
+  useEffect(() => {
+    const k = (e) => { if (e.key === 'Escape') onClose?.(); };
+    window.addEventListener('keydown', k);
+    return () => window.removeEventListener('keydown', k);
+  }, [onClose]);
+  const dur = reduce ? 0 : 0.22;
   return (
-    <div
+    <motion.div
       onClick={onClose}
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: dur }}
       style={{
         position: 'fixed', inset: 0, zIndex: 400,
-        background: 'rgba(0,0,0,.32)',
+        background: 'rgba(7,34,38,.42)',
         display: 'flex',
         alignItems:    isMobile ? 'flex-end' : 'center',
         justifyContent: 'center',
       }}
     >
-      <div
+      <motion.div
+        role="dialog" aria-modal="true" aria-label={title}
         onClick={e => e.stopPropagation()}
+        initial={isMobile ? { y: '100%' } : { opacity: 0, y: 14, scale: 0.98 }}
+        animate={{ y: 0, opacity: 1, scale: 1 }}
+        transition={{ duration: dur, ease: 'easeOut' }}
         style={{
           width: '100%',
           maxWidth: isMobile ? 480 : maxWidth,
@@ -53,26 +68,22 @@ export default function BottomSheet({
           borderRadius: isMobile ? '18px 18px 0 0' : 'var(--r-lg)',
           boxShadow: '0 -8px 40px rgba(0,0,0,.25)',
           overflowY: 'auto',
+          paddingBottom: isMobile ? 'env(safe-area-inset-bottom,0px)' : 0,
           WebkitOverflowScrolling: 'touch',
         }}
       >
         {isMobile && (
-          <div style={{
-            width: 40, height: 4, borderRadius: 2,
-            background: 'var(--border)', margin: '10px auto 2px',
-          }}/>
+          <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border)', margin: '10px auto 2px' }}/>
         )}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           gap: 12, padding: isMobile ? '10px 20px 14px' : '16px 22px',
           borderBottom: '1px solid var(--border)',
         }}>
-          <h3 style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>
-            {title}
-          </h3>
-          <button onClick={onClose}
+          <h3 style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>{title}</h3>
+          <button onClick={onClose} aria-label="Close"
             style={{
-              width: 28, height: 28, borderRadius: '50%', border: 'none',
+              width: isMobile ? 36 : 28, height: isMobile ? 36 : 28, borderRadius: '50%', border: 'none',
               background: 'var(--bg-surface)', color: 'var(--text-muted)',
               fontSize: 14, cursor: 'pointer', flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -81,7 +92,7 @@ export default function BottomSheet({
         <div style={{ padding: isMobile ? '18px 20px 28px' : '20px 22px' }}>
           {children}
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
