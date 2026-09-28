@@ -56,6 +56,7 @@ import {
   // rendered blank instead of crashing. Confirmed via grep: no prior
   // 'trending' key existed anywhere in this file.
   TrendingUp, Tag, MapPin,
+  ConciergeBell, HardHat,
 } from 'lucide-react';
 
 // Nav / concept → icon component. Keys match the `icon` slot pages
@@ -133,6 +134,8 @@ const ICON_MAP = {
   medical:          Stethoscope,
   school:           GraduationCap,
   corporate:        Briefcase,
+  hospitality:      ConciergeBell,
+  industrial:       HardHat,
   sports:           Dumbbell,
   patternSolid:     Square,
   patternStripes:   Rows3,

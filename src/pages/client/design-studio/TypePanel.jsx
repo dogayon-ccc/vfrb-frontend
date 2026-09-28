@@ -61,7 +61,7 @@ export default function TypePanel({ cfg, setCfg }) {
   const goNeighbor = (dir) => {
     const next = neighborFamily(cfg.category, cfg.garment, dir);
     if (!next) return;
-    setCfg(p => ({ ...p, garment: next.id, sleeve: next.styles[0] ?? p.sleeve, fit: next.fits.length > 1 ? (p.fit ?? 'male') : undefined }));
+    setCfg(p => ({ ...p, garment: next.id, sleeve: next.defaultStyle ?? p.sleeve, fit: next.fits.length > 1 ? (p.fit ?? 'male') : undefined }));
   };
 
   return (
@@ -72,7 +72,7 @@ export default function TypePanel({ cfg, setCfg }) {
           const on = cfg.category === c.id;
           return (
             <button key={c.id} type="button" role="tab" aria-selected={on} className="ds-tp-cat"
-              onClick={() => setCfg(p => ({ ...p, category: c.id, garment: c.families[0].id, sleeve: c.families[0].styles[0] ?? 'Short' }))}>
+              onClick={() => setCfg(p => ({ ...p, category: c.id, garment: c.families[0].id, sleeve: c.families[0].defaultStyle ?? 'Short' }))}>
               <NavIcon name={c.icon} size={18}/>
               <span>{c.id.split('/')[0].trim()}</span>
             </button>
@@ -112,7 +112,7 @@ export default function TypePanel({ cfg, setCfg }) {
                 title={sel ? `${g} — click to remove` : `${g}${st ? ` — ${st.label}` : ''}`}
                 onClick={() => setCfg(p => (sel
                   ? { ...p, garment: null }
-                  : { ...p, garment: g, sleeve: (fam.styles[0] ?? p.sleeve), fit: fam.fits.length > 1 ? (p.fit ?? 'male') : undefined }))}>
+                  : { ...p, garment: g, sleeve: (fam.defaultStyle ?? p.sleeve), fit: fam.fits.length > 1 ? (p.fit ?? 'male') : undefined }))}>
                 <AnimatePresence>
                   {sel && (
                     <motion.span className="ds-tp-check" aria-hidden="true"
@@ -140,7 +140,10 @@ export default function TypePanel({ cfg, setCfg }) {
           <div className="ds-chips">
             {sleeves.map(s => (
               <button key={s} type="button" className="ds-chip" aria-pressed={cfg.sleeve === s}
-                onClick={() => setCfg(p => ({ ...p, sleeve: s }))}>{s}</button>
+                title={family?.status3D !== 'none' && !family?.sleeves3D?.includes(s) ? `${s} sleeve is 2D only — the 3D model has ${family?.sleeves3D?.join(' / ').toLowerCase()} sleeves` : undefined}
+                onClick={() => setCfg(p => ({ ...p, sleeve: s }))}>
+                {s}{family?.status3D !== 'none' && !family?.sleeves3D?.includes(s) && <span className="ds-chip-note"> · 2D</span>}
+              </button>
             ))}
           </div>
         </Group>

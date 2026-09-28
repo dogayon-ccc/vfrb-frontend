@@ -33,8 +33,9 @@ function useFit(paneRef, wrapRef) {
 }
 
 class ThreeEB extends Component {
-  constructor(p) { super(p); this.state = { err: false, key: 0 }; }
+  constructor(p) { super(p); this.state = { err: false, key: 0, fails: 0 }; }
   static getDerivedStateFromError() { return { err: true }; }
+  componentDidCatch() { this.setState(s => ({ fails: s.fails + 1 })); }
   retry = () => this.setState(s => ({ err: false, key: s.key + 1 }));
   render() {
     if (this.state.err) return (
@@ -43,12 +44,12 @@ class ThreeEB extends Component {
         <NavIcon name="warning" size={32} color="rgba(15,23,42,.4)"/>
         <p style={{ color:'rgba(15,23,42,.5)',fontSize:12,textAlign:'center',
           padding:'0 24px',lineHeight:1.6 }}>
-          WebGL unavailable or context lost.<br/>Try refreshing or use 2D mode.
+          WebGL unavailable or context lost.<br/>If this keeps happening, reload the page (the browser blocks new WebGL contexts after repeated losses) or use 2D mode.
         </p>
-        <button onClick={this.retry}
+        <button onClick={() => (this.state.fails >= 2 ? window.location.reload() : this.retry())}
           style={{ padding:'8px 20px',borderRadius:9,border:'none',background:T2,
             color:'#000',fontSize:12,fontWeight:700,cursor:'pointer' }}>
-          Retry 3D
+          {this.state.fails >= 2 ? 'Reload page' : 'Retry 3D'}
         </button>
       </div>
     );
@@ -262,16 +263,21 @@ export default function CanvasViewport({
               time (TypePanel's STATUS_3D_LABEL badge) and silently dropped once inside the 3D
               pane itself. */}
           {cfg.garment && (() => {
-            const status = familyFor(cfg.garment)?.status3D;
+            const fam = familyFor(cfg.garment);
+            const status = fam?.status3D;
             const info = status && status !== 'supported' ? STATUS_3D_LABEL[status] : null;
-            return info ? (
-              <div style={{ position:'absolute', top:14, left:14, zIndex:2,
+            // The 3D scans have one sleeve length; say so instead of silently showing a different sleeve than the 2D design.
+            const sleeveGap = status && status !== 'none' && cfg.sleeve && !fam.sleeves3D.includes(cfg.sleeve);
+            const label = sleeveGap ? `3D shows ${fam.sleeves3D.join(' / ').toLowerCase()} sleeves — ${cfg.sleeve.toLowerCase()} is 2D only`
+              : status === 'none' ? 'Generic preview — exact shape not modeled' : info?.label;
+            return label && (info || sleeveGap) ? (
+              <div style={{ position:'absolute', top:14, left:14, zIndex:2, maxWidth:'calc(100% - 28px)',
                 padding:'4px 10px', borderRadius:99,
-                background: status === 'partial' ? 'rgba(217,119,6,.85)' : 'rgba(0,0,0,.58)',
+                background: status === 'none' ? 'rgba(0,0,0,.58)' : 'rgba(217,119,6,.88)',
                 border:'1px solid rgba(255,255,255,.14)',
                 color:'#fff', fontSize:10, fontWeight:700, letterSpacing:.2,
-                pointerEvents:'none', whiteSpace:'nowrap' }}>
-                {status === 'none' ? 'Generic preview — exact shape not modeled' : info.label}
+                pointerEvents:'none', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                {label}
               </div>
             ) : null;
           })()}

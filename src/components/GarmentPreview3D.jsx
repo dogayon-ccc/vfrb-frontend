@@ -288,7 +288,7 @@ const Scene3D = lazy(() =>
       return (
         <Canvas
           camera={{ position:[0,0.15,3.8], fov:40 }}
-          gl={{ antialias:true, alpha:true, powerPreference:'high-performance' }}
+          gl={{ antialias:true, alpha:true }}
           style={{ width:'100%', height:'100%', background:'transparent' }}>
           <ambientLight intensity={0.55}/>
           <directionalLight position={[3,5,4]}   intensity={1.4} castShadow/>
@@ -578,3 +578,6 @@ function ColorChips({ zones, name }) {
     </div>
   );
 }
+
+// Dev only: hot updates remount the Canvas and force-lose its WebGL context; reload instead so Chrome never blocks the tab.
+if (import.meta.hot) import.meta.hot.decline();

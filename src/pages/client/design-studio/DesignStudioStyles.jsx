@@ -248,6 +248,7 @@ export default function DesignStudioStyles() {
       .ds-tp-thumb{flex:1;display:flex;align-items:center;justify-content:center;width:100%;border-radius:var(--r-md);background:var(--bg-surface);padding:8px 0;}
       .ds-tp-card[aria-pressed="true"] .ds-tp-thumb{background:var(--bg-card);}
       .ds-tp-name{font-size:var(--text-xs);font-weight:700;color:var(--ink);text-align:center;line-height:1.2;}
+      .ds-chip-note{font-size:9px;font-weight:800;opacity:.6;}
       .ds-tp-chip{font-size:9px;font-weight:800;letter-spacing:.02em;padding:2px 7px;border-radius:99px;background:var(--bg-surface);color:var(--text-muted);}
       .ds-tp-chip[data-tone="ok"]{background:#f0fdfa;color:#0f766e;}
       .ds-tp-chip[data-tone="warn"]{background:#fffbeb;color:#b45309;}

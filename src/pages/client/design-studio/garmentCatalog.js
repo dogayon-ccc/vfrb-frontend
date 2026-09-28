@@ -24,9 +24,11 @@ import { get3DCapabilities } from './garmentCapabilities';
 // Pants' had a real 2D path (garmentPaths.js) but appeared in no other category, so it is
 // dropped from the catalog along with it rather than invented a new home to keep it visible.
 const CATEGORY_DEFS = [
-  { id: 'Medical / Scrubs', icon: 'medical',   garments: ['Scrub Top', 'V-Neck Shirt', 'Lab Coat', 'Lab Coverall', 'Pants', 'Shorts'] },
-  { id: 'School Uniform',   icon: 'school',    garments: ['School Polo', 'Round Neck', 'Polo Shirt', 'Pants', 'Shorts', 'Skirt'] },
-  { id: 'Corporate',        icon: 'corporate', garments: ['Polo Shirt', 'T-Shirt', 'Mandarin Collar', 'Button-Down', 'V-Neck Shirt', 'Pants'] },
+  { id: 'School Uniform',      icon: 'school',      garments: ['School Polo', 'Round Neck', 'Polo Shirt', 'Pants', 'Shorts', 'Skirt'] },
+  { id: 'Corporate',           icon: 'corporate',   garments: ['Polo Shirt', 'Button-Down', 'Mandarin Collar', 'V-Neck Shirt', 'T-Shirt', 'Pants', 'Skirt'] },
+  { id: 'Medical / Scrubs',    icon: 'medical',     garments: ['Scrub Top', 'V-Neck Shirt', 'Lab Coat', 'Lab Coverall', 'Pants'] },
+  { id: 'Hospitality / Service', icon: 'hospitality', garments: ['Mandarin Collar', 'Button-Down', 'Polo Shirt', 'Pants', 'Skirt'] },
+  { id: 'Industrial / Work',   icon: 'industrial',  garments: ['Button-Down', 'Polo Shirt', 'T-Shirt', 'Lab Coverall', 'Pants', 'Shorts'] },
 ];
 
 // Garment -> its sleeve/style options (unchanged from the previous SLEEVE_OPTS in dsShared.js).
@@ -71,6 +73,8 @@ const FAMILIES = Object.fromEntries(FAMILY_NAMES.map(name => {
     has2D,
     fits: cap.supported ? cap.fit : [],
     styles,
+    defaultStyle: styles.includes('Short') ? 'Short' : (styles[0] ?? null), // 'Short' is what every 3D scan shows; never default to Sleeveless
+    sleeves3D: cap.supported ? (cap.sleeves ?? []) : [], // styles the 3D model really has
     status3D,
     model3D: cap.supported ? cap.model : null,
     zones: [...new Set(sampleZones)],

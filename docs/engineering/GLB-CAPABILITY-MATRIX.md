@@ -142,3 +142,43 @@ the constitution's 3D section warns against. Added a small pill label inside the
 (reads `familyFor(cfg.garment).status3D` from the same `garmentCatalog.js` the rest of the Studio
 already trusts, no new data source) that persists for the whole time a `none`/`partial` garment is
 being viewed in 3D. `supported` garments (T-Shirt) show nothing, unchanged.
+
+## 9. Session addendum — processed (garment-only) GLBs, catalog restructure, WebGL context loss
+
+Evidence labels: CODE = read/ran the repo code; BUILD = `npm run build` passed; RENDER = shaded raster renders of the actual exported GLB
+(tools/glb-extract/raster.py, a numpy z-buffer rasterizer — NOT Three.js); BROWSER = real Three.js in a real browser (NOT performed this session:
+no browser/GPU could be installed — Chromium download is blocked by the sandbox network).
+
+**Correction to §7.** `Work_Uniform_Shirt with pocket on chest.glb` is NOT garment-only as shipped: below the short sleeves it still has bare arm
+tubes. It was promoted prematurely. The source is untouched; the wired asset is now `processed/work-shirt-short-sleeve.glb`, with the arms cut off.
+
+Connected-component analysis of all 14 fused figures: every one is a single connected component (garment and body share topology), so they cannot
+be split by component. Extraction is therefore a spatial cut (`tools/glb-extract/`, reproducible with `python tools/glb-extract/build_processed.py`,
+which regenerates all four assets byte-identically).
+
+| Processed asset | Source (untouched) | Family wired | RENDER evidence | Known defects |
+|---|---|---|---|---|
+| `processed/work-shirt-short-sleeve.glb` | Work_Uniform_Shirt with pocket on chest | Button-Down (partial) | front / 45° / side / back: collar, placket, chest pocket, short sleeves, no head/hands/arms | open side seams under the arms (hidden behind the arm in the scan); jagged sleeve hem; short sleeve only |
+| `processed/pants-trousers.glb` | Female full set corporate uniform and trousers | Pants (partial) | front + 45°: trousers only | small hand stub at one hip; ragged waist/hem; female cut |
+| `processed/shorts-textured.glb` | Navy_Textured_Short | Shorts (partial) | 4 angles: shorts only | notch at hip side where a hand was fused; waist is a cut |
+| `processed/skirt-pencil.glb` | Navy_Blue_Peplum_Dress | Skirt (partial) | front + 45°: skirt only | 1.4k vertices; ragged waist/hem |
+
+All four have one mesh (`mesh_node`), positions + normals, no UVs/materials → zones are geometry thresholds (approximate, same method as polo).
+Lower garments have a single `body` zone and decals disabled. Their transform (scale/position) is computed from the exported bounds; **camera framing is UNVERIFIED in the live scene.**
+
+**Not extracted (attempted or assessed, not promoted):** Blue_Service_Uniform shirt was cut (RENDER-checked, still shows bare upper arms) and has no catalog family;
+its trousers keep hand stubs (hands are inside the pockets, no gap to cut). Pink_Professional_Uni, Male full set, blazer+slacks, teacher uniform,
+Blue_Blouse_and_Gray Pants, the four dresses and lab-coverall were inspected (RENDER contact sheets) but not processed — dresses have no 2D family; lab-coverall
+is a closed watertight suit with hood and mitten hands and no clean cut plane. They stay in `UNSUPPORTED_3D_MODELS`.
+
+**Sleeves.** Every wired shirt scan (t-shirt m/f, polo m/f, work shirt) is SHORT-sleeve only. `garmentCapabilities` now records `sleeves`, `garmentCatalog`
+exposes `sleeves3D` and `defaultStyle` (was `styles[0]`, which made Polo default to "Sleeveless"), the Sleeve chips mark styles the 3D lacks with "· 2D",
+and the 3D pane shows a notice when the chosen sleeve is 2D only. 2D still offers Long/3/4 — those are real 2D paths, not 3D.
+
+**Catalog.** Categories: School, Corporate, Medical / Scrubs, Hospitality / Service, Industrial / Work, built only from existing families with real 2D paths.
+No Dress category: there is no dress 2D definition and none was invented.
+
+**WebGL "caused context loss and was blocked".** Not reproducible here (no browser). Likely contributors, all addressed: dev hot-reload remounting the Canvas
+(each remount force-loses a context → Chrome blocks the tab) — `import.meta.hot.decline()` on DesignStudio3D and GarmentPreview3D; ContactShadows re-rendering a
+depth pass every frame — now 2 frames, keyed per garment; `powerPreference:'high-performance'` removed; context-lost/restored handlers added; the error UI now offers a page reload after repeated failures. UNVERIFIED in a browser.
+

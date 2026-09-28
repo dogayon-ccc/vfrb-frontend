@@ -21,6 +21,20 @@ const teeRegion = ({ c: [x, y] }) => {
 // Measured on both polo files: torso half-width 0.44 below the armpit (y < 0.1; the hem flares to 0.5 so sleeves also need y > 0.05), sleeves extend to |x| 0.75, collar band y > 0.78.
 const poloZone = (x, y) => (Math.abs(x) > 0.46 && y > 0.05 ? 'sleeve' : y > 0.78 ? 'collar' : 'body');
 
+// Work shirt: processed from the fused Meshy scan "Work_Uniform_Shirt with pocket on chest.glb" (source untouched). The scan had
+// bare arm tubes below the short sleeves; they were cut away (tools/glb-extract/extract_work_shirt.py) into
+// processed/work-shirt-short-sleeve.glb. No UVs/materials, so zones are geometry thresholds (approximate), measured on the
+// processed file: collar y > 0.78 with |x| < 0.32, chest pocket x -0.48..-0.17 / y 0.20..0.42, sleeves |x| > 0.5 above the hem y 0.02.
+const workShirtZone = (x, y) => {
+  if (y > 0.78 && Math.abs(x) < 0.32) return 'collar';
+  if (x > -0.48 && x < -0.17 && y > 0.2 && y < 0.42) return 'pocket';
+  if (Math.abs(x) > 0.5 && y > 0.02) return 'sleeve';
+  return 'body';
+};
+
+// Single-zone lower-body garments (the catalog gives Pants/Shorts/Skirt only the 'body' zone).
+const bodyOnly = () => 'body';
+
 const ALL_PATTERNS = ['hstripes', 'vstripes', 'diagonal', 'checker', 'polka', 'geometric'];
 
 // Scanned garments. Both scans face +z (the camera). `decals` marks the part that carries logos and text.
@@ -37,6 +51,7 @@ export const SCANNED_GARMENTS = [
     capabilities: {
       regionMethod: 'uv-islands', regionAccuracy: 'exact (cut panels)',
       zones: ['body', 'sleeve', 'collar'], patterns: { zones: ['body', 'sleeve', 'collar'], ids: ALL_PATTERNS },
+      sleeves: ['Short'], // the only sleeve length the GLB(s) actually have; other 2D styles are not shown in 3D
       text: true, logo: true, frontBack: true, fit: ['male', 'female'],
     },
   },
@@ -50,7 +65,69 @@ export const SCANNED_GARMENTS = [
     capabilities: {
       regionMethod: 'vertex-mask', regionAccuracy: 'approximate (geometry thresholds, no cut panels in the GLB)',
       zones: ['body', 'sleeve', 'collar'], patterns: { zones: ['body', 'sleeve', 'collar'], ids: ALL_PATTERNS.filter(p => p !== 'geometric') },
+      sleeves: ['Short'], // the only sleeve length the GLB(s) actually have; other 2D styles are not shown in 3D
       text: true, logo: true, frontBack: true, fit: ['male', 'female'],
+    },
+  },
+  {
+    // Closest existing catalog family: Button-Down (Corporate; has 2D; its catalog zones already include 'pocket').
+    // Unisex source, single model entry. Raw height matches the polo scan, so the polo scale (0.54) is reused.
+    id: 'work-shirt',
+    match: /button-down/i,
+    models: { unisex: '/models/processed/work-shirt-short-sleeve.glb' },
+    torso: { unisex: 0.45 },
+    transform: { rotation: [0, 0, 0], scale: 0.54, position: [0, -0.05, 0] },
+    parts: [{ node: 'mesh_node', decals: true, zoneOf: workShirtZone }],
+    capabilities: {
+      regionMethod: 'vertex-mask', regionAccuracy: 'approximate (geometry thresholds, no cut panels in the GLB)',
+      zones: ['body', 'sleeve', 'collar', 'pocket'], patterns: { zones: ['body', 'sleeve', 'collar'], ids: ALL_PATTERNS.filter(p => p !== 'geometric') },
+      sleeves: ['Short'], // the only sleeve length the GLB(s) actually have; other 2D styles are not shown in 3D
+      text: true, logo: true, frontBack: true, fit: ['unisex'],
+      // Render-verified front/back/3-quarter; the side seam under each arm is open (hidden behind the arm in the scan) and short sleeves only (the 2D "Long" style has no 3D counterpart).
+      limitations: ['open side seams under the arms', 'short sleeve only', 'sleeve hem edge is jagged'],
+    },
+  },
+  // Lower-body garments processed from fused Meshy figures (sources untouched; see tools/glb-extract/ and GLB-CAPABILITY-MATRIX.md §9).
+  // The catalog gives these families no fit/style and only a 'body' zone, so: unisex single model, colour + pattern only, no overlays
+  // (decals off: the overlay frame is body-shaped and unverified for lower garments). Scale is chosen so the longest side is ~1.05 units,
+  // like the shirts; position centres the piece at the same height. Framing in the live camera is UNVERIFIED (no browser available).
+  {
+    id: 'pants', match: /^pants$/i,
+    models: { unisex: '/models/processed/pants-trousers.glb' }, torso: { unisex: 0.19 },
+    transform: { rotation: [0, 0, 0], scale: 1.35, position: [0, 0.517, 0] },
+    parts: [{ node: 'mesh_node', decals: false, zoneOf: bodyOnly }],
+    capabilities: {
+      regionMethod: 'vertex-mask', regionAccuracy: 'approximate (single body zone, no cut panels in the GLB)',
+      zones: ['body'], patterns: { zones: ['body'], ids: ALL_PATTERNS.filter(p => p !== 'geometric') },
+      sleeves: [],
+      text: false, logo: false, frontBack: false, fit: ['unisex'],
+      limitations: ['female-cut trousers scan', 'small hand-stub remnant at the left hip', 'open waist and hem edges are ragged'],
+    },
+  },
+  {
+    id: 'shorts', match: /^shorts$/i,
+    models: { unisex: '/models/processed/shorts-textured.glb' }, torso: { unisex: 0.215 },
+    transform: { rotation: [0, 0, 0], scale: 2.45, position: [0, 0.71, 0] },
+    parts: [{ node: 'mesh_node', decals: false, zoneOf: bodyOnly }],
+    capabilities: {
+      regionMethod: 'vertex-mask', regionAccuracy: 'approximate (single body zone, no cut panels in the GLB)',
+      zones: ['body'], patterns: { zones: ['body'], ids: ALL_PATTERNS.filter(p => p !== 'geometric') },
+      sleeves: [],
+      text: false, logo: false, frontBack: false, fit: ['unisex'],
+      limitations: ['open notch at the hip side (hand fused to the scan)', 'waistband hidden under the shirt in the source, so the top edge is a cut'],
+    },
+  },
+  {
+    id: 'skirt', match: /^skirt$/i,
+    models: { unisex: '/models/processed/skirt-pencil.glb' }, torso: { unisex: 0.183 },
+    transform: { rotation: [0, 0, 0], scale: 2.85, position: [0, 0.734, 0] },
+    parts: [{ node: 'mesh_node', decals: false, zoneOf: bodyOnly }],
+    capabilities: {
+      regionMethod: 'vertex-mask', regionAccuracy: 'approximate (single body zone, no cut panels in the GLB)',
+      zones: ['body'], patterns: { zones: ['body'], ids: ALL_PATTERNS.filter(p => p !== 'geometric') },
+      sleeves: [],
+      text: false, logo: false, frontBack: false, fit: ['unisex'],
+      limitations: ['low-poly (1.4k vertices) pencil skirt', 'waist and hem edges are ragged cuts'],
     },
   },
 ];
@@ -78,18 +155,13 @@ export const UNSUPPORTED_3D_MODELS = [
   { file: 'Male Full set uniform polo shirt and pants.glb', appearsToBe: 'polo + pants on a human figure', reason: 'fused human figure (leg-bifurcation confirmed), single mesh, no materials/UVs; no 2D definition' },
 ];
 
-// Present in public/models, NOT rejected as a fused figure (no leg-bifurcation found in either
-// this session's or the prior session's independent STATIC scans — see GLB-CAPABILITY-MATRIX.md
-// §7), but also NOT promoted to SCANNED_GARMENTS: no materials/UVs (same approximate-zone-only
-// ceiling as the polo entries), no scale/torso calibration against the Studio's other garments,
-// and — critically — never rendered through the actual renderer (no BROWSER evidence exists in
-// this environment; the repo's own tools/glb-harness needs a real browser, which this session did
-// not have). Calling this "supported" without that step would be exactly the false-CODE/RUNTIME-
-// VERIFIED claim the constitution forbids. Listed here (not silently omitted) so the UI/catalog
-// layer can see it exists and is explicitly pending, not forgotten.
-export const PENDING_3D_MODELS = [
-  { file: 'Work_Uniform_Shirt with pocket on chest.glb', appearsToBe: 'button-down work shirt with chest pocket (garment-only, no leg-split found)', reason: 'no materials/UVs, no scale calibration, never rendered/verified in the real renderer — needs a poloZone-style geometry-threshold pass plus a browser render before it can be called supported' },
-];
+// Present in public/models, not a fused figure by either static or visual/rendered evidence, but
+// not yet promoted to SCANNED_GARMENTS: same reasons as any entry that moves out of this list once
+// verified. Currently empty — Work_Uniform_Shirt with pocket on chest.glb was the only entry and
+// has been promoted to SCANNED_GARMENTS this session (garment-only confirmed by a real shaded
+// raster render, not just static mesh stats — see GLB-CAPABILITY-MATRIX.md §9). Kept as an export
+// (rather than deleted) so a future candidate has a place to land without inventing a new list.
+export const PENDING_3D_MODELS = [];
 
 // Contract for Account 1's data-driven catalog: what the real 3D preview can do for a garment name (+ fit).
 export function get3DCapabilities(garment, fit) {

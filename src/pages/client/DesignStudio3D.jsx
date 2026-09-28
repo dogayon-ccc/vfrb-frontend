@@ -318,19 +318,19 @@ function GarmentMesh({ cfg, referenceTexture, overlays }) {
   const scanned    = SCANNED_GARMENTS.find(g => g.match.test(gt));
 
   const shirt = <ShirtMesh colors={colors} sleeveType={sleeve} collarType={collar} referenceTexture={referenceTexture}/>;
+  // A failed GLB load falls back to the matching primitive, never a shirt for a skirt/pants/shorts.
+  const primitive = isSkirt ? <SkirtMesh colors={colors} referenceTexture={referenceTexture}/>
+    : isPants ? <PantsMesh colors={colors} referenceTexture={referenceTexture}/>
+    : isShorts ? <ShortsMesh colors={colors} referenceTexture={referenceTexture}/> : shirt;
   if (scanned) {
     const fit = cfg.fit ?? cfg.gender;
     return (
-      <GarmentMeshErrorBoundary key={`${gt}-${fit}`} fallback={shirt}>
+      <GarmentMeshErrorBoundary key={`${gt}-${fit}`} fallback={primitive}>
         <ScannedGarmentMesh manifest={scanned} colors={colors} patterns={cfg.patterns} patternParams={cfg.patternParams} fit={fit} garment={cfg.garment} sleeve={cfg.sleeve} overlays={overlays}/>
       </GarmentMeshErrorBoundary>
     );
   }
-  if (isSkirt)  return <SkirtMesh colors={colors} referenceTexture={referenceTexture}/>;
-  if (isPants)  return <PantsMesh colors={colors} referenceTexture={referenceTexture}/>;
-  if (isShorts) return <ShortsMesh colors={colors} referenceTexture={referenceTexture}/>;
-
-  return shirt;
+  return primitive;
 }
 
 // The Studio keeps this Canvas mounted (visibility:hidden) while the 2D view is active; stop rendering frames then.
@@ -365,7 +365,13 @@ export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overla
     <Canvas
       dpr={DPR}
       camera={{ position:[0, 0.15, 3.8], fov:40 }}
-      gl={{ antialias:true, alpha:true, powerPreference:'high-performance', toneMapping:THREE.ACESFilmicToneMapping, toneMappingExposure:0.85 }}
+      gl={{ antialias:true, alpha:true, toneMapping:THREE.ACESFilmicToneMapping, toneMappingExposure:0.85 }}
+      onCreated={({ gl, invalidate }) => {
+        // Let the browser restore a lost context instead of leaving a dead canvas (preventDefault is what allows restore).
+        const el = gl.domElement;
+        el.addEventListener('webglcontextlost', e => e.preventDefault());
+        el.addEventListener('webglcontextrestored', () => invalidate());
+      }}
       style={{ width:'100%', height:'100%', background:'transparent' }}>
 
       <PauseWhenHidden/>
@@ -404,6 +410,7 @@ export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overla
 
       {/* ── Ground shadow ── */}
       <ContactShadows
+        key={cfg.garment ?? 'none'} frames={2}
         position={[0, -1.55, 0]}
         opacity={0.32} scale={5}
         blur={2.5} far={2.2}
@@ -421,3 +428,6 @@ export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overla
     </Canvas>
   );
 }
+
+// Dev only: a hot update remounts the Canvas and force-loses its WebGL context; enough of those and Chrome blocks the tab ("caused context loss and was blocked"). Full reload instead.
+if (import.meta.hot) import.meta.hot.decline();
