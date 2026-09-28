@@ -188,27 +188,33 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       const makeZone = (d, fill, zoneKey, idx) => {
         if (!d) return;
         const patDef = PATTERNS.find(p => p.id === (patterns?.[zoneKey] ?? 'solid'));
-        let fabricFill = fill;
+        const zonePath = new fabric.Path(d, {
+          fill,
+          stroke: zoneKey === 'pocket' ? 'rgba(0,0,0,.38)' : 'rgba(0,0,0,.14)',
+          strokeWidth: 1.5,
+          strokeDashArray: zoneKey === 'pocket' ? [3, 2] : undefined,
+          selectable:false, evented:true, __garmentBase:true, __zoneKey:zoneKey,
+        });
+        canvas.insertAt(idx, zonePath);
         if (patDef?.svg) {
           const zoneParams = patternParams?.[zoneKey] ?? patDef.defaultParams;
           const svgStr = patDef.svg(fill, zoneParams?.width, zoneParams?.spacing);
           const blob = new Blob([svgStr], { type:'image/svg+xml' });
           const url = URL.createObjectURL(blob);
           fabric.Image.fromURL(url).then((img) => {
-            if (!canvas) return;
-            const pat = new fabric.Pattern({ source: img.getElement(), repeat:'repeat' });
-            const obj = canvas.getObjects().find(o => o.__zoneKey === zoneKey);
-            if (obj) { obj.set('fill', pat); canvas.renderAll(); }
+            // BUG FIX: this used to look the object up with
+            // canvas.getObjects().find(o => o.__zoneKey === zoneKey) — but the
+            // left and right sleeve share zoneKey 'sleeve', so find() always
+            // returned the LEFT one and the right sleeve never got its pattern
+            // (visible in 2D: one striped sleeve, one solid). Bind to the exact
+            // Path created above instead; skip if a redraw already removed it.
+            if (canvas.getObjects().includes(zonePath)) {
+              zonePath.set('fill', new fabric.Pattern({ source: img.getElement(), repeat:'repeat' }));
+              canvas.renderAll();
+            }
             URL.revokeObjectURL(url);
           }).catch(() => { URL.revokeObjectURL(url); });
         }
-        canvas.insertAt(idx, new fabric.Path(d, {
-          fill: fabricFill,
-          stroke: zoneKey === 'pocket' ? 'rgba(0,0,0,.38)' : 'rgba(0,0,0,.14)',
-          strokeWidth: 1.5,
-          strokeDashArray: zoneKey === 'pocket' ? [3, 2] : undefined,
-          selectable:false, evented:true, __garmentBase:true, __zoneKey:zoneKey,
-        }));
       };
 
       makeZone(paths.body,    colors.body,                    'body',    0);

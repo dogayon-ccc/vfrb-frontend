@@ -2,6 +2,10 @@ import { useRef, useState } from 'react';
 import { NavIcon } from '../../../components/ui/icons';
 import { T, T2, secLabel, inputStyle, FONTS, EMOJIS } from './dsShared';
 
+// EMOJIS contains repeats (e.g. 🦺) which made React warn about duplicate keys and
+// could drop/duplicate buttons — de-dupe once at module load.
+const UNIQUE_EMOJIS = [...new Set(EMOJIS)];
+
 export default function TextPanel({ onAdd }) {
   const [val,  setVal]  = useState('');
   const [clr,  setClr]  = useState('#ffffff');
@@ -35,7 +39,7 @@ export default function TextPanel({ onAdd }) {
       {showEmoji && (
         <div style={{ display:'grid', gridTemplateColumns:'repeat(8,1fr)', gap:2,
           padding:8, borderRadius:9, background:'rgba(15,23,42,.04)' }}>
-          {EMOJIS.map(e => (
+          {UNIQUE_EMOJIS.map(e => (
             <button key={e} type="button" onClick={()=>insertEmoji(e)}
               style={{ fontSize:16, padding:4, border:'none', background:'none', cursor:'pointer', borderRadius:6 }}>
               {e}

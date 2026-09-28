@@ -125,11 +125,11 @@ export default function Footer({ light = false }) {
 
         {/* ── BOTTOM BAR ── */}
         <div style={{ borderTop:`1px solid ${c.border}`, paddingTop:20, textAlign:'center' }}>
-          <p style={{ color:c.faint, fontSize:12, marginBottom:4 }}>
-            © {new Date().getFullYear()} VFRB Enterprise · AI-Enabled Sales and Inventory Management System
-          </p>
-          <p style={{ color:c.faintest, fontSize:11 }}>
-            Capstone project by Araos, Espeja, Llanto, Ogayon · CCC BSIT 2026
+          <p style={{ color:c.faint, fontSize:12, margin:0 }}>
+            © {new Date().getFullYear()} VFRB Enterprise · Created by{' '}
+            <Link to="/group-60" style={{ color:c.body, textDecoration:'underline', textUnderlineOffset:3, fontWeight:600 }}>
+              Group 60
+            </Link>
           </p>
         </div>
       </div>

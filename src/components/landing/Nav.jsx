@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import logo from '../../assets/company-logo.jpg';
 import { T, NAV } from '../../pages/landing/tokens';
 
-export default function Nav({ scrolled, menuOpen, setMenuOpen, go, scrollTo }) {
+export default function Nav({ scrolled, menuOpen, setMenuOpen, go, scrollTo, active }) {
   return (
     <>
       <motion.nav style={{
@@ -37,14 +37,19 @@ export default function Nav({ scrolled, menuOpen, setMenuOpen, go, scrollTo }) {
             </div>
           </motion.button>
 
-          <div className="desk-nav" style={{ alignItems:'center', gap:32 }}>
+          <div className="desk-nav" style={{ alignItems:'center', gap:26 }}>
             {NAV.map(n => (
               <button key={n.label} className="nl"
                 onClick={() => scrollTo(n.id)}
-                style={{ background:'none', border:'none', color:T.ink2,
+                style={{ background:'none', border:'none', color: active===n.id ? T.teal : T.ink2,
                   fontSize:14, cursor:'pointer', padding:'6px 0',
-                  fontFamily:'var(--font)', transition:'color .2s' }}>
+                  fontFamily:'var(--font)', transition:'color .2s',
+                  fontWeight: active===n.id ? 600 : 400 }}>
                 {n.label}
+                {active===n.id && <motion.span layoutId="nav-active"
+                  transition={{ type:'spring', stiffness:380, damping:32 }}
+                  style={{ position:'absolute', left:0, right:0, bottom:-3, height:2,
+                    borderRadius:2, background:`linear-gradient(90deg,${T.teal},${T.accent})` }}/>}
               </button>
             ))}
           </div>

@@ -2,21 +2,27 @@
 // Sections split into src/components/landing/*; shared color/content tokens in src/pages/landing/tokens.js.
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useScroll, useTransform } from 'framer-motion';
+import { useScroll, useTransform, MotionConfig } from 'framer-motion';
 import Footer from '../components/Footer';
 import Nav from '../components/landing/Nav';
 import Hero from '../components/landing/Hero';
-import CategoriesSection from '../components/landing/CategoriesSection';
 import AboutSection from '../components/landing/AboutSection';
+import ProductionSection from '../components/landing/ProductionSection';
+import CapabilitiesSection from '../components/landing/CapabilitiesSection';
+import SamplesSection from '../components/landing/SamplesSection';
+import FamilyTeaser from '../components/landing/FamilyTeaser';
 import HowSection from '../components/landing/HowSection';
 import FeaturesSection from '../components/landing/FeaturesSection';
 import CTASection from '../components/landing/CTASection';
-import { T } from './landing/tokens';
+import { T, NAV } from './landing/tokens';
+
+const SECTION_IDS = ['about', ...NAV.map(n => n.id).filter(id => id !== 'about'), 'production'];
 
 export default function Landing() {
   const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [active, setActive] = useState(null);
   const { scrollY } = useScroll();
   const heroY = useTransform(scrollY, [0,500], [0,-50]);
 
@@ -24,6 +30,14 @@ export default function Landing() {
     const u = scrollY.on('change', v => setScrolled(v > 50));
     return u;
   }, [scrollY]);
+
+  useEffect(() => {
+    const io = new IntersectionObserver(es => es.forEach(e => {
+      if (e.isIntersecting) setActive(NAV.some(n => n.id === e.target.id) ? e.target.id : null);
+    }), { rootMargin:'-45% 0px -50% 0px' });
+    SECTION_IDS.forEach(id => { const el = document.getElementById(id); if (el) io.observe(el); });
+    return () => io.disconnect();
+  }, []);
 
   // Close menu when scrolled
   useEffect(() => {
@@ -48,6 +62,7 @@ export default function Landing() {
   };
 
   return (
+    <MotionConfig reducedMotion="user">
     <div style={{ fontFamily:'var(--font)', background:T.bg, color:T.ink,
       minHeight:'100vh', overflowX:'hidden' }}>
       <style>{`
@@ -59,8 +74,7 @@ export default function Landing() {
         /* Nav link hover underline */
         .nl{position:relative;}
         .nl::after{content:'';position:absolute;bottom:-2px;left:0;width:0;height:1.5px;background:${T.accent};transition:width .25s;}
-        .nl:hover{color:#fff!important;}
-        .nl:hover::after{width:100%;}
+                .nl:hover::after{width:100%;}
 
         .cat-btn{transition:all .2s;}
         .cat-btn:hover{transform:translateY(-2px);}
@@ -73,8 +87,8 @@ export default function Landing() {
         .desk-nav, .desk-ctas { display:none; }
         .hamburger { display:flex; }
 
-        .hologram-right { order:-1; margin-bottom:24px; }
-        .hologram-right svg { max-width:200px!important; }
+        .hero-visual { order:-1; margin-bottom:8px; }
+        .hero-collage { position:relative; width:100%; max-width:560px; margin:0 auto; aspect-ratio:1/0.9; }
 
         .hero-btns { flex-direction:column; }
         .hero-btns button { width:100%!important; max-width:100%!important; }
@@ -86,7 +100,6 @@ export default function Landing() {
           .hero-stats { gap:28px!important; }
           .cat-strip  { gap:10px!important; }
           .cat-btn    { padding:11px 18px!important; font-size:14px!important; }
-          .hologram-right svg{ max-width:240px!important; }
           .hero-title { font-size:clamp(38px,5vw,68px)!important; }
           .hero-desc  { font-size:16px!important; }
           .hero-stat-num{ font-size:26px!important; }
@@ -96,8 +109,8 @@ export default function Landing() {
           .desk-nav, .desk-ctas { display:flex; }
           .hamburger  { display:none; }
           .hero-grid  { grid-template-columns:1fr 1fr!important; }
-          .hologram-right{ order:0; margin-bottom:0; }
-          .hologram-right svg{ max-width:none!important; }
+          .hero-visual{ order:0; margin-bottom:0; }
+          .hero-collage{ aspect-ratio:1/1.05; margin:0 0 0 auto; }
           .about-grid { grid-template-columns:1fr 1fr!important; gap:72px!important; }
           .steps-grid { grid-template-columns:repeat(4,1fr)!important; }
           .feat-grid  { grid-template-columns:repeat(3,1fr)!important; }
@@ -110,8 +123,11 @@ export default function Landing() {
           .hero-btns button{ width:auto!important; max-width:none!important; }
         }
 
-        @keyframes float-slow{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
         @keyframes pulse-glow{0%,100%{opacity:.15}50%{opacity:.35}}
+        @media (prefers-reduced-motion: reduce){
+          html{scroll-behavior:auto;}
+          *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;}
+        }
 
         /* Focus ring for keyboard nav */
         button:focus-visible, a:focus-visible {
@@ -121,14 +137,18 @@ export default function Landing() {
         }
       `}</style>
 
-      <Nav scrolled={scrolled} menuOpen={menuOpen} setMenuOpen={setMenuOpen} go={go} scrollTo={scrollTo}/>
+      <Nav scrolled={scrolled} menuOpen={menuOpen} setMenuOpen={setMenuOpen} go={go} scrollTo={scrollTo} active={active}/>
       <Hero heroY={heroY} go={go} scrollTo={scrollTo}/>
-      <CategoriesSection go={go}/>
       <AboutSection go={go}/>
+      <ProductionSection/>
+      <CapabilitiesSection/>
+      <SamplesSection/>
       <HowSection/>
       <FeaturesSection/>
+      <FamilyTeaser go={go}/>
       <CTASection go={go}/>
       <Footer light/>
     </div>
+    </MotionConfig>
   );
 }

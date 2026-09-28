@@ -72,8 +72,23 @@ export default function DesignStudio() {
   const [saved,      setSaved]      = useState(false);
   const [showInspo,  setShowInspo]  = useState(false); // inspiration gallery overlay
   const [showShowcase, setShowShowcase] = useState(false); // cross-client showcase overlay
+  // Inspo and Showcase are anchored at the same spot; with both open they stacked on top of
+  // each other and clipped (seen in screenshots). Opening one now closes the other.
+  const toggleInspo = useCallback((v) => {
+    setShowInspo(prev => { const next = typeof v === 'function' ? v(prev) : v; if (next) setShowShowcase(false); return next; });
+  }, []);
+  const toggleShowcase = useCallback((v) => {
+    setShowShowcase(prev => { const next = typeof v === 'function' ? v(prev) : v; if (next) setShowInspo(false); return next; });
+  }, []);
+  useEffect(() => {
+    if (!showInspo && !showShowcase) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') { setShowInspo(false); setShowShowcase(false); } };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showInspo, showShowcase]);
   const [draftSaved, setDraftSaved] = useState(false); // "Draft saved to cloud" feedback
   const [draftRestored, setDraftRestored] = useState(false); // banner on restore
+  const [infoOpen, setInfoOpen] = useState(false); // tablet: summary/inspector slide-over
   const [ordering, setOrdering] = useState(false); // optimistic "Order This" in-flight state
   const autoSaveTimer = useRef(null);
 
@@ -467,8 +482,8 @@ export default function DesignStudio() {
           canUndo={canUndo} canRedo={canRedo}
           viewMode={viewMode} setViewMode={setViewMode} setHas3DLoaded={setHas3DLoaded}
           selObj={selObj} deleteSelected={deleteSelected}
-          showInspo={showInspo} setShowInspo={setShowInspo}
-          showShowcase={showShowcase} setShowShowcase={setShowShowcase}
+          showInspo={showInspo} setShowInspo={toggleInspo}
+          showShowcase={showShowcase} setShowShowcase={toggleShowcase}
           saved={saved} draftSaved={draftSaved} saveDesign={saveDesign}
           orderThis={orderThis} ordering={ordering}/>
 
@@ -539,6 +554,9 @@ export default function DesignStudio() {
 
         {/* ── BODY ── */}
         <div className="ds-body">
+          <button type="button" className="ds-info-toggle" aria-expanded={infoOpen} onClick={() => setInfoOpen(o => !o)}>
+            <NavIcon name="layersPanel" size={16}/> {infoOpen ? 'Hide' : 'Summary'}
+          </button>
 
           {/* ── TOOL STRIP + PANEL DRAWER ── */}
           <ToolDrawer tool={tool} setTool={setTool} sheetOpen={sheetOpen} setSheetOpen={setSheetOpen}
@@ -546,7 +564,7 @@ export default function DesignStudio() {
             activeZone={zone} setActiveZone={setActiveZone}
             addText={addText} addShape={addShape} updateSelected={updateSelected}
             assetsTab={assetsTab} setAssetsTab={setAssetsTab} logoUpload={logoUpload}
-            setShowInspo={setShowInspo} setShowShowcase={setShowShowcase}
+            setShowInspo={toggleInspo} setShowShowcase={toggleShowcase}
             brushSize={brushSize} brushColor={brushColor}
             changeBrushSize={changeBrushSize} changeBrushColor={changeBrushColor}
             applyAI={applyAI} layers={layers} selObj={selObj} deleteSelected={deleteSelected}
@@ -561,7 +579,7 @@ export default function DesignStudio() {
             zoom={zoom} setZoom={setZoom} snapshot={snapshot} overlays={overlays}
             onChooseGarment={() => { setTool('type'); setSheetOpen(true); }}/>
           {/* ── RIGHT INFO PANEL ── */}
-          <RightInfoPanel onOpenTool={(id) => { setTool(id); setSheetOpen(true); }} cfg={cfg} saved={saved} saveDesign={saveDesign} orderThis={orderThis} ordering={ordering} downloadImage={downloadImage} clearGarment={clearGarment}
+          <RightInfoPanel open={infoOpen} onClose={() => setInfoOpen(false)} onOpenTool={(id) => { setTool(id); setSheetOpen(true); }} cfg={cfg} saved={saved} saveDesign={saveDesign} orderThis={orderThis} ordering={ordering} downloadImage={downloadImage} clearGarment={clearGarment}
             selObj={selObj} updateSelected={updateSelected} deleteSelected={deleteSelected}/>
         </div>
 
@@ -569,12 +587,18 @@ export default function DesignStudio() {
         <OnboardingOverlay showOnboarding={showOnboarding} onboardStep={onboardStep}
           nextOnboardStep={nextOnboardStep} dismissOnboarding={dismissOnboarding}/>
 
+        {/* Click-away scrim behind whichever gallery is open (z-index sits under the galleries' 100). */}
+        {(showInspo || showShowcase) && (
+          <div aria-hidden="true" onClick={() => { setShowInspo(false); setShowShowcase(false); }}
+            style={{ position:'absolute', inset:0, zIndex:90, background:'rgba(15,23,42,.18)' }}/>
+        )}
+
         {/* ── INSPIRATION GALLERY OVERLAY ── */}
-        <InspoGallery showInspo={showInspo} setShowInspo={setShowInspo} setCfg={setCfg}
+        <InspoGallery showInspo={showInspo} setShowInspo={toggleInspo} setCfg={setCfg}
           loadCanvasJSON={loadCanvasJSON}/>
 
         {/* ── SHOWCASE GALLERY OVERLAY ── */}
-        <ShowcaseGallery showShowcase={showShowcase} setShowShowcase={setShowShowcase} setCfg={setCfg}
+        <ShowcaseGallery showShowcase={showShowcase} setShowShowcase={toggleShowcase} setCfg={setCfg}
           loadCanvasJSON={loadCanvasJSON}/>
 
       </div>

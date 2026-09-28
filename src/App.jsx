@@ -98,6 +98,7 @@ const ResetPassword  = lazy(() => import('./pages/auth/ResetPassword'));
 const GuidePage = lazy(() => import('./pages/Guide'));
 const FAQPage    = lazy(() => import('./pages/FAQ'));
 const TeamPage   = lazy(() => import('./pages/Team'));
+const Group60Page = lazy(() => import('./pages/Group60'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPolicy')); // NEW Aug 28 2026
 const TermsPage    = lazy(() => import('./pages/TermsOfService')); // NEW Aug 28 2026
 
@@ -203,6 +204,7 @@ export default function App() {
           <Route path="/guide"    element={<GuidePage/>}/>
           <Route path="/faq"      element={<FAQPage/>}/>
           <Route path="/our-team" element={<TeamPage/>}/>
+          <Route path="/group-60" element={<Group60Page/>}/>
           <Route path="/privacy"  element={<PrivacyPage/>}/>
           <Route path="/terms"    element={<TermsPage/>}/>
 

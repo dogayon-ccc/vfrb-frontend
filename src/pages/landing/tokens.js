@@ -11,6 +11,8 @@ export const T = {
 
 export const NAV = [
   { label:'About',    id:'about' },
+  { label:'What We Do', id:'capabilities' },
+  { label:'Gallery',  id:'gallery' },
   { label:'Features', id:'features' },
   { label:'How It Works', id:'how' },
   { label:'Designs', id:'categories' },

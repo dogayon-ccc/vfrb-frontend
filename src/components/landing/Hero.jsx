@@ -1,9 +1,15 @@
 // src/components/landing/Hero.jsx — split out of Landing.jsx.
-import { motion } from 'framer-motion';
-import GarmentHologram from './GarmentHologram';
+import { motion, useScroll, useTransform, useReducedMotion } from 'framer-motion';
+import Photo from './Photo';
 import { T } from '../../pages/landing/tokens';
+import { P } from '../../pages/landing/photos';
 
 export default function Hero({ heroY, go, scrollTo }) {
+  const { scrollY } = useScroll();
+  const still = useReducedMotion();
+  const mainY = useTransform(scrollY, [0, 600], [0, still ? 0 : -40]);
+  const cardY = useTransform(scrollY, [0, 600], [0, still ? 0 : 60]);
+  const chipY = useTransform(scrollY, [0, 600], [0, still ? 0 : -90]);
   return (
     <section style={{ minHeight:'100vh', display:'flex', alignItems:'center',
       position:'relative', overflow:'hidden', paddingTop:64 }}>
@@ -65,11 +71,11 @@ export default function Hero({ heroY, go, scrollTo }) {
                 transition={{ duration:.7 }}
                 style={{ color:T.ink2, fontSize:14, lineHeight:1.75,
                   marginBottom:32, maxWidth:480 }}>
-                VFRB Enterprise produces scrub suits, school uniforms, and corporate
-                wear for hospitals, schools, government agencies, and institutions
-                across the Philippines. Configure your design in our Design Studio,
-                and receive an AI-assisted material recommendation before production
-                begins. Minimum order: 100 pieces.
+                VFRB Enterprise is a medium-scale, family-owned garment company
+                specializing in corporate and company uniforms, serving local
+                offices, schools, and institutions. Configure your design in our
+                Design Studio and receive an AI-assisted material recommendation
+                before production begins. Minimum order: 100 pieces.
               </motion.p>
 
               <motion.div className="hero-btns"
@@ -84,15 +90,6 @@ export default function Hero({ heroY, go, scrollTo }) {
                     boxShadow:'0 8px 32px rgba(2,195,154,0.35)',
                     fontFamily:'var(--font)', minHeight:48 }}>
                   Register Account →
-                </motion.button>
-                <motion.button whileHover={{ scale:1.02 }} whileTap={{ scale:.97 }}
-                  onClick={() => scrollTo('categories')}
-                  style={{ background:'#fff',
-                    border:`1px solid ${T.border}`,
-                    color:T.ink2, fontWeight:600, fontSize:15,
-                    padding:'14px 28px', borderRadius:12, cursor:'pointer',
-                    fontFamily:'var(--font)', minHeight:48 }}>
-                  See What We Build
                 </motion.button>
               </motion.div>
 
@@ -112,22 +109,32 @@ export default function Hero({ heroY, go, scrollTo }) {
               </motion.div>
             </motion.div>
 
-            <motion.div className="hologram-right"
-              initial={{ opacity:0, x:40 }} animate={{ opacity:1, x:0 }}
-              transition={{ delay:.5, duration:1, ease:[0.22,1,0.36,1] }}
-              style={{ display:'flex', flexDirection:'column', alignItems:'center',
-                animation:'float-slow 6s ease-in-out infinite' }}>
-              <div style={{ borderRadius:24, padding:20,
-                background:'linear-gradient(145deg,#0a2530,#06101a)',
-                boxShadow:'0 20px 60px rgba(2,35,50,0.18)' }}>
-                <GarmentHologram/>
-                <p style={{ textAlign:'center', marginTop:10, fontSize:10,
-                  color:'rgba(255,255,255,0.35)', letterSpacing:'0.1em',
-                  textTransform:'uppercase', fontFamily:'monospace' }}>
-                  VFRB Enterprise · AI-Assisted Material Recommendation
-                </p>
+            <div className="hero-visual">
+              <div className="hero-collage">
+                <motion.div style={{ y:mainY, position:'absolute', top:0, left:'12%', right:0, bottom:'14%' }}>
+                  <Photo photo={P.printing} instant radius={28} ratio="auto" pos="30% center"
+                    style={{ height:'100%', boxShadow:'0 24px 60px rgba(2,35,50,0.22)' }}/>
+                </motion.div>
+                <motion.div style={{ y:cardY, position:'absolute', left:0, bottom:0, width:'46%',
+                  filter:'drop-shadow(0 16px 30px rgba(2,35,50,0.25))' }}>
+                  <Photo photo={P.sewing4} instant delay={0.35} radius={20} ratio="4/3"
+                    style={{ border:'4px solid #fff' }}/>
+                </motion.div>
+                <motion.div style={{ y:chipY, position:'absolute', right:'-2%', bottom:'4%', width:'34%',
+                  filter:'drop-shadow(0 16px 30px rgba(2,35,50,0.25))' }}>
+                  <Photo photo={P.uniforms} instant delay={0.55} radius={16} ratio="1/1" pos="30% center"
+                    style={{ border:'4px solid #fff' }}/>
+                </motion.div>
+                <motion.div initial={{ opacity:0, scale:.8 }} animate={{ opacity:1, scale:1 }}
+                  transition={{ delay:1.1, duration:.5 }}
+                  style={{ position:'absolute', top:'6%', left:0, background:'#fff', borderRadius:14,
+                    padding:'10px 14px', boxShadow:'0 10px 30px rgba(2,35,50,0.15)',
+                    border:`1px solid ${T.border}` }}>
+                  <div style={{ fontSize:20, fontWeight:700, color:T.teal, lineHeight:1 }}>Since 2000</div>
+                  <div style={{ fontSize:11, color:T.ink3, marginTop:3 }}>Family-owned · Muntinlupa</div>
+                </motion.div>
               </div>
-            </motion.div>
+            </div>
           </div>
         </div>
       </motion.div>

@@ -37,11 +37,10 @@ export default function LayersPanel({ layers, selectedId, onSelect, onToggleVisi
       <p style={secLabel}>Layers on this side · {layers.length}</p>
 
       {layers.length === 0 ? (
-        <div style={{ padding:'26px 10px', textAlign:'center' }}>
-          <NavIcon name="folder" size={22} color="rgba(15,23,42,.35)" style={{ marginBottom:6 }}/>
-          <p style={{ fontSize:11, color:'rgba(15,23,42,.35)', margin:0 }}>
-            Add a logo, text, or shape to see it here
-          </p>
+        <div className="ds-empty">
+          <span className="ds-empty-icon"><NavIcon name="layersPanel" size={22} color="var(--teal-dark)"/></span>
+          <p className="ds-empty-title">No layers on this side yet</p>
+          <p className="ds-empty-sub">Logos, text, shapes and drawings you add show up here, where you can reorder, hide or rename them.</p>
         </div>
       ) : (
         <div style={{ display:'flex', flexDirection:'column', gap:3 }}>

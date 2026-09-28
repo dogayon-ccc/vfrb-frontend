@@ -80,6 +80,7 @@ function ShirtMesh({ colors, sleeveType, collarType, referenceTexture }) {
   const matCollar = useMemo(() => mat(collar),  [collar]);
   const matSleeve = useMemo(() => mat(sleeve),  [sleeve]);
   const matPocket = useMemo(() => mat(pocket, 0.6), [pocket]);
+  const matNeck   = useMemo(() => mat('#0b1220', 1), []);
 
   const isLong      = /long/i.test(sleeveType ?? '');
   // 3/4-length sleeve — the 2D canvas (DesignStudio.jsx SLEEVE_VARIANTS)
@@ -117,31 +118,26 @@ function ShirtMesh({ colors, sleeveType, collarType, referenceTexture }) {
         <cylinderGeometry args={[0.40, 0.40, 0.04, 16]}/>
       </mesh>
 
-      {/* ── Left sleeve ── */}
-      {!isSleeveless && (
-        <group position={[-0.44, 0.38, 0]} rotation={[0, 0, 0.52]}>
-          <mesh material={matSleeve}>
-            <cylinderGeometry args={[sleeveTopR, sleeveBotR, sleeveLen, 12]}/>
+      {/* ── Sleeves ── each group is a pivot AT the shoulder; the cylinder hangs
+          below it (mesh offset -len/2) and swings ~11° outward, so arms rest
+          at the sides instead of sticking up in a Y-pose. Rotation sign:
+          left arm (-x) needs the free end to move toward -x. ── */}
+      {!isSleeveless && [[-1, -0.2], [1, 0.2]].map(([side, rot]) => (
+        <group key={side} position={[side * 0.40, 0.47, 0]} rotation={[0, 0, rot]}>
+          <mesh position={[0, -sleeveLen / 2, 0]} material={matSleeve}>
+            <cylinderGeometry args={[sleeveTopR, sleeveBotR, sleeveLen, 14]}/>
           </mesh>
           {/* Cuff */}
-          <mesh position={[0, -sleeveLen * 0.52, 0]} material={matCollar}>
-            <cylinderGeometry args={[sleeveBotR + 0.01, sleeveBotR + 0.01, 0.04, 12]}/>
+          <mesh position={[0, -sleeveLen, 0]} material={matCollar}>
+            <cylinderGeometry args={[sleeveBotR + 0.01, sleeveBotR + 0.01, 0.04, 14]}/>
           </mesh>
         </group>
-      )}
+      ))}
 
-      {/* ── Right sleeve ── */}
-      {!isSleeveless && (
-        <group position={[0.44, 0.38, 0]} rotation={[0, 0, -0.52]}>
-          <mesh material={matSleeve}>
-            <cylinderGeometry args={[sleeveTopR, sleeveBotR, sleeveLen, 12]}/>
-          </mesh>
-          {/* Cuff */}
-          <mesh position={[0, -sleeveLen * 0.52, 0]} material={matCollar}>
-            <cylinderGeometry args={[sleeveBotR + 0.01, sleeveBotR + 0.01, 0.04, 12]}/>
-          </mesh>
-        </group>
-      )}
+      {/* ── Neck opening: dark disc so the collar reads as a neckline, not a lid ── */}
+      <mesh position={[0, 0.553, 0]} rotation={[-Math.PI / 2, 0, 0]} material={matNeck}>
+        <circleGeometry args={[0.155, 24]}/>
+      </mesh>
 
       {/* ── Collar ── */}
       {isVneck ? (
@@ -156,20 +152,29 @@ function ShirtMesh({ colors, sleeveType, collarType, referenceTexture }) {
         </>
       ) : isMandarin ? (
         // Mandarin: short upright cylinder band
-        <mesh position={[0, 0.63, 0]} material={matCollar}>
-          <cylinderGeometry args={[0.16, 0.17, 0.14, 14]}/>
+        <mesh position={[0, 0.60, 0]} material={matCollar}>
+          <cylinderGeometry args={[0.15, 0.16, 0.09, 18, 1, true]}/>
         </mesh>
       ) : (
         // Polo collar: torus ring
-        <mesh position={[0, 0.60, 0]} rotation={[Math.PI / 2, 0, 0]} material={matCollar}>
-          <torusGeometry args={[0.18, 0.04, 8, 16]}/>
+        <mesh position={[0, 0.556, 0]} rotation={[Math.PI / 2, 0, 0]} material={matCollar}>
+          <torusGeometry args={[0.16, 0.035, 8, 24]}/>
         </mesh>
       )}
 
-      {/* ── Pocket: PlaneGeometry offset on body ── */}
-      <mesh position={[-0.19, 0.14, 0.38]} material={matPocket}>
-        <planeGeometry args={[0.12, 0.10]}/>
-      </mesh>
+      {/* ── Pocket: placed ON the curved body surface (z from the cylinder
+          radius at that height) and turned tangent to it, so it no longer
+          floats in front of the shirt. ── */}
+      {(() => {
+        const px = -0.15, py = 0.14;
+        const r = 0.35 + 0.05 * (0.55 - py) / 1.1;
+        const z = Math.sqrt(r * r - px * px) * 0.985 + 0.006;
+        return (
+          <mesh position={[px, py, z]} rotation={[0, Math.asin(px / r), 0]} material={matPocket}>
+            <planeGeometry args={[0.12, 0.10]}/>
+          </mesh>
+        );
+      })()}
 
       {/* ── Shoulders: small sphere caps at sleeve joins — only needed to
           round the join where a sleeve cylinder meets the body. With no
@@ -177,10 +182,10 @@ function ShirtMesh({ colors, sleeveType, collarType, referenceTexture }) {
           gate with !isSleeveless, same condition already used above. ── */}
       {!isSleeveless && (
         <>
-          <mesh position={[-0.38, 0.52, 0]} material={matSleeve}>
+          <mesh position={[-0.38, 0.5, 0]} material={matSleeve}>
             <sphereGeometry args={[0.14, 8, 8, 0, Math.PI]}/>
           </mesh>
-          <mesh position={[0.38, 0.52, 0]} material={matSleeve}>
+          <mesh position={[0.38, 0.5, 0]} material={matSleeve}>
             <sphereGeometry args={[0.14, 8, 8, 0, Math.PI]}/>
           </mesh>
         </>

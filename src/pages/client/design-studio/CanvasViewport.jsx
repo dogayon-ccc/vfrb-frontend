@@ -13,7 +13,16 @@ function useFit(paneRef, wrapRef) {
   useEffect(() => {
     const pane = paneRef.current, wrap = wrapRef.current;
     if (!pane || !wrap) return undefined;
-    const measure = () => setFit(Math.max(0.3, Math.min(1, (pane.clientWidth - 24) / wrap.offsetWidth, (pane.clientHeight - 24) / wrap.offsetHeight)));
+    // Scales DOWN to fit small panes and now UP (to 1.5x) on large ones, so on a
+    // desktop the garment is the dominant object like in the wireframes instead of a
+    // 320px sketch floating in a huge pane. Bottom reserve keeps it clear of the
+    // Front/Back cards; the cap keeps the raster canvas from getting soft.
+    const measure = () => {
+      const wide = pane.clientWidth >= 700;
+      const reserveY = wide ? 130 : 24;
+      const maxFit = wide ? 1.5 : 1;
+      setFit(Math.max(0.3, Math.min(maxFit, (pane.clientWidth - 48) / wrap.offsetWidth, (pane.clientHeight - reserveY) / wrap.offsetHeight)));
+    };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(pane);

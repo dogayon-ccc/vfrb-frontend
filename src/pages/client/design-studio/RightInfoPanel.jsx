@@ -139,14 +139,11 @@ export function SummaryContent({ cfg, saved, saveDesign, orderThis, ordering, do
           </motion.p>
         )}
       </AnimatePresence>
-      <ul className="ds-swatches">
+      <ul className="ds-swatch-row" aria-label="Zone colors">
         {swatches.map(z => (
-          <li key={z}>
-            <span className="ds-swatch" style={{ background: cfg.colors[z] ?? 'var(--bg-surface)' }}/>
-            <span>
-              <span className="ds-swatch-name">{ZONE_LABEL[z]}</span>
-              <span className="ds-swatch-hex">{cfg.colors[z] ?? 'Not set'}</span>
-            </span>
+          <li key={z} title={`${ZONE_LABEL[z]}: ${cfg.colors[z] ?? 'Not set'}`}>
+            <span className="ds-swatch ds-swatch--lg" style={{ background: cfg.colors[z] ?? 'var(--bg-surface)' }}/>
+            <span className="ds-swatch-name">{ZONE_LABEL[z]}</span>
           </li>
         ))}
       </ul>
@@ -161,30 +158,33 @@ export function SummaryContent({ cfg, saved, saveDesign, orderThis, ordering, do
           ))}
         </nav>
       )}
-      <button type="button" className="ds-act" onClick={saveDesign} disabled={!cfg.garment}>
-        <NavIcon name={saved ? 'success' : 'save'} size={16}/> {saved ? 'Saved' : 'Save design'}
-      </button>
-      <button type="button" className="ds-act" onClick={downloadImage} disabled={!cfg.garment}>
-        <NavIcon name="image" size={16}/> Download image
-      </button>
-      <button type="button" className="ds-act ds-act--primary" onClick={orderThis}
-        disabled={!cfg.garment || ordering} aria-busy={!!ordering}>
-        {ordering ? <><span className="ds-spin" style={{ borderColor:'rgba(255,255,255,.4)', borderTopColor:'#fff' }}/> Preparing your order…</> : 'Order this design'}
-      </button>
-      {cfg.garment && clearGarment && (
-        <button type="button" className="ds-act" onClick={clearGarment}>
-          <NavIcon name="delete" size={16}/> Remove garment
+      <div className="ds-actions">
+        <button type="button" className="ds-act ds-act--primary ds-act--wide" onClick={orderThis}
+          disabled={!cfg.garment || ordering} aria-busy={!!ordering}>
+          {ordering ? <><span className="ds-spin" style={{ borderColor:'rgba(255,255,255,.4)', borderTopColor:'#fff' }}/> Preparing your order…</> : 'Order this design'}
         </button>
-      )}
+        <button type="button" className="ds-act" onClick={saveDesign} disabled={!cfg.garment}>
+          <NavIcon name={saved ? 'success' : 'save'} size={16}/> {saved ? 'Saved' : 'Save'}
+        </button>
+        <button type="button" className="ds-act" onClick={downloadImage} disabled={!cfg.garment}>
+          <NavIcon name="image" size={16}/> Image
+        </button>
+        {cfg.garment && clearGarment && (
+          <button type="button" className="ds-link-danger ds-act--wide" onClick={clearGarment}>
+            <NavIcon name="delete" size={14}/> Remove garment
+          </button>
+        )}
+      </div>
       <AIDesignChat docked/>
     </>
   );
 }
 
-export default function RightInfoPanel({ selObj, updateSelected, deleteSelected, ...rest }) {
+export default function RightInfoPanel({ selObj, updateSelected, deleteSelected, open, onClose, ...rest }) {
   const showInspector = !!selObj && !selObj.__garmentBase && !selObj.__hoverGlow;
   return (
-    <aside className="ds-info" aria-label={showInspector ? 'Selected object' : 'Design summary'}>
+    <aside className="ds-info" data-open={open ? 'true' : 'false'} aria-label={showInspector ? 'Selected object' : 'Design summary'}>
+      {onClose && <button type="button" className="ds-info-close" aria-label="Close panel" onClick={onClose}><NavIcon name="close" size={16}/></button>}
       {showInspector
         ? <SelectionInspector selObj={selObj} updateSelected={updateSelected} deleteSelected={deleteSelected}/>
         : <SummaryContent {...rest}/>}

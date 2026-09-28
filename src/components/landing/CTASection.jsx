@@ -2,6 +2,7 @@
 import { motion } from 'framer-motion';
 import Reveal from './Reveal';
 import { T } from '../../pages/landing/tokens';
+import sewing from '../../assets/brand/sewing-4.jpg';
 
 export default function CTASection({ go }) {
   return (
@@ -11,7 +12,7 @@ export default function CTASection({ go }) {
           <div className="cta-inner"
             style={{ borderRadius:24, padding:'48px 20px', position:'relative',
               overflow:'hidden',
-              background:`linear-gradient(135deg,#023d47,${T.teal})`,
+              background:`linear-gradient(135deg,rgba(2,61,71,0.92),rgba(2,128,144,0.86)),url(${sewing}) center/cover`,
               border:'1px solid rgba(2,195,154,0.2)', textAlign:'center' }}>
             <div style={{ position:'absolute', inset:0,
               background:'radial-gradient(circle at 70% 30%,rgba(2,195,154,0.15),transparent 60%)',
@@ -22,7 +23,7 @@ export default function CTASection({ go }) {
                 marginBottom:14, lineHeight:1.2 }}>
                 Ready to design your next uniform?
               </h2>
-              <p style={{ color:'rgba(255,255,255,0.6)', fontSize:15, marginBottom:32,
+              <p style={{ color:'rgba(255,255,255,0.82)', fontSize:15, marginBottom:32,
                 maxWidth:400, margin:'0 auto 32px' }}>
                 Free to register. No credit card. No need to pay for creating.
                 Submit your design request in minutes.

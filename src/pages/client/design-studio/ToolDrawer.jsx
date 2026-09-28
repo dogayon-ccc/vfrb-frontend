@@ -80,6 +80,7 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, sum
 
       <section className="ds-panel" aria-label={title}>
         <header className="ds-sheet-head">
+          <span className="ds-sheet-icon" aria-hidden="true"><NavIcon name={more ? 'chevronUp' : active.icon} size={16}/></span>
           <div className="ds-sheet-title">
             <h2>{title}</h2>
             {!more && active.hint && <p>{active.hint}</p>}
