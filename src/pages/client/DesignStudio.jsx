@@ -74,6 +74,7 @@ export default function DesignStudio() {
   const [showShowcase, setShowShowcase] = useState(false); // cross-client showcase overlay
   const [draftSaved, setDraftSaved] = useState(false); // "Draft saved to cloud" feedback
   const [draftRestored, setDraftRestored] = useState(false); // banner on restore
+  const [ordering, setOrdering] = useState(false); // optimistic "Order This" in-flight state
   const autoSaveTimer = useRef(null);
 
   // ── Task U: first-visit onboarding overlay ────────────────────────────────
@@ -418,25 +419,39 @@ export default function DesignStudio() {
   }, [exportFrontBack, cfg.garment]);
 
   const orderThis = useCallback(async () => {
-    if (!cfg.garment) return;
-    // exportFrontBack() captures both faces' PNGs and, as a side effect, leaves
-    // faceJSON.current populated for both (then restores the live canvas to the
-    // face the customer was on) — snapshotDesign's flush of the *current* face
-    // below is then a no-op for whichever face was just captured, and picks up
-    // the other one exactly as exportFrontBack left it.
-    const previewPng = await exportFrontBack();
-    const snap = snapshotDesign(previewPng);
-    sessionStorage.setItem('studio_config',   JSON.stringify(snap));
-    sessionStorage.setItem('studio_preview',  snap.previewPng ?? '');
-    sessionStorage.setItem('studio_color',    cfg.colors.body);
-    sessionStorage.setItem('studio_garment',  cfg.garment);
-    sessionStorage.setItem('studio_category', cfg.category);
-    // Clear DB draft — design is now an order, draft is no longer needed
-    axios.delete('/api/customer/drafts/latest').catch(() => {});
-    nav('/order/create');
-  }, [cfg, snapshotDesign, exportFrontBack, nav]);
+    if (!cfg.garment || ordering) return;
+    setOrdering(true); // instant feedback — see the state declaration above
+    try {
+      // exportFrontBack() captures both faces' PNGs and, as a side effect, leaves
+      // faceJSON.current populated for both (then restores the live canvas to the
+      // face the customer was on) — snapshotDesign's flush of the *current* face
+      // below is then a no-op for whichever face was just captured, and picks up
+      // the other one exactly as exportFrontBack left it.
+      const previewPng = await exportFrontBack();
+      const snap = snapshotDesign(previewPng);
+      sessionStorage.setItem('studio_config',   JSON.stringify(snap));
+      sessionStorage.setItem('studio_preview',  snap.previewPng ?? '');
+      sessionStorage.setItem('studio_color',    cfg.colors.body);
+      sessionStorage.setItem('studio_garment',  cfg.garment);
+      sessionStorage.setItem('studio_category', cfg.category);
+      // Clear DB draft — design is now an order, draft is no longer needed
+      axios.delete('/api/customer/drafts/latest').catch(() => {});
+      nav('/order/create');
+    } catch {
+      // Export failed (e.g. canvas mid-init) — un-stick the button so the
+      // customer can retry instead of it staying disabled forever.
+      setOrdering(false);
+    }
+  }, [cfg, ordering, snapshotDesign, exportFrontBack, nav]);
 
   const clearGarment = useCallback(() => setCfg(p => ({ ...p, garment: null })), []);
+
+  // Optimistic UI for "Order This": exportFrontBack() below can take ~0.5-1s
+  // (per-face canvas swap + capture, see its own comments), during which the
+  // button previously gave zero feedback — a customer's second click while it
+  // was still working would fire a second export+nav. `ordering` flips true
+  // on the same tick as the click, before any await, so the button reflects
+  // "in progress" immediately rather than waiting on the async work to resolve.
 
   const catData   = useMemo(() => CATS.find(c=>c.id===cfg.category) ?? CATS[0], [cfg.category]);
   const zone = zonesFor(cfg.garment, cfg.sleeve).includes(activeZone) ? activeZone : 'body';
@@ -454,7 +469,8 @@ export default function DesignStudio() {
           selObj={selObj} deleteSelected={deleteSelected}
           showInspo={showInspo} setShowInspo={setShowInspo}
           showShowcase={showShowcase} setShowShowcase={setShowShowcase}
-          saved={saved} draftSaved={draftSaved} saveDesign={saveDesign} orderThis={orderThis}/>
+          saved={saved} draftSaved={draftSaved} saveDesign={saveDesign}
+          orderThis={orderThis} ordering={ordering}/>
 
         {/* ── PENDING DRAFT OFFER ── an unfinished design exists; ask before applying it */}
         <AnimatePresence>
@@ -526,7 +542,7 @@ export default function DesignStudio() {
 
           {/* ── TOOL STRIP + PANEL DRAWER ── */}
           <ToolDrawer tool={tool} setTool={setTool} sheetOpen={sheetOpen} setSheetOpen={setSheetOpen}
-            summary={{ cfg, saved, saveDesign, orderThis, downloadImage, clearGarment }} cfg={cfg} setCfg={setCfg}
+            summary={{ cfg, saved, saveDesign, orderThis, ordering, downloadImage, clearGarment }} cfg={cfg} setCfg={setCfg}
             activeZone={zone} setActiveZone={setActiveZone}
             addText={addText} addShape={addShape} updateSelected={updateSelected}
             assetsTab={assetsTab} setAssetsTab={setAssetsTab} logoUpload={logoUpload}
@@ -542,9 +558,10 @@ export default function DesignStudio() {
             aiPulse={aiPulse} face={face} switchFace={switchFace}
             selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected}
             viewMode={viewMode} has3DLoaded={has3DLoaded} onLogoFile={onLogoFile}
-            zoom={zoom} setZoom={setZoom} snapshot={snapshot} overlays={overlays}/>
+            zoom={zoom} setZoom={setZoom} snapshot={snapshot} overlays={overlays}
+            onChooseGarment={() => { setTool('type'); setSheetOpen(true); }}/>
           {/* ── RIGHT INFO PANEL ── */}
-          <RightInfoPanel cfg={cfg} saved={saved} saveDesign={saveDesign} orderThis={orderThis} downloadImage={downloadImage} clearGarment={clearGarment}
+          <RightInfoPanel cfg={cfg} saved={saved} saveDesign={saveDesign} orderThis={orderThis} ordering={ordering} downloadImage={downloadImage} clearGarment={clearGarment}
             selObj={selObj} updateSelected={updateSelected} deleteSelected={deleteSelected}/>
         </div>
 

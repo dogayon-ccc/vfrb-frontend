@@ -16,7 +16,7 @@ export default function TopBar({
   nav, cfg, setCfg, catData, undo, redo, canUndo, canRedo,
   viewMode, setViewMode, setHas3DLoaded,
   selObj, deleteSelected, showInspo, setShowInspo, showShowcase, setShowShowcase,
-  saved, draftSaved, saveDesign, orderThis,
+  saved, draftSaved, saveDesign, orderThis, ordering,
 }) {
   const reduceMotion = useReducedMotion();
   // Mobile "More" overflow — the bar has ~13 controls at desktop width; below 768px
@@ -245,14 +245,25 @@ export default function TopBar({
           says the fix elsewhere was white text; this button never got that
           fix (TopBar.jsx was only "lightly edited" per that same doc). */}
       <motion.button className="ds-act-order" whileHover={{ scale:1.03 }} whileTap={{ scale:.97 }}
-        onClick={orderThis} disabled={!cfg.garment}
+        onClick={orderThis} disabled={!cfg.garment || ordering}
+        aria-busy={!!ordering}
         title={cfg.garment ? undefined : 'Pick a garment first'}
-        style={{ padding:'8px 18px',borderRadius:9,border:'none',opacity:cfg.garment?1:.45,
+        style={{ padding:'8px 18px',borderRadius:9,border:'none',opacity:cfg.garment?(ordering?.85:1):.45,
           background:`linear-gradient(135deg,${T},${T2})`,
-          color:'#fff',fontSize:13,fontWeight:800,cursor:'pointer',
+          color:'#fff',fontSize:13,fontWeight:800,cursor:ordering?'progress':'pointer',
           boxShadow:`0 4px 16px rgba(2,195,154,.3)`,flexShrink:0, whiteSpace:'nowrap' }}>
-        <span className="ds-act-order-full">Order This →</span>
-        <span className="ds-act-order-short">Order →</span>
+        {ordering ? (
+          <span style={{ display:'inline-flex', alignItems:'center', gap:7 }}>
+            <span aria-hidden="true" style={{ width:12, height:12, borderRadius:'50%',
+              border:'2px solid rgba(255,255,255,.4)', borderTopColor:'#fff',
+              animation: reduceMotion ? 'none' : 'dspin .7s linear infinite', display:'inline-block' }}/>
+            <span className="ds-act-order-full">Preparing…</span>
+            <span className="ds-act-order-short">…</span>
+          </span>
+        ) : (<>
+          <span className="ds-act-order-full">Order This →</span>
+          <span className="ds-act-order-short">Order →</span>
+        </>)}
       </motion.button>
     </div>
   );

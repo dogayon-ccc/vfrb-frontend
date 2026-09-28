@@ -114,6 +114,9 @@ export default function DesignStudioStyles() {
         font-size:var(--text-xs);font-weight:700;cursor:pointer;
       }
       .ds-act:disabled{opacity:.45;cursor:not-allowed;}
+      .ds-act[aria-busy="true"]:disabled{opacity:.9;cursor:progress;}
+      .ds-sum-card{display:flex;align-items:center;gap:12px;padding:10px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--bg-surface);box-shadow:var(--shadow-xs);}
+      .ds-sum-thumb{flex-shrink:0;width:72px;height:84px;display:flex;align-items:center;justify-content:center;border-radius:var(--r-sm,8px);background:var(--bg-card);}
       .ds-act--primary{background:var(--teal);border-color:var(--teal);color:var(--text-on-accent);}
 
       .ds-hints{

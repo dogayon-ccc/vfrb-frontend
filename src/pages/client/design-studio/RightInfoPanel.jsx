@@ -1,4 +1,6 @@
+import { motion, AnimatePresence } from 'framer-motion';
 import { NavIcon } from '../../../components/ui/icons';
+import GarmentSilhouette from './GarmentSilhouette';
 import { ZONE_LABEL, zonesFor, T, T2, secLabel, SHAPE_TYPE_LABEL } from './dsShared';
 import AIDesignChat from '../AIDesignChat';
 
@@ -110,7 +112,7 @@ export function SelectionInspector({ selObj, updateSelected, deleteSelected }) {
   );
 }
 
-export function SummaryContent({ cfg, saved, saveDesign, orderThis, downloadImage, clearGarment }) {
+export function SummaryContent({ cfg, saved, saveDesign, orderThis, ordering, downloadImage, clearGarment }) {
   const zones = zonesFor(cfg.garment, cfg.sleeve);
   const swatches = zones.filter(z => z !== 'tipping' || cfg.colors.tipping);
   const details = [zones.includes('sleeve') && `${cfg.sleeve} sleeve`, cfg.category].filter(Boolean).join(' · ');
@@ -118,6 +120,25 @@ export function SummaryContent({ cfg, saved, saveDesign, orderThis, downloadImag
   return (
     <>
       <h2 className="ds-eyebrow">Design summary</h2>
+      <AnimatePresence mode="wait" initial={false}>
+        {cfg.garment ? (
+          <motion.div key={cfg.garment} className="ds-sum-card"
+            initial={{ opacity:0, y:8, scale:.97 }} animate={{ opacity:1, y:0, scale:1 }}
+            exit={{ opacity:0, y:-6 }} transition={{ duration:.2, ease:'easeOut' }}>
+            <div className="ds-sum-thumb">
+              <GarmentSilhouette garment={cfg.garment} sleeve={cfg.sleeve} colors={cfg.colors} width={64} height={76}/>
+            </div>
+            <div style={{ minWidth:0 }}>
+              <p className="ds-sum-title" style={{ margin:0 }}>{cfg.garment}</p>
+              <p className="ds-sum-sub" style={{ margin:'2px 0 0' }}>{details}</p>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.p key="none" className="ds-sum-sub" initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}>
+            No garment selected yet — choose one in the Type tab.
+          </motion.p>
+        )}
+      </AnimatePresence>
       <ul className="ds-swatches">
         {swatches.map(z => (
           <li key={z}>
@@ -129,15 +150,16 @@ export function SummaryContent({ cfg, saved, saveDesign, orderThis, downloadImag
           </li>
         ))}
       </ul>
-      <p className="ds-sum-title">{cfg.garment}</p>
-      <p className="ds-sum-sub">{details}</p>
       <button type="button" className="ds-act" onClick={saveDesign} disabled={!cfg.garment}>
         <NavIcon name={saved ? 'success' : 'save'} size={16}/> {saved ? 'Saved' : 'Save design'}
       </button>
       <button type="button" className="ds-act" onClick={downloadImage} disabled={!cfg.garment}>
         <NavIcon name="image" size={16}/> Download image
       </button>
-      <button type="button" className="ds-act ds-act--primary" onClick={orderThis} disabled={!cfg.garment}>Order this design</button>
+      <button type="button" className="ds-act ds-act--primary" onClick={orderThis}
+        disabled={!cfg.garment || ordering} aria-busy={!!ordering}>
+        {ordering ? <><span className="ds-spin" style={{ borderColor:'rgba(255,255,255,.4)', borderTopColor:'#fff' }}/> Preparing your order…</> : 'Order this design'}
+      </button>
       {cfg.garment && clearGarment && (
         <button type="button" className="ds-act" onClick={clearGarment}>
           <NavIcon name="delete" size={16}/> Remove garment

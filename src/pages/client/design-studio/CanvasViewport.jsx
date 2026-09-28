@@ -51,9 +51,24 @@ class ThreeEB extends Component {
 export default function CanvasViewport({
   cfg, canvasWrapRef, canvasEl, aiPulse, face, switchFace, initFailed,
   selObj, deleteSelected, duplicateSelected, viewMode, has3DLoaded, onLogoFile, zoom, setZoom, snapshot, overlays,
+  onChooseGarment,
 }) {
   const paneRef = useRef(null);
   const fit = useFit(paneRef, canvasWrapRef);
+
+  // Brief cross-fade on the canvas wrapper when the visible face changes. The
+  // <canvas> element itself must never remount (Fabric owns it, see switchFace
+  // in DesignStudio.jsx) — so this is a plain opacity dip on the existing wrapper,
+  // not a keyed/unmounting transition. Purely cosmetic; loadCanvasJSON's own
+  // 80ms swap already happened by the time this settles back to opaque.
+  const [faceFading, setFaceFading] = useState(false);
+  const firstFace = useRef(true);
+  useEffect(() => {
+    if (firstFace.current) { firstFace.current = false; return undefined; }
+    setFaceFading(true);
+    const t = setTimeout(() => setFaceFading(false), 130);
+    return () => clearTimeout(t);
+  }, [face]);
 
   const onDrop = (e) => {
     e.preventDefault();
@@ -86,7 +101,11 @@ export default function CanvasViewport({
           <button type="button" aria-label="Zoom in" onClick={()=>setZoom(z=>Math.min(1.8, +(z+0.15).toFixed(2)))}>+</button>
         </div>
 
-        <div ref={canvasWrapRef} style={{ position:'relative', transform:`scale(${zoom*fit})`, transition:'transform .15s ease' }}>
+        <div ref={canvasWrapRef} style={{
+            position:'relative', transform:`scale(${zoom*fit})`,
+            opacity: faceFading ? 0.35 : 1,
+            transition:'transform .15s ease, opacity .15s ease',
+          }}>
           {initFailed ? (
             // FIX (reported blank-canvas bug): the 2D init effect could fail
             // silently — e.g. the dynamically-imported 'fabric' chunk 404'ing
@@ -118,18 +137,46 @@ export default function CanvasViewport({
                   the customer that was intentional vs. a broken/loading
                   canvas. Non-interactive (pointerEvents:none) so it never
                   blocks a future canvas drop target. */}
-              {!cfg.garment && (
-                <div style={{
-                  position:'absolute', inset:0, display:'flex', flexDirection:'column',
-                  alignItems:'center', justifyContent:'center', gap:10, textAlign:'center',
-                  padding:24, pointerEvents:'none',
-                }}>
-                  <NavIcon name="garmentType" size={30} color="rgba(15,23,42,.28)"/>
-                  <p style={{ color:'rgba(15,23,42,.45)', fontSize:12, lineHeight:1.6, margin:0, maxWidth:220 }}>
-                    Pick a garment from the <strong>Type</strong> tab to start designing.
-                  </p>
-                </div>
-              )}
+              <AnimatePresence>
+                {!cfg.garment && (
+                  <motion.div
+                    initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-6 }}
+                    transition={{ duration:.25, ease:'easeOut' }}
+                    style={{
+                      position:'absolute', inset:0, display:'flex', flexDirection:'column',
+                      alignItems:'center', justifyContent:'center', gap:12, textAlign:'center',
+                      padding:24,
+                    }}>
+                    <motion.div
+                      animate={{ y:[0,-5,0] }}
+                      transition={{ duration:2.6, repeat:Infinity, ease:'easeInOut' }}
+                      style={{
+                        width:64, height:64, borderRadius:20, display:'flex',
+                        alignItems:'center', justifyContent:'center',
+                        background:`linear-gradient(135deg, ${T}14, ${T2}14)`,
+                        border:`1px dashed rgba(15,23,42,.18)`,
+                      }}>
+                      <NavIcon name="garmentType" size={28} color="rgba(15,23,42,.32)"/>
+                    </motion.div>
+                    <p style={{ color:'rgba(15,23,42,.5)', fontSize:12.5, lineHeight:1.6, margin:0, maxWidth:230 }}>
+                      Nothing to design yet — pick a garment to bring this canvas to life.
+                    </p>
+                    {onChooseGarment && (
+                      <motion.button
+                        type="button" onClick={onChooseGarment}
+                        whileHover={{ scale:1.03 }} whileTap={{ scale:.96 }}
+                        style={{
+                          marginTop:2, padding:'9px 18px', borderRadius:10, border:'none',
+                          background:`linear-gradient(135deg,${T},${T2})`, color:'#fff',
+                          fontSize:12.5, fontWeight:700, cursor:'pointer',
+                          boxShadow:'0 4px 14px rgba(2,195,154,.28)',
+                        }}>
+                        Choose a garment →
+                      </motion.button>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </>
           )}
         </div>
