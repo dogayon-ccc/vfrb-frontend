@@ -341,35 +341,30 @@ export default function AdminLayout() {
         }
 
         /* ── Sidebar ── */
-        /* FLUSH RESKIN (Aug 31, corrected same day): the prior "floating
-           rounded card" treatment (8px offset, border-radius:20px) only
-           applied to the sidebar — .adm-topbar right below it stayed
-           flush/square the whole time, so the two never actually
-           matched despite both being touched in the same earlier pass.
-           Verified against the actual reference screenshot supplied for
-           this fix (a "Stocked" inventory dashboard): its sidebar sits
-           flush to the edge, full height, no radius, no gap — same
-           treatment as its topbar. Matching that here instead of
-           inventing a floating-card look nobody asked for. Content-area
-           CARDS still get real border-radius (see .adm-content children
-           and KPICard/ActionListCard components) — it's specifically the
-           outer shell (sidebar + topbar) that's now consistently flush. */
+        /* DARK RESKIN (per wireframe references, Sept 28 2026): the wireframe
+           set (all 4 boards — customer/admin/staff) consistently uses a dark
+           teal sidebar (deep teal→near-black gradient, white/light-teal text,
+           lighter-fill active state) against a light page canvas — not the
+           previous light "Cruip" sidebar. Flush-to-edge, full height, no
+           radius/gap is kept (that part was already correct); only the
+           surface + text colors change here. Content-area cards are
+           untouched — still white with real border-radius. */
         .adm-sb {
           position: fixed;
           top:0; left:0; bottom:0;
           z-index: 200;
-          background: linear-gradient(180deg, #ffffff 0%, #f9fbfd 100%);
-          border-right: 1px solid rgba(226,232,240,.7);
+          background: linear-gradient(180deg, #0b3a41 0%, #072226 100%);
+          border-right: 1px solid rgba(0,0,0,.15);
           border-radius: 0;
           display: flex;
           flex-direction: column;
-          box-shadow: 1px 0 3px rgba(15,23,42,.04);
+          box-shadow: 2px 0 12px rgba(0,0,0,.15);
           overflow: hidden;
           transition: width .22s cubic-bezier(.4,0,.2,1);
         }
 
-        /* Sidebar header — light, Cruip-style. Role color lives in the
-           portal-label text (see roleColor in JS), not the background. */
+        /* Sidebar header — dark, matches wireframe's logo-on-dark lockup.
+           Role color lives in the portal-label text (see roleColor in JS). */
         .adm-sb-head {
           flex-shrink: 0;
           display: flex;
@@ -378,8 +373,8 @@ export default function AdminLayout() {
           min-height: 62px;
           position: relative;
           overflow: hidden;
-          background: #fff;
-          border-bottom: 1px solid var(--border);
+          background: rgba(255,255,255,.03);
+          border-bottom: 1px solid rgba(255,255,255,.08);
         }
 
         /* ── Main area ── */
@@ -430,7 +425,7 @@ export default function AdminLayout() {
           }
         }
 
-        /* ── Sidebar nav link ── */
+        /* ── Sidebar nav link — light text/icons on the dark sidebar ── */
         .adm-link {
           display: flex;
           align-items: center;
@@ -440,7 +435,7 @@ export default function AdminLayout() {
           text-decoration: none;
           font-size: 13px;
           font-weight: 500;
-          color: var(--text-muted);
+          color: rgba(255,255,255,.62);
           white-space: nowrap;
           overflow: hidden;
           transition: background .13s, color .13s, transform .1s;
@@ -448,19 +443,19 @@ export default function AdminLayout() {
           margin: 1px 0;
         }
         .adm-link:hover {
-          background: linear-gradient(135deg, rgba(2,128,144,.07), rgba(2,195,154,.05));
-          color: ${T};
+          background: rgba(255,255,255,.06);
+          color: #fff;
           transform: translateX(2px);
         }
         .adm-link.active {
-          background: linear-gradient(135deg, rgba(2,128,144,.14), rgba(2,195,154,.09));
-          color: ${T};
+          background: linear-gradient(135deg, rgba(2,195,154,.22), rgba(2,195,154,.10));
+          color: #fff;
           font-weight: 700;
-          box-shadow: inset 0 0 0 1px rgba(2,128,144,.12);
+          box-shadow: inset 0 0 0 1px rgba(2,195,154,.25);
         }
         .adm-link.active.mgr {
-          background: linear-gradient(135deg, rgba(124,58,237,.10), rgba(139,92,246,.07));
-          color: ${MG};
+          background: linear-gradient(135deg, rgba(167,139,250,.24), rgba(124,58,237,.12));
+          color: #fff;
         }
         .adm-link.active::before {
           content: '';
@@ -468,19 +463,19 @@ export default function AdminLayout() {
           left:0; top:18%; bottom:18%;
           width: 3px;
           border-radius: 0 3px 3px 0;
-          background: linear-gradient(180deg, ${T}, ${T2});
+          background: linear-gradient(180deg, ${T2}, #6ee7d1);
         }
         .adm-link.active.mgr::before {
-          background: linear-gradient(180deg, var(--purple), #a78bfa);
+          background: linear-gradient(180deg, #a78bfa, #c4b5fd);
         }
 
-        /* Section labels — Cruip-style uppercase group headers */
+        /* Section labels — light-on-dark uppercase group headers */
         .adm-sec {
           font-size: 10px;
           font-weight: 800;
           text-transform: uppercase;
           letter-spacing: .09em;
-          color: var(--text-faint);
+          color: rgba(255,255,255,.35);
           padding: 14px 12px 6px;
           margin: 0;
         }
@@ -612,20 +607,22 @@ export default function AdminLayout() {
         {/* ─── DESKTOP SIDEBAR ────────────────────────────────────────────── */}
         <aside className="adm-sb" style={{ width:SW }}>
 
-          {/* Light header — logo + brand text, role color as a small accent only */}
+          {/* Dark header — logo + brand text on the dark sidebar surface, role
+              color as a small accent only (unchanged from the light version,
+              just now against a dark ground). */}
           <div className="adm-sb-head"
             style={{ padding: collapsed ? '14px 10px' : '14px 16px' }}>
             <img src={logo} alt="VFRB"
               style={{ width:34, height:34, borderRadius:9, objectFit:'cover',
-                border:'2px solid var(--border)', flexShrink:0, position:'relative', zIndex:1 }}/>
+                border:'2px solid rgba(255,255,255,.15)', flexShrink:0, position:'relative', zIndex:1 }}/>
             {!collapsed && (
               <div style={{ overflow:'hidden', flex:1, minWidth:0, position:'relative', zIndex:1 }}>
-                <p style={{ fontSize:11, fontWeight:800, color:'var(--ink)',
+                <p style={{ fontSize:11, fontWeight:800, color:'#fff',
                   letterSpacing:'.05em', overflow:'hidden',
                   textOverflow:'ellipsis', whiteSpace:'nowrap', margin:0 }}>
                   VFRB ENTERPRISE
                 </p>
-                <p style={{ fontSize:9, color:roleColor, fontWeight:700,
+                <p style={{ fontSize:9, color: isManager ? '#c4b5fd' : T2, fontWeight:700,
                   textTransform:'uppercase', letterSpacing:'.07em', margin:'2px 0 0' }}>
                   {isManager ? '● Manager Portal' : '● Staff Portal'}
                 </p>
@@ -657,8 +654,8 @@ export default function AdminLayout() {
               <>
                 {!collapsed && (
                   <>
-                    <div style={{ height:1, background:'var(--bg-surface)', margin:'8px 0' }}/>
-                    <p className="adm-sec" style={{ color:'#a78bfa' }}>Manager</p>
+                    <div style={{ height:1, background:'rgba(255,255,255,.08)', margin:'8px 0' }}/>
+                    <p className="adm-sec" style={{ color:'#c4b5fd' }}>Manager</p>
                   </>
                 )}
                 {MANAGER_EXTRA.map(item => (
@@ -679,8 +676,8 @@ export default function AdminLayout() {
 
             {!isManager && !collapsed && (
               <div style={{ margin:'10px 0 0', padding:'10px 12px', borderRadius:10,
-                background:'var(--bg)', border:'1px dashed var(--border)' }}>
-                <p style={{ fontSize:10, color:'var(--text-faint)', fontWeight:600, lineHeight:1.4, margin:0,
+                background:'rgba(255,255,255,.04)', border:'1px dashed rgba(255,255,255,.15)' }}>
+                <p style={{ fontSize:10, color:'rgba(255,255,255,.45)', fontWeight:600, lineHeight:1.4, margin:0,
                   display:'flex', alignItems:'flex-start', gap:5 }}>
                   <Lock size={11} strokeWidth={2} style={{ flexShrink:0, marginTop:1 }}/>
                   Reports, Invoice, Suppliers & Users — Manager only
@@ -689,16 +686,16 @@ export default function AdminLayout() {
             )}
           </div>
 
-          {/* Collapse toggle — Cruip-style minimal circular chip */}
+          {/* Collapse toggle — light chip against the dark sidebar */}
           <button onClick={toggle}
             style={{ margin: collapsed ? '6px auto' : '6px 6px 6px auto',
               padding: collapsed ? '9px' : '7px 12px', borderRadius: 99,
-              border:'1px solid var(--border)', background:'var(--bg)',
-              cursor:'pointer', color:'var(--text-subtle)', fontSize:11, fontWeight:600,
+              border:'1px solid rgba(255,255,255,.12)', background:'rgba(255,255,255,.05)',
+              cursor:'pointer', color:'rgba(255,255,255,.55)', fontSize:11, fontWeight:600,
               display:'flex', alignItems:'center', justifyContent:'center',
               gap:5, fontFamily:'inherit', flexShrink:0, transition:'all .15s' }}
-            onMouseEnter={e => e.currentTarget.style.background='var(--teal-50)'}
-            onMouseLeave={e => e.currentTarget.style.background='var(--bg)'}>
+            onMouseEnter={e => { e.currentTarget.style.background='rgba(255,255,255,.10)'; e.currentTarget.style.color='#fff'; }}
+            onMouseLeave={e => { e.currentTarget.style.background='rgba(255,255,255,.05)'; e.currentTarget.style.color='rgba(255,255,255,.55)'; }}>
             {collapsed ? '▶' : '◀ Collapse'}
           </button>
 
