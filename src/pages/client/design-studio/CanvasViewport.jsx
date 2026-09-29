@@ -1,9 +1,12 @@
 import { Component, Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NavIcon } from '../../../components/ui/icons';
-import { T, T2, DARK, ZONE_LABEL, SHAPE_TYPE_LABEL, zonesFor } from './dsShared';
-import { familyFor, STATUS_3D_LABEL } from './garmentCatalog';
+import { T, T2, DARK, SHAPE_TYPE_LABEL } from './dsShared';
+import { CATALOG, familyFor, STATUS_3D_LABEL } from './garmentCatalog';
+import { BASE_PATHS } from './garmentPaths';
 import GarmentSilhouette from './GarmentSilhouette';
+import GarmentThumb from './GarmentThumb';
+import { selectFamily } from './selectGarment';
 
 const Scene3D = lazy(() => import('../DesignStudio3D'));
 
@@ -19,9 +22,10 @@ function useFit(paneRef, wrapRef) {
     // Front/Back cards; the cap keeps the raster canvas from getting soft.
     const measure = () => {
       const wide = pane.clientWidth >= 700;
-      const reserveY = wide ? 130 : 24;
+      const reserveY = wide ? 130 : 96;
+      const gutter = window.innerWidth >= 768 ? 152 : 48;
       const maxFit = wide ? 1.5 : 1;
-      setFit(Math.max(0.3, Math.min(maxFit, (pane.clientWidth - 48) / wrap.offsetWidth, (pane.clientHeight - reserveY) / wrap.offsetHeight)));
+      setFit(Math.max(0.3, Math.min(maxFit, (pane.clientWidth - gutter) / wrap.offsetWidth, (pane.clientHeight - reserveY) / wrap.offsetHeight)));
     };
     measure();
     const ro = new ResizeObserver(measure);
@@ -60,12 +64,13 @@ class ThreeEB extends Component {
 }
 
 export default function CanvasViewport({
-  cfg, canvasWrapRef, canvasEl, aiPulse, face, switchFace, initFailed,
+  cfg, setCfg, canvasWrapRef, canvasEl, aiPulse, face, switchFace, initFailed,
   selObj, deleteSelected, duplicateSelected, viewMode, has3DLoaded, onLogoFile, zoom, setZoom, snapshot, overlays,
   onChooseGarment,
 }) {
   const paneRef = useRef(null);
   const fit = useFit(paneRef, canvasWrapRef);
+  const catData = CATALOG.find(c => c.id === cfg.category) ?? CATALOG[0];
 
   // Brief cross-fade on the canvas wrapper when the visible face changes. The
   // <canvas> element itself must never remount (Fabric owns it, see switchFace
@@ -265,7 +270,7 @@ export default function CanvasViewport({
           {!cfg.garment && (
             <p style={{ position:'absolute', top:'46%', left:0, right:0, textAlign:'center', margin:0,
               color:'rgba(15,23,42,.45)', fontSize:12, lineHeight:1.6, pointerEvents:'none' }}>
-              Pick a garment from the <strong>Type</strong> tab to see it in 3D.
+              Pick a garment from the <strong>Garment</strong> tab to see it in 3D.
             </p>
           )}
           {/* Honesty label — a garment with no real scanned GLB (status3D:'none') renders a
@@ -306,18 +311,16 @@ export default function CanvasViewport({
         </div>
       )}
 
-      <div style={{ position:'absolute',top:14,right:14,zIndex:2,
-        display:'flex',gap:5,flexDirection:'column' }}>
-        {zonesFor(cfg.garment, cfg.sleeve).map(z=>(
-          <div key={z} title={`${ZONE_LABEL[z]}: ${cfg.colors[z]}`}
-            style={{ display:'flex',alignItems:'center',gap:5 }}>
-            <div style={{ width:14,height:14,borderRadius:'50%',
-              background:cfg.colors[z]??T,
-              border:'2px solid rgba(255,255,255,.18)',
-              boxShadow:'0 2px 5px rgba(0,0,0,.4)' }}/>
-          </div>
-        ))}
-      </div>
+      {catData.families.length > 1 && (
+        <nav className="ds-quick" aria-label={`${catData.id} garments`}>
+          {catData.families.map(fam => (
+            <button key={fam.id} type="button" className="ds-quick-item" aria-pressed={cfg.garment === fam.id}
+              title={fam.id} aria-label={fam.id} onClick={() => selectFamily(setCfg, fam)}>
+              <GarmentThumb paths={BASE_PATHS[fam.id] ?? BASE_PATHS['Polo Shirt']} colors={cfg.colors} size={28}/>
+            </button>
+          ))}
+        </nav>
+      )}
     </div>
   );
 }

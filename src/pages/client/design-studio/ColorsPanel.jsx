@@ -19,7 +19,7 @@ export default function ColorsPanel({ cfg, setCfg, activeZone, setActiveZone }) 
   return (
     <div style={{ overflowY:'auto', flex:1, padding:'8px 10px 16px' }}>
       {!cfg.garment && (
-        <p className="ds-note" style={{ marginBottom:8 }}>Pick a garment in the Type tab to color its collar, sleeves and pocket.</p>
+        <p className="ds-note" style={{ marginBottom:8 }}>Pick a garment in the Garment tab to color its collar, sleeves and pocket.</p>
       )}
       {cfg.garment && (
         <div className="ds-zone-now">

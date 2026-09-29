@@ -9,6 +9,7 @@ import TypePanel from './TypePanel';
 import ColorsPanel from './ColorsPanel';
 import TextPanel from './TextPanel';
 import AIPanel from './AIPanel';
+import StudioDock from './StudioDock';
 import { SummaryContent, SelectionInspector, isEditableSelection } from './RightInfoPanel';
 import { TOOLS } from './dsShared';
 
@@ -17,11 +18,11 @@ const noop = () => {};
 export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, summary, ...p }) {
   const [more, setMore] = useState(false);
   const active = TOOLS.find(t => t.id === tool);
-  const title = more ? 'More tools' : active.label;
+  const title = more ? 'More tools' : tool === 'selected' ? 'Selected item' : active.label;
   const hasSelection = isEditableSelection(p.selObj);
 
   const PANELS = {
-    type:    () => <TypePanel cfg={p.cfg} setCfg={p.setCfg}/>,
+    type:    () => <TypePanel cfg={p.cfg} setCfg={p.setCfg} setActiveZone={p.setActiveZone} onOpenTool={summary.onOpenTool}/>,
     color:   () => <ColorsPanel cfg={p.cfg} setCfg={p.setCfg} activeZone={p.activeZone} setActiveZone={p.setActiveZone}/>,
     assets:  () => <AssetsPanel tab={p.assetsTab} setTab={p.setAssetsTab} cfg={p.cfg} logo={p.logoUpload}
                      shapes={{ selObj:p.selObj, onAdd:p.addShape, onUpdate:p.updateSelected }}
@@ -92,7 +93,7 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, sum
         {TOOLS.map(t => (
           <button key={t.id} type="button" className="ds-tool-btn" title={t.label}
             data-group={t.primary ? 'primary' : 'more'}
-            data-narrow-only={(t.id === 'summary' || t.id === 'selected') || undefined}
+            data-tool={t.id} data-narrow-only={(t.id === 'summary' || t.id === 'selected') || undefined}
             aria-pressed={tool === t.id && sheetOpen && !more} onClick={() => pick(t.id)}>
             {tool === t.id && sheetOpen && !more && (
               <motion.span layoutId="ds-rail-pill" className="ds-rail-pill" aria-hidden="true"
@@ -143,6 +144,7 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, sum
             </motion.div>
           </AnimatePresence>
         )}
+        <StudioDock {...summary} layerCount={p.layers.length}/>
       </section>
     </>
   );

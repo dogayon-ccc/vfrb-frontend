@@ -233,22 +233,16 @@ export const inputStyle = {
 };
 
 export const TOOLS = [
-  { id:'type',    icon:'garmentType', label:'Type',    primary:true, hint:'Choose a garment and sleeve' },
-  { id:'color',   icon:'colorZone',   label:'Colors',  primary:true, hint:'Color each part of the garment' },
-  { id:'assets',  icon:'logo',        label:'Assets',  primary:true, hint:'Logos, shapes and starter templates' },
-  { id:'text',    icon:'text',        label:'Text',    primary:true, hint:'Add names, slogans or numbers' },
-  { id:'draw',    icon:'draw',        label:'Draw',    hint:'Sketch freehand on the garment' },
-  { id:'ai',      icon:'ai',          label:'AI',      hint:'Describe a design in words' },
-  { id:'pattern', icon:'pattern',     label:'Pattern', hint:'Stripes, checks and more' },
-  { id:'layers',  icon:'layersPanel', label:'Layers',  hint:'Reorder, hide or rename items' },
-  { id:'summary',  icon:'info',   label:'Summary' },
-  // Desktop shows per-object controls (move/resize/rotate/color/opacity) in the always-on
-  // right info panel the instant something is selected — RightInfoPanel.jsx's
-  // SelectionInspector. That panel is CSS-hidden below 1024px (DesignStudioStyles.jsx),
-  // which left tablet/mobile customers with Duplicate/Delete only once they'd placed a
-  // logo/text/shape and no way to actually adjust it. This tab exposes the same, already-
-  // built SelectionInspector inside the tool drawer's own sheet so it's reachable there too.
-  { id:'selected', icon:'cursor', label:'Selected' },
+  { id:'type',     icon:'garmentType', label:'Garment', primary:true, hint:'Category, garment, fit and sleeve' },
+  { id:'color',    icon:'colorZone',   label:'Colors',  primary:true, hint:'Color each part of the garment' },
+  { id:'pattern',  icon:'pattern',     label:'Pattern', hint:'Stripes, checks and more' },
+  { id:'text',     icon:'text',        label:'Text',    primary:true, hint:'Add names, slogans or numbers' },
+  { id:'assets',   icon:'logo',        label:'Logo',    primary:true, hint:'Logos, shapes and starter templates' },
+  { id:'layers',   icon:'layersPanel', label:'Layers',  hint:'Reorder, hide or rename items' },
+  { id:'draw',     icon:'draw',        label:'Draw',    hint:'Sketch freehand on the garment' },
+  { id:'ai',       icon:'ai',          label:'AI',      hint:'Describe a design in words' },
+  { id:'summary',  icon:'info',        label:'Summary', hint:'Your design at a glance' },
+  { id:'selected', icon:'cursor',      label:'Selected', hint:'Adjust the item you picked' },
 ];
 
 // 6 starter designs from VFRB's common garment types (PH institutional palette).

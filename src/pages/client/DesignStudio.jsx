@@ -19,7 +19,7 @@ import { useGarmentCanvas, compositeFrontBack } from './design-studio/useGarment
 import CanvasViewport from './design-studio/CanvasViewport';
 import TopBar from './design-studio/TopBar';
 import ToolDrawer from './design-studio/ToolDrawer';
-import RightInfoPanel from './design-studio/RightInfoPanel';
+import { isEditableSelection } from './design-studio/RightInfoPanel';
 import { useLogoUpload } from './design-studio/useLogoUpload';
 import OnboardingOverlay from './design-studio/OnboardingOverlay';
 import InspoGallery from './design-studio/InspoGallery';
@@ -55,15 +55,12 @@ export default function DesignStudio() {
   const [selObj,     setSelObj]     = useState(null);
   const [activeZone, setActiveZone] = useState('body');
 
-  // Mirrors DesignStudioStyles.jsx's own tablet/mobile breakpoint (<1024px), where
-  // .ds-info (RightInfoPanel) is CSS-hidden and the ToolDrawer's 'selected' tab becomes
-  // the only place SelectionInspector can be reached. A plain matchMedia listener, not a
-  // new dependency — same native-browser-API style as CanvasViewport.jsx's ResizeObserver.
+  // Mirrors the phone/tablet breakpoint in DesignStudioStyles.jsx (native matchMedia, no new dependency).
   const [isNarrow, setIsNarrow] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
   );
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 1023px)');
+    const mq = window.matchMedia('(max-width: 767px)');
     const onChange = (e) => setIsNarrow(e.matches);
     mq.addEventListener('change', onChange);
     return () => mq.removeEventListener('change', onChange);
@@ -102,7 +99,6 @@ export default function DesignStudio() {
     const t = setTimeout(() => setToast(null), 2400);
     return () => clearTimeout(t);
   }, [saved, draftSaved]);
-  const [infoOpen, setInfoOpen] = useState(false); // tablet: summary/inspector slide-over
   const [ordering, setOrdering] = useState(false); // optimistic "Order This" in-flight state
   const autoSaveTimer = useRef(null);
 
@@ -155,15 +151,19 @@ export default function DesignStudio() {
       (zone) => { setActiveZone(zone); setTool('color'); setSheetOpen(true); }
     );
 
-  // Selecting a placed logo/text/shape surfaces its controls — desktop already does this
-  // unconditionally via RightInfoPanel regardless of `tool`, so this only matters on
-  // tablet/mobile (isNarrow), where RightInfoPanel is CSS-hidden and ToolDrawer's own
-  // 'selected' tab (dsShared.js TOOLS) is the only place SelectionInspector can show.
-  // Skipped whenever a sheet is already open so tapping an object never interrupts
-  // whatever the customer is actively doing in Colors/Layers/etc.
+  // Picking a placed item swaps the inspector to its controls at every width. On phones the
+  // sheet only opens when nothing else is open, and closes again once the item is deselected.
+  const priorTool = useRef('type');
+  const sheetOpenedBySel = useRef(false);
   useEffect(() => {
-    if (isNarrow && selObj && !selObj.__garmentBase && !selObj.__hoverGlow && !sheetOpen) {
-      setTool('selected'); setSheetOpen(true);
+    if (isEditableSelection(selObj)) {
+      if (tool === 'selected' || tool === 'draw' || (isNarrow && sheetOpen)) return;
+      priorTool.current = tool;
+      setTool('selected');
+      if (isNarrow) { sheetOpenedBySel.current = true; setSheetOpen(true); }
+    } else if (tool === 'selected') {
+      setTool(priorTool.current);
+      if (sheetOpenedBySel.current) { sheetOpenedBySel.current = false; setSheetOpen(false); }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selObj, isNarrow]);
@@ -577,13 +577,10 @@ export default function DesignStudio() {
               </motion.div>
             )}
           </AnimatePresence>
-          <button type="button" className="ds-info-toggle" aria-expanded={infoOpen} onClick={() => setInfoOpen(o => !o)}>
-            <NavIcon name="layersPanel" size={16}/> {infoOpen ? 'Hide' : 'Summary'}
-          </button>
 
           {/* ── TOOL STRIP + PANEL DRAWER ── */}
           <ToolDrawer tool={tool} setTool={setTool} sheetOpen={sheetOpen} setSheetOpen={setSheetOpen}
-            summary={{ cfg, saved, saveDesign, orderThis, ordering, onOpenTool: (id) => { setTool(id); setSheetOpen(true); }, downloadImage, clearGarment }} cfg={cfg} setCfg={setCfg}
+            summary={{ cfg, face, saved, saveDesign, orderThis, ordering, onOpenTool: (id) => { setTool(id); setSheetOpen(true); }, downloadImage, clearGarment }} cfg={cfg} setCfg={setCfg}
             activeZone={zone} setActiveZone={setActiveZone}
             addText={addText} addShape={addShape} updateSelected={updateSelected}
             assetsTab={assetsTab} setAssetsTab={setAssetsTab} logoUpload={logoUpload}
@@ -595,15 +592,12 @@ export default function DesignStudio() {
             renameLayer={renameLayer} deleteLayer={deleteLayer} reorderLayers={reorderLayers}/>
 
           {/* ── CANVAS AREA ── */}
-          <CanvasViewport cfg={cfg} canvasWrapRef={canvasWrapRef} canvasEl={canvasEl} initFailed={initFailed}
+          <CanvasViewport cfg={cfg} setCfg={setCfg} canvasWrapRef={canvasWrapRef} canvasEl={canvasEl} initFailed={initFailed}
             aiPulse={aiPulse} face={face} switchFace={switchFace}
             selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected}
             viewMode={viewMode} has3DLoaded={has3DLoaded} onLogoFile={onLogoFile}
             zoom={zoom} setZoom={setZoom} snapshot={snapshot} overlays={overlays}
             onChooseGarment={() => { setTool('type'); setSheetOpen(true); }}/>
-          {/* ── RIGHT INFO PANEL ── */}
-          <RightInfoPanel activeTool={sheetOpen ? tool : null} layerCount={layers.length} face={face} open={infoOpen} onClose={() => setInfoOpen(false)} onOpenTool={(id) => { setTool(id); setSheetOpen(true); }} cfg={cfg} saved={saved} saveDesign={saveDesign} orderThis={orderThis} ordering={ordering} downloadImage={downloadImage} clearGarment={clearGarment}
-            selObj={selObj} updateSelected={updateSelected} deleteSelected={deleteSelected}/>
         </div>
 
         {/* ── FIRST-VISIT ONBOARDING OVERLAY ── */}

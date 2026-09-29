@@ -7,7 +7,7 @@ const STEPS = [
     icon:  'garmentType',
     title: 'Pick Your Garment',
     body:  'Start by choosing a garment type in the left panel. Pick from School Polo, Scrub Top, Lab Coat and more. Each has its own shape on the canvas.',
-    hint:  'Look left → Type tab is already open.',
+    hint:  'Look left → Garment tab is already open.',
     arrow: 'left',
   },
   {
