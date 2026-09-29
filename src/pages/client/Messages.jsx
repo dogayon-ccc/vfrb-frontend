@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import EmptyState from '../../components/EmptyState';
 import { PageHeader, StatusPill, OrderThumb, Skeleton } from '../../components/customer/kit';
+import { NavIcon } from '../../components/ui/icons';
 
 const T = 'var(--teal)', T2 = '#02C39A';
 const FONT = "ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif";
@@ -58,11 +59,11 @@ function Bubble({ msg, isMe, showTime, isOptimistic }) {
       <div style={{ maxWidth: '72%', display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', gap: 2 }}>
         <div style={{
           padding: '10px 14px', borderRadius: isMe ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-          background: isMe ? `linear-gradient(135deg,${T},${T2})` : '#fff',
-          borderLeft: !isMe ? `3px solid ${T}` : 'none', border: !isMe ? '1px solid #e2e8f0' : 'none',
-          boxShadow: isMe ? '0 2px 8px rgba(2,128,144,.25)' : '0 1px 3px rgba(0,0,0,.06)',
+          background: isMe ? `linear-gradient(135deg,${T},${T2})` : 'var(--bg-card)',
+          border: !isMe ? '1px solid var(--border)' : 'none',
+          boxShadow: isMe ? 'var(--shadow-xs)' : 'none',
         }}>
-          <p style={{ fontSize: 13, lineHeight: 1.55, margin: 0, fontFamily: FONT, color: isMe ? '#fff' : '#0f172a', wordBreak: 'break-word' }}>
+          <p style={{ fontSize: 13, lineHeight: 1.55, margin: 0, fontFamily: FONT, color: isMe ? '#fff' : 'var(--ink)', wordBreak: 'break-word' }}>
             {msg.body ?? msg.message}
           </p>
         </div>
@@ -92,8 +93,8 @@ const Loading = () => (
 
 const NoMessagesYet = () => (
   <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8, opacity: .5 }}>
-    <p style={{ fontSize: 30, margin: 0 }}>💬</p>
-    <p style={{ color: '#64748b', fontSize: 13, fontFamily: FONT }}>No messages yet. Start the conversation!</p>
+    <NavIcon name="messages" size={30} color="var(--text-faint)" />
+    <p style={{ color: 'var(--text-subtle)', fontSize: 13, fontFamily: FONT }}>No messages yet. Say hello to VFRB staff below.</p>
   </div>
 );
 
@@ -213,13 +214,13 @@ export default function CustomerMessages() {
             <EmptyState illustration="message-locked" compact
               headline="No orders yet"
               sub="You'll be able to message VFRB staff once you place your first order."
-              cta={{ label: '🎨 Place Your First Order →', onClick: () => nav('/order/create') }}/>
+              cta={{ label: 'Place your first order', onClick: () => nav('/order/create') }}/>
           )}
         </div>
 
         <div className={`cust-msg-chat ${mobileView !== 'thread' ? 'hide-mobile' : ''}`}>
-          <div style={{ padding: '12px 18px', borderBottom: '1px solid #e2e8f0', background: '#f8fafc', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-            <button onClick={() => setMobileView('list')} className="cust-msg-back" aria-label="Back to conversation list" style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16, color: '#64748b' }}>←</button>
+          <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border)', background: 'var(--bg-surface)', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button onClick={() => setMobileView('list')} className="cust-msg-back cx-btn cx-btn-s" aria-label="Back to conversation list" style={{ minWidth: 44, padding: 0 }}><NavIcon name="back" size={18} /></button>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', margin: 0, fontFamily: FONT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {selOrder ? `Order #${selId} — ${title(selOrder)}` : 'Select a conversation'}
@@ -269,14 +270,14 @@ export default function CustomerMessages() {
             <input id="msg-input" value={newMsg} onChange={e => setNewMsg(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), send())}
               placeholder={selId ? 'Message VFRB staff…' : 'Select a conversation'} disabled={!selId}
-              style={{ flex: 1, padding: '10px 14px', borderRadius: 22, border: '1px solid #e2e8f0', background: selId ? '#fff' : '#f8fafc',
-                color: '#0f172a', fontSize: 13, outline: 'none', fontFamily: FONT, minHeight: 44 }}/>
+              style={{ flex: 1, padding: '10px 16px', borderRadius: 12, border: '1px solid var(--border)', background: selId ? 'var(--bg-card)' : 'var(--bg-surface)',
+                color: 'var(--ink)', fontSize: 13, outline: 'none', fontFamily: FONT, minHeight: 44 }}/>
             <motion.button whileTap={{ scale: .95 }} onClick={send} disabled={sending || !newMsg.trim() || !selId}
               style={{ padding: '10px 20px', borderRadius: 11, border: 'none', minHeight: 44, minWidth: 80, fontSize: 13, fontWeight: 700, fontFamily: FONT,
                 cursor: (sending || !newMsg.trim() || !selId) ? 'not-allowed' : 'pointer',
                 background: (sending || !newMsg.trim() || !selId) ? '#e2e8f0' : `linear-gradient(135deg,${T},${T2})`,
                 color: (sending || !newMsg.trim() || !selId) ? '#94a3b8' : '#fff' }}>
-              {sending ? '⏳' : 'Send →'}
+              {sending ? 'Sending' : 'Send'}
             </motion.button>
           </div>
         </div>

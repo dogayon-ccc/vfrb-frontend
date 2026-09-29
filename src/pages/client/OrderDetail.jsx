@@ -20,7 +20,7 @@ import axios                                 from 'axios';
 import { cacheGet, cacheSet, cacheClear }    from '../../utils/cache';
 import { getStorageUrl, isImageFile }        from '../../utils/fileUrl';
 import { NavIcon }                           from '../../components/ui/icons';
-import { OrderThumb, Stepper, LIFECYCLE, lifecycleIndex, orderTitle, fmtDate } from '../../components/customer/kit';
+import { OrderThumb, Stepper, StatusPill, LIFECYCLE, lifecycleIndex, orderTitle, fmtDate } from '../../components/customer/kit';
 
 const GarmentPreview3D = lazy(() => import('../../components/GarmentPreview3D'));
 
@@ -77,45 +77,6 @@ const SK = {
 };
 
 // ── Parse studio colors — O(1) ────────────────────────────────────────────────
-function parseStudioColors(order) {
-  try {
-    const raw = order?.studio_config;
-    if (!raw) return null;
-    const cfg = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    return cfg?.colors ?? null;
-  } catch { return null; }
-}
-
-// ── Swatch bar ────────────────────────────────────────────────────────────────
-function SwatchBar({ order, height = 6 }) {
-  const colors = parseStudioColors(order);
-  if (colors) {
-    const stops = [
-      colors.body   && { color: colors.body,   flex: 5 },
-      colors.collar && { color: colors.collar, flex: 2 },
-      colors.sleeve && { color: colors.sleeve, flex: 2 },
-      colors.pocket && { color: colors.pocket, flex: 1 },
-    ].filter(Boolean);
-    if (stops.length > 0) {
-      return (
-        <div style={{ display:'flex', height, overflow:'hidden' }}>
-          {stops.map((s, i) => (
-            <div key={i} style={{ flex:s.flex, background:s.color }}/>
-          ))}
-        </div>
-      );
-    }
-  }
-  const hex = order?.color ?? T;
-  return (
-    <div style={{
-      height,
-      background: /^#[0-9a-f]{3,6}$/i.test(hex) ? hex : T,
-    }}/>
-  );
-}
-
-// ── Stage dot for the pipeline ────────────────────────────────────────────────
 function StageDot({ stage, currentStatus, isMobile }) {
   const sIdx   = STATUS_SEQ.indexOf(stage.key);
   const curIdx = STATUS_SEQ.indexOf(currentStatus);
@@ -396,7 +357,14 @@ export default function CustomerOrderDetail() {
         @keyframes sk  { 0%   { background-position:-400px 0 } 100%{ background-position:400px 0 } }
         @keyframes pulse { 0%,100%{ opacity:1 } 50%{ opacity:.3 } }
 
-        .od-h1 { font-size: 20px; }
+        .od-wrap { max-width:1120px; margin:0 auto; padding-bottom:40px; }
+        .od-head { display:flex; flex-direction:column; gap:14px; margin-bottom:16px; align-items:flex-start; width:100%; }
+        .od-title { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; width:100%; }
+        .od-title h1 { font-size:clamp(20px,3vw,26px); font-weight:800; margin:0 0 4px; color:var(--ink); }
+        .od-title p { font-size:13px; color:var(--text-subtle); margin:0; text-transform:capitalize; }
+        .od-cols { display:grid; grid-template-columns:minmax(0,1fr); gap:0 16px; align-items:start; }
+        .od-main, .od-side { min-width:0; }
+        @media (min-width:1024px) { .od-cols { grid-template-columns:minmax(0,1.55fr) minmax(320px,1fr); } }
 
         .od-spec-grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
 
@@ -415,7 +383,6 @@ export default function CustomerOrderDetail() {
           .od-spec-grid { grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); }
         }
         @media (min-width:768px) {
-          .od-h1 { font-size:24px; }
           .od-card { border-radius:16px; }
           .od-card-body { padding:18px 20px; }
           .od-pipeline-h { display:flex; }
@@ -446,48 +413,20 @@ export default function CustomerOrderDetail() {
         )}
       </AnimatePresence>
 
-      <div style={{ maxWidth:780, margin:'0 auto' }}>
+      <div className="od-wrap">
 
-        {/* ── Back + header ─────────────────────────────────────────────── */}
-        <div style={{ marginBottom:20 }}>
-          <button onClick={() => nav('/orders')} style={{
-            display:'inline-flex', alignItems:'center', gap:5,
-            padding:'6px 12px', borderRadius:8,
-            border:'1px solid #e2e8f0', background:'#f8fafc',
-            color:'#64748b', fontSize:12, fontWeight:600,
-            cursor:'pointer', fontFamily:FONT, marginBottom:14,
-          }}>
-            ← My Orders
+        <div className="od-head">
+          <button className="cx-btn cx-btn-s" style={{ minHeight:40 }} onClick={() => nav('/orders')}>
+            <NavIcon name="back" size={16}/> My Orders
           </button>
-
-          <div style={{
-            display:'flex', justifyContent:'space-between',
-            alignItems:'flex-start', gap:12, flexWrap:'wrap',
-          }}>
-            <div>
-              <h1 className="od-h1" style={{
-                fontWeight:800, color:'#0f172a',
-                margin:'0 0 6px', fontFamily:FONT,
-              }}>
-                Order #{orderId}
-              </h1>
-              <p style={{ fontSize:13, color:'#64748b', margin:0, fontFamily:FONT }}>
-                {order.garment_type ?? 'Custom Order'}
-                {order.quantity_ordered ? ` · ${order.quantity_ordered} pcs` : ''}
-                {order.color ? ` · ${order.color}` : ''}
-              </p>
+          <div className="od-title">
+            <div style={{ minWidth:0 }}>
+              <h1>Order #{orderId}</h1>
+              <p>{[order.garment_type ?? 'Custom Order', order.quantity_ordered && `${order.quantity_ordered} pcs`, order.color].filter(Boolean).join(' · ')}</p>
             </div>
-            {/* Status badge */}
-            <span style={{
-              padding:'6px 14px', borderRadius:99, fontSize:11, fontWeight:700,
-              background:cfg.bg, color:cfg.color,
-              border:`1px solid ${cfg.color}30`, whiteSpace:'nowrap', flexShrink:0,
-            }}>
-              <NavIcon name={cfg.icon} size={11} color={cfg.color}/> {cfg.label}
-            </span>
+            <StatusPill status={status}/>
           </div>
         </div>
-
         {/* ── Lifecycle summary (customer-facing 5 steps derived from real status) ── */}
         {status !== 'cancelled' && (
           <div className="od-card">
@@ -507,24 +446,19 @@ export default function CustomerOrderDetail() {
           </div>
         )}
 
-        {/* ── Swatch bar ────────────────────────────────────────────────── */}
-        <div style={{ borderRadius:12, overflow:'hidden', marginBottom:14 }}>
-          <SwatchBar order={order} height={8}/>
-        </div>
-
         {/* ── Overall progress bar ──────────────────────────────────────── */}
         <div style={{ marginBottom:20 }}>
           <div style={{
             display:'flex', justifyContent:'space-between', marginBottom:7,
           }}>
-            <span style={{ fontSize:12, fontWeight:700, color:'#0f172a', fontFamily:FONT }}>
+            <span style={{ fontSize:12, fontWeight:700, color:'var(--ink)', fontFamily:FONT }}>
               Production Progress
             </span>
             <span style={{ fontSize:12, fontWeight:800, color:T, fontFamily:FONT }}>
               {pct}%
             </span>
           </div>
-          <div style={{ height:8, background:'#f1f5f9', borderRadius:99, overflow:'hidden' }}>
+          <div style={{ height:8, background:'var(--bg-surface)', borderRadius:99, overflow:'hidden' }}>
             <motion.div
               initial={{ width:0 }}
               animate={{ width:`${pct}%` }}
@@ -537,6 +471,7 @@ export default function CustomerOrderDetail() {
           </div>
         </div>
 
+        <div className="od-cols"><div className="od-main">
         {/* ── DESKTOP: horizontal 7-stage pipeline ──────────────────────── */}
         <div className="od-card">
           <div className="od-card-body od-pipeline-h" style={{
@@ -545,7 +480,7 @@ export default function CustomerOrderDetail() {
             {/* Connector line */}
             <div style={{
               position:'absolute', top:22, left:'5%', right:'5%',
-              height:2, background:'#e2e8f0', zIndex:0,
+              height:2, background:'var(--border)', zIndex:0,
             }}>
               <motion.div
                 initial={{ width:0 }}
@@ -567,7 +502,7 @@ export default function CustomerOrderDetail() {
           {/* Active stage strip */}
           {isInProd && (
             <div style={{
-              borderTop:'1px solid #f1f5f9', padding:'10px 20px',
+              borderTop:'1px solid var(--bg-surface)', padding:'10px 20px',
               background:'#f0fdfa',
               display:'flex', alignItems:'center', gap:8,
             }}>
@@ -593,7 +528,7 @@ export default function CustomerOrderDetail() {
             {/* Vertical connector */}
             <div style={{
               position:'absolute', top:'5%', bottom:'5%', left:17,
-              width:2, background:'#e2e8f0', zIndex:0,
+              width:2, background:'var(--border)', zIndex:0,
             }}>
               <motion.div
                 initial={{ height:0 }}
@@ -626,18 +561,18 @@ export default function CustomerOrderDetail() {
             <div className="od-spec-grid">
               {specs.filter(s => s.value && s.value !== '—').map(spec => (
                 <div key={spec.label} style={{
-                  background:'#f8fafc', borderRadius:10,
-                  padding:'10px 12px', border:'1px solid #f1f5f9',
+                  background:'var(--bg-surface)', borderRadius:10,
+                  padding:'10px 12px', border:'1px solid var(--bg-surface)',
                 }}>
                   <p style={{
-                    fontSize:9, fontWeight:700, color:'#94a3b8',
+                    fontSize:9, fontWeight:700, color:'var(--text-faint)',
                     textTransform:'uppercase', letterSpacing:'.07em',
                     margin:'0 0 4px', fontFamily:FONT,
                   }}>
                     {spec.label}
                   </p>
                   <p style={{
-                    fontSize:13, fontWeight:600, color:'#0f172a',
+                    fontSize:13, fontWeight:600, color:'var(--ink)',
                     margin:0, fontFamily:FONT, textTransform:'capitalize',
                   }}>
                     {spec.label === 'Color' && /^#[0-9a-f]{3,6}$/i.test(spec.value) ? (
@@ -686,12 +621,12 @@ export default function CustomerOrderDetail() {
               </div>
               <a href={order.design_preview_url} target="_blank" rel="noopener noreferrer"
                 style={{ display:'block', borderRadius:10, overflow:'hidden',
-                  border:'1px solid #e2e8f0', background:'#fff', textDecoration:'none' }}>
+                  border:'1px solid var(--border)', background:'#fff', textDecoration:'none' }}>
                 <img src={order.design_preview_url} alt={`Design for order ${order.order_id}`}
                   style={{ width:'100%', maxWidth:420, display:'block', margin:'0 auto' }}
                   onError={e => { e.target.closest('a').style.display = 'none'; }}/>
               </a>
-              <p style={{ fontSize:12, color:'#64748b', fontFamily:FONT, margin:'10px 0 0' }}>
+              <p style={{ fontSize:12, color:'var(--text-subtle)', fontFamily:FONT, margin:'10px 0 0' }}>
                 This is the artwork submitted with your order. VFRB staff work from
                 this file, so check it matches what you expect before production starts.
               </p>
@@ -707,9 +642,9 @@ export default function CustomerOrderDetail() {
                 Design Preview
               </p>
               <Suspense fallback={
-                <div style={{ height:220, background:'#f8fafc', borderRadius:10,
+                <div style={{ height:220, background:'var(--bg-surface)', borderRadius:10,
                   display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  <p style={{ color:'#94a3b8', fontSize:12, fontFamily:FONT }}>
+                  <p style={{ color:'var(--text-faint)', fontSize:12, fontFamily:FONT }}>
                     Loading preview…
                   </p>
                 </div>
@@ -736,7 +671,7 @@ export default function CustomerOrderDetail() {
               {isImageFile(order.client_design_ref_file) ? (
                 <a href={getStorageUrl(order.client_design_ref_file)} target="_blank" rel="noopener noreferrer"
                   style={{ display:'block', borderRadius:10, overflow:'hidden',
-                    border:'1px solid #e2e8f0', maxWidth:280, textDecoration:'none' }}>
+                    border:'1px solid var(--border)', maxWidth:280, textDecoration:'none' }}>
                   <img src={getStorageUrl(order.client_design_ref_file)} alt="Client reference"
                     style={{ width:'100%', display:'block' }}
                     onError={e => { e.target.style.display='none'; }}/>
@@ -754,6 +689,7 @@ export default function CustomerOrderDetail() {
           </div>
         )}
 
+        </div><div className="od-side">
         {/* ── AI Recommendation card ────────────────────────────────────── */}
         {aiRec && ['ready','accepted','rejected'].includes(order.ai_recommendation_status) && (
           <motion.div
@@ -775,7 +711,7 @@ export default function CustomerOrderDetail() {
                   <p className="od-section-title" style={{ margin:'0 0 2px', fontFamily:FONT }}>
                     AI Material Recommendation
                   </p>
-                  <p style={{ fontSize:11, color:'#64748b', margin:0, fontFamily:FONT }}>
+                  <p style={{ fontSize:11, color:'var(--text-subtle)', margin:0, fontFamily:FONT }}>
                     Based on VFRB production standards
                   </p>
                 </div>
@@ -800,15 +736,15 @@ export default function CustomerOrderDetail() {
               </div>
 
               {order.ai_recommendation_status === 'rejected' && (
-                <div style={{ padding:'10px 12px', borderRadius:9, background:'#f8fafc',
-                  border:'1px solid #e2e8f0', marginBottom:14, display:'flex',
+                <div style={{ padding:'10px 12px', borderRadius:9, background:'var(--bg-surface)',
+                  border:'1px solid var(--border)', marginBottom:14, display:'flex',
                   alignItems:'center', justifyContent:'space-between', gap:10 }}>
-                  <span style={{ fontSize:11, color:'#64748b', fontFamily:FONT }}>
+                  <span style={{ fontSize:11, color:'var(--text-subtle)', fontFamily:FONT }}>
                     VFRB staff has been notified. Want to pick materials yourself instead?
                   </span>
                   <button onClick={() => nav('/ai-materials')}
-                    style={{ padding:'6px 12px', borderRadius:8, border:'1px solid #e2e8f0',
-                      background:'#fff', color:'#0f172a', fontSize:11, fontWeight:700,
+                    style={{ padding:'6px 12px', borderRadius:8, border:'1px solid var(--border)',
+                      background:'#fff', color:'var(--ink)', fontSize:11, fontWeight:700,
                       cursor:'pointer', fontFamily:FONT, whiteSpace:'nowrap', flexShrink:0 }}>
                     ✋ Choose Myself
                   </button>
@@ -826,11 +762,11 @@ export default function CustomerOrderDetail() {
                       {Object.entries(mats).map(([mat, info]) => (
                         <div key={mat} style={{
                           display:'flex', alignItems:'center', padding:'8px 12px',
-                          background:'#f8fafc', borderRadius:9,
-                          border:'1px solid #f1f5f9',
+                          background:'var(--bg-surface)', borderRadius:9,
+                          border:'1px solid var(--bg-surface)',
                         }}>
                           <span style={{
-                            fontSize:12, fontWeight:600, color:'#0f172a',
+                            fontSize:12, fontWeight:600, color:'var(--ink)',
                             textTransform:'capitalize', fontFamily:FONT,
                           }}>
                             {mat}
@@ -845,7 +781,7 @@ export default function CustomerOrderDetail() {
               {/* Narrative notes */}
               {aiRec.notes && (
                 <p style={{
-                  fontSize:12, color:'#64748b', lineHeight:1.7,
+                  fontSize:12, color:'var(--text-subtle)', lineHeight:1.7,
                   margin:'0 0 14px', fontFamily:FONT,
                 }}>
                   {aiRec.notes}
@@ -861,7 +797,7 @@ export default function CustomerOrderDetail() {
                     disabled={!!aiAction}
                     style={{
                       flex:1, padding:'10px', borderRadius:10, border:'none',
-                      background: aiAction ? '#94a3b8'
+                      background: aiAction ? 'var(--text-faint)'
                         : `linear-gradient(135deg,${T},${T2})`,
                       color:'#fff', fontSize:12, fontWeight:700,
                       cursor: aiAction ? 'not-allowed' : 'pointer',
@@ -900,7 +836,7 @@ export default function CustomerOrderDetail() {
               {(() => {
                 // delivery_status column — NOT .status (locked schema rule)
                 const ds   = delivery.delivery_status;
-                const dcfg = DELIVERY_CFG[ds] ?? { label:ds, color:'#64748b', icon:'package' };
+                const dcfg = DELIVERY_CFG[ds] ?? { label:ds, color:'var(--text-subtle)', icon:'package' };
                 return (
                   <div>
                     <div style={{
@@ -933,16 +869,16 @@ export default function CustomerOrderDetail() {
                       ].filter(r => r.v).map(row => (
                         <div key={row.l} style={{
                           display:'flex', gap:10,
-                          padding:'7px 10px', background:'#f8fafc',
-                          borderRadius:8, border:'1px solid #f1f5f9',
+                          padding:'7px 10px', background:'var(--bg-surface)',
+                          borderRadius:8, border:'1px solid var(--bg-surface)',
                         }}>
                           <span style={{
-                            fontSize:11, fontWeight:700, color:'#94a3b8',
+                            fontSize:11, fontWeight:700, color:'var(--text-faint)',
                             minWidth:90, flexShrink:0, fontFamily:FONT,
                           }}>
                             {row.l}
                           </span>
-                          <span style={{ fontSize:12, color:'#0f172a', fontFamily:FONT }}>
+                          <span style={{ fontSize:12, color:'var(--ink)', fontFamily:FONT }}>
                             {row.v}
                           </span>
                         </div>
@@ -980,7 +916,7 @@ export default function CustomerOrderDetail() {
 
             {messages.length === 0 ? (
               <p style={{
-                fontSize:12, color:'#94a3b8', textAlign:'center',
+                fontSize:12, color:'var(--text-faint)', textAlign:'center',
                 padding:'12px 0', fontFamily:FONT,
               }}>
                 No messages yet — chat with VFRB staff
@@ -999,18 +935,18 @@ export default function CustomerOrderDetail() {
                         borderRadius: isMe
                           ? '12px 2px 12px 12px'
                           : '2px 12px 12px 12px',
-                        background: isMe ? `${T}15` : '#f1f5f9',
-                        border:`1px solid ${isMe ? `${T}25` : '#e2e8f0'}`,
+                        background: isMe ? `${T}15` : 'var(--bg-surface)',
+                        border:`1px solid ${isMe ? `${T}25` : 'var(--border)'}`,
                       }}>
                         {/* body column — order_messages schema */}
                         <p style={{
-                          fontSize:12, color:'#0f172a', margin:0,
+                          fontSize:12, color:'var(--ink)', margin:0,
                           lineHeight:1.5, fontFamily:FONT,
                         }}>
                           {msg.body}
                         </p>
                         <p style={{
-                          fontSize:9, color:'#94a3b8',
+                          fontSize:9, color:'var(--text-faint)',
                           margin:'4px 0 0', textAlign:'right', fontFamily:FONT,
                         }}>
                           {msg.created_at
@@ -1025,7 +961,7 @@ export default function CustomerOrderDetail() {
                 })}
                 {messages.length > 3 && (
                   <p style={{
-                    fontSize:11, color:'#94a3b8', textAlign:'center',
+                    fontSize:11, color:'var(--text-faint)', textAlign:'center',
                     margin:0, fontFamily:FONT,
                   }}>
                     +{messages.length - 3} more →
@@ -1036,6 +972,7 @@ export default function CustomerOrderDetail() {
           </div>
         </div>
 
+        </div></div>
         {/* ── Completed / Cancelled banners ─────────────────────────────── */}
         {status === 'completed' && (
           <motion.div
@@ -1080,8 +1017,8 @@ export default function CustomerOrderDetail() {
           </button>
           <button onClick={() => nav('/orders')} style={{
             flex:1, padding:'12px', borderRadius:12, minHeight:44,
-            border:'1px solid #e2e8f0', background:'#f8fafc',
-            color:'#64748b', fontSize:13, fontWeight:600,
+            border:'1px solid var(--border)', background:'var(--bg-surface)',
+            color:'var(--text-subtle)', fontSize:13, fontWeight:600,
             cursor:'pointer', fontFamily:FONT,
           }}>
             ← All Orders

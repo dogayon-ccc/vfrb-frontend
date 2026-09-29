@@ -82,10 +82,7 @@ const CustomerOrderDetail = lazy(() => import('./pages/client/OrderDetail'));
 const CustomerOrderWizard = lazy(() => import('./pages/client/OrderWizard'));
 const CustomerAIMaterials = lazy(() => import('./pages/client/AIMaterials'));
 const CustomerMessages    = lazy(() => import('./pages/client/Messages'));
-const CustomerBilling     = lazy(() => import('./pages/client/BillingProfiles'));
 const CustomerSettings    = lazy(() => import('./pages/client/AccountSettings'));
-const CustomerHelp        = lazy(() => import('./pages/client/settings/HelpSupport'));
-const CustomerProfile     = lazy(() => import('./pages/client/Profile'));
 
 // ── Design Studio — separately lazy (Fabric.js + Three.js are heavy) ─────────
 const DesignStudio = lazy(() => import('./pages/client/DesignStudio'));
@@ -263,10 +260,10 @@ export default function App() {
             <Route path="order/create"element={<CustomerOrderWizard/>}/>
             <Route path="ai-materials"element={<CustomerAIMaterials/>}/>
             <Route path="messages"    element={<CustomerMessages/>}/>
-            <Route path="billing"     element={<CustomerBilling/>}/>
+            <Route path="billing"     element={<Navigate to="/settings?tab=billing" replace/>}/>
             <Route path="settings"    element={<CustomerSettings/>}/>
-            <Route path="help"        element={<CustomerHelp/>}/>
-            <Route path="profile"     element={<CustomerProfile/>}/>
+            <Route path="help"        element={<Navigate to="/settings?tab=help" replace/>}/>
+            <Route path="profile"     element={<Navigate to="/settings?tab=profile" replace/>}/>
           </Route>
 
           {/* ── DESIGN STUDIO — full-screen, outside CustomerLayout ───────── */}

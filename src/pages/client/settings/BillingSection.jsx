@@ -1,10 +1,8 @@
-// src/pages/client/BillingProfiles.jsx — saved invoice-recipient details.
-// Backend (BillingProfileController) was fully built with no frontend page consuming it — this closes that gap.
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
-import { Card, Button, Field, Badge, NavIcon } from '../../components/ui';
-import EmptyState from '../../components/EmptyState';
+import { Card, Button, Field, Badge, NavIcon } from '../../../components/ui';
+import EmptyState from '../../../components/EmptyState';
 
 function Toast({ msg, type }) {
   return (
@@ -117,7 +115,7 @@ function ProfileRow({ p, onEdit, onDelete }) {
   );
 }
 
-export default function BillingProfiles() {
+export default function BillingSection() {
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [editing, setEditing]   = useState(null); // null = list view, {} = new, {...} = edit
@@ -148,20 +146,15 @@ export default function BillingProfiles() {
     backgroundSize: '400px', animation: 'sk 1.4s infinite' };
 
   return (
-    <div className="cx-page" style={{ maxWidth: 760 }}>
+    <div>
       <style>{`
         @keyframes sk{0%{background-position:-400px 0}100%{background-position:400px 0}}
-        /* Row isn't fully clickable (only its edit/delete buttons are) — subtle border/shadow
-           shift on hover only, not a lift (matches the same choice in AccountSettings.jsx). */
         .vfrb-row-card { transition: border-color .18s, box-shadow .18s; }
-        .vfrb-row-card:hover { border-color: var(--teal); box-shadow: 0 2px 10px rgba(2,128,144,.08); }
+        .vfrb-row-card:hover { border-color: var(--teal); box-shadow: var(--shadow-sm); }
       `}</style>
 
-      <div className="cx-head" style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
-        <div>
-          <h1>Billing Profiles</h1>
-          <p>Saved invoice-recipient details for your orders — not a payment method.</p>
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 6 }}>
+        <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>Saved invoice-recipient details for your orders. Not a payment method.</p>
         {!editing && profiles.length > 0 && (
           <Button variant="primary" icon="add" onClick={() => setEditing({})}>New Profile</Button>
         )}

@@ -1,11 +1,14 @@
 // src/pages/client/AccountSettings.jsx — Shipping Addresses, Notification Preferences, Preferred Fabrics.
 // All three backends already existed with zero frontend consuming them — same gap class as BillingProfiles.jsx.
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { Card, Button, Field, Badge, NavIcon } from '../../components/ui';
 import EmptyState from '../../components/EmptyState';
+import { ProfileSection, PasswordSection } from './settings/ProfileSection';
+import BillingSection from './settings/BillingSection';
+import HelpSection from './settings/HelpSection';
 
 function Toast({ msg, type }) {
   return (
@@ -323,18 +326,24 @@ function ConfirmModal({ item, label, onCancel, onConfirm }) {
 
 // ── Page shell: settings hub (wireframe — profile card + section rows) ─────
 const SECTIONS = [
-  { id: 'profile',       label: 'Personal Information', hint: 'Name, contact, organization', icon: 'profile',       to: '/profile' },
+  { id: 'profile',       label: 'Personal Information', hint: 'Name, contact, organization', icon: 'profile' },
   { id: 'shipping',      label: 'Shipping Addresses',   hint: 'Where your orders are delivered', icon: 'delivery' },
   { id: 'notifications', label: 'Notifications',        hint: 'Choose what you get notified about', icon: 'notifications' },
   { id: 'fabrics',       label: 'Preferred Fabrics',    hint: 'Fabrics staff should know about', icon: 'package' },
-  { id: 'billing',       label: 'Billing Profiles',     hint: 'Invoice recipient details', icon: 'orders', to: '/billing' },
-  { id: 'password',      label: 'Change Password',      hint: 'Update your sign-in password', icon: 'settings', to: '/profile' },
-  { id: 'help',          label: 'Help & Support',       hint: 'Guides and contact', icon: 'notifications', to: '/help' },
+  { id: 'billing',       label: 'Billing Profiles',     hint: 'Invoice recipient details', icon: 'invoice' },
+  { id: 'password',      label: 'Change Password',      hint: 'Update your sign-in password', icon: 'lock' },
+  { id: 'help',          label: 'Help & Support',       hint: 'Guides and contact', icon: 'info' },
 ];
+const PANELS = {
+  profile: ProfileSection, shipping: ShippingSection, notifications: NotificationsSection,
+  fabrics: FabricsSection, billing: BillingSection, password: PasswordSection, help: HelpSection,
+};
 
 export default function AccountSettings() {
-  const nav = useNavigate();
-  const [sec, setSec] = useState(null);            // mobile: null = list view
+  const [params, setParams] = useSearchParams();
+  const tab = params.get('tab');
+  const sec = SECTIONS.some(x => x.id === tab) ? tab : null;
+  const setSec = (id) => setParams(id ? { tab: id } : {}, { replace: !id });
   const [wide, setWide] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width:900px)').matches);
   const [me, setMe] = useState(() => { try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}'); } catch { return {}; } });
 
@@ -348,9 +357,10 @@ export default function AccountSettings() {
     axios.get('/api/customer/profile').then(r => setMe(m => ({ ...m, ...(r.data?.user ?? r.data ?? {}) }))).catch(() => {});
   }, []);
 
-  const active = wide ? (sec && !SECTIONS.find(x => x.id === sec)?.to ? sec : 'shipping') : sec;
-  const open = (x) => x.to ? nav(x.to) : setSec(x.id);
+  const active = wide ? (sec ?? 'profile') : sec;
+  const open = (x) => setSec(x.id);
   const current = SECTIONS.find(x => x.id === active);
+  const Panel = PANELS[active];
 
   const list = (
     <nav aria-label="Account settings sections" className="cx-card" style={{ overflow: 'hidden' }}>
@@ -381,9 +391,7 @@ export default function AccountSettings() {
         {!wide && <button className="cx-btn cx-btn-s" style={{ minHeight: 40, padding: '0 12px' }} onClick={() => setSec(null)} aria-label="Back to settings list">←</button>}
         <h2 id="acct-panel-h" style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>{current.label}</h2>
       </div>
-      {active === 'shipping' && <ShippingSection/>}
-      {active === 'notifications' && <NotificationsSection/>}
-      {active === 'fabrics' && <FabricsSection/>}
+      <Panel/>
     </motion.section>
   );
 
@@ -414,7 +422,7 @@ export default function AccountSettings() {
             <p style={{ margin: 0, fontSize: 16, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{me.name ?? 'Client'}</p>
             <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-subtle)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{me.email ?? ''}</p>
           </div>
-          <button className="cx-btn cx-btn-s" style={{ minHeight: 38 }} onClick={() => nav('/profile')}>Edit Profile</button>
+          <button className="cx-btn cx-btn-s" style={{ minHeight: 38 }} onClick={() => setSec('profile')}>Edit Profile</button>
         </div>
       )}
 

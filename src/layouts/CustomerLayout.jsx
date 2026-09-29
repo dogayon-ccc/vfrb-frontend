@@ -10,7 +10,7 @@ import { sessionWipeAll } from '../utils/cache';
 import logo from '../assets/company-logo.jpg';
 import { loadAccent, getAccentVars, ACCENT_CHANGE_EVENT } from '../utils/accentColor';
 // Icon values below are components, rendered as <item.icon size={N}/> at each call site.
-import { LayoutDashboard, PenSquare, ClipboardList, MessageSquare, Receipt, Settings, User, Palette, LogOut, Shirt } from 'lucide-react';
+import { LayoutDashboard, PenSquare, ClipboardList, MessageSquare, Settings, Palette, LogOut, Shirt, MoreHorizontal } from 'lucide-react';
 
 const T  = 'var(--teal)';
 const T2 = 'var(--teal-2)';
@@ -22,17 +22,15 @@ const NAV = [
   { to:'/orders',        icon:ClipboardList,   label:'My Orders',    short:'Orders',   end:false },
   // AI Materials has no nav entry — it's the blocking MaterialsReveal screen after order submit, not a standalone page.
   { to:'/messages',      icon:MessageSquare,   label:'Messages',     short:'Chat',     end:false },
-  { to:'/billing',       icon:Receipt,         label:'Billing',      short:'Billing',  end:false },
   { to:'/settings',      icon:Settings,        label:'Settings',     short:'Settings', end:false },
-  { to:'/profile',       icon:User,            label:'Profile',      short:'Profile',  end:false },
 ];
 
-// Bottom nav — 5 items (Profile removed, accessible via More)
+// Bottom nav follows the wireframe: Home, Designs, Orders, Chat + More.
 const MOB_NAV = [
-  { to:'/dashboard',              icon:LayoutDashboard, short:'Home',    end:true  },
+  { to:'/dashboard',    icon:LayoutDashboard, short:'Home',    end:true  },
+  { to:'/my-designs',   icon:Shirt,           short:'Designs', end:false },
   { to:'/orders',       icon:ClipboardList,   short:'Orders',  end:false },
   { to:'/messages',     icon:MessageSquare,   short:'Chat',    end:false },
-  { to:'/profile',      icon:User,            short:'Profile', end:false },
 ];
 
 export default function CustomerLayout() {
@@ -704,23 +702,14 @@ flexShrink:0,
                   <span>New Order</span>
                 </NavLink>
 
-                <NavLink to="/my-designs" className="cm-drawer-item"
-                  onClick={() => setMoreOpen(false)}>
-                  <IconBox icon={Shirt} size={20} width={28}/>
-                  <span>My Designs</span>
-                </NavLink>
-
-                <NavLink to="/billing" className="cm-drawer-item"
-                  onClick={() => setMoreOpen(false)}>
-                  <IconBox icon={Receipt} size={20} width={28}/>
-                  <span>Billing</span>
-                </NavLink>
 
                 <NavLink to="/settings" className="cm-drawer-item"
                   onClick={() => setMoreOpen(false)}>
                   <IconBox icon={Settings} size={20} width={28}/>
                   <span>Settings</span>
                 </NavLink>
+
+
 
                 <div style={{ height:1, background:'var(--bg-surface)', margin:'6px 0' }}/>
 
@@ -759,11 +748,12 @@ flexShrink:0,
 
           {/* More button */}
           <button className="cm-bnav-item" onClick={() => setMoreOpen(o => !o)}
+            aria-expanded={moreOpen} aria-label="More"
             style={{ border:'none', background:'transparent', cursor:'pointer' }}>
             <span className="cm-bnav-icon"
               style={{ filter: moreOpen ? 'none' : 'grayscale(.3) opacity(.65)',
                 color: moreOpen ? T : undefined }}>
-              ⋯
+              <MoreHorizontal size={22} strokeWidth={2}/>
             </span>
             <span className="cm-bnav-label" style={{ color: moreOpen ? T : undefined }}>
               More
