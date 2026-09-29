@@ -1,322 +1,181 @@
-// src/pages/admin/Settings.jsx
-// System Settings (Aug 21 2026 session).
-//
-// SCOPE (confirmed with Dave):
-//   1. Company info + branding — manager can edit, staff view only.
-//      Logo is a REAL file upload (multipart), not a text field.
-//   2. Notification preferences — every user manages their OWN row.
-//      email_enabled / sms_enabled are stored honestly but NEITHER
-//      channel has a real provider behind it yet in this build:
-//        - Mailtrap is a SANDBOX inbox only — no real email reaches
-//          a customer or staff member's real inbox right now.
-//        - No SMS gateway is configured anywhere in this codebase.
-//      Both toggles are labeled "Not yet active" per Dave's explicit
-//      instruction — do not remove that label without a real provider
-//      being wired up and confirmed.
-//   3. User/role shortcuts — just links to the existing /admin/users
-//      page. No new user-management logic lives here.
-//
-// PERMISSION PATTERN — reuses the exact idiom already used in
-// PhysicalCount.jsx / UserManagement.jsx (localStorage 'vfrb_user',
-// role === 'manager'), not a new mechanism. Route itself is NOT
-// wrapped in <RequireManager> (unlike Suppliers/Users) because staff
-// DO have view access here — only the edit affordances are gated
-// inside this component, matching the reconcile-button pattern in
-// PhysicalCount.jsx.
-//
-// RESHAPED (Sept 4 2026): token-compliance pass only — the module-scope
-// isManager staleness fix, the 44px touch-target fix on the toggle
-// switches, and the mobile contact-grid stacking fix (all three
-// documented in the original's own comments below) are real bug
-// histories, not decoration, and are preserved exactly as written.
-// NotConfiguredBadge's hand-rolled amber pill replaced with the shared
-// Badge (tone="warning") — its own render (padding 3px 9px, radius 999,
-// fontWeight 700) was already almost identical, one fewer local
-// component duplicating what Badge already does. The three card
-// sections now use the shared Card component instead of a local `card`
-// style const. 👥 → NavIcon. Toast/error red mapped to --danger
-// (#ef4444) rather than the original's literal #E53E3E — same red
-// family (within a few points), and consistent with how every other
-// reshaped page's error states already map to --danger; introducing a
-// second, slightly different "error red" token would be the
-// inconsistency, not fixing one.
-
+// src/pages/admin/Settings.jsx — company info (manager edits, staff view), own notification prefs, user-management shortcut.
+// Logic kept: role read fresh per mount (never hoist to module scope), multipart logo upload with optimistic preview + rollback,
+// optimistic pref toggles with rollback. Email/SMS stay labeled "Not yet active" until a real provider exists.
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { Card, Badge, NavIcon } from '../../components/ui';
-import { PageHeader, StatGrid, PillTabs, ErrorBlock } from '../../components/admin/AdminUI';
+import { NavIcon } from '../../components/ui/icons';
+import { PageHeader, Panel, Banner, Toast, useToast, SkeletonRows } from '../../components/admin/AdminUI';
 
-const inp  = { width:'100%', padding:'10px 14px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)', fontSize:13, outline:'none', fontFamily:'var(--font)', transition:'border .15s, box-shadow .15s', boxSizing:'border-box' };
-const inpDisabled = { ...inp, background:'var(--bg-surface)', color:'var(--text-subtle)', cursor:'not-allowed' };
-const fi   = e => { e.target.style.borderColor='var(--teal)'; e.target.style.boxShadow='0 0 0 3px rgba(2,128,144,.1)'; };
-const fo   = e => { e.target.style.borderColor='var(--border)'; e.target.style.boxShadow='none'; };
-const lbl  = { display:'block', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'var(--text-subtle)', marginBottom:7, fontFamily:'var(--font)' };
-
-// NOTE (Aug 22 2026 fix): user/isManager used to be declared here at module
-// scope. Since this page is lazy-loaded, that code only ran ONCE per browser
-// tab, on first import — so switching accounts (manager -> staff) within the
-// same tab without a hard reload left isManager permanently stuck at
-// whatever the FIRST login's role was. Confirmed in production: a staff
-// login inherited a manager's edit rights because manager had opened this
-// page first in the same tab. Fixed by moving the read inside the
-// component (getIsManager()) so it's re-evaluated on every mount — do not
-// hoist this back to module scope.
 function getIsManager() {
-  try {
-    return (JSON.parse(localStorage.getItem('vfrb_user') || '{}').role) === 'manager';
-  } catch { return false; }
+  try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}').role === 'manager'; } catch { return false; }
 }
 
+const NOTIFY = [
+  { key: 'email_enabled', live: 'email_provider_live', label: 'Email notifications', icon: 'email', note: 'Order updates, AI recommendations ready, and account alerts.',
+    warn: 'No production email provider is connected yet — this saves your preference but no real email is sent.' },
+  { key: 'sms_enabled', live: 'sms_provider_live', label: 'SMS notifications', icon: 'phone', note: 'Text alerts for urgent order or delivery updates.',
+    warn: 'No SMS provider is connected — this reserves the setting for when one is added.' },
+];
 
-function Toast({ msg, type, onDone }) {
-  useEffect(() => { const t = setTimeout(onDone, 3000); return () => clearTimeout(t); }, [onDone]);
-  const bg = type === 'error' ? 'var(--danger)' : 'var(--teal)';
-  return (
-    <motion.div initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:20 }}
-      style={{ position:'fixed', bottom:24, right:24, background:bg, color:'#fff', padding:'12px 18px', borderRadius:'var(--r-lg)', fontSize:13, fontWeight:600, fontFamily:'var(--font)', boxShadow:'var(--shadow-lg)', zIndex:400 }}>
-      {msg}
-    </motion.div>
-  );
-}
+const Field = ({ label, id, children }) => (<div><label className="adm-field" htmlFor={id}>{label}</label>{children}</div>);
 
 export default function Settings() {
-  // Read fresh on every mount — see getIsManager() note above for why this
-  // can't be a module-level constant.
   const isManager = getIsManager();
-
-  const [company, setCompany] = useState({ company_name:'', logo_url:null, address:'', contact_number:'', contact_email:'' });
+  const [company, setCompany] = useState({ company_name: '', logo_url: null, address: '', contact_number: '', contact_email: '' });
+  const [saved, setSaved] = useState(null);
   const [companyLoading, setCompanyLoading] = useState(true);
+  const [companyErr, setCompanyErr] = useState(false);
   const [companyBusy, setCompanyBusy] = useState(false);
   const [logoBusy, setLogoBusy] = useState(false);
-
-  const [prefs, setPrefs] = useState({ email_enabled:true, sms_enabled:false, email_provider_live:false, sms_provider_live:false });
+  const [prefs, setPrefs] = useState({ email_enabled: true, sms_enabled: false, email_provider_live: false, sms_provider_live: false });
   const [prefsLoading, setPrefsLoading] = useState(true);
   const [prefsBusy, setPrefsBusy] = useState(false);
-
-  const [toast, setToast] = useState(null);
+  const [toast, setToast] = useToast();
   const fileRef = useRef(null);
 
+  const loadCompany = () => {
+    setCompanyLoading(true); setCompanyErr(false);
+    axios.get('/api/admin/settings/company').then((r) => { setCompany(r.data); setSaved(r.data); })
+      .catch(() => setCompanyErr(true)).finally(() => setCompanyLoading(false));
+  };
   useEffect(() => {
-    axios.get('/api/admin/settings/company')
-      .then(r => setCompany(r.data))
-      .catch(() => setToast({ msg:'Could not load company settings.', type:'error' }))
-      .finally(() => setCompanyLoading(false));
-
-    axios.get('/api/settings/notifications')
-      .then(r => setPrefs(r.data))
-      .catch(() => setToast({ msg:'Could not load notification preferences.', type:'error' }))
-      .finally(() => setPrefsLoading(false));
+    loadCompany();
+    axios.get('/api/settings/notifications').then((r) => setPrefs(r.data))
+      .catch(() => setToast({ msg: 'Could not load notification preferences.', type: 'error' })).finally(() => setPrefsLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const setField = (k, v) => setCompany(c => ({ ...c, [k]: v }));
+  const setField = (k, v) => setCompany((c) => ({ ...c, [k]: v }));
+  const dirty = saved && ['company_name', 'address', 'contact_number', 'contact_email'].some((k) => (company[k] ?? '') !== (saved[k] ?? ''));
 
   const saveCompany = async () => {
     setCompanyBusy(true);
     try {
       await axios.patch('/api/admin/settings/company', {
-        company_name: company.company_name,
-        address: company.address,
-        contact_number: company.contact_number,
-        contact_email: company.contact_email,
+        company_name: company.company_name, address: company.address,
+        contact_number: company.contact_number, contact_email: company.contact_email,
       });
-      setToast({ msg:'Company settings saved.', type:'success' });
-    } catch (e) {
-      setToast({ msg: e.response?.data?.message ?? 'Save failed.', type:'error' });
-    } finally { setCompanyBusy(false); }
+      setSaved(company); setToast({ msg: 'Company settings saved.', type: 'success' });
+    } catch (e) { setToast({ msg: e.response?.data?.message ?? 'Save failed.', type: 'error' }); }
+    finally { setCompanyBusy(false); }
   };
 
   const uploadLogo = async (file) => {
     if (!file) return;
     const prevUrl = company.logo_url;
-    // Optimistic preview — instant swap, rollback on failure.
-    const localPreview = URL.createObjectURL(file);
-    setField('logo_url', localPreview);
+    setField('logo_url', URL.createObjectURL(file));
     setLogoBusy(true);
     try {
-      const fd = new FormData();
-      fd.append('logo', file);
-      const r = await axios.post('/api/admin/settings/company/logo', fd, {
-        headers: { 'Content-Type': undefined }, // let axios/browser set the multipart boundary
-      });
-      setField('logo_url', r.data.logo_url);
-      setToast({ msg:'Logo uploaded.', type:'success' });
-    } catch (e) {
-      setField('logo_url', prevUrl);
-      setToast({ msg: e.response?.data?.message ?? 'Logo upload failed.', type:'error' });
-    } finally { setLogoBusy(false); }
+      const fd = new FormData(); fd.append('logo', file);
+      const r = await axios.post('/api/admin/settings/company/logo', fd, { headers: { 'Content-Type': undefined } });
+      setField('logo_url', r.data.logo_url); setSaved((s) => ({ ...s, logo_url: r.data.logo_url }));
+      setToast({ msg: 'Logo uploaded.', type: 'success' });
+    } catch (e) { setField('logo_url', prevUrl); setToast({ msg: e.response?.data?.message ?? 'Logo upload failed.', type: 'error' }); }
+    finally { setLogoBusy(false); if (fileRef.current) fileRef.current.value = ''; }
   };
 
   const togglePref = async (key) => {
     const prev = prefs[key];
-    setPrefs(p => ({ ...p, [key]: !prev })); // optimistic
-    setPrefsBusy(true);
-    try {
-      await axios.patch('/api/settings/notifications', { [key]: !prev });
-    } catch (e) {
-      setPrefs(p => ({ ...p, [key]: prev })); // rollback
-      setToast({ msg: e.response?.data?.message ?? 'Could not save preference.', type:'error' });
-    } finally { setPrefsBusy(false); }
+    setPrefs((p) => ({ ...p, [key]: !prev })); setPrefsBusy(true);
+    try { await axios.patch('/api/settings/notifications', { [key]: !prev }); }
+    catch (e) { setPrefs((p) => ({ ...p, [key]: prev })); setToast({ msg: e.response?.data?.message ?? 'Could not save preference.', type: 'error' }); }
+    finally { setPrefsBusy(false); }
   };
 
+  const ro = !isManager;
+  const bind = (k) => ({ id: `set-${k}`, className: 'adm-input', value: company[k] ?? '', disabled: ro, onChange: (e) => setField(k, e.target.value) });
+
   return (
-    <div style={{ maxWidth:760, margin:'0 auto', display:'flex', flexDirection:'column', gap:22, fontFamily:'var(--font)' }}>
-      <PageHeader title="System Settings" sub={isManager ? 'Company branding, notification preferences, and user management shortcuts.' : 'View-only — company settings can be edited by a manager.'} />
+    <>
+      <Toast toast={toast} />
+      <PageHeader title="System Settings" sub={isManager ? 'Company identity, your notification preferences, and user management.' : 'View only — a manager can edit company settings.'} />
+      {ro && <Banner tone="info" icon="lock">You have view access. Company info and the logo can only be changed by a manager.</Banner>}
 
-      {/* ── Company Info + Branding ─────────────────────────────────── */}
-      <Card>
-        <h2 style={{ fontSize:15, fontWeight:800, color:'var(--ink)', margin:'0 0 4px' }}>Company Info & Branding</h2>
-        <p style={{ fontSize:12, color:'var(--text-faint)', margin:'0 0 18px' }}>VFRB Enterprise's own identity — shown across the admin and customer portals.</p>
+      <div className="set-layout">
+        <nav className="set-nav" aria-label="Settings sections">
+          <a href="#set-company"><NavIcon name="settings" size={15} color="currentColor" /> Company</a>
+          <a href="#set-notify"><NavIcon name="notifications" size={15} color="currentColor" /> Notifications</a>
+          {isManager && <a href="#set-users"><NavIcon name="users" size={15} color="currentColor" /> Users</a>}
+        </nav>
 
-        {companyLoading ? (
-          <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-            {[1,2,3].map(i => <div key={i} style={{ height:38, borderRadius:'var(--r-md)', background:'linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%)', backgroundSize:'400px', animation:'set-shimmer 1.4s infinite' }}/>)}
-          </div>
-        ) : (
-          <>
-            {/* Logo */}
-            <div style={{ display:'flex', alignItems:'center', gap:16, marginBottom:20 }}>
-              <div style={{ width:72, height:72, borderRadius:'var(--r-lg)', border:'1px solid var(--border)', background:'var(--bg-surface)', display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', flexShrink:0 }}>
-                {company.logo_url
-                  ? <img src={company.logo_url} alt="Company logo" style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
-                  : <span style={{ fontSize:11, color:'var(--text-faint)', fontWeight:700 }}>No logo</span>}
-              </div>
-              <div>
-                <label style={lbl}>Logo</label>
-                {isManager ? (
-                  <>
-                    <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" style={{ display:'none' }}
-                      onChange={e => uploadLogo(e.target.files?.[0])}/>
-                    <button onClick={() => fileRef.current?.click()} disabled={logoBusy}
-                      style={{ padding:'8px 16px', borderRadius:'var(--r-md)', border:'1px solid var(--teal)', background:'var(--bg-card)', color:'var(--teal)', fontWeight:700, fontSize:12, cursor: logoBusy ? 'wait' : 'pointer', fontFamily:'var(--font)' }}>
-                      {logoBusy ? 'Uploading…' : 'Change Logo'}
-                    </button>
-                    <p style={{ fontSize:11, color:'var(--text-faint)', margin:'6px 0 0' }}>PNG, JPG, or WebP · max 2MB</p>
-                  </>
-                ) : (
-                  <p style={{ fontSize:12, color:'var(--text-faint)', margin:0 }}>Only a manager can change the logo.</p>
-                )}
-              </div>
-            </div>
-
-            <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-              <div>
-                <label style={lbl}>Company Name</label>
-                <input value={company.company_name ?? ''} disabled={!isManager}
-                  onChange={e => setField('company_name', e.target.value)}
-                  style={isManager ? inp : inpDisabled} onFocus={isManager ? fi : undefined} onBlur={isManager ? fo : undefined}/>
-              </div>
-              <div>
-                <label style={lbl}>Address</label>
-                <input value={company.address ?? ''} disabled={!isManager}
-                  onChange={e => setField('address', e.target.value)} placeholder="31 San Guillermo St., Bayanan, Muntinlupa City"
-                  style={isManager ? inp : inpDisabled} onFocus={isManager ? fi : undefined} onBlur={isManager ? fo : undefined}/>
-              </div>
-              <div className="set-contact-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-                <div>
-                  <label style={lbl}>Contact Number</label>
-                  <input value={company.contact_number ?? ''} disabled={!isManager}
-                    onChange={e => setField('contact_number', e.target.value)} placeholder="09XXXXXXXXX"
-                    style={isManager ? inp : inpDisabled} onFocus={isManager ? fi : undefined} onBlur={isManager ? fo : undefined}/>
-                </div>
-                <div>
-                  <label style={lbl}>Contact Email</label>
-                  <input value={company.contact_email ?? ''} disabled={!isManager}
-                    onChange={e => setField('contact_email', e.target.value)} placeholder="hello@vfrbenterprise.com"
-                    style={isManager ? inp : inpDisabled} onFocus={isManager ? fi : undefined} onBlur={isManager ? fo : undefined}/>
-                </div>
-              </div>
-            </div>
-
-            {isManager && (
-              <button onClick={saveCompany} disabled={companyBusy}
-                style={{ marginTop:18, padding:'11px 22px', borderRadius:'var(--r-md)', border:'none', background:'linear-gradient(135deg,var(--teal),var(--teal-2))', color:'#fff', fontWeight:700, fontSize:13, cursor: companyBusy ? 'wait' : 'pointer', fontFamily:'var(--font)' }}>
-                {companyBusy ? 'Saving…' : 'Save Changes'}
-              </button>
-            )}
-          </>
-        )}
-      </Card>
-
-      {/* ── Notification Preferences ────────────────────────────────── */}
-      <Card>
-        <h2 style={{ fontSize:15, fontWeight:800, color:'var(--ink)', margin:'0 0 4px' }}>Notification Preferences</h2>
-        <p style={{ fontSize:12, color:'var(--text-faint)', margin:'0 0 18px' }}>Your own preferences — applies only to your account.</p>
-
-        {prefsLoading ? (
-          <div style={{ height:76, borderRadius:'var(--r-md)', background:'linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%)', backgroundSize:'400px', animation:'set-shimmer 1.4s infinite' }}/>
-        ) : (
-          <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
-            {[
-              { key:'email_enabled', label:'Email Notifications', live:prefs.email_provider_live, note:'Order updates, AI recommendations ready, and account alerts.' },
-              { key:'sms_enabled',   label:'SMS Notifications',   live:prefs.sms_provider_live,   note:'Text alerts for urgent order or delivery updates.' },
-            ].map((row, i) => (
-              <div key={row.key} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 0', borderTop: i>0 ? '1px solid var(--bg-surface)' : 'none' }}>
-                <div style={{ minWidth:0, paddingRight:16 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2 }}>
-                    <span style={{ fontSize:13, fontWeight:700, color:'var(--ink)' }}>{row.label}</span>
-                    {!row.live && <Badge tone="warning">Not yet active</Badge>}
+        <div className="adm-stack">
+          <div id="set-company" className="set-anchor">
+            <Panel title="Company info & branding" action={dirty && isManager ? <span className="adm-pill" style={{ background: 'var(--warning-bg)', color: 'var(--warning-text)' }}>Unsaved changes</span> : null}>
+              <p className="adm-sub" style={{ marginTop: -6 }}>VFRB Enterprise's identity, shown across the admin and customer portals.</p>
+              {companyLoading ? <SkeletonRows rows={4} h={40} /> : companyErr ? (
+                <Banner tone="warn" icon="warning" action={<button className="adm-btn" onClick={loadCompany}>Retry</button>}>Could not load company settings.</Banner>
+              ) : (
+                <>
+                  <div className="set-logo">
+                    <div className="set-logo-box">
+                      {company.logo_url ? <img src={company.logo_url} alt="Company logo" /> : <span>No logo</span>}
+                    </div>
+                    <div>
+                      <div className="adm-field">Logo</div>
+                      {isManager ? (
+                        <>
+                          <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => uploadLogo(e.target.files?.[0])} />
+                          <button className="adm-btn" onClick={() => fileRef.current?.click()} disabled={logoBusy}>
+                            <NavIcon name={logoBusy ? 'loading' : 'upload'} size={14} color="currentColor" /> {logoBusy ? 'Uploading…' : 'Change logo'}
+                          </button>
+                          <p className="adm-sub" style={{ margin: '6px 0 0' }}>PNG, JPG or WebP · max 2 MB</p>
+                        </>
+                      ) : <p className="adm-sub" style={{ margin: 0 }}>Only a manager can change the logo.</p>}
+                    </div>
                   </div>
-                  <p style={{ fontSize:11.5, color:'var(--text-faint)', margin:0 }}>{row.note}</p>
-                  {!row.live && (
-                    <p style={{ fontSize:11, color:'var(--warning)', margin:'3px 0 0' }}>
-                      {row.key === 'email_enabled'
-                        ? 'No production email provider is connected yet — this saves your preference but no real email is sent.'
-                        : 'No SMS provider is connected — this reserves the setting for when one is added.'}
-                    </p>
+                  <div className="set-form">
+                    <Field label="Company name" id="set-company_name"><input {...bind('company_name')} /></Field>
+                    <Field label="Address" id="set-address"><input {...bind('address')} placeholder="31 San Guillermo St., Bayanan, Muntinlupa City" /></Field>
+                    <div className="adm-grid-2">
+                      <Field label="Contact number" id="set-contact_number"><input {...bind('contact_number')} inputMode="tel" placeholder="09XXXXXXXXX" /></Field>
+                      <Field label="Contact email" id="set-contact_email"><input {...bind('contact_email')} type="email" placeholder="hello@vfrbenterprise.com" /></Field>
+                    </div>
+                  </div>
+                  {isManager && (
+                    <div className="adm-actionbar" style={{ marginTop: 18 }}>
+                      <button className="adm-btn primary" onClick={saveCompany} disabled={companyBusy || !dirty}>{companyBusy ? 'Saving…' : 'Save changes'}</button>
+                      {dirty && <button className="adm-btn" onClick={() => setCompany(saved)} disabled={companyBusy}>Discard</button>}
+                    </div>
                   )}
-                </div>
-                {/* MOBILE AUDIT FIX (Aug 22): the visible pill is 44×26 —
-                    below the project's 44px touch-target minimum on the
-                    vertical axis. Rather than grow the pill itself (which
-                    would change its look), the BUTTON is now the 44×44 hit
-                    area and the pill is a centered inner element, same
-                    visual size as before. */}
-                <button onClick={() => togglePref(row.key)} disabled={prefsBusy}
-                  style={{ flexShrink:0, width:44, height:44, padding:0, border:'none',
-                    background:'transparent', cursor: prefsBusy ? 'wait' : 'pointer',
-                    display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  <span style={{ width:44, height:26, borderRadius:'var(--r-full)', position:'relative',
-                    background: prefs[row.key] ? 'var(--teal)' : 'var(--border)', transition:'background .15s' }}>
-                    <motion.span animate={{ x: prefs[row.key] ? 20 : 2 }} transition={{ type:'spring', stiffness:500, damping:30 }}
-                      style={{ position:'absolute', top:2, width:22, height:22, borderRadius:'50%', background:'#fff', boxShadow:'0 1px 3px rgba(0,0,0,.2)' }}/>
-                  </span>
-                </button>
-              </div>
-            ))}
+                </>
+              )}
+            </Panel>
           </div>
-        )}
-      </Card>
 
-      {/* ── User & Role Shortcuts ───────────────────────────────────── */}
-      {isManager && (
-        <Card>
-          <h2 style={{ fontSize:15, fontWeight:800, color:'var(--ink)', margin:'0 0 4px' }}>User Management</h2>
-          <p style={{ fontSize:12, color:'var(--text-faint)', margin:'0 0 16px' }}>Manage staff and manager accounts.</p>
-          <Link to="/admin/users" style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'10px 18px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', color:'var(--ink)', fontWeight:700, fontSize:13, textDecoration:'none', fontFamily:'var(--font)' }}>
-            <NavIcon name="users" size={15} color="var(--ink)" /> Go to User Management →
-          </Link>
-        </Card>
-      )}
+          <div id="set-notify" className="set-anchor">
+            <Panel title="Notification preferences">
+              <p className="adm-sub" style={{ marginTop: -6 }}>Your own preferences — they apply only to your account.</p>
+              {prefsLoading ? <SkeletonRows rows={2} h={64} /> : NOTIFY.map((row, i) => {
+                const live = prefs[row.live]; const on = !!prefs[row.key];
+                return (
+                  <div key={row.key} className="set-pref" style={{ borderTop: i ? '1px solid var(--bg-surface)' : 'none' }}>
+                    <span className="set-pref-ico"><NavIcon name={row.icon} size={18} color="currentColor" /></span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <b style={{ fontSize: 13 }}>{row.label}</b>
+                        {!live && <span className="adm-pill" style={{ background: 'var(--warning-bg)', color: 'var(--warning-text)' }}>Not yet active</span>}
+                      </div>
+                      <p className="adm-sub" style={{ margin: '2px 0 0' }}>{row.note}</p>
+                      {!live && <p style={{ fontSize: 11, color: 'var(--warning-text)', margin: '3px 0 0' }}>{row.warn}</p>}
+                    </div>
+                    <button role="switch" aria-checked={on} aria-label={row.label} className={`set-switch${on ? ' on' : ''}`} disabled={prefsBusy} onClick={() => togglePref(row.key)}><i /></button>
+                  </div>
+                );
+              })}
+            </Panel>
+          </div>
 
-      <AnimatePresence>
-        {toast && <Toast key={toast.msg+toast.type} msg={toast.msg} type={toast.type} onDone={() => setToast(null)}/>}
-      </AnimatePresence>
-
-      {/* MOBILE AUDIT FIX (Aug 22): Contact Number / Contact Email were a
-          hardcoded 2-column grid with no mobile override anywhere in this
-          file, unlike every other 2-col form grid in the app (which uses
-          the .adm-grid-2 convention already stacking at ≤767px). Native
-          input text-scroll kept it from visually breaking, but it was
-          inconsistent and cramped. Stacks to 1 column at ≤767px, same as
-          every other form grid in the codebase. */}
-      <style>{`
-        @keyframes set-shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
-        @media (max-width: 767px) {
-          .set-contact-grid { grid-template-columns: 1fr !important; }
-        }
-      `}</style>
-    </div>
+          {isManager && (
+            <div id="set-users" className="set-anchor">
+              <Panel title="User management">
+                <p className="adm-sub" style={{ marginTop: -6 }}>Create and manage staff and manager accounts.</p>
+                <Link to="/admin/users" className="adm-btn" style={{ textDecoration: 'none' }}><NavIcon name="users" size={14} color="currentColor" /> Open user management</Link>
+              </Panel>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
   );
 }

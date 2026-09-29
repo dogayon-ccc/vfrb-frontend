@@ -54,13 +54,13 @@
 //                    expected_delivery_date, order_color_hex, received_color_hex,
 //                    color_mismatch, color_confirmed, color_notes, status
 
-import { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence }           from 'framer-motion';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { motion }                            from 'framer-motion';
 import axios                                 from 'axios';
-import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
+import { cacheGet, cacheSet, cacheClear } from '../../utils/cache';
 import { NavIcon }                             from '../../components/ui/icons';
 import { escapeHtml }                          from '../../utils/escapeHtml';
-import { PageHeader, StatGrid, PillTabs, ErrorBlock } from '../../components/admin/AdminUI';
+import { PageHeader, StatGrid, PillTabs, Panel, StatusPill, SearchBox, Banner, Toast, useToast, ErrorBlock, SkeletonRows, FilterSheet, FilterButton, useIsMobile } from '../../components/admin/AdminUI';
 
 const T    = 'var(--teal)';
 const T2   = 'var(--teal-2)';
@@ -104,20 +104,6 @@ function deltaE(h1, h2) {
   if (!h1 || !h2) return null;
   const [r1,g1,b1]=hexToRgb(h1), [r2,g2,b2]=hexToRgb(h2);
   return Math.round(Math.sqrt((r1-r2)**2+(g1-g2)**2+(b1-b2)**2)/4.42*10)/10;
-}
-
-// ── Toast ─────────────────────────────────────────────────────────────────────
-function Toast({ msg, type, onDone }) {
-  useEffect(() => { const t=setTimeout(onDone,4000); return ()=>clearTimeout(t); },[onDone]);
-  return (
-    <motion.div initial={{ opacity:0,y:16 }} animate={{ opacity:1,y:0 }} exit={{ opacity:0,y:16 }}
-      style={{ position:'fixed',bottom:24,right:24,zIndex:9999,padding:'12px 20px',borderRadius:12,
-        background:type==='error'?'var(--danger)':type==='warn'?'var(--warning)':T,
-        color:'var(--text-on-accent)',fontSize:13,fontWeight:600,fontFamily:FONT,
-        boxShadow:'0 8px 24px rgba(0,0,0,.18)',maxWidth:400,lineHeight:1.5 }}>
-      {msg}
-    </motion.div>
-  );
 }
 
 // ── ColorSwatchMatch ──────────────────────────────────────────────────────────
@@ -667,341 +653,250 @@ function ConfirmColorModal({ po, onClose, onDone }) {
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
+const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—');
+const peso = (v) => `₱${Number(v ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
+const PO_TABS = ['all', 'sent', 'received', 'closed'];
+
+function PoActions({ po, isManager, onReceive, onConfirm, stop }) {
+  const hold = po.color_mismatch && !po.color_confirmed;
+  const click = (fn) => (e) => { if (stop) e.stopPropagation(); fn(); };
+  return (
+    <>
+      {po.status === 'sent' && <button className="adm-btn primary" onClick={click(() => onReceive(po))}><NavIcon name="inventory" size={13} color="currentColor" /> Receive + match color</button>}
+      {hold && isManager && <button className="adm-btn" style={{ background: 'var(--warning-bg)', borderColor: 'var(--warning-border)', color: 'var(--warning-text)' }} onClick={click(() => onConfirm(po))}><NavIcon name="colorZone" size={13} color="currentColor" /> Confirm color</button>}
+    </>
+  );
+}
+
+function PoFlags({ po }) {
+  const hold = po.color_mismatch && !po.color_confirmed;
+  return (
+    <>
+      {hold && <span className="adm-pill" style={{ background: 'var(--warning-bg)', color: 'var(--warning-text)' }}>Color mismatch — cutting held</span>}
+      {po.color_confirmed && po.color_mismatch && <span className="adm-pill" style={{ background: 'var(--success-bg)', color: 'var(--success-text)' }}>Color override approved</span>}
+    </>
+  );
+}
+
+function ColorCompare({ po }) {
+  if (po.status !== 'received' || !po.order_color_hex) return null;
+  const de = deltaE(po.order_color_hex, po.received_color_hex);
+  const hold = po.color_mismatch && !po.color_confirmed;
+  return (
+    <div className="po-swatches">
+      {[['Order', po.order_color_hex], ['Received', po.received_color_hex]].map(([l, h]) => (
+        <div key={l}><span>{l}</span><i style={{ background: h ?? 'var(--bg)', borderColor: hold && l === 'Received' ? 'var(--danger-border)' : 'var(--border)' }} /></div>
+      ))}
+      {de !== null && <b style={{ color: hold ? 'var(--danger)' : 'var(--success)' }}>ΔE {de}</b>}
+    </div>
+  );
+}
+
 export default function AdminPurchaseOrders() {
-  const [pos,        setPos]        = useState([]);
-  const [rfqs,       setRfqs]       = useState([]);
-  const [suppliers,  setSuppliers]  = useState([]);
-  const [materials,  setMaterials]  = useState([]);
-  const [loading,    setLoading]    = useState(true);
-  const [tab,        setTab]        = useState('pos');
-  const [receiving,  setReceiving]  = useState(null);
+  const [pos, setPos] = useState([]);
+  const [rfqs, setRfqs] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
+  const [materials, setMaterials] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadErr, setLoadErr] = useState(false);
+  const [tab, setTab] = useState('pos');
+  const [poFilter, setPoFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  const [receiving, setReceiving] = useState(null);
   const [confirming, setConfirming] = useState(null);
-  const [newRFQ,     setNewRFQ]     = useState(false);
-  const [logResp,    setLogResp]    = useState(null);  // RFQ to log response for
-  const [convertPO,  setConvertPO]  = useState(null);  // RFQ to convert (manager selects response)
-  const [toast,      setToast]      = useState(null);
+  const [newRFQ, setNewRFQ] = useState(false);
+  const [logResp, setLogResp] = useState(null);
+  const [pickFor, setPickFor] = useState(null);
+  const [toast, setToast] = useToast();
+  const [sheet, setSheet] = useState(false);
+  const isMobile = useIsMobile();
 
-  const user      = (() => { try { return JSON.parse(localStorage.getItem('vfrb_user')||'{}'); } catch { return {}; } })();
+  const user = (() => { try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}'); } catch { return {}; } })();
   const isManager = user.role === 'manager';
-
-  const showToast = (msg, type='success') => setToast({ msg, type });
+  const showToast = (msg, type = 'success') => setToast({ msg, type });
 
   const load = useCallback((force = false) => {
     if (!force) {
-      const cached = cacheGet('purchase_orders_full');
-      if (cached) {
-        setPos(cached.pos); setRfqs(cached.rfqs);
-        setSuppliers(cached.suppliers); setMaterials(cached.materials);
-        setLoading(false); return;
-      }
+      const c = cacheGet('purchase_orders_full');
+      if (c) { setPos(c.pos); setRfqs(c.rfqs); setSuppliers(c.suppliers); setMaterials(c.materials); setLoading(false); return; }
     }
-    setLoading(true);
-    // DSA: Promise.allSettled — parallel O(max(t1..t4)) not O(t1+t2+t3+t4)
+    setLoading(true); setLoadErr(false);
     Promise.allSettled([
-      axios.get('/api/admin/purchase-orders'),
-      axios.get('/api/admin/rfq'),
-      axios.get('/api/admin/suppliers'),
-      axios.get('/api/admin/materials?per_page=200'),
-    ]).then(([p,r,s,m]) => {
-      const pos       = p.status==='fulfilled'?(p.value.data?.data??p.value.data??[]):[];
-      const rfqs      = r.status==='fulfilled'?(r.value.data?.data??r.value.data??[]):[];
-      const suppliers = s.status==='fulfilled'?(s.value.data?.data??s.value.data??[]):[];
-      const materials = m.status==='fulfilled'?(m.value.data?.data??m.value.data??[]):[];
-      setPos(pos); setRfqs(rfqs); setSuppliers(suppliers); setMaterials(materials);
-      cacheSet('purchase_orders_full', { pos, rfqs, suppliers, materials }, 300_000);
+      axios.get('/api/admin/purchase-orders'), axios.get('/api/admin/rfq'),
+      axios.get('/api/admin/suppliers'), axios.get('/api/admin/materials?per_page=200'),
+    ]).then(([p, r, s, m]) => {
+      const pick = (x) => (x.status === 'fulfilled' ? (x.value.data?.data ?? x.value.data ?? []) : []);
+      if (p.status !== 'fulfilled' && r.status !== 'fulfilled') { setLoadErr(true); return; }
+      const next = { pos: pick(p), rfqs: pick(r), suppliers: pick(s), materials: pick(m) };
+      setPos(next.pos); setRfqs(next.rfqs); setSuppliers(next.suppliers); setMaterials(next.materials);
+      cacheSet('purchase_orders_full', next, 300_000);
     }).finally(() => setLoading(false));
   }, []);
-
   useEffect(() => { load(); }, [load]);
 
-  const mismatchCount = pos.filter(p=>p.color_mismatch&&!p.color_confirmed).length;
+  const refresh = () => { cacheClear('purchase_orders_full'); load(true); };
+  const mismatchCount = pos.filter((p) => p.color_mismatch && !p.color_confirmed).length;
+  const openRfqs = rfqs.filter((r) => r.status === 'open').length;
+  const toReceive = pos.filter((p) => p.status === 'sent').length;
 
-  // Manager: convert RFQ → PO by picking a response
+  const poCounts = useMemo(() => pos.reduce((a, p) => { a[p.status] = (a[p.status] ?? 0) + 1; return a; }, {}), [pos]);
+  const poTabs = PO_TABS.map((k) => ({ key: k, label: k === 'all' ? 'All' : (PO_STATUS[k]?.l ?? k), count: k === 'all' ? pos.length : (poCounts[k] ?? 0) }));
+  const q = search.toLowerCase().trim();
+  const filteredPos = pos.filter((p) => (poFilter === 'all' || p.status === poFilter)
+    && (!q || p.po_number?.toLowerCase().includes(q) || p.supplier_name?.toLowerCase().includes(q)
+      || (Array.isArray(p.items) ? p.items : []).some((i) => i.material_name?.toLowerCase().includes(q))));
+  const filteredRfqs = rfqs.filter((r) => !q || String(r.rfq_id).includes(q) || r.material_name?.toLowerCase().includes(q));
+
   const handleConvertToPO = async (rfq, responseId) => {
     try {
       const r = await axios.patch(`/api/admin/rfq/${rfq.rfq_id}/convert-po`, { response_id: responseId });
-      showToast(r.data.message);
-      setConvertPO(null);
-      load();
-    } catch(e) { showToast(e.response?.data?.message ?? 'Failed.', 'error'); }
+      showToast(r.data.message); setPickFor(null); refresh();
+    } catch (e) { showToast(e.response?.data?.message ?? 'Failed.', 'error'); }
   };
+  const closeRfq = async (rfq) => {
+    try { await axios.patch(`/api/admin/rfq/${rfq.rfq_id}/close`); showToast(`RFQ #${rfq.rfq_id} closed.`); refresh(); }
+    catch (e) { showToast(e.response?.data?.message ?? 'Failed.', 'error'); }
+  };
+
+  const empty = (icon, msg, cta) => (
+    <div className="adm-empty"><NavIcon name={icon} size={30} color="currentColor" /><div style={{ marginTop: 8, fontWeight: 700 }}>{msg}</div>{cta}</div>
+  );
 
   return (
     <>
-      <style>{`@keyframes sk{0%{background-position:-400px 0}100%{background-position:400px 0}}`}</style>
+      <Toast toast={toast} />
+      {sheet && <FilterSheet title="Filter by status" options={poTabs} value={poFilter} onChange={setPoFilter} onClose={() => setSheet(false)} isMobile={isMobile} />}
+      {newRFQ && <NewRFQModal materials={materials} onClose={() => setNewRFQ(false)} onDone={(msg) => { setNewRFQ(false); showToast(msg); refresh(); }} />}
+      {logResp && <LogResponseModal rfq={logResp} suppliers={suppliers} onClose={() => setLogResp(null)} onDone={(msg) => { setLogResp(null); showToast(msg); refresh(); }} />}
+      {receiving && <ReceiveModal po={receiving} onClose={() => setReceiving(null)} onDone={(msg, hm) => { setReceiving(null); showToast(msg, hm ? 'warn' : 'success'); refresh(); }} />}
+      {confirming && <ConfirmColorModal po={confirming} onClose={() => setConfirming(null)} onDone={(msg) => { setConfirming(null); showToast(msg); refresh(); }} />}
 
-      <AnimatePresence>
-        {toast && <Toast key="t" msg={toast.msg} type={toast.type} onDone={() => setToast(null)}/>}
-      </AnimatePresence>
-
-      {newRFQ    && <NewRFQModal materials={materials} onClose={() => setNewRFQ(false)}
-                      onDone={msg=>{ setNewRFQ(false); showToast(msg); load(); }}/>}
-      {logResp   && <LogResponseModal rfq={logResp} suppliers={suppliers}
-                      onClose={() => setLogResp(null)}
-                      onDone={msg=>{ setLogResp(null); showToast(msg); load(); }}/>}
-      {receiving  && <ReceiveModal po={receiving} onClose={() => setReceiving(null)}
-                      onDone={(msg,hm)=>{ setReceiving(null); showToast(msg,hm?'warn':'success'); load(); }}/>}
-      {confirming && <ConfirmColorModal po={confirming} onClose={() => setConfirming(null)}
-                      onDone={msg=>{ setConfirming(null); showToast(msg); load(); }}/>}
-
-      <PageHeader title="Procurement" sub="RFQ → PO → Goods Receipt · Color swatch matching on delivery">
-        {mismatchCount > 0 && (
-          <span className="adm-chip warn" style={{ padding:'8px 14px', fontSize:12 }}>
-            {mismatchCount} color mismatch{mismatchCount!==1?'es':''}{isManager?' — review required':' — awaiting manager'}
-          </span>
-        )}
-        <button className="adm-btn primary" onClick={() => setNewRFQ(true)}>+ New RFQ</button>
+      <PageHeader title="Procurement" sub="RFQ → Purchase Order → Goods receipt · color swatch matching on delivery">
+        <button className="adm-btn" onClick={refresh}><NavIcon name="refresh" size={14} color="currentColor" /> Refresh</button>
+        <button className="adm-btn primary" onClick={() => setNewRFQ(true)}><NavIcon name="add" size={14} color="currentColor" /> New RFQ</button>
       </PageHeader>
 
-      <PillTabs value={tab} onChange={setTab} tabs={[
-        { key:'pos', label:'Purchase Orders' },
-        { key:'rfq', label:'RFQ', count: rfqs.filter(r=>r.status==='open').length || undefined },
+      {mismatchCount > 0 && (
+        <Banner tone="warn" icon="warning">{mismatchCount} color mismatch{mismatchCount !== 1 ? 'es' : ''} — cutting is held{isManager ? '; review and confirm below.' : ' until a manager confirms.'}</Banner>
+      )}
+      {loadErr && <div style={{ marginBottom: 14 }}><ErrorBlock msg="Could not load procurement data." onRetry={refresh} /></div>}
+
+      <StatGrid loading={loading} items={[
+        { label: 'Open RFQs', value: openRfqs, color: 'var(--info)', onClick: () => setTab('rfq') },
+        { label: 'To receive', value: toReceive, color: 'var(--teal)', onClick: () => { setTab('pos'); setPoFilter('sent'); } },
+        { label: 'Color holds', value: mismatchCount, color: mismatchCount ? 'var(--warning-text)' : undefined },
+        { label: 'Purchase orders', value: pos.length, onClick: () => { setTab('pos'); setPoFilter('all'); } },
       ]} />
 
-      {/* ── PO TAB ── */}
+      <PillTabs value={tab} onChange={setTab} tabs={[{ key: 'pos', label: 'Purchase orders', count: pos.length }, { key: 'rfq', label: 'RFQs', count: openRfqs || null }]} />
+
+      <div className="adm-toolbar">
+        <SearchBox value={search} onChange={setSearch} placeholder={tab === 'pos' ? 'Search PO number, supplier, material…' : 'Search RFQ or material…'} label="Search procurement" />
+        {tab === 'pos' && <FilterButton label={`Status: ${poTabs.find((t) => t.key === poFilter)?.label}`} onClick={() => setSheet(true)} />}
+      </div>
+
       {tab === 'pos' && (
-        <div style={{ display:'flex',flexDirection:'column',gap:14 }}>
-          {loading ? Array(3).fill(0).map((_,i) => (
-            <div key={i} style={{ ...card, padding:'18px 22px' }}>
-              {[80,55,40].map(w => <div key={w} style={{ ...SK, height:12, width:`${w}%`, marginBottom:10 }}/>)}
-            </div>
-          )) : pos.length === 0 ? (
-            <div style={{ ...card,padding:'50px',textAlign:'center' }}>
-              <p style={{ fontSize:36,margin:'0 0 12px',opacity:.3, display:'flex', justifyContent:'center' }}><NavIcon name="orders" size={36} color="currentColor"/></p>
-              <p style={{ fontSize:14,color:'var(--text-subtle)',fontFamily:FONT }}>
-                No purchase orders yet. Create one from an approved RFQ.
-              </p>
-            </div>
-          ) : pos.map(po => {
-            const st         = PO_STATUS[po.status] ?? PO_STATUS.pending;
-            const items      = Array.isArray(po.items) ? po.items : [];
-            const hasMismatch= po.color_mismatch && !po.color_confirmed;
-            const de         = deltaE(po.order_color_hex, po.received_color_hex);
-            return (
-              <motion.div key={po.po_id} layout whileHover={{ y:-1 }}
-                style={{ ...card,padding:'18px 22px',
-                  borderLeft:`4px solid ${hasMismatch?'var(--warning)':st.c}` }}>
-                <div style={{ display:'flex',justifyContent:'space-between',
-                  alignItems:'flex-start',flexWrap:'wrap',gap:10,marginBottom:10 }}>
-                  <div>
-                    <div style={{ display:'flex',alignItems:'center',gap:8,flexWrap:'wrap' }}>
-                      <p style={{ fontSize:15,fontWeight:800,color:'var(--ink)',margin:0,fontFamily:FONT }}>
-                        {po.po_number}
-                      </p>
-                      <span style={{ padding:'3px 9px',borderRadius:99,fontSize:10,fontWeight:700,
-                        background:st.bg,color:st.c,fontFamily:FONT }}>{st.l}</span>
-                      {hasMismatch && (
-                        <span style={{ padding:'3px 9px',borderRadius:99,fontSize:10,fontWeight:700,
-                          background:'var(--warning-bg)',color:'#92400e',fontFamily:FONT }}>
-                          <NavIcon name="warning" size={12} color="currentColor" style={{verticalAlign:'-2px',marginRight:4}}/>Color Mismatch — Cutting Held
-                        </span>
-                      )}
-                      {po.color_confirmed && po.color_mismatch && (
-                        <span style={{ padding:'3px 9px',borderRadius:99,fontSize:10,fontWeight:700,
-                          background:'var(--success-bg)',color:'#166534',fontFamily:FONT }}>
-                          <NavIcon name="success" size={12} color="currentColor" style={{verticalAlign:'-2px',marginRight:4}}/>Color Override Approved
-                        </span>
-                      )}
-                    </div>
-                    <p style={{ fontSize:12,color:'var(--text-subtle)',margin:'4px 0 0',fontFamily:FONT }}>
-                      {po.supplier_name ?? '—'} ·
-                      Expected: {po.expected_delivery_date ?? '—'} ·
-                      ₱{Number(po.total_amount??0).toLocaleString('en-PH',{minimumFractionDigits:2})}
-                    </p>
-                  </div>
-                  <div style={{ display:'flex',gap:8,flexWrap:'wrap' }}>
-                    {po.status === 'sent' && (
-                      <button onClick={()=>setReceiving(po)}
-                        style={{ padding:'7px 14px',borderRadius:9,border:'none',
-                          background:`linear-gradient(135deg,${T},${T2})`,
-                          color:'var(--text-on-accent)',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:FONT }}>
-                        <NavIcon name="inventory" size={13} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>Receive + Match Color
-                      </button>
-                    )}
-                    {hasMismatch && isManager && (
-                      <button onClick={()=>setConfirming(po)}
-                        style={{ padding:'7px 14px',borderRadius:9,border:'none',
-                          background:'linear-gradient(135deg,var(--warning),var(--warning-border))',
-                          color:'var(--text-on-accent)',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:FONT }}>
-                        <NavIcon name="designStudio" size={13} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>Confirm Color
-                      </button>
-                    )}
-                  </div>
+        <>
+          <div className="adm-only-d"><PillTabs value={poFilter} onChange={setPoFilter} tabs={poTabs} /></div>
+          <div className="adm-only-d">
+            <Panel flush>
+              <div className="adm-tbl-scroll">
+                <table className="adm-table">
+                  <thead><tr><th>PO</th><th>Supplier</th><th>Items</th><th className="adm-hide-t">Expected</th><th style={{ textAlign: 'right' }}>Total</th><th>Status</th><th style={{ textAlign: 'right' }}>Actions</th></tr></thead>
+                  <tbody>
+                    {!loading && filteredPos.map((po) => {
+                      const items = Array.isArray(po.items) ? po.items : [];
+                      return (
+                        <tr key={po.po_id}>
+                          <td style={{ fontWeight: 800, color: 'var(--teal)', whiteSpace: 'nowrap' }}>{po.po_number}</td>
+                          <td>{po.supplier_name ?? '—'}</td>
+                          <td style={{ maxWidth: 260 }}>
+                            <div className="po-items">{items.map((it, i) => <span key={i}>{it.material_name} · {it.qty} {it.unit}</span>)}{items.length === 0 && '—'}</div>
+                            <ColorCompare po={po} />
+                          </td>
+                          <td className="adm-hide-t" style={{ whiteSpace: 'nowrap', fontSize: 12, color: 'var(--text-subtle)' }}>{fmtDate(po.expected_delivery_date)}</td>
+                          <td style={{ textAlign: 'right', fontWeight: 700, whiteSpace: 'nowrap' }}>{peso(po.total_amount)}</td>
+                          <td><div style={{ display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'flex-start' }}><StatusPill status={po.status} label={PO_STATUS[po.status]?.l} /><PoFlags po={po} /></div></td>
+                          <td><div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}><PoActions po={po} isManager={isManager} onReceive={setReceiving} onConfirm={setConfirming} /></div></td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {loading && <SkeletonRows rows={5} h={52} />}
+              {!loading && filteredPos.length === 0 && empty('procurement', search || poFilter !== 'all' ? 'No purchase orders match' : 'No purchase orders yet. Create one from an approved RFQ.',
+                (search || poFilter !== 'all') && <button className="adm-link-btn" onClick={() => { setSearch(''); setPoFilter('all'); }}>Clear filters</button>)}
+            </Panel>
+          </div>
+          <div className="adm-only-m adm-stagger" key={`${poFilter}-${search}`}>
+            {loading ? <SkeletonRows rows={3} h={140} /> : filteredPos.length === 0 ? empty('procurement', 'No purchase orders match') : filteredPos.map((po, i) => {
+              const items = Array.isArray(po.items) ? po.items : [];
+              const hold = po.color_mismatch && !po.color_confirmed;
+              return (
+                <div key={po.po_id} className="adm-mcard accent" style={{ '--i': Math.min(i, 8), '--acc': hold ? 'var(--warning)' : (PO_STATUS[po.status]?.c ?? 'var(--teal)') }}>
+                  <div className="adm-mrow"><b style={{ color: 'var(--teal)' }}>{po.po_number}</b><StatusPill status={po.status} label={PO_STATUS[po.status]?.l} /></div>
+                  <div style={{ marginTop: 6, fontWeight: 700 }}>{po.supplier_name ?? '—'}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-subtle)' }}>Expected {fmtDate(po.expected_delivery_date)} · {peso(po.total_amount)}</div>
+                  <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}><PoFlags po={po} /></div>
+                  <div className="po-items" style={{ marginTop: 8 }}>{items.map((it, j) => <span key={j}>{it.material_name} · {it.qty} {it.unit}</span>)}</div>
+                  <ColorCompare po={po} />
+                  {(po.status === 'sent' || (hold && isManager)) && <div className="adm-mfoot"><PoActions po={po} isManager={isManager} onReceive={setReceiving} onConfirm={setConfirming} /></div>}
                 </div>
-
-                {po.status==='received' && po.order_color_hex && (
-                  <div style={{ display:'flex',alignItems:'center',gap:14,marginBottom:10,
-                    padding:'10px 12px',borderRadius:10,background:'var(--bg)',border:'1px solid var(--border)' }}>
-                    <div style={{ display:'flex',gap:8,alignItems:'center' }}>
-                      {[['Order',po.order_color_hex],['Received',po.received_color_hex]].map(([l,h])=>(
-                        <div key={l}>
-                          <p style={{ fontSize:9,color:'var(--text-faint)',margin:'0 0 3px',
-                            textTransform:'uppercase',letterSpacing:'.06em',fontFamily:FONT }}>{l}</p>
-                          <div style={{ width:32,height:32,borderRadius:7,
-                            border:`1.5px solid ${hasMismatch&&l==='Received'?'var(--danger-border)':'var(--border)'}`,
-                            background:h??'var(--bg)' }}/>
-                        </div>
-                      ))}
-                    </div>
-                    {de !== null && (
-                      <p style={{ fontSize:11,fontWeight:700,fontFamily:FONT,
-                        color:hasMismatch?'var(--danger)':'var(--success)',margin:0 }}>
-                        {hasMismatch?<><NavIcon name="warning" size={11} color="currentColor" style={{verticalAlign:'-2px',marginRight:3}}/>{`ΔE = ${de}`}</>:<><NavIcon name="success" size={11} color="currentColor" style={{verticalAlign:'-2px',marginRight:3}}/>{`ΔE = ${de}`}</>}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {items.length > 0 && (
-                  <div style={{ display:'flex',flexWrap:'wrap',gap:6 }}>
-                    {items.map((item,i) => (
-                      <span key={i} style={{ padding:'4px 10px',borderRadius:8,
-                        background:'var(--bg)',border:'1px solid var(--border)',fontSize:11,
-                        color:'var(--ink)',fontFamily:FONT }}>
-                        {item.material_name} · {item.qty} {item.unit}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </motion.div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        </>
       )}
 
-      {/* ── RFQ TAB ── */}
       {tab === 'rfq' && (
-        <div style={{ display:'flex',flexDirection:'column',gap:14 }}>
-          {loading ? Array(2).fill(0).map((_,i) => (
-            <div key={i} style={{ ...card, padding:'18px 22px' }}>
-              {[70,50,85].map(w => <div key={w} style={{ ...SK, height:12, width:`${w}%`, marginBottom:10 }}/>)}
-            </div>
-          )) : rfqs.length === 0 ? (
-            <div style={{ ...card,padding:'50px',textAlign:'center' }}>
-              <p style={{ fontSize:36,margin:'0 0 12px',opacity:.3, display:'flex', justifyContent:'center' }}><NavIcon name="invoice" size={36} color="currentColor"/></p>
-              <p style={{ fontSize:14,color:'var(--text-subtle)',marginBottom:16,fontFamily:FONT }}>
-                No RFQs yet. Create one when stock is low.
-              </p>
-              <button onClick={()=>setNewRFQ(true)}
-                style={{ padding:'10px 22px',borderRadius:11,border:'none',
-                  background:`linear-gradient(135deg,${T},${T2})`,
-                  color:'var(--text-on-accent)',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:FONT }}>
-                + New RFQ
-              </button>
-            </div>
-          ) : rfqs.map(rfq => {
-            const isOpen   = rfq.status === 'open';
-            const respCount = rfq.responses?.length ?? 0;
+        <div className="po-rfqs adm-stagger" key={search}>
+          {loading ? <SkeletonRows rows={3} h={120} /> : filteredRfqs.length === 0 ? (
+            <Panel>{empty('invoice', search ? 'No RFQs match' : 'No RFQs yet. Create one when stock is low.', !search && <button className="adm-btn primary" style={{ marginTop: 12 }} onClick={() => setNewRFQ(true)}>New RFQ</button>)}</Panel>
+          ) : filteredRfqs.map((rfq, idx) => {
+            const isOpen = rfq.status === 'open';
+            const responses = rfq.responses ?? [];
+            const picking = pickFor === rfq.rfq_id;
             return (
-              <motion.div key={rfq.rfq_id} layout whileHover={{ y:-1 }}
-                style={{ ...card,padding:'18px 22px',
-                  borderLeft:`4px solid ${isOpen?'var(--info)':'var(--text-faint)'}` }}>
-                <div style={{ display:'flex',justifyContent:'space-between',
-                  alignItems:'flex-start',flexWrap:'wrap',gap:10,marginBottom:respCount?12:0 }}>
-                  <div>
-                    <div style={{ display:'flex',alignItems:'center',gap:8,marginBottom:3,flexWrap:'wrap' }}>
-                      <p style={{ fontSize:15,fontWeight:800,color:'var(--ink)',margin:0,fontFamily:FONT }}>
-                        RFQ #{rfq.rfq_id} — {rfq.material_name ?? '—'}
-                      </p>
-                      <span style={{ padding:'3px 9px',borderRadius:99,fontSize:10,fontWeight:700,
-                        background:isOpen?'var(--info-bg)':'var(--bg-surface)',
-                        color:isOpen?'var(--info)':'var(--text-subtle)',fontFamily:FONT }}>
-                        {rfq.status?.toUpperCase()}
-                      </span>
-                      {!!rfq.auto_generated && (
-                        <span title="Created automatically because this material crossed its reorder threshold — review and respond/close like any other RFQ."
-                          style={{ padding:'3px 9px',borderRadius:99,fontSize:10,fontWeight:700,
-                          background:'var(--teal-50)',color:'var(--teal)',border:'1px solid #02809044',fontFamily:FONT }}>
-                          <NavIcon name="ai" size={11} color="currentColor" style={{verticalAlign:'-2px',marginRight:3}}/>Auto-suggested
-                        </span>
-                      )}
+              <div key={rfq.rfq_id} className="adm-mcard accent" style={{ '--i': Math.min(idx, 8), '--acc': isOpen ? 'var(--info)' : 'var(--text-faint)', marginBottom: 0 }}>
+                <div className="adm-mrow" style={{ alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <b style={{ fontSize: 15 }}>RFQ #{rfq.rfq_id} — {rfq.material_name ?? '—'}</b>
+                      <span className="adm-pill" style={{ background: isOpen ? 'var(--info-bg)' : 'var(--bg-surface)', color: isOpen ? 'var(--info-text)' : 'var(--text-subtle)' }}>{rfq.status}</span>
+                      {!!rfq.auto_generated && <span className="adm-pill" title="Created automatically because this material crossed its reorder threshold." style={{ background: 'var(--teal-50)', color: 'var(--teal)' }}>Auto-suggested</span>}
                     </div>
-                    <p style={{ fontSize:12,color:'var(--text-subtle)',margin:0,fontFamily:FONT }}>
-                      {rfq.qty_needed} {rfq.unit} needed ·
-                      By: {rfq.needed_by_date ?? 'ASAP'} ·
-                      Created by: {rfq.auto_generated ? 'System (automation)' : (rfq.created_by_name ?? '—')} ·
-                      {respCount} response{respCount!==1?'s':''}
-                    </p>
-                  </div>
-                  <div style={{ display:'flex',gap:8,flexWrap:'wrap' }}>
-                    <button onClick={()=>printRFQ(rfq)}
-                      style={{ padding:'6px 12px',borderRadius:8,border:'1px solid var(--border)',
-                        background:'var(--bg-card)',color:'var(--text-subtle)',fontSize:11,fontWeight:600,
-                        cursor:'pointer',fontFamily:FONT }}>
-                      <NavIcon name="print" size={13} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>Print
-                    </button>
-                    {isOpen && (
-                      <button onClick={()=>setLogResp(rfq)}
-                        style={{ padding:'6px 14px',borderRadius:8,border:'none',
-                          background:'linear-gradient(135deg,var(--info),var(--info))',
-                          color:'var(--text-on-accent)',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:FONT }}>
-                        + Log Response
-                      </button>
-                    )}
-                    {isOpen && isManager && respCount > 0 && (
-                      <button onClick={()=>setConvertPO(rfq)}
-                        style={{ padding:'6px 14px',borderRadius:8,border:'none',
-                          background:`linear-gradient(135deg,${T},${T2})`,
-                          color:'var(--text-on-accent)',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:FONT }}>
-                        <NavIcon name="success" size={13} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>Convert to PO
-                      </button>
-                    )}
-                    {isOpen && (
-                      <button onClick={async()=>{
-                        try { await axios.patch(`/api/admin/rfq/${rfq.rfq_id}/close`); showToast(`RFQ #${rfq.rfq_id} closed.`); load(); }
-                        catch(e) { showToast(e.response?.data?.message??'Failed.','error'); }
-                      }}
-                        style={{ padding:'6px 12px',borderRadius:8,border:'1px solid var(--danger-border)',
-                          background:'var(--danger-bg)',color:'var(--danger)',fontSize:11,fontWeight:600,
-                          cursor:'pointer',fontFamily:FONT }}>
-                        Close RFQ
-                      </button>
-                    )}
+                    <div style={{ fontSize: 12, color: 'var(--text-subtle)', marginTop: 4 }}>
+                      {rfq.qty_needed} {rfq.unit} needed · by {rfq.needed_by_date ?? 'ASAP'} · {rfq.auto_generated ? 'System (automation)' : (rfq.created_by_name ?? '—')} · {responses.length} response{responses.length !== 1 ? 's' : ''}
+                    </div>
                   </div>
                 </div>
-
-                {/* Responses list */}
-                {respCount > 0 && (
-                  <div style={{ marginTop:10,background:'var(--bg)',borderRadius:10,overflow:'hidden',
-                    border:'1px solid var(--border)' }}>
-                    {rfq.responses.map((resp,i) => (
-                      <div key={resp.response_id}
-                        style={{ padding:'10px 14px',
-                          borderBottom:i<rfq.responses.length-1?'1px solid var(--bg-surface)':'none',
-                          background:resp.selected_for_po?'var(--success-bg)':'transparent',
-                          display:'flex',justifyContent:'space-between',alignItems:'center',
-                          flexWrap:'wrap',gap:8 }}>
-                        <div>
-                          <p style={{ fontSize:12,fontWeight:700,color:'var(--ink)',margin:0,fontFamily:FONT }}>
-                            {resp.selected_for_po && <span style={{ color:'var(--success)',marginRight:5, display:'inline-flex', alignItems:'center', gap:3 }}><NavIcon name="success" size={11} color="currentColor"/>Selected</span>}
-                            {resp.supplier?.supplier_name ?? `Supplier #${resp.supplier_id}`}
-                          </p>
-                          <p style={{ fontSize:11,color:'var(--text-subtle)',margin:'2px 0 0',fontFamily:FONT }}>
-                            ₱{Number(resp.unit_price).toFixed(2)}/unit ·
-                            {resp.qty_available ? ` Qty: ${resp.qty_available} ·` : ''}
-                            {resp.lead_time_days ? ` Lead: ${resp.lead_time_days} days` : ''}
-                            {resp.notes ? ` · "${resp.notes}"` : ''}
-                          </p>
+                <div className="adm-actionbar" style={{ marginTop: 12 }}>
+                  <button className="adm-btn" onClick={() => printRFQ(rfq)}><NavIcon name="print" size={13} color="currentColor" /> Print</button>
+                  {isOpen && <button className="adm-btn" onClick={() => setLogResp(rfq)}><NavIcon name="add" size={13} color="currentColor" /> Log response</button>}
+                  {isOpen && isManager && responses.length > 0 && <button className="adm-btn primary" onClick={() => setPickFor(picking ? null : rfq.rfq_id)}><NavIcon name="success" size={13} color="currentColor" /> {picking ? 'Cancel' : 'Convert to PO'}</button>}
+                  {isOpen && <button className="adm-btn danger" onClick={() => closeRfq(rfq)}>Close RFQ</button>}
+                </div>
+                {picking && <div className="adm-callout info" style={{ marginTop: 12, marginBottom: 0 }}><NavIcon name="info" size={16} color="currentColor" /><div><b>Choose the winning response</b>Pick “Select & create PO” on one supplier below.</div></div>}
+                {responses.length > 0 && (
+                  <div className="po-resp">
+                    {responses.map((resp) => (
+                      <div key={resp.response_id} className={resp.selected_for_po ? 'sel' : ''}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontWeight: 700, fontSize: 13 }}>{resp.selected_for_po && <span style={{ color: 'var(--success-text)', marginRight: 6 }}>Selected ·</span>}{resp.supplier?.supplier_name ?? `Supplier #${resp.supplier_id}`}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-subtle)' }}>
+                            ₱{Number(resp.unit_price).toFixed(2)}/unit{resp.qty_available ? ` · Qty ${resp.qty_available}` : ''}{resp.lead_time_days ? ` · Lead ${resp.lead_time_days}d` : ''}{resp.notes ? ` · “${resp.notes}”` : ''}
+                          </div>
                         </div>
-                        <div style={{ display:'flex',gap:8,alignItems:'center' }}>
-                          <p style={{ fontSize:14,fontWeight:800,color:T,margin:0,fontFamily:FONT }}>
-                            ₱{(Number(resp.unit_price)*Number(rfq.qty_needed)).toLocaleString('en-PH',{minimumFractionDigits:2})}
-                            <span style={{ fontSize:10,color:'var(--text-faint)',fontWeight:400,marginLeft:3 }}>total</span>
-                          </p>
-                          {isOpen && isManager && !resp.selected_for_po && (
-                            <button onClick={()=>handleConvertToPO(rfq,resp.response_id)}
-                              style={{ padding:'5px 12px',borderRadius:8,border:'none',
-                                background:`linear-gradient(135deg,${T},${T2})`,
-                                color:'var(--text-on-accent)',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:FONT }}>
-                              Select & Create PO
-                            </button>
-                          )}
+                        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                          <b style={{ color: 'var(--teal)', whiteSpace: 'nowrap' }}>{peso(Number(resp.unit_price) * Number(rfq.qty_needed))}</b>
+                          {isOpen && isManager && !resp.selected_for_po && <button className={`adm-btn${picking ? ' primary' : ''}`} onClick={() => handleConvertToPO(rfq, resp.response_id)}>Select &amp; create PO</button>}
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
-              </motion.div>
+              </div>
             );
           })}
         </div>

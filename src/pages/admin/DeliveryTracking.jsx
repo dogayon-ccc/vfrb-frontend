@@ -35,12 +35,12 @@
 // joined flat field, not nested d.order.user) and the whole payment-
 // at-delivery merge logic are real, load-bearing, and untouched.
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import { cacheGet, cacheSet } from '../../utils/cache';
 import { NavIcon } from '../../components/ui';
-import { PageHeader, StatGrid, PillTabs, ErrorBlock } from '../../components/admin/AdminUI';
+import { PageHeader, StatGrid, PillTabs, Panel, StatusPill, SearchBox, ErrorBlock, SkeletonRows, FilterSheet, FilterButton, useIsMobile } from '../../components/admin/AdminUI';
 
 const SK  = { borderRadius:'var(--r-sm)', background:'linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%)', backgroundSize:'400px', animation:'dt-shimmer 1.4s infinite' };
 const inp = { width:'100%', padding:'10px 14px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)', fontSize:13, outline:'none', fontFamily:'var(--font)', boxSizing:'border-box' };
@@ -269,173 +269,130 @@ function UpdateStatusModal({ delivery, onClose, onDone }) {
   );
 }
 
+const fmtDate = (d, y = true) => (d ? new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', ...(y ? { year: 'numeric' } : {}) }) : '—');
+const schedOf = (d) => d.estimated_delivery_date ?? d.expected_delivery_date;
+
+function DeliveryActions({ d, onModal, stop }) {
+  const click = (fn) => (e) => { if (stop) e.stopPropagation(); fn(); };
+  if (d.delivery_status === 'delivered') return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--success-text)', fontWeight: 700 }}><NavIcon name="success" size={13} color="currentColor" /> Done</span>;
+  return (
+    <>
+      <button className="adm-btn" onClick={click(() => onModal({ type: 'status', delivery: d }))}>Update status</button>
+      <button className="adm-btn success" onClick={click(() => onModal({ type: 'delivered', delivery: d }))}><NavIcon name="success" size={13} color="currentColor" /> Delivered</button>
+    </>
+  );
+}
+
 export default function AdminDeliveryTracking() {
   const [deliveries, setDeliveries] = useState([]);
-  const [loading,    setLoading]    = useState(true);
-  const [filter,     setFilter]     = useState('all');
-  const [modal,      setModal]      = useState(null); // { type:'delivered'|'status', delivery }
+  const [loading, setLoading] = useState(true);
+  const [loadErr, setLoadErr] = useState(false);
+  const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  const [sheet, setSheet] = useState(false);
+  const [modal, setModal] = useState(null);
+  const isMobile = useIsMobile();
 
   const load = useCallback((force = false) => {
     if (!force) {
       const cached = cacheGet('delivery_list');
       if (cached) { setDeliveries(cached); setLoading(false); return; }
     }
-    setLoading(true);
-    axios.get('/api/admin/delivery')
-      .then(r => {
-        const list = r.data?.data?.data ?? r.data?.data ?? r.data ?? [];
-        setDeliveries(list);
-        cacheSet('delivery_list', list, 60_000); // 60s — delivery_status changes often
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    setLoading(true); setLoadErr(false);
+    axios.get('/api/admin/delivery').then((r) => {
+      const list = r.data?.data?.data ?? r.data?.data ?? r.data ?? [];
+      setDeliveries(list);
+      cacheSet('delivery_list', list, 60_000);
+    }).catch(() => setLoadErr(true)).finally(() => setLoading(false));
   }, []);
-
   useEffect(() => { load(); }, [load]);
 
-  // FIX: use delivery_status not status
-  const filtered = deliveries.filter(d =>
-    filter === 'all' || d.delivery_status === filter
-  );
+  const counts = useMemo(() => deliveries.reduce((a, d) => { const s = d.delivery_status ?? 'preparing'; a[s] = (a[s] ?? 0) + 1; return a; }, {}), [deliveries]);
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    return deliveries.filter((d) => (filter === 'all' || (d.delivery_status ?? 'preparing') === filter)
+      && (!q || String(d.order_id).includes(q) || String(d.tracking_id).includes(q)
+        || d.customer_name?.toLowerCase().includes(q) || (d.delivery_address ?? d.customer_address ?? '').toLowerCase().includes(q)));
+  }, [deliveries, filter, search]);
 
-  const counts = {};
-  deliveries.forEach(d => {
-    const s = d.delivery_status ?? 'preparing';
-    counts[s] = (counts[s] ?? 0) + 1;
-  });
+  const tabs = [{ key: 'all', label: 'All', count: deliveries.length }, ...Object.entries(DEL_CFG).map(([k, c]) => ({ key: k, label: c.l, count: counts[k] ?? 0 }))];
+  const active = (counts.preparing ?? 0) + (counts.dispatched ?? 0) + (counts.in_transit ?? 0);
+  const clearFilters = () => { setSearch(''); setFilter('all'); };
 
   return (
     <>
-      <style>{`
-      @keyframes dt-shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
-      @keyframes dt-spin{to{transform:rotate(360deg)}}
-      .dt-stats { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:10px; margin-bottom:20px; }
-      .dt-wrap  { overflow-x:auto; -webkit-overflow-scrolling:touch; border-radius:var(--r-lg); border:1px solid var(--border); }
-      .dt-wrap table { width:100%; min-width:560px; border-collapse:collapse; }
-      @media (max-width:767px) {
-        .dt-stats { grid-template-columns:1fr 1fr; }
-        .dt-header { flex-direction:column; align-items:stretch !important; }
-        .dt-header button { width:100%; justify-content:center; }
-      }
-      @media (min-width:2560px) {
-        .dt-stats { grid-template-columns:repeat(5,1fr); }
-      }
-      `}</style>
+      {modal?.type === 'delivered' && <MarkDeliveredModal delivery={modal.delivery} onClose={() => setModal(null)} onDone={() => { setModal(null); load(true); }} />}
+      {modal?.type === 'status' && <UpdateStatusModal delivery={modal.delivery} onClose={() => setModal(null)} onDone={() => { setModal(null); load(true); }} />}
+      {sheet && <FilterSheet title="Filter by status" options={tabs} value={filter} onChange={setFilter} onClose={() => setSheet(false)} isMobile={isMobile} />}
 
-      {modal?.type === 'delivered' && (
-        <MarkDeliveredModal delivery={modal.delivery}
-          onClose={()=>setModal(null)} onDone={()=>{ setModal(null); load(true); }}/>
-      )}
-      {modal?.type === 'status' && (
-        <UpdateStatusModal delivery={modal.delivery}
-          onClose={()=>setModal(null)} onDone={()=>{ setModal(null); load(true); }}/>
-      )}
-
-      <PageHeader title="Delivery Tracking" sub={`${deliveries.length} total deliveries`}>
-        <button className="adm-btn" onClick={()=>load(true)}><NavIcon name="refresh" size={13} color="currentColor" /> Refresh</button>
+      <PageHeader title="Delivery Tracking" sub={`${deliveries.length} deliveries · ${active} active`}>
+        <button className="adm-btn" onClick={() => load(true)}><NavIcon name="refresh" size={14} color="currentColor" /> Refresh</button>
       </PageHeader>
+      {loadErr && <div style={{ marginBottom: 14 }}><ErrorBlock msg="Could not load deliveries." onRetry={() => load(true)} /></div>}
 
-      <StatGrid loading={loading} items={Object.entries(DEL_CFG).map(([k,cfg]) => ({ label:cfg.l, value:counts[k] ?? 0, color: filter===k ? cfg.c : undefined, onClick:()=>setFilter(k===filter?'all':k) }))} />
+      <StatGrid loading={loading} items={Object.entries(DEL_CFG).map(([k, c]) => ({
+        label: c.l, value: counts[k] ?? 0, color: filter === k ? c.c : undefined, onClick: () => setFilter(k === filter ? 'all' : k),
+      }))} />
 
-      <PillTabs value={filter} onChange={setFilter} tabs={[
-        { key:'all', label:'All', count:deliveries.length },
-        ...Object.entries(DEL_CFG).map(([k,cfg]) => ({ key:k, label:cfg.l, count:counts[k] || undefined })),
-      ]} />
+      <div className="adm-toolbar">
+        <SearchBox value={search} onChange={setSearch} placeholder="Search order, tracking #, client, address…" label="Search deliveries" />
+        <FilterButton label={`Status: ${tabs.find((t) => t.key === filter)?.label}`} onClick={() => setSheet(true)} />
+      </div>
+      <div className="adm-only-d"><PillTabs value={filter} onChange={setFilter} tabs={tabs} /></div>
 
-      {/* Table */}
-      <div className="dt-wrap" style={{ background:'var(--bg-card)', boxShadow:'var(--shadow-xs)' }}>
-        <table>
-          <thead>
-            <tr style={{ background:'var(--bg)' }}>
-              {['Tracking #','Order','Client','Scheduled','Address','Status','Actions'].map(h=>(
-                <th key={h} style={{ padding:'10px 14px', textAlign:'left', fontSize:10, fontWeight:700, color:'var(--text-subtle)', textTransform:'uppercase', letterSpacing:'.06em', borderBottom:'2px solid var(--border)', whiteSpace:'nowrap' }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              Array(4).fill(0).map((_,i) => (
-                <tr key={i} style={{ borderBottom:'1px solid var(--bg-surface)' }}>
-                  {Array(7).fill(0).map((_,j) => (
-                    <td key={j} style={{ padding:'12px 14px' }}>
-                      <div style={{ ...SK, height:10, width:'70%' }}/>
-                    </td>
-                  ))}
-                </tr>
-              ))
-            ) : filtered.length === 0 ? (
-              <tr><td colSpan={7} style={{ padding:'50px', textAlign:'center' }}>
-                <NavIcon name="delivery" size={36} color="var(--text-faint)" style={{ marginBottom:12 }} />
-                <p style={{ color:'var(--text-subtle)', fontSize:13, fontWeight:600 }}>No deliveries found</p>
-                <p style={{ color:'var(--text-faint)', fontSize:12, margin:'4px 0 0' }}>Deliveries are auto-created when orders reach Packing stage.</p>
-              </td></tr>
-            ) : filtered.map((d, i) => {
-              // FIX: use delivery_status not status
-              const ds  = d.delivery_status ?? 'preparing';
-              const cfg = DEL_CFG[ds] ?? DEL_CFG.preparing;
-              const isDone = ds === 'delivered';
-              return (
-                <tr key={d.tracking_id ?? i} style={{ borderBottom:'1px solid var(--bg-surface)' }}
-                  onMouseEnter={e=>e.currentTarget.style.background='var(--bg)'}
-                  onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
-                  <td style={{ padding:'11px 14px', fontSize:12, fontWeight:700, color:'var(--teal)' }}>
-                    #{d.tracking_id}
-                  </td>
-                  <td style={{ padding:'11px 14px', fontSize:12, fontWeight:600, color:'var(--ink)' }}>
-                    #{d.order_id}
-                  </td>
-                  <td style={{ padding:'11px 14px', fontSize:12, color:'var(--ink)' }}>
-                    {/* FIX: backend returns flat customer_name (joined from users),
-                        there is no nested d.order.user — that always resolved
-                        to undefined and silently showed '—' for every row. */}
-                    {d.customer_name ?? '—'}
-                  </td>
-                  <td style={{ padding:'11px 14px', fontSize:11, color:'var(--text-subtle)', whiteSpace:'nowrap' }}>
-                    {d.estimated_delivery_date
-                      ? new Date(d.estimated_delivery_date).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})
-                      : d.expected_delivery_date
-                      ? new Date(d.expected_delivery_date).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})
-                      : '—'}
-                  </td>
-                  <td style={{ padding:'11px 14px', fontSize:11, color:'var(--text-subtle)', maxWidth:160, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                    {d.delivery_address ?? d.customer_address ?? '—'}
-                  </td>
-                  <td style={{ padding:'11px 14px' }}>
-                    <span style={{ padding:'4px 10px', borderRadius:'var(--r-full)', fontSize:10, fontWeight:700, background:cfg.bg, color:cfg.c }}>
-                      {cfg.l}
-                    </span>
-                    {d.actual_delivery_date && (
-                      <p style={{ fontSize:9, color:'var(--text-faint)', margin:'3px 0 0' }}>
-                        {new Date(d.actual_delivery_date).toLocaleDateString('en-PH',{month:'short',day:'numeric'})}
-                      </p>
-                    )}
-                  </td>
-                  <td style={{ padding:'11px 14px' }}>
-                    <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
-                      {!isDone && (
-                        <>
-                          <button onClick={()=>setModal({ type:'status', delivery:d })}
-                            style={{ padding:'5px 10px', borderRadius:'var(--r-sm)', border:'1px solid var(--border)', background:'var(--bg)', color:'var(--ink)', fontSize:11, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)' }}>
-                            Update
-                          </button>
-                          <button onClick={()=>setModal({ type:'delivered', delivery:d })}
-                            style={{ display:'flex', alignItems:'center', gap:4, padding:'5px 10px', borderRadius:'var(--r-sm)', border:'none', background:'var(--success)', color:'#fff', fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'var(--font)' }}>
-                            <NavIcon name="success" size={11} color="#fff" /> Delivered
-                          </button>
-                        </>
-                      )}
-                      {isDone && (
-                        <span style={{ display:'flex', alignItems:'center', gap:4, fontSize:11, color:'var(--success)', fontWeight:700 }}>
-                          <NavIcon name="success" size={11} color="var(--success)" /> Done
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <div className="adm-only-d">
+        <Panel flush>
+          <div className="adm-tbl-scroll">
+            <table className="adm-table">
+              <thead><tr><th>Tracking</th><th>Order</th><th>Client</th><th>Scheduled</th><th className="adm-hide-t">Address</th><th>Status</th><th style={{ textAlign: 'right' }}>Actions</th></tr></thead>
+              <tbody>
+                {!loading && filtered.map((d, i) => {
+                  const ds = d.delivery_status ?? 'preparing';
+                  return (
+                    <tr key={d.tracking_id ?? i}>
+                      <td style={{ fontWeight: 800, color: 'var(--teal)' }}>#{d.tracking_id}</td>
+                      <td style={{ fontWeight: 600 }}>#{d.order_id}</td>
+                      <td>{d.customer_name ?? '—'}</td>
+                      <td style={{ whiteSpace: 'nowrap', fontSize: 12, color: 'var(--text-subtle)' }}>{fmtDate(schedOf(d))}</td>
+                      <td className="adm-hide-t" style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12, color: 'var(--text-subtle)' }} title={d.delivery_address ?? d.customer_address ?? ''}>{d.delivery_address ?? d.customer_address ?? '—'}</td>
+                      <td>
+                        <StatusPill status={ds} label={DEL_CFG[ds]?.l} />
+                        {d.actual_delivery_date && <div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 4 }}>on {fmtDate(d.actual_delivery_date, false)}</div>}
+                      </td>
+                      <td><div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}><DeliveryActions d={d} onModal={setModal} /></div></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {loading && <SkeletonRows rows={5} h={48} />}
+          {!loading && !loadErr && filtered.length === 0 && (
+            <div className="adm-empty"><NavIcon name="delivery" size={30} color="currentColor" />
+              <div style={{ marginTop: 8, fontWeight: 700 }}>{search || filter !== 'all' ? 'No deliveries match' : 'No deliveries yet'}</div>
+              <div style={{ fontSize: 12, marginTop: 4 }}>Deliveries are auto-created when orders complete Packing.</div>
+              {(search || filter !== 'all') && <button className="adm-link-btn" onClick={clearFilters}>Clear filters</button>}
+            </div>
+          )}
+        </Panel>
+      </div>
+
+      <div className="adm-only-m adm-stagger" key={`${filter}-${search}`}>
+        {loading ? <SkeletonRows rows={3} h={140} /> : filtered.length === 0 ? (
+          <div className="adm-empty"><NavIcon name="delivery" size={30} color="currentColor" /><div style={{ marginTop: 8, fontWeight: 700 }}>No deliveries found</div></div>
+        ) : filtered.map((d, i) => {
+          const ds = d.delivery_status ?? 'preparing';
+          return (
+            <div key={d.tracking_id ?? i} className="adm-mcard accent" style={{ '--i': Math.min(i, 8), '--acc': DEL_CFG[ds]?.c ?? 'var(--teal)' }}>
+              <div className="adm-mrow"><b style={{ color: 'var(--teal)' }}>Order #{d.order_id}</b><StatusPill status={ds} label={DEL_CFG[ds]?.l} /></div>
+              <div style={{ marginTop: 6, fontWeight: 700 }}>{d.customer_name ?? '—'}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-subtle)' }}>Tracking #{d.tracking_id} · scheduled {fmtDate(schedOf(d))}</div>
+              {(d.delivery_address ?? d.customer_address) && <div style={{ fontSize: 12, color: 'var(--text-subtle)', marginTop: 4, display: 'flex', gap: 5 }}><NavIcon name="location" size={13} color="currentColor" style={{ flexShrink: 0, marginTop: 2 }} />{d.delivery_address ?? d.customer_address}</div>}
+              {d.actual_delivery_date && <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 4 }}>Delivered {fmtDate(d.actual_delivery_date)}</div>}
+              {ds !== 'delivered' && <div className="adm-mfoot"><DeliveryActions d={d} onModal={setModal} /></div>}
+            </div>
+          );
+        })}
       </div>
     </>
   );

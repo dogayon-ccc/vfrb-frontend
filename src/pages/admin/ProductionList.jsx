@@ -1,74 +1,48 @@
-// src/pages/admin/ProductionList.jsx
-// FF-BUG-FIX: /admin/production was blank because it rendered ProductionTracking
-// with no orderId. This page shows all in-production orders first.
-// Clicking "Track" navigates to /admin/production/:orderId (the detail page).
-//
-// DSA: useMemo filter O(n), STATUS_SEQ hash map O(1), Array.sort O(n log n)
-//
-// RESHAPED (Sept 4 2026): same taxonomy situation as ActivityLog.jsx —
-// STAGE_CFG's 7 colors categorize the 7 real production stages, not a
-// brand mismatch. theme.css only has 4 non-neutral hue families (teal/
-// purple/success-green/warning-amber/danger-red/info-blue), not 7, so
-// this couldn't be a clean 1:1 token swap. Mapping used, verified
-// against real tokens, not guessed:
-//   pattern → --purple | segregation → --purple-dark | cutting → --info
-//   sewing → --teal | qc → --warning | packing → --success
-// ONE FLAGGED COMPROMISE: pressing has no good token. --danger was
-// deliberately ruled out — this same page already uses --danger for
-// the QC HOLD warning box below, and reusing red for a normal
-// "Pressing" stage badge right next to an actual problem-state warning
-// would be actively misleading, not just imperfect. Pressing reuses
-// --purple-dark (same as segregation) instead — the two stages are far
-// apart in the sequence (2nd vs 6th), so the shared hue is unlikely to
-// cause real confusion in practice. Flagging this as a genuine gap in
-// theme.css's palette for anyone who wants a fully distinct 7-color
-// system later, not silently resolving it as if 6 tokens were always
-// going to be enough for 7 stages.
-//
-// Emoji → NavIcon, verified against the real installed lucide-react
-// (0.462.0, satisfies package.json's ^0.383.0) rather than guessed —
-// checked node_modules/lucide-react directly for Scissors/RefreshCw
-// before using them, since neither existed in icons.jsx yet.
-//
-// Dropped an unused `TTL` import (utils/cache exports it, this file
-// never referenced it — same dead-import pattern already found and
-// removed in Feedback.jsx). Logic (load/filter/sort/cache) untouched.
-
+// src/pages/admin/ProductionList.jsx — /admin/production: all in-production orders, then Track → /admin/production/:orderId
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { motion }                                     from 'framer-motion';
-import { useNavigate }                                from 'react-router-dom';
-import axios                                          from 'axios';
-import { cacheGet, cacheSet }                         from '../../utils/cache';
-import { Card, NavIcon }                              from '../../components/ui';
-import { PageHeader, StatGrid, PillTabs, ErrorBlock } from '../../components/admin/AdminUI';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { cacheGet, cacheSet } from '../../utils/cache';
+import { NavIcon } from '../../components/ui/icons';
+import {
+  PageHeader, StatGrid, Panel, StatusPill, SearchBox, Segments, Banner, ErrorBlock, SkeletonRows,
+  FilterSheet, FilterButton, useIsMobile,
+} from '../../components/admin/AdminUI';
 
-// DSA: hash map — O(1) status → color/icon
-const STAGE_CFG = {
-  pattern:     { color:'var(--purple)',      bg:'var(--purple-50)', icon:'pattern',    label:'Pattern'     },
-  segregation: { color:'var(--purple-dark)', bg:'var(--purple-50)', icon:'folder',     label:'Segregation' },
-  cutting:     { color:'var(--info)',        bg:'var(--info-bg)',   icon:'cutting',    label:'Cutting'     },
-  sewing:      { color:'var(--teal)',        bg:'var(--teal-50)',   icon:'garmentType',label:'Sewing'      },
-  qc:          { color:'var(--warning)',     bg:'var(--warning-bg)',icon:'qc',         label:'QC'          },
-  pressing:    { color:'var(--purple-dark)', bg:'var(--purple-50)', icon:'adjustment', label:'Pressing'    },
-  packing:     { color:'var(--success)',     bg:'var(--success-bg)',icon:'package',    label:'Packing'     },
-};
+const STAGE_ORDER = ['pattern', 'segregation', 'cutting', 'sewing', 'qc', 'pressing', 'packing'];
+const LABEL = { pattern: 'Pattern', segregation: 'Segregation', cutting: 'Cutting', sewing: 'Sewing', qc: 'QC', pressing: 'Pressing', packing: 'Packing' };
+const ICON = { pattern: 'pattern', segregation: 'segregation', cutting: 'cutting', sewing: 'garmentType', qc: 'qc', pressing: 'pressing', packing: 'package' };
+const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—');
+const qcHold = (o) => o.status === 'qc' && o.qc_required === 1 && !o.qc_passed_at;
+const dueOf = (o) => o.target_delivery_date ?? o.deadline;
+const isOverdue = (o) => { const d = dueOf(o); return d && new Date(d) < new Date(new Date().toDateString()); };
 
-// DSA: ordered array — O(7) indexOf, fixed bound = O(1)
-const STAGE_ORDER = ['pattern','segregation','cutting','sewing','qc','pressing','packing'];
+function Progress({ status }) {
+  const idx = STAGE_ORDER.indexOf(status);
+  return (
+    <div style={{ minWidth: 110 }}>
+      <Segments total={STAGE_ORDER.length} index={idx} />
+      <div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 4 }}>Stage {idx + 1} of {STAGE_ORDER.length}</div>
+    </div>
+  );
+}
 
-const SK = {
-  borderRadius:'var(--r-sm)',
-  background:'linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%)',
-  backgroundSize:'400px', animation:'prod-shimmer 1.4s infinite',
-};
+const Spec = ({ o }) => (
+  <>
+    <div style={{ fontWeight: 600 }}>{o.garment_type ?? 'Custom garment'}</div>
+    <div style={{ fontSize: 11, color: 'var(--text-subtle)' }}>{o.quantity_ordered ?? 0} pcs{o.color ? ` · ${o.color}` : ''}</div>
+  </>
+);
 
 export default function ProductionList() {
   const nav = useNavigate();
-  const [orders,  setOrders]  = useState([]);
+  const isMobile = useIsMobile();
+  const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const [stage,   setStage]   = useState('all');
-  const [search,  setSearch]  = useState('');
+  const [stage, setStage] = useState('all');
+  const [search, setSearch] = useState('');
+  const [sheet, setSheet] = useState(false);
 
   const load = useCallback(async (force = false) => {
     if (!force) {
@@ -78,200 +52,122 @@ export default function ProductionList() {
     setLoading(true); setLoadError(false);
     try {
       const r = await axios.get('/api/admin/orders?status=production&per_page=100');
-      // Filter to only in-production statuses
-      const all  = r.data?.data ?? r.data ?? [];
-      const prod = all.filter(o => STAGE_ORDER.includes(o.status));
+      const prod = (r.data?.data ?? r.data ?? []).filter((o) => STAGE_ORDER.includes(o.status));
       setOrders(prod);
       cacheSet('production_orders_list', prod, 30_000);
     } catch { setLoadError(true); } finally { setLoading(false); }
   }, []);
-
   useEffect(() => { load(); }, [load]);
 
-  // DSA: useMemo filter O(n) + sort O(n log n)
-  const filtered = useMemo(() =>
-    orders
-      .filter(o => {
-        const matchStage = stage === 'all' || o.status === stage;
-        const q = search.toLowerCase().trim();
-        const matchSearch = !q
-          || String(o.order_id).includes(q)
-          || o.garment_type?.toLowerCase().includes(q)
-          || o.color?.toLowerCase().includes(q);
-        return matchStage && matchSearch;
-      })
-      .sort((a, b) =>
-        // Sort by stage order (pattern first, packing last)
-        STAGE_ORDER.indexOf(a.status) - STAGE_ORDER.indexOf(b.status)
-      ),
-  [orders, stage, search]);
+  const counts = useMemo(() => orders.reduce((a, o) => { a[o.status] = (a[o.status] ?? 0) + 1; return a; }, {}), [orders]);
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    return orders
+      .filter((o) => (stage === 'all' || o.status === stage)
+        && (!q || String(o.order_id).includes(q) || o.garment_type?.toLowerCase().includes(q)
+          || o.color?.toLowerCase().includes(q) || o.customer_name?.toLowerCase().includes(q)))
+      .sort((a, b) => STAGE_ORDER.indexOf(a.status) - STAGE_ORDER.indexOf(b.status));
+  }, [orders, stage, search]);
 
-  // Count per stage for filter tabs — DSA: reduce O(n) builds hash map
-  const counts = useMemo(() =>
-    orders.reduce((acc, o) => {
-      acc[o.status] = (acc[o.status] ?? 0) + 1;
-      return acc;
-    }, {}),
-  [orders]);
+  const holds = orders.filter(qcHold).length;
+  const overdue = orders.filter(isOverdue).length;
+  const pieces = orders.reduce((s, o) => s + (Number(o.quantity_ordered) || 0), 0);
+  const options = [{ key: 'all', label: 'All stages', count: orders.length }, ...STAGE_ORDER.map((k) => ({ key: k, label: LABEL[k], count: counts[k] ?? 0 }))];
+  const stageLabel = options.find((o) => o.key === stage)?.label;
+  const go = (o) => nav(`/admin/production/${o.order_id}`);
 
   return (
     <>
-      <style>{`
-        @keyframes prod-shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
-        .prod-stage-strip{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;margin-bottom:14px;}
-        .prod-stage-strip::-webkit-scrollbar{display:none}
-        @media(max-width:767px){
-          .prod-grid{grid-template-columns:1fr !important}
-        }
-      `}</style>
-
-      <PageHeader title="Production Tracking" sub={`${orders.length} orders in production · Stage Confirmation`}>
-        <button className="adm-btn" onClick={() => load(true)}><NavIcon name="refresh" size={13} color="currentColor" /> Refresh</button>
+      {sheet && <FilterSheet title="Filter by stage" options={options} value={stage} onChange={setStage} onClose={() => setSheet(false)} isMobile={isMobile} />}
+      <PageHeader title="Production Tracking" sub={`${orders.length} orders on the floor · ${pieces.toLocaleString()} pcs`}>
+        <button className="adm-btn" onClick={() => nav('/admin/output-log')}><NavIcon name="outputLog" size={14} color="currentColor" /> Output Log</button>
+        <button className="adm-btn" onClick={() => load(true)}><NavIcon name="refresh" size={14} color="currentColor" /> Refresh</button>
       </PageHeader>
 
-      <PillTabs value={stage} onChange={setStage} tabs={[
-        { key:'all', label:'All', count:orders.length },
-        ...STAGE_ORDER.filter(k => (counts[k] ?? 0) > 0).map(k => ({ key:k, label:STAGE_CFG[k].label, count:counts[k] })),
+      {holds > 0 && (
+        <Banner tone="warn" icon="warning" action={<button className="adm-btn" onClick={() => nav('/admin/qc')}>Open QC</button>}>
+          {holds} order{holds > 1 ? 's are' : ' is'} on QC hold — a passing QC checklist is required before advancing.
+        </Banner>
+      )}
+      {loadError && <div style={{ marginBottom: 14 }}><ErrorBlock msg="Couldn't load production orders — check your connection." onRetry={() => load(true)} /></div>}
+
+      <StatGrid loading={loading} items={[
+        { label: 'In production', value: orders.length, color: 'var(--teal)', onClick: () => setStage('all') },
+        { label: 'Pieces', value: pieces.toLocaleString() },
+        { label: 'QC hold', value: holds, color: holds ? 'var(--danger)' : undefined, onClick: () => setStage('qc') },
+        { label: 'Past deadline', value: overdue, color: overdue ? 'var(--warning-text)' : undefined },
       ]} />
 
-      {/* Search */}
-      <input type="text" value={search} onChange={e=>setSearch(e.target.value)}
-        placeholder="Search order ID, garment, color…"
-        style={{ width:'100%',padding:'10px 14px',borderRadius:'var(--r-md)',
-          border:'1px solid var(--border)',background:'var(--bg-card)',color:'var(--ink)',
-          fontSize:13,outline:'none',fontFamily:'var(--font)',marginBottom:16,boxSizing:'border-box' }}
-        onFocus={e=>{e.target.style.borderColor='var(--teal)';e.target.style.boxShadow='0 0 0 3px rgba(2,128,144,.1)';}}
-        onBlur={e=>{e.target.style.borderColor='var(--border)';e.target.style.boxShadow='none';}}
-      />
-
-      {/* Order cards grid */}
-      {loading ? (
-        <div className="prod-grid" style={{ display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(320px,1fr))',gap:14 }}>
-          {Array(6).fill(0).map((_,i) => (
-            <div key={i} style={{ ...SK,height:140,borderRadius:'var(--r-lg)' }}/>
+      <Panel title="Stage pipeline" style={{ marginBottom: 16 }}>
+        <div className="adm-pipe" role="tablist" aria-label="Filter by production stage">
+          {STAGE_ORDER.map((k, i) => (
+            <button key={k} role="tab" aria-selected={stage === k} className={`adm-pipe-step${stage === k ? ' on' : ''}${counts[k] ? '' : ' empty'}`}
+              onClick={() => setStage(stage === k ? 'all' : k)} style={{ '--i': i }}>
+              <NavIcon name={ICON[k]} size={16} color="currentColor" />
+              <b>{loading ? '–' : counts[k] ?? 0}</b>
+              <span>{LABEL[k]}</span>
+            </button>
           ))}
         </div>
-      ) : loadError ? (
-        <div style={{ padding:'12px 16px',borderRadius:'var(--r-md)',background:'var(--danger-bg)',border:'1px solid var(--danger-border)',marginBottom:18,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap' }}>
-          <NavIcon name="warning" size={17} color="var(--danger)" />
-          <p style={{ fontSize:12,color:'var(--danger)',fontWeight:600,margin:0 }}>Couldn't load production orders — check your connection.</p>
-          <button onClick={()=>load(true)}
-            style={{ marginLeft:'auto',padding:'5px 12px',borderRadius:'var(--r-sm)',border:'none',background:'var(--danger)',color:'#fff',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'var(--font)',whiteSpace:'nowrap' }}>
-            Retry
-          </button>
-        </div>
-      ) : filtered.length === 0 ? (
-        <Card>
-          <div style={{ textAlign:'center',padding:'40px 20px' }}>
-            <NavIcon name="production" size={36} color="var(--text-faint)" style={{ marginBottom:12 }} />
-            <p style={{ fontSize:14,fontWeight:700,color:'var(--text-subtle)',fontFamily:'var(--font)' }}>
-              {search ? `No results for "${search}"` : 'No orders in production right now'}
-            </p>
+      </Panel>
+
+      <div className="adm-toolbar">
+        <SearchBox value={search} onChange={setSearch} placeholder="Search order, client, garment, color…" label="Search production orders" />
+        <FilterButton label={`Stage: ${stageLabel}`} onClick={() => setSheet(true)} />
+      </div>
+
+      <div className="adm-only-d">
+        <Panel flush>
+          <div className="adm-tbl-scroll">
+            <table className="adm-table">
+              <thead><tr><th>Order</th><th>Client</th><th>Garment</th><th>Stage</th><th className="adm-hide-t">Deadline</th><th style={{ textAlign: 'right' }}>Actions</th></tr></thead>
+              <tbody>
+                {!loading && filtered.map((o) => (
+                  <tr key={o.order_id} className="adm-row" tabIndex={0} onClick={() => go(o)} onKeyDown={(e) => e.key === 'Enter' && go(o)}>
+                    <td><div style={{ fontWeight: 800, color: 'var(--teal)' }}>#{o.order_id}</div></td>
+                    <td style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.customer_name ?? '—'}</td>
+                    <td><Spec o={o} /></td>
+                    <td>
+                      <StatusPill status={o.status} label={LABEL[o.status]} />
+                      {qcHold(o) && <span className="adm-pill" style={{ marginLeft: 6, background: 'var(--danger-bg)', color: 'var(--danger-text)' }}>QC hold</span>}
+                      <div style={{ marginTop: 8 }}><Progress status={o.status} /></div>
+                    </td>
+                    <td className="adm-hide-t" style={{ whiteSpace: 'nowrap', fontSize: 12, color: isOverdue(o) ? 'var(--danger)' : 'var(--text-subtle)', fontWeight: isOverdue(o) ? 700 : 400 }}>{fmtDate(dueOf(o))}</td>
+                    <td><div className="adm-ra" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      <button className="adm-btn primary" onClick={(e) => { e.stopPropagation(); go(o); }}><NavIcon name="production" size={13} color="currentColor" /> Track</button>
+                    </div></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </Card>
-      ) : (
-        <div className="prod-grid" style={{ display:'grid',
-          gridTemplateColumns:'repeat(auto-fill,minmax(320px,1fr))',gap:14 }}>
-          {filtered.map((order, i) => {
-            const cfg      = STAGE_CFG[order.status] ?? STAGE_CFG.pattern;
-            const stageIdx = STAGE_ORDER.indexOf(order.status);
-            const pct      = Math.round(((stageIdx + 1) / STAGE_ORDER.length) * 100);
+          {loading && <SkeletonRows rows={6} h={52} />}
+          {!loading && !loadError && filtered.length === 0 && (
+            <div className="adm-empty"><NavIcon name="production" size={30} color="currentColor" />
+              <div style={{ marginTop: 8, fontWeight: 700 }}>{search ? `No results for “${search}”` : 'No orders in production right now'}</div>
+              {(search || stage !== 'all') && <button className="adm-link-btn" onClick={() => { setSearch(''); setStage('all'); }}>Clear filters</button>}
+            </div>
+          )}
+        </Panel>
+      </div>
 
-            return (
-              <motion.div
-                key={order.order_id}
-                initial={{ opacity:0,y:10 }}
-                animate={{ opacity:1,y:0 }}
-                transition={{ delay:i*0.04 }}
-                style={{
-                  background:'var(--bg-card)',borderRadius:'var(--r-lg)',overflow:'hidden',
-                  border:'1px solid var(--border)',
-                  boxShadow:'var(--shadow-xs)',
-                }}
-              >
-                {/* Stage color bar */}
-                <div style={{ height:4,background:cfg.color }}/>
-
-                <div style={{ padding:'14px 16px' }}>
-                  {/* Row 1: Order # + stage badge */}
-                  <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8 }}>
-                    <span style={{ fontSize:14,fontWeight:800,color:'var(--teal)',fontFamily:'var(--font)' }}>
-                      #{order.order_id}
-                    </span>
-                    <span style={{
-                      display:'flex',alignItems:'center',gap:5,
-                      padding:'3px 10px',borderRadius:'var(--r-full)',fontSize:10,fontWeight:700,
-                      background:cfg.bg,color:cfg.color,
-                    }}>
-                      <NavIcon name={cfg.icon} size={11} color={cfg.color} />
-                      {cfg.label}
-                    </span>
-                  </div>
-
-                  {/* Garment + specs */}
-                  <p style={{ fontSize:13,fontWeight:600,color:'var(--ink)',margin:'0 0 3px',fontFamily:'var(--font)' }}>
-                    {order.garment_type ?? 'Custom Garment'}
-                  </p>
-                  <p style={{ fontSize:11,color:'var(--text-subtle)',margin:'0 0 10px',fontFamily:'var(--font)' }}>
-                    {order.quantity_ordered ?? 0} pcs
-                    {order.color ? ` · ${order.color}` : ''}
-                    {order.customer_name ? ` · ${order.customer_name}` : ''}
-                  </p>
-
-                  {/* Progress bar */}
-                  <div style={{ marginBottom:12 }}>
-                    <div style={{ display:'flex',justifyContent:'space-between',marginBottom:5 }}>
-                      <span style={{ fontSize:10,color:'var(--text-subtle)',fontFamily:'var(--font)' }}>
-                        Stage {stageIdx+1} of {STAGE_ORDER.length}
-                      </span>
-                      <span style={{ fontSize:10,fontWeight:700,color:'var(--teal)',fontFamily:'var(--font)' }}>
-                        {pct}%
-                      </span>
-                    </div>
-                    <div style={{ height:5,background:'var(--bg-surface)',borderRadius:'var(--r-full)',overflow:'hidden' }}>
-                      <motion.div
-                        initial={{ width:0 }}
-                        animate={{ width:`${pct}%` }}
-                        transition={{ duration:.7,ease:'easeOut' }}
-                        style={{ height:'100%',borderRadius:'var(--r-full)',
-                          background:'linear-gradient(90deg,var(--teal),var(--teal-2))' }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* QC hold warning */}
-                  {order.status === 'qc' && order.qc_required === 1 && !order.qc_passed_at && (
-                    <div style={{
-                      display:'flex',alignItems:'center',gap:6,
-                      padding:'6px 10px',borderRadius:'var(--r-sm)',marginBottom:10,
-                      background:'var(--danger-bg)',border:'1px solid var(--danger-border)',
-                      fontSize:11,color:'var(--danger)',fontWeight:700,fontFamily:'var(--font)',
-                    }}>
-                      <NavIcon name="warning" size={13} color="var(--danger)" />
-                      QC HOLD — Complete QC Checklist to advance
-                    </div>
-                  )}
-
-                  {/* Track button */}
-                  <motion.button
-                    whileTap={{ scale:.97 }}
-                    onClick={() => nav(`/admin/production/${order.order_id}`)}
-                    style={{
-                      width:'100%',padding:'10px',borderRadius:'var(--r-md)',border:'none',
-                      background:'linear-gradient(135deg,var(--teal),var(--teal-2))',
-                      color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',
-                      fontFamily:'var(--font)',minHeight:44,
-                      boxShadow:'var(--shadow-teal)',
-                    }}
-                  >
-                    Track — Order #{order.order_id}
-                  </motion.button>
+      <div className="adm-only-m adm-stagger" key={`${stage}-${search}`}>
+        {loading ? <SkeletonRows rows={3} h={150} />
+          : filtered.length === 0 ? <div className="adm-empty">{search ? `No results for “${search}”` : 'No orders in production right now'}</div>
+            : filtered.map((o, i) => (
+              <div key={o.order_id} className="adm-mcard accent" style={{ '--i': Math.min(i, 8), '--acc': qcHold(o) ? 'var(--danger)' : 'var(--teal)' }} onClick={() => go(o)}>
+                <div className="adm-mrow">
+                  <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--teal)' }}>#{o.order_id}</span>
+                  <StatusPill status={o.status} label={LABEL[o.status]} />
                 </div>
-              </motion.div>
-            );
-          })}
-        </div>
-      )}
+                <div style={{ marginTop: 8 }}><Spec o={o} /></div>
+                {o.customer_name && <div style={{ fontSize: 12, color: 'var(--text-subtle)', marginTop: 2 }}>{o.customer_name}</div>}
+                <div style={{ marginTop: 10 }}><Progress status={o.status} /></div>
+                {qcHold(o) && <div className="adm-inline-warn"><NavIcon name="warning" size={13} color="currentColor" /> QC hold — complete the QC checklist to advance</div>}
+                <div className="adm-mfoot"><button className="adm-btn primary" onClick={(e) => { e.stopPropagation(); go(o); }}>Track order #{o.order_id}</button></div>
+              </div>
+            ))}
+      </div>
     </>
   );
 }

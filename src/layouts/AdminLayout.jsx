@@ -20,7 +20,7 @@ import {
   LayoutDashboard, ClipboardList, Package, MessageSquare, ShoppingCart,
   Truck, Layers, Factory, FileText, ShieldCheck, ScanLine, AlertTriangle,
   Wallet, BarChart3, Receipt, Building2, Users, MessageCircle, Settings,
-  LogOut, Lock, Bell, Crown, Trophy,
+  LogOut, Lock, Bell, Crown, Trophy, Contact,
 } from 'lucide-react';
 
 const T  = 'var(--teal)';
@@ -33,6 +33,7 @@ const MG = 'var(--purple)'; // manager purple
 const STAFF_NAV = [
   { to:'/admin',              icon:LayoutDashboard, label:'Dashboard',    end:true, area:null        },
   { to:'/admin/orders',       icon:ClipboardList,   label:'Orders',                area:null        },
+  { to:'/admin/customers',    icon:Contact,         label:'Clients',               area:null        },
   { to:'/admin/inventory',    icon:Package,         label:'Inventory',             area:'inventory' },
   { to:'/admin/messages',     icon:MessageSquare,   label:'Messages',              area:null        },
   { to:'/admin/procurement',  icon:ShoppingCart,    label:'Procurement',           area:'inventory' },

@@ -1,496 +1,194 @@
-// src/pages/admin/AdminMessages.jsx
-//
-// RESHAPED (Sept 6 2026): hex → theme.css tokens (using the --bg vs
-// --bg-surface distinction correctly this time — see Invoice.jsx's
-// header note for why that matters), emoji → NavIcon. --bg (#f8fafc)
-// used for thread-list/chat header backgrounds, --bg-surface (#f1f5f9)
-// used for the incoming-message bubble and skeleton shimmer, matching
-// exactly which hex each spot used in the real original.
-//
-// Two real, unstyled gaps closed, not just recolored — these weren't
-// token issues, the original genuinely had bare unstyled elements
-// where a chat UI needs real ones:
-//   - The date separator (<div>{item.lbl}</div>) had ZERO styling at
-//     all — no centering, no background, just raw text inline in the
-//     message flex column. Now a proper centered pill, the standard
-//     chat-app date-divider pattern.
-//   - Both empty states ("Select a conversation" / "No messages yet")
-//     were bare <p> tags with no icon, color, or centering. Now match
-//     the empty-state pattern already established on every other
-//     reshaped page (icon + centered text).
-// Send button's plain "→" replaced with a real Send (paper airplane)
-// icon, verified against the real installed lucide-react first.
-//
-// Logic (60s polling, optimistic send + rollback, day-grouping,
-// meId/isMe detection) completely untouched.
-
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+// src/pages/admin/Messages.jsx — order-scoped customer conversations.
+// API: GET /api/admin/messages (threads: order_id, customer_name, organization_name, garment_type, status, last_body, last_message_at, unread_count)
+//      GET /api/admin/messages/:orderId ({messages}: sender_id, body, sent_at)  ·  POST /api/admin/messages {order_id, body}
+// Logic kept: 60s polling, optimistic send + rollback, sender_id own-message detection.
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { NavIcon } from '../../components/ui';
+import { NavIcon } from '../../components/ui/icons';
+import { PageHeader, StatusPill, SearchBox, SkeletonRows, ErrorBlock } from '../../components/admin/AdminUI';
+
+const timeOf = (m) => m.sent_at ?? m.created_at;
+const ago = (d) => {
+  if (!d) return '';
+  const mins = Math.floor((Date.now() - new Date(d).getTime()) / 60000);
+  if (mins < 1) return 'now';
+  if (mins < 60) return `${mins}m`;
+  if (mins < 1440) return `${Math.floor(mins / 60)}h`;
+  return new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' });
+};
+const dayLabel = (d) => {
+  if (!d) return '';
+  const diff = Math.floor((new Date(new Date().toDateString()) - new Date(new Date(d).toDateString())) / 86400000);
+  return diff === 0 ? 'Today' : diff === 1 ? 'Yesterday' : new Date(d).toLocaleDateString('en-PH', { month: 'long', day: 'numeric' });
+};
+const initials = (n) => (n ?? '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase();
 
 export default function AdminMessages() {
+  const nav = useNavigate();
   const [threads, setThreads] = useState([]);
   const [selId, setSelId] = useState(null);
-  const [mobileView, setMobileView] = useState('list'); // list | thread — mobile-only nav, matches customer Messages pattern
+  const [mobileView, setMobileView] = useState('list');
   const [msgs, setMsgs] = useState([]);
   const [newMsg, setNewMsg] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadErr, setLoadErr] = useState(false);
+  const [msgErr, setMsgErr] = useState(false);
+  const [sendErr, setSendErr] = useState(false);
   const [sending, setSending] = useState(false);
-
+  const [search, setSearch] = useState('');
+  const [unreadOnly, setUnreadOnly] = useState(false);
   const msgEnd = useRef(null);
-
   const meId = JSON.parse(localStorage.getItem('vfrb_user') || '{}')?.user_id;
 
   const loadThreads = useCallback(async () => {
     try {
       const r = await axios.get('/api/admin/messages');
       const data = r.data?.threads ?? r.data?.data ?? r.data ?? [];
-
-      setThreads(data);
-
-      if (data.length > 0 && !selId) {
-        setSelId(data[0].order_id ?? data[0].id);
-      }
-    } catch (e) {
-      console.error('Failed to load threads:', e);
-    } finally {
-      setLoading(false);
-    }
-  }, [selId]);
+      setThreads(data); setLoadErr(false);
+      setSelId((cur) => cur ?? (window.matchMedia('(min-width:768px)').matches && data.length ? (data[0].order_id ?? data[0].id) : null));
+    } catch { setLoadErr(true); } finally { setLoading(false); }
+  }, []);
 
   const loadMsgs = useCallback(async () => {
     if (!selId) return;
-
     try {
       const r = await axios.get(`/api/admin/messages/${selId}`);
-      setMsgs(r.data?.messages ?? r.data ?? []);
-    } catch (e) {
-      console.error('Failed to load messages:', e);
-    }
+      setMsgs(r.data?.messages ?? r.data ?? []); setMsgErr(false);
+    } catch { setMsgErr(true); }
   }, [selId]);
 
+  useEffect(() => { loadThreads(); }, [loadThreads]);
   useEffect(() => {
-    loadThreads();
-  }, [loadThreads]);
-
-  useEffect(() => {
-    loadMsgs();
+    setMsgs([]); loadMsgs();
     const iv = setInterval(loadMsgs, 60000);
     return () => clearInterval(iv);
   }, [loadMsgs]);
-
-  useEffect(() => {
-    msgEnd.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [msgs]);
+  useEffect(() => { msgEnd.current?.scrollIntoView({ block: 'end' }); }, [msgs]);
 
   const send = async () => {
-    if (!newMsg.trim() || !selId || sending) return;
-
-    const optimistic = {
-      _optimistic: true,
-      message_id: `opt_${Date.now()}`,
-      sender_id: meId,
-      user_id: meId,
-      role: 'staff',
-      body: newMsg.trim(),
-      created_at: new Date().toISOString(),
-    };
-
-    setMsgs((prev) => [...prev, optimistic]);
-
-    const sent = newMsg.trim();
-    setNewMsg('');
-    setSending(true);
-
+    const body = newMsg.trim();
+    if (!body || !selId || sending) return;
+    const optId = `opt_${Date.now()}`;
+    setMsgs((p) => [...p, { _optimistic: true, message_id: optId, sender_id: meId, body, sent_at: new Date().toISOString() }]);
+    setNewMsg(''); setSending(true); setSendErr(false);
     try {
-      await axios.post('/api/admin/messages', {
-        order_id: selId,
-        body: sent,
-      });
-
-      await loadMsgs();
+      await axios.post('/api/admin/messages', { order_id: selId, body });
+      await loadMsgs(); loadThreads();
     } catch {
-      setMsgs((prev) =>
-        prev.filter((m) => m.message_id !== optimistic.message_id)
-      );
-      setNewMsg(sent);
-    } finally {
-      setSending(false);
-    }
+      setMsgs((p) => p.filter((m) => m.message_id !== optId));
+      setNewMsg(body); setSendErr(true);
+    } finally { setSending(false); }
   };
 
-  const selThread = threads.find((t) => (t.order_id ?? t.id) === selId);
+  const unreadTotal = threads.reduce((s, t) => s + (Number(t.unread_count) || 0), 0);
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    return threads.filter((t) => (!unreadOnly || Number(t.unread_count) > 0)
+      && (!q || String(t.order_id).includes(q) || t.customer_name?.toLowerCase().includes(q)
+        || t.organization_name?.toLowerCase().includes(q) || t.last_body?.toLowerCase().includes(q)));
+  }, [threads, search, unreadOnly]);
+  const sel = threads.find((t) => (t.order_id ?? t.id) === selId);
+
+  const pick = (tid) => { setSelId(tid); setMobileView('thread'); setThreads((p) => p.map((t) => ((t.order_id ?? t.id) === tid ? { ...t, unread_count: 0 } : t))); };
+
+  const feed = useMemo(() => {
+    const out = []; let last = null;
+    msgs.forEach((m, i) => {
+      const t = timeOf(m); const k = t ? new Date(t).toDateString() : 'x';
+      if (k !== last) { out.push({ sep: true, key: `s${k}${i}`, lbl: dayLabel(t) }); last = k; }
+      out.push({ key: m.message_id ?? i, m, me: m.sender_id === meId });
+    });
+    return out;
+  }, [msgs, meId]);
 
   return (
     <>
-      <style>{`
-        @keyframes msg-shimmer {
-          0% { background-position: -400px 0; }
-          100% { background-position: 400px 0; }
-        }
-        @keyframes msg-spin { to { transform: rotate(360deg); } }
+      <PageHeader title="Messages" sub={loading ? 'Loading conversations…' : `${threads.length} conversation${threads.length !== 1 ? 's' : ''}${unreadTotal ? ` · ${unreadTotal} unread` : ''}`} />
+      {loadErr && <div style={{ marginBottom: 12 }}><ErrorBlock msg="Could not load conversations." onRetry={loadThreads} /></div>}
 
-        .adm-msg-wrap {
-          display: flex;
-          gap: 16px;
-          height: calc(100vh - 120px);
-          font-family: var(--font);
-          color: var(--ink);
-        }
-
-        .adm-msg-threads {
-          width: 280px;
-          flex-shrink: 0;
-          background: var(--bg-card);
-          border: 1px solid var(--border);
-          border-radius: var(--r-lg);
-          overflow: hidden;
-          display: flex;
-          flex-direction: column;
-          box-shadow: var(--shadow-xs);
-        }
-
-        .adm-msg-chat {
-          flex: 1;
-          background: var(--bg-card);
-          border: 1px solid var(--border);
-          border-radius: var(--r-lg);
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
-          box-shadow: var(--shadow-xs);
-        }
-
-        @media (max-width: 767px) {
-          .adm-msg-wrap {
-            flex-direction: column;
-            height: calc(100vh - 160px);
-            gap: 0;
-          }
-
-          .adm-msg-threads {
-            width: 100%;
-            height: 100%;
-          }
-
-          .adm-msg-chat {
-            height: 100%;
-          }
-
-          .adm-msg-threads.hide-mobile, .adm-msg-chat.hide-mobile { display: none; }
-          .adm-msg-back { display: flex; }
-        }
-
-        .adm-msg-back { display: none; }
-      `}</style>
-
-      <div className="adm-msg-wrap">
-        {/* THREADS */}
-        <div className={`adm-msg-threads ${mobileView !== 'list' ? 'hide-mobile' : ''}`}>
-          <div
-            style={{
-              padding: '14px 16px',
-              borderBottom: '1px solid var(--border)',
-              background: 'var(--bg)',
-            }}
-          >
-            <h2 style={{ fontSize: 14, fontWeight: 800, margin: 0, color: 'var(--ink)' }}>
-              Messages
-            </h2>
-            <p style={{ fontSize: 11, color: 'var(--text-subtle)', margin: '2px 0 0' }}>
-              Customer conversations
-            </p>
+      <div className="msg-wrap">
+        <aside className={`msg-list${mobileView !== 'list' ? ' off' : ''}`} aria-label="Conversations">
+          <div className="msg-list-head">
+            <SearchBox value={search} onChange={setSearch} placeholder="Search order, client, message…" label="Search conversations" />
+            <div className="msg-chips">
+              <button aria-pressed={!unreadOnly} onClick={() => setUnreadOnly(false)}>All</button>
+              <button aria-pressed={unreadOnly} onClick={() => setUnreadOnly(true)}>Unread{unreadTotal ? ` (${unreadTotal})` : ''}</button>
+            </div>
           </div>
-
-          <div style={{ flex: 1, overflowY: 'auto' }}>
-            {loading ? (
-              <div style={{ padding: 16 }}>
-                {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    style={{
-                      height: 48,
-                      borderRadius: 'var(--r-md)',
-                      marginBottom: 8,
-                      background:
-                        'linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%)',
-                      backgroundSize: '400px',
-                      animation: 'msg-shimmer 1.4s infinite',
-                    }}
-                  />
-                ))}
-              </div>
-            ) : threads.length === 0 ? (
-              <div style={{ padding: '30px 16px', textAlign: 'center' }}>
-                <NavIcon name="chat" size={28} color="var(--text-faint)" style={{ marginBottom: 8 }} />
-                <p style={{ color: 'var(--text-faint)', fontSize: 12, margin: 0 }}>
-                  No messages yet
-                </p>
-              </div>
-            ) : (
-              threads.map((t) => {
-                const tid = t.order_id ?? t.id;
-                const active = tid === selId;
-
+          <div className="msg-scroll">
+            {loading ? <SkeletonRows rows={5} h={62} />
+              : filtered.length === 0 ? (
+                <div className="adm-empty"><NavIcon name="chat" size={28} color="currentColor" />
+                  <div style={{ marginTop: 8, fontWeight: 700 }}>{search || unreadOnly ? 'No conversations match' : 'No conversations yet'}</div>
+                  <div style={{ fontSize: 12, marginTop: 4 }}>{!search && !unreadOnly && 'Conversations appear once a client messages about an order.'}</div>
+                  {(search || unreadOnly) && <button className="adm-link-btn" onClick={() => { setSearch(''); setUnreadOnly(false); }}>Clear filters</button>}
+                </div>
+              ) : filtered.map((t) => {
+                const tid = t.order_id ?? t.id; const un = Number(t.unread_count) || 0;
                 return (
-                  <button
-                    key={tid}
-                    onClick={() => { setSelId(tid); setMobileView('thread'); }}
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      border: 'none',
-                      borderBottom: '1px solid var(--bg-surface)',
-                      borderLeft: active ? '3px solid var(--teal)' : '3px solid transparent',
-                      transition: 'background .12s',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      background: active ? 'var(--teal-50)' : 'transparent',
-                      fontFamily: 'var(--font)',
-                    }}
-                  >
-                    <p
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: active ? 'var(--teal)' : 'var(--ink)',
-                        margin: 0,
-                      }}
-                    >
-                      Order #{tid} —{' '}
-                      {t.customer_name ?? t.user?.name ?? '—'}
-                    </p>
-
-                    {t.last_message && (
-                      <p
-                        style={{
-                          fontSize: 11,
-                          color: 'var(--text-faint)',
-                          margin: '3px 0 0',
-                        }}
-                      >
-                        {t.last_message}
-                      </p>
-                    )}
+                  <button key={tid} className={`msg-th${tid === selId ? ' on' : ''}`} aria-current={tid === selId} onClick={() => pick(tid)}>
+                    <span className="msg-av">{initials(t.customer_name)}</span>
+                    <span className="msg-th-body">
+                      <span className="msg-th-top"><b>{t.customer_name ?? '—'}</b><i>{ago(t.last_message_at)}</i></span>
+                      <span className="msg-th-sub">Order #{tid}{t.garment_type ? ` · ${t.garment_type}` : ''}</span>
+                      <span className={`msg-th-last${un ? ' unread' : ''}`}>{t.last_body ?? ''}</span>
+                    </span>
+                    {un > 0 && <span className="msg-badge" aria-label={`${un} unread`}>{un}</span>}
                   </button>
                 );
-              })
-            )}
+              })}
           </div>
-        </div>
+        </aside>
 
-        {/* CHAT */}
-        <div className={`adm-msg-chat ${mobileView !== 'thread' ? 'hide-mobile' : ''}`}>
-          <div
-            style={{
-              padding: '12px 18px',
-              borderBottom: '1px solid var(--border)',
-              background: 'var(--bg)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-            }}
-          >
-            <button onClick={() => setMobileView('list')} className="adm-msg-back"
-              aria-label="Back to conversation list"
-              style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--text-subtle)', padding: 0 }}>←</button>
-            <p style={{ fontSize: 13, fontWeight: 800, margin: 0, color: 'var(--ink)' }}>
-              {selThread
-                ? `Order #${selId} — ${
-                    selThread.customer_name ?? selThread.user?.name ?? '—'
-                  }`
-                : 'Select a conversation'}
-            </p>
-          </div>
+        <section className={`msg-chat${mobileView !== 'thread' ? ' off' : ''}`} aria-label="Conversation">
+          <header className="msg-chat-head">
+            <button className="msg-back adm-btn" onClick={() => setMobileView('list')} aria-label="Back to conversations"><NavIcon name="back" size={16} color="currentColor" /></button>
+            {sel ? (
+              <>
+                <span className="msg-av">{initials(sel.customer_name)}</span>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontWeight: 800, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sel.customer_name}{sel.organization_name ? ` · ${sel.organization_name}` : ''}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-subtle)' }}>Order #{selId}{sel.garment_type ? ` · ${sel.garment_type}` : ''}</div>
+                </div>
+                {sel.status && <StatusPill status={sel.status} />}
+                <button className="adm-btn" onClick={() => nav(`/admin/orders/${selId}`)}>View order</button>
+              </>
+            ) : <span style={{ fontWeight: 700, color: 'var(--text-subtle)' }}>Select a conversation</span>}
+          </header>
 
-          <div
-            style={{
-              flex: 1,
-              overflowY: 'auto',
-              padding: '16px 18px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 10,
-            }}
-          >
+          <div className="msg-feed" aria-live="polite">
             {!selId ? (
-              <div style={{ margin: 'auto', textAlign: 'center' }}>
-                <NavIcon name="chat" size={32} color="var(--text-faint)" style={{ marginBottom: 8 }} />
-                <p style={{ color: 'var(--text-faint)', fontSize: 13, margin: 0 }}>Select a conversation</p>
-              </div>
+              <div className="adm-empty" style={{ margin: 'auto' }}><NavIcon name="chat" size={34} color="currentColor" /><div style={{ marginTop: 8 }}>Choose a conversation from the list</div></div>
+            ) : msgErr && msgs.length === 0 ? (
+              <div style={{ margin: 'auto' }}><ErrorBlock msg="Could not load this conversation." onRetry={loadMsgs} /></div>
             ) : msgs.length === 0 ? (
-              <div style={{ margin: 'auto', textAlign: 'center' }}>
-                <NavIcon name="chat" size={32} color="var(--text-faint)" style={{ marginBottom: 8 }} />
-                <p style={{ color: 'var(--text-faint)', fontSize: 13, margin: 0 }}>No messages yet</p>
-              </div>
+              <div className="adm-empty" style={{ margin: 'auto' }}><NavIcon name="chat" size={34} color="currentColor" /><div style={{ marginTop: 8 }}>No messages yet — say hello below.</div></div>
+            ) : feed.map((it) => it.sep ? (
+              <div key={it.key} className="msg-sep"><span>{it.lbl}</span></div>
             ) : (
-              (() => {
-                const items = [];
-                let lastDay = null;
-
-                msgs.forEach((m, i) => {
-                  const d = m.created_at ? new Date(m.created_at) : null;
-                  const key = d ? d.toLocaleDateString('en-PH') : 'unknown';
-
-                  if (key !== lastDay) {
-                    const diff = d
-                      ? Math.floor((Date.now() - d.getTime()) / 86400000)
-                      : -1;
-
-                    const lbl =
-                      diff === 0
-                        ? 'Today'
-                        : diff === 1
-                        ? 'Yesterday'
-                        : d
-                        ? d.toLocaleDateString('en-PH', {
-                            month: 'long',
-                            day: 'numeric',
-                          })
-                        : '';
-
-                    items.push({
-                      type: 'sep',
-                      key: `sep_${key}_${i}`,
-                      lbl,
-                    });
-
-                    lastDay = key;
-                  }
-
-                  const isMe =
-                    m.user_id === meId ||
-                    m.sender_id === meId ||
-                    m.role === 'staff' ||
-                    m.role === 'manager';
-
-                  items.push({
-                    type: 'msg',
-                    key: m.message_id ?? `msg_${i}`,
-                    m,
-                    isMe,
-                    isOpt: !!m._optimistic,
-                  });
-                });
-
-                return (
-                  <AnimatePresence initial={false}>
-                    {items.map((item) =>
-                      item.type === 'sep' ? (
-                        <div key={item.key} style={{ display: 'flex', justifyContent: 'center', margin: '6px 0' }}>
-                          <span style={{
-                            fontSize: 10, fontWeight: 700, color: 'var(--text-subtle)',
-                            background: 'var(--bg-surface)', padding: '3px 12px',
-                            borderRadius: 'var(--r-full)', textTransform: 'uppercase',
-                            letterSpacing: '.05em', fontFamily: 'var(--font)',
-                          }}>{item.lbl}</span>
-                        </div>
-                      ) : (
-                        <motion.div
-                          key={item.key}
-                          initial={{ opacity: 0, y: 6 }}
-                          animate={{
-                            opacity: item.isOpt ? 0.72 : 1,
-                            y: 0,
-                          }}
-                          style={{
-                            display: 'flex',
-                            justifyContent: item.isMe
-                              ? 'flex-end'
-                              : 'flex-start',
-                          }}
-                        >
-                          <div
-                            style={{
-                              maxWidth: '70%',
-                              padding: '10px 14px',
-                              borderRadius: 'var(--r-lg)',
-                              background: item.isMe
-                                ? 'linear-gradient(135deg,var(--teal),var(--teal-2))'
-                                : 'var(--bg-surface)',
-                            }}
-                          >
-                            <p
-                              style={{
-                                fontSize: 13,
-                                margin: 0,
-                                fontFamily: 'var(--font)',
-                                color: item.isMe ? '#fff' : 'var(--ink)',
-                              }}
-                            >
-                              {item.m.body}
-                            </p>
-                          </div>
-                        </motion.div>
-                      )
-                    )}
-                  </AnimatePresence>
-                );
-              })()
-            )}
-
+              <div key={it.key} className={`msg-row ${it.me ? 'me' : ''}${it.m._optimistic ? ' opt' : ''}`}>
+                <div className="msg-bub">
+                  {!it.me && it.m.sender_name && <div className="msg-name">{it.m.sender_name}</div>}
+                  <p>{it.m.body}</p>
+                  <time>{timeOf(it.m) ? new Date(timeOf(it.m)).toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit' }) : ''}</time>
+                </div>
+              </div>
+            ))}
             <div ref={msgEnd} />
           </div>
 
-          {/* INPUT */}
-          <div
-            style={{
-              padding: '12px 16px',
-              borderTop: '1px solid var(--border)',
-              display: 'flex',
-              gap: 10,
-            }}
-          >
-            <input
-              value={newMsg}
-              onChange={(e) => setNewMsg(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  send();
-                }
-              }}
-              placeholder={
-                selId ? 'Reply to customer…' : 'Select a conversation'
-              }
-              disabled={!selId}
-              style={{
-                flex: 1,
-                padding: '10px 14px',
-                borderRadius: 'var(--r-md)',
-                border: '1px solid var(--border)',
-                background: 'var(--bg-card)',
-                color: 'var(--ink)',
-                fontFamily: 'var(--font)',
-                fontSize: 13,
-                outline: 'none',
-              }}
-            />
-
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={send}
-              disabled={sending || !newMsg.trim() || !selId}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '10px 18px',
-                borderRadius: 'var(--r-md)',
-                border: 'none',
-                background:
-                  sending || !newMsg.trim() || !selId
-                    ? 'var(--border)'
-                    : 'linear-gradient(135deg,var(--teal),var(--teal-2))',
-                color: '#fff',
-                fontSize: 13, fontWeight: 700, fontFamily: 'var(--font)',
-                cursor: sending || !newMsg.trim() || !selId ? 'not-allowed' : 'pointer',
-              }}
-            >
-              <NavIcon name={sending ? 'loading' : 'send'} size={14} color="#fff" style={sending ? { animation: 'msg-spin .8s linear infinite' } : undefined} />
-              {!sending && 'Send'}
-            </motion.button>
+          {sendErr && <div className="msg-senderr" role="alert"><NavIcon name="warning" size={14} color="currentColor" /> Message not sent — your text was restored. Try again.</div>}
+          <div className="msg-compose">
+            <textarea rows={1} value={newMsg} disabled={!selId} aria-label="Reply to customer"
+              onChange={(e) => { setNewMsg(e.target.value); setSendErr(false); }}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
+              placeholder={selId ? 'Reply to customer… (Enter to send, Shift+Enter for new line)' : 'Select a conversation'} />
+            <button className="adm-btn primary" onClick={send} disabled={sending || !newMsg.trim() || !selId} aria-label="Send message">
+              <NavIcon name={sending ? 'loading' : 'send'} size={15} color="currentColor" /><span className="adm-hide-m">Send</span>
+            </button>
           </div>
-        </div>
+        </section>
       </div>
     </>
   );

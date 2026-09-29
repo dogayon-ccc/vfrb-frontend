@@ -59,6 +59,7 @@ const AdminReports           = lazy(() => import('./pages/admin/Reports'));
 const AdminSalesTransactions = lazy(() => import('./pages/admin/SalesTransactions'));
 const AdminMessages          = lazy(() => import('./pages/admin/Messages'));
 const AdminDeliveryTracking  = lazy(() => import('./pages/admin/DeliveryTracking'));
+const AdminCustomers         = lazy(() => import('./pages/admin/CustomersMaster'));
 const AdminSuppliers         = lazy(() => import('./pages/admin/Suppliers'));
 const AdminUserManagement    = lazy(() => import('./pages/admin/UserManagement'));
 const AdminShowcaseQueue     = lazy(() => import('./pages/admin/ShowcaseModerationQueue'));
@@ -214,6 +215,7 @@ export default function App() {
             {/* Staff + Manager */}
             <Route path="orders"      element={<AdminOrders/>}/>
             <Route path="orders/:id"  element={<AdminOrderDetail/>}/>
+            <Route path="customers"   element={<AdminCustomers/>}/>
             <Route path="production/:orderId" element={<AdminProductionTracking/>}/>
             <Route path="production"          element={<AdminProductionList/>}/>
             <Route path="inventory"   element={<AdminInventory/>}/>
