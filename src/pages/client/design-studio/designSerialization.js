@@ -21,6 +21,8 @@
 // deserializeDesign(raw) -> { cfg, overlays, frontOverlays, backOverlays },
 //   never throws, always returns a fully-defaulted cfg.
 
+import { resolveSleeve } from './garmentCatalog';
+
 export const DEFAULT_CFG = {
   name: '',
   category: 'School Uniform',
@@ -60,7 +62,7 @@ export function serializeDesign(cfg, overlaysBundle = {}, previewPng) {
     category:      cfg.category ?? DEFAULT_CFG.category,
     garment:       cfg.garment ?? null,
     fit:           cfg.fit ?? DEFAULT_CFG.fit,
-    sleeve:        cfg.sleeve ?? DEFAULT_CFG.sleeve,
+    sleeve:        resolveSleeve(cfg.garment, cfg.sleeve ?? DEFAULT_CFG.sleeve),
     colors:        { ...DEFAULT_CFG.colors,   ...cfg.colors },
     patterns:      { ...DEFAULT_CFG.patterns, ...cfg.patterns },
     patternParams: { ...cfg.patternParams },
@@ -94,7 +96,7 @@ export function deserializeDesign(raw) {
     // aliases older saved records (or the backend's own copy) may carry.
     garment:       sc.garment ?? sc.garmentType ?? DEFAULT_CFG.garment,
     fit:           sc.fit ?? DEFAULT_CFG.fit,
-    sleeve:        sc.sleeve ?? sc.sleeveType ?? DEFAULT_CFG.sleeve,
+    sleeve:        resolveSleeve(sc.garment ?? sc.garmentType ?? DEFAULT_CFG.garment, sc.sleeve ?? sc.sleeveType ?? DEFAULT_CFG.sleeve),
     colors:        { ...DEFAULT_CFG.colors,   ...(sc.colors   && typeof sc.colors   === 'object' ? sc.colors   : {}) },
     patterns:      { ...DEFAULT_CFG.patterns, ...(sc.patterns && typeof sc.patterns === 'object' ? sc.patterns : {}) },
     patternParams: { ...(sc.patternParams && typeof sc.patternParams === 'object' ? sc.patternParams : {}) },

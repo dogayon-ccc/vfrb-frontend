@@ -21,13 +21,15 @@ const teeRegion = ({ c: [x, y] }) => {
 // Measured on both polo files: torso half-width 0.44 below the armpit (y < 0.1; the hem flares to 0.5 so sleeves also need y > 0.05), sleeves extend to |x| 0.75, collar band y > 0.78.
 const poloZone = (x, y) => (Math.abs(x) > 0.46 && y > 0.05 ? 'sleeve' : y > 0.78 ? 'collar' : 'body');
 
-// Work shirt: processed from the fused Meshy scan "Work_Uniform_Shirt with pocket on chest.glb" (source untouched). The scan had
-// bare arm tubes below the short sleeves; they were cut away (tools/glb-extract/extract_work_shirt.py) into
-// processed/work-shirt-short-sleeve.glb. No UVs/materials, so zones are geometry thresholds (approximate), measured on the
-// processed file: collar y > 0.78 with |x| < 0.32, chest pocket x -0.48..-0.17 / y 0.20..0.42, sleeves |x| > 0.5 above the hem y 0.02.
-const workShirtZone = (x, y) => {
+// Work shirt: processed from the fused Meshy scan "Work_Uniform_Shirt with pocket on chest.glb" (source untouched) by
+// tools/glb-extract/build_processed.py into processed/work-shirt-short-sleeve.glb: bare arm tubes removed with plane clips (straight sleeve
+// hem / side edge) and the shirt mirrored x -> -x so the scanned chest pocket sits on the viewer's left, the same side as the 2D Button-Down
+// pocket. Model faces +z (neckline dips at +z). No UVs/materials, so zones are geometry thresholds (approximate), measured on the
+// processed file: collar stand y > 0.78 with |x| < 0.32, chest pocket x -0.48..-0.17 / y 0.20..0.42 on the FRONT face only (z > 0 — without
+// the z test the pocket colour also painted the back of the shirt), sleeves |x| > 0.5 above the hem y 0.02.
+const workShirtZone = (x, y, z) => {
   if (y > 0.78 && Math.abs(x) < 0.32) return 'collar';
-  if (x > -0.48 && x < -0.17 && y > 0.2 && y < 0.42) return 'pocket';
+  if (z > 0 && x > -0.48 && x < -0.17 && y > 0.2 && y < 0.42) return 'pocket';
   if (Math.abs(x) > 0.5 && y > 0.02) return 'sleeve';
   return 'body';
 };
@@ -83,8 +85,8 @@ export const SCANNED_GARMENTS = [
       zones: ['body', 'sleeve', 'collar', 'pocket'], patterns: { zones: ['body', 'sleeve', 'collar'], ids: ALL_PATTERNS.filter(p => p !== 'geometric') },
       sleeves: ['Short'], // the only sleeve length the GLB(s) actually have; other 2D styles are not shown in 3D
       text: true, logo: true, frontBack: true, fit: ['unisex'],
-      // Render-verified front/back/3-quarter; the side seam under each arm is open (hidden behind the arm in the scan) and short sleeves only (the 2D "Long" style has no 3D counterpart).
-      limitations: ['open side seams under the arms', 'short sleeve only', 'sleeve hem edge is jagged'],
+      // Render-verified front/back (offline raster, zone overlay); the side seam under each arm is open (hidden behind the arm in the scan) and short sleeves only (the 2D "Long" style has no 3D counterpart).
+      limitations: ['open side seams under the arms', 'short sleeve only', 'front collar leaf points sit below the collar zone and take the body colour'],
     },
   },
   // Lower-body garments processed from fused Meshy figures (sources untouched; see tools/glb-extract/ and GLB-CAPABILITY-MATRIX.md §9).

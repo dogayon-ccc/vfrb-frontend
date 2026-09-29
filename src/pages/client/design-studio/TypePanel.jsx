@@ -61,7 +61,7 @@ export default function TypePanel({ cfg, setCfg }) {
   const goNeighbor = (dir) => {
     const next = neighborFamily(cfg.category, cfg.garment, dir);
     if (!next) return;
-    setCfg(p => ({ ...p, garment: next.id, sleeve: next.defaultStyle ?? p.sleeve, fit: next.fits.length > 1 ? (p.fit ?? 'male') : undefined }));
+    setCfg(p => ({ ...p, garment: next.id, sleeve: next.defaultStyle, fit: next.fits.length > 1 ? (p.fit ?? 'male') : undefined }));
   };
 
   return (
@@ -72,7 +72,7 @@ export default function TypePanel({ cfg, setCfg }) {
           const on = cfg.category === c.id;
           return (
             <button key={c.id} type="button" role="tab" aria-selected={on} className="ds-tp-cat"
-              onClick={() => setCfg(p => ({ ...p, category: c.id, garment: c.families[0].id, sleeve: c.families[0].defaultStyle ?? 'Short' }))}>
+              onClick={() => setCfg(p => ({ ...p, category: c.id, garment: c.families[0].id, sleeve: c.families[0].defaultStyle }))}>
               <NavIcon name={c.icon} size={18}/>
               <span>{c.id.split('/')[0].trim()}</span>
             </button>
@@ -112,7 +112,7 @@ export default function TypePanel({ cfg, setCfg }) {
                 title={sel ? `${g} — click to remove` : `${g}${st ? ` — ${st.label}` : ''}`}
                 onClick={() => setCfg(p => (sel
                   ? { ...p, garment: null }
-                  : { ...p, garment: g, sleeve: (fam.defaultStyle ?? p.sleeve), fit: fam.fits.length > 1 ? (p.fit ?? 'male') : undefined }))}>
+                  : { ...p, garment: g, sleeve: fam.defaultStyle, fit: fam.fits.length > 1 ? (p.fit ?? 'male') : undefined }))}>
                 <AnimatePresence>
                   {sel && (
                     <motion.span className="ds-tp-check" aria-hidden="true"

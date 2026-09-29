@@ -7,23 +7,36 @@ import os, sys
 import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from cutlib import cut, save
+from cutlib import cut, cut_planes, mirror_x, save
 from extract import load_mesh
 
 MODELS = os.path.normpath(os.path.join(HERE, '..', '..', 'public', 'models'))
 JOBS = [
+    # Work shirt: the arm removal (|x| > 0.50 below y 0.02) is a PLANE clip (straight sleeve hem + side edge), the hem-level
+    # lateral rule is a vertex cut, and the result is mirrored x -> -x so the scanned chest pocket lands on the same side as the
+    # 2D Button-Down pocket (viewer's left). See PLANE_JOBS / MIRROR below.
     ('Work_Uniform_Shirt with pocket on chest.glb', 'work-shirt-short-sleeve.glb', -10, 10,
-     [(-10, 0.02, 0.50), (-10, -0.88, 0.42)]),
+     [(-10, -0.88, 0.42)]),
     ('Female full set corporate uniform and trousers.glb', 'pants-trousers.glb', -0.81, -0.03, [(-0.32, -0.03, 0.19)]),
     ('Navy_Textured_Short.glb', 'shorts-textured.glb', -0.5, -0.12, [(-0.6, -0.12, 0.215)]),
     ('Navy_Blue_Peplum_Dress.glb', 'skirt-pencil.glb', -0.44, -0.11, [(-0.2, -0.11, 0.205)]),
 ]
 
+PLANE_JOBS = {'work-shirt-short-sleeve.glb': (0.50, 0.02)}  # out -> (x_max, y_min) for cut_planes
+MIRROR = {'work-shirt-short-sleeve.glb'}
+
 if __name__ == '__main__':
+    only = [a for a in sys.argv[1:] if not a.startswith('--')]
     os.makedirs(os.path.join(MODELS, 'processed'), exist_ok=True)
     for src, out, y_lo, y_hi, rules in JOBS:
+        if only and out not in only:
+            continue
         m = load_mesh(os.path.join(MODELS, src))
         s = cut(m, y_lo, y_hi, rules, min_comp=0.05)
+        if out in PLANE_JOBS:
+            s = cut_planes(s, *PLANE_JOBS[out])
+        if out in MIRROR:
+            s = mirror_x(s)
         dst = os.path.join(MODELS, 'processed', out)
         save(s, dst)
         print(f'{out}: {len(m.vertices)} -> {len(s.vertices)} vertices')

@@ -266,3 +266,16 @@ Verification on a real GPU browser. Garment-only, region-separated re-exports fo
 
 ### PUSH STATUS
 Not pushed — no credentials in this sandbox (confirmed again by attempting `git push`, same `could not read Username` failure as prior sessions). Committed locally.
+
+
+---
+
+## ACCOUNT 3 — SESSION 4 (worked on `main` @ `409babc`)
+
+Verified: BUILD (`npm run build` exit 0 before/after; only pre-existing three-mesh-bvh + chunk-size warnings), CODE-level node run of the real `zoneOf` / `resolveSleeve` / `serializeDesign` / `deserializeDesign` against the real processed GLB vertices, offline raster renders (`tools/glb-extract/raster.py`). NOT verified: live browser/WebGL (no browser available in the sandbox), full Studio flow.
+
+- **work-shirt-short-sleeve.glb regenerated** (`python tools/glb-extract/build_processed.py work-shirt-short-sleeve.glb`; original Meshy source untouched; the other three processed GLBs are byte-identical to `main`). Arm removal is now a plane clip (`cutlib.cut_planes`: |x|>0.50 below y 0.02) instead of a vertex drop -> straight sleeve hem and side edge. The result is mirrored x -> -x (`cutlib.mirror_x`, winding restored) because the scan had the chest pocket at +x (viewer's right) while the 2D Button-Down pocket, the Left Chest logo preset and the existing `workShirtZone` pocket box are all on the viewer's left. Model faces +z (neckline dips at +z).
+- **Pocket zone painted the back of the shirt**: `workShirtZone` ignored z. Now requires `z > 0`. Measured: pocket zone = 1,397 vertices, all with z >= 0.105, none on the back.
+- **Stale sleeve on garments without sleeve styles**: switching to Pants/Shorts/Skirt kept the previous garment's sleeve, and `serializeDesign` fell back to 'Short', so OrderWizard pre-filled a sleeve for a garment that has none. New `garmentCatalog.resolveSleeve(garment, sleeve)`: no styles -> `null`; otherwise keep if valid else the family default. Used by TypePanel (garment / category / neighbour switch) and by `serializeDesign` / `deserializeDesign` (also repairs old drafts).
+- Unchanged on purpose: 2D-only sleeve styles (Long / 3/4 / Sleeveless) stay selectable, labelled "· 2D", with the existing 3D notice. They are real 2D silhouettes; 3D shows short sleeves only for every wired shirt.
+- Pants / shorts / skirt GLBs re-inspected (raster, both faces): garment-only, intact, ragged waist/hem edges already documented. No change made.

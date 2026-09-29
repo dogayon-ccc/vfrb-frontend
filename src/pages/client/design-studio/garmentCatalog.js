@@ -100,6 +100,16 @@ export function familyFor(garment) {
   return FAMILIES[garment] ?? null;
 }
 
+// The one place that decides which sleeve value a design may carry. A family with no sleeve styles (Pants / Shorts / Skirt)
+// carries `null` — never a stale value from the previously selected garment, and never an invented 'Short'. A family with styles
+// keeps the current sleeve when it is one of them, otherwise falls back to its real default. Blank designs (no garment) pass through.
+export function resolveSleeve(garment, sleeve) {
+  const fam = FAMILIES[garment];
+  if (!fam) return sleeve ?? null;
+  if (fam.styles.length === 0) return null;
+  return fam.styles.includes(sleeve) ? sleeve : fam.defaultStyle;
+}
+
 // Neighbour family within the same category, for Previous/Next browsing. dir: -1 or 1. Wraps.
 export function neighborFamily(category, garment, dir) {
   const cat = CATALOG.find(c => c.id === category) ?? CATALOG[0];

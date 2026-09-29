@@ -158,7 +158,7 @@ which regenerates all four assets byte-identically).
 
 | Processed asset | Source (untouched) | Family wired | RENDER evidence | Known defects |
 |---|---|---|---|---|
-| `processed/work-shirt-short-sleeve.glb` | Work_Uniform_Shirt with pocket on chest | Button-Down (partial) | front / 45° / side / back: collar, placket, chest pocket, short sleeves, no head/hands/arms | open side seams under the arms (hidden behind the arm in the scan); jagged sleeve hem; short sleeve only |
+| `processed/work-shirt-short-sleeve.glb` | Work_Uniform_Shirt with pocket on chest | Button-Down (partial) | front / back offline raster with zone overlay (Account 3, session 4): collar, placket, chest pocket, short sleeves, no head/hands/arms; arms removed by plane clips (straight sleeve hem + side edge); mirrored x so the pocket is on the viewer's left like the 2D Button-Down | open side seams under the arms (hidden behind the arm in the scan); short sleeve only; front collar leaf points sit below the collar zone (body colour) |
 | `processed/pants-trousers.glb` | Female full set corporate uniform and trousers | Pants (partial) | front + 45°: trousers only | small hand stub at one hip; ragged waist/hem; female cut |
 | `processed/shorts-textured.glb` | Navy_Textured_Short | Shorts (partial) | 4 angles: shorts only | notch at hip side where a hand was fused; waist is a cut |
 | `processed/skirt-pencil.glb` | Navy_Blue_Peplum_Dress | Skirt (partial) | front + 45°: skirt only | 1.4k vertices; ragged waist/hem |
