@@ -1,10 +1,10 @@
 export const STAFF_ROLES = ['manager', 'staff'];
 
-const parseUser = () => {
-  try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}'); } catch { return {}; }
+export const readUser = () => {
+  try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}') || {}; } catch { return {}; }
 };
 
-export const readAuth = () => ({ token: localStorage.getItem('vfrb_token'), user: parseUser() });
+export const readAuth = () => ({ token: localStorage.getItem('vfrb_token'), user: readUser() });
 
 export const isStaffRole = (user) => STAFF_ROLES.includes(user?.role);
 

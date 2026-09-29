@@ -7,6 +7,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import { signOut } from '../../utils/session';
+import { readUser } from '../../utils/authRoute';
 import logo from '../../assets/company-logo.jpg';
 import { NavIcon } from '../../components/ui/icons';
 
@@ -68,7 +70,7 @@ export default function VerifyEmail() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const verifyStatus = searchParams.get('status'); // verified | already_verified | invalid | null
-  const user = JSON.parse(localStorage.getItem('vfrb_user') || '{}');
+  const user = readUser();
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
@@ -101,7 +103,7 @@ export default function VerifyEmail() {
     }
   };
 
-  const logout = () => { localStorage.removeItem('vfrb_token'); localStorage.removeItem('vfrb_user'); navigate('/login'); };
+  const logout = () => { signOut(); navigate('/login', { replace: true }); };
 
   if (verifyStatus === 'verified' || verifyStatus === 'already_verified') {
     const first = verifyStatus === 'verified';

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import { startSession } from '../../utils/session';
 import AuthShell, { authInput } from '../../components/AuthShell';
 import { NavIcon } from '../../components/ui/icons';
 
@@ -45,9 +46,7 @@ export default function CustomerRegister() {
     setLoading(true);
     try {
       const { data } = await axios.post('/api/register', form);
-      localStorage.setItem('vfrb_token', data.token);
-      localStorage.setItem('vfrb_user', JSON.stringify(data.user));
-      axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
+      startSession(data.token, data.user);
       const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
       navigate(data.user?.email_verified_at || isLocalhost ? '/dashboard' : '/verify-email');
     } catch (err) {

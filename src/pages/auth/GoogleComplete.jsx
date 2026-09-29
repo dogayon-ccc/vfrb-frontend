@@ -1,6 +1,8 @@
 // Catches token+user handoff after Google OAuth redirect, stores it, forwards to /customer.
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { startSession } from '../../utils/session';
+import { homeFor } from '../../utils/authRoute';
 import { NavIcon } from '../../components/ui/icons';
 
 const FONT = "ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif";
@@ -29,9 +31,8 @@ export default function GoogleComplete() {
         setError('Could not complete sign-in. Please try again.');
         return;
       }
-      localStorage.setItem('vfrb_token', token);
-      localStorage.setItem('vfrb_user', JSON.stringify(user));
-      window.location.href = '/dashboard';
+      startSession(token, user);
+      window.location.href = homeFor(user);
     } catch {
       setError('Could not complete sign-in. Please try again.');
     }

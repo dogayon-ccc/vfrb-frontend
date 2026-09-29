@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import { startSession } from '../../utils/session';
 import AuthShell, { authInput } from '../../components/AuthShell';
 import { NavIcon } from '../../components/ui/icons';
 
@@ -34,9 +35,7 @@ export default function Login() {
     setLoading(true); setError('');
     try {
       const { data } = await axios.post('/api/login', form);
-      localStorage.setItem('vfrb_token', data.token);
-      localStorage.setItem('vfrb_user', JSON.stringify(data.user));
-      axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
+      startSession(data.token, data.user);
       if (data.user.role === 'manager' || data.user.role === 'staff') {
         navigate('/admin/dashboard');
         return;

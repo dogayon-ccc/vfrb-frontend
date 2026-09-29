@@ -43,6 +43,7 @@ import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import { getStorageUrl } from '../../utils/fileUrl';
+import { escapeHtml } from '../../utils/escapeHtml';
 import { NavIcon } from '../../components/ui';
 
 const STATUS_LABEL = {
@@ -110,7 +111,7 @@ export default function AdminInvoice() {
     const win = window.open('', '_blank');
     win.document.write(`
       <html><head>
-        <title>Invoice #${order?.order_id} — VFRB Enterprise</title>
+        <title>Invoice #${escapeHtml(order?.order_id)} — VFRB Enterprise</title>
         <style>
           * { box-sizing:border-box; margin:0; padding:0; }
           body { font-family:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif; color:#0f172a; padding:40px; font-size:13px; }

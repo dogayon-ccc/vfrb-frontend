@@ -87,6 +87,11 @@ export default function DesignStudio() {
   const [draftRestored, setDraftRestored] = useState(false); // banner on restore
   // Transient success toast driven by the REAL save flags (local write first, then cloud draft).
   const [toast, setToast] = useState(null);
+  const [toastErr, setToastErr] = useState(false);
+  const flashError = useCallback((msg) => {
+    setToastErr(true); setToast(msg);
+    setTimeout(() => { setToast(null); setToastErr(false); }, 4000);
+  }, []);
   const savedPrev = useRef({ saved: false, draftSaved: false });
   useEffect(() => {
     const prev = savedPrev.current;
@@ -419,9 +424,11 @@ export default function DesignStudio() {
     if (!cfg.garment) return;
     const snap = snapshotDesign();
     // Always write sessionStorage first (instant, works offline)
-    sessionStorage.setItem('studio_config', JSON.stringify(snap));
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    try {
+      sessionStorage.setItem('studio_config', JSON.stringify(snap));
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch { /* quota: large logos; the cloud draft below still runs */ }
     // Best-effort DB save
     try {
       await axios.post('/api/customer/drafts', {
@@ -470,8 +477,9 @@ export default function DesignStudio() {
       // Export failed (e.g. canvas mid-init) — un-stick the button so the
       // customer can retry instead of it staying disabled forever.
       setOrdering(false);
+      flashError('Could not prepare your design for ordering. Try removing very large logos, then retry.');
     }
-  }, [cfg, ordering, snapshotDesign, exportFrontBack, nav]);
+  }, [cfg, ordering, snapshotDesign, exportFrontBack, nav, flashError]);
 
   const clearGarment = useCallback(() => setCfg(p => ({ ...p, garment: null })), []);
 
@@ -573,7 +581,7 @@ export default function DesignStudio() {
               <motion.div key="toast" className="ds-toast" role="status"
                 initial={{ opacity:0, y:12, scale:.96 }} animate={{ opacity:1, y:0, scale:1 }} exit={{ opacity:0, y:8 }}
                 transition={{ duration:.2 }}>
-                <NavIcon name="success" size={16}/> {toast}
+                <NavIcon name={toastErr ? 'warning' : 'success'} size={16}/> {toast}
               </motion.div>
             )}
           </AnimatePresence>

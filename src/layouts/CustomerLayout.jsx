@@ -6,7 +6,7 @@ import axios from 'axios';
 import PageErrorBoundary from '../components/PageErrorBoundary';
 import IconBox from '../components/ui/IconBox';
 import FeedbackWidget from '../components/FeedbackWidget';
-import { sessionWipeAll } from '../utils/cache';
+import { signOut } from '../utils/session';
 import logo from '../assets/company-logo.jpg';
 import { loadAccent, getAccentVars, ACCENT_CHANGE_EVENT } from '../utils/accentColor';
 // Icon values below are components, rendered as <item.icon size={N}/> at each call site.
@@ -71,20 +71,7 @@ export default function CustomerLayout() {
     const n = !c; localStorage.setItem('vfrb_cust_sb', JSON.stringify(n)); return n;
   });
 
-  // Token must be passed explicitly before it's removed from localStorage, or the request 401s.
-  // sessionStorage must be wiped too: studio_config/preview/color/garment/category and
-  // AIPanel's ai_d_* cache are tab-scoped, not user-scoped, so on a shared device the next
-  // customer to log in in this tab would otherwise see the previous customer's draft design.
-  const logout = () => {
-    const tok = localStorage.getItem('vfrb_token');
-    axios.post('/api/logout', {}, {
-      headers: tok ? { Authorization: `Bearer ${tok}` } : {},
-    }).catch(() => {});
-    localStorage.removeItem('vfrb_token');
-    localStorage.removeItem('vfrb_user');
-    sessionWipeAll();
-    navigate('/login', { replace: true });
-  };
+  const logout = () => { signOut(); navigate('/login', { replace: true }); };
 
   const openStudio = () => navigate('/design-studio');
 

@@ -7,8 +7,8 @@ import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
-import { enqueue, flushQueue, queueSize, clearQueue } from '../utils/offlineQueue';
-import { sessionWipeAll } from '../utils/cache';
+import { enqueue, flushQueue, queueSize } from '../utils/offlineQueue';
+import { signOut } from '../utils/session';
 import PageErrorBoundary from '../components/PageErrorBoundary';
 import IconBox from '../components/ui/IconBox';
 import '../styles/admin.css';
@@ -265,20 +265,7 @@ export default function AdminLayout() {
     const n = !c; localStorage.setItem('vfrb_adm_sb', JSON.stringify(n)); return n;
   });
 
-  // FF-1 FIX: axios interceptor reads vfrb_token from localStorage on every request.
-  // If we removeItem first, the token is gone before the POST fires → 401.
-  // Fix: pass the token explicitly in the logout call, then clear storage.
-  const logout = () => {
-    const tok = localStorage.getItem('vfrb_token');
-    axios.post('/api/logout', {}, {
-      headers: tok ? { Authorization: `Bearer ${tok}` } : {},
-    }).catch(() => {});
-    localStorage.removeItem('vfrb_token');
-    localStorage.removeItem('vfrb_user');
-    sessionWipeAll();
-    clearQueue();
-    navigate('/login', { replace: true });
-  };
+  const logout = () => { signOut(); navigate('/login', { replace: true }); };
 
   const todayKey      = new Date().toLocaleDateString('en-PH');
   const notifToday    = notifs.filter(n => {

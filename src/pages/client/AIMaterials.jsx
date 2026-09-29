@@ -410,7 +410,7 @@ export default function AIMaterials() {
       setRecs(recArr);
       setAccepted(o?.ai_recommendation_status === 'accepted');
     } catch(e) {
-      alert(e.response?.data?.message ?? 'AI unavailable. Check your GEMINI_API_KEY in .env');
+      alert(e.response?.data?.message ?? 'AI recommendations are unavailable right now. Please try again shortly.');
     } finally {
       setGenerating(false);
     }

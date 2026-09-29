@@ -33,7 +33,7 @@ export default function AIPanel({ onApply, onTexture }) {
       onApply(data.config);
       setMsg(data.interpretation ?? '✓ Design applied!');
     } catch(e) {
-      setErr(e.response?.data?.error ?? 'AI unavailable. Check GEMINI_API_KEY in .env');
+      setErr(e.response?.data?.error ?? 'AI is unavailable right now. Please try again shortly.');
     } finally { setBusy(false); }
   };
 

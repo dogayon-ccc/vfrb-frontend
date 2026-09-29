@@ -3,6 +3,8 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense, useEffect } from 'react';
 import axios from 'axios';
+import { readUser } from './utils/authRoute';
+import { installResponseGuards, watchCrossTabSession } from './utils/session';
 // iOS has no native install prompt (Android gets one from the manifest); this fills that gap.
 import PWAPrompt from 'react-ios-pwa-prompt';
 
@@ -19,6 +21,8 @@ axios.interceptors.request.use((config) => {
   if (tok) config.headers['Authorization'] = `Bearer ${tok}`;
   return config;
 });
+installResponseGuards();
+watchCrossTabSession();
 
 const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif`;
 
@@ -46,7 +50,7 @@ const StaffDashboard         = lazy(() => import('./pages/admin/StaffDashboard')
 // Manager gets AdminDashboard.jsx; every other job_function gets the
 // role-specific StaffDashboard.jsx instead — same route, different home.
 function DashboardHome() {
-  const user = JSON.parse(localStorage.getItem('vfrb_user') || '{}');
+  const user = readUser();
   return user.role === 'manager' ? <AdminDashboard/> : <StaffDashboard/>;
 }
 const AdminOrders            = lazy(() => import('./pages/admin/Orders'));
@@ -123,7 +127,7 @@ function Loader() {
 
 // ── Auth guards ───────────────────────────────────────────────────────────────
 function RequireAuth({ children, role }) {
-  const user = JSON.parse(localStorage.getItem('vfrb_user') || '{}');
+  const user = readUser();
   const tok  = localStorage.getItem('vfrb_token');
   if (!tok) {
     return <Navigate to={role === 'customer' ? '/login' : '/admin/login'} replace/>;
@@ -138,7 +142,7 @@ function RequireAuth({ children, role }) {
 }
 
 function RequireManager({ children }) {
-  const user = JSON.parse(localStorage.getItem('vfrb_user') || '{}');
+  const user = readUser();
   if (user.role !== 'manager') return <Navigate to="/admin/dashboard" replace/>;
   return children;
 }
@@ -146,7 +150,7 @@ function RequireManager({ children }) {
 // ── Root route handlers ───────────────────────────────────────────────────────
 function CustomerRootRoute() {
   const tok  = localStorage.getItem('vfrb_token');
-  const user = JSON.parse(localStorage.getItem('vfrb_user') || '{}');
+  const user = readUser();
   if (tok && user.role === 'customer')                       return <Navigate to="/dashboard"        replace/>;
   if (tok && ['manager','staff'].includes(user.role))        return <Navigate to="/admin/dashboard"   replace/>;
   return <Landing/>;
@@ -154,7 +158,7 @@ function CustomerRootRoute() {
 
 function AdminRootRoute() {
   const tok  = localStorage.getItem('vfrb_token');
-  const user = JSON.parse(localStorage.getItem('vfrb_user') || '{}');
+  const user = readUser();
   if (tok && ['manager','staff'].includes(user.role))        return <Navigate to="/admin/dashboard" replace/>;
   // No landing page for admin/staff (Sept 3 2026) — straight to login.
   return <Navigate to="/admin/login" replace/>;
