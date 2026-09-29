@@ -18,14 +18,14 @@ const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif
 // ── Shared style helpers ──────────────────────────────────────────────────────
 const inp = {
   width:'100%', padding:'10px 14px', borderRadius:10, background:'#fff',
-  border:'1px solid #e2e8f0', color:'#0f172a', fontSize:13, outline:'none',
+  border:'1px solid var(--border)', color:'var(--ink)', fontSize:13, outline:'none',
   fontFamily:FONT, transition:'border .15s,box-shadow .15s', boxSizing:'border-box',
 };
 const fi = e => { e.target.style.borderColor=T; e.target.style.boxShadow=`0 0 0 3px rgba(2,128,144,.1)`; };
-const fo = e => { e.target.style.borderColor='#e2e8f0'; e.target.style.boxShadow='none'; };
+const fo = e => { e.target.style.borderColor='var(--border)'; e.target.style.boxShadow='none'; };
 const lbl = {
   display:'block', fontSize:11, fontWeight:700, textTransform:'uppercase',
-  letterSpacing:'.07em', color:'#64748b', marginBottom:7, fontFamily:FONT,
+  letterSpacing:'.07em', color:'var(--text-subtle)', marginBottom:7, fontFamily:FONT,
 };
 const errMsg = (msg) => msg
   ? <p style={{ color:'#ef4444', fontSize:11, marginTop:5, fontFamily:FONT, display:'flex', alignItems:'center', gap:4 }}><NavIcon name="warning" size={11} color="#ef4444"/> {msg}</p>
@@ -173,10 +173,10 @@ function StudioBanner({ cfg, onClear }) {
           background:'rgba(2,195,154,.15)', color:T, fontFamily:FONT, display:'inline-flex', alignItems:'center', gap:4 }}>
           <NavIcon name="designStudio" size={11} color={T}/> {cfg.name || 'Designed in Studio'}
         </span>
-        <p style={{ color:'#0f172a', fontSize:12, fontWeight:600, margin:'5px 0 1px', fontFamily:FONT }}>
+        <p style={{ color:'var(--ink)', fontSize:12, fontWeight:600, margin:'5px 0 1px', fontFamily:FONT }}>
           {garmentName} · {collarDisplay ?? 'Collar not set'} · {sleeveDisplay ?? 'Sleeve not set'}
         </p>
-        <p style={{ color:'#64748b', fontSize:11, margin:0, fontFamily:FONT }}>
+        <p style={{ color:'var(--text-subtle)', fontSize:11, margin:0, fontFamily:FONT }}>
           {cfg.category} · {allPrefilled
             ? 'Fields pre-filled from your design'
             : 'Garment pre-filled — please check collar / sleeve below'}
@@ -194,8 +194,8 @@ function StudioBanner({ cfg, onClear }) {
         </motion.button>
         <motion.button whileTap={{ scale:.95 }} onClick={onClear}
           style={{ padding:'7px 12px', borderRadius:9, cursor:'pointer', fontSize:11,
-            fontWeight:500, background:'#f8fafc', border:'1px solid #e2e8f0',
-            color:'#64748b', fontFamily:FONT }}>
+            fontWeight:500, background:'var(--bg-surface)', border:'1px solid var(--border)',
+            color:'var(--text-subtle)', fontFamily:FONT }}>
           Clear
         </motion.button>
       </div>
@@ -275,7 +275,7 @@ function StepDesign({ form, set, errors, studio, onClearStudio }) {
             <p style={{ color:T, fontSize:14, fontWeight:800, marginBottom:4, fontFamily:FONT }}>
               Design Your Uniform First →
             </p>
-            <p style={{ color:'#475569', fontSize:12, lineHeight:1.5, fontFamily:FONT }}>
+            <p style={{ color:'var(--text-muted)', fontSize:12, lineHeight:1.5, fontFamily:FONT }}>
               Use the interactive Design Studio to pick garment type, collar, sleeves,
               and colors. Choices carry over automatically.
             </p>
@@ -285,18 +285,18 @@ function StepDesign({ form, set, errors, studio, onClearStudio }) {
       )}
 
       <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-        <div style={{ flex:1, height:1, background:'#e2e8f0' }}/>
-        <span style={{ color:'#94a3b8', fontSize:11, whiteSpace:'nowrap', fontFamily:FONT }}>
+        <div style={{ flex:1, height:1, background:'var(--border)' }}/>
+        <span style={{ color:'var(--text-faint)', fontSize:11, whiteSpace:'nowrap', fontFamily:FONT }}>
           {studio ? 'or edit details below' : 'or fill manually'}
         </span>
-        <div style={{ flex:1, height:1, background:'#e2e8f0' }}/>
+        <div style={{ flex:1, height:1, background:'var(--border)' }}/>
       </div>
 
       <div style={{ padding:'12px 14px', borderRadius:12, background:'#f0fdfa',
         border:'1px solid #99f6e4' }}>
-        <p style={{ color:'#0f172a', fontSize:12, fontWeight:600,
-          marginBottom:3, fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}><NavIcon name="tip" size={13} color="#0f172a"/>How it works</p>
-        <p style={{ color:'#475569', fontSize:11, lineHeight:1.6, fontFamily:FONT }}>
+        <p style={{ color:'var(--ink)', fontSize:12, fontWeight:600,
+          marginBottom:3, fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}><NavIcon name="tip" size={13} color="var(--ink)"/>How it works</p>
+        <p style={{ color:'var(--text-muted)', fontSize:11, lineHeight:1.6, fontFamily:FONT }}>
           VFRB Enterprise manufactures custom garments based on your specifications.
           Describe your design and our AI will recommend the raw materials needed for your order.
         </p>
@@ -328,7 +328,7 @@ function StepDesign({ form, set, errors, studio, onClearStudio }) {
           <p style={{ fontSize:12, fontWeight:700, color:T, margin:'0 0 4px', fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}>
             <NavIcon name="pattern" size={13} color={T}/> Bottom Garment Selected
           </p>
-          <p style={{ fontSize:11, color:'#475569', lineHeight:1.6, fontFamily:FONT }}>
+          <p style={{ fontSize:11, color:'var(--text-muted)', lineHeight:1.6, fontFamily:FONT }}>
             {form.garment_type} does not require collar or sleeve type.
             Our team will apply VFRB standard waist measurements.
             Use the Design Description below to specify elastic waist, drawstring, zipper, pocket details, etc.
@@ -348,7 +348,7 @@ function StepDesign({ form, set, errors, studio, onClearStudio }) {
             </select>
             {errMsg(errors.collar_type)}
             {studio && !form.collar_type && (
-              <p style={{ color:'#94a3b8', fontSize:10, margin:'3px 0 0', fontFamily:FONT }}>
+              <p style={{ color:'var(--text-faint)', fontSize:10, margin:'3px 0 0', fontFamily:FONT }}>
                 Not specified in your design — please choose one
               </p>
             )}
@@ -362,7 +362,7 @@ function StepDesign({ form, set, errors, studio, onClearStudio }) {
             </select>
             {errMsg(errors.sleeve_type)}
             {studio && !form.sleeve_type && (
-              <p style={{ color:'#94a3b8', fontSize:10, margin:'3px 0 0', fontFamily:FONT }}>
+              <p style={{ color:'var(--text-faint)', fontSize:10, margin:'3px 0 0', fontFamily:FONT }}>
                 Not specified in your design — please choose one
               </p>
             )}
@@ -381,7 +381,7 @@ function StepDesign({ form, set, errors, studio, onClearStudio }) {
           </select>
           {errMsg(errors.collar_type)}
           {studio && !form.collar_type && (
-            <p style={{ color:'#94a3b8', fontSize:10, margin:'3px 0 0', fontFamily:FONT }}>
+            <p style={{ color:'var(--text-faint)', fontSize:10, margin:'3px 0 0', fontFamily:FONT }}>
               Not specified in your design — please choose one
             </p>
           )}
@@ -393,7 +393,7 @@ function StepDesign({ form, set, errors, studio, onClearStudio }) {
         <div>
           <label style={lbl}>
             Pocket Type{' '}
-            <span style={{ color:'#94a3b8', fontWeight:400, textTransform:'none', letterSpacing:0 }}>
+            <span style={{ color:'var(--text-faint)', fontWeight:400, textTransform:'none', letterSpacing:0 }}>
               (optional)
             </span>
           </label>
@@ -418,25 +418,25 @@ function StepDesign({ form, set, errors, studio, onClearStudio }) {
       <div>
         <label style={lbl}>
           Reference Image / File{' '}
-          <span style={{ color:'#94a3b8', fontWeight:400, textTransform:'none', letterSpacing:0 }}>
+          <span style={{ color:'var(--text-faint)', fontWeight:400, textTransform:'none', letterSpacing:0 }}>
             (optional)
           </span>
         </label>
         <motion.div whileHover={{ borderColor:T }}
-          style={{ border:`2px dashed ${form.design_ref_file?T:'#e2e8f0'}`,
+          style={{ border:`2px dashed ${form.design_ref_file?T:'var(--border)'}`,
             borderRadius:12, padding:'18px 16px', textAlign:'center',
-            background:form.design_ref_file?'#f0fdfa':'#f8fafc', cursor:'pointer',
+            background:form.design_ref_file?'#f0fdfa':'var(--bg-surface)', cursor:'pointer',
             transition:'all .15s' }}
           onClick={() => fileRef.current?.click()}>
           {form.design_ref_file
             ? (<><p style={{ color:T, fontSize:13, fontWeight:600, fontFamily:FONT }}>
                 ✓ {form.design_ref_file.name}</p>
-               <p style={{ color:'#64748b', fontSize:11, marginTop:4, fontFamily:FONT }}>
+               <p style={{ color:'var(--text-subtle)', fontSize:11, marginTop:4, fontFamily:FONT }}>
                 Click to change</p></>)
-            : (<><div style={{ display:'flex', justifyContent:'center', marginBottom:6 }}><NavIcon name="attachment" size={24} color="#94a3b8"/></div>
-               <p style={{ color:'#64748b', fontSize:13, fontFamily:FONT }}>
+            : (<><div style={{ display:'flex', justifyContent:'center', marginBottom:6 }}><NavIcon name="attachment" size={24} color="var(--text-faint)"/></div>
+               <p style={{ color:'var(--text-subtle)', fontSize:13, fontFamily:FONT }}>
                 Click to upload reference image or PDF</p>
-               <p style={{ color:'#94a3b8', fontSize:11, marginTop:4, fontFamily:FONT }}>
+               <p style={{ color:'var(--text-faint)', fontSize:11, marginTop:4, fontFamily:FONT }}>
                 JPG, PNG, PDF — max 10MB</p></>)
           }
         </motion.div>
@@ -463,7 +463,7 @@ function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart
           background:'rgba(2,195,154,.08)', border:'1px solid rgba(2,195,154,.25)',
           display:'flex', alignItems:'center', gap:10 }}>
           <NavIcon name="designStudio" size={16} color={T}/>
-          <p style={{ flex:1, fontSize:12, color:'#0f172a', fontFamily:FONT, lineHeight:1.5 }}>
+          <p style={{ flex:1, fontSize:12, color:'var(--ink)', fontFamily:FONT, lineHeight:1.5 }}>
             <strong>Designed in Studio — {form.garment_type}{form.sleeve_type ? ` · ${form.sleeve_type}` : ''}.</strong>{' '}
             Your Studio configuration carried over — nothing to configure again here.
           </p>
@@ -492,7 +492,7 @@ function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart
             <p style={{ color:T, fontSize:11, fontWeight:700, margin:0, fontFamily:FONT, display:'flex', alignItems:'center', gap:4 }}>
               <NavIcon name="colorZone" size={11} color={T}/> Colors from Design Studio
             </p>
-            <p style={{ color:'#64748b', fontSize:11, margin:0, fontFamily:FONT }}>
+            <p style={{ color:'var(--text-subtle)', fontSize:11, margin:0, fontFamily:FONT }}>
               Body · Collar · Sleeve — edit below to override
             </p>
           </div>
@@ -503,9 +503,9 @@ function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart
           VFRB's real payment terms (full payment on delivery, no self-service), not
           something a customer picks here. Self-service orders are always Direct Client
           (80% DP / 20% on delivery) — order_type stays 'direct', no longer a UI choice. */}
-      <div style={{ padding:'12px 14px', borderRadius:11, background:'#f8fafc', border:'1px solid #e2e8f0' }}>
-        <p style={{ fontSize:13, fontWeight:700, color:'#0f172a', margin:0, fontFamily:FONT }}>Direct Client order</p>
-        <p style={{ fontSize:11, color:'#64748b', margin:'3px 0 0', fontFamily:FONT }}>
+      <div style={{ padding:'12px 14px', borderRadius:11, background:'var(--bg-surface)', border:'1px solid var(--border)' }}>
+        <p style={{ fontSize:13, fontWeight:700, color:'var(--ink)', margin:0, fontFamily:FONT }}>Direct Client order</p>
+        <p style={{ fontSize:11, color:'var(--text-subtle)', margin:'3px 0 0', fontFamily:FONT }}>
           80% downpayment at confirmation, 20% on delivery.
         </p>
       </div>
@@ -516,10 +516,10 @@ function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
           <motion.button whileTap={{ scale:.9 }} type="button"
             onClick={() => set('quantity_ordered', Math.max(100, (form.quantity_ordered||0) - 10))}
-            style={{ width:40, height:40, borderRadius:10, border:'1px solid #e2e8f0',
-              background:'#f8fafc', fontSize:18, cursor:'pointer', flexShrink:0,
+            style={{ width:40, height:40, borderRadius:10, border:'1px solid var(--border)',
+              background:'var(--bg-surface)', fontSize:18, cursor:'pointer', flexShrink:0,
               display:'flex', alignItems:'center', justifyContent:'center',
-              color:'#64748b', fontWeight:700 }}>
+              color:'var(--text-subtle)', fontWeight:700 }}>
             −
           </motion.button>
           <input type="number" min={100} value={form.quantity_ordered||''}
@@ -528,10 +528,10 @@ function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart
             onFocus={fi} onBlur={fo}/>
           <motion.button whileTap={{ scale:.9 }} type="button"
             onClick={() => set('quantity_ordered', (form.quantity_ordered||0) + 10)}
-            style={{ width:40, height:40, borderRadius:10, border:'1px solid #e2e8f0',
-              background:'#f8fafc', fontSize:18, cursor:'pointer', flexShrink:0,
+            style={{ width:40, height:40, borderRadius:10, border:'1px solid var(--border)',
+              background:'var(--bg-surface)', fontSize:18, cursor:'pointer', flexShrink:0,
               display:'flex', alignItems:'center', justifyContent:'center',
-              color:'#64748b', fontWeight:700 }}>
+              color:'var(--text-subtle)', fontWeight:700 }}>
             +
           </motion.button>
         </div>
@@ -551,7 +551,7 @@ function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart
       {/* Size breakdown — merged in from the old separate Sizing step */}
       <div style={{ display:'flex', justifyContent:'space-between',
         alignItems:'center', flexWrap:'wrap', gap:8, marginTop:6 }}>
-        <p style={{ fontSize:13, fontWeight:700, color:'#0f172a',
+        <p style={{ fontSize:13, fontWeight:700, color:'var(--ink)',
           margin:0, fontFamily:FONT }}>
           How many pieces per size?
         </p>
@@ -579,11 +579,11 @@ function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart
               style={{ flex:1, padding:'14px 12px', borderRadius:12, border:'none',
                 cursor:'pointer', textAlign:'center', fontFamily:FONT,
                 background: form.sizing_type===o.v ? '#f0fdfa' : '#fff',
-                outline:`2px solid ${form.sizing_type===o.v ? T+'55' : '#e2e8f0'}`,
+                outline:`2px solid ${form.sizing_type===o.v ? T+'55' : 'var(--border)'}`,
                 transition:'all .15s' }}>
-              <div style={{ display:'flex', justifyContent:'center', marginBottom:6 }}><NavIcon name={o.ic} size={20} color={form.sizing_method===o.v ? T : '#94a3b8'}/></div>
+              <div style={{ display:'flex', justifyContent:'center', marginBottom:6 }}><NavIcon name={o.ic} size={20} color={form.sizing_method===o.v ? T : 'var(--text-faint)'}/></div>
               <p style={{ fontSize:12, fontWeight:700, margin:0, fontFamily:FONT,
-                color: form.sizing_type===o.v ? T : '#0f172a' }}>
+                color: form.sizing_type===o.v ? T : 'var(--ink)' }}>
                 {o.l}
               </p>
             </motion.button>
@@ -596,7 +596,7 @@ function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart
           <div>
             <label style={lbl}>
               Size Breakdown{' '}
-              <span style={{ color:'#94a3b8', fontWeight:400, textTransform:'none', letterSpacing:0 }}>
+              <span style={{ color:'var(--text-faint)', fontWeight:400, textTransform:'none', letterSpacing:0 }}>
                 (pieces per size)
               </span>
             </label>
@@ -620,7 +620,7 @@ function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart
                 style={{ padding:'12px 16px', borderRadius:11,
                   background:'#f0fdfa', border:'1px solid #99f6e4',
                   display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                <span style={{ fontSize:12, color:'#0f172a', fontFamily:FONT }}>
+                <span style={{ fontSize:12, color:'var(--ink)', fontFamily:FONT }}>
                   Total pieces across all sizes
                 </span>
                 <span style={{ fontSize:18, fontWeight:800, color:T, fontFamily:FONT }}>
@@ -705,7 +705,7 @@ function StepDelivery({ form, set, errors }) {
       <div>
         <label style={lbl}>
           PO Reference{' '}
-          <span style={{ color:'#94a3b8', fontWeight:400, textTransform:'none', letterSpacing:0 }}>
+          <span style={{ color:'var(--text-faint)', fontWeight:400, textTransform:'none', letterSpacing:0 }}>
             (optional)
           </span>
         </label>
@@ -718,7 +718,7 @@ function StepDelivery({ form, set, errors }) {
       <div>
         <label style={lbl}>
           Additional Notes{' '}
-          <span style={{ color:'#94a3b8', fontWeight:400, textTransform:'none', letterSpacing:0 }}>
+          <span style={{ color:'var(--text-faint)', fontWeight:400, textTransform:'none', letterSpacing:0 }}>
             (optional)
           </span>
         </label>
@@ -743,23 +743,23 @@ function SteP({ label, value, onChange, remaining }) {
   const atCap = remaining != null && remaining <= 0;
   return (
     <motion.div whileHover={{ y:-1, boxShadow:'0 4px 12px rgba(0,0,0,.07)' }}
-      style={{ background:'#fff', border:`1.5px solid ${value>0?T:'#e2e8f0'}`,
+      style={{ background:'#fff', border:`1.5px solid ${value>0?T:'var(--border)'}`,
         borderRadius:12, padding:'12px 10px', textAlign:'center',
         transition:'border-color .15s' }}>
-      <p style={{ fontSize:13, fontWeight:800, color: value>0?T:'#0f172a',
+      <p style={{ fontSize:13, fontWeight:800, color: value>0?T:'var(--ink)',
         marginBottom:8, fontFamily:FONT }}>
         {label}
       </p>
       <div style={{ display:'flex', alignItems:'center', gap:5, justifyContent:'center' }}>
         <motion.button whileTap={{ scale:.85 }} type="button"
           onClick={() => onChange(Math.max(0, value - 1))}
-          style={{ width:28, height:28, borderRadius:8, border:'1px solid #e2e8f0',
-            background:'#f8fafc', fontSize:16, cursor:'pointer', lineHeight:1,
-            color:'#64748b', fontWeight:700, display:'flex',
+          style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--border)',
+            background:'var(--bg-surface)', fontSize:16, cursor:'pointer', lineHeight:1,
+            color:'var(--text-subtle)', fontWeight:700, display:'flex',
             alignItems:'center', justifyContent:'center' }}>
           −
         </motion.button>
-        <span style={{ fontSize:18, fontWeight:800, color: value>0?T:'#94a3b8',
+        <span style={{ fontSize:18, fontWeight:800, color: value>0?T:'var(--text-faint)',
           width:30, textAlign:'center', fontFamily:FONT }}>
           {value}
         </span>
@@ -767,10 +767,10 @@ function SteP({ label, value, onChange, remaining }) {
           disabled={atCap}
           onClick={() => onChange(value + 1)}
           title={atCap ? 'Total quantity reached — reduce another size first' : undefined}
-          style={{ width:28, height:28, borderRadius:8, border:'1px solid #e2e8f0',
-            background: atCap ? '#f1f5f9' : '#f8fafc', fontSize:16,
+          style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--border)',
+            background: atCap ? '#f1f5f9' : 'var(--bg-surface)', fontSize:16,
             cursor: atCap ? 'not-allowed' : 'pointer', lineHeight:1,
-            color: atCap ? '#cbd5e1' : '#64748b', fontWeight:700, display:'flex',
+            color: atCap ? '#cbd5e1' : 'var(--text-subtle)', fontWeight:700, display:'flex',
             alignItems:'center', justifyContent:'center' }}>
           +
         </motion.button>
@@ -886,7 +886,7 @@ function StepReview({ form, studio }) {
             <NavIcon name="success" size={11} color={T2}/> Confirm Your Creation
           </p>
           <p style={{
-            fontSize: 17, fontWeight: 800, color: '#0f172a',
+            fontSize: 17, fontWeight: 800, color: 'var(--ink)',
             margin: '0 0 6px', fontFamily: FONT, lineHeight: 1.2,
           }}>
             {garmentName}
@@ -901,7 +901,7 @@ function StepReview({ form, studio }) {
               <span key={i} style={{
                 fontSize: 10, fontWeight: 600, padding: '2px 9px',
                 borderRadius: 99, background: 'rgba(255,255,255,.6)',
-                color: '#475569', fontFamily: FONT,
+                color: 'var(--text-muted)', fontFamily: FONT,
                 border: '1px solid rgba(0,0,0,.06)',
               }}>
                 {tag}
@@ -914,11 +914,11 @@ function StepReview({ form, studio }) {
       {/* Also renders for a reference-photo upload with no Design Studio config. */}
       {(studio || form.design_ref_file) && (
         <motion.div initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }}
-          style={{ background:'#fff', borderRadius:14, border:'1px solid #e2e8f0',
+          style={{ background:'#fff', borderRadius:14, border:'1px solid var(--border)',
             overflow:'hidden', boxShadow:'0 1px 3px rgba(0,0,0,.05)' }}>
-          <div style={{ padding:'11px 16px', background:'#f8fafc',
-            borderBottom:'1px solid #e2e8f0' }}>
-            <p style={{ fontSize:10, fontWeight:700, color:'#64748b',
+          <div style={{ padding:'11px 16px', background:'var(--bg-surface)',
+            borderBottom:'1px solid var(--border)' }}>
+            <p style={{ fontSize:10, fontWeight:700, color:'var(--text-subtle)',
               textTransform:'uppercase', letterSpacing:'.07em',
               margin:0, fontFamily:FONT }}>
               Design Preview
@@ -926,9 +926,9 @@ function StepReview({ form, studio }) {
           </div>
           <div style={{ padding:'16px' }}>
             <Suspense fallback={
-              <div style={{ height:220, background:'#f8fafc', borderRadius:10,
+              <div style={{ height:220, background:'var(--bg-surface)', borderRadius:10,
                 display:'flex', alignItems:'center', justifyContent:'center' }}>
-                <p style={{ color:'#94a3b8', fontSize:12, fontFamily:FONT }}>
+                <p style={{ color:'var(--text-faint)', fontSize:12, fontFamily:FONT }}>
                   Loading preview…
                 </p>
               </div>
@@ -952,10 +952,10 @@ function StepReview({ form, studio }) {
           animate={{ opacity:1, y:0 }}
           transition={{ delay:si * 0.05 }}
           style={{ background:'#fff', borderRadius:12,
-            border:'1px solid #e2e8f0', overflow:'hidden' }}>
-          <div style={{ padding:'11px 16px', background:'#f8fafc',
-            borderBottom:'1px solid #e2e8f0' }}>
-            <p style={{ fontSize:10, fontWeight:700, color:'#64748b',
+            border:'1px solid var(--border)', overflow:'hidden' }}>
+          <div style={{ padding:'11px 16px', background:'var(--bg-surface)',
+            borderBottom:'1px solid var(--border)' }}>
+            <p style={{ fontSize:10, fontWeight:700, color:'var(--text-subtle)',
               textTransform:'uppercase', letterSpacing:'.07em',
               margin:0, fontFamily:FONT }}>
               {sec.t}
@@ -963,9 +963,9 @@ function StepReview({ form, studio }) {
           </div>
           {sec.rows.map(([l, v]) => (
             <div key={l} style={{ display:'flex', justifyContent:'space-between',
-              padding:'9px 16px', borderBottom:'1px solid #f8fafc' }}>
-              <span style={{ fontSize:12, color:'#64748b', fontFamily:FONT }}>{l}</span>
-              <span style={{ fontSize:12, fontWeight:600, color:'#0f172a',
+              padding:'9px 16px', borderBottom:'1px solid var(--bg-surface)' }}>
+              <span style={{ fontSize:12, color:'var(--text-subtle)', fontFamily:FONT }}>{l}</span>
+              <span style={{ fontSize:12, fontWeight:600, color:'var(--ink)',
                 maxWidth:'60%', textAlign:'right', wordBreak:'break-word',
                 fontFamily:FONT }}>
                 {v}
@@ -978,11 +978,11 @@ function StepReview({ form, studio }) {
       {/* AI note */}
       <div style={{ padding:'14px 16px', borderRadius:12,
         background:'#f0fdfa', border:'1px solid #99f6e4' }}>
-        <p style={{ color:'#0f172a', fontSize:12, fontWeight:700,
+        <p style={{ color:'var(--ink)', fontSize:12, fontWeight:700,
           marginBottom:6, fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}>
-          <NavIcon name="ai" size={13} color="#0f172a"/> AI Material Recommendation (Auto)
+          <NavIcon name="ai" size={13} color="var(--ink)"/> AI Material Recommendation (Auto)
         </p>
-        <p style={{ color:'#475569', fontSize:11, lineHeight:1.6, margin:0, fontFamily:FONT }}>
+        <p style={{ color:'var(--text-muted)', fontSize:11, lineHeight:1.6, margin:0, fontFamily:FONT }}>
           After submitting, our AI will analyze your order and recommend the
           types of raw materials needed. You can review and accept the recommendation
           from the AI Materials page.
@@ -997,54 +997,47 @@ const STEPS = ['Design Summary', 'Quantity & Sizes', 'Delivery & Notes', 'Review
 
 function StepBar({ step }) {
   return (
-    <div style={{ display:'flex', marginBottom:28 }}>
-      {STEPS.map((l, i) => {
-        const done = i < step;
-        const act  = i === step;
-        return (
-          <div key={i} style={{ flex:1, display:'flex', flexDirection:'column',
-            alignItems:'center', position:'relative' }}>
-            {/* Connector line */}
-            {i < STEPS.length - 1 && (
-              <div style={{ position:'absolute', top:16, left:'50%', right:'-50%',
-                height:3, zIndex:0,
-                background: done ? `linear-gradient(90deg,${T2},${T2})` : '#e2e8f0',
-                transition:'background .4s' }}/>
-            )}
+    <ol className="wz-steps" aria-label="Order steps">
+      {STEPS.map((l, i) => (
+        <li key={l} className="wz-step" data-s={i < step ? 'done' : i === step ? 'now' : 'todo'}
+          aria-current={i === step ? 'step' : undefined}>
+          <span className="wz-dot">{i < step ? <NavIcon name="success" size={14}/> : i + 1}</span>
+          <span className="wz-lbl">{l}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
 
-            {/* Circle */}
-            <motion.div
-              animate={{
-                background: done ? T2 : act ? T : '#e2e8f0',
-                scale:       act ? 1.12 : 1,
-              }}
-              transition={{ duration:.25 }}
-              style={{ width:32, height:32, borderRadius:'50%', zIndex:1,
-                display:'flex', alignItems:'center', justifyContent:'center',
-                fontSize:13, fontWeight:800, color: done||act ? '#fff' : '#94a3b8',
-                boxShadow: act ? `0 0 0 4px ${T}22` : 'none',
-                marginBottom:8, position:'relative' }}>
-              {done ? '✓' : i + 1}
-
-              {/* Active pulse ring */}
-              {act && (
-                <motion.div
-                  animate={{ scale:[1,1.6,1], opacity:[.4,0,.4] }}
-                  transition={{ duration:2, repeat:Infinity }}
-                  style={{ position:'absolute', inset:0, borderRadius:'50%',
-                    border:`2px solid ${T}`, pointerEvents:'none' }}/>
-              )}
-            </motion.div>
-
-            <p style={{ fontSize:9, fontWeight: act ? 800 : 500, margin:0,
-              color: act ? T : done ? '#22c55e' : '#94a3b8',
-              textAlign:'center', fontFamily:FONT, lineHeight:1.3 }}>
-              {l}
-            </p>
-          </div>
-        );
-      })}
-    </div>
+function WizSummary({ form, studio, step }) {
+  const cfg = studio ?? {};
+  const name = cfg.garmentType ?? cfg.garment ?? form.garment_type;
+  const total = STD.reduce((a, sz) => a + (form.sizes?.[sz] || 0), 0);
+  const rows = [
+    ['Garment', name],
+    ['Collar', form.collar_type],
+    ['Sleeve', form.sleeve_type],
+    ['Quantity', form.quantity_ordered ? `${form.quantity_ordered} pcs` : null],
+    ['Sizes assigned', total ? `${total} pcs` : null],
+    ['Needed by', form.deadline],
+    ['PO / Ref', form.po_reference],
+  ];
+  return (
+    <aside className="cx-card wz-sum" aria-label="Order summary">
+      <div className="cx-card-h"><h2>Order Summary</h2></div>
+      <div className="wz-sum-b">
+        <div className="wz-thumb" style={{ background: cfg.previewPng ? 'var(--bg-surface)' : (cfg.colors?.body ?? 'var(--bg-surface)') }}>
+          {cfg.previewPng
+            ? <img src={cfg.previewPng} alt="Your design"/>
+            : <NavIcon name="garmentType" size={28} color="#fff"/>}
+        </div>
+        <dl>
+          {rows.map(([k, v]) => (
+            <div key={k}><dt>{k}</dt><dd data-empty={!v}>{v || (step === 0 ? '-' : 'Not set')}</dd></div>
+          ))}
+        </dl>
+      </div>
+    </aside>
   );
 }
 
@@ -1119,30 +1112,30 @@ function SizeChartModal({ onClose }) {
       >
         {/* Header */}
         <div style={{
-          padding: '16px 20px', borderBottom: '1px solid #e2e8f0',
+          padding: '16px 20px', borderBottom: '1px solid var(--border)',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          background: '#f8fafc', flexShrink: 0,
+          background: 'var(--bg-surface)', flexShrink: 0,
         }}>
           <div>
-            <p style={{ fontSize: 14, fontWeight: 800, color: '#0f172a',
-              margin: 0, fontFamily: FONT, display:'flex', alignItems:'center', gap:6 }}><NavIcon name="pattern" size={15} color="#0f172a"/>Philippine Standard Sizing</p>
-            <p style={{ fontSize: 10, color: '#64748b', margin: '2px 0 0',
+            <p style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)',
+              margin: 0, fontFamily: FONT, display:'flex', alignItems:'center', gap:6 }}><NavIcon name="pattern" size={15} color="var(--ink)"/>Philippine Standard Sizing</p>
+            <p style={{ fontSize: 10, color: 'var(--text-subtle)', margin: '2px 0 0',
               fontFamily: FONT }}>
               Common institutional uniform measurements · All values in cm
             </p>
           </div>
           <button onClick={onClose} style={{
             width: 30, height: 30, borderRadius: 8, border: 'none',
-            background: '#e2e8f0', color: '#64748b',
+            background: 'var(--border)', color: 'var(--text-subtle)',
             cursor: 'pointer', display: 'flex', alignItems: 'center',
             justifyContent: 'center', flexShrink: 0,
-          }}><NavIcon name="close" size={14} color="#64748b"/></button>
+          }}><NavIcon name="close" size={14} color="var(--text-subtle)"/></button>
         </div>
 
         {/* Tops / Bottoms tabs */}
         <div style={{
           display: 'flex', gap: 8, padding: '12px 20px 0',
-          borderBottom: '1px solid #e2e8f0', flexShrink: 0,
+          borderBottom: '1px solid var(--border)', flexShrink: 0,
         }}>
           {[
             { k: 'tops',    l: 'Tops',    ic:'garmentType' },
@@ -1154,18 +1147,18 @@ function SizeChartModal({ onClose }) {
                 border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700,
                 fontFamily: FONT, transition: 'all .13s',
                 background: chartTab === t.k ? '#fff' : 'transparent',
-                color:      chartTab === t.k ? T      : '#64748b',
+                color:      chartTab === t.k ? T      : 'var(--text-subtle)',
                 borderBottom: chartTab === t.k ? `2px solid ${T}` : '2px solid transparent',
                 marginBottom: -1,
               }}>
-              <NavIcon name={t.ic} size={12} color={chartTab === t.k ? T : '#64748b'} style={{ verticalAlign:'-2px', marginRight:5 }}/>{t.l}
+              <NavIcon name={t.ic} size={12} color={chartTab === t.k ? T : 'var(--text-subtle)'} style={{ verticalAlign:'-2px', marginRight:5 }}/>{t.l}
             </button>
           ))}
         </div>
 
         {/* Table */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 20px' }}>
-          <p style={{ fontSize: 11, fontWeight: 700, color: '#64748b',
+          <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-subtle)',
             margin: '0 0 12px', fontFamily: FONT }}>
             {chart.label}
           </p>
@@ -1188,12 +1181,12 @@ function SizeChartModal({ onClose }) {
               <tbody>
                 {chart.rows.map((row, i) => (
                   <tr key={i} style={{
-                    background: i % 2 === 0 ? '#f8fafc' : '#fff',
-                    borderBottom: '1px solid #e2e8f0',
+                    background: i % 2 === 0 ? 'var(--bg-surface)' : '#fff',
+                    borderBottom: '1px solid var(--border)',
                   }}>
                     {row.map((cell, ci) => (
                       <td key={ci} style={{
-                        padding: '9px 14px', color: ci === 0 ? T : '#0f172a',
+                        padding: '9px 14px', color: ci === 0 ? T : 'var(--ink)',
                         fontWeight: ci === 0 ? 800 : 500,
                         whiteSpace: 'nowrap',
                       }}>{cell}</td>
@@ -1205,7 +1198,7 @@ function SizeChartModal({ onClose }) {
           </div>
 
           <p style={{
-            fontSize: 10, color: '#94a3b8', margin: '14px 0 0',
+            fontSize: 10, color: 'var(--text-faint)', margin: '14px 0 0',
             lineHeight: 1.6, fontFamily: FONT,
           }}>
             ℹ️ These are guide measurements. Final garment dimensions are confirmed
@@ -1511,87 +1504,42 @@ export default function OrderWizard() {
         )}
       </AnimatePresence>
 
-      <div style={{ width:'100%', fontFamily:FONT }}>
-
-        {/* Header */}
-        <div style={{ marginBottom:24 }}>
-          <h1 style={{ fontSize:22, fontWeight:800, color:'#0f172a',
-            marginBottom:4, fontFamily:FONT }}>
-            Place an Order
-          </h1>
-          <p style={{ color:'#64748b', fontSize:13, fontFamily:FONT }}>
-            Step {step+1} of {STEPS.length} — {STEPS[step]}
-          </p>
+      <div className="cx-page wz-page" style={{ fontFamily:FONT }}>
+        <div className="wz-head">
+          <div>
+            <h1>Place an Order</h1>
+            <p>Step {step+1} of {STEPS.length} - {STEPS[step]}</p>
+          </div>
         </div>
-
-        {/* Animated step bar */}
         <StepBar step={step}/>
 
-        {/* Step content — x-axis slide */}
-        <AnimatePresence mode="wait" custom={dir}>
-          <motion.div key={step}
-            custom={dir}
-            initial={{ opacity:0, x: dir * 30 }}
-            animate={{ opacity:1, x:0 }}
-            exit={{ opacity:0, x: dir * -30 }}
-            transition={{ duration:.22, ease:'easeOut' }}>
-            <div className="wiz-step-card" style={{ background:'#fff', borderRadius:14,
-              border:'1px solid #e2e8f0', boxShadow:'0 2px 8px rgba(0,0,0,.06)' }}>
-              {COMPS[step]}
+        <div className="wz-cols">
+          <div className="wz-main">
+            <AnimatePresence mode="wait" custom={dir}>
+              <motion.div key={step} custom={dir}
+                initial={{ opacity:0, x: dir * 24 }} animate={{ opacity:1, x:0 }}
+                exit={{ opacity:0, x: dir * -24 }} transition={{ duration:.2, ease:'easeOut' }}>
+                <div className="wiz-step-card cx-card">{COMPS[step]}</div>
+              </motion.div>
+            </AnimatePresence>
+
+            {apiErr && (
+              <div className="wz-err" role="alert">
+                <NavIcon name="warning" size={14} color="var(--danger)"/> {apiErr}
+              </div>
+            )}
+
+            <div className="wz-actions">
+              <button className="cx-btn cx-btn-s" onClick={step > 0 ? goBack : () => nav(-1)}>
+                {step > 0 ? 'Back' : 'Cancel'}
+              </button>
+              <button className="cx-btn cx-btn-p wz-next" disabled={busy}
+                onClick={step === STEPS.length - 1 ? handleSubmit : goNext}>
+                {busy ? 'Submitting' : step === STEPS.length - 1 ? 'Submit Order' : `Next: ${STEPS[step+1]}`}
+              </button>
             </div>
-          </motion.div>
-        </AnimatePresence>
-
-        {/* API error */}
-        {apiErr && (
-          <motion.div initial={{ opacity:0, y:-6 }} animate={{ opacity:1, y:0 }}
-            style={{ marginTop:14, padding:'12px 16px', borderRadius:10,
-              background:'#fef2f2', border:'1px solid #fecaca',
-              color:'#ef4444', fontSize:13, fontFamily:FONT, display:'flex', alignItems:'center', gap:6 }}>
-            <NavIcon name="warning" size={14} color="#ef4444"/> {apiErr}
-          </motion.div>
-        )}
-
-        {/* Navigation buttons */}
-        <div style={{ display:'flex', justifyContent:'space-between',
-          marginTop:20, gap:12 }}>
-          {step > 0 ? (
-            <motion.button whileHover={{ x:-2 }} whileTap={{ scale:.96 }}
-              onClick={goBack}
-              style={{ padding:'12px 24px', borderRadius:11, border:'1px solid #e2e8f0',
-                background:'#fff', color:'#0f172a', fontSize:13, fontWeight:600,
-                cursor:'pointer', fontFamily:FONT }}>
-              ← Back
-            </motion.button>
-          ) : (
-            <motion.button whileTap={{ scale:.96 }}
-              onClick={() => nav(-1)}
-              style={{ padding:'12px 24px', borderRadius:11, border:'1px solid #e2e8f0',
-                background:'#fff', color:'#64748b', fontSize:13, fontWeight:600,
-                cursor:'pointer', fontFamily:FONT }}>
-              Cancel
-            </motion.button>
-          )}
-
-          <motion.button
-            whileHover={{ scale: busy ? 1 : 1.02, y: busy ? 0 : -1,
-              boxShadow: busy ? '0px 0px 0px rgba(2,128,144,0)' : `0 8px 24px rgba(2,128,144,.35)` }}
-            whileTap={{ scale: busy ? 1 : .97 }}
-            onClick={step === STEPS.length - 1 ? handleSubmit : goNext}
-            disabled={busy}
-            style={{ flex:1, maxWidth:280, padding:'12px 24px', borderRadius:11,
-              border:'none', fontFamily:FONT,
-              background: busy ? '#94a3b8' : `linear-gradient(135deg,${T},${T2})`,
-              color:'#fff', fontSize:13, fontWeight:700,
-              cursor: busy ? 'not-allowed' : 'pointer',
-              boxShadow: busy ? '0px 0px 0px rgba(2,128,144,0)' : `0 4px 16px rgba(2,128,144,.3)`,
-              transition:'all .2s' }}>
-            {busy
-              ? '⏳ Submitting…'
-              : step === STEPS.length - 1
-              ? '✓ Submit Order'
-              : `Next: ${STEPS[step+1]} →`}
-          </motion.button>
+          </div>
+          <div className="wz-side"><WizSummary form={form} studio={studio} step={step}/></div>
         </div>
       </div>
       </>
