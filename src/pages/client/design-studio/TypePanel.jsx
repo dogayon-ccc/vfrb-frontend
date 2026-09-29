@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { NavIcon } from '../../../components/ui/icons';
 import { BASE_PATHS } from './garmentPaths';
@@ -9,6 +10,7 @@ import { PH_SWATCHES, ZONE_LABEL, zonesFor } from './dsShared';
 // Options come from the canonical CATALOG only; nothing here invents a garment, style or fit.
 export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool }) {
   const reduce  = useReducedMotion();
+  const [openZone, setOpenZone] = useState(null);
   const catData = CATALOG.find(c => c.id === cfg.category) ?? CATALOG[0];
   const family  = familyFor(cfg.garment);
   const sleeves = family?.styles ?? [];
@@ -20,7 +22,8 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool }) {
     const next = neighborFamily(cfg.category, cfg.garment, dir);
     if (next) selectFamily(setCfg, next);
   };
-  const refine = (zone) => { if (zone) setActiveZone(zone); onOpenTool(zone ? 'color' : 'pattern'); };
+  const toggleZone = (z) => { setOpenZone(o => (o === z ? null : z)); setActiveZone(z); };
+  const setZoneColor = (z, hex) => setCfg(p => ({ ...p, colors: { ...p.colors, [z]: hex } }));
 
   return (
     <div className="ds-tp">
@@ -130,20 +133,43 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool }) {
             </div>
           </section>
 
-          <nav className="ds-jump" aria-label="Refine the design">
-            {zones.map(z => (
-              <button key={z} type="button" onClick={() => refine(z)}>
-                <span className="ds-zone-dot" style={{ background: cfg.colors[z] ?? 'var(--bg-surface)' }}/>
-                <span>{ZONE_LABEL[z]} color</span>
+          <div className="ds-acc" role="group" aria-label="Refine the design">
+            {zones.map(z => {
+              const open = openZone === z;
+              const cur = (cfg.colors[z] ?? '').toLowerCase();
+              return (
+                <div key={z} className="ds-acc-item" data-open={open}>
+                  <button type="button" className="ds-acc-head" aria-expanded={open} onClick={() => toggleZone(z)}>
+                    <span className="ds-zone-dot" style={{ background: cfg.colors[z] ?? 'var(--bg-surface)' }}/>
+                    <span>{ZONE_LABEL[z]}</span>
+                    <NavIcon name="chevronRight" size={13}/>
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {open && (
+                      <motion.div className="ds-acc-body" initial={reduce ? false : { height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: reduce ? 0 : 0.18 }}>
+                        <div className="ds-tp-swatches" role="group" aria-label={`${ZONE_LABEL[z]} color`}>
+                          {PH_SWATCHES.map(sw => (
+                            <button key={sw.hex} type="button" className="ds-tp-sw" title={sw.name} aria-label={sw.name}
+                              aria-pressed={cur === sw.hex.toLowerCase()} style={{ background: sw.hex }}
+                              onClick={() => setZoneColor(z, sw.hex)}/>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+            <div className="ds-acc-item">
+              <button type="button" className="ds-acc-head" onClick={() => onOpenTool('pattern')}>
+                <NavIcon name="pattern" size={15}/>
+                <span>Pattern</span>
                 <NavIcon name="chevronRight" size={13}/>
               </button>
-            ))}
-            <button type="button" onClick={() => refine(null)}>
-              <NavIcon name="pattern" size={15}/>
-              <span>Pattern</span>
-              <NavIcon name="chevronRight" size={13}/>
-            </button>
-          </nav>
+            </div>
+          </div>
         </>
       )}
     </div>

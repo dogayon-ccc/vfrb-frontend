@@ -46,8 +46,8 @@ export default function FeedbackWidget() {
           Was stacked above AIDesignChat's floating FAB (130/24) — that widget moved into Design Studio's
           right sidebar (Sept 18 2026) and no longer floats globally, so this closes the gap it left behind. */}
       <style>{`
-        .fbw-fab{ position:fixed; bottom:130px; right:16px; z-index:300; }
-        @media (min-width:768px){ .fbw-fab{ bottom:24px; right:24px; } }
+        .fbw-fab{ position:fixed; bottom:72px; left:14px; right:auto; z-index:300; transform:scale(.86); transform-origin:left bottom; }
+        @media (min-width:768px){ .fbw-fab{ bottom:24px; right:24px; left:auto; transform:none; } }
       `}</style>
       <button
         className="fbw-fab"

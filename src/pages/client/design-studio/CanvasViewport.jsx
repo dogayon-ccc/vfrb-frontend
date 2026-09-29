@@ -39,7 +39,7 @@ function useFit(paneRef, wrapRef) {
 class ThreeEB extends Component {
   constructor(p) { super(p); this.state = { err: false, key: 0, fails: 0 }; }
   static getDerivedStateFromError() { return { err: true }; }
-  componentDidCatch() { this.setState(s => ({ fails: s.fails + 1 })); }
+  componentDidCatch(e) { this.setState(s => ({ fails: s.fails + 1, load: /dynamically imported|Loading chunk|Importing a module/i.test(String(e?.message)) })); }
   retry = () => this.setState(s => ({ err: false, key: s.key + 1 }));
   render() {
     if (this.state.err) return (
@@ -48,7 +48,7 @@ class ThreeEB extends Component {
         <NavIcon name="warning" size={32} color="rgba(15,23,42,.4)"/>
         <p style={{ color:'rgba(15,23,42,.5)',fontSize:12,textAlign:'center',
           padding:'0 24px',lineHeight:1.6 }}>
-          WebGL unavailable or context lost.<br/>If this keeps happening, reload the page (the browser blocks new WebGL contexts after repeated losses) or use 2D mode.
+          {this.state.load ? '3D view could not load.' : 'WebGL unavailable or context lost.'}<br/>{this.state.load ? 'Check your connection and retry, or keep designing in 2D.' : 'If this keeps happening, reload the page or use 2D mode.'}
         </p>
         <button onClick={() => (this.state.fails >= 2 ? window.location.reload() : this.retry())}
           style={{ padding:'8px 20px',borderRadius:9,border:'none',background:T2,

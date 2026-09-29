@@ -1486,11 +1486,9 @@ export default function OrderWizard() {
           .wiz-2col      { grid-template-columns:1fr 1fr; }
         }
         @media (min-width:768px) {
-          .wiz-size-grid { grid-template-columns:repeat(4,1fr); gap:8px; }
+          .wiz-size-grid { grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); gap:8px; }
+          .wiz-size-grid > * { min-width:0; }
           .wiz-step-card { padding:24px 22px; }
-        }
-        @media (min-width:1024px) {
-          .wiz-size-grid { grid-template-columns:repeat(7,1fr); }
         }
       `}</style>
 

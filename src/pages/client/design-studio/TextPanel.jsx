@@ -49,14 +49,14 @@ export default function TextPanel({ onAdd }) {
       )}
 
       <p style={secLabel}>Font Style</p>
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:4 }}>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, maxHeight:236, minHeight:236, flexShrink:0, overflowY:'auto', paddingRight:2 }}>
         {FONTS.map(f => (
           <button key={f.id} onClick={() => setFont(f.id)}
             style={{
-              padding:'6px 4px', borderRadius:8, border:'none', cursor:'pointer',
-              fontSize:10, fontFamily: f.css,
+              padding:'9px 4px', minHeight:40, borderRadius:8, border:'none', cursor:'pointer',
+              fontSize:13, fontFamily: f.css,
               background: font===f.id ? 'rgba(2,195,154,.14)' : 'rgba(15,23,42,.04)',
-              color:      font===f.id ? T2 : 'rgba(15,23,42,.5)',
+              color:      font===f.id ? T2 : 'rgba(15,23,42,.72)',
               outline:    font===f.id ? `1px solid ${T2}` : '1px solid rgba(15,23,42,.07)',
               fontWeight: font===f.id ? 700 : 400,
             }}>

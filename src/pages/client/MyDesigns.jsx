@@ -111,9 +111,16 @@ export default function MyDesigns() {
               title={d.label || d.garment || 'Design'} meta={[d.category, d.sleeve].filter(Boolean).join(' · ') || fmtDate(d.updated_at ?? d.created_at)}
               badge="Ordered" tone={ORDERED} primary={{ label: 'Order again', onClick: () => orderAgain(d), disabled: !d.config?.garment }} />
           ))}
+          <button type="button" className="cx-newtile" onClick={openStudioBlank}>
+            <NavIcon name="designStudio" size={22} /> <strong>Start a new design</strong><span>Pick a garment and make it yours</span>
+          </button>
         </div>
       )}
-      <style>{`.cx-dgrid{display:grid;gap:14px;grid-template-columns:repeat(2,minmax(0,1fr))}
+      <style>{`.cx-newtile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:240px;padding:20px;border:2px dashed var(--border-strong);border-radius:16px;background:transparent;color:var(--teal);cursor:pointer;font:inherit;transition:border-color .15s,background .15s,transform .15s}
+        .cx-newtile:hover{border-color:var(--teal);background:var(--teal-50);transform:translateY(-2px)}
+        .cx-newtile strong{font-size:14px}.cx-newtile span{font-size:12px;color:var(--text-muted)}
+        @media(prefers-reduced-motion:reduce){.cx-newtile{transition:none}}
+        .cx-dgrid{display:grid;gap:14px;grid-template-columns:repeat(2,minmax(0,1fr))}
         @media(min-width:768px){.cx-dgrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}}
         @media(min-width:1100px){.cx-dgrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
         @media(max-width:339px){.cx-dgrid{grid-template-columns:1fr}}`}</style>

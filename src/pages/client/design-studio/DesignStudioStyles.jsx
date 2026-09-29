@@ -56,6 +56,7 @@ export default function DesignStudioStyles() {
       .ds-tool-btn[data-tool="draw"]{margin-top:10px;}
 
       .ds-panel{
+        --text-2xs:11px;--text-xs:12px;--text-sm:13px;
         order:3;width:clamp(300px,24vw,372px);flex-shrink:0;display:flex;flex-direction:column;overflow:hidden;
         background:var(--bg-card);border-left:1px solid var(--border);box-shadow:var(--shadow-xs);
       }
@@ -254,6 +255,17 @@ export default function DesignStudioStyles() {
       .ds-tp-check{position:absolute;top:7px;right:7px;width:20px;height:20px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--teal);box-shadow:var(--shadow-sm);}
 
       .ds-tp-swatches{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;justify-items:center;}
+      .ds-acc{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;background:var(--bg-card);}
+      .ds-acc-item+.ds-acc-item{border-top:1px solid var(--border);}
+      .ds-acc-head{width:100%;min-height:46px;display:flex;align-items:center;gap:10px;padding:0 14px;border:0;background:none;cursor:pointer;
+        font-size:var(--text-sm);font-weight:700;color:var(--ink);text-align:left;transition:background .15s;}
+      .ds-acc-head:hover{background:var(--bg-surface);}
+      .ds-acc-head span:nth-child(2){flex:1;}
+      .ds-acc-head svg:last-child{color:var(--text-subtle);transition:transform .18s;}
+      .ds-acc-head[aria-expanded="true"] svg:last-child{transform:rotate(90deg);}
+      .ds-acc-body{overflow:hidden;}
+      .ds-acc-body .ds-tp-swatches{padding:4px 14px 14px;}
+      @media (prefers-reduced-motion:reduce){.ds-acc-head svg:last-child{transition:none;}}
       .ds-tp-sw{width:32px;height:32px;border-radius:50%;border:1px solid var(--border-strong);cursor:pointer;transition:transform .12s,box-shadow .16s;}
       .ds-tp-sw:hover{transform:scale(1.1);}
       .ds-tp-sw[aria-pressed="true"]{box-shadow:0 0 0 2px var(--bg-card),0 0 0 4px var(--teal);}

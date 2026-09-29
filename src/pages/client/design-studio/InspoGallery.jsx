@@ -153,7 +153,7 @@ export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanv
           animate={{ opacity:1, y:0, transition:{ duration:.2, ease:'easeOut' } }}
           exit={{   opacity:0, y:-10, transition:{ duration:.15 } }}
           style={{
-            position:'absolute', top:60, left:'50%', transform:'translateX(-50%)',
+            position:'absolute', top:60, left:'50%', x:'-50%',
             zIndex:100, width:'min(700px, calc(100vw - 32px))', maxHeight:'calc(100vh - 120px)',
             overflowY:'auto', background:'rgba(255,255,255,.98)', backdropFilter:'blur(16px)',
             border:'1px solid rgba(15,23,42,.08)', borderRadius:18,

@@ -61,10 +61,10 @@ export default function PatternPanel({ cfg, setCfg, activeZone }) {
 
       <div style={{ padding:'9px 11px',borderRadius:9,
         background:'rgba(15,23,42,.04)',border:'1px solid rgba(15,23,42,.08)' }}>
-        <p style={{ fontSize:11,fontWeight:700,color:'#1a2332',margin:'0 0 2px' }}>
+        <p style={{ fontSize:13,fontWeight:700,color:'#1a2332',margin:'0 0 2px' }}>
           Pattern Overlay
         </p>
-        <p style={{ fontSize:10,color:'rgba(15,23,42,.35)',margin:0 }}>
+        <p style={{ fontSize:12,color:'rgba(15,23,42,.6)',margin:0 }}>
           Applied on top of zone color. Select zone in Colors tab.
         </p>
       </div>
@@ -85,7 +85,7 @@ export default function PatternPanel({ cfg, setCfg, activeZone }) {
                 display:'flex', flexDirection:'column', alignItems:'center', gap:4,
               }}>
               <NavIcon name={pat.icon} size={18} color={sel ? T2 : 'rgba(15,23,42,.6)'}/>
-              <span style={{ fontSize:9, color: sel?T2:'rgba(15,23,42,.45)',
+              <span style={{ fontSize:11, color: sel?T2:'rgba(15,23,42,.6)',
                 fontWeight:sel?700:400, textAlign:'center' }}>
                 {pat.label}
               </span>
@@ -100,7 +100,7 @@ export default function PatternPanel({ cfg, setCfg, activeZone }) {
           style={{ padding:'11px 12px', borderRadius:10, marginTop:2,
             background:'rgba(2,195,154,.06)', border:`1px solid rgba(2,195,154,.18)`,
             display:'flex', flexDirection:'column', gap:10, overflow:'hidden' }}>
-          <p style={{ fontSize:10, fontWeight:700, color:T2, margin:0,
+          <p style={{ fontSize:11, fontWeight:700, color:T2, margin:0,
             display:'flex', alignItems:'center', gap:5 }}>
             <NavIcon name={patDef.icon} size={12}/> Adjust {patDef.label}
           </p>

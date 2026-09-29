@@ -1,5 +1,5 @@
 /* Customer portal kit — wireframe-driven. Uses existing theme.css tokens only. */
-.cx-page{width:100%;max-width:1200px;margin-inline:auto;padding-bottom:40px;color:var(--ink);overflow-x:hidden}
+.cx-page{width:100%;max-width:1360px;margin-inline:auto;padding-bottom:40px;color:var(--ink);overflow-x:hidden}
 .cx-head{display:flex;flex-direction:column;gap:12px;margin-bottom:18px}
 .cx-head h1{font-size:clamp(20px,3vw,26px);font-weight:800;margin:0 0 3px;letter-spacing:-.01em}
 .cx-head p{font-size:13px;color:var(--text-muted);margin:0}

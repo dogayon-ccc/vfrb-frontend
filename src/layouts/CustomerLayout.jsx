@@ -132,18 +132,28 @@ export default function CustomerLayout() {
           position: fixed;
           top: 0; left: 0; bottom: 0;
           z-index: 200;
-          background: #ffffff;
-          border-right: 1px solid var(--border);
+          background: linear-gradient(180deg, #06414c 0%, #032d36 100%);
+          border-right: 0;
           display: none;
           flex-direction: column;
           overflow: hidden;
-          box-shadow: 3px 0 20px rgba(2,128,144,.08);
+          box-shadow: 3px 0 24px rgba(3,45,54,.28);
           transition: width .22s cubic-bezier(.4,0,.2,1);
         }
 
         /* Sidebar gradient header */
+        .cm-sb-nav p { color: rgba(255,255,255,.45) !important; }
+        .cm-sb-nav > div { border-top-color: rgba(255,255,255,.12) !important; }
+        .cm-sb-user { border-top-color: rgba(255,255,255,.12) !important; }
+        .cm-sb-user p { color: #fff !important; }
+        .cm-sb-user p + p { color: rgba(255,255,255,.55) !important; }
+        .cm-sb-collapse { background: rgba(255,255,255,.08) !important; border-color: rgba(255,255,255,.14) !important; color: rgba(255,255,255,.7) !important; }
+        .cm-sb-collapse:hover { background: rgba(255,255,255,.16) !important; }
+        .cm-sb-out { border-color: rgba(255,255,255,.22) !important; color: #ffb4b4 !important; }
+        .cm-sb-out:hover { background: rgba(255,255,255,.08) !important; }
         .cm-sb-head {
-          background: linear-gradient(135deg, var(--teal) 0%, var(--teal-2) 100%);
+          background: transparent;
+          border-bottom: 1px solid rgba(255,255,255,.1);
           flex-shrink: 0;
           display: flex;
           align-items: center;
@@ -209,23 +219,15 @@ export default function CustomerLayout() {
           text-decoration: none;
           font-size: 13px;
           font-weight: 500;
-          color: var(--text-muted);
+          color: rgba(255,255,255,.74);
           white-space: nowrap;
           overflow: hidden;
           transition: background .13s, color .13s, transform .1s;
           position: relative;
           margin: 1px 0;
         }
-        .cm-link:hover  {
-          background: linear-gradient(135deg, rgba(2,128,144,.08), rgba(2,195,154,.06));
-          color: ${T};
-          transform: translateX(2px);
-        }
-        .cm-link.active {
-          background: linear-gradient(135deg, rgba(2,128,144,.13), rgba(2,195,154,.09));
-          color: ${T};
-          font-weight: 700;
-        }
+        .cm-link:hover  { background: rgba(255,255,255,.09); color: #fff; transform: translateX(2px); }
+        .cm-link.active { background: rgba(255,255,255,.15); color: #fff; font-weight: 700; }
         .cm-link.active::before {
           content: '';
           position: absolute;
@@ -457,9 +459,9 @@ export default function CustomerLayout() {
           </div>
 
           {/* Nav */}
-          <div style={{ flex:1, overflowY:'auto', overflowX:'hidden',
+          <div className="cm-sb-nav" style={{ flex:1, overflowY:'auto', overflowX:'hidden',
             padding: collapsed ? '8px 4px' : '8px 10px',
-            scrollbarWidth:'thin', scrollbarColor:'var(--border) transparent' }}>
+            scrollbarWidth:'thin', scrollbarColor:'rgba(255,255,255,.25) transparent' }}>
 
             {!collapsed && (
               <p style={{ fontSize:9, fontWeight:800, textTransform:'uppercase',
@@ -527,7 +529,7 @@ export default function CustomerLayout() {
           </div>
 
           {/* Collapse toggle */}
-          <button onClick={toggle}
+          <button onClick={toggle} className="cm-sb-collapse"
             style={{ margin:'6px', padding:'9px', borderRadius:10,
               border:'1px solid var(--border)', background:'var(--bg)',
               cursor:'pointer', color:'var(--text-subtle)', fontSize:11,
@@ -537,13 +539,12 @@ export default function CustomerLayout() {
 fontFamily:"ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif",
 flexShrink:0,
               transition:'all .15s' }}
-            onMouseEnter={e => e.currentTarget.style.background='var(--teal-50)'}
-            onMouseLeave={e => e.currentTarget.style.background='var(--bg)'}>
+            onMouseEnter={undefined}>
             {collapsed ? '▶' : '◀ Collapse'}
           </button>
 
           {/* User strip */}
-          <div style={{ borderTop:'1px solid var(--border)', padding:'10px', flexShrink:0 }}>
+          <div className="cm-sb-user" style={{ borderTop:'1px solid var(--border)', padding:'10px', flexShrink:0 }}>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:7,
               overflow:'hidden', padding:'4px 2px' }}>
               <div style={{ width:32, height:32, borderRadius:'50%', flexShrink:0,
@@ -564,7 +565,7 @@ flexShrink:0,
                 </div>
               )}
             </div>
-            <button onClick={logout}
+            <button onClick={logout} className="cm-sb-out"
               style={{ width:'100%', padding:'8px', borderRadius:9,
                 border:'1px solid var(--danger-border)', background:'transparent',
                 cursor:'pointer', color:'var(--danger)', fontSize:11, fontWeight:600,
@@ -572,8 +573,7 @@ flexShrink:0,
                 justifyContent: collapsed ? 'center' : 'flex-start',
                 gap:5, fontFamily:"ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif",
                 transition:'background .13s' }}
-              onMouseEnter={e => e.currentTarget.style.background='var(--danger-bg)'}
-              onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+              onMouseEnter={undefined}>
               <LogOut size={13} strokeWidth={2}/>{!collapsed && ' Sign Out'}
             </button>
           </div>
