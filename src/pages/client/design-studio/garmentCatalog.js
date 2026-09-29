@@ -31,17 +31,17 @@ const CATEGORY_DEFS = [
   { id: 'Industrial / Work',   icon: 'industrial',  garments: ['Button-Down', 'Polo Shirt', 'T-Shirt', 'Lab Coverall', 'Pants', 'Shorts'] },
 ];
 
-// Garment -> its sleeve/style options (unchanged from the previous SLEEVE_OPTS in dsShared.js).
+// Sleeve styles VFRB really offers per garment. One row to edit if the client adds a style; every consumer reads FAMILIES.
 const SLEEVE_OPTS = {
-  'Polo Shirt': ['Sleeveless', 'Short', '3/4', 'Long'],
-  'School Polo': ['Short', '3/4', 'Long'],
-  'Round Neck': ['Sleeveless', 'Short', '3/4', 'Long'],
-  'V-Neck Shirt': ['Sleeveless', 'Short', '3/4', 'Long'],
-  'Mandarin Collar': ['Short', '3/4', 'Long'],
+  'Polo Shirt': ['Short'],
+  'School Polo': ['Short'],
+  'T-Shirt': ['Short'],
+  'V-Neck Shirt': ['Short'],
+  'Round Neck': ['Short', 'Long'],
+  'Mandarin Collar': ['Short', 'Long'],
+  'Button-Down': ['Short', 'Long'],
   'Scrub Top': ['Short', '3/4'],
   'Lab Coat': ['Long'],
-  'Button-Down': ['Short', 'Long'],
-  'T-Shirt': ['Short'],
   'Lab Coverall': ['Long'],
   'Pants': [], 'Shorts': [], 'Skirt': [],
 };
@@ -73,7 +73,7 @@ const FAMILIES = Object.fromEntries(FAMILY_NAMES.map(name => {
     has2D,
     fits: cap.supported ? cap.fit : [],
     styles,
-    defaultStyle: styles.includes('Short') ? 'Short' : (styles[0] ?? null), // 'Short' is what every 3D scan shows; never default to Sleeveless
+    defaultStyle: styles[0] ?? null,
     sleeves3D: cap.supported ? (cap.sleeves ?? []) : [], // styles the 3D model really has
     status3D,
     model3D: cap.supported ? cap.model : null,

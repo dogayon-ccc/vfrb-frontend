@@ -155,7 +155,7 @@ export function SummaryContent({ cfg, saved, saveDesign, orderThis, ordering, do
       )}
       {cfg.garment && onOpenTool && (
         <nav className="ds-jump" aria-label="Jump to a design tool">
-          {[['type', 'Garment & sleeve', cfg.sleeve], ['color', 'Colors', `${swatches.length} zones`],
+          {[['type', zones.includes('sleeve') ? 'Garment & sleeve' : 'Garment', zones.includes('sleeve') ? cfg.sleeve : cfg.garment], ['color', 'Colors', `${swatches.length} zones`],
             ['pattern', 'Pattern'], ['assets', 'Logos & shapes'], ['text', 'Text']].map(([id, label, val]) => {
             const icon = TOOLS.find(t => t.id === id)?.icon ?? 'info';
             return (

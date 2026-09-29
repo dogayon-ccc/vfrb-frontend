@@ -281,7 +281,7 @@ export default function CanvasViewport({
             const status = fam?.status3D;
             const info = status && status !== 'supported' ? STATUS_3D_LABEL[status] : null;
             // The 3D scans have one sleeve length; say so instead of silently showing a different sleeve than the 2D design.
-            const sleeveGap = status && status !== 'none' && cfg.sleeve && !fam.sleeves3D.includes(cfg.sleeve);
+            const sleeveGap = status && status !== 'none' && fam.styles.length > 0 && cfg.sleeve && !fam.sleeves3D.includes(cfg.sleeve);
             const label = sleeveGap ? `3D shows ${fam.sleeves3D.join(' / ').toLowerCase()} sleeves — ${cfg.sleeve.toLowerCase()} is 2D only`
               : status === 'none' ? 'Generic preview — exact shape not modeled' : info?.label;
             return label && (info || sleeveGap) ? (

@@ -135,16 +135,23 @@ export default function TypePanel({ cfg, setCfg }) {
         <p className="ds-note" style={{ marginTop: 0 }}>Tap a garment to place it on the canvas.</p>
       )}
 
-      {sleeves.length > 0 && (
+      {sleeves.length === 1 && (
+        <p className="ds-note">{cfg.garment} comes in {sleeves[0].toLowerCase()} sleeve only.</p>
+      )}
+
+      {sleeves.length > 1 && (
         <Group title="Sleeve" value={cfg.sleeve} open={openSleeve} onToggle={() => setOpenSleeve(o => !o)}>
           <div className="ds-chips">
-            {sleeves.map(s => (
-              <button key={s} type="button" className="ds-chip" aria-pressed={cfg.sleeve === s}
-                title={family?.status3D !== 'none' && !family?.sleeves3D?.includes(s) ? `${s} sleeve is 2D only — the 3D model has ${family?.sleeves3D?.join(' / ').toLowerCase()} sleeves` : undefined}
-                onClick={() => setCfg(p => ({ ...p, sleeve: s }))}>
-                {s}{family?.status3D !== 'none' && !family?.sleeves3D?.includes(s) && <span className="ds-chip-note"> · 2D</span>}
-              </button>
-            ))}
+            {sleeves.map(s => {
+              const only2D = family.status3D !== 'none' && !family.sleeves3D.includes(s);
+              return (
+                <button key={s} type="button" className="ds-chip" aria-pressed={cfg.sleeve === s}
+                  title={only2D ? `${s} sleeve is 2D only — the 3D model has ${family.sleeves3D.join(' / ').toLowerCase()} sleeves` : undefined}
+                  onClick={() => setCfg(p => ({ ...p, sleeve: s }))}>
+                  {s}{only2D && <span className="ds-chip-note"> · 2D</span>}
+                </button>
+              );
+            })}
           </div>
         </Group>
       )}

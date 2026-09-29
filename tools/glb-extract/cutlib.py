@@ -45,3 +45,14 @@ def mirror_x(mesh):
     m.faces = m.faces[:, ::-1]
     m.fix_normals()
     return m
+
+
+def trim_y(mesh, top, bottom, min_comp=0.05):
+    """Clip `top` off the highest and `bottom` off the lowest edge with horizontal planes, replacing ragged scan cuts with straight ones."""
+    lo, hi = mesh.bounds[0][1], mesh.bounds[1][1]
+    s = _clip(mesh, [0, -1, 0], [0, hi - top, 0])
+    s = _clip(s, [0, 1, 0], [0, lo + bottom, 0])
+    s.merge_vertices(digits_vertex=5)
+    s = clean(s, min_component_frac=min_comp)
+    s.remove_unreferenced_vertices()
+    return s

@@ -96,27 +96,27 @@ export const SCANNED_GARMENTS = [
   {
     id: 'pants', match: /^pants$/i,
     models: { unisex: '/models/processed/pants-trousers.glb' }, torso: { unisex: 0.19 },
-    transform: { rotation: [0, 0, 0], scale: 1.35, position: [0, 0.517, 0] },
+    transform: { rotation: [0, 0, 0], scale: 1.35, position: [0, 0.52, 0] },
     parts: [{ node: 'mesh_node', decals: false, zoneOf: bodyOnly }],
     capabilities: {
       regionMethod: 'vertex-mask', regionAccuracy: 'approximate (single body zone, no cut panels in the GLB)',
       zones: ['body'], patterns: { zones: ['body'], ids: ALL_PATTERNS.filter(p => p !== 'geometric') },
       sleeves: [],
       text: false, logo: false, frontBack: false, fit: ['unisex'],
-      limitations: ['female-cut trousers scan', 'small hand-stub remnant at the left hip', 'open waist and hem edges are ragged'],
+      limitations: ['female-cut trousers scan', 'small hand-stub remnant at the left hip', 'waist and hem are straight clips of the scan (open, no waistband or hem detail)'],
     },
   },
   {
     id: 'shorts', match: /^shorts$/i,
     models: { unisex: '/models/processed/shorts-textured.glb' }, torso: { unisex: 0.215 },
-    transform: { rotation: [0, 0, 0], scale: 2.45, position: [0, 0.71, 0] },
+    transform: { rotation: [0, 0, 0], scale: 2.45, position: [0, 0.715, 0] },
     parts: [{ node: 'mesh_node', decals: false, zoneOf: bodyOnly }],
     capabilities: {
       regionMethod: 'vertex-mask', regionAccuracy: 'approximate (single body zone, no cut panels in the GLB)',
       zones: ['body'], patterns: { zones: ['body'], ids: ALL_PATTERNS.filter(p => p !== 'geometric') },
       sleeves: [],
       text: false, logo: false, frontBack: false, fit: ['unisex'],
-      limitations: ['open notch at the hip side (hand fused to the scan)', 'waistband hidden under the shirt in the source, so the top edge is a cut'],
+      limitations: ['open notch at the hip side (hand fused to the scan)', 'waist and hem are straight clips of the scan (no waistband detail)'],
     },
   },
   {
@@ -129,7 +129,7 @@ export const SCANNED_GARMENTS = [
       zones: ['body'], patterns: { zones: ['body'], ids: ALL_PATTERNS.filter(p => p !== 'geometric') },
       sleeves: [],
       text: false, logo: false, frontBack: false, fit: ['unisex'],
-      limitations: ['low-poly (1.4k vertices) pencil skirt', 'waist and hem edges are ragged cuts'],
+      limitations: ['low-poly (1.3k vertices) pencil skirt', 'waist and hem are straight clips of the scan (no waistband detail)'],
     },
   },
 ];

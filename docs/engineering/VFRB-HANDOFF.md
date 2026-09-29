@@ -279,3 +279,8 @@ Verified: BUILD (`npm run build` exit 0 before/after; only pre-existing three-me
 - **Stale sleeve on garments without sleeve styles**: switching to Pants/Shorts/Skirt kept the previous garment's sleeve, and `serializeDesign` fell back to 'Short', so OrderWizard pre-filled a sleeve for a garment that has none. New `garmentCatalog.resolveSleeve(garment, sleeve)`: no styles -> `null`; otherwise keep if valid else the family default. Used by TypePanel (garment / category / neighbour switch) and by `serializeDesign` / `deserializeDesign` (also repairs old drafts).
 - Unchanged on purpose: 2D-only sleeve styles (Long / 3/4 / Sleeveless) stay selectable, labelled "· 2D", with the existing 3D notice. They are real 2D silhouettes; 3D shows short sleeves only for every wired shirt.
 - Pants / shorts / skirt GLBs re-inspected (raster, both faces): garment-only, intact, ragged waist/hem edges already documented. No change made.
+
+### Session 4b
+- Sleeve options are now real per garment (`SLEEVE_OPTS` in `garmentCatalog.js`, one table): Polo / School Polo / T-Shirt / V-Neck Shirt = Short only (no picker, one-line note); Round Neck, Mandarin Collar, Button-Down = Short / Long; Scrub Top = Short / 3/4; Lab Coat / Coverall = Long. Sleeveless removed everywhere. These are catalog decisions, not measured facts: confirm with the client. Saved designs with a style the garment no longer offers restore to the garment default.
+- 3D "sleeve is 2D only" notice no longer fires for garments without sleeve styles; the summary row reads "Garment" for them.
+- pants / shorts / skirt GLBs: waist and hem re-cut with horizontal plane clips (`cutlib.trim_y`), transforms recentred. Render-checked only.

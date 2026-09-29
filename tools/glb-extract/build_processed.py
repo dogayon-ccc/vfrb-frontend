@@ -7,7 +7,7 @@ import os, sys
 import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from cutlib import cut, cut_planes, mirror_x, save
+from cutlib import cut, cut_planes, mirror_x, trim_y, save
 from extract import load_mesh
 
 MODELS = os.path.normpath(os.path.join(HERE, '..', '..', 'public', 'models'))
@@ -24,6 +24,7 @@ JOBS = [
 
 PLANE_JOBS = {'work-shirt-short-sleeve.glb': (0.50, 0.02)}  # out -> (x_max, y_min) for cut_planes
 MIRROR = {'work-shirt-short-sleeve.glb'}
+TRIM_Y = {'pants-trousers.glb': (0.035, 0.03), 'shorts-textured.glb': (0.04, 0.035), 'skirt-pencil.glb': (0.04, 0.04)}  # (top, bottom) in model units
 
 if __name__ == '__main__':
     only = [a for a in sys.argv[1:] if not a.startswith('--')]
@@ -35,6 +36,8 @@ if __name__ == '__main__':
         s = cut(m, y_lo, y_hi, rules, min_comp=0.05)
         if out in PLANE_JOBS:
             s = cut_planes(s, *PLANE_JOBS[out])
+        if out in TRIM_Y:
+            s = trim_y(s, *TRIM_Y[out])
         if out in MIRROR:
             s = mirror_x(s)
         dst = os.path.join(MODELS, 'processed', out)
