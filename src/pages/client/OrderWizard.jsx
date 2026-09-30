@@ -668,25 +668,27 @@ function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart
 function StepDelivery({ form, set, errors }) {
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:18 }}>
-      <div>
-        <label style={lbl}>Desired Delivery Date</label>
-        <input type="date" value={form.deadline||''}
-          min={new Date(Date.now()+7*864e5).toISOString().split('T')[0]}
-          onChange={e => set('deadline', e.target.value)}
-          style={inp} onFocus={fi} onBlur={fo}/>
-      </div>
+      <div className="st-2col">
+        <div>
+          <label style={lbl}>Desired Delivery Date</label>
+          <input type="date" value={form.deadline||''}
+            min={new Date(Date.now()+7*864e5).toISOString().split('T')[0]}
+            onChange={e => set('deadline', e.target.value)}
+            style={inp} onFocus={fi} onBlur={fo}/>
+        </div>
 
-      <div>
-        <label style={lbl}>
-          PO Reference{' '}
-          <span style={{ color:'var(--text-faint)', fontWeight:400, textTransform:'none', letterSpacing:0 }}>
-            (optional)
-          </span>
-        </label>
-        <input type="text" value={form.po_reference||''}
-          onChange={e => set('po_reference', e.target.value)}
-          placeholder="Your purchase order number"
-          style={inp} onFocus={fi} onBlur={fo}/>
+        <div>
+          <label style={lbl}>
+            PO Reference{' '}
+            <span style={{ color:'var(--text-faint)', fontWeight:400, textTransform:'none', letterSpacing:0 }}>
+              (optional)
+            </span>
+          </label>
+          <input type="text" value={form.po_reference||''}
+            onChange={e => set('po_reference', e.target.value)}
+            placeholder="Your purchase order number"
+            style={inp} onFocus={fi} onBlur={fo}/>
+        </div>
       </div>
 
       <div>
