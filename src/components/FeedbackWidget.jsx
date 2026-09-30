@@ -94,11 +94,11 @@ export default function FeedbackWidget() {
                   <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                     {[['bug', 'bug', 'Bug'], ['suggestion', 'suggestion', 'Idea'], ['other', 'chat', 'Other']].map(([v, ic, l]) => (
                       <button key={v} onClick={() => setCategory(v)} style={{
-                        flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                        flex: 1, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0 8px', borderRadius: 10, fontSize: 12, fontWeight: 600,
                         border: category === v ? `1.5px solid ${T}` : '1px solid var(--border)',
                         background: category === v ? 'var(--teal-50)' : 'var(--bg-card)',
                         color: category === v ? T : 'var(--text-subtle)', cursor: 'pointer',
-                      }}><NavIcon name={ic} size={12} style={{verticalAlign:'-2px',marginRight:4}}/>{l}</button>
+                      }}><NavIcon name={ic} size={14}/>{l}</button>
                     ))}
                   </div>
 

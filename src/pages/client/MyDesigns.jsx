@@ -53,6 +53,7 @@ export default function MyDesigns() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [tab, setTab] = useState('all');
+  const [q, setQ] = useState('');
 
   const load = () => {
     setLoading(true); setError(false);
@@ -71,11 +72,14 @@ export default function MyDesigns() {
   const orderAgain = (d) => { sessionStorage.setItem('studio_config', JSON.stringify(d.config)); nav('/design-studio'); };
 
   const nDraft = draft ? 1 : 0, nOrdered = past.length, total = nDraft + nOrdered;
-  const showDraft = draft && (tab === 'all' || tab === 'draft');
+  const hit = (...v) => !q.trim() || v.filter(Boolean).join(' ').toLowerCase().includes(q.trim().toLowerCase());
+  const cfg = draft?.studio_config ?? {};
+  const showDraft = draft && (tab === 'all' || tab === 'draft') && hit(draft.label, cfg.garment, cfg.category);
+  const shownPast = past.filter(d => hit(d.label, d.garment, d.category));
   const showPast = tab === 'all' || tab === 'ordered';
+  const noMatch = q.trim() && !showDraft && !(showPast && shownPast.length);
   const empty = !loading && !error && total === 0;
   const tabEmpty = !loading && !error && total > 0 && ((tab === 'draft' && !draft) || (tab === 'ordered' && !nOrdered));
-  const cfg = draft?.studio_config ?? {};
 
   return (
     <div className="cx-page">
@@ -84,7 +88,8 @@ export default function MyDesigns() {
       </PageHeader>
 
       {!loading && !error && total > 0 && (
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <input type="search" className="cx-in" value={q} onChange={e => setQ(e.target.value)} placeholder="Search designs" aria-label="Search designs" style={{ maxWidth: 420 }} />
           <Chips label="Filter designs" value={tab} onChange={setTab}
             items={[{ id: 'all', label: 'All', count: total }, { id: 'draft', label: 'Draft', count: nDraft }, { id: 'ordered', label: 'Ordered', count: nOrdered }]} />
         </div>
@@ -99,14 +104,16 @@ export default function MyDesigns() {
       {tabEmpty && <EmptyState illustration="order" headline={tab === 'draft' ? 'No draft in progress' : 'No ordered designs yet'}
         sub={tab === 'draft' ? 'Start a new design in the Design Studio.' : 'Designs you order will show up here.'} cta={{ label: 'Open Design Studio', onClick: openStudioBlank }} />}
 
-      {!loading && !error && total > 0 && (
+      {noMatch && <EmptyState illustration="order" headline="No designs match your search" sub="Try a different garment name." />}
+
+      {!loading && !error && total > 0 && !noMatch && (
         <div className="cx-dgrid">
           {showDraft && (
             <DesignCard i={0} img={draft.preview_dataurl} garment={cfg.garment} colors={cfg.colors}
               title={draft.label || cfg.garment || 'Untitled design'} meta={`${cfg.category ?? 'Design'} · edited ${reltime(draft.updated_at)}`}
               badge="Draft" tone={DRAFT} primary={{ label: 'Continue editing', onClick: continueDraft }} secondary={{ label: 'Order this', onClick: orderDraft }} />
           )}
-          {showPast && past.map((d, i) => (
+          {showPast && shownPast.map((d, i) => (
             <DesignCard key={d.id} i={i + 1} img={d.photo_path} garment={d.garment} colors={d.config?.colors}
               title={d.label || d.garment || 'Design'} meta={[d.category, d.sleeve].filter(Boolean).join(' · ') || fmtDate(d.updated_at ?? d.created_at)}
               badge="Ordered" tone={ORDERED} primary={{ label: 'Order again', onClick: () => orderAgain(d), disabled: !d.config?.garment }} />

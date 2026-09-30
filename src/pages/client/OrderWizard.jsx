@@ -204,13 +204,18 @@ function StudioBanner({ cfg, onClear }) {
 }
 
 // ── Step 0: Design ────────────────────────────────────────────────────────────
+function Adv({ on, open, children }) {
+  if (!on) return <>{children}</>;
+  return (
+    <details className="wz-adv" open={open}>
+      <summary>Adjust details manually <small>(optional - your Studio design is already saved)</small></summary>
+      <div className="wz-adv-b">{children}</div>
+    </details>
+  );
+}
+
 function StepDesign({ form, set, errors, studio, onClearStudio }) {
   const fileRef  = useRef(null);
-
-  const previewPng = (() => {
-    try { return sessionStorage.getItem('studio_preview') || null; }
-    catch { return null; }
-  })();
 
   const COLLARS  = ['Round Neck','V-Neck','Polo Collar','Mandarin Collar','Button Down','No Collar','Others'];
   const SLEEVES  = ['Short Sleeve','Long Sleeve','3/4 Sleeve','Sleeveless','Raglan Sleeve','Others'];
@@ -222,40 +227,6 @@ function StepDesign({ form, set, errors, studio, onClearStudio }) {
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:18 }}>
       {studio && <StudioBanner cfg={studio} onClear={onClearStudio}/>}
-
-      {/* Garment PNG hero — shown when studio has a preview but no banner rendered yet */}
-      {!studio && previewPng && (
-        <motion.div
-          initial={{ opacity: 0, scale: .97 }}
-          animate={{ opacity: 1, scale: 1 }}
-          style={{
-            borderRadius: 14, overflow: 'hidden',
-            border: `2px solid rgba(2,195,154,.3)`,
-            background: 'linear-gradient(135deg,#060d1a,#0a1628)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: '20px 16px', position: 'relative',
-          }}
-        >
-          <img
-            src={previewPng}
-            alt="Your design"
-            style={{
-              maxHeight: 200, maxWidth: '100%', objectFit: 'contain',
-              borderRadius: 10, display: 'block',
-              filter: 'drop-shadow(0 8px 24px rgba(2,195,154,.2))',
-            }}
-          />
-          <div style={{
-            position: 'absolute', top: 10, right: 10,
-            padding: '3px 10px', borderRadius: 99,
-            background: 'rgba(2,195,154,.18)',
-            border: '1px solid rgba(2,195,154,.3)',
-            color: T2, fontSize: 9, fontWeight: 700, fontFamily: FONT,
-          }}>
-            <NavIcon name="designStudio" size={11} color={T2} style={{ verticalAlign:'-1px', marginRight:3 }}/>Your Design
-          </div>
-        </motion.div>
-      )}
 
       {!studio && (
         <motion.div
@@ -284,6 +255,7 @@ function StepDesign({ form, set, errors, studio, onClearStudio }) {
         </motion.div>
       )}
 
+      <Adv on={!!studio} open={(gSpec.needsCollar && !form.collar_type) || (gSpec.needsSleeve && !form.sleeve_type) || !form.garment_type}>
       <div style={{ display:'flex', alignItems:'center', gap:10 }}>
         <div style={{ flex:1, height:1, background:'var(--border)' }}/>
         <span style={{ color:'var(--text-faint)', fontSize:11, whiteSpace:'nowrap', fontFamily:FONT }}>
@@ -405,8 +377,10 @@ function StepDesign({ form, set, errors, studio, onClearStudio }) {
         </div>
       )}
 
+      </Adv>
+
       <div>
-        <label style={lbl}>Design Description <span style={{ color:'#ef4444' }}>*</span></label>
+        <label style={lbl}>{studio ? 'Special instructions' : 'Design Description'} <span style={{ color:'#ef4444' }}>*</span></label>
         <textarea value={form.client_design_notes||''} rows={4}
           onChange={e=>set('client_design_notes',e.target.value)}
           onFocus={fi} onBlur={fo}
@@ -753,21 +727,21 @@ function SteP({ label, value, onChange, remaining }) {
       <div style={{ display:'flex', alignItems:'center', gap:5, justifyContent:'center' }}>
         <motion.button whileTap={{ scale:.85 }} type="button"
           onClick={() => onChange(Math.max(0, value - 1))}
-          style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--border)',
+          style={{ width:32, height:32, borderRadius:8, border:'1px solid var(--border)',
             background:'var(--bg-surface)', fontSize:16, cursor:'pointer', lineHeight:1,
             color:'var(--text-subtle)', fontWeight:700, display:'flex',
             alignItems:'center', justifyContent:'center' }}>
           −
         </motion.button>
         <span style={{ fontSize:18, fontWeight:800, color: value>0?T:'var(--text-faint)',
-          width:30, textAlign:'center', fontFamily:FONT }}>
+          flex:1, minWidth:24, textAlign:'center', fontFamily:FONT }}>
           {value}
         </span>
         <motion.button whileTap={{ scale: atCap ? 1 : .85 }} type="button"
           disabled={atCap}
           onClick={() => onChange(value + 1)}
           title={atCap ? 'Total quantity reached — reduce another size first' : undefined}
-          style={{ width:28, height:28, borderRadius:8, border:'1px solid var(--border)',
+          style={{ width:32, height:32, borderRadius:8, border:'1px solid var(--border)',
             background: atCap ? '#f1f5f9' : 'var(--bg-surface)', fontSize:16,
             cursor: atCap ? 'not-allowed' : 'pointer', lineHeight:1,
             color: atCap ? '#cbd5e1' : 'var(--text-subtle)', fontWeight:700, display:'flex',
@@ -1283,6 +1257,10 @@ export default function OrderWizard() {
   const [dir,    setDir]    = useState(1); // 1=forward, -1=back (for slide direction)
   const [showSizeChart,  setShowSizeChart]  = useState(false);
   const [showConfetti,   setShowConfetti]   = useState(false);
+  useEffect(() => {
+    document.documentElement.dataset.wizard = '1';
+    return () => { delete document.documentElement.dataset.wizard; };
+  }, []);
   // Once set, short-circuits the wizard for the blocking MaterialsReveal screen.
   const [createdOrder,   setCreatedOrder]   = useState(null);
 
@@ -1330,7 +1308,7 @@ export default function OrderWizard() {
 
   const clearStudio = () => {
     setStudio(null);
-    ['studio_config','studio_color','studio_garment','studio_category']
+    ['studio_config','studio_color','studio_garment','studio_category','studio_preview']
       .forEach(k => sessionStorage.removeItem(k));
     setForm(prev => ({ ...prev, garment_type:'', collar_type:'',
       sleeve_type:'', client_design_notes:'', color:'' }));
@@ -1486,7 +1464,7 @@ export default function OrderWizard() {
           .wiz-2col      { grid-template-columns:1fr 1fr; }
         }
         @media (min-width:768px) {
-          .wiz-size-grid { grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); gap:8px; }
+          .wiz-size-grid { grid-template-columns:repeat(auto-fill,minmax(128px,1fr)); gap:8px; }
           .wiz-size-grid > * { min-width:0; }
           .wiz-step-card { padding:24px 22px; }
         }

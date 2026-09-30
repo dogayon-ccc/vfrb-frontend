@@ -159,6 +159,11 @@ export default function CustomerDashboard() {
             )}
           </div>
         </div>
+        {!heroCfg?.garment && (
+          <div aria-hidden="true" className="cx-only-d cx-hero-empty">
+            <NavIcon name="garmentType" size={64} color="rgba(255,255,255,.85)" />
+          </div>
+        )}
         {heroCfg?.garment && (
           <div aria-hidden="true" className="cx-only-d" style={{ flexShrink: 0, width: 180, height: 200, position: 'relative' }}>
             <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center',

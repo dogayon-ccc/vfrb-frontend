@@ -149,15 +149,6 @@ export default function CustomerLayout() {
           position: relative;
           overflow: hidden;
         }
-        .cm-sb-head::after {
-          content: '';
-          position: absolute;
-          right: -20px; top: -20px;
-          width: 80px; height: 80px;
-          border-radius: 50%;
-          background: rgba(255,255,255,.07);
-          pointer-events: none;
-        }
 
         /* ── Main column ─────────────────────────────────────────────────── */
         .cm-main {
@@ -416,6 +407,42 @@ export default function CustomerLayout() {
         @media (prefers-reduced-motion: reduce) {
           *, *::before, *::after { transition-duration: .01ms !important; }
         }
+      
+        /* Sidebar + topbar: dark teal rail, light glass topbar on desktop (wireframe) */
+        .cm-sb-nav p { font-size: 10px !important; letter-spacing: .12em !important; color: rgba(255,255,255,.5) !important; }
+        .cm-link { padding: 10px 12px; margin: 2px 0; font-size: 13.5px; }
+        .cm-link:hover { transform: none; background: rgba(255,255,255,.08); }
+        .cm-link.active { background: linear-gradient(90deg, rgba(2,195,154,.22), rgba(255,255,255,.06)); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+        .cm-link:focus-visible, .cm-studio-btn:focus-visible, .cm-sb-collapse:focus-visible { outline: 2.5px solid #7ee7d3; outline-offset: 2px; }
+        .cm-studio-btn { min-height: 42px; }
+        .cm-sb-collapse { min-height: 40px; }
+        .cm-tb-date { color: rgba(255,255,255,.7); font-size: 12px; flex-shrink: 0; }
+        .cm-tb-studio { display: none; align-items: center; gap: 8px; white-space: nowrap; padding: 0 16px; height: 38px; border-radius: 999px; border: 0; cursor: pointer;
+          font: 700 13px/1 ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; color: #fff;
+          background: linear-gradient(135deg, var(--teal), var(--teal-2)); box-shadow: 0 4px 14px rgba(2,128,144,.3);
+          transition: transform .15s, box-shadow .15s; }
+        .cm-tb-studio:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(2,128,144,.38); }
+        .cm-tb-studio:focus-visible, .cm-tb-bell:focus-visible, .cm-tb-user:focus-visible { outline: 2.5px solid var(--teal); outline-offset: 2px; }
+        .cm-tb-bell { position: relative; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: #fff; background: rgba(255,255,255,.14); flex-shrink: 0; transition: background .15s; }
+        .cm-tb-bell:hover { background: rgba(255,255,255,.24); }
+        .cm-tb-dot { position: absolute; top: 8px; right: 9px; width: 9px; height: 9px; border-radius: 50%; background: var(--danger); border: 2px solid #fff; }
+        .cm-tb-user { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #fff; padding: 3px 4px 3px 3px; border-radius: 999px; transition: background .15s; }
+        .cm-tb-user:hover { background: rgba(255,255,255,.14); }
+        .cm-tb-av { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 800; color: #fff;
+          background: linear-gradient(135deg, var(--teal), var(--teal-2)); box-shadow: 0 0 0 2px rgba(255,255,255,.45); }
+        .cm-tb-name { font-size: 13px; font-weight: 700; white-space: nowrap; padding-right: 8px; }
+        @media (min-width: 768px) {
+          .cm-tb-studio { display: inline-flex !important; }
+          .cm-topbar { height: 60px; background: rgba(255,255,255,.82); backdrop-filter: blur(16px) saturate(160%); -webkit-backdrop-filter: blur(16px) saturate(160%);
+            border-bottom: 1px solid var(--border); box-shadow: 0 6px 20px rgba(15,23,42,.04); }
+          .cm-tb-date { color: var(--text-subtle); }
+          .cm-tb-bell { color: var(--ink); background: var(--bg-surface); }
+          .cm-tb-bell:hover { background: var(--teal-50); color: var(--teal); }
+          .cm-tb-user { color: var(--ink); }
+          .cm-tb-user:hover { background: var(--bg-surface); }
+          .cm-tb-av { box-shadow: 0 0 0 2px var(--teal-50); }
+        }
+        @media (prefers-reduced-motion: reduce) { .cm-tb-studio, .cm-tb-bell, .cm-tb-user { transition: none; } }
       `}</style>
 
       <div className="cm-shell" style={accentVars || undefined}>
@@ -590,41 +617,25 @@ flexShrink:0,
             </div>
 
             {/* Desktop: date */}
-            <span className="cm-desk-only"
-              style={{ color:'rgba(255,255,255,.55)', fontSize:12, flexShrink:0 }}>
+            <span className="cm-desk-only cm-tb-date">
               {new Date().toLocaleDateString('en-PH',{
                 weekday:'long', month:'long', day:'numeric', year:'numeric' })}
             </span>
             <div style={{ flex:1 }}/>
 
-            {/* Studio shortcut — desktop only */}
-            <button className="cm-desk-only" onClick={openStudio}
-              style={{ padding:'6px 14px', borderRadius:9, cursor:'pointer',
-                background:'rgba(255,255,255,.15)', border:'1px solid rgba(255,255,255,.25)',
-                color:'#fff', fontSize:12, fontWeight:700,
-                fontFamily:"ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif",
-                alignItems:'center', gap:6, transition:'background .15s',
-                backdropFilter:'blur(4px)' }}
-              onMouseEnter={e => e.currentTarget.style.background='rgba(255,255,255,.25)'}
-              onMouseLeave={e => e.currentTarget.style.background='rgba(255,255,255,.15)'}>
-              <Palette size={14} strokeWidth={2}/> Design Studio
+            <button className="cm-desk-only cm-tb-studio" onClick={openStudio}>
+              <Palette size={15} strokeWidth={2.2}/> Design Studio
             </button>
 
-            {/* User avatar — desktop shows name */}
-            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-              <div style={{ width:32, height:32, borderRadius:'50%', flexShrink:0,
-                background:'rgba(255,255,255,.2)',
-                border:'2px solid rgba(255,255,255,.35)',
-                display:'flex', alignItems:'center', justifyContent:'center',
-                color:'#fff', fontSize:12, fontWeight:800,
-                backdropFilter:'blur(4px)' }}>
-                {initials}
-              </div>
-              <span className="cm-desk-only" style={{ fontSize:13, fontWeight:600,
-                color:'#fff', whiteSpace:'nowrap' }}>
-                {name}
-              </span>
-            </div>
+            <NavLink to="/messages" className="cm-tb-bell" aria-label={unread > 0 ? `Messages, ${unread} unread` : 'Messages'}>
+              <MessageSquare size={18} strokeWidth={2}/>
+              {unread > 0 && <i className="cm-tb-dot"/>}
+            </NavLink>
+
+            <NavLink to="/settings" className="cm-tb-user" aria-label="Account settings">
+              <span className="cm-tb-av">{initials}</span>
+              <span className="cm-desk-only cm-tb-name">{name}</span>
+            </NavLink>
 
           </div>
 
