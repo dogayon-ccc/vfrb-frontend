@@ -159,21 +159,13 @@ export default function CustomerDashboard() {
             )}
           </div>
         </div>
-        {!heroCfg?.garment && (
-          <div aria-hidden="true" className="cx-only-d cx-hero-empty">
-            <NavIcon name="garmentType" size={64} color="rgba(255,255,255,.85)" />
-          </div>
-        )}
-        {heroCfg?.garment && (
-          <div aria-hidden="true" className="cx-only-d" style={{ flexShrink: 0, width: 180, height: 200, position: 'relative' }}>
-            <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center',
-              background: 'rgba(255,255,255,.12)', borderRadius: 24 }}>
-              <div style={{ transform: 'scale(2.6)', lineHeight: 0, filter: 'drop-shadow(0 6px 10px rgba(0,0,0,.25))' }}>
-                <MiniPreview garment={heroCfg.garment} colors={heroCfg.colors ?? {}} />
-              </div>
+        <div aria-hidden="true" className="cx-hero-art">
+          <div className="cx-hero-tile">
+            <div className="cx-hero-garment">
+              <MiniPreview garment={heroCfg?.garment ?? 'Polo Shirt'} colors={heroCfg?.garment ? (heroCfg.colors ?? {}) : {}} />
             </div>
           </div>
-        )}
+        </div>
       </motion.section>
 
       {/* KPIs */}

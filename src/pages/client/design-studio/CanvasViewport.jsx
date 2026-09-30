@@ -70,6 +70,7 @@ export default function CanvasViewport({
 }) {
   const paneRef = useRef(null);
   const fit = useFit(paneRef, canvasWrapRef);
+  const [dark, setDark] = useState(false);
   const catData = CATALOG.find(c => c.id === cfg.category) ?? CATALOG[0];
 
   // Brief cross-fade on the canvas wrapper when the visible face changes. The
@@ -93,7 +94,7 @@ export default function CanvasViewport({
   };
 
   return (
-    <div className="ds-cv"
+    <div className="ds-cv" data-stage={dark ? 'dark' : undefined}
       style={{ background: [`radial-gradient(ellipse at 50% 42%, ${cfg.colors.body}18, transparent 62%)`, 'var(--bg-surface)'].join(',') }}
       onDragOver={e=>e.preventDefault()}
       onDrop={onDrop}>
@@ -120,6 +121,12 @@ export default function CanvasViewport({
             </motion.div>
           )}
         </AnimatePresence>
+        <button type="button" className="ds-stage-btn" aria-pressed={dark} aria-label={dark ? 'Light stage' : 'Dark stage'}
+          title={dark ? 'Light stage' : 'Dark stage'} onClick={() => setDark(d => !d)}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            {dark ? <><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></> : <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>}
+          </svg>
+        </button>
         <div className="ds-zoom" role="group" aria-label="Zoom">
           <button type="button" aria-label="Zoom out" onClick={()=>setZoom(z=>Math.max(0.6, +(z-0.15).toFixed(2)))}>−</button>
           <button type="button" aria-label="Reset zoom" onClick={()=>setZoom(1)}>{Math.round(zoom*fit*100)}%</button>

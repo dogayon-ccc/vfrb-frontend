@@ -100,7 +100,7 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool }) {
             </section>
           )}
 
-          {sleeves.length > 0 && (
+          {(sleeves.length === 1 || (sleeves.length > 1 && !zones.includes('sleeve'))) && (
             <section>
               <p className="ds-h3">Sleeve</p>
               {sleeves.length === 1
@@ -149,6 +149,20 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool }) {
                       <motion.div className="ds-acc-body" initial={reduce ? false : { height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                         transition={{ duration: reduce ? 0 : 0.18 }}>
+                        {z === 'sleeve' && sleeves.length > 1 && (
+                          <div className="ds-chips" style={{ padding: '4px 14px 10px' }}>
+                            {sleeves.map(sv => {
+                              const only2D = family.status3D !== 'none' && !family.sleeves3D.includes(sv);
+                              return (
+                                <button key={sv} type="button" className="ds-chip" aria-pressed={cfg.sleeve === sv}
+                                  title={only2D ? `${sv} sleeve is 2D only` : undefined}
+                                  onClick={() => setCfg(p => ({ ...p, sleeve: sv }))}>
+                                  {sv}{only2D && <span className="ds-chip-note"> · 2D</span>}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                         <div className="ds-tp-swatches" role="group" aria-label={`${ZONE_LABEL[z]} color`}>
                           {PH_SWATCHES.map(sw => (
                             <button key={sw.hex} type="button" className="ds-tp-sw" title={sw.name} aria-label={sw.name}

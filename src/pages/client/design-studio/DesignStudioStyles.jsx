@@ -230,7 +230,8 @@ export default function DesignStudioStyles() {
 
       /* ── Garment picker (TypePanel) ── */
       .ds-tp{flex:1;min-height:0;overflow-y:auto;padding:14px 14px 20px;display:flex;flex-direction:column;gap:10px;}
-      .ds-tp>*{flex-shrink:0;}
+      .ds-tp{min-width:0;}
+      .ds-tp>*{flex-shrink:0;min-width:0;max-width:100%;}
       .ds-tp-catbar{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;}
       .ds-tp-catbar::-webkit-scrollbar{display:none;}
       .ds-tp-catchip{
@@ -330,6 +331,18 @@ export default function DesignStudioStyles() {
       .ds-cv::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
         background-image:radial-gradient(rgba(15,23,42,.085) 1px,transparent 1.2px);background-size:22px 22px;
         -webkit-mask-image:radial-gradient(ellipse at 50% 46%,#000 30%,transparent 78%);mask-image:radial-gradient(ellipse at 50% 46%,#000 30%,transparent 78%);}
+      .ds-cv[data-stage="dark"]{background:radial-gradient(ellipse at 50% 40%,#16323c 0%,#0a1d25 70%)!important;}
+      .ds-cv[data-stage="dark"]::before{background-image:radial-gradient(rgba(255,255,255,.12) 1px,transparent 1.2px);}
+      .ds-cv[data-stage="dark"] .ds-stage-floor{background:radial-gradient(ellipse at center,rgba(0,0,0,.6),transparent 70%);}
+      .ds-stage-btn{position:absolute;z-index:2;top:14px;left:150px;width:40px;height:40px;display:grid;place-items:center;border-radius:var(--r-md);
+        border:1px solid var(--border);background:var(--bg-card);color:var(--ink);cursor:pointer;box-shadow:var(--shadow-sm);transition:transform .12s,background .16s;}
+      .ds-stage-btn:active{transform:scale(.94);}
+      @media (max-width:767px){
+        .ds-stage-btn{left:auto;right:12px;top:12px;}
+        .ds-face:has(.ds-face-thumb){padding:3px;gap:3px;bottom:auto;top:12px;left:auto;right:64px;margin-inline:0;box-shadow:var(--shadow-sm);border-radius:var(--r-md);}
+        .ds-face .ds-face-thumb{flex-direction:row;min-width:0;padding:0 12px;min-height:36px;}
+        .ds-face .ds-face-thumb svg,.ds-face .ds-face-thumb img,.ds-face .ds-face-thumb canvas{display:none;}
+      }
       .ds-stage-floor{position:absolute;left:12%;right:12%;bottom:-16px;height:22px;border-radius:50%;pointer-events:none;
         background:radial-gradient(ellipse at center,rgba(15,23,42,.22),transparent 70%);filter:blur(5px);}
       .ds-ctx-chip{position:absolute;z-index:2;top:14px;left:50%;transform:translateX(-50%);display:flex;align-items:baseline;gap:8px;

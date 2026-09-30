@@ -137,3 +137,8 @@ html[data-wizard] .cm-studio-fab,html[data-wizard] .fbw-fab{display:none!importa
 .wz-page{padding-bottom:96px}
 @media(min-width:768px){.wz-page{padding-bottom:24px}}
 .wz-lbl{white-space:nowrap}
+
+.cx-hero-art{flex-shrink:0;width:96px;height:112px;position:relative}
+.cx-hero-tile{position:absolute;inset:0;display:grid;place-items:center;background:rgba(255,255,255,.12);border-radius:20px}
+.cx-hero-garment{line-height:0;transform:scale(1.45);filter:drop-shadow(0 6px 10px rgba(0,0,0,.25))}
+@media(min-width:900px){.cx-hero-art{width:180px;height:200px}.cx-hero-tile{border-radius:24px}.cx-hero-garment{transform:scale(2.6)}}
