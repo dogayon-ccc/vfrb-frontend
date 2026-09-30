@@ -1,40 +1,4 @@
-// src/pages/admin/PhysicalCount.jsx
-// FIX (Sony Mark, Sept 10 2026): hex→var(--...) + emoji→NavIcon
-// migration — 138 hex, 24 emoji. IMPORTANT SELF-CORRECTION mid-fix:
-// caught a real mapping error in my own automated pass — #166534
-// (theme.css's own literal .alert-success text color) had been
-// auto-mapped to var(--success-border), which is actually a DIFFERENT,
-// much lighter value (#bbf7d0, meant for borders). Any text-color usage
-// with that wrong mapping would have been a light-green-on-light-
-// background contrast failure. Audited and fixed this same error
-// across QCChecklist.jsx, ProductionTracking.jsx, and Orders.jsx too
-// (already-"done" files from earlier this session) — all re-verified
-// with a full rebuild after the correction. #134e4a (this file's teal-
-// alert text) and the two document.write() print-popup colors (#ccc/
-// #f0f0f0 — a genuinely separate document, CSS variables don't inherit
-// across window.open() at all) are legitimate literal exceptions,
-// matching theme.css's own established un-tokenized precedents.
-// Also moved two emoji out of onDone() toast message strings entirely
-// (plain-text template literals, not JSX — a NavIcon component can't
-// render inside a string) rather than leaving them embedded.
-// Logic (count entry, variance calc, reconcile flow, caching)
-// untouched throughout.
-//
-// FIXES vs zip source:
-//   1. CDN font ('DM Sans') removed — system font stack throughout
-//   2. CountModal: success toast before closing instead of silent close
-//   3. cache.js wired — materials list cached 5 min (TTL.MATERIALS)
-//      cacheClear('materials_list','dashboard_stats') on every count submit
-//   4. AnimatePresence added for filter tab transitions
-//
-// API endpoints (all verified in api.php):
-//   GET  /api/admin/physical-counts          → count list
-//   GET  /api/admin/physical-counts/summary  → summary stats
-//   GET  /api/admin/physical-counts/sheet    → printable count sheet
-//   POST /api/admin/physical-counts          → log new count
-//   PATCH /api/admin/physical-counts/{id}/reconcile → manager reconcile
-//   GET  /api/admin/materials                → materials for dropdown
-//
+// Physical count log + manager reconcile. API: /api/admin/physical-counts (list, summary, sheet, reconcile), /api/admin/materials.
 // DB rules:
 //   physical_count_logs: variance + variance_pct are GENERATED — never insert
 //   notifications: NO type, NO title columns
@@ -46,6 +10,7 @@ import { cacheGet, cacheSet, cacheClear, TTL }              from '../../utils/ca
 import { NavIcon }                                           from '../../components/ui/icons';
 import { escapeHtml }                                        from '../../utils/escapeHtml';
 import BottomSheet                                           from '../../components/ui/BottomSheet';
+import { PageHeader, StatGrid, PillTabs, Panel, StatusPill, Banner, SkeletonRows } from '../../components/admin/AdminUI';
 
 const T    = 'var(--teal)';
 const T2   = 'var(--teal-2)';
@@ -54,16 +19,14 @@ const SK   = { borderRadius:6, background:'linear-gradient(90deg,var(--bg-surfac
 const inp  = {
   width:'100%', padding:'10px 14px', borderRadius:10,
   border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)',
-  fontSize:13, outline:'none', fontFamily:FONT, // FIX 1: CDN font removed
-  boxSizing:'border-box', transition:'border .15s,box-shadow .15s',
+  fontSize:13, outline:'none', fontFamily:FONT,  boxSizing:'border-box', transition:'border .15s,box-shadow .15s',
 };
 const fi   = e => { e.target.style.borderColor=T;         e.target.style.boxShadow=`0 0 0 3px rgba(2,128,144,.1)`; };
 const fo   = e => { e.target.style.borderColor='var(--border)'; e.target.style.boxShadow='none'; };
 const lbl  = { display:'block', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'var(--text-subtle)', marginBottom:7, fontFamily:FONT };
 const card = { background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:14, boxShadow:'0 1px 3px rgba(0,0,0,.05)' };
 
-const user      = (() => { try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}'); } catch { return {}; } })();
-const isManager = user.role === 'manager';
+const readIsManager = () => { try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}').role === 'manager'; } catch { return false; } };
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
 function Toast({ msg, type, onDone }) {
@@ -81,8 +44,8 @@ function Toast({ msg, type, onDone }) {
 }
 
 // ── Count Entry Modal (Staff) ──────────────────────────────────────────────────
-function CountModal({ materials, onClose, onDone, isMobile }) {
-  const [matId,   setMatId]   = useState('');
+function CountModal({ materials, onClose, onDone, isMobile, initialMatId }) {
+  const [matId,   setMatId]   = useState(initialMatId ? String(initialMatId) : '');
   const [physQty, setPhysQty] = useState('');
   const [reason,  setReason]  = useState('');
   const [date,    setDate]    = useState(new Date().toISOString().split('T')[0]);
@@ -115,9 +78,7 @@ function CountModal({ materials, onClose, onDone, isMobile }) {
         count_date:   date,
         reason,
       });
-      // FIX 4: invalidate materials + dashboard cache on every count
       cacheClear('materials_list', 'dashboard_stats');
-      // FIX 3: pass success message up so parent can show toast before clearing modal
       onDone(`Count logged for ${selMat?.material_name ?? 'material'}. Variance computed.`);
     } catch(e) {
       setErr(e.response?.data?.message ?? 'Failed to log count.');
@@ -366,6 +327,8 @@ function ReconcileModal({ count, onClose, onDone, isMobile }) {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function AdminPhysicalCount() {
+  const isManager = readIsManager();
+  const [logFor, setLogFor] = useState(null);
   const [counts,      setCounts]      = useState([]);
   const [materials,   setMaterials]   = useState([]);
   const [summary,     setSummary]     = useState({});
@@ -373,14 +336,12 @@ export default function AdminPhysicalCount() {
   const [filterR,     setFilterR]     = useState('all');
   const [showLog,     setShowLog]     = useState(false);
   const [reconciling, setReconciling] = useState(null);
-  const [toast,       setToast]       = useState(null); // FIX 3: { msg, type }
-  const [winW, setWinW] = useState(typeof window!=='undefined'?window.innerWidth:1280);
+  const [toast,       setToast]       = useState(null);  const [winW, setWinW] = useState(typeof window!=='undefined'?window.innerWidth:1280);
   useEffect(() => { const h=()=>setWinW(window.innerWidth); window.addEventListener('resize',h); return()=>window.removeEventListener('resize',h); }, []);
   const isMobile = winW <= 767;
 
   const showToast = (msg, type = 'success') => setToast({ msg, type });
 
-  // FIX 4: load with materials cache
   const load = useCallback(() => {
     setLoading(true);
 
@@ -407,7 +368,6 @@ export default function AdminPhysicalCount() {
 
   useEffect(() => { load(); }, [load]);
 
-  // FIX 3: onDone now receives success message for toast
   const handleCountDone = (msg) => {
     setShowLog(false);
     showToast(msg);
@@ -468,296 +428,114 @@ export default function AdminPhysicalCount() {
     w.print();
   };
 
-  const FILTERS = [
-    ['all','All'],
-    ['pending','Needs Review'],
-    ['flagged','Flagged >5%'],
-    ['reconciled','Reconciled'],
+  const flaggedN = counts.filter((c) => Math.abs(Number(c.variance_pct)) > 5).length;
+  const tabs = [
+    { key: 'all', label: 'All', count: counts.length },
+    { key: 'pending', label: 'Needs review', count: counts.filter((c) => !c.reconciled).length },
+    { key: 'flagged', label: 'Flagged >5%', count: flaggedN },
+    { key: 'reconciled', label: 'Reconciled', count: counts.filter((c) => c.reconciled).length },
   ];
+  const overdue = summary.overdue_materials ?? [];
+  const openLog = (matId = null) => { setLogFor(matId); setShowLog(true); };
+
+  const VarCell = ({ c }) => {
+    const v = Number(c.variance ?? 0); const pct = Number(c.variance_pct ?? 0);
+    const color = v > 0 ? 'var(--success)' : v < 0 ? 'var(--danger)' : 'var(--text-subtle)';
+    return (
+      <span className="pc-var" style={{ color }}>
+        <b>{v > 0 ? '+' : ''}{v}</b>
+        <i style={{ color: Math.abs(pct) > 5 ? 'var(--warning-text)' : 'var(--text-faint)' }}>{Math.abs(pct) > 5 ? '! ' : ''}{pct}%</i>
+      </span>
+    );
+  };
+  const Status = ({ c }) => (c.reconciled
+    ? <StatusPill status="reconciled" label={c.stock_adjusted ? 'Reconciled · adjusted' : 'Reconciled'} />
+    : Math.abs(Number(c.variance_pct)) > 5 ? <StatusPill status="flagged" label="Flagged" /> : <StatusPill status="pending" label="Awaiting review" />);
+  const Action = ({ c }) => (c.reconciled ? <span className="pc-by">by {c.reconciler?.name ?? '—'}</span>
+    : isManager ? <button className="adm-btn primary" onClick={() => setReconciling(c)}>Reconcile</button>
+      : <span className="pc-by">Awaiting manager</span>);
 
   return (
     <>
-      <style>{`
-        @keyframes sk { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
-        @keyframes ping { 75%,100%{ transform:scale(2); opacity:0; } }
+      <style>{`@keyframes sk { 0%{background-position:-400px 0} 100%{background-position:400px 0} }`}</style>
+      <AnimatePresence>{toast && <Toast key="toast" msg={toast.msg} type={toast.type} onDone={() => setToast(null)} />}</AnimatePresence>
+      {showLog && <CountModal materials={materials} initialMatId={logFor} onClose={() => setShowLog(false)} onDone={handleCountDone} isMobile={isMobile} />}
+      {reconciling && <ReconcileModal count={reconciling} onClose={() => setReconciling(null)} onDone={handleReconcileDone} isMobile={isMobile} />}
 
-        .pc-layout { display:grid; grid-template-columns:280px 1fr; gap:16px; align-items:start; }
-        @media (max-width:1023px) { .pc-layout { grid-template-columns:1fr; } }
-        @media (min-width:2560px) { .pc-layout { grid-template-columns:360px 1fr; } }
-      `}</style>
+      <PageHeader title="Physical Stock Count" sub="Log the shelf count, variance is computed against system stock">
+        <button className="adm-btn" onClick={printSheet}><NavIcon name="print" size={14} color="currentColor" /> Print sheet</button>
+        <button className="adm-btn primary" onClick={() => openLog()}><NavIcon name="add" size={14} color="currentColor" /> Log count</button>
+      </PageHeader>
 
-      {/* Toast — FIX 3 */}
-      <AnimatePresence>
-        {toast && (
-          <Toast key="toast" msg={toast.msg} type={toast.type}
-            onDone={() => setToast(null)}/>
-        )}
-      </AnimatePresence>
+      <StatGrid loading={loading} items={[
+        { label: 'Flagged variances', value: summary.flagged_variances ?? 0, color: summary.flagged_variances ? 'var(--warning-text)' : undefined, sub: 'Over 5% variance', onClick: () => setFilterR('flagged') },
+        { label: 'Needs reconciliation', value: summary.unreconciled_counts ?? 0, color: 'var(--info)', sub: 'Manager review', onClick: () => setFilterR('pending') },
+        { label: 'Overdue counts', value: overdue.length, color: overdue.length ? 'var(--danger)' : undefined, sub: 'Not counted in 30+ days' },
+        { label: 'Last count', value: summary.last_count_date ?? '—', sub: 'Most recent' },
+      ]} />
 
-      {/* Modals */}
-      {showLog && (
-        <CountModal
-          materials={materials}
-          onClose={() => setShowLog(false)}
-          onDone={handleCountDone}
-          isMobile={isMobile}
-        />
-      )}
-      {reconciling && (
-        <ReconcileModal
-          count={reconciling}
-          onClose={() => setReconciling(null)}
-          onDone={handleReconcileDone}
-          isMobile={isMobile}
-        />
-      )}
+      <Banner tone="info" icon="info">Variance over 5% is flagged for manager review. Reconciling can optionally adjust system stock to match the physical count, and every adjustment is logged.</Banner>
 
-      {/* Header */}
-      <div style={{ display:'flex', justifyContent:'space-between',
-        alignItems:'flex-start', marginBottom:20, flexWrap:'wrap', gap:12 }}>
-        <div>
-          <h1 style={{ fontSize:22, fontWeight:800, color:'var(--ink)',
-            margin:'0 0 4px', fontFamily:FONT }}>
-            Physical Stock Count
-          </h1>
-          <p style={{ color:'var(--text-subtle)', fontSize:13, margin:0, fontFamily:FONT }}>
-            Digital logbook replacement · Variance auto-computed
-          </p>
-        </div>
-        <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
-          <button onClick={printSheet}
-            style={{ padding:'9px 18px', borderRadius:10, border:'1px solid var(--border)',
-              background:'var(--bg-card)', color:'var(--ink)', fontSize:12, fontWeight:600,
-              cursor:'pointer', fontFamily:FONT }}>
-            <NavIcon name="print" size={14} color="currentColor" style={{verticalAlign:'-2px',marginRight:6}}/>Print Count Sheet
-          </button>
-          <button onClick={() => setShowLog(true)}
-            style={{ padding:'10px 22px', borderRadius:11, border:'none',
-              background:`linear-gradient(135deg,${T},${T2})`, color:'var(--bg-card)',
-              fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:FONT,
-              boxShadow:`0 4px 14px rgba(2,128,144,.3)` }}>
-            + Log Physical Count
-          </button>
-        </div>
-      </div>
+      <PillTabs value={filterR} onChange={setFilterR} tabs={tabs} />
 
-      {/* Summary cards */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',
-        gap:12, marginBottom:22 }}>
-        {[
-          { l:'Flagged Variances',    v:summary.flagged_variances   ?? 0,              icon:'warning', c:'var(--warning)', info:'> 5% variance'    },
-          { l:'Needs Reconciliation', v:summary.unreconciled_counts ?? 0,              icon:'reconcile', c:'var(--info)', info:'Manager review'   },
-          { l:'Overdue Count',        v:summary.overdue_materials?.length ?? 0,        icon:'overdue', c:'var(--danger)', info:'> 30 days ago'    },
-          { l:'Last Count Date',      v:summary.last_count_date ?? '—',               icon:'checklist', c:T,         info:'Most recent count' },
-        ].map(s => (
-          <div key={s.l} style={{ ...card, padding:'14px' }}>
-            <span style={{ display:'flex', justifyContent:'center', marginBottom:8 }}><NavIcon name={s.icon} size={22} color={s.c}/></span>
-            <p style={{ fontSize: typeof s.v === 'string' ? 14 : 24,
-              fontWeight:800, color:s.c, margin:'0 0 2px', fontFamily:FONT }}>
-              {s.v}
-            </p>
-            <p style={{ fontSize:11, color:'var(--ink)', fontWeight:600, margin:0, fontFamily:FONT }}>
-              {s.l}
-            </p>
-            <p style={{ fontSize:9, color:'var(--text-faint)', margin:'2px 0 0', fontFamily:FONT }}>{s.info}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* How it works */}
-      <div style={{ padding:'12px 16px', borderRadius:12, background:'var(--teal-50)',
-        border:'1px solid var(--teal-100)', marginBottom:20 }}>
-        <p style={{ fontSize:12, color:'#134e4a', lineHeight:1.6, margin:0, fontFamily:FONT }}>{/* matches theme.css's own .alert-teal class literal text color exactly — not a token, theme.css itself hardcodes this */}
-          <strong><NavIcon name="reports" size={12} color="currentColor" style={{verticalAlign:'-2px',marginRight:4}}/>How physical count accuracy works:</strong> Staff logs physical count →
-          system auto-computes variance vs current system quantity →
-          variance &gt;5% flags for manager review →
-          manager reconciles (optionally adjusting system stock to match physical count) →
-          all adjustments logged in inventory_logs as 'adjustment' type.
-        </p>
-      </div>
-
-      {/* Filter tabs — FIX 5: AnimatePresence */}
-      <div style={{ display:'flex', gap:6, marginBottom:14, flexWrap:'wrap' }}>
-        {FILTERS.map(([v, l]) => (
-          <button key={v} onClick={() => setFilterR(v)}
-            style={{ padding:'7px 13px', borderRadius:9,
-              border:`1px solid ${filterR===v?T+'40':'var(--border)'}`,
-              background:filterR===v?'var(--teal-50)':'var(--bg-card)',
-              color:filterR===v?T:'var(--text-subtle)',
-              fontSize:11, fontWeight:filterR===v?700:500,
-              cursor:'pointer', fontFamily:FONT, transition:'all .13s' }}>
-            {l}
-          </button>
-        ))}
-      </div>
-
-      {/* Counts table */}
-      {/* MOBILE FIX (Aug 22): was overflow:'hidden' only, which clipped the
-          Status/Action columns off-screen at ≤767px with no way to reach
-          them. Matches the overflow-x:auto + min-width pattern already used
-          in Inventory.jsx/Suppliers.jsx/UserManagement.jsx — same convention,
-          not a new one. overflow:'hidden' is kept for the rounded-corner
-          mask on the y-axis; overflowX:'auto' overrides just the x-axis so
-          the table scrolls horizontally instead of clipping. */}
-      <div style={{ ...card, overflow:'hidden', overflowX:'auto',
-        WebkitOverflowScrolling:'touch' }}>
-        <table style={{ width:'100%', minWidth:640, borderCollapse:'collapse' }}>
-          <thead>
-            <tr style={{ background:'var(--bg)' }}>
-              {['Material','Category','System Qty','Physical Qty','Variance','Date','Status','Action'].map(h => (
-                <th key={h} style={{ padding:'10px 14px', textAlign:'left', fontSize:10,
-                  fontWeight:700, color:'var(--text-subtle)', textTransform:'uppercase',
-                  letterSpacing:'.06em', borderBottom:'2px solid var(--border)',
-                  whiteSpace:'nowrap', fontFamily:FONT }}>
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {loading
-              ? Array(4).fill(0).map((_, i) => (
-                  <tr key={i} style={{ borderBottom:'1px solid var(--bg-surface)' }}>
-                    {Array(8).fill(0).map((_, j) => (
-                      <td key={j} style={{ padding:'12px 14px' }}>
-                        <div style={{ ...SK, height:10, width:'70%' }}/>
-                      </td>
-                    ))}
+      <div className="adm-only-d">
+        <Panel flush>
+          <div className="adm-tbl-scroll">
+            <table className="adm-table">
+              <thead><tr><th>Material</th><th className="adm-hide-t">Category</th><th>System</th><th>Physical</th><th>Variance</th><th className="adm-hide-t">Date</th><th>Status</th><th style={{ textAlign: 'right' }}>Action</th></tr></thead>
+              <tbody>
+                {!loading && filtered.map((c) => (
+                  <tr key={c.count_id} className="adm-row">
+                    <td><div style={{ fontWeight: 700 }}>{c.material?.material_name ?? `Material #${c.material_id}`}</div><div style={{ fontSize: 11, color: 'var(--text-faint)' }}>by {c.counter?.name ?? '—'}</div></td>
+                    <td className="adm-hide-t" style={{ color: 'var(--text-subtle)', fontSize: 12 }}>{c.material?.category ?? '—'}</td>
+                    <td>{c.system_qty} <small className="pc-unit">{c.material?.unit}</small></td>
+                    <td style={{ fontWeight: 700, color: 'var(--teal)' }}>{c.physical_qty} <small className="pc-unit">{c.material?.unit}</small></td>
+                    <td><VarCell c={c} /></td>
+                    <td className="adm-hide-t" style={{ fontSize: 12, color: 'var(--text-subtle)', whiteSpace: 'nowrap' }}>{c.count_date}</td>
+                    <td><Status c={c} /></td>
+                    <td style={{ textAlign: 'right' }}><Action c={c} /></td>
                   </tr>
-                ))
-              : filtered.length === 0
-                ? (
-                  <tr><td colSpan={8} style={{ padding:'50px', textAlign:'center' }}>
-                    <p style={{ fontSize:36, margin:'0 0 12px', opacity:.3, display:'flex', justifyContent:'center' }}><NavIcon name="checklist" size={36} color="currentColor"/></p>
-                    <p style={{ color:'var(--text-subtle)', fontSize:13, fontWeight:700, fontFamily:FONT }}>
-                      No count records
-                    </p>
-                    <p style={{ color:'var(--text-faint)', fontSize:12, fontFamily:FONT }}>
-                      {filterR === 'all'
-                        ? 'Log your first physical count to replace the logbook.'
-                        : 'No records match this filter.'}
-                    </p>
-                  </td></tr>
-                )
-                : filtered.map(c => {
-                    const variance = Number(c.variance ?? 0);
-                    const varPct   = Number(c.variance_pct ?? 0);
-                    const flagged  = Math.abs(varPct) > 5;
-                    const vColor   = variance > 0 ? 'var(--success)' : variance < 0 ? 'var(--danger)' : 'var(--text-subtle)';
-                    return (
-                      <tr key={c.count_id} style={{ borderBottom:'1px solid var(--bg-surface)' }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'var(--bg)'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                        <td style={{ padding:'11px 14px' }}>
-                          <p style={{ fontSize:13, fontWeight:700, color:'var(--ink)',
-                            margin:0, fontFamily:FONT }}>
-                            {c.material?.material_name ?? `Material #${c.material_id}`}
-                          </p>
-                          <p style={{ fontSize:10, color:'var(--text-faint)', margin:'2px 0 0', fontFamily:FONT }}>
-                            By: {c.counter?.name ?? '—'}
-                          </p>
-                        </td>
-                        <td style={{ padding:'11px 14px', fontSize:12, color:'var(--text-subtle)', fontFamily:FONT }}>
-                          {c.material?.category ?? '—'}
-                        </td>
-                        <td style={{ padding:'11px 14px', fontSize:13, fontWeight:600,
-                          color:'var(--ink)', fontFamily:FONT }}>
-                          {c.system_qty}{' '}
-                          <span style={{ fontSize:10, color:'var(--text-faint)' }}>{c.material?.unit}</span>
-                        </td>
-                        <td style={{ padding:'11px 14px', fontSize:13, fontWeight:700,
-                          color:T, fontFamily:FONT }}>
-                          {c.physical_qty}{' '}
-                          <span style={{ fontSize:10, color:'var(--text-faint)' }}>{c.material?.unit}</span>
-                        </td>
-                        <td style={{ padding:'11px 14px' }}>
-                          <p style={{ fontSize:13, fontWeight:800, color:vColor, margin:0, fontFamily:FONT }}>
-                            {variance > 0 ? '+' : ''}{variance}
-                          </p>
-                          <p style={{ fontSize:9, color:flagged?'var(--warning)':'var(--text-faint)',
-                            margin:'2px 0 0', fontFamily:FONT }}>
-                            {flagged ? <NavIcon name="warning" size={11} color="currentColor" style={{verticalAlign:'-1px',marginRight:2}}/> : ''}{varPct}%
-                          </p>
-                        </td>
-                        <td style={{ padding:'11px 14px', fontSize:11, color:'var(--text-subtle)', fontFamily:FONT }}>
-                          {c.count_date}
-                        </td>
-                        <td style={{ padding:'11px 14px' }}>
-                          {c.reconciled ? (
-                            <div>
-                              <span style={{ padding:'3px 9px', borderRadius:99, fontSize:9,
-                                fontWeight:700, background:'var(--success-bg)', color:'#166534', fontFamily:FONT }}>
-                                <NavIcon name="success" size={10} color="currentColor" style={{verticalAlign:'-1px',marginRight:3}}/>Reconciled
-                              </span>
-                              {c.stock_adjusted && (
-                                <p style={{ fontSize:9, color:'var(--text-faint)', margin:'2px 0 0', fontFamily:FONT }}>
-                                  Stock adjusted
-                                </p>
-                              )}
-                            </div>
-                          ) : (
-                            <span style={{ padding:'3px 9px', borderRadius:99, fontSize:9,
-                              fontWeight:700, fontFamily:FONT,
-                              background:flagged?'var(--warning-bg)':'var(--teal-50)',
-                              color:flagged?'var(--warning-border)':T }}>
-                              {flagged ? <><NavIcon name="warning" size={10} color="currentColor" style={{verticalAlign:'-1px',marginRight:3}}/>Flagged</> : <><NavIcon name="pending" size={10} color="currentColor" style={{verticalAlign:'-1px',marginRight:3}}/>Pending</>}
-                            </span>
-                          )}
-                        </td>
-                        <td style={{ padding:'11px 14px' }}>
-                          {!c.reconciled && isManager && (
-                            <button onClick={() => setReconciling(c)}
-                              style={{ padding:'6px 12px', borderRadius:8, border:'none',
-                                background:'linear-gradient(135deg,var(--purple),var(--purple-dark))',
-                                color:'var(--bg-card)', fontSize:11, fontWeight:700,
-                                cursor:'pointer', fontFamily:FONT }}>
-                              Reconcile
-                            </button>
-                          )}
-                          {!c.reconciled && !isManager && (
-                            <span style={{ fontSize:11, color:'var(--text-faint)', fontFamily:FONT }}>
-                              Awaiting manager
-                            </span>
-                          )}
-                          {c.reconciled && (
-                            <span style={{ fontSize:10, color:'var(--text-faint)', fontFamily:FONT }}>
-                              By: {c.reconciler?.name ?? '—'}
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })
-            }
-          </tbody>
-        </table>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {loading && <SkeletonRows rows={5} h={50} />}
+          {!loading && filtered.length === 0 && (
+            <div className="adm-empty"><NavIcon name="physicalCount" size={30} color="currentColor" />
+              <div style={{ marginTop: 8, fontWeight: 700 }}>{filterR === 'all' ? 'No counts logged yet' : 'No records match this filter'}</div>
+              {filterR === 'all' && <button className="adm-btn primary" style={{ marginTop: 12 }} onClick={() => openLog()}>Log the first count</button>}
+            </div>
+          )}
+        </Panel>
       </div>
 
-      {/* Overdue materials */}
-      {summary.overdue_materials?.length > 0 && (
-        <div style={{ ...card, marginTop:20, overflow:'hidden' }}>
-          <div style={{ padding:'12px 16px', background:'var(--warning-bg)', borderBottom:'1px solid var(--warning-border)' }}>
-            <p style={{ fontSize:13, fontWeight:700, color:'var(--warning-border)', margin:0, fontFamily:FONT }}>
-              <NavIcon name="overdue" size={13} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>{summary.overdue_materials.length} Materials Not Counted in 30+ Days
-            </p>
+      <div className="adm-only-m adm-stagger" key={filterR}>
+        {loading ? <SkeletonRows rows={3} h={120} /> : filtered.length === 0 ? (
+          <div className="adm-empty">{filterR === 'all' ? 'No counts logged yet' : 'No records match this filter'}</div>
+        ) : filtered.map((c, i) => (
+          <div key={c.count_id} className="adm-mcard accent" style={{ '--i': Math.min(i, 8), '--acc': Math.abs(Number(c.variance_pct)) > 5 ? 'var(--warning)' : 'var(--teal)' }}>
+            <div className="adm-mrow"><b>{c.material?.material_name ?? `Material #${c.material_id}`}</b><VarCell c={c} /></div>
+            <div className="pc-qty">
+              <div><span>System</span><b>{c.system_qty} <small className="pc-unit">{c.material?.unit}</small></b></div>
+              <div><span>Physical</span><b style={{ color: 'var(--teal)' }}>{c.physical_qty} <small className="pc-unit">{c.material?.unit}</small></b></div>
+            </div>
+            <div className="adm-mrow" style={{ marginTop: 10 }}><Status c={c} /><span className="pc-by">{c.count_date}</span></div>
+            {!c.reconciled && isManager && <div className="adm-mfoot"><Action c={c} /></div>}
           </div>
-          <div style={{ display:'grid',
-            gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))', gap:0 }}>
-            {summary.overdue_materials.map(m => (
-              <div key={m.material_id}
-                style={{ padding:'12px 16px', borderBottom:'1px solid var(--bg-surface)' }}>
-                <p style={{ fontSize:12, fontWeight:700, color:'var(--ink)', margin:0, fontFamily:FONT }}>
-                  {m.material_name}
-                </p>
-                <p style={{ fontSize:11, color:'var(--text-faint)', margin:'3px 0 0', fontFamily:FONT }}>
-                  {m.last_count_date
-                    ? `Last counted: ${m.last_count_date} (${m.days_since_count} days ago)`
-                    : 'Never counted'}
-                </p>
-              </div>
+        ))}
+      </div>
+
+      {overdue.length > 0 && (
+        <Panel title={`${overdue.length} materials not counted in 30+ days`} style={{ marginTop: 16 }} flush>
+          <div className="pc-overdue adm-stagger">
+            {overdue.map((m, i) => (
+              <button key={m.material_id} style={{ '--i': Math.min(i, 12) }} onClick={() => openLog(m.material_id)} aria-label={`Log count for ${m.material_name}`}>
+                <span><b>{m.material_name}</b><i>{m.last_count_date ? `Last ${m.last_count_date} · ${m.days_since_count}d ago` : 'Never counted'}</i></span>
+                <NavIcon name="add" size={15} color="currentColor" />
+              </button>
             ))}
           </div>
-        </div>
+        </Panel>
       )}
     </>
   );

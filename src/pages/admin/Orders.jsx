@@ -99,7 +99,7 @@ function getSwatchColor(order) {
   }
 }
 
-function OrderActions({ order, isManager, onConfirm, confirming, stop }) {
+function OrderActions({ order, isManager, onConfirm, confirming, stop, hideView }) {
   const navigate = useNavigate();
   const live = isLive(order.status);
   const click = (fn) => (e) => { if (stop) e.stopPropagation(); fn(); };
@@ -110,9 +110,11 @@ function OrderActions({ order, isManager, onConfirm, confirming, stop }) {
           <NavIcon name="production" size={13} color="currentColor" /> Track
         </button>
       )}
-      <button className="adm-btn" onClick={click(() => navigate(`/admin/orders/${order.order_id}`))}>
-        <NavIcon name="show" size={13} color="currentColor" /> View
-      </button>
+      {!hideView && (
+        <button className="adm-btn" onClick={click(() => navigate(`/admin/orders/${order.order_id}`))}>
+          <NavIcon name="show" size={13} color="currentColor" /> View
+        </button>
+      )}
       {isManager && order.status === 'pending' && (
         <button className="adm-btn success" disabled={confirming === order.order_id}
           onClick={click(() => onConfirm(order.order_id))}>
@@ -182,9 +184,11 @@ function OrderCard({ order, isManager, onConfirm, confirming, index }) {
       </div>
       {due && <div style={{ fontSize:11, color:'var(--text-faint)', marginTop:2 }}>Due {fmtDate(due, true)}</div>}
       {isLive(order.status) && <div style={{ marginTop:10 }}><StageBar status={order.status} /></div>}
-      <div className="adm-mfoot">
-        <OrderActions order={order} isManager={isManager} onConfirm={onConfirm} confirming={confirming} stop />
-      </div>
+      {((isLive(order.status) && !isManager) || (isManager && order.status === 'pending')) && (
+        <div className="adm-mfoot">
+          <OrderActions order={order} isManager={isManager} onConfirm={onConfirm} confirming={confirming} stop hideView />
+        </div>
+      )}
     </div>
   );
 }

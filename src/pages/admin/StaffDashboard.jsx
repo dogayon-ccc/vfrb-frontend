@@ -97,7 +97,7 @@ function GeneralBody({ data, loading, nav }) {
   return (
     <>
       <div className="stf-quick">
-        <QuickTile icon="physicalCount" label="Stock In" path="/admin/physical-count" />
+        <QuickTile icon="stockIn" label="Stock In" path="/admin/physical-count" />
         <QuickTile icon="production" label="Output Log" path="/admin/output-log" />
         <QuickTile icon="warning" label="Incidents" path="/admin/production-incidents" />
         <QuickTile icon="physicalCount" label="Count" path="/admin/physical-count" />

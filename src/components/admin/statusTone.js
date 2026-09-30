@@ -25,5 +25,7 @@ export const STATUS_TONE = {
   returned: t('var(--danger-bg)', 'var(--danger-text)'),
   out_for_delivery: t('var(--info-bg)', 'var(--info-text)'),
   failed: t('var(--danger-bg)', 'var(--danger-text)'),
+  reconciled: t('var(--success-bg)', 'var(--success-text)'),
+  flagged: t('var(--warning-bg)', 'var(--warning-text)'),
   default: t('var(--bg-surface)', 'var(--text-muted)'),
 };

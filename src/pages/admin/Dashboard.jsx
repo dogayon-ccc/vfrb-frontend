@@ -9,10 +9,12 @@ import { TTL } from '../../utils/cache';
 import { useCachedResource } from '../../hooks/useCachedResource';
 import { NavIcon } from '../../components/ui/icons';
 import { navColor } from '../../utils/navColors';
-import { PageHeader, StatGrid, PillTabs, Panel, StatusPill, SkeletonRows, EmptyBlock, ErrorBlock } from '../../components/admin/AdminUI';
+import logo from '../../assets/company-logo.jpg';
+import { StatGrid, PillTabs, Panel, StatusPill, SkeletonRows, EmptyBlock, ErrorBlock } from '../../components/admin/AdminUI';
 
 const T = 'var(--teal)', T2 = 'var(--teal-2)';
 const STAGE_ORDER = ['pending', 'confirmed', 'pattern', 'segregation', 'cutting', 'sewing', 'qc', 'pressing', 'packing', 'completed'];
+const STAGE_RAMP = ['#0b3d47', '#0f5966', '#028090', '#0aa3a0', '#02C39A', '#4fd8b8', '#8fe8d1', '#c4f3e6'];
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const fmtDate = (d, o = { month: 'short', day: 'numeric' }) => (d ? new Date(d).toLocaleDateString('en-PH', o) : '—');
 const peso = (n) => `₱${Number(n).toLocaleString('en-PH')}`;
@@ -42,7 +44,8 @@ function AttentionPanel({ title, color, items, loading, empty, render, footer, o
   return (
     <Panel flush title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />{title}{!loading && items.length > 0 && <span className="adm-chip" style={{ background: color, color: '#fff' }}>{items.length}</span>}</span>}
       action={!loading && items.length > 0 && <button className="adm-link-btn" onClick={onFooter}>{footer} →</button>}>
-      {loading ? <SkeletonRows rows={2} h={32} /> : items.length === 0 ? <EmptyBlock>{empty}</EmptyBlock> : items.map(render)}
+      {loading ? <SkeletonRows rows={2} h={32} /> : items.length === 0 ? <EmptyBlock>{empty}</EmptyBlock> : items.slice(0, 4).map(render)}
+      {!loading && items.length > 4 && <button className="dsh-more" onClick={onFooter}>+{items.length - 4} more</button>}
     </Panel>
   );
 }
@@ -83,7 +86,8 @@ export default function AdminDashboard() {
   const recent = data?.recent_orders ?? [];
   const stageDist = data?.production?.stage_dist ?? [];
   const stageTotal = stageDist.reduce((a, x) => a + Number(x.count), 0);
-  const stageData = [...stageDist].sort((a, b) => STAGE_ORDER.indexOf(a.stage) - STAGE_ORDER.indexOf(b.stage)).map((x) => ({ name: cap(x.stage), value: Number(x.count), color: `var(--status-${x.stage})` }));
+  const stageData = [...stageDist]
+    .sort((a, b) => STAGE_ORDER.indexOf(a.stage) - STAGE_ORDER.indexOf(b.stage)).map((x, i) => ({ name: cap(x.stage), value: Number(x.count), color: STAGE_RAMP[i % STAGE_RAMP.length] }));
   const chartData = chartTab === 'orders' ? (data?.order_trends ?? []).map((r) => ({ m: r.month, v: r.orders })) : (data?.monthly_sales ?? []).map((r) => ({ m: r.month, v: r.total }));
   const mix = Object.entries(recent.reduce((a, r) => ({ ...a, [r.garment_type ?? 'Other']: (a[r.garment_type ?? 'Other'] ?? 0) + 1 }), {})).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
@@ -106,7 +110,7 @@ export default function AdminDashboard() {
   const quick = [
     { icon: 'orders', l: 'View Orders', path: '/admin/orders' }, { icon: 'inventory', l: 'Inventory', path: '/admin/inventory' },
     { icon: 'production', l: 'Production', path: '/admin/production' }, { icon: 'procurement', l: 'Purchase Orders', path: '/admin/procurement' },
-    { icon: 'physicalCount', l: 'Physical Count', path: '/admin/physical-count' },
+    { icon: 'physicalCount', l: 'Physical Count', path: '/admin/physical-count' }, { icon: 'delivery', l: 'Delivery', path: '/admin/delivery' },
     ...(isManager ? [{ icon: 'reports', l: 'Reports', path: '/admin/reports' }, { icon: 'users', l: 'Users', path: '/admin/users' }] : []),
   ];
 
@@ -127,11 +131,12 @@ export default function AdminDashboard() {
     <>
       <style>{`
         @keyframes sk{0%{background-position:-400px 0}100%{background-position:400px 0}}
-        .adm-dash-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start;margin-bottom:16px}
+        .adm-dash-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:stretch;margin-bottom:16px}
+        .adm-dash-col>:last-child{flex:1}
         .adm-dash-col{display:flex;flex-direction:column;gap:16px;min-width:0}
         .adm-dash-row{padding:10px 18px;border-bottom:1px solid var(--bg-surface);display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer;transition:background .12s}
         .adm-dash-row:hover{background:var(--bg)}.adm-dash-row:last-child{border-bottom:none}
-        .adm-attn-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+        .adm-attn-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;align-items:start}
         .adm-quick{display:grid;grid-template-columns:1fr 1fr;gap:10px}
         .adm-quick button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;min-height:76px;border-radius:12px;border:1px solid var(--border);background:var(--bg-card);font-size:11px;font-weight:700;color:var(--ink);cursor:pointer;transition:transform .12s,box-shadow .15s}
         .adm-quick button:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}.adm-quick button:active{transform:scale(.96)}
@@ -141,12 +146,24 @@ export default function AdminDashboard() {
         @media(prefers-reduced-motion:reduce){.adm-quick button{transition:none}}
       `}</style>
 
-      <PageHeader title={isManager ? 'Manager Dashboard' : 'Staff Dashboard'}
-        sub={`${greet}, ${user.name?.split(' ')[0] ?? 'Admin'} · ${new Date().toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}${age ? ` · Updated ${age}` : ''}`}>
-        <button className="adm-btn" onClick={() => loadDashboard(true)} disabled={loading} aria-label="Refresh"><NavIcon name="refresh" size={14} color="currentColor" /> Refresh</button>
-        {isManager && <button className="adm-btn" onClick={fetchAI} disabled={aiLoading}>{aiLoading ? 'Analyzing…' : 'AI Summary'}</button>}
-        <button className="adm-btn primary" onClick={() => nav('/admin/orders')}>View Orders →</button>
-      </PageHeader>
+      <section className="dsh-hero">
+        <img src={logo} alt="" className="dsh-hero-logo" />
+        <div className="dsh-hero-txt">
+          <p className="dsh-eyebrow">VFRB Enterprise · Custom Uniforms. Smarter Solutions.</p>
+          <h1>{greet}, {user.name?.split(' ')[0] ?? 'Admin'}</h1>
+          <p className="dsh-hero-sub">{new Date().toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}{age ? ` · Updated ${age}` : ''}</p>
+        </div>
+        <div className="dsh-hero-stats">
+          <button onClick={() => nav('/admin/production')}><b>{loading ? '–' : o.in_production ?? 0}</b><span>In production</span></button>
+          <button onClick={() => nav('/admin/orders?status=pending')}><b>{loading ? '–' : o.pending ?? 0}</b><span>Pending</span></button>
+          <button onClick={() => nav('/admin/inventory')}><b>{loading ? '–' : data?.inventory?.low_stock_count ?? 0}</b><span>Low stock</span></button>
+        </div>
+        <div className="dsh-hero-actions">
+          <button className="dsh-ghost" onClick={() => loadDashboard(true)} disabled={loading} aria-label="Refresh dashboard"><NavIcon name="refresh" size={14} color="currentColor" /> Refresh</button>
+          {isManager && <button className="dsh-ghost" onClick={fetchAI} disabled={aiLoading}><NavIcon name="ai" size={14} color="currentColor" /> {aiLoading ? 'Analyzing…' : 'AI Summary'}</button>}
+          <button className="dsh-solid" onClick={() => nav('/admin/orders')}>View orders <NavIcon name="chevronRight" size={14} color="currentColor" /></button>
+        </div>
+      </section>
 
       {!loading && !data && <div style={{ marginBottom: 16 }}><ErrorBlock msg="Dashboard data is unavailable." onRetry={() => loadDashboard(true)} /></div>}
 
@@ -156,7 +173,7 @@ export default function AdminDashboard() {
         <div className="adm-dash-col">
           <Panel title="Orders Overview" action={<PillTabs tabs={[{ key: 'orders', label: 'Orders' }, { key: 'revenue', label: 'Revenue' }]} value={chartTab} onChange={setChartTab} />} style={{ overflow: 'visible' }}>
             {loading ? <div className="adm-sk" style={{ height: 220 }} /> : chartData.length < 2 ? <EmptyBlock>Not enough history yet to draw a trend.</EmptyBlock> : (
-              <ResponsiveContainer width="100%" height={220}>
+              <ResponsiveContainer width="100%" height={260}>
                 <AreaChart data={chartData} margin={{ left: -12, right: 6, top: 6 }}>
                   <defs><linearGradient id="admTrend" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#028090" stopOpacity={0.28} /><stop offset="100%" stopColor="#028090" stopOpacity={0} /></linearGradient></defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />

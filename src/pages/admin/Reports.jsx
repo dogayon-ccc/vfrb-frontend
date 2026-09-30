@@ -217,7 +217,7 @@ export default function AdminReports() {
                     <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} vertical={false} />
                     <XAxis dataKey="month" tick={{ fontSize: 11, fill: CHART_TICK }} axisLine={false} tickLine={false} />
                     <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: CHART_TICK }} axisLine={false} tickLine={false} />
-                    <Tooltip contentStyle={tip} />
+                    <Tooltip cursor={{ fill: 'rgba(2,128,144,0.06)' }} contentStyle={tip} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
                     <Bar dataKey="orders" name="Orders" fill={CHART_BAR} radius={[6, 6, 0, 0]} />
                     <Bar dataKey="completed" name="Completed" fill={CHART_BAR2} radius={[6, 6, 0, 0]} />
@@ -265,7 +265,7 @@ export default function AdminReports() {
                   <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} vertical={false} />
                   <XAxis dataKey="month" tick={{ fontSize: 11, fill: CHART_TICK }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 11, fill: CHART_TICK }} axisLine={false} tickLine={false} tickFormatter={(v) => `₱${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip formatter={(v, n) => [peso(v), n]} contentStyle={tip} />
+                  <Tooltip cursor={{ fill: 'rgba(2,128,144,0.06)' }} formatter={(v, n) => [peso(v), n]} contentStyle={tip} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
                   <Bar dataKey="collected" name="Collected" fill={CHART_BAR} radius={[6, 6, 0, 0]} />
                   <Bar dataKey="outstanding" name="Outstanding" fill={CHART_WARN} radius={[6, 6, 0, 0]} />

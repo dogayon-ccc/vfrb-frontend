@@ -363,7 +363,7 @@ export default function AdminOrderDetail() {
             <NavIcon name="download" size={14} color="var(--teal)" /> Download Reference File
           </a>
         ) : (
-          <div style={{ padding:24, textAlign:'center', color:'var(--text-faint)', fontSize:13, fontFamily:'var(--font)' }}>
+          <div style={{ padding:'4px 0', color:'var(--text-faint)', fontSize:13, fontFamily:'var(--font)' }}>
             No design submitted for this order.
           </div>
         )}

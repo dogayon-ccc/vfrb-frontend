@@ -37,7 +37,7 @@ import {
   Stethoscope, GraduationCap, Briefcase, Dumbbell, Square, Rows3,
   Grid2x2, CircleDot, Hexagon, Droplets, ChevronUp, ChevronLeft,
   UploadCloud, Camera, Image, FolderOpen, MousePointer2, Lightbulb, Cloud,
-  Columns3, Slash, Loader2, Bug, Phone, Mail, Scale, ArrowDownCircle,
+  Columns3, ScanLine, Slash, Loader2, Bug, Phone, Mail, Scale, ArrowDownCircle,
   ArrowUpCircle, Wrench, Scissors, RefreshCw, CreditCard, Landmark,
   Printer, Paperclip, Send, PenSquare, Clock, SlidersHorizontal, Flame, Calendar,
   // Added for DesignStudio.jsx freeform drawing tool (Sept 9 2026):
@@ -82,7 +82,7 @@ const ICON_MAP = {
   qcLabel:          Tag,
   qcFinish:         Sparkles,
   qcFastener:       CircleDot,
-  physicalCount:    Hash,
+  physicalCount:    ScanLine,
   incidents:        AlertTriangle,
   salesPay:         Wallet,
   reports:          BarChart3,

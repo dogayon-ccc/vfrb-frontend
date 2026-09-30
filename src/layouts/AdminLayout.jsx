@@ -20,7 +20,7 @@ import {
   LayoutDashboard, ClipboardList, Package, MessageSquare, ShoppingCart,
   Truck, Layers, Factory, FileText, ShieldCheck, ScanLine, AlertTriangle,
   Wallet, BarChart3, Receipt, Building2, Users, MessageCircle, Settings,
-  LogOut, Lock, Bell, Crown, Trophy, Contact,
+  LogOut, Bell, Trophy, Contact,
 } from 'lucide-react';
 
 const T  = 'var(--teal)';
@@ -172,8 +172,7 @@ export default function AdminLayout() {
   const SW         = collapsed ? 68 : 226;
   const isManager  = role === 'manager';
   const visibleStaffNav = isManager ? STAFF_NAV : visibleForJobFunction(STAFF_NAV, jobFn);
-  const roleLabel = isManager ? 'Manager' : jobFn === 'sales' ? 'Sales Staff' : jobFn === 'production' ? 'Production Staff' : 'Staff';
-  const navItems   = isManager ? [...STAFF_NAV, ...MANAGER_EXTRA] : visibleStaffNav;
+    const navItems   = isManager ? [...STAFF_NAV, ...MANAGER_EXTRA] : visibleStaffNav;
 
   // Notification bell
   const [notifs,    setNotifs]    = useState([]);
@@ -285,7 +284,6 @@ export default function AdminLayout() {
   // not the whole surface. Role distinction now lives in: the portal
   // label text color, the small "Manager"/"Staff" badge, and the avatar
   // ring — not a background fill.
-  const roleColor = isManager ? 'var(--purple)' : T;
 
   return (
     <>
@@ -352,8 +350,7 @@ export default function AdminLayout() {
           transition: width .22s cubic-bezier(.4,0,.2,1);
         }
 
-        /* Sidebar header — dark, matches wireframe's logo-on-dark lockup.
-           Role color lives in the portal-label text (see roleColor in JS). */
+        /* Sidebar header: logo-on-dark lockup from the wireframe */
         .adm-sb-head {
           flex-shrink: 0;
           display: flex;
@@ -611,9 +608,9 @@ export default function AdminLayout() {
                   textOverflow:'ellipsis', whiteSpace:'nowrap', margin:0 }}>
                   VFRB ENTERPRISE
                 </p>
-                <p style={{ fontSize:9, color: isManager ? '#c4b5fd' : T2, fontWeight:700,
-                  textTransform:'uppercase', letterSpacing:'.07em', margin:'2px 0 0' }}>
-                  {isManager ? '● Manager Portal' : '● Staff Portal'}
+                <p style={{ fontSize:9.5, color:T2, fontWeight:600, letterSpacing:'.02em', margin:'2px 0 0',
+                  overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                  Custom Uniforms. Smarter Solutions.
                 </p>
               </div>
             )}
@@ -624,7 +621,6 @@ export default function AdminLayout() {
             padding: collapsed ? '8px 4px' : '8px 10px',
             scrollbarWidth:'thin', scrollbarColor:'var(--border) transparent' }}>
 
-            {!collapsed && <p className="adm-sec">Operational</p>}
             {visibleStaffNav.map(item => (
               <NavLink key={item.to} to={item.to} end={item.end}
                 className={({ isActive }) => `adm-link${isActive ? ' active' : ''}`}
@@ -641,12 +637,7 @@ export default function AdminLayout() {
 
             {isManager && (
               <>
-                {!collapsed && (
-                  <>
-                    <div style={{ height:1, background:'rgba(255,255,255,.08)', margin:'8px 0' }}/>
-                    <p className="adm-sec" style={{ color:'#c4b5fd' }}>Manager</p>
-                  </>
-                )}
+                <div style={{ height:1, background:'rgba(255,255,255,.08)', margin:'8px 6px' }}/>
                 {MANAGER_EXTRA.map(item => (
                   <NavLink key={item.to} to={item.to}
                     className={({ isActive }) => `adm-link${isActive ? ' active mgr' : ''}`}
@@ -663,16 +654,6 @@ export default function AdminLayout() {
               </>
             )}
 
-            {!isManager && !collapsed && (
-              <div style={{ margin:'10px 0 0', padding:'10px 12px', borderRadius:10,
-                background:'rgba(255,255,255,.04)', border:'1px dashed rgba(255,255,255,.15)' }}>
-                <p style={{ fontSize:10, color:'rgba(255,255,255,.45)', fontWeight:600, lineHeight:1.4, margin:0,
-                  display:'flex', alignItems:'flex-start', gap:5 }}>
-                  <Lock size={11} strokeWidth={2} style={{ flexShrink:0, marginTop:1 }}/>
-                  Reports, Invoice, Suppliers & Users — Manager only
-                </p>
-              </div>
-            )}
           </div>
 
           {/* Collapse toggle — light chip against the dark sidebar */}
@@ -710,10 +691,7 @@ export default function AdminLayout() {
                 overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                 VFRB Enterprise
               </p>
-              <p style={{ fontSize:9, color:roleColor, fontWeight:700,
-                textTransform:'uppercase', letterSpacing:'.07em', margin:0 }}>
-                {isManager ? 'Manager Portal' : 'Staff Portal'}
-              </p>
+              <p style={{ fontSize:9.5, color:'var(--text-subtle)', fontWeight:600, margin:0 }}>Custom Uniforms. Smarter Solutions.</p>
             </div>
 
             {/* Desktop: date */}
@@ -848,17 +826,6 @@ export default function AdminLayout() {
               </AnimatePresence>
             </div>
 
-            {/* Manager badge — desktop */}
-            {isManager && (
-              <span className="adm-desk-only"
-                style={{ fontSize:10, padding:'4px 10px', borderRadius:99,
-                  fontWeight:700, background:'rgba(124,58,237,.08)',
-                  color:'var(--purple)', border:'1px solid rgba(124,58,237,.2)',
-                  display:'inline-flex', alignItems:'center', gap:4 }}>
-                <Crown size={11} strokeWidth={2}/> Manager
-              </span>
-            )}
-
             {/* Profile — click for Sign Out (Cruip-style dropdown) */}
             <div ref={profileRef} style={{ position:'relative' }}>
               <button onClick={() => setProfileOpen(o => !o)}
@@ -919,7 +886,7 @@ export default function AdminLayout() {
               </div>
             )}
             <PageErrorBoundary resetKey={location.pathname}>
-              <Outlet/>
+              <div key={location.pathname} className="adm-page"><Outlet/></div>
             </PageErrorBoundary>
           </div>
         </main>
@@ -940,12 +907,6 @@ export default function AdminLayout() {
                 exit={{ y:80, opacity:0 }}
                 transition={{ type:'spring', stiffness:340, damping:30 }}>
 
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', margin:'0 4px 12px' }}>
-                  <p style={{ fontSize:11, fontWeight:800, color:'var(--text-faint)', textTransform:'uppercase', letterSpacing:'.1em', margin:0 }}>Menu</p>
-                  <span style={{ padding:'3px 11px', borderRadius:99, fontSize:11, fontWeight:700, color:'#fff', background:'#9333ea' }}>{roleLabel}</span>
-                </div>
-
-                <p className="adm-drawer-sec">General</p>
                 <div className="adm-drawer-grid">
                   {visibleStaffNav.filter(i =>
                     !['/admin','/admin/orders','/admin/inventory',
@@ -955,8 +916,7 @@ export default function AdminLayout() {
 
                 {isManager && (
                   <>
-                    <p className="adm-drawer-sec" style={{ color:'#a78bfa' }}>Manager Only</p>
-                    <div className="adm-drawer-grid">
+                    <div className="adm-drawer-grid" style={{ marginTop:10 }}>
                       {MANAGER_EXTRA.map((item, i) => <DrawerTile key={item.to} item={item} i={i}/>)}
                     </div>
                   </>

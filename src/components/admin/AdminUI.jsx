@@ -11,18 +11,42 @@ export const PageHeader = ({ title, sub, children }) => (
   </div>
 );
 
+const reduceMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+function useCountUp(target, ms = 700) {
+  const n = typeof target === 'number' ? target : null;
+  const [v, setV] = useState(n);
+  useEffect(() => {
+    if (n == null || reduceMotion() || n === 0) { setV(n); return undefined; }
+    let raf; const t0 = performance.now();
+    const step = (t) => {
+      const k = Math.min(1, (t - t0) / ms);
+      setV(Math.round(n * (1 - (1 - k) ** 3)));
+      if (k < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [n, ms]);
+  return n == null ? target : v;
+}
+
+const StatValue = ({ value, color }) => {
+  const shown = useCountUp(value);
+  return <div className="adm-stat-val" style={color ? { color } : undefined}>{shown}</div>;
+};
+
 export const StatGrid = ({ items, loading }) => (
   <div className="adm-stats">
-    {items.map((s) => {
+    {items.map((s, i) => {
       const Tag = s.onClick ? 'button' : 'div';
       return (
-        <Tag key={s.label} className="adm-stat adm-in" onClick={s.onClick}>
+        <Tag key={s.label} className="adm-stat adm-in" style={{ animationDelay: `${i * 45}ms` }} onClick={s.onClick}>
           <div className="adm-stat-top">
             <span className="adm-stat-label">{s.label}</span>
             {s.chip != null && <span className={`adm-chip ${s.chipTone ?? ''}`}>{s.chip}</span>}
           </div>
           {loading ? <div className="adm-sk" style={{ height: 26, width: '50%', marginTop: 8 }} />
-            : <div className="adm-stat-val" style={s.color ? { color: s.color } : undefined}>{s.value}</div>}
+            : <StatValue value={s.value} color={s.color} />}
           {s.sub && <div className="adm-stat-sub">{s.sub}</div>}
         </Tag>
       );
