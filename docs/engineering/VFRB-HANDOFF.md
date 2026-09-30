@@ -284,3 +284,7 @@ Verified: BUILD (`npm run build` exit 0 before/after; only pre-existing three-me
 - Sleeve options are now real per garment (`SLEEVE_OPTS` in `garmentCatalog.js`, one table): Polo / School Polo / T-Shirt / V-Neck Shirt = Short only (no picker, one-line note); Round Neck, Mandarin Collar, Button-Down = Short / Long; Scrub Top = Short / 3/4; Lab Coat / Coverall = Long. Sleeveless removed everywhere. These are catalog decisions, not measured facts: confirm with the client. Saved designs with a style the garment no longer offers restore to the garment default.
 - 3D "sleeve is 2D only" notice no longer fires for garments without sleeve styles; the summary row reads "Garment" for them.
 - pants / shorts / skirt GLBs: waist and hem re-cut with horizontal plane clips (`cutlib.trim_y`), transforms recentred. Render-checked only.
+
+### Session 4c
+- Inspo modal now has a "VFRB Designs" section (`DesignBrowser` in `InspoGallery.jsx`): four filter rows (category / piece / for / sleeve) with per-chip counts, zero-count chips disabled, 20 photo tiles from `designGallery.js`. 7 designs have a `base` and load into the 2D editor (category, garment, sleeve, fit); the other 13 open an in-modal photo preview labelled "Photo reference". No design has a `glb` yet, so nothing loads 3D from the gallery.
+- SSR-verified only (15 chips, 20 tiles, 7 editable / 13 photo-only). Click behaviour and phone layout are UNVERIFIED (no browser).

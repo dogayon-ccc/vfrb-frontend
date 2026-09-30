@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { NavIcon } from '../../../components/ui/icons';
 import { INSPO_TEMPLATES, T2 } from './dsShared';
 import { BASE_PATHS } from './garmentPaths';
+import { CATEGORIES, PIECES, SLEEVES, DESIGNS, filterDesigns, facetCounts } from './designGallery';
 
 export function MiniPreview({ garment, colors }) {
   const paths = BASE_PATHS[garment] ?? BASE_PATHS['Polo Shirt'];
@@ -96,6 +97,73 @@ function Tile({ label, sub, thumb, onClick, editable, onRename, onDelete, onSubm
   );
 }
 
+const FILTERS = [
+  ['category', 'Category', CATEGORIES],
+  ['piece',    'Piece',    PIECES],
+  ['gender',   'For',      [{ id:'female', label:'Women' }, { id:'male', label:'Men' }]],
+  ['sleeve',   'Sleeve',   SLEEVES.map(id => ({ id, label:id }))],
+];
+
+function FilterRow({ label, options, value, counts, onChange }) {
+  return (
+    <div className="ds-gal-row" role="group" aria-label={label}>
+      <span className="ds-gal-label">{label}</span>
+      {options.map(o => (
+        <button key={o.id} type="button" className="ds-chip" aria-pressed={value === o.id}
+          disabled={value !== o.id && !counts[o.id]}
+          onClick={() => onChange(value === o.id ? null : o.id)}>
+          {o.label}<span className="ds-chip-note"> {counts[o.id]}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function DesignBrowser({ onOpen }) {
+  const [filters, setFilters] = useState({});
+  const [preview, setPreview] = useState(null);
+  const counts = useMemo(() => facetCounts(filters), [filters]);
+  const shown  = useMemo(() => filterDesigns(filters), [filters]);
+
+  if (preview) {
+    return (
+      <div className="ds-gal-preview">
+        <img src={preview.thumb} alt={preview.name}/>
+        <p style={{ fontSize:12, fontWeight:800, color:'#1a2332', margin:0 }}>{preview.name}</p>
+        <p className="ds-note" style={{ textAlign:'center' }}>
+          Photo reference. This design has no editable 2D shape or 3D model yet.
+        </p>
+        <button type="button" className="ds-chip" onClick={() => setPreview(null)}>Back to designs</button>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="ds-gal-filters">
+        {FILTERS.map(([key, label, options]) => (
+          <FilterRow key={key} label={label} options={options} value={filters[key]} counts={counts[key]}
+            onChange={v => setFilters(f => ({ ...f, [key]: v }))}/>
+        ))}
+      </div>
+      <p className="ds-note" style={{ margin:'0 0 8px' }}>
+        {shown.length} of {DESIGNS.length} designs
+        {Object.values(filters).some(Boolean) && (
+          <> · <button type="button" onClick={() => setFilters({})}
+            style={{ background:'none', border:'none', padding:0, color:T2, fontWeight:700, cursor:'pointer' }}>Clear filters</button></>
+        )}
+      </p>
+      <div className="ds-gal-grid">
+        {shown.map(d => (
+          <Tile key={d.id} label={d.name} sub={d.base ? 'Editable in 2D' : 'Photo reference'}
+            onClick={() => (d.base ? onOpen(d) : setPreview(d))}
+            thumb={<img className="ds-gal-img" src={d.thumb} alt={d.name} loading="lazy"/>}/>
+        ))}
+      </div>
+    </>
+  );
+}
+
 export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanvasJSON }) {
   const [archived, setArchived] = useState([]);
 
@@ -124,6 +192,11 @@ export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanv
       colors:   { ...p.colors, ...t.colors },
       patterns: { ...p.patterns, ...(t.patterns ?? {}) },
     }));
+    setShowInspo(false);
+  };
+
+  const loadDesign = ({ base: [category, garment, sleeve], gender }) => {
+    setCfg(p => ({ ...p, category, garment, sleeve, fit: gender }));
     setShowInspo(false);
   };
 
@@ -166,7 +239,7 @@ export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanv
                 <NavIcon name="ai" size={14}/> Design Inspirations
               </p>
               <p style={{ fontSize:10, color:'rgba(15,23,42,.35)', margin:'2px 0 0' }}>
-                Click any design to load it onto the canvas
+                Filter real VFRB designs, or click one to load it
               </p>
             </div>
             <button onClick={() => setShowInspo(false)}
@@ -195,6 +268,10 @@ export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanv
               </div>
             </>
           )}
+
+          <p style={{ fontSize:10, fontWeight:800, color:'rgba(15,23,42,.4)', margin:'0 0 8px',
+            textTransform:'uppercase', letterSpacing:.4 }}>VFRB Designs</p>
+          <div style={{ marginBottom:18 }}><DesignBrowser onOpen={loadDesign}/></div>
 
           <p style={{ fontSize:10, fontWeight:800, color:'rgba(15,23,42,.4)', margin:'0 0 8px',
             textTransform:'uppercase', letterSpacing:.4 }}>Starter Templates</p>
