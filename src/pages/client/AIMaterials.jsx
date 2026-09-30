@@ -360,28 +360,32 @@ export default function AIMaterials() {
   const [generating,  setGenerating]  = useState(false);
   const [loading,     setLoading]     = useState(true);
   const [loadingRecs, setLoadingRecs] = useState(false);
+  const [ordersError,  setOrdersError]  = useState(false);
+  const [recsError,    setRecsError]    = useState(false);
   const [showAccept,  setShowAccept]  = useState(false);
   const [accepted,    setAccepted]    = useState(false);
   const [showConf,    setShowConf]    = useState(false);
   const [showPicker,  setShowPicker]  = useState(false);
 
   // Load all customer orders for the selector
-  useEffect(() => {
+  const loadOrders = useCallback(() => {
+    setLoading(true); setOrdersError(false);
     axios.get('/api/customer/orders')
       .then(r => {
         const all = asList(r.data);
         const active = all.filter(o => o.status !== 'cancelled');
         setOrders(active);
-        if (active.length > 0) setSelId(active[0].order_id);
+        setSelId(prev => prev ?? active[0]?.order_id ?? null);
       })
-      .catch(() => {})
+      .catch(() => setOrdersError(true))
       .finally(() => setLoading(false));
   }, []);
+  useEffect(() => { loadOrders(); }, [loadOrders]);
 
   // Load order detail + existing recommendations when selection changes
-  useEffect(() => {
+  const loadDetail = useCallback(() => {
     if (!selId) return;
-    setLoadingRecs(true);
+    setLoadingRecs(true); setRecsError(false);
     axios.get(`/api/customer/orders/${selId}`)
       .then(r => {
         const o    = r.data?.order ?? r.data;
@@ -390,9 +394,10 @@ export default function AIMaterials() {
         setRecs(recArr);
         setAccepted(o?.ai_recommendation_status === 'accepted');
       })
-      .catch(() => {})
+      .catch(() => setRecsError(true))
       .finally(() => setLoadingRecs(false));
   }, [selId]);
+  useEffect(() => { loadDetail(); }, [loadDetail]);
 
   // Generate new AI recommendation
   const generate = async () => {
@@ -497,6 +502,13 @@ export default function AIMaterials() {
         {/* Order selector */}
         {loading ? (
           <div style={{ ...SK, height:48, borderRadius:12, marginBottom:20 }}/>
+        ) : ordersError ? (
+          <div role="alert" style={{ background:'#fef2f2', border:'1px solid #fecaca', borderRadius:14,
+            padding:'20px 24px', textAlign:'center', fontFamily:FONT }}>
+            <p style={{ margin:'0 0 12px', fontSize:13, color:'#b91c1c' }}>Couldn't load your orders. Check your connection and try again.</p>
+            <button onClick={loadOrders} style={{ minHeight:44, padding:'0 20px', borderRadius:12, border:'1px solid #fecaca',
+              background:'#fff', color:'#b91c1c', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:FONT }}>Retry</button>
+          </div>
         ) : orders.length === 0 ? (
           <div style={{ background:'#fff', border:'1px solid var(--border)',
             borderRadius:16, padding:'48px 24px', textAlign:'center',
@@ -607,6 +619,13 @@ export default function AIMaterials() {
                   </div>
                 ))}
               </div>
+            ) : recsError ? (
+              <div role="alert" style={{ background:'#fef2f2', border:'1px solid #fecaca', borderRadius:14,
+            padding:'20px 24px', textAlign:'center', fontFamily:FONT }}>
+            <p style={{ margin:'0 0 12px', fontSize:13, color:'#b91c1c' }}>Couldn't load recommendations for this order.</p>
+            <button onClick={loadDetail} style={{ minHeight:44, padding:'0 20px', borderRadius:12, border:'1px solid #fecaca',
+              background:'#fff', color:'#b91c1c', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:FONT }}>Retry</button>
+          </div>
             ) : hasRecs ? (
               <>
                 {/* Accepted banner */}

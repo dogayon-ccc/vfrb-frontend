@@ -109,6 +109,8 @@ export default function CustomerMessages() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState(false);
+  const [threadLoading, setThreadLoading] = useState(false);
+  const [threadError, setThreadError] = useState(false);
   const [q, setQ] = useState('');
   const [mobileView, setMobileView] = useState('list'); // list | thread — mobile-only nav, matches Figma's separate screens
   const msgEnd = useRef(null);
@@ -122,13 +124,27 @@ export default function CustomerMessages() {
 
   useEffect(() => { loadOrders(); }, [loadOrders]);
 
-  const loadMsgs = useCallback(() => {
+  const selRef = useRef(null);
+  const loadMsgs = useCallback((initial = false) => {
     if (!selId) return;
-    axios.get(`/api/customer/messages/${selId}`).then(r => setMsgs(r.data?.messages ?? r.data ?? [])).catch(() => {});
+    const id = selId;
+    if (initial) { setThreadLoading(true); setThreadError(false); }
+    axios.get(`/api/customer/messages/${id}`).then(r => {
+      if (selRef.current !== id) return;
+      const next = r.data?.messages ?? r.data ?? [];
+      setMsgs(prev => (prev.length === next.length && prev.at(-1)?.message_id === next.at(-1)?.message_id) ? prev : next);
+      setThreadError(false);
+    }).catch(() => { if (selRef.current === id && initial) setThreadError(true); })
+      .finally(() => { if (selRef.current === id) setThreadLoading(false); });
   }, [selId]);
 
-  useEffect(() => { loadMsgs(); const iv = setInterval(loadMsgs, 60_000); return () => clearInterval(iv); }, [loadMsgs]);
-  useEffect(() => { msgEnd.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs]);
+  useEffect(() => {
+    selRef.current = selId; setMsgs([]);
+    loadMsgs(true);
+    const iv = setInterval(() => loadMsgs(false), 60_000);
+    return () => clearInterval(iv);
+  }, [selId, loadMsgs]);
+  useEffect(() => { msgEnd.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs.length]);
 
   const openThread = (id) => { setSelId(id); setMobileView('thread'); };
 
@@ -140,7 +156,7 @@ export default function CustomerMessages() {
     setNewMsg(''); setSending(true); setSendError(false);
     try {
       await axios.post('/api/customer/messages', { order_id: selId, body });
-      loadMsgs();
+      loadMsgs(false);
     } catch {
       setMsgs(p => p.filter(m => m.message_id !== optimistic.message_id));
       setNewMsg(body);
@@ -246,6 +262,14 @@ export default function CustomerMessages() {
                   : <EmptyState illustration="select-thread" headline="Select a conversation"
                       sub="Choose an order from the list to see your messages with VFRB staff." maxWidth={320}/>}
               </div>
+            ) : threadLoading ? (
+              <div aria-busy="true" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <Skeleton h={38} w="55%"/><Skeleton h={38} w="40%" style={{ alignSelf: 'flex-end' }}/><Skeleton h={38} w="60%"/>
+              </div>
+            ) : threadError ? (
+              <EmptyState illustration="error" compact headline="Couldn't load this conversation"
+                sub="Check your connection and try again." maxWidth={320}
+                cta={{ label: 'Retry', onClick: () => loadMsgs(true) }}/>
             ) : renderItems.length === 0 ? <NoMessagesYet/> : (
               <AnimatePresence initial={false}>
                 {renderItems.map(item => item.type === 'sep'
