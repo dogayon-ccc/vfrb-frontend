@@ -14,7 +14,7 @@ export default function SiteFooter() {
               <span><b>VFRB Enterprise</b><small>Tailor Centre VFRB Manila</small></span>
             </div>
             <address>
-              {C.address[0]}<br />{C.address[1]}<br />Production: {C.production}
+              {C.address[0]}<br />{C.address[1]}<br />Also in {C.other}
             </address>
             <div className="vs-footer__contact">
               <a href={C.phoneHref}>{C.phone}</a><br />

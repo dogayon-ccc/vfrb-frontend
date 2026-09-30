@@ -16,6 +16,14 @@ export default function SiteHeader() {
   const { pathname } = useLocation();
   const root = useRef(null);
   const burger = useRef(null);
+  const [stuck, setStuck] = useState(false);
+
+  useEffect(() => {
+    const on = () => setStuck(window.scrollY > 8);
+    on();
+    window.addEventListener('scroll', on, { passive: true });
+    return () => window.removeEventListener('scroll', on);
+  }, []);
 
   useEffect(() => { setOpen(false); }, [pathname]);
 
@@ -35,7 +43,7 @@ export default function SiteHeader() {
   }, [open]);
 
   return (
-    <header className="vs vs-header" ref={root}>
+    <header className={`vs vs-header${stuck || open ? ' is-stuck' : ''}`} ref={root}>
       <a href="#main" className="vs-skip" onClick={skipToMain}>Skip to content</a>
       <div className="vs-wrap vs-header__bar">
         <Link to="/" className="vs-brand" aria-label="VFRB Enterprise home">

@@ -1,16 +1,10 @@
 import Photo from '../components/landing/Photo';
 import Reveal from '../components/landing/Reveal';
 import SitePage from '../components/site/SitePage';
-import { Banner, Btn, Head, TextLink, CtaBand } from '../components/site/parts';
+import { Banner, Head, TextLink, Journey } from '../components/site/parts';
 import { CONTACT as C } from '../components/site/config';
+import { PEOPLE, PLACES } from '../components/site/content';
 import { P } from './landing/photos';
-
-const OWNERS = [
-  { photo: P.fe, name: 'Fe Tiama Boitizon', role: 'Owner', line: 'VFRB Enterprise, sole proprietorship' },
-  { photo: P.roxanne, name: 'Roxanne Boitizon Baddiri', role: 'Daughter of Ma\u2019am Fe', line: 'VFRB Enterprise family' },
-];
-const MAKE = ['Custom tailoring', 'Garment manufacturing', 'Computerized embroidery', 'Company uniforms', 'Polo shirts', 'Campaign shirts', 'Caps', 'Jackets', 'Patches'];
-const SERVE = ['Local offices', 'Corporate clients', 'Schools', 'Institutional organizations'];
 
 export default function Team() {
   return (
@@ -23,7 +17,7 @@ export default function Team() {
         <div className="vs-wrap">
           <Head kicker="Ownership" id="own" title="Meet the family." />
           <div className="vs-owners">
-            {OWNERS.map((o, i) => (
+            {PEOPLE.map((o, i) => (
               <Reveal key={o.name} className="vs-owner" delay={i * 0.06}>
                 <Photo photo={o.photo} pos="center 25%" ratio="1 / 1" />
                 <div><h3>{o.name}</h3><b>{o.role}</b><span>{o.line}</span></div>
@@ -33,22 +27,7 @@ export default function Team() {
         </div>
       </section>
 
-      <section className="vs-sec vs-tint" aria-labelledby="mk">
-        <div className="vs-wrap vs-split">
-          <Reveal className="vs-stack">
-            <h2 className="vs-h2" id="mk">What we make</h2>
-            <ul className="vs-chips">{MAKE.map(m => <li key={m}>{m}</li>)}</ul>
-          </Reveal>
-          <Reveal className="vs-stack" delay={0.06}>
-            <h2 className="vs-h2">Who we serve</h2>
-            <ul className="vs-chips">{SERVE.map(m => <li key={m}>{m}</li>)}</ul>
-            <p className="vs-body" style={{ marginTop: 18 }}>{C.address[0]}, {C.address[1]}</p>
-            <TextLink to="/about">Contact details</TextLink>
-          </Reveal>
-        </div>
-      </section>
-
-      <section className="vs-sec" aria-labelledby="tm">
+      <section className="vs-sec vs-tint" aria-labelledby="tm">
         <div className="vs-wrap">
           <Head kicker="The team" id="tm" title="Family, staff and the production floor." />
           <Reveal className="vs-team-grid">
@@ -60,10 +39,22 @@ export default function Team() {
         </div>
       </section>
 
-      <CtaBand photo={P.familyDinner} pos="center 40%" title="Work with a family that sews for you.">
-        <Btn to="/register" variant="mint">Design your uniform</Btn>
-        <Btn to="/inside-vfrb" variant="ghost-light">Tour the production floor</Btn>
-      </CtaBand>
+      <section className="vs-sec vs-sec--tight" aria-labelledby="where">
+        <div className="vs-wrap vs-split">
+          <Reveal className="vs-stack">
+            <h2 className="vs-h2" id="where">Where to find us</h2>
+            <dl className="vs-dl">
+              <div><dt>{PLACES[0][1]}</dt><dd>{C.address[0]}, {C.address[1]}</dd></div>
+              <div><dt>{PLACES[1][1]}</dt><dd>{C.other}</dd></div>
+            </dl>
+          </Reveal>
+          <Reveal className="vs-stack" delay={0.06}>
+            <p className="vs-body">Questions about an order or a visit? Contact details are on the About page.</p>
+            <TextLink to="/about#visit">Contact VFRB</TextLink>
+          </Reveal>
+        </div>
+      </section>
+      <Journey current="/our-team" />
     </SitePage>
   );
 }

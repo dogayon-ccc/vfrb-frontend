@@ -8,7 +8,7 @@ export const NAV = [
 
 export const CONTACT = {
   address: ['31 San Guillermo St., Bayanan', 'Muntinlupa City 1772'],
-  production: 'Sto. Tomas, Batangas',
+  other: 'Sto. Tomas, Batangas',
   phone: '0921 791 6259',
   phoneHref: 'tel:09217916259',
   email: 'vfrb.enterprise@gmail.com',

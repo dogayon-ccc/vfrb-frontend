@@ -1,25 +1,18 @@
 import Photo from '../components/landing/Photo';
 import Reveal from '../components/landing/Reveal';
 import SitePage from '../components/site/SitePage';
-import { Banner, Btn, Head, TextLink, CtaBand } from '../components/site/parts';
+import { Banner, Btn, Head, TextLink, Journey } from '../components/site/parts';
 import { CONTACT as C } from '../components/site/config';
+import { EMBROIDERY, PRODUCTS, SERVE_LINE, SERVICES } from '../components/site/content';
 import { P } from './landing/photos';
 
-const MAKE = ['Company uniforms', 'Polo shirts', 'Campaign shirts', 'Caps', 'Jackets', 'Patches'];
-const SERVE = ['Local offices', 'Corporate clients', 'Schools', 'Institutional organizations'];
-const EMB = [
-  ['Digitizing', 'Your logo or artwork is converted into a stitch file the embroidery machine can read.'],
-  ['Hooping', 'The fabric is secured in a hoop so it holds flat and steady during stitching.'],
-  ['Stitching', 'The computerized machine stitches the digitized design onto the garment or patch.'],
-];
-const EMB_USES = ['Corporate branding', 'Apparel and fashion', 'Personalization'];
 const JUMP = [['Uniforms', 'uniforms'], ['Embroidery', 'embroidery'], ['Printing', 'printing'], ['Print Authority', 'print-authority']];
 
 export default function WhatWeDo() {
   return (
     <SitePage title="What We Do">
       <Banner kicker="What we do" title="Tailoring, embroidery and printing in one place."
-        lede="Custom tailoring, garment manufacturing and finishing for offices, schools and institutions."
+        lede={`${SERVICES.slice(0, 3).join(', ')}, and more, for ${SERVE_LINE.toLowerCase()}.`}
         photo={P.uniforms} pos="30% center">
         <nav className="vs-jump" aria-label="On this page" style={{ marginTop: 6 }}>
           {JUMP.map(([l, id]) => <a key={id} href={`#${id}`} style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.6)' }}>{l}</a>)}
@@ -31,11 +24,8 @@ export default function WhatWeDo() {
           <Reveal className="vs-stack">
             <p className="vs-kicker">Tailoring and manufacturing</p>
             <h2 className="vs-h2" id="u-t">Company uniforms, cut and sewn to order.</h2>
-            <p className="vs-body">
-              VFRB handles custom tailoring, garment manufacturing and finishing in one company.
-            </p>
-            <ul className="vs-chips" aria-label="What we make">{MAKE.map(m => <li key={m}>{m}</li>)}</ul>
-            <p className="vs-body" style={{ marginTop: 22 }}>Who we serve: {SERVE.join(', ').toLowerCase()}.</p>
+            <p className="vs-body">VFRB handles custom tailoring, garment manufacturing and finishing in one company.</p>
+            <ul className="vs-chips" aria-label="What we make">{PRODUCTS.map(m => <li key={m}>{m}</li>)}</ul>
             <TextLink to="/inside-vfrb">See how a uniform is made</TextLink>
           </Reveal>
           <Reveal delay={0.06}><Photo photo={P.sewing3} ratio="4 / 3" caption="Sewing stations at VFRB" /></Reveal>
@@ -49,25 +39,21 @@ export default function WhatWeDo() {
             <Reveal className="vs-stack" delay={0.06}>
               <p className="vs-kicker">Computerized embroidery</p>
               <h2 className="vs-h2" id="e-t">From artwork to the final stitch.</h2>
-              <p className="vs-lede">
-                VFRB runs computerized embroidery for company logos, emblems and patches. Every job follows the same three steps.
-              </p>
+              <p className="vs-lede">VFRB runs computerized embroidery for company logos, emblems and patches. Every job follows the same three steps.</p>
               <ol className="vs-steps">
-                {EMB.map(([t, d]) => <li key={t}><h3>{t}</h3><p>{d}</p></li>)}
+                {EMBROIDERY.steps.map(([t, d]) => <li key={t}><h3>{t}</h3><p>{d}</p></li>)}
               </ol>
             </Reveal>
           </div>
-          <div className="vs-split" style={{ marginTop: 'clamp(36px,5vw,64px)' }}>
+          <div className="vs-split" style={{ marginTop: 'clamp(32px,4.5vw,56px)' }}>
             <Reveal className="vs-stack">
               <h3 className="vs-h3">What embroidery is used for</h3>
-              <ul className="vs-uses" aria-label="Embroidery uses">{EMB_USES.map(u => <li key={u}>{u}</li>)}</ul>
-              <p className="vs-lede" style={{ fontSize: 16 }}>
-                Corporate branding: your company logo on uniforms. Apparel and fashion: embroidered detail on garments.
-                Personalization: names and marks on individual pieces.
-              </p>
+              <ul className="vs-steps vs-steps--plain" aria-label="Embroidery uses">
+                {EMBROIDERY.uses.map(([t, d]) => <li key={t}><h3>{t}</h3><p>{d}</p></li>)}
+              </ul>
             </Reveal>
             <Reveal delay={0.06}>
-              <Photo photo={P.uniforms} ratio="16 / 9" pos="30% center" caption="Embroidered emblem patches on a shirt and blazer" />
+              <Photo photo={P.uniforms} ratio="4 / 3" pos="30% center" caption="Embroidered emblem patches on a shirt and blazer" />
             </Reveal>
           </div>
         </div>
@@ -110,12 +96,7 @@ export default function WhatWeDo() {
           </Reveal>
         </div>
       </section>
-
-      <CtaBand photo={P.workers} pos="center 30%" title="Tell us what your team needs to wear."
-        lede="Create a free account to design a uniform, or contact VFRB directly.">
-        <Btn to="/register" variant="mint">Design your uniform</Btn>
-        <Btn to="/about" variant="ghost-light">Contact details</Btn>
-      </CtaBand>
+      <Journey current="/what-we-do" />
     </SitePage>
   );
 }

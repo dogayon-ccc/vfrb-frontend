@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Photo from '../components/landing/Photo';
 import SitePage from '../components/site/SitePage';
-import { PlainHead, Btn } from '../components/site/parts';
-import { GALLERY, GALLERY_CATS } from './landing/photos';
+import { Banner, Journey } from '../components/site/parts';
+import { GALLERY, GALLERY_CATS, P } from './landing/photos';
 
 function Lightbox({ items, index, onClose, onMove }) {
   const box = useRef(null);
@@ -58,9 +58,10 @@ export default function Gallery() {
 
   return (
     <SitePage title="Gallery">
-      <PlainHead kicker="Samples and gallery" title="Finished pieces and the floor behind them."
-        lede="Embroidery, printing, sublimation, packed orders and the production team, all photographed at VFRB." />
-      <section className="vs-sec vs-sec--tight" aria-label="Photo gallery">
+      <Banner short kicker="Samples and gallery" title="Finished pieces and the floor behind them."
+        lede="Embroidery, printing, sublimation, packed orders and the production team, all photographed at VFRB."
+        photo={P.printing} pos="35% center" />
+      <section className="vs-sec" aria-label="Photo gallery">
         <div className="vs-wrap">
           <div className="vs-filters" role="group" aria-label="Filter photos">
             {GALLERY_CATS.map(c => (
@@ -77,12 +78,9 @@ export default function Gallery() {
               </li>
             ))}
           </ul>
-          <div className="vs-btns" style={{ marginTop: 40 }}>
-            <Btn to="/register">Design your uniform</Btn>
-            <Btn to="/what-we-do" variant="line">What we do</Btn>
-          </div>
         </div>
       </section>
+      <Journey current="/gallery" />
       {open !== null && <Lightbox items={items} index={open} onClose={close} onMove={move} />}
     </SitePage>
   );

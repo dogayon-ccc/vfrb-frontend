@@ -1,16 +1,13 @@
 // src/pages/Group60.jsx — Group 60 (capstone researchers/developers), separate from VFRB Enterprise's own Team page. Photos+CVs shown only for members who provided one (Araos/Espeja have none yet).
 // CV data copied verbatim from real uploaded CVs; phone/address intentionally excluded from this public route.
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import MarketingNav from '../components/MarketingNav';
-import Footer from '../components/Footer';
+import { useEffect, useRef, useState } from 'react';
+import SitePage from '../components/site/SitePage';
+import { PlainHead, Journey } from '../components/site/parts';
+import Reveal from '../components/landing/Reveal';
 import photoAraos from '../assets/team/araos.jpg';
 import photoEspeja from '../assets/team/espeja.jpg';
 import photoLlanto from '../assets/team/llanto.jpg';
 import photoOgayon from '../assets/team/ogayon.jpg';
-
-const T = { teal: 'var(--teal)', accent: 'var(--teal-dark)', dark: 'var(--bg-surface)' };
 
 const TEAM = [
   { name: 'Araos, Alvin II B.', photo: photoAraos },
@@ -58,163 +55,88 @@ const TEAM = [
   },
 ];
 
-function Pill({ children }) {
-  return (
-    <span style={{ display: 'inline-block', padding: '5px 12px', borderRadius: 99, fontSize: 12, margin: '0 6px 6px 0',
-      background: 'rgba(2,195,154,0.08)', border: '1px solid rgba(2,195,154,0.25)', color: T.accent }}>
-      {children}
-    </span>
-  );
+function Block({ title, children }) {
+  return <><h3>{title}</h3>{children}</>;
 }
 
-function Section({ title, children }) {
-  return (
-    <div style={{ marginTop: 22 }}>
-      <p style={{ color: T.accent, fontSize: 11, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', marginBottom: 10 }}>{title}</p>
-      {children}
-    </div>
-  );
-}
-
-function CVModal({ member, onClose }) {
+function CVDialog({ member, onClose }) {
   const cv = member.cv;
+  const box = useRef(null);
+  useEffect(() => {
+    const prev = document.activeElement;
+    document.body.style.overflow = 'hidden';
+    box.current?.querySelector('.vs-cv__close')?.focus();
+    const onKey = (e) => {
+      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key !== 'Tab') return;
+      const f = box.current.querySelectorAll('button, a[href]');
+      const first = f[0]; const last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => { document.body.style.overflow = ''; document.removeEventListener('keydown', onKey); prev?.focus?.(); };
+  }, [onClose]);
+
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}
-      style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
-        display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 20px', overflowY: 'auto' }}>
-      <motion.div initial={{ opacity: 0, y: 20, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 12 }}
-        onClick={e => e.stopPropagation()}
-        style={{ width: 'min(640px,100%)', background: 'var(--bg-card)', border: '1px solid rgba(15,23,42,0.1)',
-          borderRadius: 18, padding: '32px 30px 28px', fontFamily: 'var(--font)', color: 'var(--ink)',
-          boxShadow: '0 20px 60px rgba(15,23,42,0.25)' }}>
-        <button onClick={onClose} style={{ float: 'right', background: 'rgba(15,23,42,0.08)', border: 'none',
-          color: 'rgba(15,23,42,0.7)', width: 30, height: 30, borderRadius: 9, cursor: 'pointer', fontSize: 14 }}>✕</button>
-
-        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-          <img src={member.photo} alt={member.name} style={{ width: 64, height: 64, borderRadius: 14, objectFit: 'cover', border: '2px solid rgba(2,195,154,0.35)' }}/>
-          <div>
-            <h2 style={{ fontFamily: 'var(--font)', fontWeight: 800, fontSize: 21, margin: 0 }}>{member.name}</h2>
-            <p style={{ color: 'rgba(15,23,42,0.45)', fontSize: 12.5, marginTop: 4, lineHeight: 1.6 }}>
-              {cv.contact.email}
-            </p>
-          </div>
+    <div className="vs vs-cvwrap" onClick={onClose}>
+      <div className="vs-cv" role="dialog" aria-modal="true" aria-labelledby="cv-name" ref={box} onClick={e => e.stopPropagation()}>
+        <div className="vs-cv__top">
+          <img src={member.photo} alt="" />
+          <div><h2 id="cv-name">{member.name}</h2><p>{cv.contact.email}</p></div>
+          <button type="button" className="vs-cv__close" onClick={onClose} aria-label="Close CV">×</button>
         </div>
-
-        {cv.objective && (
-          <Section title="Objective">
-            <p style={{ color: 'rgba(15,23,42,0.65)', fontSize: 13.5, lineHeight: 1.7 }}>{cv.objective}</p>
-          </Section>
-        )}
-
-        {cv.skills?.length > 0 && (
-          <Section title="Skills"><div>{cv.skills.map(s => <Pill key={s}>{s}</Pill>)}</div></Section>
-        )}
-
-        {cv.qualifications?.length > 0 && (
-          <Section title="Qualifications">
-            <ul style={{ margin: 0, paddingLeft: 18, color: 'rgba(15,23,42,0.65)', fontSize: 13.5, lineHeight: 1.9 }}>
-              {cv.qualifications.map(q => <li key={q}>{q}</li>)}
-            </ul>
-          </Section>
-        )}
-
+        {cv.objective && <Block title="Objective"><p>{cv.objective}</p></Block>}
+        {cv.skills?.length > 0 && <Block title="Skills"><ul className="vs-chips">{cv.skills.map(s => <li key={s}>{s}</li>)}</ul></Block>}
+        {cv.qualifications?.length > 0 && <Block title="Qualifications"><ul>{cv.qualifications.map(q => <li key={q}>{q}</li>)}</ul></Block>}
         {cv.projects?.length > 0 && (
-          <Section title="Projects">
+          <Block title="Projects">
             {cv.projects.map(p => (
-              <div key={p.title} style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid rgba(15,23,42,0.06)' }}>
-                <p style={{ fontSize: 14, fontWeight: 700, margin: 0 }}>{p.title}</p>
-                <p style={{ color: T.accent, fontSize: 11.5, margin: '2px 0 6px' }}>{p.subtitle}</p>
-                <p style={{ color: 'rgba(15,23,42,0.6)', fontSize: 13, lineHeight: 1.6, margin: 0 }}>{p.desc}</p>
-                <p style={{ color: 'rgba(15,23,42,0.35)', fontSize: 11.5, marginTop: 6 }}>{p.tech}</p>
+              <div key={p.title} className="vs-cv__item">
+                <p><strong>{p.title}</strong></p>
+                <small>{p.subtitle}</small>
+                <p>{p.desc}</p>
+                <small>{p.tech}</small>
               </div>
             ))}
-          </Section>
+          </Block>
         )}
-
         {cv.experience?.length > 0 && (
-          <Section title="Experience">
-            {cv.experience.map(e => (
-              <p key={e.company} style={{ color: 'rgba(15,23,42,0.65)', fontSize: 13.5, lineHeight: 1.8, margin: 0 }}>
-                <strong style={{ color: 'var(--ink)' }}>{e.role}</strong> — {e.company} <span style={{ color: 'rgba(15,23,42,0.4)' }}>({e.period})</span>
-              </p>
-            ))}
-          </Section>
+          <Block title="Experience">
+            {cv.experience.map(e => <p key={e.company}><strong>{e.role}</strong>, {e.company} ({e.period})</p>)}
+          </Block>
         )}
-
         {cv.education?.length > 0 && (
-          <Section title="Education">
-            {cv.education.map(ed => (
-              <p key={ed.school + ed.period} style={{ color: 'rgba(15,23,42,0.65)', fontSize: 13.5, lineHeight: 1.8, margin: 0 }}>
-                <strong style={{ color: 'var(--ink)' }}>{ed.school}</strong> — {ed.program} <span style={{ color: 'rgba(15,23,42,0.4)' }}>({ed.period})</span>
-              </p>
-            ))}
-          </Section>
+          <Block title="Education">
+            {cv.education.map(ed => <p key={ed.school + ed.period}><strong>{ed.school}</strong>, {ed.program} ({ed.period})</p>)}
+          </Block>
         )}
-
-        {cv.certifications?.length > 0 && (
-          <Section title="Certifications & Seminars">
-            <ul style={{ margin: 0, paddingLeft: 18, color: 'rgba(15,23,42,0.65)', fontSize: 13, lineHeight: 1.9 }}>
-              {cv.certifications.map(c => <li key={c}>{c}</li>)}
-            </ul>
-          </Section>
-        )}
-      </motion.div>
-    </motion.div>
+        {cv.certifications?.length > 0 && <Block title="Certifications and seminars"><ul>{cv.certifications.map(c => <li key={c}>{c}</li>)}</ul></Block>}
+      </div>
+    </div>
   );
 }
 
 export default function Group60() {
-  const [openMember, setOpenMember] = useState(null);
-
+  const [open, setOpen] = useState(null);
   return (
-    <div style={{ fontFamily: 'var(--font)', background: T.dark, color: 'var(--ink)', minHeight: '100vh', overflowX: 'hidden' }}>
-      <style>{`
-        *,*::before,*::after{box-sizing:border-box;} body{margin:0;background:${T.dark};}
-        .team-wrap { padding:48px 18px 32px; }
-        @media (min-width:441px) { .team-grid { grid-template-columns: repeat(2,1fr) !important; } }
-        @media (min-width:640px) { .team-wrap { padding:64px 24px 40px; } }
-        @media (min-width:721px) { .team-grid { grid-template-columns: repeat(4,1fr) !important; } }
-      `}</style>
-
-      <MarketingNav/>
-
-      <div className="team-wrap" style={{ maxWidth: 920, margin: '0 auto', textAlign: 'center' }}>
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-          <p style={{ color: T.accent, fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>Group 60</p>
-          <h1 style={{ fontFamily: "'DM Serif Display', Georgia, serif", fontWeight: 400, fontSize: 'clamp(32px,4.6vw,48px)', marginBottom: 14, lineHeight: 1.15 }}>
-            The researchers behind this system
-          </h1>
-          <p style={{ color: 'rgba(15,23,42,0.5)', fontSize: 15, lineHeight: 1.7, maxWidth: 560, margin: '0 auto' }}>
-            Group 60 developed VFRB Enterprise's AI-Enabled Sales and Inventory Management System with Raw Materials
-            Recommendation as a capstone project at City College of Calamba (CCC BSIT 2026). The researchers are separate from
-            VFRB Enterprise, the company this system was built for.
-          </p>
-        </motion.div>
-
-        <div className="team-grid" style={{ marginTop: 44, display: 'grid', gridTemplateColumns: '1fr', gap: 18 }}>
-          {TEAM.map((m, i) => (
-            <motion.button key={m.name} onClick={() => m.cv && setOpenMember(m)}
-              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: i * 0.06 }}
-              whileHover={m.cv ? { y: -4 } : {}}
-              style={{ padding: '22px 18px 18px', borderRadius: 16, background: 'rgba(15,23,42,0.04)',
-                border: '1px solid rgba(15,23,42,0.09)', cursor: m.cv ? 'pointer' : 'default',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
-                fontFamily: 'inherit', transition: 'border-color .2s' }}
-              onMouseEnter={e => { if (m.cv) e.currentTarget.style.borderColor = 'rgba(2,195,154,0.4)'; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(15,23,42,0.09)'; }}>
-              <img src={m.photo} alt={m.name} style={{ width: 96, height: 96, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(2,195,154,0.35)' }}/>
-              <p style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.4, margin: 0 }}>{m.name}</p>
-              {m.cv && <span style={{ color: T.accent, fontSize: 11.5, fontWeight: 600 }}>View CV →</span>}
-            </motion.button>
-          ))}
+    <SitePage title="Group 60">
+      <PlainHead kicker="Group 60" title="The researchers behind this system."
+        lede="Group 60 developed VFRB Enterprise's AI-Enabled Sales and Inventory Management System with Raw Materials Recommendation as a capstone project at City College of Calamba (CCC BSIT 2026). The researchers are separate from VFRB Enterprise, the company this system was built for." />
+      <section className="vs-sec" aria-label="Group 60 members">
+        <div className="vs-wrap">
+          <Reveal className="vs-g60">
+            {TEAM.map(m => {
+              const inner = (<><img src={m.photo} alt="" width="104" height="104" loading="lazy" /><b>{m.name}</b>{m.cv && <em>View CV</em>}</>);
+              return m.cv
+                ? <button key={m.name} type="button" className="vs-member" onClick={() => setOpen(m)} aria-haspopup="dialog">{inner}</button>
+                : <div key={m.name} className="vs-member">{inner}</div>;
+            })}
+          </Reveal>
         </div>
-      </div>
-
-      <AnimatePresence>
-        {openMember && <CVModal member={openMember} onClose={() => setOpenMember(null)}/>}
-      </AnimatePresence>
-
-      <Footer light/>
-    </div>
+      </section>
+      <Journey current="/group-60" />
+      {open && <CVDialog member={open} onClose={() => setOpen(null)} />}
+    </SitePage>
   );
 }
