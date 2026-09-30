@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import axios from 'axios';
+import { asList } from '../../utils/asList';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
 import { NavIcon } from '../../components/ui/icons';
 import EmptyState from '../../components/EmptyState';
@@ -93,7 +94,7 @@ export default function CustomerDashboard() {
     if (force) { cacheClear('orders_list'); cacheClear('customer_dashboard'); cacheClear('customer_notifs'); }
     setError(false);
     const cs = cacheGet('customer_dashboard'), co = cacheGet('orders_list'), cn = cacheGet('customer_notifs');
-    if (cs) setStats(cs); if (co) setOrders(co); if (cn) setNotifs(cn);
+    if (cs) setStats(cs); if (co) setOrders(asList(co)); if (cn) setNotifs(asList(cn));
     if (cs && co && cn) { setLoading(false); }
     const [s, o, n, d] = await Promise.allSettled([
       cs ? null : axios.get('/api/customer/dashboard'),
@@ -102,9 +103,9 @@ export default function CustomerDashboard() {
       axios.get('/api/customer/drafts/latest'),
     ]);
     if (s.status === 'fulfilled' && s.value) { setStats(s.value.data); cacheSet('customer_dashboard', s.value.data, TTL.DASHBOARD); }
-    if (o.status === 'fulfilled' && o.value) { const l = o.value.data?.data ?? o.value.data ?? []; setOrders(l); cacheSet('orders_list', l, TTL.ORDERS); }
+    if (o.status === 'fulfilled' && o.value) { const l = asList(o.value.data); setOrders(l); cacheSet('orders_list', l, TTL.ORDERS); }
     else if (o.status === 'rejected' && !co) setError(true);
-    if (n.status === 'fulfilled' && n.value) { const l = n.value.data?.data ?? n.value.data ?? []; setNotifs(l); cacheSet('customer_notifs', l, TTL.NOTIFICATIONS); }
+    if (n.status === 'fulfilled' && n.value) { const l = asList(n.value.data); setNotifs(l); cacheSet('customer_notifs', l, TTL.NOTIFICATIONS); }
     if (d.status === 'fulfilled' && d.value.data?.draft?.studio_config?.garment) setDraft(d.value.data.draft);
     setLoading(false);
   }, []);

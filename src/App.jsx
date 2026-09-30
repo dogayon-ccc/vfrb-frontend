@@ -100,6 +100,10 @@ const ResetPassword  = lazy(() => import('./pages/auth/ResetPassword'));
 const GuidePage = lazy(() => import('./pages/Guide'));
 const FAQPage    = lazy(() => import('./pages/FAQ'));
 const TeamPage   = lazy(() => import('./pages/Team'));
+const AboutPage  = lazy(() => import('./pages/About'));
+const WhatWeDoPage = lazy(() => import('./pages/WhatWeDo'));
+const InsidePage = lazy(() => import('./pages/InsideVFRB'));
+const GalleryPage = lazy(() => import('./pages/Gallery'));
 const Group60Page = lazy(() => import('./pages/Group60'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPolicy')); // NEW Aug 28 2026
 const TermsPage    = lazy(() => import('./pages/TermsOfService')); // NEW Aug 28 2026
@@ -205,7 +209,12 @@ export default function App() {
           {/* ── PUBLIC INFO PAGES — no auth required ─────────────────────── */}
           <Route path="/guide"    element={<GuidePage/>}/>
           <Route path="/faq"      element={<FAQPage/>}/>
+          <Route path="/about"       element={<AboutPage/>}/>
+          <Route path="/what-we-do"  element={<WhatWeDoPage/>}/>
+          <Route path="/inside-vfrb" element={<InsidePage/>}/>
+          <Route path="/gallery"     element={<GalleryPage/>}/>
           <Route path="/our-team" element={<TeamPage/>}/>
+          <Route path="/vfrb-family" element={<Navigate to="/our-team" replace/>}/>
           <Route path="/group-60" element={<Group60Page/>}/>
           <Route path="/privacy"  element={<PrivacyPage/>}/>
           <Route path="/terms"    element={<TermsPage/>}/>

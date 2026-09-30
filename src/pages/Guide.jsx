@@ -25,12 +25,12 @@ const STEPS = [
   {
     n: '03',
     title: 'Accept & notify VFRB staff',
-    desc: 'Once you\u2019re happy with the recommendation, accept it. This notifies VFRB\u2019s production team to prepare the exact materials for your order.',
+    desc: 'Once you’re happy with the recommendation, accept it. This notifies VFRB’s production team to prepare the exact materials for your order.',
   },
   {
     n: '04',
     title: 'Order enters production',
-    desc: 'Your order moves through VFRB\u2019s real 7-stage production line: Pattern → Segregation → Cutting → Sewing → QC → Pressing → Packing. Each stage only advances once the required quantity for that stage is complete.',
+    desc: 'Your order moves through VFRB’s real 7-stage production line: Pattern → Segregation → Cutting → Sewing → QC → Pressing → Packing. Each stage only advances once the required quantity for that stage is complete.',
   },
   {
     n: '05',

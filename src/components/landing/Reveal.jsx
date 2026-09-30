@@ -1,17 +1,16 @@
-// src/components/landing/Reveal.jsx — scroll-in-view fade/rise wrapper; static under prefers-reduced-motion.
-import { useRef } from 'react';
-import { motion, useInView, useReducedMotion } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
 
-export default function Reveal({ children, delay = 0, style = {}, className = '' }) {
+export default function Reveal({ children, delay = 0, style, className = '', as: Tag = 'div' }) {
   const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: '-60px' });
-  const still = useReducedMotion();
-  if (still) return <div ref={ref} style={style} className={className}>{children}</div>;
-  return (
-    <motion.div ref={ref} style={style} className={className}
-      initial={{ opacity: 0, y: 28 }} animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.7, delay, ease: [0.22, 1, 0.36, 1] }}>
-      {children}
-    </motion.div>
-  );
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === 'undefined') { setOn(true); return undefined; }
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setOn(true); io.disconnect(); } },
+      { rootMargin: '0px 0px -6% 0px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  const td = delay ? { transitionDelay: `${Math.min(delay, 0.12)}s` } : null;
+  return <Tag ref={ref} className={`vs-reveal${on ? ' is-in' : ''} ${className}`} style={{ ...td, ...style }}>{children}</Tag>;
 }

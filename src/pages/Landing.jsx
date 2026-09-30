@@ -1,154 +1,175 @@
-// src/pages/Landing.jsx — VFRB Enterprise marketing landing page.
-// Sections split into src/components/landing/*; shared color/content tokens in src/pages/landing/tokens.js.
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useScroll, useTransform, MotionConfig } from 'framer-motion';
-import Footer from '../components/Footer';
-import Nav from '../components/landing/Nav';
-import Hero from '../components/landing/Hero';
-import AboutSection from '../components/landing/AboutSection';
-import ProductionSection from '../components/landing/ProductionSection';
-import CapabilitiesSection from '../components/landing/CapabilitiesSection';
-import SamplesSection from '../components/landing/SamplesSection';
-import FamilyTeaser from '../components/landing/FamilyTeaser';
-import HowSection from '../components/landing/HowSection';
-import FeaturesSection from '../components/landing/FeaturesSection';
-import CTASection from '../components/landing/CTASection';
-import { T, NAV } from './landing/tokens';
+import { Link } from 'react-router-dom';
+import Photo from '../components/landing/Photo';
+import Reveal from '../components/landing/Reveal';
+import SitePage from '../components/site/SitePage';
+import { Btn, Head, TextLink, CtaBand } from '../components/site/parts';
+import { P } from './landing/photos';
 
-const SECTION_IDS = ['about', ...NAV.map(n => n.id).filter(id => id !== 'about'), 'production'];
+const FACTS = [
+  ['Since 2000', 'Family-owned garment industry'],
+  ['Bayanan, Muntinlupa', 'Head office'],
+  ['Sto. Tomas, Batangas', 'Production'],
+  ['Offices and schools', 'Corporate and institutional clients'],
+];
+
+const SERVICES = [
+  { to: '/what-we-do', photo: P.uniforms, pos: '30% center', title: 'Company uniforms',
+    text: 'Custom tailoring and garment manufacturing for polo shirts, campaign shirts, caps and jackets, made to order.' },
+  { to: '/what-we-do#embroidery', photo: P.embroidery, pos: 'center', title: 'Computerized embroidery',
+    text: 'Logos, emblems and patches stitched by computerized embroidery machines.' },
+  { to: '/what-we-do#printing', photo: P.printing, pos: '35% center', title: 'Printing and sublimation',
+    text: 'Silk screen printing and full sublimation for shirts, polos and jerseys.' },
+];
+
+const EMBROIDERY = [
+  ['Digitizing', 'Your logo or artwork is converted into a stitch file the machine can read.'],
+  ['Hooping', 'The garment or patch fabric is secured in a hoop so it stays flat while it is stitched.'],
+  ['Stitching', 'The computerized machine stitches the design onto the piece.'],
+];
+
+const STEPS = [
+  ['Choose a garment', 'Start from polo, scrubs, pants, skirt or shorts.'],
+  ['Set the details', 'Pick collar, sleeve, colors and pockets, and place your logo in the Design Studio.'],
+  ['Review the materials', 'The system suggests the types of raw materials your order needs. VFRB staff confirm the exact quantities.'],
+  ['Send it to VFRB', 'Your design and specifications go straight to the production team. No cart, no payment form.'],
+];
 
 export default function Landing() {
-  const navigate = useNavigate();
-  const [scrolled, setScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [active, setActive] = useState(null);
-  const { scrollY } = useScroll();
-  const heroY = useTransform(scrollY, [0,500], [0,-50]);
-
-  useEffect(() => {
-    const u = scrollY.on('change', v => setScrolled(v > 50));
-    return u;
-  }, [scrollY]);
-
-  useEffect(() => {
-    const io = new IntersectionObserver(es => es.forEach(e => {
-      if (e.isIntersecting) setActive(NAV.some(n => n.id === e.target.id) ? e.target.id : null);
-    }), { rootMargin:'-45% 0px -50% 0px' });
-    SECTION_IDS.forEach(id => { const el = document.getElementById(id); if (el) io.observe(el); });
-    return () => io.disconnect();
-  }, []);
-
-  // Close menu when scrolled
-  useEffect(() => {
-    if (menuOpen) setMenuOpen(false);
-  }, [scrolled]);
-
-  // Close menu on Escape
-  useEffect(() => {
-    const h = (e) => { if (e.key === 'Escape') setMenuOpen(false); };
-    window.addEventListener('keydown', h);
-    return () => window.removeEventListener('keydown', h);
-  }, []);
-
-  const go = p => { navigate(p); setMenuOpen(false); };
-  const scrollTo = id => {
-    // Close menu AFTER scroll starts — prevents layout shift interrupting scroll
-    setMenuOpen(false);
-    setTimeout(() => {
-      const el = document.getElementById(id);
-      if (el) el.scrollIntoView({ behavior:'smooth', block:'start' });
-    }, 60); // 60ms delay lets menu close animation complete first
-  };
-
   return (
-    <MotionConfig reducedMotion="user">
-    <div style={{ fontFamily:'var(--font)', background:T.bg, color:T.ink,
-      minHeight:'100vh', overflowX:'hidden' }}>
-      <style>{`
-        *,*::before,*::after{box-sizing:border-box;}
-        html{scroll-behavior:smooth;}
-        body{margin:0;background:${T.bg};}
-        ::placeholder{color:${T.ink3};}
+    <SitePage title="Company uniforms made in Muntinlupa">
+      <section className="vs-hero">
+        <div className="vs-wrap">
+          <div className="vs-hero__grid">
+            <div className="vs-hero__copy">
+              <h1 className="vs-h1">Company uniforms, made by one family since 2000.</h1>
+              <p className="vs-lede">
+                VFRB Enterprise, also known as Tailor Centre VFRB Manila, is a medium-scale, family-owned garment
+                industry in Bayanan, Muntinlupa City, specialized in corporate and company uniforms.
+              </p>
+              <div className="vs-btns">
+                <Btn to="/register">Design your uniform</Btn>
+                <Btn to="/gallery" variant="line">See the work</Btn>
+              </div>
+            </div>
+            <div className="vs-hero__media">
+              <Photo photo={P.sewing4} instant hover={false} pos="18% center" className="vs-hero__main" ratio="auto" />
+              <Photo photo={P.uniforms} instant hover={false} pos="28% center" className="vs-hero__inset" ratio="4 / 3" />
+            </div>
+          </div>
+          <ul className="vs-facts" style={{ marginTop: 'clamp(28px,4vw,52px)' }}>
+            {FACTS.map(([b, s]) => <li key={b}><b>{b}</b><span>{s}</span></li>)}
+          </ul>
+        </div>
+      </section>
 
-        /* Nav link hover underline */
-        .nl{position:relative;}
-        .nl::after{content:'';position:absolute;bottom:-2px;left:0;width:0;height:1.5px;background:${T.accent};transition:width .25s;}
-                .nl:hover::after{width:100%;}
+      <section className="vs-sec" aria-labelledby="svc">
+        <div className="vs-wrap">
+          <Head kicker="What we do" id="svc" title="Tailoring, embroidery and printing under one company."
+            lede="Made for local offices, corporate clients, schools and institutional organizations." />
+          <Reveal className="vs-svc">
+            {SERVICES.map(s => (
+              <Link key={s.title} to={s.to}>
+                <Photo photo={s.photo} pos={s.pos} ratio="auto" style={{ minHeight: 200 }} />
+                <div className="vs-svc__body">
+                  <h3 className="vs-h3">{s.title}</h3>
+                  <p>{s.text}</p>
+                  <span className="vs-svc__go">Read more</span>
+                </div>
+              </Link>
+            ))}
+          </Reveal>
+        </div>
+      </section>
 
-        .cat-btn{transition:all .2s;}
-        .cat-btn:hover{transform:translateY(-2px);}
-        .feat-card{transition:all .3s;}
-        .feat-card:hover{transform:translateY(-4px);}
-        .step-card{transition:all .3s;}
-        .step-card:hover{background:rgba(2,128,144,0.08)!important;border-color:rgba(2,128,144,0.3)!important;transform:translateY(-5px);}
+      <section className="vs-sec vs-dark" aria-labelledby="emb">
+        <div className="vs-wrap vs-split vs-split--wide-media">
+          <Reveal>
+            <Photo photo={P.embroidery} ratio="4 / 3" pos="center" hover={false}
+              caption="Computerized embroidery machines at VFRB" />
+          </Reveal>
+          <Reveal className="vs-stack" delay={0.08}>
+            <p className="vs-kicker">Computerized embroidery</p>
+            <h2 className="vs-h2" id="emb">Your logo, stitched on every piece.</h2>
+            <p className="vs-lede">From digitizing to the final stitch, embroidery for corporate branding, apparel and fashion, and personalization.</p>
+            <ol className="vs-steps">
+              {EMBROIDERY.map(([t, d]) => <li key={t}><h3>{t}</h3><p>{d}</p></li>)}
+            </ol>
+            <TextLink to="/what-we-do#embroidery">See the embroidery details</TextLink>
+          </Reveal>
+        </div>
+      </section>
 
-        /* ── RESPONSIVE (mobile-first) ─────────────── */
-        .desk-nav, .desk-ctas { display:none; }
-        .hamburger { display:flex; }
+      <section className="vs-sec" aria-labelledby="inside">
+        <div className="vs-wrap vs-split">
+          <Reveal className="vs-stack">
+            <p className="vs-kicker">Inside VFRB</p>
+            <h2 className="vs-h2" id="inside">Real people, real machines, one production floor.</h2>
+            <p className="vs-body">
+              Every uniform moves through pattern, cutting, sewing, quality checks, pressing and packing before it
+              leaves for delivery. Take a look at the floor where it happens.
+            </p>
+            <TextLink to="/inside-vfrb">Tour the production floor</TextLink>
+          </Reveal>
+          <Reveal className="vs-mosaic" delay={0.06}>
+            <Photo photo={P.workers} pos="center 30%" ratio="auto" caption="The VFRB production team" />
+            <Photo photo={P.sewing1} ratio="4 / 3" />
+            <Photo photo={P.sewing3} ratio="4 / 3" />
+          </Reveal>
+        </div>
+      </section>
 
-        .hero-visual { order:-1; margin-bottom:8px; }
-        .hero-collage { position:relative; width:100%; max-width:560px; margin:0 auto; aspect-ratio:1/0.9; }
+      <section className="vs-sec vs-tint" aria-labelledby="samples">
+        <div className="vs-wrap">
+          <Head kicker="Samples" id="samples" title="Finished pieces, packed for delivery." />
+          <Reveal className="vs-strip">
+            <Photo photo={P.tees} pos="center" caption="Screen-printed shirts" />
+            <Photo photo={P.sublimationPolo} pos="30% center" caption="Full sublimation polo" />
+            <Photo photo={P.uniforms} pos="30% center" caption="Embroidered emblems" />
+            <Photo photo={P.packed} pos="center" caption="Packed and labeled" />
+          </Reveal>
+          <div style={{ marginTop: 20 }}><TextLink to="/gallery">Open the full gallery</TextLink></div>
+        </div>
+      </section>
 
-        .hero-btns { flex-direction:column; }
-        .hero-btns button { width:100%!important; max-width:100%!important; }
+      <section className="vs-sec" aria-labelledby="order">
+        <div className="vs-wrap vs-split">
+          <Reveal className="vs-stack">
+            <p className="vs-kicker">Order online</p>
+            <h2 className="vs-h2" id="order">Design it first, then send it to us.</h2>
+            <p className="vs-body">
+              Registered customers use the VFRB Design Studio to build a uniform and hand the full brief to our team.
+              Registration is free.
+            </p>
+            <div className="vs-btns"><Btn to="/register">Create an account</Btn><Btn to="/guide" variant="line">Read the customer guide</Btn></div>
+          </Reveal>
+          <Reveal delay={0.06}>
+            <ol className="vs-flow">
+              {STEPS.map(([t, d], i) => <li key={t}><em>{i + 1}</em><h3>{t}</h3><p>{d}</p></li>)}
+            </ol>
+          </Reveal>
+        </div>
+      </section>
 
-        @media(min-width:641px){
-          .hero-grid  { grid-template-columns:1fr 1fr!important; }
-          .steps-grid { grid-template-columns:1fr 1fr!important; }
-          .feat-grid  { grid-template-columns:1fr 1fr!important; }
-          .hero-stats { gap:28px!important; }
-          .cat-strip  { gap:10px!important; }
-          .cat-btn    { padding:11px 18px!important; font-size:14px!important; }
-          .hero-title { font-size:clamp(38px,5vw,68px)!important; }
-          .hero-desc  { font-size:16px!important; }
-          .hero-stat-num{ font-size:26px!important; }
-        }
+      <section className="vs-sec vs-tint" aria-labelledby="fam">
+        <div className="vs-wrap vs-split">
+          <Reveal className="vs-portrait-pair">
+            <div><Photo photo={P.fe} pos="center 25%" /><b>Fe Tiama Boitizon</b><span>Owner, VFRB Enterprise</span></div>
+            <div><Photo photo={P.roxanne} pos="center 25%" /><b>Roxanne Boitizon Baddiri</b><span>Daughter of Ma&#8217;am Fe</span></div>
+          </Reveal>
+          <Reveal className="vs-stack" delay={0.06}>
+            <p className="vs-kicker">VFRB Family</p>
+            <h2 className="vs-h2" id="fam">Family-run, from the first stitch to the last delivery.</h2>
+            <p className="vs-body">VFRB Enterprise is a sole proprietorship led by Fe Tiama Boitizon. Meet the family and the team behind the company.</p>
+            <TextLink to="/our-team">Meet the VFRB Family</TextLink>
+          </Reveal>
+        </div>
+      </section>
 
-        @media(min-width:1025px){
-          .desk-nav, .desk-ctas { display:flex; }
-          .hamburger  { display:none; }
-          .hero-grid  { grid-template-columns:1fr 1fr!important; }
-          .hero-visual{ order:0; margin-bottom:0; }
-          .hero-collage{ aspect-ratio:1/1.05; margin:0 0 0 auto; }
-          .about-grid { grid-template-columns:1fr 1fr!important; gap:72px!important; }
-          .steps-grid { grid-template-columns:repeat(4,1fr)!important; }
-          .feat-grid  { grid-template-columns:repeat(3,1fr)!important; }
-          .section-pad{ padding:96px 40px!important; }
-          .hero-pad   { padding:72px 40px!important; }
-          .cat-pad    { padding:40px 40px!important; }
-          .nav-inner  { padding:0 40px!important; }
-          .cta-inner  { padding:64px 48px!important; }
-          .hero-btns  { flex-direction:row; }
-          .hero-btns button{ width:auto!important; max-width:none!important; }
-        }
-
-        @keyframes pulse-glow{0%,100%{opacity:.15}50%{opacity:.35}}
-        @media (prefers-reduced-motion: reduce){
-          html{scroll-behavior:auto;}
-          *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;}
-        }
-
-        /* Focus ring for keyboard nav */
-        button:focus-visible, a:focus-visible {
-          outline: 2px solid ${T.accent};
-          outline-offset: 2px;
-          border-radius: 6px;
-        }
-      `}</style>
-
-      <Nav scrolled={scrolled} menuOpen={menuOpen} setMenuOpen={setMenuOpen} go={go} scrollTo={scrollTo} active={active}/>
-      <Hero heroY={heroY} go={go} scrollTo={scrollTo}/>
-      <AboutSection go={go}/>
-      <ProductionSection/>
-      <CapabilitiesSection/>
-      <SamplesSection/>
-      <HowSection/>
-      <FeaturesSection/>
-      <FamilyTeaser go={go}/>
-      <CTASection go={go}/>
-      <Footer light/>
-    </div>
-    </MotionConfig>
+      <CtaBand photo={P.sewing2} pos="center" title="Ready to put your name on a uniform?"
+        lede="Create a free account, design your uniform, and send the brief to VFRB.">
+        <Btn to="/register" variant="mint">Create a free account</Btn>
+        <Btn to="/about" variant="ghost-light">Read our story</Btn>
+      </CtaBand>
+    </SitePage>
   );
 }

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { NavIcon } from '../../../components/ui/icons';
-import { INSPO_TEMPLATES, T2 } from './dsShared';
+import { T2 } from './dsShared';
 import { BASE_PATHS } from './garmentPaths';
 import { CATEGORIES, PIECES, SLEEVES, DESIGNS, filterDesigns, facetCounts } from './designGallery';
 
@@ -183,18 +183,6 @@ export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanv
     setShowInspo(false);
   };
 
-  const loadTemplate = (t) => {
-    setCfg(p => ({
-      ...p,
-      category: t.category,
-      garment:  t.garment,
-      sleeve:   t.sleeve,
-      colors:   { ...p.colors, ...t.colors },
-      patterns: { ...p.patterns, ...(t.patterns ?? {}) },
-    }));
-    setShowInspo(false);
-  };
-
   const loadDesign = ({ base: [category, garment, sleeve], gender }) => {
     setCfg(p => ({ ...p, category, garment, sleeve, fit: gender }));
     setShowInspo(false);
@@ -271,17 +259,7 @@ export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanv
 
           <p style={{ fontSize:10, fontWeight:800, color:'rgba(15,23,42,.4)', margin:'0 0 8px',
             textTransform:'uppercase', letterSpacing:.4 }}>VFRB Designs</p>
-          <div style={{ marginBottom:18 }}><DesignBrowser onOpen={loadDesign}/></div>
-
-          <p style={{ fontSize:10, fontWeight:800, color:'rgba(15,23,42,.4)', margin:'0 0 8px',
-            textTransform:'uppercase', letterSpacing:.4 }}>Starter Templates</p>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(150px,1fr))', gap:10 }}>
-            {INSPO_TEMPLATES.map(t => (
-              <Tile key={t.id} label={t.label} sub={t.category}
-                onClick={() => loadTemplate(t)}
-                thumb={<MiniPreview garment={t.garment} colors={t.colors}/>}/>
-            ))}
-          </div>
+          <DesignBrowser onOpen={loadDesign}/>
         </motion.div>
       )}
     </AnimatePresence>

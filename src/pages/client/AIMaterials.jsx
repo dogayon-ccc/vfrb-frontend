@@ -371,7 +371,7 @@ export default function AIMaterials() {
   useEffect(() => {
     axios.get('/api/customer/orders')
       .then(r => {
-        const all = r.data?.data ?? r.data ?? [];
+        const all = asList(r.data);
         const active = all.filter(o => o.status !== 'cancelled');
         setOrders(active);
         if (active.length > 0) setSelId(active[0].order_id);

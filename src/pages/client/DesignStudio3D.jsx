@@ -17,6 +17,7 @@
 
 import { useRef, useMemo, useState, useEffect, Suspense } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { familyFor } from './design-studio/garmentCatalog';
 import { OrbitControls, ContactShadows, Float, Environment, Lightformer } from '@react-three/drei';
 import * as THREE from 'three';
 import { SCANNED_GARMENTS } from './design-studio/garmentMeshManifest';
@@ -333,6 +334,13 @@ function GarmentMesh({ cfg, referenceTexture, overlays }) {
   return primitive;
 }
 
+// Scanned garments are modelled smaller than the generic fallback shapes, so they get a closer camera.
+function CameraDistance({ z }) {
+  const camera = useThree(s => s.camera);
+  useEffect(() => { camera.position.z = z; camera.updateProjectionMatrix(); }, [camera, z]);
+  return null;
+}
+
 // The Studio keeps this Canvas mounted (visibility:hidden) while the 2D view is active; stop rendering frames then.
 function PauseWhenHidden() {
   const { gl, setFrameloop, invalidate } = useThree();
@@ -375,6 +383,7 @@ export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overla
       style={{ width:'100%', height:'100%', background:'transparent' }}>
 
       <PauseWhenHidden/>
+      <CameraDistance z={familyFor(cfg.garment)?.status3D === 'none' ? 3.8 : 3.1}/>
 
       {/* Offline studio: soft-box reflections instead of a fetched HDR */}
       <Environment resolution={256} frames={1}>

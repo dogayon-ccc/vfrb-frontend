@@ -288,3 +288,8 @@ Verified: BUILD (`npm run build` exit 0 before/after; only pre-existing three-me
 ### Session 4c
 - Inspo modal now has a "VFRB Designs" section (`DesignBrowser` in `InspoGallery.jsx`): four filter rows (category / piece / for / sleeve) with per-chip counts, zero-count chips disabled, 20 photo tiles from `designGallery.js`. 7 designs have a `base` and load into the 2D editor (category, garment, sleeve, fit); the other 13 open an in-modal photo preview labelled "Photo reference". No design has a `glb` yet, so nothing loads 3D from the gallery.
 - SSR-verified only (15 chips, 20 tiles, 7 editable / 13 photo-only). Click behaviour and phone layout are UNVERIFIED (no browser).
+
+### Session 4d
+- Dashboard crash `orders.filter is not a function`: list responses/caches are now normalised with `utils/asList.js` (Dashboard, Orders, Messages, AIMaterials, all client side). Root cause NOT reproduced (no backend here): the API returns a Laravel paginator, so a cached or error-shaped non-array value is the likely trigger. Admin pages still use the old unwrap pattern.
+- `ERR_INSUFFICIENT_RESOURCES` in the console is the browser running out of connections while Vite serves many modules in dev; it is not an app bug.
+- Studio: category bar wraps in a grid (no horizontal scroll); starter templates removed from Inspo (`INSPO_TEMPLATES` deleted); duplicate garments retired: School Polo -> Polo Shirt, V-Neck Shirt -> Scrub Top (`LEGACY_GARMENT`, old saves restore correctly); the canvas-side quick garment strip removed (it duplicated the garment picker). Inspo filter rows wrap instead of scrolling.

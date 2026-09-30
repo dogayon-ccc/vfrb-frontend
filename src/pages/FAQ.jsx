@@ -26,15 +26,15 @@ const FAQS = [
   },
   {
     q: 'How does AI Material Recommendation work?',
-    a: 'After you submit your order specs, Gemini AI reviews the garment type, quantity, and details, then recommends the categories of raw materials the order is expected to need (for example: fabric, collar lining, buttons, thread, labels). You review this on the AI Materials page and accept it, which notifies VFRB staff to prepare materials. Exact quantities for every material are still confirmed by VFRB\u2019s production team.',
+    a: 'After you submit your order specs, Gemini AI reviews the garment type, quantity, and details, then recommends the categories of raw materials the order is expected to need (for example: fabric, collar lining, buttons, thread, labels). You review this on the AI Materials page and accept it, which notifies VFRB staff to prepare materials. Exact quantities for every material are still confirmed by VFRB’s production team.',
   },
   {
     q: 'Why do some materials show "not yet configured" on my AI recommendation?',
-    a: 'VFRB is still finalizing exact usage rates for some materials (only fabric has a confirmed rate right now). Those items still appear so you know they\u2019re part of your order — the quantity will be confirmed by staff once the rate is set.',
+    a: 'VFRB is still finalizing exact usage rates for some materials (only fabric has a confirmed rate right now). Those items still appear so you know they’re part of your order — the quantity will be confirmed by staff once the rate is set.',
   },
   {
-    q: 'How do I track my order\u2019s production status?',
-    a: 'Open My Orders and select your order. You\u2019ll see which of the 7 production stages it\u2019s currently on, updated in real time by VFRB staff.',
+    q: 'How do I track my order’s production status?',
+    a: 'Open My Orders and select your order. You’ll see which of the 7 production stages it’s currently on, updated in real time by VFRB staff.',
   },
   {
     q: 'What are the 7 production stages?',
@@ -122,7 +122,7 @@ export default function FAQ() {
         }}>
           <p style={{ fontSize: 13, color: 'rgba(15,23,42,0.6)', lineHeight: 1.6 }}>
             Note: questions about pricing, minimum order quantity, lead/turnaround time, and payment or
-            cancellation policy aren\u2019t listed here yet — those need VFRB\u2019s confirmed business answers
+            cancellation policy aren’t listed here yet — those need VFRB’s confirmed business answers
             before publishing. Please contact VFRB Enterprise directly for those details in the meantime.
           </p>
         </div>

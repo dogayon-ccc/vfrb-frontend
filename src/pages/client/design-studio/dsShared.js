@@ -246,19 +246,6 @@ export const TOOLS = [
 ];
 
 // 6 starter designs from VFRB's common garment types (PH institutional palette).
-export const INSPO_TEMPLATES = [
-  { id:'school-navy',  label:'School Navy',    category:'School Uniform', garment:'School Polo', sleeve:'Short',
-    colors:{ body:'#1B2A4A', collar:'#FFFFFF', sleeve:'#1B2A4A', pocket:'#FFFFFF' } },
-  { id:'school-white', label:'School White',   category:'School Uniform', garment:'School Polo', sleeve:'Short',
-    colors:{ body:'#FFFFFF', collar:'#1B2A4A', sleeve:'#FFFFFF', pocket:'#1B2A4A' } },
-  { id:'scrub-ceil',   label:'Ceil Blue Scrub', category:'Medical',       garment:'Scrub Top',   sleeve:'Short',
-    colors:{ body:'#AED6F1', collar:'#FFFFFF', sleeve:'#AED6F1', pocket:'#2980B9' } },
-  { id:'scrub-green',  label:'Surgical Green', category:'Medical',        garment:'Scrub Top',   sleeve:'Short',
-    colors:{ body:'#006A4E', collar:'#FFFFFF', sleeve:'#006A4E', pocket:'#004D38' } },
-  { id:'corp-polo',    label:'Corporate Polo', category:'Corporate',      garment:'Polo Shirt',  sleeve:'Short',
-    colors:{ body:'#2952A3', collar:'#FFFFFF', sleeve:'#2952A3', pocket:'#1A3A6B' } },
-];
-
 // Blank-canvas start: garment is null until the customer actually drags one
 // onto the canvas (see dragPlace.js / useDragPlace.js). A restored draft or
 // mid-session sessionStorage copy always wins over this — this only applies

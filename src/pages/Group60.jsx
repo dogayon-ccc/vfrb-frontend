@@ -10,7 +10,7 @@ import photoEspeja from '../assets/team/espeja.jpg';
 import photoLlanto from '../assets/team/llanto.jpg';
 import photoOgayon from '../assets/team/ogayon.jpg';
 
-const T = { teal: 'var(--teal)', accent: 'var(--teal-2)', dark: 'var(--bg-surface)' };
+const T = { teal: 'var(--teal)', accent: 'var(--teal-dark)', dark: 'var(--bg-surface)' };
 
 const TEAM = [
   { name: 'Araos, Alvin II B.', photo: photoAraos },
@@ -181,7 +181,7 @@ export default function Group60() {
       <div className="team-wrap" style={{ maxWidth: 920, margin: '0 auto', textAlign: 'center' }}>
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <p style={{ color: T.accent, fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>Group 60</p>
-          <h1 style={{ fontFamily: 'var(--font)', fontWeight: 800, fontSize: 'clamp(28px,4vw,40px)', marginBottom: 14, lineHeight: 1.15 }}>
+          <h1 style={{ fontFamily: "'DM Serif Display', Georgia, serif", fontWeight: 400, fontSize: 'clamp(32px,4.6vw,48px)', marginBottom: 14, lineHeight: 1.15 }}>
             The researchers behind this system
           </h1>
           <p style={{ color: 'rgba(15,23,42,0.5)', fontSize: 15, lineHeight: 1.7, maxWidth: 560, margin: '0 auto' }}>

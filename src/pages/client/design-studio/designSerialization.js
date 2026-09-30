@@ -21,7 +21,7 @@
 // deserializeDesign(raw) -> { cfg, overlays, frontOverlays, backOverlays },
 //   never throws, always returns a fully-defaulted cfg.
 
-import { resolveSleeve } from './garmentCatalog';
+import { resolveSleeve, LEGACY_GARMENT } from './garmentCatalog';
 
 export const DEFAULT_CFG = {
   name: '',
@@ -89,14 +89,15 @@ export function deserializeDesign(raw) {
   }
   if (!sc || typeof sc !== 'object') sc = {};
 
+  const garment = LEGACY_GARMENT[sc.garment ?? sc.garmentType] ?? sc.garment ?? sc.garmentType ?? DEFAULT_CFG.garment;
   const cfg = {
     name:          sc.name ?? DEFAULT_CFG.name,
     category:      sc.category ?? DEFAULT_CFG.category,
     // garment/sleeve are canonical; garmentType/sleeveType are the legacy
     // aliases older saved records (or the backend's own copy) may carry.
-    garment:       sc.garment ?? sc.garmentType ?? DEFAULT_CFG.garment,
+    garment,
     fit:           sc.fit ?? DEFAULT_CFG.fit,
-    sleeve:        resolveSleeve(sc.garment ?? sc.garmentType ?? DEFAULT_CFG.garment, sc.sleeve ?? sc.sleeveType ?? DEFAULT_CFG.sleeve),
+    sleeve:        resolveSleeve(garment, sc.sleeve ?? sc.sleeveType ?? DEFAULT_CFG.sleeve),
     colors:        { ...DEFAULT_CFG.colors,   ...(sc.colors   && typeof sc.colors   === 'object' ? sc.colors   : {}) },
     patterns:      { ...DEFAULT_CFG.patterns, ...(sc.patterns && typeof sc.patterns === 'object' ? sc.patterns : {}) },
     patternParams: { ...(sc.patternParams && typeof sc.patternParams === 'object' ? sc.patternParams : {}) },

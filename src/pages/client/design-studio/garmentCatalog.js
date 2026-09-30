@@ -24,9 +24,9 @@ import { get3DCapabilities } from './garmentCapabilities';
 // Pants' had a real 2D path (garmentPaths.js) but appeared in no other category, so it is
 // dropped from the catalog along with it rather than invented a new home to keep it visible.
 const CATEGORY_DEFS = [
-  { id: 'School Uniform',      icon: 'school',      garments: ['School Polo', 'Round Neck', 'Polo Shirt', 'Pants', 'Shorts', 'Skirt'] },
-  { id: 'Corporate',           icon: 'corporate',   garments: ['Polo Shirt', 'Button-Down', 'Mandarin Collar', 'V-Neck Shirt', 'T-Shirt', 'Pants', 'Skirt'] },
-  { id: 'Medical / Scrubs',    icon: 'medical',     garments: ['Scrub Top', 'V-Neck Shirt', 'Lab Coat', 'Lab Coverall', 'Pants'] },
+  { id: 'School Uniform',      icon: 'school',      garments: ['Polo Shirt', 'Round Neck', 'Pants', 'Shorts', 'Skirt'] },
+  { id: 'Corporate',           icon: 'corporate',   garments: ['Polo Shirt', 'Button-Down', 'Mandarin Collar', 'T-Shirt', 'Pants', 'Skirt'] },
+  { id: 'Medical / Scrubs',    icon: 'medical',     garments: ['Scrub Top', 'Lab Coat', 'Lab Coverall', 'Pants'] },
   { id: 'Hospitality / Service', icon: 'hospitality', garments: ['Mandarin Collar', 'Button-Down', 'Polo Shirt', 'Pants', 'Skirt'] },
   { id: 'Industrial / Work',   icon: 'industrial',  garments: ['Button-Down', 'Polo Shirt', 'T-Shirt', 'Lab Coverall', 'Pants', 'Shorts'] },
 ];
@@ -34,9 +34,7 @@ const CATEGORY_DEFS = [
 // Sleeve styles VFRB really offers per garment. One row to edit if the client adds a style; every consumer reads FAMILIES.
 const SLEEVE_OPTS = {
   'Polo Shirt': ['Short'],
-  'School Polo': ['Short'],
   'T-Shirt': ['Short'],
-  'V-Neck Shirt': ['Short'],
   'Round Neck': ['Short', 'Long'],
   'Mandarin Collar': ['Short', 'Long'],
   'Button-Down': ['Short', 'Long'],
@@ -45,6 +43,9 @@ const SLEEVE_OPTS = {
   'Lab Coverall': ['Long'],
   'Pants': [], 'Shorts': [], 'Skirt': [],
 };
+
+// Garment names retired as duplicates: 'School Polo' was an exact copy of 'Polo Shirt'; 'V-Neck Shirt' duplicated 'Scrub Top'. Old saved designs still carry the name.
+export const LEGACY_GARMENT = { 'School Polo': 'Polo Shirt', 'V-Neck Shirt': 'Scrub Top' };
 
 // Every distinct garment name across all categories, in first-seen order (a name can appear in
 // more than one category — e.g. "Polo Shirt" is both School Uniform and Corporate — it's the

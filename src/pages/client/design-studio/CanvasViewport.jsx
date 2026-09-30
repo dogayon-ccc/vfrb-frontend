@@ -2,11 +2,8 @@ import { Component, Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NavIcon } from '../../../components/ui/icons';
 import { T, T2, DARK, SHAPE_TYPE_LABEL } from './dsShared';
-import { CATALOG, familyFor, STATUS_3D_LABEL } from './garmentCatalog';
-import { BASE_PATHS } from './garmentPaths';
+import { familyFor, STATUS_3D_LABEL } from './garmentCatalog';
 import GarmentSilhouette from './GarmentSilhouette';
-import GarmentThumb from './GarmentThumb';
-import { selectFamily } from './selectGarment';
 
 const Scene3D = lazy(() => import('../DesignStudio3D'));
 
@@ -71,7 +68,6 @@ export default function CanvasViewport({
   const paneRef = useRef(null);
   const fit = useFit(paneRef, canvasWrapRef);
   const [dark, setDark] = useState(false);
-  const catData = CATALOG.find(c => c.id === cfg.category) ?? CATALOG[0];
 
   // Brief cross-fade on the canvas wrapper when the visible face changes. The
   // <canvas> element itself must never remount (Fabric owns it, see switchFace
@@ -316,17 +312,6 @@ export default function CanvasViewport({
             Drag to rotate · Pinch or scroll to zoom
           </div>
         </div>
-      )}
-
-      {catData.families.length > 1 && (
-        <nav className="ds-quick" aria-label={`${catData.id} garments`}>
-          {catData.families.map(fam => (
-            <button key={fam.id} type="button" className="ds-quick-item" aria-pressed={cfg.garment === fam.id}
-              title={fam.id} aria-label={fam.id} onClick={() => selectFamily(setCfg, fam)}>
-              <GarmentThumb paths={BASE_PATHS[fam.id] ?? BASE_PATHS['Polo Shirt']} colors={cfg.colors} size={28}/>
-            </button>
-          ))}
-        </nav>
       )}
     </div>
   );

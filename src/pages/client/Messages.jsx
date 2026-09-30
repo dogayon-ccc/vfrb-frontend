@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import { asList } from '../../utils/asList';
 import EmptyState from '../../components/EmptyState';
 import { PageHeader, StatusPill, OrderThumb, Skeleton } from '../../components/customer/kit';
 import { NavIcon } from '../../components/ui/icons';
@@ -115,7 +116,7 @@ export default function CustomerMessages() {
 
   const loadOrders = useCallback(() => {
     setLoading(true);
-    axios.get('/api/customer/orders').then(r => { setOrders(r.data?.data ?? r.data ?? []); setOrdersError(false); })
+    axios.get('/api/customer/orders').then(r => { setOrders(asList(r.data)); setOrdersError(false); })
       .catch(() => setOrdersError(true)).finally(() => setLoading(false));
   }, []);
 

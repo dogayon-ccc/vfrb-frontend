@@ -91,7 +91,7 @@ export default function DrawPanel({ size, color, onSizeChange, onColorChange }) 
         </div>
       </div>
 
-      <p style={{ fontSize:9, color:'rgba(15,23,42,.25)', margin:'2px 0 0', lineHeight:1.5 }}>
+      <p className="ds-note" style={{ margin:'2px 0 0' }}>
         Undo (top bar) removes the last stroke. Switching to another tab
         exits drawing mode automatically.
       </p>

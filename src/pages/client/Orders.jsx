@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import { asList } from '../../utils/asList';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
 import { NavIcon } from '../../components/ui/icons';
 import EmptyState from '../../components/EmptyState';
@@ -56,10 +57,10 @@ export default function CustomerOrders() {
   const load = useCallback((force = false) => {
     if (force) cacheClear('orders_list');
     const cached = cacheGet('orders_list');
-    if (cached) { setOrders(cached); setError(false); setLoading(false); return; }
+    if (cached) { setOrders(asList(cached)); setError(false); setLoading(false); return; }
     setLoading(true);
     axios.get('/api/customer/orders')
-      .then(r => { const l = r.data?.data ?? r.data ?? []; setOrders(l); setError(false); cacheSet('orders_list', l, TTL?.ORDERS ?? 30_000); })
+      .then(r => { const l = asList(r.data); setOrders(l); setError(false); cacheSet('orders_list', l, TTL?.ORDERS ?? 30_000); })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
