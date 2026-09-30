@@ -18,7 +18,6 @@ const T2 = 'var(--teal-2)';
 const NAV = [
   { to:'/dashboard',               icon:LayoutDashboard, label:'Dashboard',    short:'Home',     end:true  },
   { to:'/my-designs',    icon:Shirt,           label:'My Designs',   short:'Designs',  end:false },
-  { to:'/order/create',  icon:PenSquare,       label:'New Order',    short:'Order',    end:false },
   { to:'/orders',        icon:ClipboardList,   label:'My Orders',    short:'Orders',   end:false },
   // AI Materials has no nav entry — it's the blocking MaterialsReveal screen after order submit, not a standalone page.
   { to:'/messages',      icon:MessageSquare,   label:'Messages',     short:'Chat',     end:false },
@@ -36,6 +35,8 @@ const MOB_NAV = [
 export default function CustomerLayout() {
   const navigate  = useNavigate();
   const location  = useLocation();
+  const section  = location.pathname.startsWith('/order/create') ? 'New Order'
+    : (NAV.find(n => location.pathname.startsWith(n.to))?.label ?? 'Client Portal');
   const [name,      setName]      = useState('Client');
   const [unread,    setUnread]    = useState(0);
   const [collapsed, setCollapsed] = useState(() => {
@@ -443,6 +444,13 @@ export default function CustomerLayout() {
           .cm-tb-av { box-shadow: 0 0 0 2px var(--teal-50); }
         }
         @media (prefers-reduced-motion: reduce) { .cm-tb-studio, .cm-tb-bell, .cm-tb-user { transition: none; } }
+      
+        .cm-tb-crumb { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+        .cm-tb-crumb b { font-size: 14px; font-weight: 800; color: var(--ink); letter-spacing: -.01em; }
+        .cm-tb-crumb span { font-size: 11px; color: var(--text-subtle); }
+        .cm-sb-collapse { margin: 4px 10px 6px !important; padding: 0 10px !important; min-height: 34px !important; border: 0 !important; border-radius: 10px !important; background: transparent !important;
+          color: rgba(255,255,255,.55) !important; font-size: 11px; display: flex; align-items: center; justify-content: flex-end; gap: 6px; cursor: pointer; flex-shrink: 0; transition: background .15s, color .15s; }
+        .cm-sb-collapse:hover { background: rgba(255,255,255,.1) !important; color: #fff !important; }
       `}</style>
 
       <div className="cm-shell" style={accentVars || undefined}>
@@ -543,18 +551,9 @@ export default function CustomerLayout() {
           </div>
 
           {/* Collapse toggle */}
-          <button onClick={toggle} className="cm-sb-collapse"
-            style={{ margin:'6px', padding:'9px', borderRadius:10,
-              border:'1px solid var(--border)', background:'var(--bg)',
-              cursor:'pointer', color:'var(--text-subtle)', fontSize:11,
-              display:'flex', alignItems:'center',
-              justifyContent: collapsed ? 'center' : 'flex-end',
-              gap:5,
-fontFamily:"ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif",
-flexShrink:0,
-              transition:'all .15s' }}
-            onMouseEnter={undefined}>
-            {collapsed ? '▶' : '◀ Collapse'}
+          <button onClick={toggle} className="cm-sb-collapse" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-expanded={!collapsed}>
+            {collapsed ? '\u25B6' : '\u25C0 Collapse'}
           </button>
 
           {/* User strip */}
@@ -617,15 +616,11 @@ flexShrink:0,
             </div>
 
             {/* Desktop: date */}
-            <span className="cm-desk-only cm-tb-date">
-              {new Date().toLocaleDateString('en-PH',{
-                weekday:'long', month:'long', day:'numeric', year:'numeric' })}
-            </span>
+            <div className="cm-desk-only cm-tb-crumb">
+              <b>{section}</b>
+              <span>{new Date().toLocaleDateString('en-PH',{ weekday:'long', month:'long', day:'numeric', year:'numeric' })}</span>
+            </div>
             <div style={{ flex:1 }}/>
-
-            <button className="cm-desk-only cm-tb-studio" onClick={openStudio}>
-              <Palette size={15} strokeWidth={2.2}/> Design Studio
-            </button>
 
             <NavLink to="/messages" className="cm-tb-bell" aria-label={unread > 0 ? `Messages, ${unread} unread` : 'Messages'}>
               <MessageSquare size={18} strokeWidth={2}/>
@@ -694,11 +689,6 @@ flexShrink:0,
                     fontWeight:700 }}>NEW</span>
                 </button>
 
-                <NavLink to="/order/create" className="cm-drawer-item"
-                  onClick={() => setMoreOpen(false)}>
-                  <IconBox icon={PenSquare} size={20} width={28}/>
-                  <span>New Order</span>
-                </NavLink>
 
 
                 <NavLink to="/settings" className="cm-drawer-item"

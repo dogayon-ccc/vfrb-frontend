@@ -1,0 +1,100 @@
+/* Premium layer for the client portal: Canva-style workspace + Photoshop-style panels. Scoped to .cm-shell. */
+.cm-shell{
+  --pm-line:rgba(15,23,42,.07);
+  --pm-sh1:0 1px 2px rgba(15,23,42,.04),0 6px 18px rgba(15,23,42,.05);
+  --pm-sh2:0 2px 4px rgba(15,23,42,.05),0 16px 38px rgba(2,128,144,.16);
+  --pm-ease:cubic-bezier(.2,.7,.2,1);
+  --pm-ring:0 0 0 4px rgba(2,128,144,.14);
+}
+::selection{background:rgba(2,195,154,.28)}
+
+/* Workspace canvas: soft colour wash + dot grid, like an editor pasteboard */
+.cm-shell .cm-main{
+  background:
+    radial-gradient(1100px 520px at 88% -8%,rgba(2,195,154,.11),transparent 62%),
+    radial-gradient(900px 480px at -6% 24%,rgba(2,128,144,.08),transparent 58%),
+    radial-gradient(rgba(15,23,42,.065) 1px,transparent 1px) 0 0/22px 22px,
+    #f8fafc;
+}
+
+/* Panels */
+.cm-shell .cx-card,.cm-shell .card{
+  border:1px solid var(--pm-line);border-radius:18px;background:#fff;box-shadow:var(--pm-sh1);
+  transition:transform .2s var(--pm-ease),box-shadow .2s var(--pm-ease),border-color .2s;
+}
+.cm-shell a.cx-card:hover,.cm-shell button.cx-card:hover,.cm-shell .cx-card[role=button]:hover,.cm-shell .cx-kpi:hover{
+  transform:translateY(-2px);box-shadow:var(--pm-sh2);border-color:rgba(2,128,144,.22);
+}
+.cm-shell .cx-card:active{transform:none}
+.cm-shell .cx-card-h{background:linear-gradient(180deg,#fff,#fbfdfe);border-bottom:1px solid var(--pm-line);border-radius:18px 18px 0 0}
+.cm-shell .cx-card-h h2,.cm-shell .cx-card-h h3{letter-spacing:-.01em;font-weight:800}
+
+/* Type */
+.cm-shell h1,.cm-shell h2{letter-spacing:-.015em}
+.cm-shell .cx-head h1{font-size:clamp(24px,3vw,32px);font-weight:800;line-height:1.1}
+
+/* Buttons */
+.cm-shell .cx-btn{border-radius:12px;font-weight:700;transition:transform .15s var(--pm-ease),box-shadow .2s,background .2s,border-color .2s,filter .2s}
+.cm-shell .cx-btn:active,.cm-shell .ui-btn:active{transform:scale(.97)}
+.cm-shell .cx-btn-p{background:linear-gradient(135deg,var(--teal),var(--teal-2));box-shadow:0 6px 18px rgba(2,128,144,.28),inset 0 1px 0 rgba(255,255,255,.28)}
+.cm-shell .cx-btn-p:hover{transform:translateY(-1px);box-shadow:0 10px 26px rgba(2,128,144,.36),inset 0 1px 0 rgba(255,255,255,.32);filter:saturate(1.08)}
+.cm-shell .cx-btn-s{background:rgba(255,255,255,.85);border:1px solid var(--pm-line);box-shadow:0 1px 2px rgba(15,23,42,.05)}
+.cm-shell .cx-btn-s:hover{border-color:rgba(2,128,144,.35);background:var(--teal-50);color:var(--teal)}
+.cm-shell .ui-btn{transition:transform .15s var(--pm-ease),box-shadow .2s,filter .2s}
+.cm-shell .ui-btn:hover:not(:disabled){filter:brightness(1.05)}
+
+/* Inputs: soft glow ring on focus */
+.cm-shell input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),.cm-shell select,.cm-shell textarea{
+  border-radius:12px;transition:border-color .18s,box-shadow .18s,background .18s;
+}
+.cm-shell input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):focus,.cm-shell select:focus,.cm-shell textarea:focus{
+  outline:none;border-color:var(--teal);box-shadow:var(--pm-ring);
+}
+.cm-shell :focus-visible{outline:2.5px solid var(--teal);outline-offset:2px}
+
+/* Stats */
+.cm-shell .cx-kpi{transition:transform .2s var(--pm-ease),box-shadow .2s var(--pm-ease),border-color .2s;background:linear-gradient(180deg,#fff,#fbfdfe)}
+.cm-shell .cx-kpi-i{box-shadow:inset 0 0 0 1px rgba(15,23,42,.05),0 4px 10px rgba(15,23,42,.06)}
+
+/* Hero: mesh + grid + slow sheen */
+.cm-shell .cx-hero{position:relative;overflow:hidden;border-radius:24px;box-shadow:0 18px 50px rgba(2,128,144,.22)}
+.cm-shell .cx-hero::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(rgba(255,255,255,.2) 1.2px,transparent 1.2px) 0 0/24px 24px,radial-gradient(600px 260px at 85% 0%,rgba(255,255,255,.18),transparent 65%);
+  -webkit-mask-image:linear-gradient(100deg,transparent 15%,#000 85%);mask-image:linear-gradient(100deg,transparent 15%,#000 85%)}
+.cm-shell .cx-hero::after{content:"";position:absolute;top:0;bottom:0;width:38%;left:-50%;pointer-events:none;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.12),transparent);animation:pm-sheen 9s ease-in-out infinite}
+.cm-shell .cx-hero>*{position:relative;z-index:1}
+
+/* Status pills, chips, table rows */
+.cm-shell .cx-pill{box-shadow:inset 0 0 0 1px color-mix(in srgb,currentColor 20%,transparent)}
+.cm-shell .cx-chip{transition:background .18s,color .18s,box-shadow .18s,transform .15s}
+.cm-shell .cx-chip:active{transform:scale(.96)}
+.cm-shell .cx-tbl tbody tr{transition:background .15s}
+.cm-shell .cx-tbl tbody tr:hover{background:var(--teal-50)}
+
+/* Skeleton + toast */
+.cm-shell .cx-sk{background:linear-gradient(100deg,#eef2f7 30%,#f8fafc 50%,#eef2f7 70%);background-size:220% 100%;animation:pm-shim 1.3s linear infinite;border-radius:12px}
+.cm-shell .cx-toast{backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.25);box-shadow:0 16px 40px rgba(15,23,42,.25)}
+
+/* Sidebar: tool-panel depth */
+.cm-shell .cm-sb::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(260px 200px at 0% 0%,rgba(2,195,154,.16),transparent 70%),linear-gradient(180deg,rgba(255,255,255,.05),transparent 30%);
+  box-shadow:inset -1px 0 0 rgba(255,255,255,.07)}
+.cm-shell .cm-sb>*{position:relative;z-index:1}
+
+/* Page entrance: staggered rise */
+.cm-shell .cx-page>*{animation:pm-in .42s var(--pm-ease) both}
+.cm-shell .cx-page>*:nth-child(2){animation-delay:.05s}.cm-shell .cx-page>*:nth-child(3){animation-delay:.1s}
+.cm-shell .cx-page>*:nth-child(4){animation-delay:.15s}.cm-shell .cx-page>*:nth-child(5){animation-delay:.2s}
+.cm-shell .cx-page>*:nth-child(n+6){animation-delay:.25s}
+
+/* Thin, quiet scrollbars */
+.cm-shell *{scrollbar-width:thin;scrollbar-color:rgba(15,23,42,.22) transparent}
+
+@keyframes pm-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes pm-sheen{0%,55%{left:-50%}100%{left:130%}}
+@keyframes pm-shim{to{background-position:-220% 0}}
+@media(prefers-reduced-motion:reduce){
+  .cm-shell .cx-page>*,.cm-shell .cx-hero::after,.cm-shell .cx-sk{animation:none}
+  .cm-shell .cx-card,.cm-shell .cx-btn,.cm-shell .cx-kpi{transition:none}
+}

@@ -52,7 +52,7 @@ export default function FeedbackWidget() {
       <button
         className="fbw-fab"
         onClick={() => setOpen(true)}
-        aria-label="Send feedback"
+        aria-label="Send feedback" title="Send feedback"
         style={{
           width: 52, height: 52, borderRadius: '50%', border: 'none',
           background: T, color: '#fff', fontSize: 22, cursor: 'pointer',
@@ -60,7 +60,7 @@ export default function FeedbackWidget() {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}
       >
-        <NavIcon name="chat" size={22} color="#fff"/>
+        <NavIcon name="info" size={22} color="#fff"/>
       </button>
 
       <AnimatePresence>

@@ -73,6 +73,7 @@ export default function Button({
 
   return (
     <motion.button
+      className="ui-btn"
       type={type}
       onClick={onClick}
       disabled={isDisabled}

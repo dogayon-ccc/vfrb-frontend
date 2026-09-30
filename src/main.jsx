@@ -6,6 +6,7 @@ import './styles/theme.css';    // :root CSS variables — colors, typography, s
 import './styles/modals.css';   // Modal, overlay, shared utility classes
 import './styles/customer.css'; // Customer portal kit
 import './styles/responsive.css'; // Breakpoint overrides
+import './styles/premium.css';    // Client portal premium layer (scoped to .cm-shell)
 import App from './App.jsx';
 
 // ── Top-level error boundary ──────────────────────────────────────────────
