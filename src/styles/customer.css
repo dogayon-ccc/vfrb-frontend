@@ -152,3 +152,7 @@ html[data-wizard] .cm-studio-fab,html[data-wizard] .fbw-fab{display:none!importa
 
 /* Phone only (<768px, where bottom nav 64px + Studio FAB show): keep last content clear of both */
 @media(max-width:767px){.cx-page{padding-bottom:128px}}
+
+/* Wizard: clip (not hidden) so .wz-actions sticks to the viewport instead of an inner scroll box */
+.wz-page{overflow-x:clip;overflow-y:visible}
+@media(max-width:767px){.wz-actions{padding:10px 16px;margin-inline:-4px;border-top:1px solid var(--border,#e2e8f0);background:var(--bg-card,#fff);box-shadow:0 -6px 16px rgba(15,23,42,.06)}.wz-actions .wz-next{flex:1}}

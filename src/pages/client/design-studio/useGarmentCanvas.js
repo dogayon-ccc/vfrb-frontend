@@ -35,7 +35,7 @@ export function compositeFrontBack(frontUrl, backUrl) {
   });
 }
 
-export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patterns, patternParams, onSelect, onZoneClick) {
+export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patterns, patternParams, onSelect, onZoneClick, fit) {
   const fc = useRef(null);
   const hoverEl = useRef(null);
   const fabricReady = useRef(false);
@@ -77,7 +77,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         const c = fc.current;
         if (!c) return;
         const initPaths = getGarmentPaths(garment, sleeve, face);
-        if (assetFor(garment, sleeve, face)) { c.setWidth(initPaths.w); c.setHeight(initPaths.h); return; }
+        if (assetFor(garment, sleeve, face, fit)) { c.setWidth(initPaths.w); c.setHeight(initPaths.h); return; }
         const draw = (d, fill, zoneKey, idx) => {
           if (!d) return;
           // FIX (Sept 10 2026): pocket previously used the exact same
@@ -193,7 +193,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       canvas.getObjects().filter(o => o.__garmentBase || o.__hoverGlow).forEach(o => canvas.remove(o));
 
       // Photo base: one recoloured cut-out in the body zone, same canvas size as the vector template so logo/text placement is unchanged.
-      const asset = assetFor(garment, sleeve, face);
+      const asset = assetFor(garment, sleeve, face, fit);
       if (asset) {
         const token = ++redrawToken.current;
         canvas.setWidth(paths.w); canvas.setHeight(paths.h);
@@ -299,7 +299,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       canvas.setHeight(paths.h);
       canvas.renderAll();
     }).catch(() => {});
-  }, [garment, sleeve, face, colors, patterns, patternParams, ready]);
+  }, [garment, sleeve, face, colors, patterns, patternParams, fit, ready]);
 
   // History helpers — declared before addLogo/addText/deleteSelected, which depend on pushHistory
   const pushHistory = useCallback(() => {

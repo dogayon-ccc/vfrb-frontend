@@ -18,10 +18,10 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, view
   const catData = CATALOG.find(c => c.id === cfg.category) ?? CATALOG[0];
   const family  = familyFor(cfg.garment);
   const sleeves = family?.styles ?? [];
-  const hasFit  = (family?.fits.length ?? 0) > 1;
+  const photo   = cfg.garment ? assetFor(cfg.garment, cfg.sleeve) : null;
+  const hasFit  = (family?.fits.length ?? 0) > 1 && (family.status3D !== 'none' || !!photo);
   const zones   = cfg.garment ? zonesFor(cfg.garment, cfg.sleeve).filter(z => z !== 'body' && (z !== 'tipping' || cfg.colors.tipping)) : [];
   const body    = (cfg.colors.body ?? '').toLowerCase();
-  const photo   = cfg.garment ? assetFor(cfg.garment, cfg.sleeve) : null;
 
   const goNeighbor = (dir) => {
     const next = neighborFamily(cfg.category, cfg.garment, dir);

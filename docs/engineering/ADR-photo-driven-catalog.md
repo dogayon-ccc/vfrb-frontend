@@ -45,3 +45,8 @@ Revisit: once 3+ designs have GLBs, retire the hand-drawn silhouettes that no de
 - `components/DesignPreview.jsx` is the only preview in Order Wizard, client Order Detail and admin Order Detail. Default 2D; 3D toggle only for a family with a real GLB and working WebGL; any 3D failure returns to 2D. `GarmentPreview3D.jsx` (the parametric tube) is no longer used by order pages.
 - `garmentAssets.js` is the photo-base manifest. Only `Scrub Top / Short / front` has one (cut from the supplied flat-lay photo with `tools/make-base-asset.py`). Single `body` zone, luminance-preserving recolour, no patterns, back view falls back to the vector shape.
 - `tools/logic-checks.mjs` runs the state, gallery, photo-base and preview-render checks.
+
+## Update — second photo base, fit-keyed assets, layout (Oct 1)
+
+- `garmentAssets.js` keys photo bases by garment, sleeve, face and fit. Scrub Top / Short / front has a women's and a men's base; the Fit control switches between them. `gain` compresses tone for the dark men's source.
+- Browser-verified at 375, 768 and 1366 (headless Chromium, SwiftShader WebGL): photo recolour, fit switch, 3/4 sleeve fallback to vector, back view, gallery search and open flow, T-Shirt 3D mount, 2D to 3D x3, and the no-WebGL fallback.

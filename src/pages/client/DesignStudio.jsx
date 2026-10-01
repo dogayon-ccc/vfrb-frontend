@@ -156,7 +156,8 @@ export default function DesignStudio() {
       // panel is always visible so the tab switch alone was enough to look like it worked,
       // but on tablet/mobile that panel is a bottom sheet gated by sheetOpen, so tapping a
       // garment zone silently did nothing visible until the customer separately opened it.
-      (zone) => { setActiveZone(zone); setTool('color'); setSheetOpen(true); }
+      (zone) => { setActiveZone(zone); setTool('color'); setSheetOpen(true); },
+      cfg.fit
     );
 
   // Picking a placed item swaps the inspector to its controls at every width. On phones the

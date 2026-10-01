@@ -14,6 +14,7 @@
 // female, only for families with a real multi-fit 3D model) -> STYLE (a sleeve length). A
 // family's fit/style options and 3D status are read once, here, from the real capability data
 // — never guessed, never invented for a garment that doesn't have it.
+import { photoFits } from './garmentAssets';
 import { BASE_PATHS, getGarmentPaths } from './garmentPaths';
 import { get3DCapabilities } from './garmentCapabilities';
 
@@ -72,7 +73,7 @@ const FAMILIES = Object.fromEntries(FAMILY_NAMES.map(name => {
     id: name,
     displayName: name,
     has2D,
-    fits: cap.supported ? cap.fit : [],
+    fits: cap.supported ? cap.fit : photoFits(name),
     styles,
     defaultStyle: styles[0] ?? null,
     sleeves3D: cap.supported ? (cap.sleeves ?? []) : [], // styles the 3D model really has
