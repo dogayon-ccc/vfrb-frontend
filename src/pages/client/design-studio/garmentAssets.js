@@ -3,7 +3,17 @@
 // Add an entry only after tools/make-base-asset.py cut it and the edge was checked on a contrasting background.
 const LIMITS = ['Front view only. The back view uses the generic shape.', 'One colour zone: collar, pocket and trim are not coloured separately.', 'No patterns on a photo base.'];
 
+const LIMITS_TRIM = ['Front view only. The back view uses the generic shape.', 'Two colour zones: body, and one trim colour shared by the collar band, sleeve cuffs, pocket welts and buttons.', 'No patterns on a photo base.'];
+
 export const ASSET_2D = {
+  // Trim is separated by source luminance (trim ~60, body ~100 in the photo; valley ~74), so it is exact for this photo only. `trimUnset` = the studio's default collar hex: while the customer has not picked a trim colour the photo's own trim is kept.
+  'Mandarin Collar': {
+    Short: {
+      front: {
+        female: { src: '/garments2d/mandarin-tunic-housekeeping-front.webp', w: 215, h: 267, refLum: 101.2, trim: { below: 74, soft: 8, refLum: 60 }, trimUnset: '#c8a96e', zones: ['body', 'collar'], source: 'VFRB-supplied flat-lay photo, housekeeping scrub suit top (mandarin band collar)', limitations: LIMITS_TRIM },
+      },
+    },
+  },
   'Scrub Top': {
     Short: {
       front: {
@@ -33,23 +43,41 @@ function loadImage(src) {
 
 const hexRgb = hex => { const n = parseInt(hex.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
 
-// Luminance-preserving recolour: each pixel keeps its brightness relative to the garment's median, so folds, pocket edges and seams survive.
+const isHex = h => typeof h === 'string' && /^#[0-9a-f]{6}$/i.test(h);
+
+// Luminance-preserving recolour: each pixel keeps its brightness relative to the zone's median, so folds, pocket edges and seams survive.
 // Below the median the target colour is darkened, above it the colour is lightened toward white.
-export async function tintedCanvas(asset, hex) {
-  const key = `${asset.src}|${hex ?? 'orig'}`;
+const shade = (lum, ref, gain, [tr, tg, tb]) => {
+  const ratio = 1 + (lum / ref - 1) * gain;
+  if (ratio <= 1) return [tr * ratio, tg * ratio, tb * ratio];
+  const k = Math.min(1, (ratio - 1) * 0.8);
+  return [tr + (255 - tr) * k, tg + (255 - tg) * k, tb + (255 - tb) * k];
+};
+
+// `colors` is a hex string (body only) or { body, collar }. `collar` is honoured only for assets that declare a trim zone.
+export async function tintedCanvas(asset, colors) {
+  const body = typeof colors === 'string' ? colors : colors?.body;
+  let trim = asset.trim && typeof colors === 'object' ? colors?.collar : null;
+  if (trim && asset.trimUnset && trim.toLowerCase() === asset.trimUnset) trim = null;
+  const key = `${asset.src}|${isHex(body) ? body : 'orig'}|${isHex(trim) ? trim : 'orig'}`;
   if (tintCache.has(key)) return tintCache.get(key);
   const img = await loadImage(asset.src);
   const c = document.createElement('canvas');
   c.width = img.naturalWidth; c.height = img.naturalHeight;
   const ctx = c.getContext('2d', { willReadFrequently: true });
   ctx.drawImage(img, 0, 0);
-  if (hex && /^#[0-9a-f]{6}$/i.test(hex)) {
-    const d = ctx.getImageData(0, 0, c.width, c.height); const px = d.data; const [tr, tg, tb] = hexRgb(hex);
+  if (isHex(body) || isHex(trim)) {
+    const d = ctx.getImageData(0, 0, c.width, c.height); const px = d.data;
+    const bRgb = isHex(body) ? hexRgb(body) : null; const tRgb = isHex(trim) ? hexRgb(trim) : null;
     for (let i = 0; i < px.length; i += 4) {
       if (px[i + 3] === 0) continue;
-      const ratio = 1 + ((0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2]) / asset.refLum - 1) * (asset.gain ?? 1);
-      if (ratio <= 1) { px[i] = tr * ratio; px[i + 1] = tg * ratio; px[i + 2] = tb * ratio; }
-      else { const k = Math.min(1, (ratio - 1) * 0.8); px[i] = tr + (255 - tr) * k; px[i + 1] = tg + (255 - tg) * k; px[i + 2] = tb + (255 - tb) * k; }
+      const lum = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+      // w = how much of this pixel belongs to the trim zone (0..1, soft edge so the seam does not alias)
+      const w = asset.trim ? Math.min(1, Math.max(0, (asset.trim.below + asset.trim.soft / 2 - lum) / asset.trim.soft)) : 0;
+      const orig = [px[i], px[i + 1], px[i + 2]];
+      const b = bRgb ? shade(lum, asset.refLum, asset.gain ?? 1, bRgb) : orig;
+      const t = tRgb ? shade(lum, asset.trim.refLum, asset.gain ?? 1, tRgb) : orig;
+      px[i] = b[0] * (1 - w) + t[0] * w; px[i + 1] = b[1] * (1 - w) + t[1] * w; px[i + 2] = b[2] * (1 - w) + t[2] * w;
     }
     ctx.putImageData(d, 0, 0);
   }

@@ -29,6 +29,11 @@ t('assetFor Scrub Top Short front', !!A.assetFor('Scrub Top', 'Short', 'front'))
 t('no asset for 3/4, back, T-Shirt', !A.assetFor('Scrub Top', '3/4', 'front') && !A.assetFor('Scrub Top', 'Short', 'back') && !A.assetFor('T-Shirt', 'Short', 'front'));
 t('zonesFor photo base = [body]', JSON.stringify(Sh.zonesFor('Scrub Top', 'Short')) === '["body"]');
 t('zonesFor 3/4 keeps vector zones', Sh.zonesFor('Scrub Top', '3/4').length > 1);
+t('assetFor Mandarin Collar Short front = photo, 2 zones', (a => !!a && a.zones.join() === 'body,collar' && !!a.trim)(A.assetFor('Mandarin Collar', 'Short', 'front')));
+t('Mandarin Collar Long / back stay vector', !A.assetFor('Mandarin Collar', 'Long', 'front') && !A.assetFor('Mandarin Collar', 'Short', 'back'));
+t('zonesFor mandarin photo = body,collar', Sh.zonesFor('Mandarin Collar', 'Short').join() === 'body,collar');
+t('mandarin photo: single fit, no gender control', G.FAMILY_BY_NAME['Mandarin Collar'].fits.length === 1 && G.resolveFit('Mandarin Collar', 'male') === null);
+t('housekeeping photo opens Mandarin Collar Short', (g => g?.garment === 'Mandarin Collar' && g.sleeve === 'Short')(D.openTarget(D.ENTRIES.find(d => d.id === 'scrub-set-housekeeping'), {})));
 const ser = S.serializeDesign({ ...G.applyGarment(base, 'T-Shirt'), colors: { body: '#123456' }, overlays: [] });
 let h = renderToString(React.createElement(Prev, { cfg: ser, height: 220 }));
 t('studio cfg -> 2 silhouettes, no 3D toggle without WebGL', (h.match(/<svg/g) || []).length === 2 && !h.includes('Preview type'));

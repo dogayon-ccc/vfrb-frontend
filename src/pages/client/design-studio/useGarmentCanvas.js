@@ -197,7 +197,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       if (asset) {
         const token = ++redrawToken.current;
         canvas.setWidth(paths.w); canvas.setHeight(paths.h);
-        tintedCanvas(asset, colors.body).then((src) => {
+        tintedCanvas(asset, { body: colors.body, collar: colors.collar }).then((src) => {
           if (token !== redrawToken.current || fc.current !== canvas) return;
           const scale = Math.min(paths.w / asset.w, paths.h / asset.h);
           canvas.getObjects().filter(o => o.__garmentBase).forEach(o => canvas.remove(o));
