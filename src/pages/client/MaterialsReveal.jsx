@@ -46,6 +46,18 @@ const CSS = `
 @media(prefers-reduced-motion:reduce){.mr-spin{animation-duration:2s}.mr-btn{transition:none}}
 `;
 
+// One in-flight request per order: StrictMode (dev) mounts effects twice, which fired two parallel Gemini calls
+// that raced on delete+insert of the same recommendation rows.
+const inflight = new Map();
+function requestRecs(orderId) {
+  if (!inflight.has(orderId)) {
+    const p = axios.post('/api/customer/ai/recommend-materials', { order_id: orderId }, { timeout: 120_000 })
+      .finally(() => inflight.delete(orderId));
+    inflight.set(orderId, p);
+  }
+  return inflight.get(orderId);
+}
+
 export default function MaterialsReveal({ order, onDone }) {
   const [recs, setRecs] = useState([]);
   const [generating, setGenerating] = useState(true);
@@ -59,7 +71,7 @@ export default function MaterialsReveal({ order, onDone }) {
     let live = true;
     (async () => {
       try {
-        const { data } = await axios.post('/api/customer/ai/recommend-materials', { order_id: order.order_id });
+        const { data } = await requestRecs(order.order_id);
         if (live) setRecs(data?.materials ?? []);
       } catch (e) {
         if (live) setGenErr(e.response?.data?.message ?? 'AI is unavailable right now — you can still pick materials yourself below.');
