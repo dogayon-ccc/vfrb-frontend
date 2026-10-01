@@ -80,7 +80,7 @@ export default function Login() {
             <input id="login-password" type={showPw ? 'text' : 'password'} value={form.password}
               onChange={e => { set('password', e.target.value); if (error) setError(''); }}
               onFocus={() => setFocused('password')} onBlur={() => setFocused('')}
-              placeholder="••••••••" style={{ ...authInput(focused, 'password', error), paddingRight: 48 }}/>
+              placeholder="Enter your password" style={{ ...authInput(focused, 'password', error), paddingRight: 48 }}/>
             <button type="button" onClick={() => setShowPw(v => !v)} aria-label={showPw ? 'Hide password' : 'Show password'}
               style={{ position: 'absolute', right: 1, top: '50%', transform: 'translateY(-50%)', background: 'none',
                 border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',

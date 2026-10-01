@@ -603,7 +603,7 @@ export default function CustomerLayout() {
               <p style={{ fontSize:11, fontWeight:800, color:'#fff',
                 letterSpacing:'.04em', margin:0, lineHeight:1.2,
                 overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                VFRB Enterprise
+                VFRB
               </p>
               <p style={{ fontSize:9, color:'rgba(255,255,255,.65)', fontWeight:600,
                 textTransform:'uppercase', letterSpacing:'.07em', margin:0 }}>

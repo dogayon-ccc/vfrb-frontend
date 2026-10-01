@@ -38,8 +38,7 @@ export default function ForgotPassword() {
 
   return (
     <AuthShell title="Reset Password" subtitle="">
-      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 28,
-        boxShadow: '0 4px 20px rgba(0,0,0,.04)' }}>
+      <div style={{ padding: '4px 0 0' }}>
         {sent ? (
           <div style={{ textAlign: 'center' }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>

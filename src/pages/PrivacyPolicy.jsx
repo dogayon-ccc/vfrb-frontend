@@ -80,7 +80,7 @@ export default function PrivacyPolicy() {
 
       <MarketingNav/>
 
-      <div className="pp-wrap" style={{ maxWidth: 800, margin: '0 auto' }}>
+      <div className="pp-wrap" style={{ maxWidth: 680, margin: '0 auto' }}>
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <p style={{ color: T.accent, fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
             Legal
@@ -96,7 +96,7 @@ export default function PrivacyPolicy() {
             <div key={i} style={{ marginBottom: 32 }}>
               <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 10 }}>{s.title}</h2>
               {paras(s.body).map((t, i) => (
-                <p key={i} style={{ color: 'rgba(15,23,42,0.75)', fontSize: 15, lineHeight: 1.75, margin: i ? '12px 0 0' : 0, maxWidth: '68ch' }}>{t}</p>
+                <p key={i} style={{ color: 'rgba(15,23,42,0.75)', fontSize: 15, lineHeight: 1.75, margin: i ? '12px 0 0' : 0 }}>{t}</p>
               ))}
             </div>
           ))}

@@ -103,7 +103,7 @@ export default function FeedbackWidget() {
                   </p>
 
                   <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                    {[['bug', 'bug', 'Bug'], ['suggestion', 'suggestion', 'Idea'], ['other', 'chat', 'Other']].map(([v, ic, l]) => (
+                    {[['bug', 'bug', 'Bug'], ['suggestion', 'suggestion', 'Suggestion'], ['other', 'chat', 'Other']].map(([v, ic, l]) => (
                       <button key={v} onClick={() => setCategory(v)} style={{
                         flex: 1, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0 8px', borderRadius: 10, fontSize: 12, fontWeight: 600,
                         border: category === v ? `1.5px solid ${T}` : '1px solid var(--border)',

@@ -2,7 +2,7 @@
 // All three backends already existed with zero frontend consuming them — same gap class as BillingProfiles.jsx.
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import axios from 'axios';
 import { Card, Button, Field, Badge, NavIcon } from '../../components/ui';
 import EmptyState from '../../components/EmptyState';
@@ -352,6 +352,7 @@ const PANELS = {
 };
 
 export default function AccountSettings() {
+  const reduce = useReducedMotion();
   const [params, setParams] = useSearchParams();
   const tab = params.get('tab');
   const sec = SECTIONS.some(x => x.id === tab) ? tab : null;
@@ -397,7 +398,7 @@ export default function AccountSettings() {
   );
 
   const panel = current && (
-    <motion.section key={active} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: .18 }}
+    <motion.section key={active} initial={{ opacity: 0, x: reduce ? 0 : 10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: reduce ? 0 : .18 }}
       aria-labelledby="acct-panel-h">
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
         {!wide && <button className="cx-btn cx-btn-s" style={{ minHeight: 40, padding: '0 12px' }} onClick={() => setSec(null)} aria-label="Back to settings list">←</button>}
