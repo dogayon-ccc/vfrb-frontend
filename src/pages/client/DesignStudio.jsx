@@ -605,7 +605,7 @@ export default function DesignStudio() {
             selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected}
             viewMode={viewMode} has3DLoaded={has3DLoaded} onLogoFile={onLogoFile}
             zoom={zoom} setZoom={setZoom} snapshot={snapshot} overlays={overlays}
-            onChooseGarment={() => { setTool('type'); setSheetOpen(true); }}/>
+            onChooseGarment={() => { setTool('type'); setSheetOpen(true); }} setViewMode={setViewMode}/>
         </div>
 
         {/* ── FIRST-VISIT ONBOARDING OVERLAY ── */}
@@ -620,7 +620,7 @@ export default function DesignStudio() {
 
         {/* ── INSPIRATION GALLERY OVERLAY ── */}
         <InspoGallery showInspo={showInspo} setShowInspo={toggleInspo} setCfg={setCfg}
-          loadCanvasJSON={loadCanvasJSON}/>
+          loadCanvasJSON={loadCanvasJSON} onOpen3D={() => { setHas3DLoaded(true); setViewMode('3d'); }}/>
 
         {/* ── SHOWCASE GALLERY OVERLAY ── */}
         <ShowcaseGallery showShowcase={showShowcase} setShowShowcase={toggleShowcase} setCfg={setCfg}

@@ -4,7 +4,8 @@ import axios from 'axios';
 import { NavIcon } from '../../../components/ui/icons';
 import { T2 } from './dsShared';
 import { BASE_PATHS } from './garmentPaths';
-import { CATEGORIES, PIECES, SLEEVES, DESIGNS, filterDesigns, facetCounts } from './designGallery';
+import { CATEGORIES, PIECES, SLEEVES, GENDERS, ENTRIES, TIER_LABEL, filterDesigns, facetCounts, openTarget } from './designGallery';
+import { applyGarment } from './garmentCatalog';
 
 export function MiniPreview({ garment, colors }) {
   const paths = BASE_PATHS[garment] ?? BASE_PATHS['Polo Shirt'];
@@ -77,7 +78,7 @@ function Tile({ label, sub, thumb, onClick, editable, onRename, onDelete, onSubm
         ) : (
           <p style={{ fontSize:10, fontWeight:700, color:'rgba(15,23,42,.7)', margin:0, textAlign:'center' }}>{label}</p>
         )}
-        <p style={{ fontSize:9, color:'rgba(15,23,42,.28)', margin:0 }}>{sub}</p>
+        <div style={{ fontSize:9, color:'rgba(15,23,42,.28)' }}>{sub}</div>
       </button>
 
       {editable && !renaming && (
@@ -100,7 +101,8 @@ function Tile({ label, sub, thumb, onClick, editable, onRename, onDelete, onSubm
 const FILTERS = [
   ['category', 'Category', CATEGORIES],
   ['piece',    'Piece',    PIECES],
-  ['gender',   'For',      [{ id:'female', label:'Women' }, { id:'male', label:'Men' }]],
+  ['gender',   'For',      GENDERS],
+  ['tier',     'Type',     Object.entries(TIER_LABEL).map(([id, t]) => ({ id, label: t.label }))],
   ['sleeve',   'Sleeve',   SLEEVES.map(id => ({ id, label:id }))],
 ];
 
@@ -119,21 +121,46 @@ function FilterRow({ label, options, value, counts, onChange }) {
   );
 }
 
-function DesignBrowser({ onOpen }) {
+const TONE = { muted:'rgba(15,23,42,.45)', info:'#2563eb', warn:'#b45309', ok:'#047857' };
+
+function TierBadge({ tier }) {
+  const t = TIER_LABEL[tier];
+  return <span style={{ fontSize:9, fontWeight:800, color:TONE[t.tone] }}>{t.label}</span>;
+}
+
+function EntryThumb({ d }) {
+  return d.thumb
+    ? <img className="ds-gal-img" src={d.thumb} alt={d.name} loading="lazy"/>
+    : <div className="ds-gal-img" style={{ display:'flex', alignItems:'center', justifyContent:'center' }}><MiniPreview garment={d.family} colors={{}}/></div>;
+}
+
+function DesignBrowser({ onOpen, onOpen3D }) {
   const [filters, setFilters] = useState({});
   const [preview, setPreview] = useState(null);
   const counts = useMemo(() => facetCounts(filters), [filters]);
   const shown  = useMemo(() => filterDesigns(filters), [filters]);
 
   if (preview) {
+    const t = TIER_LABEL[preview.tier];
     return (
       <div className="ds-gal-preview">
-        <img src={preview.thumb} alt={preview.name}/>
+        {preview.thumb
+          ? <img src={preview.thumb} alt={preview.name}/>
+          : <MiniPreview garment={preview.family} colors={{}}/>}
         <p style={{ fontSize:12, fontWeight:800, color:'#1a2332', margin:0 }}>{preview.name}</p>
-        <p className="ds-note" style={{ textAlign:'center' }}>
-          Photo reference. This design has no editable 2D shape or 3D model yet.
-        </p>
-        <button type="button" className="ds-chip" onClick={() => setPreview(null)}>Back to designs</button>
+        <TierBadge tier={preview.tier}/>
+        <p className="ds-note" style={{ textAlign:'center' }}>{t.note}</p>
+        {preview.kind === 'photo' && preview.base && (
+          <p className="ds-note" style={{ textAlign:'center' }}>The 2D shape is the closest VFRB template, not an exact copy of this photo.</p>
+        )}
+        {preview.sleeves3D?.length > 0 && preview.sleeves.length > 1 && (
+          <p className="ds-note" style={{ textAlign:'center' }}>3D is available for {preview.sleeves3D.join(' / ').toLowerCase()} sleeves only.</p>
+        )}
+        <div style={{ display:'flex', gap:8, flexWrap:'wrap', justifyContent:'center' }}>
+          {preview.base && <button type="button" className="ds-chip" aria-pressed="true" onClick={() => onOpen(preview, filters)}>Edit in 2D</button>}
+          {preview.has3D && <button type="button" className="ds-chip" onClick={() => onOpen3D(preview, filters)}>Edit with 3D preview</button>}
+          <button type="button" className="ds-chip" onClick={() => setPreview(null)}>Back to designs</button>
+        </div>
       </div>
     );
   }
@@ -147,7 +174,7 @@ function DesignBrowser({ onOpen }) {
         ))}
       </div>
       <p className="ds-note" style={{ margin:'0 0 8px' }}>
-        {shown.length} of {DESIGNS.length} designs
+        {shown.length} of {ENTRIES.length} designs
         {Object.values(filters).some(Boolean) && (
           <> · <button type="button" onClick={() => setFilters({})}
             style={{ background:'none', border:'none', padding:0, color:T2, fontWeight:700, cursor:'pointer' }}>Clear filters</button></>
@@ -155,16 +182,15 @@ function DesignBrowser({ onOpen }) {
       </p>
       <div className="ds-gal-grid">
         {shown.map(d => (
-          <Tile key={d.id} label={d.name} sub={d.base ? 'Editable in 2D' : 'Photo reference'}
-            onClick={() => (d.base ? onOpen(d) : setPreview(d))}
-            thumb={<img className="ds-gal-img" src={d.thumb} alt={d.name} loading="lazy"/>}/>
+          <Tile key={d.id} label={d.name} sub={<TierBadge tier={d.tier}/>}
+            onClick={() => setPreview(d)} thumb={<EntryThumb d={d}/>}/>
         ))}
       </div>
     </>
   );
 }
 
-export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanvasJSON }) {
+export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanvasJSON, onOpen3D }) {
   const [archived, setArchived] = useState([]);
 
   useEffect(() => {
@@ -183,10 +209,14 @@ export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanv
     setShowInspo(false);
   };
 
-  const loadDesign = ({ base: [category, garment, sleeve], gender }) => {
-    setCfg(p => ({ ...p, category, garment, sleeve, fit: gender }));
+  const loadDesign = (d, filters) => {
+    const t = openTarget(d, filters);
+    if (!t) return;
+    setCfg(p => applyGarment(p, t.garment, t));
     setShowInspo(false);
   };
+
+  const loadDesign3D = (d, filters) => { loadDesign(d, filters); onOpen3D?.(); };
 
   const renameDesign = (id, newLabel) => {
     const prev = archived;
@@ -227,7 +257,7 @@ export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanv
                 <NavIcon name="ai" size={14}/> Design Inspirations
               </p>
               <p style={{ fontSize:10, color:'rgba(15,23,42,.35)', margin:'2px 0 0' }}>
-                Filter real VFRB designs, or click one to load it
+                Real VFRB designs and editable garments. Each one shows what it supports.
               </p>
             </div>
             <button onClick={() => setShowInspo(false)}
@@ -259,7 +289,7 @@ export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanv
 
           <p style={{ fontSize:10, fontWeight:800, color:'rgba(15,23,42,.4)', margin:'0 0 8px',
             textTransform:'uppercase', letterSpacing:.4 }}>VFRB Designs</p>
-          <DesignBrowser onOpen={loadDesign}/>
+          <DesignBrowser onOpen={loadDesign} onOpen3D={loadDesign3D}/>
         </motion.div>
       )}
     </AnimatePresence>

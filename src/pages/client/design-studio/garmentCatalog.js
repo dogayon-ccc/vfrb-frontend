@@ -111,6 +111,28 @@ export function resolveSleeve(garment, sleeve) {
   return fam.styles.includes(sleeve) ? sleeve : fam.defaultStyle;
 }
 
+// Fit is only meaningful for a family whose 3D model ships several fits. Everything else carries `null`, so a fit left over from
+// a previous garment can never reach a save, an order, or the 3D loader.
+export function resolveFit(garment, fit) {
+  const fam = FAMILIES[garment];
+  if (!fam || fam.fits.length < 2) return null;
+  return fam.fits.includes(fit) ? fit : fam.fits[0];
+}
+
+// The one place a garment change is applied to a design, so sleeve and fit are always re-resolved against the NEW garment.
+// `next` may carry a sleeve/fit request (from a photo design); both are validated, never trusted.
+export function applyGarment(cfg, garment, next = {}) {
+  const fam = FAMILIES[garment];
+  if (!fam) return { ...cfg, garment: garment ?? null };
+  return {
+    ...cfg,
+    category: next.category ?? cfg.category,
+    garment: fam.id,
+    sleeve: resolveSleeve(fam.id, next.sleeve ?? (fam.styles.includes(cfg.sleeve) ? cfg.sleeve : null)),
+    fit: resolveFit(fam.id, next.fit ?? cfg.fit),
+  };
+}
+
 // Neighbour family within the same category, for Previous/Next browsing. dir: -1 or 1. Wraps.
 export function neighborFamily(category, garment, dir) {
   const cat = CATALOG.find(c => c.id === category) ?? CATALOG[0];

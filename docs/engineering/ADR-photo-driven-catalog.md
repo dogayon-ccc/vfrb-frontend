@@ -29,3 +29,12 @@ blouse-asymmetric-blue, shirt-utility-beige-long.
 ## Consequences
 Easier: real products, honest filters, one place to add a design. Harder: every new design needs a photo + metadata + (later) a validated GLB.
 Revisit: once 3+ designs have GLBs, retire the hand-drawn silhouettes that no design uses.
+
+## Update — unified catalog (Oct 1)
+
+- `designGallery.js` exports `ENTRIES` = `GARMENTS` (derived from `garmentCatalog.js`, never re-declared) + `DESIGNS` (real VFRB photos).
+- Every entry has `tier`: `reference` | `editable-2d` | `2d-3d-approx` | `2d-3d`. Photos are never 3D (no GLB exists for any of them). 3D availability comes only from the family's `status3D`.
+- `openTarget()` is the only gallery-to-editor mapping; `applyGarment()` (garmentCatalog.js) is the only place a garment change is applied, so sleeve and fit are always re-resolved. `serializeDesign`/`deserializeDesign` re-resolve both on save and restore.
+- Filters disable any option with zero results (`facetCounts`). Gender chips come from real `fits`; families without fits carry no gender.
+- WebGL: `webglSupport.js` probes once; no WebGL, or a context not restored within 3 s, returns the Studio to 2D with a notice.
+- Open: Polo, work-shirt and lab-coverall GLBs are 98k–137k triangles with no UVs; decimate before the mobile demo.

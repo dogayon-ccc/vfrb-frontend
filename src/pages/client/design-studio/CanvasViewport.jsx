@@ -4,6 +4,7 @@ import { NavIcon } from '../../../components/ui/icons';
 import { T, T2, DARK, SHAPE_TYPE_LABEL } from './dsShared';
 import { familyFor, STATUS_3D_LABEL } from './garmentCatalog';
 import GarmentSilhouette from './GarmentSilhouette';
+import { hasWebGL } from './webglSupport';
 
 const Scene3D = lazy(() => import('../DesignStudio3D'));
 
@@ -63,9 +64,12 @@ class ThreeEB extends Component {
 export default function CanvasViewport({
   cfg, setCfg, canvasWrapRef, canvasEl, aiPulse, face, switchFace, initFailed,
   selObj, deleteSelected, duplicateSelected, viewMode, has3DLoaded, onLogoFile, zoom, setZoom, snapshot, overlays,
-  onChooseGarment,
+  onChooseGarment, setViewMode,
 }) {
   const paneRef = useRef(null);
+  const [webglOk, setWebglOk] = useState(hasWebGL);
+  const show3D = has3DLoaded && webglOk;
+  const on3DLost = () => { setWebglOk(false); setViewMode?.('2d'); };
   const fit = useFit(paneRef, canvasWrapRef);
   const [dark, setDark] = useState(false);
 
@@ -104,9 +108,9 @@ export default function CanvasViewport({
           restored state), this guard makes that combination fall back to showing 2D instead of nothing. */}
       <div ref={paneRef} className="ds-pane" style={{
           display:'flex', alignItems:'center', justifyContent:'center',
-          visibility: (viewMode==='2d' || !has3DLoaded) ? 'visible' : 'hidden',
-          pointerEvents: (viewMode==='2d' || !has3DLoaded) ? 'auto' : 'none',
-          zIndex: (viewMode==='2d' || !has3DLoaded) ? 1 : 0,
+          visibility: (viewMode==='2d' || !show3D) ? 'visible' : 'hidden',
+          pointerEvents: (viewMode==='2d' || !show3D) ? 'auto' : 'none',
+          zIndex: (viewMode==='2d' || !show3D) ? 1 : 0,
         }}>
         <AnimatePresence mode="wait" initial={false}>
           {cfg.garment && (
@@ -247,7 +251,14 @@ export default function CanvasViewport({
         </AnimatePresence>
       </div>
 
-      {has3DLoaded && (
+      {viewMode==='3d' && !webglOk && (
+        <div role="status" style={{ position:'absolute', top:14, left:'50%', transform:'translateX(-50%)', zIndex:3, maxWidth:'calc(100% - 28px)',
+          padding:'6px 12px', borderRadius:99, background:'rgba(15,23,42,.82)', color:'#fff', fontSize:11, fontWeight:700, textAlign:'center' }}>
+          3D preview is not available on this device. Showing the 2D design.
+        </div>
+      )}
+
+      {show3D && (
         <div className="ds-pane" style={{
             visibility: viewMode==='3d' ? 'visible' : 'hidden',
             pointerEvents: viewMode==='3d' ? 'auto' : 'none',
@@ -267,7 +278,7 @@ export default function CanvasViewport({
                 </p>
               </div>
             }>
-              <Scene3D cfg={cfg} overlayDataUrl={snapshot} overlays={overlays}/>
+              <Scene3D cfg={cfg} overlayDataUrl={snapshot} overlays={overlays} onContextLost={on3DLost}/>
             </Suspense>
           </ThreeEB>
           {!cfg.garment && (

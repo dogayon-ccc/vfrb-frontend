@@ -361,7 +361,7 @@ function PauseWhenHidden() {
 }
 
 // ── Full scene ─────────────────────────────────────────────────────────────────
-export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overlays = null }) {
+export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overlays = null, onContextLost = null }) {
   // FIX (3D never showed logo/pattern/text): loads the live 2D canvas
   // snapshot (refreshed by DesignStudio.jsx each time "3D" is clicked) as
   // a texture for the body mesh. Falls back to flat color if there's no
@@ -377,8 +377,10 @@ export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overla
       onCreated={({ gl, invalidate }) => {
         // Let the browser restore a lost context instead of leaving a dead canvas (preventDefault is what allows restore).
         const el = gl.domElement;
-        el.addEventListener('webglcontextlost', e => e.preventDefault());
-        el.addEventListener('webglcontextrestored', () => invalidate());
+        // A lost context that is not restored within 3 s hands control back to the 2D view instead of leaving a dead canvas.
+        let giveUp = null;
+        el.addEventListener('webglcontextlost', e => { e.preventDefault(); giveUp = setTimeout(() => onContextLost?.(), 3000); });
+        el.addEventListener('webglcontextrestored', () => { clearTimeout(giveUp); invalidate(); });
       }}
       style={{ width:'100%', height:'100%', background:'transparent' }}>
 

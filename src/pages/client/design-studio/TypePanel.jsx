@@ -4,7 +4,7 @@ import { NavIcon } from '../../../components/ui/icons';
 import { BASE_PATHS } from './garmentPaths';
 import GarmentThumb from './GarmentThumb';
 import { selectFamily } from './selectGarment';
-import { CATALOG, familyFor, neighborFamily, STATUS_3D_LABEL } from './garmentCatalog';
+import { CATALOG, familyFor, neighborFamily, applyGarment, STATUS_3D_LABEL } from './garmentCatalog';
 import { PH_SWATCHES, ZONE_LABEL, zonesFor } from './dsShared';
 
 // Options come from the canonical CATALOG only; nothing here invents a garment, style or fit.
@@ -30,7 +30,7 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool }) {
       <div className="ds-tp-catbar" role="tablist" aria-label="Uniform category">
         {CATALOG.map(c => (
           <button key={c.id} type="button" role="tab" aria-selected={cfg.category === c.id} className="ds-tp-catchip"
-            onClick={() => setCfg(p => ({ ...p, category: c.id, garment: c.families[0].id, sleeve: c.families[0].defaultStyle }))}>
+            onClick={() => setCfg(p => applyGarment(p, c.families[0].id, { category: c.id }))}>
             <NavIcon name={c.icon} size={15}/>
             <span>{c.id.split('/')[0].trim()}</span>
           </button>
