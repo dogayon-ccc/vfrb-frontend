@@ -1,0 +1,42 @@
+// Run: node tools/logic-checks.mjs   (garment state rules, photo gallery data, photo base, shared preview SSR render)
+import { createServer } from 'vite';
+const v = await createServer({ server: { middlewareMode: true }, appType: 'custom', logLevel: 'error' });
+const L = p => v.ssrLoadModule(p);
+const G = await L('/src/pages/client/design-studio/garmentCatalog.js');
+const S = await L('/src/pages/client/design-studio/designSerialization.js');
+const D = await L('/src/pages/client/design-studio/designGallery.js');
+const A = await L('/src/pages/client/design-studio/garmentAssets.js');
+const Sh = await L('/src/pages/client/design-studio/dsShared.js');
+const React = (await import('react')).default;
+const { renderToString } = await import('react-dom/server');
+const Prev = (await L('/src/components/DesignPreview.jsx')).default;
+const out = []; const t = (n, c) => out.push((c ? 'PASS ' : 'FAIL ') + n);
+const base = { category: 'School Uniform', garment: 'Polo Shirt', sleeve: 'Short', fit: 'female' };
+t('pants null sleeve/fit', (c => c.sleeve === null && c.fit === null)(G.applyGarment(base, 'Pants')));
+t('polo forced Short', G.applyGarment({ ...base, sleeve: 'Long' }, 'Polo Shirt').sleeve === 'Short');
+t('gallery = 20 photos only', D.ENTRIES.length === 20 && D.ENTRIES.every(d => d.kind === 'photo'));
+t('no template names as entries', !D.ENTRIES.some(d => ['Polo Shirt', 'Pants', 'Shorts', 'Skirt', 'Round Neck', 'Button-Down'].includes(d.name)));
+t('metadata shape', D.ENTRIES.every(d => d.id && d.image && d.label && d.category && d.piece && 'gender' in d && 'sleeve' in d && 'garmentFamily' in d && typeof d.editable2D === 'boolean' && d.glb === null && d.source && d.status));
+t('no photo has 3D', D.ENTRIES.every(d => !d.has3D));
+t('statuses only reference/editable-2d', D.ENTRIES.every(d => ['reference', 'editable-2d'].includes(d.tier)));
+t('search blazer = 5', D.filterDesigns({ q: 'blazer' }).length === 5);
+t('search mandarin >= 3', D.filterDesigns({ q: 'mandarin' }).length >= 3);
+t('filter medical = 2 scrub sets', D.filterDesigns({ category: 'medical' }).length === 2 && D.filterDesigns({ category: 'medical' }).every(d => d.piece === 'set'));
+t('unisex has 0 photos', D.facetCounts({}).gender.unisex === 0);
+t('7 editable-2d photos', D.ENTRIES.filter(d => d.editable2D).length === 7);
+for (const d of D.ENTRIES) { const tg = D.openTarget(d, {}); t(`${d.id}: ${d.editable2D ? 'opens ' + tg?.garment : 'reference-only'}`, d.editable2D ? !!G.FAMILY_BY_NAME[tg.garment] : tg === null); }
+t('assetFor Scrub Top Short front', !!A.assetFor('Scrub Top', 'Short', 'front'));
+t('no asset for 3/4, back, T-Shirt', !A.assetFor('Scrub Top', '3/4', 'front') && !A.assetFor('Scrub Top', 'Short', 'back') && !A.assetFor('T-Shirt', 'Short', 'front'));
+t('zonesFor photo base = [body]', JSON.stringify(Sh.zonesFor('Scrub Top', 'Short')) === '["body"]');
+t('zonesFor 3/4 keeps vector zones', Sh.zonesFor('Scrub Top', '3/4').length > 1);
+const ser = S.serializeDesign({ ...G.applyGarment(base, 'T-Shirt'), colors: { body: '#123456' }, overlays: [] });
+let h = renderToString(React.createElement(Prev, { cfg: ser, height: 220 }));
+t('studio cfg -> 2 silhouettes, no 3D toggle without WebGL', (h.match(/<svg/g) || []).length === 2 && !h.includes('Preview type'));
+t('previewUrl -> img', renderToString(React.createElement(Prev, { cfg: ser, previewUrl: '/x.png' })).includes('src="/x.png"'));
+t('null cfg no crash', renderToString(React.createElement(Prev, { cfg: null })).includes('No design preview'));
+t('legacy garmentType no crash', typeof renderToString(React.createElement(Prev, { cfg: { garmentType: 'T-Shirt' } })) === 'string');
+t('unknown garment no crash', typeof renderToString(React.createElement(Prev, { cfg: { garment: 'Garbage' } })) === 'string');
+t('reference image', renderToString(React.createElement(Prev, { cfg: null, referenceImageUrl: '/ref.png' })).includes('/ref.png'));
+for (const g of ['Pants', 'Skirt', 'Polo Shirt', 'T-Shirt', 'Scrub Top']) { const cfg = { ...G.applyGarment(base, g), colors: { body: '#123456' }, overlays: [] }; const r = S.deserializeDesign(JSON.parse(JSON.stringify(S.serializeDesign(cfg)))); const b = r.cfg ?? r; t(`roundtrip ${g}`, b.garment === g && b.sleeve === cfg.sleeve && b.fit === cfg.fit); }
+console.log(out.join('\n')); const f = out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
+await v.close(); process.exit(f ? 1 : 0);

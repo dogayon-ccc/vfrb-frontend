@@ -5,6 +5,7 @@ import { T, T2, DARK, SHAPE_TYPE_LABEL } from './dsShared';
 import { familyFor, STATUS_3D_LABEL } from './garmentCatalog';
 import GarmentSilhouette from './GarmentSilhouette';
 import { hasWebGL } from './webglSupport';
+import { hasPhotoBase } from './garmentAssets';
 
 const Scene3D = lazy(() => import('../DesignStudio3D'));
 
@@ -117,7 +118,7 @@ export default function CanvasViewport({
             <motion.div key={`${cfg.garment}-${face}`} className="ds-ctx-chip" aria-live="polite"
               initial={{ opacity:0, y:-6 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-4 }}
               transition={{ duration:.18 }}>
-              <strong>{cfg.garment}</strong><span>{face === 'front' ? 'Front view' : 'Back view'}</span>
+              <strong>{cfg.garment}</strong><span>{face === 'front' ? 'Front view' : hasPhotoBase(cfg.garment, cfg.sleeve) ? 'Back view · generic shape' : 'Back view'}</span>
             </motion.div>
           )}
         </AnimatePresence>

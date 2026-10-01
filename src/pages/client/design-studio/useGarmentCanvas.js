@@ -2,6 +2,7 @@
 import { useRef, useState, useCallback, useEffect, useLayoutEffect } from 'react';
 import { T2, LOGO_PRESETS, PATTERNS, SHAPE_TYPE_LABEL } from './dsShared';
 import { getGarmentPaths } from './garmentPaths';
+import { assetFor, tintedCanvas } from './garmentAssets';
 
 const OVERLAY_PROPS = ['__logo','__text','__draw','__shape','__layerId','__layerName','__locked','lockMovementX','lockMovementY','lockRotation','lockScalingX','lockScalingY','hasControls'];
 
@@ -48,6 +49,8 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   const [, setLayersTick] = useState(0);
   const bumpLayers = useCallback(() => setLayersTick(t => t + 1), []);
   const [initFailed, setInitFailed] = useState(false);
+  const [ready, setReady] = useState(false);
+  const redrawToken = useRef(0);
 
   // Init once on mount. useLayoutEffect (not useEffect) so cleanup runs
   // before React's own DOM removal — avoids a removeChild race with
@@ -68,11 +71,13 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         selection: true,
       });
       fabricReady.current = true;
+      setReady(true);
 
       const drawInitialGarment = () => {
         const c = fc.current;
         if (!c) return;
         const initPaths = getGarmentPaths(garment, sleeve, face);
+        if (assetFor(garment, sleeve, face)) { c.setWidth(initPaths.w); c.setHeight(initPaths.h); return; }
         const draw = (d, fill, zoneKey, idx) => {
           if (!d) return;
           // FIX (Sept 10 2026): pocket previously used the exact same
@@ -187,6 +192,25 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       const paths = getGarmentPaths(garment, sleeve, face);
       canvas.getObjects().filter(o => o.__garmentBase || o.__hoverGlow).forEach(o => canvas.remove(o));
 
+      // Photo base: one recoloured cut-out in the body zone, same canvas size as the vector template so logo/text placement is unchanged.
+      const asset = assetFor(garment, sleeve, face);
+      if (asset) {
+        const token = ++redrawToken.current;
+        canvas.setWidth(paths.w); canvas.setHeight(paths.h);
+        tintedCanvas(asset, colors.body).then((src) => {
+          if (token !== redrawToken.current || fc.current !== canvas) return;
+          const scale = Math.min(paths.w / asset.w, paths.h / asset.h);
+          canvas.getObjects().filter(o => o.__garmentBase).forEach(o => canvas.remove(o));
+          canvas.insertAt(0, new fabric.Image(src, {
+            left: (paths.w - asset.w * scale) / 2, top: (paths.h - asset.h * scale) / 2, scaleX: scale, scaleY: scale,
+            selectable: false, evented: true, objectCaching: false, __garmentBase: true, __zoneKey: 'body',
+          }));
+          canvas.renderAll();
+        }).catch(() => {});
+        return;
+      }
+      redrawToken.current++;
+
       const makeZone = (d, fill, zoneKey, idx) => {
         if (!d) return;
         const patDef = PATTERNS.find(p => p.id === (patterns?.[zoneKey] ?? 'solid'));
@@ -275,7 +299,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       canvas.setHeight(paths.h);
       canvas.renderAll();
     }).catch(() => {});
-  }, [garment, sleeve, face, colors, patterns, patternParams]);
+  }, [garment, sleeve, face, colors, patterns, patternParams, ready]);
 
   // History helpers — declared before addLogo/addText/deleteSelected, which depend on pushHistory
   const pushHistory = useCallback(() => {

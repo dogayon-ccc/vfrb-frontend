@@ -12,6 +12,7 @@ import AIPanel from './AIPanel';
 import StudioDock from './StudioDock';
 import { SummaryContent, SelectionInspector, isEditableSelection } from './RightInfoPanel';
 import { TOOLS } from './dsShared';
+import { assetFor } from './garmentAssets';
 
 const noop = () => {};
 
@@ -31,7 +32,9 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, sum
     text:    () => <TextPanel onAdd={p.addText}/>,
     draw:    () => <DrawPanel size={p.brushSize} color={p.brushColor} onSizeChange={p.changeBrushSize} onColorChange={p.changeBrushColor}/>,
     ai:      () => <AIPanel onApply={p.applyAI} onTexture={noop}/>,
-    pattern: () => <PatternPanel cfg={p.cfg} setCfg={p.setCfg} activeZone={p.activeZone}/>,
+    pattern: () => (assetFor(p.cfg.garment, p.cfg.sleeve)
+      ? <p className="ds-note" style={{ padding:'20px 4px', textAlign:'center' }}>Patterns are not available on a real-photo garment base. Switch the sleeve or garment to use them.</p>
+      : <PatternPanel cfg={p.cfg} setCfg={p.setCfg} activeZone={p.activeZone}/>),
     layers:  () => <LayersPanel layers={p.layers} selectedId={p.selObj?.__layerId} garment={p.cfg.garment} onSelect={p.selectLayer}
                      onToggleVisibility={p.toggleLayerVisibility} onToggleLock={p.toggleLayerLock} onOpacity={p.setLayerOpacity}
                      onRename={p.renameLayer} onDelete={p.deleteLayer} onReorder={p.reorderLayers}/>,

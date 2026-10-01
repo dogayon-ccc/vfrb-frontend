@@ -1,7 +1,8 @@
 // src/pages/client/OrderWizard.jsx
 // 4-step order wizard: Design → Configure → Sizing → Review.
 // On submit, hands off to MaterialsReveal instead of navigating directly.
-import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import DesignPreview from '../../components/DesignPreview';
 import { useNavigate }                                   from 'react-router-dom';
 import { motion, AnimatePresence }                       from 'framer-motion';
 import axios                                             from 'axios';
@@ -9,7 +10,6 @@ import MaterialsReveal                                   from './MaterialsReveal
 import { NavIcon }                                        from '../../components/ui/icons';
 import { zonesFor }                                       from './design-studio/dsShared';
 
-const GarmentPreview3D = lazy(() => import('../../components/GarmentPreview3D'));
 
 const T    = 'var(--teal)';
 const T2   = '#02C39A';
@@ -790,7 +790,6 @@ function StepReview({ form, studio }) {
     {
       t:'Order Configuration',
       rows:[
-        ['Client Type', form.order_type==='direct' ? 'Direct Client' : 'Institutional / OTG'],
         ['Quantity',    `${form.quantity_ordered || 0} pcs`],
         ['Color',       form.color || '—'],
         ['Deadline',    form.deadline || 'Not specified'],
@@ -901,22 +900,9 @@ function StepReview({ form, studio }) {
             </p>
           </div>
           <div style={{ padding:'16px' }}>
-            <Suspense fallback={
-              <div style={{ height:220, background:'var(--bg-surface)', borderRadius:10,
-                display:'flex', alignItems:'center', justifyContent:'center' }}>
-                <p style={{ color:'var(--text-faint)', fontSize:12, fontFamily:FONT }}>
-                  Loading preview…
-                </p>
-              </div>
-            }>
-              <GarmentPreview3D
-                cfg={studio ?? { garmentType: form.garment_type }}
-                height={220} autoRotate={true} showLabel={true}
-                referenceImageUrl={
-                  !studio && form.design_ref_file?.type?.startsWith('image/') ? refFileBlobUrl : null
-                }
-              />
-            </Suspense>
+            <DesignPreview cfg={studio} height={220}
+              previewUrl={studio?.previewPng ?? null}
+              referenceImageUrl={!studio && form.design_ref_file?.type?.startsWith('image/') ? refFileBlobUrl : null}/>
           </div>
         </motion.div>
       )}

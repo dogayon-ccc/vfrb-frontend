@@ -13,7 +13,8 @@
 //     staff/inventory-only — this file never receives it)
 // Caching: cacheGet('order_detail_'+id) 30s TTL, cleared on AI accept/reject.
 
-import { useState, useEffect, useCallback, Suspense, lazy } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import DesignPreview from '../../components/DesignPreview';
 import { useParams, useNavigate }            from 'react-router-dom';
 import { motion, AnimatePresence }           from 'framer-motion';
 import axios                                 from 'axios';
@@ -22,7 +23,6 @@ import { getStorageUrl, isImageFile }        from '../../utils/fileUrl';
 import { NavIcon }                           from '../../components/ui/icons';
 import { OrderThumb, Stepper, StatusPill, LIFECYCLE, lifecycleIndex, orderTitle, fmtDate } from '../../components/customer/kit';
 
-const GarmentPreview3D = lazy(() => import('../../components/GarmentPreview3D'));
 
 const T    = 'var(--teal)';
 const T2   = '#02C39A';
@@ -641,22 +641,9 @@ export default function CustomerOrderDetail() {
               <p className="od-section-title" style={{ fontFamily:FONT }}>
                 Design Preview
               </p>
-              <Suspense fallback={
-                <div style={{ height:220, background:'var(--bg-surface)', borderRadius:10,
-                  display:'flex', alignItems:'center', justifyContent:'center' }}>
-                  <p style={{ color:'var(--text-faint)', fontSize:12, fontFamily:FONT }}>
-                    Loading preview…
-                  </p>
-                </div>
-              }>
-                <GarmentPreview3D
-                  cfg={order.studio_config ?? { garmentType: order.garment_type }}
-                  height={220} autoRotate={true} showLabel={true}
-                  referenceImageUrl={
-                    !order.studio_config ? getStorageUrl(order.client_design_ref_file) : null
-                  }
-                />
-              </Suspense>
+              <DesignPreview cfg={order.studio_config} height={220}
+                previewUrl={order.design_preview_url ?? null}
+                referenceImageUrl={!order.studio_config ? getStorageUrl(order.client_design_ref_file) : null}/>
             </div>
           </div>
         )}

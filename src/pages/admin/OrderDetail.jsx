@@ -52,7 +52,7 @@ import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getStorageUrl, isImageFile } from '../../utils/fileUrl';
-import GarmentPreview3D from '../../components/GarmentPreview3D';
+import DesignPreview from '../../components/DesignPreview';
 import { Card, NavIcon } from '../../components/ui';
 
 // Fresh-per-mount role check (Aug 23 2026) — NEVER hoist this to module
@@ -330,7 +330,7 @@ export default function AdminOrderDetail() {
                 {order.studio_config.name}
               </div>
             )}
-            <GarmentPreview3D cfg={order.studio_config} height={360} autoRotate showLabel={false}/>
+            <DesignPreview cfg={order.studio_config} height={360} previewUrl={order.design_preview_url ?? null}/>
             {/* FIX (Defect A): studio_config.previewPng is stripped at order-creation
                 time (OrderController::customerStore) and never re-injected into
                 studio_config — GarmentPreview3D has no prop for it and never did,

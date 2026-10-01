@@ -6,6 +6,7 @@ import GarmentThumb from './GarmentThumb';
 import { selectFamily } from './selectGarment';
 import { CATALOG, familyFor, neighborFamily, applyGarment, STATUS_3D_LABEL } from './garmentCatalog';
 import { PH_SWATCHES, ZONE_LABEL, zonesFor } from './dsShared';
+import { assetFor } from './garmentAssets';
 
 // Options come from the canonical CATALOG only; nothing here invents a garment, style or fit.
 export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, viewMode, setViewMode, setHas3DLoaded }) {
@@ -20,6 +21,7 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, view
   const hasFit  = (family?.fits.length ?? 0) > 1;
   const zones   = cfg.garment ? zonesFor(cfg.garment, cfg.sleeve).filter(z => z !== 'body' && (z !== 'tipping' || cfg.colors.tipping)) : [];
   const body    = (cfg.colors.body ?? '').toLowerCase();
+  const photo   = cfg.garment ? assetFor(cfg.garment, cfg.sleeve) : null;
 
   const goNeighbor = (dir) => {
     const next = neighborFamily(cfg.category, cfg.garment, dir);
@@ -195,13 +197,17 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, view
                 </div>
               );
             })}
-            <div className="ds-acc-item">
-              <button type="button" className="ds-acc-head" onClick={() => onOpenTool('pattern')}>
-                <NavIcon name="pattern" size={15}/>
-                <span>Pattern</span>
-                <NavIcon name="chevronRight" size={13}/>
-              </button>
-            </div>
+            {photo
+              ? <p className="ds-note" style={{ margin: '4px 2px 8px' }}>Real garment photo: colour applies to the whole garment. Collar, pocket and patterns are not editable on this base.</p>
+              : (
+                <div className="ds-acc-item">
+                  <button type="button" className="ds-acc-head" onClick={() => onOpenTool('pattern')}>
+                    <NavIcon name="pattern" size={15}/>
+                    <span>Pattern</span>
+                    <NavIcon name="chevronRight" size={13}/>
+                  </button>
+                </div>
+              )}
             <div className="ds-acc-item" data-open={openZone === 'preview'}>
               <button type="button" className="ds-acc-head" aria-expanded={openZone === 'preview'} onClick={() => setOpenZone(o => (o === 'preview' ? null : 'preview'))}>
                 <NavIcon name="show" size={15}/>

@@ -9,6 +9,7 @@
 // truth for both DesignStudio.jsx and every extracted panel — duplicating
 // T2's hex value in two files would be a real, easy-to-miss divergence
 // risk the next time the brand color changes.
+import { assetFor } from './garmentAssets';
 import { getGarmentPaths, BASE_PATHS } from './garmentPaths';
 import { deserializeDesign } from './designSerialization';
 // Pure-data capability lookup only — NOT garmentMeshManifest.js. That file also calls
@@ -104,6 +105,8 @@ export const ZONE_KEYS = ['body','collar','sleeve','pocket','tipping'];
 
 // Zones a garment really has, read from its 2D sketch so 2D, summary and 3D agree.
 export function zonesFor(garment, sleeve) {
+  const photo = assetFor(garment, sleeve);
+  if (photo) return photo.zones;
   const p = getGarmentPaths(garment, sleeve);
   // T-Shirt's scanned GLB has no separate collar node — hide the swatch so it can't be picked and silently do nothing in 3D.
   // NOTE (Account 3, verified against the current GLB): this is now stale. The wired t-shirt

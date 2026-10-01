@@ -106,11 +106,13 @@ const FILTERS = [
   ['sleeve',   'Sleeve',   SLEEVES.map(id => ({ id, label:id }))],
 ];
 
-function FilterRow({ label, options, value, counts, onChange }) {
+function FilterRow({ label, options, value, counts, totals, onChange }) {
+  const shown = options.filter(o => totals[o.id] > 0);
+  if (shown.length < 2) return null;
   return (
     <div className="ds-gal-row" role="group" aria-label={label}>
       <span className="ds-gal-label">{label}</span>
-      {options.map(o => (
+      {shown.map(o => (
         <button key={o.id} type="button" className="ds-chip" aria-pressed={value === o.id}
           disabled={value !== o.id && !counts[o.id]}
           onClick={() => onChange(value === o.id ? null : o.id)}>
@@ -128,10 +130,23 @@ function TierBadge({ tier }) {
   return <span style={{ fontSize:9, fontWeight:800, color:TONE[t.tone] }}>{t.label}</span>;
 }
 
-function EntryThumb({ d }) {
-  return d.thumb
-    ? <img className="ds-gal-img" src={d.thumb} alt={d.name} loading="lazy"/>
-    : <div className="ds-gal-img" style={{ display:'flex', alignItems:'center', justifyContent:'center' }}><MiniPreview garment={d.family} colors={{}}/></div>;
+const PIECE_LABEL = Object.fromEntries(PIECES.map(p => [p.id, p.label]));
+const GENDER_LABEL = Object.fromEntries(GENDERS.map(g => [g.id, g.label]));
+const CAT_LABEL = Object.fromEntries(CATEGORIES.map(c => [c.id, c.label]));
+const facts = d => [CAT_LABEL[d.category], PIECE_LABEL[d.piece], GENDER_LABEL[d.gender], d.sleeve && `${d.sleeve} sleeve`].filter(Boolean);
+const TOTALS = facetCounts({});
+
+function PhotoCard({ d, onClick }) {
+  return (
+    <button type="button" className="ds-photo-card" onClick={onClick} aria-label={`${d.label}, ${TIER_LABEL[d.tier].label}`}>
+      <img src={d.image} alt={d.label} loading="lazy"/>
+      <span className="ds-photo-meta">
+        <strong>{d.label}</strong>
+        <span>{facts(d).join(' · ')}</span>
+        <TierBadge tier={d.tier}/>
+      </span>
+    </button>
+  );
 }
 
 function DesignBrowser({ onOpen, onOpen3D }) {
@@ -144,48 +159,42 @@ function DesignBrowser({ onOpen, onOpen3D }) {
     const t = TIER_LABEL[preview.tier];
     return (
       <div className="ds-gal-preview">
-        {preview.thumb
-          ? <img src={preview.thumb} alt={preview.name}/>
-          : <MiniPreview garment={preview.family} colors={{}}/>}
-        <p style={{ fontSize:12, fontWeight:800, color:'#1a2332', margin:0 }}>{preview.name}</p>
+        <img src={preview.image} alt={preview.label} style={{ maxHeight:360, maxWidth:'100%', objectFit:'contain' }}/>
+        <p style={{ fontSize:13, fontWeight:800, color:'#1a2332', margin:0 }}>{preview.label}</p>
+        <p className="ds-note" style={{ textAlign:'center', margin:0 }}>{facts(preview).join(' · ')}</p>
         <TierBadge tier={preview.tier}/>
         <p className="ds-note" style={{ textAlign:'center' }}>{t.note}</p>
-        {preview.kind === 'photo' && preview.base && (
-          <p className="ds-note" style={{ textAlign:'center' }}>The 2D shape is the closest VFRB template, not an exact copy of this photo.</p>
-        )}
-        {preview.sleeves3D?.length > 0 && preview.sleeves.length > 1 && (
-          <p className="ds-note" style={{ textAlign:'center' }}>3D is available for {preview.sleeves3D.join(' / ').toLowerCase()} sleeves only.</p>
-        )}
+        {preview.editable2D && <p className="ds-note" style={{ textAlign:'center' }}>Opens the {preview.garmentFamily} template{preview.sleeve ? `, ${preview.sleeve.toLowerCase()} sleeve` : ''}.</p>}
         <div style={{ display:'flex', gap:8, flexWrap:'wrap', justifyContent:'center' }}>
-          {preview.base && <button type="button" className="ds-chip" aria-pressed="true" onClick={() => onOpen(preview, filters)}>Edit in 2D</button>}
-          {preview.has3D && <button type="button" className="ds-chip" onClick={() => onOpen3D(preview, filters)}>Edit with 3D preview</button>}
-          <button type="button" className="ds-chip" onClick={() => setPreview(null)}>Back to designs</button>
+          {preview.editable2D && <button type="button" className="ds-chip" aria-pressed="true" onClick={() => onOpen(preview, filters)}>Open {preview.garmentFamily} template</button>}
+          {preview.has3D && <button type="button" className="ds-chip" onClick={() => onOpen3D(preview, filters)}>Open with 3D preview</button>}
+          <button type="button" className="ds-chip" onClick={() => setPreview(null)}>Back to photos</button>
         </div>
       </div>
     );
   }
 
+  const active = Object.values(filters).some(Boolean);
   return (
     <>
+      <input type="search" className="ds-gal-search" placeholder="Search photos (blazer, mandarin, scrub…)" aria-label="Search photos"
+        value={filters.q ?? ''} onChange={e => setFilters(f => ({ ...f, q: e.target.value }))}/>
       <div className="ds-gal-filters">
         {FILTERS.map(([key, label, options]) => (
-          <FilterRow key={key} label={label} options={options} value={filters[key]} counts={counts[key]}
+          <FilterRow key={key} label={label} options={options} value={filters[key]} counts={counts[key]} totals={TOTALS[key]}
             onChange={v => setFilters(f => ({ ...f, [key]: v }))}/>
         ))}
       </div>
       <p className="ds-note" style={{ margin:'0 0 8px' }}>
-        {shown.length} of {ENTRIES.length} designs
-        {Object.values(filters).some(Boolean) && (
+        {active ? `${shown.length} of ${ENTRIES.length} photos` : `${ENTRIES.length} VFRB photos`}
+        {active && (
           <> · <button type="button" onClick={() => setFilters({})}
             style={{ background:'none', border:'none', padding:0, color:T2, fontWeight:700, cursor:'pointer' }}>Clear filters</button></>
         )}
       </p>
-      <div className="ds-gal-grid">
-        {shown.map(d => (
-          <Tile key={d.id} label={d.name} sub={<TierBadge tier={d.tier}/>}
-            onClick={() => setPreview(d)} thumb={<EntryThumb d={d}/>}/>
-        ))}
-      </div>
+      {shown.length === 0
+        ? <p className="ds-note" style={{ padding:'24px 0', textAlign:'center' }}>No photos match these filters.</p>
+        : <div className="ds-photo-grid">{shown.map(d => <PhotoCard key={d.id} d={d} onClick={() => setPreview(d)}/>)}</div>}
     </>
   );
 }
@@ -257,7 +266,7 @@ export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanv
                 <NavIcon name="ai" size={14}/> Design Inspirations
               </p>
               <p style={{ fontSize:10, color:'rgba(15,23,42,.35)', margin:'2px 0 0' }}>
-                Real VFRB designs and editable garments. Each one shows what it supports.
+                Real VFRB uniform photos. Each one shows what it can do.
               </p>
             </div>
             <button onClick={() => setShowInspo(false)}
@@ -288,7 +297,7 @@ export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanv
           )}
 
           <p style={{ fontSize:10, fontWeight:800, color:'rgba(15,23,42,.4)', margin:'0 0 8px',
-            textTransform:'uppercase', letterSpacing:.4 }}>VFRB Designs</p>
+            textTransform:'uppercase', letterSpacing:.4 }}>VFRB Photo Gallery</p>
           <DesignBrowser onOpen={loadDesign} onOpen3D={loadDesign3D}/>
         </motion.div>
       )}

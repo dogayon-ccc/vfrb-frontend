@@ -38,3 +38,10 @@ Revisit: once 3+ designs have GLBs, retire the hand-drawn silhouettes that no de
 - Filters disable any option with zero results (`facetCounts`). Gender chips come from real `fits`; families without fits carry no gender.
 - WebGL: `webglSupport.js` probes once; no WebGL, or a context not restored within 3 s, returns the Studio to 2D with a notice.
 - Open: Polo, work-shirt and lab-coverall GLBs are 98k–137k triangles with no UVs; decimate before the mobile demo.
+
+## Update — photo-first gallery, shared preview, photo base (Oct 1)
+
+- Gallery (`designGallery.js`, `InspoGallery.jsx`) lists the 20 real VFRB photos only. Garment families are never listed as designs. Filters hide options with no photos; search covers name, collar, family, category.
+- `components/DesignPreview.jsx` is the only preview in Order Wizard, client Order Detail and admin Order Detail. Default 2D; 3D toggle only for a family with a real GLB and working WebGL; any 3D failure returns to 2D. `GarmentPreview3D.jsx` (the parametric tube) is no longer used by order pages.
+- `garmentAssets.js` is the photo-base manifest. Only `Scrub Top / Short / front` has one (cut from the supplied flat-lay photo with `tools/make-base-asset.py`). Single `body` zone, luminance-preserving recolour, no patterns, back view falls back to the vector shape.
+- `tools/logic-checks.mjs` runs the state, gallery, photo-base and preview-render checks.

@@ -488,6 +488,18 @@ export default function DesignStudioStyles() {
       @media (pointer:coarse){.ds-lay-btn{width:44px;height:44px;}.ds-lay-pick{min-height:44px;}.ds-ins-field input,.ds-ins-field select{min-height:44px;}}
       ::-webkit-scrollbar{width:3px;}
       ::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:2px;}
-    `}</style>
+    
+  .ds-gal-search{width:100%;box-sizing:border-box;height:36px;margin:0 0 10px;padding:0 12px;border:1px solid rgba(15,23,42,.12);border-radius:10px;font-size:13px;background:#fff}
+  .ds-gal-search:focus-visible{outline:2px solid #028090;outline-offset:1px}
+  .ds-photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+  .ds-photo-card{display:flex;flex-direction:column;padding:0;border:1px solid rgba(15,23,42,.08);border-radius:12px;background:#fff;overflow:hidden;cursor:pointer;text-align:left;transition:box-shadow .15s,transform .15s}
+  .ds-photo-card:hover{box-shadow:0 8px 24px rgba(15,23,42,.12);transform:translateY(-2px)}
+  .ds-photo-card:focus-visible{outline:2px solid #028090;outline-offset:2px}
+  .ds-photo-card img{width:100%;aspect-ratio:3/4;object-fit:contain;background:#f4f6f8;display:block}
+  .ds-photo-meta{display:flex;flex-direction:column;gap:2px;padding:8px 10px 10px}
+  .ds-photo-meta strong{font-size:12px;color:#1a2332;line-height:1.3}
+  .ds-photo-meta span{font-size:10px;color:rgba(15,23,42,.6);line-height:1.35}
+  @media (prefers-reduced-motion:reduce){.ds-photo-card{transition:none}.ds-photo-card:hover{transform:none}}
+`}</style>
   );
 }
