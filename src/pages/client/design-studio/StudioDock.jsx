@@ -14,7 +14,7 @@ export default function StudioDock({ cfg, saved, saving, saveErr, draftSaved, sa
       {cfg.garment ? (
         <div className="ds-dock-head">
           <span className="ds-dock-thumb">
-            <GarmentSilhouette garment={cfg.garment} sleeve={cfg.sleeve} colors={cfg.colors} width={34} height={42}/>
+            <GarmentSilhouette garment={cfg.garment} sleeve={cfg.sleeve} fit={cfg.fit} colors={cfg.colors} width={34} height={42}/>
           </span>
           <div className="ds-dock-title">
             <strong>{cfg.name?.trim() || cfg.garment}</strong>

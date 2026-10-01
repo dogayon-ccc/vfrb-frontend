@@ -163,10 +163,10 @@ function DesignBrowser({ onOpen, onOpen3D }) {
         <p style={{ fontSize:13, fontWeight:800, color:'#1a2332', margin:0 }}>{preview.label}</p>
         <p className="ds-note" style={{ textAlign:'center', margin:0 }}>{facts(preview).join(' · ')}</p>
         <TierBadge tier={preview.tier}/>
-        <p className="ds-note" style={{ textAlign:'center' }}>{t.note}</p>
-        {preview.editable2D && <p className="ds-note" style={{ textAlign:'center' }}>Opens the {preview.garmentFamily} template{preview.sleeve ? `, ${preview.sleeve.toLowerCase()} sleeve` : ''}.</p>}
+        <p className="ds-note" style={{ textAlign:'center' }}>{preview.exactBase ? 'Editable in 2D on a real VFRB photo base. No 3D model.' : t.note}</p>
+        {preview.editable2D && <p className="ds-note" style={{ textAlign:'center' }}>{preview.exactBase ? `Opens this garment as an editable real-photo base (${preview.garmentFamily}).` : `Opens the closest ${preview.garmentFamily} template${preview.sleeve ? `, ${preview.sleeve.toLowerCase()} sleeve` : ''}. It is not an exact copy of the photo.`}</p>}
         <div style={{ display:'flex', gap:8, flexWrap:'wrap', justifyContent:'center' }}>
-          {preview.editable2D && <button type="button" className="ds-chip" aria-pressed="true" onClick={() => onOpen(preview, filters)}>Open {preview.garmentFamily} template</button>}
+          {preview.editable2D && <button type="button" className="ds-chip" aria-pressed="true" onClick={() => onOpen(preview, filters)}>{preview.exactBase ? 'Edit this garment' : `Open ${preview.garmentFamily} template`}</button>}
           {preview.has3D && <button type="button" className="ds-chip" onClick={() => onOpen3D(preview, filters)}>Open with 3D preview</button>}
           <button type="button" className="ds-chip" onClick={() => setPreview(null)}>Back to photos</button>
         </div>

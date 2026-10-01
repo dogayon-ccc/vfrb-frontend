@@ -143,7 +143,7 @@ export function SummaryContent({ cfg, saved, saveDesign, orderThis, ordering, do
             initial={{ opacity:0, y:8, scale:.97 }} animate={{ opacity:1, y:0, scale:1 }}
             exit={{ opacity:0, y:-6 }} transition={{ duration:.2, ease:'easeOut' }}>
             <div className="ds-sum-thumb">
-              <GarmentSilhouette garment={cfg.garment} sleeve={cfg.sleeve} colors={cfg.colors} width={64} height={76}/>
+              <GarmentSilhouette garment={cfg.garment} sleeve={cfg.sleeve} fit={cfg.fit} colors={cfg.colors} width={64} height={76}/>
             </div>
             <div style={{ minWidth:0 }}>
               <p className="ds-sum-title" style={{ margin:0 }}>{cfg.garment}</p>

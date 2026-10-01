@@ -10,15 +10,15 @@ export const ASSET_2D = {
   'Mandarin Collar': {
     Short: {
       front: {
-        female: { src: '/garments2d/mandarin-tunic-housekeeping-front.webp', w: 215, h: 267, refLum: 101.2, trim: { below: 74, soft: 8, refLum: 60 }, trimUnset: '#c8a96e', zones: ['body', 'collar'], source: 'VFRB-supplied flat-lay photo, housekeeping scrub suit top (mandarin band collar)', limitations: LIMITS_TRIM },
+        female: { id: 'mandarin-tunic-housekeeping', src: '/garments2d/mandarin-tunic-housekeeping-front.webp', w: 215, h: 267, refLum: 101.2, trim: { below: 74, soft: 8, refLum: 60 }, trimUnset: '#c8a96e', zones: ['body', 'collar'], source: 'VFRB-supplied flat-lay photo, housekeeping scrub suit top (mandarin band collar)', limitations: LIMITS_TRIM },
       },
     },
   },
   'Scrub Top': {
     Short: {
       front: {
-        female: { src: '/garments2d/scrub-top-women-front.webp', w: 335, h: 399, refLum: 140.1, zones: ['body'], source: 'VFRB-supplied flat-lay photo, women V-neck scrub top', limitations: LIMITS },
-        male:   { src: '/garments2d/scrub-top-men-front.webp', w: 363, h: 422, refLum: 36, gain: 0.45, zones: ['body'], source: 'VFRB-supplied flat-lay photo, men V-neck scrub top', limitations: LIMITS },
+        female: { id: 'scrub-top-women-short', src: '/garments2d/scrub-top-women-front.webp', w: 335, h: 399, refLum: 140.1, zones: ['body'], source: 'VFRB-supplied flat-lay photo, women V-neck scrub top', limitations: LIMITS },
+        male:   { id: 'scrub-top-men-short', src: '/garments2d/scrub-top-men-front.webp', w: 363, h: 422, refLum: 36, gain: 0.45, zones: ['body'], source: 'VFRB-supplied flat-lay photo, men V-neck scrub top', limitations: LIMITS },
       },
     },
   },
@@ -28,6 +28,14 @@ export function assetFor(garment, sleeve, face = 'front', fit) {
   const byFit = ASSET_2D[garment]?.[sleeve]?.[face];
   return byFit ? (byFit[fit] ?? Object.values(byFit)[0]) : null;
 }
+// Every photo base has an id; a gallery photo and a saved design resolve to the exact base through (garment, sleeve, face, fit), never through the family name alone.
+export const assetById = id => { for (const g of Object.values(ASSET_2D)) for (const sl of Object.values(g)) for (const f of Object.values(sl)) for (const a of Object.values(f)) if (a.id === id) return a; return null; };
+// Only the front is photographed: a photo-based garment has no back view (the vector back would be a different garment).
+export const hasBackView = (garment, sleeve, fit) => !assetFor(garment, sleeve, 'front', fit) || !!assetFor(garment, sleeve, 'back', fit);
+// Which zones a photo base can recolour, as customer-facing copy.
+export const photoZoneNote = asset => asset.trim
+  ? 'Real garment photo: body and trim colours are editable. The trim covers the collar band, cuffs, pocket welts and buttons. Patterns are not available.'
+  : 'Real garment photo: colour applies to the whole garment. Collar, pocket and patterns are not editable on this base.';
 export const hasPhotoBase = (garment, sleeve) => !!assetFor(garment, sleeve);
 export const photoFits = garment => Object.keys(Object.values(ASSET_2D[garment] ?? {})[0]?.front ?? {});
 

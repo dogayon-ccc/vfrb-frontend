@@ -6,7 +6,7 @@ import GarmentThumb from './GarmentThumb';
 import { selectFamily } from './selectGarment';
 import { CATALOG, familyFor, neighborFamily, applyGarment, STATUS_3D_LABEL } from './garmentCatalog';
 import { PH_SWATCHES, ZONE_LABEL, zonesFor } from './dsShared';
-import { assetFor } from './garmentAssets';
+import { assetFor, photoZoneNote } from './garmentAssets';
 
 // Options come from the canonical CATALOG only; nothing here invents a garment, style or fit.
 export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, viewMode, setViewMode, setHas3DLoaded }) {
@@ -18,7 +18,7 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, view
   const catData = CATALOG.find(c => c.id === cfg.category) ?? CATALOG[0];
   const family  = familyFor(cfg.garment);
   const sleeves = family?.styles ?? [];
-  const photo   = cfg.garment ? assetFor(cfg.garment, cfg.sleeve) : null;
+  const photo   = cfg.garment ? assetFor(cfg.garment, cfg.sleeve, 'front', cfg.fit) : null;
   const hasFit  = (family?.fits.length ?? 0) > 1 && (family.status3D !== 'none' || !!photo);
   const zones   = cfg.garment ? zonesFor(cfg.garment, cfg.sleeve).filter(z => z !== 'body' && (z !== 'tipping' || cfg.colors.tipping)) : [];
   const body    = (cfg.colors.body ?? '').toLowerCase();
@@ -158,11 +158,14 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, view
             {zones.map(z => {
               const open = openZone === z;
               const cur = (cfg.colors[z] ?? '').toLowerCase();
+              // On a photo base the collar zone is the whole trim (collar band, cuffs, pocket welts); the dot shows the photo's own trim until a colour is picked.
+              const label = photo?.trim && z === 'collar' ? 'Trim' : ZONE_LABEL[z];
+              const dot = photo?.trim && z === 'collar' && cur === photo.trimUnset ? '#3c3c3c' : (cfg.colors[z] ?? 'var(--bg-surface)');
               return (
                 <div key={z} className="ds-acc-item" data-open={open}>
                   <button type="button" className="ds-acc-head" aria-expanded={open} onClick={() => toggleZone(z)}>
-                    <span className="ds-zone-dot" style={{ background: cfg.colors[z] ?? 'var(--bg-surface)' }}/>
-                    <span>{ZONE_LABEL[z]}</span>
+                    <span className="ds-zone-dot" style={{ background: dot }}/>
+                    <span>{label}</span>
                     <NavIcon name="chevronRight" size={13}/>
                   </button>
                   <AnimatePresence initial={false}>
@@ -184,7 +187,7 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, view
                             })}
                           </div>
                         )}
-                        <div className="ds-tp-swatches" role="group" aria-label={`${ZONE_LABEL[z]} color`}>
+                        <div className="ds-tp-swatches" role="group" aria-label={`${label} color`}>
                           {PH_SWATCHES.map(sw => (
                             <button key={sw.hex} type="button" className="ds-tp-sw" title={sw.name} aria-label={sw.name}
                               aria-pressed={cur === sw.hex.toLowerCase()} style={{ background: sw.hex }}
@@ -198,7 +201,7 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, view
               );
             })}
             {photo
-              ? <p className="ds-note" style={{ margin: '4px 2px 8px' }}>Real garment photo: colour applies to the whole garment. Collar, pocket and patterns are not editable on this base.</p>
+              ? <p className="ds-note" style={{ margin: '4px 2px 8px' }}>{photoZoneNote(photo)}</p>
               : (
                 <div className="ds-acc-item">
                   <button type="button" className="ds-acc-head" onClick={() => onOpenTool('pattern')}>

@@ -1,6 +1,23 @@
+import { useEffect, useState } from 'react';
 import { getGarmentPaths } from './garmentPaths';
+import { assetFor, tintedCanvas } from './garmentAssets';
 
-export default function GarmentSilhouette({ garment, sleeve = 'Short', colors = {}, width = 44, height = 52, face = 'front' }) {
+// Photo-based garments render the real recoloured photo (same compositor as the Studio canvas); everything else keeps the vector template.
+// Until the tint resolves, and during SSR, the untinted photo shows instead of a blank box.
+function PhotoBase({ asset, colors, width, height }) {
+  const [url, setUrl] = useState(null);
+  const body = colors.body, collar = colors.collar;
+  useEffect(() => {
+    let live = true;
+    tintedCanvas(asset, { body, collar }).then(c => { if (live) setUrl(c.toDataURL()); }).catch(() => {});
+    return () => { live = false; };
+  }, [asset, body, collar]);
+  return <img src={url ?? asset.src} alt="" width={width} height={height} style={{ objectFit: 'contain', display: 'block' }} draggable={false}/>;
+}
+
+export default function GarmentSilhouette({ garment, sleeve = 'Short', colors = {}, width = 44, height = 52, face = 'front', fit }) {
+  const asset = assetFor(garment, sleeve, face, fit);
+  if (asset) return <PhotoBase asset={asset} colors={colors} width={width} height={height}/>;
   const p = getGarmentPaths(garment, sleeve, face);
 
   const zones = [

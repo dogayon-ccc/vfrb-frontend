@@ -5,7 +5,7 @@ import { T, T2, DARK, SHAPE_TYPE_LABEL } from './dsShared';
 import { familyFor, STATUS_3D_LABEL } from './garmentCatalog';
 import GarmentSilhouette from './GarmentSilhouette';
 import { hasWebGL } from './webglSupport';
-import { hasPhotoBase } from './garmentAssets';
+import { hasBackView } from './garmentAssets';
 
 const Scene3D = lazy(() => import('../DesignStudio3D'));
 
@@ -80,6 +80,8 @@ export default function CanvasViewport({
   // not a keyed/unmounting transition. Purely cosmetic; loadCanvasJSON's own
   // 80ms swap already happened by the time this settles back to opaque.
   const [faceFading, setFaceFading] = useState(false);
+  const backOk = hasBackView(cfg.garment, cfg.sleeve, cfg.fit);
+  useEffect(() => { if (!backOk && face === 'back') switchFace('front'); }, [backOk, face, switchFace]);
   const firstFace = useRef(true);
   useEffect(() => {
     if (firstFace.current) { firstFace.current = false; return undefined; }
@@ -118,7 +120,7 @@ export default function CanvasViewport({
             <motion.div key={`${cfg.garment}-${face}`} className="ds-ctx-chip" aria-live="polite"
               initial={{ opacity:0, y:-6 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-4 }}
               transition={{ duration:.18 }}>
-              <strong>{cfg.garment}</strong><span>{face === 'front' ? 'Front view' : hasPhotoBase(cfg.garment, cfg.sleeve) ? 'Back view · generic shape' : 'Back view'}</span>
+              <strong>{cfg.garment}</strong><span>{face === 'front' ? 'Front view' : 'Back view'}</span>
             </motion.div>
           )}
         </AnimatePresence>
@@ -220,13 +222,14 @@ export default function CanvasViewport({
         <div className="ds-face" role="group" aria-label="Garment side">
           {['front','back'].map(v=>(
             <button key={v} type="button" aria-pressed={face===v} onClick={()=>switchFace(v)}
+              disabled={v === 'back' && !backOk} title={v === 'back' && !backOk ? 'No back photo for this garment yet' : undefined}
               className={cfg.garment ? 'ds-face-thumb' : undefined} style={{ textTransform:'capitalize' }}>
               {cfg.garment && face === v && (
                 <motion.span layoutId="ds-face-pill" className="ds-face-pill" aria-hidden="true"
                   transition={{ type:'spring', stiffness:520, damping:38 }}/>
               )}
               {cfg.garment && (
-                <GarmentSilhouette garment={cfg.garment} sleeve={cfg.sleeve} colors={cfg.colors} face={v} width={30} height={36}/>
+                <GarmentSilhouette garment={cfg.garment} sleeve={cfg.sleeve} fit={cfg.fit} colors={cfg.colors} face={v} width={30} height={36}/>
               )}
               <span>{v}</span>
             </button>

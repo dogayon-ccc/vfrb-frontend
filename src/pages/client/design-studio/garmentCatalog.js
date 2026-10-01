@@ -14,7 +14,7 @@
 // female, only for families with a real multi-fit 3D model) -> STYLE (a sleeve length). A
 // family's fit/style options and 3D status are read once, here, from the real capability data
 // — never guessed, never invented for a garment that doesn't have it.
-import { photoFits } from './garmentAssets';
+import { photoFits, assetFor } from './garmentAssets';
 import { BASE_PATHS, getGarmentPaths } from './garmentPaths';
 import { get3DCapabilities } from './garmentCapabilities';
 
@@ -151,3 +151,19 @@ export const STATUS_3D_LABEL = {
   partial:   { label: '3D (partial)', tone: 'warn' },
   none:      { label: '2D only', tone: 'muted' },
 };
+
+// ONE answer to "what exactly does (garment, sleeve, fit, face) resolve to": family + variant (2D asset id) + zones + 3D + honest status.
+// Gallery, Studio, Order Wizard and both Order Detail pages read this instead of re-deriving it. Status never says 'verified': no GLB has passed validation.
+export function resolveTarget(garment, sleeve, fit, face = 'front') {
+  const fam = FAMILIES[garment];
+  if (!fam) return null;
+  const s = resolveSleeve(garment, sleeve), f = resolveFit(garment, fit);
+  const asset = assetFor(garment, s, face, f);
+  const sleeve3D = fam.status3D !== 'none' && (!s || fam.sleeves3D.includes(s));
+  return {
+    family: fam.id, sleeve: s, fit: f, face, assetId: asset?.id ?? null, photo: !!asset,
+    zones: asset ? asset.zones : fam.zones, limitations: asset?.limitations ?? [],
+    glb: sleeve3D ? fam.model3D : null,
+    status: !fam.has2D && !asset ? 'reference' : sleeve3D ? '2d-3d-approx' : 'editable-2d',
+  };
+}

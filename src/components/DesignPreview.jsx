@@ -2,6 +2,7 @@ import { Component, Suspense, lazy, useMemo, useState } from 'react';
 import GarmentSilhouette from '../pages/client/design-studio/GarmentSilhouette';
 import { familyFor, STATUS_3D_LABEL } from '../pages/client/design-studio/garmentCatalog';
 import { deserializeDesign } from '../pages/client/design-studio/designSerialization';
+import { hasBackView } from '../pages/client/design-studio/garmentAssets';
 import { hasWebGL } from '../pages/client/design-studio/webglSupport';
 
 const Scene3D = lazy(() => import('../pages/client/DesignStudio3D'));
@@ -36,7 +37,7 @@ export default function DesignPreview({ cfg, previewUrl = null, referenceImageUr
         : previewUrl ? <img src={previewUrl} alt="Submitted design" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }}/>
         : design && fam ? (
           <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
-            {['front', 'back'].map(f => <GarmentSilhouette key={f} garment={design.garment} sleeve={design.sleeve ?? 'Short'} colors={design.colors} face={f} width={Math.round(height * 0.5)} height={Math.round(height * 0.62)}/>)}
+            {(hasBackView(design.garment, design.sleeve ?? 'Short', design.fit) ? ['front', 'back'] : ['front']).map(f => <GarmentSilhouette key={f} garment={design.garment} sleeve={design.sleeve ?? 'Short'} fit={design.fit} colors={design.colors} face={f} width={Math.round(height * 0.5)} height={Math.round(height * 0.62)}/>)}
           </div>
         ) : <p style={{ fontSize: 12, color: 'var(--text-faint)', margin: 0 }}>No design preview available</p>}
     </div>

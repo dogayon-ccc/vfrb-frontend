@@ -1,3 +1,5 @@
+import { assetFor } from './garmentAssets';
+import { applyGarment, resolveSleeve, FAMILY_BY_NAME } from './garmentCatalog';
 // Real VFRB inspiration gallery: photos only. Editable garment families live in garmentCatalog.js and are never listed here as designs. `glb` stays null until a garment-only GLB passes
 // docs/engineering/GLB-CAPABILITY-MATRIX.md; until then an entry is a photo reference and is never presented as editable 3D.
 // category/gender/sleeve are read from the photo, not confirmed by the client: verify before release.
@@ -25,24 +27,30 @@ export const PIECES = [
 export const GENDERS = [{ id: 'female', label: 'Women' }, { id: 'male', label: 'Men' }, { id: 'unisex', label: 'Unisex' }];
 export const SLEEVES = ['Short', '3/4', 'Long'];
 
-// base = nearest editable 2D garment [catalog category, garment, sleeve], set only where the collar type really matches; null = photo reference only.
+// base = [catalog category, garment, sleeve, asset]. `asset` is the id of the exact 2D photo base the photo must land on, or null for the vector template.
+// An entry is editable only when the target really resolves to that base (see openTarget), so two photos of one family can never share the wrong base.
+// Left out on purpose (reference only): blouse-mandarin-yellow is a full-placket blouse, but Mandarin Collar / Short is now the housekeeping tunic photo.
 const BASES = {
-  'scrub-set-women-vneck':  ['Medical / Scrubs', 'Scrub Top', 'Short'],
-  'scrub-set-men-vneck':    ['Medical / Scrubs', 'Scrub Top', 'Short'],
-  'scrub-set-housekeeping': ['Hospitality / Service', 'Mandarin Collar', 'Short'],
-  'blouse-mandarin-yellow': ['Hospitality / Service', 'Mandarin Collar', 'Short'],
-  'blouse-tunic-roundneck-blue': ['Corporate', 'T-Shirt', 'Short'],
-  'shirt-utility-beige-long': ['Industrial / Work', 'Button-Down', 'Long'],
-  'shirt-mandarin-polkadot': ['Corporate', 'Mandarin Collar', 'Long'],
+  'scrub-set-women-vneck':  ['Medical / Scrubs', 'Scrub Top', 'Short', 'scrub-top-women-short'],
+  'scrub-set-men-vneck':    ['Medical / Scrubs', 'Scrub Top', 'Short', 'scrub-top-men-short'],
+  'scrub-set-housekeeping': ['Hospitality / Service', 'Mandarin Collar', 'Short', 'mandarin-tunic-housekeeping'],
+  'blouse-tunic-roundneck-blue': ['Corporate', 'T-Shirt', 'Short', null],
+  'shirt-utility-beige-long': ['Industrial / Work', 'Button-Down', 'Long', null],
+  'shirt-mandarin-polkadot': ['Corporate', 'Mandarin Collar', 'Long', null],
 };
 
 // sleeve = sleeve of the top/dress piece (null when no sleeve). source = how the photo was shot; mannequin/hanger photos fuse the
 // mannequin or hanger into an image-to-3D result, flat-lay photos do not.
 const D = (id, name, category, gender, piece, sleeve, collar, source, parts = [piece]) => {
+  const e = build(id, name, category, gender, piece, sleeve, collar, source, parts);
+  const ok = !!openTarget(e);
+  return ok ? e : { ...e, base: null, garmentFamily: null, editable2D: false, tier: 'reference' };
+};
+const build = (id, name, category, gender, piece, sleeve, collar, source, parts) => {
   const base = BASES[id] ?? null;
   return {
     id, name, label: name, image: `/gallery/${id}.webp`, garmentFamily: base ? base[1] : null, editable2D: !!base,
-    kind: 'photo', category, categories: [category], gender, genders: [gender], piece, sleeve, sleeves: sleeve ? [sleeve] : [], collar, source, parts, base,
+    kind: 'photo', exactBase: !!base?.[3], category, categories: [category], gender, genders: [gender], piece, sleeve, sleeves: sleeve ? [sleeve] : [], collar, source, parts, base,
     thumb: `/gallery/${id}.webp`, glb: null,
     // reference = photo only; editable-2d = opens the nearest 2D silhouette. A photo is never 3D: no GLB exists for any of them.
     tier: base ? 'editable-2d' : 'reference', has3D: false, status: 'photo-only',
@@ -109,10 +117,15 @@ export function facetCounts(f = {}, list = ENTRIES) {
 export function openTarget(d, f = {}) {
   if (!d.base) return null;
   const cat = CATALOG_CATEGORY[d.categories.includes(f.category) ? f.category : d.category] ?? CATALOG_CATEGORY[d.category];
-  const [, garment, baseSleeve] = d.base;
-  return {
+  const [, garment, baseSleeve, assetId = null] = d.base;
+  if (!FAMILY_BY_NAME[garment]) return null;
+  const t = {
     category: cat ?? undefined, garment,
     sleeve: d.sleeves.includes(f.sleeve) ? f.sleeve : baseSleeve,
     fit: d.genders.includes(f.gender) ? f.gender : d.genders[0],
   };
+  // The target must land on the exact base this photo was matched to. A filter that changes sleeve or gender can move it onto another asset; then it is reference only.
+  const r = applyGarment({}, garment, t);
+  const landed = assetFor(garment, resolveSleeve(garment, r.sleeve), 'front', r.fit)?.id ?? null;
+  return landed === assetId ? t : null;
 }
