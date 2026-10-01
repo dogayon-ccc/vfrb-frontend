@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { Link } from 'react-router-dom';
 import { Card, Button, Field, Badge, NavIcon } from '../../../components/ui';
 import { Skeleton, useToast, fmtDate } from '../../../components/customer/kit';
 
-const CLIENT_TYPES = ['individual', 'school', 'corporate', 'medical', 'government', 'other'];
-const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 
 export function ProfileSection() {
   const [form, setForm] = useState({});
@@ -46,9 +45,6 @@ export function ProfileSection() {
               <Field label="Full Name" value={form.name ?? ''} onChange={e => set('name', e.target.value)} placeholder="Your full name" />
               <Field label="Email Address" value={form.email ?? ''} disabled />
               <Field label="Contact Number" value={form.contact_number ?? ''} onChange={e => set('contact_number', e.target.value)} placeholder="09XXXXXXXXX" />
-              <Field as="select" label="Client Type" value={form.client_type ?? 'individual'} onChange={e => set('client_type', e.target.value)}>
-                {CLIENT_TYPES.map(t => <option key={t} value={t}>{cap(t)}</option>)}
-              </Field>
             </div>
             <Field label="Organization / School Name" value={form.organization_name ?? ''} onChange={e => set('organization_name', e.target.value)} placeholder="e.g. Southville International School" />
             <Field label="Address" value={form.address ?? ''} onChange={e => set('address', e.target.value)} placeholder="City, Province" />
@@ -117,6 +113,16 @@ export function PasswordSection() {
           )}
           <Button variant="primary" fullWidth icon="lock" loading={saving} onClick={save}>{saving ? 'Changing' : 'Change Password'}</Button>
         </div>
+      </Card>
+      <Card tone="subtle" padding="sm">
+        <p className="st-privt" style={{ margin: 0 }}>Can't remember your current password? <Link to="/forgot-password" state={{ from: '/settings?tab=password' }} style={{ color: 'var(--teal)', fontWeight: 700 }}>Reset it by email</Link>.</p>
+      </Card>
+      <Card title="Google Sign-In">
+        <p className="st-privt" style={{ margin: 0 }}>You can sign in with Google on the login page using the same email as this account. Connection status will appear here once VFRB enables account linking.</p>
+      </Card>
+      <Card title="Close Account">
+        <p className="st-privt" style={{ margin: '0 0 12px' }}>To close your account or remove your data, message VFRB staff.</p>
+        <Link to="/messages" className="cx-btn cx-btn-s" style={{ minHeight: 44, display: 'inline-flex', alignItems: 'center' }}>Message VFRB</Link>
       </Card>
       <Card tone="subtle" padding="sm">
         <p className="st-priv"><NavIcon name="lock" size={13} /> Data Privacy (RA 10173)</p>

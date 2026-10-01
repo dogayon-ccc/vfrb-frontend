@@ -1,3 +1,4 @@
+import LoadError from './LoadError';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
@@ -118,16 +119,17 @@ function ProfileRow({ p, onEdit, onDelete }) {
 export default function BillingSection() {
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading]   = useState(true);
+  const [failed, setFailed]     = useState(false);
   const [editing, setEditing]   = useState(null); // null = list view, {} = new, {...} = edit
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(null);
 
   const load = () => {
-    setLoading(true);
+    setLoading(true); setFailed(false);
     axios.get('/api/customer/billing-profiles')
       .then(r => setProfiles(r.data ?? []))
-      .catch(() => setErr('Could not load billing profiles. Please refresh.'))
+      .catch(() => setFailed(true))
       .finally(() => setLoading(false));
   };
   useEffect(load, []);
@@ -155,7 +157,7 @@ export default function BillingSection() {
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 6 }}>
         <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>Saved invoice-recipient details for your orders. Not a payment method.</p>
-        {!editing && profiles.length > 0 && (
+        {!editing && !failed && profiles.length > 0 && (
           <Button variant="primary" icon="add" onClick={() => setEditing({})}>New Profile</Button>
         )}
       </div>
@@ -169,8 +171,10 @@ export default function BillingSection() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {[1, 2].map(i => <div key={i} style={SK}/>)}
         </div>
+      ) : failed ? (
+        <LoadError what="billing profiles" onRetry={load}/>
       ) : profiles.length === 0 ? (
-        <EmptyState illustration="order" headline="No billing profiles yet"
+        <EmptyState illustration="select-thread" headline="No billing profiles yet"
           sub="Add a billing profile so your invoices always go to the right name and address."
           cta={{ label: '+ Add Billing Profile', onClick: () => setEditing({}) }}/>
       ) : (

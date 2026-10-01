@@ -13,11 +13,13 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import { useLocation } from 'react-router-dom';
 import { NavIcon } from './ui/icons';
 
 const T = 'var(--teal)';
 
 export default function FeedbackWidget() {
+  const { pathname } = useLocation();
   const [open, setOpen]   = useState(false);
   const [category, setCategory] = useState('suggestion');
   const [message, setMessage]   = useState('');
@@ -40,6 +42,7 @@ export default function FeedbackWidget() {
     }
   };
 
+  if (pathname.startsWith('/settings')) return null;
   return (
     <>
       {/* Stack: mobile bottom:130 (above Studio's 58); desktop bottom:24 (Studio FAB hidden on desktop already).

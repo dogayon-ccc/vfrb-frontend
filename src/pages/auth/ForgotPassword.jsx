@@ -1,6 +1,7 @@
 // Sends reset link via Mailtrap. Logic unchanged from prior version.
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { readAuth, isSignedIn, homeFor } from '../../utils/authRoute';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import AuthShell, { authInput } from '../../components/AuthShell';
@@ -10,6 +11,11 @@ const T = 'var(--teal)';
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const auth = readAuth();
+  const signedIn = isSignedIn(auth);
+  const backTo = signedIn ? (location.state?.from ?? homeFor(auth.user)) : '/login';
+  const backLabel = !signedIn ? 'Back to Login' : location.state?.from ? 'Back to Settings' : 'Back to Dashboard';
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -44,13 +50,13 @@ export default function ForgotPassword() {
             </div>
             <h2 style={{ color: T, fontSize: 18, fontWeight: 700, marginBottom: 8 }}>Check your email!</h2>
             <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.7, marginBottom: 20 }}>
-              A password reset link has been sent to <strong style={{ color: 'var(--ink)', wordBreak: 'break-word' }}>{email}</strong>. Check your inbox in Mailtrap.
+              A password reset link has been sent to <strong style={{ color: 'var(--ink)', wordBreak: 'break-word' }}>{email}</strong>. Check your inbox (and spam folder).
             </p>
             <p style={{ color: 'var(--text-faint)', fontSize: 12, marginBottom: 20 }}>The link expires in 60 minutes.</p>
-            <button onClick={() => navigate('/login')} style={{ padding: '12px 24px', borderRadius: 11, border: 'none',
+            <button onClick={() => navigate(backTo, { replace: true })} style={{ padding: '12px 24px', borderRadius: 11, border: 'none',
               background: `linear-gradient(135deg, ${T}, var(--teal-dark))`, color: 'var(--text-on-accent)',
               fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
-              Back to Login
+              {backLabel}
             </button>
           </div>
         ) : (
@@ -77,10 +83,10 @@ export default function ForgotPassword() {
                 boxShadow: loading ? 'none' : '0 4px 20px rgba(2,128,144,.3)', marginBottom: 12 }}>
               {loading ? 'Sending…' : 'Send Reset Link'}
             </motion.button>
-            <button type="button" onClick={() => navigate('/login')} style={{ width: '100%', padding: 12, borderRadius: 11,
+            <button type="button" onClick={() => navigate(backTo, { replace: true })} style={{ width: '100%', padding: 12, borderRadius: 11,
               background: 'none', border: '1.5px solid var(--border)', color: 'var(--text-muted)', fontSize: 13,
               cursor: 'pointer', fontWeight: 500 }}>
-              ← Back to Login
+              ← {backLabel}
             </button>
           </form>
         )}

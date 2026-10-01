@@ -9,6 +9,8 @@ import EmptyState from '../../components/EmptyState';
 import { ProfileSection, PasswordSection } from './settings/ProfileSection';
 import BillingSection from './settings/BillingSection';
 import HelpSection from './settings/HelpSection';
+import FeedbackSection from './settings/FeedbackSection';
+import LoadError from './settings/LoadError';
 
 function Toast({ msg, type }) {
   return (
@@ -124,10 +126,11 @@ function ShippingSection() {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [msg, setMsg] = useState(''); const [err, setErr] = useState('');
 
+  const [failed, setFailed] = useState(false);
   const load = () => {
-    setLoading(true);
+    setLoading(true); setFailed(false);
     axios.get('/api/customer/shipping-addresses').then(r => setAddrs(r.data ?? []))
-      .catch(() => setErr('Could not load addresses.')).finally(() => setLoading(false));
+      .catch(() => setFailed(true)).finally(() => setLoading(false));
   };
   useEffect(load, []);
 
@@ -141,13 +144,15 @@ function ShippingSection() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 10, flexWrap: 'wrap' }}>
         <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Saved delivery addresses for your orders.</p>
-        {!editing && addrs.length > 0 && <Button variant="primary" icon="add" onClick={() => setEditing({})}>New Address</Button>}
+        {!editing && !failed && addrs.length > 0 && <Button variant="primary" icon="add" onClick={() => setEditing({})}>New Address</Button>}
       </div>
       <Toast msg={msg} type="success"/><Toast msg={err} type="error"/>
       {editing ? (
         <AddressForm initial={editing.shipping_id ? editing : null} onCancel={() => setEditing(null)} onSaved={onSaved}/>
       ) : loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{[1, 2].map(i => <div key={i} className="acct-sk"/>)}</div>
+      ) : failed ? (
+        <LoadError what="addresses" onRetry={load}/>
       ) : addrs.length === 0 ? (
         <EmptyState illustration="order" headline="No saved addresses" sub="Add a delivery address to speed up future orders."
           cta={{ label: '+ Add Address', onClick: () => setEditing({}) }}/>
@@ -166,11 +171,13 @@ function NotificationsSection() {
   const [prefs, setPrefs] = useState(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState(''); const [err, setErr] = useState('');
+  const [failed, setFailed] = useState(false);
 
-  useEffect(() => {
-    axios.get('/api/settings/notifications').then(r => setPrefs(r.data))
-      .catch(() => setErr('Could not load notification settings.'));
-  }, []);
+  const load = () => {
+    setFailed(false);
+    axios.get('/api/settings/notifications').then(r => setPrefs(r.data)).catch(() => setFailed(true));
+  };
+  useEffect(load, []);
 
   const toggle = async (key) => {
     const next = { ...prefs, [key]: !prefs[key] };
@@ -184,13 +191,14 @@ function NotificationsSection() {
     } finally { setSaving(false); }
   };
 
+  if (failed) return <LoadError what="notification settings" onRetry={load}/>;
   if (!prefs) return <div className="acct-sk"/>;
 
   const Row = ({ k, label, live }) => (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
       <div>
         <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{label}</p>
-        {!live && <p style={{ fontSize: 11, color: 'var(--warning)', margin: '2px 0 0' }}>Not live yet — no provider configured. Your preference is still saved.</p>}
+        {!live && <p style={{ fontSize: 11, color: 'var(--warning)', margin: '2px 0 0' }}>Delivery isn't active yet. Your preference is saved for when it is.</p>}
       </div>
       <button role="switch" aria-checked={prefs[k]} aria-label={`Toggle ${label}`} onClick={() => toggle(k)} disabled={saving}
         style={{ width: 42, height: 24, borderRadius: 99, border: 'none', cursor: saving ? 'not-allowed' : 'pointer',
@@ -221,15 +229,16 @@ function FabricsSection() {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [msg, setMsg] = useState(''); const [err, setErr] = useState('');
 
+  const [failed, setFailed] = useState(false);
   const load = () => {
-    setLoading(true);
+    setLoading(true); setFailed(false);
     Promise.all([
       axios.get('/api/customer/fabric-preferences'),
       axios.get('/api/customer/materials-catalog'),
     ]).then(([p, c]) => {
       setPrefs(p.data ?? []);
       setCatalog((c.data?.materials ?? []).filter(m => m.category === 'Fabric'));
-    }).catch(() => setErr('Could not load fabric preferences.')).finally(() => setLoading(false));
+    }).catch(() => setFailed(true)).finally(() => setLoading(false));
   };
   useEffect(load, []);
 
@@ -250,7 +259,7 @@ function FabricsSection() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 10, flexWrap: 'wrap' }}>
         <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Fabrics you prefer for future orders — VFRB staff can see these when reviewing your requests.</p>
-        {!picking && catalog.length > 0 && <Button variant="primary" icon="add" onClick={() => setPicking(true)}>Add Fabric</Button>}
+        {!picking && !failed && catalog.length > 0 && <Button variant="primary" icon="add" onClick={() => setPicking(true)}>Add Fabric</Button>}
       </div>
       <Toast msg={msg} type="success"/><Toast msg={err} type="error"/>
 
@@ -273,6 +282,8 @@ function FabricsSection() {
 
       {loading ? (
         <div className="acct-sk"/>
+      ) : failed ? (
+        <LoadError what="fabric preferences" onRetry={load}/>
       ) : prefs.length === 0 && !picking ? (
         <EmptyState illustration="order" headline="No preferred fabrics yet" sub="Add fabrics you like so staff know your preferences for future orders."
           cta={{ label: '+ Add Fabric', onClick: () => setPicking(true) }}/>
@@ -331,12 +342,13 @@ const SECTIONS = [
   { id: 'notifications', label: 'Notifications',        hint: 'Choose what you get notified about', icon: 'notifications' },
   { id: 'fabrics',       label: 'Preferred Fabrics',    hint: 'Fabrics staff should know about', icon: 'package' },
   { id: 'billing',       label: 'Billing Profiles',     hint: 'Invoice recipient details', icon: 'invoice' },
-  { id: 'password',      label: 'Change Password',      hint: 'Update your sign-in password', icon: 'lock' },
+  { id: 'password',      label: 'Password & Security',  hint: 'Change or recover your password', icon: 'lock' },
   { id: 'help',          label: 'Help & Support',       hint: 'Guides and contact', icon: 'info' },
+  { id: 'feedback',      label: 'Feedback',             hint: 'Report a bug or suggest an idea', icon: 'chat' },
 ];
 const PANELS = {
   profile: ProfileSection, shipping: ShippingSection, notifications: NotificationsSection,
-  fabrics: FabricsSection, billing: BillingSection, password: PasswordSection, help: HelpSection,
+  fabrics: FabricsSection, billing: BillingSection, password: PasswordSection, help: HelpSection, feedback: FeedbackSection,
 };
 
 export default function AccountSettings() {
@@ -422,7 +434,7 @@ export default function AccountSettings() {
             <p style={{ margin: 0, fontSize: 16, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{me.name ?? 'Client'}</p>
             <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-subtle)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{me.email ?? ''}</p>
           </div>
-          <button className="cx-btn cx-btn-s" style={{ minHeight: 38 }} onClick={() => setSec('profile')}>Edit Profile</button>
+          {!wide && <button className="cx-btn cx-btn-s" style={{ minHeight: 44 }} onClick={() => setSec('profile')}>Edit Profile</button>}
         </div>
       )}
 

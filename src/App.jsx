@@ -3,7 +3,7 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { lazy, Suspense, useEffect } from 'react';
 import axios from 'axios';
-import { readUser } from './utils/authRoute';
+import { readUser, readAuth, isSignedIn, homeFor } from './utils/authRoute';
 import { installResponseGuards, watchCrossTabSession } from './utils/session';
 // iOS has no native install prompt (Android gets one from the manifest); this fills that gap.
 import PWAPrompt from 'react-ios-pwa-prompt';
@@ -177,6 +177,12 @@ function ScrollTop() {
 }
 
 // ── App ───────────────────────────────────────────────────────────────────────
+// Signed-in users never need the login/register screens; respect the existing session.
+function GuestOnly({ children }) {
+  const auth = readAuth();
+  return isSignedIn(auth) ? <Navigate to={homeFor(auth.user)} replace/> : children;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -196,8 +202,8 @@ export default function App() {
           <Route path="/admin" element={<AdminRootRoute/>}/>
 
           {/* ── CUSTOMER AUTH ─────────────────────────────────────────────── */}
-          <Route path="/login"           element={<CustomerLogin/>}/>
-          <Route path="/register"        element={<CustomerRegister/>}/>
+          <Route path="/login"           element={<GuestOnly><CustomerLogin/></GuestOnly>}/>
+          <Route path="/register"        element={<GuestOnly><CustomerRegister/></GuestOnly>}/>
           <Route path="/forgot-password" element={<ForgotPassword/>}/>
           <Route path="/reset-password"  element={<ResetPassword/>}/>
           <Route path="/verify-email"    element={<VerifyEmail/>}/>
