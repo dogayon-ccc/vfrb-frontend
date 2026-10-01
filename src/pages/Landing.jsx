@@ -120,9 +120,9 @@ export default function Landing() {
             <p className="vs-kicker">Order online</p>
             <h2 className="vs-h2" id="order">Design it first, then follow it through production.</h2>
             <p className="vs-body">
-              Registered customers can build a uniform in the VFRB Design Studio, or place an order without it, then track every stage in their portal.
+              Registered clients build a uniform in the VFRB Design Studio, save it, place a bulk order, then track every stage in their portal.
             </p>
-            <div className="vs-btns"><Btn to="/register">Create an account</Btn><Btn to="/guide" variant="line">Read the customer guide</Btn></div>
+            <div className="vs-btns"><Btn to="/register">Create an account</Btn><Btn to="/guide" variant="line">Read the client guide</Btn></div>
           </Reveal>
           <Reveal delay={0.06}>
             <ol className="vs-flow">

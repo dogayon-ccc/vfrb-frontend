@@ -149,6 +149,7 @@ export default function CustomerMessages() {
     if (selRef.current !== selId) return;
     const next = r.data?.messages ?? r.data ?? [];
     setMsgs(prev => (prev.length === next.length && prev.at(-1)?.message_id === next.at(-1)?.message_id) ? prev : next);
+    setThreadError(false);
   }, 30_000, [selId]);
   useEffect(() => { msgEnd.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs.length]);
 
@@ -204,7 +205,7 @@ export default function CustomerMessages() {
           .cust-msg-chat *, .cust-msg-list * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
         }
         @media (min-width: 768px) {
-          .cust-msg-wrap { flex-direction: row; height: calc(100dvh - var(--topbar-h,54px) - 130px); min-height: 0; }
+          .cust-msg-wrap { flex-direction: row; height: calc(100dvh - var(--topbar-h,54px) - 176px); min-height: 0; }
           .cust-msg-list { width: 320px; flex: none; }
           .cust-msg-chat { flex: 1; min-height: 0; }
           .cust-msg-list.hide-mobile { display: block; }

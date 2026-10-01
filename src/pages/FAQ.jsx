@@ -18,11 +18,11 @@ const T = { teal: 'var(--teal)', accent: 'var(--teal-2)', dark: 'var(--bg-surfac
 const FAQS = [
   {
     q: 'How do I place an order?',
-    a: 'Sign in to your customer account, then either use the Design Studio to configure your garment visually, or go to New Order and submit your specifications directly. Both paths lead to the same order review and submission flow.',
+    a: 'Sign in to your client account and create your design in the Design Studio. Save it, then continue to the Order Wizard to enter quantity, sizes, and delivery details, and submit your order.',
   },
   {
-    q: 'Do I have to use the Design Studio, or can I order without it?',
-    a: 'The Design Studio is optional. You can place an order without it — New Order lets you enter garment type, sizes, quantity, and color directly.',
+    q: 'Do I need to create a design before ordering?',
+    a: 'Yes. Orders start from a saved design, so VFRB receives your exact garment configuration. The Order Wizard then collects quantity, sizes, and delivery details without asking you to re-enter the design.',
   },
   {
     q: 'How does AI Material Recommendation work?',
@@ -46,11 +46,11 @@ const FAQS = [
   },
   {
     q: 'Can I message VFRB staff about my order?',
-    a: 'Yes. Use Messages in your customer portal to reach VFRB staff directly about a specific order.',
+    a: 'Yes. Use Messages in your client portal to reach VFRB staff directly about a specific order.',
   },
   {
     q: 'I signed up with Google — is my account different from an email account?',
-    a: 'No. Customers can self-register with either email or Google, and both create the same type of customer account with the same access.',
+    a: 'No. Clients can self-register with either email or Google, and both create the same type of client account with the same access.',
   },
   {
     q: 'Can suppliers log in to this system?',

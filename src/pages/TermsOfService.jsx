@@ -65,6 +65,9 @@ const SECTIONS = [
   },
 ];
 
+// Source strings are hard-wrapped; join single newlines, keep blank-line paragraph breaks.
+const paras = (b) => b.split(/\n\s*\n/).map(x => x.replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean);
+
 export default function TermsOfService() {
   return (
     <div style={{ fontFamily: 'var(--font)', background: T.dark, color: 'var(--ink)', minHeight: '100vh' }}>
@@ -91,9 +94,9 @@ export default function TermsOfService() {
           {SECTIONS.map((s, i) => (
             <div key={i} style={{ marginBottom: 32 }}>
               <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 10 }}>{s.title}</h2>
-              <p style={{ color: 'rgba(15,23,42,0.75)', fontSize: 14, lineHeight: 1.7, whiteSpace: 'pre-line' }}>
-                {s.body}
-              </p>
+              {paras(s.body).map((t, i) => (
+                <p key={i} style={{ color: 'rgba(15,23,42,0.75)', fontSize: 15, lineHeight: 1.75, margin: i ? '12px 0 0' : 0, maxWidth: '68ch' }}>{t}</p>
+              ))}
             </div>
           ))}
         </motion.div>

@@ -1,5 +1,5 @@
 // src/pages/Guide.jsx
-// VFRB Enterprise — Customer Guide
+// VFRB Enterprise — Client Guide
 //
 // Explains the ALREADY-BUILT, verified order workflow only. Nothing here
 // describes a feature that isn't actually live. If a future feature is
@@ -15,7 +15,7 @@ const STEPS = [
   {
     n: '01',
     title: 'Create your design',
-    desc: "Use the Design Studio to configure your garment — collar, sleeve, color, pockets, and logo, front and back — or place a manual order without the studio if you already know your specs.",
+    desc: "Start from an inspiration design or a blank garment in the Design Studio. Set the collar, sleeve, color, pockets, and logo, front and back, then save your design. When it's ready, continue to the Order Wizard to enter quantity, sizes, and delivery, then submit.",
   },
   {
     n: '02',
@@ -65,7 +65,7 @@ export default function Guide() {
       <div className="gd-wrap" style={{ maxWidth: 800, margin: '0 auto' }}>
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <p style={{ color: T.accent, fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
-            Customer Guide
+            Client Guide
           </p>
           <h1 style={{ fontFamily: "Georgia,'Times New Roman',serif", fontSize: 'clamp(28px,4vw,40px)', fontWeight: 700, marginBottom: 14, lineHeight: 1.15 }}>
             How ordering works, start to finish

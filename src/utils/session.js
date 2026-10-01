@@ -5,7 +5,7 @@ import { clearQueue } from './offlineQueue';
 const TOKEN = 'vfrb_token';
 const USER  = 'vfrb_user';
 const SERVER_ERROR = 'Something went wrong on our side. Please try again.';
-const AUTH_CALLS = ['/api/login', '/api/register', '/api/logout', '/api/forgot-password', '/api/reset-password'];
+const AUTH_CALLS = ['/api/login', '/api/register', '/api/logout', '/api/forgot-password', '/api/reset-password', '/api/password/forgot', '/api/password/reset'];
 const LOGGED_OUT_PAGES = ['/login', '/register', '/forgot-password', '/reset-password', '/admin/login'];
 
 // The token, cached user, tab-scoped drafts/caches and the offline queue all belong to one account.

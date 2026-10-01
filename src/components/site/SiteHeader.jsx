@@ -48,7 +48,7 @@ export default function SiteHeader() {
       <div className="vs-wrap vs-header__bar">
         <Link to="/" className="vs-brand" aria-label="VFRB Enterprise home">
           <img src={logo} alt="" width="40" height="40" />
-          <span><b>VFRB Enterprise</b><small>Tailor Centre VFRB Manila</small></span>
+          <span><b>VFRB Enterprise</b><small>Custom Uniforms. Smarter Solutions.</small></span>
         </Link>
         <nav className="vs-nav" aria-label="Main">
           {NAV.map(n => <NavLink key={n.to} to={n.to}>{n.label}</NavLink>)}

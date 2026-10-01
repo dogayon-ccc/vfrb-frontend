@@ -30,7 +30,7 @@ export const EMBROIDERY = {
   ],
 };
 
-// Stage names match the public FAQ and Customer Guide exactly. Grouped into three phases so every row can carry a real photo.
+// Stage names match the public FAQ and Client Guide exactly. Grouped into three phases so every row can carry a real photo.
 export const PHASES = [
   { id: 'prepare', title: 'Prepare', photos: [[P.sewing1, 'center', 'Team preparing garments at a work table']],
     stages: [['Pattern', 'Every order starts from a pattern made for each size.'],
@@ -44,9 +44,9 @@ export const PHASES = [
              ['Packing', 'Pieces are counted per size and color, then packed and labeled by division for delivery.']] },
 ];
 
-// Mirrors the Customer Guide (pages/Guide.jsx). Update both together.
+// Mirrors the Client Guide (pages/Guide.jsx). Update both together.
 export const ORDER_STEPS = [
-  ['Create your design', 'Use the Design Studio, or place a manual order if you already know your specs.'],
+  ['Create your design', 'Create and save your design in the Design Studio, then continue to the Order Wizard.'],
   ['Review the materials', 'The system recommends the categories of raw materials your order needs. Accept it to notify VFRB staff.'],
   ['Follow production', 'Your order moves through the 7 production stages, updated by VFRB staff.'],
   ['Message the team', 'Use Messages in your portal to reach VFRB staff about a specific order.'],
