@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { asList } from '../../utils/asList';
+import { useVisiblePoll } from '../../hooks/useVisiblePoll';
 import EmptyState from '../../components/EmptyState';
 import { PageHeader, StatusPill, OrderThumb, Skeleton } from '../../components/customer/kit';
 import { NavIcon } from '../../components/ui/icons';
@@ -141,9 +142,14 @@ export default function CustomerMessages() {
   useEffect(() => {
     selRef.current = selId; setMsgs([]);
     loadMsgs(true);
-    const iv = setInterval(() => loadMsgs(false), 60_000);
-    return () => clearInterval(iv);
   }, [selId, loadMsgs]);
+  useVisiblePoll(async () => {
+    if (!selId) return;
+    const r = await axios.get(`/api/customer/messages/${selId}`);
+    if (selRef.current !== selId) return;
+    const next = r.data?.messages ?? r.data ?? [];
+    setMsgs(prev => (prev.length === next.length && prev.at(-1)?.message_id === next.at(-1)?.message_id) ? prev : next);
+  }, 30_000, [selId]);
   useEffect(() => { msgEnd.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs.length]);
 
   const openThread = (id) => { setSelId(id); setMobileView('thread'); };

@@ -25,6 +25,7 @@
 //
 // Install: already available — uses @react-three/fiber + @react-three/drei + three r150
 // Import:  import GarmentPreview3D from '../../components/GarmentPreview3D'
+import { hasWebGL } from '../pages/client/design-studio/webglSupport';
 // Usage:   <GarmentPreview3D cfg={order.studio_config} height={300}/>
 
 import {
@@ -283,12 +284,14 @@ const Scene3D = lazy(() =>
     }
 
     // ── Scene with lighting + controls ────────────────────────────────────────
-    function Scene({ cfg, autoRotate, referenceImageUrl }) {
+    function Scene({ cfg, autoRotate, referenceImageUrl, onLost }) {
       const referenceTexture = useReferenceTexture(referenceImageUrl);
       return (
         <Canvas
           camera={{ position:[0,0.15,3.8], fov:40 }}
-          gl={{ antialias:true, alpha:true }}
+          dpr={[1, 1.5]}
+          gl={{ antialias:true, alpha:true, powerPreference:'low-power' }}
+          onCreated={({ gl }) => gl.domElement.addEventListener('webglcontextlost', e => { e.preventDefault(); onLost?.(); })}
           style={{ width:'100%', height:'100%', background:'transparent' }}>
           <ambientLight intensity={0.55}/>
           <directionalLight position={[3,5,4]}   intensity={1.4} castShadow/>
@@ -416,7 +419,7 @@ export default function GarmentPreview3D({
 }) {
   const [isMobile, setIsMobile] = useState(false);
   const [view3D,   setView3D]   = useState(true);
-  const [failed,   setFailed]   = useState(false);
+  const [failed,   setFailed]   = useState(() => !hasWebGL());
 
   // Detect mobile
   useEffect(() => {
@@ -504,7 +507,7 @@ export default function GarmentPreview3D({
                 </div>
               }>
                 <Suspense fallback={<Loader3D/>}>
-                  <Scene3D cfg={safeCfg} autoRotate={autoRotate} referenceImageUrl={referenceImageUrl}/>
+                  <Scene3D cfg={safeCfg} autoRotate={autoRotate} referenceImageUrl={referenceImageUrl} onLost={() => setFailed(true)}/>
                 </Suspense>
               </WebGLBoundary>
             </motion.div>

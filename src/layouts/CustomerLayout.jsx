@@ -1,8 +1,9 @@
 // src/layouts/CustomerLayout.jsx — customer shell: sidebar (desktop), bottom nav (mobile), topbar, Studio FAB.
 import { useState, useEffect } from 'react';
-import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import { useVisiblePoll } from '../hooks/useVisiblePoll';
 import PageErrorBoundary from '../components/PageErrorBoundary';
 import IconBox from '../components/ui/IconBox';
 import FeedbackWidget from '../components/FeedbackWidget';
@@ -81,19 +82,11 @@ export default function CustomerLayout() {
     setName(u.name || 'Client');
   }, [location.pathname]);
 
-  // Polls every 60s rather than refetching per navigation — avoids stacking
-  // requests against the dev server on rapid route changes.
-  useEffect(() => {
-    let cancelled = false;
-    const fetchSummary = () => {
-      axios.get('/api/customer/notifications/summary')
-        .then(r => { if (!cancelled) setUnread(r.data?.unread_count ?? 0); })
-        .catch(() => {});
-    };
-    fetchSummary();
-    const id = setInterval(fetchSummary, 60000);
-    return () => { cancelled = true; clearInterval(id); };
-  }, []);
+  // Visibility-aware, non-overlapping poll — no request stacking when the tab is hidden or the server is slow.
+  useVisiblePoll(async () => {
+    const r = await axios.get('/api/customer/notifications/summary');
+    setUnread(r.data?.unread_count ?? 0);
+  }, 60000);
 
   // Close "More" drawer on route change
   useEffect(() => { setMoreOpen(false); }, [location.pathname]);
@@ -135,6 +128,8 @@ export default function CustomerLayout() {
         .cm-sb-user { border-top-color: rgba(255,255,255,.12) !important; }
         .cm-sb-user p { color: #fff !important; }
         .cm-sb-user p + p { color: rgba(255,255,255,.55) !important; }
+        .cm-sb-head, .cm-brand-link { text-decoration: none; color: inherit; cursor: pointer; }
+        .cm-brand-link { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; min-height: 44px; }
         .cm-sb-collapse { background: rgba(255,255,255,.08) !important; border-color: rgba(255,255,255,.14) !important; color: rgba(255,255,255,.7) !important; }
         .cm-sb-collapse:hover { background: rgba(255,255,255,.16) !important; }
         .cm-sb-out { border-color: rgba(255,255,255,.22) !important; color: #ffb4b4 !important; }
@@ -459,7 +454,7 @@ export default function CustomerLayout() {
         <aside className="cm-sb" style={{ width: SW }}>
 
           {/* Gradient header */}
-          <div className="cm-sb-head"
+          <Link to="/dashboard" className="cm-sb-head" aria-label="VFRB Enterprise — back to dashboard" title="Back to dashboard"
             style={{ padding: collapsed ? '12px 10px' : '12px 16px' }}>
             <img src={logo} alt="VFRB"
               style={{ width:34, height:34, borderRadius:9, objectFit:'cover',
@@ -478,7 +473,7 @@ export default function CustomerLayout() {
                 </p>
               </div>
             )}
-          </div>
+          </Link>
 
           {/* Nav */}
           <div className="cm-sb-nav" style={{ flex:1, overflowY:'auto', overflowX:'hidden',
@@ -600,10 +595,11 @@ export default function CustomerLayout() {
           <div className="cm-topbar">
 
             {/* Mobile: logo + portal label */}
-            <img src={logo} alt="VFRB" className="cm-mob-only"
+            <Link to="/dashboard" className="cm-mob-only cm-brand-link" aria-label="VFRB Enterprise — back to dashboard">
+            <img src={logo} alt="" 
               style={{ width:30, height:30, borderRadius:8, objectFit:'cover',
                 border:'1.5px solid rgba(255,255,255,.35)', flexShrink:0 }}/>
-            <div className="cm-mob-only" style={{ flex:1, minWidth:0 }}>
+            <div style={{ flex:1, minWidth:0 }}>
               <p style={{ fontSize:11, fontWeight:800, color:'#fff',
                 letterSpacing:'.04em', margin:0, lineHeight:1.2,
                 overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
@@ -614,6 +610,7 @@ export default function CustomerLayout() {
                 Client Portal
               </p>
             </div>
+            </Link>
 
             {/* Desktop: date */}
             <div className="cm-desk-only cm-tb-crumb">
