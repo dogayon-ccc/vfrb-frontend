@@ -398,7 +398,7 @@ export default function AccountSettings() {
   );
 
   const panel = current && (
-    <motion.section key={active} initial={{ opacity: 0, x: reduce ? 0 : 10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: reduce ? 0 : .18 }}
+    <motion.section key={active} initial={{ opacity: 0, y: reduce ? 0 : 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : .18 }}
       aria-labelledby="acct-panel-h">
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
         {!wide && <button className="cx-btn cx-btn-s" style={{ minHeight: 40, padding: '0 12px' }} onClick={() => setSec(null)} aria-label="Back to settings list">←</button>}

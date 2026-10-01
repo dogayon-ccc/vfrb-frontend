@@ -150,5 +150,5 @@ html[data-wizard] .cm-studio-fab,html[data-wizard] .fbw-fab{display:none!importa
 }
 @media(max-width:639px){.wz-page{padding-inline:0}.wz-actions{margin-inline:-4px}}
 
-/* Mobile/tablet: keep last content clear of the bottom nav + floating Studio button */
-@media(max-width:1023px){.cx-page{padding-bottom:128px}}
+/* Phone only (<768px, where bottom nav 64px + Studio FAB show): keep last content clear of both */
+@media(max-width:767px){.cx-page{padding-bottom:128px}}

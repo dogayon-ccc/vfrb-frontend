@@ -79,6 +79,7 @@ export default function CustomerDashboard() {
   const [designs, setDesigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [notifsError, setNotifsError] = useState(false);
   const [confetti, setConfetti] = useState(false);
   const [toast, showToast] = useToast();
 
@@ -107,12 +108,21 @@ export default function CustomerDashboard() {
     if (s.status === 'fulfilled' && s.value) { setStats(s.value.data); cacheSet('customer_dashboard', s.value.data, TTL.DASHBOARD); }
     if (o.status === 'fulfilled' && o.value) { const l = asList(o.value.data); setOrders(l); cacheSet('orders_list', l, TTL.ORDERS); }
     else if (o.status === 'rejected' && !co) setError(true);
-    if (n.status === 'fulfilled' && n.value) { const l = asList(n.value.data); setNotifs(l); cacheSet('customer_notifs', l, TTL.NOTIFICATIONS); }
+    if (n.status === 'fulfilled' && n.value) { const l = asList(n.value.data); setNotifs(l); setNotifsError(false); cacheSet('customer_notifs', l, TTL.NOTIFICATIONS); }
+    else if (n.status === 'rejected' && !cn) setNotifsError(true);
     if (d.status === 'fulfilled' && d.value.data?.draft?.studio_config?.garment) setDraft(d.value.data.draft);
     if (g.status === 'fulfilled' && Array.isArray(g.value.data)) setDesigns(g.value.data.filter(x => x.is_archived && x.config?.garment).slice(0, 4));
     setLoading(false);
   }, []);
   useEffect(() => { load(); }, [load]);
+
+  const retryNotifs = useCallback(async () => {
+    setNotifsError(false);
+    try {
+      const r = await axios.get('/api/customer/notifications?per_page=5');
+      const l = asList(r.data); setNotifs(l); cacheSet('customer_notifs', l, TTL.NOTIFICATIONS);
+    } catch { setNotifsError(true); }
+  }, []);
 
   const markRead = async (id) => {
     const prev = notifs;
@@ -264,7 +274,14 @@ export default function CustomerDashboard() {
               <h2>Notifications{unread > 0 && <span className="cx-pill" style={{ background: 'var(--danger)', color: '#fff', marginLeft: 8 }}>{unread}</span>}</h2>
               <Link to="/messages" className="cx-link">Messages →</Link>
             </div>
-            {notifs.length === 0 ? (
+            {loading ? (
+              <div aria-busy="true" style={{ padding: 16, display: 'grid', gap: 10 }}><Skeleton h={34} /><Skeleton h={34} /></div>
+            ) : notifsError && notifs.length === 0 ? (
+              <div role="alert" style={{ padding: '18px 16px', textAlign: 'center' }}>
+                <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--text-subtle)' }}>Unable to load notifications.</p>
+                <button className="cx-btn cx-btn-s" style={{ minHeight: 44 }} onClick={retryNotifs}>Retry</button>
+              </div>
+            ) : notifs.length === 0 ? (
               <p style={{ padding: '22px 16px', textAlign: 'center', fontSize: 12, color: 'var(--text-faint)', margin: 0 }}>You're all caught up.</p>
             ) : notifs.slice(0, 4).map(n => {
               const id = n.notif_id ?? n.id;
