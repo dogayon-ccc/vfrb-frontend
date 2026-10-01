@@ -3,6 +3,8 @@ import { useRef, useState, useCallback, useEffect, useLayoutEffect } from 'react
 import { T2, LOGO_PRESETS, PATTERNS, SHAPE_TYPE_LABEL } from './dsShared';
 import { getGarmentPaths } from './garmentPaths';
 
+const OVERLAY_PROPS = ['__logo','__text','__draw','__shape','__layerId','__layerName','__locked','lockMovementX','lockMovementY','lockRotation','lockScalingX','lockScalingY','hasControls'];
+
 // Composites front+back PNGs side by side; falls back to one side if the other fails to load.
 const FRONT_BACK_GAP = 36;
 export function compositeFrontBack(frontUrl, backUrl) {
@@ -283,7 +285,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     const snapshot = canvas.getObjects()
       .filter(o => !o.__garmentBase && !o.__hoverGlow)
       .filter(o => typeof o.toObject === 'function')
-      .map(o => o.toObject(['__logo','__text','__draw','__shape','__layerId','__layerName']));
+      .map(o => o.toObject(OVERLAY_PROPS));
     historyStack.current = historyStack.current.slice(0, historyIdx.current + 1);
     historyStack.current.push(snapshot);
     if (historyStack.current.length > 40) historyStack.current.shift();
@@ -427,20 +429,23 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   // Live-edits the selected object's own properties (fill, opacity) —
   // used by ShapesPanel's inspector. Refuses garment-base/hover objects,
   // same guard deleteSelected uses below.
-  const updateSelected = useCallback((props) => {
+  const updateSelected = useCallback((props, commit = true) => {
     const canvas = fc.current;
     const obj = canvas?.getActiveObject();
     if (!obj || obj.__garmentBase || obj.__hoverGlow) return;
+    if (obj.__locked && !('__locked' in props)) return;
     obj.set(props);
+    if (typeof props.text === 'string') obj.__layerName = props.text.slice(0, 20) + (props.text.length > 20 ? '…' : '');
     canvas.renderAll();
-    pushHistory();
-  }, [pushHistory]);
+    if (commit) pushHistory();
+    bumpLayers();
+  }, [pushHistory, bumpLayers]);
 
   const deleteSelected = useCallback(() => {
     const canvas = fc.current;
     if (!canvas) return;
     const obj = canvas.getActiveObject();
-    if (obj && !obj.__garmentBase && !obj.__hoverGlow) {
+    if (obj && !obj.__garmentBase && !obj.__hoverGlow && !obj.__locked) {
       canvas.remove(obj);
       canvas.discardActiveObject();
       canvas.renderAll();
@@ -507,7 +512,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     fc.current?.getObjects()
       .filter(o => !o.__garmentBase && !o.__hoverGlow)
       .filter(o => typeof o.toObject === 'function')
-      .map(o => o.toObject(['__logo','__text','__draw','__shape','__layerId','__layerName'])) ?? []
+      .map(o => o.toObject(OVERLAY_PROPS)) ?? []
   , []);
 
   // opaqueBg: hex color to temporarily paint behind the export, or null to
@@ -537,7 +542,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     return canvas.getObjects()
       .filter(o => !o.__garmentBase && !o.__hoverGlow)
       .filter(o => typeof o.toObject === 'function')
-      .map(o => o.toObject(['__logo','__text','__draw','__shape','__layerId','__layerName']));
+      .map(o => o.toObject(OVERLAY_PROPS));
   }, []);
 
   const loadCanvasJSON = useCallback((objects) => {
@@ -587,6 +592,8 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         name: o.__layerName || (kind === 'drawing' ? 'Drawing' : kind === 'logo' ? 'Logo'
           : kind === 'shape' ? (SHAPE_TYPE_LABEL[o.type] ?? 'Shape') : 'Text'),
         visible: o.visible !== false,
+        locked: !!o.__locked,
+        opacity: o.opacity ?? 1,
       };
     })
     .reverse(); // canvas array is back→front; panel shows front-most first
@@ -621,6 +628,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     const canvas = fc.current;
     const obj = findLayer(id);
     if (!canvas || !obj) return;
+    if (obj.__locked) return;
     if (canvas.getActiveObject() === obj) canvas.discardActiveObject();
     canvas.remove(obj);
     canvas.renderAll();
@@ -643,10 +651,37 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     bumpLayers();
   }, [findLayer, pushHistory, bumpLayers]);
 
+  const toggleLayerLock = useCallback((id) => {
+    const canvas = fc.current;
+    const obj = findLayer(id);
+    if (!canvas || !obj) return;
+    const lock = !obj.__locked;
+    obj.__locked = lock;
+    obj.set({ lockMovementX: lock, lockMovementY: lock, lockRotation: lock, lockScalingX: lock, lockScalingY: lock, hasControls: !lock });
+    canvas.renderAll();
+    pushHistory();
+    bumpLayers();
+  }, [findLayer, pushHistory, bumpLayers]);
+
+  const toggleSelectedLock = useCallback(() => {
+    const obj = fc.current?.getActiveObject();
+    if (obj?.__layerId) toggleLayerLock(obj.__layerId);
+  }, [toggleLayerLock]);
+
+  const setLayerOpacity = useCallback((id, value, commit = true) => {
+    const canvas = fc.current;
+    const obj = findLayer(id);
+    if (!canvas || !obj) return;
+    obj.set('opacity', Math.min(1, Math.max(0.1, value)));
+    canvas.renderAll();
+    bumpLayers();
+    if (commit) pushHistory();
+  }, [findLayer, pushHistory, bumpLayers]);
+
   return {
     addLogo, addText, addShape, updateSelected, deleteSelected, duplicateSelected, exportOverlays, exportPNG, getCanvasJSON, loadCanvasJSON,
     pushHistory, undo, redo, canUndo, canRedo, resizeCanvas,
-    layers, selectLayer, toggleLayerVisibility, renameLayer, deleteLayer, reorderLayers,
+    layers, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
     setDrawMode, setBrushStyle, initFailed,
   };
 }

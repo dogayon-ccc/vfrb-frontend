@@ -76,6 +76,7 @@ export default function CustomerDashboard() {
   const [orders, setOrders] = useState([]);
   const [notifs, setNotifs] = useState([]);
   const [draft, setDraft] = useState(null);
+  const [designs, setDesigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [confetti, setConfetti] = useState(false);
@@ -96,17 +97,19 @@ export default function CustomerDashboard() {
     const cs = cacheGet('customer_dashboard'), co = cacheGet('orders_list'), cn = cacheGet('customer_notifs');
     if (cs) setStats(cs); if (co) setOrders(asList(co)); if (cn) setNotifs(asList(cn));
     if (cs && co && cn) { setLoading(false); }
-    const [s, o, n, d] = await Promise.allSettled([
+    const [s, o, n, d, g] = await Promise.allSettled([
       cs ? null : axios.get('/api/customer/dashboard'),
       co ? null : axios.get('/api/customer/orders'),
       cn ? null : axios.get('/api/customer/notifications?per_page=5'),
       axios.get('/api/customer/drafts/latest'),
+      axios.get('/api/customer/designs'),
     ]);
     if (s.status === 'fulfilled' && s.value) { setStats(s.value.data); cacheSet('customer_dashboard', s.value.data, TTL.DASHBOARD); }
     if (o.status === 'fulfilled' && o.value) { const l = asList(o.value.data); setOrders(l); cacheSet('orders_list', l, TTL.ORDERS); }
     else if (o.status === 'rejected' && !co) setError(true);
     if (n.status === 'fulfilled' && n.value) { const l = asList(n.value.data); setNotifs(l); cacheSet('customer_notifs', l, TTL.NOTIFICATIONS); }
     if (d.status === 'fulfilled' && d.value.data?.draft?.studio_config?.garment) setDraft(d.value.data.draft);
+    if (g.status === 'fulfilled' && Array.isArray(g.value.data)) setDesigns(g.value.data.filter(x => x.is_archived && x.config?.garment).slice(0, 4));
     setLoading(false);
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -193,6 +196,27 @@ export default function CustomerDashboard() {
             </section>
           )}
 
+          {/* Recent designs — the customer's own saved designs and current draft */}
+          {!loading && (draft || designs.length > 0) && (
+            <section className="cx-card" aria-label="Recent designs">
+              <div className="cx-card-h"><h2>Recent Designs</h2><Link to="/my-designs" className="cx-link">My Designs →</Link></div>
+              <div className="cx-rd">
+                {draft && (
+                  <button type="button" className="cx-rd-item" onClick={() => nav('/design-studio')}>
+                    <span className="cx-thumb" style={{ width: 56, height: 64 }}><MiniPreview garment={draft.studio_config.garment} colors={draft.studio_config.colors ?? {}} /></span>
+                    <strong>{draft.label || draft.studio_config.garment}</strong><em>Editable · continue</em>
+                  </button>
+                )}
+                {designs.map(d => (
+                  <button key={d.id} type="button" className="cx-rd-item" onClick={() => { sessionStorage.setItem('studio_config', JSON.stringify(d.config)); nav('/design-studio'); }}>
+                    <span className="cx-thumb" style={{ width: 56, height: 64 }}><MiniPreview garment={d.garment} colors={d.config?.colors ?? {}} /></span>
+                    <strong>{d.label || d.garment}</strong><em>Saved · reuse</em>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
           {/* Recent orders */}
           <section className="cx-card" aria-label="Recent orders">
             <div className="cx-card-h"><h2>Recent Orders</h2><Link to="/orders" className="cx-link">View all orders</Link></div>
@@ -259,7 +283,12 @@ export default function CustomerDashboard() {
           </section>
         </aside>
       </div>
-      <style>{`.cx-dash-grid{display:grid;grid-template-columns:1fr;gap:18px}
+      <style>{`.cx-rd{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px;padding:12px 16px 16px}
+        .cx-rd-item{display:flex;flex-direction:column;align-items:center;gap:6px;min-height:44px;padding:10px 6px;border:1px solid var(--border);border-radius:12px;background:var(--bg-surface);cursor:pointer;font:inherit;color:inherit;text-align:center}
+        .cx-rd-item:hover{border-color:var(--teal);background:var(--teal-50)}
+        .cx-rd-item strong{font-size:12px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .cx-rd-item em{font-style:normal;font-size:10px;color:var(--text-subtle)}
+        .cx-dash-grid{display:grid;grid-template-columns:1fr;gap:18px}
         @media(min-width:1024px){.cx-dash-grid{grid-template-columns:minmax(0,1fr) 340px;align-items:start}}`}</style>
     </div>
   );

@@ -45,11 +45,13 @@ function DesignCard({ img, garment, colors, title, meta, badge, tone, primary, s
 
 const DRAFT = { bg: '#fef3c7', fg: '#b45309' };
 const ORDERED = { bg: '#dcfce7', fg: '#15803d' };
+const INSPO = { bg: '#e0f2fe', fg: '#0369a1' };
 
 export default function MyDesigns() {
   const nav = useNavigate();
   const [draft, setDraft] = useState(null);
   const [past, setPast] = useState([]);
+  const [tpl, setTpl] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [tab, setTab] = useState('all');
@@ -59,7 +61,11 @@ export default function MyDesigns() {
     setLoading(true); setError(false);
     Promise.allSettled([axios.get('/api/customer/drafts/latest'), axios.get('/api/customer/designs')]).then(([d, p]) => {
       if (d.status === 'fulfilled' && d.value.data?.draft?.studio_config?.garment) setDraft(d.value.data.draft); else setDraft(null);
-      if (p.status === 'fulfilled') setPast((p.value.data ?? []).filter(x => x.is_archived && x.config?.garment));
+      if (p.status === 'fulfilled') {
+        const rows = Array.isArray(p.value.data) ? p.value.data : [];
+        setPast(rows.filter(x => x.is_archived && x.config?.garment));
+        setTpl(rows.filter(x => !x.is_archived && x.config?.garment));
+      }
       if (d.status === 'rejected' && p.status === 'rejected') setError(true);
       setLoading(false);
     });
@@ -69,29 +75,31 @@ export default function MyDesigns() {
   const openStudioBlank = () => { sessionStorage.removeItem('studio_config'); nav('/design-studio'); };
   const continueDraft = () => { sessionStorage.removeItem('studio_config'); nav('/design-studio'); };
   const orderDraft = () => { sessionStorage.setItem('studio_config', JSON.stringify(draft.studio_config)); nav('/order/create'); };
+  const useTemplate = (d) => { sessionStorage.setItem('studio_config', JSON.stringify(d.config)); nav('/design-studio'); };
   const orderAgain = (d) => { sessionStorage.setItem('studio_config', JSON.stringify(d.config)); nav('/design-studio'); };
 
-  const nDraft = draft ? 1 : 0, nOrdered = past.length, total = nDraft + nOrdered;
+  const nDraft = draft ? 1 : 0, nOrdered = past.length, nInspo = tpl.length, total = nDraft + nOrdered;
   const hit = (...v) => !q.trim() || v.filter(Boolean).join(' ').toLowerCase().includes(q.trim().toLowerCase());
   const cfg = draft?.studio_config ?? {};
   const showDraft = draft && (tab === 'all' || tab === 'draft') && hit(draft.label, cfg.garment, cfg.category);
   const shownPast = past.filter(d => hit(d.label, d.garment, d.category));
   const showPast = tab === 'all' || tab === 'ordered';
-  const noMatch = q.trim() && !showDraft && !(showPast && shownPast.length);
+  const shownTpl = tab === 'inspo' ? tpl.filter(d => hit(d.label, d.garment, d.category)) : [];
+  const noMatch = q.trim() && !showDraft && !(showPast && shownPast.length) && !shownTpl.length;
   const empty = !loading && !error && total === 0;
-  const tabEmpty = !loading && !error && total > 0 && ((tab === 'draft' && !draft) || (tab === 'ordered' && !nOrdered));
+  const tabEmpty = !loading && !error && total > 0 && ((tab === 'draft' && !draft) || (tab === 'ordered' && !nOrdered) || (tab === 'inspo' && !nInspo));
 
   return (
     <div className="cx-page">
-      <PageHeader title="My Designs" subtitle={total ? `${total} design${total !== 1 ? 's' : ''} · draft and ordered` : 'Your work in progress and past designs'}>
+      <PageHeader title="My Designs" subtitle={total ? `${total} of your design${total !== 1 ? 's' : ''} · editable and saved` : 'Your work in progress, saved designs and inspiration'}>
         <button className="cx-btn cx-btn-p" onClick={openStudioBlank}><NavIcon name="designStudio" size={15} color="#fff" /> New Design</button>
       </PageHeader>
 
-      {!loading && !error && total > 0 && (
+      {!loading && !error && (total > 0 || nInspo > 0) && (
         <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <input type="search" className="cx-in" value={q} onChange={e => setQ(e.target.value)} placeholder="Search designs" aria-label="Search designs" style={{ maxWidth: 420 }} />
           <Chips label="Filter designs" value={tab} onChange={setTab}
-            items={[{ id: 'all', label: 'All', count: total }, { id: 'draft', label: 'Draft', count: nDraft }, { id: 'ordered', label: 'Ordered', count: nOrdered }]} />
+            items={[{ id: 'all', label: 'All', count: total }, { id: 'draft', label: 'Editable', count: nDraft }, { id: 'ordered', label: 'Saved', count: nOrdered }, ...(nInspo ? [{ id: 'inspo', label: 'Inspiration', count: nInspo }] : [])]} />
         </div>
       )}
 
@@ -100,27 +108,32 @@ export default function MyDesigns() {
       )}
 
       {error && <EmptyState illustration="error" headline="Couldn't load your designs" sub="Check your connection and try again." cta={{ label: 'Retry', onClick: load }} />}
-      {empty && <EmptyState illustration="order" headline="No designs yet" sub="Open the Design Studio to create your first custom uniform." cta={{ label: 'Open Design Studio', onClick: openStudioBlank }} />}
-      {tabEmpty && <EmptyState illustration="order" headline={tab === 'draft' ? 'No draft in progress' : 'No ordered designs yet'}
-        sub={tab === 'draft' ? 'Start a new design in the Design Studio.' : 'Designs you order will show up here.'} cta={{ label: 'Open Design Studio', onClick: openStudioBlank }} />}
+      {empty && tab !== 'inspo' && <EmptyState illustration="order" headline="No designs yet" sub="Open the Design Studio to create your first custom uniform." cta={{ label: 'Open Design Studio', onClick: openStudioBlank }} />}
+      {tabEmpty && <EmptyState illustration="order" headline={tab === 'draft' ? 'Nothing editable right now' : tab === 'inspo' ? 'No inspiration yet' : 'No saved designs yet'}
+        sub={tab === 'draft' ? 'Start a new design in the Design Studio.' : tab === 'inspo' ? 'Starter designs will appear here.' : 'Designs from completed orders will show up here.'} cta={{ label: 'Open Design Studio', onClick: openStudioBlank }} />}
 
       {noMatch && <EmptyState illustration="order" headline="No designs match your search" sub="Try a different garment name." />}
 
-      {!loading && !error && total > 0 && !noMatch && (
+      {!loading && !error && (total > 0 || (tab === 'inspo' && nInspo > 0)) && !noMatch && (
         <div className="cx-dgrid">
           {showDraft && (
             <DesignCard i={0} img={draft.preview_dataurl} garment={cfg.garment} colors={cfg.colors}
               title={draft.label || cfg.garment || 'Untitled design'} meta={`${cfg.category ?? 'Design'} · edited ${reltime(draft.updated_at)}`}
-              badge="Draft" tone={DRAFT} primary={{ label: 'Continue editing', onClick: continueDraft }} secondary={{ label: 'Order this', onClick: orderDraft }} />
+              badge="Editable" tone={DRAFT} primary={{ label: 'Continue editing', onClick: continueDraft }} secondary={{ label: 'Order this', onClick: orderDraft }} />
           )}
           {showPast && shownPast.map((d, i) => (
             <DesignCard key={d.id} i={i + 1} img={d.photo_path} garment={d.garment} colors={d.config?.colors}
               title={d.label || d.garment || 'Design'} meta={[d.category, d.sleeve].filter(Boolean).join(' · ') || fmtDate(d.updated_at ?? d.created_at)}
-              badge="Ordered" tone={ORDERED} primary={{ label: 'Order again', onClick: () => orderAgain(d), disabled: !d.config?.garment }} />
+              badge="Saved" tone={ORDERED} primary={{ label: 'Order again', onClick: () => orderAgain(d), disabled: !d.config?.garment }} />
           ))}
-          <button type="button" className="cx-newtile" onClick={openStudioBlank}>
+          {shownTpl.map((d, i) => (
+            <DesignCard key={`t${d.id}`} i={i} img={d.photo_path} garment={d.garment} colors={d.config?.colors}
+              title={d.label || d.garment || 'Inspiration'} meta={[d.category, d.sleeve].filter(Boolean).join(' · ') || 'Starter design'}
+              badge="Inspiration" tone={INSPO} primary={{ label: 'Use as starting point', onClick: () => useTemplate(d) }} />
+          ))}
+          {tab !== 'inspo' && <button type="button" className="cx-newtile" onClick={openStudioBlank}>
             <NavIcon name="designStudio" size={22} /> <strong>Start a new design</strong><span>Pick a garment and make it yours</span>
-          </button>
+          </button>}
         </div>
       )}
       <style>{`.cx-newtile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:240px;padding:20px;border:2px dashed var(--border-strong);border-radius:16px;background:transparent;color:var(--teal);cursor:pointer;font:inherit;transition:border-color .15s,background .15s,transform .15s}

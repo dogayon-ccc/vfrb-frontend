@@ -1,16 +1,15 @@
-// src/pages/client/design-studio/LayersPanel.jsx
-// Extracted from DesignStudio.jsx (Task E prep, Aug 31 2026) — first slice
-// of the file-size cleanup flagged back on Aug 30. Component body is
-// unchanged from the original, byte-for-byte apart from import paths.
 import { useState } from 'react';
 import { NavIcon } from '../../../components/ui/icons';
-import { T2, secLabel } from './dsShared';
+import { familyFor } from './garmentCatalog';
 
-export default function LayersPanel({ layers, selectedId, onSelect, onToggleVisibility, onRename, onDelete, onReorder }) {
-  const [dragId, setDragId]       = useState(null);
-  const [overId, setOverId]       = useState(null);
+const ICON = { logo: 'image', drawing: 'draw', shape: 'shapes', text: 'text' };
+const KIND = { logo: 'Logo', drawing: 'Drawing', shape: 'Shape', text: 'Text' };
+
+export default function LayersPanel({ layers, selectedId, garment, onSelect, onToggleVisibility, onToggleLock, onOpacity, onRename, onDelete, onReorder }) {
+  const [dragId, setDragId] = useState(null);
+  const [overId, setOverId] = useState(null);
   const [editingId, setEditingId] = useState(null);
-  const [editVal, setEditVal]     = useState('');
+  const [editVal, setEditVal] = useState('');
 
   const commitRename = () => {
     if (editingId && editVal.trim()) onRename(editingId, editVal.trim());
@@ -18,106 +17,114 @@ export default function LayersPanel({ layers, selectedId, onSelect, onToggleVisi
   };
 
   const handleDrop = (targetId) => {
-    if (!dragId || dragId === targetId) { setDragId(null); setOverId(null); return; }
-    const ids  = layers.map(l => l.id);
+    const ids = layers.map(l => l.id);
     const from = ids.indexOf(dragId);
-    const to   = ids.indexOf(targetId);
-    if (from === -1 || to === -1) { setDragId(null); setOverId(null); return; }
+    const to = ids.indexOf(targetId);
+    setDragId(null); setOverId(null);
+    if (from === -1 || to === -1 || from === to) return;
     const next = [...ids];
     next.splice(from, 1);
     next.splice(to, 0, dragId);
     onReorder(next);
-    setDragId(null);
-    setOverId(null);
+  };
+
+  const move = (id, dir) => {
+    const ids = layers.map(l => l.id);
+    const i = ids.indexOf(id);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= ids.length) return;
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+    onReorder(ids);
   };
 
   return (
-    <div style={{ padding:'12px', display:'flex', flexDirection:'column', gap:6,
-      flex:1, overflowY:'auto' }}>
-      <p style={secLabel}>Layers on this side · {layers.length}</p>
+    <div className="ds-lay">
+      <p className="ds-lay-count">Layers on this side · {layers.length}</p>
 
       {layers.length === 0 ? (
         <div className="ds-empty">
           <span className="ds-empty-icon"><NavIcon name="layersPanel" size={22} color="var(--teal-dark)"/></span>
           <p className="ds-empty-title">No layers on this side yet</p>
-          <p className="ds-empty-sub">Logos, text, shapes and drawings you add show up here, where you can reorder, hide or rename them.</p>
+          <p className="ds-empty-sub">Logos, text, shapes and drawings you add show up here, where you can reorder, hide, lock or rename them.</p>
         </div>
       ) : (
-        <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
-          {layers.map(layer => {
-            const isSel  = layer.id === selectedId;
-            const isOver = overId === layer.id && dragId && dragId !== layer.id;
+        <ul className="ds-lay-list" aria-label="Layers, front-most first">
+          {layers.map((layer, i) => {
+            const sel = layer.id === selectedId;
             return (
-              <div key={layer.id}
-                draggable
+              <li key={layer.id} className="ds-lay-row" data-sel={sel || undefined} data-hidden={!layer.visible || undefined}
+                data-locked={layer.locked || undefined} data-over={(overId === layer.id && dragId && dragId !== layer.id) || undefined}
+                style={{ opacity: dragId === layer.id ? .4 : undefined }}
+                draggable={editingId !== layer.id}
                 onDragStart={() => setDragId(layer.id)}
                 onDragOver={e => { e.preventDefault(); if (overId !== layer.id) setOverId(layer.id); }}
-                onDragLeave={() => setOverId(o => o === layer.id ? null : o)}
+                onDragLeave={() => setOverId(o => (o === layer.id ? null : o))}
                 onDrop={e => { e.preventDefault(); handleDrop(layer.id); }}
-                onDragEnd={() => { setDragId(null); setOverId(null); }}
-                onClick={() => onSelect(layer.id)}
-                style={{
-                  display:'flex', alignItems:'center', gap:7,
-                  padding:'7px 8px', borderRadius:8, cursor:'grab',
-                  background: isSel ? 'rgba(2,195,154,.14)' : 'rgba(15,23,42,.03)',
-                  border: isSel ? `1px solid ${T2}` : '1px solid rgba(15,23,42,.06)',
-                  outline: isOver ? `2px solid ${T2}` : 'none',
-                  opacity: dragId === layer.id ? .4 : 1,
-                  transition:'background .12s, opacity .12s',
-                }}>
-                <NavIcon name="dragHandle" size={11} color="rgba(15,23,42,.22)"/>
-                {/* Shape sub-kind (Triangle/Ellipse/Line/Star/...) uses the
-                    one generic 'shapes' icon — real per-shape icons (rect/
-                    circle) exist but a matching icon for every Fabric shape
-                    kind doesn't, and showing the wrong one would be worse
-                    than a shared generic. */}
-                <NavIcon name={layer.type === 'logo' ? 'image' : layer.type === 'drawing' ? 'draw'
-                  : layer.type === 'shape' ? 'shapes' : 'edit'} size={13} color="rgba(15,23,42,.6)"/>
+                onDragEnd={() => { setDragId(null); setOverId(null); }}>
+                <div className="ds-lay-main">
+                  <button type="button" className="ds-lay-pick" aria-pressed={sel} onClick={() => onSelect(layer.id)}>
+                    <span className="ds-lay-type" aria-hidden="true"><NavIcon name={ICON[layer.type] ?? 'text'} size={14}/></span>
+                    {editingId === layer.id ? null : (
+                      <span className="ds-lay-name" title={`${layer.name} — double-click to rename`}
+                        onDoubleClick={e => { e.stopPropagation(); setEditingId(layer.id); setEditVal(layer.name); }}>
+                        {layer.name}<em>{KIND[layer.type]}</em>
+                      </span>
+                    )}
+                  </button>
+                  {editingId === layer.id && (
+                    <input autoFocus className="ds-lay-edit" value={editVal} maxLength={24} aria-label="Layer name"
+                      onChange={e => setEditVal(e.target.value)} onBlur={commitRename}
+                      onKeyDown={e => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') setEditingId(null); e.stopPropagation(); }}/>
+                  )}
+                  <button type="button" className="ds-lay-btn" aria-label={layer.locked ? 'Unlock layer' : 'Lock layer'} aria-pressed={layer.locked}
+                    title={layer.locked ? 'Unlock' : 'Lock position and size'} onClick={() => onToggleLock(layer.id)}>
+                    <NavIcon name="lock" size={14}/>
+                  </button>
+                  <button type="button" className="ds-lay-btn" aria-label={layer.visible ? 'Hide layer' : 'Show layer'} aria-pressed={!layer.visible}
+                    title={layer.visible ? 'Hide' : 'Show'} onClick={() => onToggleVisibility(layer.id)}>
+                    <NavIcon name={layer.visible ? 'show' : 'hide'} size={14}/>
+                  </button>
+                </div>
 
-                {editingId === layer.id ? (
-                  <input autoFocus value={editVal}
-                    onChange={e => setEditVal(e.target.value)}
-                    onBlur={commitRename}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') commitRename();
-                      if (e.key === 'Escape') setEditingId(null);
-                      e.stopPropagation();
-                    }}
-                    onClick={e => e.stopPropagation()}
-                    maxLength={24}
-                    style={{ flex:1, fontSize:11, background:'transparent', border:'none',
-                      borderBottom:`1px solid ${T2}`, color:'#1a2332', outline:'none', minWidth:0 }}/>
-                ) : (
-                  <span
-                    onDoubleClick={e => { e.stopPropagation(); setEditingId(layer.id); setEditVal(layer.name); }}
-                    title={`${layer.name} — double-click to rename`}
-                    style={{ flex:1, fontSize:11, color: isSel ? '#016070' : 'rgba(15,23,42,.7)',
-                      overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', minWidth:0 }}>
-                    {layer.name}
-                  </span>
+                {sel && (
+                  <div className="ds-lay-detail">
+                    <label className="ds-lay-op">
+                      <span>Opacity {Math.round(layer.opacity * 100)}%</span>
+                      <input type="range" min="10" max="100" value={Math.round(layer.opacity * 100)}
+                        onChange={e => onOpacity(layer.id, Number(e.target.value) / 100, false)}
+                        onPointerUp={e => onOpacity(layer.id, Number(e.target.value) / 100, true)}
+                        onKeyUp={e => onOpacity(layer.id, Number(e.target.value) / 100, true)}/>
+                    </label>
+                    <div className="ds-lay-tools">
+                      <button type="button" className="ds-lay-btn" aria-label="Bring forward" disabled={i === 0} onClick={() => move(layer.id, -1)}>
+                        <NavIcon name="chevronUp" size={14}/>
+                      </button>
+                      <button type="button" className="ds-lay-btn" aria-label="Send backward" disabled={i === layers.length - 1} onClick={() => move(layer.id, 1)}>
+                        <NavIcon name="chevronDown" size={14}/>
+                      </button>
+                      <button type="button" className="ds-lay-btn" aria-label="Rename layer" onClick={() => { setEditingId(layer.id); setEditVal(layer.name); }}>
+                        <NavIcon name="edit" size={14}/>
+                      </button>
+                      <button type="button" className="ds-lay-btn ds-lay-del" aria-label="Delete layer" disabled={layer.locked}
+                        title={layer.locked ? 'Unlock to delete' : 'Delete'} onClick={() => onDelete(layer.id)}>
+                        <NavIcon name="delete" size={14}/>
+                      </button>
+                    </div>
+                  </div>
                 )}
-
-                <button onClick={e => { e.stopPropagation(); onToggleVisibility(layer.id); }}
-                  title={layer.visible ? 'Hide layer' : 'Show layer'}
-                  style={{ background:'none', border:'none', cursor:'pointer', padding:2,
-                    display:'flex', opacity: layer.visible ? .6 : .28 }}>
-                  <NavIcon name={layer.visible ? 'show' : 'hide'} size={13} color="#fff"/>
-                </button>
-                <button onClick={e => { e.stopPropagation(); onDelete(layer.id); }}
-                  title="Delete layer"
-                  style={{ background:'none', border:'none', cursor:'pointer', padding:2,
-                    display:'flex', opacity:.45 }}>
-                  <NavIcon name="delete" size={13} color="#fff"/>
-                </button>
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
 
-      <p style={{ fontSize:9, color:'rgba(15,23,42,.2)', textAlign:'center', margin:'8px 0 0' }}>
-        Top = front · Drag to reorder · Double-click to rename
-      </p>
+      {garment && (
+        <div className="ds-lay-base" aria-label="Garment base layer">
+          <span className="ds-lay-type" aria-hidden="true"><NavIcon name="garmentType" size={14}/></span>
+          <span className="ds-lay-name">{garment}<em>{familyFor(garment) ? 'Base garment · colors set in Garment' : 'Base garment'}</em></span>
+          <NavIcon name="lock" size={13} color="var(--text-subtle)"/>
+        </div>
+      )}
     </div>
   );
 }

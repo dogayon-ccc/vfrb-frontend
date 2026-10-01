@@ -22,7 +22,8 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, sum
   const hasSelection = isEditableSelection(p.selObj);
 
   const PANELS = {
-    type:    () => <TypePanel cfg={p.cfg} setCfg={p.setCfg} setActiveZone={p.setActiveZone} onOpenTool={summary.onOpenTool}/>,
+    type:    () => <TypePanel cfg={p.cfg} setCfg={p.setCfg} setActiveZone={p.setActiveZone} onOpenTool={summary.onOpenTool}
+                     viewMode={p.viewMode} setViewMode={p.setViewMode} setHas3DLoaded={p.setHas3DLoaded}/>,
     color:   () => <ColorsPanel cfg={p.cfg} setCfg={p.setCfg} activeZone={p.activeZone} setActiveZone={p.setActiveZone}/>,
     assets:  () => <AssetsPanel tab={p.assetsTab} setTab={p.setAssetsTab} cfg={p.cfg} logo={p.logoUpload}
                      shapes={{ selObj:p.selObj, onAdd:p.addShape, onUpdate:p.updateSelected }}
@@ -31,15 +32,17 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, sum
     draw:    () => <DrawPanel size={p.brushSize} color={p.brushColor} onSizeChange={p.changeBrushSize} onColorChange={p.changeBrushColor}/>,
     ai:      () => <AIPanel onApply={p.applyAI} onTexture={noop}/>,
     pattern: () => <PatternPanel cfg={p.cfg} setCfg={p.setCfg} activeZone={p.activeZone}/>,
-    layers:  () => <LayersPanel layers={p.layers} selectedId={p.selObj?.__layerId} onSelect={p.selectLayer}
-                     onToggleVisibility={p.toggleLayerVisibility} onRename={p.renameLayer} onDelete={p.deleteLayer} onReorder={p.reorderLayers}/>,
+    layers:  () => <LayersPanel layers={p.layers} selectedId={p.selObj?.__layerId} garment={p.cfg.garment} onSelect={p.selectLayer}
+                     onToggleVisibility={p.toggleLayerVisibility} onToggleLock={p.toggleLayerLock} onOpacity={p.setLayerOpacity}
+                     onRename={p.renameLayer} onDelete={p.deleteLayer} onReorder={p.reorderLayers}/>,
     summary:  () => <div className="ds-sum"><SummaryContent {...summary}/></div>,
     // Tablet/mobile-only reach for the same SelectionInspector desktop always shows in
     // RightInfoPanel — see the 'selected' entry in dsShared.js TOOLS for why this exists.
     selected: () => (
       <div className="ds-sum">
         {hasSelection
-          ? <SelectionInspector selObj={p.selObj} updateSelected={p.updateSelected} deleteSelected={p.deleteSelected}/>
+          ? <SelectionInspector selObj={p.selObj} updateSelected={p.updateSelected} deleteSelected={p.deleteSelected}
+              toggleSelectedLock={p.toggleSelectedLock} pushHistory={p.pushHistory}/>
           : <p className="ds-sum-sub" style={{ padding:'24px 4px', textAlign:'center' }}>
               Tap a placed logo, text or shape on the canvas to edit it.
             </p>}

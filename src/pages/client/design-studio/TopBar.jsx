@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { NavIcon } from '../../../components/ui/icons';
 import { T, T2, hexToRgb } from './dsShared';
+import { familyFor } from './garmentCatalog';
 
 // Vertical hairline between command groups — the previous TopBar had 12
 // same-weight controls in one flat row with a single flex:1 spacer, so
@@ -16,9 +17,10 @@ export default function TopBar({
   nav, cfg, setCfg, catData, undo, redo, canUndo, canRedo,
   viewMode, setViewMode, setHas3DLoaded,
   selObj, deleteSelected, showInspo, setShowInspo, showShowcase, setShowShowcase,
-  saved, draftSaved, saveDesign, orderThis, ordering,
+  saved, saving, saveErr, draftSaved, saveDesign, orderThis, ordering,
 }) {
-  const reduceMotion = useReducedMotion();
+
+  const no3D = familyFor(cfg.garment)?.status3D === 'none';  const reduceMotion = useReducedMotion();
   // Mobile "More" overflow — the bar has ~13 controls at desktop width; below 768px
   // (DesignStudioStyles.jsx's own breakpoint) most of them get hidden via CSS
   // (.ds-bar-brand/.ds-bar-cat/.ds-bar-secondary — see that file) and folded into
@@ -115,13 +117,13 @@ export default function TopBar({
         <div style={{ display:'flex',borderRadius:9,overflow:'hidden',
           border:'1px solid rgba(15,23,42,.12)',flexShrink:0 }}>
           {['2d','3d'].map(m=>(
-            <button key={m} onClick={()=>{
+            <button key={m} disabled={m==='3d' && no3D} onClick={()=>{
                 if(m==='3d') setHas3DLoaded(true);
                 setViewMode(m);
               }}
-              title={m==='3d' ? 'Quick spatial preview — for exact colors and placement, use 2D' : undefined}
+              title={m==='3d' ? (no3D ? 'No verified 3D model for this garment — 2D is the exact preview' : 'Quick spatial preview — for exact colors and placement, use 2D') : undefined}
               style={{ padding:'6px 13px',border:'none',fontSize:11,fontWeight:700,
-                cursor:'pointer',
+                cursor:(m==='3d' && no3D)?'not-allowed':'pointer', opacity:(m==='3d' && no3D)?.4:1,
                 background:viewMode===m?T:'transparent',
                 color:viewMode===m?'#fff':'rgba(15,23,42,.4)',
                 transition:'background .14s' }}>
@@ -200,7 +202,7 @@ export default function TopBar({
               </div>
               <div style={{ display:'flex', borderRadius:8, overflow:'hidden', border:'1px solid rgba(15,23,42,.12)' }}>
                 {['2d','3d'].map(m=>(
-                  <button key={m} onClick={()=>{ if(m==='3d') setHas3DLoaded(true); setViewMode(m); }}
+                  <button key={m} disabled={m==='3d' && no3D} onClick={()=>{ if(m==='3d') setHas3DLoaded(true); setViewMode(m); }}
                     style={{ flex:1, padding:'7px 0', border:'none', fontSize:11, fontWeight:700, cursor:'pointer',
                       background:viewMode===m?T:'transparent', color:viewMode===m?'#fff':'rgba(15,23,42,.4)' }}>
                     {m.toUpperCase()}
@@ -225,14 +227,18 @@ export default function TopBar({
       </div>
 
       {/* ── Persistence ───────────────────────────────────────────────── */}
-      <button className="ds-bar-save" onClick={saveDesign}
+      <button className="ds-bar-save" onClick={saveDesign} disabled={!cfg.garment || saving} aria-busy={!!saving} aria-label="Save design"
         style={{ padding:'6px 12px',borderRadius:8,cursor:'pointer',
           border:`1px solid ${saved?T2:'rgba(15,23,42,.12)'}`,
           background: saved?'rgba(2,195,154,.12)':'transparent',
           color: saved?T2:'rgba(15,23,42,.5)',fontSize:11,fontWeight:700,
           flexShrink:0,transition:'all .2s',
           display:'flex', alignItems:'center', gap:5 }}>
-        {draftSaved
+        {saving
+          ? <><span className="ds-spin"/> <span className="ds-bar-save-label">Saving</span></>
+          : saveErr
+            ? <><NavIcon name="warning" size={12}/> <span className="ds-bar-save-label">Retry</span></>
+          : draftSaved
           ? <><NavIcon name="cloudSaved" size={12}/> <span className="ds-bar-save-label">Saved</span></>
           : saved
             ? <><NavIcon name="success" size={12}/> <span className="ds-bar-save-label">Local</span></>

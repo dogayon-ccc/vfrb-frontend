@@ -8,9 +8,12 @@ import { CATALOG, familyFor, neighborFamily, applyGarment, STATUS_3D_LABEL } fro
 import { PH_SWATCHES, ZONE_LABEL, zonesFor } from './dsShared';
 
 // Options come from the canonical CATALOG only; nothing here invents a garment, style or fit.
-export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool }) {
+export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, viewMode, setViewMode, setHas3DLoaded }) {
   const reduce  = useReducedMotion();
   const [openZone, setOpenZone] = useState(null);
+  const [picking, setPicking] = useState(!cfg.garment);
+  const [prevGarment, setPrevGarment] = useState(cfg.garment);
+  if (prevGarment !== cfg.garment) { setPrevGarment(cfg.garment); setPicking(!cfg.garment); }
   const catData = CATALOG.find(c => c.id === cfg.category) ?? CATALOG[0];
   const family  = familyFor(cfg.garment);
   const sleeves = family?.styles ?? [];
@@ -27,6 +30,19 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool }) {
 
   return (
     <div className="ds-tp">
+      {cfg.garment && !picking && (
+        <div className="ds-tp-current">
+          <span className="ds-tp-thumb ds-tp-thumb--sm"><GarmentThumb paths={BASE_PATHS[cfg.garment] ?? BASE_PATHS['Polo Shirt']} colors={cfg.colors} size={40}/></span>
+          <div className="ds-tp-current-txt">
+            <strong>{cfg.garment}</strong>
+            <span>{catData.id}{STATUS_3D_LABEL[family?.status3D] ? ` · ${STATUS_3D_LABEL[family.status3D].label}` : ''}</span>
+          </div>
+          <button type="button" className="ds-btn" onClick={() => setPicking(true)}>Change</button>
+        </div>
+      )}
+
+      {(picking || !cfg.garment) && (
+      <>
       <div className="ds-tp-catbar" role="tablist" aria-label="Uniform category">
         {CATALOG.map(c => (
           <button key={c.id} type="button" role="tab" aria-selected={cfg.category === c.id} className="ds-tp-catchip"
@@ -83,6 +99,9 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool }) {
           })}
         </motion.div>
       </AnimatePresence>
+
+      </>
+      )}
 
       {!cfg.garment && <p className="ds-note" style={{ marginTop: 0 }}>Tap a garment to place it on the canvas.</p>}
 
@@ -182,6 +201,29 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool }) {
                 <span>Pattern</span>
                 <NavIcon name="chevronRight" size={13}/>
               </button>
+            </div>
+            <div className="ds-acc-item" data-open={openZone === 'preview'}>
+              <button type="button" className="ds-acc-head" aria-expanded={openZone === 'preview'} onClick={() => setOpenZone(o => (o === 'preview' ? null : 'preview'))}>
+                <NavIcon name="show" size={15}/>
+                <span>Preview</span>
+                <NavIcon name="chevronRight" size={13}/>
+              </button>
+              {openZone === 'preview' && (
+                <div className="ds-acc-body ds-tp-prev">
+                  <div className="ds-seg ds-seg--sm" role="radiogroup" aria-label="Preview mode">
+                    <button type="button" role="radio" aria-checked={viewMode !== '3d'} onClick={() => setViewMode?.('2d')}>2D</button>
+                    <button type="button" role="radio" aria-checked={viewMode === '3d'} disabled={family?.status3D === 'none'}
+                      onClick={() => { setHas3DLoaded?.(true); setViewMode?.('3d'); }}>3D</button>
+                  </div>
+                  <p className="ds-note" style={{ margin: 0 }}>
+                    {family?.status3D === 'none'
+                      ? `${cfg.garment} has no verified 3D model yet — the 2D design is the exact preview.`
+                      : family?.status3D === 'partial'
+                        ? '3D is a quick approximation. Use 2D for exact colors and placement.'
+                        : '3D is a quick spatial view. Use 2D for exact colors and placement.'}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </>

@@ -26,6 +26,7 @@ import InspoGallery from './design-studio/InspoGallery';
 import ShowcaseGallery from './design-studio/ShowcaseGallery';
 import { T, T2, CATS, INIT_CFG, FONTS, zonesFor } from './design-studio/dsShared';
 import { deserializeDesign, serializeDesign } from './design-studio/designSerialization';
+import { familyFor } from './design-studio/garmentCatalog';
 
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────
@@ -104,6 +105,8 @@ export default function DesignStudio() {
     const t = setTimeout(() => setToast(null), 2400);
     return () => clearTimeout(t);
   }, [saved, draftSaved]);
+  const [saving, setSaving] = useState(false);
+  const [saveErr, setSaveErr] = useState(false);
   const [ordering, setOrdering] = useState(false); // optimistic "Order This" in-flight state
   const autoSaveTimer = useRef(null);
 
@@ -138,7 +141,7 @@ export default function DesignStudio() {
   // BUG 2 FIX: pass canvasEl (ref object), not canvasEl.current (null at render)
   const { addLogo, addText, addShape, updateSelected, deleteSelected, duplicateSelected, exportOverlays, exportPNG, getCanvasJSON, loadCanvasJSON,
           pushHistory, undo, redo, canUndo, canRedo, resizeCanvas, initFailed,
-          layers, selectLayer, toggleLayerVisibility, renameLayer, deleteLayer, reorderLayers,
+          layers, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
           setDrawMode, setBrushStyle } =
     useGarmentCanvas(
       canvasEl,
@@ -172,6 +175,10 @@ export default function DesignStudio() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selObj, isNarrow]);
+
+  useEffect(() => {
+    if (viewMode === '3d' && familyFor(cfg.garment)?.status3D === 'none') setViewMode('2d');
+  }, [cfg.garment, viewMode]);
 
   const logoUpload = useLogoUpload(addLogo);
   // A file dropped on the canvas goes through the same pipeline as the panel, and
@@ -421,15 +428,16 @@ export default function DesignStudio() {
 
   // ── Manual save: sessionStorage + DB ─────────────────────────────────────
   const saveDesign = useCallback(async () => {
-    if (!cfg.garment) return;
+    if (!cfg.garment || saving) return;
+    setSaving(true); setSaveErr(false);
     const snap = snapshotDesign();
-    // Always write sessionStorage first (instant, works offline)
+    let local = false;
     try {
       sessionStorage.setItem('studio_config', JSON.stringify(snap));
+      local = true;
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch { /* quota: large logos; the cloud draft below still runs */ }
-    // Best-effort DB save
     try {
       await axios.post('/api/customer/drafts', {
         studio_config:   snap,
@@ -438,8 +446,10 @@ export default function DesignStudio() {
       });
       setDraftSaved(true);
       setTimeout(() => setDraftSaved(false), 2500);
-    } catch { /* offline — sessionStorage copy is enough */ }
-  }, [cfg, snapshotDesign, exportPNG]);
+    } catch {
+      if (!local) { setSaveErr(true); flashError('Could not save your design. Check your connection and try again.'); }
+    } finally { setSaving(false); }
+  }, [cfg, saving, snapshotDesign, exportPNG, flashError]);
 
   // Order This → pass design to OrderWizard
   const downloadImage = useCallback(async () => {
@@ -588,7 +598,7 @@ export default function DesignStudio() {
 
           {/* ── TOOL STRIP + PANEL DRAWER ── */}
           <ToolDrawer tool={tool} setTool={setTool} sheetOpen={sheetOpen} setSheetOpen={setSheetOpen}
-            summary={{ cfg, face, saved, saveDesign, orderThis, ordering, onOpenTool: (id) => { setTool(id); setSheetOpen(true); }, downloadImage, clearGarment }} cfg={cfg} setCfg={setCfg}
+            summary={{ cfg, face, saved, saving, saveErr, draftSaved, saveDesign, orderThis, ordering, onOpenTool: (id) => { setTool(id); setSheetOpen(true); }, downloadImage, clearGarment }} cfg={cfg} setCfg={setCfg}
             activeZone={zone} setActiveZone={setActiveZone}
             addText={addText} addShape={addShape} updateSelected={updateSelected}
             assetsTab={assetsTab} setAssetsTab={setAssetsTab} logoUpload={logoUpload}
@@ -597,6 +607,8 @@ export default function DesignStudio() {
             changeBrushSize={changeBrushSize} changeBrushColor={changeBrushColor}
             applyAI={applyAI} layers={layers} selObj={selObj} deleteSelected={deleteSelected}
             selectLayer={selectLayer} toggleLayerVisibility={toggleLayerVisibility}
+            toggleLayerLock={toggleLayerLock} toggleSelectedLock={toggleSelectedLock} setLayerOpacity={setLayerOpacity}
+            pushHistory={pushHistory} viewMode={viewMode} setViewMode={setViewMode} setHas3DLoaded={setHas3DLoaded}
             renameLayer={renameLayer} deleteLayer={deleteLayer} reorderLayers={reorderLayers}/>
 
           {/* ── CANVAS AREA ── */}

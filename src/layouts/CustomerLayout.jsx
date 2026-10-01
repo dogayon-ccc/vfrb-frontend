@@ -596,7 +596,7 @@ export default function CustomerLayout() {
 
             {/* Mobile: logo + portal label */}
             <Link to="/dashboard" className="cm-mob-only cm-brand-link" aria-label="VFRB Enterprise — back to dashboard">
-            <img src={logo} alt="" 
+            <img src={logo} alt=""
               style={{ width:30, height:30, borderRadius:8, objectFit:'cover',
                 border:'1.5px solid rgba(255,255,255,.35)', flexShrink:0 }}/>
             <div style={{ flex:1, minWidth:0 }}>

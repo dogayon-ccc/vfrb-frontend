@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { NavIcon } from '../../../components/ui/icons';
 import GarmentSilhouette from './GarmentSilhouette';
-import { ZONE_LABEL, zonesFor, T, T2, secLabel, SHAPE_TYPE_LABEL, TOOLS } from './dsShared';
+import { ZONE_LABEL, zonesFor, SHAPE_TYPE_LABEL, TOOLS, FONTS } from './dsShared';
 import AIDesignChat from '../AIDesignChat';
 
 // Real contextual inspector for the currently-selected Fabric object — shown
@@ -29,86 +29,103 @@ function kindOf(o) {
   return 'Text';
 }
 
-// Exported so ToolDrawer.jsx's 'selected' tab (tablet/mobile) can render the exact same
-// contextual controls this file already shows, unconditionally, in the desktop-only right
-// info panel — one control set, reachable from two places, not a second implementation.
-export function SelectionInspector({ selObj, updateSelected, deleteSelected }) {
-  const kind    = kindOf(selObj);
-  const hasFill = selObj.__shape || (!selObj.__logo && !selObj.__draw); // shapes + text
-  // A Line has no fill (it's a stroked path, not an area) — its visible
-  // color IS its stroke. Every other fillable shape/text edits .fill as before.
-  const isLine  = selObj.__shape && selObj.type === 'line';
-  const angle   = Math.round(selObj.angle ?? 0);
-
-  // Width/Height are the real on-canvas size (base width/height × the
-  // current scale factor) — Fabric stores those as two separate numbers,
-  // but showing the multiplied-out pixel size is what a designer actually
-  // expects to type into a "Width" field. Setting it back solves for the
-  // scale factor Fabric needs, so nothing here is a value Fabric doesn't
-  // already track — no shadow state, just a different unit to display it in.
+// Same controls on desktop (right panel) and tablet/phone ('selected' tab in the sheet).
+export function SelectionInspector({ selObj, updateSelected, deleteSelected, toggleSelectedLock, pushHistory }) {
+  const kind   = kindOf(selObj);
+  const isText = !!selObj.__text || selObj.type === 'i-text' || selObj.type === 'text';
+  const isLine = selObj.__shape && selObj.type === 'line';
+  const hasFill = selObj.__shape || isText;
+  const locked = !!selObj.__locked;
+  const angle  = Math.round(selObj.angle ?? 0);
   const baseW = selObj.width ?? 0;
   const baseH = selObj.height ?? 0;
   const dispW = Math.round(baseW * (selObj.scaleX ?? 1));
   const dispH = Math.round(baseH * (selObj.scaleY ?? 1));
+  const live = (props) => updateSelected(props, false);
+  const commit = () => pushHistory?.();
+  const fontId = FONTS.find(f => f.css === selObj.fontFamily)?.id ?? '';
 
-  const numField = (label, value, onCommit) => (
-    <div>
-      <p style={secLabel}>{label}</p>
-      <input type="number" defaultValue={Math.round(value)} key={value}
+  const num = (label, value, onCommit) => (
+    <label className="ds-ins-field">
+      <span>{label}</span>
+      <input type="number" inputMode="numeric" defaultValue={Math.round(value)} key={`${label}-${Math.round(value)}`} disabled={locked}
         onBlur={e => { const v = Number(e.target.value); if (!Number.isNaN(v)) onCommit(v); }}
-        onKeyDown={e => { if (e.key === 'Enter') e.target.blur(); }}
-        style={{ width: '100%', padding: '6px 9px', borderRadius: 8, fontSize: 12,
-          border: '1px solid rgba(15,23,42,.12)', color: 'rgba(15,23,42,.8)' }}/>
-    </div>
+        onKeyDown={e => { if (e.key === 'Enter') e.target.blur(); }}/>
+    </label>
+  );
+  const range = (label, value, min, max, onLive, disabled) => (
+    <label className="ds-ins-range">
+      <span>{label}</span>
+      <input type="range" min={min} max={max} value={value} disabled={disabled}
+        onChange={e => onLive(Number(e.target.value))} onPointerUp={commit} onKeyUp={commit}/>
+    </label>
   );
 
   return (
-    <>
-      <h2 className="ds-eyebrow">Selected: {selObj.__layerName || kind}</h2>
-
-      <p className="ds-group-label">Transform</p>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-        {numField('X', selObj.left ?? 0, v => updateSelected({ left: v }))}
-        {numField('Y', selObj.top ?? 0, v => updateSelected({ top: v }))}
-        {baseW > 0 && numField('Width', dispW, v => updateSelected({ scaleX: v / baseW }))}
-        {baseH > 0 && numField('Height', dispH, v => updateSelected({ scaleY: v / baseH }))}
+    <div className="ds-ins">
+      <div className="ds-ins-head">
+        <h2 className="ds-eyebrow">{kind}{selObj.__layerName && selObj.__layerName !== kind ? ` · ${selObj.__layerName}` : ''}</h2>
+        <button type="button" className="ds-lay-btn" aria-pressed={locked} aria-label={locked ? 'Unlock item' : 'Lock item'}
+          title={locked ? 'Unlock' : 'Lock position and size'} onClick={toggleSelectedLock}>
+          <NavIcon name="lock" size={15}/>
+        </button>
       </div>
+      {locked && <p className="ds-ins-note">Locked — unlock to move, resize or delete.</p>}
 
-      <div>
-        <p style={secLabel}>Rotation: {angle}°</p>
-        <input type="range" min="0" max="360" value={angle}
-          onChange={e => updateSelected({ angle: Number(e.target.value) })}
-          style={{ width: '100%', accentColor: T2 }}/>
-      </div>
-
-      <p className="ds-group-label">Appearance</p>
-
-      {hasFill && (
-        <div>
-          <p style={secLabel}>Color</p>
-          <input type="color" value={(isLine ? selObj.stroke : selObj.fill) || '#02C39A'}
-            onChange={e => updateSelected(isLine ? { stroke: e.target.value } : { fill: e.target.value })}
-            style={{ width: '100%', height: 34, borderRadius: 8, border: '1px solid rgba(15,23,42,.12)',
-              cursor: 'pointer', padding: 2 }}/>
-        </div>
+      {isText && (
+        <section className="ds-ins-sec">
+          <p className="ds-group-label">Text</p>
+          <label className="ds-ins-field ds-ins-wide">
+            <span>Content</span>
+            <input type="text" maxLength={32} defaultValue={selObj.text ?? ''} key={selObj.__layerId} disabled={locked}
+              onChange={e => e.target.value && live({ text: e.target.value })} onBlur={commit}/>
+          </label>
+          <label className="ds-ins-field ds-ins-wide">
+            <span>Font</span>
+            <select value={fontId} disabled={locked} onChange={e => updateSelected({ fontFamily: FONTS.find(f => f.id === e.target.value)?.css })}>
+              {fontId === '' && <option value="">Current</option>}
+              {FONTS.map(f => <option key={f.id} value={f.id}>{f.label ?? f.id}</option>)}
+            </select>
+          </label>
+          {range(`Size ${Math.round(selObj.fontSize ?? 18)}px`, Math.round(selObj.fontSize ?? 18), 8, 96, v => live({ fontSize: v }), locked)}
+          <div className="ds-seg ds-seg--sm" role="radiogroup" aria-label="Text alignment">
+            {['left', 'center', 'right'].map(a => (
+              <button key={a} type="button" role="radio" aria-checked={(selObj.textAlign ?? 'left') === a} disabled={locked}
+                onClick={() => updateSelected({ textAlign: a })}>{a[0].toUpperCase() + a.slice(1)}</button>
+            ))}
+          </div>
+        </section>
       )}
 
-      <div>
-        <p style={secLabel}>Opacity: {Math.round((selObj.opacity ?? 1) * 100)}%</p>
-        <input type="range" min="10" max="100" value={Math.round((selObj.opacity ?? 1) * 100)}
-          onChange={e => updateSelected({ opacity: Number(e.target.value) / 100 })}
-          style={{ width: '100%', accentColor: T2 }}/>
-      </div>
+      <section className="ds-ins-sec">
+        <p className="ds-group-label">Position &amp; size</p>
+        <div className="ds-ins-grid">
+          {num('X', selObj.left ?? 0, v => updateSelected({ left: v }))}
+          {num('Y', selObj.top ?? 0, v => updateSelected({ top: v }))}
+          {!isText && baseW > 0 && num('Width', dispW, v => updateSelected({ scaleX: v / baseW }))}
+          {!isText && baseH > 0 && num('Height', dispH, v => updateSelected({ scaleY: v / baseH }))}
+        </div>
+        {range(`Rotation ${angle}°`, angle, 0, 360, v => live({ angle: v }), locked)}
+      </section>
 
-      <button type="button" className="ds-act" onClick={deleteSelected}
-        style={{ color: '#E63946', borderColor: 'rgba(230,57,70,.3)' }}>
+      <section className="ds-ins-sec">
+        <p className="ds-group-label">Appearance</p>
+        {hasFill && (
+          <label className="ds-ins-field ds-ins-wide">
+            <span>Color</span>
+            <input type="color" disabled={locked} value={(isLine ? selObj.stroke : selObj.fill) || '#02C39A'}
+              onChange={e => live(isLine ? { stroke: e.target.value } : { fill: e.target.value })} onBlur={commit}/>
+          </label>
+        )}
+        {range(`Opacity ${Math.round((selObj.opacity ?? 1) * 100)}%`, Math.round((selObj.opacity ?? 1) * 100), 10, 100,
+          v => live({ opacity: v / 100 }), false)}
+      </section>
+
+      <button type="button" className="ds-act ds-act--danger" onClick={deleteSelected} disabled={locked}>
         <NavIcon name="delete" size={16}/> Delete
       </button>
-
-      <p style={{ fontSize: 11, color: 'rgba(15,23,42,.35)', textAlign: 'center', margin: '10px 0 0', lineHeight: 1.5 }}>
-        Click empty canvas to deselect.
-      </p>
-    </>
+      <p className="ds-ins-note">Tap empty canvas to deselect.</p>
+    </div>
   );
 }
 
@@ -169,13 +186,6 @@ export function SummaryContent({ cfg, saved, saveDesign, orderThis, ordering, do
         </nav>
       )}
       <div className="ds-actions">
-        <button type="button" className="ds-act ds-act--primary ds-act--wide" onClick={orderThis}
-          disabled={!cfg.garment || ordering} aria-busy={!!ordering}>
-          {ordering ? <><span className="ds-spin" style={{ borderColor:'rgba(255,255,255,.4)', borderTopColor:'#fff' }}/> Preparing your order…</> : 'Order this design'}
-        </button>
-        <button type="button" className="ds-act" onClick={saveDesign} disabled={!cfg.garment}>
-          <NavIcon name={saved ? 'success' : 'save'} size={16}/> {saved ? 'Saved' : 'Save'}
-        </button>
         <button type="button" className="ds-act" onClick={downloadImage} disabled={!cfg.garment}>
           <NavIcon name="image" size={16}/> Image
         </button>
@@ -190,13 +200,13 @@ export function SummaryContent({ cfg, saved, saveDesign, orderThis, ordering, do
   );
 }
 
-export default function RightInfoPanel({ selObj, updateSelected, deleteSelected, open, onClose, ...rest }) {
+export default function RightInfoPanel({ selObj, updateSelected, deleteSelected, toggleSelectedLock, pushHistory, open, onClose, ...rest }) {
   const showInspector = !!selObj && !selObj.__garmentBase && !selObj.__hoverGlow;
   return (
     <aside className="ds-info" data-open={open ? 'true' : 'false'} aria-label={showInspector ? 'Selected object' : 'Design summary'}>
       {onClose && <button type="button" className="ds-info-close" aria-label="Close panel" onClick={onClose}><NavIcon name="close" size={16}/></button>}
       {showInspector
-        ? <SelectionInspector selObj={selObj} updateSelected={updateSelected} deleteSelected={deleteSelected}/>
+        ? <SelectionInspector selObj={selObj} updateSelected={updateSelected} deleteSelected={deleteSelected} toggleSelectedLock={toggleSelectedLock} pushHistory={pushHistory}/>
         : <SummaryContent {...rest}/>}
     </aside>
   );
