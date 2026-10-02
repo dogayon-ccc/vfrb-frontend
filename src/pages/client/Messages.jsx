@@ -94,7 +94,7 @@ const Loading = () => (
 );
 
 const NoMessagesYet = () => (
-  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8, opacity: .5 }}>
+  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8 }}>
     <NavIcon name="messages" size={30} color="var(--text-faint)" />
     <p style={{ color: 'var(--text-subtle)', fontSize: 13, fontFamily: FONT }}>No messages yet. Say hello to VFRB staff below.</p>
   </div>
@@ -125,6 +125,10 @@ export default function CustomerMessages() {
   }, []);
 
   useEffect(() => { loadOrders(); }, [loadOrders]);
+
+  useEffect(() => {
+    if (!selId && !params.get('order') && orders.length && window.matchMedia('(min-width: 768px)').matches) setSelId(orders[0].order_id);
+  }, [orders]); // eslint-disable-line
 
   useEffect(() => {
     const hit = orders.find(o => String(o.order_id) === params.get('order'));
@@ -196,7 +200,7 @@ export default function CustomerMessages() {
   })();
 
   return (
-    <>
+    <div className={`cx-page ${mobileView === 'thread' ? 'cust-msg-page-thread' : ''}`}>
       <style>{`
         .cust-msg-wrap { display: flex; flex-direction: column; gap: 16px; height: calc(100dvh - var(--topbar-h,54px) - var(--taskbar-h,64px) - 130px); min-height: 380px; font-family: ${FONT}; color: #0f172a; }
         .cust-msg-list, .cust-msg-chat { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-xs); }
@@ -205,6 +209,7 @@ export default function CustomerMessages() {
         .cust-msg-list { flex: 1; min-height: 0; }
         .cust-msg-list.hide-mobile, .cust-msg-chat.hide-mobile { display: none; }
         .cust-msg-back { display: flex; }
+        @media (max-width: 767px) { .cust-msg-wrap.in-thread { height: calc(100dvh - var(--topbar-h,54px) - var(--taskbar-h,64px) - 40px); } .cust-msg-page-thread .cust-msg-head { display: none; } }
         .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
           clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
         @media (prefers-reduced-motion: reduce) {
@@ -220,9 +225,9 @@ export default function CustomerMessages() {
         }
       `}</style>
 
-      <PageHeader title="Messages" subtitle="Chat with VFRB staff about your orders"/>
+      <div className="cust-msg-head"><PageHeader title="Messages" subtitle="Chat with VFRB staff about your orders"/></div>
 
-      <div className="cust-msg-wrap">
+      <div className={`cust-msg-wrap ${mobileView === 'thread' ? 'in-thread' : ''}`}>
         <div className={`cust-msg-list ${mobileView !== 'list' ? 'hide-mobile' : ''}`}>
           <div style={{ padding: '4px 4px 8px' }}>
             <label htmlFor="msg-q" className="sr-only">Search conversations</label>
@@ -303,7 +308,7 @@ export default function CustomerMessages() {
               </motion.p>
             )}
           </AnimatePresence>
-          <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, flexShrink: 0, background: 'var(--bg-card)' }}>
+          {selId && <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, flexShrink: 0, background: 'var(--bg-card)' }}>
             <label htmlFor="msg-input" className="sr-only">Message</label>
             <input id="msg-input" value={newMsg} onChange={e => setNewMsg(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), send())}
@@ -317,9 +322,9 @@ export default function CustomerMessages() {
                 color: (sending || !newMsg.trim() || !selId) ? '#94a3b8' : '#fff' }}>
               {sending ? 'Sending' : 'Send'}
             </motion.button>
-          </div>
+          </div>}
         </div>
       </div>
-    </>
+    </div>
   );
 }

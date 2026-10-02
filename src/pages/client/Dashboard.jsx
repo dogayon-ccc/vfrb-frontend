@@ -53,7 +53,7 @@ function ActiveOrder({ order }) {
             {orderTitle(order)}
           </p>
           <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-subtle)' }}>
-            Order #{order.order_id} · {qty} pcs{order.target_delivery_date ? ` · Due ${fmtDate(order.target_delivery_date, { month: 'short', day: 'numeric' })}` : ''}
+            Order #{order.order_id} · {qty} pcs{order.target_delivery_date ? <span style={{ whiteSpace: 'nowrap' }}> · Due {fmtDate(order.target_delivery_date, { month: 'short', day: 'numeric' })}</span> : ''}
           </p>
         </div>
         <StatusPill status={order.status} />
@@ -290,6 +290,15 @@ export default function CustomerDashboard() {
                 </button>
               );
             })}
+          </section>
+          <section className="cx-card" aria-label="Quick actions">
+            <div className="cx-card-h"><h2>Quick actions</h2></div>
+            {[['New design', '/design-studio'], ['My designs', '/my-designs'], ['My orders', '/orders'], ['Messages', '/messages']].map(([label, to]) => (
+              <button key={to} type="button" className="cx-row" style={{ minHeight: 44 }} onClick={() => nav(to)}>
+                <span style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{label}</span>
+                <span aria-hidden="true" style={{ color: 'var(--text-subtle)' }}>→</span>
+              </button>
+            ))}
           </section>
         </aside>
       </div>

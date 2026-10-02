@@ -92,7 +92,7 @@ export default function MyDesigns() {
   return (
     <div className="cx-page">
       <PageHeader title="My Designs" subtitle={total ? `${total} of your design${total !== 1 ? 's' : ''} · editable and saved` : 'Your work in progress, saved designs and inspiration'}>
-        <button className="cx-btn cx-btn-p" onClick={openStudioBlank}><NavIcon name="designStudio" size={15} color="#fff" /> New Design</button>
+        {!empty && <button className="cx-btn cx-btn-p" onClick={openStudioBlank}><NavIcon name="designStudio" size={15} color="#fff" /> New Design</button>}
       </PageHeader>
 
       {!loading && !error && (total > 0 || nInspo > 0) && (

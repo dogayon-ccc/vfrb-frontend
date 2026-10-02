@@ -537,10 +537,6 @@ export default function CustomerLayout() {
                 {!collapsed && (
                   <>
                     <span style={{ flex:1 }}>Design Studio</span>
-                    <span style={{ fontSize:9, padding:'2px 6px', borderRadius:99,
-                      background:'rgba(255,255,255,.25)', color:'#fff', fontWeight:700 }}>
-                      NEW
-                    </span>
                   </>
                 )}
               </button>

@@ -825,7 +825,7 @@ export default function CustomerOrderDetail() {
               {(() => {
                 // delivery_status column — NOT .status (locked schema rule)
                 const ds   = delivery.delivery_status;
-                const dcfg = ds ? (DELIVERY_CFG[ds] ?? { label:ds, color:'var(--text-subtle)', icon:'package' }) : { label:'Not scheduled yet', color:'var(--text-subtle)', icon:'package' };
+                const dcfg = ds ? (DELIVERY_CFG[ds] ?? { label:ds, color:'#64748b', icon:'package' }) : { label:'Not scheduled yet', color:'#64748b', icon:'package' };
                 return (
                   <div>
                     <div style={{
@@ -899,7 +899,7 @@ export default function CustomerOrderDetail() {
                 onClick={() => nav(`/messages?order=${orderId}`)}
                 style={{
                   padding:'5px 12px', borderRadius:8,
-                  border:`1px solid ${T}30`, background:`${T}08`,
+                  border:'1px solid rgba(2,128,144,.2)', background:'rgba(2,128,144,.04)',
                   color:T, fontSize:11, fontWeight:700,
                   cursor:'pointer', fontFamily:FONT,
                 }}
@@ -929,8 +929,8 @@ export default function CustomerOrderDetail() {
                         borderRadius: isMe
                           ? '12px 2px 12px 12px'
                           : '2px 12px 12px 12px',
-                        background: isMe ? `${T}15` : 'var(--bg-surface)',
-                        border:`1px solid ${isMe ? `${T}25` : 'var(--border)'}`,
+                        background: isMe ? 'rgba(2,128,144,.09)' : 'var(--bg-surface)',
+                        border:`1px solid ${isMe ? 'rgba(2,128,144,.16)' : 'var(--border)'}`,
                       }}>
                         {/* body column — order_messages schema */}
                         <p style={{
@@ -1003,7 +1003,7 @@ export default function CustomerOrderDetail() {
         <div style={{ display:'flex', gap:10, flexWrap:'wrap', marginTop:6 }}>
           <button onClick={() => nav(`/messages?order=${orderId}`)} style={{
             flex:1, padding:'12px', borderRadius:12, minHeight:44,
-            border:`1px solid ${T}30`, background:`${T}08`,
+            border:'1px solid rgba(2,128,144,.2)', background:'rgba(2,128,144,.04)',
             color:T, fontSize:13, fontWeight:700,
             cursor:'pointer', fontFamily:FONT,
             display:'inline-flex', alignItems:'center', justifyContent:'center', gap:8,
