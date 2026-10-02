@@ -33,6 +33,8 @@ const MOB_NAV = [
   { to:'/messages',     icon:MessageSquare,   short:'Chat',    end:false },
 ];
 
+const FAB_ROUTES = ['/my-designs', '/orders'];
+
 export default function CustomerLayout() {
   const navigate  = useNavigate();
   const location  = useLocation();
@@ -177,7 +179,7 @@ export default function CustomerLayout() {
           flex: 1;
           width: 100%;
           min-width: 0;
-          padding: 14px 14px 80px;
+          padding: 14px 14px calc(88px + env(safe-area-inset-bottom, 0px));
         }
         @media (max-width: 767px) {
           .cm-desk-only { display: none !important; }
@@ -253,7 +255,7 @@ export default function CustomerLayout() {
           align-items: center;
           padding: 4px 0;
           padding-bottom: max(4px, env(safe-area-inset-bottom, 4px));
-          height: 64px;
+          height: calc(64px + env(safe-area-inset-bottom, 0px));
         }
         .cm-bnav-item {
           display: flex;
@@ -273,7 +275,7 @@ export default function CustomerLayout() {
         }
         .cm-bnav-item:active { transform: scale(.93); }
         .cm-bnav-icon  { font-size: 22px; line-height: 1; display: block; transition: transform .15s; }
-        .cm-bnav-label { font-size: 9px; font-weight: 600; color: var(--text-faint); letter-spacing: .02em; }
+        .cm-bnav-label { font-size: 10px; font-weight: 600; color: var(--text-faint); letter-spacing: .02em; }
         .cm-bnav-item.mob-active .cm-bnav-icon  { transform: scale(1.12); }
         .cm-bnav-item.mob-active .cm-bnav-label { color: ${T}; font-weight: 700; }
 
@@ -342,7 +344,7 @@ export default function CustomerLayout() {
         .cm-studio-fab {
           display: flex;
           position: fixed;
-          bottom: 58px;
+          bottom: calc(var(--taskbar-h, 64px) + 14px + env(safe-area-inset-bottom, 0px));
           right: 16px;
           z-index: 310;
           width: 52px;
@@ -654,9 +656,11 @@ export default function CustomerLayout() {
         </main>
 
         {/* ─── Studio FAB (mobile) ───────────────────────────────────────── */}
-        <button className="cm-studio-fab" onClick={openStudio} aria-label="Design Studio">
-          <Palette size={24} strokeWidth={2}/>
-        </button>
+        {FAB_ROUTES.includes(location.pathname) && (
+          <button className="cm-studio-fab" onClick={openStudio} aria-label="Design Studio">
+            <Palette size={24} strokeWidth={2}/>
+          </button>
+        )}
 
         {/* ─── MORE DRAWER (mobile) ─────────────────────────────────────── */}
         <AnimatePresence>
@@ -681,9 +685,6 @@ export default function CustomerLayout() {
                   style={{ color:T }}>
                   <IconBox icon={Palette} size={20} width={28}/>
                   <span>Design Studio</span>
-                  <span style={{ marginLeft:'auto', fontSize:9, padding:'2px 7px',
-                    borderRadius:99, background:'rgba(2,195,154,.12)', color:T,
-                    fontWeight:700 }}>NEW</span>
                 </button>
 
 
@@ -692,6 +693,12 @@ export default function CustomerLayout() {
                   onClick={() => setMoreOpen(false)}>
                   <IconBox icon={Settings} size={20} width={28}/>
                   <span>Settings</span>
+                </NavLink>
+
+                <NavLink to="/settings?tab=feedback" className="cm-drawer-item"
+                  onClick={() => setMoreOpen(false)}>
+                  <IconBox icon={MessageSquare} size={20} width={28}/>
+                  <span>Send Feedback</span>
                 </NavLink>
 
 

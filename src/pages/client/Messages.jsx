@@ -1,6 +1,6 @@
 // Per-order threads (real order_messages data) styled as a conversation list, like Figma's Chat screen — no fabricated departments.
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { asList } from '../../utils/asList';
@@ -42,7 +42,7 @@ function ThreadRow({ order, active, onClick }) {
           <p style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             Order #{order.order_id}
           </p>
-          {last && <span style={{ fontSize: 10, color: 'var(--text-faint)', flexShrink: 0 }}>{timeOf(last)}</span>}
+          {last && <span style={{ fontSize: 11, color: 'var(--text-subtle)', flexShrink: 0 }}>{timeOf(last)}</span>}
         </div>
         <p style={{ fontSize: 12, color: 'var(--text-subtle)', margin: '2px 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {last?.body ?? title(order)}
@@ -70,7 +70,7 @@ function Bubble({ msg, isMe, showTime, isOptimistic }) {
           </p>
         </div>
         {showTime && timeOf(msg) && (
-          <p style={{ fontSize: 9, margin: 0, fontFamily: FONT, color: '#94a3b8', paddingLeft: isMe ? 0 : 2 }}>
+          <p style={{ fontSize: 11, margin: 0, fontFamily: FONT, color: 'var(--text-subtle)', paddingLeft: isMe ? 0 : 2 }}>
             {timeOf(msg)}{isOptimistic ? ' · Sending…' : ''}
           </p>
         )}
@@ -82,14 +82,14 @@ function Bubble({ msg, isMe, showTime, isOptimistic }) {
 const DaySep = ({ label }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0' }}>
     <div style={{ flex: 1, height: 1, background: '#f1f5f9' }}/>
-    <span style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '.08em', fontFamily: FONT, whiteSpace: 'nowrap' }}>{label}</span>
+    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '.08em', fontFamily: FONT, whiteSpace: 'nowrap' }}>{label}</span>
     <div style={{ flex: 1, height: 1, background: '#f1f5f9' }}/>
   </div>
 );
 
 const Loading = () => (
-  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-    <p style={{ color: '#94a3b8', fontSize: 13, fontFamily: FONT }}>Loading…</p>
+  <div aria-busy="true" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <Skeleton h={38} w="55%"/><Skeleton h={38} w="40%" style={{ alignSelf: 'flex-end' }}/><Skeleton h={38} w="60%"/>
   </div>
 );
 
@@ -102,6 +102,7 @@ const NoMessagesYet = () => (
 
 export default function CustomerMessages() {
   const nav = useNavigate();
+  const [params] = useSearchParams();
   const [orders, setOrders] = useState([]);
   const [ordersError, setOrdersError] = useState(false);
   const [selId, setSelId] = useState(null);
@@ -124,6 +125,11 @@ export default function CustomerMessages() {
   }, []);
 
   useEffect(() => { loadOrders(); }, [loadOrders]);
+
+  useEffect(() => {
+    const hit = orders.find(o => String(o.order_id) === params.get('order'));
+    if (hit) { setSelId(hit.order_id); setMobileView('thread'); }
+  }, [orders]); // eslint-disable-line
 
   const selRef = useRef(null);
   const loadMsgs = useCallback((initial = false) => {

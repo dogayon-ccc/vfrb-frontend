@@ -357,6 +357,8 @@ export default function CustomerOrderDetail() {
         @keyframes sk  { 0%   { background-position:-400px 0 } 100%{ background-position:400px 0 } }
         @keyframes pulse { 0%,100%{ opacity:1 } 50%{ opacity:.3 } }
 
+        .od-toast { bottom:calc(var(--taskbar-h,64px) + 14px + env(safe-area-inset-bottom,0px)); }
+        @media (min-width:768px) { .od-toast { bottom:24px; } }
         .od-wrap { max-width:1120px; margin:0 auto; padding-bottom:40px; }
         .od-head { display:flex; flex-direction:column; gap:14px; margin-bottom:16px; align-items:flex-start; width:100%; }
         .od-title { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; width:100%; }
@@ -393,12 +395,12 @@ export default function CustomerOrderDetail() {
       {/* ── Toast ── */}
       <AnimatePresence>
         {toast && (
-          <motion.div
+          <motion.div className="od-toast"
             initial={{ opacity:0, y:20 }}
             animate={{ opacity:1, y:0  }}
             exit={{    opacity:0, y:10  }}
             style={{
-              position:'fixed', bottom:24, left:16, right:16, maxWidth:340,
+              position:'fixed', left:16, right:16, maxWidth:340,
               margin:'0 auto', zIndex:9999,
               padding:'11px 18px', borderRadius:11, fontFamily:FONT,
               background: toast.type === 'error' ? '#ef4444'
@@ -439,7 +441,7 @@ export default function CustomerOrderDetail() {
                     {order.quantity_ordered ?? 0} pcs{order.target_delivery_date ? ` · Due ${fmtDate(order.target_delivery_date)}` : ''}
                   </p>
                 </div>
-                <button className="cx-btn cx-btn-s" style={{ minHeight:40 }} onClick={() => nav('/messages')}>Messages</button>
+                <button className="cx-btn cx-btn-s" style={{ minHeight:40 }} onClick={() => nav(`/messages?order=${orderId}`)}>Messages</button>
               </div>
               <Stepper steps={LIFECYCLE} current={lifecycleIndex(status)}/>
             </div>
@@ -458,7 +460,7 @@ export default function CustomerOrderDetail() {
               {pct}%
             </span>
           </div>
-          <div style={{ height:8, background:'var(--bg-surface)', borderRadius:99, overflow:'hidden' }}>
+          <div style={{ height:8, background:'var(--border)', borderRadius:99, overflow:'hidden' }}>
             <motion.div
               initial={{ width:0 }}
               animate={{ width:`${pct}%` }}
@@ -823,7 +825,7 @@ export default function CustomerOrderDetail() {
               {(() => {
                 // delivery_status column — NOT .status (locked schema rule)
                 const ds   = delivery.delivery_status;
-                const dcfg = DELIVERY_CFG[ds] ?? { label:ds, color:'var(--text-subtle)', icon:'package' };
+                const dcfg = ds ? (DELIVERY_CFG[ds] ?? { label:ds, color:'var(--text-subtle)', icon:'package' }) : { label:'Not scheduled yet', color:'var(--text-subtle)', icon:'package' };
                 return (
                   <div>
                     <div style={{
@@ -840,6 +842,11 @@ export default function CustomerOrderDetail() {
                       </span>
                     </div>
 
+                    {![delivery.delivery_method, delivery.courier_name, delivery.tracking_number, delivery.delivery_address, delivery.estimated_delivery_date].some(Boolean) && (
+                      <p style={{ margin:0, fontSize:12, color:'var(--text-subtle)', fontFamily:FONT }}>
+                        VFRB staff haven't added delivery details yet.
+                      </p>
+                    )}
                     <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                       {[
                         { l:'Method',        v: delivery.delivery_method      },
@@ -889,7 +896,7 @@ export default function CustomerOrderDetail() {
                 Messages
               </p>
               <button
-                onClick={() => nav('/messages')}
+                onClick={() => nav(`/messages?order=${orderId}`)}
                 style={{
                   padding:'5px 12px', borderRadius:8,
                   border:`1px solid ${T}30`, background:`${T}08`,
@@ -994,13 +1001,14 @@ export default function CustomerOrderDetail() {
 
         {/* ── Bottom action row ─────────────────────────────────────────── */}
         <div style={{ display:'flex', gap:10, flexWrap:'wrap', marginTop:6 }}>
-          <button onClick={() => nav('/messages')} style={{
+          <button onClick={() => nav(`/messages?order=${orderId}`)} style={{
             flex:1, padding:'12px', borderRadius:12, minHeight:44,
             border:`1px solid ${T}30`, background:`${T}08`,
             color:T, fontSize:13, fontWeight:700,
             cursor:'pointer', fontFamily:FONT,
+            display:'inline-flex', alignItems:'center', justifyContent:'center', gap:8,
           }}>
-            <NavIcon name="chat" size={14} color={T} style={{ verticalAlign:'-2px', marginRight:6 }}/>Message Staff
+            <NavIcon name="chat" size={14} color={T}/>Message Staff
           </button>
           <button onClick={() => nav('/orders')} style={{
             flex:1, padding:'12px', borderRadius:12, minHeight:44,

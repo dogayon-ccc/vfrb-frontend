@@ -56,8 +56,8 @@ export default function FeedbackWidget() {
           Was stacked above AIDesignChat's floating FAB (130/24) — that widget moved into Design Studio's
           right sidebar (Sept 18 2026) and no longer floats globally, so this closes the gap it left behind. */}
       <style>{`
-        .fbw-fab{ position:fixed; bottom:72px; left:14px; right:auto; z-index:300; transform:scale(.86); transform-origin:left bottom; }
-        @media (min-width:768px){ .fbw-fab{ bottom:24px; right:24px; left:auto; transform:none; } }
+        .fbw-fab{ display:none; }
+        @media (min-width:768px){ .fbw-fab{ display:flex; position:fixed; bottom:24px; right:24px; left:auto; z-index:300; } }
       `}</style>
       <button
         className="fbw-fab"
@@ -67,7 +67,7 @@ export default function FeedbackWidget() {
           width: 52, height: 52, borderRadius: '50%', border: 'none',
           background: T, color: '#fff', fontSize: 22, cursor: 'pointer',
           boxShadow: '0 6px 18px rgba(2,128,144,.35)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          alignItems: 'center', justifyContent: 'center',
         }}
       >
         <NavIcon name="info" size={22} color="#fff"/>

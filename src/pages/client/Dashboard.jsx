@@ -133,7 +133,8 @@ export default function CustomerDashboard() {
 
   const sorted = useMemo(() => [...orders].sort((a, b) => new Date(b.created_at ?? 0) - new Date(a.created_at ?? 0)), [orders]);
   const active = sorted.filter(o => !['completed', 'cancelled'].includes(o.status));
-  const recent = sorted.slice(0, 6);
+  const shownActive = active.slice(0, 3);
+  const recent = sorted.filter(o => !shownActive.includes(o)).slice(0, 6);
   const total = stats?.total_orders ?? orders.length;
   const inProd = stats?.in_production ?? orders.filter(o => IN_PRODUCTION.includes(o.status)).length;
   const completed = stats?.completed_orders ?? orders.filter(o => o.status === 'completed').length;
@@ -192,6 +193,17 @@ export default function CustomerDashboard() {
 
       <div className="cx-dash-grid">
         <div style={{ display: 'grid', gap: 18, minWidth: 0, alignContent: 'start' }}>
+          {!loading && draft && (
+            <section className="cx-card cx-cont" aria-label="Continue your design">
+              <div className="cx-thumb" style={{ width: 56, height: 64, flexShrink: 0 }}><MiniPreview garment={draft.studio_config.garment} colors={draft.studio_config.colors ?? {}} /></div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Continue where you left off</p>
+                <p style={{ margin: '3px 0 0', fontWeight: 800, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{draft.label || draft.studio_config.garment}</p>
+                <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-subtle)' }}>Draft · edited {reltime(draft.updated_at)}</p>
+              </div>
+              <button className="cx-btn cx-btn-p" onClick={() => nav('/design-studio')}>Continue</button>
+            </section>
+          )}
           {/* Active orders with lifecycle stepper */}
           {(loading || active.length > 0) && (
             <section aria-label="Active orders">
@@ -201,22 +213,16 @@ export default function CustomerDashboard() {
               </div>
               <div style={{ display: 'grid', gap: 12 }}>
                 {loading ? [1, 2].map(i => <div key={i} className="cx-card" style={{ padding: 16 }}><Skeleton h={48} /><Skeleton h={28} style={{ marginTop: 14 }} /></div>)
-                  : active.slice(0, 3).map(o => <ActiveOrder key={o.order_id} order={o} />)}
+                  : shownActive.map(o => <ActiveOrder key={o.order_id} order={o} />)}
               </div>
             </section>
           )}
 
           {/* Recent designs — the customer's own saved designs and current draft */}
-          {!loading && (draft || designs.length > 0) && (
+          {!loading && designs.length > 0 && (
             <section className="cx-card" aria-label="Recent designs">
               <div className="cx-card-h"><h2>Recent Designs</h2><Link to="/my-designs" className="cx-link">My Designs →</Link></div>
               <div className="cx-rd">
-                {draft && (
-                  <button type="button" className="cx-rd-item" onClick={() => nav('/design-studio')}>
-                    <span className="cx-thumb" style={{ width: 56, height: 64 }}><MiniPreview garment={draft.studio_config.garment} colors={draft.studio_config.colors ?? {}} /></span>
-                    <strong>{draft.label || draft.studio_config.garment}</strong><em>Editable · continue</em>
-                  </button>
-                )}
                 {designs.map(d => (
                   <button key={d.id} type="button" className="cx-rd-item" onClick={() => { sessionStorage.setItem('studio_config', JSON.stringify(d.config)); nav('/design-studio'); }}>
                     <span className="cx-thumb" style={{ width: 56, height: 64 }}><MiniPreview garment={d.garment} colors={d.config?.colors ?? {}} /></span>
@@ -228,8 +234,8 @@ export default function CustomerDashboard() {
           )}
 
           {/* Recent orders */}
-          <section className="cx-card" aria-label="Recent orders">
-            <div className="cx-card-h"><h2>Recent Orders</h2><Link to="/orders" className="cx-link">View all orders</Link></div>
+          {(loading || error || orders.length === 0 || recent.length > 0) && <section className="cx-card" aria-label="Earlier orders">
+            <div className="cx-card-h"><h2>{shownActive.length ? 'Earlier Orders' : 'Recent Orders'}</h2><Link to="/orders" className="cx-link">View all orders</Link></div>
             {loading ? (
               <div style={{ padding: 16, display: 'grid', gap: 12 }}>{[1, 2, 3].map(i => <Skeleton key={i} h={44} />)}</div>
             ) : error ? (
@@ -251,24 +257,11 @@ export default function CustomerDashboard() {
                 <StatusPill status={o.status} />
               </button>
             ))}
-          </section>
+          </section>}
         </div>
 
         {/* Right rail */}
         <aside style={{ display: 'grid', gap: 16, alignContent: 'start', minWidth: 0 }}>
-          {draft && (
-            <section className="cx-card" style={{ padding: 16 }} aria-label="Continue your design">
-              <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 800, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Continue where you left off</p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                <div className="cx-thumb" style={{ width: 56, height: 64 }}><MiniPreview garment={draft.studio_config.garment} colors={draft.studio_config.colors ?? {}} /></div>
-                <div style={{ minWidth: 0 }}>
-                  <p style={{ margin: 0, fontWeight: 800, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{draft.label || draft.studio_config.garment}</p>
-                  <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-subtle)' }}>Draft · {reltime(draft.updated_at)}</p>
-                </div>
-              </div>
-              <button className="cx-btn cx-btn-p" style={{ width: '100%' }} onClick={() => nav('/design-studio')}>Continue editing</button>
-            </section>
-          )}
           <section className="cx-card" aria-label="Notifications">
             <div className="cx-card-h">
               <h2>Notifications{unread > 0 && <span className="cx-pill" style={{ background: 'var(--danger)', color: '#fff', marginLeft: 8 }}>{unread}</span>}</h2>
@@ -305,6 +298,8 @@ export default function CustomerDashboard() {
         .cx-rd-item:hover{border-color:var(--teal);background:var(--teal-50)}
         .cx-rd-item strong{font-size:12px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
         .cx-rd-item em{font-style:normal;font-size:10px;color:var(--text-subtle)}
+        .cx-cont{display:flex;align-items:center;gap:14px;padding:14px 16px}
+        @media(max-width:420px){.cx-cont{flex-wrap:wrap}.cx-cont .cx-btn{width:100%}}
         .cx-dash-grid{display:grid;grid-template-columns:1fr;gap:18px}
         @media(min-width:1024px){.cx-dash-grid{grid-template-columns:minmax(0,1fr) 340px;align-items:start}}`}</style>
     </div>

@@ -124,7 +124,7 @@ export default function MyDesigns() {
           {showPast && shownPast.map((d, i) => (
             <DesignCard key={d.id} i={i + 1} img={d.photo_path} garment={d.garment} colors={d.config?.colors}
               title={d.label || d.garment || 'Design'} meta={[d.category, d.sleeve].filter(Boolean).join(' · ') || fmtDate(d.updated_at ?? d.created_at)}
-              badge="Saved" tone={ORDERED} primary={{ label: 'Order again', onClick: () => orderAgain(d), disabled: !d.config?.garment }} />
+              badge="Saved" tone={ORDERED} primary={{ label: 'Reuse in Studio', onClick: () => orderAgain(d), disabled: !d.config?.garment }} />
           ))}
           {shownTpl.map((d, i) => (
             <DesignCard key={`t${d.id}`} i={i} img={d.photo_path} garment={d.garment} colors={d.config?.colors}
