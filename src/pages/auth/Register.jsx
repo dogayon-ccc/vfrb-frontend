@@ -1,6 +1,7 @@
 // POST /api/register — verified fields: name, email, password, password_confirmation, contact_number, organization_name, client_type.
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { ViewLink as Link } from '../../components/ViewLink';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { startSession } from '../../utils/session';
@@ -73,7 +74,7 @@ export default function CustomerRegister() {
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div>
           <label htmlFor="reg-name" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Full Name / Institution Contact</label>
-          <input id="reg-name" required value={form.name} onChange={e => set('name', e.target.value)}
+          <input id="reg-name" autoComplete="name" required value={form.name} onChange={e => set('name', e.target.value)}
             onFocus={() => setFocused('name')} onBlur={() => setFocused('')}
             placeholder="Juan Dela Cruz" style={authInput(focused, 'name', firstError('name'))}/>
           {firstError('name') && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 5 }}>{firstError('name')}</p>}
@@ -81,7 +82,7 @@ export default function CustomerRegister() {
 
         <div>
           <label htmlFor="reg-email" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Email Address</label>
-          <input id="reg-email" type="email" required value={form.email} onChange={e => set('email', e.target.value)}
+          <input id="reg-email" type="email" autoComplete="email" required value={form.email} onChange={e => set('email', e.target.value)}
             onFocus={() => setFocused('email')} onBlur={() => setFocused('')}
             placeholder="you@email.com" style={authInput(focused, 'email', firstError('email'))}/>
           {firstError('email') && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 5 }}>{firstError('email')}</p>}
@@ -109,7 +110,7 @@ export default function CustomerRegister() {
         {form.client_type !== 'individual' && (
           <div>
             <label htmlFor="reg-org" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Organization Name</label>
-            <input id="reg-org" value={form.organization_name} onChange={e => set('organization_name', e.target.value)}
+            <input id="reg-org" autoComplete="organization" value={form.organization_name} onChange={e => set('organization_name', e.target.value)}
               onFocus={() => setFocused('organization_name')} onBlur={() => setFocused('')}
               placeholder="e.g. Holy Redeemer School of Calamba" style={authInput(focused, 'organization_name')}/>
           </div>
@@ -117,7 +118,7 @@ export default function CustomerRegister() {
 
         <div>
           <label htmlFor="reg-contact" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Contact Number</label>
-          <input id="reg-contact" value={form.contact_number} onChange={e => set('contact_number', e.target.value)}
+          <input id="reg-contact" type="tel" inputMode="tel" autoComplete="tel" value={form.contact_number} onChange={e => set('contact_number', e.target.value)}
             onFocus={() => setFocused('contact_number')} onBlur={() => setFocused('')}
             placeholder="09XXXXXXXXX" style={authInput(focused, 'contact_number')}/>
         </div>
@@ -125,7 +126,7 @@ export default function CustomerRegister() {
         <div>
           <label htmlFor="reg-password" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Password</label>
           <div style={{ position: 'relative' }}>
-            <input id="reg-password" type={showPw ? 'text' : 'password'} required value={form.password}
+            <input id="reg-password" type={showPw ? 'text' : 'password'} autoComplete="new-password" required value={form.password}
               onChange={e => set('password', e.target.value)}
               onFocus={() => setFocused('password')} onBlur={() => setFocused('')}
               placeholder="At least 8 characters" style={{ ...authInput(focused, 'password'), paddingRight: 48 }}/>
@@ -150,7 +151,7 @@ export default function CustomerRegister() {
 
         <div>
           <label htmlFor="reg-password-confirm" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Confirm Password</label>
-          <input id="reg-password-confirm" type={showPw ? 'text' : 'password'} required value={form.password_confirmation}
+          <input id="reg-password-confirm" type={showPw ? 'text' : 'password'} autoComplete="new-password" required value={form.password_confirmation}
             onChange={e => set('password_confirmation', e.target.value)}
             onFocus={() => setFocused('password_confirmation')} onBlur={() => setFocused('')}
             placeholder="Re-enter password" style={authInput(focused, 'password_confirmation', firstError('password_confirmation'))}/>

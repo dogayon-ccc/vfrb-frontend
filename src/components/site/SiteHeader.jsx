@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { ViewLink as Link, ViewNavLink as NavLink } from '../ViewLink';
 import '../../styles/site.css';
 import logo from '../../assets/company-logo.jpg';
 import { NAV } from './config';

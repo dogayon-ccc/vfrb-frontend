@@ -1,6 +1,7 @@
 // Light mobile-first theme (Design Studio only stays dark). Logic unchanged from prior version.
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { ViewLink as Link } from '../../components/ViewLink';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { startSession } from '../../utils/session';
@@ -50,7 +51,7 @@ export default function Login() {
   };
 
   const handleGoogle = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:8000' : '')}/auth/google/redirect`;
+    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/auth/google/redirect`;
   };
 
   return (
@@ -68,7 +69,7 @@ export default function Login() {
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div>
           <label htmlFor="login-email" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Email address</label>
-          <input id="login-email" type="email" value={form.email}
+          <input id="login-email" type="email" autoComplete="username" aria-invalid={!!error} value={form.email}
             onChange={e => { set('email', e.target.value); if (error) setError(''); }}
             onFocus={() => setFocused('email')} onBlur={() => setFocused('')}
             placeholder="you@hospital.gov.ph" style={authInput(focused, 'email', error)}/>
@@ -77,7 +78,7 @@ export default function Login() {
         <div>
           <label htmlFor="login-password" style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6, display: 'block' }}>Password</label>
           <div style={{ position: 'relative' }}>
-            <input id="login-password" type={showPw ? 'text' : 'password'} value={form.password}
+            <input id="login-password" type={showPw ? 'text' : 'password'} autoComplete="current-password" aria-invalid={!!error} value={form.password}
               onChange={e => { set('password', e.target.value); if (error) setError(''); }}
               onFocus={() => setFocused('password')} onBlur={() => setFocused('')}
               placeholder="Enter your password" style={{ ...authInput(focused, 'password', error), paddingRight: 48 }}/>
@@ -91,7 +92,7 @@ export default function Login() {
           {error && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
               <NavIcon name="warning" size={14} color="var(--danger)"/>
-              <p style={{ fontSize: 12, fontWeight: 500, color: 'var(--danger)' }}>{error}</p>
+              <p role="alert" style={{ fontSize: 13, fontWeight: 500, color: 'var(--danger)' }}>{error}</p>
             </div>
           )}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
@@ -115,7 +116,7 @@ export default function Login() {
         <div style={{ flex: 1, height: 1, background: 'var(--border)' }}/>
       </div>
 
-      <button onClick={handleGoogle} style={{ width: '100%', padding: 13, borderRadius: 12, border: '1.5px solid var(--border)',
+      <button type="button" onClick={handleGoogle} style={{ width: '100%', minHeight: 48, padding: 13, borderRadius: 12, border: '1.5px solid var(--border)',
         background: 'var(--bg-card)', color: 'var(--ink)', fontSize: 14, fontWeight: 500, cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
         <svg width="18" height="18" viewBox="0 0 24 24">

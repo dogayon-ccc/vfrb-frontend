@@ -1,0 +1,55 @@
+@import './fonts.css';
+
+.au {
+  --au-paper: #f7f6f1; --au-ink: #10202b; --au-line: #dcdcd2; --au-night: #0a2029;
+  --au-teal: #028090; --au-mint: #02c39a;
+  --au-display: 'DM Serif Display', Georgia, 'Times New Roman', serif;
+  min-height: 100dvh; display: grid; grid-template-columns: minmax(0, 1fr); background: var(--au-paper);
+  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; color: var(--au-ink);
+}
+.au *, .au *::before, .au *::after { box-sizing: border-box; }
+.au ::placeholder { color: var(--text-faint); }
+.au :focus-visible { outline: 3px solid var(--au-teal); outline-offset: 3px; }
+.au a { text-underline-offset: 3px; }
+
+/* photo panel: banner on phones, sticky column on desktop */
+.au-art { position: relative; isolation: isolate; display: flex; align-items: flex-end; min-height: 188px; overflow: hidden;
+  color: #fff; background: var(--au-night); border-radius: 0 0 24px 24px; }
+.au-art img { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; object-position: center 40%; }
+.au-art::after { content: ''; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(to top, rgba(10, 32, 41, 0.94) 8%, rgba(10, 32, 41, 0.58) 58%, rgba(10, 32, 41, 0.34)); }
+.au-back { position: absolute; top: 8px; left: 8px; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px;
+  border-radius: 999px; font-size: 14px; font-weight: 600; color: #fff; text-decoration: none; background: rgba(10, 32, 41, 0.5); }
+.au-back:hover { background: rgba(10, 32, 41, 0.72); }
+.au-art-in { display: grid; gap: 22px; width: 100%; padding: 56px 20px 22px; }
+.au-h { margin: 0; max-width: 14ch; font: 400 clamp(28px, 7vw, 40px)/1.06 var(--au-display); text-wrap: balance; }
+.au-steps { display: none; margin: 0; padding: 0; list-style: none; counter-reset: au; }
+.au-steps li { counter-increment: au; display: grid; grid-template-columns: 44px 1fr; gap: 0 12px; padding: 14px 0; border-top: 1px solid rgba(255, 255, 255, 0.24); }
+.au-steps li::before { content: counter(au, decimal-leading-zero); grid-row: span 2; font: 400 26px/1 var(--au-display); color: var(--au-mint); }
+.au-steps b { font-size: 15px; }
+.au-steps span { font-size: 14px; line-height: 1.5; color: #c9dce1; }
+.au-since { display: none; margin: 0; font-size: 13px; letter-spacing: 0.04em; color: #b4cbd2; }
+
+.au-main { display: grid; place-items: center; padding: 28px 16px 44px; }
+.au-card { width: 100%; padding: 28px 22px; background: #fff; border: 1px solid var(--au-line); border-radius: 24px;
+  box-shadow: 0 1px 2px rgba(10, 32, 41, 0.06), 0 24px 48px -16px rgba(10, 32, 41, 0.18); }
+.au-logo { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 3px rgba(2, 128, 144, 0.1); }
+.au-title { margin: 0 0 8px; font: 400 clamp(30px, 6vw, 38px)/1.1 var(--au-display); color: var(--au-ink); text-align: center; }
+.au-sub { font-size: 14.5px; line-height: 1.6; color: var(--text-muted); text-align: center; }
+.au-sub a { color: var(--au-teal); font-weight: 600; }
+
+.au-card button[type='submit'] { transition: transform 140ms cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 200ms ease; }
+@media (hover: hover) { .au-card button[type='submit']:not(:disabled):hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(2, 128, 144, 0.34) !important; } }
+.au-card button[type='submit']:not(:disabled):active { transform: scale(0.98); }
+
+@media (min-width: 600px) { .au-card { padding: 36px 34px; } .au-art { min-height: 220px; } }
+@media (min-width: 960px) {
+  .au { grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr); }
+  .au-art { position: sticky; top: 0; height: 100dvh; min-height: 0; border-radius: 0 32px 32px 0; }
+  .au-art-in { gap: 28px; padding: 96px clamp(36px, 5vw, 72px) 44px; }
+  .au-h { max-width: 12ch; font-size: clamp(44px, 4.4vw, 64px); }
+  .au-steps { display: block; max-width: 420px; }
+  .au-since { display: block; }
+  .au-main { padding: 48px clamp(24px, 4vw, 64px); }
+}
+@media (min-width: 960px) and (max-height: 700px) { .au-steps { display: none; } .au-h { font-size: clamp(36px, 4vw, 52px); } }

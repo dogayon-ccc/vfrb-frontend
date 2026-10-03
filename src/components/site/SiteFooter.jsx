@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { ViewLink as Link } from '../ViewLink';
 import '../../styles/site.css';
 import logo from '../../assets/company-logo.jpg';
 import { NAV, CONTACT as C } from './config';

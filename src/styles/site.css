@@ -1,11 +1,4 @@
-/* DM Serif Display, latin, regular. Self-hosted (SIL OFL 1.1), no CDN. */
-@font-face {
-  font-family: 'DM Serif Display';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('../assets/fonts/dm-serif-display-latin-400.woff2') format('woff2');
-}
+@import './fonts.css';
 
 .vs {
   --vs-paper: #f7f6f1;
@@ -603,7 +596,6 @@ button.vs-member:hover { transform: translateY(-3px); box-shadow: 0 14px 28px rg
 .vs-pagehead { border-radius: 0 0 var(--vs-r-lg) var(--vs-r-lg); }
 .vs-cta, .vs-journey { margin: clamp(12px, 2vw, 24px); border-radius: var(--vs-r-lg); }
 .vs-cta.vs-dark.vs-sec { margin-inline: clamp(12px, 2vw, 24px); }
-.vs-cta .vs-wrap { max-width: 1100px; }
 .vs-cta .vs-btns .vs-btn { min-height: 52px; }
 .vs-rail { border-top-style: solid; border-top-color: rgba(255,255,255,0.18); }
 .vs-rail a, .vs-rail span { border-radius: 999px; }
@@ -642,10 +634,20 @@ button.vs-member:hover { transform: translateY(-3px); box-shadow: 0 14px 28px rg
   .vs-owner, .vs-card { transition: box-shadow var(--vs-t) ease, transform var(--vs-t) var(--vs-ease); }
   .vs-owner:hover { transform: translateY(-3px); }
 }
-.vs-footer { border-radius: var(--vs-r-lg) var(--vs-r-lg) 0 0; }
 
 /* gallery on phones: one column so every caption is fully readable; filter row fades to hint at scroll */
 @media (max-width: 559px) {
   .vs-masonry { column-count: 1; }
   .vs-filters { -webkit-mask-image: linear-gradient(to right, #000 88%, transparent); mask-image: linear-gradient(to right, #000 88%, transparent); padding-right: 24px; }
 }
+
+/* wide screens: let the content column use the canvas */
+@media (min-width: 1600px) { .vs-wrap { max-width: 1360px; } .vs-header .vs-wrap { max-width: 1360px; } }
+
+/* button feedback */
+.vs-btn { transition: transform var(--vs-t-fast) var(--vs-ease), box-shadow var(--vs-t) ease, background-color var(--vs-t-fast); }
+@media (hover: hover) { .vs-btn:hover { transform: translateY(-1px); } }
+.vs-btn:active { transform: scale(0.98); }
+.vs-tile .vs-photo img { transition: transform 500ms var(--vs-ease); }
+@media (hover: hover) { .vs-tile:hover .vs-photo img { transform: scale(1.04); } }
+@media (prefers-reduced-motion: reduce) { .vs-btn, .vs-tile .vs-photo img { transition: none; transform: none !important; } }

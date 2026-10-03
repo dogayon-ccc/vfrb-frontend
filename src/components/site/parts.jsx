@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { ViewLink as Link } from '../ViewLink';
 import Reveal from '../landing/Reveal';
 import Photo from '../landing/Photo';
 import { JOURNEY } from './content';
