@@ -278,7 +278,7 @@ export default function AdminOrders() {
 
       {isManager && (
         <Banner tone="info" icon="manager">
-          Manager view — you can view all order details and confirm pending orders. Production stage advancement is Staff-only.
+          Manager view — review and confirm pending orders. Stage advancement is Staff-only.
         </Banner>
       )}
       {loadErr && <div style={{ marginBottom:14 }}><ErrorBlock msg="Could not load orders." onRetry={() => load(true)} /></div>}

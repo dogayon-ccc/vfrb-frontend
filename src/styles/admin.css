@@ -44,7 +44,7 @@ button.adm-stat:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
 .adm-empty{padding:36px 18px;text-align:center;color:var(--text-faint);font-size:13px}
 .adm-sk{border-radius:6px;background:linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%);background-size:400px;animation:sk 1.4s infinite}
 .adm-err{padding:14px 18px;background:var(--danger-bg);border:1px solid var(--danger-border);color:var(--danger-text);border-radius:12px;font-size:13px;display:flex;justify-content:space-between;align-items:center;gap:10px}
-.adm-in{animation:admIn .22s ease-out both}
+.adm-in{animation:admIn .22s ease-out backwards}
 @keyframes admIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media(max-width:767px){.adm-h1{font-size:19px}.adm-stats{grid-template-columns:1fr 1fr;gap:10px}.adm-stat-val{font-size:22px}.adm-table th,.adm-table td{padding:10px 12px}}
 @media(prefers-reduced-motion:reduce){.adm-in,.adm-sk{animation:none}.adm-btn,.adm-stat,.adm-tab{transition:none}}
@@ -109,7 +109,7 @@ textarea.adm-input{padding:10px 14px;resize:vertical;min-height:64px}
 .adm-input:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(2,128,144,.12)}
 .adm-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:520px){.adm-form-grid{grid-template-columns:1fr}}
-.adm-sheet-foot{display:flex;gap:10px;justify-content:flex-end;padding-top:14px;margin-top:6px;border-top:1px solid var(--border)}
+.adm-sheet-foot{display:flex;gap:10px;justify-content:flex-end;padding:14px 0 8px;margin-top:6px;border-top:1px solid var(--border);position:sticky;bottom:0;background:var(--bg-card);z-index:1}
 @media(max-width:767px){.adm-sheet-foot .adm-btn{flex:1;justify-content:center;min-height:46px}}
 .adm-toast{position:fixed;right:24px;bottom:24px;z-index:9999;padding:11px 18px;border-radius:11px;color:#fff;font-weight:700;font-size:12px;box-shadow:0 6px 20px rgba(0,0,0,.18);background:var(--teal-2)}
 .adm-toast.error{background:var(--danger)}
@@ -303,7 +303,7 @@ textarea.adm-input{padding:10px 14px;resize:vertical;min-height:64px}
 
 /* ── Pass 4: motion system, mobile-first fixes ──────────────────────── */
 :root{--ease-out:cubic-bezier(.22,.8,.3,1);--dur-fast:140ms;--dur-base:220ms;--dur-slow:300ms}
-.adm-page{animation:admPage var(--dur-slow) var(--ease-out) both}
+.adm-page{animation:admPage var(--dur-slow) var(--ease-out) backwards}
 @keyframes admPage{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 .adm-btn{transition:transform var(--dur-fast) var(--ease-out),box-shadow var(--dur-fast),background var(--dur-fast),border-color var(--dur-fast),color var(--dur-fast)}
 .adm-btn:not(:disabled):active{transform:scale(.97)}
@@ -360,3 +360,38 @@ textarea.adm-input{padding:10px 14px;resize:vertical;min-height:64px}
 .pc-overdue button:hover{background:var(--teal-50)}.pc-overdue button svg{color:var(--teal);flex-shrink:0}
 .pc-overdue b{display:block;font-size:13px}.pc-overdue i{display:block;font-style:normal;font-size:11px;color:var(--text-faint)}
 @media(prefers-reduced-motion:reduce){.pc-overdue button{animation:none;transition:none}}
+
+/* ── Pass 5: mobile density + dashboard priority (Account 4, Oct 3 2026) ─────
+   Stat grids ate the first viewport on phones (Orders: list started below the
+   fold). 3+ stats become one swipeable strip; 2 stay side by side. */
+@media(max-width:767px){
+  .adm-stat{padding:10px 12px}
+  .adm-stat-val{margin-top:3px}
+  .adm-stats:has(>.adm-stat:nth-child(3)){display:flex;gap:8px;overflow-x:auto;margin:0 -14px 14px;padding:2px 14px 4px;scroll-snap-type:x proximity;scroll-padding-inline:14px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .adm-stats:has(>.adm-stat:nth-child(3))::-webkit-scrollbar{display:none}
+  .adm-stats:has(>.adm-stat:nth-child(3))>.adm-stat{flex:0 0 128px;scroll-snap-align:start;grid-column:auto}
+  .dsh-hero-actions{flex-wrap:wrap}
+  .dsh-ghost,.dsh-solid{white-space:nowrap;padding:0 12px}
+  .dsh-solid{flex:1 1 100%}
+}
+/* Dashboard: on phone/tablet the attention queues come before the charts. */
+.adm-dash-stack{display:flex;flex-direction:column}
+@media(max-width:1023px){.adm-dash-attn{order:-1}}
+
+/* ── Admin Order Detail workspace (Account 4, Oct 3 2026) ─────────────────────
+   Phone/tablet: one column, panels ordered by inline `order` (client → design →
+   info → production → QC → delivery → communication). Desktop: design/materials
+   left, operational context right. */
+.adm-od{max-width:1280px;margin:0 auto}
+.adm-od-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.adm-od-grid{display:flex;flex-direction:column;gap:14px}
+.adm-od-side,.adm-od-main{display:contents}
+.adm-od-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:14px}
+.adm-od-stages{display:flex;flex-direction:column;gap:12px}
+.adm-od-stage-top{display:flex;justify-content:space-between;gap:8px;font-size:13px;margin-bottom:5px}
+@media(min-width:1024px){
+  .adm-od-grid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
+  .adm-od-main,.adm-od-side{display:flex;flex-direction:column;gap:14px;grid-row:1}
+  .adm-od-main{grid-column:1}.adm-od-side{grid-column:2}
+}
+@media(max-width:767px){.adm-od-head .adm-actions{width:100%}.adm-od-head .adm-actions .adm-btn{flex:1 1 140px;justify-content:center;min-height:44px}}

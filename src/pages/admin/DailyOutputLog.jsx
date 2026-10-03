@@ -236,7 +236,7 @@ export default function AdminDailyOutputLog() {
             <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
 
               {/* Order + Stage */}
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,190px),1fr))', gap:12 }}>
                 <div>
                   <label style={lbl}>
                     Order

@@ -53,7 +53,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getStorageUrl, isImageFile } from '../../utils/fileUrl';
 import DesignPreview from '../../components/DesignPreview';
-import { Card, NavIcon } from '../../components/ui';
+import { NavIcon } from '../../components/ui';
+import { Panel, StatusPill, Meter, EmptyBlock, useIsMobile } from '../../components/admin/AdminUI';
 
 // Fresh-per-mount role check (Aug 23 2026) — NEVER hoist this to module
 // scope. A module-scope const here reproduced the exact stale-permission
@@ -67,23 +68,9 @@ function getIsManager() {
   } catch { return false; }
 }
 
-// Same 11-status map as Orders.jsx — kept in sync manually since there's
-// no shared constants file for this in the current codebase. Colors
-// deliberately match ProductionList.jsx's STAGE_CFG for the 7 shared
-// production values (see file header note above).
-const STATUS_CFG = {
-  pending:     { color:'var(--warning)',     bg:'var(--warning-bg)', label:'Pending'     },
-  confirmed:   { color:'var(--info)',        bg:'var(--info-bg)',    label:'Confirmed'   },
-  pattern:     { color:'var(--purple)',      bg:'var(--purple-50)',  label:'Pattern'     },
-  segregation: { color:'var(--purple-dark)', bg:'var(--purple-50)',  label:'Segregation' },
-  cutting:     { color:'var(--info)',        bg:'var(--info-bg)',    label:'Cutting'     },
-  sewing:      { color:'var(--teal)',        bg:'var(--teal-50)',    label:'Sewing'      },
-  qc:          { color:'var(--warning)',     bg:'var(--warning-bg)', label:'QC'          },
-  pressing:    { color:'var(--purple-dark)', bg:'var(--purple-50)',  label:'Pressing'    },
-  packing:     { color:'var(--success)',     bg:'var(--success-bg)', label:'Packing'     },
-  completed:   { color:'var(--success)',     bg:'var(--success-bg)', label:'Completed'   },
-  cancelled:   { color:'var(--danger)',      bg:'var(--danger-bg)',  label:'Cancelled'   },
-};
+const STAGES = ['pattern','segregation','cutting','sewing','qc','pressing','packing'];
+const STAGE_LABEL = { pattern:'Pattern', segregation:'Segregation', cutting:'Cutting', sewing:'Sewing', qc:'QC', pressing:'Pressing', packing:'Packing' };
+const fmtDay = (d) => (d ? new Date(d).toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' }) : null);
 
 function Field({ label, value }) {
   return (
@@ -199,16 +186,18 @@ function ReviewPanel({ order, onUpdated }) {
 export default function AdminOrderDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const [order,   setOrder]   = useState(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState('');
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [stages,  setStages]  = useState(null); // null = loading, [] = none recorded, false = unavailable
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      setLoading(true); setError('');
+      setLoading(true); setError(''); setStages(null);
       try {
         const r = await axios.get(`/api/admin/orders/${id}`);
         if (!cancelled) setOrder(r.data?.order ?? r.data);
@@ -220,6 +209,14 @@ export default function AdminOrderDetail() {
         }
       } finally {
         if (!cancelled) setLoading(false);
+      }
+      // Production progress — same endpoint ProductionTracking already uses.
+      try {
+        const p = await axios.get(`/api/admin/orders/${id}/production`);
+        const list = p.data?.stages ?? p.data;
+        if (!cancelled) setStages(Array.isArray(list) ? list : []);
+      } catch {
+        if (!cancelled) setStages(false);
       }
     })();
     return () => { cancelled = true; };
@@ -250,68 +247,65 @@ export default function AdminOrderDetail() {
   };
 
   if (loading) {
-    return <div style={{ padding:40, fontFamily:'var(--font)', color:'var(--text-subtle)' }}>Loading order…</div>;
+    return (
+      <div className="adm-od">
+        <div className="adm-sk" style={{ height:28, width:180, marginBottom:10 }} />
+        <div className="adm-sk" style={{ height:16, width:260, marginBottom:20 }} />
+        <div className="adm-sk" style={{ height:320, marginBottom:14 }} />
+        <div className="adm-sk" style={{ height:160 }} />
+      </div>
+    );
   }
   if (error) {
     return (
-      <div style={{ padding:40, fontFamily:'var(--font)' }}>
-        <p style={{ color:'var(--danger)', fontWeight:600 }}>{error}</p>
-        <button onClick={() => navigate('/admin/orders')} style={{
-          display:'flex', alignItems:'center', gap:6,
-          marginTop:12, padding:'8px 16px', borderRadius:'var(--r-sm)', border:'1px solid var(--border)',
-          background:'var(--bg-surface)', cursor:'pointer', fontFamily:'var(--font)', color:'var(--ink)' }}>
-          <NavIcon name="back" size={14} color="var(--ink)" /> Back to Orders
+      <div className="adm-od">
+        <div className="adm-err"><span>{error}</span></div>
+        <button className="adm-btn" style={{ marginTop:12 }} onClick={() => navigate('/admin/orders')}>
+          <NavIcon name="back" size={14} color="currentColor" /> Back to Orders
         </button>
       </div>
     );
   }
   if (!order) return null;
 
-  const st = STATUS_CFG[order.status] ?? { color:'var(--text-subtle)', bg:'var(--bg-surface)', label:order.status ?? '—' };
   const recs = order.recommendations ?? [];
   const txn  = order.transactions?.[0] ?? null;
+  const client = order.user ?? {};
+  const clientName = client.name ?? order.customer_name;
 
   const hasStudioConfig = !!order.studio_config;
   const hasRefFile      = !!order.client_design_ref_file;
   const refIsImage      = hasRefFile && isImageFile(order.client_design_ref_file);
 
-  return (
-    <div style={{ fontFamily:'var(--font)', padding:'24px 28px 60px', maxWidth:1100, margin:'0 auto' }}>
+  const stageRows = Array.isArray(stages) ? STAGES.map((k) => ({ key:k, row: stages.find((t) => t.stage === k) })) : [];
+  const stagesWithData = stageRows.filter((x) => x.row);
+  const qcHold = order.status === 'qc' && order.qc_required && !order.qc_passed_at;
 
-      {/* Header */}
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start',
-        flexWrap:'wrap', gap:12, marginBottom:20 }}>
-        <div>
-          <button onClick={() => navigate('/admin/orders')} style={{
-            display:'flex', alignItems:'center', gap:5,
-            background:'none', border:'none', color:'var(--text-subtle)', fontSize:13, fontWeight:600,
-            cursor:'pointer', padding:0, marginBottom:8, fontFamily:'var(--font)' }}>
-            <NavIcon name="back" size={13} color="var(--text-subtle)" /> All Orders
+  return (
+    <div className="adm-od">
+
+      {/* 1 · Order identity */}
+      <div className="adm-od-head">
+        <div style={{ minWidth:0 }}>
+          <button className="adm-link-btn" onClick={() => navigate('/admin/orders')} style={{ display:'inline-flex', alignItems:'center', gap:5, padding:0, marginBottom:8, color:'var(--text-subtle)' }}>
+            <NavIcon name="back" size={13} color="currentColor" /> All Orders
           </button>
-          <h1 style={{ margin:0, fontSize:24, fontWeight:800, color:'var(--ink)', fontFamily:'var(--font)' }}>
-            Order #{order.order_id}
-          </h1>
-          <div style={{ marginTop:6, fontSize:13, color:'var(--text-subtle)', fontFamily:'var(--font)' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+            <h1 className="adm-h1" style={{ margin:0, fontSize:24 }}>Order #{order.order_id}</h1>
+            <StatusPill status={order.status} />
+          </div>
+          <div className="adm-sub" style={{ marginTop:6 }}>
             {order.garment_type ?? 'Custom'} · {order.quantity_ordered ?? 0} pcs · {order.color ?? '—'}
+            {order.po_reference ? ` · PO ${order.po_reference}` : ''}
           </div>
         </div>
-        <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
-          <span style={{ padding:'6px 14px', borderRadius:'var(--r-full)', fontSize:12, fontWeight:700,
-            color:st.color, background:st.bg, fontFamily:'var(--font)' }}>{st.label}</span>
-          <button onClick={() => navigate(`/admin/production/${order.order_id}`)} style={{
-            display:'flex', alignItems:'center', gap:6,
-            padding:'8px 16px', borderRadius:'var(--r-md)', border:'none', cursor:'pointer',
-            background:'linear-gradient(135deg,var(--teal),var(--teal-2))', color:'#fff',
-            fontSize:13, fontWeight:700, fontFamily:'var(--font)' }}>
-            <NavIcon name="production" size={14} color="#fff" /> Track Production
+        <div className="adm-actions">
+          <button className="adm-btn primary" onClick={() => navigate(`/admin/production/${order.order_id}`)}>
+            <NavIcon name="production" size={14} color="currentColor" /> Track Production
           </button>
-          <button onClick={handleDownloadPdf} disabled={downloadingPdf} style={{
-            display:'flex', alignItems:'center', gap:6,
-            padding:'8px 16px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-card)',
-            color:'var(--text-muted)', fontSize:13, fontWeight:600, cursor:downloadingPdf ? 'default' : 'pointer',
-            fontFamily:'var(--font)', opacity:downloadingPdf ? 0.6 : 1 }}>
-            <NavIcon name="download" size={14} color="var(--text-muted)" />
-            {downloadingPdf ? 'Generating…' : 'Download Order Summary (PDF)'}
+          <button className="adm-btn" onClick={handleDownloadPdf} disabled={downloadingPdf}>
+            <NavIcon name="download" size={14} color="currentColor" />
+            {downloadingPdf ? 'Generating…' : 'Order Summary (PDF)'}
           </button>
         </div>
       </div>
@@ -321,141 +315,181 @@ export default function AdminOrderDetail() {
         <ReviewPanel order={order} onUpdated={(updated) => setOrder(o => ({ ...o, ...updated }))}/>
       )}
 
-      {/* Design visual — the core of this page */}
-      <Card title="Submitted Design">
-        {hasStudioConfig ? (
-          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
-            {order.studio_config?.name && (
-              <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)', fontFamily:'var(--font)' }}>
-                {order.studio_config.name}
+      <div className="adm-od-grid">
+        {/* Side column: client, order info, production, QC, delivery, communication.
+            On phones it follows DOM order: client → design → ... via CSS order. */}
+        <div className="adm-od-side">
+          {/* 2 · Client */}
+          <Panel title="Client" style={{ order:1 }}>
+            <div className="adm-od-fields">
+              <Field label="Name"          value={clientName}/>
+              <Field label="Organization"  value={client.organization_name ?? order.organization_name}/>
+              <Field label="Email"         value={client.email}/>
+              <Field label="Contact"       value={client.contact_number}/>
+            </div>
+          </Panel>
+
+          {/* 4 · Order information */}
+          <Panel title="Order Information" style={{ order:3 }}>
+            <div className="adm-od-fields">
+              <Field label="Garment Type"   value={order.garment_type}/>
+              <Field label="Quantity"       value={order.quantity_ordered ? `${order.quantity_ordered} pcs` : null}/>
+              <Field label="Color"          value={order.color}/>
+              <Field label="Collar"         value={order.collar_type}/>
+              <Field label="Sleeve"         value={order.sleeve_type}/>
+              <Field label="Pocket"         value={order.pocket_type}/>
+              <Field label="Order Type"     value={order.order_type}/>
+              <Field label="Sizing Type"    value={order.sizing_type}/>
+              <Field label="PO Reference"   value={order.po_reference}/>
+            </div>
+          </Panel>
+
+          {/* 5 · Production — real per-stage qty from order_production_tracking */}
+          <Panel title="Production" style={{ order:4 }}
+            action={<button className="adm-link-btn" onClick={() => navigate(`/admin/production/${order.order_id}`)}>Open tracking →</button>}>
+            {stages === null ? (
+              <div className="adm-sk" style={{ height:120 }} />
+            ) : stages === false ? (
+              <EmptyBlock>Production progress is unavailable right now.</EmptyBlock>
+            ) : stagesWithData.length === 0 ? (
+              <EmptyBlock>{order.status === 'pending' ? 'Production starts once the order is confirmed.' : 'No stage activity recorded yet.'}</EmptyBlock>
+            ) : (
+              <div className="adm-od-stages">
+                {stagesWithData.map(({ key, row }) => {
+                  const target = Number(row.qty_target) || 0;
+                  const done = Number(row.qty_completed) || 0;
+                  const complete = target > 0 && done >= target;
+                  return (
+                    <div key={key} className="adm-od-stage">
+                      <div className="adm-od-stage-top">
+                        <span style={{ fontWeight:700, color: order.status === key ? 'var(--teal)' : 'var(--ink)' }}>{STAGE_LABEL[key]}</span>
+                        <span style={{ fontSize:12, color: complete ? 'var(--success-text)' : 'var(--text-subtle)', fontWeight:600 }}>
+                          {done} / {target} pcs
+                        </span>
+                      </div>
+                      <Meter pct={target > 0 ? (done / target) * 100 : 0} tone={complete ? 'ok' : undefined} />
+                    </div>
+                  );
+                })}
               </div>
             )}
-            <DesignPreview cfg={order.studio_config} height={360} previewUrl={order.design_preview_url ?? null}/>
-            {/* FIX (Defect A): studio_config.previewPng is stripped at order-creation
-                time (OrderController::customerStore) and never re-injected into
-                studio_config — GarmentPreview3D has no prop for it and never did,
-                on the customer side either (client/OrderDetail.jsx shows this same
-                design_preview_url as a plain <img>, not as a GarmentPreview3D prop).
-                Mirrors that exact existing pattern instead of inventing a new one. */}
-            {order.design_preview_url && (
-              <a href={order.design_preview_url} target="_blank" rel="noopener noreferrer"
-                style={{ display:'flex', alignItems:'center', gap:5, fontSize:13, fontWeight:600,
-                  color:'var(--teal)', textDecoration:'none' }}>
-                <NavIcon name="download" size={13} color="var(--teal)" /> View Submitted Design (PNG)
+          </Panel>
+
+          {/* 6 · QC — only fields the order record really carries */}
+          <Panel title="Quality Control" style={{ order:5 }}
+            action={<button className="adm-link-btn" onClick={() => navigate('/admin/qc')}>QC checklist →</button>}>
+            <div className="adm-od-fields">
+              <Field label="QC Required" value={order.qc_required ? 'Yes' : 'No'}/>
+              <Field label="QC Result" value={order.qc_passed_at ? `Passed ${fmtDay(order.qc_passed_at)}` : (qcHold ? 'Awaiting passing checklist' : 'Not passed yet')}/>
+            </div>
+          </Panel>
+
+          {/* 7 · Delivery — dates stored on the order itself */}
+          <Panel title="Delivery" style={{ order:6 }}
+            action={<button className="adm-link-btn" onClick={() => navigate('/admin/delivery')}>Delivery →</button>}>
+            <div className="adm-od-fields">
+              <Field label="Client Requested" value={fmtDay(order.target_delivery_date)}/>
+              <Field label="Negotiated"       value={fmtDay(order.negotiated_delivery_date)}/>
+              <Field label="Est. Completion"  value={fmtDay(order.estimated_completion_date)}/>
+            </div>
+          </Panel>
+
+          {/* 8 · Communication */}
+          <Panel title="Communication" style={{ order:7 }}>
+            <button className="adm-btn" onClick={() => navigate('/admin/messages')} style={{ width:'100%', justifyContent:'center' }}>
+              <NavIcon name="messages" size={14} color="currentColor" /> Open messages
+            </button>
+          </Panel>
+        </div>
+
+        {/* Main column: design first — the thing being manufactured */}
+        <div className="adm-od-main">
+          {/* 3 · Design */}
+          <Panel title="Submitted Design" style={{ order:2 }}>
+            {hasStudioConfig ? (
+              <div style={{ display:'flex', flexDirection:'column', alignItems:'stretch', gap:6, width:'100%', minWidth:0 }}>
+                {order.studio_config?.name && (
+                  <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)', textAlign:'center' }}>{order.studio_config.name}</div>
+                )}
+                <DesignPreview cfg={order.studio_config} height={isMobile ? 260 : 360} previewUrl={order.design_preview_url ?? null}/>
+                {/* studio_config.previewPng is stripped at order-creation time
+                    (OrderController::customerStore); the rendered PNG is served
+                    separately as design_preview_url, same as the customer side. */}
+                {order.design_preview_url && (
+                  <a href={order.design_preview_url} target="_blank" rel="noopener noreferrer"
+                    style={{ display:'flex', alignItems:'center', gap:5, fontSize:13, fontWeight:600,
+                      color:'var(--teal)', textDecoration:'none' }}>
+                    <NavIcon name="download" size={13} color="var(--teal)" /> View Submitted Design (PNG)
+                  </a>
+                )}
+              </div>
+            ) : refIsImage ? (
+              <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:12 }}>
+                <img src={getStorageUrl(order.client_design_ref_file)} alt="Client reference"
+                  style={{ maxWidth:'100%', maxHeight:480, borderRadius:'var(--r-lg)', border:'1px solid var(--border)',
+                    objectFit:'contain' }}
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}/>
+                <a href={getStorageUrl(order.client_design_ref_file)} target="_blank" rel="noopener noreferrer"
+                  style={{ display:'flex', alignItems:'center', gap:5, fontSize:13, fontWeight:600, color:'var(--teal)', textDecoration:'none' }}>
+                  <NavIcon name="download" size={13} color="var(--teal)" /> Download Reference File
+                </a>
+              </div>
+            ) : hasRefFile ? (
+              <a href={getStorageUrl(order.client_design_ref_file)} target="_blank" rel="noopener noreferrer"
+                style={{ display:'flex', alignItems:'center', gap:6, fontSize:14, fontWeight:600, color:'var(--teal)', textDecoration:'none' }}>
+                <NavIcon name="download" size={14} color="var(--teal)" /> Download Reference File
               </a>
+            ) : (
+              <EmptyBlock>No design submitted for this order.</EmptyBlock>
             )}
-          </div>
-        ) : refIsImage ? (
-          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:12 }}>
-            <img src={getStorageUrl(order.client_design_ref_file)} alt="Client reference"
-              style={{ maxWidth:'100%', maxHeight:480, borderRadius:'var(--r-lg)', border:'1px solid var(--border)',
-                objectFit:'contain' }}
-              onError={(e) => { e.currentTarget.style.display = 'none'; }}/>
-            <a href={getStorageUrl(order.client_design_ref_file)} target="_blank" rel="noopener noreferrer"
-              style={{ display:'flex', alignItems:'center', gap:5, fontSize:13, fontWeight:600, color:'var(--teal)', textDecoration:'none' }}>
-              <NavIcon name="download" size={13} color="var(--teal)" /> Download Reference File
-            </a>
-          </div>
-        ) : hasRefFile ? (
-          // Non-image reference file (e.g. PDF) — no <img>, just the link.
-          <a href={getStorageUrl(order.client_design_ref_file)} target="_blank" rel="noopener noreferrer"
-            style={{ display:'flex', alignItems:'center', gap:6, fontSize:14, fontWeight:600, color:'var(--teal)', textDecoration:'none' }}>
-            <NavIcon name="download" size={14} color="var(--teal)" /> Download Reference File
-          </a>
-        ) : (
-          <div style={{ padding:'4px 0', color:'var(--text-faint)', fontSize:13, fontFamily:'var(--font)' }}>
-            No design submitted for this order.
-          </div>
-        )}
-        {order.client_design_notes && (
-          <div style={{ marginTop:16, padding:12, background:'var(--bg-surface)', borderRadius:'var(--r-md)',
-            fontSize:13, color:'var(--text-muted)', lineHeight:1.5, fontFamily:'var(--font)' }}>
-            <strong style={{ color:'var(--ink)' }}>Client notes: </strong>{order.client_design_notes}
-          </div>
-        )}
-      </Card>
+            {order.client_design_notes && (
+              <div style={{ marginTop:16, padding:12, background:'var(--bg-surface)', borderRadius:'var(--r-md)',
+                fontSize:13, color:'var(--text-muted)', lineHeight:1.5 }}>
+                <strong style={{ color:'var(--ink)' }}>Client notes: </strong>{order.client_design_notes}
+              </div>
+            )}
+          </Panel>
 
-      {/* Order specifications */}
-      <Card title="Order Specifications">
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(140px, 1fr))', gap:16 }}>
-          <Field label="Garment Type"   value={order.garment_type}/>
-          <Field label="Quantity"       value={order.quantity_ordered ? `${order.quantity_ordered} pcs` : null}/>
-          <Field label="Color"          value={order.color}/>
-          <Field label="Collar"         value={order.collar_type}/>
-          <Field label="Sleeve"         value={order.sleeve_type}/>
-          <Field label="Pocket"         value={order.pocket_type}/>
-          <Field label="Order Type"     value={order.order_type}/>
-          <Field label="Sizing Type"    value={order.sizing_type}/>
-          <Field label="PO Reference"   value={order.po_reference}/>
-          <Field label="Target Delivery" value={order.target_delivery_date}/>
-          <Field label="Negotiated Delivery" value={order.negotiated_delivery_date}/>
+          {/* Material recommendations — Actual Used comes from actual_qty_issued,
+              the staff-entered quantity from Pattern-stage completion (null until then). */}
+          <Panel title="Material Recommendations" flush style={{ order:8 }}>
+            {recs.length === 0 ? (
+              <EmptyBlock>No material recommendations recorded yet.</EmptyBlock>
+            ) : (
+              <div className="adm-tbl-scroll">
+                <table className="adm-table">
+                  <thead><tr><th>Material</th><th>Actual Used</th><th>In Stock</th></tr></thead>
+                  <tbody>
+                    {recs.map((rec, i) => (
+                      <tr key={rec.rec_id ?? i}>
+                        <td style={{ fontWeight:600 }}>{rec.material_name ?? rec.material?.material_name ?? rec.category ?? '—'}</td>
+                        <td>{rec.actual_qty_issued != null ? `${rec.actual_qty_issued} ${rec.unit ?? ''}` : <span style={{ color:'var(--text-faint)' }}>Not yet issued</span>}</td>
+                        <td style={{ color:'var(--text-subtle)' }}>{rec.material?.quantity_in_stock ?? '—'} {rec.material?.unit ?? ''}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Panel>
+
+          {/* Payment / transaction history */}
+          <Panel title="Payment" style={{ order:9 }}>
+            {!txn ? (
+              <div style={{ color:'var(--text-faint)', fontSize:13 }}>No payment records yet.</div>
+            ) : (
+              <div className="adm-od-fields">
+                <Field label="Amount Paid"  value={txn.amount_paid  != null ? `₱${txn.amount_paid}`  : null}/>
+                <Field label="Amount Total" value={txn.amount_total != null ? `₱${txn.amount_total}` : null}/>
+                <Field label="Balance Due"
+                  value={(txn.amount_total != null && txn.amount_paid != null)
+                    ? `₱${(txn.amount_total - txn.amount_paid)}` : null}/>
+                <Field label="Date Processed" value={txn.date_processed}/>
+              </div>
+            )}
+          </Panel>
         </div>
-      </Card>
-
-      {/* Client */}
-      <Card title="Client">
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(140px, 1fr))', gap:16 }}>
-          <Field label="Name"          value={order.user?.name}/>
-          <Field label="Organization"  value={order.user?.organization_name}/>
-          <Field label="Email"         value={order.user?.email}/>
-          <Field label="Contact"       value={order.user?.contact_number}/>
-        </div>
-      </Card>
-
-      {/* Material recommendations — Aug 28 2026: estimated_range column
-          removed (no formula/BOM exists in this system). Replaced with
-          Actual Used, sourced from actual_qty_issued — the real,
-          staff-entered quantity from Pattern-stage completion. Null until
-          Pattern actually completes for this order. */}
-      <Card title="Material Recommendations">
-        {recs.length === 0 ? (
-          <div style={{ color:'var(--text-faint)', fontSize:13, fontFamily:'var(--font)' }}>No material recommendations recorded yet.</div>
-        ) : (
-          <div style={{ overflowX:'auto', WebkitOverflowScrolling:'touch' }}>
-          <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13, minWidth:400, fontFamily:'var(--font)' }}>
-            <thead>
-              <tr style={{ textAlign:'left', color:'var(--text-faint)', fontSize:11, textTransform:'uppercase' }}>
-                <th style={{ padding:'6px 8px' }}>Material</th>
-                <th style={{ padding:'6px 8px' }}>Actual Used</th>
-                <th style={{ padding:'6px 8px' }}>In Stock</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recs.map((rec, i) => (
-                <tr key={rec.rec_id ?? i} style={{ borderTop:'1px solid var(--bg-surface)' }}>
-                  <td style={{ padding:'8px', fontWeight:500, color:'var(--ink)' }}>
-                    {rec.material_name ?? rec.material?.material_name ?? rec.category ?? '—'}
-                  </td>
-                  <td style={{ padding:'8px', fontWeight:600, color:'var(--ink)' }}>
-                    {rec.actual_qty_issued != null ? `${rec.actual_qty_issued} ${rec.unit ?? ''}` : 'Not yet issued'}
-                  </td>
-                  <td style={{ padding:'8px', color:'var(--text-subtle)' }}>
-                    {rec.material?.quantity_in_stock ?? '—'} {rec.material?.unit ?? ''}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
-        )}
-      </Card>
-
-      {/* Payment / transaction history */}
-      <Card title="Payment">
-        {!txn ? (
-          <div style={{ color:'var(--text-faint)', fontSize:13, fontFamily:'var(--font)' }}>No payment records yet.</div>
-        ) : (
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(140px, 1fr))', gap:16 }}>
-            <Field label="Amount Paid"  value={txn.amount_paid  != null ? `₱${txn.amount_paid}`  : null}/>
-            <Field label="Amount Total" value={txn.amount_total != null ? `₱${txn.amount_total}` : null}/>
-            <Field label="Balance Due"
-              value={(txn.amount_total != null && txn.amount_paid != null)
-                ? `₱${(txn.amount_total - txn.amount_paid)}` : null}/>
-            <Field label="Date Processed" value={txn.date_processed}/>
-          </div>
-        )}
-      </Card>
-
+      </div>
     </div>
   );
 }
