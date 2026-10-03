@@ -21,7 +21,7 @@ function useFit(paneRef, wrapRef) {
     // Front/Back cards; the cap keeps the raster canvas from getting soft.
     const measure = () => {
       const wide = pane.clientWidth >= 700;
-      const reserveY = wide ? 200 : 96;
+      const reserveY = wide ? 200 : 104;
       const gutter = window.innerWidth >= 768 ? 152 : 48;
       const maxFit = wide ? 1.5 : 1;
       setFit(Math.max(0.3, Math.min(maxFit, (pane.clientWidth - gutter) / wrap.offsetWidth, (pane.clientHeight - reserveY) / wrap.offsetHeight)));

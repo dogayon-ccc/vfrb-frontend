@@ -76,10 +76,10 @@ export default function TopBar({
       <motion.span className="ds-bar-cat"
         animate={{ background:`rgba(${hexToRgb(cfg.colors.body??T)},.18)` }}
         transition={{ duration:.4 }}
-        style={{ fontSize:10,padding:'2px 10px',borderRadius:99,
+        style={{ display:'inline-flex',alignItems:'center',gap:5,whiteSpace:'nowrap',lineHeight:1.2,fontSize:11,padding:'4px 11px',borderRadius:99,
           color:T2,fontWeight:700,border:`1px solid rgba(2,195,154,.22)`,
           flexShrink:0 }}>
-        <NavIcon name={catData.icon} size={11} color={T2} style={{ marginRight:3, verticalAlign:'-1.5px' }}/>
+        <NavIcon name={catData.icon} size={12} color={T2} style={{ display:'block', flexShrink:0 }}/>
         {cfg.category}
       </motion.span>
 
@@ -122,7 +122,7 @@ export default function TopBar({
                 setViewMode(m);
               }}
               title={m==='3d' ? (no3D ? 'No verified 3D model for this garment — 2D is the exact preview' : 'Quick spatial preview — for exact colors and placement, use 2D') : undefined}
-              style={{ padding:'6px 13px',border:'none',fontSize:11,fontWeight:700,
+              style={{ padding:'6px 14px',border:'none',fontSize:12,fontWeight:700,
                 cursor:(m==='3d' && no3D)?'not-allowed':'pointer', opacity:(m==='3d' && no3D)?.4:1,
                 background:viewMode===m?T:'transparent',
                 color:viewMode===m?'#fff':'rgba(15,23,42,.4)',
