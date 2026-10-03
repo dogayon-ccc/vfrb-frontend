@@ -50,12 +50,16 @@ export default function AdminMessages() {
     } catch { setLoadErr(true); } finally { setLoading(false); }
   }, []);
 
+  const selRef = useRef(selId);
+  selRef.current = selId;
   const loadMsgs = useCallback(async () => {
     if (!selId) return;
+    const id = selId;
     try {
-      const r = await axios.get(`/api/admin/messages/${selId}`);
+      const r = await axios.get(`/api/admin/messages/${id}`);
+      if (selRef.current !== id) return;
       setMsgs(r.data?.messages ?? r.data ?? []); setMsgErr(false);
-    } catch { setMsgErr(true); }
+    } catch { if (selRef.current === id) setMsgErr(true); }
   }, [selId]);
 
   useEffect(() => { loadThreads(); }, [loadThreads]);
