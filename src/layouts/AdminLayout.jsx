@@ -372,7 +372,7 @@ export default function AdminLayout() {
           flex-direction: column;
           background: transparent;
           position: relative;
-          z-index: 1;
+          z-index: auto;
         }
 
         /* ── Topbar — genuine Cruip look: white, thin border-bottom, subtle

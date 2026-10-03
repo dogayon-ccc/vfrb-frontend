@@ -169,6 +169,7 @@ export default function AdminDashboard() {
 
       <StatGrid items={kpis} loading={loading} />
 
+      <div className="adm-dash-stack">
       <div className="adm-dash-grid">
         <div className="adm-dash-col">
           <Panel title="Orders Overview" action={<PillTabs tabs={[{ key: 'orders', label: 'Orders' }, { key: 'revenue', label: 'Revenue' }]} value={chartTab} onChange={setChartTab} />} style={{ overflow: 'visible' }}>
@@ -250,8 +251,11 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <h2 className="adm-panel-title" style={{ margin: '4px 0 12px' }}>Needs Your Attention</h2>
-      <div className="adm-attn-grid" style={{ marginBottom: 16 }}>{attention.map((a) => <AttentionPanel key={a.title} {...a} />)}</div>
+      <section className="adm-dash-attn">
+        <h2 className="adm-panel-title" style={{ margin: '4px 0 12px' }}>Needs Your Attention</h2>
+        <div className="adm-attn-grid" style={{ marginBottom: 16 }}>{attention.map((a) => <AttentionPanel key={a.title} {...a} />)}</div>
+      </section>
+      </div>
 
       <StatGrid items={snapshot} loading={loading} />
 
