@@ -3,10 +3,12 @@ import Photo from '../components/landing/Photo';
 import Reveal from '../components/landing/Reveal';
 import SitePage from '../components/site/SitePage';
 import { Btn, Head, TextLink, CtaBand } from '../components/site/parts';
-import { EMBROIDERY, ORDER_STEPS, PEOPLE, PLACES, SERVE_LINE } from '../components/site/content';
+import { EMBROIDERY, ORDER_STEPS, PEOPLE, PHASES, PLACES, SERVE, SERVE_LINE } from '../components/site/content';
 import { P } from './landing/photos';
 
 const FACTS = [['Since 2000', 'Family-owned garment industry'], ...PLACES, ['Offices, schools, institutions', 'Who we make uniforms for']];
+
+const STAGES = PHASES.flatMap(ph => ph.stages);
 
 const SERVICES = [
   { to: '/what-we-do#uniforms', photo: P.uniforms, pos: '30% center', title: 'Company uniforms',
@@ -25,7 +27,7 @@ export default function Landing() {
           <div className="vs-hero__grid">
             <div className="vs-hero__copy">
               <p className="vs-kicker" style={{ margin: 0 }}>VFRB Enterprise, Muntinlupa City</p>
-              <h1 className="vs-h1">Company uniforms, made by one family since 2000.</h1>
+              <h1 className="vs-h1">Company uniforms, made by <span className="vs-mark">one family</span> since 2000.</h1>
               <p className="vs-lede">
                 VFRB Enterprise, also known as Tailor Centre VFRB Manila, is a medium-scale, family-owned garment
                 industry specialized in corporate and company uniforms.
@@ -34,8 +36,13 @@ export default function Landing() {
                 <Btn to="/register">Design your uniform</Btn>
                 <Btn to="/gallery" variant="line">See the work</Btn>
               </div>
+              <p className="vs-hero__digital">
+                <b>Online ordering</b>
+                <span>Design your uniform in the VFRB Design Studio, place a bulk order, and follow it through every production stage from your client account.</span>
+              </p>
             </div>
             <div className="vs-hero__media">
+              <div className="vs-sticker" aria-hidden="true"><span>Since</span><b>2000</b></div>
               <Photo photo={P.sewing4} instant hover={false} pos="18% center" className="vs-hero__main" ratio="auto" />
               <Photo photo={P.uniforms} instant hover={false} pos="28% center" className="vs-hero__inset" ratio="4 / 3" />
             </div>
@@ -49,6 +56,9 @@ export default function Landing() {
       <section className="vs-sec vs-sec--flush" aria-labelledby="svc">
         <div className="vs-wrap">
           <Head kicker="What we do" id="svc" title="Tailoring, embroidery and printing under one company." lede={`Made for ${SERVE_LINE.toLowerCase()}.`} />
+          <ul className="vs-serve" aria-label="Who VFRB makes uniforms for">
+            {SERVE.map(x => <li key={x}>{x}</li>)}
+          </ul>
           <Reveal className="vs-svc">
             {SERVICES.map(s => (
               <Link key={s.title} to={s.to}>
@@ -101,6 +111,20 @@ export default function Landing() {
         </div>
       </section>
 
+      <section className="vs-sec vs-dark" aria-labelledby="proc">
+        <div className="vs-wrap">
+          <Head kicker="How a uniform is made" id="proc" title="Seven stages, from pattern to packing."
+            lede="Every order follows the same production line. Clients with an account can see which stage their order is on." />
+          <Reveal>
+            <ol className="vs-proc" aria-label="The seven production stages">
+              {STAGES.map(([t, d]) => <li key={t}><h3>{t}</h3><p>{d}</p></li>)}
+            </ol>
+            <p className="vs-proc__rule">An order only moves to the next stage once the required quantity for the current stage is finished.</p>
+          </Reveal>
+          <div style={{ marginTop: 20 }}><TextLink to="/inside-vfrb">See the production floor</TextLink></div>
+        </div>
+      </section>
+
       <section className="vs-sec vs-tint" aria-labelledby="samples">
         <div className="vs-wrap">
           <Head kicker="Gallery" id="samples" title="Finished pieces, packed for delivery." />
@@ -147,9 +171,10 @@ export default function Landing() {
       </section>
 
       <CtaBand photo={P.sewing2} pos="center" title="Ready to put your name on a uniform?"
-        lede="Create an account, design your uniform, and send the brief to VFRB.">
-        <Btn to="/register" variant="mint">Create an account</Btn>
-        <Btn to="/about" variant="ghost-light">Read our story</Btn>
+        lede="Create an account and design your uniform, look through the finished work, or learn more about the family behind VFRB.">
+        <Btn to="/register" variant="mint">Start designing</Btn>
+        <Btn to="/gallery" variant="ghost-light">Explore the gallery</Btn>
+        <Btn to="/about" variant="ghost-light">About VFRB</Btn>
       </CtaBand>
     </SitePage>
   );

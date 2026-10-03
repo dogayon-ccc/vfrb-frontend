@@ -3,7 +3,7 @@ import Reveal from '../components/landing/Reveal';
 import SitePage from '../components/site/SitePage';
 import { Banner, Btn, Head, TextLink, Journey } from '../components/site/parts';
 import { CONTACT as C } from '../components/site/config';
-import { SERVE_LINE } from '../components/site/content';
+import { SERVE, SERVE_LINE } from '../components/site/content';
 import { P } from './landing/photos';
 
 export default function About() {
@@ -16,6 +16,7 @@ export default function About() {
         <div className="vs-wrap vs-split">
           <Reveal className="vs-stack">
             <h2 className="vs-h2" id="story">Who we are</h2>
+            <ul className="vs-serve" aria-label="Who VFRB makes uniforms for">{SERVE.map(x => <li key={x}>{x}</li>)}</ul>
             <p className="vs-body">
               VFRB Enterprise, also known as Tailor Centre VFRB Manila, is a medium-scale, family-owned garment industry
               operating since 2000, specialized in corporate and company uniforms.

@@ -8,8 +8,12 @@ function Lightbox({ items, index, onClose, onMove }) {
   const box = useRef(null);
   const [ready, setReady] = useState(false);
   const item = items[index];
+  const touchX = useRef(null);
 
   useEffect(() => { setReady(false); }, [index]);
+  useEffect(() => {
+    [1, -1].forEach((d) => { const n = items[(index + d + items.length) % items.length]; if (n) new Image().src = n.photo.src; });
+  }, [index, items]);
   useEffect(() => {
     const prevFocus = document.activeElement;
     document.body.style.overflow = 'hidden';
@@ -38,7 +42,13 @@ function Lightbox({ items, index, onClose, onMove }) {
         <span aria-live="polite">{index + 1} of {items.length}</span>
         <button type="button" className="vs-lb__close" onClick={onClose} aria-label="Close viewer">×</button>
       </div>
-      <div className="vs-lb__stage">
+      <div className="vs-lb__stage"
+        onTouchStart={(e) => { touchX.current = e.touches[0].clientX; }}
+        onTouchEnd={(e) => {
+          if (touchX.current === null) return;
+          const dx = e.changedTouches[0].clientX - touchX.current; touchX.current = null;
+          if (Math.abs(dx) > 50) onMove(dx < 0 ? 1 : -1);
+        }}>
         <button type="button" className="vs-lb__prev" onClick={() => onMove(-1)} aria-label="Previous photo">‹</button>
         <img src={item.photo.src} alt={item.photo.alt} onLoad={() => setReady(true)}
           style={{ opacity: ready ? 1 : 0, transition: 'opacity 200ms ease' }} />

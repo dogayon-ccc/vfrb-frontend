@@ -30,6 +30,7 @@ export default function SiteHeader() {
   useEffect(() => {
     if (!open) return undefined;
     document.body.style.overflow = 'hidden';
+    root.current.querySelector('.vs-sheet a')?.focus();
     const onKey = (e) => {
       if (e.key === 'Escape') { setOpen(false); burger.current?.focus(); return; }
       if (e.key !== 'Tab') return;

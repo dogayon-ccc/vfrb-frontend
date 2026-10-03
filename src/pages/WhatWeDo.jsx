@@ -12,7 +12,7 @@ export default function WhatWeDo() {
   return (
     <SitePage title="What We Do">
       <Banner kicker="What we do" title="Tailoring, embroidery and printing in one place."
-        lede={`${SERVICES.slice(0, 3).join(', ')}, and more, for ${SERVE_LINE.toLowerCase()}.`}
+        lede={`${SERVICES.slice(0, 3).map(x => x.toLowerCase()).join(", ")}, and more, for ${SERVE_LINE.toLowerCase()}.`}
         photo={P.uniforms} pos="30% center">
         <nav className="vs-jump" aria-label="On this page" style={{ marginTop: 6 }}>
           {JUMP.map(([l, id]) => <a key={id} href={`#${id}`} style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.6)' }}>{l}</a>)}
