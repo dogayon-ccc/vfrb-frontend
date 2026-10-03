@@ -1,15 +1,10 @@
-// src/pages/admin/ShowcaseModerationQueue.jsx
-// Reuses Suppliers.jsx's card-grid + theme.css token conventions. A
-// desktop-table/mobile-card split (as first sketched) isn't needed here —
-// design thumbnails are inherently card content, and the auto-fill grid
-// already reflows to 1 column under 767px on its own.
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Card, Badge, NavIcon } from '../../components/ui';
 import GarmentSilhouette from '../client/design-studio/GarmentSilhouette';
 
 function ActionRow({ design, onDone }) {
-  const [mode, setMode] = useState(null); // null | 'approve' | 'reject'
+  const [mode, setMode] = useState(null);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -64,7 +59,7 @@ export default function ShowcaseModerationQueue() {
 
   useEffect(() => { load(); }, [load]);
 
-  const remove = (id) => setDesigns(list => list.filter(d => d.id !== id)); // optimistic — actioned rows leave the pending queue
+  const remove = (id) => setDesigns(list => list.filter(d => d.id !== id));
 
   return (
     <div style={{ fontFamily:'var(--font)', color:'var(--ink)' }}>

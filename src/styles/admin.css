@@ -56,7 +56,6 @@ button.adm-stat:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
 @keyframes admSheet{from{transform:translateY(100%)}to{transform:none}}
 @media(prefers-reduced-motion:reduce){.modal-panel,.modal-wrapper{animation:none}}
 
-/* ── Pass 2: shared inner-UI primitives ───────────────────────────── */
 .adm-only-m{display:none}
 @media(max-width:767px){.adm-only-m{display:block}.adm-only-d{display:none!important}}
 @media(max-width:1023px){.adm-hide-t{display:none!important}}
@@ -126,7 +125,6 @@ textarea.adm-input{padding:10px 14px;resize:vertical;min-height:64px}
 .adm-btn{white-space:nowrap}
 @media(max-width:767px){.adm-stats>.adm-stat:last-child:nth-child(odd){grid-column:1/-1}.adm-banner{align-items:flex-start;font-size:12px}}
 
-/* ── Pass 3: pipeline, detail layouts, callouts ─────────────────────── */
 .adm-pipe{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
 .adm-pipe-step{display:flex;flex-direction:column;align-items:center;gap:2px;padding:12px 6px;min-height:44px;border-radius:12px;border:1px solid var(--border);background:var(--bg);color:var(--text-subtle);cursor:pointer;font:inherit;transition:transform .15s,background .15s,border-color .15s,color .15s;animation:admIn .24s ease-out both;animation-delay:calc(var(--i,0)*30ms)}
 .adm-pipe-step b{font-size:20px;font-weight:800;color:var(--ink);line-height:1.1}
@@ -178,7 +176,6 @@ textarea.adm-input{padding:10px 14px;resize:vertical;min-height:64px}
 @media(max-width:767px){.adm-drawer{align-items:flex-end}.adm-drawer-panel{height:auto;max-height:88vh;border-radius:18px 18px 0 0;animation-name:admSheet}}
 @media(prefers-reduced-motion:reduce){.adm-pipe-step,.adm-drawer,.adm-drawer-panel,.adm-steps-fill,.adm-step-dot{animation:none;transition:none}}
 
-/* ── QC ─────────────────────────────────────────────────────────────── */
 .qc-layout{display:grid;grid-template-columns:260px minmax(0,1fr);gap:16px;align-items:start}
 @media(max-width:1023px){.qc-layout{grid-template-columns:1fr}}
 .qc-queue{display:flex;flex-direction:column;padding:8px}
@@ -206,7 +203,6 @@ textarea.adm-input{padding:10px 14px;resize:vertical;min-height:64px}
 .qc-row,.qc-toggle button,.qc-queue button{}
 @media(prefers-reduced-motion:reduce){.qc-row,.qc-toggle button,.qc-queue button{transition:none}}
 
-/* ── Reports ────────────────────────────────────────────────────────── */
 .rpt-two{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:16px;align-items:start}
 @media(max-width:1023px){.rpt-two{grid-template-columns:1fr}}
 .rpt-alerts{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
@@ -218,7 +214,6 @@ textarea.adm-input{padding:10px 14px;resize:vertical;min-height:64px}
 .rpt-bar-h{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px}.rpt-bar-h i{font-style:normal;font-weight:400;color:var(--text-faint)}
 @media print{body *{visibility:hidden}.rpt-printable,.rpt-printable *{visibility:visible}.rpt-printable{position:absolute;left:0;top:0;width:100%}.rpt-noprint{display:none!important}}
 
-/* ── Procurement ────────────────────────────────────────────────────── */
 .po-items{display:flex;flex-wrap:wrap;gap:5px}
 .po-items span{padding:3px 9px;border-radius:8px;background:var(--bg);border:1px solid var(--border);font-size:11px}
 .po-swatches{display:flex;align-items:flex-end;gap:12px;margin-top:8px;padding:8px 10px;border-radius:10px;background:var(--bg);border:1px solid var(--border);width:fit-content;max-width:100%}
@@ -230,7 +225,6 @@ textarea.adm-input{padding:10px 14px;resize:vertical;min-height:64px}
 .po-resp>div{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 14px;border-bottom:1px solid var(--bg-surface)}
 .po-resp>div:last-child{border-bottom:none}.po-resp>div.sel{background:var(--success-bg)}
 
-/* ── Messages ───────────────────────────────────────────────────────── */
 .msg-wrap{display:grid;grid-template-columns:340px minmax(0,1fr);gap:16px;height:calc(100dvh - 190px);min-height:460px}
 .msg-list,.msg-chat{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-xs);display:flex;flex-direction:column;overflow:hidden;min-width:0}
 .msg-list-head{padding:12px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:10px}
@@ -270,7 +264,6 @@ textarea.adm-input{padding:10px 14px;resize:vertical;min-height:64px}
 @media(prefers-reduced-motion:reduce){.msg-row,.msg-th,.msg-chips button{animation:none;transition:none}}
 @media(max-width:767px){.adm-hide-m{display:none}}
 
-/* ── Settings ───────────────────────────────────────────────────────── */
 .set-layout{display:grid;grid-template-columns:200px minmax(0,760px);gap:24px;align-items:start}
 .set-nav{position:sticky;top:16px;display:flex;flex-direction:column;gap:2px}
 .set-nav a{display:flex;align-items:center;gap:8px;min-height:40px;padding:0 12px;border-radius:10px;color:var(--text-subtle);font-size:13px;font-weight:700;text-decoration:none;transition:background .15s,color .15s}
@@ -291,7 +284,6 @@ textarea.adm-input{padding:10px 14px;resize:vertical;min-height:64px}
 @media(prefers-reduced-motion:reduce){.set-switch::before,.set-switch i,.set-nav a{transition:none}}
 .adm-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:767px){.adm-grid-2{grid-template-columns:1fr}}
 
-/* ── Client master data ─────────────────────────────────────────────── */
 .cm-who{display:flex;gap:10px;align-items:center}.cm-sub{font-size:11px;color:var(--text-subtle);overflow:hidden;text-overflow:ellipsis}
 .cm-lines{display:flex;flex-direction:column;gap:4px;margin-top:10px;font-size:12px;color:var(--text-subtle)}.cm-lines span{display:flex;align-items:center;gap:6px;overflow:hidden;text-overflow:ellipsis}
 .cm-mini{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
@@ -301,7 +293,6 @@ textarea.adm-input{padding:10px 14px;resize:vertical;min-height:64px}
 .cm-pager div{display:flex;gap:8px}
 @media(max-width:767px){.cm-pager{border:1px solid var(--border);border-radius:12px;background:var(--bg-card);margin-top:8px}}
 
-/* ── Pass 4: motion system, mobile-first fixes ──────────────────────── */
 :root{--ease-out:cubic-bezier(.22,.8,.3,1);--dur-fast:140ms;--dur-base:220ms;--dur-slow:300ms}
 .adm-page{animation:admPage var(--dur-slow) var(--ease-out) backwards}
 @keyframes admPage{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
@@ -330,7 +321,6 @@ textarea.adm-input{padding:10px 14px;resize:vertical;min-height:64px}
 .adm-drawer-grid:first-child{margin-top:2px}
 @media(prefers-reduced-motion:reduce){.adm-page,.adm-mcard,.adm-row,.adm-tab{animation:none;transition:none}.adm-btn:active,.adm-mcard:active{transform:none}}
 
-/* ── Dashboard hero (brand band) ────────────────────────────────────── */
 .dsh-hero{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px 16px;align-items:center;padding:18px;margin-bottom:16px;border-radius:18px;color:#fff;background:linear-gradient(120deg,#062f38 0%,#04525c 55%,#028090 100%);box-shadow:var(--shadow-md);overflow:hidden;animation:admIn var(--dur-slow) var(--ease-out) both}
 .dsh-hero::after{content:'';position:absolute;right:-60px;top:-60px;width:220px;height:220px;border-radius:50%;border:34px solid rgba(2,195,154,.14);pointer-events:none}
 .dsh-hero-logo{width:52px;height:52px;border-radius:14px;object-fit:cover;border:2px solid rgba(255,255,255,.22)}
@@ -350,7 +340,6 @@ textarea.adm-input{padding:10px 14px;resize:vertical;min-height:64px}
 @media(min-width:768px){.dsh-hero{grid-template-columns:auto minmax(0,1fr) auto;padding:22px 26px}.dsh-hero-txt h1{font-size:26px}.dsh-hero-stats{grid-column:2;grid-row:2;max-width:460px}.dsh-hero-actions{grid-column:3;grid-row:1/3;flex-direction:column;align-self:center;min-width:170px}.dsh-hero-logo{width:60px;height:60px}}
 @media(prefers-reduced-motion:reduce){.dsh-hero,.dsh-hero-stats button,.dsh-ghost,.dsh-solid{animation:none;transition:none}}
 
-/* ── Physical count ─────────────────────────────────────────────────── */
 .pc-var{display:inline-flex;flex-direction:column;line-height:1.2}.pc-var b{font-size:14px;font-weight:800}.pc-var i{font-style:normal;font-size:10px;font-weight:700}
 .pc-unit{font-size:10px;font-weight:500;color:var(--text-faint)}.pc-by{font-size:11px;color:var(--text-faint)}
 .pc-qty{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
@@ -361,27 +350,19 @@ textarea.adm-input{padding:10px 14px;resize:vertical;min-height:64px}
 .pc-overdue b{display:block;font-size:13px}.pc-overdue i{display:block;font-style:normal;font-size:11px;color:var(--text-faint)}
 @media(prefers-reduced-motion:reduce){.pc-overdue button{animation:none;transition:none}}
 
-/* ── Pass 5: mobile density + dashboard priority (Account 4, Oct 3 2026) ─────
-   Stat grids ate the first viewport on phones (Orders: list started below the
-   fold). 3+ stats become one swipeable strip; 2 stay side by side. */
 @media(max-width:767px){
   .adm-stat{padding:10px 12px}
   .adm-stat-val{margin-top:3px}
-  .adm-stats:has(>.adm-stat:nth-child(3)){display:flex;gap:8px;overflow-x:auto;margin:0 -14px 14px;padding:2px 14px 4px;scroll-snap-type:x proximity;scroll-padding-inline:14px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-  .adm-stats:has(>.adm-stat:nth-child(3))::-webkit-scrollbar{display:none}
-  .adm-stats:has(>.adm-stat:nth-child(3))>.adm-stat{flex:0 0 128px;scroll-snap-align:start;grid-column:auto}
+  .adm-stats:has(>.adm-stat:nth-child(5)){display:flex;gap:8px;overflow-x:auto;margin:0 -14px 14px;padding:2px 14px 4px;scroll-snap-type:x proximity;scroll-padding-inline:14px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .adm-stats:has(>.adm-stat:nth-child(5))::-webkit-scrollbar{display:none}
+  .adm-stats:has(>.adm-stat:nth-child(5))>.adm-stat{flex:0 0 128px;scroll-snap-align:start;grid-column:auto}
   .dsh-hero-actions{flex-wrap:wrap}
   .dsh-ghost,.dsh-solid{white-space:nowrap;padding:0 12px}
   .dsh-solid{flex:1 1 100%}
 }
-/* Dashboard: on phone/tablet the attention queues come before the charts. */
 .adm-dash-stack{display:flex;flex-direction:column}
 @media(max-width:1023px){.adm-dash-attn{order:-1}}
 
-/* ── Admin Order Detail workspace (Account 4, Oct 3 2026) ─────────────────────
-   Phone/tablet: one column, panels ordered by inline `order` (client → design →
-   info → production → QC → delivery → communication). Desktop: design/materials
-   left, operational context right. */
 .adm-od{max-width:1280px;margin:0 auto}
 .adm-od-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:18px}
 .adm-od-grid{display:flex;flex-direction:column;gap:14px}
@@ -395,3 +376,46 @@ textarea.adm-input{padding:10px 14px;resize:vertical;min-height:64px}
   .adm-od-main{grid-column:1}.adm-od-side{grid-column:2}
 }
 @media(max-width:767px){.adm-od-head .adm-actions{width:100%}.adm-od-head .adm-actions .adm-btn{flex:1 1 140px;justify-content:center;min-height:44px}}
+
+.adm-cols{display:grid;gap:16px;align-items:start;margin-bottom:16px}
+@media(min-width:1024px){.adm-cols{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.adm-rows{display:flex;flex-direction:column}
+.adm-row{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;min-height:48px;padding:10px 18px;border:0;border-bottom:1px solid var(--bg-surface);background:none;color:var(--ink);font:inherit;font-size:13px;text-align:left}
+.adm-row:last-child{border-bottom:0}
+button.adm-row{cursor:pointer;transition:background .12s}
+button.adm-row:hover{background:var(--bg)}
+button.adm-row:focus-visible,.adm-order-card:focus-visible{outline:2px solid var(--teal-2);outline-offset:-2px}
+.adm-row-sub{display:block;margin-top:2px;font-size:11px;color:var(--text-subtle)}
+.adm-funnel{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:12px;margin-bottom:12px}
+.adm-funnel:last-child{margin-bottom:0}
+.adm-funnel .adm-meter{grid-column:1/-1}
+.adm-section-title{font-size:14px;font-weight:800;color:var(--ink);margin:0 0 10px}
+.adm-card-grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr))}
+.adm-order-card{display:flex;flex-direction:column;gap:6px;width:100%;padding:14px 16px;font:inherit;font-size:13px;color:var(--ink);text-align:left;cursor:pointer;transition:box-shadow .15s,transform .15s}
+.adm-order-card:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
+.adm-order-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:4px}
+.adm-stage-line{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-subtle);opacity:.55}
+.adm-stage-line.now{opacity:1;color:var(--ink);font-weight:700}
+.adm-stage-line.done{opacity:1;color:var(--success);text-decoration:line-through}
+.adm-stage-line .adm-meter{flex:1}
+@media(max-width:767px){
+  .adm-tabs{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent)}
+  .adm-row{padding:10px 14px}
+}
+@media(max-width:767px){.adm-toast{left:14px;right:14px;bottom:78px;text-align:center}}
+.adm-qa{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:767px){
+  .adm-actions:has(>.adm-qa){width:100%}
+  .adm-qa{display:grid;grid-template-columns:1fr 1fr;width:100%}
+  .adm-qa .adm-btn{justify-content:center}
+  .adm-btn{min-height:44px}
+  .adm-tab{min-height:40px}
+  .adm-stats:has(>.adm-stat:nth-child(3):last-child){grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .adm-stats:has(>.adm-stat:nth-child(3):last-child)>.adm-stat:last-child{grid-column:auto}
+  .adm-stats:has(>.adm-stat:nth-child(3):last-child) .adm-stat-val{font-size:17px}
+}
+@media(max-width:767px){
+  .adm-page-head{align-items:stretch}
+  .adm-page-head>.adm-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));width:100%}
+  .adm-page-head>.adm-actions .adm-btn{justify-content:center}
+}

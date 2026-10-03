@@ -1,5 +1,3 @@
-// src/pages/admin/ProductionTracking.jsx — /admin/production/:orderId
-// Logic unchanged: 3 concurrent loads, manager-only advance/confirm, QC hold guard, cache keys.
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';

@@ -1,8 +1,3 @@
-// src/layouts/AdminLayout.jsx
-// FIXED: mobile topbar shows logo + portal label (teal/purple gradient by role)
-// FIXED: logout accessible via More drawer only (removed redundant topbar Out button)
-// FIXED: all admin nav items reachable on mobile via scrollable More drawer
-// NO dark mode — vibrant light with teal + purple color accents
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,9 +8,6 @@ import PageErrorBoundary from '../components/PageErrorBoundary';
 import IconBox from '../components/ui/IconBox';
 import '../styles/admin.css';
 import logo from '../assets/company-logo.jpg';
-// FF-4 FIX (Aug 30 2026): emoji nav icons replaced with lucide-react —
-// see design-system reshaping pass. Icon values below are components,
-// rendered as <item.icon size={N}/> at each call site, not raw text.
 import {
   LayoutDashboard, ClipboardList, Package, MessageSquare, ShoppingCart,
   Truck, Layers, Factory, FileText, ShieldCheck, ScanLine, AlertTriangle,
@@ -25,11 +17,8 @@ import {
 
 const T  = 'var(--teal)';
 const T2 = 'var(--teal-2)';
-const MG = 'var(--purple)'; // manager purple
+const MG = 'var(--purple)';
 
-// area: null = always visible to every staff account regardless of job_function
-// (Dashboard/Orders/Messages/Delivery/Sales stay general-purpose on purpose —
-// only the areas Dave explicitly called out — production vs inventory — gate).
 const STAFF_NAV = [
   { to:'/admin',              icon:LayoutDashboard, label:'Dashboard',    end:true, area:null        },
   { to:'/admin/orders',       icon:ClipboardList,   label:'Orders',                area:null        },
@@ -39,18 +28,14 @@ const STAFF_NAV = [
   { to:'/admin/procurement',  icon:ShoppingCart,    label:'Procurement',           area:'inventory' },
   { to:'/admin/delivery',     icon:Truck,           label:'Delivery',              area:null        },
   { to:'/admin/materials',    icon:Layers,          label:'Materials',             area:'inventory' },
-  // 'Usage Rates' nav entry removed Aug 28 2026 — MaterialRates.jsx deleted,
-  // no formula/BOM exists in this system anymore.
   { to:'/admin/production',   icon:Factory,         label:'Production',            area:'production'},
   { to:'/admin/output-log',   icon:FileText,        label:'Output Log',            area:'production'},
   { to:'/admin/qc',           icon:ShieldCheck,     label:'QC Checklist',          area:'production'},
   { to:'/admin/physical-count',icon:ScanLine,       label:'Physical Count',        area:'inventory' },
-  { to:'/admin/production-incidents',icon:AlertTriangle,label:'Incidents',         area:'production'}, // NEW Aug 25 2026
+  { to:'/admin/production-incidents',icon:AlertTriangle,label:'Incidents',         area:'production'},
   { to:'/admin/transactions', icon:Wallet,          label:'Sales & Pay',           area:null        },
 ];
 
-// job_function -> areas it may see. 'general' (default/unset) always sees
-// everything, so this is additive restriction, never a silent lockout.
 const JOB_FUNCTION_AREAS = {
   general:    ['inventory', 'production'],
   inventory:  ['inventory'],
@@ -62,9 +47,6 @@ function visibleForJobFunction(navArray, jobFunction) {
   const allowed = JOB_FUNCTION_AREAS[jobFunction] ?? JOB_FUNCTION_AREAS.general;
   return navArray.filter(item => item.area === null || allowed.includes(item.area));
 }
-// One reusable tile for the More-menu grid — General and Manager Only
-// sections both render through this, color cycling by position so no
-// per-item color field is needed on the nav arrays.
 const TILE_COLORS = ['#0284c7','#7c3aed','#059669','#d97706','#dc2626','#4338ca','#be185d','#0369a1'];
 function DrawerTile({ item, i }) {
   return (
@@ -81,11 +63,10 @@ const MANAGER_EXTRA = [
   { to:'/admin/suppliers',    icon:Building2,   label:'Suppliers'            },
   { to:'/admin/users',        icon:Users,       label:'Users'                },
   { to:'/admin/designs/showcase-queue', icon:Trophy, label:'Showcase'           },
-  { to:'/admin/feedback',     icon:MessageCircle,label:'Feedback'            }, // NEW Aug 27 2026
+  { to:'/admin/feedback',     icon:MessageCircle,label:'Feedback'            },
   { to:'/admin/settings',     icon:Settings,    label:'Settings'             },
 ];
 
-// Mobile bottom nav — 5 most critical
 const MOB_NAV = [
   { to:'/admin',           icon:LayoutDashboard, label:'Home',     end:true, area:null        },
   { to:'/admin/orders',    icon:ClipboardList,   label:'Orders',            area:null        },
@@ -94,7 +75,6 @@ const MOB_NAV = [
   { to:'/admin/production',icon:Factory, label:'Production',        area:'production'},
 ];
 
-// Notification row
 function NotifRow({ n, onRead }) {
   const id      = n.notif_id ?? n.id;
   const isRead  = !!n.is_read;
@@ -151,16 +131,10 @@ export default function AdminLayout() {
   const [avatar,    setAvatar]    = useState(null);
   const [jobFn,     setJobFn]     = useState('general');
   const [collapsed, setCollapsed] = useState(() => {
-    // MOBILE AUDIT FIX (Aug 22): previously always defaulted to false
-    // (full 226px sidebar) with no viewport awareness at all, so a first-
-    // time tablet visitor (768-1023px, no saved preference yet) got the
-    // full desktop sidebar instead of the documented icons-only default.
-    // Only applies when nothing has been saved yet — an explicit manual
-    // toggle (by the user, at any width) always wins after that.
     try {
       const stored = localStorage.getItem('vfrb_adm_sb');
       if (stored !== null) return JSON.parse(stored);
-    } catch { /* fall through to width-based default */ }
+    } catch { }
     if (typeof window !== 'undefined' &&
         window.innerWidth >= 768 && window.innerWidth <= 1023) {
       return true;
@@ -174,7 +148,6 @@ export default function AdminLayout() {
   const visibleStaffNav = isManager ? STAFF_NAV : visibleForJobFunction(STAFF_NAV, jobFn);
     const navItems   = isManager ? [...STAFF_NAV, ...MANAGER_EXTRA] : visibleStaffNav;
 
-  // Notification bell
   const [notifs,    setNotifs]    = useState([]);
   const [unread,    setUnread]    = useState(0);
   const [bellOpen,  setBellOpen]  = useState(false);
@@ -226,14 +199,10 @@ export default function AdminLayout() {
     setJobFn(u.job_function || 'general');
   }, [location.pathname]);
 
-  // Close More drawer on route change
   useEffect(() => { setMoreOpen(false); }, [location.pathname]);
 
   const openBell = () => { setBellOpen(b => !b); if (!bellOpen) fetchNotifs(); };
 
-  // Offline-aware: optimistic update always applies; the network call is
-  // queued (not lost) if it fails or there's no connection, and flushed
-  // automatically on reconnect. Shared by markRead/markAllRead below.
   const syncOrQueue = (method, url) => {
     if (!navigator.onLine) { enqueue({ method, url }); setPendingSync(queueSize()); return; }
     axios({ method, url }).catch((e) => {
@@ -277,13 +246,6 @@ export default function AdminLayout() {
   });
 
   const initials = name ? name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase() : 'A';
-  // Aug 23 correction: previously a full vibrant gradient background on
-  // both the sidebar header and topbar. Dave called this out directly —
-  // that's not what "Cruip look" means; Cruip's actual header is white
-  // with a thin border, and role color should read as a small accent,
-  // not the whole surface. Role distinction now lives in: the portal
-  // label text color, the small "Manager"/"Staff" badge, and the avatar
-  // ring — not a background fill.
 
   return (
     <>
@@ -303,17 +265,12 @@ export default function AdminLayout() {
           80%     { transform: rotate(8deg); }
         }
 
-        /* ── Shell ── */
-        /* Hybrid style (Aug 23) — tinted page bg (Horizon UI direction),
-           confirmed against the mockup before applying. Cards/tables on
-           top of this stay minimal/white — only the page canvas changes. */
         .adm-shell {
           display: flex;
           min-height: 100vh;
           background: #f4f7fe;
           position: relative;
         }
-        /* Ambient glow in top-right corner — subtle brand presence */
         .adm-shell::before {
           content: '';
           position: fixed;
@@ -327,15 +284,6 @@ export default function AdminLayout() {
           z-index: 0;
         }
 
-        /* ── Sidebar ── */
-        /* DARK RESKIN (per wireframe references, Sept 28 2026): the wireframe
-           set (all 4 boards — customer/admin/staff) consistently uses a dark
-           teal sidebar (deep teal→near-black gradient, white/light-teal text,
-           lighter-fill active state) against a light page canvas — not the
-           previous light "Cruip" sidebar. Flush-to-edge, full height, no
-           radius/gap is kept (that part was already correct); only the
-           surface + text colors change here. Content-area cards are
-           untouched — still white with real border-radius. */
         .adm-sb {
           position: fixed;
           top:0; left:0; bottom:0;
@@ -350,7 +298,6 @@ export default function AdminLayout() {
           transition: width .22s cubic-bezier(.4,0,.2,1);
         }
 
-        /* Sidebar header: logo-on-dark lockup from the wireframe */
         .adm-sb-head {
           flex-shrink: 0;
           display: flex;
@@ -363,7 +310,6 @@ export default function AdminLayout() {
           border-bottom: 1px solid rgba(255,255,255,.08);
         }
 
-        /* ── Main area ── */
         .adm-main {
           flex: 1;
           min-width: 0;
@@ -375,11 +321,6 @@ export default function AdminLayout() {
           z-index: auto;
         }
 
-        /* ── Topbar — genuine Cruip look: white, thin border-bottom, subtle
-           shadow. Aug 23 correction — this was previously a vibrant
-           gradient with a comment that literally contradicted "Cruip-
-           style" in the same breath. Role color now reads through the
-           portal label, the Manager badge, and the avatar ring only. ── */
         .adm-topbar {
           height: 60px;
           flex-shrink: 0;
@@ -397,21 +338,18 @@ export default function AdminLayout() {
           box-shadow: 0 1px 3px rgba(15,23,42,.04);
         }
 
-        /* ── Content ── */
         .adm-content {
           flex: 1;
           width: 100%;
           min-width: 0;
           padding: 24px 24px 88px;
         }
-        /* On very wide screens, cap content width for readability */
         @media (min-width: 1600px) {
           .adm-content {
             padding: 28px 32px 88px;
           }
         }
 
-        /* ── Sidebar nav link — light text/icons on the dark sidebar ── */
         .adm-link {
           display: flex;
           align-items: center;
@@ -455,7 +393,6 @@ export default function AdminLayout() {
           background: linear-gradient(180deg, #a78bfa, #c4b5fd);
         }
 
-        /* Section labels — light-on-dark uppercase group headers */
         .adm-sec {
           font-size: 10px;
           font-weight: 800;
@@ -466,7 +403,6 @@ export default function AdminLayout() {
           margin: 0;
         }
 
-        /* ── Mobile bottom taskbar ── */
         .adm-bnav {
           display: none;
           position: fixed;
@@ -507,7 +443,6 @@ export default function AdminLayout() {
         .adm-bnav-btn.mob-active .adm-bnav-icon  { transform: scale(1.14); }
         .adm-bnav-btn.mob-active .adm-bnav-label { color: ${T}; font-weight:800; }
 
-        /* ── More drawer ── */
         .adm-more-drawer {
           position: fixed;
           bottom: 64px; left:0; right:0;
@@ -547,7 +482,6 @@ export default function AdminLayout() {
         }
         .adm-drawer-signout:hover { background: rgba(220,38,38,.06); }
 
-        /* ── Responsive ── */
         @media (max-width: 767px) {
           .adm-sb       { display: none !important; }
           .adm-main     { margin-left: 0 !important; }
@@ -561,15 +495,12 @@ export default function AdminLayout() {
           .adm-mob-only     { display: none !important; }
           .adm-more-drawer  { display: none !important; }
         }
-        /* Tablet: slightly tighter sidebar */
         @media (min-width: 768px) and (max-width: 1023px) {
           .adm-content { padding: 18px 18px 28px; }
         }
-        /* iPad Pro: comfortable padding */
         @media (min-width: 1024px) and (max-width: 1279px) {
           .adm-content { padding: 20px 20px 40px; }
         }
-        /* 4K / ultra-wide: more breathing room + centered content */
         @media (min-width: 2560px) {
           .adm-content {
             padding: 36px 40px 100px;
@@ -579,7 +510,6 @@ export default function AdminLayout() {
           }
         }
 
-        /* ── Scrollbar ── */
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
 
@@ -590,12 +520,8 @@ export default function AdminLayout() {
 
       <div className="adm-shell">
 
-        {/* ─── DESKTOP SIDEBAR ────────────────────────────────────────────── */}
         <aside className="adm-sb" style={{ width:SW }}>
 
-          {/* Dark header — logo + brand text on the dark sidebar surface, role
-              color as a small accent only (unchanged from the light version,
-              just now against a dark ground). */}
           <div className="adm-sb-head"
             style={{ padding: collapsed ? '14px 10px' : '14px 16px' }}>
             <img src={logo} alt="VFRB"
@@ -616,7 +542,6 @@ export default function AdminLayout() {
             )}
           </div>
 
-          {/* Nav scroll area */}
           <div style={{ flex:1, overflowY:'auto', overflowX:'hidden',
             padding: collapsed ? '8px 4px' : '8px 10px',
             scrollbarWidth:'thin', scrollbarColor:'var(--border) transparent' }}>
@@ -656,7 +581,6 @@ export default function AdminLayout() {
 
           </div>
 
-          {/* Collapse toggle — light chip against the dark sidebar */}
           <button onClick={toggle}
             style={{ margin: collapsed ? '6px auto' : '6px 6px 6px auto',
               padding: collapsed ? '9px' : '7px 12px', borderRadius: 99,
@@ -669,19 +593,13 @@ export default function AdminLayout() {
             {collapsed ? '▶' : '◀ Collapse'}
           </button>
 
-          {/* Identity now lives only in the topbar profile dropdown — removed here to avoid duplication */}
         </aside>
 
-        {/* ─── MAIN CONTENT ───────────────────────────────────────────────── */}
         <main className="adm-main"
           style={{ marginLeft: SW, transition:'margin-left .22s cubic-bezier(.4,0,.2,1)' }}>
-          {/* Sidebar is now flush (left:0, no inset) after the topbar-match
-              fix above — margin-left is exactly SW, no extra gap needed. */}
 
-          {/* ── TOPBAR — light, Cruip-style: white bg, thin border, dark text ── */}
           <div className="adm-topbar">
 
-            {/* Mobile: logo + portal label */}
             <img src={logo} alt="VFRB" className="adm-mob-only"
               style={{ width:30, height:30, borderRadius:8, objectFit:'cover',
                 border:'1.5px solid var(--border)', flexShrink:0 }}/>
@@ -694,14 +612,12 @@ export default function AdminLayout() {
               <p style={{ fontSize:9.5, color:'var(--text-subtle)', fontWeight:600, margin:0 }}>Custom Uniforms. Smarter Solutions.</p>
             </div>
 
-            {/* Desktop: date */}
             <span className="adm-desk-only" style={{ color:'var(--text-faint)', fontSize:12, flexShrink:0 }}>
               {new Date().toLocaleDateString('en-PH',{
                 weekday:'long', month:'long', day:'numeric', year:'numeric' })}
             </span>
             <div style={{ flex:1 }}/>
 
-            {/* Notification bell */}
             <div ref={bellRef} style={{ position:'relative' }}>
               <motion.button
                 whileHover={{ scale:1.07 }}
@@ -736,7 +652,6 @@ export default function AdminLayout() {
                 </AnimatePresence>
               </motion.button>
 
-              {/* Notification dropdown */}
               <AnimatePresence>
                 {bellOpen && (
                   <motion.div
@@ -826,7 +741,6 @@ export default function AdminLayout() {
               </AnimatePresence>
             </div>
 
-            {/* Profile — click for Sign Out (Cruip-style dropdown) */}
             <div ref={profileRef} style={{ position:'relative' }}>
               <button onClick={() => setProfileOpen(o => !o)}
                 style={{ display:'flex', alignItems:'center', gap:8, border:'none',
@@ -875,9 +789,6 @@ export default function AdminLayout() {
 
           </div>
 
-          {/* Page content — wrapped in a page-level error boundary (Aug 23
-              2026): a crash in one page no longer takes the sidebar/nav
-              down with it. resetKey=pathname clears the error on navigation. */}
           <div className="adm-content">
             {pendingSync > 0 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', marginBottom: 14, borderRadius: 10, border: '1px solid #fed7aa', background: '#fff7ed' }}>
@@ -891,7 +802,6 @@ export default function AdminLayout() {
           </div>
         </main>
 
-        {/* ─── MORE DRAWER (mobile — all nav items) ───────────────────────── */}
         <AnimatePresence>
           {moreOpen && (
             <>
@@ -928,7 +838,6 @@ export default function AdminLayout() {
           )}
         </AnimatePresence>
 
-        {/* ─── MOBILE BOTTOM TASKBAR ──────────────────────────────────────── */}
         <nav className="adm-bnav" aria-label="Mobile navigation">
           {(isManager ? MOB_NAV : visibleForJobFunction(MOB_NAV, jobFn)).map(item => {
             const active = item.end
@@ -946,7 +855,6 @@ export default function AdminLayout() {
             );
           })}
 
-          {/* More button */}
           <button className="adm-bnav-btn"
             onClick={() => setMoreOpen(o => !o)}
             style={{ border:'none', cursor:'pointer', background:'transparent',

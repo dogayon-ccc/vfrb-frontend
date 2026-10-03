@@ -1,37 +1,3 @@
-// src/pages/admin/SalesTransactions.jsx
-// VFRB Enterprise — Sales & Payment Recording
-//
-// NO PAYMENT GATEWAY — VFRB collects payment physically (cash, GCash screenshot, bank transfer).
-// This page records the payment (amount, method, reference, OR number).
-//
-// SCHEMA — sales_transactions:
-//   transaction_id(PK), order_id(FK), processed_by(FK→user_id),
-//   amount_total, amount_paid, balance_due,
-//   payment_method ENUM(cash|gcash|ewallet|bank_transfer|not_yet_paid),
-//   payment_terms ENUM(full_payment|down_payment|net_30),
-//   payment_date, or_number, completion_status, notes, created_at, updated_at
-//
-// HOW IT WORKS WITHOUT A PAYMENT GATEWAY:
-//   Customer pays via GCash → sends screenshot (kept off-system, e.g. group chat)
-//   → Staff records the payment here → balance_due auto-computed from
-//   amount_total - amount_paid
-//
-// RESHAPED (Sept 5 2026): METHOD_CFG's 5 colors mapped cleanly onto
-// existing tokens with zero compromises needed — cash=success,
-// gcash=purple, ewallet=info (#3b82f6 IS --info exactly),
-// bank_transfer=warning, not_yet_paid=danger. The payment-method pill
-// now goes through the shared Badge component directly rather than the
-// `${mc.color}15`/`${mc.color}30` alpha-suffix trick (same fix pattern
-// as ActivityLog/Inventory, but Badge already encapsulates bg/fg pairs
-// per tone, so no manual pale-token pairing was needed here — cleanest
-// fit yet). Two new icons added: CreditCard (e-wallet) and Landmark
-// (bank transfer), both verified against the real installed
-// lucide-react before adding.
-//
-// BUG-005's first-payment-vs-subsequent-payment logic (the unique key
-// on order_id in sales_transactions, agreedTotal/alreadyPaid/balance
-// computation) is real, load-bearing business logic — completely
-// untouched. Same for the cache/search/load logic on the main page.
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence }           from 'framer-motion';
@@ -57,7 +23,6 @@ const METHOD_CFG = {
   not_yet_paid:  { label:'Not Yet Paid',  tone:'danger',  icon:'loading'  },
 };
 
-// ── Record payment modal ──────────────────────────────────────────────────────
 function RecordModal({ onClose, onDone, isMobile }) {
   const [orders,    setOrders]    = useState([]);
   const [orderInfo, setOrderInfo] = useState(null);
@@ -79,9 +44,6 @@ function RecordModal({ onClose, onDone, isMobile }) {
       .catch(() => {});
   }, [form.order_id]);
 
-  // BUG-005 FIX: orders have no fixed price list — order.transactions[0]
-  // (sales_transactions has a UNIQUE KEY on order_id, so there's at most
-  // one row) tells us whether this is the order's first payment or not.
   const existingTxn   = orderInfo?.transactions?.[0] ?? null;
   const isFirstPayment = !existingTxn;
   const alreadyPaid    = existingTxn ? Number(existingTxn.amount_paid ?? 0) : 0;
@@ -106,9 +68,6 @@ function RecordModal({ onClose, onDone, isMobile }) {
         payment_method: form.payment_method, payment_terms: form.payment_terms,
         or_number: form.or_number || null, notes: form.notes || null,
       };
-      // amount_total only applies (and is only accepted by the backend) on
-      // an order's first payment — subsequent payments read it from
-      // orders.agreed_total server-side.
       if (isFirstPayment) payload.amount_total = Number(form.amount_total);
 
       await axios.post('/api/admin/transactions', payload);
@@ -143,9 +102,6 @@ function RecordModal({ onClose, onDone, isMobile }) {
                 </div>
               )}
 
-              {/* Order Total: editable only on this order's first-ever payment.
-                  After that, sales_transactions (unique key on order_id) already
-                  has amount_total — show it read-only instead of asking again. */}
               {orderInfo && !isFirstPayment && (
                 <div style={{ padding:'12px 14px', borderRadius:'var(--r-md)', background:'var(--bg-surface)', border:'1px solid var(--border)' }}>
                   <p style={{ fontSize:12, color:'var(--text-muted)', margin:0, fontFamily:'var(--font)', lineHeight:1.5 }}>
@@ -245,7 +201,6 @@ function RecordModal({ onClose, onDone, isMobile }) {
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
 export default function AdminSalesTransactions() {
   const [txns,       setTxns]       = useState([]);
   const [loading,    setLoading]    = useState(true);

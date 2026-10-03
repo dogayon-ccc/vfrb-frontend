@@ -1,6 +1,3 @@
-// src/pages/admin/Reports.jsx — manager-only. Data: GET /api/admin/reports (KPIs, order_trends, inventory_summary,
-// order_type_breakdown, pipeline_snapshot, prescriptive_alerts) + GET /api/admin/reports/sales (monthly_trends, totals).
-// Chart colors stay literal hex: recharts SVG props do not reliably resolve CSS variables.
 import { useState, useEffect, useCallback } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -11,8 +8,6 @@ import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
 import { NavIcon } from '../../components/ui/icons';
 import { PageHeader, StatGrid, PillTabs, Panel, Banner, ErrorBlock, SkeletonRows, Meter } from '../../components/admin/AdminUI';
 
-
-// ── CSV export helper (unchanged) ──────────────────────────────────────────────
 function downloadCSV(rows, filename) {
   const csv = rows
     .map(row =>
@@ -69,7 +64,6 @@ function buildCSV(data, tab) {
   }
   return null;
 }
-
 
 const CHART_GRID = '#f1f5f9';
 const CHART_TICK = '#94a3b8';

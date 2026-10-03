@@ -1,5 +1,3 @@
-// src/pages/admin/QCChecklist.jsx — /admin/qc. 80/20 rule: ≥80% of sampled pieces must pass; failed pieces = For Alteration.
-// Exports QCChecklistForm + QCModal unchanged in contract.
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { NavIcon } from '../../components/ui/icons';

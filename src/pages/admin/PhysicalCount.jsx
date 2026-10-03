@@ -1,7 +1,3 @@
-// Physical count log + manager reconcile. API: /api/admin/physical-counts (list, summary, sheet, reconcile), /api/admin/materials.
-// DB rules:
-//   physical_count_logs: variance + variance_pct are GENERATED — never insert
-//   notifications: NO type, NO title columns
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence }                           from 'framer-motion';
@@ -28,7 +24,6 @@ const card = { background:'var(--bg-card)', border:'1px solid var(--border)', bo
 
 const readIsManager = () => { try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}').role === 'manager'; } catch { return false; } };
 
-// ── Toast ─────────────────────────────────────────────────────────────────────
 function Toast({ msg, type, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 3000); return () => clearTimeout(t); }, [onDone]);
   const bg = type === 'error' ? 'var(--danger)' : type === 'warn' ? 'var(--warning)' : T;
@@ -43,7 +38,6 @@ function Toast({ msg, type, onDone }) {
   );
 }
 
-// ── Count Entry Modal (Staff) ──────────────────────────────────────────────────
 function CountModal({ materials, onClose, onDone, isMobile, initialMatId }) {
   const [matId,   setMatId]   = useState(initialMatId ? String(initialMatId) : '');
   const [physQty, setPhysQty] = useState('');
@@ -94,7 +88,6 @@ function CountModal({ materials, onClose, onDone, isMobile, initialMatId }) {
             Physical Inventory Count
           </p>
 
-          {/* Material selector */}
             <div>
               <label style={{ ...lbl, marginBottom:7 }}>Material *</label>
               <select value={matId} onChange={e => setMatId(e.target.value)}
@@ -128,7 +121,6 @@ function CountModal({ materials, onClose, onDone, isMobile, initialMatId }) {
               </div>
             </div>
 
-            {/* Live variance preview */}
             {preview && (
               <motion.div initial={{ opacity:0, y:-6 }} animate={{ opacity:1, y:0 }}
                 style={{ padding:'14px 16px', borderRadius:12,
@@ -200,7 +192,6 @@ function CountModal({ materials, onClose, onDone, isMobile, initialMatId }) {
   );
 }
 
-// ── Reconcile Modal (Manager only) ─────────────────────────────────────────────
 function ReconcileModal({ count, onClose, onDone, isMobile }) {
   const [adjust, setAdjust] = useState(true);
   const [note,   setNote]   = useState('');
@@ -235,7 +226,6 @@ function ReconcileModal({ count, onClose, onDone, isMobile }) {
             Post Count &amp; Reconcile
           </p>
 
-          {/* Variance summary */}
           <div style={{ padding:'14px', borderRadius:12,
             background:Math.abs(varPct)>5?'var(--warning-bg)':'var(--success-bg)',
             border:`1px solid ${Math.abs(varPct)>5?'var(--warning-border)':'var(--success-border)'}` }}>
@@ -261,7 +251,6 @@ function ReconcileModal({ count, onClose, onDone, isMobile }) {
             </p>
           </div>
 
-          {/* Action selector */}
           <div>
             <label style={lbl}>Reconciliation Action</label>
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
@@ -325,7 +314,6 @@ function ReconcileModal({ count, onClose, onDone, isMobile }) {
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
 export default function AdminPhysicalCount() {
   const isManager = readIsManager();
   const [logFor, setLogFor] = useState(null);
@@ -345,7 +333,6 @@ export default function AdminPhysicalCount() {
   const load = useCallback(() => {
     setLoading(true);
 
-    // Materials list cached 5 min
     const cachedMats = cacheGet('materials_list');
     const matProm = cachedMats
       ? Promise.resolve({ data: cachedMats })

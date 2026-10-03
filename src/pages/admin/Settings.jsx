@@ -1,6 +1,3 @@
-// src/pages/admin/Settings.jsx — company info (manager edits, staff view), own notification prefs, user-management shortcut.
-// Logic kept: role read fresh per mount (never hoist to module scope), multipart logo upload with optimistic preview + rollback,
-// optimistic pref toggles with rollback. Email/SMS stay labeled "Not yet active" until a real provider exists.
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';

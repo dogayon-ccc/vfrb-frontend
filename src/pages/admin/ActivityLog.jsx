@@ -1,41 +1,3 @@
-// src/pages/admin/ActivityLog.jsx
-// Activity Log (Aug 22 2026 session) — manager-only.
-//
-// Reads ActivityLogController@index, a UNION view over 9 tables that
-// already had actor/timestamp columns (daily_output_logs, qc_checklists,
-// physical_count_logs, inventory_logs, delivery_tracking, purchase_orders,
-// rfq_requests, material_usage_rates, order_production_tracking,
-// company_settings). This page invents nothing — it's a filtered,
-// paginated view of activity that was already being recorded.
-//
-// Explicitly NOT included (per the scoping conversation): login/logout
-// history (no auth_logs table exists), and this is not a cryptographically
-// immutable ledger — it's a read view over mutable operational tables.
-//
-// RESHAPED (Sept 3 2026): unlike Login.jsx/Suppliers.jsx, this file's 13
-// action-type colors are a deliberate categorization taxonomy, not a
-// brand mismatch — forcing them all to teal would make 13 event types
-// harder to tell apart at a glance, not more consistent. Mapped each to
-// the nearest real theme.css semantic token instead (teal/purple/
-// success/info/danger/warning/text-muted — all 7 hues already exist as
-// real tokens, confirmed before using any of them).
-//
-// One judgment call, not silently made: `delivery_updated` was a
-// distinct orange (#EA580C) in the original, with no equivalent token
-// in theme.css. Adding a brand-new global --orange token for exactly
-// one action type felt like a bigger decision than a single-page
-// reshape should make unilaterally, so it's mapped to --warning
-// (amber) instead — slightly less distinct from inventory_adjustment
-// than before. Flagging this explicitly in case a dedicated logistics
-// color is wanted later.
-//
-// Icon-chip backgrounds: the original used a `${hexColor}15` alpha-
-// suffix trick, which doesn't work with var() references. Used each
-// hue's existing pale `-50`/`-bg` token instead (--teal-50, --purple-50,
-// --success-bg, etc.) — all already real, none invented for this page.
-//
-// Logic (filters, pagination, the ActivityLogController@index contract)
-// completely untouched.
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -55,8 +17,6 @@ const ACTION_LABELS = {
   delivery_updated:      { label: 'Delivery Update',     icon: 'delivery',     color: 'var(--warning)',    bg: 'var(--warning-bg)' },
   po_created:             { label: 'PO Created',          icon: 'invoice',      color: 'var(--purple)',     bg: 'var(--purple-50)' },
   rfq_created:            { label: 'RFQ Created',         icon: 'email',        color: 'var(--purple)',     bg: 'var(--purple-50)' },
-  // usage_rate_set entry removed Aug 29 2026 — backend no longer emits this
-  // action_type (source data was deleted in the no-formula redesign).
   settings_updated:       { label: 'Settings Updated',    icon: 'settings',     color: 'var(--text-muted)', bg: 'var(--bg-surface)' },
 };
 
@@ -124,7 +84,6 @@ export default function ActivityLog() {
         </p>
       </div>
 
-      {/* Filters */}
       <Card padding="sm" style={{ marginBottom:16 }}>
         <div style={{ display:'flex', flexWrap:'wrap', gap:10 }}>
           <select value={filterAction} onChange={e => setFilterAction(e.target.value)} style={inp}>
@@ -195,7 +154,6 @@ export default function ActivityLog() {
         </Card>
       )}
 
-      {/* Pagination */}
       {!loading && lastPage > 1 && (
         <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap:12, marginTop:16 }}>
           <button disabled={page <= 1} onClick={() => load(page - 1)}

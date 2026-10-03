@@ -1,7 +1,3 @@
-// src/pages/admin/CustomersMaster.jsx — /admin/customers. Client master data, READ-ONLY.
-// Source: GET /api/admin/customers (staff + manager) → users with role 'customer' + order aggregates. No duplicate table.
-// Fields shown are exactly what the API returns: name, email, contact_number, organization_name, address, client_type,
-// email_verified_at, created_at, orders_count, active_orders, last_order_at. No edit: no admin update endpoint exists for customers.
 import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { NavIcon } from '../../components/ui/icons';

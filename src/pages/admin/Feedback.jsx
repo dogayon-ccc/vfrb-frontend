@@ -1,21 +1,3 @@
-// src/pages/admin/Feedback.jsx
-// NEW — added Aug 27 2026. Manager-only triage view for the minimal
-// feedback system (see backend migration comment for scope rationale —
-// deliberately no upvoting/public board).
-//
-// RESHAPED (Sept 2 2026): brought into compliance with theme.css's own
-// stated rule ("NO hardcoded colors in component files — use these
-// vars") — this file previously had zero var(--) usage, same as every
-// other admin page except Landing.jsx (checked all 24, this wasn't a
-// one-off). Also swapped emoji category icons for NavIcon (matching the
-// icon-cleanup convention already applied to AdminLayout/CustomerLayout/
-// DesignStudio), and switched the status pill to the shared Badge
-// component instead of a hand-rolled span — Badge already existed but
-// was unused here. Logic below (axios calls, optimistic status update,
-// filter state) is untouched — this is a visual-layer-only pass.
-//
-// Dropped: an unused `const T = '#028090'` that was never actually
-// referenced anywhere in the file — dead code, not a functional change.
 
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';

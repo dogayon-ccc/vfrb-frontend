@@ -1,23 +1,3 @@
-// src/pages/admin/Suppliers.jsx
-//
-// RESHAPED (Sept 2 2026): first pass at this file incorrectly
-// reconstructed field names from memory instead of verifying against
-// the real file (used `name`/`payment_terms`, dropped `materials_supplied`
-// and the search bar entirely). Caught via `git diff` before shipping —
-// this version is redone from the real original (`git show HEAD:...`),
-// changing ONLY what was actually in scope: hex → theme.css tokens,
-// emoji (🏭📞✉️⏳✕⚠️) → NavIcon, hand-rolled skeleton/pill → Card/Badge
-// where that doesn't change behavior. Every field name, the
-// payment-terms option list (matches VFRB's real documented terms —
-// "Wednesday close / Friday transfer" is Ma'am Fe's actual OTG
-// subcontract term from the interview, not a placeholder), the
-// edit-via-button (not whole-card-click) interaction, the search bar,
-// and the SupplierModal/AdminSuppliers two-component structure are
-// all unchanged from the real file.
-//
-// Badge's `teal` tone (added this session, maps to theme.css's own
-// unused .badge-teal class) and icons.jsx's `phone`/`email` entries
-// (also added this session) are both used here for the first time.
 
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
@@ -97,12 +77,11 @@ export default function AdminSuppliers() {
       if (cached) { setSuppliers(cached); setLoading(false); return; }
     }
     setLoading(true); setLoadErr(false);
-    // DSA: O(1) cache hit; O(n) only on first load or forced refresh
     axios.get('/api/admin/suppliers')
       .then(r => {
         const list = r.data?.data ?? r.data ?? [];
         setSuppliers(list);
-        cacheSet('suppliers_list', list, 300_000); // 5 min — supplier list is stable
+        cacheSet('suppliers_list', list, 300_000);
       })
       .catch(() => setLoadErr(true))
       .finally(() => setLoading(false));

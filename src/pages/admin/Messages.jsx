@@ -1,7 +1,3 @@
-// src/pages/admin/Messages.jsx — order-scoped customer conversations.
-// API: GET /api/admin/messages (threads: order_id, customer_name, organization_name, garment_type, status, last_body, last_message_at, unread_count)
-//      GET /api/admin/messages/:orderId ({messages}: sender_id, body, sent_at)  ·  POST /api/admin/messages {order_id, body}
-// Logic kept: 60s polling, optimistic send + rollback, sender_id own-message detection.
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';

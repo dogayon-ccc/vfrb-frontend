@@ -1,29 +1,3 @@
-// src/pages/admin/DailyOutputLog.jsx
-// Replaces handwritten sulat — staff logs pieces per size per day per stage
-//
-// RESHAPED (Sept 8 2026): hex -> theme.css tokens, emoji -> NavIcon.
-// Checked which of the 4 injected CSS classes are actually applied
-// before touching any of them (learned from UserManagement.jsx/
-// DeliveryTracking.jsx's fully-dead blocks) -- this file is a MIXED
-// case, not all-dead or all-live: .adm-log-grid and .adm-table-wrap
-// are genuinely used (New Output Entry's two-column layout, the
-// History tab's table wrapper). .adm-stats and .adm-filter are
-// defined and never applied anywhere -- this page has no KPI-stats
-// section or filter bar at all. Kept the 2 real ones, tokenized;
-// dropped the 2 dead ones rather than leave unused CSS sitting in
-// the file.
-//
-// 🔴/🟡 defect/alteration indicators -> NavIcon 'warning' at
-// --danger/--warning respectively, matching the same severity-color
-// convention Badge already uses elsewhere, without forcing these
-// tight inline table-cell pills into Badge itself (same "don't force
-// dense inline elements into a fixed-size shared component" call
-// already made for the "YOU" tag in UserManagement.jsx).
-//
-// The material-actuals gate (empty-string-vs-explicit-0 distinction,
-// materials_blocked handling, the whole submit() payload logic) is
-// real, load-bearing, interview-grounded business logic -- completely
-// untouched.
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
@@ -56,27 +30,13 @@ export default function AdminDailyOutputLog() {
   const [saving,  setSaving]  = useState(false);
   const [err,     setErr]     = useState('');
   const [success, setSuccess] = useState('');
-  const [tab,     setTab]     = useState('log'); // log | history
+  const [tab,     setTab]     = useState('log');
 
-  // ── Material actuals — Aug 29 2026 (Account 2, Step 3) ────────────────────
-  // No formula/BOM exists in this system: Gemini recommends material TYPES
-  // only, and the ONE place a real quantity now enters the system is here —
-  // staff typing what was actually used, only relevant when logging the
-  // Pattern stage (the only stage ProductionStageService::logOutput() gates
-  // on material_actuals). orderMaterials = this order's accepted+linked
-  // material_recommendations rows, sourced from the SAME admin order-detail
-  // endpoint ProductionTracking.jsx already uses (GET /api/admin/orders/{id}
-  // → order.recommendations) — no new backend endpoint needed.
-  // materialQty is kept as strings, not numbers: an empty string means
-  // "staff hasn't entered anything yet" (omitted from the submit payload,
-  // so the backend's gate correctly treats it as missing), which is a real,
-  // distinguishable state from an explicit "0" (confirmed, none used).
   const [orderMaterials, setOrderMaterials] = useState([]);
   const [materialQty,    setMaterialQty]    = useState({});
 
   const set = (k,v) => setForm(f=>({...f,[k]:v}));
 
-  // Load orders + today's logs
   const load = useCallback(() => {
     setLoading(true);
     Promise.allSettled([
@@ -90,7 +50,6 @@ export default function AdminDailyOutputLog() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Load order summary when order selected
   useEffect(() => {
     if (!form.order_id) { setSummary(null); return; }
     axios.get(`/api/admin/output-logs/summary/${form.order_id}`)
@@ -98,12 +57,6 @@ export default function AdminDailyOutputLog() {
       .catch(() => setSummary(null));
   }, [form.order_id]);
 
-  // Load this order's accepted+linked materials (for the Pattern-stage
-  // actual-usage inputs below). Reuses the existing admin order-detail
-  // endpoint — same one ProductionTracking.jsx already calls — rather than
-  // adding a new route. Resets the entered quantities whenever the order
-  // selection changes, since a stale material_id → qty_used map from a
-  // previously-selected order must never silently attach to a different one.
   useEffect(() => {
     setMaterialQty({});
     if (!form.order_id) { setOrderMaterials([]); return; }
@@ -118,12 +71,6 @@ export default function AdminDailyOutputLog() {
   const setMatQty = (materialId, val) =>
     setMaterialQty(m => ({ ...m, [materialId]: val }));
 
-  // Only entries the staff actually typed a value into are sent — an
-  // untouched field must stay indistinguishable from "not provided" so
-  // ProductionStageService::checkMaterialActualsGate() can correctly hold
-  // the stage advance and say which materials are still missing, rather
-  // than the frontend silently sending a fabricated 0 for every material
-  // the staff member hasn't gotten to yet.
   const materialActualsPayload = () =>
     Object.entries(materialQty)
       .filter(([, v]) => v !== '' && v !== null && v !== undefined)
@@ -139,12 +86,6 @@ export default function AdminDailyOutputLog() {
       const payload = { ...form, material_actuals: materialActualsPayload() };
       const r = await axios.post('/api/admin/output-logs', payload);
 
-      // materials_blocked (Aug 29 2026): the output log + tracking row
-      // still committed — real physical progress isn't erased by a
-      // paperwork gap — but the stage advance itself was held because one
-      // or more accepted materials still don't have an actual usage entry.
-      // Distinct message, not an error: the log succeeded, the advance
-      // didn't.
       if (r.data.materials_blocked) {
         const names = (r.data.materials_needing_actual ?? [])
           .map(m => m.material_name).join(', ');
@@ -200,7 +141,6 @@ export default function AdminDailyOutputLog() {
         }
       `}</style>
 
-      {/* Header */}
       <div style={{ marginBottom:20 }}>
         <h1 style={{ fontSize:22, fontWeight:800, color:'var(--ink)', margin:'0 0 4px' }}>
           Daily Output Log
@@ -210,7 +150,6 @@ export default function AdminDailyOutputLog() {
         </p>
       </div>
 
-      {/* Tabs */}
       <div style={{ display:'flex', gap:6, marginBottom:18, borderBottom:'2px solid var(--border)' }}>
         {[['log','edit','Log Output'],['history','outputLog',"Today's History"]].map(([k,ic,l])=>(
           <button key={k} onClick={()=>setTab(k)}
@@ -227,7 +166,6 @@ export default function AdminDailyOutputLog() {
       {tab === 'log' && (
         <div className="adm-log-grid">
 
-          {/* Left: Log form */}
           <div style={{ ...card, padding:'22px' }}>
             <h2 style={{ fontSize:14, fontWeight:800, color:'var(--ink)', marginBottom:18 }}>
               New Output Entry
@@ -235,7 +173,6 @@ export default function AdminDailyOutputLog() {
 
             <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
 
-              {/* Order + Stage */}
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,190px),1fr))', gap:12 }}>
                 <div>
                   <label style={lbl}>
@@ -262,7 +199,6 @@ export default function AdminDailyOutputLog() {
                 </div>
               </div>
 
-              {/* Date */}
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
                 <div>
                   <label style={lbl}>Log Date</label>
@@ -280,7 +216,6 @@ export default function AdminDailyOutputLog() {
                 </div>
               </div>
 
-              {/* Size quantities grid */}
               <div>
                 <label style={{ ...lbl, marginBottom:10 }}>Pieces Completed Per Size</label>
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8 }}>
@@ -296,13 +231,6 @@ export default function AdminDailyOutputLog() {
                 </div>
               </div>
 
-              {/* Actual materials used — Pattern stage only. Shown when this
-                  order has accepted+linked material recommendations; the
-                  backend gate (checkMaterialActualsGate) only checks these
-                  when the Pattern stage's quantity target is met, but the
-                  input is offered here on every Pattern-stage log so staff
-                  can enter it progressively rather than being surprised by
-                  a hold on the exact log that completes the stage. */}
               {form.stage === 'pattern' && orderMaterials.length > 0 && (
                 <div style={{
                   padding:'14px', borderRadius:'var(--r-lg)', background:'var(--teal-50)',
@@ -334,7 +262,6 @@ export default function AdminDailyOutputLog() {
                 </div>
               )}
 
-              {/* Defects */}
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
                 <div>
                   <label style={{ ...lbl, display:'flex', alignItems:'center', gap:4 }}>
@@ -387,7 +314,6 @@ export default function AdminDailyOutputLog() {
             </div>
           </div>
 
-          {/* Right: Order summary */}
           <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
 
             {selOrder && (
@@ -409,7 +335,6 @@ export default function AdminDailyOutputLog() {
               </div>
             )}
 
-            {/* Summary by stage */}
             {summary?.by_stage?.length > 0 && (
               <div style={{ ...card, overflow:'hidden' }}>
                 <div style={{ padding:'12px 14px', background:'var(--bg)', borderBottom:'1px solid var(--border)' }}>
@@ -449,7 +374,6 @@ export default function AdminDailyOutputLog() {
         </div>
       )}
 
-      {/* History tab */}
       {tab === 'history' && (
         <div style={{ ...card, overflow:'hidden' }}>
           <div style={{ padding:'12px 16px', background:'var(--bg)', borderBottom:'1px solid var(--border)' }}>
@@ -457,6 +381,9 @@ export default function AdminDailyOutputLog() {
               Today's Logs — {new Date().toLocaleDateString('en-PH',{weekday:'long',month:'long',day:'numeric'})}
             </p>
           </div>
+          {!loading && logs.length === 0 ? (
+            <div className="adm-empty">No logs for today yet. Start logging above.</div>
+          ) : (
           <div className="adm-table-wrap" style={{ border:'none', borderRadius:0 }}>
           <table style={{ width:'100%', borderCollapse:'collapse' }}>
             <thead>
@@ -473,11 +400,7 @@ export default function AdminDailyOutputLog() {
                     <td key={j} style={{ padding:'11px 14px' }}><div style={{ ...SK, height:10, width:'60%' }}/></td>
                   ))}
                 </tr>
-              )) : logs.length === 0 ? (
-                <tr><td colSpan={6} style={{ padding:'40px', textAlign:'center' }}>
-                  <p style={{ color:'var(--text-faint)', fontSize:13 }}>No logs for today yet. Start logging above.</p>
-                </td></tr>
-              ) : logs.map((l,i)=>(
+              )) : logs.map((l,i)=>(
                 <tr key={l.log_id??i} style={{ borderBottom:'1px solid var(--bg-surface)' }}
                   onMouseEnter={e=>e.currentTarget.style.background='var(--bg)'}
                   onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
@@ -507,6 +430,7 @@ export default function AdminDailyOutputLog() {
             </tbody>
           </table>
           </div>
+          )}
         </div>
       )}
       <style>{`@keyframes dol-spin{to{transform:rotate(360deg)}}`}</style>
