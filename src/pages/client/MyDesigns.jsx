@@ -73,8 +73,13 @@ export default function MyDesigns() {
   useEffect(load, []);
 
   const openStudioBlank = () => { sessionStorage.removeItem('studio_config'); nav('/design-studio'); };
-  const continueDraft = () => { sessionStorage.removeItem('studio_config'); nav('/design-studio'); };
-  const orderDraft = () => { sessionStorage.setItem('studio_config', JSON.stringify(draft.studio_config)); nav('/order/create'); };
+  const continueDraft = () => { sessionStorage.setItem('studio_config', JSON.stringify(draft.studio_config)); nav('/design-studio'); };
+  const orderDraft = () => {
+    const png = draft.preview_dataurl;
+    const snap = png?.startsWith?.('data:image/png') ? { ...draft.studio_config, previewPng: png } : draft.studio_config;
+    try { sessionStorage.setItem('studio_config', JSON.stringify(snap)); sessionStorage.setItem('studio_from_draft', '1'); } catch { /* quota: preview too large, fall back to config only */ sessionStorage.setItem('studio_config', JSON.stringify(draft.studio_config)); sessionStorage.setItem('studio_from_draft', '1'); }
+    nav('/order/create');
+  };
   const useTemplate = (d) => { sessionStorage.setItem('studio_config', JSON.stringify(d.config)); nav('/design-studio'); };
   const orderAgain = (d) => { sessionStorage.setItem('studio_config', JSON.stringify(d.config)); nav('/design-studio'); };
 

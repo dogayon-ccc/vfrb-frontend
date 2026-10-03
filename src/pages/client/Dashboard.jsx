@@ -76,6 +76,7 @@ export default function CustomerDashboard() {
   const [orders, setOrders] = useState([]);
   const [notifs, setNotifs] = useState([]);
   const [draft, setDraft] = useState(null);
+  const openStudio = () => { try { if (draft?.studio_config) sessionStorage.setItem('studio_config', JSON.stringify(draft.studio_config)); else sessionStorage.removeItem('studio_config'); } catch { /* private mode */ } nav('/design-studio'); };
   const [designs, setDesigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -165,7 +166,7 @@ export default function CustomerDashboard() {
           <p>AI-assisted raw material recommendations for your custom uniform orders.</p>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button className="cx-btn" style={{ background: '#fff', color: 'var(--teal-dark)' }}
-              onClick={() => nav('/design-studio')}>
+              onClick={openStudio}>
               <NavIcon name="designStudio" size={15} /> {draft ? 'Continue Design' : 'Start Designing'}
             </button>
             {draft && (
@@ -201,7 +202,7 @@ export default function CustomerDashboard() {
                 <p style={{ margin: '3px 0 0', fontWeight: 800, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{draft.label || draft.studio_config.garment}</p>
                 <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-subtle)' }}>Draft · edited {reltime(draft.updated_at)}</p>
               </div>
-              <button className="cx-btn cx-btn-p" onClick={() => nav('/design-studio')}>Continue</button>
+              <button className="cx-btn cx-btn-p" onClick={openStudio}>Continue</button>
             </section>
           )}
           {/* Active orders with lifecycle stepper */}

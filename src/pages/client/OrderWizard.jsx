@@ -125,11 +125,12 @@ for (const name of STUDIO_GARMENTS) {
 }
 
 // Same completeness check drives both the mount-time auto-skip and StepQuantitySize's banner — one definition, not two.
-function studioComplete(garmentType, collarType, sleeveType, notes) {
+// fromStudio: backend treats collar/sleeve as nullable, so a Studio design never needs them re-entered.
+function studioComplete(garmentType, collarType, sleeveType, notes, fromStudio = false) {
   const spec = GARMENT_SPECS[garmentType];
   if (!garmentType || !spec) return false;
-  if (spec.needsCollar && !collarType) return false;
-  if (spec.needsSleeve && !sleeveType) return false;
+  if (!fromStudio && spec.needsCollar && !collarType) return false;
+  if (!fromStudio && spec.needsSleeve && !sleeveType) return false;
   return !!notes?.trim();
 }
 
@@ -174,12 +175,12 @@ function StudioBanner({ cfg, onClear }) {
           <NavIcon name="designStudio" size={11} color={T}/> {cfg.name || 'Designed in Studio'}
         </span>
         <p style={{ color:'var(--ink)', fontSize:12, fontWeight:600, margin:'5px 0 1px', fontFamily:FONT }}>
-          {garmentName} · {collarDisplay ?? 'Collar not set'} · {sleeveDisplay ?? 'Sleeve not set'}
+          {garmentName} · {collarDisplay ?? 'Collar not specified'} · {sleeveDisplay ?? 'Sleeve not specified'}
         </p>
         <p style={{ color:'var(--text-subtle)', fontSize:11, margin:0, fontFamily:FONT }}>
           {cfg.category} · {allPrefilled
             ? 'Fields pre-filled from your design'
-            : 'Garment pre-filled — please check collar / sleeve below'}
+            : 'Garment carried over from your design — collar / sleeve are optional'}
         </p>
       </div>
 
@@ -255,7 +256,7 @@ function StepDesign({ form, set, errors, studio, onClearStudio }) {
         </motion.div>
       )}
 
-      <Adv on={!!studio} open={(gSpec.needsCollar && !form.collar_type) || (gSpec.needsSleeve && !form.sleeve_type) || !form.garment_type}>
+      <Adv on={!!studio} open={!form.garment_type}>
       <div style={{ display:'flex', alignItems:'center', gap:10 }}>
         <div style={{ flex:1, height:1, background:'var(--border)' }}/>
         <span style={{ color:'var(--text-faint)', fontSize:11, whiteSpace:'nowrap', fontFamily:FONT }}>
@@ -312,7 +313,7 @@ function StepDesign({ form, set, errors, studio, onClearStudio }) {
       {gSpec.needsCollar && gSpec.needsSleeve && (
         <div className="wiz-2col" style={{ display:'grid', gap:12 }}>
           <div>
-            <label style={lbl}>Collar Type <span style={{ color:'#ef4444' }}>*</span></label>
+            <label style={lbl}>Collar Type {!studio && <span style={{ color:'#ef4444' }}>*</span>}</label>
             <select value={form.collar_type||''} onChange={e=>set('collar_type',e.target.value)}
               style={{ ...inp, cursor:'pointer' }} onFocus={fi} onBlur={fo}>
               <option value="">Select collar…</option>
@@ -321,12 +322,12 @@ function StepDesign({ form, set, errors, studio, onClearStudio }) {
             {errMsg(errors.collar_type)}
             {studio && !form.collar_type && (
               <p style={{ color:'var(--text-faint)', fontSize:10, margin:'3px 0 0', fontFamily:FONT }}>
-                Not specified in your design — please choose one
+                Not specified in your design — optional
               </p>
             )}
           </div>
           <div>
-            <label style={lbl}>Sleeve Type <span style={{ color:'#ef4444' }}>*</span></label>
+            <label style={lbl}>Sleeve Type {!studio && <span style={{ color:'#ef4444' }}>*</span>}</label>
             <select value={form.sleeve_type||''} onChange={e=>set('sleeve_type',e.target.value)}
               style={{ ...inp, cursor:'pointer' }} onFocus={fi} onBlur={fo}>
               <option value="">Select sleeve…</option>
@@ -335,7 +336,7 @@ function StepDesign({ form, set, errors, studio, onClearStudio }) {
             {errMsg(errors.sleeve_type)}
             {studio && !form.sleeve_type && (
               <p style={{ color:'var(--text-faint)', fontSize:10, margin:'3px 0 0', fontFamily:FONT }}>
-                Not specified in your design — please choose one
+                Not specified in your design — optional
               </p>
             )}
           </div>
@@ -345,7 +346,7 @@ function StepDesign({ form, set, errors, studio, onClearStudio }) {
       {/* Collar only (e.g. Vest) */}
       {gSpec.needsCollar && !gSpec.needsSleeve && (
         <div>
-          <label style={lbl}>Collar Type <span style={{ color:'#ef4444' }}>*</span></label>
+          <label style={lbl}>Collar Type {!studio && <span style={{ color:'#ef4444' }}>*</span>}</label>
           <select value={form.collar_type||''} onChange={e=>set('collar_type',e.target.value)}
             style={{ ...inp, cursor:'pointer' }} onFocus={fi} onBlur={fo}>
             <option value="">Select collar…</option>
@@ -354,7 +355,7 @@ function StepDesign({ form, set, errors, studio, onClearStudio }) {
           {errMsg(errors.collar_type)}
           {studio && !form.collar_type && (
             <p style={{ color:'var(--text-faint)', fontSize:10, margin:'3px 0 0', fontFamily:FONT }}>
-              Not specified in your design — please choose one
+              Not specified in your design — optional
             </p>
           )}
         </div>
@@ -426,7 +427,7 @@ function StepDesign({ form, set, errors, studio, onClearStudio }) {
 // Review flow. Design fields (garment/collar/sleeve/pocket) stay in Step 1 only — this step
 // never re-asks for them.
 function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart }) {
-  const complete = studioComplete(form.garment_type, form.collar_type, form.sleeve_type, form.client_design_notes);
+  const complete = studioComplete(form.garment_type, form.collar_type, form.sleeve_type, form.client_design_notes, !!studio);
   const isCustom = form.sizing_type === 'custom';
   const total = STD.reduce((a, sz) => a + (form.sizes?.[sz] || 0), 0);
   return (
@@ -467,7 +468,7 @@ function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart
               <NavIcon name="colorZone" size={11} color={T}/> Colors from Design Studio
             </p>
             <p style={{ color:'var(--text-subtle)', fontSize:11, margin:0, fontFamily:FONT }}>
-              Body · Collar · Sleeve — edit below to override
+              Carried over from your design. The color name below is just how it appears on your order.
             </p>
           </div>
         </div>
@@ -514,7 +515,7 @@ function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart
 
       {/* Color */}
       <div>
-        <label style={lbl}>Primary Color <span style={{ color:'#ef4444' }}>*</span></label>
+        <label style={lbl}>{studio?.colors?.body ? 'Color name (from your design)' : 'Primary Color'} {!studio?.colors?.body && <span style={{ color:'#ef4444' }}>*</span>}</label>
         <input type="text" value={form.color||''}
           onChange={e => set('color', e.target.value)}
           placeholder="e.g. White, Navy Blue, Maroon"
@@ -1290,13 +1291,13 @@ export default function OrderWizard() {
       }));
       // Studio already supplied everything this garment needs — skip straight past the
       // Design Summary step to order logistics (Quantity & Sizes).
-      if (studioComplete(garmentName, derivedCollar, derivedSleeve, notes)) setStep(1);
+      if (studioComplete(garmentName, derivedCollar, derivedSleeve, notes, true)) setStep(1);
     } catch { /* silent */ }
   }, []);
 
   const clearStudio = () => {
     setStudio(null);
-    ['studio_config','studio_color','studio_garment','studio_category','studio_preview']
+    ['studio_config','studio_color','studio_garment','studio_category','studio_preview','studio_from_draft']
       .forEach(k => sessionStorage.removeItem(k));
     setForm(prev => ({ ...prev, garment_type:'', collar_type:'',
       sleeve_type:'', client_design_notes:'', color:'' }));
@@ -1312,8 +1313,8 @@ export default function OrderWizard() {
       }
       // DSA: O(1) hash map lookup — only validate collar/sleeve for tops
       const spec = GARMENT_SPECS[form.garment_type] ?? { needsCollar:true, needsSleeve:true };
-      if (spec.needsCollar && !form.collar_type) e.collar_type = 'Required';
-      if (spec.needsSleeve && !form.sleeve_type) e.sleeve_type = 'Required';
+      if (!studio && spec.needsCollar && !form.collar_type) e.collar_type = 'Required';
+      if (!studio && spec.needsSleeve && !form.sleeve_type) e.sleeve_type = 'Required';
       const notes = form.client_design_notes?.trim() ?? '';
       if (!notes) e.client_design_notes = 'Please describe your design';
       else if (notes.length < 15) e.client_design_notes = 'Please give VFRB enough detail to work from (garment, color, key details) — a few words isn\'t enough to manufacture from';
@@ -1322,7 +1323,7 @@ export default function OrderWizard() {
       // order_type is fixed to 'direct' (INIT default) — no longer a customer choice, see StepQuantitySize.
       if (!form.quantity_ordered || form.quantity_ordered < 100)
                                              e.quantity_ordered    = 'VFRB accepts bulk orders only — minimum 100 pieces';
-      if (!form.color?.trim())               e.color               = 'Required';
+      if (!studio?.colors?.body && !form.color?.trim()) e.color = 'Required';
       // Size breakdown check merged in from the old separate Sizing step.
       if (form.sizing_type==='standard') {
         const sizeTotal = STD.reduce((a,sz)=>a+(form.sizes?.[sz]||0),0);
@@ -1396,7 +1397,9 @@ export default function OrderWizard() {
       const r = await axios.post('/api/customer/orders', fd,
         { headers:{ 'Content-Type':'multipart/form-data' } });
 
-      ['studio_config','studio_color','studio_garment','studio_category']
+      // Ordered from My Designs' draft: the draft is now an order, so retire it (Studio's own "Order this" does the same).
+      if (sessionStorage.getItem('studio_from_draft')) axios.delete('/api/customer/drafts/latest').catch(() => {});
+      ['studio_config','studio_color','studio_garment','studio_category','studio_from_draft']
         .forEach(k => sessionStorage.removeItem(k));
 
       // Confetti fires immediately; MaterialsReveal mounts once it finishes.
