@@ -10,7 +10,7 @@ export default function DesignStudioStyles() {
       .ds{
         --ds-nav-h:56px;
         --ds-inset:env(safe-area-inset-bottom,0px);
-        --ds-sheet-h:clamp(212px,calc(80dvh - 306px),21.5rem);
+        --ds-sheet-h:min(42dvh,22rem);
         --ds-pad-b:0px;
         width:100%;height:100dvh;display:flex;flex-direction:column;overflow:hidden;
         background:var(--bg);color:var(--ink);
@@ -334,11 +334,9 @@ export default function DesignStudioStyles() {
       @media (max-width:767px){
         .ds-stage-ctl{display:contents;}
         .ds-stage-ctl .ds-zoom{position:absolute;}
-        .ds-stage-btn{position:absolute;}
-        .ds-stage-ctl .ds-zoom{top:8px;left:8px;}
-        .ds-stage-btn{right:8px;top:8px;}
-        .ds-face:has(.ds-face-thumb){padding:3px;gap:3px;top:auto;bottom:6px;left:0;right:0;margin-inline:auto;box-shadow:var(--shadow-sm);border-radius:var(--r-md);}
-        .ds-face .ds-face-thumb{flex-direction:row;min-width:76px;justify-content:center;padding:0 14px;min-height:40px;}
+        .ds-stage-btn{position:absolute;right:12px;top:12px;}
+        .ds-face:has(.ds-face-thumb){padding:3px;gap:3px;bottom:auto;top:12px;left:auto;right:64px;margin-inline:0;box-shadow:var(--shadow-sm);border-radius:var(--r-md);}
+        .ds-face .ds-face-thumb{flex-direction:row;min-width:0;padding:0 12px;min-height:36px;}
         .ds-face .ds-face-thumb svg,.ds-face .ds-face-thumb img,.ds-face .ds-face-thumb canvas{display:none;}
       }
       .ds-stage-floor{position:absolute;left:12%;right:12%;bottom:-16px;height:22px;border-radius:50%;pointer-events:none;
@@ -386,6 +384,8 @@ export default function DesignStudioStyles() {
         .ds-bar-cat,.ds-bar-brand{display:none!important;}
         .ds-bar-name{width:130px!important;}
       }
+      /* Short phones: the canvas must stay the focal area, so the sheet shrinks (its body scrolls; the grabber still expands it to 80dvh). */
+      @media (max-width:767px) and (max-height:720px){.ds{--ds-sheet-h:min(34dvh,15rem);}}
       @media (min-width:768px){
         .ds-tool-btn[data-narrow-only]{display:none;}
       }
@@ -439,12 +439,6 @@ export default function DesignStudioStyles() {
       }
       @media (pointer:coarse){
         .ds-zoom button,.ds-face button,.ds-touch,.ds-selbar button{min-width:44px;min-height:44px;}
-      }
-      @media (max-width:767px){
-        .ds-zoom button{min-width:40px;min-height:40px;padding:0 6px;}
-        .ds-zoom button:nth-child(2){min-width:52px;}
-        .ds-stage-btn{width:44px;height:44px;}
-        .ds-face .ds-face-thumb{min-height:40px;}
       }
 
       .ds-tp-current{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--teal);border-radius:var(--r-md);background:var(--teal-50);}

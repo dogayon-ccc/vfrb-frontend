@@ -6,11 +6,11 @@ const LIMITS = ['Front view only. The back view uses the generic shape.', 'One c
 const LIMITS_TRIM = ['Front view only. The back view uses the generic shape.', 'Two colour zones: body, and one trim colour shared by the collar band, sleeve cuffs, pocket welts and buttons.', 'No patterns on a photo base.'];
 
 export const ASSET_2D = {
-  // Trim is separated by source luminance (trim ~60, body ~100 in the photo; valley ~74), so it is exact for this photo only. `trimUnset` = the studio's default collar hex: while the customer has not picked a trim colour the photo's own trim is kept.
+  // Trim = mask built offline by tools/make-trim-mask.py (collar band, cuffs, pocket welts; outline shadows and specks removed). `trimUnset` = the studio's default collar hex: until the customer picks a trim colour the photo's own trim is kept.
   'Mandarin Collar': {
     Short: {
       front: {
-        female: { id: 'mandarin-tunic-housekeeping', src: '/garments2d/mandarin-tunic-housekeeping-front.webp', w: 215, h: 267, refLum: 101.2, trim: { below: 74, soft: 8, refLum: 60 }, trimUnset: '#c8a96e', zones: ['body', 'collar'], source: 'VFRB-supplied flat-lay photo, housekeeping scrub suit top (mandarin band collar)', limitations: LIMITS_TRIM },
+        female: { id: 'mandarin-tunic-housekeeping', src: '/garments2d/mandarin-tunic-housekeeping-front.webp', w: 215, h: 267, refLum: 101.2, trim: { mask: '/garments2d/mandarin-tunic-housekeeping-trim.webp', refLum: 60 }, trimUnset: '#c8a96e', zones: ['body', 'collar'], source: 'VFRB-supplied flat-lay photo, housekeeping scrub suit top (mandarin band collar)', limitations: LIMITS_TRIM },
       },
     },
   },
@@ -76,12 +76,18 @@ export async function tintedCanvas(asset, colors) {
   ctx.drawImage(img, 0, 0);
   if (isHex(body) || isHex(trim)) {
     const d = ctx.getImageData(0, 0, c.width, c.height); const px = d.data;
+    let maskPx = null;
+    if (asset.trim?.mask && isHex(trim)) {
+      const m = await loadImage(asset.trim.mask), mc = document.createElement('canvas');
+      mc.width = c.width; mc.height = c.height;
+      const mx = mc.getContext('2d', { willReadFrequently: true }); mx.drawImage(m, 0, 0, c.width, c.height);
+      maskPx = mx.getImageData(0, 0, c.width, c.height).data;
+    }
     const bRgb = isHex(body) ? hexRgb(body) : null; const tRgb = isHex(trim) ? hexRgb(trim) : null;
     for (let i = 0; i < px.length; i += 4) {
       if (px[i + 3] === 0) continue;
       const lum = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
-      // w = how much of this pixel belongs to the trim zone (0..1, soft edge so the seam does not alias)
-      const w = asset.trim ? Math.min(1, Math.max(0, (asset.trim.below + asset.trim.soft / 2 - lum) / asset.trim.soft)) : 0;
+      const w = maskPx ? maskPx[i] / 255 : 0; // 1 inside the trim mask
       const orig = [px[i], px[i + 1], px[i + 2]];
       const b = bRgb ? shade(lum, asset.refLum, asset.gain ?? 1, bRgb) : orig;
       const t = tRgb ? shade(lum, asset.trim.refLum, asset.gain ?? 1, tRgb) : orig;

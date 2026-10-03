@@ -16,6 +16,7 @@ import axios from 'axios';
 import { NavIcon } from '../../components/ui/icons';
 import DesignStudioStyles from './design-studio/DesignStudioStyles';
 import { useGarmentCanvas, compositeFrontBack } from './design-studio/useGarmentCanvas';
+import { hasBackView } from './design-studio/garmentAssets';
 import CanvasViewport from './design-studio/CanvasViewport';
 import TopBar from './design-studio/TopBar';
 import ToolDrawer from './design-studio/ToolDrawer';
@@ -283,11 +284,12 @@ export default function DesignStudio() {
     };
 
     const frontUrl = await capture('front');
-    const backUrl  = await capture('back');
+    // Photo-based garments have no rear photo: the export is front-only instead of a duplicated or invented back.
+    const backUrl  = hasBackView(cfg.garment, cfg.sleeve, cfg.fit) ? await capture('back') : null;
     if (activeFace !== originalFace) await capture(originalFace);
 
     return compositeFrontBack(frontUrl, backUrl);
-  }, [face, getCanvasJSON, loadCanvasJSON, exportPNG]);
+  }, [face, getCanvasJSON, loadCanvasJSON, exportPNG, cfg.garment, cfg.sleeve, cfg.fit]);
 
   // Apply Gemini AI response
   const applyAI = useCallback((aiCfg) => {

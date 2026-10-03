@@ -78,6 +78,8 @@ const FAMILIES = Object.fromEntries(FAMILY_NAMES.map(name => {
     defaultStyle: styles[0] ?? null,
     sleeves3D: cap.supported ? (cap.sleeves ?? []) : [], // styles the 3D model really has
     status3D,
+    // A GLB counts as verified only when its capability entry carries an explicit `verification: { method, date }` record. None do today.
+    verified3D: !!cap.supported && !!cap.verification,
     model3D: cap.supported ? cap.model : null,
     zones: [...new Set(sampleZones)],
     patterns: cap.supported ? (cap.patterns?.ids ?? []) : null, // null = no 3D pattern constraint known; 2D pattern list (dsShared.PATTERNS) still applies
@@ -164,6 +166,13 @@ export function resolveTarget(garment, sleeve, fit, face = 'front') {
     family: fam.id, sleeve: s, fit: f, face, assetId: asset?.id ?? null, photo: !!asset,
     zones: asset ? asset.zones : fam.zones, limitations: asset?.limitations ?? [],
     glb: sleeve3D ? fam.model3D : null,
-    status: !fam.has2D && !asset ? 'reference' : sleeve3D ? '2d-3d-approx' : 'editable-2d',
+    status: statusFor({ editable2D: fam.has2D || !!asset, has3D: sleeve3D, verified3D: sleeve3D && fam.verified3D }),
   };
+}
+
+// The status taxonomy, in one place: reference < editable-2d < 2d-3d-approx < 2d-3d (verified). `verified3D` must come from a recorded verification, never from a guess.
+export function statusFor({ editable2D, has3D, verified3D }) {
+  if (!editable2D) return 'reference';
+  if (!has3D) return 'editable-2d';
+  return verified3D ? '2d-3d' : '2d-3d-approx';
 }

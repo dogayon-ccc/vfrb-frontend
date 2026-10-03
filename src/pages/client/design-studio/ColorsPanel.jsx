@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import InlineColorPicker from '../../../components/InlineColorPicker';
 import { NavIcon } from '../../../components/ui/icons';
 import { T, T2, secLabel, ZONE_LABEL, PH_SWATCHES, zonesFor } from './dsShared';
+import { assetFor } from './garmentAssets';
 
 // Black check on light swatches, white on dark, so the selected tick is always visible.
 function isLight(hex) {
@@ -15,6 +16,9 @@ function isLight(hex) {
 export default function ColorsPanel({ cfg, setCfg, activeZone, setActiveZone }) {
   const setColor = (zone, c) => setCfg(p => ({ ...p, colors:{ ...p.colors, [zone]:c } }));
   const [pickerOpen, setPickerOpen] = useState(false);
+  // On a photo base with a trim mask the 'collar' zone recolours the whole trim (band, cuffs, welts), so it is called Trim.
+  const photo = cfg.garment ? assetFor(cfg.garment, cfg.sleeve, 'front', cfg.fit) : null;
+  const label = z => (photo?.trim && z === 'collar' ? 'Trim' : ZONE_LABEL[z] ?? z);
 
   return (
     <div style={{ overflowY:'auto', flex:1, padding:'8px 10px 16px' }}>
@@ -24,7 +28,7 @@ export default function ColorsPanel({ cfg, setCfg, activeZone, setActiveZone }) 
       {cfg.garment && (
         <div className="ds-zone-now">
           <span className="ds-zone-dot" style={{ background: cfg.colors[activeZone] ?? '#028090' }}/>
-          <span>Editing <b>{ZONE_LABEL[activeZone] ?? activeZone}</b></span>
+          <span>Editing <b>{label(activeZone)}</b></span>
           <code>{(cfg.colors[activeZone] ?? '').toUpperCase()}</code>
         </div>
       )}
@@ -42,7 +46,7 @@ export default function ColorsPanel({ cfg, setCfg, activeZone, setActiveZone }) 
               border:'1px solid rgba(15,23,42,.2)' }}/>
             <span style={{ fontSize:10, color: activeZone===z ? T2 : 'rgba(15,23,42,.5)',
               fontWeight: activeZone===z ? 700 : 400 }}>
-              {ZONE_LABEL[z]}
+              {label(z)}
             </span>
           </button>
         ))}

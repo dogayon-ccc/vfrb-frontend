@@ -48,7 +48,8 @@ t('resolveTarget mandarin: photo, 2D only, no GLB, no fake fit', R.assetId === '
 t('resolveTarget polo: 2D+3D approx, never verified', (r => r.status === '2d-3d-approx' && !!r.glb)(G.resolveTarget('Polo Shirt', 'Short', 'female')));
 t('resolveTarget Button-Down Long -> 2D only (GLB is short sleeve)', (r => r.glb === null && r.status === 'editable-2d')(G.resolveTarget('Button-Down', 'Long')));
 t('resolveTarget unknown -> null', G.resolveTarget('Garbage') === null);
-t('no status anywhere is verified', ['Polo Shirt', 'T-Shirt', 'Pants', 'Scrub Top', 'Mandarin Collar'].every(g => G.resolveTarget(g, null, null).status !== '2d-3d'));
+t('no current garment is verified (honest zero)', Object.keys(G.FAMILY_BY_NAME).every(g => G.resolveTarget(g, null, null).status !== '2d-3d' && !G.FAMILY_BY_NAME[g].verified3D));
+t('statusFor supports a future verified asset', G.statusFor({ editable2D: true, has3D: true, verified3D: true }) === '2d-3d' && G.statusFor({ editable2D: true, has3D: true, verified3D: false }) === '2d-3d-approx' && G.statusFor({ editable2D: true, has3D: false, verified3D: true }) === 'editable-2d' && G.statusFor({ editable2D: false, has3D: true, verified3D: true }) === 'reference');
 const sc = S.serializeDesign({ ...G.applyGarment(base, 'Mandarin Collar'), colors: { body: '#123456', collar: '#abcdef' }, overlays: [] });
 const ph = renderToString(React.createElement(Prev, { cfg: sc, height: 220 }));
 t('mandarin preview: one photo (front only), no vector svg', (ph.match(/<img/g) || []).length === 1 && !ph.includes('<svg') && ph.includes('mandarin-tunic-housekeeping'));
