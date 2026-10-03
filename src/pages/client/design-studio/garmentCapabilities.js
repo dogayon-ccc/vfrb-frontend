@@ -45,7 +45,7 @@ export const SCANNED_GARMENTS = [
   {
     id: 't-shirt',
     match: /^t.?shirt$/i,
-    preload: true,
+    // no preload: eager-fetching the tee GLBs (~1.2 MB) cost every Polo/other 3D session; useGLTF loads on demand.
     models: { male: '/models/t-shirt-male.glb', female: '/models/t-shirt-female.glb' },
     torso: { male: 0.19, female: 0.16 },
     transform: { rotation: [0, 0, 0], scale: 1.7, position: [0, -0.05, 0] },

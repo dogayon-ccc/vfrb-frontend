@@ -135,7 +135,7 @@ function studioComplete(garmentType, collarType, sleeveType, notes, fromStudio =
 }
 
 // ── Studio banner ─────────────────────────────────────────────────────────────
-function StudioBanner({ cfg, onClear }) {
+function StudioBanner({ cfg, onClear, onEdit }) {
   const bodyColor = cfg.colors?.body ?? T;
   const garmentName = cfg.garmentType ?? cfg.garment ?? '';
   // Same rule as the mount pre-fill below: only claim a collar value when
@@ -175,19 +175,17 @@ function StudioBanner({ cfg, onClear }) {
           <NavIcon name="designStudio" size={11} color={T}/> {cfg.name || 'Designed in Studio'}
         </span>
         <p style={{ color:'var(--ink)', fontSize:12, fontWeight:600, margin:'5px 0 1px', fontFamily:FONT }}>
-          {garmentName} · {collarDisplay ?? 'Collar not specified'} · {sleeveDisplay ?? 'Sleeve not specified'}
+          {[garmentName, collarDisplay, sleeveDisplay].filter(Boolean).join(' · ')}
         </p>
         <p style={{ color:'var(--text-subtle)', fontSize:11, margin:0, fontFamily:FONT }}>
-          {cfg.category} · {allPrefilled
-            ? 'Fields pre-filled from your design'
-            : 'Garment carried over from your design — collar / sleeve are optional'}
+          {[cfg.category, 'Carried over from your Studio design'].filter(Boolean).join(' · ')}
         </p>
       </div>
 
       <div style={{ display:'flex', gap:7 }}>
         <motion.button whileTap={{ scale:.95 }}
-          onClick={() => window.location.href='/design-studio'}
-          style={{ padding:'7px 12px', borderRadius:9, cursor:'pointer', fontSize:11,
+          onClick={onEdit}
+          style={{ padding:'7px 12px', minHeight:40, borderRadius:9, cursor:'pointer', fontSize:11,
             fontWeight:600, background:'rgba(2,195,154,.10)',
             border:'1px solid rgba(2,195,154,.3)', color:T,
             fontFamily:FONT, transition:'background .13s' }}>
@@ -215,7 +213,7 @@ function Adv({ on, open, children }) {
   );
 }
 
-function StepDesign({ form, set, errors, studio, onClearStudio }) {
+function StepDesign({ form, set, errors, studio, onClearStudio, onOpenStudio }) {
   const fileRef  = useRef(null);
 
   const COLLARS  = ['Round Neck','V-Neck','Polo Collar','Mandarin Collar','Button Down','No Collar','Others'];
@@ -227,13 +225,18 @@ function StepDesign({ form, set, errors, studio, onClearStudio }) {
 
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:18 }}>
-      {studio && <StudioBanner cfg={studio} onClear={onClearStudio}/>}
+      {studio && <StudioBanner cfg={studio} onClear={onClearStudio} onEdit={onOpenStudio}/>}
+      {studio && (
+        <div style={{ borderRadius:14, border:'1px solid var(--border)', background:'#fff', padding:14 }}>
+          <DesignPreview cfg={studio} previewUrl={studio.previewPng ?? null} height={300}/>
+        </div>
+      )}
 
       {!studio && (
         <motion.div
           whileHover={{ y:-2, boxShadow:`0 8px 24px rgba(2,128,144,.12)` }}
           whileTap={{ scale:.98 }}
-          onClick={() => window.location.href='/design-studio'}
+          onClick={onOpenStudio}
           style={{ padding:'18px 20px', borderRadius:14, cursor:'pointer',
             background:'linear-gradient(135deg,rgba(2,128,144,.06),rgba(2,195,154,.10))',
             border:'1.5px dashed rgba(2,195,154,.4)',
@@ -322,7 +325,7 @@ function StepDesign({ form, set, errors, studio, onClearStudio }) {
             {errMsg(errors.collar_type)}
             {studio && !form.collar_type && (
               <p style={{ color:'var(--text-faint)', fontSize:10, margin:'3px 0 0', fontFamily:FONT }}>
-                Not specified in your design — optional
+                Optional — leave blank if not needed
               </p>
             )}
           </div>
@@ -336,7 +339,7 @@ function StepDesign({ form, set, errors, studio, onClearStudio }) {
             {errMsg(errors.sleeve_type)}
             {studio && !form.sleeve_type && (
               <p style={{ color:'var(--text-faint)', fontSize:10, margin:'3px 0 0', fontFamily:FONT }}>
-                Not specified in your design — optional
+                Optional — leave blank if not needed
               </p>
             )}
           </div>
@@ -355,7 +358,7 @@ function StepDesign({ form, set, errors, studio, onClearStudio }) {
           {errMsg(errors.collar_type)}
           {studio && !form.collar_type && (
             <p style={{ color:'var(--text-faint)', fontSize:10, margin:'3px 0 0', fontFamily:FONT }}>
-              Not specified in your design — optional
+              Optional — leave blank if not needed
             </p>
           )}
         </div>
@@ -450,30 +453,6 @@ function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart
         </div>
       )}
 
-      {/* Color from Design Studio */}
-      {studio?.colors?.body && (
-        <div style={{ padding:'10px 14px', borderRadius:11,
-          background:'rgba(2,195,154,.05)', border:'1px solid rgba(2,195,154,.2)',
-          display:'flex', alignItems:'center', gap:10 }}>
-          <div style={{ display:'flex', gap:5 }}>
-            {['body','collar','sleeve'].map(zone => studio.colors[zone] && (
-              <div key={zone} style={{ width:20, height:20, borderRadius:5,
-                background:studio.colors[zone], border:'2px solid rgba(255,255,255,.6)',
-                boxShadow:'0 1px 4px rgba(0,0,0,.12)', flexShrink:0 }}
-                title={zone}/>
-            ))}
-          </div>
-          <div>
-            <p style={{ color:T, fontSize:11, fontWeight:700, margin:0, fontFamily:FONT, display:'flex', alignItems:'center', gap:4 }}>
-              <NavIcon name="colorZone" size={11} color={T}/> Colors from Design Studio
-            </p>
-            <p style={{ color:'var(--text-subtle)', fontSize:11, margin:0, fontFamily:FONT }}>
-              Carried over from your design. The color name below is just how it appears on your order.
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* Client type — OTG/institutional clients are staff-handled subcontract deals per
           VFRB's real payment terms (full payment on delivery, no self-service), not
           something a customer picks here. Self-service orders are always Direct Client
@@ -513,15 +492,20 @@ function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart
         {errMsg(errors.quantity_ordered)}
       </div>
 
-      {/* Color */}
-      <div>
-        <label style={lbl}>{studio?.colors?.body ? 'Color name (from your design)' : 'Primary Color'} {!studio?.colors?.body && <span style={{ color:'#ef4444' }}>*</span>}</label>
-        <input type="text" value={form.color||''}
-          onChange={e => set('color', e.target.value)}
-          placeholder="e.g. White, Navy Blue, Maroon"
-          style={inp} onFocus={fi} onBlur={fo}/>
-        {errMsg(errors.color)}
-      </div>
+      {/* Color — known from Studio, so shown read-only; asked only for manual orders */}
+      {studio?.colors?.body ? (
+        <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', borderRadius:11, background:'var(--bg-surface)', border:'1px solid var(--border)' }}>
+          <span style={{ width:22, height:22, borderRadius:6, background:studio.colors.body, border:'1px solid rgba(0,0,0,.12)', flexShrink:0 }}/>
+          <p style={{ margin:0, fontSize:12, color:'var(--text-subtle)', fontFamily:FONT }}>Color from your design: <strong style={{ color:'var(--ink)' }}>{form.color || studio.colors.body}</strong></p>
+        </div>
+      ) : (
+        <div>
+          <label style={lbl}>Primary Color <span style={{ color:'#ef4444' }}>*</span></label>
+          <input type="text" value={form.color||''} onChange={e => set('color', e.target.value)}
+            placeholder="e.g. White, Navy Blue, Maroon" style={inp} onFocus={fi} onBlur={fo}/>
+          {errMsg(errors.color)}
+        </div>
+      )}
 
       {/* Size breakdown — merged in from the old separate Sizing step */}
       <div style={{ display:'flex', justifyContent:'space-between',
@@ -781,9 +765,9 @@ function StepReview({ form, studio }) {
       t:'Design Details',
       rows:[
         ['Garment',     form.garment_type || '—'],
-        ['Collar',      form.collar_type  || '—'],
-        ['Pocket',      form.pocket_type  || '—'],
-        ['Sleeve',      form.sleeve_type  || '—'],
+        ...(form.collar_type ? [['Collar', form.collar_type]] : []),
+        ...(form.pocket_type ? [['Pocket', form.pocket_type]] : []),
+        ...(form.sleeve_type ? [['Sleeve', form.sleeve_type]] : []),
         ['Description', (form.client_design_notes||'').slice(0,80) + ((form.client_design_notes||'').length>80?'…':'')],
         ['Reference',   form.design_ref_file?.name || 'None'],
       ],
@@ -816,76 +800,15 @@ function StepReview({ form, studio }) {
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
 
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: .3, ease: 'easeOut' }}
-        style={{
-          borderRadius: 16, overflow: 'hidden',
-          background: `linear-gradient(135deg, ${bodyColor}22, rgba(2,195,154,.12))`,
-          border: `2px solid ${bodyColor}40`,
-          padding: '20px 20px 16px',
-          display: 'flex', alignItems: 'center', gap: 20,
-          flexWrap: 'wrap',
-        }}
-      >
-        {/* Left: preview image or color swatch */}
-        {previewPng ? (
-          <div style={{
-            flexShrink: 0, borderRadius: 12, overflow: 'hidden',
-            border: '2px solid rgba(255,255,255,.5)',
-            background: '#060d1a', width: 80, height: 80,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <img src={previewPng} alt="design"
-              style={{ width: '100%', height: '100%', objectFit: 'contain' }}/>
-          </div>
-        ) : (
-          <div style={{
-            width: 80, height: 80, borderRadius: 12, flexShrink: 0,
-            background: bodyColor,
-            border: '2px solid rgba(255,255,255,.4)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 36,
-          }}>
-            <NavIcon name="garmentType" size={30} color="#fff"/>
-          </div>
-        )}
-
-        {/* Right: summary text */}
-        <div style={{ flex: 1, minWidth: 160 }}>
-          <p style={{
-            fontSize: 11, fontWeight: 700, color: T2,
-            textTransform: 'uppercase', letterSpacing: '.08em',
-            margin: '0 0 4px', fontFamily: FONT, display:'flex', alignItems:'center', gap:5,
-          }}>
-            <NavIcon name="success" size={11} color={T2}/> Confirm Your Creation
-          </p>
-          <p style={{
-            fontSize: 17, fontWeight: 800, color: 'var(--ink)',
-            margin: '0 0 6px', fontFamily: FONT, lineHeight: 1.2,
-          }}>
-            {garmentName}
-          </p>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {[
-              form.quantity_ordered && `${form.quantity_ordered} pcs`,
-              form.color,
-              form.sleeve_type,
-              form.order_type === 'direct' ? '80% DP' : 'On Delivery',
-            ].filter(Boolean).map((tag, i) => (
-              <span key={i} style={{
-                fontSize: 10, fontWeight: 600, padding: '2px 9px',
-                borderRadius: 99, background: 'rgba(255,255,255,.6)',
-                color: 'var(--text-muted)', fontFamily: FONT,
-                border: '1px solid rgba(0,0,0,.06)',
-              }}>
-                {tag}
-              </span>
-            ))}
-          </div>
+      <div style={{ padding:'2px 2px 0' }}>
+        <p style={{ fontSize:11, fontWeight:700, color:T2, textTransform:'uppercase', letterSpacing:'.08em', margin:'0 0 4px', fontFamily:FONT }}>Confirm your order</p>
+        <p style={{ fontSize:20, fontWeight:800, color:'var(--ink)', margin:'0 0 8px', fontFamily:FONT, lineHeight:1.2, overflowWrap:'anywhere' }}>{garmentName}</p>
+        <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+          {[form.quantity_ordered && `${form.quantity_ordered} pcs`, form.color, form.sleeve_type, '80% DP · 20% on delivery'].filter(Boolean).map((tag,i) => (
+            <span key={i} style={{ fontSize:11, fontWeight:600, padding:'3px 10px', borderRadius:99, background:'var(--bg-surface)', color:'var(--text-muted)', border:'1px solid var(--border)', fontFamily:FONT }}>{tag}</span>
+          ))}
         </div>
-      </motion.div>
+      </div>
 
       {/* Also renders for a reference-photo upload with no Design Studio config. */}
       {(studio || form.design_ref_file) && (
@@ -901,7 +824,7 @@ function StepReview({ form, studio }) {
             </p>
           </div>
           <div style={{ padding:'16px' }}>
-            <DesignPreview cfg={studio} height={220}
+            <DesignPreview cfg={studio} height={300}
               previewUrl={studio?.previewPng ?? null}
               referenceImageUrl={!studio && form.design_ref_file?.type?.startsWith('image/') ? refFileBlobUrl : null}/>
           </div>
@@ -978,8 +901,8 @@ function WizSummary({ form, studio, step }) {
   const total = STD.reduce((a, sz) => a + (form.sizes?.[sz] || 0), 0);
   const rows = [
     ['Garment', name],
-    ['Collar', form.collar_type],
-    ['Sleeve', form.sleeve_type],
+    ...(form.collar_type ? [['Collar', form.collar_type]] : []),
+    ...((form.sleeve_type || !studio) ? [['Sleeve', form.sleeve_type]] : []),
     ['Quantity', form.quantity_ordered ? `${form.quantity_ordered} pcs` : null],
     ['Sizes assigned', total ? `${total} pcs` : null],
     ['Needed by', form.deadline],
@@ -989,11 +912,9 @@ function WizSummary({ form, studio, step }) {
     <aside className="cx-card wz-sum" aria-label="Order summary">
       <div className="cx-card-h"><h2>Order Summary</h2></div>
       <div className="wz-sum-b">
-        <div className="wz-thumb" style={{ background: cfg.previewPng ? 'var(--bg-surface)' : (cfg.colors?.body ?? 'var(--bg-surface)') }}>
-          {cfg.previewPng
-            ? <img src={cfg.previewPng} alt="Your design"/>
-            : <NavIcon name="garmentType" size={28} color="#fff"/>}
-        </div>
+        {studio
+          ? <div style={{ marginBottom:14 }}><DesignPreview cfg={studio} previewUrl={studio.previewPng ?? null} height={190}/></div>
+          : <div className="wz-thumb" style={{ background:'var(--bg-surface)' }}><NavIcon name="garmentType" size={28} color="var(--text-faint)"/></div>}
         <dl>
           {rows.map(([k, v]) => (
             <div key={k}><dt>{k}</dt><dd data-empty={!v}>{v || (step === 0 ? '-' : 'Not set')}</dd></div>
@@ -1425,7 +1346,7 @@ export default function OrderWizard() {
   };
 
   const COMPS = [
-    <StepDesign       key="d" form={form} set={set} errors={errs} studio={studio} onClearStudio={clearStudio}/>,
+    <StepDesign       key="d" form={form} set={set} errors={errs} studio={studio} onClearStudio={clearStudio} onOpenStudio={() => nav('/design-studio')}/>,
     <StepQuantitySize key="q" form={form} set={set} errors={errs} studio={studio}
       onEditDesign={() => { setDir(-1); setStep(0); }} onShowChart={() => setShowSizeChart(true)}/>,
     <StepDelivery     key="v" form={form} set={set} errors={errs}/>,
@@ -1479,6 +1400,17 @@ export default function OrderWizard() {
           </div>
         </div>
         <StepBar step={step}/>
+        {(studio || form.garment_type) && (
+          <div className="wz-mini" aria-label="Order snapshot">
+            <div className="wz-mini-t" style={{ background: studio?.previewPng ? 'var(--bg-surface)' : (studio?.colors?.body ?? 'var(--bg-surface)') }}>
+              {studio?.previewPng ? <img src={studio.previewPng} alt=""/> : <NavIcon name="garmentType" size={20} color="#fff"/>}
+            </div>
+            <div style={{ minWidth:0, flex:1 }}>
+              <p className="wz-mini-n">{form.garment_type || 'Custom garment'}</p>
+              <p className="wz-mini-s">{[form.quantity_ordered && `${form.quantity_ordered} pcs`, form.color].filter(Boolean).join(' · ') || 'Quantity not set yet'}</p>
+            </div>
+          </div>
+        )}
 
         <div className="wz-cols">
           <div className="wz-main">

@@ -23,7 +23,8 @@
 // frontend constructs — this helper can't fix a missing symlink, only the
 // URL-shape half of the problem.
 
-const DEV_BACKEND_ORIGIN = 'http://vfrb-capstone.test';
+// Dev-server only; a production build without VITE_API_URL stays same-origin instead of baking in a dev host.
+const DEV_BACKEND_ORIGIN = import.meta.env.DEV ? 'http://vfrb-capstone.test' : '';
 
 // FIX (Task B, Aug 31 2026): the backend now resolves design_ref_file to a
 // real URL server-side (OrderController::resolveDesignRefUrl(), mirroring

@@ -341,6 +341,23 @@ function CameraDistance({ z }) {
   return null;
 }
 
+// Context loss: preventDefault lets the browser restore it; not restored within 3 s hands control back via onLost. Listeners and timer are removed on unmount so a stale timer cannot fire into a remounted view.
+function ContextWatch({ onLost }) {
+  const { gl, invalidate } = useThree();
+  const cb = useRef(onLost);
+  cb.current = onLost;
+  useEffect(() => {
+    const el = gl.domElement;
+    let giveUp = null;
+    const lost = e => { e.preventDefault(); giveUp = setTimeout(() => cb.current?.(), 3000); };
+    const restored = () => { clearTimeout(giveUp); invalidate(); };
+    el.addEventListener('webglcontextlost', lost);
+    el.addEventListener('webglcontextrestored', restored);
+    return () => { clearTimeout(giveUp); el.removeEventListener('webglcontextlost', lost); el.removeEventListener('webglcontextrestored', restored); };
+  }, [gl, invalidate]);
+  return null;
+}
+
 // The Studio keeps this Canvas mounted (visibility:hidden) while the 2D view is active; stop rendering frames then.
 function PauseWhenHidden() {
   const { gl, setFrameloop, invalidate } = useThree();
@@ -374,17 +391,10 @@ export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overla
       dpr={DPR}
       camera={{ position:[0, 0.15, 3.8], fov:40 }}
       gl={{ antialias:true, alpha:true, toneMapping:THREE.ACESFilmicToneMapping, toneMappingExposure:0.85 }}
-      onCreated={({ gl, invalidate }) => {
-        // Let the browser restore a lost context instead of leaving a dead canvas (preventDefault is what allows restore).
-        const el = gl.domElement;
-        // A lost context that is not restored within 3 s hands control back to the 2D view instead of leaving a dead canvas.
-        let giveUp = null;
-        el.addEventListener('webglcontextlost', e => { e.preventDefault(); giveUp = setTimeout(() => onContextLost?.(), 3000); });
-        el.addEventListener('webglcontextrestored', () => { clearTimeout(giveUp); invalidate(); });
-      }}
       style={{ width:'100%', height:'100%', background:'transparent' }}>
 
       <PauseWhenHidden/>
+      <ContextWatch onLost={onContextLost}/>
       <CameraDistance z={familyFor(cfg.garment)?.status3D === 'none' ? 3.8 : 3.1}/>
 
       {/* Offline studio: soft-box reflections instead of a fetched HDR */}
@@ -421,7 +431,7 @@ export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overla
 
       {/* ── Ground shadow ── */}
       <ContactShadows
-        key={cfg.garment ?? 'none'} frames={2}
+        frames={2}
         position={[0, -1.55, 0]}
         opacity={0.32} scale={5}
         blur={2.5} far={2.2}

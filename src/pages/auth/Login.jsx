@@ -50,7 +50,7 @@ export default function Login() {
   };
 
   const handleGoogle = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/auth/google/redirect`;
+    window.location.href = `${import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:8000' : '')}/auth/google/redirect`;
   };
 
   return (

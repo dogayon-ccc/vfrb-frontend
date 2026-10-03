@@ -377,6 +377,8 @@ export default function CustomerOrderDetail() {
         .od-card { background:var(--bg-card); border:1px solid var(--border); border-radius:12px;
           box-shadow:var(--shadow-xs); margin-bottom:14px; overflow:hidden; }
         .od-card-body { padding:14px 16px; }
+        .od-hero { margin-bottom:16px; }
+        .od-hero .od-card-body { padding:16px; }
 
         .od-section-title { font-size:11px; font-weight:800; text-transform:uppercase;
           letter-spacing:.07em; color:#94a3b8; margin:0 0 14px; }
@@ -448,6 +450,77 @@ export default function CustomerOrderDetail() {
           </div>
         )}
 
+        {(order.studio_config || order.design_preview_url || (order.client_design_ref_file && isImageFile(order.client_design_ref_file))) && (
+          <section className="od-card od-hero" aria-label="Design preview">
+            <div className="od-card-body">
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap', marginBottom:12 }}>
+                <p className="od-section-title" style={{ fontFamily:FONT, margin:0 }}>Your Design</p>
+                {order.design_preview_url && (
+                  <button className="cx-btn cx-btn-s" style={{ minHeight:40 }} disabled={dlBusy} aria-busy={dlBusy}
+                    onClick={() => downloadDesign(order.design_preview_url, `VFRB-ORD-${order.order_id}-design.png`)}>
+                    <NavIcon name="download" size={13}/>{dlBusy ? 'Preparing…' : 'Download PNG'}
+                  </button>
+                )}
+              </div>
+              <DesignPreview cfg={order.studio_config} height={340}
+                previewUrl={order.design_preview_url ?? null}
+                referenceImageUrl={!order.studio_config ? getStorageUrl(order.client_design_ref_file) : null}/>
+              <p style={{ fontSize:12, color:'var(--text-subtle)', fontFamily:FONT, margin:'10px 0 0' }}>
+                {order.design_preview_url
+                  ? 'This is the artwork submitted with your order. VFRB staff work from this file, so check it matches what you expect before production starts.'
+                  : 'Preview built from your submitted design.'}
+              </p>
+            </div>
+          </section>
+        )}
+
+        <div className="od-cols"><div className="od-main">
+        {order.client_design_notes && (
+          <div className="od-card"><div className="od-card-body">
+            <p className="od-section-title" style={{ fontFamily:FONT }}>Design Notes</p>
+            <p style={{ fontSize:13, color:'var(--ink)', margin:0, lineHeight:1.6, fontFamily:FONT, whiteSpace:'pre-wrap', overflowWrap:'anywhere' }}>{order.client_design_notes}</p>
+          </div></div>
+        )}
+        {/* ── Order specs grid ──────────────────────────────────────────── */}
+        <div className="od-card">
+          <div className="od-card-body">
+            <p className="od-section-title" style={{ fontFamily:FONT }}>
+              Order Specifications
+            </p>
+            <div className="od-spec-grid">
+              {specs.filter(s => s.value && s.value !== '—').map(spec => (
+                <div key={spec.label} style={{
+                  background:'var(--bg-surface)', borderRadius:10,
+                  padding:'10px 12px', border:'1px solid var(--bg-surface)',
+                }}>
+                  <p style={{
+                    fontSize:9, fontWeight:700, color:'var(--text-faint)',
+                    textTransform:'uppercase', letterSpacing:'.07em',
+                    margin:'0 0 4px', fontFamily:FONT,
+                  }}>
+                    {spec.label}
+                  </p>
+                  <p style={{
+                    fontSize:13, fontWeight:600, color:'var(--ink)',
+                    margin:0, fontFamily:FONT, textTransform:'capitalize',
+                  }}>
+                    {spec.label === 'Color' && /^#[0-9a-f]{3,6}$/i.test(spec.value) ? (
+                      <span style={{ display:'flex', alignItems:'center', gap:6 }}>
+                        <span style={{
+                          width:14, height:14, borderRadius:3, flexShrink:0,
+                          background:spec.value, border:'1px solid rgba(0,0,0,.1)',
+                        }}/>
+                        {spec.value}
+                      </span>
+                    ) : spec.value}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="od-card"><div className="od-card-body" style={{ paddingBottom:0 }}>
         {/* ── Overall progress bar ──────────────────────────────────────── */}
         <div style={{ marginBottom:20 }}>
           <div style={{
@@ -473,7 +546,8 @@ export default function CustomerOrderDetail() {
           </div>
         </div>
 
-        <div className="od-cols"><div className="od-main">
+</div>
+</div>
         {/* ── DESKTOP: horizontal 7-stage pipeline ──────────────────────── */}
         <div className="od-card">
           <div className="od-card-body od-pipeline-h" style={{
@@ -554,101 +628,6 @@ export default function CustomerOrderDetail() {
           </div>
         </div>
 
-        {/* ── Order specs grid ──────────────────────────────────────────── */}
-        <div className="od-card">
-          <div className="od-card-body">
-            <p className="od-section-title" style={{ fontFamily:FONT }}>
-              Order Specifications
-            </p>
-            <div className="od-spec-grid">
-              {specs.filter(s => s.value && s.value !== '—').map(spec => (
-                <div key={spec.label} style={{
-                  background:'var(--bg-surface)', borderRadius:10,
-                  padding:'10px 12px', border:'1px solid var(--bg-surface)',
-                }}>
-                  <p style={{
-                    fontSize:9, fontWeight:700, color:'var(--text-faint)',
-                    textTransform:'uppercase', letterSpacing:'.07em',
-                    margin:'0 0 4px', fontFamily:FONT,
-                  }}>
-                    {spec.label}
-                  </p>
-                  <p style={{
-                    fontSize:13, fontWeight:600, color:'var(--ink)',
-                    margin:0, fontFamily:FONT, textTransform:'capitalize',
-                  }}>
-                    {spec.label === 'Color' && /^#[0-9a-f]{3,6}$/i.test(spec.value) ? (
-                      <span style={{ display:'flex', alignItems:'center', gap:6 }}>
-                        <span style={{
-                          width:14, height:14, borderRadius:3, flexShrink:0,
-                          background:spec.value, border:'1px solid rgba(0,0,0,.1)',
-                        }}/>
-                        {spec.value}
-                      </span>
-                    ) : spec.value}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Rendered Design Studio artwork — the flat image staff actually cut
-            from, kept separate from the 3D card below which is rebuilt from
-            studio_config and is a viewing aid, not the production reference. */}
-        {order.design_preview_url && (
-          <div className="od-card">
-            <div className="od-card-body">
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
-                gap:12, flexWrap:'wrap', marginBottom:12 }}>
-                <p className="od-section-title" style={{ fontFamily:FONT, margin:0 }}>
-                  Your Design
-                </p>
-                <button
-                  onClick={() => downloadDesign(
-                    order.design_preview_url,
-                    `VFRB-ORD-${order.order_id}-design.png`
-                  )}
-                  disabled={dlBusy}
-                  aria-busy={dlBusy}
-                  style={{ display:'inline-flex', alignItems:'center', gap:7,
-                    padding:'9px 15px', borderRadius:8, background:'#f0fdfa',
-                    border:'1px solid #99f6e4', color:'var(--teal-dark)', fontSize:13,
-                    fontWeight:700, fontFamily:FONT,
-                    cursor: dlBusy ? 'wait' : 'pointer',
-                    opacity: dlBusy ? 0.6 : 1, minHeight:40 }}>
-                  <NavIcon name="download" size={13} color="var(--teal-dark)"/>
-                  {dlBusy ? 'Preparing…' : 'Download PNG'}
-                </button>
-              </div>
-              <a href={order.design_preview_url} target="_blank" rel="noopener noreferrer"
-                style={{ display:'block', borderRadius:10, overflow:'hidden',
-                  border:'1px solid var(--border)', background:'#fff', textDecoration:'none' }}>
-                <img src={order.design_preview_url} alt={`Design for order ${order.order_id}`}
-                  style={{ width:'100%', maxWidth:420, display:'block', margin:'0 auto' }}
-                  onError={e => { e.target.closest('a').style.display = 'none'; }}/>
-              </a>
-              <p style={{ fontSize:12, color:'var(--text-subtle)', fontFamily:FONT, margin:'10px 0 0' }}>
-                This is the artwork submitted with your order. VFRB staff work from
-                this file, so check it matches what you expect before production starts.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Studio config renders directly; a reference-photo upload falls back to a synthetic cfg as texture. */}
-        {(order.studio_config || (order.client_design_ref_file && isImageFile(order.client_design_ref_file))) && (
-          <div className="od-card">
-            <div className="od-card-body">
-              <p className="od-section-title" style={{ fontFamily:FONT }}>
-                Design Preview
-              </p>
-              <DesignPreview cfg={order.studio_config} height={220}
-                previewUrl={order.design_preview_url ?? null}
-                referenceImageUrl={!order.studio_config ? getStorageUrl(order.client_design_ref_file) : null}/>
-            </div>
-          </div>
-        )}
 
         {/* Requires the backend's storage symlink (php artisan storage:link) to resolve. */}
         {order.client_design_ref_file && (

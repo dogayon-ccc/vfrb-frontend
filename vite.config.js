@@ -72,6 +72,10 @@ export default defineConfig(({ mode }) => ({
         // precache-and-serve strategy, safe since they're versioned by
         // build hash.
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        // Without a denylist the SW answers EVERY same-origin navigation with the cached index.html, so a
+        // direct visit/download of a backend-served path (API file/PDF, storage file, OAuth redirect on a
+        // same-origin proxy) would render the SPA shell instead of reaching the server.
+        navigateFallbackDenylist: [/^\/api\//, /^\/auth\//, /^\/storage\//, /^\/sanctum\//],
         // Exclude the 3 heaviest, conditionally-used vendor chunks from the
         // install-time precache (Account 7 perf pass, Sep 27 2026): Workbox's
         // globPatterns ignores React.lazy() boundaries entirely and eagerly
@@ -121,48 +125,16 @@ export default defineConfig(({ mode }) => ({
   build: {
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          // Account 7 perf fix (Sep 27 2026): Vite/Rolldown's own internal
-          // lazy-route preload helper (used by every React.lazy()/router
-          // dynamic import) had no chunk of its own under the rules below,
-          // so Rolldown's default placement fused it into whichever vendor
-          // chunk built first — in this repo, the 2.4MB "three" chunk. Every
-          // lazy route calls that helper, so the entire three chunk ended up
-          // as a top-level static import of the main entry (visible as a
-          // modulepreload of three-*.js in dist/index.html) — every visitor,
-          // even on the login page, downloaded 2.4MB of Three.js before the
-          // app could render anything. Giving the helper its own explicit
-          // tiny chunk fixed this (verified: three-*.js no longer appears in
-          // dist/index.html's modulepreload list or the entry's static
-          // imports after this change).
-          // Known residual, NOT fixed by this: "charts" (recharts, 515KB)
-          // is still eagerly pulled into the entry the same way, because
-          // recharts's own nested react-redux dependency requires() react
-          // synchronously — Rolldown keeps that CJS require chain in one
-          // chunk rather than honoring the manualChunks split, even with
-          // react/react-dom checked first below (tried, confirmed via
-          // build sourcemap it doesn't change the outcome). Leaving
-          // recharts unbucketed entirely was tried too — it stopped the
-          // chunk fusion but silently reintroduced the ~500KB into the PWA
-          // install-time precache under new, unpredictable chunk names not
-          // covered by globIgnores below, a worse regression. Kept bucketed
-          // as "charts" (excluded from precache) as the lesser of the two
-          // known issues; a real fix needs upstream Rolldown/recharts work,
-          // not more manualChunks guessing.
-          if (id.includes("vite/preload-helper")) return "preload-helper";
-          if (!id.includes("node_modules")) return;
-          if (id.includes("react-router-dom") || id.includes("/react-dom/") || id.includes("/react/") || id.includes("/react-is/") || id.includes("/scheduler/")) return "react-vendor";
-          if (id.includes("@react-three") || id.includes("/three/")) return "three";
-          // Task 2 (logo auto-transparency): @huggingface/transformers pulls
-          // in onnxruntime-web (WASM/ONNX runtime) — large and lazy-loaded
-          // only when a customer uploads a non-SVG logo in Design Studio,
-          // so it earns its own chunk rather than bloating the main bundle
-          // every visitor downloads. Mirrors the reference repo's own
-          // vite.config.js, which does exactly this split.
-          if (id.includes("@huggingface/transformers") || id.includes("onnxruntime")) return "bg-remove";
-          if (id.includes("framer-motion")) return "motion";
-          if (id.includes("recharts")) return "charts";
-          if (id.includes("axios")) return "utils";
+        codeSplitting: {
+          groups: [
+            { name: "preload-helper", test: /vite[\\/]preload-helper/, priority: 100 },
+            { name: "react-vendor", test: /node_modules[\\/](react|react-dom|react-is|scheduler|react-router|react-router-dom)[\\/]/, priority: 90 },
+            { name: "three", test: /node_modules[\\/](@react-three|three)[\\/]/, priority: 80 },
+            { name: "bg-remove", test: /node_modules[\\/](@huggingface[\\/]transformers|onnxruntime[^\\/]*)[\\/]/, priority: 70 },
+            { name: "motion", test: /node_modules[\\/]framer-motion[\\/]/, priority: 60 },
+            { name: "charts", test: /node_modules[\\/](recharts|react-redux|@reduxjs|redux|reselect|immer|d3-[^\\/]+|victory-vendor|decimal\.js-light|es-toolkit)[\\/]/, priority: 50 },
+            { name: "utils", test: /node_modules[\\/]axios[\\/]/, priority: 40 },
+          ],
         },
       },
     },

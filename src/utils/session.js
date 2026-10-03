@@ -8,6 +8,12 @@ const SERVER_ERROR = 'Something went wrong on our side. Please try again.';
 const AUTH_CALLS = ['/api/login', '/api/register', '/api/logout', '/api/forgot-password', '/api/reset-password', '/api/password/forgot', '/api/password/reset'];
 const LOGGED_OUT_PAGES = ['/login', '/register', '/forgot-password', '/reset-password', '/admin/login'];
 
+// The service worker's NetworkFirst API cache is keyed by URL only, so it must not outlive the account that filled it.
+export const API_CACHE_NAME = 'vfrb-api-cache';
+function clearApiCache() {
+  try { if ('caches' in window) caches.delete(API_CACHE_NAME).catch(() => {}); } catch {}
+}
+
 // The token, cached user, tab-scoped drafts/caches and the offline queue all belong to one account.
 export function clearSession() {
   localStorage.removeItem(TOKEN);
@@ -15,6 +21,7 @@ export function clearSession() {
   delete axios.defaults.headers.common.Authorization;
   sessionWipeAll();
   clearQueue();
+  clearApiCache();
 }
 
 // The token is passed explicitly because clearSession removes it before the request is dispatched.
@@ -28,6 +35,7 @@ export function signOut() {
 export function startSession(token, user) {
   sessionWipeAll();
   clearQueue();
+  clearApiCache();
   localStorage.setItem(TOKEN, token);
   localStorage.setItem(USER, JSON.stringify(user));
 }

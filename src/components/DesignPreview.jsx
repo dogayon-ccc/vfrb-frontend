@@ -55,7 +55,7 @@ export default function DesignPreview({ cfg, previewUrl = null, referenceImageUr
         <Boundary resetKey={view} fallback={<>{flat}<p className="ds-note" style={{ marginTop: 6 }}>3D could not load. Showing 2D.</p></>}>
           <div style={{ ...box(height), background: 'var(--bg-surface)' }}>
             <Suspense fallback={<p style={{ fontSize: 12, color: 'var(--text-faint)' }}>Loading 3D…</p>}>
-              <div style={{ width: '100%', height: '100%' }}><Scene3D cfg={design}/></div>
+              <div style={{ width: '100%', height: '100%' }}><Scene3D cfg={design} onContextLost={() => setView('2d')}/></div>
             </Suspense>
           </div>
           {(note || sleeveGap) && (
