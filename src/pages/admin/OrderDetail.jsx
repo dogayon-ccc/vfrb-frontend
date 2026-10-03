@@ -1,51 +1,3 @@
-// src/pages/admin/OrderDetail.jsx
-// VFRB Enterprise — Admin Order Detail
-//
-// NEW (Aug 14 2026): the admin "View"/"View Details" action previously
-// pointed at ProductionTracking.jsx — which only shows the 7-stage
-// pipeline, not the actual order/design. This page is the missing piece:
-// a full read view of one order for staff/managers, reusing the exact
-// same backend payload already built for the Invoice page (adminShow() /
-// buildOrderDetail()) — no new backend endpoint, no new DB columns.
-//
-// Design-visual handling:
-//   - Design Studio orders (order.studio_config present) → GarmentPreview3D
-//     is fed cfg={order.studio_config} directly, same component the
-//     customer portal already uses. No new 3D code.
-//   - Reference-photo orders (order.client_design_ref_file, no
-//     studio_config) → the uploaded photo is shown large via <img>,
-//     with a separate "Download Reference" link for the raw file.
-//   - Orders with neither: no crash — GarmentPreview3D itself already
-//     returns null when both cfg and referenceImageUrl are absent, and
-//     this page shows a plain "No design submitted" placeholder instead.
-//
-// Production/BOM/payment sections reuse the exact field names already
-// proven correct in Invoice.jsx (rec.material_name / rec.actual_qty_issued,
-// txn.amount_paid / txn.amount_total) — not reinvented.
-//
-// PDF: reuses the existing GET /api/admin/orders/:id/invoice-pdf endpoint
-// as-is. Nothing in the PDF pipeline (OrderController::downloadInvoicePdf,
-// buildOrderDetail, resources/views/pdf/invoice.blade.php) is touched.
-//
-// RESHAPED (Sept 6 2026): this file had its own local Card({title,
-// children, right}) component, duplicating the shared one — checked
-// first (grep for `right=`) and confirmed zero call sites actually used
-// the `right` prop, so this was a clean 1:1 swap for the real shared
-// Card, not an adaptation. STATUS_CFG's 11 real order statuses are
-// mapped to real tokens using the SAME assignments already established
-// on ProductionList.jsx for the 7 shared production stages (pattern=
-// purple, segregation=purple-dark, cutting=info, sewing=teal, qc=
-// warning, pressing=purple-dark [same flagged compromise as before],
-// packing=success) — this matters more here than a fresh mapping would,
-// since a manager going from the Orders list to Production Tracking to
-// this detail page should see the same stage read the same color every
-// time, not three independently-chosen palettes for the same 7 values.
-// The 4 non-production statuses map cleanly: pending=warning,
-// confirmed=info, completed=success, cancelled=danger.
-//
-// ReviewPanel's negotiation workflow (interview-grounded — Ma'am Fe's
-// capacity-check negotiation on bulk POs) is real, load-bearing logic,
-// completely untouched. Emoji → NavIcon throughout.
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
@@ -54,14 +6,8 @@ import axios from 'axios';
 import { getStorageUrl, isImageFile } from '../../utils/fileUrl';
 import DesignPreview from '../../components/DesignPreview';
 import { NavIcon } from '../../components/ui';
-import { Panel, StatusPill, Meter, EmptyBlock, useIsMobile } from '../../components/admin/AdminUI';
+import { Panel, StatusPill, Meter, EmptyBlock, Toast, useToast, useIsMobile } from '../../components/admin/AdminUI';
 
-// Fresh-per-mount role check (Aug 23 2026) — NEVER hoist this to module
-// scope. A module-scope const here reproduced the exact stale-permission
-// bug already fixed once in Settings.jsx: switching accounts in the same
-// browser tab without a hard reload would leave a manager's permissions
-// stuck on a staff account. This function is called inside the component
-// body instead, so it re-reads localStorage on every mount.
 function getIsManager() {
   try {
     return (JSON.parse(localStorage.getItem('vfrb_user') || '{}').role) === 'manager';
@@ -82,16 +28,6 @@ function Field({ label, value }) {
   );
 }
 
-// ── Review & Confirm panel (Aug 23 2026) ─────────────────────────────────────
-// Real, demo-relevant gap closed here: the backend (OrderController::
-// adminUpdate) and schema (orders.status, .negotiated_delivery_date,
-// .agreed_total) already supported this negotiation-before-production
-// workflow — described directly by Ma'am Fe in the interview transcript
-// (capacity-check negotiation on bulk POs) — but there was no manager-
-// facing UI to actually do it. This is that missing piece.
-// Manager-only, and only shown while status is still 'pending' — once
-// confirmed or cancelled, this panel disappears and the read-only
-// "Negotiated Delivery" field above (already existing) takes over.
 function ReviewPanel({ order, onUpdated }) {
   const [negotiatedDate, setNegotiatedDate] = useState(order.target_delivery_date ?? '');
   const [agreedTotal,    setAgreedTotal]    = useState('');
@@ -192,7 +128,8 @@ export default function AdminOrderDetail() {
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState('');
   const [downloadingPdf, setDownloadingPdf] = useState(false);
-  const [stages,  setStages]  = useState(null); // null = loading, [] = none recorded, false = unavailable
+  const [toast, setToast] = useToast();
+  const [stages,  setStages]  = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -210,7 +147,6 @@ export default function AdminOrderDetail() {
       } finally {
         if (!cancelled) setLoading(false);
       }
-      // Production progress — same endpoint ProductionTracking already uses.
       try {
         const p = await axios.get(`/api/admin/orders/${id}/production`);
         const list = p.data?.stages ?? p.data;
@@ -226,8 +162,6 @@ export default function AdminOrderDetail() {
     if (!order) return;
     setDownloadingPdf(true);
     try {
-      // Same blob-download pattern as Invoice.jsx — Bearer auth means a
-      // plain <a href> can't be used, has to go through axios.
       const res = await axios.get(`/api/admin/orders/${order.order_id}/invoice-pdf`, {
         responseType: 'blob',
       });
@@ -240,7 +174,7 @@ export default function AdminOrderDetail() {
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch {
-      alert('Could not generate the PDF. Please try again.');
+      setToast({ type: 'error', msg: 'Could not generate the PDF. Please try again.' });
     } finally {
       setDownloadingPdf(false);
     }
@@ -284,7 +218,6 @@ export default function AdminOrderDetail() {
   return (
     <div className="adm-od">
 
-      {/* 1 · Order identity */}
       <div className="adm-od-head">
         <div style={{ minWidth:0 }}>
           <button className="adm-link-btn" onClick={() => navigate('/admin/orders')} style={{ display:'inline-flex', alignItems:'center', gap:5, padding:0, marginBottom:8, color:'var(--text-subtle)' }}>
@@ -310,16 +243,12 @@ export default function AdminOrderDetail() {
         </div>
       </div>
 
-      {/* Review & Confirm — manager-only, pending orders only */}
       {order.status === 'pending' && getIsManager() && (
         <ReviewPanel order={order} onUpdated={(updated) => setOrder(o => ({ ...o, ...updated }))}/>
       )}
 
       <div className="adm-od-grid">
-        {/* Side column: client, order info, production, QC, delivery, communication.
-            On phones it follows DOM order: client → design → ... via CSS order. */}
         <div className="adm-od-side">
-          {/* 2 · Client */}
           <Panel title="Client" style={{ order:1 }}>
             <div className="adm-od-fields">
               <Field label="Name"          value={clientName}/>
@@ -329,7 +258,6 @@ export default function AdminOrderDetail() {
             </div>
           </Panel>
 
-          {/* 4 · Order information */}
           <Panel title="Order Information" style={{ order:3 }}>
             <div className="adm-od-fields">
               <Field label="Garment Type"   value={order.garment_type}/>
@@ -344,7 +272,6 @@ export default function AdminOrderDetail() {
             </div>
           </Panel>
 
-          {/* 5 · Production — real per-stage qty from order_production_tracking */}
           <Panel title="Production" style={{ order:4 }}
             action={<button className="adm-link-btn" onClick={() => navigate(`/admin/production/${order.order_id}`)}>Open tracking →</button>}>
             {stages === null ? (
@@ -375,7 +302,6 @@ export default function AdminOrderDetail() {
             )}
           </Panel>
 
-          {/* 6 · QC — only fields the order record really carries */}
           <Panel title="Quality Control" style={{ order:5 }}
             action={<button className="adm-link-btn" onClick={() => navigate('/admin/qc')}>QC checklist →</button>}>
             <div className="adm-od-fields">
@@ -384,7 +310,6 @@ export default function AdminOrderDetail() {
             </div>
           </Panel>
 
-          {/* 7 · Delivery — dates stored on the order itself */}
           <Panel title="Delivery" style={{ order:6 }}
             action={<button className="adm-link-btn" onClick={() => navigate('/admin/delivery')}>Delivery →</button>}>
             <div className="adm-od-fields">
@@ -394,7 +319,6 @@ export default function AdminOrderDetail() {
             </div>
           </Panel>
 
-          {/* 8 · Communication */}
           <Panel title="Communication" style={{ order:7 }}>
             <button className="adm-btn" onClick={() => navigate('/admin/messages')} style={{ width:'100%', justifyContent:'center' }}>
               <NavIcon name="messages" size={14} color="currentColor" /> Open messages
@@ -402,9 +326,7 @@ export default function AdminOrderDetail() {
           </Panel>
         </div>
 
-        {/* Main column: design first — the thing being manufactured */}
         <div className="adm-od-main">
-          {/* 3 · Design */}
           <Panel title="Submitted Design" style={{ order:2 }}>
             {hasStudioConfig ? (
               <div style={{ display:'flex', flexDirection:'column', alignItems:'stretch', gap:6, width:'100%', minWidth:0 }}>
@@ -412,9 +334,6 @@ export default function AdminOrderDetail() {
                   <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)', textAlign:'center' }}>{order.studio_config.name}</div>
                 )}
                 <DesignPreview cfg={order.studio_config} height={isMobile ? 260 : 360} previewUrl={order.design_preview_url ?? null}/>
-                {/* studio_config.previewPng is stripped at order-creation time
-                    (OrderController::customerStore); the rendered PNG is served
-                    separately as design_preview_url, same as the customer side. */}
                 {order.design_preview_url && (
                   <a href={order.design_preview_url} target="_blank" rel="noopener noreferrer"
                     style={{ display:'flex', alignItems:'center', gap:5, fontSize:13, fontWeight:600,
@@ -450,8 +369,6 @@ export default function AdminOrderDetail() {
             )}
           </Panel>
 
-          {/* Material recommendations — Actual Used comes from actual_qty_issued,
-              the staff-entered quantity from Pattern-stage completion (null until then). */}
           <Panel title="Material Recommendations" flush style={{ order:8 }}>
             {recs.length === 0 ? (
               <EmptyBlock>No material recommendations recorded yet.</EmptyBlock>
@@ -473,7 +390,6 @@ export default function AdminOrderDetail() {
             )}
           </Panel>
 
-          {/* Payment / transaction history */}
           <Panel title="Payment" style={{ order:9 }}>
             {!txn ? (
               <div style={{ color:'var(--text-faint)', fontSize:13 }}>No payment records yet.</div>
@@ -490,6 +406,7 @@ export default function AdminOrderDetail() {
           </Panel>
         </div>
       </div>
+      <Toast toast={toast} />
     </div>
   );
 }

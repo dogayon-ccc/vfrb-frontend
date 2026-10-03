@@ -1,30 +1,3 @@
-// src/pages/admin/Materials.jsx
-//
-// RESHAPED (Sept 4 2026): same gap as every other admin page — zero
-// var(--) token usage, raw hex throughout. Unlike ActivityLog.jsx, the
-// color usage here is simple and maps directly (teal brand, red/green
-// for low/OK stock) — no taxonomy judgment calls needed this time.
-//
-// Preserved exactly, verified via `git show` before writing anything
-// (not reconstructed from memory — see the Suppliers.jsx mistake two
-// pages back): the MaterialModal/AdminMaterials two-component
-// structure, all real field names (material_name, unit, category,
-// quantity_in_stock, reorder_threshold, unit_cost, material_id), the
-// UNITS/CATS option lists, and — importantly — the existing mobile-card
-// vs desktop-table dual rendering (isMobile via window resize
-// listener). That responsive split was a real Aug 27 2026 fix
-// (documented in the original file's own comment: the table used to
-// clip content at narrow widths with overflow:hidden) — kept both
-// paths fully intact, just tokenized. "Mobile first" here means work
-// order, not deleting desktop support that already exists and works.
-//
-// LOW-stock indicator now uses the shared Badge (tone="danger")
-// instead of a hand-rolled pill — close match to the original's own
-// sizing, confirmed by reading Badge's actual render output first.
-// Skeleton shimmer keyframe renamed sk → mat-shimmer, matching the
-// page-prefixed naming already used in Suppliers.jsx/ActivityLog.jsx
-// (avoids a global @keyframes collision if two admin pages' styles
-// were ever both in the DOM at once).
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
@@ -104,12 +77,8 @@ export default function AdminMaterials() {
   const [mats,    setMats]    = useState([]);
   const [loading, setLoading] = useState(true);
   const [search,  setSearch]  = useState('');
-  const [modal,   setModal]   = useState(null); // null | 'add' | item
+  const [modal,   setModal]   = useState(null);
 
-  // MOBILE FIX (Aug 27 2026, unchanged this pass): this table used to
-  // have overflow:'hidden' and zero mobile handling — real clipping at
-  // narrow widths, not just cramped. isMobile pattern matches
-  // Inventory.jsx exactly, same card-fallback approach.
   const [winW, setWinW] = useState(typeof window !== 'undefined' ? window.innerWidth : 1280);
   useEffect(() => { const h = () => setWinW(window.innerWidth); window.addEventListener('resize', h); return () => window.removeEventListener('resize', h); }, []);
   const isMobile = winW <= 767;

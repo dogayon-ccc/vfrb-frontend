@@ -1,43 +1,3 @@
-// src/pages/admin/Invoice.jsx
-// VFRB Enterprise — Invoice Generator
-// Search orders by ID, generate printable invoice with BOM + payment summary
-//
-// RESHAPED (Sept 6 2026): hex → theme.css tokens on all the normally-
-// rendered JSX, emoji → NavIcon. Two new icons added (Printer,
-// Paperclip), both verified against the real installed lucide-react.
-//
-// IMPORTANT, DELIBERATELY NOT TOKENIZED: handlePrint()'s injected HTML
-// string below. That function opens a brand-new, blank browser window
-// via window.open('') and writes a complete standalone document into it
-// with document.write() — that window never loads this app's theme.css,
-// so any var(--...) reference inside its <style> block would resolve to
-// nothing and render unstyled. Its literal hex values are correct as-is
-// and were checked against the real tokens (they already match: #028090
-// is --teal, #f0fdfa is --teal-50, #0f172a is --ink, etc.) — this isn't
-// unfinished token work, it's a different rendering context that
-// structurally can't use CSS custom properties. Don't "fix" this later.
-//
-// STATUS_LABEL here is label-text only, not per-status color — the
-// invoice's status badge is ALWAYS teal regardless of order status
-// (even a cancelled order's invoice, if ever printed for record-
-// keeping, gets a plain neutral label, not an alarming red one). This
-// is a deliberate document-design choice distinct from OrderDetail.jsx's
-// per-status STATUS_CFG — preserved exactly, not "fixed" to match.
-//
-// One precision note, not fixed here retroactively: at least 2 already-
-// shipped pages (Suppliers.jsx, Inventory.jsx, confirmed by checking
-// their real git originals) mapped BOTH #f8fafc (the real --bg token,
-// page background) and #f1f5f9 (the real --bg-surface token) to
-// var(--bg-surface) indiscriminately — the two hexes are visually close
-// but not identical. Cosmetic, not a functional bug. This file
-// distinguishes them correctly; the other pages are a real, mechanical,
-// batchable follow-up if a full precision pass is wanted later, not
-// something quietly patched in passing here.
-//
-// Aug 28 2026 BOM note (estimated_range/Qty Required removed, no
-// formula/BOM exists in this system, Actual Used sourced from
-// actual_qty_issued) and the reference-file link's storage:link
-// requirement — both real, both untouched.
 
 import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
@@ -45,6 +5,7 @@ import axios from 'axios';
 import { getStorageUrl } from '../../utils/fileUrl';
 import { escapeHtml } from '../../utils/escapeHtml';
 import { NavIcon } from '../../components/ui';
+import { Toast, useToast } from '../../components/admin/AdminUI';
 
 const STATUS_LABEL = {
   pending:'Pending', confirmed:'Confirmed', pattern:'Pattern',
@@ -74,14 +35,12 @@ export default function AdminInvoice() {
   };
 
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [toast, setToast] = useToast();
 
   const handleDownloadPdf = async () => {
     if (!order) return;
     setDownloadingPdf(true);
     try {
-      // Bearer-token auth (not cookie sessions) — a plain <a href> or
-      // window.open() wouldn't carry the Authorization header, so this has
-      // to go through axios (which already attaches it) as a blob download.
       const res = await axios.get(`/api/admin/orders/${order.order_id}/invoice-pdf`, {
         responseType: 'blob',
       });
@@ -94,19 +53,13 @@ export default function AdminInvoice() {
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (e) {
-      alert('Could not generate the PDF. Please try again.');
+      setToast({ type: 'error', msg: 'Could not generate the PDF. Please try again.' });
     } finally {
       setDownloadingPdf(false);
     }
   };
 
   const handlePrint = () => {
-    // See file header note — this document has no access to theme.css,
-    // so every color below is intentionally a literal hex, verified to
-    // already match the real tokens (var(--teal)=#028090, var(--ink)=
-    // #0f172a, var(--bg-surface)=#f1f5f9, var(--border)=#e2e8f0,
-    // var(--text-subtle)=#64748b, var(--bg)=#f8fafc, var(--teal-50)=
-    // #f0fdfa, var(--success-bg)-adjacent=#dcfce7, success-text=#166534).
     const content = printRef.current?.innerHTML;
     const win = window.open('', '_blank');
     win.document.write(`
@@ -142,7 +95,6 @@ export default function AdminInvoice() {
     setTimeout(() => { win.print(); win.close(); }, 500);
   };
 
-  // Compute totals
   const recs = order?.recommendations ?? [];
   const txn  = order?.transactions?.[0] ?? order?.transaction ?? null;
   const paid = txn?.amount_paid ?? 0;
@@ -166,7 +118,6 @@ export default function AdminInvoice() {
           .inv-actions { flex-direction:column; gap:8px; }
         }
       `}</style>
-      {/* Header */}
       <div style={{ marginBottom:28 }}>
         <h1 style={{ display:'flex', alignItems:'center', gap:8, fontSize:22, fontWeight:800, color:'var(--ink)', marginBottom:4 }}>
           <NavIcon name="invoice" size={20} color="var(--ink)" /> Invoice Generator
@@ -176,7 +127,6 @@ export default function AdminInvoice() {
         </p>
       </div>
 
-      {/* Search */}
       <div style={{ background:'var(--bg-card)', borderRadius:'var(--r-lg)', border:'1px solid var(--border)',
         padding:'20px', marginBottom:24, boxShadow:'var(--shadow-xs)' }}>
         <p style={{ fontSize:12, fontWeight:700, color:'var(--text-subtle)', textTransform:'uppercase',
@@ -207,10 +157,8 @@ export default function AdminInvoice() {
         )}
       </div>
 
-      {/* Invoice Preview */}
       {order && (
         <>
-          {/* Print button */}
           <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:14, gap:10 }}>
             <motion.button whileHover={{ scale:1.02 }} whileTap={{ scale:.97 }}
               onClick={handleDownloadPdf} disabled={downloadingPdf}
@@ -232,12 +180,10 @@ export default function AdminInvoice() {
             </motion.button>
           </div>
 
-          {/* Invoice content */}
           <div ref={printRef} className="inv-preview" style={{ background:'var(--bg-card)', borderRadius:'var(--r-xl)',
             border:'1px solid var(--border)', padding:'32px',
             boxShadow:'var(--shadow-sm)' }}>
 
-            {/* Invoice header */}
             <div className="inv-header" style={{ display:'flex', justifyContent:'space-between',
               alignItems:'flex-start', marginBottom:28, paddingBottom:20,
               borderBottom:'2px solid var(--border)' }}>
@@ -266,7 +212,6 @@ export default function AdminInvoice() {
               </div>
             </div>
 
-            {/* Client + Order info */}
             <div className="inv-grid-2" style={{ marginBottom:24 }}>
               <div style={{ background:'var(--bg)', borderRadius:'var(--r-lg)', padding:'16px' }}>
                 <p style={{ fontSize:10, fontWeight:700, color:'var(--text-subtle)',
@@ -316,10 +261,6 @@ export default function AdminInvoice() {
                     <span style={{ color:'var(--ink)', fontSize:12, fontWeight:600 }}>{val}</span>
                   </div>
                 ))}
-                {/* NEW (Aug 10 2026) — reference file, staff-facing view.
-                    Plain link, not an inline thumbnail — this table is
-                    print-oriented and an embedded image would break that.
-                    Requires php artisan storage:link on the backend. */}
                 {order.client_design_ref_file && (
                   <div style={{ display:'flex', justifyContent:'space-between', marginTop:5 }}>
                     <span style={{ color:'var(--text-faint)', fontSize:12 }}>Reference File</span>
@@ -332,7 +273,6 @@ export default function AdminInvoice() {
               </div>
             </div>
 
-            {/* Design description */}
             {order.client_design_notes && (
               <div style={{ marginBottom:20, padding:'12px 16px', borderRadius:'var(--r-md)',
                 background:'var(--bg)', border:'1px solid var(--border)' }}>
@@ -346,10 +286,6 @@ export default function AdminInvoice() {
               </div>
             )}
 
-            {/* BOM Table — Aug 28 2026: "Qty Required" column removed (no
-                formula/BOM exists in this system). Replaced with "Actual
-                Used", sourced from actual_qty_issued — the real,
-                staff-entered quantity from Pattern-stage completion. */}
             {recs.length > 0 && (
               <div style={{ marginBottom:24 }}>
                 <p style={{ fontSize:13, fontWeight:700, color:'var(--teal)', marginBottom:10,
@@ -400,7 +336,6 @@ export default function AdminInvoice() {
               </div>
             )}
 
-            {/* Payment summary */}
             <div style={{ marginBottom:20 }}>
               <p style={{ fontSize:13, fontWeight:700, color:'var(--teal)', marginBottom:10,
                 textTransform:'uppercase', letterSpacing:'.07em' }}>
@@ -431,7 +366,6 @@ export default function AdminInvoice() {
               </div>
             </div>
 
-            {/* AI explanation */}
             {order.ai_explanation && (
               <div style={{ padding:'14px 16px', borderRadius:'var(--r-lg)',
                 background:'var(--teal-50)', border:'1px solid var(--teal-100)', marginBottom:20 }}>
@@ -445,7 +379,6 @@ export default function AdminInvoice() {
               </div>
             )}
 
-            {/* Footer */}
             <div style={{ paddingTop:20, borderTop:'1px solid var(--border)',
               display:'flex', justifyContent:'space-between', alignItems:'center' }}>
               <div>
@@ -465,6 +398,7 @@ export default function AdminInvoice() {
         </>
       )}
       <style>{`@keyframes inv-spin { to { transform:rotate(360deg); } }`}</style>
+      <Toast toast={toast} />
     </div>
   );
 }

@@ -1,22 +1,3 @@
-// FIX (Sony Mark, Sept 9 2026): hex→var(--...) token migration — 66 of 72
-// literal hex values replaced with the real theme.css tokens they matched
-// exactly (--teal, --ink, --border, --bg-surface, etc.). The remaining 6
-// (customer-role #8b5cf6/#f5f3ff, active/inactive pills #dcfce7/#fee2e2/
-// #166534/#991b1b) have no existing theme.css token to map to — this is
-// the same known "hue shortage" gap already documented elsewhere in this
-// project (theme.css has 6 usable hue families, several pages need 7-8
-// categorical colors). Left literal rather than inventing a new brand
-// token unilaterally; a real decision on a 7th/8th color, not a fix here.
-// Manager-only: create staff accounts, view all users, toggle status
-//
-// Aug 23 2026 — mobile fix. The table wrapper had overflow:'hidden' (not
-// overflow-x:auto), so the 7-column table was genuinely clipping content
-// on narrow screens, not just scrolling awkwardly. Added an isMobile card
-// fallback matching the pattern already proven in Inventory.jsx/Orders.jsx.
-// Also removed the "v10 mobile sweep" .adm-stats/.adm-grid-2/.adm-filter/
-// .adm-table-wrap CSS block — none of those classNames were ever actually
-// applied to any element in this file (same dead-code pattern found and
-// fixed in Suppliers.jsx). Zero business-logic changes below.
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
@@ -203,7 +184,7 @@ export default function AdminUserManagement() {
   const [editing, setEditing] = useState(null);
   const [toggling,setToggling]= useState(null);
   const [toggleErr, setToggleErr] = useState('');
-  const [confirmDeactivate, setConfirmDeactivate] = useState(null); // user pending deactivate confirmation
+  const [confirmDeactivate, setConfirmDeactivate] = useState(null);
   const isMobile = useIsMobile();
   const [loadErr, setLoadErr] = useState(false);
   const me = JSON.parse(localStorage.getItem('vfrb_user') || '{}');
@@ -218,7 +199,7 @@ export default function AdminUserManagement() {
       .then(r => {
         const list = r.data?.data ?? r.data ?? [];
         setUsers(list);
-        cacheSet('admin_users', list, 300_000); // 5min — users list is stable
+        cacheSet('admin_users', list, 300_000);
       })
       .catch(() => setLoadErr(true))
       .finally(() => setLoading(false));
@@ -235,7 +216,6 @@ export default function AdminUserManagement() {
 
   const runToggle = async (user) => {
     setToggling(user.user_id); setToggleErr('');
-    // Optimistic flip — reversible, so update the list immediately and roll back on failure.
     setUsers(prev => prev.map(u => u.user_id === user.user_id ? { ...u, is_active: !(user.is_active !== false) } : u));
     try {
       await axios.patch(`/api/admin/users/${user.user_id}/toggle`);

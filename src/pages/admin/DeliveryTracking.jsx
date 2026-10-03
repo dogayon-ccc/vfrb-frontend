@@ -1,39 +1,3 @@
-// src/pages/admin/DeliveryTracking.jsx
-// Uses correct DB column: delivery_status (NOT status)
-// delivery_tracking table (NO 's')
-//
-// FIX (Task 6): payment recording used to be a completely separate manual
-// step on a different page (SalesTransactions.jsx) — nothing connected the
-// two. Per the client interview, payment IS typically tied to delivery
-// (subcontract pays per delivery; direct clients pay the remaining 20% on
-// delivery), so staff had to remember, mid-shift, to go re-find the same
-// order on another page and re-enter it. This merges an OPTIONAL payment
-// section into the same modal — reuses the exact same POST /api/admin/transactions
-// endpoint SalesTransactions.jsx already calls, so no backend duplication.
-//
-// RESHAPED (Sept 6 2026): hex -> theme.css tokens, emoji -> NavIcon.
-// DEL_CFG's 5 statuses map cleanly (preparing=warning, dispatched=info,
-// in_transit=purple, delivered=success, returned=danger). METHOD_CFG
-// reuses the EXACT same 4-method mapping already established on
-// SalesTransactions.jsx (cash=success/gcash=purple/ewallet=info/
-// bank_transfer=warning) rather than reinventing it — same reasoning as
-// OrderDetail.jsx reusing ProductionList.jsx's stage colors: a manager
-// recording a GCash payment here should see the same purple GCash chip
-// they'd see on Sales & Pay, not an independently-chosen color.
-//
-// Dropped the unused `TTL` import (checked first this time -- confirmed
-// genuinely dead, not repeating the near-miss from Inventory.jsx where
-// it WAS actually used). Also removed a real dead-CSS block: the
-// ".adm-stats/.adm-grid-2/.adm-filter/.adm-table-wrap" classes were
-// defined in this file's injected <style> tag but never applied via
-// className anywhere in the JSX -- same "v10 mobile sweep never
-// actually wired up" pattern already found and removed from
-// UserManagement.jsx. Replaced with real, actually-applied responsive
-// classes below instead of leaving the page with zero mobile handling.
-//
-// The customer_name flat-field bug-fix comment (backend returns a
-// joined flat field, not nested d.order.user) and the whole payment-
-// at-delivery merge logic are real, load-bearing, and untouched.
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
@@ -57,7 +21,6 @@ const DEL_CFG = {
 
 const METHODS = ['cash','gcash','ewallet','bank_transfer'];
 const TERMS   = ['full_payment','down_payment','net_30'];
-// Same mapping as SalesTransactions.jsx -- see file header note.
 const METHOD_CFG = {
   cash:          { label:'Cash',          c:'var(--success)', bg:'var(--success-bg)', icon:'salesPay' },
   gcash:         { label:'GCash',         c:'var(--purple)',  bg:'var(--purple-50)',  icon:'phone'    },
@@ -71,10 +34,6 @@ function MarkDeliveredModal({ delivery, onClose, onDone }) {
   const [err,   setErr]   = useState('');
   const [warn,  setWarn]  = useState('');
 
-  // Optional payment section — collapsed detail, expanded by default since
-  // recording payment at delivery time is the common case per VFRB's real
-  // workflow, but staff can ignore it entirely if payment isn't ready yet
-  // (e.g. OTG subcontract: delivered Wednesday, bank transfer only Friday).
   const [recordPayment, setRecordPayment] = useState(true);
   const [amountPaid,    setAmountPaid]    = useState('');
   const [method,        setMethod]        = useState('cash');
@@ -84,8 +43,6 @@ function MarkDeliveredModal({ delivery, onClose, onDone }) {
   const submit = async () => {
     setBusy(true); setErr(''); setWarn('');
 
-    // Step 1 — the delivery status change is the critical action; it must
-    // succeed on its own regardless of what happens with payment below.
     try {
       await axios.patch(`/api/admin/delivery/${delivery.tracking_id}/delivered`, { notes });
     } catch(e) {
@@ -94,7 +51,6 @@ function MarkDeliveredModal({ delivery, onClose, onDone }) {
       return;
     }
 
-    // Step 2 — optional payment log, same endpoint SalesTransactions.jsx uses.
     const paid = Number(amountPaid);
     if (recordPayment && paid > 0) {
       try {
@@ -107,8 +63,6 @@ function MarkDeliveredModal({ delivery, onClose, onDone }) {
           notes: notes || null,
         });
       } catch(e) {
-        // Delivery already succeeded — don't block on this, but don't hide
-        // the failure either. Staff can still log it via Sales & Pay.
         setWarn(
           (e.response?.data?.message ?? 'Payment could not be recorded.') +
           ' Delivery was marked successfully — log the payment from Sales & Pay.'

@@ -6,8 +6,8 @@ const STEPS = [
   {
     icon:  'garmentType',
     title: 'Pick Your Garment',
-    body:  'Start by choosing a garment type in the left panel. Pick from Polo Shirt, Scrub Top, Lab Coat and more. Each has its own shape on the canvas.',
-    hint:  'Look left → Garment tab is already open.',
+    body:  'Start by opening the Garment tool and choosing a garment type. Each one has its own shape on the canvas.',
+    hint:  'Tip: the Garment tool is the first button in the tool bar.',
     arrow: 'left',
   },
   {
@@ -20,7 +20,7 @@ const STEPS = [
   {
     icon:  'ai',
     title: 'Describe Your Design with AI',
-    body:  'Open the AI tab on the left, type a description like "navy blue school polo, white collar, left chest logo", and Gemini will fill the canvas automatically.',
+    body:  'Open the AI tool, type a description like "navy blue school polo, white collar, left chest logo", and Gemini will fill the canvas automatically.',
     hint:  'Works best with specific colors and placement details.',
     arrow: 'left',
   },

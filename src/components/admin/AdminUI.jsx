@@ -156,7 +156,6 @@ export const useToast = () => {
   return [toast, setToast];
 };
 
-/* Filter picker: bottom sheet on phones, same component on desktop. */
 export const FilterSheet = ({ title = 'Filter', options, value, onChange, onClose, isMobile }) => (
   <BottomSheet title={title} onClose={onClose} isMobile={isMobile} maxWidth={380}>
     <div className="adm-sheet-list" style={{ margin: '-8px -8px 0' }}>

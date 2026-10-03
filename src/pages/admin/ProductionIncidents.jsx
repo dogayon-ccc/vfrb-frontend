@@ -1,38 +1,3 @@
-// src/pages/admin/ProductionIncidents.jsx
-// NEW PAGE — added Aug 25 2026 by Claude Account 3.
-//
-// Interview-grounded (VFRB_MaamFe_Interview_Transcript_Apr30.docx): two
-// real shop-floor workflows with no prior system equivalent —
-//   1. Machine breakdown — sewer reports to line leader, mechanic called
-//      immediately ("Patawag ka ng mekaniko agad-agad").
-//   2. Cutting damage — mover reports on the spot, line leader confirms
-//      it wasn't intentional, piece re-cut to catch up.
-//
-// Any staff can report + acknowledge + resolve — this is an operational
-// tool like QCChecklist/PhysicalCount, NOT manager-exclusive (unlike
-// Reports/Suppliers/UserManagement).
-//
-// RESHAPED (Sept 4 2026): unlike ActivityLog/ProductionList, this page's
-// 3 status colors are a genuine severity/status trio, not a categorical
-// taxonomy — and they were already extremely close to real tokens
-// (reported's #fef2f2/#dc2626 vs --danger-bg's exact #fef2f2, etc.), so
-// this is the first reshaped page where the status pill maps onto
-// Badge directly rather than needing a judgment call. TYPE_LABEL's
-// icons also both already exist from the last two pages (Wrench for
-// mechanical breakdown, Scissors for cutting damage — added originally
-// for Materials.jsx/ProductionList.jsx, reused here as-is).
-//
-// Preserved deliberately, not "improved": the incident card's left
-// border is hardcoded teal regardless of status (reported/
-// acknowledged/resolved all get the same teal stripe) — that's the
-// original's actual behavior, not an oversight, so it stays var(--teal)
-// rather than becoming status-colored. Also preserved: the success-type
-// toast uses brand teal, not semantic green — an existing app-wide
-// choice (positive action = brand color), not something to "correct"
-// into --success as part of a token-compliance pass.
-//
-// Logic (report/acknowledge/resolve, optimistic UI, the filters)
-// completely untouched.
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence }           from 'framer-motion';
@@ -114,7 +79,6 @@ export default function ProductionIncidents() {
       qty_affected:  form.qty_affected ? Number(form.qty_affected) : null,
     };
 
-    // Optimistic UI — insert a temp row instantly, roll back on failure
     const tempId = `temp-${Date.now()}`;
     const optimistic = { incident_id: tempId, ...payload, status: 'reported', created_at: new Date().toISOString() };
     setItems(prev => [optimistic, ...prev]);
@@ -185,7 +149,6 @@ export default function ProductionIncidents() {
         </button>
       </div>
 
-      {/* Filters */}
       <div className="pi-filters" style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ ...inp, width: 'auto', minWidth: 160 }}>
           <option value="">All statuses</option>
@@ -200,7 +163,6 @@ export default function ProductionIncidents() {
         </select>
       </div>
 
-      {/* List */}
       {loading ? (
         <p style={{ color: 'var(--text-subtle)', fontSize: 13 }}>Loading…</p>
       ) : items.length === 0 ? (
@@ -267,7 +229,6 @@ export default function ProductionIncidents() {
         </div>
       )}
 
-      {/* Report modal */}
       {showForm && (
         <BottomSheet title="Report Incident" onClose={() => setShowForm(false)} isMobile={isMobile} maxWidth={440}>
             <form onSubmit={submitReport}>
@@ -314,7 +275,6 @@ export default function ProductionIncidents() {
         </BottomSheet>
       )}
 
-      {/* Toast */}
       <AnimatePresence>
         {toast && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}

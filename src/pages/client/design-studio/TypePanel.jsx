@@ -214,16 +214,11 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, view
             <div className="ds-acc-item" data-open={openZone === 'preview'}>
               <button type="button" className="ds-acc-head" aria-expanded={openZone === 'preview'} onClick={() => setOpenZone(o => (o === 'preview' ? null : 'preview'))}>
                 <NavIcon name="show" size={15}/>
-                <span>Preview</span>
+                <span>Preview status</span>
                 <NavIcon name="chevronRight" size={13}/>
               </button>
               {openZone === 'preview' && (
                 <div className="ds-acc-body ds-tp-prev">
-                  <div className="ds-seg ds-seg--sm" role="radiogroup" aria-label="Preview mode">
-                    <button type="button" role="radio" aria-checked={viewMode !== '3d'} onClick={() => setViewMode?.('2d')}>2D</button>
-                    <button type="button" role="radio" aria-checked={viewMode === '3d'} disabled={family?.status3D === 'none'}
-                      onClick={() => { setHas3DLoaded?.(true); setViewMode?.('3d'); }}>3D</button>
-                  </div>
                   <p className="ds-note" style={{ margin: 0 }}>
                     {family?.status3D === 'none'
                       ? `${cfg.garment} has no verified 3D model yet — the 2D design is the exact preview.`

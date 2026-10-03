@@ -1,58 +1,3 @@
-// src/pages/admin/PurchaseOrders.jsx
-// FIX (Sony Mark, Sept 10 2026): hex→var(--...) token migration — 172 of
-// ~200 literal hex replaced. CRITICAL — explicitly did NOT touch
-// PH_SWATCHES (lines 57-67): these are real Philippine institutional
-// garment colors from the master prompt's own color map (Navy Blue,
-// Royal Blue, Bottle Green, etc.) — actual business/fabric-matching
-// data, not UI chrome. Forcing these into theme.css tokens would have
-// silently corrupted real swatch-matching values. Also protected two
-// document.write() print-popup blocks (RFQ response sheet, PO sheet) —
-// genuinely separate documents where CSS variables don't inherit.
-//
-// CAUGHT AND FIXED a real bug my own automated pass introduced: a
-// blanket color:'#fff'→token substitution had also rewritten a
-// same-string EQUALITY COMPARISON (hex==='#fff', used to detect a white
-// swatch for text-contrast decisions) into hex==='var(--bg-card)' —
-// which would never match since `hex` holds real swatch values like
-// '#FFFFFF', never the literal text 'var(--bg-card)'. This silently
-// broke the white-detection logic. Reverted the comparison to check
-// against the real swatch value ('#FFFFFF') while keeping the
-// surrounding style properties tokenized. Audited every other file
-// fixed this session for the same class of bug (comparison against a
-// wrongly-substituted token) — none found elsewhere.
-//
-// #92400e/#166534 (13 occurrences) left literal — same established
-// theme.css .alert-warning/.alert-success un-tokenized text precedent
-// used throughout this project. Logic (RFQ flow, PO conversion, color
-// swatch matching, print generation) untouched throughout.
-// TASK N — RFQ full flow: log supplier response + manager convert-to-PO + printable doc
-// TASK M — color swatch matching (already in previous version — preserved here)
-// CDN font removed — system font stack
-// cache.js wired
-//
-// RFQ flow per master prompt + Ma'am Fe interview:
-//   Staff: New RFQ → pick material → qty needed → [system logs it]
-//   Supplier responds by phone/email → staff logs response here (not supplier portal)
-//   Manager reviews responses → selects best → converts to Purchase Order
-//   Goods arrive → staff receives PO + matches color swatch
-//
-// API routes (all in api.php):
-//   GET  /api/admin/rfq                       → rfqIndex
-//   POST /api/admin/rfq                       → rfqStore
-//   PATCH /api/admin/rfq/{id}/close           → rfqClose
-//   POST /api/admin/rfq/{id}/respond          → rfqRespond   [TASK N NEW]
-//   PATCH /api/admin/rfq/{id}/convert-po       → rfqConvertToPO [TASK N NEW]
-//   GET  /api/admin/purchase-orders           → index
-//   POST /api/admin/purchase-orders/{id}/receive → receive
-//   PATCH /api/admin/purchase-orders/{id}/confirm-color → confirmColor [TASK M]
-//
-// DB columns confirmed from models:
-//   rfq_requests: rfq_id (PK), material_id, qty_needed, needed_by_date, status(open|closed), created_by
-//   rfq_responses: response_id (PK), rfq_id, supplier_id, unit_price, qty_available,
-//                  lead_time_days, notes, responded_at, logged_by, selected_for_po
-//   purchase_orders: po_id (PK), po_number, supplier_id, items(JSON), total_amount,
-//                    expected_delivery_date, order_color_hex, received_color_hex,
-//                    color_mismatch, color_confirmed, color_notes, status
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion }                            from 'framer-motion';
@@ -82,7 +27,6 @@ const PO_STATUS = {
   cancelled: { l:'Cancelled', c:'var(--danger)', bg:'var(--danger-bg)' },
 };
 
-// Philippine institutional colour swatches (master prompt color map)
 const PH_SWATCHES = [
   { hex:'#1B2A4A', name:'Navy Blue'   },{ hex:'#2952A3', name:'Royal Blue'   },
   { hex:'#006A4E', name:'Bottle Green'},{ hex:'#800000', name:'Maroon'       },
@@ -95,7 +39,6 @@ const PH_SWATCHES = [
   { hex:'#FED7AA', name:'Peach'       },{ hex:'#E5E7EB', name:'Lt Gray'      },
 ];
 
-// ── ΔE helpers ────────────────────────────────────────────────────────────────
 function hexToRgb(hex) {
   const h = hex.replace('#','');
   return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
@@ -106,7 +49,6 @@ function deltaE(h1, h2) {
   return Math.round(Math.sqrt((r1-r2)**2+(g1-g2)**2+(b1-b2)**2)/4.42*10)/10;
 }
 
-// ── ColorSwatchMatch ──────────────────────────────────────────────────────────
 function ColorSwatchMatch({ orderedHex, receivedHex, onChangeReceived }) {
   const de = deltaE(orderedHex, receivedHex);
   const mismatch = de !== null && de > 5;
@@ -184,7 +126,6 @@ function ColorSwatchMatch({ orderedHex, receivedHex, onChangeReceived }) {
   );
 }
 
-// ── RFQ: New Request Modal ────────────────────────────────────────────────────
 function NewRFQModal({ materials, onClose, onDone }) {
   const [matId,  setMatId]  = useState('');
   const [qty,    setQty]    = useState('');
@@ -284,9 +225,6 @@ function NewRFQModal({ materials, onClose, onDone }) {
   );
 }
 
-// ── RFQ: Log Supplier Response Modal ─────────────────────────────────────────
-// Ma'am Fe: "Supplier responds phone/email — NOT in system"
-// Staff manually logs what the supplier told them
 function LogResponseModal({ rfq, suppliers, onClose, onDone }) {
   const [supId,    setSupId]    = useState('');
   const [price,    setPrice]    = useState('');
@@ -405,7 +343,6 @@ function LogResponseModal({ rfq, suppliers, onClose, onDone }) {
   );
 }
 
-// ── RFQ: printable document ───────────────────────────────────────────────────
 function printRFQ(rfq) {
   const w = window.open('', '_blank', 'width=700,height:600');
   const rows = rfq.responses?.length
@@ -465,7 +402,6 @@ function printRFQ(rfq) {
   w.document.close();
 }
 
-// ── ReceiveModal (TASK M) ─────────────────────────────────────────────────────
 function ReceiveModal({ po, onClose, onDone }) {
   const [receivedHex, setReceivedHex] = useState(po.order_color_hex ?? '');
   const [colorNotes,  setColorNotes]  = useState('');
@@ -570,7 +506,6 @@ function ReceiveModal({ po, onClose, onDone }) {
   );
 }
 
-// ── ConfirmColorModal (TASK M — manager override) ─────────────────────────────
 function ConfirmColorModal({ po, onClose, onDone }) {
   const [notes, setNotes] = useState(po.color_notes ?? '');
   const [busy,  setBusy]  = useState(false);
@@ -652,7 +587,6 @@ function ConfirmColorModal({ po, onClose, onDone }) {
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—');
 const peso = (v) => `₱${Number(v ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
 const PO_TABS = ['all', 'sent', 'received', 'closed'];

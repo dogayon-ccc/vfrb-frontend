@@ -1,45 +1,3 @@
-// src/pages/admin/Orders.jsx
-// FIX (Sony Mark, Sept 10 2026): hex→var(--...) token migration — 86
-// literal hex replaced with real tokens. IMPORTANT CORRECTION mid-fix:
-// theme.css has a dedicated --status-pending/--status-confirmed/
-// --status-pattern/.../--status-cancelled palette (11 tokens) whose hex
-// values match this file's ORIGINAL 11-status colors exactly — the
-// first pass here mistakenly reused generic --purple/--teal/--warning
-// (the ActivityLog.jsx/ProductionList.jsx "hue shortage" pattern),
-// before discovering these dedicated tokens existed. Corrected to use
-// the real --status-* tokens directly — no hue-sharing compromise
-// needed for this file after all. Worth flagging: ProductionList.jsx/
-// ActivityLog.jsx's own "hue shortage" documentation may predate these
-// tokens and could be worth revisiting, not touched here (out of scope
-// for this file's fix).
-// Emoji (⏳✅📐🗂️✂️🧵🔍🔧📦🎉✕👁✓👑📋) → NavIcon, all keys verified to
-// exist in icons.jsx already except `manager` (Crown) — added, verified
-// against the real installed lucide-react first. Logic (status filters,
-// confirm/cancel flow, pipeline strip, caching) untouched.
-// FF-2 Step 5 — Admin Orders
-//
-// PRESERVED from uploaded source:
-//   - FF-1 fix: goTrack navigates to /admin/production/:order_id ✓
-//   - STATUS_CFG with all 11 statuses ✓
-//   - PipelineStrip mini dots ✓
-//   - Tab filter + search logic ✓
-//   - Manager banner + isManager guard ✓
-//   - Skeleton loaders ✓
-//
-// ADDED in FF-2:
-//   - cacheGet/cacheSet (TTL.ORDERS = 30s) — no cold fetch on every mount
-//   - cacheClear on Refresh so forced reload always gets fresh data
-//   - useMemo for counts — O(n) only when orders changes, not every render
-//   - Color swatch dot on each row (from order.color or studio_config.colors.body)
-//   - Mobile card view (≤767px): replaces table with stacked cards
-//   - Confirm order button for manager (PATCH /api/admin/orders/:id/confirm)
-//   - Optimistic UI on confirm: instant status change → rollback on error
-//   - 4K: content auto-centers via parent layout token
-//
-// DSA annotations:
-//   counts:    useMemo + reduce — O(n) once per orders change
-//   filtered:  filter + String.includes — O(n) per keystroke (debounced)
-//   STATUS_SEQ: object as hash map — O(1) status → color/label/icon lookup
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate }                                        from 'react-router-dom';
@@ -48,9 +6,6 @@ import { cacheGet, cacheSet, cacheClear, TTL }               from '../../utils/c
 import { NavIcon }                                            from '../../components/ui/icons';
 import { PageHeader, StatGrid, PillTabs, ErrorBlock, Panel, StatusPill, SearchBox, Segments, Banner, Toast, useToast, useIsMobile, FilterSheet, FilterButton, SkeletonRows } from '../../components/admin/AdminUI';
 
-
-// ── Status config — O(1) lookup hash map ──────────────────────────────────────
-// DSA: JavaScript object used as hash map: status string → style/label O(1)
 const STATUS_CFG = {
   pending:     { color:'var(--status-pending)',     bg:'var(--warning-bg)', label:'Pending',     icon:'pending',     seq:0  },
   confirmed:   { color:'var(--status-confirmed)',   bg:'var(--info-bg)',    label:'Confirmed',   icon:'success',     seq:1  },
@@ -75,7 +30,6 @@ const PROD_STAGES = ['confirmed','pattern','segregation','cutting','sewing','qc'
 const isLive = (st) => !['completed','cancelled'].includes(st);
 const fmtDate = (d, y = false) => d ? new Date(d).toLocaleDateString('en-PH', { month:'short', day:'numeric', ...(y ? { year:'numeric' } : {}) }) : '—';
 
-// Segmented stage bar: index of current stage among the 8 production stages
 function StageBar({ status }) {
   if (!isLive(status)) return null;
   const idx = status === 'pending' ? -1 : PROD_STAGES.indexOf(status);
@@ -243,7 +197,6 @@ export default function AdminOrders() {
     }),
   [orders, tab, search]);
 
-  // Optimistic confirm — rolls back on failure. PATCH /confirm only returns {message,new_stage} or {message}.
   const confirmOrder = useCallback(async (orderId) => {
     const prev = orders;
     setOrders(os => os.map(o => o.order_id === orderId ? { ...o, status:'confirmed' } : o));

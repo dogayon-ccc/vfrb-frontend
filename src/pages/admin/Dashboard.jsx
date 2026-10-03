@@ -1,5 +1,3 @@
-// Admin/Manager dashboard — composed to wireframe boards 1–4: KPI row, Orders Overview chart,
-// Production Status donut, Recent Orders table, Quick Actions. All figures come from /api/admin/dashboard.
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';

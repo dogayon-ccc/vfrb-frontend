@@ -1,31 +1,3 @@
-// src/pages/admin/Inventory.jsx
-//
-// RESHAPED (Sept 5 2026): hex → theme.css tokens, emoji → NavIcon, LOW/
-// OK and transaction-type pills → Badge. Kept `TTL` import (unlike the
-// last two pages' dead-import removals — checked first this time:
-// `TTL.MATERIALS` is genuinely used in cacheSet below, not dead code).
-//
-// Transaction-log TYPE_C used the same `${hexColor}18` alpha-suffix
-// trick as ActivityLog.jsx's icon chips, same fix: each hue's real
-// pale companion token (--success-bg/--danger-bg/--warning-bg/
-// --purple-50) instead of string-concatenating a var() reference,
-// which doesn't work. wastage's original #8b5cf6 mapped to --purple,
-// same "close enough, same hue family" treatment already used for
-// ProductionList.jsx's stage colors.
-//
-// One real simplification, not a fudge: the Stock-In button's original
-// two-stop green gradient (#22c55e→#16a34a) has no equivalent in
-// theme.css — there's no darker/lighter green pair, only a single
-// --success token. Inventing a new --success-dark for one button felt
-// disproportionate (same reasoning already applied to the missing
-// orange/pink tokens on ActivityLog/ProductionList), so it's a flat
-// var(--success) background instead of a gradient. Stock-Out keeps its
-// real --teal/--teal-2 two-stop gradient — that pair does exist.
-//
-// Preserved exactly: the low-stock banner, the stock/logs tab split,
-// the DSA comments (Promise.allSettled parallel fetch, useMemo filters),
-// and both isMobile card / desktop table render paths for both tabs.
-// Logic (load/cache/filter/StockModal submit) completely untouched.
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -102,11 +74,11 @@ export default function AdminInventory() {
   const [logs,      setLogs]      = useState([]);
   const [loading,   setLoading]   = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const [tab,       setTab]       = useState('stock'); // stock | logs
+  const [tab,       setTab]       = useState('stock');
   const [search,    setSearch]    = useState('');
   const isMobile = useIsMobile();
   const [cat, setCat] = useState('all');
-  const [modal,     setModal]     = useState(null); // 'in' | 'out'
+  const [modal,     setModal]     = useState(null);
 
   const load = useCallback((force = false) => {
     if (!force) {
@@ -119,7 +91,6 @@ export default function AdminInventory() {
       }
     }
     setLoading(true); setLoadError(false);
-    // DSA: Promise.allSettled — parallel fetch O(max(t1,t2)) not O(t1+t2)
     Promise.allSettled([
       axios.get('/api/admin/inventory'),
       axios.get('/api/admin/inventory/logs'),
@@ -128,9 +99,6 @@ export default function AdminInventory() {
       const lgList = l.status==='fulfilled' ? (l.value.data?.data ?? l.value.data ?? []) : [];
       setMaterials(mats);
       setLogs(lgList);
-      // Both failing means the page's own data is unavailable, not "no
-      // records" — surface that distinctly instead of showing an empty
-      // state that looks identical to a genuinely empty inventory.
       if (m.status==='rejected' && l.status==='rejected') setLoadError(true);
       else cacheSet('inventory_full', { materials:mats, logs:lgList }, TTL.MATERIALS);
     }).finally(() => setLoading(false));
@@ -138,7 +106,6 @@ export default function AdminInventory() {
 
   useEffect(() => { load(); }, [load]);
 
-  // DSA: useMemo — O(n) filter only reruns when materials or search changes
   const filtered  = useMemo(() =>
     materials.filter(m =>
       (cat === 'all' || (m.category ?? '—') === cat) &&
@@ -147,7 +114,6 @@ export default function AdminInventory() {
     ), [materials, search, cat]);
   const categories = useMemo(() => [...new Set(materials.map(m => m.category ?? '—'))].sort(), [materials]);
 
-  // DSA: useMemo — O(n) filter only reruns when materials changes
   const lowStock  = useMemo(() =>
     materials.filter(m => m.quantity_in_stock <= (m.reorder_threshold ?? 0)),
   [materials]);
