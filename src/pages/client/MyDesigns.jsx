@@ -10,6 +10,7 @@
 //     re-editable in place, but usable as the base for a new design via "Order again".
 // No new backend endpoint, table, or field is used — this page is a read surface over
 // data the Studio already writes.
+import { stashStudioConfig } from '../../utils/studioHandoff';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -77,7 +78,7 @@ export default function MyDesigns() {
   const orderDraft = () => {
     const png = draft.preview_dataurl;
     const snap = png?.startsWith?.('data:image/png') ? { ...draft.studio_config, previewPng: png } : draft.studio_config;
-    try { sessionStorage.setItem('studio_config', JSON.stringify(snap)); sessionStorage.setItem('studio_from_draft', '1'); } catch { /* quota: preview too large, fall back to config only */ sessionStorage.setItem('studio_config', JSON.stringify(draft.studio_config)); sessionStorage.setItem('studio_from_draft', '1'); }
+    stashStudioConfig(snap, { fromDraft: true });
     nav('/order/create');
   };
   const useTemplate = (d) => { sessionStorage.setItem('studio_config', JSON.stringify(d.config)); nav('/design-studio'); };

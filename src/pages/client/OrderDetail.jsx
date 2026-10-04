@@ -26,6 +26,7 @@ import { OrderThumb, Stepper, StatusPill, LIFECYCLE, lifecycleIndex, orderTitle,
 
 const T    = 'var(--teal)';
 const T2   = '#02C39A';
+const PAYMENT_LABEL = { full:'Full payment', full_payment:'Full payment', down:'Down payment', down_payment:'Down payment', net_30:'Net 30 days', net_60:'Net 60 days', not_specified:'Confirmed by VFRB' };
 const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif`;
 
 // ── 7-stage production sequence ───────────────────────────────────────────────
@@ -252,7 +253,6 @@ export default function CustomerOrderDetail() {
     ? Math.round((stageIdx / (STAGES.length - 1)) * 100)
     : 0;
 
-  // Spec rows for the info grid
   const specs = [
     { label:'Garment Type', value: order?.garment_type ?? '—'              },
     { label:'Color',        value: order?.color ?? '—'                      },
@@ -262,7 +262,7 @@ export default function CustomerOrderDetail() {
     { label:'Sleeve',       value: order?.sleeve_type ?? '—'                },
     { label:'Pocket',       value: order?.pocket_type ?? '—'                },
     { label:'Order Type',   value: order?.order_type ?? '—'                 },
-    { label:'Payment',      value: order?.payment_terms ?? '—'              },
+    { label:'Payment',      value: PAYMENT_LABEL[order?.payment_terms] ?? '—' },
     { label:'PO Reference', value: order?.po_reference ?? 'N/A'             },
     { label:'Delivery',     value: order?.target_delivery_date
         ? new Date(order.target_delivery_date).toLocaleDateString('en-PH',{

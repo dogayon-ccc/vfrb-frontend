@@ -148,6 +148,7 @@ function ScannedPart({ geometry, part, colors, patterns, patternParams, decals, 
 export default function ScannedGarmentMesh({ manifest, colors = {}, patterns, patternParams, fit, garment, sleeve, overlays }) {
   const key = String(fit ?? '').toLowerCase();
   const { nodes } = useGLTF(manifest.models[key] ?? Object.values(manifest.models)[0]);
+  useEffect(() => () => Object.values(nodes).forEach(n => n.geometry?.dispose()), [nodes]); // useGLTF cache outlives the renderer; frees GL buffers that pin the dead context
   const decals = useDecals(overlays);
   const frame = useMemo(() => bodyBounds(garment, sleeve), [garment, sleeve]);
   const torso = manifest.torso[key] ?? Object.values(manifest.torso)[0];

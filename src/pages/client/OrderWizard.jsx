@@ -1,6 +1,7 @@
 // src/pages/client/OrderWizard.jsx
 // 4-step order wizard: Design → Configure → Sizing → Review.
 // On submit, hands off to MaterialsReveal instead of navigating directly.
+import { clearStudioHandoff } from '../../utils/studioHandoff';
 import { useState, useEffect, useRef } from 'react';
 import DesignPreview from '../../components/DesignPreview';
 import { useNavigate }                                   from 'react-router-dom';
@@ -1219,8 +1220,7 @@ export default function OrderWizard() {
 
   const clearStudio = () => {
     setStudio(null);
-    ['studio_config','studio_color','studio_garment','studio_category','studio_preview','studio_from_draft']
-      .forEach(k => sessionStorage.removeItem(k));
+    clearStudioHandoff();
     setForm(prev => ({ ...prev, garment_type:'', collar_type:'',
       sleeve_type:'', client_design_notes:'', color:'' }));
   };
@@ -1326,8 +1326,7 @@ export default function OrderWizard() {
 
       // Ordered from My Designs' draft: the draft is now an order, so retire it (Studio's own "Order this" does the same).
       if (sessionStorage.getItem('studio_from_draft')) axios.delete('/api/customer/drafts/latest').catch(() => {});
-      ['studio_config','studio_color','studio_garment','studio_category','studio_preview','studio_from_draft']
-        .forEach(k => sessionStorage.removeItem(k));
+      clearStudioHandoff();
 
       // Confetti fires immediately; MaterialsReveal mounts once it finishes.
       setShowConfetti(true);

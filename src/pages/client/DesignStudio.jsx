@@ -7,6 +7,7 @@
 //            zone hover glow, garment card grid, logo placement presets,
 //            font selector, Pollinations.ai texture, Save Design
 
+import { stashStudioConfig } from '../../utils/studioHandoff';
 import {
   useState, useEffect, useRef, useCallback, useMemo,
 } from 'react';
@@ -482,11 +483,7 @@ export default function DesignStudio() {
       // the other one exactly as exportFrontBack left it.
       const previewPng = await exportFrontBack();
       const snap = snapshotDesign(previewPng);
-      sessionStorage.setItem('studio_config',   JSON.stringify(snap));
-      sessionStorage.setItem('studio_preview',  snap.previewPng ?? '');
-      sessionStorage.setItem('studio_color',    cfg.colors.body);
-      sessionStorage.setItem('studio_garment',  cfg.garment);
-      sessionStorage.setItem('studio_category', cfg.category);
+      if (!stashStudioConfig(snap).ok) throw new Error('storage');
       // Clear DB draft — design is now an order, draft is no longer needed
       axios.delete('/api/customer/drafts/latest').catch(() => {});
       nav('/order/create');
