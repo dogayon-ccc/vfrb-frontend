@@ -92,7 +92,7 @@ export default function AdminInventory() {
     }
     setLoading(true); setLoadError(false);
     Promise.allSettled([
-      axios.get('/api/admin/inventory'),
+      axios.get('/api/admin/inventory', { params: { per_page: 200 } }),
       axios.get('/api/admin/inventory/logs'),
     ]).then(([m,l]) => {
       const mats = m.status==='fulfilled' ? (m.value.data?.data ?? m.value.data ?? []) : [];

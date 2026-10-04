@@ -149,6 +149,7 @@ function OrderCard({ order, isManager, onConfirm, confirming, index }) {
 
 export default function AdminOrders() {
   const [orders,     setOrders]     = useState([]);
+  const [serverTotal, setServerTotal] = useState(null);
   const [loading,    setLoading]    = useState(true);
   const [tab,        setTab]        = useState('all');
   const [search,     setSearch]     = useState('');
@@ -164,14 +165,16 @@ export default function AdminOrders() {
   const load = useCallback((force = false) => {
     if (!force) {
       const cached = cacheGet('admin_orders_list');
-      if (cached) { setOrders(cached); setLoading(false); return; }
+      if (cached?.list) { setOrders(cached.list); setServerTotal(cached.total); setLoading(false); return; }
     }
     setLoading(true); setLoadErr(false);
-    axios.get('/api/admin/orders')
+    // Backend paginates (default 20, max 100). Ask for the max so counts aren't silently capped at 20.
+    axios.get('/api/admin/orders', { params: { per_page: 100 } })
       .then(r => {
         const list = r.data?.data ?? r.data ?? [];
-        setOrders(list);
-        cacheSet('admin_orders_list', list, TTL.ORDERS);
+        const total = r.data?.total ?? list.length;
+        setOrders(list); setServerTotal(total);
+        cacheSet('admin_orders_list', { list, total }, TTL.ORDERS);
       })
       .catch(() => setLoadErr(true))
       .finally(() => setLoading(false));
@@ -235,6 +238,11 @@ export default function AdminOrders() {
         </Banner>
       )}
       {loadErr && <div style={{ marginBottom:14 }}><ErrorBlock msg="Could not load orders." onRetry={() => load(true)} /></div>}
+      {!loading && serverTotal != null && serverTotal > orders.length && (
+        <Banner tone="warn" icon="warning">
+          Showing the latest {orders.length} of {serverTotal} orders — the counts below cover only these.
+        </Banner>
+      )}
 
       <StatGrid loading={loading} items={[
         { label:'Total',     value:orders.length },

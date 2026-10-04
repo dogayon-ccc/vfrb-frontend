@@ -85,7 +85,7 @@ export default function AdminMaterials() {
 
   const load = useCallback(() => {
     setLoading(true);
-    axios.get('/api/admin/materials').then(r => setMats(r.data?.data ?? r.data ?? [])).catch(() => {}).finally(() => setLoading(false));
+    axios.get('/api/admin/materials', { params: { per_page: 200 } }).then(r => setMats(r.data?.data ?? r.data ?? [])).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   useEffect(() => { load(); }, [load]);
