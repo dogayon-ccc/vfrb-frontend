@@ -469,7 +469,7 @@ export default function CustomerLayout() {
                   textShadow:'0 1px 3px rgba(0,0,0,.15)' }}>
                   VFRB ENTERPRISE
                 </p>
-                <p style={{ fontSize:9, color:'rgba(255,255,255,.75)', fontWeight:600,
+                <p style={{ fontSize:11, color:'rgba(255,255,255,.75)', fontWeight:600,
                   textTransform:'uppercase', letterSpacing:'.08em', margin:'2px 0 0' }}>
                   Client Site
                 </p>
@@ -483,7 +483,7 @@ export default function CustomerLayout() {
             scrollbarWidth:'thin', scrollbarColor:'rgba(255,255,255,.25) transparent' }}>
 
             {!collapsed && (
-              <p style={{ fontSize:9, fontWeight:800, textTransform:'uppercase',
+              <p style={{ fontSize:11, fontWeight:800, textTransform:'uppercase',
                 letterSpacing:'.1em', color:'var(--text-faint)', padding:'10px 12px 5px', margin:0 }}>
                 Navigation
               </p>
@@ -509,7 +509,7 @@ export default function CustomerLayout() {
                         {item.label}
                       </span>
                       {showBadge && (
-                        <span style={{ fontSize:9, minWidth:18, height:18,
+                        <span style={{ fontSize:11, minWidth:18, height:18,
                           borderRadius:99, background:'var(--danger)', color:'#fff',
                           display:'flex', alignItems:'center', justifyContent:'center',
                           fontWeight:700, padding:'0 4px', flexShrink:0 }}>
@@ -525,7 +525,7 @@ export default function CustomerLayout() {
             {/* Design Studio */}
             <div style={{ borderTop:'1px solid var(--bg-surface)', margin:'10px 0 4px', paddingTop:8 }}>
               {!collapsed && (
-                <p style={{ fontSize:9, fontWeight:800, textTransform:'uppercase',
+                <p style={{ fontSize:11, fontWeight:800, textTransform:'uppercase',
                   letterSpacing:'.1em', color:'var(--text-faint)', padding:'0 2px', margin:'0 0 6px' }}>
                   Design Tools
                 </p>
@@ -567,7 +567,7 @@ export default function CustomerLayout() {
                     whiteSpace:'nowrap', margin:0 }}>
                     {name}
                   </p>
-                  <p style={{ fontSize:9, color:'var(--text-subtle)', margin:0 }}>Client</p>
+                  <p style={{ fontSize:11, color:'var(--text-subtle)', margin:0 }}>Client</p>
                 </div>
               )}
             </div>
@@ -603,7 +603,7 @@ export default function CustomerLayout() {
                 overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                 VFRB
               </p>
-              <p style={{ fontSize:9, color:'rgba(255,255,255,.65)', fontWeight:600,
+              <p style={{ fontSize:11, color:'rgba(255,255,255,.65)', fontWeight:600,
                 textTransform:'uppercase', letterSpacing:'.07em', margin:0 }}>
                 Client Portal
               </p>

@@ -113,7 +113,22 @@ export default function MyDesigns() {
       )}
 
       {error && <EmptyState illustration="error" headline="Couldn't load your designs" sub="Check your connection and try again." cta={{ label: 'Retry', onClick: load }} />}
-      {empty && tab !== 'inspo' && <EmptyState illustration="order" headline="No designs yet" sub="Open the Design Studio to create your first custom uniform." cta={{ label: 'Open Design Studio', onClick: openStudioBlank }} />}
+      {empty && tab !== 'inspo' && (
+        <section className="cx-card" style={{ padding:'28px clamp(18px,4vw,36px)' }} aria-label="Get started">
+          <h2 style={{ margin:'0 0 4px', fontSize:20, fontWeight:800, color:'var(--ink)' }}>Create your first uniform design</h2>
+          <p style={{ margin:'0 0 20px', fontSize:14, color:'var(--text-muted)' }}>Designs you save appear here, ready to edit or order in bulk.</p>
+          <ol style={{ listStyle:'none', margin:'0 0 22px', padding:0, display:'grid', gap:12, gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))' }}>
+            {[['1','Design','Pick a garment in the Design Studio, then set colors, logo and text.'],['2','Save','Save it to keep your work. You can come back and edit any time.'],['3','Order','Tell us quantity and sizes. VFRB reviews the order before production.']].map(([n,t,d]) => (
+              <li key={n} style={{ padding:14, borderRadius:12, background:'var(--bg-surface)', border:'1px solid var(--border)' }}>
+                <span style={{ display:'inline-grid', placeItems:'center', width:26, height:26, borderRadius:'50%', background:'var(--teal)', color:'#fff', fontSize:12, fontWeight:800 }}>{n}</span>
+                <p style={{ margin:'8px 0 2px', fontWeight:800, fontSize:14, color:'var(--ink)' }}>{t}</p>
+                <p style={{ margin:0, fontSize:13, color:'var(--text-muted)', lineHeight:1.5 }}>{d}</p>
+              </li>
+            ))}
+          </ol>
+          <button className="cx-btn cx-btn-p" onClick={openStudioBlank}><NavIcon name="designStudio" size={15} color="#fff" /> Open Design Studio</button>
+        </section>
+      )}
       {tabEmpty && <EmptyState illustration="order" headline={tab === 'draft' ? 'Nothing editable right now' : tab === 'inspo' ? 'No inspiration yet' : 'No saved designs yet'}
         sub={tab === 'draft' ? 'Start a new design in the Design Studio.' : tab === 'inspo' ? 'Starter designs will appear here.' : 'Designs from completed orders will show up here.'} cta={{ label: 'Open Design Studio', onClick: openStudioBlank }} />}
 

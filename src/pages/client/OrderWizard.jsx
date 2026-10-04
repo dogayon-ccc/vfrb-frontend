@@ -259,7 +259,7 @@ function StepDesign({ form, set, errors, studio, onClearStudio, onOpenStudio }) 
         </motion.div>
       )}
 
-      <Adv on={!!studio} open={!form.garment_type}>
+      <Adv on={!!studio} open={!form.garment_type || !!errors.garment_type}>
       <div style={{ display:'flex', alignItems:'center', gap:10 }}>
         <div style={{ flex:1, height:1, background:'var(--border)' }}/>
         <span style={{ color:'var(--text-faint)', fontSize:11, whiteSpace:'nowrap', fontFamily:FONT }}>
@@ -753,10 +753,11 @@ function StepReview({ form, studio }) {
     return () => URL.revokeObjectURL(url);
   }, [form.design_ref_file]);
 
-  const previewPng  = studio?.previewPng || (() => {
+  // Only trust the stashed preview while a Studio design is loaded; a manual order must never show an earlier design's artwork.
+  const previewPng  = studio?.previewPng || (studio ? (() => {
     try { return sessionStorage.getItem('studio_preview') || null; }
     catch { return null; }
-  })();
+  })() : null);
   const bodyColor   = studio?.colors?.body ?? T;
   const garmentName = form.garment_type || studio?.garmentType || 'Custom Garment';
 
@@ -1002,10 +1003,10 @@ function SizeChartModal({ onClose }) {
         }}>
           <div>
             <p style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)',
-              margin: 0, fontFamily: FONT, display:'flex', alignItems:'center', gap:6 }}><NavIcon name="pattern" size={15} color="var(--ink)"/>Philippine Standard Sizing</p>
-            <p style={{ fontSize: 10, color: 'var(--text-subtle)', margin: '2px 0 0',
+              margin: 0, fontFamily: FONT, display:'flex', alignItems:'center', gap:6 }}><NavIcon name="pattern" size={15} color="var(--ink)"/>General Sizing Guide</p>
+            <p style={{ fontSize: 12, color: 'var(--text-subtle)', margin: '2px 0 0',
               fontFamily: FONT }}>
-              Common institutional uniform measurements · All values in cm
+              Generic reference only, in cm. This is not VFRB's pattern standard; VFRB confirms final measurements with you.
             </p>
           </div>
           <button onClick={onClose} style={{
@@ -1228,6 +1229,11 @@ export default function OrderWizard() {
 
   const validate = () => {
     const e = {};
+    // The artwork submitted with the order is the Studio design; a hand-edited garment type must not contradict it.
+    const designGarment = studio ? (studio.garmentType ?? studio.garment) : null;
+    if (designGarment && form.garment_type && designGarment !== form.garment_type) {
+      e.garment_type = `This order says "${form.garment_type}" but your design is a ${designGarment}. Use "Edit in Studio" or "Clear" to change the garment.`;
+    }
     if (step===0) {
       if (!form.garment_type) {
         e.garment_type = 'Required';
@@ -1320,7 +1326,7 @@ export default function OrderWizard() {
 
       // Ordered from My Designs' draft: the draft is now an order, so retire it (Studio's own "Order this" does the same).
       if (sessionStorage.getItem('studio_from_draft')) axios.delete('/api/customer/drafts/latest').catch(() => {});
-      ['studio_config','studio_color','studio_garment','studio_category','studio_from_draft']
+      ['studio_config','studio_color','studio_garment','studio_category','studio_preview','studio_from_draft']
         .forEach(k => sessionStorage.removeItem(k));
 
       // Confetti fires immediately; MaterialsReveal mounts once it finishes.
@@ -1402,6 +1408,7 @@ export default function OrderWizard() {
         <StepBar step={step}/>
         {(studio || form.garment_type) && (
           <div className="wz-mini" aria-label="Order snapshot">
+            <style>{`.wz-mini{display:none;align-items:center;gap:12px;padding:10px 12px;margin-bottom:14px;border:1px solid var(--border);border-radius:14px;background:#fff}.wz-mini-t{width:48px;height:48px;border-radius:10px;display:grid;place-items:center;overflow:hidden;flex-shrink:0}.wz-mini-t img{width:100%;height:100%;object-fit:contain}.wz-mini-n{margin:0;font-size:14px;font-weight:800;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wz-mini-s{margin:2px 0 0;font-size:12px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}@media(max-width:639px){.wz-mini{display:flex}}`}</style>
             <div className="wz-mini-t" style={{ background: studio?.previewPng ? 'var(--bg-surface)' : (studio?.colors?.body ?? 'var(--bg-surface)') }}>
               {studio?.previewPng ? <img src={studio.previewPng} alt=""/> : <NavIcon name="garmentType" size={20} color="#fff"/>}
             </div>

@@ -181,6 +181,10 @@ export default function DesignStudio() {
   useEffect(() => {
     if (viewMode === '3d' && familyFor(cfg.garment)?.status3D === 'none') setViewMode('2d');
   }, [cfg.garment, viewMode]);
+  // Picking a garment whose 3D is only approximate always lands on the reliable 2D view; the customer can opt into 3D.
+  useEffect(() => {
+    if (familyFor(cfg.garment)?.status3D === 'partial') setViewMode('2d');
+  }, [cfg.garment]);
 
   const logoUpload = useLogoUpload(addLogo);
   // A file dropped on the canvas goes through the same pipeline as the panel, and

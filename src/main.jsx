@@ -1,4 +1,5 @@
 // src/main.jsx — VFRB Enterprise Entry Point
+import './utils/safeStorage';
 import { StrictMode, Component } from 'react';
 import { createRoot } from 'react-dom/client';
 import './main.css';            // Tailwind v4 + VFRB design tokens (@theme tokens)

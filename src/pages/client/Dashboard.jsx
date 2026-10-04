@@ -194,6 +194,23 @@ export default function CustomerDashboard() {
 
       <div className="cx-dash-grid">
         <div style={{ display: 'grid', gap: 18, minWidth: 0, alignContent: 'start' }}>
+          {!loading && (() => {
+            const step = draft ? ['Your design is waiting', `${draft.label || draft.studio_config.garment} is saved but not ordered yet.`, 'Continue design', openStudio]
+              : inProd ? ['Your order is in production', 'Track each stage from the order page.', 'View orders', () => nav('/orders')]
+              : pending ? ['VFRB is reviewing your order', 'Questions or changes? Message staff while it is pending.', 'Open messages', () => nav('/messages')]
+              : total ? ['Need more uniforms?', 'Start from a saved design or begin a new one.', 'My designs', () => nav('/my-designs')]
+              : ['Start with a garment', 'Pick a garment, set colors and add your logo. Quantity and sizes come after.', 'Open Design Studio', openStudio];
+            return (
+              <section className="cx-card" aria-label="Next step" style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
+                <div style={{ minWidth: 0, flex: '1 1 220px' }}>
+                  <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: 'var(--teal-dark)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Next step</p>
+                  <p style={{ margin: '2px 0 0', fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>{step[0]}</p>
+                  <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--text-muted)' }}>{step[1]}</p>
+                </div>
+                <button className="cx-btn cx-btn-p" onClick={step[3]}>{step[2]}</button>
+              </section>
+            );
+          })()}
           {!loading && draft && (
             <section className="cx-card cx-cont" aria-label="Continue your design">
               <div className="cx-thumb" style={{ width: 56, height: 64, flexShrink: 0 }}><MiniPreview garment={draft.studio_config.garment} colors={draft.studio_config.colors ?? {}} /></div>

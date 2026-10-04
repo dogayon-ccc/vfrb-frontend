@@ -28,7 +28,8 @@ export default function DesignPreview({ cfg, previewUrl = null, referenceImageUr
   const garment = design?.garment ?? cfg?.garmentType ?? null;
   const fam = familyFor(garment);
   const can3D = !!(design && fam && fam.status3D !== 'none' && hasWebGL());
-  const note = fam && fam.status3D !== 'none' ? STATUS_3D_LABEL[fam.status3D]?.label : null;
+  const approx = fam?.status3D === 'partial';
+  const note = approx ? 'Approximate 3D: colors and fit may differ from your 2D design. The 2D design is what VFRB produces from.' : null;
   const sleeveGap = can3D && design.sleeve && !fam.sleeves3D.includes(design.sleeve);
 
   const flat = (
@@ -48,7 +49,7 @@ export default function DesignPreview({ cfg, previewUrl = null, referenceImageUr
       {can3D && (
         <div role="group" aria-label="Preview type" style={{ display: 'flex', gap: 6, marginBottom: 8, justifyContent: 'flex-end' }}>
           <button type="button" style={tab(view === '2d')} aria-pressed={view === '2d'} onClick={() => setView('2d')}>2D</button>
-          <button type="button" style={tab(view === '3d')} aria-pressed={view === '3d'} onClick={() => setView('3d')}>3D</button>
+          <button type="button" style={tab(view === '3d')} aria-pressed={view === '3d'} onClick={() => setView('3d')}>{approx ? '3D (approx.)' : '3D'}</button>
         </div>
       )}
       {view === '3d' && can3D ? (

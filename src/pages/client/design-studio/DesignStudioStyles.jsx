@@ -261,8 +261,8 @@ export default function DesignStudioStyles() {
       .ds-tp-thumb{flex:1;display:flex;align-items:center;justify-content:center;width:100%;border-radius:var(--r-md);background:var(--bg-surface);padding:8px 0;}
       .ds-tp-card[aria-pressed="true"] .ds-tp-thumb{background:var(--bg-card);}
       .ds-tp-name{font-size:var(--text-xs);font-weight:700;color:var(--ink);text-align:center;line-height:1.2;}
-      .ds-chip-note{font-size:9px;font-weight:800;opacity:.6;}
-      .ds-tp-chip{font-size:9px;font-weight:800;letter-spacing:.02em;padding:2px 7px;border-radius:99px;background:var(--bg-surface);color:var(--text-muted);}
+      .ds-chip-note{font-size:11px;font-weight:800;opacity:.6;}
+      .ds-tp-chip{font-size:11px;font-weight:800;letter-spacing:.02em;padding:2px 7px;border-radius:99px;background:var(--bg-surface);color:var(--text-muted);}
       .ds-tp-chip[data-tone="ok"]{background:#f0fdfa;color:#0f766e;}
       .ds-tp-chip[data-tone="warn"]{background:#fffbeb;color:#b45309;}
       .ds-tp-check{position:absolute;top:7px;right:7px;width:20px;height:20px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--teal);box-shadow:var(--shadow-sm);}
@@ -461,7 +461,7 @@ export default function DesignStudioStyles() {
       .ds-lay-pick{flex:1;min-width:0;min-height:40px;display:flex;align-items:center;gap:8px;padding:0 6px;border:0;background:none;cursor:pointer;text-align:left;color:var(--ink);}
       .ds-lay-type{width:26px;height:26px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:6px;background:var(--bg-card);color:var(--text-muted);}
       .ds-lay-name{flex:1;min-width:0;display:flex;flex-direction:column;font-size:var(--text-xs);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-      .ds-lay-name em{font-style:normal;font-size:10px;font-weight:600;color:var(--text-subtle);}
+      .ds-lay-name em{font-style:normal;font-size:11px;font-weight:600;color:var(--text-subtle);}
       .ds-lay-edit{flex:1;min-width:0;height:32px;padding:0 8px;border:1px solid var(--teal);border-radius:6px;font-size:var(--text-xs);}
       .ds-lay-btn{width:34px;height:34px;flex:none;display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:8px;background:none;color:var(--text-muted);cursor:pointer;}
       .ds-lay-btn:hover:not(:disabled){background:var(--bg-card);color:var(--ink);}
@@ -506,7 +506,7 @@ export default function DesignStudioStyles() {
   .ds-photo-card img{width:100%;aspect-ratio:3/4;object-fit:contain;background:#f4f6f8;display:block}
   .ds-photo-meta{display:flex;flex-direction:column;gap:2px;padding:8px 10px 10px}
   .ds-photo-meta strong{font-size:12px;color:#1a2332;line-height:1.3}
-  .ds-photo-meta span{font-size:10px;color:rgba(15,23,42,.6);line-height:1.35}
+  .ds-photo-meta span{font-size:11px;color:rgba(15,23,42,.6);line-height:1.35}
   @media (prefers-reduced-motion:reduce){.ds-photo-card{transition:none}.ds-photo-card:hover{transform:none}}
 `}</style>
   );

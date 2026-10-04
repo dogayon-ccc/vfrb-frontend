@@ -151,9 +151,12 @@ function PhotoCard({ d, onClick }) {
 
 function DesignBrowser({ onOpen, onOpen3D }) {
   const [filters, setFilters] = useState({});
+  const [kind, setKind] = useState('editable');
   const [preview, setPreview] = useState(null);
   const counts = useMemo(() => facetCounts(filters), [filters]);
-  const shown  = useMemo(() => filterDesigns(filters), [filters]);
+  const matched = useMemo(() => filterDesigns(filters), [filters]);
+  const kindCount = { editable: matched.filter(d => d.editable2D).length, reference: matched.filter(d => !d.editable2D).length, all: matched.length };
+  const shown = useMemo(() => kind === 'all' ? matched : matched.filter(d => kind === 'editable' ? d.editable2D : !d.editable2D), [matched, kind]);
 
   if (preview) {
     const t = TIER_LABEL[preview.tier];
@@ -179,6 +182,11 @@ function DesignBrowser({ onOpen, onOpen3D }) {
     <>
       <input type="search" className="ds-gal-search" placeholder="Search photos (blazer, mandarin, scrub…)" aria-label="Search photos"
         value={filters.q ?? ''} onChange={e => setFilters(f => ({ ...f, q: e.target.value }))}/>
+      <div role="group" aria-label="Photo type" style={{ display:'flex', gap:6, flexWrap:'wrap', margin:'0 0 10px' }}>
+        {[['editable','Editable in Studio'],['reference','Inspiration only'],['all','All']].map(([id,lbl]) => (
+          <button key={id} type="button" className="ds-chip" aria-pressed={kind === id} onClick={() => setKind(id)}>{lbl} ({kindCount[id]})</button>
+        ))}
+      </div>
       <div className="ds-gal-filters">
         {FILTERS.map(([key, label, options]) => (
           <FilterRow key={key} label={label} options={options} value={filters[key]} counts={counts[key]} totals={TOTALS[key]}
@@ -186,7 +194,7 @@ function DesignBrowser({ onOpen, onOpen3D }) {
         ))}
       </div>
       <p className="ds-note" style={{ margin:'0 0 8px' }}>
-        {active ? `${shown.length} of ${ENTRIES.length} photos` : `${ENTRIES.length} VFRB photos`}
+        {`${shown.length} photos`}
         {active && (
           <> · <button type="button" onClick={() => setFilters({})}
             style={{ background:'none', border:'none', padding:0, color:T2, fontWeight:700, cursor:'pointer' }}>Clear filters</button></>

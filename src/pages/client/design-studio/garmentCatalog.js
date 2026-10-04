@@ -151,7 +151,7 @@ export function neighborFamily(category, garment, dir) {
 // honestly at selection time instead of only discovered after switching to the 3D tab.
 export const STATUS_3D_LABEL = {
   supported: { label: '3D', tone: 'ok' },
-  partial:   { label: '3D (partial)', tone: 'warn' },
+  partial:   { label: '3D (approx.)', tone: 'warn' },
   none:      { label: '2D only', tone: 'muted' },
 };
 
