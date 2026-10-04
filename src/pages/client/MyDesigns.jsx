@@ -12,7 +12,7 @@
 // data the Studio already writes.
 import { stashStudioConfig } from '../../utils/studioHandoff';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import EmptyState from '../../components/EmptyState';
@@ -55,7 +55,8 @@ export default function MyDesigns() {
   const [tpl, setTpl] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [tab, setTab] = useState('all');
+  const [sp] = useSearchParams();
+  const [tab, setTab] = useState(() => ['draft', 'ordered', 'inspo'].includes(sp.get('tab')) ? sp.get('tab') : 'all');
   const [q, setQ] = useState('');
 
   const load = () => {
@@ -97,7 +98,7 @@ export default function MyDesigns() {
 
   return (
     <div className="cx-page">
-      <PageHeader title="My Designs" subtitle={total ? `${total} of your design${total !== 1 ? 's' : ''} · editable and saved` : 'Your work in progress, saved designs and inspiration'}>
+      <PageHeader title="My Designs" subtitle={total ? `${total} of your own design${total !== 1 ? 's' : ''}${nInspo ? ` · ${nInspo} inspiration` : ''}` : 'Your work in progress, saved designs and inspiration'}>
         {!empty && <button className="cx-btn cx-btn-p" onClick={openStudioBlank}><NavIcon name="designStudio" size={15} color="#fff" /> New Design</button>}
       </PageHeader>
 
@@ -105,7 +106,7 @@ export default function MyDesigns() {
         <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <input type="search" className="cx-in" value={q} onChange={e => setQ(e.target.value)} placeholder="Search designs" aria-label="Search designs" style={{ maxWidth: 420 }} />
           <Chips label="Filter designs" value={tab} onChange={setTab}
-            items={[{ id: 'all', label: 'All', count: total }, { id: 'draft', label: 'Editable', count: nDraft }, { id: 'ordered', label: 'Saved', count: nOrdered }, ...(nInspo ? [{ id: 'inspo', label: 'Inspiration', count: nInspo }] : [])]} />
+            items={[{ id: 'all', label: 'All', count: total }, { id: 'draft', label: 'Drafts', count: nDraft }, { id: 'ordered', label: 'Ordered before', count: nOrdered }, ...(nInspo ? [{ id: 'inspo', label: 'Inspiration', count: nInspo }] : [])]} />
         </div>
       )}
 
@@ -130,8 +131,8 @@ export default function MyDesigns() {
           <button className="cx-btn cx-btn-p" onClick={openStudioBlank}><NavIcon name="designStudio" size={15} color="#fff" /> Open Design Studio</button>
         </section>
       )}
-      {tabEmpty && <EmptyState illustration="order" headline={tab === 'draft' ? 'Nothing editable right now' : tab === 'inspo' ? 'No inspiration yet' : 'No saved designs yet'}
-        sub={tab === 'draft' ? 'Start a new design in the Design Studio.' : tab === 'inspo' ? 'Starter designs will appear here.' : 'Designs from completed orders will show up here.'} cta={{ label: 'Open Design Studio', onClick: openStudioBlank }} />}
+      {tabEmpty && <EmptyState illustration="order" headline={tab === 'draft' ? 'No drafts right now' : tab === 'inspo' ? 'No inspiration yet' : 'No past orders yet'}
+        sub={tab === 'draft' ? 'Start a new design in the Design Studio.' : tab === 'inspo' ? 'Starter designs will appear here.' : 'Designs from your completed orders will show up here.'} cta={{ label: 'Open Design Studio', onClick: openStudioBlank }} />}
 
       {noMatch && <EmptyState illustration="order" headline="No designs match your search" sub="Try a different garment name." />}
 
@@ -140,12 +141,12 @@ export default function MyDesigns() {
           {showDraft && (
             <DesignCard i={0} img={draft.preview_dataurl} garment={cfg.garment} colors={cfg.colors}
               title={draft.label || cfg.garment || 'Untitled design'} meta={`${cfg.category ?? 'Design'} · edited ${reltime(draft.updated_at)}`}
-              badge="Editable" tone={DRAFT} primary={{ label: 'Continue editing', onClick: continueDraft }} secondary={{ label: 'Order this', onClick: orderDraft }} />
+              badge="Draft" tone={DRAFT} primary={{ label: 'Continue editing', onClick: continueDraft }} secondary={{ label: 'Order this', onClick: orderDraft }} />
           )}
           {showPast && shownPast.map((d, i) => (
             <DesignCard key={d.id} i={i + 1} img={d.photo_path} garment={d.garment} colors={d.config?.colors}
               title={d.label || d.garment || 'Design'} meta={[d.category, d.sleeve].filter(Boolean).join(' · ') || fmtDate(d.updated_at ?? d.created_at)}
-              badge="Saved" tone={ORDERED} primary={{ label: 'Reuse in Studio', onClick: () => orderAgain(d), disabled: !d.config?.garment }} />
+              badge="Ordered before" tone={ORDERED} primary={{ label: 'Reuse in Studio', onClick: () => orderAgain(d), disabled: !d.config?.garment }} />
           ))}
           {shownTpl.map((d, i) => (
             <DesignCard key={`t${d.id}`} i={i} img={d.photo_path} garment={d.garment} colors={d.config?.colors}

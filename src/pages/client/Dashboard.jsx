@@ -78,6 +78,7 @@ export default function CustomerDashboard() {
   const [draft, setDraft] = useState(null);
   const openStudio = () => { try { if (draft?.studio_config) sessionStorage.setItem('studio_config', JSON.stringify(draft.studio_config)); else sessionStorage.removeItem('studio_config'); } catch { /* private mode */ } nav('/design-studio'); };
   const [designs, setDesigns] = useState([]);
+  const [inspoCount, setInspoCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [notifsError, setNotifsError] = useState(false);
@@ -112,7 +113,7 @@ export default function CustomerDashboard() {
     if (n.status === 'fulfilled' && n.value) { const l = asList(n.value.data); setNotifs(l); setNotifsError(false); cacheSet('customer_notifs', l, TTL.NOTIFICATIONS); }
     else if (n.status === 'rejected' && !cn) setNotifsError(true);
     if (d.status === 'fulfilled' && d.value.data?.draft?.studio_config?.garment) setDraft(d.value.data.draft);
-    if (g.status === 'fulfilled' && Array.isArray(g.value.data)) setDesigns(g.value.data.filter(x => x.is_archived && x.config?.garment).slice(0, 4));
+    if (g.status === 'fulfilled' && Array.isArray(g.value.data)) { setDesigns(g.value.data.filter(x => x.is_archived && x.config?.garment).slice(0, 4)); setInspoCount(g.value.data.filter(x => !x.is_archived && x.config?.garment).length); }
     setLoading(false);
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -193,7 +194,7 @@ export default function CustomerDashboard() {
       </div>
 
       <div className="cx-dash-grid">
-        <div style={{ display: 'grid', gap: 18, minWidth: 0, alignContent: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', gap: 18, minWidth: 0, alignContent: 'start' }}>
           {!loading && (() => {
             const step = draft ? ['Your design is waiting', `${draft.label || draft.studio_config.garment} is saved but not ordered yet.`, 'Continue design', openStudio]
               : inProd ? ['Your order is in production', 'Track each stage from the order page.', 'View orders', () => nav('/orders')]
@@ -229,7 +230,7 @@ export default function CustomerDashboard() {
                 <h2 style={{ fontSize: 15, fontWeight: 800, margin: 0 }}>Active Orders{active.length > 0 && ` (${active.length})`}</h2>
                 <Link to="/orders" className="cx-link">View all →</Link>
               </div>
-              <div style={{ display: 'grid', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', gap: 12 }}>
                 {loading ? [1, 2].map(i => <div key={i} className="cx-card" style={{ padding: 16 }}><Skeleton h={48} /><Skeleton h={28} style={{ marginTop: 14 }} /></div>)
                   : shownActive.map(o => <ActiveOrder key={o.order_id} order={o} />)}
               </div>
@@ -279,7 +280,7 @@ export default function CustomerDashboard() {
         </div>
 
         {/* Right rail */}
-        <aside style={{ display: 'grid', gap: 16, alignContent: 'start', minWidth: 0 }}>
+        <aside style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', gap: 16, alignContent: 'start', minWidth: 0 }}>
           <section className="cx-card" aria-label="Notifications">
             <div className="cx-card-h">
               <h2>Notifications{unread > 0 && <span className="cx-pill" style={{ background: 'var(--danger)', color: '#fff', marginLeft: 8 }}>{unread}</span>}</h2>
@@ -311,8 +312,8 @@ export default function CustomerDashboard() {
           </section>
           <section className="cx-card" aria-label="Quick actions">
             <div className="cx-card-h"><h2>Quick actions</h2></div>
-            {[['New design', '/design-studio'], ['My designs', '/my-designs'], ['My orders', '/orders'], ['Messages', '/messages']].map(([label, to]) => (
-              <button key={to} type="button" className="cx-row" style={{ minHeight: 44 }} onClick={() => nav(to)}>
+            {[['New design', '/design-studio'], ['My designs', '/my-designs'], ...(inspoCount ? [['Browse inspiration', '/my-designs?tab=inspo']] : []), ['My orders', '/orders'], ['Messages', '/messages']].map(([label, to]) => (
+              <button key={label} type="button" className="cx-row" style={{ minHeight: 44 }} onClick={() => nav(to)}>
                 <span style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{label}</span>
                 <span aria-hidden="true" style={{ color: 'var(--text-subtle)' }}>→</span>
               </button>

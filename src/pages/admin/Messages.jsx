@@ -23,7 +23,8 @@ const initials = (n) => (n ?? '?').split(' ').map((w) => w[0]).slice(0, 2).join(
 export default function AdminMessages() {
   const nav = useNavigate();
   const [params] = useSearchParams();
-  const deepId = Number(params.get('order')) || null;
+  const rawOrder = Number(params.get('order'));
+  const deepId = Number.isInteger(rawOrder) && rawOrder > 0 ? rawOrder : null; // adminShow(int $id) 500s on non-integers
   const [threads, setThreads] = useState([]);
   const [draftThread, setDraftThread] = useState(null);
   const [selId, setSelId] = useState(deepId);

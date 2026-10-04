@@ -44,7 +44,13 @@ export default function Login() {
       const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
       navigate(data.user.email_verified_at || isLocalhost ? '/dashboard' : '/verify-email');
     } catch (err) {
-      setError(err.response?.data?.message ?? 'Invalid email or password.');
+      const st = err.response?.status;
+      setError(
+        !err.response ? 'Cannot reach the server. Check your connection and that the backend is running.'
+        : st === 404 ? 'Server endpoint not found (404). The backend is not reachable at this address.'
+        : st >= 500 ? 'The server had a problem. Please try again.'
+        : err.response.data?.message ?? 'Invalid email or password.'
+      );
     } finally {
       setLoading(false);
     }

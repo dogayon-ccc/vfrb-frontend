@@ -158,12 +158,8 @@ export default function CustomerOrders() {
       <style>{`
         .cx-ord-tools{display:flex;gap:10px;flex-direction:column}
         @media(min-width:560px){.cx-ord-tools{flex-direction:row}}
-        .cx-in{width:100%;min-height:44px;padding:0 14px;border-radius:12px;border:1px solid var(--border);background:var(--bg-card);color:var(--ink);font-size:13px;outline:none;font-family:inherit;transition:border-color .15s,box-shadow .15s}
-        .cx-in:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(2,128,144,.12)}
-        .cx-sel{width:auto;min-width:160px}
         .cx-ord-cards{display:grid;gap:12px;grid-template-columns:1fr}
         @media(min-width:640px){.cx-ord-cards{grid-template-columns:1fr 1fr}}
-        .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
       `}</style>
     </div>
   );

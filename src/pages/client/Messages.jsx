@@ -115,7 +115,7 @@ export default function CustomerMessages() {
   const [threadError, setThreadError] = useState(false);
   const [q, setQ] = useState('');
   const [mobileView, setMobileView] = useState('list'); // list | thread — mobile-only nav, matches Figma's separate screens
-  const msgEnd = useRef(null);
+  const logRef = useRef(null);
   const meId = JSON.parse(localStorage.getItem('vfrb_user') || '{}')?.user_id;
 
   const loadOrders = useCallback(() => {
@@ -161,7 +161,11 @@ export default function CustomerMessages() {
     setMsgs(prev => (prev.length === next.length && prev.at(-1)?.message_id === next.at(-1)?.message_id) ? prev : next);
     setThreadError(false);
   }, 30_000, [selId]);
-  useEffect(() => { msgEnd.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs.length]);
+  useEffect(() => {
+    // Scroll only the thread log; scrollIntoView also scrolled the page and pushed the header under the topbar.
+    const el = logRef.current; if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  }, [msgs.length, selId]);
 
   const openThread = (id) => { setSelId(id); setMobileView('thread'); };
 
@@ -265,7 +269,7 @@ export default function CustomerMessages() {
             {selOrder && <button className="cx-btn cx-btn-s" style={{ minHeight: 36, padding: '0 12px', fontSize: 12 }} onClick={() => nav(`/orders/${selId}`)}>View order</button>}
           </div>
 
-          <div role="log" aria-live="polite" aria-label="Message thread" style={{ flex: 1, overflowY: 'auto', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div ref={logRef} role="log" aria-live="polite" aria-label="Message thread" style={{ flex: 1, overflowY: 'auto', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 6 }}>
             {loading ? <Loading/> : !selId ? (
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', padding: '16px 0' }}>
                 {ordersError
@@ -295,7 +299,6 @@ export default function CustomerMessages() {
                   : <Bubble key={item.key} msg={item.msg} isMe={item.isMe} showTime={item.showTime} isOptimistic={item.isOptimistic}/>)}
               </AnimatePresence>
             )}
-            <div ref={msgEnd}/>
           </div>
 
           <AnimatePresence>
