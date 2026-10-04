@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { NavIcon } from '../../components/ui/icons';
 import { PageHeader, StatusPill, SearchBox, SkeletonRows, ErrorBlock } from '../../components/admin/AdminUI';
@@ -22,9 +22,12 @@ const initials = (n) => (n ?? '?').split(' ').map((w) => w[0]).slice(0, 2).join(
 
 export default function AdminMessages() {
   const nav = useNavigate();
+  const [params] = useSearchParams();
+  const deepId = Number(params.get('order')) || null;
   const [threads, setThreads] = useState([]);
-  const [selId, setSelId] = useState(null);
-  const [mobileView, setMobileView] = useState('list');
+  const [draftThread, setDraftThread] = useState(null);
+  const [selId, setSelId] = useState(deepId);
+  const [mobileView, setMobileView] = useState(deepId ? 'thread' : 'list');
   const [msgs, setMsgs] = useState([]);
   const [newMsg, setNewMsg] = useState('');
   const [loading, setLoading] = useState(true);
@@ -55,6 +58,23 @@ export default function AdminMessages() {
   }, [selId]);
 
   useEffect(() => { loadThreads(); }, [loadThreads]);
+
+  // Deep link from Order Detail (?order=ID): threads only exist once someone has
+  // messaged, so for an order with no thread yet, build the header from the real order.
+  useEffect(() => {
+    if (!deepId || loading || threads.some((t) => (t.order_id ?? t.id) === deepId)) return;
+    let off = false;
+    axios.get(`/api/admin/orders/${deepId}`).then((r) => {
+      const o = r.data?.order ?? r.data;
+      if (off || !o) return;
+      setDraftThread({ order_id: o.order_id, customer_name: o.user?.name ?? o.customer_name, organization_name: o.user?.organization_name ?? o.organization_name,
+        garment_type: o.garment_type, status: o.status, unread_count: 0, last_body: '', last_message_at: null });
+    }).catch(() => {});
+    return () => { off = true; };
+  }, [deepId, loading, threads]);
+  const allThreads = useMemo(
+    () => (draftThread && !threads.some((t) => (t.order_id ?? t.id) === draftThread.order_id) ? [draftThread, ...threads] : threads),
+    [threads, draftThread]);
   useEffect(() => {
     setMsgs([]); loadMsgs();
     const iv = setInterval(loadMsgs, 60000);
@@ -77,14 +97,14 @@ export default function AdminMessages() {
     } finally { setSending(false); }
   };
 
-  const unreadTotal = threads.reduce((s, t) => s + (Number(t.unread_count) || 0), 0);
+  const unreadTotal = allThreads.reduce((s, t) => s + (Number(t.unread_count) || 0), 0);
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    return threads.filter((t) => (!unreadOnly || Number(t.unread_count) > 0)
+    return allThreads.filter((t) => (!unreadOnly || Number(t.unread_count) > 0)
       && (!q || String(t.order_id).includes(q) || t.customer_name?.toLowerCase().includes(q)
         || t.organization_name?.toLowerCase().includes(q) || t.last_body?.toLowerCase().includes(q)));
-  }, [threads, search, unreadOnly]);
-  const sel = threads.find((t) => (t.order_id ?? t.id) === selId);
+  }, [allThreads, search, unreadOnly]);
+  const sel = allThreads.find((t) => (t.order_id ?? t.id) === selId);
 
   const pick = (tid) => { setSelId(tid); setMobileView('thread'); setThreads((p) => p.map((t) => ((t.order_id ?? t.id) === tid ? { ...t, unread_count: 0 } : t))); };
 
@@ -100,7 +120,7 @@ export default function AdminMessages() {
 
   return (
     <>
-      <PageHeader title="Messages" sub={loading ? 'Loading conversations…' : `${threads.length} conversation${threads.length !== 1 ? 's' : ''}${unreadTotal ? ` · ${unreadTotal} unread` : ''}`} />
+      <PageHeader title="Messages" sub={loading ? 'Loading conversations…' : `${allThreads.length} conversation${allThreads.length !== 1 ? 's' : ''}${unreadTotal ? ` · ${unreadTotal} unread` : ''}`} />
       {loadErr && <div style={{ marginBottom: 12 }}><ErrorBlock msg="Could not load conversations." onRetry={loadThreads} /></div>}
 
       <div className="msg-wrap">

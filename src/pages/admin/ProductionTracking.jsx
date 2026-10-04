@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { cacheGet, cacheSet, cacheClear } from '../../utils/cache';
 import { NavIcon } from '../../components/ui/icons';
-import { PageHeader, Panel, StatusPill, Toast, useToast, SkeletonRows, ErrorBlock } from '../../components/admin/AdminUI';
+import { PageHeader, Panel, StatusPill, Meter, Toast, useToast, SkeletonRows, ErrorBlock } from '../../components/admin/AdminUI';
 
 const STAGES = [
   { key: 'pattern', label: 'Pattern', icon: 'pattern', desc: 'Pattern preparation and layout' },
@@ -85,7 +85,8 @@ export default function ProductionTracking() {
   const cur = STAGES.find((s) => s.key === status);
   const isComplete = status === 'completed';
   const isCancelled = status === 'cancelled';
-  const qcHold = status === 'sewing' && order?.qc_required === 1 && !order?.qc_passed_at;
+  // Backend gate (ProductionController::advance) blocks qc → pressing, not sewing → qc.
+  const qcHold = status === 'qc' && !!Number(order?.qc_required) && !order?.qc_passed_at;
   const canAdvance = !isComplete && !isCancelled && !!nextStatus && nextStatus !== 'completed' && !qcHold;
   const pct = curIdx >= 0 ? Math.round((curIdx / (STATUS_SEQ.length - 1)) * 100) : 0;
   const stageIdx = STAGES.findIndex((s) => s.key === status);
@@ -141,7 +142,7 @@ export default function ProductionTracking() {
             </Panel>
 
             {qcHold && (
-              <Callout tone="danger" icon="lock" title="QC hold — cannot advance to QC stage">
+              <Callout tone="danger" icon="lock" title="QC hold — cannot advance to Pressing">
                 Complete the QC checklist (80/20 inspection) and submit a PASS result to release this hold.{' '}
                 <button className="adm-link-btn" onClick={() => navigate('/admin/qc')}>Open QC checklist</button>
               </Callout>
@@ -207,17 +208,26 @@ export default function ProductionTracking() {
                 <dt>Deadline</dt><dd>{order?.target_delivery_date || order?.deadline ? fmtDate(order.target_delivery_date ?? order.deadline) : '—'}</dd>
               </dl>
             </Panel>
-            <Panel title="Stage history" flush>
-              {tracking.length === 0 ? <div className="adm-empty">No stage activity recorded yet.</div> : (
-                <ul className="adm-tl" style={{ padding: '16px 18px 2px' }}>
-                  {tracking.map((t, i) => (
-                    <li key={i} className={t.stage === status ? 'now' : ''}>
-                      <div style={{ fontWeight: 700, textTransform: 'capitalize' }}>{t.stage}</div>
-                      {t.notes && <div style={{ color: 'var(--text-subtle)' }}>{t.notes}</div>}
-                      <div style={{ color: 'var(--text-faint)', fontSize: 11 }}>{fmtDate(t.completed_at)}{t.completed_by ? ` · by ${t.completed_by}` : ''}</div>
-                    </li>
-                  ))}
-                </ul>
+            <Panel title="Stage progress">
+              {!Array.isArray(tracking) || tracking.every((t) => !Number(t.qty_completed)) ? (
+                <div className="adm-empty">{status === 'pending' ? 'Production starts once the order is confirmed.' : 'No output logged yet.'}</div>
+              ) : (
+                <div className="adm-od-stages">
+                  {tracking.filter((t) => Number(t.qty_completed) > 0 || t.stage === status).map((t) => {
+                    const target = Number(t.qty_target) || 0;
+                    const done = Number(t.qty_completed) || 0;
+                    const complete = target > 0 && done >= target;
+                    return (
+                      <div key={t.stage} className="adm-od-stage">
+                        <div className="adm-od-stage-top">
+                          <span style={{ fontWeight: 700, textTransform: 'capitalize', color: t.stage === status ? 'var(--teal)' : 'var(--ink)' }}>{t.stage === 'qc' ? 'QC' : t.stage}</span>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: complete ? 'var(--success-text)' : 'var(--text-subtle)' }}>{done} / {target} pcs</span>
+                        </div>
+                        <Meter pct={target > 0 ? (done / target) * 100 : 0} tone={complete ? 'ok' : undefined} />
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </Panel>
           </div>

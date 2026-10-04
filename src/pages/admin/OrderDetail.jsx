@@ -272,6 +272,18 @@ export default function AdminOrderDetail() {
             </div>
           </Panel>
 
+          <Panel title="Size Breakdown" style={{ order:3 }}>
+            {(order.measurements ?? []).length === 0 ? (
+              <EmptyBlock>No size breakdown submitted.</EmptyBlock>
+            ) : (
+              <div className="adm-chipset">
+                {order.measurements.map((m) => (
+                  <span key={m.measurement_id}><i>{m.size_label ?? (m.type === 'custom' ? 'Custom' : '—')}</i>{m.qty ?? '—'}</span>
+                ))}
+              </div>
+            )}
+          </Panel>
+
           <Panel title="Production" style={{ order:4 }}
             action={<button className="adm-link-btn" onClick={() => navigate(`/admin/production/${order.order_id}`)}>Open tracking →</button>}>
             {stages === null ? (
@@ -320,8 +332,8 @@ export default function AdminOrderDetail() {
           </Panel>
 
           <Panel title="Communication" style={{ order:7 }}>
-            <button className="adm-btn" onClick={() => navigate('/admin/messages')} style={{ width:'100%', justifyContent:'center' }}>
-              <NavIcon name="messages" size={14} color="currentColor" /> Open messages
+            <button className="adm-btn" onClick={() => navigate(`/admin/messages?order=${order.order_id}`)} style={{ width:'100%', justifyContent:'center' }}>
+              <NavIcon name="messages" size={14} color="currentColor" /> Message customer about #{order.order_id}
             </button>
           </Panel>
         </div>
@@ -375,11 +387,12 @@ export default function AdminOrderDetail() {
             ) : (
               <div className="adm-tbl-scroll">
                 <table className="adm-table">
-                  <thead><tr><th>Material</th><th>Actual Used</th><th>In Stock</th></tr></thead>
+                  <thead><tr><th>Material</th><th>Customer</th><th>Actual Used</th><th>In Stock</th></tr></thead>
                   <tbody>
                     {recs.map((rec, i) => (
                       <tr key={rec.rec_id ?? i}>
                         <td style={{ fontWeight:600 }}>{rec.material_name ?? rec.material?.material_name ?? rec.category ?? '—'}</td>
+                        <td style={{ textTransform:'capitalize' }}>{rec.customer_accepted ? 'Accepted' : (rec.status ?? 'pending')}</td>
                         <td>{rec.actual_qty_issued != null ? `${rec.actual_qty_issued} ${rec.unit ?? ''}` : <span style={{ color:'var(--text-faint)' }}>Not yet issued</span>}</td>
                         <td style={{ color:'var(--text-subtle)' }}>{rec.material?.quantity_in_stock ?? '—'} {rec.material?.unit ?? ''}</td>
                       </tr>
