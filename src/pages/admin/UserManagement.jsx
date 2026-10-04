@@ -65,16 +65,15 @@ function CreateUserModal({ onClose, onDone, isMobile }) {
               <label style={lbl}>Job Function</label>
               <select value={form.job_function} onChange={e=>set('job_function',e.target.value)} style={{ ...inp, cursor:'pointer' }}>
                 <option value="general">General (sees all operational pages — default)</option>
-                <option value="production">Production (Production, Output Log, QC, Incidents only)</option>
-                <option value="inventory">Inventory (Inventory, Materials, Usage Rates, Physical Count only)</option>
-                <option value="sales">Sales (not yet enforced — behaves as General for now)</option>
+                <option value="production">Production (Production, Output Log, QC Checklist, Incidents)</option>
+                <option value="inventory">Inventory (Inventory, Materials, Physical Count, Procurement)</option>
+                <option value="sales">Sales (Orders, Clients, Messages, Delivery, Sales & Pay — no Production or Inventory pages)</option>
               </select>
               <p style={{ fontSize:10.5, color:'var(--text-faint)', margin:'4px 0 0' }}>
-                Restricts which admin pages this account can see and use, enforced
-                server-side — currently true for Production and Inventory only.
-                Sales is not yet wired to any route restriction; an account set to
-                Sales has the same full access as General until that's built.
-              </p>
+                Restricts which admin pages this account can open. Production and Inventory
+                restrictions are enforced by the server; Procurement and the read-only stock list
+                are hidden in the menu but not blocked server-side, and every staff account can
+                view Settings. Managers always have full access.</p>
             </div>
           )}
           <div>
