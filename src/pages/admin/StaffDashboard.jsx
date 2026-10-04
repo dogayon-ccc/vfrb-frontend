@@ -49,6 +49,12 @@ export default function StaffDashboard() {
   const actions = fn === 'production'
     ? <button className="adm-btn primary" onClick={() => nav('/admin/output-log')}><NavIcon name="production" size={14} color="currentColor" /> Log output</button>
     : fn === 'sales' ? null
+    : fn === 'inventory' ? (
+      <div className="adm-qa">
+        <button className="adm-btn" onClick={() => nav('/admin/physical-count')}><NavIcon name="physicalCount" size={14} color="currentColor" /> Count</button>
+        <button className="adm-btn primary" onClick={() => nav('/admin/inventory')}><NavIcon name="stockIn" size={14} color="currentColor" /> Stock in</button>
+      </div>
+    )
     : (
       <div className="adm-qa">
         <button className="adm-btn" onClick={() => nav('/admin/physical-count')}><NavIcon name="physicalCount" size={14} color="currentColor" /> Count</button>
