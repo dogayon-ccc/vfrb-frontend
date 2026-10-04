@@ -37,7 +37,7 @@ export default function ForgotPassword() {
   };
 
   return (
-    <AuthShell title="Reset Password" subtitle="">
+    <AuthShell title="Reset Password" subtitle={sent ? null : "Enter your registered email address and we'll send you a password reset link."}>
       <div style={{ padding: '4px 0 0' }}>
         {sent ? (
           <div style={{ textAlign: 'center' }}>
@@ -60,18 +60,15 @@ export default function ForgotPassword() {
           </div>
         ) : (
           <form onSubmit={submit}>
-            <p style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.7, marginBottom: 20 }}>
-              Enter your registered email address and we'll send you a password reset link.
-            </p>
             {error && (
-              <div style={{ background: 'var(--danger-bg)', border: '1px solid var(--danger-border)', borderRadius: 10,
+              <div role="alert" style={{ background: 'var(--danger-bg)', border: '1px solid var(--danger-border)', borderRadius: 10,
                 padding: '10px 14px', marginBottom: 16, color: 'var(--danger)', fontSize: 13 }}>
                 {error}
               </div>
             )}
             <label style={{ display: 'block', marginBottom: 16 }}>
               <span style={{ color: 'var(--ink)', fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>Email Address</span>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)}
+              <input type="email" autoComplete="email" inputMode="email" aria-invalid={!!error} value={email} onChange={e => setEmail(e.target.value)}
                 onFocus={() => setFocused('email')} onBlur={() => setFocused('')}
                 placeholder="your@email.com" required style={authInput(focused, 'email', error)}/>
             </label>
@@ -82,8 +79,8 @@ export default function ForgotPassword() {
                 boxShadow: loading ? 'none' : '0 4px 20px rgba(2,128,144,.3)', marginBottom: 12 }}>
               {loading ? 'Sending…' : 'Send Reset Link'}
             </motion.button>
-            <button type="button" onClick={() => navigate(backTo, { replace: true })} style={{ width: '100%', padding: 12, borderRadius: 11,
-              background: 'none', border: '1.5px solid var(--border)', color: 'var(--text-muted)', fontSize: 13,
+            <button type="button" onClick={() => navigate(backTo, { replace: true })} style={{ width: '100%', minHeight: 48, padding: 12, borderRadius: 12,
+              background: 'none', border: '1.5px solid var(--border)', color: 'var(--text-muted)', fontSize: 14,
               cursor: 'pointer', fontWeight: 500 }}>
               ← {backLabel}
             </button>

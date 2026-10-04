@@ -97,7 +97,7 @@ export default function CustomerRegister() {
                 <button key={ct.id} type="button" onClick={() => set('client_type', ct.id)}
                   style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 12px', borderRadius: 11,
                     textAlign: 'left', cursor: 'pointer', background: active ? 'rgba(2,128,144,.08)' : 'var(--bg-card)',
-                    border: `1.5px solid ${active ? T : 'var(--border)'}`, color: active ? T : 'var(--ink)',
+                    border: `1.5px solid ${active ? T : 'var(--border)'}`, color: active ? 'var(--teal-dark)' : 'var(--ink)',
                     fontSize: 12.5, fontWeight: active ? 600 : 500 }}>
                   <NavIcon name={ct.icon} size={16} color={active ? T : 'var(--text-subtle)'}/>
                   {ct.label}

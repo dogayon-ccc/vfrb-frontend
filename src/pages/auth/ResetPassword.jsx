@@ -39,9 +39,8 @@ export default function ResetPassword() {
   };
 
   return (
-    <AuthShell title="Set New Password" subtitle="">
-      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 28,
-        boxShadow: '0 4px 20px rgba(0,0,0,.04)' }}>
+    <AuthShell title="Set New Password" subtitle={done ? null : "Choose a new password for your account."}>
+      <div>
         {done ? (
           <div style={{ textAlign: 'center' }}>
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
@@ -63,17 +62,17 @@ export default function ResetPassword() {
         ) : (
           <form onSubmit={submit}>
             {error && (
-              <div style={{ background: 'var(--danger-bg)', border: '1px solid var(--danger-border)', borderRadius: 10,
+              <div role="alert" style={{ background: 'var(--danger-bg)', border: '1px solid var(--danger-border)', borderRadius: 10,
                 padding: '10px 14px', marginBottom: 16, color: 'var(--danger)', fontSize: 13 }}>
                 {error}
               </div>
             )}
-            {[['Email', 'email', 'email', 'your@email.com'],
-              ['New Password', 'password', 'password', 'Min. 8 characters'],
-              ['Confirm Password', 'password_confirmation', 'password', 'Repeat new password']].map(([label, key, type, ph]) => (
+            {[['Email', 'email', 'email', 'your@email.com', 'username'],
+              ['New Password', 'password', 'password', 'Min. 8 characters', 'new-password'],
+              ['Confirm Password', 'password_confirmation', 'password', 'Repeat new password', 'new-password']].map(([label, key, type, ph, ac]) => (
               <label key={key} style={{ display: 'block', marginBottom: 14 }}>
                 <span style={{ color: 'var(--ink)', fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>{label}</span>
-                <input type={type} value={form[key]} placeholder={ph} onChange={e => set(key, e.target.value)}
+                <input type={type} autoComplete={ac} value={form[key]} placeholder={ph} onChange={e => set(key, e.target.value)}
                   onFocus={() => setFocused(key)} onBlur={() => setFocused('')} required style={authInput(focused, key, error)}/>
               </label>
             ))}

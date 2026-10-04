@@ -83,7 +83,7 @@ export default function Gallery() {
             {items.map((g, i) => (
               <li key={g.photo.src}>
                 <button type="button" className="vs-tile" onClick={() => setOpen(i)} aria-label={`View larger: ${g.caption}`}>
-                  <Photo as="span" photo={g.photo} pos={g.pos} caption={g.caption} />
+                  <Photo as="span" photo={{ ...g.photo, alt: '' }} pos={g.pos} caption={g.caption} />
                 </button>
               </li>
             ))}

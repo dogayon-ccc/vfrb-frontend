@@ -4,7 +4,7 @@
   --au-paper: #f7f6f1; --au-ink: #10202b; --au-line: #dcdcd2; --au-night: #0a2029;
   --au-teal: #028090; --au-mint: #02c39a;
   --au-display: 'DM Serif Display', Georgia, 'Times New Roman', serif;
-  min-height: 100dvh; display: grid; grid-template-columns: minmax(0, 1fr); background: var(--au-paper);
+  min-height: 100dvh; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; background: var(--au-paper);
   font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; color: var(--au-ink);
 }
 .au *, .au *::before, .au *::after { box-sizing: border-box; }
@@ -44,7 +44,7 @@
 
 @media (min-width: 600px) { .au-card { padding: 36px 34px; } .au-art { min-height: 220px; } }
 @media (min-width: 960px) {
-  .au { grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr); }
+  .au { grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr); grid-template-rows: 1fr; }
   .au-art { position: sticky; top: 0; height: 100dvh; min-height: 0; border-radius: 0 32px 32px 0; }
   .au-art-in { gap: 28px; padding: 96px clamp(36px, 5vw, 72px) 44px; }
   .au-h { max-width: 12ch; font-size: clamp(44px, 4.4vw, 64px); }

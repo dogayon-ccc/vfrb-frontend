@@ -1,7 +1,4 @@
-// Retheme (Sept 2026): was the one auth page still on var(--studio-bg) while its
-// siblings moved to AuthShell's light theme. Kept as its own Shell (not AuthShell)
-// since its 3 states need a custom icon badge + banners + multi-button footer that
-// AuthShell's fixed title/subtitle header doesn't fit — same design tokens either way.
+// Renders inside AuthShell; its 3 states bring their own heading, icon badge and buttons.
 // Reads Laravel's ?status= redirect (verified/already_verified/invalid/none=waiting).
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -9,38 +6,24 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { signOut } from '../../utils/session';
 import { readUser } from '../../utils/authRoute';
-import logo from '../../assets/company-logo.jpg';
+import AuthShell from '../../components/AuthShell';
 import { NavIcon } from '../../components/ui/icons';
 
 const TEAL = 'var(--teal)';
 const FONT = 'var(--font)';
-const globalStyles = `*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;} body{background:var(--bg);margin:0;}
-  @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+const globalStyles = `@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
   @keyframes pulse-ring{0%{transform:scale(1);opacity:.6}100%{transform:scale(1.5);opacity:0}}
   @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-  .ve-card{padding:32px 24px;}
-  @media(min-width:480px){.ve-card{padding:44px 40px;}}`;
+  .ve{text-align:center}
+  @media(prefers-reduced-motion:reduce){.ve *{animation:none !important}}`;
 
 function Shell({ children }) {
   return (
-    <>
+    <AuthShell maxWidth={440}>
       <style>{globalStyles}</style>
-      <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center', fontFamily: FONT, color: 'var(--ink)', padding: '24px 20px' }}>
-        <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }}
-          style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 44 }}>
-          <img src={logo} alt="VFRB" style={{ width: 36, height: 36, borderRadius: 9, objectFit: 'cover', border: '2px solid rgba(2,195,154,.3)' }}/>
-          <span style={{ color: 'var(--ink)', fontWeight: 700, fontSize: 14 }}>VFRB Enterprise</span>
-        </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .5 }}
-          className="ve-card"
-          style={{ width: '100%', maxWidth: 440, background: 'var(--bg-card)', border: '1px solid var(--border)',
-            borderRadius: 20, textAlign: 'center', position: 'relative', boxShadow: 'var(--shadow-lg)' }}>
-          {children}
-        </motion.div>
-        <p style={{ color: 'var(--text-faint)', fontSize: 11, marginTop: 28 }}>RA 10173 · City College of Calamba · BSIT 2026</p>
-      </div>
-    </>
+      <div className="ve">{children}</div>
+      <p style={{ color: 'var(--text-faint)', fontSize: 12, marginTop: 28, textAlign: 'center' }}>RA 10173 · City College of Calamba · BSIT 2026</p>
+    </AuthShell>
   );
 }
 
@@ -48,8 +31,8 @@ function PrimaryBtn({ onClick, disabled, children }) {
   return (
     <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: .98 }} onClick={onClick} disabled={disabled}
       style={{ width: '100%', padding: 13, borderRadius: 12, border: 'none', cursor: disabled ? 'not-allowed' : 'pointer',
-        background: `linear-gradient(135deg,var(--teal-2),${TEAL})`, color: '#fff', fontWeight: 700, fontSize: 14,
-        fontFamily: FONT, boxShadow: 'var(--shadow-teal)', opacity: disabled ? .6 : 1 }}>
+        background: `linear-gradient(135deg, ${TEAL}, var(--teal-dark))`, color: '#fff', fontWeight: 600, fontSize: 15, minHeight: 48,
+        fontFamily: FONT, boxShadow: '0 4px 20px rgba(2,128,144,.3)', opacity: disabled ? .6 : 1 }}>
       {children}
     </motion.button>
   );
@@ -58,7 +41,7 @@ function PrimaryBtn({ onClick, disabled, children }) {
 // Reuses the exact colors theme.css's own .alert-success/.alert-danger classes use —
 // no new colors invented, per theme.css's own "add here first" rule.
 const Banner = ({ ok, children }) => (
-  <div style={{ borderRadius: 10, padding: '11px 16px', marginBottom: 16,
+  <div role="alert" style={{ borderRadius: 10, padding: '11px 16px', marginBottom: 16,
     background: ok ? 'var(--success-bg)' : 'var(--danger-bg)',
     border: `1px solid ${ok ? 'var(--success-border)' : 'var(--danger-border)'}`,
     color: ok ? '#166534' : '#991b1b', fontSize: 13 }}>
@@ -113,7 +96,7 @@ export default function VerifyEmail() {
           border: '2px solid var(--success-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
           <NavIcon name="success" size={30} color="var(--success)"/>
         </div>
-        <h1 style={{ fontFamily: FONT, fontSize: 28, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>
+        <h1 className="au-title">
           {first ? 'Email Verified!' : 'Already Verified'}
         </h1>
         <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.7, marginBottom: 32 }}>
@@ -130,7 +113,7 @@ export default function VerifyEmail() {
     return (
       <Shell>
         <div style={{ marginBottom: 20, display:'flex', justifyContent:'center' }}><NavIcon name="warning" size={36} color="var(--danger)"/></div>
-        <h1 style={{ fontFamily: FONT, fontSize: 26, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>Invalid Link</h1>
+        <h1 className="au-title">Invalid Link</h1>
         <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.7, marginBottom: 28 }}>
           This verification link has expired or is invalid. Request a new one below.
         </p>
@@ -157,7 +140,7 @@ export default function VerifyEmail() {
           <NavIcon name="notifications" size={30} color="var(--teal-2)"/>
         </div>
       </div>
-      <h1 style={{ fontFamily: FONT, fontSize: 28, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>Verify your email</h1>
+      <h1 className="au-title">Verify your email</h1>
       <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.72, marginBottom: 8 }}>We sent a verification link to:</p>
       <p style={{ color: TEAL, fontSize: 15, fontWeight: 600, marginBottom: 28, wordBreak: 'break-all' }}>{user.email ?? 'your email address'}</p>
       <p style={{ color: 'var(--text-subtle)', fontSize: 13, lineHeight: 1.7, marginBottom: 32 }}>

@@ -651,3 +651,6 @@ button.vs-member:hover { transform: translateY(-3px); box-shadow: 0 14px 28px rg
 .vs-tile .vs-photo img { transition: transform 500ms var(--vs-ease); }
 @media (hover: hover) { .vs-tile:hover .vs-photo img { transform: scale(1.04); } }
 @media (prefers-reduced-motion: reduce) { .vs-btn, .vs-tile .vs-photo img { transition: none; transform: none !important; } }
+
+/* storage-blocked notice only matters where a session does; hide it on marketing pages */
+body:has(.vs-page) [data-storage-bar] { display: none; }

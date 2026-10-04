@@ -47,7 +47,7 @@ export default function AuthShell({ title, subtitle, maxWidth = 400, children })
             <Link to="/" aria-label="Back to home" style={{ marginBottom: 16, lineHeight: 0 }}>
               <img className="au-logo" src={logo} alt="VFRB Enterprise" />
             </Link>
-            <h1 className="au-title">{title}</h1>
+            {title && <h1 className="au-title">{title}</h1>}
             {subtitle && <div className="au-sub">{subtitle}</div>}
           </motion.div>
           <motion.div variants={rise}>{children}</motion.div>
