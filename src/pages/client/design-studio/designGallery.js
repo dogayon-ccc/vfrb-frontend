@@ -29,17 +29,18 @@ export const SLEEVES = ['Short', '3/4', 'Long'];
 
 // base = [catalog category, garment, sleeve, asset]. `asset` is the id of the exact 2D photo base the photo must land on, or null for the vector template.
 // An entry is editable only when the target really resolves to that base (see openTarget), so two photos of one family can never share the wrong base.
-// Left out on purpose (reference only): blouse-mandarin-yellow is a full-placket blouse, but Mandarin Collar / Short is now the housekeeping tunic photo.
+// Left out on purpose (reference only): shirt-mandarin-polkadot (Mandarin Collar / Long is now the BIR blouse photo base, which is a different garment); blouse-mandarin-yellow is a full-placket blouse, but Mandarin Collar / Short is now the housekeeping tunic photo.
 const BASES = {
   'scrub-set-women-vneck':  ['Medical / Scrubs', 'Scrub Top', 'Short', 'scrub-top-women-short'],
   'scrub-set-men-vneck':    ['Medical / Scrubs', 'Scrub Top', 'Short', 'scrub-top-men-short'],
   'scrub-set-housekeeping': ['Hospitality / Service', 'Mandarin Collar', 'Short', 'mandarin-tunic-housekeeping'],
   'blouse-tunic-roundneck-blue': ['Corporate', 'T-Shirt', 'Short', null],
   'shirt-utility-beige-long': ['Industrial / Work', 'Button-Down', 'Long', null],
-  'shirt-mandarin-polkadot': ['Corporate', 'Mandarin Collar', 'Long', null],
+  'bir-blouse-trousers-blue': ['Corporate', 'Mandarin Collar', 'Long', 'mandarin-blouse-bir-long'],
+  'blouse-roundneck-fuchsia': ['Corporate', 'Round Neck', 'Short', 'round-neck-fuchsia-short'],
 };
 
-// sleeve = sleeve of the top/dress piece (null when no sleeve). source = how the photo was shot; mannequin/hanger photos fuse the
+// sleeve = sleeve of the top/dress piece (null when no sleeve). source = how the photo was shot; worn = model photo with the body removed; mannequin/hanger photos fuse the
 // mannequin or hanger into an image-to-3D result, flat-lay photos do not.
 const D = (id, name, category, gender, piece, sleeve, collar, source, parts = [piece]) => {
   const e = build(id, name, category, gender, piece, sleeve, collar, source, parts);
@@ -78,6 +79,22 @@ export const DESIGNS = [
   D('set-vest-blouse',         'Vest and Blouse Set',           'corporate',   'female', 'set',   'Short', 'Point collar',   'mannequin', ['upper', 'upper']),
   D('dress-shift-geometric',   'Printed Shift Dress',           'dress',       'female', 'dress', 'Short', 'Scoop neck',    'mannequin'),
   D('dress-tunic-maternity-navy','Tunic Dress (Maternity)',     'dress',       'female', 'dress', '3/4',   'Shirt collar',   'mannequin'),
+  // worn = model photo, background removed; arms, neck, hands and shoes stripped by clothing segmentation (tools/worn-photo-cutouts.py). Category/gender/sleeve read from the photo.
+  D('bir-blouse-trousers-blue','BIR Thursday Blouse and Trousers','corporate',   'female', 'set',   'Long',  'Mandarin',       'worn', ['upper', 'lower']),
+  D('pantsuit-notch-short-gray','Short-Sleeve Notch Jacket and Trousers','corporate','female','set', 'Short', 'Notch lapel',    'worn', ['upper', 'lower']),
+  D('polo-barong-brown',       'Polo Barong and Slacks',        'corporate',   'male',   'set',   'Short', 'Barong collar',  'worn', ['upper', 'lower']),
+  D('jack-shirt-two-tone',     'Two-Tone Work Shirt (Polo Jack)','industrial', 'male',   'upper', 'Short', 'Point collar',   'worn'),
+  D('blazer-double-breasted-gray','Double-Breasted Collarless Blazer Set','corporate','female','set','Long', 'Collarless',     'worn', ['upper', 'upper', 'lower']),
+  D('dress-butter-belted',     'Belted Shift Dress',            'dress',       'female', 'dress', 'Short', 'Round neck',    'worn'),
+  D('dress-bir-green-yellow-collar','BIR Official Uniform Dress','dress',      'female', 'dress', 'Short', 'Notch collar',   'worn'),
+  D('dress-sheath-denim-blue', 'Sheath Dress, Notched Neckline','dress',       'female', 'dress', 'Short', 'Notched round neck','worn'),
+  D('blazer-pinstripe-navy',   'Pinstripe Notch Blazer Set',    'corporate',   'female', 'set',   '3/4',   'Notch lapel',    'worn', ['upper', 'upper', 'lower']),
+  D('blazer-blouse-blue-short','Short-Sleeve Blazer Blouse and Trousers','corporate','female','set','Short','Notch lapel',    'worn', ['upper', 'lower']),
+  D('blouse-roundneck-fuchsia','Round Neck Blouse and Trousers (Fuchsia)','corporate','female','set','Short','Round neck',    'worn', ['upper', 'lower']),
+  D('blouse-roundneck-mustard','Round Neck Blouse with Waist Band and Trousers','corporate','female','set','Short','Round neck','worn', ['upper', 'lower']),
+  D('polo-red-claremont',      'Polo Shirt (Embroidered Logo)', 'corporate',   'unisex', 'upper', 'Short', 'Polo collar',   'worn'),
+  D('shirt-two-tone-gpc',      'Two-Tone Short-Sleeve Shirt and Slacks','corporate','male','set', 'Short', 'Point collar',   'worn', ['upper', 'lower']),
+  D('peplum-set-navy',         'Peplum Top and Pencil Skirt',   'corporate',   'female', 'set',   'Short', 'Square neck',    'worn', ['upper', 'lower']),
 ];
 
 export const TIER_LABEL = {

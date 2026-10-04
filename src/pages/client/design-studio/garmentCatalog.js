@@ -15,6 +15,7 @@
 // family's fit/style options and 3D status are read once, here, from the real capability data
 // — never guessed, never invented for a garment that doesn't have it.
 import { photoFits, assetFor } from './garmentAssets';
+import { glbSlotFor } from './glbSlots';
 import { BASE_PATHS, getGarmentPaths } from './garmentPaths';
 import { get3DCapabilities } from './garmentCapabilities';
 
@@ -166,6 +167,7 @@ export function resolveTarget(garment, sleeve, fit, face = 'front') {
     family: fam.id, sleeve: s, fit: f, face, assetId: asset?.id ?? null, photo: !!asset,
     zones: asset ? asset.zones : fam.zones, limitations: asset?.limitations ?? [],
     glb: sleeve3D ? fam.model3D : null,
+    glbSlot: asset ? glbSlotFor(asset.id) : null, // reserved path for a future garment-only GLB of this exact photo base; never implies a model exists
     status: statusFor({ editable2D: fam.has2D || !!asset, has3D: sleeve3D, verified3D: sleeve3D && fam.verified3D }),
   };
 }

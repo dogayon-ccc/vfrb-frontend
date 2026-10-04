@@ -5,12 +5,26 @@ const LIMITS = ['Front view only. The back view uses the generic shape.', 'One c
 
 const LIMITS_TRIM = ['Front view only. The back view uses the generic shape.', 'Two colour zones: body, and one trim colour shared by the collar band, sleeve cuffs, pocket welts and buttons.', 'No patterns on a photo base.'];
 
+const LIMITS_WORN = ['Front view only: no rear photo exists, so Back is disabled.', 'One colour zone (the whole top). Piping, seams and cuffs keep the photo\'s folds and shading but recolour with the body.', 'Cut from a worn-model photo: arms, neck and trousers were removed by clothing segmentation; a faint source watermark may remain near the hem.', 'No patterns on a photo base.'];
+
 export const ASSET_2D = {
   // Trim = mask built offline by tools/make-trim-mask.py (collar band, cuffs, pocket welts; outline shadows and specks removed). `trimUnset` = the studio's default collar hex: until the customer picks a trim colour the photo's own trim is kept.
   'Mandarin Collar': {
+    Long: {
+      front: {
+        female: { id: 'mandarin-blouse-bir-long', src: '/garments2d/mandarin-blouse-bir-long-front.webp', w: 218, h: 277, refLum: 91.9, zones: ['body'], source: 'VFRB-supplied worn-model photo (BIR Thursday blouse, mandarin collar, long sleeve), background removed', limitations: LIMITS_WORN },
+      },
+    },
     Short: {
       front: {
         female: { id: 'mandarin-tunic-housekeeping', src: '/garments2d/mandarin-tunic-housekeeping-front.webp', w: 215, h: 267, refLum: 101.2, trim: { mask: '/garments2d/mandarin-tunic-housekeeping-trim.webp', refLum: 60 }, trimUnset: '#c8a96e', zones: ['body', 'collar'], source: 'VFRB-supplied flat-lay photo, housekeeping scrub suit top (mandarin band collar)', limitations: LIMITS_TRIM },
+      },
+    },
+  },
+  'Round Neck': {
+    Short: {
+      front: {
+        female: { id: 'round-neck-fuchsia-short', src: '/garments2d/round-neck-fuchsia-short-front.webp', w: 245, h: 298, refLum: 135.1, zones: ['body'], source: 'VFRB-supplied worn-model photo (fuchsia round-neck blouse), background removed', limitations: LIMITS_WORN },
       },
     },
   },
