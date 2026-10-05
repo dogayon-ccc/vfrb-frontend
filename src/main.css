@@ -1,5 +1,7 @@
 /* src/main.css — VFRB Enterprise, Tailwind v4 CSS-first config */
-@import "tailwindcss";
+@import "tailwindcss" source(none);
+@source "../index.html";
+@source "./";
 
 /* ── VFRB Design Tokens (Tailwind v4 @theme block) ──────────────────────────
    These are consumed by Tailwind utility classes: bg-teal, text-muted, etc.
