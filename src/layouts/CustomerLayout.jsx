@@ -604,7 +604,7 @@ export default function CustomerLayout() {
                 VFRB
               </p>
               <p style={{ fontSize:11, color:'rgba(255,255,255,.65)', fontWeight:600,
-                textTransform:'uppercase', letterSpacing:'.07em', margin:0 }}>
+                textTransform:'uppercase', letterSpacing:'.07em', margin:0, whiteSpace:'nowrap' }}>
                 Client Portal
               </p>
             </div>
