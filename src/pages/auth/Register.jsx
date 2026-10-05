@@ -1,4 +1,4 @@
-// POST /api/register — verified fields: name, email, password, password_confirmation, contact_number, organization_name, client_type.
+// POST /api/register — verified fields: name, email, password, password_confirmation, contact_number, organization_name, business_registration_number (optional), client_type.
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ViewLink as Link } from '../../components/ViewLink';
@@ -20,7 +20,7 @@ const CLIENT_TYPES = [
 
 const pwStrength = (p) => {
   if (!p) return 0;
-  return [p.length >= 8, /[A-Z]/.test(p), /[0-9]/.test(p), /[^A-Za-z0-9]/.test(p)].filter(Boolean).length;
+  return [p.length >= 8, /[A-Z]/.test(p) && /[a-z]/.test(p), /[0-9]/.test(p), /[^A-Za-z0-9]/.test(p)].filter(Boolean).length;
 };
 const STRENGTH_LABEL = ['', 'Weak', 'Fair', 'Good', 'Strong'];
 const STRENGTH_COLOR = ['', 'var(--danger)', '#f97316', '#eab308', 'var(--success)'];
@@ -29,7 +29,7 @@ export default function CustomerRegister() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
     name: '', email: '', password: '', password_confirmation: '',
-    contact_number: '', organization_name: '', client_type: '',
+    contact_number: '', organization_name: '', business_registration_number: '', client_type: '',
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -46,6 +46,7 @@ export default function CustomerRegister() {
     if (!form.client_type) { setErrors({ client_type: ['Select your organization type.'] }); return; }
     if (!form.organization_name.trim()) { setErrors({ organization_name: ['Enter your organization name.'] }); return; }
     if (!agreed) { setErrors({ agreed: ['Please agree to the Terms of Service and Privacy Policy to continue.'] }); return; }
+    if (pwStrength(form.password) < 4) { setErrors({ password: ['Use at least 8 characters with an uppercase letter, a number and a symbol.'] }); return; }
     if (form.password !== form.password_confirmation) { setErrors({ password_confirmation: ['Passwords do not match.'] }); return; }
     setLoading(true);
     try {
@@ -121,6 +122,14 @@ export default function CustomerRegister() {
         </div>
 
         <div>
+          <label htmlFor="reg-brn" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>TIN / Business registration no. <span style={{ fontWeight: 400, color: 'var(--text-faint)' }}>(optional)</span></label>
+          <input id="reg-brn" autoComplete="off" maxLength={30} value={form.business_registration_number} onChange={e => set('business_registration_number', e.target.value)}
+            onFocus={() => setFocused('business_registration_number')} onBlur={() => setFocused('')}
+            placeholder="Letters, numbers, spaces, hyphens" style={authInput(focused, 'business_registration_number', firstError('business_registration_number'))}/>
+          {firstError('business_registration_number') && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 5 }}>{firstError('business_registration_number')}</p>}
+        </div>
+
+        <div>
           <label htmlFor="reg-contact" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Contact Number</label>
           <input id="reg-contact" type="tel" inputMode="tel" autoComplete="tel" value={form.contact_number} onChange={e => set('contact_number', e.target.value)}
             onFocus={() => setFocused('contact_number')} onBlur={() => setFocused('')}
@@ -133,7 +142,7 @@ export default function CustomerRegister() {
             <input id="reg-password" type={showPw ? 'text' : 'password'} autoComplete="new-password" required value={form.password}
               onChange={e => set('password', e.target.value)}
               onFocus={() => setFocused('password')} onBlur={() => setFocused('')}
-              placeholder="At least 8 characters" style={{ ...authInput(focused, 'password'), paddingRight: 48 }}/>
+              placeholder="8+ chars, Aa, number, symbol" style={{ ...authInput(focused, 'password'), paddingRight: 48 }}/>
             <button type="button" onClick={() => setShowPw(v => !v)} aria-label={showPw ? 'Hide password' : 'Show password'}
               style={{ position: 'absolute', right: 1, top: '50%', transform: 'translateY(-50%)', background: 'none',
                 border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -151,6 +160,7 @@ export default function CustomerRegister() {
               </span>
             </div>
           )}
+          {firstError('password') && <p role="alert" style={{ color: 'var(--danger)', fontSize: 12, marginTop: 5 }}>{firstError('password')}</p>}
         </div>
 
         <div>
