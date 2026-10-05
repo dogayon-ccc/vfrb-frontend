@@ -495,6 +495,7 @@ export default function CustomerLayout() {
                 <NavLink key={item.to} to={item.to} end={item.end}
                   className={({ isActive }) => `cm-link${isActive ? ' active' : ''}`}
                   title={collapsed ? item.label : undefined}
+                  aria-label={collapsed ? item.label : undefined}
                   style={collapsed ? { justifyContent:'center', padding:'10px 0' } : {}}>
                   <IconBox icon={item.icon} size={16} width={20}>
                     {collapsed && showBadge && (
@@ -532,6 +533,7 @@ export default function CustomerLayout() {
               )}
               <button className="cm-studio-btn" onClick={openStudio}
                 title={collapsed ? 'Design Studio' : undefined}
+                aria-label={collapsed ? 'Design Studio' : undefined}
                 style={collapsed ? { justifyContent:'center', padding:'10px 0', borderRadius:10 } : {}}>
                 <IconBox icon={Palette} size={16} width={20}/>
                 {!collapsed && (

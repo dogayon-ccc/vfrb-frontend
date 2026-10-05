@@ -260,7 +260,6 @@ export function SelfPickModal({ order, onClose, onDone }) {
                         <input type="checkbox" checked={picked.has(m.material_id)}
                           onChange={()=>toggle(m.material_id)} style={{ width:16, height:16, accentColor:T }}/>
                         <span style={{ fontSize:13, color:'var(--ink)', fontFamily:FONT }}>{m.material_name}</span>
-                        <span style={{ fontSize:11, color:'var(--text-faint)', marginLeft:'auto', fontFamily:FONT }}>{m.unit}</span>
                       </label>
                     ))}
                   </div>
