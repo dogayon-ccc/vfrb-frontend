@@ -25,6 +25,7 @@ export default function DesignStudioStyles() {
       }
       /* Bar-cluster collapse defaults (desktop/tablet): full cluster visible,
          mobile-only "More" trigger and short labels stay hidden until <768px. */
+      .ds{--text-2xs:11px;}
       .ds-bar-back-icon{display:none;}
       .ds-bar-save-label{display:inline;}
       @media (min-width:768px){.ds-act-order{display:none;}}
@@ -101,6 +102,18 @@ export default function DesignStudioStyles() {
         position:absolute;z-index:3;bottom:100px;display:flex;align-items:center;gap:10px;
         padding:6px 6px 6px 14px;border-radius:var(--r-md);background:var(--bg-card);border:1px solid var(--border);
         box-shadow:var(--shadow-md);white-space:nowrap;font-size:var(--text-xs);color:var(--text-muted);
+      }
+      .ds-selbar-label{display:inline-flex;align-items:center;gap:5px;}
+      /* Tablet and up: selection actions sit in the top corner of the stage, clear of the garment and of the zoom controls. */
+      @media (min-width:768px){
+        .ds-selbar{top:12px;bottom:auto;left:auto;right:12px;margin-inline:0;}
+        .ds-selbar .ds-selbar-label{display:none;}
+        .ds-pane[data-selbar="1"] .ds-ctx-chip{visibility:hidden;}
+      }
+      @media (min-width:768px) and (max-width:1023px){.ds-pane .ds-ctx-chip{display:none;}}
+      @media (min-width:1280px){
+        .ds-selbar{top:14px;left:0;right:0;margin-inline:auto;}
+        .ds-selbar .ds-selbar-label{display:inline-flex;}
       }
       .ds-selbar button{min-height:32px;padding:0 12px;border:0;border-radius:var(--r-sm);background:var(--danger-bg);color:var(--danger-text);font-size:var(--text-xs);font-weight:700;cursor:pointer;}
 
@@ -233,7 +246,13 @@ export default function DesignStudioStyles() {
       .ds-tp{flex:1;min-height:0;overflow-y:auto;padding:14px 14px 20px;display:flex;flex-direction:column;gap:10px;}
       .ds-tp{min-width:0;}
       .ds-tp>*{flex-shrink:0;min-width:0;max-width:100%;}
-      .ds-tp-catbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:6px;}
+      .ds-blank{position:absolute;left:0;right:0;top:64px;bottom:72px;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:0 24px;text-align:center;pointer-events:none;}
+      .ds-blank-icon{width:64px;height:64px;display:flex;align-items:center;justify-content:center;border-radius:20px;border:1px dashed rgba(15,23,42,.2);background:rgba(2,128,144,.06);}
+      .ds-blank-title{margin:6px 0 0;font-size:var(--text-lg,18px);font-weight:800;color:var(--ink);}
+      .ds-blank-sub{margin:0;max-width:300px;font-size:var(--text-sm,14px);line-height:1.5;color:var(--text-muted);}
+      .ds-blank-cta{pointer-events:auto;margin-top:8px;min-height:44px;padding:0 22px;border:0;border-radius:12px;background:linear-gradient(135deg,var(--teal),var(--teal-light,#02C39A));color:#fff;font-size:var(--text-sm,14px);font-weight:700;cursor:pointer;box-shadow:var(--shadow-md);}
+      .ds-tp-catbar{display:flex;flex-wrap:wrap;gap:6px;}
+      .ds-tp-catchip{flex:0 0 auto;}
       .ds-tp-catchip{
         min-height:36px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 10px;
         border:1px solid var(--border);border-radius:99px;background:var(--bg-card);color:var(--text-muted);
@@ -249,7 +268,7 @@ export default function DesignStudioStyles() {
       .ds-tp-mini:hover{background:var(--teal-50);color:var(--teal-dark);}
       .ds-tp-clear{display:flex;align-items:center;gap:3px;padding:4px 6px;border:0;background:none;color:var(--text-muted);font-size:var(--text-2xs);font-weight:700;cursor:pointer;border-radius:var(--r-sm);}
       .ds-tp-clear:hover{color:var(--danger-text);background:var(--danger-bg);}
-      .ds-tp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;}
+      .ds-tp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:10px;}
       .ds-tp-card{
         position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px 8px;min-height:112px;animation:dsIn .22s ease backwards;animation-delay:calc(var(--i,0) * 24ms);
         border:1px solid var(--border);border-radius:var(--r-lg);background:var(--bg-card);cursor:pointer;
@@ -260,9 +279,11 @@ export default function DesignStudioStyles() {
       .ds-tp-card[aria-pressed="true"]{border-color:var(--teal);background:var(--teal-50);box-shadow:0 0 0 2px var(--teal),var(--shadow-sm);}
       .ds-tp-thumb{flex:1;display:flex;align-items:center;justify-content:center;width:100%;border-radius:var(--r-md);background:var(--bg-surface);padding:8px 0;}
       .ds-tp-card[aria-pressed="true"] .ds-tp-thumb{background:var(--bg-card);}
+      .ds-tp-photo{display:block;height:128px;width:auto;max-width:100%;object-fit:contain;}
+      @media (max-width:767px){.ds-tp-photo{height:104px;}}
       .ds-tp-name{font-size:var(--text-xs);font-weight:700;color:var(--ink);text-align:center;line-height:1.2;}
       .ds-chip-note{font-size:11px;font-weight:800;opacity:.6;}
-      .ds-tp-chip{font-size:11px;font-weight:800;letter-spacing:.02em;padding:2px 7px;border-radius:99px;background:var(--bg-surface);color:var(--text-muted);}
+      .ds-tp-chip{white-space:nowrap;font-size:11px;font-weight:800;letter-spacing:.02em;padding:2px 7px;border-radius:99px;background:var(--bg-surface);color:var(--text-muted);}
       .ds-tp-chip[data-tone="ok"]{background:#f0fdfa;color:#0f766e;}
       .ds-tp-chip[data-tone="warn"]{background:#fffbeb;color:#b45309;}
       .ds-tp-check{position:absolute;top:7px;right:7px;width:20px;height:20px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--teal);box-shadow:var(--shadow-sm);}
@@ -332,12 +353,16 @@ export default function DesignStudioStyles() {
         border:1px solid var(--border);background:var(--bg-card);color:var(--ink);cursor:pointer;box-shadow:var(--shadow-sm);transition:transform .12s,background .16s;}
       .ds-stage-btn:active{transform:scale(.94);}
       @media (max-width:767px){
+        .ds-pane{padding:60px 0 12px;}
+        .ds-selbar{bottom:8px;padding:4px;gap:6px;}
+        .ds-selbar .ds-selbar-label{display:none;}
+        .ds-pane[data-selbar="1"]{padding-bottom:68px;}
         .ds-stage-ctl{display:contents;}
-        .ds-stage-ctl .ds-zoom{position:absolute;}
+        .ds-stage-ctl .ds-zoom{position:absolute;left:12px;top:12px;}
         .ds-stage-btn{position:absolute;right:12px;top:12px;}
         .ds-face:has(.ds-face-thumb){padding:3px;gap:3px;bottom:auto;top:12px;left:auto;right:64px;margin-inline:0;box-shadow:var(--shadow-sm);border-radius:var(--r-md);}
         .ds-face .ds-face-thumb{flex-direction:row;min-width:0;padding:0 12px;min-height:36px;}
-        .ds-face .ds-face-thumb svg,.ds-face .ds-face-thumb img,.ds-face .ds-face-thumb canvas{display:none;}
+        .ds-face .ds-face-thumb svg,.ds-face .ds-face-thumb img,.ds-face .ds-face-thumb canvas{display:none!important;}
       }
       .ds-stage-floor{position:absolute;left:12%;right:12%;bottom:-16px;height:22px;border-radius:50%;pointer-events:none;
         background:radial-gradient(ellipse at center,rgba(15,23,42,.22),transparent 70%);filter:blur(5px);}
@@ -438,7 +463,8 @@ export default function DesignStudioStyles() {
         .ai-pulse{animation:none;}
       }
       @media (pointer:coarse){
-        .ds-zoom button,.ds-face button,.ds-touch,.ds-selbar button{min-width:44px;min-height:44px;}
+        .ds-zoom button,.ds-face button,.ds-face button.ds-face-thumb,.ds-touch,.ds-selbar button,.ds-bar button,.ds-stage-btn{min-width:44px;min-height:44px;}
+        .ds input[type="range"]{min-height:44px;}
       }
 
       .ds-tp-current{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--teal);border-radius:var(--r-md);background:var(--teal-50);}

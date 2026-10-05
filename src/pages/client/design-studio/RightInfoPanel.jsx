@@ -25,6 +25,7 @@ function kindOf(o) {
   // shape being mislabeled "Rectangle".
   if (o.__shape) return SHAPE_TYPE_LABEL[o.type] ?? 'Shape';
   if (o.__draw)  return 'Drawing';
+  if (o.__artwork) return 'Artwork';
   if (o.__logo)  return 'Logo';
   return 'Text';
 }

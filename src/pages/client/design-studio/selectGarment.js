@@ -1,3 +1,4 @@
 import { applyGarment } from './garmentCatalog';
 
-export const selectFamily = (setCfg, fam) => setCfg(p => applyGarment(p, fam.id));
+// `category` is the category the customer was browsing when they picked the garment.
+export const selectFamily = (setCfg, fam, category) => setCfg(p => applyGarment(p, fam.id, category ? { category } : {}));

@@ -13,7 +13,7 @@ function Templates({ onInspo, onShowcase }) {
     <div className="ds-stack">
       <button type="button" className="ds-card" onClick={onInspo}>
         <NavIcon name="ai" size={20}/>
-        <span><strong>Inspiration</strong><small>Starter designs in Philippine institutional colors.</small></span>
+        <span><strong>Inspiration</strong><small>Real VFRB uniform photos. Filter by category, piece, gender and sleeve.</small></span>
       </button>
       <button type="button" className="ds-card" onClick={onShowcase}>
         <NavIcon name="image" size={20}/>

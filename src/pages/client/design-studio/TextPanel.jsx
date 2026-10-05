@@ -6,9 +6,19 @@ import { T, T2, secLabel, inputStyle, FONTS, EMOJIS } from './dsShared';
 // could drop/duplicate buttons — de-dupe once at module load.
 const UNIQUE_EMOJIS = [...new Set(EMOJIS)];
 
-export default function TextPanel({ onAdd }) {
+// Readable default: white on a dark garment, near-black on a light one, until the customer picks a color themselves.
+const readableOn = (hex) => {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex ?? '');
+  if (!m) return '#ffffff';
+  const n = parseInt(m[1], 16), lin = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+  const L = 0.2126 * lin((n >> 16) & 255) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255);
+  return L > 0.4 ? '#111827' : '#ffffff';
+};
+
+export default function TextPanel({ onAdd, bodyColor }) {
   const [val,  setVal]  = useState('');
-  const [clr,  setClr]  = useState('#ffffff');
+  const [picked, setClr] = useState(null);
+  const clr = picked ?? readableOn(bodyColor);
   const [font, setFont] = useState(FONTS[0].id);
   const [size, setSize] = useState(18);
   const [showEmoji, setShowEmoji] = useState(false);
@@ -90,7 +100,7 @@ export default function TextPanel({ onAdd }) {
       </button>
 
       {val && (
-        <div style={{ padding:'10px', borderRadius:9, background:'rgba(0,0,0,.3)', textAlign:'center' }}>
+        <div style={{ padding:'10px', borderRadius:9, background: bodyColor ?? 'rgba(0,0,0,.3)', textAlign:'center' }}>
           <p style={{ color:clr, fontSize:size>32?22:size, fontFamily:fontCss, fontWeight:800,
             letterSpacing:2, textTransform:'uppercase', margin:0,
             overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
