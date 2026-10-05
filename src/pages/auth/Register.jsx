@@ -11,10 +11,11 @@ import { NavIcon } from '../../components/ui/icons';
 const T = 'var(--teal)';
 
 const CLIENT_TYPES = [
-  { id: 'individual', label: 'Individual', icon: 'profile' },
-  { id: 'school', label: 'School', icon: 'school' },
-  { id: 'medical', label: 'Medical / Hospital', icon: 'medical' },
-  { id: 'corporate', label: 'Corporate / Business', icon: 'corporate' },
+  { id: 'corporate', label: 'Private company', icon: 'corporate' },
+  { id: 'school', label: 'School / University', icon: 'school' },
+  { id: 'government', label: 'Government agency / LGU', icon: 'manager' },
+  { id: 'medical', label: 'Hospital / Medical center', icon: 'medical' },
+  { id: 'organization', label: 'Organization / Association', icon: 'users' },
 ];
 
 const pwStrength = (p) => {
@@ -28,7 +29,7 @@ export default function CustomerRegister() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
     name: '', email: '', password: '', password_confirmation: '',
-    contact_number: '', organization_name: '', client_type: 'individual',
+    contact_number: '', organization_name: '', client_type: '',
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -42,6 +43,8 @@ export default function CustomerRegister() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrors({});
+    if (!form.client_type) { setErrors({ client_type: ['Select your organization type.'] }); return; }
+    if (!form.organization_name.trim()) { setErrors({ organization_name: ['Enter your organization name.'] }); return; }
     if (!agreed) { setErrors({ agreed: ['Please agree to the Terms of Service and Privacy Policy to continue.'] }); return; }
     if (form.password !== form.password_confirmation) { setErrors({ password_confirmation: ['Passwords do not match.'] }); return; }
     setLoading(true);
@@ -89,13 +92,13 @@ export default function CustomerRegister() {
         </div>
 
         <div>
-          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Account Type</label>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Organization Type</label>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            {CLIENT_TYPES.map(ct => {
+            {CLIENT_TYPES.map((ct, i) => {
               const active = form.client_type === ct.id;
               return (
-                <button key={ct.id} type="button" onClick={() => set('client_type', ct.id)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 12px', borderRadius: 11,
+                <button key={ct.id} type="button" onClick={() => set('client_type', ct.id)} aria-pressed={active}
+                  style={{ gridColumn: i === CLIENT_TYPES.length - 1 ? '1 / -1' : undefined, minHeight: 44, display: 'flex', alignItems: 'center', gap: 8, padding: '11px 12px', borderRadius: 11,
                     textAlign: 'left', cursor: 'pointer', background: active ? 'rgba(2,128,144,.08)' : 'var(--bg-card)',
                     border: `1.5px solid ${active ? T : 'var(--border)'}`, color: active ? 'var(--teal-dark)' : 'var(--ink)',
                     fontSize: 12.5, fontWeight: active ? 600 : 500 }}>
@@ -105,16 +108,17 @@ export default function CustomerRegister() {
               );
             })}
           </div>
+          {firstError('client_type') && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 5 }}>{firstError('client_type')}</p>}
+          <p style={{ color: 'var(--text-subtle)', fontSize: 12, margin: '8px 0 0' }}>VFRB takes bulk uniform orders from organizations only.</p>
         </div>
 
-        {form.client_type !== 'individual' && (
-          <div>
-            <label htmlFor="reg-org" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Organization Name</label>
-            <input id="reg-org" autoComplete="organization" value={form.organization_name} onChange={e => set('organization_name', e.target.value)}
-              onFocus={() => setFocused('organization_name')} onBlur={() => setFocused('')}
-              placeholder="e.g. Holy Redeemer School of Calamba" style={authInput(focused, 'organization_name')}/>
-          </div>
-        )}
+        <div>
+          <label htmlFor="reg-org" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Organization Name</label>
+          <input id="reg-org" autoComplete="organization" required value={form.organization_name} onChange={e => set('organization_name', e.target.value)}
+            onFocus={() => setFocused('organization_name')} onBlur={() => setFocused('')}
+            placeholder="e.g. Holy Redeemer School of Calamba" style={authInput(focused, 'organization_name', firstError('organization_name'))}/>
+          {firstError('organization_name') && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 5 }}>{firstError('organization_name')}</p>}
+        </div>
 
         <div>
           <label htmlFor="reg-contact" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Contact Number</label>

@@ -6,10 +6,11 @@ import {
   FilterSheet, FilterButton, useIsMobile,
 } from '../../components/admin/AdminUI';
 
-const TYPES = { individual: 'Individual', corporate: 'Corporate', school: 'School', medical: 'Medical' };
+const TYPES = { individual: 'Individual', corporate: 'Corporate', school: 'School', medical: 'Medical', government: 'Government', organization: 'Organization' };
 const TYPE_TONE = {
   individual: ['var(--bg-surface)', 'var(--text-muted)'], corporate: ['var(--info-bg)', 'var(--info-text)'],
   school: ['var(--teal-50)', 'var(--teal)'], medical: ['var(--success-bg)', 'var(--success-text)'],
+  government: ['var(--warning-bg)', 'var(--warning-text)'], organization: ['var(--bg-surface)', 'var(--text-muted)'],
 };
 const fmt = (d) => (d ? new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—');
 const dash = (v) => (v && String(v).trim() ? v : '—');
