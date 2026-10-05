@@ -8,6 +8,7 @@ import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
 import { NavIcon } from '../../components/ui/icons';
 import EmptyState from '../../components/EmptyState';
 import { MiniPreview } from './design-studio/InspoGallery';
+import heroPhoto from '../../assets/brand/uniforms.jpg';
 import {
   Kpi, StatusPill, OrderThumb, Skeleton, useToast, Stepper, LIFECYCLE, lifecycleIndex,
   orderTitle, fmtDate, reltime, parseCfg, IN_PRODUCTION,
@@ -78,7 +79,6 @@ export default function CustomerDashboard() {
   const [draft, setDraft] = useState(null);
   const openStudio = () => { try { if (draft?.studio_config) sessionStorage.setItem('studio_config', JSON.stringify(draft.studio_config)); else sessionStorage.removeItem('studio_config'); } catch { /* private mode */ } nav('/design-studio'); };
   const [designs, setDesigns] = useState([]);
-  const [inspoCount, setInspoCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [notifsError, setNotifsError] = useState(false);
@@ -113,7 +113,7 @@ export default function CustomerDashboard() {
     if (n.status === 'fulfilled' && n.value) { const l = asList(n.value.data); setNotifs(l); setNotifsError(false); cacheSet('customer_notifs', l, TTL.NOTIFICATIONS); }
     else if (n.status === 'rejected' && !cn) setNotifsError(true);
     if (d.status === 'fulfilled' && d.value.data?.draft?.studio_config?.garment) setDraft(d.value.data.draft);
-    if (g.status === 'fulfilled' && Array.isArray(g.value.data)) { setDesigns(g.value.data.filter(x => x.is_archived && x.config?.garment).slice(0, 4)); setInspoCount(g.value.data.filter(x => !x.is_archived && x.config?.garment).length); }
+    if (g.status === 'fulfilled' && Array.isArray(g.value.data)) setDesigns(g.value.data.filter(x => x.is_archived && x.config?.garment).slice(0, 4));
     setLoading(false);
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -142,7 +142,6 @@ export default function CustomerDashboard() {
   const completed = stats?.completed_orders ?? orders.filter(o => o.status === 'completed').length;
   const pending = orders.filter(o => o.status === 'pending' || o.status === 'confirmed').length;
   const unread = notifs.filter(n => !n.is_read).length;
-  const heroCfg = draft?.studio_config ?? parseCfg(sorted[0]);
 
   return (
     <div className="cx-page">
@@ -156,46 +155,40 @@ export default function CustomerDashboard() {
         </motion.div>
       )}
 
-      {/* Hero */}
-      <motion.section initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="cx-hero"
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 16 }}>
-        <div style={{ position: 'relative', zIndex: 1, minWidth: 0 }}>
-          <p style={{ margin: '0 0 4px', fontSize: 12, fontWeight: 700, opacity: .8, letterSpacing: '.04em', textTransform: 'uppercase' }}>
-            {greeting(user.name)}
-          </p>
-          <h1>Design Your Perfect Uniform</h1>
-          <p>AI-assisted raw material recommendations for your custom uniform orders.</p>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button className="cx-btn" style={{ background: '#fff', color: 'var(--teal-dark)' }}
-              onClick={openStudio}>
-              <NavIcon name="designStudio" size={15} /> {draft ? 'Continue Design' : 'Start Designing'}
+      <motion.section initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="cx-hero" aria-labelledby="dash-h1">
+        <img src={heroPhoto} alt="" className="cx-hero-img" width="1600" height="720" fetchpriority="high" />
+        <div className="cx-hero-body">
+          <p className="cx-hero-eyebrow">{greeting(user.name)}</p>
+          <h1 id="dash-h1">Uniforms made for your people.</h1>
+          <p className="cx-hero-sub">Design in the Studio, order in bulk, and follow production through to delivery.</p>
+          <div className="cx-hero-actions">
+            <button className="cx-btn cx-hero-cta" onClick={openStudio}>
+              <NavIcon name="designStudio" size={15} /> {draft ? 'Continue design' : 'Start designing'}
             </button>
-            {draft && (
-              <button className="cx-btn" style={{ background: 'rgba(255,255,255,.16)', color: '#fff', borderColor: 'rgba(255,255,255,.35)' }}
-                onClick={() => nav('/my-designs')}>My Designs</button>
-            )}
+            {draft && <button className="cx-btn cx-hero-ghost" onClick={() => nav('/my-designs')}>My designs</button>}
           </div>
-        </div>
-        <div aria-hidden="true" className="cx-hero-art">
-          <div className="cx-hero-tile">
-            <div className="cx-hero-garment">
-              <MiniPreview garment={heroCfg?.garment ?? 'Polo Shirt'} colors={heroCfg?.garment ? (heroCfg.colors ?? {}) : {}} />
-            </div>
-          </div>
+          <p className="cx-hero-proof">Family-owned since 2000 · Bayanan, Muntinlupa City</p>
         </div>
       </motion.section>
 
-      {/* KPIs */}
-      <div className="cx-kpis" style={{ marginBottom: 18 }}>
-        <Kpi icon="orders" value={total} label="Total Orders" color="#028090" to="/orders" loading={loading} />
-        <Kpi icon="settings" value={inProd} label="In Production" color="#6366f1" to="/orders" loading={loading} />
-        <Kpi icon="success" value={completed} label="Completed" color="#16a34a" to="/orders" loading={loading} />
-        <Kpi icon="pending" value={pending} label="Pending" color="#d97706" to="/orders" loading={loading} />
-      </div>
+      {loading || total > 0 ? (
+        <div className="cx-kpis" style={{ marginBottom: 18 }}>
+          <Kpi icon="orders" value={total} label="Total Orders" color="#028090" to="/orders" loading={loading} />
+          <Kpi icon="settings" value={inProd} label="In Production" color="#6366f1" to="/orders" loading={loading} />
+          <Kpi icon="success" value={completed} label="Completed" color="#16a34a" to="/orders" loading={loading} />
+          <Kpi icon="pending" value={pending} label="Pending" color="#d97706" to="/orders" loading={loading} />
+        </div>
+      ) : (
+        <ol className="cx-how" aria-label="How ordering works">
+          {[['01', 'Design', 'Build your uniform visually in the Studio.'], ['02', 'Order', 'Bulk quantities, sizes and delivery in four steps.'], ['03', 'Track', 'Follow production and message VFRB staff.']].map(([n, t, d]) => (
+            <li key={n}><span aria-hidden="true">{n}</span><div><strong>{t}</strong><p>{d}</p></div></li>
+          ))}
+        </ol>
+      )}
 
       <div className="cx-dash-grid">
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', gap: 18, minWidth: 0, alignContent: 'start' }}>
-          {!loading && (() => {
+        <div style={{ display: 'grid', gap: 18, minWidth: 0, alignContent: 'start' }}>
+          {!loading && !draft && (() => {
             const step = draft ? ['Your design is waiting', `${draft.label || draft.studio_config.garment} is saved but not ordered yet.`, 'Continue design', openStudio]
               : inProd ? ['Your order is in production', 'Track each stage from the order page.', 'View orders', () => nav('/orders')]
               : pending ? ['VFRB is reviewing your order', 'Questions or changes? Message staff while it is pending.', 'Open messages', () => nav('/messages')]
@@ -230,7 +223,7 @@ export default function CustomerDashboard() {
                 <h2 style={{ fontSize: 15, fontWeight: 800, margin: 0 }}>Active Orders{active.length > 0 && ` (${active.length})`}</h2>
                 <Link to="/orders" className="cx-link">View all →</Link>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', gap: 12 }}>
+              <div style={{ display: 'grid', gap: 12 }}>
                 {loading ? [1, 2].map(i => <div key={i} className="cx-card" style={{ padding: 16 }}><Skeleton h={48} /><Skeleton h={28} style={{ marginTop: 14 }} /></div>)
                   : shownActive.map(o => <ActiveOrder key={o.order_id} order={o} />)}
               </div>
@@ -280,7 +273,7 @@ export default function CustomerDashboard() {
         </div>
 
         {/* Right rail */}
-        <aside style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', gap: 16, alignContent: 'start', minWidth: 0 }}>
+        <aside style={{ display: 'grid', gap: 16, alignContent: 'start', minWidth: 0 }}>
           <section className="cx-card" aria-label="Notifications">
             <div className="cx-card-h">
               <h2>Notifications{unread > 0 && <span className="cx-pill" style={{ background: 'var(--danger)', color: '#fff', marginLeft: 8 }}>{unread}</span>}</h2>
@@ -309,15 +302,6 @@ export default function CustomerDashboard() {
                 </button>
               );
             })}
-          </section>
-          <section className="cx-card" aria-label="Quick actions">
-            <div className="cx-card-h"><h2>Quick actions</h2></div>
-            {[['New design', '/design-studio'], ['My designs', '/my-designs'], ...(inspoCount ? [['Browse inspiration', '/my-designs?tab=inspo']] : []), ['My orders', '/orders'], ['Messages', '/messages']].map(([label, to]) => (
-              <button key={label} type="button" className="cx-row" style={{ minHeight: 44 }} onClick={() => nav(to)}>
-                <span style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{label}</span>
-                <span aria-hidden="true" style={{ color: 'var(--text-subtle)' }}>→</span>
-              </button>
-            ))}
           </section>
         </aside>
       </div>

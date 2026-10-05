@@ -17,14 +17,16 @@ const toDataUrl = (file) => new Promise((resolve, reject) => {
 export function useLogoUpload(addLogo) {
   const [mode, setMode] = useState('auto');            // auto | ai | off
   const [placement, setPlacement] = useState('left_chest');
+  const [kind, setKind] = useState('logo');              // logo | artwork (a personal design or reference image)
   const [status, setStatus] = useState(IDLE);
   const busy = useRef(false);
 
   const place = useCallback(async (file, info) => {
     const dataUrl = await toDataUrl(file);
-    addLogo(dataUrl, placement);
-    setStatus({ phase: 'done', preview: dataUrl, ...info });
-  }, [addLogo, placement]);
+    const art = kind === 'artwork';
+    addLogo(dataUrl, art ? 'center_chest' : placement, null, art ? { artwork: true } : null);
+    setStatus({ phase: 'done', preview: dataUrl, artwork: art, ...info });
+  }, [addLogo, placement, kind]);
 
   const run = useCallback(async (file, runMode = mode) => {
     if (!file || busy.current) return;
@@ -32,9 +34,9 @@ export function useLogoUpload(addLogo) {
     if (file.size > MAX_BYTES) { setStatus({ phase: 'error', code: 'SIZE', message: 'That file is over 5 MB. Choose a smaller one.' }); return; }
     busy.current = true;
     try {
-      if (file.type === 'image/svg+xml' || runMode === 'off') {
+      if (kind === 'artwork' || file.type === 'image/svg+xml' || runMode === 'off') {
         await place(file, { method: 'none', fileName: file.name,
-          message: file.type === 'image/svg+xml' ? 'SVG logos are already transparent.' : 'Added as-is (background removal is off).' });
+          message: kind === 'artwork' ? 'Placed exactly as uploaded.' : file.type === 'image/svg+xml' ? 'SVG logos are already transparent.' : 'Added as-is (background removal is off).' });
         return;
       }
       setStatus({ phase: 'working', method: runMode, fileName: file.name, progress: null });
@@ -52,7 +54,7 @@ export function useLogoUpload(addLogo) {
     } finally {
       busy.current = false;
     }
-  }, [mode, place]);
+  }, [mode, place, kind]);
 
   const addOriginal = useCallback(async () => {
     if (!status.file || busy.current) return;
@@ -69,5 +71,5 @@ export function useLogoUpload(addLogo) {
 
   const dismiss = useCallback(() => setStatus(IDLE), []);
 
-  return { mode, setMode, placement, setPlacement, status, upload: run, addOriginal, retry, dismiss };
+  return { mode, setMode, kind, setKind, placement, setPlacement, status, upload: run, addOriginal, retry, dismiss };
 }

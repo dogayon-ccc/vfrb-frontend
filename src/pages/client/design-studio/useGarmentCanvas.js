@@ -4,7 +4,7 @@ import { T2, LOGO_PRESETS, PATTERNS, SHAPE_TYPE_LABEL } from './dsShared';
 import { getGarmentPaths } from './garmentPaths';
 import { assetFor, tintedCanvas } from './garmentAssets';
 
-const OVERLAY_PROPS = ['__logo','__text','__draw','__shape','__layerId','__layerName','__locked','lockMovementX','lockMovementY','lockRotation','lockScalingX','lockScalingY','hasControls'];
+const OVERLAY_PROPS = ['__logo','__artwork','__text','__draw','__shape','__layerId','__layerName','__locked','lockMovementX','lockMovementY','lockRotation','lockScalingX','lockScalingY','hasControls'];
 
 // Composites front+back PNGs side by side; falls back to one side if the other fails to load.
 const FRONT_BACK_GAP = 36;
@@ -354,19 +354,21 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   // dragged onto the canvas from the panel (see dragPlace.js) instead of
   // placed at a fixed preset — dragging always wins over the preset dropdown
   // since it's the position the customer actually chose.
-  const addLogo = useCallback((dataUrl, presetId = 'left_chest', pos = null) => {
+  const addLogo = useCallback((dataUrl, presetId = 'left_chest', pos = null, opts = null) => {
     const canvas = fc.current;
     if (!canvas) return;
     const paths = getGarmentPaths(garment, sleeve);
     const preset = LOGO_PRESETS.find(p => p.id === presetId) ?? LOGO_PRESETS[0];
     import('fabric').then((mod) => { const fabric = mod.fabric ?? mod.default ?? mod;
       fabric.Image.fromURL(dataUrl, { crossOrigin: 'anonymous' }).then((img) => {
-        img.scaleToWidth(72);
+        const art = !!opts?.artwork; // personal artwork: a larger, centred image layer, never garment geometry
+        const centred = !!pos || art;
+        img.scaleToWidth(art ? Math.round(paths.w * 0.4) : 72);
         img.set({
-          left: pos ? pos.x : paths.w * preset.x,
-          top:  pos ? pos.y : paths.h * preset.y,
-          originX: pos ? 'center' : 'left', originY: pos ? 'center' : 'top',
-          __logo: true, __layerId: crypto.randomUUID(), __layerName: 'Logo',
+          left: pos ? pos.x : art ? paths.w / 2 : paths.w * preset.x,
+          top:  pos ? pos.y : art ? paths.h * 0.42 : paths.h * preset.y,
+          originX: centred ? 'center' : 'left', originY: centred ? 'center' : 'top',
+          __logo: true, __artwork: art, __layerId: crypto.randomUUID(), __layerName: art ? 'Artwork' : 'Logo',
         });
         canvas.add(img);
         canvas.setActiveObject(img);
@@ -487,7 +489,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     const canvas = fc.current;
     const obj = canvas?.getActiveObject();
     if (!obj || obj.__garmentBase || obj.__hoverGlow) return;
-    obj.clone().then((copy) => {
+    obj.clone(OVERLAY_PROPS).then((copy) => {
       copy.set({
         left: (obj.left ?? 0) + 16,
         top: (obj.top ?? 0) + 16,
@@ -610,10 +612,10 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       // whichever constructor addShape() used) via SHAPE_TYPE_LABEL, so
       // Triangle/Ellipse/Line/Star show their real name instead of being
       // collapsed into "rect" the way this used to binary-check circle-vs-not.
-      const kind = o.__shape ? 'shape' : o.__draw ? 'drawing' : (o.__logo ? 'logo' : 'text');
+      const kind = o.__shape ? 'shape' : o.__draw ? 'drawing' : o.__artwork ? 'artwork' : (o.__logo ? 'logo' : 'text');
       return {
         id: o.__layerId, type: kind,
-        name: o.__layerName || (kind === 'drawing' ? 'Drawing' : kind === 'logo' ? 'Logo'
+        name: o.__layerName || (kind === 'drawing' ? 'Drawing' : kind === 'artwork' ? 'Artwork' : kind === 'logo' ? 'Logo'
           : kind === 'shape' ? (SHAPE_TYPE_LABEL[o.type] ?? 'Shape') : 'Text'),
         visible: o.visible !== false,
         locked: !!o.__locked,

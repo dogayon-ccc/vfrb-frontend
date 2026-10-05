@@ -29,7 +29,7 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, sum
     assets:  () => <AssetsPanel tab={p.assetsTab} setTab={p.setAssetsTab} cfg={p.cfg} logo={p.logoUpload}
                      shapes={{ selObj:p.selObj, onAdd:p.addShape, onUpdate:p.updateSelected }}
                      onInspo={() => p.setShowInspo(true)} onShowcase={() => p.setShowShowcase(true)}/>,
-    text:    () => <TextPanel onAdd={p.addText}/>,
+    text:    () => <TextPanel onAdd={p.addText} bodyColor={p.cfg?.colors?.body}/>,
     draw:    () => <DrawPanel size={p.brushSize} color={p.brushColor} onSizeChange={p.changeBrushSize} onColorChange={p.changeBrushColor}/>,
     ai:      () => <AIPanel onApply={p.applyAI} onTexture={noop}/>,
     pattern: () => (assetFor(p.cfg.garment, p.cfg.sleeve)

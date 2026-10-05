@@ -2,6 +2,11 @@ import { useRef, useState } from 'react';
 import { NavIcon } from '../../../components/ui/icons';
 import { placementsFor } from './dsShared';
 
+const KINDS = [
+  { id: 'logo',    label: 'Logo',       hint: 'A logo or mark placed on the garment, with its background removed.' },
+  { id: 'artwork', label: 'My artwork', hint: 'Your own design or a reference image. It becomes a movable image layer, exactly as uploaded. It does not change the garment shape, collar, sleeves or pockets.' },
+];
+
 const MODES = [
   { id: 'auto', label: 'Auto',  hint: 'Instant and offline. Best for logos on a plain background.' },
   { id: 'ai',   label: 'AI',    hint: 'Handles photos and busy backgrounds. Downloads a large model on first use.' },
@@ -51,7 +56,7 @@ function StatusCard({ logo }) {
   if (s.phase === 'done') {
     return (
       <div className="ds-status" data-phase="done" role="status" aria-live="polite">
-        <div className="ds-status-row"><NavIcon name="success" size={16}/><strong>{s.changed ? 'Logo added, background removed' : 'Logo added'}</strong></div>
+        <div className="ds-status-row"><NavIcon name="success" size={16}/><strong>{s.artwork ? 'Artwork added' : s.changed ? 'Logo added, background removed' : 'Logo added'}</strong></div>
         <div className="ds-checker"><img src={s.preview} alt="Logo preview"/></div>
         <p className="ds-note">{s.message} Drag it on the canvas; corner handles resize.</p>
       </div>
@@ -69,29 +74,45 @@ export default function LogoAssets({ cfg, logo }) {
   const presets = placementsFor(cfg.garment, cfg.sleeve);
   const placement = presets.some((p) => p.id === logo.placement) ? logo.placement : presets[0].id;
   const modeHint = MODES.find((m) => m.id === logo.mode)?.hint;
+  const art = logo.kind === 'artwork';
+  const kindHint = KINDS.find((k) => k.id === logo.kind)?.hint;
 
   const pick = (file) => { if (!blocked && file) logo.upload(file); };
 
   return (
     <div className="ds-stack">
       <section>
-        <h3 className="ds-h3">Placement</h3>
-        <div className="ds-chips">
-          {presets.map((p) => (
-            <button key={p.id} type="button" className="ds-chip" aria-pressed={placement === p.id} onClick={() => logo.setPlacement(p.id)}>{p.label}</button>
+        <h3 className="ds-h3">Add as</h3>
+        <div className="ds-seg ds-seg--sm" role="radiogroup" aria-label="Kind of image">
+          {KINDS.map((k) => (
+            <button key={k.id} type="button" role="radio" aria-checked={logo.kind === k.id} onClick={() => logo.setKind(k.id)}>{k.label}</button>
           ))}
         </div>
+        <p className="ds-note">{kindHint}</p>
       </section>
 
-      <section>
-        <h3 className="ds-h3">Background removal</h3>
-        <div className="ds-seg ds-seg--sm" role="radiogroup" aria-label="Background removal mode">
-          {MODES.map((m) => (
-            <button key={m.id} type="button" role="radio" aria-checked={logo.mode === m.id} onClick={() => logo.setMode(m.id)}>{m.label}</button>
-          ))}
-        </div>
-        <p className="ds-note">{modeHint}</p>
-      </section>
+      {!art && (
+        <>
+          <section>
+            <h3 className="ds-h3">Placement</h3>
+            <div className="ds-chips">
+              {presets.map((p) => (
+                <button key={p.id} type="button" className="ds-chip" aria-pressed={placement === p.id} onClick={() => logo.setPlacement(p.id)}>{p.label}</button>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h3 className="ds-h3">Background removal</h3>
+            <div className="ds-seg ds-seg--sm" role="radiogroup" aria-label="Background removal mode">
+              {MODES.map((m) => (
+                <button key={m.id} type="button" role="radio" aria-checked={logo.mode === m.id} onClick={() => logo.setMode(m.id)}>{m.label}</button>
+              ))}
+            </div>
+            <p className="ds-note">{modeHint}</p>
+          </section>
+        </>
+      )}
 
       <button type="button" className="ds-drop" data-drag={drag || undefined} disabled={blocked}
         onClick={() => fileRef.current?.click()}
@@ -99,8 +120,8 @@ export default function LogoAssets({ cfg, logo }) {
         onDragLeave={() => setDrag(false)}
         onDrop={(e) => { e.preventDefault(); setDrag(false); pick(e.dataTransfer.files?.[0]); }}>
         <NavIcon name="dropzone" size={26}/>
-        <strong>{noGarment ? 'Pick a garment first' : working ? 'Working…' : 'Drop a logo or click to browse'}</strong>
-        <span>{noGarment ? 'Logos are placed relative to the garment.' : 'PNG, JPG, WEBP or SVG, up to 5 MB'}</span>
+        <strong>{noGarment ? 'Pick a garment first' : working ? 'Working…' : art ? 'Drop your artwork or click to browse' : 'Drop a logo or click to browse'}</strong>
+        <span>{noGarment ? 'Images are placed relative to the garment.' : 'PNG, JPG, WEBP or SVG, up to 5 MB'}</span>
       </button>
       <input ref={fileRef} type="file" hidden accept="image/png,image/svg+xml,image/jpeg,image/webp"
         onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ''; }}/>

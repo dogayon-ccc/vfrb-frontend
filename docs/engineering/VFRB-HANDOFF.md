@@ -293,3 +293,20 @@ Verified: BUILD (`npm run build` exit 0 before/after; only pre-existing three-me
 - Dashboard crash `orders.filter is not a function`: list responses/caches are now normalised with `utils/asList.js` (Dashboard, Orders, Messages, AIMaterials, all client side). Root cause NOT reproduced (no backend here): the API returns a Laravel paginator, so a cached or error-shaped non-array value is the likely trigger. Admin pages still use the old unwrap pattern.
 - `ERR_INSUFFICIENT_RESOURCES` in the console is the browser running out of connections while Vite serves many modules in dev; it is not an app bug.
 - Studio: category bar wraps in a grid (no horizontal scroll); starter templates removed from Inspo (`INSPO_TEMPLATES` deleted); duplicate garments retired: School Polo -> Polo Shirt, V-Neck Shirt -> Scrub Top (`LEGACY_GARMENT`, old saves restore correctly); the canvas-side quick garment strip removed (it duplicated the garment picker). Inspo filter rows wrap instead of scrolling.
+
+---
+
+## ACCOUNT 1 - STUDIO + CUSTOMER UX (worked on `main` @ `1092f5e`)
+
+Verified: BUILD (`npx vite build` clean before and after), CODE (`node tools/logic-checks.mjs` 86/86, 4 new checks), RUNTIME in headless Chrome 131 (software GL) against the production build with `/api/*` mocked, at 375 / 390 / 430 / 768 / 1366. NOT verified: real backend, real devices, real GPU 3D, a screen reader.
+
+- **Picker**: category chips only browse; the canvas stays blank until a garment is picked, and the garment sets the category it was picked from (`selectFamily(setCfg, fam, category)`). Garments with a real photo base show it large and untinted via the same `assetFor`/`resolveFit` the canvas uses; others keep the 2D template thumbnail. Chips wrap (no horizontal scroll). The grid is a plain keyed div, not an `AnimatePresence mode="wait"` there left the new grid at opacity 0 in headless Chrome.
+- **Blank state** lives outside the zoom-scaled wrapper (`.ds-blank`), so its text stays readable at any zoom; its button hides while the picker is open.
+- **Personal artwork** ("Add as: My artwork" in the Logo tab): a centred, larger image layer tagged `__artwork`, no background removal, labelled "Artwork image" in Layers and the inspector. It never changes garment shape, sleeve, collar or pocket. `__artwork` is in `OVERLAY_PROPS`, so it survives save/restore, order submit and `duplicateSelected` (clone now keeps layer tags).
+- **Selection bar**: bottom with reserved room below 768 (44px targets), top-right 768-1279, top-centre with label from 1280; the passive garment-name chip is hidden while something is selected so they never collide.
+- **Text**: default colour is readable against the garment colour (white on dark, near-black on light) until the customer picks one. Studio text minimum is 11px (`.ds{--text-2xs:11px}`, shared token untouched). Coarse pointers get 44px targets on the top bar, Front/Back, dark-stage toggle and sliders.
+- **Removed**: dead `LogoPanel.jsx`; stale "starter designs in Philippine institutional colors" copy.
+- **Lifecycle (mocked API)**: pick Scrub Top, add text + artwork, Layers, Save, reload restore, Order, Wizard submit, client Order Detail and admin Order Detail all carry the same artwork (19,408 artwork pixels in the editor export, the uploaded `design_preview_file`, the Wizard preview and both detail pages). Submitted `studio_config` keeps `__artwork`.
+- **3D / fallback**: unchanged. No garment is marked 3D-verified. With WebGL blocked the Studio shows the 2D design and a notice.
+
+Open: only some garments have real photos (Scrub Top confirmed visually). Duplicate lives in the selection bar only (inspector has Delete). Order Detail preview is front only. No ESLint in the repo. `design_preview_file` storage on the real backend was not exercised.

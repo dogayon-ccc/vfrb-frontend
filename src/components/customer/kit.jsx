@@ -121,16 +121,20 @@ export function Chips({ items, value, onChange, label }) {
 }
 
 export function Stepper({ steps, current }) {
+  const idx = Math.min(Math.max(current, 0), steps.length - 1);
   return (
-    <div className="cx-stepper" role="list" aria-label="Order progress">
-      {steps.map((s, i) => (
-        <div key={s} role="listitem" className="cx-step"
-          data-s={i < current ? 'done' : i === current ? 'now' : 'todo'}
-          aria-current={i === current ? 'step' : undefined}>
-          <i>{i < current ? '✓' : i + 1}</i><span>{s}</span>
-        </div>
-      ))}
-    </div>
+    <>
+      <div className="cx-stepper" role="list" aria-label="Order progress">
+        {steps.map((s, i) => (
+          <div key={s} role="listitem" className="cx-step"
+            data-s={i < current ? 'done' : i === current ? 'now' : 'todo'}
+            aria-current={i === current ? 'step' : undefined}>
+            <i>{i < current ? '✓' : i + 1}</i><span>{s}</span>
+          </div>
+        ))}
+      </div>
+      <p className="cx-step-cap" aria-hidden="true">Step {idx + 1} of {steps.length} · <strong>{steps[idx]}</strong></p>
+    </>
   );
 }
 

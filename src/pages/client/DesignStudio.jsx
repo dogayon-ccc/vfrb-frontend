@@ -621,7 +621,7 @@ export default function DesignStudio() {
             selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected}
             viewMode={viewMode} has3DLoaded={has3DLoaded} onLogoFile={onLogoFile}
             zoom={zoom} setZoom={setZoom} snapshot={snapshot} overlays={overlays}
-            onChooseGarment={() => { setTool('type'); setSheetOpen(true); }} setViewMode={setViewMode}/>
+            onChooseGarment={() => { setTool('type'); setSheetOpen(true); }} pickerOpen={tool === 'type' && (!isNarrow || sheetOpen)} setViewMode={setViewMode}/>
         </div>
 
         {/* ── FIRST-VISIT ONBOARDING OVERLAY ── */}

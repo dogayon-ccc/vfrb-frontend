@@ -63,6 +63,17 @@ t('legacy garmentType no crash', typeof renderToString(React.createElement(Prev,
 t('unknown garment no crash', typeof renderToString(React.createElement(Prev, { cfg: { garment: 'Garbage' } })) === 'string');
 t('reference image', renderToString(React.createElement(Prev, { cfg: null, referenceImageUrl: '/ref.png' })).includes('/ref.png'));
 for (const g of ['Pants', 'Skirt', 'Polo Shirt', 'T-Shirt', 'Scrub Top']) { const cfg = { ...G.applyGarment(base, g), colors: { body: '#123456' }, overlays: [] }; const r = S.deserializeDesign(JSON.parse(JSON.stringify(S.serializeDesign(cfg)))); const b = r.cfg ?? r; t(`roundtrip ${g}`, b.garment === g && b.sleeve === cfg.sleeve && b.fit === cfg.fit); }
+// Studio picker: browsing a category never changes the design, picking a garment sets the category it was picked from.
+const SG = await L('/src/pages/client/design-studio/selectGarment.js');
+t('selectFamily passes the browsed category', (c => { let st = { ...base, category: 'School Uniform' }; SG.selectFamily(fn => { st = fn(st); }, G.familyFor('Scrub Top'), 'Medical / Scrubs'); return st.garment === 'Scrub Top' && st.category === 'Medical / Scrubs'; })());
+t('selectFamily without a category keeps the current one', (c => { let st = { ...base, category: 'School Uniform' }; SG.selectFamily(fn => { st = fn(st); }, G.familyFor('Scrub Top')); return st.garment === 'Scrub Top' && st.category === 'School Uniform'; })());
+// Personal artwork is a tagged image overlay: the tag survives serialize -> JSON -> deserialize, and the garment stays untouched.
+{ const art = { type: 'Image', __logo: true, __artwork: true, __layerId: 'a1', __layerName: 'Artwork' };
+  const cfg = { ...G.applyGarment(base, 'Scrub Top'), colors: { body: '#123456' } };
+  const r = S.deserializeDesign(JSON.parse(JSON.stringify(S.serializeDesign(cfg, { overlays: [art], frontOverlays: [art], backOverlays: [] }))));
+  const kept = JSON.stringify(r).includes('"__artwork":true');
+  t('artwork tag survives save/restore', kept);
+  t('artwork does not alter garment, sleeve or fit', r.cfg.garment === 'Scrub Top' && r.cfg.sleeve === cfg.sleeve && r.cfg.fit === cfg.fit); }
 console.log(out.join('\n')); const f = out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);
 

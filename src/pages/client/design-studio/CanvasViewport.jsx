@@ -1,7 +1,7 @@
 import { Component, Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NavIcon } from '../../../components/ui/icons';
-import { T, T2, DARK, SHAPE_TYPE_LABEL } from './dsShared';
+import { T2, DARK, SHAPE_TYPE_LABEL } from './dsShared';
 import { familyFor, STATUS_3D_LABEL } from './garmentCatalog';
 import GarmentSilhouette from './GarmentSilhouette';
 import { hasWebGL } from './webglSupport';
@@ -10,7 +10,7 @@ import { hasBackView } from './garmentAssets';
 const Scene3D = lazy(() => import('../DesignStudio3D'));
 
 // The sketch has a fixed pixel size; scale it down (never up) to fit the pane.
-function useFit(paneRef, wrapRef) {
+function useFit(paneRef, wrapRef, selbarOn) {
   const [fit, setFit] = useState(1);
   useEffect(() => {
     const pane = paneRef.current, wrap = wrapRef.current;
@@ -21,7 +21,8 @@ function useFit(paneRef, wrapRef) {
     // Front/Back cards; the cap keeps the raster canvas from getting soft.
     const measure = () => {
       const wide = pane.clientWidth >= 700;
-      const reserveY = wide ? 200 : 96;
+      const narrow = window.innerWidth < 768;
+      const reserveY = (narrow ? 84 : wide ? 200 : 96) + (narrow && selbarOn ? 56 : 0);
       const gutter = window.innerWidth >= 768 ? 152 : 48;
       const maxFit = wide ? 1.5 : 1;
       setFit(Math.max(0.3, Math.min(maxFit, (pane.clientWidth - gutter) / wrap.offsetWidth, (pane.clientHeight - reserveY) / wrap.offsetHeight)));
@@ -31,7 +32,7 @@ function useFit(paneRef, wrapRef) {
     ro.observe(pane);
     ro.observe(wrap);
     return () => ro.disconnect();
-  }, [paneRef, wrapRef]);
+  }, [paneRef, wrapRef, selbarOn]);
   return fit;
 }
 
@@ -65,13 +66,13 @@ class ThreeEB extends Component {
 export default function CanvasViewport({
   cfg, setCfg, canvasWrapRef, canvasEl, aiPulse, face, switchFace, initFailed,
   selObj, deleteSelected, duplicateSelected, viewMode, has3DLoaded, onLogoFile, zoom, setZoom, snapshot, overlays,
-  onChooseGarment, setViewMode,
+  onChooseGarment, pickerOpen, setViewMode,
 }) {
   const paneRef = useRef(null);
   const [webglOk, setWebglOk] = useState(hasWebGL);
   const show3D = has3DLoaded && webglOk;
   const on3DLost = () => { setWebglOk(false); setViewMode?.('2d'); };
-  const fit = useFit(paneRef, canvasWrapRef);
+  const fit = useFit(paneRef, canvasWrapRef, !!selObj);
   const [dark, setDark] = useState(false);
 
   // Brief cross-fade on the canvas wrapper when the visible face changes. The
@@ -109,7 +110,7 @@ export default function CanvasViewport({
           at once — a totally blank workspace with no error, matching the reported symptom exactly.
           Whatever set viewMode to '3d' without has3DLoaded (stale cached JS, a future new call site,
           restored state), this guard makes that combination fall back to showing 2D instead of nothing. */}
-      <div ref={paneRef} className="ds-pane" style={{
+      <div ref={paneRef} className="ds-pane" data-selbar={selObj ? '1' : undefined} style={{
           display:'flex', alignItems:'center', justifyContent:'center',
           visibility: (viewMode==='2d' || !show3D) ? 'visible' : 'hidden',
           pointerEvents: (viewMode==='2d' || !show3D) ? 'auto' : 'none',
@@ -169,55 +170,19 @@ export default function CanvasViewport({
               <canvas ref={canvasEl} style={{ display:'block', filter:'drop-shadow(0 18px 34px rgba(0,0,0,.55))' }}/>
               {aiPulse && <div className="ai-pulse"/>}
               {cfg.garment && <div className="ds-stage-floor" aria-hidden="true"/>}
-              {/* Bug fix: INIT_CFG starts cfg.garment at null (blank canvas
-                  by design) and getGarmentPaths(null) returns EMPTY_PATHS,
-                  so Fabric correctly draws nothing here — but nothing told
-                  the customer that was intentional vs. a broken/loading
-                  canvas. Non-interactive (pointerEvents:none) so it never
-                  blocks a future canvas drop target. */}
-              <AnimatePresence>
-                {!cfg.garment && (
-                  <motion.div
-                    initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-6 }}
-                    transition={{ duration:.25, ease:'easeOut' }}
-                    style={{
-                      position:'absolute', inset:0, display:'flex', flexDirection:'column',
-                      alignItems:'center', justifyContent:'center', gap:12, textAlign:'center',
-                      padding:24,
-                    }}>
-                    <motion.div
-                      animate={{ y:[0,-5,0] }}
-                      transition={{ duration:2.6, repeat:Infinity, ease:'easeInOut' }}
-                      style={{
-                        width:64, height:64, borderRadius:20, display:'flex',
-                        alignItems:'center', justifyContent:'center',
-                        background:`linear-gradient(135deg, ${T}14, ${T2}14)`,
-                        border:`1px dashed rgba(15,23,42,.18)`,
-                      }}>
-                      <NavIcon name="garmentType" size={28} color="rgba(15,23,42,.32)"/>
-                    </motion.div>
-                    <p style={{ color:'rgba(15,23,42,.5)', fontSize:12.5, lineHeight:1.6, margin:0, maxWidth:230 }}>
-                      Nothing to design yet — pick a garment to bring this canvas to life.
-                    </p>
-                    {onChooseGarment && (
-                      <motion.button
-                        type="button" onClick={onChooseGarment}
-                        whileHover={{ scale:1.03 }} whileTap={{ scale:.96 }}
-                        style={{
-                          marginTop:2, padding:'9px 18px', borderRadius:10, border:'none',
-                          background:`linear-gradient(135deg,${T},${T2})`, color:'#fff',
-                          fontSize:12.5, fontWeight:700, cursor:'pointer',
-                          boxShadow:'0 4px 14px rgba(2,195,154,.28)',
-                        }}>
-                        Choose a garment →
-                      </motion.button>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </>
           )}
         </div>
+
+        {/* Blank-by-design start state. Lives outside the zoom-scaled wrapper so its text stays readable at any zoom. */}
+        {!cfg.garment && !initFailed && (
+          <div className="ds-blank">
+            <span className="ds-blank-icon" aria-hidden="true"><NavIcon name="garmentType" size={28} color="rgba(15,23,42,.4)"/></span>
+            <p className="ds-blank-title">Start with a garment</p>
+            <p className="ds-blank-sub">Pick a VFRB uniform and it appears here, ready for colors, text and logos.</p>
+            {onChooseGarment && !pickerOpen && <button type="button" className="ds-blank-cta" onClick={onChooseGarment}>Choose a garment</button>}
+          </div>
+        )}
 
         <div className="ds-face" role="group" aria-label="Garment side">
           {['front','back'].map(v=>(
@@ -239,14 +204,14 @@ export default function CanvasViewport({
         <AnimatePresence>
           {selObj && (
             <motion.div className="ds-selbar" initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }}>
-              <span style={{ display:'inline-flex', alignItems:'center', gap:5 }}>
+              <span className="ds-selbar-label">
                 <NavIcon name={selObj.__logo ? 'image' : selObj.__shape ? 'shapes' : selObj.__draw ? 'draw' : 'edit'} size={12}/>
                 {/* FIX: was hardcoded selObj.__logo ? 'Logo' : 'Text' — every
                     Rectangle/Circle/Drawing selection showed "Text, drag to
                     move" once Shapes/Draw were added, since this label
                     predates both. Mirrors the same kind derivation the
                     layers getter in useGarmentCanvas.js already uses. */}
-                {selObj.__logo ? 'Logo'
+                {selObj.__artwork ? 'Artwork' : selObj.__logo ? 'Logo'
                   : selObj.__shape ? (SHAPE_TYPE_LABEL[selObj.type] ?? 'Shape')
                   : selObj.__draw ? 'Drawing' : 'Text'}, drag to move
               </span>

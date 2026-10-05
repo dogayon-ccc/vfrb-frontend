@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { NavIcon } from '../../../components/ui/icons';
 import { familyFor } from './garmentCatalog';
 
-const ICON = { logo: 'image', drawing: 'draw', shape: 'shapes', text: 'text' };
-const KIND = { logo: 'Logo', drawing: 'Drawing', shape: 'Shape', text: 'Text' };
+const ICON = { logo: 'image', artwork: 'image', drawing: 'draw', shape: 'shapes', text: 'text' };
+const KIND = { logo: 'Logo', artwork: 'Artwork image', drawing: 'Drawing', shape: 'Shape', text: 'Text' };
 
 export default function LayersPanel({ layers, selectedId, garment, onSelect, onToggleVisibility, onToggleLock, onOpacity, onRename, onDelete, onReorder }) {
   const [dragId, setDragId] = useState(null);

@@ -3,10 +3,21 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { NavIcon } from '../../../components/ui/icons';
 import { BASE_PATHS } from './garmentPaths';
 import GarmentThumb from './GarmentThumb';
+import GarmentSilhouette from './GarmentSilhouette';
 import { selectFamily } from './selectGarment';
-import { CATALOG, familyFor, neighborFamily, applyGarment, STATUS_3D_LABEL } from './garmentCatalog';
+import { CATALOG, familyFor, neighborFamily, resolveFit, STATUS_3D_LABEL } from './garmentCatalog';
 import { PH_SWATCHES, ZONE_LABEL, zonesFor } from './dsShared';
 import { assetFor, photoZoneNote } from './garmentAssets';
+
+const CAT_LABEL = { 'School Uniform': 'School', 'Medical / Scrubs': 'Medical', 'Hospitality / Service': 'Hospitality', 'Industrial / Work': 'Industrial' };
+
+// A garment with a real photo base shows that photo, untinted; the rest keep their 2D template thumbnail.
+function CardImage({ fam, cfg }) {
+  const fit = resolveFit(fam.id, cfg.fit);
+  const asset = assetFor(fam.id, fam.defaultStyle, 'front', fit);
+  if (asset) return <img src={asset.src} alt="" width={asset.w} height={asset.h} decoding="async" draggable={false} className="ds-tp-photo"/>;
+  return <GarmentThumb paths={BASE_PATHS[fam.id] ?? BASE_PATHS['Polo Shirt']} colors={cfg.colors} size={88}/>;
+}
 
 // Options come from the canonical CATALOG only; nothing here invents a garment, style or fit.
 export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, viewMode, setViewMode, setHas3DLoaded }) {
@@ -15,7 +26,11 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, view
   const [picking, setPicking] = useState(!cfg.garment);
   const [prevGarment, setPrevGarment] = useState(cfg.garment);
   if (prevGarment !== cfg.garment) { setPrevGarment(cfg.garment); setPicking(!cfg.garment); }
-  const catData = CATALOG.find(c => c.id === cfg.category) ?? CATALOG[0];
+  // Browsing a category never touches the design: only picking a garment does.
+  const [browseCat, setBrowseCat] = useState(cfg.category);
+  const [prevCat, setPrevCat] = useState(cfg.category);
+  if (prevCat !== cfg.category) { setPrevCat(cfg.category); setBrowseCat(cfg.category); }
+  const catData = CATALOG.find(c => c.id === browseCat) ?? CATALOG[0];
   const family  = familyFor(cfg.garment);
   const sleeves = family?.styles ?? [];
   const photo   = cfg.garment ? assetFor(cfg.garment, cfg.sleeve, 'front', cfg.fit) : null;
@@ -24,8 +39,8 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, view
   const body    = (cfg.colors.body ?? '').toLowerCase();
 
   const goNeighbor = (dir) => {
-    const next = neighborFamily(cfg.category, cfg.garment, dir);
-    if (next) selectFamily(setCfg, next);
+    const next = neighborFamily(catData.id, cfg.garment, dir);
+    if (next) selectFamily(setCfg, next, catData.id);
   };
   const toggleZone = (z) => { setOpenZone(o => (o === z ? null : z)); setActiveZone(z); };
   const setZoneColor = (z, hex) => setCfg(p => ({ ...p, colors: { ...p.colors, [z]: hex } }));
@@ -34,7 +49,7 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, view
     <div className="ds-tp">
       {cfg.garment && !picking && (
         <div className="ds-tp-current">
-          <span className="ds-tp-thumb ds-tp-thumb--sm"><GarmentThumb paths={BASE_PATHS[cfg.garment] ?? BASE_PATHS['Polo Shirt']} colors={cfg.colors} size={40}/></span>
+          <span className="ds-tp-thumb ds-tp-thumb--sm"><GarmentSilhouette garment={cfg.garment} sleeve={cfg.sleeve} fit={cfg.fit} colors={cfg.colors} width={40} height={48}/></span>
           <div className="ds-tp-current-txt">
             <strong>{cfg.garment}</strong>
             <span>{catData.id}{STATUS_3D_LABEL[family?.status3D] ? ` · ${STATUS_3D_LABEL[family.status3D].label}` : ''}</span>
@@ -47,10 +62,10 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, view
       <>
       <div className="ds-tp-catbar" role="tablist" aria-label="Uniform category">
         {CATALOG.map(c => (
-          <button key={c.id} type="button" role="tab" aria-selected={cfg.category === c.id} className="ds-tp-catchip"
-            onClick={() => setCfg(p => applyGarment(p, c.families[0].id, { category: c.id }))}>
+          <button key={c.id} type="button" role="tab" aria-selected={browseCat === c.id} className="ds-tp-catchip"
+            onClick={() => setBrowseCat(c.id)}>
             <NavIcon name={c.icon} size={15}/>
-            <span>{c.id.split('/')[0].trim()}</span>
+            <span>{CAT_LABEL[c.id] ?? c.id}</span>
           </button>
         ))}
       </div>
@@ -72,18 +87,15 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, view
         </div>
       </div>
 
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.div key={catData.id} className="ds-tp-grid"
-          initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }}
-          exit={reduce ? { opacity: 0 } : { opacity: 0 }} transition={{ duration: reduce ? 0 : 0.12 }}>
+        <div key={catData.id} className="ds-tp-grid">
           {catData.families.map((fam, i) => {
             const g = fam.id;
             const sel = cfg.garment === g;
             const st = STATUS_3D_LABEL[fam.status3D];
             return (
               <button key={g} type="button" className="ds-tp-card" aria-pressed={sel} style={{ '--i': i }}
-                title={sel ? `${g} — click to remove` : `${g}${st ? ` — ${st.label}` : ''}`}
-                onClick={() => (sel ? setCfg(p => ({ ...p, garment: null })) : selectFamily(setCfg, fam))}>
+                title={`${g}${st ? `, ${st.label}` : ''}`}
+                onClick={() => (sel ? setPicking(false) : selectFamily(setCfg, fam, catData.id))}>
                 <AnimatePresence>
                   {sel && (
                     <motion.span className="ds-tp-check" aria-hidden="true"
@@ -93,14 +105,13 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, view
                     </motion.span>
                   )}
                 </AnimatePresence>
-                <span className="ds-tp-thumb"><GarmentThumb paths={BASE_PATHS[g] ?? BASE_PATHS['Polo Shirt']} colors={cfg.colors} size={44}/></span>
+                <span className="ds-tp-thumb"><CardImage fam={fam} cfg={cfg}/></span>
                 <span className="ds-tp-name">{g}</span>
                 {st && <span className="ds-tp-chip" data-tone={st.tone}>{st.label}</span>}
               </button>
             );
           })}
-        </motion.div>
-      </AnimatePresence>
+        </div>
 
       </>
       )}
