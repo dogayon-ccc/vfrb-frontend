@@ -3,6 +3,7 @@ import axios from 'axios';
 import { TTL } from '../../utils/cache';
 import { useCachedResource } from '../../hooks/useCachedResource';
 import { NavIcon } from '../../components/ui/icons';
+import { canAccessArea } from '../../utils/jobAccess';
 import { PageHeader, StatGrid, Panel, StatusPill, SkeletonRows, EmptyBlock, Meter, Toast, useToast } from '../../components/admin/AdminUI';
 
 const ROLE_LABEL = { sales: 'Sales Staff', production: 'Production Staff', inventory: 'Inventory Staff' };
@@ -91,7 +92,7 @@ function GeneralBody({ data, loading, nav }) {
           ))}
         </List>
       </Panel>
-      <Panel title="Low stock" flush action={<button className="adm-link-btn" onClick={() => nav('/admin/inventory')}>View inventory</button>}>
+      <Panel title="Low stock" flush action={canAccessArea(user, 'inventory') ? <button className="adm-link-btn" onClick={() => nav('/admin/inventory')}>View inventory</button> : null}>
         <List loading={loading} items={low} empty="All materials are above their reorder level.">
           {low.map((m) => (
             <Row key={m.material_id}>

@@ -146,12 +146,13 @@ function RequireAuth({ children, role }) {
 }
 
 import { canAccessArea, readAdminUser } from './utils/jobAccess';
+import AccessDenied from './components/AccessDenied';
 function RequireArea({ area, children }) {
-  return canAccessArea(readAdminUser(), area) ? children : <Navigate to="/admin/dashboard" replace/>;
+  return canAccessArea(readAdminUser(), area) ? children : <AccessDenied what={`The ${area} area`}/>;
 }
 function RequireManager({ children }) {
   const user = readUser();
-  if (user.role !== 'manager') return <Navigate to="/admin/dashboard" replace/>;
+  if (user.role !== 'manager') return <AccessDenied what="This page"/>;
   return children;
 }
 

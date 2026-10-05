@@ -6,6 +6,7 @@ import axios from 'axios';
 import { getStorageUrl, isImageFile } from '../../utils/fileUrl';
 import DesignPreview from '../../components/DesignPreview';
 import { NavIcon } from '../../components/ui';
+import { canAccessArea, readAdminUser } from '../../utils/jobAccess';
 import { Panel, StatusPill, Meter, EmptyBlock, Toast, useToast, useIsMobile } from '../../components/admin/AdminUI';
 
 function getIsManager() {
@@ -315,7 +316,7 @@ export default function AdminOrderDetail() {
           </Panel>
 
           <Panel title="Quality Control" style={{ order:5 }}
-            action={<button className="adm-link-btn" onClick={() => navigate('/admin/qc')}>QC checklist →</button>}>
+            action={canAccessArea(readAdminUser(), 'production') ? <button className="adm-link-btn" onClick={() => navigate('/admin/qc')}>QC checklist →</button> : null}>
             <div className="adm-od-fields">
               <Field label="QC Required" value={order.qc_required ? 'Yes' : 'No'}/>
               <Field label="QC Result" value={order.qc_passed_at ? `Passed ${fmtDay(order.qc_passed_at)}` : (qcHold ? 'Awaiting passing checklist' : 'Not passed yet')}/>
