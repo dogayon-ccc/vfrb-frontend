@@ -1,4 +1,5 @@
 // src/pages/client/Orders.jsx — Orders list (wireframe: filter chips, table on desktop, cards on mobile)
+import { humanize } from '../../utils/humanize';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -136,7 +137,7 @@ export default function CustomerOrders() {
                     <td><div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><OrderThumb order={o} size={40} />
                       <div style={{ minWidth: 0 }}><b style={{ fontSize: 13 }}>#{o.order_id}</b>
                         <div style={{ fontSize: 12, color: 'var(--text-subtle)', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{orderTitle(o)}</div></div></div></td>
-                    <td>{o.garment_type ?? '—'}</td>
+                    <td>{humanize(o.garment_type) ?? '—'}</td>
                     <td>{o.quantity_ordered ?? 0} pcs</td>
                     <td>{fmtDate(o.created_at, { month: 'short', day: 'numeric', year: 'numeric' })}</td>
                     <td>{fmtDate(o.target_delivery_date, { month: 'short', day: 'numeric' })}</td>

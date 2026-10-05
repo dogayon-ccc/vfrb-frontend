@@ -156,7 +156,7 @@ export default function CustomerDashboard() {
       )}
 
       <motion.section initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="cx-hero" aria-labelledby="dash-h1">
-        <img src={heroPhoto} alt="" className="cx-hero-img" width="1600" height="720" fetchPriority="high" />
+        <img src={heroPhoto} alt="" className="cx-hero-img" width="1600" height="720" fetchpriority="high" />
         <div className="cx-hero-body">
           <p className="cx-hero-eyebrow">{greeting(user.name)}</p>
           <h1 id="dash-h1">Uniforms made for your people.</h1>

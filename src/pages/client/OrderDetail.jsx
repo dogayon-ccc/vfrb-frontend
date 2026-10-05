@@ -272,6 +272,18 @@ export default function CustomerOrderDetail() {
     },
   ];
 
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiMsg,  setAiMsg]  = useState('');
+  const retryAI = useCallback(async () => {
+    setAiBusy(true); setAiMsg('');
+    try {
+      await axios.post('/api/customer/ai/recommend-materials', { order_id: Number(orderId) }, { timeout: 120_000 });
+      await load(true);
+    } catch (e) {
+      setAiMsg(e.response?.data?.message ?? 'The recommendation is unavailable right now. You can choose materials yourself.');
+    } finally { setAiBusy(false); }
+  }, [orderId, load]);
+
   // ── AI recommendation — optimistic UI — O(1) ─────────────────────────────
   const handleAI = useCallback(async (action) => {
     if (!aiRec || !orderId) return;
@@ -659,6 +671,27 @@ export default function CustomerOrderDetail() {
 
         </div><div className="od-side">
         {/* ── AI Recommendation card ────────────────────────────────────── */}
+        {order && !['ready','accepted','rejected'].includes(order.ai_recommendation_status) && !['completed','cancelled'].includes(order.status) && (
+          <div className="od-card"><div className="od-card-body">
+            <p className="od-section-title" style={{ fontFamily:FONT }}>Material recommendation</p>
+            <p style={{ fontSize:13, color:'var(--text-muted)', lineHeight:1.6, margin:'0 0 12px', fontFamily:FONT }}>
+              {order.ai_recommendation_status === 'generating'
+                ? 'Your recommendation is being prepared. Check again in a moment.'
+                : order.ai_recommendation_status === 'failed'
+                ? 'The recommendation could not be generated. Try again, or choose the material types yourself.'
+                : 'No material types have been recommended for this order yet.'}
+            </p>
+            {aiMsg && <p role="alert" style={{ fontSize:13, color:'#b91c1c', margin:'0 0 12px', fontFamily:FONT }}>{aiMsg}</p>}
+            <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+              <button className="cx-btn cx-btn-p" style={{ minHeight:44 }} disabled={aiBusy} aria-busy={aiBusy}
+                onClick={order.ai_recommendation_status === 'generating' ? () => load(true) : retryAI}>
+                {aiBusy ? 'Working…' : order.ai_recommendation_status === 'generating' ? 'Check again' : 'Get recommendation'}
+              </button>
+              <button className="cx-btn cx-btn-s" style={{ minHeight:44 }} onClick={() => nav('/ai-materials')}>Choose materials myself</button>
+            </div>
+          </div></div>
+        )}
+
         {aiRec && ['ready','accepted','rejected'].includes(order.ai_recommendation_status) && (
           <motion.div
             initial={{ opacity:0, y:10 }}
@@ -669,7 +702,7 @@ export default function CustomerOrderDetail() {
               <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
                 <div style={{
                   width:28, height:28, borderRadius:'50%', flexShrink:0,
-                  background:'linear-gradient(135deg,#7c3aed,#a78bfa)',
+                  background:'var(--teal-dark)',
                   display:'flex', alignItems:'center', justifyContent:'center',
                   fontSize:14,
                 }}>

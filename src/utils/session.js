@@ -40,11 +40,36 @@ export function startSession(token, user) {
   localStorage.setItem(USER, JSON.stringify(user));
 }
 
+const inflight = new Map();
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Identical in-flight GETs share one request, so pages that fetch the same list together do not trip the rate limit.
+function installGetDedupe() {
+  const base = axios.getAdapter(axios.defaults.adapter);
+  axios.defaults.adapter = (config) => {
+    if ((config.method || 'get') !== 'get' || config.responseType === 'blob') return base(config);
+    const key = `${localStorage.getItem(TOKEN)}|${axios.getUri(config)}`;
+    if (!inflight.has(key)) {
+      const p = base(config).finally(() => inflight.delete(key));
+      inflight.set(key, p);
+    }
+    return inflight.get(key).then((r) => ({ ...r, config }));
+  };
+}
+
 export function installResponseGuards() {
+  installGetDedupe();
   axios.interceptors.response.use(
     (res) => res,
-    (error) => {
+    async (error) => {
       const status = error.response?.status;
+      const cfg = error.config;
+      if (status === 429 && cfg && (cfg.method || 'get') === 'get' && (cfg.__retry429 || 0) < 2) {
+        cfg.__retry429 = (cfg.__retry429 || 0) + 1;
+        const ra = Number(error.response.headers?.['retry-after']);
+        await wait(Math.min(Number.isFinite(ra) && ra > 0 ? ra * 1000 : 800 * cfg.__retry429, 4000));
+        return axios(cfg);
+      }
       // Debug-mode Laravel 5xx bodies carry exception text, SQL and file paths.
       if (status >= 500) error.response.data = { message: SERVER_ERROR };
       const isAuthCall = AUTH_CALLS.some((p) => (error.config?.url || '').includes(p));
