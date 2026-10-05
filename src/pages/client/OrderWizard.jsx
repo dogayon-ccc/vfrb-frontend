@@ -479,7 +479,7 @@ function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart
           </motion.button>
           <input type="number" min={100} value={form.quantity_ordered||''}
             onChange={e => set('quantity_ordered', Math.max(0, Number(e.target.value)||0))}
-            placeholder="e.g. 100 (bulk orders only — 100 pcs minimum)" style={{ ...inp, textAlign:'center', fontWeight:700 }}
+            placeholder="Minimum 100 pcs" style={{ ...inp, textAlign:'center', fontWeight:700 }}
             onFocus={fi} onBlur={fo}/>
           <motion.button whileTap={{ scale:.9 }} type="button"
             onClick={() => set('quantity_ordered', (form.quantity_ordered||0) + 10)}

@@ -142,6 +142,7 @@ export default function AdminLayout() {
 
   const SW         = collapsed ? 68 : 226;
   const isManager  = role === 'manager';
+  const roleLabel  = isManager ? 'Manager' : jobFn === 'general' ? 'Staff' : `${jobFn[0].toUpperCase()}${jobFn.slice(1)} staff`;
   const visibleStaffNav = isManager ? STAFF_NAV : [...visibleForJobFunction(STAFF_NAV, jobFn), STAFF_SETTINGS];
     const navItems   = isManager ? [...STAFF_NAV, ...MANAGER_EXTRA] : visibleStaffNav;
 
@@ -580,7 +581,7 @@ export default function AdminLayout() {
 
           <button onClick={toggle}
             style={{ margin: collapsed ? '6px auto' : '6px 6px 6px auto',
-              padding: collapsed ? '9px' : '7px 12px', borderRadius: 99,
+              padding: collapsed ? '9px' : '7px 12px', minHeight:44, minWidth:44, borderRadius: 99,
               border:'1px solid rgba(255,255,255,.12)', background:'rgba(255,255,255,.05)',
               cursor:'pointer', color:'rgba(255,255,255,.55)', fontSize:11, fontWeight:600,
               display:'flex', alignItems:'center', justifyContent:'center',
@@ -767,10 +768,10 @@ export default function AdminLayout() {
                       border:'1px solid var(--border)', overflow:'hidden', zIndex:400 }}>
                     <div style={{ padding:'10px 14px', borderBottom:'1px solid var(--bg-surface)' }}>
                       <p style={{ fontSize:12, fontWeight:700, color:'var(--ink)', margin:0 }}>{name}</p>
-                      <p style={{ fontSize:10, color:'var(--text-faint)', textTransform:'capitalize', margin:0 }}>{role}</p>
+                      <p style={{ fontSize:10, color:'var(--text-faint)', margin:0 }}>{roleLabel}</p>
                     </div>
                     <button onClick={logout}
-                      style={{ width:'100%', padding:'10px 14px', border:'none', background:'transparent',
+                      style={{ width:'100%', minHeight:44, padding:'10px 14px', border:'none', background:'transparent',
                         cursor:'pointer', color:'var(--danger)', fontSize:12, fontWeight:600,
                         textAlign:'left', fontFamily:'inherit' }}
                       onMouseEnter={e => e.currentTarget.style.background='var(--danger-bg)'}
