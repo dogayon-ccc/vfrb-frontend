@@ -8,10 +8,11 @@ import { useVisiblePoll } from '../../hooks/useVisiblePoll';
 import EmptyState from '../../components/EmptyState';
 import { PageHeader, StatusPill, OrderThumb, Skeleton } from '../../components/customer/kit';
 import { NavIcon } from '../../components/ui/icons';
+import { humanize } from '../../utils/humanize';
 
 const T = 'var(--teal)', T2 = '#02C39A';
 const FONT = "ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif";
-const title = (o) => o?.design?.design_name ?? o?.garment_type ?? 'Custom Order';
+const title = (o) => o?.design?.design_name ?? humanize(o?.garment_type) ?? 'Custom Order';
 
 const dayKey = (d) => d ? new Date(d).toLocaleDateString('en-PH') : 'unknown';
 const dayLabel = (d) => {

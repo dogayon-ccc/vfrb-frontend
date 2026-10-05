@@ -182,6 +182,7 @@ export default function CustomerLayout() {
           padding: 14px 14px calc(88px + env(safe-area-inset-bottom, 0px));
         }
         @media (max-width: 767px) {
+          .cm-content[data-fab] { padding-bottom: calc(150px + env(safe-area-inset-bottom, 0px)); }
           .cm-desk-only { display: none !important; }
         }
 
@@ -632,7 +633,7 @@ export default function CustomerLayout() {
           </div>
 
           {/* Page content */}
-          <div className="cm-content">
+          <div className="cm-content" data-fab={FAB_ROUTES.includes(location.pathname) || undefined}>
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
                 key={location.pathname}
