@@ -1,4 +1,5 @@
 // src/pages/client/Orders.jsx — Orders list (wireframe: filter chips, table on desktop, cards on mobile)
+import { humanize } from '../../utils/humanize';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,7 +9,6 @@ import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
 import { NavIcon } from '../../components/ui/icons';
 import EmptyState from '../../components/EmptyState';
 import {
-import { humanize } from '../../utils/humanize';
   PageHeader, Chips, StatusPill, OrderThumb, Skeleton, Stepper, LIFECYCLE, lifecycleIndex,
   GROUPS, orderTitle, fmtDate,
 } from '../../components/customer/kit';

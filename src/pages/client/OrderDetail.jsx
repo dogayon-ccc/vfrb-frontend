@@ -13,6 +13,7 @@
 //     staff/inventory-only — this file never receives it)
 // Caching: cacheGet('order_detail_'+id) 30s TTL, cleared on AI accept/reject.
 
+import { humanize } from '../../utils/humanize';
 import { useState, useEffect, useCallback } from 'react';
 import DesignPreview from '../../components/DesignPreview';
 import { useParams, useNavigate }            from 'react-router-dom';
@@ -22,7 +23,6 @@ import { cacheGet, cacheSet, cacheClear }    from '../../utils/cache';
 import { getStorageUrl, isImageFile }        from '../../utils/fileUrl';
 import { NavIcon }                           from '../../components/ui/icons';
 import { OrderThumb, Stepper, StatusPill, LIFECYCLE, lifecycleIndex, orderTitle, fmtDate } from '../../components/customer/kit';
-import { humanize } from '../../utils/humanize';
 
 
 const T    = 'var(--teal)';

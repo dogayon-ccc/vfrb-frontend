@@ -1,4 +1,5 @@
 // src/pages/client/Dashboard.jsx — Customer home (wireframe: hero → KPIs → recent orders + notifications)
+import { humanize } from '../../utils/humanize';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -10,7 +11,6 @@ import EmptyState from '../../components/EmptyState';
 import { MiniPreview } from './design-studio/InspoGallery';
 import heroPhoto from '../../assets/brand/uniforms.jpg';
 import {
-import { humanize } from '../../utils/humanize';
   Kpi, StatusPill, OrderThumb, Skeleton, useToast, Stepper, LIFECYCLE, lifecycleIndex,
   orderTitle, fmtDate, reltime, parseCfg, IN_PRODUCTION,
 } from '../../components/customer/kit';

@@ -1,4 +1,5 @@
 // Per-order threads (real order_messages data) styled as a conversation list, like Figma's Chat screen — no fabricated departments.
+import { humanize } from '../../utils/humanize';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,7 +9,6 @@ import { useVisiblePoll } from '../../hooks/useVisiblePoll';
 import EmptyState from '../../components/EmptyState';
 import { PageHeader, StatusPill, OrderThumb, Skeleton } from '../../components/customer/kit';
 import { NavIcon } from '../../components/ui/icons';
-import { humanize } from '../../utils/humanize';
 
 const T = 'var(--teal)', T2 = '#02C39A';
 const FONT = "ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif";
