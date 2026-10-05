@@ -31,7 +31,7 @@
 :root {
 
   /* ── Core brand ── */
-  --teal:              #028090;   /* Primary — VFRB seal outer ring */
+  --teal:              #027a8b;   /* Primary — VFRB seal outer ring */
   --teal-2:            #02C39A;   /* Accent — VFRB vfrb letterform  */
   --teal-dark:         #016070;   /* Hover / pressed states         */
   --teal-darker:       #014f5a;   /* Deep hover, staff topbar end   */
@@ -67,8 +67,8 @@
   --ink:               #0f172a;   /* Body text, headings           */
   --text:              #0f172a;   /* Alias — used in older files   */
   --text-muted:        #475569;   /* Secondary text                */
-  --text-subtle:       #64748b;   /* Tertiary, labels              */
-  --text-faint:        #66758b;   /* Placeholders, disabled        */
+  --text-subtle:       #5b6b7f;   /* Tertiary, labels              */
+  --text-faint:        #5f6f83;   /* Placeholders, disabled        */
   --text-disabled:     #cbd5e1;   /* Truly disabled                */
   --text-on-accent:    #ffffff;   /* Text on teal/colored buttons  */
 

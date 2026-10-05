@@ -21,7 +21,7 @@
 .cx-chips::-webkit-scrollbar{display:none}
 .cx-chip{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 14px;border-radius:99px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-muted);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s}
 .cx-chip[aria-pressed=true]{background:var(--teal);border-color:var(--teal);color:#fff}
-.cx-chip small{font-size:11px;opacity:.75}
+.cx-chip small{font-size:11px}.cx-chip[aria-pressed=true] small{opacity:1}
 .cx-kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 @media(min-width:900px){.cx-kpis{grid-template-columns:repeat(4,1fr);gap:14px}}
 .cx-kpi{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-xs);text-decoration:none;color:inherit;transition:transform .15s,box-shadow .15s}

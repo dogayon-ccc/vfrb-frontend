@@ -519,7 +519,7 @@ function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart
           whileHover={{ scale:1.03 }} whileTap={{ scale:.96 }}
           type="button" onClick={onShowChart}
           style={{ padding:'6px 14px', borderRadius:9, border:`1px solid ${T}30`,
-            background:'#f0fdfa', color:T, fontSize:11, fontWeight:700,
+            background:'#f0fdfa', color:'#026a77', fontSize:11, fontWeight:700,
             cursor:'pointer', fontFamily:FONT, display:'flex',
             alignItems:'center', gap:5 }}>
           <NavIcon name="pattern" size={13} color={T} style={{ verticalAlign:'-2px', marginRight:4 }}/>Size Chart

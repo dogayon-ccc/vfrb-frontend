@@ -11,7 +11,7 @@
    ─────────────────────────────────────────────────────────────────────────── */
 @theme {
   /* Brand colors */
-  --color-teal:         #028090;
+  --color-teal:         #027a8b;
   --color-teal-light:   #02C39A;
   --color-teal-dark:    #016070;
   --color-teal-darker:  #014f5a;
@@ -31,7 +31,7 @@
   --color-border:       #e2e8f0;
   --color-text:         #0f172a;
   --color-muted:        #475569;
-  --color-faint:        #94a3b8;
+  --color-faint:        #5f6f83;
   --color-ink:          #0f172a;
 
   /* Semantic */

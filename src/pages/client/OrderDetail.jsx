@@ -57,7 +57,7 @@ const S = {
   qc:          { color:'#f97316', bg:'#ffedd5', label:'QC',          icon:'qc'          },
   pressing:    { color:'#ec4899', bg:'#fce7f3', label:'Pressing',    icon:'pressing'    },
   packing:     { color:'#f472b6', bg:'#fdf2f8', label:'Packing',     icon:'package'     },
-  completed:   { color:'#22c55e', bg:'#dcfce7', label:'Completed',   icon:'success'     },
+  completed:   { color:'#15803d', bg:'#dcfce7', label:'Completed',   icon:'success'     },
   cancelled:   { color:'#ef4444', bg:'#fee2e2', label:'Cancelled',   icon:'error'       },
 };
 
@@ -65,7 +65,7 @@ const DELIVERY_CFG = {
   preparing:  { label:'Preparing',  color:'#f59e0b', icon:'package'  },
   dispatched: { label:'Dispatched', color:'#3b82f6', icon:'delivery' },
   in_transit: { label:'In Transit', color:'#8b5cf6', icon:'delivery' },
-  delivered:  { label:'Delivered',  color:'#22c55e', icon:'success'  },
+  delivered:  { label:'Delivered',  color:'#15803d', icon:'success'  },
   returned:   { label:'Returned',   color:'#ef4444', icon:'undo'     },
 };
 
@@ -133,14 +133,14 @@ function StageDot({ stage, currentStatus, isMobile }) {
         <p style={{
           fontSize: isMobile ? 12 : 9,
           fontWeight: active ? 800 : done ? 600 : 400,
-          color: done ? '#22c55e' : active ? T : '#94a3b8',
+          color: done ? '#15803d' : active ? T : '#5f6f83',
           margin:0, fontFamily:FONT,
           whiteSpace: isMobile ? 'nowrap' : 'normal',
         }}>
           {stage.label}
         </p>
         {active && isMobile && (
-          <p style={{ fontSize:10, color:T2, margin:'2px 0 0', fontFamily:FONT }}>
+          <p style={{ fontSize:10, color:T, margin:'2px 0 0', fontFamily:FONT }}>
             In progress
           </p>
         )}
@@ -381,7 +381,7 @@ export default function CustomerOrderDetail() {
         .od-hero .od-card-body { padding:16px; }
 
         .od-section-title { font-size:11px; font-weight:800; text-transform:uppercase;
-          letter-spacing:.07em; color:#94a3b8; margin:0 0 14px; }
+          letter-spacing:.07em; color:#5f6f83; margin:0 0 14px; }
 
         @media (min-width:640px) {
           .od-spec-grid { grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); }
