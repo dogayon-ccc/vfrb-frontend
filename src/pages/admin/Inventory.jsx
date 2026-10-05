@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
 import { NavIcon } from '../../components/ui';
+import MaterialCode from '../../components/admin/MaterialCode';
 import BottomSheet from '../../components/ui/BottomSheet';
 import { PageHeader, StatGrid, PillTabs, ErrorBlock, Panel, StatusPill, SearchBox, Meter, Banner, SkeletonRows, useIsMobile } from '../../components/admin/AdminUI';
 
@@ -109,7 +110,7 @@ export default function AdminInventory() {
   const filtered  = useMemo(() =>
     materials.filter(m =>
       (cat === 'all' || (m.category ?? '—') === cat) &&
-      (!search || m.material_name?.toLowerCase().includes(search.toLowerCase())
+      (!search || m.material_name?.toLowerCase().includes(search.toLowerCase()) || m.material_code?.toLowerCase().includes(search.toLowerCase())
                || m.category?.toLowerCase().includes(search.toLowerCase()))
     ), [materials, search, cat]);
   const categories = useMemo(() => [...new Set(materials.map(m => m.category ?? '—'))].sort(), [materials]);
@@ -183,7 +184,7 @@ export default function AdminInventory() {
                       <tbody>
                         {filtered.map(m => { const low = isLow(m); return (
                           <tr key={m.material_id}>
-                            <td><div style={{ fontWeight:700 }}>{m.material_name}</div><div className="adm-hide-d-t" style={{ fontSize:11, color:'var(--text-subtle)' }}>{m.category ?? '—'}</div></td>
+                            <td><div style={{ fontWeight:700 }}>{m.material_name}<MaterialCode code={m.material_code}/></div><div className="adm-hide-d-t" style={{ fontSize:11, color:'var(--text-subtle)' }}>{m.category ?? '—'}</div></td>
                             <td className="adm-hide-t" style={{ color:'var(--text-subtle)' }}>{m.category ?? '—'}</td>
                             <td style={{ minWidth:150 }}>
                               <div style={{ display:'flex', alignItems:'baseline', gap:5 }}>
@@ -205,7 +206,7 @@ export default function AdminInventory() {
                   <div key={m.material_id} className="adm-mcard accent" style={{ '--i':Math.min(i,8), '--acc': low ? 'var(--danger)' : 'var(--success)' }}>
                     <div className="adm-mrow">
                       <div style={{ minWidth:0 }}>
-                        <div style={{ fontSize:14, fontWeight:800, color:'var(--ink)' }}>{m.material_name}</div>
+                        <div style={{ fontSize:14, fontWeight:800, color:'var(--ink)' }}>{m.material_name}<MaterialCode code={m.material_code}/></div>
                         <div style={{ fontSize:11, color:'var(--text-subtle)', marginTop:2 }}>{m.category ?? '—'} · {m.unit}</div>
                       </div>
                       <StatusPill status={low ? 'cancelled' : 'active'} label={low ? 'Low' : 'OK'} />

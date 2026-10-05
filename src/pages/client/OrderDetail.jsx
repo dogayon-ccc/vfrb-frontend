@@ -57,7 +57,7 @@ const S = {
   qc:          { color:'#f97316', bg:'#ffedd5', label:'QC',          icon:'qc'          },
   pressing:    { color:'#ec4899', bg:'#fce7f3', label:'Pressing',    icon:'pressing'    },
   packing:     { color:'#f472b6', bg:'#fdf2f8', label:'Packing',     icon:'package'     },
-  completed:   { color:'#22c55e', bg:'#dcfce7', label:'Completed',   icon:'success'     },
+  completed:   { color:'#15803d', bg:'#dcfce7', label:'Completed',   icon:'success'     },
   cancelled:   { color:'#ef4444', bg:'#fee2e2', label:'Cancelled',   icon:'error'       },
 };
 
@@ -65,7 +65,7 @@ const DELIVERY_CFG = {
   preparing:  { label:'Preparing',  color:'#f59e0b', icon:'package'  },
   dispatched: { label:'Dispatched', color:'#3b82f6', icon:'delivery' },
   in_transit: { label:'In Transit', color:'#8b5cf6', icon:'delivery' },
-  delivered:  { label:'Delivered',  color:'#22c55e', icon:'success'  },
+  delivered:  { label:'Delivered',  color:'#15803d', icon:'success'  },
   returned:   { label:'Returned',   color:'#ef4444', icon:'undo'     },
 };
 
@@ -133,14 +133,14 @@ function StageDot({ stage, currentStatus, isMobile }) {
         <p style={{
           fontSize: isMobile ? 12 : 9,
           fontWeight: active ? 800 : done ? 600 : 400,
-          color: done ? '#22c55e' : active ? T : '#94a3b8',
+          color: done ? '#15803d' : active ? T : '#5f6f83',
           margin:0, fontFamily:FONT,
           whiteSpace: isMobile ? 'nowrap' : 'normal',
         }}>
           {stage.label}
         </p>
         {active && isMobile && (
-          <p style={{ fontSize:10, color:T2, margin:'2px 0 0', fontFamily:FONT }}>
+          <p style={{ fontSize:10, color:T, margin:'2px 0 0', fontFamily:FONT }}>
             In progress
           </p>
         )}
@@ -272,18 +272,6 @@ export default function CustomerOrderDetail() {
     },
   ];
 
-  const [aiBusy, setAiBusy] = useState(false);
-  const [aiMsg,  setAiMsg]  = useState('');
-  const retryAI = useCallback(async () => {
-    setAiBusy(true); setAiMsg('');
-    try {
-      await axios.post('/api/customer/ai/recommend-materials', { order_id: Number(orderId) }, { timeout: 120_000 });
-      await load(true);
-    } catch (e) {
-      setAiMsg(e.response?.data?.message ?? 'The recommendation is unavailable right now. You can choose materials yourself.');
-    } finally { setAiBusy(false); }
-  }, [orderId, load]);
-
   // ── AI recommendation — optimistic UI — O(1) ─────────────────────────────
   const handleAI = useCallback(async (action) => {
     if (!aiRec || !orderId) return;
@@ -393,7 +381,7 @@ export default function CustomerOrderDetail() {
         .od-hero .od-card-body { padding:16px; }
 
         .od-section-title { font-size:11px; font-weight:800; text-transform:uppercase;
-          letter-spacing:.07em; color:#94a3b8; margin:0 0 14px; }
+          letter-spacing:.07em; color:#5f6f83; margin:0 0 14px; }
 
         @media (min-width:640px) {
           .od-spec-grid { grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); }
@@ -671,27 +659,6 @@ export default function CustomerOrderDetail() {
 
         </div><div className="od-side">
         {/* ── AI Recommendation card ────────────────────────────────────── */}
-        {order && !['ready','accepted','rejected'].includes(order.ai_recommendation_status) && !['completed','cancelled'].includes(order.status) && (
-          <div className="od-card"><div className="od-card-body">
-            <p className="od-section-title" style={{ fontFamily:FONT }}>Material recommendation</p>
-            <p style={{ fontSize:13, color:'var(--text-muted)', lineHeight:1.6, margin:'0 0 12px', fontFamily:FONT }}>
-              {order.ai_recommendation_status === 'generating'
-                ? 'Your recommendation is being prepared. Check again in a moment.'
-                : order.ai_recommendation_status === 'failed'
-                ? 'The recommendation could not be generated. Try again, or choose the material types yourself.'
-                : 'No material types have been recommended for this order yet.'}
-            </p>
-            {aiMsg && <p role="alert" style={{ fontSize:13, color:'#b91c1c', margin:'0 0 12px', fontFamily:FONT }}>{aiMsg}</p>}
-            <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-              <button className="cx-btn cx-btn-p" style={{ minHeight:44 }} disabled={aiBusy} aria-busy={aiBusy}
-                onClick={order.ai_recommendation_status === 'generating' ? () => load(true) : retryAI}>
-                {aiBusy ? 'Working…' : order.ai_recommendation_status === 'generating' ? 'Check again' : 'Get recommendation'}
-              </button>
-              <button className="cx-btn cx-btn-s" style={{ minHeight:44 }} onClick={() => nav('/ai-materials')}>Choose materials myself</button>
-            </div>
-          </div></div>
-        )}
-
         {aiRec && ['ready','accepted','rejected'].includes(order.ai_recommendation_status) && (
           <motion.div
             initial={{ opacity:0, y:10 }}
@@ -702,7 +669,7 @@ export default function CustomerOrderDetail() {
               <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
                 <div style={{
                   width:28, height:28, borderRadius:'50%', flexShrink:0,
-                  background:'var(--teal-dark)',
+                  background:'linear-gradient(135deg,#7c3aed,#a78bfa)',
                   display:'flex', alignItems:'center', justifyContent:'center',
                   fontSize:14,
                 }}>

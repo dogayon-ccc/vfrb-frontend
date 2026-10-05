@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import axios from 'axios';
 import { Card, Badge, NavIcon } from '../../components/ui';
 import BottomSheet from '../../components/ui/BottomSheet';
+import MaterialCode from '../../components/admin/MaterialCode';
 
 const inp = { width:'100%', padding:'10px 14px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)', fontSize:13, outline:'none', fontFamily:'var(--font)', transition:'border .15s, box-shadow .15s', boxSizing:'border-box' };
 const fi  = e => { e.target.style.borderColor='var(--teal)'; e.target.style.boxShadow='0 0 0 3px rgba(2,128,144,.1)'; };
@@ -40,6 +41,8 @@ function MaterialModal({ item, onClose, onDone, isMobile }) {
         <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
           <div><label style={lbl}>Material Name *</label>
             <input value={form.material_name ?? ''} onChange={e => set('material_name', e.target.value)} placeholder="e.g. Cotton Fabric" style={inp} onFocus={fi} onBlur={fo}/></div>
+          <div><label style={lbl}>Material Code</label>
+            <input value={form.material_code ?? ''} onChange={e => set('material_code', e.target.value.toUpperCase())} placeholder="Auto, e.g. MAT-FAB-001" maxLength={20} style={inp} onFocus={fi} onBlur={fo}/></div>
           <div className="mat-modal-grid2">
             <div><label style={lbl}>Unit</label>
               <select value={form.unit ?? 'meters'} onChange={e => set('unit', e.target.value)} style={{ ...inp, cursor:'pointer' }}>
@@ -90,7 +93,7 @@ export default function AdminMaterials() {
 
   useEffect(() => { load(); }, [load]);
 
-  const filtered = mats.filter(m => !search || m.material_name?.toLowerCase().includes(search.toLowerCase()) || m.category?.toLowerCase().includes(search.toLowerCase()));
+  const filtered = mats.filter(m => !search || m.material_name?.toLowerCase().includes(search.toLowerCase()) || m.material_code?.toLowerCase().includes(search.toLowerCase()) || m.category?.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <>
@@ -133,7 +136,7 @@ export default function AdminMaterials() {
                   <Card key={m.material_id} padding="sm">
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8 }}>
                       <div>
-                        <p style={{ fontSize:14, fontWeight:700, color:'var(--ink)', margin:0 }}>{m.material_name}</p>
+                        <p style={{ fontSize:14, fontWeight:700, color:'var(--ink)', margin:0 }}>{m.material_name}<MaterialCode code={m.material_code}/></p>
                         <p style={{ fontSize:11, color:'var(--text-subtle)', margin:'2px 0 0' }}>{m.category ?? '—'} · {m.unit}</p>
                       </div>
                       <button onClick={() => setModal(m)} style={{ padding:'6px 14px', borderRadius:'var(--r-sm)', border:'1px solid var(--border)', background:'var(--bg-surface)', color:'var(--ink)', fontSize:11, fontWeight:600, cursor:'pointer', minHeight:44, fontFamily:'var(--font)' }}>Edit</button>
@@ -174,7 +177,7 @@ export default function AdminMaterials() {
                       onMouseEnter={e => e.currentTarget.style.background='var(--bg-surface)'}
                       onMouseLeave={e => e.currentTarget.style.background='transparent'}>
                       <td style={{ padding:'11px 14px' }}>
-                        <p style={{ fontSize:13, fontWeight:700, color:'var(--ink)', margin:0 }}>{m.material_name}</p>
+                        <p style={{ fontSize:13, fontWeight:700, color:'var(--ink)', margin:0 }}>{m.material_name}<MaterialCode code={m.material_code}/></p>
                       </td>
                       <td style={{ padding:'11px 14px', fontSize:12, color:'var(--text-subtle)' }}>{m.category ?? '—'}</td>
                       <td style={{ padding:'11px 14px', fontSize:12, color:'var(--text-subtle)' }}>{m.unit}</td>

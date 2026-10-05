@@ -11,10 +11,10 @@
 import { NavIcon } from './icons';
 
 const TONES = {
-  success: { bg: 'rgba(34,197,94,.12)',  fg: '#16a34a' },
-  warning: { bg: 'rgba(245,158,11,.12)', fg: '#b45309' },
-  danger:  { bg: 'rgba(239,68,68,.12)',  fg: '#dc2626' },
-  info:    { bg: 'rgba(59,130,246,.12)', fg: '#2563eb' },
+  success: { bg: 'rgba(34,197,94,.12)',  fg: '#15803d' },
+  warning: { bg: 'rgba(245,158,11,.12)', fg: '#92400e' },
+  danger:  { bg: 'rgba(239,68,68,.12)',  fg: '#b91c1c' },
+  info:    { bg: 'rgba(59,130,246,.12)', fg: '#1d4ed8' },
   // BUG FIX (Sept 2 2026): these two referenced var(--color-surface)/
   // var(--color-muted), which don't exist in theme.css (real tokens:
   // --bg-surface / --text-muted) — silently unstyled, same root cause as

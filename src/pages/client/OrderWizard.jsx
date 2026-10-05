@@ -479,7 +479,7 @@ function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart
           </motion.button>
           <input type="number" min={100} value={form.quantity_ordered||''}
             onChange={e => set('quantity_ordered', Math.max(0, Number(e.target.value)||0))}
-            placeholder="e.g. 100 (bulk orders only — 100 pcs minimum)" style={{ ...inp, textAlign:'center', fontWeight:700 }}
+            placeholder="Minimum 100 pcs" style={{ ...inp, textAlign:'center', fontWeight:700 }}
             onFocus={fi} onBlur={fo}/>
           <motion.button whileTap={{ scale:.9 }} type="button"
             onClick={() => set('quantity_ordered', (form.quantity_ordered||0) + 10)}
@@ -519,7 +519,7 @@ function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart
           whileHover={{ scale:1.03 }} whileTap={{ scale:.96 }}
           type="button" onClick={onShowChart}
           style={{ padding:'6px 14px', borderRadius:9, border:`1px solid ${T}30`,
-            background:'#f0fdfa', color:T, fontSize:11, fontWeight:700,
+            background:'#f0fdfa', color:'#026a77', fontSize:11, fontWeight:700,
             cursor:'pointer', fontFamily:FONT, display:'flex',
             alignItems:'center', gap:5 }}>
           <NavIcon name="pattern" size={13} color={T} style={{ verticalAlign:'-2px', marginRight:4 }}/>Size Chart
