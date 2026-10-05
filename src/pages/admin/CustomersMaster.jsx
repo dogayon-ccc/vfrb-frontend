@@ -66,6 +66,7 @@ function DetailDrawer({ c, onClose }) {
             <Panel title="Organization & account">
               <dl className="adm-kv">
                 <dt>Organization</dt><dd>{dash(c.organization_name)}</dd>
+                <dt>TIN / Reg. no.</dt><dd>{dash(c.business_registration_number)}</dd>
                 <dt>Client type</dt><dd>{c.client_type ? TYPES[c.client_type] : '—'}</dd>
                 <dt>Email</dt><dd>{c.email_verified_at ? `Verified ${fmt(c.email_verified_at)}` : 'Not verified'}</dd>
                 <dt>Joined</dt><dd>{fmt(c.created_at)}</dd>
