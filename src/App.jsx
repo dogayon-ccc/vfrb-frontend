@@ -145,6 +145,10 @@ function RequireAuth({ children, role }) {
   return children;
 }
 
+import { canAccessArea, readAdminUser } from './utils/jobAccess';
+function RequireArea({ area, children }) {
+  return canAccessArea(readAdminUser(), area) ? children : <Navigate to="/admin/dashboard" replace/>;
+}
 function RequireManager({ children }) {
   const user = readUser();
   if (user.role !== 'manager') return <Navigate to="/admin/dashboard" replace/>;
@@ -235,24 +239,24 @@ export default function App() {
             <Route path="orders"      element={<AdminOrders/>}/>
             <Route path="orders/:id"  element={<AdminOrderDetail/>}/>
             <Route path="customers"   element={<AdminCustomers/>}/>
-            <Route path="production/:orderId" element={<AdminProductionTracking/>}/>
-            <Route path="production"          element={<AdminProductionList/>}/>
-            <Route path="inventory"   element={<AdminInventory/>}/>
+            <Route path="production/:orderId" element={<RequireArea area="production"><AdminProductionTracking/></RequireArea>}/>
+            <Route path="production"          element={<RequireArea area="production"><AdminProductionList/></RequireArea>}/>
+            <Route path="inventory"   element={<RequireArea area="inventory"><AdminInventory/></RequireArea>}/>
             <Route path="messages"    element={<AdminMessages/>}/>
-            <Route path="procurement" element={<AdminPurchaseOrders/>}/>
+            <Route path="procurement" element={<RequireArea area="inventory"><AdminPurchaseOrders/></RequireArea>}/>
             <Route path="delivery"    element={<AdminDeliveryTracking/>}/>
-            <Route path="materials"   element={<AdminMaterials/>}/>
+            <Route path="materials"   element={<RequireArea area="inventory"><AdminMaterials/></RequireArea>}/>
             {/* material-rates route removed Aug 28 2026 — see App.jsx lazy-import comment */}
             <Route path="transactions"element={<AdminSalesTransactions/>}/>
 
             {/* Month 2 operational */}
-            <Route path="physical-count" element={<AdminPhysicalCount/>}/>
-            <Route path="output-log"     element={<AdminDailyOutputLog/>}/>
-            <Route path="qc"             element={<AdminQCChecklist/>}/>
+            <Route path="physical-count" element={<RequireArea area="inventory"><AdminPhysicalCount/></RequireArea>}/>
+            <Route path="output-log"     element={<RequireArea area="production"><AdminDailyOutputLog/></RequireArea>}/>
+            <Route path="qc"             element={<RequireArea area="production"><AdminQCChecklist/></RequireArea>}/>
             {/* NEW Aug 25 2026 — machine breakdown / cutting damage reporting,
                 interview-grounded. Staff+Manager tier, same as QC/Physical
                 Count — NOT wrapped in RequireManager. */}
-            <Route path="production-incidents" element={<AdminProductionIncidents/>}/>
+            <Route path="production-incidents" element={<RequireArea area="production"><AdminProductionIncidents/></RequireArea>}/>
 
             {/* Settings: staff view-only, manager can edit — gated INSIDE
                 the component (see Settings.jsx), NOT wrapped in

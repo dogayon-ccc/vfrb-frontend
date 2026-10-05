@@ -438,7 +438,7 @@ export default function CustomerOrderDetail() {
               <div style={{ display:'flex', alignItems:'center', gap:14 }}>
                 <OrderThumb order={order} size={64}/>
                 <div style={{ flex:1, minWidth:0 }}>
-                  <p style={{ margin:0, fontSize:15, fontWeight:800, color:'var(--ink)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{orderTitle(order)}</p>
+                  <p title={orderTitle(order)} style={{ margin:0, fontSize:15, fontWeight:800, color:'var(--ink)', overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflowWrap:'anywhere' }}>{orderTitle(order)}</p>
                   <p style={{ margin:'3px 0 0', fontSize:12, color:'var(--text-subtle)' }}>
                     {order.quantity_ordered ?? 0} pcs{order.target_delivery_date ? ` · Due ${fmtDate(order.target_delivery_date)}` : ''}
                   </p>

@@ -8,6 +8,7 @@ import PageErrorBoundary from '../components/PageErrorBoundary';
 import IconBox from '../components/ui/IconBox';
 import '../styles/admin.css';
 import logo from '../assets/company-logo.jpg';
+import { JOB_FUNCTION_AREAS } from '../utils/jobAccess';
 import {
   LayoutDashboard, ClipboardList, Package, MessageSquare, ShoppingCart,
   Truck, Layers, Factory, FileText, ShieldCheck, ScanLine, AlertTriangle,
@@ -36,13 +37,6 @@ const STAFF_NAV = [
   { to:'/admin/transactions', icon:Wallet,          label:'Sales & Pay',           area:null        },
 ];
 
-const JOB_FUNCTION_AREAS = {
-  general:    ['inventory', 'production'],
-  inventory:  ['inventory'],
-  production: ['production'],
-  sales:      [],
-};
-
 function visibleForJobFunction(navArray, jobFunction) {
   const allowed = JOB_FUNCTION_AREAS[jobFunction] ?? JOB_FUNCTION_AREAS.general;
   return navArray.filter(item => item.area === null || allowed.includes(item.area));
@@ -66,6 +60,9 @@ const MANAGER_EXTRA = [
   { to:'/admin/feedback',     icon:MessageCircle,label:'Feedback'            },
   { to:'/admin/settings',     icon:Settings,    label:'Settings'             },
 ];
+
+// Staff reach Settings read-only (the page itself gates editing to managers).
+const STAFF_SETTINGS = { to:'/admin/settings', icon:Settings, label:'Settings', area:null };
 
 const MOB_NAV = [
   { to:'/admin',           icon:LayoutDashboard, label:'Home',     end:true, area:null        },
@@ -145,7 +142,7 @@ export default function AdminLayout() {
 
   const SW         = collapsed ? 68 : 226;
   const isManager  = role === 'manager';
-  const visibleStaffNav = isManager ? STAFF_NAV : visibleForJobFunction(STAFF_NAV, jobFn);
+  const visibleStaffNav = isManager ? STAFF_NAV : [...visibleForJobFunction(STAFF_NAV, jobFn), STAFF_SETTINGS];
     const navItems   = isManager ? [...STAFF_NAV, ...MANAGER_EXTRA] : visibleStaffNav;
 
   const [notifs,    setNotifs]    = useState([]);
