@@ -310,3 +310,14 @@ Verified: BUILD (`npx vite build` clean before and after), CODE (`node tools/log
 - **3D / fallback**: unchanged. No garment is marked 3D-verified. With WebGL blocked the Studio shows the 2D design and a notice.
 
 Open: only some garments have real photos (Scrub Top confirmed visually). Duplicate lives in the selection bar only (inspector has Delete). Order Detail preview is front only. No ESLint in the repo. `design_preview_file` storage on the real backend was not exercised.
+
+---
+
+## ACCOUNT 1 - STUDIO, second pass (worked on `main` @ `78b3a53`)
+
+Verified: BUILD clean, `tools/logic-checks.mjs` 89/89 (3 new), and the five-width lifecycle (375/390/430/768/1366: pick, text+artwork, Layers, Save, restore, Order, Wizard submit, client + admin Order Detail) re-run on this build against a mocked API.
+
+- **Text fonts**: the Font Style list now shows only faces installed on the device (`fontAvailable.js`, canvas width probe). Generic-only entries (Clean, Script) always stay, so the list is never empty. Previously Papyrus/Comic/Copperplate etc. were offered on machines without them and silently fell back to a generic face.
+- **Inspector**: Duplicate sits next to Delete (44px) on desktop and in the tablet/phone Selected sheet; the floating selection bar keeps it too. New `duplicate` icon (lucide `Copy`) in `ui/icons.jsx`.
+
+Open: a layer keeps the text color it had when added (switching the garment color later does not recolor it). Only some garments have real photos.

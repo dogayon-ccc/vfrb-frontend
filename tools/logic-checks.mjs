@@ -74,6 +74,11 @@ t('selectFamily without a category keeps the current one', (c => { let st = { ..
   const kept = JSON.stringify(r).includes('"__artwork":true');
   t('artwork tag survives save/restore', kept);
   t('artwork does not alter garment, sleeve or fit', r.cfg.garment === 'Scrub Top' && r.cfg.sleeve === cfg.sleeve && r.cfg.fit === cfg.fit); }
+// Text fonts: only named families are probed; generic-only stacks are always kept so the list is never empty.
+const FA = await L('/src/pages/client/design-studio/fontAvailable.js');
+t('primaryFamilies skips generics and emoji', JSON.stringify(FA.primaryFamilies("Arial Black, 'Arial Bold', sans-serif, 'Apple Color Emoji'")) === JSON.stringify(['Arial Black', 'Arial Bold']));
+t('generic-only stack has no probe family', FA.primaryFamilies('cursive').length === 0 && FA.primaryFamilies('ui-sans-serif, system-ui, sans-serif').length === 0);
+t('availableFonts without a canvas keeps every font', FA.availableFonts([{ id: 'a', css: 'Papyrus, fantasy' }]).length === 1);
 console.log(out.join('\n')); const f = out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);
 
