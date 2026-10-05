@@ -1,4 +1,4 @@
-// POST /api/register — verified fields: name, email, password, password_confirmation, contact_number, organization_name, client_type.
+// POST /api/register — verified fields: name, email, password, password_confirmation, contact_number, organization_name, business_registration_number (optional), client_type.
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ViewLink as Link } from '../../components/ViewLink';
@@ -29,7 +29,7 @@ export default function CustomerRegister() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
     name: '', email: '', password: '', password_confirmation: '',
-    contact_number: '', organization_name: '', client_type: '',
+    contact_number: '', organization_name: '', business_registration_number: '', client_type: '',
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
@@ -118,6 +118,14 @@ export default function CustomerRegister() {
             onFocus={() => setFocused('organization_name')} onBlur={() => setFocused('')}
             placeholder="e.g. Holy Redeemer School of Calamba" style={authInput(focused, 'organization_name', firstError('organization_name'))}/>
           {firstError('organization_name') && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 5 }}>{firstError('organization_name')}</p>}
+        </div>
+
+        <div>
+          <label htmlFor="reg-brn" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>TIN / Business registration no. <span style={{ fontWeight: 400, color: 'var(--text-faint)' }}>(optional)</span></label>
+          <input id="reg-brn" autoComplete="off" maxLength={30} value={form.business_registration_number} onChange={e => set('business_registration_number', e.target.value)}
+            onFocus={() => setFocused('business_registration_number')} onBlur={() => setFocused('')}
+            placeholder="Letters, numbers, spaces, hyphens" style={authInput(focused, 'business_registration_number', firstError('business_registration_number'))}/>
+          {firstError('business_registration_number') && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 5 }}>{firstError('business_registration_number')}</p>}
         </div>
 
         <div>
