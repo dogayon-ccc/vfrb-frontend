@@ -511,6 +511,8 @@ export default function DesignStudioStyles() {
       .ds-ins-range{display:flex;flex-direction:column;gap:4px;font-size:var(--text-2xs);font-weight:700;color:var(--text-muted);}
       .ds-ins-note{font-size:var(--text-2xs);color:var(--text-subtle);text-align:center;line-height:1.5;margin:0;}
       .ds-act--danger{color:#dc2626;border-color:rgba(220,38,38,.3);}
+      .ds-ins-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+      .ds-ins-actions .ds-act{min-height:44px;}
 
       .ds-dock{flex-shrink:0;padding-bottom:max(14px,env(safe-area-inset-bottom));}
       .ds-dock-state{min-height:16px;margin:0;font-size:var(--text-2xs);font-weight:700;color:var(--text-subtle);}

@@ -31,7 +31,7 @@ function kindOf(o) {
 }
 
 // Same controls on desktop (right panel) and tablet/phone ('selected' tab in the sheet).
-export function SelectionInspector({ selObj, updateSelected, deleteSelected, toggleSelectedLock, pushHistory }) {
+export function SelectionInspector({ selObj, updateSelected, deleteSelected, duplicateSelected, toggleSelectedLock, pushHistory }) {
   const kind   = kindOf(selObj);
   const isText = !!selObj.__text || selObj.type === 'i-text' || selObj.type === 'text';
   const isLine = selObj.__shape && selObj.type === 'line';
@@ -122,9 +122,16 @@ export function SelectionInspector({ selObj, updateSelected, deleteSelected, tog
           v => live({ opacity: v / 100 }), false)}
       </section>
 
-      <button type="button" className="ds-act ds-act--danger" onClick={deleteSelected} disabled={locked}>
-        <NavIcon name="delete" size={16}/> Delete
-      </button>
+      <div className="ds-ins-actions">
+        {duplicateSelected && (
+          <button type="button" className="ds-act" onClick={duplicateSelected} disabled={locked}>
+            <NavIcon name="duplicate" size={16}/> Duplicate
+          </button>
+        )}
+        <button type="button" className="ds-act ds-act--danger" onClick={deleteSelected} disabled={locked}>
+          <NavIcon name="delete" size={16}/> Delete
+        </button>
+      </div>
       <p className="ds-ins-note">Tap empty canvas to deselect.</p>
     </div>
   );
@@ -201,13 +208,13 @@ export function SummaryContent({ cfg, saved, saveDesign, orderThis, ordering, do
   );
 }
 
-export default function RightInfoPanel({ selObj, updateSelected, deleteSelected, toggleSelectedLock, pushHistory, open, onClose, ...rest }) {
+export default function RightInfoPanel({ selObj, updateSelected, deleteSelected, duplicateSelected, toggleSelectedLock, pushHistory, open, onClose, ...rest }) {
   const showInspector = !!selObj && !selObj.__garmentBase && !selObj.__hoverGlow;
   return (
     <aside className="ds-info" data-open={open ? 'true' : 'false'} aria-label={showInspector ? 'Selected object' : 'Design summary'}>
       {onClose && <button type="button" className="ds-info-close" aria-label="Close panel" onClick={onClose}><NavIcon name="close" size={16}/></button>}
       {showInspector
-        ? <SelectionInspector selObj={selObj} updateSelected={updateSelected} deleteSelected={deleteSelected} toggleSelectedLock={toggleSelectedLock} pushHistory={pushHistory}/>
+        ? <SelectionInspector selObj={selObj} updateSelected={updateSelected} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected} toggleSelectedLock={toggleSelectedLock} pushHistory={pushHistory}/>
         : <SummaryContent {...rest}/>}
     </aside>
   );

@@ -1,6 +1,7 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { NavIcon } from '../../../components/ui/icons';
 import { T, T2, secLabel, inputStyle, FONTS, EMOJIS } from './dsShared';
+import { availableFonts } from './fontAvailable';
 
 // EMOJIS contains repeats (e.g. 🦺) which made React warn about duplicate keys and
 // could drop/duplicate buttons — de-dupe once at module load.
@@ -19,12 +20,13 @@ export default function TextPanel({ onAdd, bodyColor }) {
   const [val,  setVal]  = useState('');
   const [picked, setClr] = useState(null);
   const clr = picked ?? readableOn(bodyColor);
-  const [font, setFont] = useState(FONTS[0].id);
+  const fonts = useMemo(() => availableFonts(FONTS), []);
+  const [font, setFont] = useState(fonts[0].id);
   const [size, setSize] = useState(18);
   const [showEmoji, setShowEmoji] = useState(false);
   const inputRef = useRef(null);
 
-  const fontCss = FONTS.find(f=>f.id===font)?.css ?? FONTS[0].css;
+  const fontCss = fonts.find(f=>f.id===font)?.css ?? fonts[0].css;
 
   const insertEmoji = (e) => {
     const input = inputRef.current;
@@ -60,7 +62,7 @@ export default function TextPanel({ onAdd, bodyColor }) {
 
       <p style={secLabel}>Font Style</p>
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, maxHeight:236, minHeight:236, flexShrink:0, overflowY:'auto', paddingRight:2 }}>
-        {FONTS.map(f => (
+        {fonts.map(f => (
           <button key={f.id} onClick={() => setFont(f.id)}
             style={{
               padding:'9px 4px', minHeight:40, borderRadius:8, border:'none', cursor:'pointer',
