@@ -93,7 +93,7 @@ export default function ProductionList() {
       <StatGrid loading={loading} items={[
         { label: 'In production', value: orders.length, color: 'var(--teal)', onClick: () => setStage('all') },
         { label: 'Pieces', value: pieces.toLocaleString() },
-        { label: 'QC hold', value: holds, color: holds ? 'var(--danger)' : undefined, onClick: () => setStage('qc') },
+        { label: 'QC hold', value: holds, color: holds ? 'var(--danger-text)' : undefined, onClick: () => setStage('qc') },
         { label: 'Past deadline', value: overdue, color: overdue ? 'var(--warning-text)' : undefined },
       ]} />
 
@@ -131,7 +131,7 @@ export default function ProductionList() {
                       {qcHold(o) && <span className="adm-pill" style={{ marginLeft: 6, background: 'var(--danger-bg)', color: 'var(--danger-text)' }}>QC hold</span>}
                       <div style={{ marginTop: 8 }}><Progress status={o.status} /></div>
                     </td>
-                    <td className="adm-hide-t" style={{ whiteSpace: 'nowrap', fontSize: 12, color: isOverdue(o) ? 'var(--danger)' : 'var(--text-subtle)', fontWeight: isOverdue(o) ? 700 : 400 }}>{fmtDate(dueOf(o))}</td>
+                    <td className="adm-hide-t" style={{ whiteSpace: 'nowrap', fontSize: 12, color: isOverdue(o) ? 'var(--danger-text)' : 'var(--text-subtle)', fontWeight: isOverdue(o) ? 700 : 400 }}>{fmtDate(dueOf(o))}</td>
                     <td><div className="adm-ra" style={{ display: 'flex', justifyContent: 'flex-end' }}>
                       <button className="adm-btn primary" onClick={(e) => { e.stopPropagation(); go(o); }}><NavIcon name="production" size={13} color="currentColor" /> Track</button>
                     </div></td>

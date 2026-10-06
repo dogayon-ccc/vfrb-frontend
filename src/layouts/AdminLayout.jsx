@@ -621,6 +621,8 @@ export default function AdminLayout() {
                 whileHover={{ scale:1.07 }}
                 whileTap={{ scale:.93 }}
                 onClick={openBell}
+                aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
+                aria-expanded={bellOpen}
                 style={{
                   width:36, height:36, borderRadius:10, border:'none',
                   background: bellOpen ? 'var(--teal-50, rgba(2,128,144,.10))' : 'var(--bg)',
@@ -772,7 +774,7 @@ export default function AdminLayout() {
                     </div>
                     <button onClick={logout}
                       style={{ width:'100%', minHeight:44, padding:'10px 14px', border:'none', background:'transparent',
-                        cursor:'pointer', color:'var(--danger)', fontSize:12, fontWeight:600,
+                        cursor:'pointer', color:'var(--danger-text)', fontSize:12, fontWeight:600,
                         textAlign:'left', fontFamily:'inherit' }}
                       onMouseEnter={e => e.currentTarget.style.background='var(--danger-bg)'}
                       onMouseLeave={e => e.currentTarget.style.background='transparent'}>

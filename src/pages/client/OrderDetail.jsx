@@ -13,6 +13,7 @@
 //     staff/inventory-only — this file never receives it)
 // Caching: cacheGet('order_detail_'+id) 30s TTL, cleared on AI accept/reject.
 
+import { humanize } from '../../utils/humanize';
 import { useState, useEffect, useCallback } from 'react';
 import DesignPreview from '../../components/DesignPreview';
 import { useParams, useNavigate }            from 'react-router-dom';
@@ -254,14 +255,14 @@ export default function CustomerOrderDetail() {
     : 0;
 
   const specs = [
-    { label:'Garment Type', value: order?.garment_type ?? '—'              },
+    { label:'Garment Type', value: humanize(order?.garment_type) ?? '—'              },
     { label:'Color',        value: order?.color ?? '—'                      },
     { label:'Quantity',     value: order?.quantity_ordered
         ? `${order.quantity_ordered} pcs` : '—'                            },
-    { label:'Collar',       value: order?.collar_type ?? '—'                },
-    { label:'Sleeve',       value: order?.sleeve_type ?? '—'                },
-    { label:'Pocket',       value: order?.pocket_type ?? '—'                },
-    { label:'Order Type',   value: order?.order_type ?? '—'                 },
+    { label:'Collar',       value: humanize(order?.collar_type) ?? '—'                },
+    { label:'Sleeve',       value: humanize(order?.sleeve_type) ?? '—'                },
+    { label:'Pocket',       value: humanize(order?.pocket_type) ?? '—'                },
+    { label:'Order Type',   value: humanize(order?.order_type) ?? '—'                 },
     { label:'Payment',      value: PAYMENT_LABEL[order?.payment_terms] ?? '—' },
     { label:'PO Reference', value: order?.po_reference ?? 'N/A'             },
     { label:'Delivery',     value: order?.target_delivery_date
@@ -438,7 +439,7 @@ export default function CustomerOrderDetail() {
           <div className="od-title">
             <div style={{ minWidth:0 }}>
               <h1>Order #{orderId}</h1>
-              <p>{[order.garment_type ?? 'Custom Order', order.quantity_ordered && `${order.quantity_ordered} pcs`, order.color].filter(Boolean).join(' · ')}</p>
+              <p>{[humanize(order.garment_type) ?? 'Custom Order', order.quantity_ordered && `${order.quantity_ordered} pcs`, order.color].filter(Boolean).join(' · ')}</p>
             </div>
             <StatusPill status={status}/>
           </div>

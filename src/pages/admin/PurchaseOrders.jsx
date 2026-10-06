@@ -94,7 +94,7 @@ function ColorSwatchMatch({ orderedHex, receivedHex, onChangeReceived }) {
               {mismatch ? <><NavIcon name="warning" size={12} color="currentColor" style={{verticalAlign:'-2px',marginRight:4}}/>Color Mismatch</> : <><NavIcon name="success" size={12} color="currentColor" style={{verticalAlign:'-2px',marginRight:4}}/>Colors Match</>}
             </p>
             <div style={{ textAlign:'right' }}>
-              <p style={{ fontSize:16,fontWeight:800,color:mismatch?'var(--danger)':'var(--success)',margin:0,fontFamily:FONT }}>
+              <p style={{ fontSize:16,fontWeight:800,color:mismatch?'var(--danger-text)':'var(--success-text)',margin:0,fontFamily:FONT }}>
                 ΔE = {de}
               </p>
               <p style={{ fontSize:9,color:'var(--text-subtle)',margin:0,fontFamily:FONT }}>
@@ -179,7 +179,7 @@ function NewRFQModal({ materials, onClose, onDone }) {
               ))}
             </select>
             {selMat?.quantity_in_stock <= (selMat?.reorder_threshold ?? 0) && (
-              <p style={{ fontSize:10,color:'var(--danger)',margin:'4px 0 0',fontFamily:FONT }}>
+              <p style={{ fontSize:10,color:'var(--danger-text)',margin:'4px 0 0',fontFamily:FONT }}>
                 <NavIcon name="warning" size={12} color="currentColor" style={{verticalAlign:'-2px',marginRight:4}}/>Below reorder threshold — urgent
               </p>
             )}
@@ -204,7 +204,7 @@ function NewRFQModal({ materials, onClose, onDone }) {
               placeholder="Specifications, quality requirements…" rows={2}
               style={{ ...inp, resize:'none' }} onFocus={fi} onBlur={fo}/>
           </div>
-          {err && <p style={{ color:'var(--danger)',fontSize:12,fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}><NavIcon name="warning" size={13} color="currentColor"/>{err}</p>}
+          {err && <p style={{ color:'var(--danger-text)',fontSize:12,fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}><NavIcon name="warning" size={13} color="currentColor"/>{err}</p>}
         </div>
         <div style={{ padding:'14px 22px',borderTop:'1px solid var(--border)',
           display:'flex',gap:10,justifyContent:'flex-end',background:'var(--bg)' }}>
@@ -322,7 +322,7 @@ function LogResponseModal({ rfq, suppliers, onClose, onDone }) {
               placeholder="e.g. Can deliver Wednesday, payment COD…" rows={2}
               style={{ ...inp, resize:'none' }} onFocus={fi} onBlur={fo}/>
           </div>
-          {err && <p style={{ color:'var(--danger)',fontSize:12,fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}><NavIcon name="warning" size={13} color="currentColor"/>{err}</p>}
+          {err && <p style={{ color:'var(--danger-text)',fontSize:12,fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}><NavIcon name="warning" size={13} color="currentColor"/>{err}</p>}
         </div>
         <div style={{ padding:'14px 22px',borderTop:'1px solid var(--border)',
           display:'flex',gap:10,justifyContent:'flex-end',background:'var(--bg)' }}>
@@ -483,7 +483,7 @@ function ReceiveModal({ po, onClose, onDone }) {
               </p>
             </div>
           )}
-          {err && <p style={{ color:'var(--danger)',fontSize:12,fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}><NavIcon name="warning" size={13} color="currentColor"/>{err}</p>}
+          {err && <p style={{ color:'var(--danger-text)',fontSize:12,fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}><NavIcon name="warning" size={13} color="currentColor"/>{err}</p>}
         </div>
         <div style={{ padding:'14px 22px',borderTop:'1px solid var(--border)',
           display:'flex',gap:10,justifyContent:'flex-end',background:'var(--bg)' }}>
@@ -566,7 +566,7 @@ function ConfirmColorModal({ po, onClose, onDone }) {
               placeholder="Why is this color acceptable? (e.g. client approved off-shade)…"
               rows={3} style={{ ...inp, resize:'none' }} onFocus={fi} onBlur={fo}/>
           </div>
-          {err && <p style={{ color:'var(--danger)',fontSize:12,fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}><NavIcon name="warning" size={13} color="currentColor"/>{err}</p>}
+          {err && <p style={{ color:'var(--danger-text)',fontSize:12,fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}><NavIcon name="warning" size={13} color="currentColor"/>{err}</p>}
         </div>
         <div style={{ padding:'14px 22px',borderTop:'1px solid var(--border)',
           display:'flex',gap:10,justifyContent:'flex-end',background:'var(--bg)' }}>
@@ -621,7 +621,7 @@ function ColorCompare({ po }) {
       {[['Order', po.order_color_hex], ['Received', po.received_color_hex]].map(([l, h]) => (
         <div key={l}><span>{l}</span><i style={{ background: h ?? 'var(--bg)', borderColor: hold && l === 'Received' ? 'var(--danger-border)' : 'var(--border)' }} /></div>
       ))}
-      {de !== null && <b style={{ color: hold ? 'var(--danger)' : 'var(--success)' }}>ΔE {de}</b>}
+      {de !== null && <b style={{ color: hold ? 'var(--danger-text)' : 'var(--success-text)' }}>ΔE {de}</b>}
     </div>
   );
 }

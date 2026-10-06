@@ -197,3 +197,5 @@ html[data-wizard] .cm-studio-fab,html[data-wizard] .fbw-fab{display:none!importa
 .cx-step-cap strong{color:var(--ink)}
 @media(max-width:479px){.cx-step span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.cx-step-cap{display:block}}
 @media(max-width:767px){.cm-main{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}}
+
+.cx-card a:focus-visible,.cx-card button:focus-visible,.cx-card input:focus-visible,.cx-card select:focus-visible,.cx-card textarea:focus-visible,.wz-actions button:focus-visible{outline:2.5px solid var(--teal);outline-offset:2px}

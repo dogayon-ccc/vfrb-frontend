@@ -1,4 +1,5 @@
 // src/pages/client/Dashboard.jsx — Customer home (wireframe: hero → KPIs → recent orders + notifications)
+import { humanize } from '../../utils/humanize';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -189,7 +190,7 @@ export default function CustomerDashboard() {
       <div className="cx-dash-grid">
         <div style={{ display: 'grid', gap: 18, minWidth: 0, alignContent: 'start' }}>
           {!loading && !draft && (() => {
-            const step = draft ? ['Your design is waiting', `${draft.label || draft.studio_config.garment} is saved but not ordered yet.`, 'Continue design', openStudio]
+            const step = draft ? ['Your design is waiting', `${draft.label || humanize(draft.studio_config.garment)} is saved but not ordered yet.`, 'Continue design', openStudio]
               : inProd ? ['Your order is in production', 'Track each stage from the order page.', 'View orders', () => nav('/orders')]
               : pending ? ['VFRB is reviewing your order', 'Questions or changes? Message staff while it is pending.', 'Open messages', () => nav('/messages')]
               : total ? ['Need more uniforms?', 'Start from a saved design or begin a new one.', 'My designs', () => nav('/my-designs')]
@@ -210,7 +211,7 @@ export default function CustomerDashboard() {
               <div className="cx-thumb" style={{ width: 56, height: 64, flexShrink: 0 }}><MiniPreview garment={draft.studio_config.garment} colors={draft.studio_config.colors ?? {}} /></div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Continue where you left off</p>
-                <p style={{ margin: '3px 0 0', fontWeight: 800, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{draft.label || draft.studio_config.garment}</p>
+                <p style={{ margin: '3px 0 0', fontWeight: 800, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{draft.label || humanize(draft.studio_config.garment)}</p>
                 <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-subtle)' }}>Draft · edited {reltime(draft.updated_at)}</p>
               </div>
               <button className="cx-btn cx-btn-p" onClick={openStudio}>Continue</button>
@@ -238,7 +239,7 @@ export default function CustomerDashboard() {
                 {designs.map(d => (
                   <button key={d.id} type="button" className="cx-rd-item" onClick={() => { sessionStorage.setItem('studio_config', JSON.stringify(d.config)); nav('/design-studio'); }}>
                     <span className="cx-thumb" style={{ width: 56, height: 64 }}><MiniPreview garment={d.garment} colors={d.config?.colors ?? {}} /></span>
-                    <strong>{d.label || d.garment}</strong><em>Saved · reuse</em>
+                    <strong>{d.label || humanize(d.garment)}</strong><em>Saved · reuse</em>
                   </button>
                 ))}
               </div>

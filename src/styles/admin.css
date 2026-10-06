@@ -23,7 +23,7 @@ button.adm-stat:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
 .adm-tab{min-height:32px;padding:0 13px;border:none;border-radius:8px;background:transparent;color:var(--text-subtle);font-size:12px;font-weight:600;white-space:nowrap;cursor:pointer;transition:background .15s,color .15s,box-shadow .15s}
 .adm-tab:hover{color:var(--ink)}
 .adm-tab.on{background:var(--bg-card);color:var(--teal);font-weight:800;box-shadow:var(--shadow-sm)}
-.adm-tab .n{margin-left:5px;font-size:10px;opacity:.6}
+.adm-tab .n{margin-left:5px;font-size:10px}
 .adm-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-xs);overflow:hidden}
 .adm-panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border)}
 .adm-panel-title{font-size:14px;font-weight:800;color:var(--ink);margin:0}
@@ -75,7 +75,7 @@ button.adm-stat:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
 .adm-segs i.done{background:var(--teal-2)}.adm-segs i.now{background:var(--teal);box-shadow:0 0 0 2px rgba(2,128,144,.18)}
 .adm-row{cursor:pointer}
 .adm-row:focus-visible{outline:2px solid var(--teal-2);outline-offset:-2px}
-.adm-row .adm-ra{opacity:.6;transition:opacity .15s}
+.adm-row .adm-ra{opacity:1}
 .adm-row:hover .adm-ra,.adm-row:focus-within .adm-ra{opacity:1}
 @media(hover:none){.adm-row .adm-ra{opacity:1}}
 .adm-table th{position:sticky;top:0;z-index:1}

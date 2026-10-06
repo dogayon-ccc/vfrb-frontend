@@ -7,6 +7,7 @@ import { readUser, readAuth, isSignedIn, homeFor } from './utils/authRoute';
 import { installResponseGuards, watchCrossTabSession } from './utils/session';
 // iOS has no native install prompt (Android gets one from the manifest); this fills that gap.
 import PWAPrompt from 'react-ios-pwa-prompt';
+import { MotionConfig } from 'framer-motion';
 import StorageNotice from './components/StorageNotice';
 
 // Dev: no baseURL, /api/* goes through the Vite proxy. Prod: VITE_API_URL points straight at Railway.
@@ -121,7 +122,7 @@ function Loader() {
           borderRadius:'50%', animation:'spin .7s linear infinite',
           margin:'0 auto 12px',
         }}/>
-        <p style={{ color:'#64748b', fontSize:13, fontWeight:600, fontFamily:FONT }}>
+        <p style={{ color:'#475569', fontSize:13, fontWeight:600, fontFamily:FONT }}>
           Loading…
         </p>
       </div>
@@ -191,6 +192,7 @@ function GuestOnly({ children }) {
 
 export default function App() {
   return (
+    <MotionConfig reducedMotion="user">
     <BrowserRouter>
       <ScrollTop/>
       <StorageNotice/>
@@ -310,7 +312,7 @@ export default function App() {
               <h1 style={{ fontSize:22, fontWeight:800, color:'#0f172a', margin:0, fontFamily:FONT }}>
                 Page Not Found
               </h1>
-              <p style={{ color:'#64748b', fontSize:14, fontFamily:FONT }}>
+              <p style={{ color:'#475569', fontSize:14, fontFamily:FONT }}>
                 The page you're looking for doesn't exist.
               </p>
               <a href="/" style={{ padding:'10px 22px', borderRadius:10,
@@ -324,5 +326,6 @@ export default function App() {
         </Routes>
       </Suspense>
     </BrowserRouter>
+    </MotionConfig>
   );
 }

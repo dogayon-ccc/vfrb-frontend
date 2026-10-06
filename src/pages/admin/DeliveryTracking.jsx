@@ -155,8 +155,8 @@ function MarkDeliveredModal({ delivery, onClose, onDone }) {
             </div>
           )}
 
-          {err  && <p style={{ display:'flex', alignItems:'center', gap:6, color:'var(--danger)', fontSize:12 }}><NavIcon name="warning" size={13} color="var(--danger)" />{err}</p>}
-          {warn && <p style={{ display:'flex', alignItems:'center', gap:6, color:'var(--warning)', fontSize:12 }}><NavIcon name="warning" size={13} color="var(--warning)" />{warn}</p>}
+          {err  && <p style={{ display:'flex', alignItems:'center', gap:6, color:'var(--danger-text)', fontSize:12 }}><NavIcon name="warning" size={13} color="var(--danger)" />{err}</p>}
+          {warn && <p style={{ display:'flex', alignItems:'center', gap:6, color:'var(--warning-text)', fontSize:12 }}><NavIcon name="warning" size={13} color="var(--warning)" />{warn}</p>}
         </div>
         <div style={{ padding:'14px 22px', borderTop:'1px solid var(--border)', display:'flex', gap:10, justifyContent:'flex-end', background:'var(--bg)' }}>
           <button onClick={onClose} style={{ padding:'9px 16px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)' }}>Cancel</button>
@@ -208,7 +208,7 @@ function UpdateStatusModal({ delivery, onClose, onDone }) {
           <textarea value={notes} onChange={e=>setNotes(e.target.value)}
             placeholder="Notes (optional)…" rows={2}
             style={{ ...inp, resize:'none' }} onFocus={fi} onBlur={fo}/>
-          {err && <p style={{ display:'flex', alignItems:'center', gap:6, color:'var(--danger)', fontSize:12 }}><NavIcon name="warning" size={13} color="var(--danger)" />{err}</p>}
+          {err && <p style={{ display:'flex', alignItems:'center', gap:6, color:'var(--danger-text)', fontSize:12 }}><NavIcon name="warning" size={13} color="var(--danger)" />{err}</p>}
         </div>
         <div style={{ padding:'14px 22px', borderTop:'1px solid var(--border)', display:'flex', gap:10, justifyContent:'flex-end', background:'var(--bg)' }}>
           <button onClick={onClose} style={{ padding:'9px 16px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)' }}>Cancel</button>

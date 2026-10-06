@@ -7,14 +7,14 @@ import { Card, NavIcon } from '../../components/ui';
 const ACTION_LABELS = {
   output_logged:        { label: 'Output Logged',      icon: 'package',      color: 'var(--teal)',       bg: 'var(--teal-50)' },
   stage_progress:       { label: 'Stage Progress',      icon: 'production',   color: 'var(--purple)',     bg: 'var(--purple-50)' },
-  qc_checked:            { label: 'QC Check',            icon: 'qc',            color: 'var(--success)',    bg: 'var(--success-bg)' },
+  qc_checked:            { label: 'QC Check',            icon: 'qc',            color: 'var(--success-text)',    bg: 'var(--success-bg)' },
   physical_count:        { label: 'Physical Count',      icon: 'physicalCount', color: 'var(--info)',       bg: 'var(--info-bg)' },
   count_reconciled:      { label: 'Count Reconciled',    icon: 'reconcile',    color: 'var(--info)',       bg: 'var(--info-bg)' },
-  inventory_stock_in:    { label: 'Stock In',            icon: 'stockIn',      color: 'var(--success)',    bg: 'var(--success-bg)' },
-  inventory_stock_out:   { label: 'Stock Out',           icon: 'stockOut',     color: 'var(--danger)',     bg: 'var(--danger-bg)' },
-  inventory_adjustment:  { label: 'Stock Adjustment',    icon: 'adjustment',   color: 'var(--warning)',    bg: 'var(--warning-bg)' },
-  inventory_wastage:     { label: 'Wastage Logged',      icon: 'delete',       color: 'var(--danger)',     bg: 'var(--danger-bg)' },
-  delivery_updated:      { label: 'Delivery Update',     icon: 'delivery',     color: 'var(--warning)',    bg: 'var(--warning-bg)' },
+  inventory_stock_in:    { label: 'Stock In',            icon: 'stockIn',      color: 'var(--success-text)',    bg: 'var(--success-bg)' },
+  inventory_stock_out:   { label: 'Stock Out',           icon: 'stockOut',     color: 'var(--danger-text)',     bg: 'var(--danger-bg)' },
+  inventory_adjustment:  { label: 'Stock Adjustment',    icon: 'adjustment',   color: 'var(--warning-text)',    bg: 'var(--warning-bg)' },
+  inventory_wastage:     { label: 'Wastage Logged',      icon: 'delete',       color: 'var(--danger-text)',     bg: 'var(--danger-bg)' },
+  delivery_updated:      { label: 'Delivery Update',     icon: 'delivery',     color: 'var(--warning-text)',    bg: 'var(--warning-bg)' },
   po_created:             { label: 'PO Created',          icon: 'invoice',      color: 'var(--purple)',     bg: 'var(--purple-50)' },
   rfq_created:            { label: 'RFQ Created',         icon: 'email',        color: 'var(--purple)',     bg: 'var(--purple-50)' },
   settings_updated:       { label: 'Settings Updated',    icon: 'settings',     color: 'var(--text-muted)', bg: 'var(--bg-surface)' },
@@ -104,7 +104,7 @@ export default function ActivityLog() {
       </Card>
 
       {error && (
-        <div style={{ display:'flex', alignItems:'center', gap:6, padding:'12px 16px', borderRadius:'var(--r-md)', background:'var(--danger-bg)', border:'1px solid var(--danger-border)', color:'var(--danger)', fontSize:13, marginBottom:16 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:6, padding:'12px 16px', borderRadius:'var(--r-md)', background:'var(--danger-bg)', border:'1px solid var(--danger-border)', color:'var(--danger-text)', fontSize:13, marginBottom:16 }}>
           <NavIcon name="warning" size={14} color="var(--danger)" />{error}
         </div>
       )}

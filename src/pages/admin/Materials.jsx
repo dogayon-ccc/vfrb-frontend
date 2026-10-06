@@ -60,7 +60,7 @@ function MaterialModal({ item, onClose, onDone, isMobile }) {
               <input type="number" min={0} step={0.01} value={form.unit_cost ?? ''} onChange={e => set('unit_cost', e.target.value)} placeholder="0.00" style={inp} onFocus={fi} onBlur={fo}/></div>
           </div>
           {err && (
-            <p style={{ display:'flex', alignItems:'center', gap:6, color:'var(--danger)', fontSize:12, fontWeight:600, margin:0 }}>
+            <p style={{ display:'flex', alignItems:'center', gap:6, color:'var(--danger-text)', fontSize:12, fontWeight:600, margin:0 }}>
               <NavIcon name="warning" size={13} color="var(--danger)" />{err}
             </p>
           )}
@@ -142,7 +142,7 @@ export default function AdminMaterials() {
                       <button onClick={() => setModal(m)} style={{ padding:'6px 14px', borderRadius:'var(--r-sm)', border:'1px solid var(--border)', background:'var(--bg-surface)', color:'var(--ink)', fontSize:11, fontWeight:600, cursor:'pointer', minHeight:44, fontFamily:'var(--font)' }}>Edit</button>
                     </div>
                     <div style={{ display:'flex', alignItems:'center', gap:16, fontSize:12, color:'var(--text-subtle)', flexWrap:'wrap' }}>
-                      <span>Stock: <b style={{ color: low ? 'var(--danger)' : 'var(--success)' }}>{m.quantity_in_stock ?? 0}</b></span>
+                      <span>Stock: <b style={{ color: low ? 'var(--danger-text)' : 'var(--success-text)' }}>{m.quantity_in_stock ?? 0}</b></span>
                       {low && <Badge tone="danger">LOW</Badge>}
                       <span>Reorder at: {m.reorder_threshold ?? 0}</span>
                       <span>{m.unit_cost ? `₱${Number(m.unit_cost).toFixed(2)}` : '—'}</span>
@@ -183,7 +183,7 @@ export default function AdminMaterials() {
                       <td style={{ padding:'11px 14px', fontSize:12, color:'var(--text-subtle)' }}>{m.unit}</td>
                       <td style={{ padding:'11px 14px' }}>
                         <span style={{ display:'inline-flex', alignItems:'center', gap:8 }}>
-                          <span style={{ fontSize:13, fontWeight:700, color: low ? 'var(--danger)' : 'var(--success)' }}>{m.quantity_in_stock ?? 0}</span>
+                          <span style={{ fontSize:13, fontWeight:700, color: low ? 'var(--danger-text)' : 'var(--success-text)' }}>{m.quantity_in_stock ?? 0}</span>
                           {low && <Badge tone="danger">LOW</Badge>}
                         </span>
                       </td>

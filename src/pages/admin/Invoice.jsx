@@ -151,7 +151,7 @@ export default function AdminInvoice() {
           </motion.button>
         </div>
         {error && (
-          <p style={{ display:'flex', alignItems:'center', gap:6, color:'var(--danger)', fontSize:12, marginTop:10, fontWeight:600 }}>
+          <p style={{ display:'flex', alignItems:'center', gap:6, color:'var(--danger-text)', fontSize:12, marginTop:10, fontWeight:600 }}>
             <NavIcon name="warning" size={13} color="var(--danger)" />{error}
           </p>
         )}
@@ -323,7 +323,7 @@ export default function AdminInvoice() {
                             <span style={{ display:'inline-flex', alignItems:'center', gap:4, padding:'3px 10px', borderRadius:'var(--r-full)', fontSize:10,
                               fontWeight:700,
                               background: hasStock ? 'var(--success-bg)' : 'var(--warning-bg)',
-                              color: hasStock ? 'var(--success)' : 'var(--warning)' }}>
+                              color: hasStock ? 'var(--success-text)' : 'var(--warning-text)' }}>
                               <NavIcon name={hasStock ? 'success' : 'warning'} size={10} color={hasStock ? 'var(--success)' : 'var(--warning)'} />
                               {hasStock ? 'In Stock' : 'Check Stock'}
                             </span>
@@ -345,9 +345,9 @@ export default function AdminInvoice() {
                 border:'1px solid var(--border)', overflow:'hidden' }}>
                 {[
                   { label:'Total Amount', val: total > 0 ? `₱${Number(total).toLocaleString('en-PH',{minimumFractionDigits:2})}` : 'To be confirmed' },
-                  { label:'Amount Paid',  val: paid > 0  ? `₱${Number(paid).toLocaleString('en-PH',{minimumFractionDigits:2})}` : '₱0.00', color:'var(--success)' },
+                  { label:'Amount Paid',  val: paid > 0  ? `₱${Number(paid).toLocaleString('en-PH',{minimumFractionDigits:2})}` : '₱0.00', color:'var(--success-text)' },
                   { label:'Balance Due',  val: balance > 0 ? `₱${Number(balance).toLocaleString('en-PH',{minimumFractionDigits:2})}` : '₱0.00',
-                    color: balance > 0 ? 'var(--danger)' : 'var(--success)', bold:true },
+                    color: balance > 0 ? 'var(--danger-text)' : 'var(--success-text)', bold:true },
                 ].map(row => (
                   <div key={row.label} style={{ display:'flex', justifyContent:'space-between',
                     padding:'12px 16px', borderBottom:'1px solid var(--border)' }}>

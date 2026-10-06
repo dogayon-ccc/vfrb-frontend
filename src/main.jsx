@@ -45,7 +45,7 @@ class RootErrorBoundary extends Component {
           <h1 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: 0 }}>
             Something went wrong
           </h1>
-          <p style={{ color: '#64748b', fontSize: 13, margin: 0, maxWidth: 380 }}>
+          <p style={{ color: '#475569', fontSize: 13, margin: 0, maxWidth: 380 }}>
             The app hit an unexpected error and couldn't continue. Reloading
             the page usually fixes this.
           </p>
