@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { NavIcon } from '../../components/ui/icons';
+import { checkUpload } from '../../utils/fileCheck';
 import { PageHeader, Panel, Banner, Toast, useToast, SkeletonRows } from '../../components/admin/AdminUI';
 
 function getIsManager() {
@@ -60,6 +61,8 @@ export default function Settings() {
 
   const uploadLogo = async (file) => {
     if (!file) return;
+    const bad = await checkUpload(file, { kinds: ['png', 'jpg', 'webp'], maxBytes: 2 * 1048576 });
+    if (bad) { setToast({ msg: bad, type: 'error' }); if (fileRef.current) fileRef.current.value = ''; return; }
     const prevUrl = company.logo_url;
     setField('logo_url', URL.createObjectURL(file));
     setLogoBusy(true);

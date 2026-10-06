@@ -72,10 +72,10 @@ export default function Login() {
         )}
       </AnimatePresence>
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div>
           <label htmlFor="login-email" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Email address</label>
-          <input id="login-email" type="email" autoComplete="username" aria-invalid={!!error} value={form.email}
+          <input id="login-email" type="email" autoComplete="username" required aria-invalid={!!error} aria-describedby={error ? 'login-error' : undefined} value={form.email}
             onChange={e => { set('email', e.target.value); if (error) setError(''); }}
             onFocus={() => setFocused('email')} onBlur={() => setFocused('')}
             placeholder="you@hospital.gov.ph" style={authInput(focused, 'email', error)}/>
@@ -84,7 +84,7 @@ export default function Login() {
         <div>
           <label htmlFor="login-password" style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6, display: 'block' }}>Password</label>
           <div style={{ position: 'relative' }}>
-            <input id="login-password" type={showPw ? 'text' : 'password'} autoComplete="current-password" aria-invalid={!!error} value={form.password}
+            <input id="login-password" type={showPw ? 'text' : 'password'} autoComplete="current-password" required aria-invalid={!!error} aria-describedby={error ? 'login-error' : undefined} value={form.password}
               onChange={e => { set('password', e.target.value); if (error) setError(''); }}
               onFocus={() => setFocused('password')} onBlur={() => setFocused('')}
               placeholder="Enter your password" style={{ ...authInput(focused, 'password', error), paddingRight: 48 }}/>
@@ -98,7 +98,7 @@ export default function Login() {
           {error && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
               <NavIcon name="warning" size={14} color="var(--danger)"/>
-              <p role="alert" style={{ fontSize: 13, fontWeight: 500, color: 'var(--danger)' }}>{error}</p>
+              <p id="login-error" role="alert" style={{ fontSize: 13, fontWeight: 500, color: 'var(--danger)' }}>{error}</p>
             </div>
           )}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>

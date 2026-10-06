@@ -5,7 +5,7 @@ import { ViewLink as Link } from '../../components/ViewLink';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { startSession } from '../../utils/session';
-import AuthShell, { authInput } from '../../components/AuthShell';
+import AuthShell, { authInput, fieldA11y, FieldError } from '../../components/AuthShell';
 import { NavIcon } from '../../components/ui/icons';
 
 const T = 'var(--teal)';
@@ -39,6 +39,9 @@ export default function CustomerRegister() {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const strength = pwStrength(form.password);
   const firstError = (field) => errors?.[field]?.[0];
+  const SHOWN = ['name', 'email', 'client_type', 'organization_name', 'business_registration_number', 'contact_number', 'password', 'password_confirmation', 'agreed', 'general'];
+  const stray = Object.keys(errors).find(k => !SHOWN.includes(k) && errors[k]);
+  const general = firstError('general') ?? (stray ? firstError(stray) : undefined);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -66,11 +69,11 @@ export default function CustomerRegister() {
       subtitle={<>Already have one? <Link to="/login" style={{ color: T, fontWeight: 600, textDecoration: 'none' }}>Sign in →</Link></>}>
 
       <AnimatePresence>
-        {firstError('general') && (
+        {general && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-            style={{ borderRadius: 12, padding: '12px 16px', marginBottom: 18, overflow: 'hidden',
+            role="alert" style={{ borderRadius: 12, padding: '12px 16px', marginBottom: 18, overflow: 'hidden',
               background: 'var(--danger-bg)', border: '1px solid var(--danger-border)', color: 'var(--danger)', fontSize: 13 }}>
-            {firstError('general')}
+            {general}
           </motion.div>
         )}
       </AnimatePresence>
@@ -78,23 +81,23 @@ export default function CustomerRegister() {
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div>
           <label htmlFor="reg-name" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Full Name / Institution Contact</label>
-          <input id="reg-name" autoComplete="name" required value={form.name} onChange={e => set('name', e.target.value)}
+          <input id="reg-name" {...fieldA11y('reg-name', firstError('name'))} autoComplete="name" required value={form.name} onChange={e => set('name', e.target.value)}
             onFocus={() => setFocused('name')} onBlur={() => setFocused('')}
             placeholder="Juan Dela Cruz" style={authInput(focused, 'name', firstError('name'))}/>
-          {firstError('name') && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 5 }}>{firstError('name')}</p>}
+          <FieldError id="reg-name" msg={firstError('name')}/>
         </div>
 
         <div>
           <label htmlFor="reg-email" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Email Address</label>
-          <input id="reg-email" type="email" autoComplete="email" required value={form.email} onChange={e => set('email', e.target.value)}
+          <input id="reg-email" {...fieldA11y('reg-email', firstError('email'))} type="email" autoComplete="email" required value={form.email} onChange={e => set('email', e.target.value)}
             onFocus={() => setFocused('email')} onBlur={() => setFocused('')}
             placeholder="you@email.com" style={authInput(focused, 'email', firstError('email'))}/>
-          {firstError('email') && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 5 }}>{firstError('email')}</p>}
+          <FieldError id="reg-email" msg={firstError('email')}/>
         </div>
 
         <div>
-          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Organization Type</label>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <span id="reg-type-label" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Organization Type</span>
+          <div role="group" aria-labelledby="reg-type-label" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {CLIENT_TYPES.map((ct, i) => {
               const active = form.client_type === ct.id;
               return (
@@ -109,37 +112,38 @@ export default function CustomerRegister() {
               );
             })}
           </div>
-          {firstError('client_type') && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 5 }}>{firstError('client_type')}</p>}
+          <FieldError id="reg-type" msg={firstError('client_type')}/>
           <p style={{ color: 'var(--text-subtle)', fontSize: 12, margin: '8px 0 0' }}>VFRB takes bulk uniform orders from organizations only.</p>
         </div>
 
         <div>
           <label htmlFor="reg-org" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Organization Name</label>
-          <input id="reg-org" autoComplete="organization" required value={form.organization_name} onChange={e => set('organization_name', e.target.value)}
+          <input id="reg-org" {...fieldA11y('reg-org', firstError('organization_name'))} autoComplete="organization" required value={form.organization_name} onChange={e => set('organization_name', e.target.value)}
             onFocus={() => setFocused('organization_name')} onBlur={() => setFocused('')}
             placeholder="e.g. Holy Redeemer School of Calamba" style={authInput(focused, 'organization_name', firstError('organization_name'))}/>
-          {firstError('organization_name') && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 5 }}>{firstError('organization_name')}</p>}
+          <FieldError id="reg-org" msg={firstError('organization_name')}/>
         </div>
 
         <div>
           <label htmlFor="reg-brn" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>TIN / Business registration no. <span style={{ fontWeight: 400, color: 'var(--text-faint)' }}>(optional)</span></label>
-          <input id="reg-brn" autoComplete="off" maxLength={30} value={form.business_registration_number} onChange={e => set('business_registration_number', e.target.value)}
+          <input id="reg-brn" {...fieldA11y('reg-brn', firstError('business_registration_number'))} autoComplete="off" maxLength={30} value={form.business_registration_number} onChange={e => set('business_registration_number', e.target.value)}
             onFocus={() => setFocused('business_registration_number')} onBlur={() => setFocused('')}
             placeholder="Letters, numbers, spaces, hyphens" style={authInput(focused, 'business_registration_number', firstError('business_registration_number'))}/>
-          {firstError('business_registration_number') && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 5 }}>{firstError('business_registration_number')}</p>}
+          <FieldError id="reg-brn" msg={firstError('business_registration_number')}/>
         </div>
 
         <div>
           <label htmlFor="reg-contact" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Contact Number</label>
-          <input id="reg-contact" type="tel" inputMode="tel" autoComplete="tel" value={form.contact_number} onChange={e => set('contact_number', e.target.value)}
+          <input id="reg-contact" {...fieldA11y('reg-contact', firstError('contact_number'))} type="tel" inputMode="tel" autoComplete="tel" value={form.contact_number} onChange={e => set('contact_number', e.target.value)}
             onFocus={() => setFocused('contact_number')} onBlur={() => setFocused('')}
-            placeholder="09XXXXXXXXX" style={authInput(focused, 'contact_number')}/>
+            placeholder="09XXXXXXXXX" style={authInput(focused, 'contact_number', firstError('contact_number'))}/>
+          <FieldError id="reg-contact" msg={firstError('contact_number')}/>
         </div>
 
         <div>
           <label htmlFor="reg-password" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Password</label>
           <div style={{ position: 'relative' }}>
-            <input id="reg-password" type={showPw ? 'text' : 'password'} autoComplete="new-password" required value={form.password}
+            <input id="reg-password" {...fieldA11y('reg-password', firstError('password'))} type={showPw ? 'text' : 'password'} autoComplete="new-password" required value={form.password}
               onChange={e => set('password', e.target.value)}
               onFocus={() => setFocused('password')} onBlur={() => setFocused('')}
               placeholder="8+ chars, Aa, number, symbol" style={{ ...authInput(focused, 'password'), paddingRight: 48 }}/>
@@ -160,16 +164,16 @@ export default function CustomerRegister() {
               </span>
             </div>
           )}
-          {firstError('password') && <p role="alert" style={{ color: 'var(--danger)', fontSize: 12, marginTop: 5 }}>{firstError('password')}</p>}
+          <FieldError id="reg-password" msg={firstError('password')}/>
         </div>
 
         <div>
           <label htmlFor="reg-password-confirm" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Confirm Password</label>
-          <input id="reg-password-confirm" type={showPw ? 'text' : 'password'} autoComplete="new-password" required value={form.password_confirmation}
+          <input id="reg-password-confirm" {...fieldA11y('reg-password-confirm', firstError('password_confirmation'))} type={showPw ? 'text' : 'password'} autoComplete="new-password" required value={form.password_confirmation}
             onChange={e => set('password_confirmation', e.target.value)}
             onFocus={() => setFocused('password_confirmation')} onBlur={() => setFocused('')}
             placeholder="Re-enter password" style={authInput(focused, 'password_confirmation', firstError('password_confirmation'))}/>
-          {firstError('password_confirmation') && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 5 }}>{firstError('password_confirmation')}</p>}
+          <FieldError id="reg-password-confirm" msg={firstError('password_confirmation')}/>
         </div>
 
         <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer' }}>
@@ -182,7 +186,7 @@ export default function CustomerRegister() {
             <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: T, fontWeight: 600 }}>Privacy Policy</a>.
           </span>
         </label>
-        {firstError('agreed') && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: -8 }}>{firstError('agreed')}</p>}
+        {firstError('agreed') && <p role="alert" style={{ color: 'var(--danger)', fontSize: 12, marginTop: -8 }}>{firstError('agreed')}</p>}
 
         <motion.button whileHover={{ scale: (loading || !agreed) ? 1 : 1.01 }} whileTap={{ scale: .98 }}
           type="submit" disabled={loading || !agreed}

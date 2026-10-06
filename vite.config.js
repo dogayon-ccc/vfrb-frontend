@@ -91,7 +91,7 @@ export default defineConfig(({ mode }) => {
         // content-hashed + browser-cached); measured precache drop: ~4.9MB
         // -> ~2.1MB. Runtime correctness is unaffected — dynamic import()
         // doesn't depend on SW precache.
-        globIgnores: ["**/three-*.js", "**/bg-remove-*.js", "**/charts-*.js"],
+        globIgnores: ["**/three-*.js", "**/fabric-*.js", "**/bg-remove-*.js", "**/charts-*.js"],
         runtimeCaching: [
           {
             urlPattern: /\/api\/.*/,
@@ -132,6 +132,7 @@ export default defineConfig(({ mode }) => {
             { name: "preload-helper", test: /vite[\\/]preload-helper/, priority: 100 },
             { name: "react-vendor", test: /node_modules[\\/](react|react-dom|react-is|scheduler|react-router|react-router-dom)[\\/]/, priority: 90 },
             { name: "three", test: /node_modules[\\/](@react-three|three)[\\/]/, priority: 80 },
+            { name: "fabric", test: /node_modules[\\/]fabric[\\/]/, priority: 75 },
             { name: "bg-remove", test: /node_modules[\\/](@huggingface[\\/]transformers|onnxruntime[^\\/]*)[\\/]/, priority: 70 },
             { name: "motion", test: /node_modules[\\/]framer-motion[\\/]/, priority: 60 },
             { name: "charts", test: /node_modules[\\/](recharts|react-redux|@reduxjs|redux|reselect|immer|d3-[^\\/]+|victory-vendor|decimal\.js-light|es-toolkit)[\\/]/, priority: 50 },

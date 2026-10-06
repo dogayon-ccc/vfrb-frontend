@@ -25,6 +25,7 @@ export default function ResetPassword() {
 
   const submit = async (e) => {
     e.preventDefault();
+    if (!form.token || !form.email) { setError('This reset link is incomplete. Request a new one from the sign-in page.'); return; }
     if (form.password !== form.password_confirmation) { setError("Passwords don't match."); return; }
     if (form.password.length < 8) { setError('Password must be at least 8 characters.'); return; }
     setLoading(true); setError('');
@@ -32,7 +33,7 @@ export default function ResetPassword() {
       await axios.post('/api/password/reset', form);
       setDone(true);
     } catch (err) {
-      setError(err.response?.data?.message ?? 'Reset failed. The link may have expired.');
+      setError(!err.response ? 'Cannot reach the server. Check your connection and try again.' : err.response.data?.message ?? 'Reset failed. The link may have expired.');
     } finally {
       setLoading(false);
     }
@@ -62,7 +63,7 @@ export default function ResetPassword() {
         ) : (
           <form onSubmit={submit}>
             {error && (
-              <div role="alert" style={{ background: 'var(--danger-bg)', border: '1px solid var(--danger-border)', borderRadius: 10,
+              <div id="rp-error" role="alert" style={{ background: 'var(--danger-bg)', border: '1px solid var(--danger-border)', borderRadius: 10,
                 padding: '10px 14px', marginBottom: 16, color: 'var(--danger)', fontSize: 13 }}>
                 {error}
               </div>
@@ -72,7 +73,7 @@ export default function ResetPassword() {
               ['Confirm Password', 'password_confirmation', 'password', 'Repeat new password', 'new-password']].map(([label, key, type, ph, ac]) => (
               <label key={key} style={{ display: 'block', marginBottom: 14 }}>
                 <span style={{ color: 'var(--ink)', fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>{label}</span>
-                <input type={type} autoComplete={ac} value={form[key]} placeholder={ph} onChange={e => set(key, e.target.value)}
+                <input type={type} autoComplete={ac} aria-invalid={!!error} aria-describedby={error ? 'rp-error' : undefined} value={form[key]} placeholder={ph} onChange={e => set(key, e.target.value)}
                   onFocus={() => setFocused(key)} onBlur={() => setFocused('')} required style={authInput(focused, key, error)}/>
               </label>
             ))}

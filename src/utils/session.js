@@ -5,6 +5,8 @@ import { clearQueue } from './offlineQueue';
 const TOKEN = 'vfrb_token';
 const USER  = 'vfrb_user';
 const SERVER_ERROR = 'Something went wrong on our side. Please try again.';
+const LEAK = /SQLSTATE|No query results for model|App\\|Illuminate\\|vendor[\\/]|\.php\b|Stack trace|Undefined (variable|array key|index)|Call to (undefined|a member)/i;
+const STATUS_TEXT = { 403: 'You do not have permission to do that.', 404: 'We could not find what you were looking for.', 419: 'Your session expired. Please reload and try again.' };
 const AUTH_CALLS = ['/api/login', '/api/register', '/api/logout', '/api/forgot-password', '/api/reset-password', '/api/password/forgot', '/api/password/reset'];
 const LOGGED_OUT_PAGES = ['/login', '/register', '/forgot-password', '/reset-password', '/admin/login'];
 
@@ -72,6 +74,9 @@ export function installResponseGuards() {
       }
       // Debug-mode Laravel 5xx bodies carry exception text, SQL and file paths.
       if (status >= 500 && status !== 503) error.response.data = { message: SERVER_ERROR };
+      else if (status >= 400 && LEAK.test(String(error.response?.data?.message ?? ''))) {
+        error.response.data = { ...error.response.data, message: STATUS_TEXT[status] ?? SERVER_ERROR };
+      }
       const isAuthCall = AUTH_CALLS.some((p) => (error.config?.url || '').includes(p));
       if (status === 401 && localStorage.getItem(TOKEN) && !isAuthCall) {
         clearSession();

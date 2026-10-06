@@ -30,7 +30,7 @@ export default function ForgotPassword() {
       await axios.post('/api/password/forgot', { email });
       setSent(true);
     } catch (err) {
-      setError(err.response?.data?.message ?? 'Failed to send reset link. Please try again.');
+      setError(!err.response ? 'Cannot reach the server. Check your connection and try again.' : err.response.data?.message ?? 'Failed to send reset link. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -61,14 +61,14 @@ export default function ForgotPassword() {
         ) : (
           <form onSubmit={submit}>
             {error && (
-              <div role="alert" style={{ background: 'var(--danger-bg)', border: '1px solid var(--danger-border)', borderRadius: 10,
+              <div id="fp-error" role="alert" style={{ background: 'var(--danger-bg)', border: '1px solid var(--danger-border)', borderRadius: 10,
                 padding: '10px 14px', marginBottom: 16, color: 'var(--danger)', fontSize: 13 }}>
                 {error}
               </div>
             )}
             <label style={{ display: 'block', marginBottom: 16 }}>
               <span style={{ color: 'var(--ink)', fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 6 }}>Email Address</span>
-              <input type="email" autoComplete="email" inputMode="email" aria-invalid={!!error} value={email} onChange={e => setEmail(e.target.value)}
+              <input type="email" autoComplete="email" inputMode="email" aria-invalid={!!error} aria-describedby={error ? 'fp-error' : undefined} value={email} onChange={e => setEmail(e.target.value)}
                 onFocus={() => setFocused('email')} onBlur={() => setFocused('')}
                 placeholder="your@email.com" required style={authInput(focused, 'email', error)}/>
             </label>
