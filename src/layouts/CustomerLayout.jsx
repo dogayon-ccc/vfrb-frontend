@@ -423,6 +423,7 @@ export default function CustomerLayout() {
         .cm-tb-studio:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(2,128,144,.38); }
         .cm-tb-studio:focus-visible, .cm-tb-bell:focus-visible, .cm-tb-user:focus-visible { outline: 2.5px solid var(--teal); outline-offset: 2px; }
         .cm-tb-bell { position: relative; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: #fff; background: rgba(255,255,255,.14); flex-shrink: 0; transition: background .15s; }
+        @media (max-width: 767px) { .cm-tb-bell { display: none; } }
         .cm-tb-bell:hover { background: rgba(255,255,255,.24); }
         .cm-tb-dot { position: absolute; top: 8px; right: 9px; width: 9px; height: 9px; border-radius: 50%; background: var(--danger); border: 2px solid #fff; }
         .cm-tb-user { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #fff; padding: 3px 4px 3px 3px; border-radius: 999px; transition: background .15s; }

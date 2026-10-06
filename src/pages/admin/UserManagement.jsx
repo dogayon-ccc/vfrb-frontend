@@ -94,7 +94,7 @@ function CreateUserModal({ onClose, onDone, isMobile }) {
               <input type="password" value={form.password_confirmation} onChange={e=>set('password_confirmation',e.target.value)} placeholder="Repeat password" style={inp} onFocus={fi} onBlur={fo}/>
             </div>
           </div>
-          {err && <p style={{ color:'var(--danger)', fontSize:12, fontWeight:600, display:'flex', alignItems:'center', gap:6 }}><NavIcon name="warning" size={13} color="var(--danger)"/>{err}</p>}
+          {err && <p style={{ color:'var(--danger-text)', fontSize:12, fontWeight:600, display:'flex', alignItems:'center', gap:6 }}><NavIcon name="warning" size={13} color="var(--danger)"/>{err}</p>}
           <div style={{ display:'flex', gap:10, justifyContent:'flex-end', paddingTop:12, marginTop:2, borderTop:'1px solid var(--border)' }}>
             <button onClick={onClose} style={{ padding:'9px 18px', borderRadius:9, border:'1px solid var(--border)', background:'#fff', color:'var(--ink)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:FONT }}>Cancel</button>
             <button onClick={submit} disabled={busy}
@@ -144,7 +144,7 @@ function EditUserModal({ user, onClose, onDone, isMobile }) {
               </select>
             </div>
           )}
-          {err && <p style={{ color:'var(--danger)', fontSize:12, fontWeight:600, display:'flex', alignItems:'center', gap:6 }}><NavIcon name="warning" size={13} color="var(--danger)"/>{err}</p>}
+          {err && <p style={{ color:'var(--danger-text)', fontSize:12, fontWeight:600, display:'flex', alignItems:'center', gap:6 }}><NavIcon name="warning" size={13} color="var(--danger)"/>{err}</p>}
           <div style={{ display:'flex', gap:10, justifyContent:'flex-end', paddingTop:12, marginTop:2, borderTop:'1px solid var(--border)' }}>
             <button onClick={onClose} style={{ padding:'9px 18px', borderRadius:9, border:'1px solid var(--border)', background:'#fff', color:'var(--ink)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:FONT }}>Cancel</button>
             <button onClick={submit} disabled={busy}
@@ -264,8 +264,8 @@ export default function AdminUserManagement() {
 
       <StatGrid loading={loading} items={[
         { label:'Total Accounts', value:users.length },
-        { label:'Active', value:users.filter(u => u.is_active !== false).length, color:'var(--success)' },
-        { label:'Inactive', value:users.filter(u => u.is_active === false).length, color: users.some(u => u.is_active === false) ? 'var(--danger)' : undefined },
+        { label:'Active', value:users.filter(u => u.is_active !== false).length, color:'var(--success-text)' },
+        { label:'Inactive', value:users.filter(u => u.is_active === false).length, color: users.some(u => u.is_active === false) ? 'var(--danger-text)' : undefined },
         { label:'Staff & Managers', value:(counts.staff ?? 0) + (counts.manager ?? 0), color:'var(--teal)' },
       ]} />
 

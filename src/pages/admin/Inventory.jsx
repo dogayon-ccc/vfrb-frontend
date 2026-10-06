@@ -9,9 +9,9 @@ import BottomSheet from '../../components/ui/BottomSheet';
 import { PageHeader, StatGrid, PillTabs, ErrorBlock, Panel, StatusPill, SearchBox, Meter, Banner, SkeletonRows, useIsMobile } from '../../components/admin/AdminUI';
 
 const TYPE_CFG = {
-  stock_in:   { color:'var(--success)', bg:'var(--success-bg)' },
-  stock_out:  { color:'var(--danger)',  bg:'var(--danger-bg)'  },
-  adjustment: { color:'var(--warning)', bg:'var(--warning-bg)' },
+  stock_in:   { color:'var(--success-text)', bg:'var(--success-bg)' },
+  stock_out:  { color:'var(--danger-text)',  bg:'var(--danger-bg)'  },
+  adjustment: { color:'var(--warning-text)', bg:'var(--warning-bg)' },
   wastage:    { color:'var(--purple)',  bg:'var(--purple-50)'  },
 };
 
@@ -143,7 +143,7 @@ export default function AdminInventory() {
       <StatGrid loading={loading} items={[
         { label:'Total Items', value:totalMats },
         { label:'Low Stock', value:lowStock.length, color: lowStock.length ? 'var(--warning-text)' : undefined, chip: lowStock.length ? 'Reorder' : null, chipTone:'warn' },
-        { label:'Out of Stock', value:outCount, color: outCount ? 'var(--danger)' : undefined, chip: outCount ? 'Action' : null, chipTone:'down' },
+        { label:'Out of Stock', value:outCount, color: outCount ? 'var(--danger-text)' : undefined, chip: outCount ? 'Action' : null, chipTone:'down' },
       ]} />
 
       {loadError && !loading && <div style={{ marginBottom:14 }}><ErrorBlock msg="Couldn't load inventory — check your connection." onRetry={()=>load(true)} /></div>}
@@ -188,7 +188,7 @@ export default function AdminInventory() {
                             <td className="adm-hide-t" style={{ color:'var(--text-subtle)' }}>{m.category ?? '—'}</td>
                             <td style={{ minWidth:150 }}>
                               <div style={{ display:'flex', alignItems:'baseline', gap:5 }}>
-                                <span style={{ fontSize:15, fontWeight:800, color: low ? 'var(--danger)' : 'var(--ink)' }}>{m.quantity_in_stock}</span>
+                                <span style={{ fontSize:15, fontWeight:800, color: low ? 'var(--danger-text)' : 'var(--ink)' }}>{m.quantity_in_stock}</span>
                                 <span style={{ fontSize:11, color:'var(--text-faint)' }}>{m.unit}</span>
                               </div>
                               <div style={{ marginTop:5, maxWidth:120 }}><Meter pct={stockPct(m)} tone={low ? 'low' : 'ok'} /></div>
@@ -212,7 +212,7 @@ export default function AdminInventory() {
                       <StatusPill status={low ? 'cancelled' : 'active'} label={low ? 'Low' : 'OK'} />
                     </div>
                     <div className="adm-mrow" style={{ marginTop:10, alignItems:'baseline' }}>
-                      <span style={{ fontSize:20, fontWeight:800, color: low ? 'var(--danger)' : 'var(--ink)' }}>{m.quantity_in_stock}<span style={{ fontSize:11, fontWeight:600, color:'var(--text-faint)' }}> {m.unit}</span></span>
+                      <span style={{ fontSize:20, fontWeight:800, color: low ? 'var(--danger-text)' : 'var(--ink)' }}>{m.quantity_in_stock}<span style={{ fontSize:11, fontWeight:600, color:'var(--text-faint)' }}> {m.unit}</span></span>
                       <span style={{ fontSize:11, color:'var(--text-faint)' }}>reorder @ {m.reorder_threshold ?? 0}</span>
                     </div>
                     <div style={{ marginTop:8 }}><Meter pct={stockPct(m)} tone={low ? 'low' : 'ok'} /></div>
@@ -240,7 +240,7 @@ export default function AdminInventory() {
                           <tr key={l.log_id??i}>
                             <td style={{ fontWeight:600 }}>{l.material?.material_name??`#${l.material_id}`}</td>
                             <td><span className="adm-pill" style={{ background:tc.bg, color:tc.color }}>{(l.type??'—').replace('_',' ')}</span></td>
-                            <td style={{ fontWeight:800, color:Number(l.change_qty)>=0?'var(--success)':'var(--danger)' }}>{Number(l.change_qty)>0?'+':''}{l.change_qty} {l.material?.unit??''}</td>
+                            <td style={{ fontWeight:800, color:Number(l.change_qty)>=0?'var(--success-text)':'var(--danger-text)' }}>{Number(l.change_qty)>0?'+':''}{l.change_qty} {l.material?.unit??''}</td>
                             <td className="adm-hide-t" style={{ color:'var(--text-subtle)', maxWidth:220, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{l.reason??'—'}</td>
                             <td style={{ color:'var(--text-faint)', whiteSpace:'nowrap' }}>{fmtLog(l.log_date)}</td>
                             <td className="adm-hide-t" style={{ color:'var(--text-subtle)' }}>{l.recorder?.name??'—'}</td>
@@ -260,7 +260,7 @@ export default function AdminInventory() {
                       <div style={{ fontSize:14, fontWeight:700 }}>{l.material?.material_name??`#${l.material_id}`}</div>
                       <span className="adm-pill" style={{ background:tc.bg, color:tc.color }}>{(l.type??'—').replace('_',' ')}</span>
                     </div>
-                    <div style={{ fontSize:18, fontWeight:800, margin:'6px 0 2px', color:Number(l.change_qty)>=0?'var(--success)':'var(--danger)' }}>
+                    <div style={{ fontSize:18, fontWeight:800, margin:'6px 0 2px', color:Number(l.change_qty)>=0?'var(--success-text)':'var(--danger-text)' }}>
                       {Number(l.change_qty)>0?'+':''}{l.change_qty} <span style={{ fontSize:11, fontWeight:600 }}>{l.material?.unit??''}</span>
                     </div>
                     <div style={{ fontSize:12, color:'var(--text-subtle)' }}>{l.reason??'—'}</div>

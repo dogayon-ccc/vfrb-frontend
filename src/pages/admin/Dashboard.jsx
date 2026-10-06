@@ -97,7 +97,7 @@ export default function AdminDashboard() {
     { label: 'Total Orders', value: o.total ?? 0, chip: o.new_this_week != null ? `+${o.new_this_week} this week` : null, chipTone: 'up', onClick: () => nav('/admin/orders') },
     { label: 'In Production', value: o.in_production ?? 0, sub: `${o.confirmed ?? 0} confirmed · ${o.pending ?? 0} pending`, onClick: () => nav('/admin/production') },
     { label: 'Completed', value: o.completed ?? 0, onClick: () => nav('/admin/orders') },
-    { label: 'Low Stock', value: data?.inventory?.low_stock_count ?? 0, chip: (data?.inventory?.low_stock_count ?? 0) > 0 ? 'Reorder' : null, chipTone: 'down', color: (data?.inventory?.low_stock_count ?? 0) > 0 ? 'var(--danger)' : undefined, onClick: () => nav('/admin/inventory') },
+    { label: 'Low Stock', value: data?.inventory?.low_stock_count ?? 0, chip: (data?.inventory?.low_stock_count ?? 0) > 0 ? 'Reorder' : null, chipTone: 'down', color: (data?.inventory?.low_stock_count ?? 0) > 0 ? 'var(--danger-text)' : undefined, onClick: () => nav('/admin/inventory') },
   ];
   const snapshot = [
     { label: 'Revenue (Month)', value: peso(data?.revenue?.month ?? 0) },
@@ -115,9 +115,9 @@ export default function AdminDashboard() {
   const attention = [
     { title: 'Orders Needing Action', color: T, items: pendingRaw ?? [], loading: poLoading, empty: 'No pending orders — all caught up', footer: 'All pending', onFooter: () => nav('/admin/orders?status=pending'),
       render: (x) => <ListRow key={x.order_id} onClick={() => nav(`/admin/orders/${x.order_id}`)} title={`#${x.order_id} · ${x.garment_type ?? '—'}`} sub={x.customer_name} right={fmtDate(x.created_at)} /> },
-    { title: 'Materials Running Low', color: 'var(--danger)', items: low, loading, empty: 'No materials below reorder threshold', footer: 'Inventory', onFooter: () => nav('/admin/inventory'),
+    { title: 'Materials Running Low', color: 'var(--danger-text)', items: low, loading, empty: 'No materials below reorder threshold', footer: 'Inventory', onFooter: () => nav('/admin/inventory'),
       render: (m) => <ListRow key={m.material_id} onClick={() => nav('/admin/inventory')} title={m.material_name} right={`${m.quantity_in_stock} ${m.unit}`} rightColor="var(--danger)" /> },
-    { title: 'Production Delays', color: 'var(--warning)', items: delayed, loading, empty: `No stages stalled ${delayDays}+ days`, footer: 'Production', onFooter: () => nav('/admin/production'),
+    { title: 'Production Delays', color: 'var(--warning-text)', items: delayed, loading, empty: `No stages stalled ${delayDays}+ days`, footer: 'Production', onFooter: () => nav('/admin/production'),
       render: (x) => <ListRow key={x.order_id} onClick={() => nav(`/admin/orders/${x.order_id}`)} title={`Order #${x.order_id} — ${x.customer_name}`} sub={`${x.stage} · ${x.qty_completed}/${x.qty_target} pcs`} right={`${x.days_stalled}d stalled`} rightColor="var(--warning)" /> },
     { title: 'RFQs Awaiting Response', color: T, items: rfqRaw ?? [], loading: rfqLoading, empty: 'No RFQs waiting on a supplier', footer: 'Procurement', onFooter: () => nav('/admin/procurement'),
       render: (r) => <ListRow key={r.rfq_id} onClick={() => nav('/admin/procurement')} title={r.material_name} sub={`${r.qty_needed} ${r.unit}`} right={r.needed_by_date ? fmtDate(r.needed_by_date) : 'No deadline'} /> },

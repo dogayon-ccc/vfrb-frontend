@@ -197,7 +197,7 @@ export default function ProductionIncidents() {
                   <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
                     {item.status === 'reported' && (
                       <button onClick={() => acknowledge(item.incident_id)} style={{
-                        background: 'var(--warning-bg)', color: 'var(--warning)', border: '1px solid var(--warning-border)',
+                        background: 'var(--warning-bg)', color: 'var(--warning-text)', border: '1px solid var(--warning-border)',
                         borderRadius: 'var(--r-sm)', padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', minHeight: 44, fontFamily: 'var(--font)',
                       }}>Acknowledge</button>
                     )}
@@ -212,14 +212,14 @@ export default function ProductionIncidents() {
                       </div>
                     ) : (
                       <button onClick={() => { setResolvingId(item.incident_id); setResolutionNotes(''); }} style={{
-                        background: 'var(--success-bg)', color: 'var(--success)', border: '1px solid var(--success-border)',
+                        background: 'var(--success-bg)', color: 'var(--success-text)', border: '1px solid var(--success-border)',
                         borderRadius: 'var(--r-sm)', padding: '8px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer', minHeight: 44, fontFamily: 'var(--font)',
                       }}>Resolve</button>
                     )}
                   </div>
                 )}
                 {item.status === 'resolved' && item.resolution_notes && (
-                  <p style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--success)', margin: '4px 0 0', fontStyle: 'italic' }}>
+                  <p style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--success-text)', margin: '4px 0 0', fontStyle: 'italic' }}>
                     <NavIcon name="success" size={12} color="var(--success)" />{item.resolution_notes}
                   </p>
                 )}

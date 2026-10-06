@@ -167,7 +167,7 @@ function CountModal({ materials, onClose, onDone, isMobile, initialMatId }) {
             </div>
 
             {err && (
-              <p style={{ color:'var(--danger)', fontSize:12, fontWeight:600, fontFamily:FONT, margin:0 }}>
+              <p style={{ color:'var(--danger-text)', fontSize:12, fontWeight:600, fontFamily:FONT, margin:0 }}>
                 <NavIcon name="warning" size={13} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>{err}
               </p>
             )}
@@ -291,7 +291,7 @@ function ReconcileModal({ count, onClose, onDone, isMobile }) {
           </div>
 
           {err && (
-            <p style={{ color:'var(--danger)', fontSize:12, fontFamily:FONT, display:'flex', alignItems:'center', gap:5, margin:0 }}><NavIcon name="warning" size={13} color="currentColor"/>{err}</p>
+            <p style={{ color:'var(--danger-text)', fontSize:12, fontFamily:FONT, display:'flex', alignItems:'center', gap:5, margin:0 }}><NavIcon name="warning" size={13} color="currentColor"/>{err}</p>
           )}
 
           <div style={{ display:'flex', gap:10, justifyContent:'flex-end', marginTop:6 }}>
@@ -457,7 +457,7 @@ export default function AdminPhysicalCount() {
       <StatGrid loading={loading} items={[
         { label: 'Flagged variances', value: summary.flagged_variances ?? 0, color: summary.flagged_variances ? 'var(--warning-text)' : undefined, sub: 'Over 5% variance', onClick: () => setFilterR('flagged') },
         { label: 'Needs reconciliation', value: summary.unreconciled_counts ?? 0, color: 'var(--info)', sub: 'Manager review', onClick: () => setFilterR('pending') },
-        { label: 'Overdue counts', value: overdue.length, color: overdue.length ? 'var(--danger)' : undefined, sub: 'Not counted in 30+ days' },
+        { label: 'Overdue counts', value: overdue.length, color: overdue.length ? 'var(--danger-text)' : undefined, sub: 'Not counted in 30+ days' },
         { label: 'Last count', value: summary.last_count_date ?? '—', sub: 'Most recent' },
       ]} />
 

@@ -116,8 +116,8 @@ export const Avatar = ({ name, size = 34, tone }) => (
   </span>
 );
 
-export const Meter = ({ pct, tone }) => (
-  <div className={`adm-meter ${tone ?? ''}`} role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
+export const Meter = ({ pct, tone, label = 'Progress' }) => (
+  <div className={`adm-meter ${tone ?? ''}`} role="progressbar" aria-label={label} aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
     <i style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} />
   </div>
 );

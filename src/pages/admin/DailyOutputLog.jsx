@@ -178,7 +178,7 @@ export default function AdminDailyOutputLog() {
                   <label style={lbl}>
                     Order
                   </label>
-                  <select value={form.order_id} onChange={e=>{ set('order_id',e.target.value); }}
+                  <select aria-label="Order" value={form.order_id} onChange={e=>{ set('order_id',e.target.value); }}
                     style={{ ...inp, cursor:'pointer' }}>
                     <option value="">Select order…</option>
                     {orders.map(o=>(
@@ -190,7 +190,7 @@ export default function AdminDailyOutputLog() {
                 </div>
                 <div>
                   <label style={lbl}>Production Stage</label>
-                  <select value={form.stage} onChange={e=>set('stage',e.target.value)}
+                  <select aria-label="Production stage" value={form.stage} onChange={e=>set('stage',e.target.value)}
                     style={{ ...inp, cursor:'pointer' }}>
                     {STAGES.map(s=>(
                       <option key={s} value={s}>{s.charAt(0).toUpperCase()+s.slice(1)}</option>
@@ -202,7 +202,7 @@ export default function AdminDailyOutputLog() {
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
                 <div>
                   <label style={lbl}>Log Date</label>
-                  <input type="date" value={form.log_date}
+                  <input type="date" aria-label="Log date" value={form.log_date}
                     max={new Date().toISOString().split('T')[0]}
                     onChange={e=>set('log_date',e.target.value)}
                     style={inp} onFocus={fi} onBlur={fo}/>
@@ -222,7 +222,7 @@ export default function AdminDailyOutputLog() {
                   {SIZES.map(s=>(
                     <div key={s}>
                       <label style={{ ...lbl, fontSize:10, marginBottom:5 }}>{SIZE_LABELS[s]}</label>
-                      <input type="number" min={0} value={form[`qty_${s}`]}
+                      <input type="number" min={0} aria-label={`Pieces completed, size ${SIZE_LABELS[s]}`} value={form[`qty_${s}`]}
                         onChange={e=>set(`qty_${s}`, Math.max(0, Number(e.target.value)))}
                         style={{ ...inp, textAlign:'center', padding:'8px 6px' }}
                         onFocus={fi} onBlur={fo}/>
@@ -249,7 +249,7 @@ export default function AdminDailyOutputLog() {
                           <span style={{ color:'var(--text-faint)', fontWeight:400 }}> ({m.unit})</span>
                         </span>
                         <input
-                          type="number" min={0} step="any"
+                          type="number" min={0} step="any" aria-label={`Quantity used, ${m.material_name}`}
                           placeholder="qty used"
                           value={materialQty[m.material_id] ?? ''}
                           onChange={e => setMatQty(m.material_id, e.target.value)}
@@ -267,7 +267,7 @@ export default function AdminDailyOutputLog() {
                   <label style={{ ...lbl, display:'flex', alignItems:'center', gap:4 }}>
                     <NavIcon name="warning" size={11} color="var(--danger)" />Defects
                   </label>
-                  <input type="number" min={0} value={form.defect_count}
+                  <input type="number" min={0} aria-label="Defects" value={form.defect_count}
                     onChange={e=>set('defect_count', Math.max(0, Number(e.target.value)))}
                     style={inp} onFocus={fi} onBlur={fo}/>
                 </div>
@@ -275,7 +275,7 @@ export default function AdminDailyOutputLog() {
                   <label style={{ ...lbl, display:'flex', alignItems:'center', gap:4 }}>
                     <NavIcon name="warning" size={11} color="var(--warning)" />For Alteration
                   </label>
-                  <input type="number" min={0} value={form.alteration_count}
+                  <input type="number" min={0} aria-label="For alteration" value={form.alteration_count}
                     onChange={e=>set('alteration_count', Math.max(0, Number(e.target.value)))}
                     style={inp} onFocus={fi} onBlur={fo}/>
                 </div>
@@ -298,8 +298,8 @@ export default function AdminDailyOutputLog() {
                   style={{ ...inp, resize:'none' }} onFocus={fi} onBlur={fo}/>
               </div>
 
-              {err     && <p style={{ display:'flex', alignItems:'center', gap:6, color:'var(--danger)', fontSize:12, fontWeight:600 }}><NavIcon name="warning" size={13} color="var(--danger)" />{err}</p>}
-              {success && <p style={{ display:'flex', alignItems:'center', gap:6, color:'var(--success)', fontSize:12, fontWeight:600 }}><NavIcon name="success" size={13} color="var(--success)" />{success}</p>}
+              {err     && <p style={{ display:'flex', alignItems:'center', gap:6, color:'var(--danger-text)', fontSize:12, fontWeight:600 }}><NavIcon name="warning" size={13} color="var(--danger)" />{err}</p>}
+              {success && <p style={{ display:'flex', alignItems:'center', gap:6, color:'var(--success-text)', fontSize:12, fontWeight:600 }}><NavIcon name="success" size={13} color="var(--success)" />{success}</p>}
 
               <motion.button whileHover={{ scale:1.01 }} whileTap={{ scale:.98 }}
                 onClick={submit} disabled={saving}
@@ -416,12 +416,12 @@ export default function AdminDailyOutputLog() {
                       ))}
                     </div>
                   </td>
-                  <td style={{ padding:'10px 14px', fontSize:12, color: l.defect_count>0?'var(--danger)':'var(--text-faint)' }}>
+                  <td style={{ padding:'10px 14px', fontSize:12, color: l.defect_count>0?'var(--danger-text)':'var(--text-faint)' }}>
                     {l.defect_count > 0 ? (
                       <span style={{ display:'inline-flex', alignItems:'center', gap:3 }}><NavIcon name="warning" size={11} color="var(--danger)" />{l.defect_count}</span>
                     ) : '—'}
                     {l.alteration_count > 0 && (
-                      <span style={{ display:'inline-flex', alignItems:'center', gap:3, color:'var(--warning)', marginLeft:6 }}><NavIcon name="warning" size={11} color="var(--warning)" />{l.alteration_count}</span>
+                      <span style={{ display:'inline-flex', alignItems:'center', gap:3, color:'var(--warning-text)', marginLeft:6 }}><NavIcon name="warning" size={11} color="var(--warning)" />{l.alteration_count}</span>
                     )}
                   </td>
                   <td style={{ padding:'10px 14px', fontSize:11, color:'var(--text-subtle)' }}>{l.logger?.name??'—'}</td>

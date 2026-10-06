@@ -81,7 +81,7 @@ export default function AdminFeedback() {
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {item.status !== 'reviewed' && (
                   <button onClick={() => setStatus(item.feedback_id, 'reviewed')} style={{
-                    background: 'var(--warning-bg)', color: 'var(--warning)', border: '1px solid var(--warning-border)',
+                    background: 'var(--warning-bg)', color: 'var(--warning-text)', border: '1px solid var(--warning-border)',
                     borderRadius: 'var(--r-md)', padding: '6px 12px', fontSize: 'var(--text-xs)', fontWeight: 700,
                     fontFamily: 'var(--font)', cursor: 'pointer', minHeight: 44,
                   }}>

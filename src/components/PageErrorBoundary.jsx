@@ -94,7 +94,7 @@ class PageErrorBoundary extends Component {
           <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: 0 }}>
             {this.state.isChunkError ? 'This page was updated' : 'This page ran into a problem'}
           </h2>
-          <p style={{ color: '#64748b', fontSize: 13, margin: 0, maxWidth: 380 }}>
+          <p style={{ color: '#475569', fontSize: 13, margin: 0, maxWidth: 380 }}>
             {this.state.isChunkError
               // Reached only if the auto-reload above already fired once
               // and it happened again within 10s — a real network issue,

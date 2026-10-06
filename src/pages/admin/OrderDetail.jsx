@@ -59,11 +59,11 @@ function ReviewPanel({ order, onUpdated }) {
   return (
     <div style={{ background:'var(--warning-bg)', border:'1px solid var(--warning-border)', borderRadius:'var(--r-lg)',
       padding:20, marginBottom:16 }}>
-      <h3 style={{ display:'flex', alignItems:'center', gap:7, margin:'0 0 4px', fontSize:13, fontWeight:800, color:'var(--warning)',
+      <h3 style={{ display:'flex', alignItems:'center', gap:7, margin:'0 0 4px', fontSize:13, fontWeight:800, color:'var(--warning-text)',
         textTransform:'uppercase', letterSpacing:'.04em', fontFamily:'var(--font)' }}>
         <NavIcon name="warning" size={14} color="var(--warning)" /> Review & Confirm
       </h3>
-      <p style={{ fontSize:12, color:'var(--warning)', margin:'0 0 16px', fontFamily:'var(--font)' }}>
+      <p style={{ fontSize:12, color:'var(--warning-text)', margin:'0 0 16px', fontFamily:'var(--font)' }}>
         This order is pending — nothing proceeds to production until it's confirmed here.
         Propose a delivery date and total if the customer's request needs adjusting, or cancel with a reason.
       </p>
@@ -72,7 +72,7 @@ function ReviewPanel({ order, onUpdated }) {
         <div>
           <label style={{ display:'block', fontSize:11, fontWeight:700, color:'var(--text-subtle)',
             textTransform:'uppercase', marginBottom:6, fontFamily:'var(--font)' }}>Negotiated Delivery Date</label>
-          <input type="date" value={negotiatedDate} onChange={e => setNegotiatedDate(e.target.value)}
+          <input type="date" aria-label="Negotiated delivery date" value={negotiatedDate} onChange={e => setNegotiatedDate(e.target.value)}
             style={{ width:'100%', padding:'9px 12px', borderRadius:'var(--r-md)', border:'1px solid var(--border)',
               fontSize:13, boxSizing:'border-box', fontFamily:'var(--font)', background:'var(--bg-card)', color:'var(--ink)' }}/>
           <p style={{ fontSize:11, color:'var(--text-faint)', margin:'4px 0 0', fontFamily:'var(--font)' }}>
@@ -99,7 +99,7 @@ function ReviewPanel({ order, onUpdated }) {
       </div>
 
       {err && (
-        <p style={{ display:'flex', alignItems:'center', gap:6, color:'var(--danger)', fontSize:12, fontWeight:600, margin:'0 0 12px', fontFamily:'var(--font)' }}>
+        <p style={{ display:'flex', alignItems:'center', gap:6, color:'var(--danger-text)', fontSize:12, fontWeight:600, margin:'0 0 12px', fontFamily:'var(--font)' }}>
           <NavIcon name="warning" size={13} color="var(--danger)" />{err}
         </p>
       )}
@@ -107,12 +107,12 @@ function ReviewPanel({ order, onUpdated }) {
       <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
         <button onClick={() => submit('confirmed')} disabled={busy}
           style={{ display:'flex', alignItems:'center', gap:6, padding:'10px 20px', borderRadius:'var(--r-md)', border:'none', cursor: busy ? 'wait' : 'pointer',
-            background:'var(--success)', color:'#fff', fontSize:13, fontWeight:700, fontFamily:'var(--font)' }}>
+            background:'var(--success-text)', color:'#fff', fontSize:13, fontWeight:700, fontFamily:'var(--font)' }}>
           {busy ? 'Working…' : <><NavIcon name="success" size={14} color="#fff" /> Confirm Order</>}
         </button>
         <button onClick={() => submit('cancelled')} disabled={busy}
           style={{ display:'flex', alignItems:'center', gap:6, padding:'10px 20px', borderRadius:'var(--r-md)', border:'1px solid var(--danger)', cursor: busy ? 'wait' : 'pointer',
-            background:'var(--bg-card)', color:'var(--danger)', fontSize:13, fontWeight:700, fontFamily:'var(--font)' }}>
+            background:'var(--bg-card)', color:'var(--danger-text)', fontSize:13, fontWeight:700, fontFamily:'var(--font)' }}>
           <NavIcon name="close" size={14} color="var(--danger)" /> Cancel Order
         </button>
       </div>

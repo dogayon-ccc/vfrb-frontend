@@ -145,7 +145,7 @@ function RecordModal({ onClose, onDone, isMobile }) {
               {paid > 0 && orderInfo && (isFirstPayment ? agreedTotal > 0 : true) && (
                 <div style={{ padding:'10px 14px', borderRadius:'var(--r-md)', background: balance > 0 ? 'var(--warning-bg)' : 'var(--success-bg)', border: `1px solid ${balance > 0 ? 'var(--warning-border)' : 'var(--success-border)'}` }}>
                   <p style={{ fontSize:11, color:'var(--text-subtle)', margin:'0 0 4px', fontFamily:'var(--font)' }}>Balance after this payment</p>
-                  <p style={{ display:'flex', alignItems:'center', gap:6, fontSize:18, fontWeight:800, color: balance > 0 ? 'var(--warning)' : 'var(--success)', margin:0, fontFamily:'var(--font)' }}>
+                  <p style={{ display:'flex', alignItems:'center', gap:6, fontSize:18, fontWeight:800, color: balance > 0 ? 'var(--warning-text)' : 'var(--success-text)', margin:0, fontFamily:'var(--font)' }}>
                     {balance > 0 ? fmt(balance) : <><NavIcon name="success" size={16} color="var(--success)" />Fully Paid</>}
                   </p>
                 </div>
@@ -185,7 +185,7 @@ function RecordModal({ onClose, onDone, isMobile }) {
               </div>
 
               {err && (
-                <p style={{ display:'flex', alignItems:'center', gap:6, color:'var(--danger)', fontSize:12, fontWeight:600, fontFamily:'var(--font)', margin:0 }}>
+                <p style={{ display:'flex', alignItems:'center', gap:6, color:'var(--danger-text)', fontSize:12, fontWeight:600, fontFamily:'var(--font)', margin:0 }}>
                   <NavIcon name="warning" size={13} color="var(--danger)" />{err}
                 </p>
               )}
@@ -311,8 +311,8 @@ export default function AdminSalesTransactions() {
                           <td style={{ padding:'11px 14px', fontSize:12, fontWeight:700, color:'var(--teal)', fontFamily:'var(--font)' }}>#{t.transaction_id}</td>
                           <td style={{ padding:'11px 14px', fontSize:12, color:'var(--ink)', fontWeight:600, fontFamily:'var(--font)' }}>#{t.order_id}</td>
                           <td style={{ padding:'11px 14px', fontSize:12, color:'var(--ink)', fontFamily:'var(--font)' }}>{t.order?.user?.name ?? '—'}</td>
-                          <td style={{ padding:'11px 14px', fontSize:13, fontWeight:800, color:'var(--success)', fontFamily:'var(--font)' }}>{fmt(t.amount_paid)}</td>
-                          <td style={{ padding:'11px 14px', fontSize:12, fontWeight:700, fontFamily:'var(--font)', color: Number(t.balance_due) > 0 ? 'var(--warning)' : 'var(--success)' }}>
+                          <td style={{ padding:'11px 14px', fontSize:13, fontWeight:800, color:'var(--success-text)', fontFamily:'var(--font)' }}>{fmt(t.amount_paid)}</td>
+                          <td style={{ padding:'11px 14px', fontSize:12, fontWeight:700, fontFamily:'var(--font)', color: Number(t.balance_due) > 0 ? 'var(--warning-text)' : 'var(--success-text)' }}>
                             {Number(t.balance_due) > 0 ? fmt(t.balance_due) : (
                               <span style={{ display:'flex', alignItems:'center', gap:4 }}>
                                 <NavIcon name="success" size={12} color="var(--success)" />Paid

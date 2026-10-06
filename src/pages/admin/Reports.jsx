@@ -106,7 +106,7 @@ function AlertCard({ a }) {
             ))}
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-subtle)', marginBottom: 5 }}>
-            <span>Stock vs threshold</span><b style={{ color: 'var(--danger)' }}>Deficit: {a.deficit ?? Math.max(0, need - stock)} {a.unit}</b>
+            <span>Stock vs threshold</span><b style={{ color: 'var(--danger-text)' }}>Deficit: {a.deficit ?? Math.max(0, need - stock)} {a.unit}</b>
           </div>
           <Meter pct={need ? (stock / need) * 100 : 0} tone="low" />
         </>
@@ -197,7 +197,7 @@ export default function AdminReports() {
       {tab === 'overview' && (
         <div className="adm-stack">
           <StatGrid loading={loading} items={[
-            { label: 'Total revenue', value: peso(data?.total_revenue), color: 'var(--success)' },
+            { label: 'Total revenue', value: peso(data?.total_revenue), color: 'var(--success-text)' },
             { label: 'Total orders', value: data?.total_orders ?? 0 },
             { label: 'Completed orders', value: data?.completed_orders ?? 0, color: 'var(--teal)' },
             { label: 'Avg order value', value: peso(data?.avg_order_value) },
@@ -247,7 +247,7 @@ export default function AdminReports() {
         <div className="adm-stack">
           {!loading && !sales && <Banner tone="warn" icon="warning" action={<button className="adm-btn" onClick={() => load(true)}>Retry</button>}>Sales summary could not be loaded.</Banner>}
           <StatGrid loading={loading} items={[
-            { label: 'Collected', value: peso(totals?.total_collected), color: 'var(--success)' },
+            { label: 'Collected', value: peso(totals?.total_collected), color: 'var(--success-text)' },
             { label: 'Billed', value: peso(totals?.total_billed) },
             { label: 'Outstanding', value: peso(totals?.total_outstanding), color: totals?.total_outstanding > 0 ? 'var(--warning-text)' : undefined },
             { label: 'Transactions', value: totals?.total_txns ?? 0 },

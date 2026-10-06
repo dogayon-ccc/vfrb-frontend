@@ -248,8 +248,8 @@ export default function AdminOrders() {
         { label:'Total',     value:orders.length },
         { label:'Active',    value:activeCount, color:'var(--teal)', onClick:() => setTab('all') },
         { label:'Pending',   value:counts.pending ?? 0, color:'var(--warning-text)', onClick:() => setTab('pending') },
-        { label:'Completed', value:counts.completed ?? 0, color:'var(--success)', onClick:() => setTab('completed') },
-        { label:'Cancelled', value:counts.cancelled ?? 0, color:'var(--danger)', onClick:() => setTab('cancelled') },
+        { label:'Completed', value:counts.completed ?? 0, color:'var(--success-text)', onClick:() => setTab('completed') },
+        { label:'Cancelled', value:counts.cancelled ?? 0, color:'var(--danger-text)', onClick:() => setTab('cancelled') },
       ]} />
 
       <div className="adm-toolbar">
