@@ -1,7 +1,8 @@
 // Catches token+user handoff after Google OAuth redirect, stores it, forwards to /customer.
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { startSession } from '../../utils/session';
+import axios from 'axios';
+import { startSession, clearSession } from '../../utils/session';
 import { homeFor } from '../../utils/authRoute';
 import { NavIcon } from '../../components/ui/icons';
 import AuthShell from '../../components/AuthShell';
@@ -32,7 +33,13 @@ export default function GoogleComplete() {
         return;
       }
       startSession(token, user);
-      window.location.href = homeFor(user);
+      // The URL payload is untrusted; the server's own record of the account decides the role used for routing.
+      axios.get('/api/user').then(({ data }) => {
+        const real = { ...user, ...data };
+        if (!validRoles.includes(real.role)) throw new Error('role');
+        localStorage.setItem('vfrb_user', JSON.stringify(real));
+        window.location.href = homeFor(real);
+      }).catch(() => { clearSession(); setError('Could not complete sign-in. Please try again.'); });
     } catch {
       setError('Could not complete sign-in. Please try again.');
     }

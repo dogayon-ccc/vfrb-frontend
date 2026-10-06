@@ -2,6 +2,7 @@
 // 4-step order wizard: Design → Configure → Sizing → Review.
 // On submit, hands off to MaterialsReveal instead of navigating directly.
 import { clearStudioHandoff } from '../../utils/studioHandoff';
+import { checkUpload } from '../../utils/fileCheck';
 import { useState, useEffect, useRef } from 'react';
 import DesignPreview from '../../components/DesignPreview';
 import { useNavigate }                                   from 'react-router-dom';
@@ -216,6 +217,14 @@ function Adv({ on, open, children }) {
 
 function StepDesign({ form, set, errors, studio, onClearStudio, onOpenStudio }) {
   const fileRef  = useRef(null);
+  const [refErr, setRefErr] = useState('');
+  const pickRef = async (e) => {
+    const f = e.target.files?.[0] || null;
+    const msg = await checkUpload(f, { kinds: ['jpg', 'png', 'pdf'], maxBytes: 10 * 1048576 });
+    setRefErr(msg);
+    if (msg) { e.target.value = ''; return; }
+    set('design_ref_file', f);
+  };
 
   const COLLARS  = ['Round Neck','V-Neck','Polo Collar','Mandarin Collar','Button Down','No Collar','Others'];
   const SLEEVES  = ['Short Sleeve','Long Sleeve','3/4 Sleeve','Sleeveless','Raglan Sleeve','Others'];
@@ -419,8 +428,9 @@ function StepDesign({ form, set, errors, studio, onClearStudio, onOpenStudio }) 
                 JPG, PNG, PDF — max 10MB</p></>)
           }
         </motion.div>
-        <input ref={fileRef} type="file" accept="image/*,.pdf" style={{ display:'none' }}
-          onChange={e => set('design_ref_file', e.target.files[0]||null)}/>
+        <input ref={fileRef} type="file" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" aria-label="Reference image or PDF" aria-describedby={refErr ? 'ref-file-err' : undefined} style={{ display:'none' }}
+          onChange={pickRef}/>
+        {refErr && <p id="ref-file-err" role="alert" style={{ color:'var(--danger)', fontSize:12, marginTop:6, fontFamily:FONT }}>{refErr}</p>}
       </div>
     </div>
   );

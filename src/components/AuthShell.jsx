@@ -16,6 +16,12 @@ export const authInput = (focusedKey, current, error) => ({
   boxShadow: error ? '0 0 0 3px rgba(229,62,62,.10)' : focusedKey === current ? '0 0 0 3px rgba(2,128,144,.12)' : 'none',
 });
 
+export const fieldA11y = (id, msg) => ({ 'aria-invalid': msg ? true : undefined, 'aria-describedby': msg ? `${id}-err` : undefined });
+
+export function FieldError({ id, msg }) {
+  return msg ? <p id={`${id}-err`} role="alert" style={{ color: 'var(--danger)', fontSize: 12, marginTop: 5 }}>{msg}</p> : null;
+}
+
 const STEPS = [
   { t: 'Design', d: 'Build your uniform visually in the Studio' },
   { t: 'Order', d: 'Bulk quantities, sizes and delivery in four steps' },
