@@ -87,7 +87,7 @@ export function PasswordSection() {
 
   const save = async () => {
     if (pw.password !== pw.password_confirmation) return show('Passwords do not match.', 'error');
-    if (pw.password.length < 8) return show('Password must be at least 8 characters.', 'error');
+    if (!(pw.password.length >= 8 && /[A-Z]/.test(pw.password) && /[a-z]/.test(pw.password) && /[0-9]/.test(pw.password) && /[^A-Za-z0-9]/.test(pw.password))) return show('Use 8+ characters with upper and lower case, a number and a symbol.', 'error');
     setSaving(true);
     try {
       await axios.put('/api/customer/profile/password', pw);
@@ -97,13 +97,13 @@ export function PasswordSection() {
     } finally { setSaving(false); }
   };
 
-  const level = pw.password.length < 4 ? 1 : pw.password.length < 8 ? 2 : 4;
+  const level = [pw.password.length >= 8, /[A-Z]/.test(pw.password) && /[a-z]/.test(pw.password), /[0-9]/.test(pw.password), /[^A-Za-z0-9]/.test(pw.password)].filter(Boolean).length || 1;
   return (
     <div className="st-stack">
       <Card title="Change Password">
         <div className="st-stack">
           <PwField label="Current Password" value={pw.current_password} onChange={on('current_password')} placeholder="Enter current password" />
-          <PwField label="New Password" value={pw.password} onChange={on('password')} placeholder="Minimum 8 characters" />
+          <PwField label="New Password" value={pw.password} onChange={on('password')} placeholder="8+ chars, Aa, number, symbol" />
           <PwField label="Confirm New Password" value={pw.password_confirmation} onChange={on('password_confirmation')} placeholder="Repeat new password" />
           {pw.password && (
             <div className="st-meter" aria-live="polite">
