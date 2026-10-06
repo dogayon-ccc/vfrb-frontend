@@ -71,7 +71,7 @@ export function installResponseGuards() {
         return axios(cfg);
       }
       // Debug-mode Laravel 5xx bodies carry exception text, SQL and file paths.
-      if (status >= 500) error.response.data = { message: SERVER_ERROR };
+      if (status >= 500 && status !== 503) error.response.data = { message: SERVER_ERROR };
       const isAuthCall = AUTH_CALLS.some((p) => (error.config?.url || '').includes(p));
       if (status === 401 && localStorage.getItem(TOKEN) && !isAuthCall) {
         clearSession();
