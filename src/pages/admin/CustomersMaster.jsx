@@ -142,7 +142,7 @@ export default function CustomersMaster() {
       </div>
       <div className="adm-only-d"><PillTabs value={type} onChange={setT} tabs={tabs} /></div>
 
-      <div className="adm-only-d">
+      <div className="adm-only-d adm-tabpanel" key={type}>
         <Panel flush>
           <div className="adm-tbl-scroll">
             <table className="adm-table">

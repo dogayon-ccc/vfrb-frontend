@@ -718,7 +718,7 @@ function SteP({ label, value, onChange, remaining }) {
     onChange(Math.min(max, Number.isFinite(n) ? n : 0));
   };
   return (
-    <motion.div whileHover={{ y:-1, boxShadow:'0 4px 12px rgba(0,0,0,.07)' }}
+    <motion.div className="wz-cell" whileHover={{ y:-1, boxShadow:'0 4px 12px rgba(0,0,0,.07)' }}
       style={{ background:'#fff', border:`1.5px solid ${value>0?T:'var(--border)'}`,
         borderRadius:12, padding:'12px 10px', textAlign:'center',
         transition:'border-color .15s' }}>
