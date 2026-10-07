@@ -51,8 +51,8 @@ const VARIANTS = {
     base: 'transparent', color: 'var(--teal)', border: 'none', shadow: 'none',
   },
   danger: {
-    base: 'var(--danger)', color: 'var(--text-on-accent)', border: 'none',
-    shadow: '0 4px 14px rgba(239,68,68,.22)',
+    base: '#b91c1c', color: 'var(--text-on-accent)', border: 'none',
+    shadow: '0 4px 14px rgba(185,28,28,.22)',
   },
 };
 

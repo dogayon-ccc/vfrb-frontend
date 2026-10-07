@@ -265,7 +265,7 @@ export default function AdminOrders() {
               <thead>
                 <tr><th>Order</th><th>Client</th><th>Garment</th><th>Status</th><th className="adm-hide-t">Deadline</th><th style={{ textAlign:'right' }}>Actions</th></tr>
               </thead>
-              <tbody>
+              <tbody key={tab} className="adm-tabpanel">
                 {loading ? null : filtered.map(o => (
                   <OrderRow key={o.order_id} order={o} isManager={isManager} onConfirm={confirmOrder} confirming={confirming} />
                 ))}

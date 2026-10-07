@@ -6,7 +6,7 @@ import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
 import { NavIcon } from '../../components/ui';
 import MaterialCode from '../../components/admin/MaterialCode';
 import BottomSheet from '../../components/ui/BottomSheet';
-import { PageHeader, StatGrid, PillTabs, ErrorBlock, Panel, StatusPill, SearchBox, Meter, Banner, SkeletonRows, useIsMobile } from '../../components/admin/AdminUI';
+import { PageHeader, StatGrid, PillTabs, TabPanel, ErrorBlock, Panel, StatusPill, SearchBox, Meter, Banner, SkeletonRows, useIsMobile } from '../../components/admin/AdminUI';
 
 const TYPE_CFG = {
   stock_in:   { color:'var(--success-text)', bg:'var(--success-bg)' },
@@ -157,6 +157,7 @@ export default function AdminInventory() {
 
       <PillTabs value={tab} onChange={setTab} tabs={[{ key:'stock', label:'Stock Levels', count:totalMats }, { key:'logs', label:'Transaction Log', count:logs.length }]} />
 
+      <TabPanel k={tab}>
       {tab==='stock' && (
         <>
           <div className="adm-toolbar">
@@ -271,6 +272,7 @@ export default function AdminInventory() {
           </>
         )
       )}
+      </TabPanel>
     </>
   );
 }

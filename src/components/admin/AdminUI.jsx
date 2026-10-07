@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { STATUS_TONE } from './statusTone';
 import { NavIcon } from '../ui/icons';
@@ -54,16 +54,31 @@ export const StatGrid = ({ items, loading }) => (
   </div>
 );
 
-export const PillTabs = ({ tabs, value, onChange }) => (
-  <div className="adm-tabs" role="tablist">
-    {tabs.map((t) => (
-      <button key={t.key} role="tab" aria-selected={value === t.key}
-        className={`adm-tab${value === t.key ? ' on' : ''}`} onClick={() => onChange(t.key)}>
-        {t.label}{t.count != null && <span className="n">{t.count}</span>}
-      </button>
-    ))}
-  </div>
-);
+export const PillTabs = ({ tabs, value, onChange }) => {
+  const gid = useId();
+  const onKey = (e) => {
+    const i = tabs.findIndex((t) => t.key === value);
+    const n = e.key === 'ArrowRight' ? i + 1 : e.key === 'ArrowLeft' ? i - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : null;
+    if (n == null) return;
+    e.preventDefault();
+    const next = tabs[(n + tabs.length) % tabs.length].key;
+    onChange(next);
+    document.getElementById(`${gid}-${next}`)?.focus();
+  };
+  return (
+    <div className="adm-tabs" role="tablist" onKeyDown={onKey}>
+      {tabs.map((t) => (
+        <button key={t.key} id={`${gid}-${t.key}`} role="tab" type="button" aria-selected={value === t.key} tabIndex={value === t.key ? 0 : -1}
+          className={`adm-tab${value === t.key ? ' on' : ''}`} onClick={() => onChange(t.key)}>
+          {value === t.key && <motion.span layoutId={`${gid}-ind`} className="adm-tab-ind" transition={{ type: 'spring', stiffness: 500, damping: 38 }} />}
+          <span className="adm-tab-t">{t.label}{t.count != null && <span className="n">{t.count}</span>}</span>
+        </button>
+      ))}
+    </div>
+  );
+};
+
+export const TabPanel = ({ k, children }) => <div key={k} className="adm-tabpanel" role="tabpanel">{children}</div>;
 
 export const Panel = ({ title, action, children, flush, style }) => (
   <section className="adm-panel adm-in" style={style}>

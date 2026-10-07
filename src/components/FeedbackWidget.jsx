@@ -10,11 +10,12 @@
 // Submits to the same POST /api/customer/feedback built earlier —
 // only the UI was missing.
 
-import { useState, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { useLocation } from 'react-router-dom';
 import { NavIcon } from './ui/icons';
+import useDialogFocus from '../hooks/useDialogFocus';
 
 const T = 'var(--teal)';
 
@@ -27,12 +28,8 @@ export default function FeedbackWidget() {
   const [done, setDone]   = useState(false);
   const [err, setErr]     = useState('');
 
-  useEffect(() => {
-    if (!open) return;
-    const h = (e) => { if (e.key === 'Escape') setOpen(false); };
-    document.addEventListener('keydown', h);
-    return () => document.removeEventListener('keydown', h);
-  }, [open]);
+  const boxRef = useRef(null);
+  useDialogFocus(boxRef, { active: open, onClose: () => setOpen(false) });
 
   const submit = async () => {
     if (!message.trim()) { setErr('Please write something first.'); return; }
@@ -85,6 +82,7 @@ export default function FeedbackWidget() {
             }}
           >
             <motion.div
+              ref={boxRef}
               initial={{ scale: .95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: .95, opacity: 0 }}
               onClick={e => e.stopPropagation()}
               role="dialog" aria-modal="true" aria-label="Send feedback"

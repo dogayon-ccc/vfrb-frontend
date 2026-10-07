@@ -2,7 +2,7 @@ import LoadError from './LoadError';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
-import { Card, Button, Field, Badge, NavIcon } from '../../../components/ui';
+import { Card, Button, Field, Badge, NavIcon, ConfirmDialog } from '../../../components/ui';
 import EmptyState from '../../../components/EmptyState';
 
 function Toast({ msg, type }) {
@@ -185,30 +185,9 @@ export default function BillingSection() {
         </div>
       )}
 
-      <AnimatePresence>
-        {confirmDelete && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            role="alertdialog" aria-modal="true" aria-labelledby="del-title"
-            style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', display: 'flex',
-              alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 500 }}
-            onClick={() => setConfirmDelete(null)}>
-            <motion.div initial={{ scale: .95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-              onClick={e => e.stopPropagation()}
-              style={{ background: 'var(--bg-card)', borderRadius: 16, padding: 22, maxWidth: 360, width: '100%' }}>
-              <p id="del-title" style={{ fontWeight: 800, fontSize: 15, color: 'var(--ink)', margin: '0 0 8px' }}>
-                Delete "{confirmDelete.billing_name}"?
-              </p>
-              <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 18px' }}>
-                This billing profile will be permanently removed. This can't be undone.
-              </p>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <Button variant="ghost" fullWidth onClick={() => setConfirmDelete(null)}>Cancel</Button>
-                <Button variant="danger" fullWidth onClick={() => doDelete(confirmDelete)}>Delete</Button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ConfirmDialog open={!!confirmDelete} title={`Delete "${confirmDelete?.billing_name ?? ''}"?`}
+        body="This billing profile will be permanently removed. This can't be undone." confirmLabel="Delete"
+        onCancel={() => setConfirmDelete(null)} onConfirm={() => doDelete(confirmDelete)}/>
     </div>
   );
 }
