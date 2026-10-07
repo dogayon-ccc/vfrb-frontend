@@ -238,3 +238,18 @@ html[data-wizard] .cm-studio-fab,html[data-wizard] .fbw-fab{display:none!importa
 .wz-stp-i[data-on=true]{color:var(--teal)}
 .wz-stp-i:focus{background:var(--teal-50)}
 @media(pointer:coarse){.wz-stp-b{width:44px;height:44px}.wz-stp-i{height:44px;font-size:20px}}
+
+/* Touch floor: 44px on touch screens, including tablets that the width-only phone rules skip. */
+@media(pointer:coarse){
+:is(.cx-page,.od-wrap) button:not([role=switch]):not(.wz-stp-b),:is(.cx-page,.od-wrap) select,:is(.cx-page,.od-wrap) input:not([type=checkbox]):not([type=radio]):not([type=file]):not(.wz-stp-i){min-height:44px!important}
+:is(.cx-page,.od-wrap) button:not([role=switch]):not(.wz-stp-b){min-width:44px}
+:is(.cx-page,.od-wrap) [role=switch]{box-sizing:content-box!important;border:10px solid transparent!important;background-clip:padding-box}
+}
+
+/* Size cells: when a cell is narrow, the number gets the full row and the buttons share the row below. */
+.wz-cell{container-type:inline-size}
+@container (max-width:150px){
+.wz-stp{flex-wrap:wrap;row-gap:6px}
+.wz-stp-i{order:-1;flex:1 0 100%;width:100%}
+.wz-stp-b{flex:1 1 0;width:auto}
+}

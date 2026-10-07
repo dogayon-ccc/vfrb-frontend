@@ -294,7 +294,7 @@ export default function AdminDeliveryTracking() {
       </div>
       <div className="adm-only-d"><PillTabs value={filter} onChange={setFilter} tabs={tabs} /></div>
 
-      <div className="adm-only-d">
+      <div className="adm-only-d adm-tabpanel" key={filter}>
         <Panel flush>
           <div className="adm-tbl-scroll">
             <table className="adm-table">

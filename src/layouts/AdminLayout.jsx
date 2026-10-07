@@ -364,6 +364,7 @@ export default function AdminLayout() {
           position: relative;
           margin: 1px 0;
         }
+        @media (pointer: coarse) { .adm-link { min-height: 44px; } .adm-bell { width: 44px !important; height: 44px !important; } .adm-profile-btn { min-height: 44px !important; } }
         .adm-link:hover {
           background: rgba(255,255,255,.06);
           color: #fff;
@@ -618,6 +619,7 @@ export default function AdminLayout() {
 
             <div ref={bellRef} style={{ position:'relative' }}>
               <motion.button
+                className="adm-bell"
                 whileHover={{ scale:1.07 }}
                 whileTap={{ scale:.93 }}
                 onClick={openBell}
@@ -742,7 +744,7 @@ export default function AdminLayout() {
             </div>
 
             <div ref={profileRef} style={{ position:'relative' }}>
-              <button onClick={() => setProfileOpen(o => !o)}
+              <button className="adm-profile-btn" onClick={() => setProfileOpen(o => !o)}
                 style={{ display:'flex', alignItems:'center', gap:8, border:'none',
                   background: profileOpen ? 'var(--bg)' : 'transparent',
                   borderRadius:99, padding:'4px 8px 4px 4px', cursor:'pointer',

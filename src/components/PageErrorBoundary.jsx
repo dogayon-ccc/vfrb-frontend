@@ -107,7 +107,7 @@ class PageErrorBoundary extends Component {
               ? window.location.reload()
               : this.setState({ hasError: false, isChunkError: false })}
             style={{
-              padding: '9px 20px', borderRadius: 10, border: 'none',
+              padding: '9px 20px', minHeight: 44, borderRadius: 10, border: 'none',
               background: '#028090', color: '#fff', fontSize: 13, fontWeight: 700,
               cursor: 'pointer', fontFamily: FONT,
             }}>

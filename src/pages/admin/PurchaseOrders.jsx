@@ -732,7 +732,7 @@ export default function AdminPurchaseOrders() {
       {tab === 'pos' && (
         <>
           <div className="adm-only-d"><PillTabs value={poFilter} onChange={setPoFilter} tabs={poTabs} /></div>
-          <div className="adm-only-d">
+          <div className="adm-only-d adm-tabpanel" key={poFilter}>
             <Panel flush>
               <div className="adm-tbl-scroll">
                 <table className="adm-table">

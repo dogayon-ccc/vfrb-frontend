@@ -450,6 +450,12 @@ export default function CustomerLayout() {
         .cm-sb-collapse { margin: 4px 10px 6px !important; padding: 0 10px !important; min-height: 34px !important; border: 0 !important; border-radius: 10px !important; background: transparent !important;
           color: rgba(255,255,255,.55) !important; font-size: 11px; display: flex; align-items: center; justify-content: flex-end; gap: 6px; cursor: pointer; flex-shrink: 0; transition: background .15s, color .15s; }
         .cm-sb-collapse:hover { background: rgba(255,255,255,.1) !important; color: #fff !important; }
+        @media (pointer: coarse) {
+          .cm-link, .cm-tb-user, .cm-sb-out { min-height: 44px; }
+          .cm-tb-user { min-width: 44px; justify-content: center; }
+          .cm-studio-btn, .cm-sb-collapse { min-height: 44px !important; }
+          .cm-tb-bell { width: 44px; height: 44px; }
+        }
       `}</style>
 
       <div className="cm-shell" style={accentVars || undefined}>
@@ -640,7 +646,7 @@ export default function CustomerLayout() {
                 key={location.pathname}
                 initial={{ opacity:0, y:8 }}
                 animate={{ opacity:1, y:0 }}
-                exit={{ opacity:0, y:-6 }}
+                exit={{ opacity:0, y:-4, transition:{ duration:.12, ease:'easeIn' } }}
                 transition={{ duration:.22, ease:'easeOut' }}>
                 {/* Page-level error boundary (Aug 23 2026) — a crash here
                     no longer takes the sidebar/nav down with it. This
