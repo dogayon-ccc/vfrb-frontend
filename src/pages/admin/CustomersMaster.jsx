@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { NavIcon } from '../../components/ui/icons';
+import useDialogFocus from '../../hooks/useDialogFocus';
 import {
   PageHeader, StatGrid, PillTabs, Panel, SearchBox, Avatar, ErrorBlock, SkeletonRows,
   FilterSheet, FilterButton, useIsMobile,
@@ -29,16 +30,11 @@ const OrdersCell = ({ c }) => (
 );
 
 function DetailDrawer({ c, onClose }) {
-  const closeRef = useRef(null);
-  useEffect(() => {
-    closeRef.current?.focus();
-    const k = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', k);
-    return () => window.removeEventListener('keydown', k);
-  }, [onClose]);
+  const boxRef = useRef(null);
+  useDialogFocus(boxRef, { onClose });
   return (
     <div className="adm-drawer" onClick={onClose}>
-      <aside className="adm-drawer-panel" role="dialog" aria-modal="true" aria-label={`Client ${c.name}`} onClick={(e) => e.stopPropagation()}>
+      <aside ref={boxRef} className="adm-drawer-panel" role="dialog" aria-modal="true" aria-label={`Client ${c.name}`} onClick={(e) => e.stopPropagation()}>
         <div className="adm-drawer-head">
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', minWidth: 0 }}>
             <Avatar name={c.name} size={42} />
@@ -47,7 +43,7 @@ function DetailDrawer({ c, onClose }) {
               <div style={{ marginTop: 3 }}><TypePill type={c.client_type} /></div>
             </div>
           </div>
-          <button ref={closeRef} className="adm-btn" onClick={onClose} aria-label="Close client details"><NavIcon name="close" size={15} color="currentColor" /></button>
+          <button className="adm-btn" onClick={onClose} aria-label="Close client details"><NavIcon name="close" size={15} color="currentColor" /></button>
         </div>
         <div className="adm-drawer-body">
           <div className="adm-stack">

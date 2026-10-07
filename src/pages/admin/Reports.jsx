@@ -195,7 +195,7 @@ export default function AdminReports() {
       </div>
 
       {tab === 'overview' && (
-        <div className="adm-stack">
+        <div className="adm-stack adm-tabpanel" role="tabpanel">
           <StatGrid loading={loading} items={[
             { label: 'Total revenue', value: peso(data?.total_revenue), color: 'var(--success-text)' },
             { label: 'Total orders', value: data?.total_orders ?? 0 },
@@ -244,7 +244,7 @@ export default function AdminReports() {
       )}
 
       {tab === 'sales' && (
-        <div className="adm-stack">
+        <div className="adm-stack adm-tabpanel" role="tabpanel">
           {!loading && !sales && <Banner tone="warn" icon="warning" action={<button className="adm-btn" onClick={() => load(true)}>Retry</button>}>Sales summary could not be loaded.</Banner>}
           <StatGrid loading={loading} items={[
             { label: 'Collected', value: peso(totals?.total_collected), color: 'var(--success-text)' },
@@ -279,7 +279,7 @@ export default function AdminReports() {
       )}
 
       {tab === 'alerts' && (
-        <div className="adm-stack">
+        <div className="adm-stack adm-tabpanel" role="tabpanel">
           <Banner tone="info" icon="ai">
             Alerts come from inventory and order data: materials at or below their reorder threshold (critical when stock is zero), and orders due within 7 days that are still in progress. Suggested order = 2× the reorder threshold.
           </Banner>

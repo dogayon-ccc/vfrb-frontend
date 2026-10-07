@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import axios from 'axios';
-import { Card, Button, Field, Badge, NavIcon } from '../../components/ui';
+import { Card, Button, Field, Badge, NavIcon, ConfirmDialog } from '../../components/ui';
 import EmptyState from '../../components/EmptyState';
 import { ProfileSection, PasswordSection } from './settings/ProfileSection';
 import BillingSection from './settings/BillingSection';
@@ -161,7 +161,7 @@ function ShippingSection() {
           {addrs.map(a => <AddressRow key={a.shipping_id} a={a} onEdit={setEditing} onDelete={setConfirmDelete}/>)}
         </div>
       )}
-      <ConfirmModal item={confirmDelete} label={confirmDelete?.label} onCancel={() => setConfirmDelete(null)} onConfirm={() => doDelete(confirmDelete)}/>
+      <ConfirmDialog open={!!confirmDelete} title={`Remove "${confirmDelete?.label ?? ''}"?`} body="This can't be undone." confirmLabel="Remove" onCancel={() => setConfirmDelete(null)} onConfirm={() => doDelete(confirmDelete)}/>
     </div>
   );
 }
@@ -306,32 +306,8 @@ function FabricsSection() {
           ))}
         </div>
       )}
-      <ConfirmModal item={confirmDelete} label={confirmDelete?.material?.material_name} onCancel={() => setConfirmDelete(null)} onConfirm={() => doDelete(confirmDelete)}/>
+      <ConfirmDialog open={!!confirmDelete} title={`Remove "${confirmDelete?.material?.material_name ?? ''}"?`} body="This can't be undone." confirmLabel="Remove" onCancel={() => setConfirmDelete(null)} onConfirm={() => doDelete(confirmDelete)}/>
     </div>
-  );
-}
-
-function ConfirmModal({ item, label, onCancel, onConfirm }) {
-  return (
-    <AnimatePresence>
-      {item && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          role="alertdialog" aria-modal="true" aria-labelledby="acct-del-title"
-          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.45)', display: 'flex',
-            alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 500 }}
-          onClick={onCancel}>
-          <motion.div initial={{ scale: .95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} onClick={e => e.stopPropagation()}
-            style={{ background: 'var(--bg-card)', borderRadius: 16, padding: 22, maxWidth: 360, width: '100%' }}>
-            <p id="acct-del-title" style={{ fontWeight: 800, fontSize: 15, color: 'var(--ink)', margin: '0 0 8px' }}>Remove "{label}"?</p>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 18px' }}>This can't be undone.</p>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <Button variant="ghost" fullWidth onClick={onCancel}>Cancel</Button>
-              <Button variant="danger" fullWidth onClick={onConfirm}>Remove</Button>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
   );
 }
 

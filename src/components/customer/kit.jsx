@@ -30,7 +30,7 @@ export const GROUPS = [
 ];
 
 // Customer-facing 5-step lifecycle derived from the real status (no new data).
-export const LIFECYCLE = ['Submitted', 'Confirmed', 'Production', 'Quality Check', 'Completed'];
+export const LIFECYCLE = ['Submitted', 'Confirmed', 'Production', 'Finishing', 'Completed'];
 export function lifecycleIndex(status) {
   if (status === 'completed') return 4;
   if (['qc', 'pressing', 'packing'].includes(status)) return 3;

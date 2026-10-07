@@ -28,18 +28,16 @@
 //     ...form fields...
 //   </BottomSheet>
 // ─────────────────────────────────────────────────────────────────────────
-import { useEffect } from 'react';
+import { useRef } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
+import useDialogFocus from '../../hooks/useDialogFocus';
 
 export default function BottomSheet({
   title, onClose, children, isMobile, maxHeight = '85vh', maxWidth = 480,
 }) {
   const reduce = useReducedMotion();
-  useEffect(() => {
-    const k = (e) => { if (e.key === 'Escape') onClose?.(); };
-    window.addEventListener('keydown', k);
-    return () => window.removeEventListener('keydown', k);
-  }, [onClose]);
+  const ref = useRef(null);
+  useDialogFocus(ref, { onClose });
   const dur = reduce ? 0 : 0.22;
   return (
     <motion.div
@@ -54,7 +52,7 @@ export default function BottomSheet({
       }}
     >
       <motion.div
-        role="dialog" aria-modal="true" aria-label={title}
+        ref={ref} role="dialog" aria-modal="true" aria-label={title}
         onClick={e => e.stopPropagation()}
         initial={isMobile ? { y: '100%' } : { opacity: 0, y: 14, scale: 0.98 }}
         animate={{ y: 0, opacity: 1, scale: 1 }}

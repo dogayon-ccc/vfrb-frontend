@@ -273,6 +273,11 @@ export default function CustomerOrderDetail() {
     },
   ];
 
+  const [tab, setTab] = useState('overview');
+  useEffect(() => {
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    document.getElementById(`od-tab-${tab}`)?.scrollIntoView({ inline:'center', block:'nearest', behavior: reduce ? 'auto' : 'smooth' });
+  }, [tab]);
   const [aiBusy, setAiBusy] = useState(false);
   const [aiMsg,  setAiMsg]  = useState('');
   const retryAI = useCallback(async () => {
@@ -363,6 +368,19 @@ export default function CustomerOrderDetail() {
   );
 
   const cfg = S[status] ?? S.pending;
+  const pane = (id, extra = '') => ({ className: `od-card od-pane ${extra}`.trim(), 'data-pane': id, 'data-on': tab === id });
+  const matShown = (!['ready','accepted','rejected'].includes(order.ai_recommendation_status) && !['completed','cancelled'].includes(order.status))
+    || (!!aiRec && ['ready','accepted','rejected'].includes(order.ai_recommendation_status));
+  const TABS = [['overview','Overview'], ['progress','Progress'], ['materials','Materials'], ['messages','Messages']];
+  const onTabKey = (e) => {
+    const i = TABS.findIndex(([id]) => id === tab);
+    const n = e.key === 'ArrowRight' ? i + 1 : e.key === 'ArrowLeft' ? i - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? TABS.length - 1 : null;
+    if (n == null) return;
+    e.preventDefault();
+    const next = TABS[(n + TABS.length) % TABS.length][0];
+    setTab(next);
+    document.getElementById(`od-tab-${next}`)?.focus();
+  };
 
   return (
     <>
@@ -463,8 +481,18 @@ export default function CustomerOrderDetail() {
           </div>
         )}
 
+        <div className="od-tabs" role="tablist" aria-label="Order sections" onKeyDown={onTabKey}>
+          {TABS.map(([id, label]) => (
+            <button key={id} id={`od-tab-${id}`} role="tab" type="button" aria-selected={tab === id} tabIndex={tab === id ? 0 : -1}
+              className="od-tab" onClick={() => setTab(id)}>
+              {label}
+              {tab === id && <motion.span layoutId="od-tab-ind" className="od-tab-ind" transition={{ type:'spring', stiffness:500, damping:38 }}/>}
+            </button>
+          ))}
+        </div>
+
         {(order.studio_config || order.design_preview_url || (order.client_design_ref_file && isImageFile(order.client_design_ref_file))) && (
-          <section className="od-card od-hero" aria-label="Design preview">
+          <section {...pane('overview', 'od-hero')} aria-label="Design preview">
             <div className="od-card-body">
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap', marginBottom:12 }}>
                 <p className="od-section-title" style={{ fontFamily:FONT, margin:0 }}>Your Design</p>
@@ -489,13 +517,13 @@ export default function CustomerOrderDetail() {
 
         <div className="od-cols"><div className="od-main">
         {order.client_design_notes && (
-          <div className="od-card"><div className="od-card-body">
+          <div {...pane('overview')}><div className="od-card-body">
             <p className="od-section-title" style={{ fontFamily:FONT }}>Design Notes</p>
             <p style={{ fontSize:13, color:'var(--ink)', margin:0, lineHeight:1.6, fontFamily:FONT, whiteSpace:'pre-wrap', overflowWrap:'anywhere' }}>{order.client_design_notes}</p>
           </div></div>
         )}
         {/* ── Order specs grid ──────────────────────────────────────────── */}
-        <div className="od-card">
+        <div {...pane('overview')}>
           <div className="od-card-body">
             <p className="od-section-title" style={{ fontFamily:FONT }}>
               Order Specifications
@@ -533,7 +561,7 @@ export default function CustomerOrderDetail() {
           </div>
         </div>
 
-        <div className="od-card"><div className="od-card-body" style={{ paddingBottom:0 }}>
+        <div {...pane('progress')}><div className="od-card-body" style={{ paddingBottom:0 }}>
         {/* ── Overall progress bar ──────────────────────────────────────── */}
         <div style={{ marginBottom:20 }}>
           <div style={{
@@ -562,7 +590,7 @@ export default function CustomerOrderDetail() {
 </div>
 </div>
         {/* ── DESKTOP: horizontal 7-stage pipeline ──────────────────────── */}
-        <div className="od-card">
+        <div {...pane('progress')}>
           <div className="od-card-body od-pipeline-h" style={{
             gap:0, position:'relative', alignItems:'flex-start',
           }}>
@@ -610,7 +638,7 @@ export default function CustomerOrderDetail() {
         </div>
 
         {/* ── MOBILE: vertical pipeline ─────────────────────────────────── */}
-        <div className="od-card">
+        <div {...pane('progress')}>
           <div className="od-card-body od-pipeline-v" style={{
             gap:0, position:'relative',
           }}>
@@ -644,7 +672,7 @@ export default function CustomerOrderDetail() {
 
         {/* Requires the backend's storage symlink (php artisan storage:link) to resolve. */}
         {order.client_design_ref_file && (
-          <div className="od-card">
+          <div {...pane('overview')}>
             <div className="od-card-body">
               <p className="od-section-title" style={{ fontFamily:FONT }}>
                 Reference File
@@ -671,9 +699,21 @@ export default function CustomerOrderDetail() {
         )}
 
         </div><div className="od-side">
+        {!matShown && (
+          <div {...pane('materials', 'od-empty')}><div className="od-card-body">
+            <p className="od-section-title" style={{ fontFamily:FONT }}>Materials</p>
+            <p style={{ fontSize:13, color:'var(--text-muted)', margin:0, lineHeight:1.6 }}>No material recommendation for this order.</p>
+          </div></div>
+        )}
+        {!delivery && (
+          <div {...pane('progress', 'od-empty')}><div className="od-card-body">
+            <p className="od-section-title" style={{ fontFamily:FONT }}>Delivery</p>
+            <p style={{ fontSize:13, color:'var(--text-muted)', margin:0, lineHeight:1.6 }}>Delivery is not scheduled yet. You will see tracking here once VFRB sets it up.</p>
+          </div></div>
+        )}
         {/* ── AI Recommendation card ────────────────────────────────────── */}
         {order && !['ready','accepted','rejected'].includes(order.ai_recommendation_status) && !['completed','cancelled'].includes(order.status) && (
-          <div className="od-card"><div className="od-card-body">
+          <div {...pane('materials')}><div className="od-card-body">
             <p className="od-section-title" style={{ fontFamily:FONT }}>Material recommendation</p>
             <p style={{ fontSize:13, color:'var(--text-muted)', lineHeight:1.6, margin:'0 0 12px', fontFamily:FONT }}>
               {order.ai_recommendation_status === 'generating'
@@ -697,7 +737,7 @@ export default function CustomerOrderDetail() {
           <motion.div
             initial={{ opacity:0, y:10 }}
             animate={{ opacity:1, y:0 }}
-            className="od-card"
+            {...pane('materials')}
           >
             <div className="od-card-body">
               <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
@@ -830,7 +870,7 @@ export default function CustomerOrderDetail() {
 
         {/* ── Delivery tracking ─────────────────────────────────────────── */}
         {delivery && (
-          <div className="od-card">
+          <div {...pane('progress')}>
             <div className="od-card-body">
               <p className="od-section-title" style={{ fontFamily:FONT }}>
                 Delivery Tracking
@@ -899,7 +939,7 @@ export default function CustomerOrderDetail() {
         )}
 
         {/* ── Messages preview ──────────────────────────────────────────── */}
-        <div className="od-card">
+        <div {...pane('messages')}>
           <div className="od-card-body">
             <div style={{
               display:'flex', justifyContent:'space-between',

@@ -11,6 +11,7 @@ import axios                                             from 'axios';
 import MaterialsReveal                                   from './MaterialsReveal'; // post-submit AI-materials reveal, see its own header for SCOPE-001
 import { NavIcon }                                        from '../../components/ui/icons';
 import { zonesFor }                                       from './design-studio/dsShared';
+import useDialogFocus                                    from '../../hooks/useDialogFocus';
 
 
 const T    = 'var(--teal)';
@@ -709,50 +710,33 @@ function StepDelivery({ form, set, errors }) {
 const STD = ['XS','S','M','L','XL','XXL','3XL'];
 
 function SteP({ label, value, onChange, remaining }) {
-  // remaining = how many more pieces can still be added across ALL sizes
-  // before hitting quantity_ordered. undefined/null = no cap known yet
-  // (e.g. quantity_ordered not entered), so don't block anything.
+  // remaining = pieces still addable across all sizes; null = no cap known yet (quantity not entered).
   const atCap = remaining != null && remaining <= 0;
+  const max = remaining != null ? value + Math.max(0, remaining) : 99999;
+  const commit = (raw) => {
+    const n = parseInt(String(raw).replace(/\D/g, ''), 10);
+    onChange(Math.min(max, Number.isFinite(n) ? n : 0));
+  };
   return (
     <motion.div whileHover={{ y:-1, boxShadow:'0 4px 12px rgba(0,0,0,.07)' }}
       style={{ background:'#fff', border:`1.5px solid ${value>0?T:'var(--border)'}`,
         borderRadius:12, padding:'12px 10px', textAlign:'center',
         transition:'border-color .15s' }}>
-      <p style={{ fontSize:13, fontWeight:800, color: value>0?T:'var(--ink)',
-        marginBottom:8, fontFamily:FONT }}>
-        {label}
-      </p>
-      <div style={{ display:'flex', alignItems:'center', gap:5, justifyContent:'center' }}>
-        <motion.button whileTap={{ scale:.85 }} type="button"
-          onClick={() => onChange(Math.max(0, value - 1))}
-          style={{ width:32, height:32, borderRadius:8, border:'1px solid var(--border)',
-            background:'var(--bg-surface)', fontSize:16, cursor:'pointer', lineHeight:1,
-            color:'var(--text-subtle)', fontWeight:700, display:'flex',
-            alignItems:'center', justifyContent:'center' }}>
-          −
-        </motion.button>
-        <span style={{ fontSize:18, fontWeight:800, color: value>0?T:'var(--text-faint)',
-          flex:1, minWidth:24, textAlign:'center', fontFamily:FONT }}>
-          {value}
-        </span>
-        <motion.button whileTap={{ scale: atCap ? 1 : .85 }} type="button"
-          disabled={atCap}
-          onClick={() => onChange(value + 1)}
+      <p style={{ fontSize:13, fontWeight:800, color: value>0?T:'var(--ink)', marginBottom:8, fontFamily:FONT }}>{label}</p>
+      <div className="wz-stp">
+        <motion.button whileTap={{ scale:.85 }} type="button" className="wz-stp-b" aria-label={`Remove one ${label}`}
+          onClick={() => onChange(Math.max(0, value - 1))}>−</motion.button>
+        <input className="wz-stp-i" type="text" inputMode="numeric" pattern="[0-9]*" aria-label={`${label} pieces`}
+          value={value} data-on={value > 0} onFocus={e => e.target.select()} onChange={e => commit(e.target.value)}/>
+        <motion.button whileTap={{ scale: atCap ? 1 : .85 }} type="button" className="wz-stp-b" disabled={atCap} aria-label={`Add one ${label}`}
           title={atCap ? 'Total quantity reached — reduce another size first' : undefined}
-          style={{ width:32, height:32, borderRadius:8, border:'1px solid var(--border)',
-            background: atCap ? '#f1f5f9' : 'var(--bg-surface)', fontSize:16,
-            cursor: atCap ? 'not-allowed' : 'pointer', lineHeight:1,
-            color: atCap ? '#cbd5e1' : 'var(--text-subtle)', fontWeight:700, display:'flex',
-            alignItems:'center', justifyContent:'center' }}>
-          +
-        </motion.button>
+          onClick={() => onChange(value + 1)}>+</motion.button>
       </div>
     </motion.div>
   );
 }
 
-// ── Step 3: Review ────────────────────────────────────────────────────────────
-function StepReview({ form, studio }) {
+function StepReview({ form, studio, onEdit }) {
   const tot = STD.reduce((a, sz) => a + (form.sizes?.[sz] || 0), 0);
 
   // Local blob URL for the uploaded reference file — not yet stored server-side at review time.
@@ -774,18 +758,18 @@ function StepReview({ form, studio }) {
 
   const reviewSections = [
     {
-      t:'Design Details',
+      t:'Design Details', go:0,
       rows:[
         ['Garment',     form.garment_type || '—'],
         ...(form.collar_type ? [['Collar', form.collar_type]] : []),
         ...(form.pocket_type ? [['Pocket', form.pocket_type]] : []),
         ...(form.sleeve_type ? [['Sleeve', form.sleeve_type]] : []),
-        ['Description', (form.client_design_notes||'').slice(0,80) + ((form.client_design_notes||'').length>80?'…':'')],
+        ['Description', form.client_design_notes || '—'],
         ['Reference',   form.design_ref_file?.name || 'None'],
       ],
     },
     {
-      t:'Order Configuration',
+      t:'Order Configuration', go:1,
       rows:[
         ['Quantity',    `${form.quantity_ordered || 0} pcs`],
         ['Color',       form.color || '—'],
@@ -794,7 +778,7 @@ function StepReview({ form, studio }) {
       ],
     },
     {
-      t:'Sizing',
+      t:'Sizing', go:1,
       rows: form.sizing_type==='custom' ? [
         ['Method', 'Custom'],
         ['Chest',  `${form.measurements?.chest_cm || '—'} cm`],
@@ -851,13 +835,14 @@ function StepReview({ form, studio }) {
           transition={{ delay:si * 0.05 }}
           style={{ background:'#fff', borderRadius:12,
             border:'1px solid var(--border)', overflow:'hidden' }}>
-          <div style={{ padding:'11px 16px', background:'var(--bg-surface)',
-            borderBottom:'1px solid var(--border)' }}>
+          <div style={{ padding:'4px 8px 4px 16px', background:'var(--bg-surface)', display:'flex',
+            alignItems:'center', justifyContent:'space-between', gap:8, borderBottom:'1px solid var(--border)' }}>
             <p style={{ fontSize:10, fontWeight:700, color:'var(--text-subtle)',
               textTransform:'uppercase', letterSpacing:'.07em',
               margin:0, fontFamily:FONT }}>
               {sec.t}
             </p>
+            {onEdit && <button type="button" className="wz-edit" onClick={() => onEdit(sec.go)}>Edit<span className="sr-only"> {sec.t}</span></button>}
           </div>
           {sec.rows.map(([l, v]) => (
             <div key={l} style={{ display:'flex', justifyContent:'space-between',
@@ -929,7 +914,7 @@ function WizSummary({ form, studio, step }) {
           : <div className="wz-thumb" style={{ background:'var(--bg-surface)' }}><NavIcon name="garmentType" size={28} color="var(--text-faint)"/></div>}
         <dl>
           {rows.map(([k, v]) => (
-            <div key={k}><dt>{k}</dt><dd data-empty={!v}>{v || (step === 0 ? '-' : 'Not set')}</dd></div>
+            <div key={k}><dt>{k}</dt><dd key={String(v ?? '')} className="wz-flash" data-empty={!v}>{v || (step === 0 ? '-' : 'Not set')}</dd></div>
           ))}
         </dl>
       </div>
@@ -975,12 +960,8 @@ function SizeChartModal({ onClose }) {
   const [chartTab, setChartTab] = useState('tops');
   const chart = PH_SIZE_CHART[chartTab];
 
-  // Close on Escape
-  useEffect(() => {
-    const h = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', h);
-    return () => window.removeEventListener('keydown', h);
-  }, [onClose]);
+  const boxRef = useRef(null);
+  useDialogFocus(boxRef, { onClose });
 
   return (
     <motion.div
@@ -994,6 +975,7 @@ function SizeChartModal({ onClose }) {
       }}
     >
       <motion.div
+        ref={boxRef} role="dialog" aria-modal="true" aria-label="General sizing guide"
         initial={{ opacity: 0, scale: .94, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{   opacity: 0, scale: .96, y: 8 }}
@@ -1277,6 +1259,16 @@ export default function OrderWizard() {
     return !Object.keys(e).length;
   };
 
+  const cardRef = useRef(null);
+  const firstStep = useRef(true);
+  const moved = useRef(false);
+  useEffect(() => {
+    if (firstStep.current) { firstStep.current = false; return; }
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+    moved.current = true;
+  }, [step]);
+
   const goNext = () => {
     if (!validate()) return;
     setDir(1);
@@ -1365,7 +1357,7 @@ export default function OrderWizard() {
     <StepQuantitySize key="q" form={form} set={set} errors={errs} studio={studio}
       onEditDesign={() => { setDir(-1); setStep(0); }} onShowChart={() => setShowSizeChart(true)}/>,
     <StepDelivery     key="v" form={form} set={set} errors={errs}/>,
-    <StepReview       key="r" form={form} studio={studio}/>,
+    <StepReview       key="r" form={form} studio={studio} onEdit={(n) => { setDir(-1); setStep(n); setErrs({}); }}/>,
   ];
 
   return (
@@ -1414,6 +1406,7 @@ export default function OrderWizard() {
             <p>Step {step+1} of {STEPS.length} - {STEPS[step]}</p>
           </div>
         </div>
+        <p className="sr-only" role="status" aria-live="polite">{`Step ${step + 1} of ${STEPS.length}: ${STEPS[step]}`}</p>
         <StepBar step={step}/>
         {(studio || form.garment_type) && (
           <div className="wz-mini" aria-label="Order snapshot">
@@ -1433,8 +1426,9 @@ export default function OrderWizard() {
             <AnimatePresence mode="wait" custom={dir}>
               <motion.div key={step} custom={dir}
                 initial={{ opacity:0, x: dir * 24 }} animate={{ opacity:1, x:0 }}
+                onAnimationComplete={(def) => { if (def?.opacity === 1 && moved.current) { moved.current = false; cardRef.current?.focus({ preventScroll: true }); } }}
                 exit={{ opacity:0, x: dir * -24 }} transition={{ duration:.2, ease:'easeOut' }}>
-                <div className="wiz-step-card cx-card">{COMPS[step]}</div>
+                <div className="wiz-step-card cx-card" ref={cardRef} tabIndex={-1} aria-label={`Step ${step + 1} of ${STEPS.length}: ${STEPS[step]}`}>{COMPS[step]}</div>
               </motion.div>
             </AnimatePresence>
 

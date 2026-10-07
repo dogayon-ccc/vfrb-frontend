@@ -20,9 +20,15 @@ button.adm-stat:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
 .adm-chip.up{background:var(--success-bg);color:#15803d}.adm-chip.down{background:var(--danger-bg);color:#dc2626}.adm-chip.warn{background:var(--warning-bg);color:var(--warning-text)}
 .adm-tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding:3px;background:var(--bg-surface);border-radius:11px;width:fit-content;max-width:100%;margin-bottom:14px}
 .adm-tabs::-webkit-scrollbar{display:none}
-.adm-tab{min-height:32px;padding:0 13px;border:none;border-radius:8px;background:transparent;color:var(--text-subtle);font-size:12px;font-weight:600;white-space:nowrap;cursor:pointer;transition:background .15s,color .15s,box-shadow .15s}
+.adm-tab{position:relative;min-height:32px;padding:0 13px;border:none;border-radius:8px;background:transparent;color:var(--text-subtle);font-size:12px;font-weight:600;white-space:nowrap;cursor:pointer;transition:background .15s,color .15s,box-shadow .15s}
 .adm-tab:hover{color:var(--ink)}
-.adm-tab.on{background:var(--bg-card);color:var(--teal);font-weight:800;box-shadow:var(--shadow-sm)}
+.adm-tab.on{color:var(--teal);font-weight:800}
+.adm-tab-ind{position:absolute;inset:0;border-radius:8px;background:var(--bg-card);box-shadow:var(--shadow-sm)}
+.adm-tab-t{position:relative}
+@media(pointer:coarse){.adm-tab{min-height:44px}}
+.adm-tabpanel{animation:admTab .22s var(--ease-out) both}
+@keyframes admTab{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.adm-tabpanel{animation:none}}
 .adm-tab .n{margin-left:5px;font-size:10px}
 .adm-panel{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-xs);overflow:hidden}
 .adm-panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border)}
