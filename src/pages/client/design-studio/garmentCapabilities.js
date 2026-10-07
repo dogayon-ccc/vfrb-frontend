@@ -37,11 +37,13 @@ const workShirtZone = (x, y, z) => {
 // Single-zone lower-body garments (the catalog gives Pants/Shorts/Skirt only the 'body' zone).
 const bodyOnly = () => 'body';
 
+import { GLB_SLOTS, slotLive } from './glbSlots';
+
 const ALL_PATTERNS = ['hstripes', 'vstripes', 'diagonal', 'checker', 'polka', 'geometric'];
 
 // Scanned garments. Both scans face +z (the camera). `decals` marks the part that carries logos and text.
 // `capabilities` is the 3D contract for the catalog/UI (what THIS real model + renderer can show); it is not a UI list.
-export const SCANNED_GARMENTS = [
+const SCANNED_BASE = [
   {
     id: 't-shirt',
     match: /^t.?shirt$/i,
@@ -133,6 +135,27 @@ export const SCANNED_GARMENTS = [
     },
   },
 ];
+
+// Scrub Top: Meshy scrub-set scans split by mesh connectivity into top and trousers (tools/glb-intake/glbtools.py); only the top is served.
+// Fused mesh, no UVs or materials: the 3D contract is the 2D photo base's contract, one body colour. Models come from the exact photo-base slots in glbSlots.js.
+const SCRUB_TOP_SLOTS = [['female', 'scrub-top-women-short'], ['male', 'scrub-top-men-short']].filter(([, id]) => slotLive(GLB_SLOTS[id]));
+const SCRUB_TOP = SCRUB_TOP_SLOTS.length ? [{
+  id: 'scrub-top',
+  match: /^scrub top$/i,
+  models: Object.fromEntries(SCRUB_TOP_SLOTS.map(([fit, id]) => [fit, GLB_SLOTS[id].file])),
+  torso: { female: 0.33, male: 0.38 },
+  transform: { rotation: [0, 0, 0], scale: 0.72, position: [0, 0, 0] },
+  parts: [{ node: 'mesh_node', decals: false, zoneOf: bodyOnly }],
+  capabilities: {
+    regionMethod: 'vertex-mask', regionAccuracy: 'approximate (single body zone, fused mesh with no cut panels in the GLB)',
+    zones: ['body'], patterns: { zones: [], ids: [] },
+    sleeves: ['Short'],
+    text: false, logo: false, frontBack: false, fit: SCRUB_TOP_SLOTS.map(([fit]) => fit),
+    limitations: ['one body colour only: the fused scan has no separate collar, sleeve or trim parts', 'no text, logos or patterns in 3D (the 2D photo base has none either)', 'short sleeve only', 'fused scan surface: fine seams and wrinkles are baked into the geometry'],
+  },
+}] : [];
+
+export const SCANNED_GARMENTS = [...SCANNED_BASE, ...SCRUB_TOP];
 
 // Real GLBs present in public/models that are NOT wired: each is a full human figure fused with its clothes in one mesh with no
 // materials, UVs or vertex groups, so a garment colour would also colour skin, hair and shoes. See docs/engineering/GLB-CAPABILITY-MATRIX.md.

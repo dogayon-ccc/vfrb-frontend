@@ -1,4 +1,5 @@
-import { assetFor } from './garmentAssets';
+import { assetFor, assetById } from './garmentAssets';
+import { glbSlotFor, slotLive } from './glbSlots';
 import { applyGarment, resolveSleeve, FAMILY_BY_NAME } from './garmentCatalog';
 // Real VFRB inspiration gallery: photos only. Editable garment families live in garmentCatalog.js and are never listed here as designs. `glb` stays null until a garment-only GLB passes
 // docs/engineering/GLB-CAPABILITY-MATRIX.md; until then an entry is a photo reference and is never presented as editable 3D.
@@ -45,16 +46,18 @@ const BASES = {
 const D = (id, name, category, gender, piece, sleeve, collar, source, parts = [piece]) => {
   const e = build(id, name, category, gender, piece, sleeve, collar, source, parts);
   const ok = !!openTarget(e);
-  return ok ? e : { ...e, base: null, garmentFamily: null, editable2D: false, tier: 'reference' };
+  return ok ? e : { ...e, base: null, garmentFamily: null, editable2D: false, editable2d: false, exactBase: false, glb: null, glbSrc: null, glbStatus: 'none', zones: [], faces: { front: false, back: false }, has3D: false, status: 'photo-only', tier: 'reference' };
 };
 const build = (id, name, category, gender, piece, sleeve, collar, source, parts) => {
   const base = BASES[id] ?? null;
+  const asset = base?.[3] ? assetById(base[3]) : null, slot = asset ? glbSlotFor(asset.id) : null, live = slotLive(slot);
   return {
-    id, name, label: name, image: `/gallery/${id}.webp`, garmentFamily: base ? base[1] : null, editable2D: !!base,
+    id, templateId: id, name, label: name, image: `/gallery/${id}.webp`, previewSrc: `/gallery/${id}.webp`, garmentFamily: base ? base[1] : null, editable2D: !!base, editable2d: !!base,
     kind: 'photo', exactBase: !!base?.[3], category, categories: [category], gender, genders: [gender], piece, sleeve, sleeves: sleeve ? [sleeve] : [], collar, source, parts, base,
-    thumb: `/gallery/${id}.webp`, glb: null,
-    // reference = photo only; editable-2d = opens the nearest 2D silhouette. A photo is never 3D: no GLB exists for any of them.
-    tier: base ? 'editable-2d' : 'reference', has3D: false, status: 'photo-only',
+    thumb: `/gallery/${id}.webp`, glb: live ? slot.file : null, glbSrc: live ? slot.file : null, glbStatus: slot?.state ?? 'none',
+    zones: asset?.zones ?? [], faces: { front: !!base, back: false },
+    // reference = photo only; editable-2d = opens the nearest 2D silhouette; 2d-3d-approx = exact photo base plus its own garment-only GLB (glbSlots.js).
+    tier: base ? (live ? (slot.state === 'verified' ? '2d-3d' : '2d-3d-approx') : 'editable-2d') : 'reference', has3D: live, status: live ? '3d-' + slot.state : 'photo-only',
   };
 };
 

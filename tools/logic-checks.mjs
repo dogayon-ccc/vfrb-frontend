@@ -17,9 +17,9 @@ t('polo forced Short', G.applyGarment({ ...base, sleeve: 'Long' }, 'Polo Shirt')
 const E0 = id => D.ENTRIES.find(d => d.id === id);
 t('gallery = 35 photos only (20 original + 15 worn cutouts)', D.ENTRIES.length === 35 && D.ENTRIES.every(d => d.kind === 'photo') && D.ENTRIES.filter(d => d.source === 'worn').length === 15);
 t('no template names as entries', !D.ENTRIES.some(d => ['Polo Shirt', 'Pants', 'Shorts', 'Skirt', 'Round Neck', 'Button-Down'].includes(d.name)));
-t('metadata shape', D.ENTRIES.every(d => d.id && d.image && d.label && d.category && d.piece && 'gender' in d && 'sleeve' in d && 'garmentFamily' in d && typeof d.editable2D === 'boolean' && d.glb === null && d.source && d.status));
-t('no photo has 3D', D.ENTRIES.every(d => !d.has3D));
-t('statuses only reference/editable-2d', D.ENTRIES.every(d => ['reference', 'editable-2d'].includes(d.tier)));
+t('metadata shape', D.ENTRIES.every(d => d.id && d.image && d.label && d.category && d.piece && 'gender' in d && 'sleeve' in d && 'garmentFamily' in d && typeof d.editable2D === 'boolean' && (d.glb === null || d.glb === d.glbSrc) && d.templateId === d.id && d.previewSrc === d.image && 'glbStatus' in d && Array.isArray(d.zones) && d.faces && d.source && d.status));
+t('only exact slot-backed photos have 3D', JSON.stringify(D.ENTRIES.filter(d => d.has3D).map(d => d.id).sort()) === JSON.stringify(['scrub-set-men-vneck', 'scrub-set-women-vneck']) && D.ENTRIES.filter(d => d.has3D).every(d => d.glbStatus === 'approx' && d.glbSrc === '/models/garments/' + d.base[3] + '.glb'));
+t('statuses are reference/editable-2d/2d-3d-approx, 3D tier only with a live GLB', D.ENTRIES.every(d => ['reference', 'editable-2d', '2d-3d-approx'].includes(d.tier) && (d.tier === '2d-3d-approx') === !!d.glbSrc));
 t('search blazer = 8', D.filterDesigns({ q: 'blazer' }).length === 8);
 t('search mandarin >= 3', D.filterDesigns({ q: 'mandarin' }).length >= 3);
 t('filter medical = 2 scrub sets', D.filterDesigns({ category: 'medical' }).length === 2 && D.filterDesigns({ category: 'medical' }).every(d => d.piece === 'set'));

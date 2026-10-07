@@ -183,9 +183,12 @@ export default function DesignStudio() {
     if (viewMode === '3d' && familyFor(cfg.garment)?.status3D === 'none') setViewMode('2d');
   }, [cfg.garment, viewMode]);
   // Picking a garment whose 3D is only approximate always lands on the reliable 2D view; the customer can opt into 3D.
+  const keep3DRef = useRef(false); // set by the gallery's "Open with 3D preview" so the 2D landing rule below skips that one load
   useEffect(() => {
-    if (familyFor(cfg.garment)?.status3D === 'partial') setViewMode('2d');
+    const keep = keep3DRef.current; keep3DRef.current = false;
+    if (!keep && familyFor(cfg.garment)?.status3D === 'partial') setViewMode('2d');
   }, [cfg.garment]);
+  useEffect(() => { keep3DRef.current = false; }, [viewMode]);
 
   const logoUpload = useLogoUpload(addLogo);
   // A file dropped on the canvas goes through the same pipeline as the panel, and
@@ -636,7 +639,7 @@ export default function DesignStudio() {
 
         {/* ── INSPIRATION GALLERY OVERLAY ── */}
         <InspoGallery showInspo={showInspo} setShowInspo={toggleInspo} setCfg={setCfg}
-          loadCanvasJSON={loadCanvasJSON} onOpen3D={() => { setHas3DLoaded(true); setViewMode('3d'); }}/>
+          loadCanvasJSON={loadCanvasJSON} onOpen3D={() => { keep3DRef.current = true; setHas3DLoaded(true); setViewMode('3d'); }}/>
 
         {/* ── SHOWCASE GALLERY OVERLAY ── */}
         <ShowcaseGallery showShowcase={showShowcase} setShowShowcase={toggleShowcase} setCfg={setCfg}
