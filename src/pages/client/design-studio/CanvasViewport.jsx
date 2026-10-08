@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { NavIcon } from '../../../components/ui/icons';
 import { T2, DARK, SHAPE_TYPE_LABEL } from './dsShared';
 import { familyFor, STATUS_3D_LABEL } from './garmentCatalog';
+import { sleeves3DFor } from './garmentCapabilities';
 import GarmentSilhouette from './GarmentSilhouette';
 import { hasWebGL } from './webglSupport';
 import { hasBackView } from './garmentAssets';
@@ -271,8 +272,8 @@ export default function CanvasViewport({
             const status = fam?.status3D;
             const info = status && status !== 'supported' ? STATUS_3D_LABEL[status] : null;
             // The 3D scans have one sleeve length; say so instead of silently showing a different sleeve than the 2D design.
-            const sleeveGap = status && status !== 'none' && fam.styles.length > 0 && cfg.sleeve && !fam.sleeves3D.includes(cfg.sleeve);
-            const label = sleeveGap ? `3D shows ${fam.sleeves3D.join(' / ').toLowerCase()} sleeves — ${cfg.sleeve.toLowerCase()} is 2D only`
+            const sleeveGap = status && status !== 'none' && fam.styles.length > 0 && cfg.sleeve && !sleeves3DFor(fam.id, cfg.fit).includes(cfg.sleeve);
+            const label = sleeveGap ? `3D shows ${sleeves3DFor(fam.id, cfg.fit).join(' / ').toLowerCase()} sleeves — ${cfg.sleeve.toLowerCase()} is 2D only`
               : status === 'none' ? 'Generic preview — exact shape not modeled' : info?.label;
             return label && (info || sleeveGap) ? (
               <div style={{ position:'absolute', top:14, left:14, zIndex:2, maxWidth:'calc(100% - 28px)',

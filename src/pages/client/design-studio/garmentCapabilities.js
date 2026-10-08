@@ -155,7 +155,85 @@ const SCRUB_TOP = SCRUB_TOP_SLOTS.length ? [{
   },
 }] : [];
 
-export const SCANNED_GARMENTS = [...SCANNED_BASE, ...SCRUB_TOP];
+// Mandarin Collar / Short: the housekeeping scrub suit scan split like the scrub tops (component 0 = tunic, trousers dropped). Exact slot of the 'mandarin-tunic-housekeeping' photo base only;
+// `exactSleeve` stops the Long-sleeve BIR blouse base (a different template with no GLB) from ever showing this model.
+const MANDARIN_TUNIC = slotLive(GLB_SLOTS['mandarin-tunic-housekeeping']) ? [{
+  id: 'mandarin-tunic',
+  match: /^mandarin collar$/i,
+  exactSleeve: true,
+  models: { female: GLB_SLOTS['mandarin-tunic-housekeeping'].file },
+  torso: { female: 0.3 },
+  transform: { rotation: [0, 0, 0], scale: 0.8, position: [0, 0, 0] },
+  parts: [{ node: 'mesh_node', decals: false, zoneOf: bodyOnly }],
+  capabilities: {
+    regionMethod: 'vertex-mask', regionAccuracy: 'approximate (single body zone, fused mesh with no cut panels in the GLB)',
+    zones: ['body'], patterns: { zones: [], ids: [] },
+    sleeves: ['Short'],
+    text: false, logo: false, frontBack: false, fit: ['female'],
+    limitations: ['one body colour only: the fused scan has no separate collar band, cuff or button parts, so the 2D trim colour is not shown in 3D', 'no text, logos or patterns in 3D', 'short sleeve only (the long-sleeve BIR blouse base has no 3D model)', 'fused scan surface: fine seams and wrinkles are baked into the geometry'],
+  },
+}] : [];
+
+// Round Neck / Short: the fuchsia blouse-and-trousers scan is one connected mesh, so it is a spatial cut (plane clip at the blouse hem, tools/glb-extract/cutlib.py), not a component split.
+// Exact slot of the 'round-neck-fuchsia-short' photo base only; Long has no base and no model.
+const ROUND_NECK = slotLive(GLB_SLOTS['round-neck-fuchsia-short']) ? [{
+  id: 'round-neck-fuchsia',
+  match: /^round neck$/i,
+  exactSleeve: true,
+  models: { female: GLB_SLOTS['round-neck-fuchsia-short'].file },
+  torso: { female: 0.25 },
+  transform: { rotation: [0, 0, 0], scale: 1.28, position: [0, 0, 0] },
+  parts: [{ node: 'mesh_node', decals: false, zoneOf: bodyOnly }],
+  capabilities: {
+    regionMethod: 'vertex-mask', regionAccuracy: 'approximate (single body zone, fused mesh with no cut panels in the GLB)',
+    zones: ['body'], patterns: { zones: [], ids: [] },
+    sleeves: ['Short'],
+    text: false, logo: false, frontBack: false, fit: ['female'],
+    limitations: ['one body colour only: the fused scan has no separate collar, sleeve or trim parts', 'no text, logos or patterns in 3D (the 2D photo base has none either)', 'short sleeve only (no long-sleeve base exists)', 'trousers were cut off at the blouse hem; a small waist tab and the scan\'s fine wrinkles are baked into the geometry'],
+  },
+}] : [];
+
+// Button-Down / Long: the BIR blue blouse. One connected blouse-and-trousers scan, so a spatial cut at the hem (centroid cut + plane slice at y = 0.134, tools/glb-extract/cutlib.py), not a component split.
+// Separate template of the Button-Down family, selected by Fit = Female + Long: the vector Button-Down template (unisex) is untouched and stays the default. Its photo base is cut from the same worn-model photo as the GLB. `exactSleeve` + fit ['female'] keep it from ever applying to the unisex work shirt.
+const BIR_BLOUSE = slotLive(GLB_SLOTS['button-down-bir-long']) ? [{
+  id: 'button-down-bir-blouse',
+  match: /^button-down$/i,
+  exactSleeve: true,
+  models: { female: GLB_SLOTS['button-down-bir-long'].file },
+  torso: { female: 0.2 },
+  transform: { rotation: [0, 0, 0], scale: 1.2, position: [0, 0, 0] },
+  parts: [{ node: 'mesh_node', decals: false, zoneOf: bodyOnly }],
+  capabilities: {
+    regionMethod: 'vertex-mask', regionAccuracy: 'approximate (single body zone, fused mesh with no cut panels in the GLB)',
+    zones: ['body'], patterns: { zones: [], ids: [] },
+    sleeves: ['Long'],
+    text: false, logo: false, frontBack: false, fit: ['female'],
+    limitations: ['one body colour only: the fused scan has no separate collar, cuff or button parts', 'no text, logos or patterns in 3D (the 2D photo base has none either)', 'long sleeve only (the short-sleeve work shirt is a different model)', 'trousers were cut off at the blouse hem; a thin strip of trouser top can remain under the hem, and the scan\'s fine wrinkles are baked into the geometry'],
+  },
+}] : [];
+
+export const SCANNED_GARMENTS = [...SCANNED_BASE, ...SCRUB_TOP, ...MANDARIN_TUNIC, ...ROUND_NECK, ...BIR_BLOUSE];
+
+// The one scanned entry a (garment, sleeve, fit) resolves to. An `exactSleeve` entry is a specific photo template: it wins only for a sleeve AND a fit it really has
+// (an explicit fit must be listed, so Button-Down unisex never lands on the women's BIR blouse). The family's general entry applies otherwise.
+// Studio 3D, the catalog and the capability contract all read this, so they cannot disagree.
+const fitOk = (x, f) => !f || !x.exactSleeve || x.capabilities.fit.includes(f);
+export function scannedEntryFor(garment, sleeve, fit) {
+  const name = String(garment ?? '').toLowerCase(), f = String(fit ?? '').toLowerCase();
+  const cands = SCANNED_GARMENTS.filter(x => x.match.test(name));
+  return (sleeve && cands.find(x => x.exactSleeve && x.capabilities.sleeves.includes(sleeve) && fitOk(x, f)))
+    || cands.find(x => !x.exactSleeve) || cands.find(x => x.exactSleeve && fitOk(x, f) && (!sleeve || x.capabilities.sleeves.includes(sleeve))) || null;
+}
+// Sleeve styles that really have a 3D model for this garment at this fit (union over the entries that apply). The single source for every "sleeve is 2D only" label.
+export function sleeves3DFor(garment, fit) {
+  const name = String(garment ?? '').toLowerCase(), f = String(fit ?? '').toLowerCase();
+  return [...new Set(SCANNED_GARMENTS.filter(x => x.match.test(name) && fitOk(x, f)).flatMap(x => x.capabilities.sleeves ?? []))];
+}
+// Every fit any scanned entry of the family offers, in entry order (general model first). Button-Down: unisex (work shirt) then female (BIR blouse).
+export function fitsFor(garment) {
+  const name = String(garment ?? '').toLowerCase();
+  return [...new Set(SCANNED_GARMENTS.filter(x => x.match.test(name)).flatMap(x => x.capabilities.fit ?? []))];
+}
 
 // Real GLBs present in public/models that are NOT wired: each is a full human figure fused with its clothes in one mesh with no
 // materials, UVs or vertex groups, so a garment colour would also colour skin, hair and shoes. See docs/engineering/GLB-CAPABILITY-MATRIX.md.
@@ -189,9 +267,9 @@ export const UNSUPPORTED_3D_MODELS = [
 export const PENDING_3D_MODELS = [];
 
 // Contract for Account 1's data-driven catalog: what the real 3D preview can do for a garment name (+ fit).
-export function get3DCapabilities(garment, fit) {
+export function get3DCapabilities(garment, fit, sleeve) {
   const name = garment ?? ''; // cfg.garment is `null` for a blank/new design, not `undefined` — a default param alone doesn't catch that.
-  const g = SCANNED_GARMENTS.find(x => x.match.test(name.toLowerCase()));
+  const g = scannedEntryFor(name, sleeve, fit);
   if (!g) return { supported: false, model: null, reason: 'no real GLB for this garment; the preview is a generic primitive shape' };
   const key = String(fit ?? '').toLowerCase();
   const fits = g.capabilities.fit;

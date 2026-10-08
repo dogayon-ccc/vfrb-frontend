@@ -22,6 +22,7 @@
 //   never throws, always returns a fully-defaulted cfg.
 
 import { resolveSleeve, resolveFit, LEGACY_GARMENT } from './garmentCatalog';
+import { assetFor, templateKeyById } from './garmentAssets';
 
 export const DEFAULT_CFG = {
   name: '',
@@ -70,6 +71,8 @@ export function serializeDesign(cfg, overlaysBundle = {}, previewPng) {
     frontOverlays,
     backOverlays,
   });
+  // Canonical template identity: the photo-base id for (garment, sleeve, fit), null for vector-only garments.
+  out.templateId = out.garment ? (assetFor(out.garment, out.sleeve, 'front', out.fit)?.id ?? null) : null;
   if (previewPng) out.previewPng = previewPng;
   return out;
 }
@@ -89,6 +92,9 @@ export function deserializeDesign(raw) {
   }
   if (!sc || typeof sc !== 'object') sc = {};
 
+  // A saved templateId wins over garment/sleeve/fit so a reload resolves the exact saved template; unknown ids are ignored.
+  const tk = typeof sc.templateId === 'string' ? templateKeyById(sc.templateId) : null;
+  if (tk) sc = { ...sc, garment: tk.garment, sleeve: tk.sleeve, fit: tk.fit };
   const garment = LEGACY_GARMENT[sc.garment ?? sc.garmentType] ?? sc.garment ?? sc.garmentType ?? DEFAULT_CFG.garment;
   const cfg = {
     name:          sc.name ?? DEFAULT_CFG.name,

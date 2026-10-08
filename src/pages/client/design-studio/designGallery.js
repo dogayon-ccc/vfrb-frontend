@@ -30,14 +30,14 @@ export const SLEEVES = ['Short', '3/4', 'Long'];
 
 // base = [catalog category, garment, sleeve, asset]. `asset` is the id of the exact 2D photo base the photo must land on, or null for the vector template.
 // An entry is editable only when the target really resolves to that base (see openTarget), so two photos of one family can never share the wrong base.
-// Left out on purpose (reference only): shirt-mandarin-polkadot (Mandarin Collar / Long is now the BIR blouse photo base, which is a different garment); blouse-mandarin-yellow is a full-placket blouse, but Mandarin Collar / Short is now the housekeeping tunic photo.
+// Left out on purpose (reference only): shirt-mandarin-polkadot (Mandarin Collar / Long is the band-collar BIR photo base, a different garment); blouse-mandarin-yellow is a full-placket blouse, but Mandarin Collar / Short is now the housekeeping tunic photo.
 const BASES = {
   'scrub-set-women-vneck':  ['Medical / Scrubs', 'Scrub Top', 'Short', 'scrub-top-women-short'],
   'scrub-set-men-vneck':    ['Medical / Scrubs', 'Scrub Top', 'Short', 'scrub-top-men-short'],
   'scrub-set-housekeeping': ['Hospitality / Service', 'Mandarin Collar', 'Short', 'mandarin-tunic-housekeeping'],
   'blouse-tunic-roundneck-blue': ['Corporate', 'T-Shirt', 'Short', null],
   'shirt-utility-beige-long': ['Industrial / Work', 'Button-Down', 'Long', null],
-  'bir-blouse-trousers-blue': ['Corporate', 'Mandarin Collar', 'Long', 'mandarin-blouse-bir-long'],
+  'bir-blouse-trousers-blue': ['Corporate', 'Button-Down', 'Long', 'button-down-bir-long'],
   'blouse-roundneck-fuchsia': ['Corporate', 'Round Neck', 'Short', 'round-neck-fuchsia-short'],
 };
 
@@ -83,7 +83,7 @@ export const DESIGNS = [
   D('dress-shift-geometric',   'Printed Shift Dress',           'dress',       'female', 'dress', 'Short', 'Scoop neck',    'mannequin'),
   D('dress-tunic-maternity-navy','Tunic Dress (Maternity)',     'dress',       'female', 'dress', '3/4',   'Shirt collar',   'mannequin'),
   // worn = model photo, background removed; arms, neck, hands and shoes stripped by clothing segmentation (tools/worn-photo-cutouts.py). Category/gender/sleeve read from the photo.
-  D('bir-blouse-trousers-blue','BIR Thursday Blouse and Trousers','corporate',   'female', 'set',   'Long',  'Mandarin',       'worn', ['upper', 'lower']),
+  D('bir-blouse-trousers-blue','BIR Thursday Blouse and Trousers','corporate',   'female', 'set',   'Long',  'Point collar',   'worn', ['upper', 'lower']),
   D('pantsuit-notch-short-gray','Short-Sleeve Notch Jacket and Trousers','corporate','female','set', 'Short', 'Notch lapel',    'worn', ['upper', 'lower']),
   D('polo-barong-brown',       'Polo Barong and Slacks',        'corporate',   'male',   'set',   'Short', 'Barong collar',  'worn', ['upper', 'lower']),
   D('jack-shirt-two-tone',     'Two-Tone Work Shirt (Polo Jack)','industrial', 'male',   'upper', 'Short', 'Point collar',   'worn'),

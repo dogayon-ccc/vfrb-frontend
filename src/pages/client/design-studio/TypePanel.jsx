@@ -6,6 +6,7 @@ import GarmentThumb from './GarmentThumb';
 import GarmentSilhouette from './GarmentSilhouette';
 import { selectFamily } from './selectGarment';
 import { CATALOG, familyFor, neighborFamily, resolveFit, STATUS_3D_LABEL } from './garmentCatalog';
+import { sleeves3DFor } from './garmentCapabilities';
 import { PH_SWATCHES, ZONE_LABEL, zonesFor } from './dsShared';
 import { assetFor, photoZoneNote } from './garmentAssets';
 
@@ -124,8 +125,8 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, view
             <section>
               <p className="ds-h3">Fit</p>
               <div className="ds-seg ds-seg--sm" role="radiogroup" aria-label="Garment fit">
-                {[['male', 'Male'], ['female', 'Female']].map(([id, label]) => (
-                  <button key={id} type="button" role="radio" aria-checked={(cfg.fit ?? 'male') === id}
+                {family.fits.map(id => [id, id[0].toUpperCase() + id.slice(1)]).map(([id, label]) => (
+                  <button key={id} type="button" role="radio" aria-checked={resolveFit(family.id, cfg.fit) === id}
                     onClick={() => setCfg(p => ({ ...p, fit: id }))}>{label}</button>
                 ))}
               </div>
@@ -140,10 +141,10 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, view
                 : (
                   <div className="ds-chips">
                     {sleeves.map(s => {
-                      const only2D = family.status3D !== 'none' && !family.sleeves3D.includes(s);
+                      const only2D = family.status3D !== 'none' && !sleeves3DFor(family.id, cfg.fit).includes(s);
                       return (
                         <button key={s} type="button" className="ds-chip" aria-pressed={cfg.sleeve === s}
-                          title={only2D ? `${s} sleeve is 2D only — the 3D model has ${family.sleeves3D.join(' / ').toLowerCase()} sleeves` : undefined}
+                          title={only2D ? `${s} sleeve is 2D only — the 3D model has ${sleeves3DFor(family.id, cfg.fit).join(' / ').toLowerCase()} sleeves` : undefined}
                           onClick={() => setCfg(p => ({ ...p, sleeve: s }))}>
                           {s}{only2D && <span className="ds-chip-note"> · 2D</span>}
                         </button>
@@ -187,7 +188,7 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, view
                         {z === 'sleeve' && sleeves.length > 1 && (
                           <div className="ds-chips" style={{ padding: '4px 14px 10px' }}>
                             {sleeves.map(sv => {
-                              const only2D = family.status3D !== 'none' && !family.sleeves3D.includes(sv);
+                              const only2D = family.status3D !== 'none' && !sleeves3DFor(family.id, cfg.fit).includes(sv);
                               return (
                                 <button key={sv} type="button" className="ds-chip" aria-pressed={cfg.sleeve === sv}
                                   title={only2D ? `${sv} sleeve is 2D only` : undefined}

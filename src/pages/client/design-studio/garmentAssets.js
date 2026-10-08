@@ -21,6 +21,14 @@ export const ASSET_2D = {
       },
     },
   },
+  // Button-Down / Long: blouse cut from the same worn-model photo the GLB was generated from (bir-blouse-trousers-blue), so 2D and 3D are one garment: spread point collar, placket, cuffed long sleeve.
+  'Button-Down': {
+    Long: {
+      front: {
+        female: { id: 'button-down-bir-long', src: '/garments2d/button-down-bir-long-front.webp', w: 187, h: 225, refLum: 90.2, zones: ['body'], source: 'VFRB-supplied worn-model photo (BIR blue long-sleeve blouse, point collar), blouse only, trousers removed, background removed', limitations: LIMITS_WORN },
+      },
+    },
+  },
   'Round Neck': {
     Short: {
       front: {
@@ -40,10 +48,14 @@ export const ASSET_2D = {
 
 export function assetFor(garment, sleeve, face = 'front', fit) {
   const byFit = ASSET_2D[garment]?.[sleeve]?.[face];
-  return byFit ? (byFit[fit] ?? Object.values(byFit)[0]) : null;
+  if (!byFit) return null;
+  // An explicit men's/women's/unisex request never lands on a photo base of another fit (Button-Down unisex keeps the vector template, only Female is the BIR photo); an unspecified fit takes the single base.
+  return byFit[fit] ?? ((fit === 'male' || fit === 'female' || fit === 'unisex') ? null : Object.values(byFit)[0]);
 }
 // Every photo base has an id; a gallery photo and a saved design resolve to the exact base through (garment, sleeve, face, fit), never through the family name alone.
 export const assetById = id => { for (const g of Object.values(ASSET_2D)) for (const sl of Object.values(g)) for (const f of Object.values(sl)) for (const a of Object.values(f)) if (a.id === id) return a; return null; };
+// Inverse of assetFor: the exact (garment, sleeve, fit) a photo-base templateId stands for, or null. Used to restore a saved design onto the same template.
+export const templateKeyById = id => { for (const [garment, g] of Object.entries(ASSET_2D)) for (const [sleeve, sl] of Object.entries(g)) for (const f of Object.values(sl)) for (const [fit, a] of Object.entries(f)) if (a.id === id) return { garment, sleeve, fit }; return null; };
 // Only the front is photographed: a photo-based garment has no back view (the vector back would be a different garment).
 export const hasBackView = (garment, sleeve, fit) => !assetFor(garment, sleeve, 'front', fit) || !!assetFor(garment, sleeve, 'back', fit);
 // Which zones a photo base can recolour, as customer-facing copy.

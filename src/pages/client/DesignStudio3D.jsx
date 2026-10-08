@@ -20,7 +20,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { familyFor } from './design-studio/garmentCatalog';
 import { OrbitControls, ContactShadows, Float, Environment, Lightformer } from '@react-three/drei';
 import * as THREE from 'three';
-import { SCANNED_GARMENTS } from './design-studio/garmentMeshManifest';
+import { scannedEntryFor } from './design-studio/garmentMeshManifest';
 import { DEFAULT_GARMENT_COLOR } from './design-studio/regionTexture';
 import ScannedGarmentMesh from './design-studio/ScannedGarmentMesh';
 import GarmentMeshErrorBoundary from './design-studio/GarmentMeshErrorBoundary';
@@ -316,7 +316,7 @@ function GarmentMesh({ cfg, referenceTexture, overlays }) {
   const isSkirt    = /skirt/i.test(gt);
   const isPants    = /pant|scrub.?p|trouser/i.test(gt);
   const isShorts   = /short/i.test(gt);
-  const scanned    = SCANNED_GARMENTS.find(g => g.match.test(gt));
+  const scanned    = scannedEntryFor(gt, cfg.sleeve, cfg.fit ?? cfg.gender);
 
   const shirt = <ShirtMesh colors={colors} sleeveType={sleeve} collarType={collar} referenceTexture={referenceTexture}/>;
   // A failed GLB load falls back to the matching primitive, never a shirt for a skirt/pants/shorts.

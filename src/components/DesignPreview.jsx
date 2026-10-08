@@ -1,6 +1,7 @@
 import { Component, Suspense, lazy, useMemo, useState } from 'react';
 import GarmentSilhouette from '../pages/client/design-studio/GarmentSilhouette';
 import { familyFor, STATUS_3D_LABEL } from '../pages/client/design-studio/garmentCatalog';
+import { sleeves3DFor } from '../pages/client/design-studio/garmentCapabilities';
 import { deserializeDesign } from '../pages/client/design-studio/designSerialization';
 import { hasBackView } from '../pages/client/design-studio/garmentAssets';
 import { hasWebGL } from '../pages/client/design-studio/webglSupport';
@@ -30,7 +31,7 @@ export default function DesignPreview({ cfg, previewUrl = null, referenceImageUr
   const can3D = !!(design && fam && fam.status3D !== 'none' && hasWebGL());
   const approx = fam?.status3D === 'partial';
   const note = approx ? 'Approximate 3D: colors and fit may differ from your 2D design. The 2D design is what VFRB produces from.' : null;
-  const sleeveGap = can3D && design.sleeve && !fam.sleeves3D.includes(design.sleeve);
+  const sleeveGap = can3D && design.sleeve && !sleeves3DFor(fam.id, design.fit).includes(design.sleeve);
 
   const flat = (
     <div style={box(height)}>
@@ -61,7 +62,7 @@ export default function DesignPreview({ cfg, previewUrl = null, referenceImageUr
           </div>
           {(note || sleeveGap) && (
             <p style={{ fontSize: 11, color: '#b45309', margin: '6px 0 0' }}>
-              {sleeveGap ? `3D shows ${fam.sleeves3D.join(' / ').toLowerCase()} sleeves. ${design.sleeve.toLowerCase()} is 2D only.` : note}
+              {sleeveGap ? `3D shows ${sleeves3DFor(fam.id, design.fit).join(' / ').toLowerCase()} sleeves. ${design.sleeve.toLowerCase()} is 2D only.` : note}
             </p>
           )}
         </Boundary>

@@ -17,7 +17,7 @@
 import { photoFits, assetFor } from './garmentAssets';
 import { glbSlotFor, slotLive } from './glbSlots';
 import { BASE_PATHS, getGarmentPaths } from './garmentPaths';
-import { get3DCapabilities } from './garmentCapabilities';
+import { get3DCapabilities, fitsFor, sleeves3DFor } from './garmentCapabilities';
 
 // Category -> its garments, in display order. Source: the VFRB interview's garment list
 // (unchanged from the previous CATS in dsShared.js — moved, not altered).
@@ -74,10 +74,10 @@ const FAMILIES = Object.fromEntries(FAMILY_NAMES.map(name => {
     id: name,
     displayName: name,
     has2D,
-    fits: cap.supported ? cap.fit : photoFits(name),
+    fits: cap.supported ? fitsFor(name) : photoFits(name),
     styles,
     defaultStyle: styles[0] ?? null,
-    sleeves3D: cap.supported ? (cap.sleeves ?? []) : [], // styles the 3D model really has
+    sleeves3D: cap.supported ? sleeves3DFor(name) : [], // styles any 3D model of this family has (any fit); per-selection checks use sleeves3DFor(name, fit)
     status3D,
     // A GLB counts as verified only when its capability entry carries an explicit `verification: { method, date }` record. None do today.
     verified3D: !!cap.supported && !!cap.verification,
@@ -162,15 +162,16 @@ export function resolveTarget(garment, sleeve, fit, face = 'front') {
   if (!fam) return null;
   const s = resolveSleeve(garment, sleeve), f = resolveFit(garment, fit);
   const asset = assetFor(garment, s, face, f);
-  const sleeve3D = fam.status3D !== 'none' && (!s || fam.sleeves3D.includes(s));
+  const exactGlb = asset && slotLive(glbSlotFor(asset.id)) ? glbSlotFor(asset.id).file : null; // the photo base's own garment-only GLB
+  const sleeve3D = fam.status3D !== 'none' && (!s || sleeves3DFor(garment, f).includes(s));
   return {
     family: fam.id, sleeve: s, fit: f, face, assetId: asset?.id ?? null, photo: !!asset,
     zones: asset ? asset.zones : fam.zones, limitations: asset?.limitations ?? [],
-    glb: sleeve3D ? fam.model3D : null,
+    glb: exactGlb ?? (sleeve3D ? get3DCapabilities(garment, f, s).model : null),
     glbSlot: asset ? glbSlotFor(asset.id) : null, // reserved path for a future garment-only GLB of this exact photo base; never implies a model exists
-    glbSrc: asset && slotLive(glbSlotFor(asset.id)) ? glbSlotFor(asset.id).file : null, // the exact GLB of this photo base, only while its slot is live
+    glbSrc: exactGlb, // the exact GLB of this photo base, only while its slot is live
     glbStatus: asset ? (glbSlotFor(asset.id)?.state ?? 'none') : 'none',
-    status: statusFor({ editable2D: fam.has2D || !!asset, has3D: sleeve3D, verified3D: sleeve3D && fam.verified3D }),
+    status: statusFor({ editable2D: fam.has2D || !!asset, has3D: sleeve3D || !!exactGlb, verified3D: sleeve3D && fam.verified3D }),
   };
 }
 
