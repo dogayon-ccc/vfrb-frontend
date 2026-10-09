@@ -490,6 +490,13 @@ export default function AdminLayout() {
           .adm-bnav     { display: flex; }
           .adm-topbar   { padding: 0 16px; height: 56px; }
           .adm-content  { padding: 14px 14px 84px; }
+          /* Bell panel: full width under the 56px top bar, stopping above the bottom nav. */
+          .adm-notif-panel {
+            position: fixed !important;
+            top: 64px !important; left: 8px !important; right: 8px !important;
+            width: auto !important;
+            max-height: calc(100dvh - 64px - 80px - env(safe-area-inset-bottom, 0px)) !important;
+          }
           .adm-desk-only{ display: none !important; }
         }
         @media (min-width: 768px) {
@@ -657,6 +664,7 @@ export default function AdminLayout() {
               <AnimatePresence>
                 {bellOpen && (
                   <motion.div
+                    className="adm-notif-panel"
                     initial={{ opacity:0, y:-8, scale:.97 }}
                     animate={{ opacity:1, y:0, scale:1 }}
                     exit={{ opacity:0, y:-6, scale:.97 }}
