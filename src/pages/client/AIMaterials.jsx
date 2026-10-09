@@ -457,7 +457,7 @@ export default function AIMaterials() {
           onClose={() => setShowPicker(false)} onDone={onSelfSelected}/>
       )}
 
-      <div className="cx-page" style={{ fontFamily:FONT, maxWidth:1040 }}>
+      <div className="cx-page" style={{ fontFamily:FONT }}>
 
         {/* Page header */}
         <div style={{ marginBottom:22 }}>

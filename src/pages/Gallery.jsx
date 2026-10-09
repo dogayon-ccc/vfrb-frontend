@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Photo from '../components/landing/Photo';
 import SitePage from '../components/site/SitePage';
 import { Banner, Journey } from '../components/site/parts';
@@ -36,7 +37,7 @@ function Lightbox({ items, index, onClose, onMove }) {
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose, onMove]);
 
-  return (
+  return createPortal(
     <div className="vs vs-lb" role="dialog" aria-modal="true" aria-label="Photo viewer" ref={box}>
       <div className="vs-lb__top">
         <span aria-live="polite">{index + 1} of {items.length}</span>
@@ -55,7 +56,8 @@ function Lightbox({ items, index, onClose, onMove }) {
         <button type="button" className="vs-lb__next" onClick={() => onMove(1)} aria-label="Next photo">›</button>
       </div>
       <p className="vs-lb__cap">{item.caption}</p>
-    </div>
+    </div>,
+    document.body
   );
 }
 
