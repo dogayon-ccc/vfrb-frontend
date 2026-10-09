@@ -337,9 +337,9 @@ export default function CustomerOrderDetail() {
         <div style={{ ...SK, height:7, marginBottom:20 }}/>
         <div style={{ display:'flex', gap:8, marginBottom:24 }}>
           {Array(7).fill(0).map((_,i) => (
-            <div key={i} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
-              <div style={{ ...SK, width:44, height:44, borderRadius:'50%' }}/>
-              <div style={{ ...SK, height:8, width:40 }}/>
+            <div key={i} style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
+              <div style={{ ...SK, width:'100%', maxWidth:44, aspectRatio:'1', borderRadius:'50%' }}/>
+              <div style={{ ...SK, height:8, width:'100%', maxWidth:40 }}/>
             </div>
           ))}
         </div>
