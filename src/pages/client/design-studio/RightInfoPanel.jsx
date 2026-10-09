@@ -138,7 +138,7 @@ export function SelectionInspector({ selObj, updateSelected, deleteSelected, dup
 }
 
 export function SummaryContent({ cfg, saved, saveDesign, orderThis, ordering, downloadImage, clearGarment, onOpenTool, activeTool, layerCount = 0, face = 'front' }) {
-  const zones = zonesFor(cfg.garment, cfg.sleeve);
+  const zones = zonesFor(cfg.garment, cfg.sleeve, cfg.fit);
   const swatches = zones.filter(z => z !== 'tipping' || cfg.colors.tipping);
   const details = [zones.includes('sleeve') && `${cfg.sleeve} sleeve`, cfg.category].filter(Boolean).join(' · ');
 

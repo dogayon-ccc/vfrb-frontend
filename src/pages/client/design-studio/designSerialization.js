@@ -22,7 +22,7 @@
 //   never throws, always returns a fully-defaulted cfg.
 
 import { resolveSleeve, resolveFit, LEGACY_GARMENT } from './garmentCatalog';
-import { assetFor, templateKeyById } from './garmentAssets';
+import { templateIdFor, templateKeyById } from './garmentAssets';
 
 export const DEFAULT_CFG = {
   name: '',
@@ -71,8 +71,8 @@ export function serializeDesign(cfg, overlaysBundle = {}, previewPng) {
     frontOverlays,
     backOverlays,
   });
-  // Canonical template identity: the photo-base id for (garment, sleeve, fit), null for vector-only garments.
-  out.templateId = out.garment ? (assetFor(out.garment, out.sleeve, 'front', out.fit)?.id ?? null) : null;
+  // Canonical template identity: photo-base id or registered vector-template id for (garment, sleeve, fit), else null.
+  out.templateId = out.garment ? templateIdFor(out.garment, out.sleeve, out.fit) : null;
   if (previewPng) out.previewPng = previewPng;
   return out;
 }

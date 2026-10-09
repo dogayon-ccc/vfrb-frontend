@@ -508,7 +508,7 @@ export default function DesignStudio() {
   // "in progress" immediately rather than waiting on the async work to resolve.
 
   const catData   = useMemo(() => CATS.find(c=>c.id===cfg.category) ?? CATS[0], [cfg.category]);
-  const zone = zonesFor(cfg.garment, cfg.sleeve).includes(activeZone) ? activeZone : 'body';
+  const zone = zonesFor(cfg.garment, cfg.sleeve, cfg.fit).includes(activeZone) ? activeZone : 'body';
 
   return (
     <>

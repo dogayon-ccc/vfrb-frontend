@@ -266,6 +266,12 @@ export const UNSUPPORTED_3D_MODELS = [
 // (rather than deleted) so a future candidate has a place to land without inventing a new list.
 export const PENDING_3D_MODELS = [];
 
+// Patterns a scanned entry really paints: only its listed zones and ids; everything else stays solid in 3D while the 2D design keeps it.
+export function patternsFor3D(entry, patterns) {
+  const { zones = [], ids = [] } = entry?.capabilities?.patterns ?? {};
+  return Object.fromEntries(Object.entries(patterns ?? {}).map(([z, id]) => [z, zones.includes(z) && ids.includes(id) ? id : 'solid']));
+}
+
 // Contract for Account 1's data-driven catalog: what the real 3D preview can do for a garment name (+ fit).
 export function get3DCapabilities(garment, fit, sleeve) {
   const name = garment ?? ''; // cfg.garment is `null` for a blank/new design, not `undefined` — a default param alone doesn't catch that.

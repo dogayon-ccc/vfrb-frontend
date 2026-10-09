@@ -36,7 +36,7 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, view
   const sleeves = family?.styles ?? [];
   const photo   = cfg.garment ? assetFor(cfg.garment, cfg.sleeve, 'front', cfg.fit) : null;
   const hasFit  = (family?.fits.length ?? 0) > 1 && (family.status3D !== 'none' || !!photo);
-  const zones   = cfg.garment ? zonesFor(cfg.garment, cfg.sleeve).filter(z => z !== 'body' && (z !== 'tipping' || cfg.colors.tipping)) : [];
+  const zones   = cfg.garment ? zonesFor(cfg.garment, cfg.sleeve, cfg.fit).filter(z => z !== 'body' && (z !== 'tipping' || cfg.colors.tipping)) : [];
   const body    = (cfg.colors.body ?? '').toLowerCase();
 
   const goNeighbor = (dir) => {

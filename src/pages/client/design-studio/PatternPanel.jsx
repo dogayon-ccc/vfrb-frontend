@@ -11,7 +11,7 @@
 // comment for why these are two parallel fields instead of one.
 import { motion } from 'framer-motion';
 import { NavIcon } from '../../../components/ui/icons';
-import { T2, secLabel, ZONE_LABEL, PATTERNS } from './dsShared';
+import { T2, secLabel, ZONE_LABEL, PATTERNS, pattern3D, ONLY_2D_TAG } from './dsShared';
 
 // Universal slider ranges across all 3 parametric pattern types. Not
 // per-type-tuned (diagonal's useful range genuinely differs a bit from
@@ -89,6 +89,7 @@ export default function PatternPanel({ cfg, setCfg, activeZone }) {
                 fontWeight:sel?700:400, textAlign:'center' }}>
                 {pat.label}
               </span>
+              {pat.id !== 'solid' && pattern3D(cfg.garment, cfg.sleeve, cfg.fit, activeZone, pat.id) === false && <span title="Shown in 2D only: the 3D model does not paint this pattern here" style={ONLY_2D_TAG}>2D only</span>}
             </motion.button>
           );
         })}

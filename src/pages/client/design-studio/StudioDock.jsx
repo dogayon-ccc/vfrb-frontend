@@ -4,7 +4,7 @@ import { zonesFor } from './dsShared';
 import { familyFor, STATUS_3D_LABEL } from './garmentCatalog';
 
 export default function StudioDock({ cfg, saved, saving, saveErr, draftSaved, saveDesign, orderThis, ordering, onOpenTool, layerCount = 0, face = 'front' }) {
-  const zones = zonesFor(cfg.garment, cfg.sleeve).filter(z => z !== 'tipping' || cfg.colors.tipping);
+  const zones = zonesFor(cfg.garment, cfg.sleeve, cfg.fit).filter(z => z !== 'tipping' || cfg.colors.tipping);
   const st = STATUS_3D_LABEL[familyFor(cfg.garment)?.status3D];
   const details = [zones.includes('sleeve') && cfg.sleeve && `${cfg.sleeve} sleeve`, cfg.category].filter(Boolean).join(' · ');
   const state = saving ? 'Saving…' : saveErr ? 'Not saved — retry' : draftSaved ? 'Saved to your account' : saved ? 'Saved on this device' : null;

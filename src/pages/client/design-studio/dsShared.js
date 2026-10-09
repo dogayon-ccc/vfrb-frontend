@@ -104,8 +104,8 @@ export const PH_SWATCHES = [
 export const ZONE_KEYS = ['body','collar','sleeve','pocket','tipping'];
 
 // Zones a garment really has, read from its 2D sketch so 2D, summary and 3D agree.
-export function zonesFor(garment, sleeve) {
-  const photo = assetFor(garment, sleeve);
+export function zonesFor(garment, sleeve, fit) {
+  const photo = assetFor(garment, sleeve, 'front', fit);
   if (photo) return photo.zones;
   const p = getGarmentPaths(garment, sleeve);
   // T-Shirt's scanned GLB has no separate collar node — hide the swatch so it can't be picked and silently do nothing in 3D.
@@ -127,8 +127,21 @@ export function zonesFor(garment, sleeve) {
   return ZONE_KEYS.filter(z => has[z]);
 }
 
-export const placementsFor = (garment, sleeve) =>
-  zonesFor(garment, sleeve).includes('sleeve') ? LOGO_PRESETS : LOGO_PRESETS.filter(p => !p.id.endsWith('_arm'));
+// null = no 3D model for this garment; false = the model has no such zone, so the zone is 2D only.
+export function zone3D(garment, sleeve, fit, zone) {
+  const cap = get3DCapabilities(garment, fit, sleeve);
+  return cap.supported ? (cap.zones ?? []).includes(zone) : null;
+}
+
+// null = no 3D model; false = this zone/pattern combination is 2D only on the model.
+export function pattern3D(garment, sleeve, fit, zone, id) {
+  const cap = get3DCapabilities(garment, fit, sleeve);
+  return cap.supported ? (cap.patterns?.zones ?? []).includes(zone) && (cap.patterns?.ids ?? []).includes(id) : null;
+}
+export const ONLY_2D_TAG = { fontSize: 8, fontWeight: 700, color: 'rgba(15,23,42,.45)' };
+
+export const placementsFor = (garment, sleeve, fit) =>
+  zonesFor(garment, sleeve, fit).includes('sleeve') ? LOGO_PRESETS : LOGO_PRESETS.filter(p => !p.id.endsWith('_arm'));
 
 // Single source of truth for collar/sleeve, so OrderWizard can't hand-maintain
 // a second table that silently drifts (see the T-Shirt bug: OrderWizard kept

@@ -14,7 +14,7 @@
 // female, only for families with a real multi-fit 3D model) -> STYLE (a sleeve length). A
 // family's fit/style options and 3D status are read once, here, from the real capability data
 // — never guessed, never invented for a garment that doesn't have it.
-import { photoFits, assetFor } from './garmentAssets';
+import { photoFits, assetFor, templateIdFor } from './garmentAssets';
 import { glbSlotFor, slotLive } from './glbSlots';
 import { BASE_PATHS, getGarmentPaths } from './garmentPaths';
 import { get3DCapabilities, fitsFor, sleeves3DFor } from './garmentCapabilities';
@@ -165,7 +165,7 @@ export function resolveTarget(garment, sleeve, fit, face = 'front') {
   const exactGlb = asset && slotLive(glbSlotFor(asset.id)) ? glbSlotFor(asset.id).file : null; // the photo base's own garment-only GLB
   const sleeve3D = fam.status3D !== 'none' && (!s || sleeves3DFor(garment, f).includes(s));
   return {
-    family: fam.id, sleeve: s, fit: f, face, assetId: asset?.id ?? null, photo: !!asset,
+    family: fam.id, sleeve: s, fit: f, face, assetId: asset?.id ?? null, templateId: templateIdFor(garment, s, f), photo: !!asset,
     zones: asset ? asset.zones : fam.zones, limitations: asset?.limitations ?? [],
     glb: exactGlb ?? (sleeve3D ? get3DCapabilities(garment, f, s).model : null),
     glbSlot: asset ? glbSlotFor(asset.id) : null, // reserved path for a future garment-only GLB of this exact photo base; never implies a model exists

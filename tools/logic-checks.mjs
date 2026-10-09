@@ -89,6 +89,39 @@ const FA = await L('/src/pages/client/design-studio/fontAvailable.js');
 t('primaryFamilies skips generics and emoji', JSON.stringify(FA.primaryFamilies("Arial Black, 'Arial Bold', sans-serif, 'Apple Color Emoji'")) === JSON.stringify(['Arial Black', 'Arial Bold']));
 t('generic-only stack has no probe family', FA.primaryFamilies('cursive').length === 0 && FA.primaryFamilies('ui-sans-serif, system-ui, sans-serif').length === 0);
 t('availableFonts without a canvas keeps every font', FA.availableFonts([{ id: 'a', css: 'Papyrus, fantasy' }]).length === 1);
+// Hero: Button-Down / Short / unisex work shirt has an explicit vector templateId that survives save/restore; photo ids and old records are unaffected.
+{ const HID = 'button-down-work-shirt-short', hc = { ...base, garment: 'Button-Down', sleeve: 'Short', fit: 'unisex' };
+  const sv = S.serializeDesign(hc, {}), r = S.deserializeDesign(JSON.parse(JSON.stringify(sv)));
+  t('hero serializes explicit vector templateId', sv.templateId === HID);
+  t('hero templateKeyById resolves', JSON.stringify(A.templateKeyById(HID)) === JSON.stringify({ garment: 'Button-Down', sleeve: 'Short', fit: 'unisex' }));
+  t('hero restores same garment/sleeve/fit', r.cfg.garment === 'Button-Down' && r.cfg.sleeve === 'Short' && r.cfg.fit === 'unisex');
+  t('hero resolveTarget carries templateId, work-shirt GLB, approx status', (x => x.templateId === HID && x.glb === '/models/processed/work-shirt-short-sleeve.glb' && x.status === '2d-3d-approx' && !x.photo)(G.resolveTarget('Button-Down', 'Short', 'unisex')));
+  t('hero 3D zones are body/sleeve/collar/pocket, tipping is 2D only', Sh.zone3D('Button-Down', 'Short', 'unisex', 'pocket') === true && Sh.zone3D('Button-Down', 'Short', 'unisex', 'tipping') === false);
+  t('hero is not verified', !G.FAMILY_BY_NAME['Button-Down'].verified3D);
+  t('old record without templateId still loads by garment/sleeve/fit', (o => o.cfg.garment === 'Button-Down' && o.cfg.sleeve === 'Short')(S.deserializeDesign({ garment: 'Button-Down', sleeve: 'Short', fit: 'unisex', colors: {} })));
+  t('unknown templateId is ignored', S.deserializeDesign({ templateId: 'nope', garment: 'Pants' }).cfg.garment === 'Pants');
+  t('BIR Button-Down Long female keeps its photo id', S.serializeDesign({ ...base, garment: 'Button-Down', sleeve: 'Long', fit: 'female' }, {}).templateId === 'button-down-bir-long');
+  t('Button-Down Long unisex and Short female stay templateId null', S.serializeDesign({ ...base, garment: 'Button-Down', sleeve: 'Long', fit: 'unisex' }, {}).templateId === null && S.serializeDesign({ ...base, garment: 'Button-Down', sleeve: 'Short', fit: 'female' }, {}).templateId === null); }
+// Fit must reach every zone/pattern lookup: Button-Down Long unisex is the vector sketch (all zones), not the female BIR photo (body only).
+t('zonesFor honours fit: Button-Down Long unisex has collar/pocket, female BIR is body only', Sh.zonesFor('Button-Down', 'Long', 'unisex').includes('collar') && Sh.zonesFor('Button-Down', 'Long', 'unisex').includes('pocket') && Sh.zonesFor('Button-Down', 'Long', 'female').join() === 'body');
+// Second registered vector template: Polo Shirt / Short, per fit.
+{ const pm = S.serializeDesign({ ...base, garment: 'Polo Shirt', sleeve: 'Short', fit: 'male' }, {}), pf = S.serializeDesign({ ...base, garment: 'Polo Shirt', sleeve: 'Short', fit: 'female' }, {});
+  t('polo serializes per-fit vector templateId', pm.templateId === 'polo-shirt-short-male' && pf.templateId === 'polo-shirt-short-female');
+  t('polo templateId restores garment/sleeve/fit', (r => r.cfg.garment === 'Polo Shirt' && r.cfg.fit === 'female' && r.cfg.sleeve === 'Short')(S.deserializeDesign(JSON.parse(JSON.stringify(pf)))));
+  t('legacy School Polo record still maps to Polo Shirt', S.deserializeDesign({ garment: 'School Polo', sleeve: 'Short', fit: 'male' }).cfg.garment === 'Polo Shirt');
+  t('polo resolveTarget: templateId, per-fit GLB, approx status', (x => x.templateId === 'polo-shirt-short-female' && x.glb === encodeURI('/models/female polo shirt.glb') && x.status === '2d-3d-approx')(G.resolveTarget('Polo Shirt', 'Short', 'female')) && G.resolveTarget('Polo Shirt', 'Short', 'male').glb === encodeURI('/models/Polo Shirt male.glb'));
+  t('polo pocket is 2D only, collar is 3D', Sh.zone3D('Polo Shirt', 'Short', 'male', 'collar') === true && !Sh.zonesFor('Polo Shirt', 'Short', 'male').includes('pocket')); }
+// Hero 3D contract: the work-shirt GLB serves exactly this template, 3D paints only what the model supports, everything else is 2D only.
+{ const HID = 'button-down-work-shirt-short', e = Cp.scannedEntryFor('Button-Down', 'Short', 'unisex');
+  const hp = { body: 'hstripes', sleeve: 'checker', collar: 'geometric', pocket: 'polka', tipping: 'vstripes' };
+  const p3 = Cp.patternsFor3D(e, hp);
+  t('hero 3D entry is the work-shirt GLB', e.id === 'work-shirt' && e.models.unisex === '/models/processed/work-shirt-short-sleeve.glb');
+  t('hero 3D paints body/sleeve patterns, pocket/collar/geometric stay solid', p3.body === 'hstripes' && p3.sleeve === 'checker' && p3.collar === 'solid' && p3.pocket === 'solid');
+  t('a photo-base scan (no 3D patterns) paints every zone solid', Object.values(Cp.patternsFor3D(Cp.scannedEntryFor('Scrub Top', 'Short', 'female'), hp)).every(v => v === 'solid'));
+  t('no 3D entry gives solid, never undefined', Object.values(Cp.patternsFor3D(null, { body: 'hstripes' })).every(v => v === 'solid'));
+  t('pattern3D flags 2D-only combinations on the hero', Sh.pattern3D('Button-Down', 'Short', 'unisex', 'body', 'hstripes') === true && Sh.pattern3D('Button-Down', 'Short', 'unisex', 'body', 'geometric') === false && Sh.pattern3D('Button-Down', 'Short', 'unisex', 'pocket', 'hstripes') === false && Sh.pattern3D('Pants', null, null, 'body', 'hstripes') === true);
+  t('picking Button-Down from the default design lands on the hero template', (c => c.sleeve === 'Short' && c.fit === 'unisex' && S.serializeDesign(c, {}).templateId === HID)(G.applyGarment({ ...base, category: 'Corporate', fit: 'male', sleeve: 'Short' }, 'Button-Down')));
+  t('order snapshot (previewPng stripped by the backend) keeps the hero templateId', (o => o.templateId === HID && S.deserializeDesign(o).cfg.garment === 'Button-Down')((({ previewPng, ...rest }) => rest)(JSON.parse(JSON.stringify(S.serializeDesign({ ...base, garment: 'Button-Down', sleeve: 'Short', fit: 'unisex' }, {}, 'data:image/png;base64,AA==')))))); }
 console.log(out.join('\n')); const f = out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);
 

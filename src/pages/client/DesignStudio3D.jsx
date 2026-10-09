@@ -20,7 +20,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { familyFor } from './design-studio/garmentCatalog';
 import { OrbitControls, ContactShadows, Float, Environment, Lightformer } from '@react-three/drei';
 import * as THREE from 'three';
-import { scannedEntryFor } from './design-studio/garmentMeshManifest';
+import { scannedEntryFor, patternsFor3D } from './design-studio/garmentMeshManifest';
 import { DEFAULT_GARMENT_COLOR } from './design-studio/regionTexture';
 import ScannedGarmentMesh from './design-studio/ScannedGarmentMesh';
 import GarmentMeshErrorBoundary from './design-studio/GarmentMeshErrorBoundary';
@@ -327,7 +327,7 @@ function GarmentMesh({ cfg, referenceTexture, overlays }) {
     const fit = cfg.fit ?? cfg.gender;
     return (
       <GarmentMeshErrorBoundary key={`${gt}-${fit}`} fallback={primitive}>
-        <ScannedGarmentMesh manifest={scanned} colors={colors} patterns={cfg.patterns} patternParams={cfg.patternParams} fit={fit} garment={cfg.garment} sleeve={cfg.sleeve} overlays={overlays}/>
+        <ScannedGarmentMesh manifest={scanned} colors={colors} patterns={patternsFor3D(scanned, cfg.patterns)} patternParams={cfg.patternParams} fit={fit} garment={cfg.garment} sleeve={cfg.sleeve} overlays={overlays}/>
       </GarmentMeshErrorBoundary>
     );
   }
