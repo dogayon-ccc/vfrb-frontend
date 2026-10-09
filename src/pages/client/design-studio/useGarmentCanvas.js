@@ -51,6 +51,9 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   const [initFailed, setInitFailed] = useState(false);
   const [ready, setReady] = useState(false);
   const redrawToken = useRef(0);
+  // Latest props for exportFace, which polls across a face switch.
+  const latest = useRef({ garment, sleeve, face });
+  latest.current = { garment, sleeve, face };
 
   // Init once on mount. useLayoutEffect (not useEffect) so cleanup runs
   // before React's own DOM removal — avoids a removeChild race with
@@ -543,6 +546,35 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     bumpLayers();
   }, [pushHistory, bumpLayers]);
 
+  // Renders one face for export at a fixed output height once that face has finished drawing: the canvas is on
+  // `targetFace`, sized for it, every garment image has loaded and the object list is stable. Hover glow and the
+  // selection box are never part of the file. Returns a transparent PNG data URL, or null if the face never settles.
+  const exportFace = useCallback(async (targetFace, outHeight = 1600) => {
+    const sig = c => c.getObjects().map(o => (o.__garmentBase ? 'g' : o.__hoverGlow ? 'h' : 'o') + (o._element && !o._element.complete ? '!' : '')).join('');
+    let prev = null;
+    for (let i = 0; i < 60; i++) {
+      await new Promise(r => setTimeout(r, 50));
+      const c = fc.current;
+      if (!c || latest.current.face !== targetFace) continue;
+      const { w, h } = getGarmentPaths(latest.current.garment, latest.current.sleeve, targetFace);
+      const now = sig(c);
+      if (c.getWidth() === w && c.getHeight() === h && now.includes('g') && !now.includes('!') && now === prev) break;
+      prev = now;
+    }
+    const canvas = fc.current;
+    if (!canvas || latest.current.face !== targetFace) return null;
+    const active = canvas.getActiveObject();
+    const glow = canvas.getObjects().filter(o => o.__hoverGlow);
+    if (active) canvas.discardActiveObject();
+    glow.forEach(o => { o.visible = false; });
+    canvas.renderAll();
+    const url = canvas.toDataURL({ format: 'png', multiplier: outHeight / canvas.getHeight() });
+    glow.forEach(o => { o.visible = true; });
+    if (active && canvas.getObjects().includes(active)) canvas.setActiveObject(active);
+    canvas.renderAll();
+    return url;
+  }, []);
+
   // Toggles Fabric's PencilBrush. Caller must setDrawMode(false) on tab-exit
   // to restore normal selection.
   const setDrawMode = useCallback((enabled, size = 4, color = '#02C39A') => {
@@ -744,7 +776,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   }, [findLayer, pushHistory, bumpLayers]);
 
   return {
-    addLogo, addText, addShape, updateSelected, deleteSelected, duplicateSelected, alignSelected, nudgeSelected, exportOverlays, exportPNG, getCanvasJSON, loadCanvasJSON,
+    addLogo, addText, addShape, updateSelected, deleteSelected, duplicateSelected, alignSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
     pushHistory, undo, redo, canUndo, canRedo, resizeCanvas,
     layers, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
     setDrawMode, setBrushStyle, initFailed,
