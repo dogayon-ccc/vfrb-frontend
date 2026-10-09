@@ -101,6 +101,13 @@ export const CATALOG = CATEGORY_DEFS.map(cat => ({
 // (badges, validation) without walking the category tree.
 export const FAMILY_BY_NAME = FAMILIES;
 
+// Which half of a uniform set a family is. Full-body garments (Lab Coverall) never join a set.
+export const PIECE_OF = {
+  'Polo Shirt': 'top', 'T-Shirt': 'top', 'Round Neck': 'top', 'Mandarin Collar': 'top', 'Button-Down': 'top', 'Scrub Top': 'top', 'Lab Coat': 'top',
+  'Pants': 'bottom', 'Shorts': 'bottom', 'Skirt': 'bottom',
+};
+export const pieceOf = garment => PIECE_OF[garment] ?? null;
+
 export function familyFor(garment) {
   return FAMILIES[garment] ?? null;
 }

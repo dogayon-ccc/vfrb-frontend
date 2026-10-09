@@ -5,7 +5,7 @@ import { BASE_PATHS } from './garmentPaths';
 import GarmentThumb from './GarmentThumb';
 import GarmentSilhouette from './GarmentSilhouette';
 import { selectFamily } from './selectGarment';
-import { CATALOG, familyFor, neighborFamily, resolveFit, STATUS_3D_LABEL } from './garmentCatalog';
+import { CATALOG, familyFor, resolveFit, STATUS_3D_LABEL, pieceOf } from './garmentCatalog';
 import { sleeves3DFor } from './garmentCapabilities';
 import { PH_SWATCHES, ZONE_LABEL, zonesFor } from './dsShared';
 import { assetFor, photoZoneNote } from './garmentAssets';
@@ -21,7 +21,7 @@ function CardImage({ fam, cfg }) {
 }
 
 // Options come from the canonical CATALOG only; nothing here invents a garment, style or fit.
-export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, viewMode, setViewMode, setHas3DLoaded }) {
+export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, viewMode, setViewMode, setHas3DLoaded, pieceRole = null }) {
   const reduce  = useReducedMotion();
   const [openZone, setOpenZone] = useState(null);
   const [picking, setPicking] = useState(!cfg.garment);
@@ -31,7 +31,9 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, view
   const [browseCat, setBrowseCat] = useState(cfg.category);
   const [prevCat, setPrevCat] = useState(cfg.category);
   if (prevCat !== cfg.category) { setPrevCat(cfg.category); setBrowseCat(cfg.category); }
-  const catData = CATALOG.find(c => c.id === browseCat) ?? CATALOG[0];
+  const catAll = CATALOG.find(c => c.id === browseCat) ?? CATALOG[0];
+  // Editing one piece of a uniform set: only that piece's garments (tops or bottoms) are offered.
+  const catData = pieceRole ? { ...catAll, families: catAll.families.filter(f => pieceOf(f.id) === pieceRole) } : catAll;
   const family  = familyFor(cfg.garment);
   const sleeves = family?.styles ?? [];
   const photo   = cfg.garment ? assetFor(cfg.garment, cfg.sleeve, 'front', cfg.fit) : null;
@@ -40,7 +42,9 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, view
   const body    = (cfg.colors.body ?? '').toLowerCase();
 
   const goNeighbor = (dir) => {
-    const next = neighborFamily(catData.id, cfg.garment, dir);
+    // Neighbour within the garments on offer (a set piece never steps onto the other piece's garments).
+    const list = catData.families, i = Math.max(0, list.findIndex(f => f.id === cfg.garment));
+    const next = list.length ? list[((i + dir) % list.length + list.length) % list.length] : null;
     if (next) selectFamily(setCfg, next, catData.id);
   };
   const toggleZone = (z) => { setOpenZone(o => (o === z ? null : z)); setActiveZone(z); };
