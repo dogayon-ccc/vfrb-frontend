@@ -6,7 +6,7 @@ import logo from '../assets/company-logo.jpg';
 import { areaOf } from '../utils/routeArea';
 import '../styles/skeleton.css';
 
-const SHOW_MS = 700;
+const SHOW_MS = 300;
 
 export function LoadingScreen({ leaving }) {
   return (
@@ -36,7 +36,7 @@ export default function RouteLoadingScreen() {
     setPhase('in');
     timers.current = [
       setTimeout(() => setPhase('out'), SHOW_MS),
-      setTimeout(() => setPhase(null), SHOW_MS + 220),
+      setTimeout(() => setPhase(null), SHOW_MS + 150),
     ];
   }, [pathname]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);

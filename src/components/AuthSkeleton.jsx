@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import art from '../assets/brand/sewing-2.jpg';
 import '../styles/auth.css';
 
-const MIN_MS = 450;
+const MIN_MS = 200;
 
 export function useAuthReady() {
   const [ready, setReady] = useState(false);
