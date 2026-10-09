@@ -12,6 +12,7 @@
 import { motion } from 'framer-motion';
 import { NavIcon } from '../../../components/ui/icons';
 import { T2, secLabel, ZONE_LABEL, PATTERNS, pattern3D, ONLY_2D_TAG } from './dsShared';
+import { assetFor } from './garmentAssets';
 
 // Universal slider ranges across all 3 parametric pattern types. Not
 // per-type-tuned (diagonal's useful range genuinely differs a bit from
@@ -36,11 +37,12 @@ function ParamSlider({ label, value, range, onChange }) {
 }
 
 export default function PatternPanel({ cfg, setCfg, activeZone }) {
-  const zonePattern = cfg.patterns?.[activeZone] ?? 'solid';
+  const photoBase = assetFor(cfg.garment, cfg.sleeve, 'front', cfg.fit);
+  const zonePattern = photoBase ? 'solid' : (cfg.patterns?.[activeZone] ?? 'solid');
   const patDef       = PATTERNS.find(p => p.id === zonePattern);
-  const setPattern  = (id) => setCfg(p => ({
+  const setPattern  = (id) => { if (photoBase) return; setCfg(p => ({
     ...p, patterns: { ...(p.patterns??{}), [activeZone]:id }
-  }));
+  })); };
 
   // Current width/spacing for this zone — falls back to the selected
   // pattern's own defaults if the customer hasn't dragged a slider yet,
@@ -69,6 +71,10 @@ export default function PatternPanel({ cfg, setCfg, activeZone }) {
         </p>
       </div>
 
+      {photoBase && <p role="status" style={{ fontSize:12, color:'rgba(15,23,42,.68)', margin:0 }}>
+        Patterns are unavailable on this photo base. Choose a vector garment to add a pattern.
+      </p>}
+
       <p style={secLabel}>Active Zone: <span style={{ color:T2 }}>{ZONE_LABEL[activeZone]}</span></p>
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6 }}>
@@ -77,9 +83,11 @@ export default function PatternPanel({ cfg, setCfg, activeZone }) {
           return (
             <motion.button key={pat.id}
               onClick={() => setPattern(pat.id)}
+              disabled={!!photoBase}
               whileHover={{ scale:1.04 }} whileTap={{ scale:0.96 }}
               style={{
-                padding:'10px 4px 7px', borderRadius:10, border:'none', cursor:'pointer',
+                padding:'10px 4px 7px', borderRadius:10, border:'none', cursor:photoBase?'not-allowed':'pointer',
+                opacity:photoBase ? 0.5 : 1,
                 background: sel ? 'rgba(2,195,154,.14)' : 'rgba(15,23,42,.04)',
                 outline:    sel ? `2px solid ${T2}` : '1px solid rgba(15,23,42,.07)',
                 display:'flex', flexDirection:'column', alignItems:'center', gap:4,
@@ -89,13 +97,13 @@ export default function PatternPanel({ cfg, setCfg, activeZone }) {
                 fontWeight:sel?700:400, textAlign:'center' }}>
                 {pat.label}
               </span>
-              {pat.id !== 'solid' && pattern3D(cfg.garment, cfg.sleeve, cfg.fit, activeZone, pat.id) === false && <span title="Shown in 2D only: the 3D model does not paint this pattern here" style={ONLY_2D_TAG}>2D only</span>}
+              {!photoBase && pat.id !== 'solid' && pattern3D(cfg.garment, cfg.sleeve, cfg.fit, activeZone, pat.id) === false && <span title="Shown in 2D only: the 3D model does not paint this pattern here" style={ONLY_2D_TAG}>2D only</span>}
             </motion.button>
           );
         })}
       </div>
 
-      {patDef?.parametric && (
+      {!photoBase && patDef?.parametric && (
         <motion.div
           initial={{ opacity:0, height:0 }} animate={{ opacity:1, height:'auto' }}
           style={{ padding:'11px 12px', borderRadius:10, marginTop:2,
