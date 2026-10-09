@@ -138,6 +138,8 @@ export function applyGarment(cfg, garment, next = {}) {
     sleeve,
     fit,
     ...(photoBase ? { patterns: {}, patternParams: {} } : {}),
+    // The gallery photo a design was opened from; any other garment drops it so a design never claims the wrong photo.
+    inspirationId: next.inspirationId ?? (fam.id === cfg.garment ? cfg.inspirationId ?? null : null),
   };
 }
 
