@@ -44,7 +44,7 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, sum
     selected: () => (
       <div className="ds-sum">
         {hasSelection
-          ? <SelectionInspector selObj={p.selObj} updateSelected={p.updateSelected} deleteSelected={p.deleteSelected} duplicateSelected={p.duplicateSelected}
+          ? <SelectionInspector selObj={p.selObj} updateSelected={p.updateSelected} deleteSelected={p.deleteSelected} duplicateSelected={p.duplicateSelected} alignSelected={p.alignSelected}
               toggleSelectedLock={p.toggleSelectedLock} pushHistory={p.pushHistory}/>
           : <p className="ds-sum-sub" style={{ padding:'24px 4px', textAlign:'center' }}>
               Tap a placed logo, text or shape on the canvas to edit it.

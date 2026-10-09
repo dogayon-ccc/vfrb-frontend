@@ -31,7 +31,11 @@ function kindOf(o) {
 }
 
 // Same controls on desktop (right panel) and tablet/phone ('selected' tab in the sheet).
-export function SelectionInspector({ selObj, updateSelected, deleteSelected, duplicateSelected, toggleSelectedLock, pushHistory }) {
+// [where, short label, accessible label]
+const ALIGN = [['left', 'Left', 'Align left'], ['hcenter', 'Center', 'Center horizontally'], ['right', 'Right', 'Align right'],
+  ['top', 'Top', 'Align top'], ['vcenter', 'Middle', 'Center vertically'], ['bottom', 'Bottom', 'Align bottom']];
+
+export function SelectionInspector({ selObj, updateSelected, deleteSelected, duplicateSelected, alignSelected, toggleSelectedLock, pushHistory }) {
   const kind   = kindOf(selObj);
   const isText = !!selObj.__text || selObj.type === 'i-text' || selObj.type === 'text';
   const isLine = selObj.__shape && selObj.type === 'line';
@@ -107,6 +111,15 @@ export function SelectionInspector({ selObj, updateSelected, deleteSelected, dup
           {!isText && baseH > 0 && num('Height', dispH, v => updateSelected({ scaleY: v / baseH }))}
         </div>
         {range(`Rotation ${angle}°`, angle, 0, 360, v => live({ angle: v }), locked)}
+        {alignSelected && <p className="ds-group-label" style={{ marginTop: 12 }}>Align on garment</p>}
+        {alignSelected && (
+          <div className="ds-ins-align" role="group" aria-label="Align to garment">
+            {ALIGN.map(([where, short, label]) => (
+              <button key={where} type="button" className="ds-act" aria-label={label} title={`${label} on the garment`} disabled={locked}
+                onClick={() => alignSelected(where)}>{short}</button>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="ds-ins-sec">
