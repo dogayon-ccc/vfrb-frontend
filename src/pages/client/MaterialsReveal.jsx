@@ -13,7 +13,7 @@ const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif
 const CSS = `
 .mr{position:fixed;inset:0;z-index:300;overflow-y:auto;font-family:${FONT};color:var(--ink);
   background:radial-gradient(900px 420px at 85% -10%,rgba(2,195,154,.16),transparent 62%),radial-gradient(800px 420px at -5% 15%,rgba(2,128,144,.12),transparent 60%),radial-gradient(rgba(15,23,42,.06) 1px,transparent 1px) 0 0/22px 22px,#f8fafc}
-.mr-wrap{max-width:960px;margin:0 auto;padding:24px 16px calc(120px + env(safe-area-inset-bottom,0px))}
+.mr-wrap{max-width:none;margin:0 auto;padding:24px 16px calc(120px + env(safe-area-inset-bottom,0px))}
 .mr-steps{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:22px;font-size:11px;font-weight:700;color:var(--text-subtle)}
 .mr-steps span{display:flex;align-items:center;gap:6px}
 .mr-steps i{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:11px;background:var(--border);color:var(--text-subtle)}
@@ -31,7 +31,7 @@ const CSS = `
 .mr-spin{width:34px;height:34px;border:3px solid var(--teal);border-top-color:transparent;border-radius:50%;animation:mr-s .8s linear infinite}
 .mr-err{display:flex;gap:8px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:var(--danger-bg);border:1px solid var(--danger-border);color:#991b1b;font-size:13px;margin-bottom:18px}
 .mr-bar{position:fixed;left:0;right:0;bottom:0;z-index:2;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));background:rgba(255,255,255,.86);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--border)}
-.mr-bar-in{max-width:960px;margin:0 auto;display:flex;flex-direction:column;gap:10px}
+.mr-bar-in{max-width:none;margin:0 auto;display:flex;flex-direction:column;gap:10px}
 .mr-btn{min-height:48px;padding:0 20px;border-radius:14px;font:700 14px/1 ${FONT};cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:transform .15s,box-shadow .2s}
 .mr-btn:focus-visible{outline:2.5px solid var(--teal);outline-offset:2px}
 .mr-ok{border:0;color:#fff;background:linear-gradient(135deg,#22c55e,#16a34a);box-shadow:0 6px 18px rgba(22,163,74,.3)}

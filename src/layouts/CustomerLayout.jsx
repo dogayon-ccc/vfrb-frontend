@@ -1,10 +1,11 @@
 // src/layouts/CustomerLayout.jsx — customer shell: sidebar (desktop), bottom nav (mobile), topbar, Studio FAB.
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Outlet, NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { useVisiblePoll } from '../hooks/useVisiblePoll';
 import PageErrorBoundary from '../components/PageErrorBoundary';
+import { AppPageSkeleton } from '../components/PageSkeletons';
 import IconBox from '../components/ui/IconBox';
 import FeedbackWidget from '../components/FeedbackWidget';
 import { signOut } from '../utils/session';
@@ -385,10 +386,7 @@ export default function CustomerLayout() {
         }
         @media (min-width: 2560px) {
           .cm-content {
-            padding: 36px 40px 100px;
-            max-width: 1800px;
-            margin-left: auto;
-            margin-right: auto;
+            padding: 28px 32px 100px;
           }
         }
 
@@ -653,7 +651,7 @@ export default function CustomerLayout() {
                     motion.div already remounts on pathname change (via its
                     key prop), which naturally resets the boundary too. */}
                 <PageErrorBoundary resetKey={location.pathname}>
-                  <Outlet/>
+                  <Suspense fallback={<AppPageSkeleton/>}><Outlet/></Suspense>
                 </PageErrorBoundary>
               </motion.div>
             </AnimatePresence>

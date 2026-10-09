@@ -41,6 +41,10 @@ import Landing      from './pages/Landing';
 
 // ── Auth — eager (small, always needed for login flow) ───────────────────────
 import CustomerLogin    from './pages/auth/Login';
+import AuthSkeleton, { useAuthReady } from './components/AuthSkeleton';
+import { AppShellSkeleton, SiteSkeleton, StudioSkeleton } from './components/PageSkeletons';
+import RouteLoadingScreen from './components/LoadingScreen';
+import { areaOf } from './utils/routeArea';
 import CustomerRegister from './pages/auth/Register';
 import VerifyEmail      from './pages/auth/VerifyEmail';
 import GoogleComplete   from './pages/auth/GoogleComplete';
@@ -110,26 +114,19 @@ const Group60Page = lazy(() => import('./pages/Group60'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPolicy')); // NEW Aug 28 2026
 const TermsPage    = lazy(() => import('./pages/TermsOfService')); // NEW Aug 28 2026
 
-// ── Page loader — shown during lazy bundle download ───────────────────────────
+// ── Page loader — skeleton shaped like the page whose bundle is downloading ──
 function Loader() {
-  return (
-    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center',
-      justifyContent:'center', background:'#f8fafc' }}>
-      <div style={{ textAlign:'center' }}>
-        <div style={{
-          width:36, height:36,
-          border:'3px solid #028090', borderTopColor:'transparent',
-          borderRadius:'50%', animation:'spin .7s linear infinite',
-          margin:'0 auto 12px',
-        }}/>
-        <p style={{ color:'#475569', fontSize:13, fontWeight:600, fontFamily:FONT }}>
-          Loading…
-        </p>
-      </div>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-    </div>
-  );
+  const area = areaOf(useLocation().pathname);
+  if (area === 'auth') return <AuthSkeleton/>;
+  if (area === 'studio') return <StudioSkeleton/>;
+  if (area === 'admin' || area === 'app') return <AppShellSkeleton/>;
+  return <SiteSkeleton/>;
 }
+
+// Each route gets its own boundary: router navigations run as transitions, which
+// keep the old page on screen instead of showing an already-mounted fallback.
+const SiteLoad  = ({ children }) => <Suspense fallback={<SiteSkeleton/>}>{children}</Suspense>;
+const ShellLoad = ({ children }) => <Suspense fallback={<AppShellSkeleton/>}>{children}</Suspense>;
 
 // ── Auth guards ───────────────────────────────────────────────────────────────
 function RequireAuth({ children, role }) {
@@ -190,11 +187,18 @@ function GuestOnly({ children }) {
   return isSignedIn(auth) ? <Navigate to={homeFor(auth.user)} replace/> : children;
 }
 
+// Skeleton first, so every auth screen (incl. home → login, logout → login) opens on a placeholder.
+function AuthGate({ children }) {
+  return useAuthReady() ? children : <AuthSkeleton/>;
+}
+
+
 export default function App() {
   return (
     <MotionConfig reducedMotion="user">
     <BrowserRouter>
       <ScrollTop/>
+      <RouteLoadingScreen/>
       <StorageNotice/>
       {/* appIconPath points at the local icon — the package default falls back to a
           Google CDN call, which this project's offline-tolerant rule forbids. */}
@@ -211,32 +215,32 @@ export default function App() {
           <Route path="/admin" element={<AdminRootRoute/>}/>
 
           {/* ── CUSTOMER AUTH ─────────────────────────────────────────────── */}
-          <Route path="/login"           element={<GuestOnly><CustomerLogin/></GuestOnly>}/>
-          <Route path="/register"        element={<GuestOnly><CustomerRegister/></GuestOnly>}/>
-          <Route path="/forgot-password" element={<ForgotPassword/>}/>
-          <Route path="/reset-password"  element={<ResetPassword/>}/>
-          <Route path="/verify-email"    element={<VerifyEmail/>}/>
+          <Route path="/login"           element={<GuestOnly><AuthGate><CustomerLogin/></AuthGate></GuestOnly>}/>
+          <Route path="/register"        element={<GuestOnly><AuthGate><CustomerRegister/></AuthGate></GuestOnly>}/>
+          <Route path="/forgot-password" element={<AuthGate><ForgotPassword/></AuthGate>}/>
+          <Route path="/reset-password"  element={<AuthGate><ResetPassword/></AuthGate>}/>
+          <Route path="/verify-email"    element={<AuthGate><VerifyEmail/></AuthGate>}/>
           <Route path="/auth/google/complete" element={<GoogleComplete/>}/>
 
           {/* ── ADMIN AUTH — one shared login, role decides the redirect ───── */}
           <Route path="/admin/login" element={<Navigate to="/login" replace/>}/>
 
           {/* ── PUBLIC INFO PAGES — no auth required ─────────────────────── */}
-          <Route path="/guide"    element={<GuidePage/>}/>
-          <Route path="/faq"      element={<FAQPage/>}/>
-          <Route path="/about"       element={<AboutPage/>}/>
-          <Route path="/what-we-do"  element={<WhatWeDoPage/>}/>
-          <Route path="/inside-vfrb" element={<InsidePage/>}/>
-          <Route path="/gallery"     element={<GalleryPage/>}/>
-          <Route path="/our-team" element={<TeamPage/>}/>
+          <Route path="/guide"    element={<SiteLoad><GuidePage/></SiteLoad>}/>
+          <Route path="/faq"      element={<SiteLoad><FAQPage/></SiteLoad>}/>
+          <Route path="/about"       element={<SiteLoad><AboutPage/></SiteLoad>}/>
+          <Route path="/what-we-do"  element={<SiteLoad><WhatWeDoPage/></SiteLoad>}/>
+          <Route path="/inside-vfrb" element={<SiteLoad><InsidePage/></SiteLoad>}/>
+          <Route path="/gallery"     element={<SiteLoad><GalleryPage/></SiteLoad>}/>
+          <Route path="/our-team" element={<SiteLoad><TeamPage/></SiteLoad>}/>
           <Route path="/vfrb-family" element={<Navigate to="/our-team" replace/>}/>
-          <Route path="/group-60" element={<Group60Page/>}/>
-          <Route path="/privacy"  element={<PrivacyPage/>}/>
-          <Route path="/terms"    element={<TermsPage/>}/>
+          <Route path="/group-60" element={<SiteLoad><Group60Page/></SiteLoad>}/>
+          <Route path="/privacy"  element={<SiteLoad><PrivacyPage/></SiteLoad>}/>
+          <Route path="/terms"    element={<SiteLoad><TermsPage/></SiteLoad>}/>
 
           {/* ── ADMIN PORTAL ──────────────────────────────────────────────── */}
           <Route path="/admin/*" element={
-            <RequireAuth role="admin"><AdminLayout/></RequireAuth>
+            <RequireAuth role="admin"><ShellLoad><AdminLayout/></ShellLoad></RequireAuth>
           }>
             <Route path="dashboard"   element={<DashboardHome/>}/>
 
@@ -281,7 +285,7 @@ export default function App() {
 
           {/* ── CUSTOMER PORTAL — root-level paths, no /client or /customer prefix ── */}
           <Route element={
-            <RequireAuth role="customer"><CustomerLayout/></RequireAuth>
+            <RequireAuth role="customer"><ShellLoad><CustomerLayout/></ShellLoad></RequireAuth>
           }>
             <Route path="dashboard"   element={<CustomerDashboard/>}/>
             <Route path="my-designs"  element={<CustomerMyDesigns/>}/>
@@ -299,7 +303,7 @@ export default function App() {
           {/* ── DESIGN STUDIO — full-screen, outside CustomerLayout ───────── */}
           <Route path="/design-studio" element={
             <RequireAuth role="customer">
-              <Suspense fallback={<Loader/>}><DesignStudio/></Suspense>
+              <Suspense fallback={<StudioSkeleton/>}><DesignStudio/></Suspense>
             </RequireAuth>
           }/>
 

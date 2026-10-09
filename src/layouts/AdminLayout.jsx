@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { enqueue, flushQueue, queueSize } from '../utils/offlineQueue';
 import { signOut } from '../utils/session';
 import PageErrorBoundary from '../components/PageErrorBoundary';
+import { AppPageSkeleton } from '../components/PageSkeletons';
 import IconBox from '../components/ui/IconBox';
 import '../styles/admin.css';
 import logo from '../assets/company-logo.jpg';
@@ -502,10 +503,7 @@ export default function AdminLayout() {
         }
         @media (min-width: 2560px) {
           .adm-content {
-            padding: 36px 40px 100px;
-            max-width: 1800px;
-            margin-left: auto;
-            margin-right: auto;
+            padding: 28px 32px 100px;
           }
         }
 
@@ -799,7 +797,7 @@ export default function AdminLayout() {
               </div>
             )}
             <PageErrorBoundary resetKey={location.pathname}>
-              <div key={location.pathname} className="adm-page"><Outlet/></div>
+              <div key={location.pathname} className="adm-page"><Suspense fallback={<AppPageSkeleton/>}><Outlet/></Suspense></div>
             </PageErrorBoundary>
           </div>
         </main>

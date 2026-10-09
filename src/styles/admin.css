@@ -369,7 +369,7 @@ textarea.adm-input{padding:10px 14px;resize:vertical;min-height:64px}
 .adm-dash-stack{display:flex;flex-direction:column}
 @media(max-width:1023px){.adm-dash-attn{order:-1}}
 
-.adm-od{max-width:1280px;margin:0 auto}
+.adm-od{max-width:none;margin:0 auto}
 .adm-od-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:18px}
 .adm-od-grid{display:flex;flex-direction:column;gap:14px}
 .adm-od-side,.adm-od-main{display:contents}

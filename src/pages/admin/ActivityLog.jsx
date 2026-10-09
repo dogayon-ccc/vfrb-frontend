@@ -76,7 +76,7 @@ export default function ActivityLog() {
   useEffect(() => { load(1); }, [load]);
 
   return (
-    <div style={{ maxWidth:1000, margin:'0 auto', fontFamily:'var(--font)' }}>
+    <div style={{ fontFamily:'var(--font)' }}>
       <div style={{ marginBottom:18 }}>
         <h1 style={{ fontSize:22, fontWeight:800, color:'var(--ink)', margin:'0 0 4px' }}>Activity Log</h1>
         <p style={{ fontSize:13, color:'var(--text-subtle)', margin:0 }}>

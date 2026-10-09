@@ -1,0 +1,54 @@
+/* Shared loading skeletons */
+.skx { display: block; width: 100%; border-radius: 8px; background: linear-gradient(90deg, #e9edf1 25%, #f4f6f8 50%, #e9edf1 75%); background-size: 200% 100%; animation: skx-shimmer 1.2s linear infinite; }
+.skx-dark { background-image: linear-gradient(90deg, rgba(255,255,255,0.08) 25%, rgba(255,255,255,0.18) 50%, rgba(255,255,255,0.08) 75%); }
+@keyframes skx-shimmer { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .skx { animation: none; } }
+
+/* app page body (inside layouts) */
+.skx-page { display: grid; gap: 18px; }
+.skx-stats { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.skx-card { padding: 18px; border-radius: 16px; background: var(--bg-card, #fff); border: 1px solid var(--border, #e5e7eb); display: grid; gap: 10px; }
+.skx-row { display: grid; grid-template-columns: 40px 1fr 120px; gap: 14px; align-items: center; padding: 12px 0; border-top: 1px solid var(--border, #eef0f2); }
+.skx-row:first-child { border-top: 0; }
+
+/* full app shell (layout chunk still loading) */
+.skx-shell { min-height: 100vh; display: grid; grid-template-columns: 240px 1fr; background: var(--bg, #f8fafc); }
+.skx-side { background: linear-gradient(180deg, #06414c 0%, #032d36 100%); padding: 18px 16px; display: grid; align-content: start; gap: 14px; }
+.skx-top { height: 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; background: var(--bg-card, #fff); border-bottom: 1px solid var(--border, #e5e7eb); }
+.skx-main { padding: 22px; }
+@media (max-width: 767px) {
+  .skx-shell { grid-template-columns: 1fr; }
+  .skx-side { display: none; }
+  .skx-main { padding: 14px; }
+  .skx-row { grid-template-columns: 32px 1fr 70px; }
+}
+
+/* public site */
+.skx-site { min-height: 100vh; background: #f7f6f1; }
+.skx-site-head { height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 0 clamp(16px, 4vw, 40px); border-bottom: 1px solid #dcdcd2; }
+.skx-site-hero { display: grid; gap: 40px; align-items: center; padding: clamp(40px, 6vw, 92px) clamp(16px, 4vw, 40px); grid-template-columns: 1fr; }
+.skx-site-grid { display: grid; gap: 16px; padding: 0 clamp(16px, 4vw, 40px) 60px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.skx-site .skx { background-image: linear-gradient(90deg, #ecebe4 25%, #f6f5f0 50%, #ecebe4 75%); }
+@media (min-width: 960px) { .skx-site-hero { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 767px) { .skx-site-nav { display: none !important; } }
+
+/* design studio */
+.skx-studio { height: 100vh; display: grid; grid-template-rows: 56px 1fr; background: var(--bg, #f1f5f9); }
+.skx-studio-top { display: flex; align-items: center; justify-content: space-between; padding: 0 16px; background: var(--bg-card, #fff); border-bottom: 1px solid var(--border, #e5e7eb); }
+.skx-studio-body { display: grid; grid-template-columns: 72px 1fr 280px; min-height: 0; }
+.skx-studio-rail { background: var(--bg-card, #fff); border-right: 1px solid var(--border, #e5e7eb); padding: 14px 12px; display: grid; align-content: start; gap: 14px; }
+.skx-studio-side { background: var(--bg-card, #fff); border-left: 1px solid var(--border, #e5e7eb); padding: 16px; display: grid; align-content: start; gap: 12px; }
+.skx-studio-canvas { display: grid; place-items: center; padding: 24px; }
+@media (max-width: 767px) { .skx-studio-body { grid-template-columns: 1fr; } .skx-studio-rail, .skx-studio-side { display: none; } }
+
+/* brand loading screen */
+.ldr { position: fixed; inset: 0; z-index: 10000; display: grid; place-content: center; justify-items: center; gap: 18px; background: #f7f6f1; animation: ldr-in 160ms ease both; }
+.ldr-out { animation: ldr-fade 220ms ease forwards; }
+.ldr-mark { position: relative; width: 96px; height: 96px; display: grid; place-items: center; }
+.ldr-mark img { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; box-shadow: 0 6px 20px rgba(10, 32, 41, 0.12); }
+.ldr-ring { position: absolute; inset: 0; border-radius: 50%; border: 3px solid rgba(2, 128, 144, 0.15); border-top-color: #028090; border-right-color: #02c39a; animation: ldr-spin 0.8s linear infinite; }
+.ldr p { margin: 0; font: 600 14px/1 ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; letter-spacing: 0.04em; color: #3b4a56; }
+@keyframes ldr-spin { to { transform: rotate(360deg); } }
+@keyframes ldr-in { from { opacity: 0; } }
+@keyframes ldr-fade { to { opacity: 0; visibility: hidden; } }
+@media (prefers-reduced-motion: reduce) { .ldr-ring { animation-duration: 2.4s; } }

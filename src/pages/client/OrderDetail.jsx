@@ -331,7 +331,7 @@ export default function CustomerOrderDetail() {
   if (loading) return (
     <>
       <style>{`@keyframes sk{0%{background-position:-400px 0}100%{background-position:400px 0}}`}</style>
-      <div className="cx-page" style={{ maxWidth:860 }}>
+      <div className="cx-page">
         <div style={{ ...SK, height:22, width:'50%', marginBottom:10 }}/>
         <div style={{ ...SK, height:10, width:'35%', marginBottom:24 }}/>
         <div style={{ ...SK, height:7, marginBottom:20 }}/>
@@ -390,7 +390,7 @@ export default function CustomerOrderDetail() {
 
         .od-toast { bottom:calc(var(--taskbar-h,64px) + 14px + env(safe-area-inset-bottom,0px)); }
         @media (min-width:768px) { .od-toast { bottom:24px; } }
-        .od-wrap { max-width:1120px; margin:0 auto; padding-bottom:40px; }
+        .od-wrap { margin:0 auto; padding-bottom:40px; }
         .od-head { display:flex; flex-direction:column; gap:14px; margin-bottom:16px; align-items:flex-start; width:100%; }
         .od-title { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; width:100%; }
         .od-title h1 { font-size:clamp(20px,3vw,26px); font-weight:800; margin:0 0 4px; color:var(--ink); }
