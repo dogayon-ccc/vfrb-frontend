@@ -141,6 +141,10 @@ function RequireAuth({ children, role }) {
   if (role === 'customer' && user.role !== 'customer') {
     return <Navigate to="/login" replace/>;
   }
+  // The API enforces this too; redirecting here just avoids a screen of 403s.
+  if (role === 'customer' && !user.email_verified_at) {
+    return <Navigate to="/verify-email" replace/>;
+  }
   return children;
 }
 

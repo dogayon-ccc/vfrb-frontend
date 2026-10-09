@@ -16,7 +16,7 @@ export default function Login() {
   const [searchParams, setSearchParams] = useSearchParams();
   const resetSuccess = location.state?.resetSuccess === true;
 
-  const [form, setForm] = useState({ email: '', password: '' });
+  const [form, setForm] = useState({ login: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPw, setShowPw] = useState(false);
@@ -32,7 +32,7 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.email.trim() || !form.password.trim()) { setError('Please enter your email and password.'); return; }
+    if (!form.login.trim() || !form.password.trim()) { setError('Please enter your username or email and your password.'); return; }
     setLoading(true); setError('');
     try {
       const { data } = await axios.post('/api/login', form);
@@ -41,15 +41,14 @@ export default function Login() {
         navigate('/admin/dashboard');
         return;
       }
-      const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-      navigate(data.user.email_verified_at || isLocalhost ? '/dashboard' : '/verify-email');
+      navigate(data.user.email_verified_at ? '/dashboard' : '/verify-email');
     } catch (err) {
       const st = err.response?.status;
       setError(
         !err.response ? 'Cannot reach the server. Check your connection and that the backend is running.'
         : st === 404 ? 'Server endpoint not found (404). The backend is not reachable at this address.'
         : st >= 500 ? 'The server had a problem. Please try again.'
-        : err.response.data?.message ?? 'Invalid email or password.'
+        : err.response.data?.message ?? 'Invalid username/email or password.'
       );
     } finally {
       setLoading(false);
@@ -74,11 +73,11 @@ export default function Login() {
 
       <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div>
-          <label htmlFor="login-email" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Email address</label>
-          <input id="login-email" type="email" autoComplete="username" required aria-invalid={!!error} aria-describedby={error ? 'login-error' : undefined} value={form.email}
-            onChange={e => { set('email', e.target.value); if (error) setError(''); }}
+          <label htmlFor="login-email" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Username or email</label>
+          <input id="login-email" type="text" autoComplete="username" autoCapitalize="none" spellCheck={false} required aria-invalid={!!error} aria-describedby={error ? 'login-error' : undefined} value={form.login}
+            onChange={e => { set('login', e.target.value); if (error) setError(''); }}
             onFocus={() => setFocused('email')} onBlur={() => setFocused('')}
-            placeholder="you@hospital.gov.ph" style={authInput(focused, 'email', error)}/>
+            placeholder="username or you@hospital.gov.ph" style={authInput(focused, 'email', error)}/>
         </div>
 
         <div>
