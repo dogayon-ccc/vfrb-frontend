@@ -17,7 +17,9 @@ import axios from 'axios';
 import { NavIcon } from '../../components/ui/icons';
 import DesignStudioStyles from './design-studio/DesignStudioStyles';
 import { useGarmentCanvas, compositeFrontBack } from './design-studio/useGarmentCanvas';
-import { hasBackView } from './design-studio/garmentAssets';
+import { hasBackView, templateIdFor } from './design-studio/garmentAssets';
+import { EXPORT_FACE_HEIGHT, designPng, designPdf, downloadBlobOrUrl } from './design-studio/designExport';
+import { ENTRIES as GALLERY } from './design-studio/designGallery';
 import CanvasViewport from './design-studio/CanvasViewport';
 import TopBar from './design-studio/TopBar';
 import ToolDrawer from './design-studio/ToolDrawer';
@@ -28,7 +30,8 @@ import InspoGallery from './design-studio/InspoGallery';
 import ShowcaseGallery from './design-studio/ShowcaseGallery';
 import { T, T2, CATS, INIT_CFG, FONTS, zonesFor } from './design-studio/dsShared';
 import { deserializeDesign, serializeDesign } from './design-studio/designSerialization';
-import { familyFor } from './design-studio/garmentCatalog';
+import { familyFor, pieceOf } from './design-studio/garmentCatalog';
+import { SET_ROLES, ROLE_LABEL, DEFAULT_PIECE, otherRole, normalizeSet, withSet } from './design-studio/uniformSet';
 
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────
@@ -54,6 +57,10 @@ export default function DesignStudio() {
   const [has3DLoaded, setHas3DLoaded] = useState(false);
   const [face,       setFace]       = useState('front');   // front / back
   const faceJSON = useRef({ front: [], back: [] }); // TASK O: per-face canvas state
+  // Uniform set (top + bottom). The active piece lives in cfg + canvas; the other piece is a serialized snapshot.
+  const [uset, setUset] = useState(() => {
+    try { return normalizeSet(JSON.parse(sessionStorage.getItem('studio_config') || 'null')?.uniformSet); } catch { return null; }
+  });
 
   const [selObj,     setSelObj]     = useState(null);
   const [activeZone, setActiveZone] = useState('body');
@@ -141,7 +148,7 @@ export default function DesignStudio() {
   // writer on the same wrapper's style.transform made the zoom buttons fight it.
 
   // BUG 2 FIX: pass canvasEl (ref object), not canvasEl.current (null at render)
-  const { addLogo, addText, addShape, updateSelected, deleteSelected, duplicateSelected, exportOverlays, exportPNG, getCanvasJSON, loadCanvasJSON,
+  const { addLogo, addText, addShape, updateSelected, deleteSelected, duplicateSelected, alignSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
           pushHistory, undo, redo, canUndo, canRedo, resizeCanvas, initFailed,
           layers, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
           setDrawMode, setBrushStyle } =
@@ -247,16 +254,24 @@ export default function DesignStudio() {
   // ── Keyboard shortcuts: Ctrl+Z undo, Ctrl+Y redo ────────────────────────
   // MUST be after useGarmentCanvas destructuring — undo/redo are declared there.
   // Moving it before caused "Cannot access 'undo' before initialization" (TDZ crash).
+  // Delete/Backspace, Ctrl+D and arrow nudges act on the canvas selection only: never while typing in a field or editing text on the canvas.
   useEffect(() => {
     const handler = (e) => {
       const mod = e.ctrlKey || e.metaKey;
-      if (!mod) return;
-      if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
-      if (e.key === 'y' || (e.key === 'z' && e.shiftKey)) { e.preventDefault(); redo(); }
+      if (mod && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
+      if (mod && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redo(); return; }
+      const t = e.target;
+      if (t?.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t?.tagName ?? '')) return;
+      if (!selObj || selObj.__garmentBase || selObj.isEditing) return;
+      if (mod && e.key.toLowerCase() === 'd') { e.preventDefault(); duplicateSelected(); return; }
+      if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelected(); return; }
+      const step = e.shiftKey ? 10 : 1;
+      const d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
+      if (d) { e.preventDefault(); nudgeSelected(...d); }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [undo, redo]);
+  }, [undo, redo, selObj, duplicateSelected, deleteSelected, nudgeSelected]);
 
   // TASK O: save current face canvas JSON, then switch face + restore the other
   // Defined AFTER useGarmentCanvas so getCanvasJSON/loadCanvasJSON are in scope (no TDZ)
@@ -392,6 +407,7 @@ export default function DesignStudio() {
     if (!pendingDraft) return;
     const { cfg: restored, frontOverlays, backOverlays } = deserializeDesign(pendingDraft.studio_config);
     setCfg(p => ({ ...p, ...restored }));
+    setUset(normalizeSet(pendingDraft.studio_config?.uniformSet));
     faceJSON.current = { front: frontOverlays, back: backOverlays };
     const toLoad = faceJSON.current[face] ?? [];
     if (toLoad.length > 0) setTimeout(() => loadCanvasJSON(toLoad), 350);
@@ -415,7 +431,7 @@ export default function DesignStudio() {
   // fixed-later pocketType bug that the other two didn't get). One call site
   // now; every field this session's canonical DesignState is responsible for
   // goes through it, and no save can lose the face you're not looking at.
-  const snapshotDesign = useCallback((previewPng) => {
+  const pieceSnapshot = useCallback((previewPng) => {
     faceJSON.current[face] = getCanvasJSON() ?? [];
     return serializeDesign(cfg, {
       overlays:      faceJSON.current.front,
@@ -423,6 +439,49 @@ export default function DesignStudio() {
       backOverlays:  faceJSON.current.back,
     }, previewPng);
   }, [cfg, face, getCanvasJSON]);
+  const snapshotDesign = useCallback((previewPng) => withSet(pieceSnapshot(previewPng), uset), [pieceSnapshot, uset]);
+
+  // Put a piece (serialized snapshot, or a fresh default garment for that role) on the canvas, front view.
+  const loadPiece = useCallback((snap, role) => {
+    const { cfg: c, frontOverlays, backOverlays } = deserializeDesign(snap ?? { garment: DEFAULT_PIECE[role], category: cfg.category });
+    setCfg(p => ({ ...p, ...c, inspirationId: c.inspirationId ?? null }));
+    faceJSON.current = { front: frontOverlays, back: backOverlays };
+    if (face !== 'front') setFace('front');
+    setTimeout(() => loadCanvasJSON(faceJSON.current.front ?? []), 350);
+  }, [cfg.category, face, loadCanvasJSON]);
+
+  const startSet = useCallback(() => {
+    const role = pieceOf(cfg.garment);
+    if (!role || uset) return;
+    const other = otherRole(role);
+    setUset({ id: crypto.randomUUID(), active: other, pieces: { [role]: pieceSnapshot(), [other]: null } });
+    loadPiece(null, other);
+  }, [cfg.garment, uset, pieceSnapshot, loadPiece]);
+
+  const switchPiece = useCallback((role) => {
+    if (!uset || role === uset.active) return;
+    const target = uset.pieces[role];
+    setUset({ ...uset, active: role, pieces: { ...uset.pieces, [uset.active]: pieceOf(cfg.garment) === uset.active ? pieceSnapshot() : uset.pieces[uset.active] } });
+    loadPiece(target, role);
+  }, [uset, cfg.garment, pieceSnapshot, loadPiece]);
+
+  // Keeps the piece on screen as a single design; the other piece is discarded.
+  const leaveSet = useCallback(() => setUset(null), []);
+
+  const pieceBar = !cfg.garment ? null : uset ? (
+    <div className="ds-set-bar" role="group" aria-label="Uniform set pieces">
+      {SET_ROLES.map(r => (
+        <button key={r} type="button" aria-pressed={uset.active === r} onClick={() => switchPiece(r)}>
+          <span>{ROLE_LABEL[r]}</span><strong>{r === uset.active ? cfg.garment : uset.pieces[r]?.garment ?? 'Choose'}</strong>
+        </button>
+      ))}
+      <button type="button" className="ds-set-leave" aria-label="Leave uniform set" title="Keep only this piece" onClick={leaveSet}>×</button>
+    </div>
+  ) : pieceOf(cfg.garment) ? (
+    <button type="button" className="ds-set-add" onClick={startSet}>
+      + {otherRole(pieceOf(cfg.garment)) === 'bottom' ? 'Add a bottom' : 'Add a top'} to make a uniform set
+    </button>
+  ) : null;
 
   // ── Auto-save debounce — fires 30s after last cfg change ─────────────────
   useEffect(() => {
@@ -463,17 +522,76 @@ export default function DesignStudio() {
   }, [cfg, saving, snapshotDesign, exportPNG, flashError]);
 
   // Order This → pass design to OrderWizard
+  // Export files: each face is rendered at EXPORT_FACE_HEIGHT after it has fully drawn (exportFace), then the
+  // live canvas returns to the face the customer was on. Photo bases have no back, so they export front only.
+  const [exporting, setExporting] = useState(null);
+  const captureExportFaces = useCallback(async () => {
+    const originalFace = face;
+    let activeFace = originalFace;
+    faceJSON.current[activeFace] = getCanvasJSON() ?? [];
+    const capture = async (target) => {
+      if (target !== activeFace) {
+        faceJSON.current[activeFace] = getCanvasJSON() ?? [];
+        setFace(target);
+        await new Promise(r => setTimeout(r, 150));
+        const want = faceJSON.current[target] ?? [];
+        loadCanvasJSON(want);
+        for (let i = 0; i < 40 && (getCanvasJSON() ?? []).length !== want.length; i++) await new Promise(r => setTimeout(r, 50));
+        activeFace = target;
+      }
+      return exportFace(target, EXPORT_FACE_HEIGHT);
+    };
+    const faces = [{ label: 'Front', url: await capture('front') }];
+    if (hasBackView(cfg.garment, cfg.sleeve, cfg.fit)) faces.push({ label: 'Back', url: await capture('back') });
+    if (activeFace !== originalFace) {
+      faceJSON.current[activeFace] = getCanvasJSON() ?? [];
+      setFace(originalFace);
+      await new Promise(r => setTimeout(r, 150));
+      loadCanvasJSON(faceJSON.current[originalFace] ?? []);
+    }
+    return faces.every(f => f.url) ? faces : null;
+  }, [face, getCanvasJSON, loadCanvasJSON, exportFace, cfg.garment, cfg.sleeve, cfg.fit]);
+
+  const exportName = ext => `vfrb-${(cfg.name?.trim() || cfg.garment || 'design').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${new Date().toLocaleDateString('en-CA')}.${ext}`; // local YYYY-MM-DD
+
   const downloadImage = useCallback(async () => {
-    if (!cfg.garment) return;
-    const dataUrl = await exportFrontBack();
-    if (!dataUrl) return;
-    const a = document.createElement('a');
-    a.href = dataUrl;
-    a.download = `vfrb-design-${cfg.garment.replace(/\s+/g,'-').toLowerCase()}-${Date.now()}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }, [exportFrontBack, cfg.garment]);
+    if (!cfg.garment || exporting) return;
+    setExporting('png');
+    try {
+      const faces = await captureExportFaces();
+      if (!faces) throw new Error('render');
+      downloadBlobOrUrl(await designPng(faces), exportName('png'));
+    } catch { flashError('Could not export the image. Please try again.'); }
+    finally { setExporting(null); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [captureExportFaces, cfg, exporting, flashError]);
+
+  const downloadPdf = useCallback(async () => {
+    if (!cfg.garment || exporting) return;
+    setExporting('pdf');
+    try {
+      const faces = await captureExportFaces();
+      if (!faces) throw new Error('render');
+      // Same zone list the dock shows: tipping only when the customer actually coloured it.
+      const zones = zonesFor(cfg.garment, cfg.sleeve, cfg.fit).filter(z => z !== 'tipping' || cfg.colors.tipping);
+      const photo = GALLERY.find(d => d.id === cfg.inspirationId);
+      const counts = { front: (faceJSON.current.front ?? []).length, back: (faceJSON.current.back ?? []).length };
+      const rows = [
+        ['Garment', [cfg.garment, cfg.sleeve && `${cfg.sleeve} sleeve`, cfg.fit && cfg.fit !== 'unisex' ? cfg.fit : null].filter(Boolean).join(', ')],
+        ['Category', cfg.category],
+        ['Colours', zones.map(z => `${z}: ${cfg.colors[z] ?? '-'}`).join('  ')],
+        ['Patterns', Object.entries(cfg.patterns ?? {}).filter(([, p]) => p && p !== 'solid').map(([z, p]) => `${z}: ${p}`).join('  ') || 'Solid'],
+        ['Placed items', `Front ${counts.front}${faces.length > 1 ? `, back ${counts.back}` : ''}`],
+        ['Views', faces.map(f => f.label).join(', ') + (faces.length === 1 ? ' (no back view for this garment)' : '')],
+        ['Template', templateIdFor(cfg.garment, cfg.sleeve, cfg.fit) ?? 'Vector template'],
+        ...(photo ? [['Inspired by', photo.name]] : []),
+      ];
+      const pdf = await designPdf(faces, { name: cfg.name?.trim(), garment: cfg.garment, date: new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }), rows });
+      downloadBlobOrUrl(pdf, exportName('pdf'));
+    } catch { flashError('Could not export the PDF. Please try again.'); }
+    finally { setExporting(null); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [captureExportFaces, cfg, exporting, flashError]);
 
   const orderThis = useCallback(async () => {
     if (!cfg.garment || ordering) return;
@@ -508,7 +626,7 @@ export default function DesignStudio() {
   // "in progress" immediately rather than waiting on the async work to resolve.
 
   const catData   = useMemo(() => CATS.find(c=>c.id===cfg.category) ?? CATS[0], [cfg.category]);
-  const zone = zonesFor(cfg.garment, cfg.sleeve).includes(activeZone) ? activeZone : 'body';
+  const zone = zonesFor(cfg.garment, cfg.sleeve, cfg.fit).includes(activeZone) ? activeZone : 'body';
 
   return (
     <>
@@ -605,18 +723,18 @@ export default function DesignStudio() {
 
           {/* ── TOOL STRIP + PANEL DRAWER ── */}
           <ToolDrawer tool={tool} setTool={setTool} sheetOpen={sheetOpen} setSheetOpen={setSheetOpen}
-            summary={{ cfg, face, saved, saving, saveErr, draftSaved, saveDesign, orderThis, ordering, onOpenTool: (id) => { setTool(id); setSheetOpen(true); }, downloadImage, clearGarment }} cfg={cfg} setCfg={setCfg}
+            summary={{ cfg, face, saved, saving, saveErr, draftSaved, saveDesign, orderThis, ordering, onOpenTool: (id) => { setTool(id); setSheetOpen(true); }, downloadImage, downloadPdf, exporting, clearGarment }} cfg={cfg} setCfg={setCfg}
             activeZone={zone} setActiveZone={setActiveZone}
             addText={addText} addShape={addShape} updateSelected={updateSelected}
             assetsTab={assetsTab} setAssetsTab={setAssetsTab} logoUpload={logoUpload}
             setShowInspo={toggleInspo} setShowShowcase={toggleShowcase}
             brushSize={brushSize} brushColor={brushColor}
             changeBrushSize={changeBrushSize} changeBrushColor={changeBrushColor}
-            applyAI={applyAI} layers={layers} selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected}
+            applyAI={applyAI} layers={layers} selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected} alignSelected={alignSelected}
             selectLayer={selectLayer} toggleLayerVisibility={toggleLayerVisibility}
             toggleLayerLock={toggleLayerLock} toggleSelectedLock={toggleSelectedLock} setLayerOpacity={setLayerOpacity}
             pushHistory={pushHistory} viewMode={viewMode} setViewMode={setViewMode} setHas3DLoaded={setHas3DLoaded}
-            renameLayer={renameLayer} deleteLayer={deleteLayer} reorderLayers={reorderLayers}/>
+            renameLayer={renameLayer} deleteLayer={deleteLayer} reorderLayers={reorderLayers} pieceRole={uset?.active ?? null}/>
 
           {/* ── CANVAS AREA ── */}
           <CanvasViewport cfg={cfg} setCfg={setCfg} canvasWrapRef={canvasWrapRef} canvasEl={canvasEl} initFailed={initFailed}
@@ -624,7 +742,8 @@ export default function DesignStudio() {
             selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected}
             viewMode={viewMode} has3DLoaded={has3DLoaded} onLogoFile={onLogoFile}
             zoom={zoom} setZoom={setZoom} snapshot={snapshot} overlays={overlays}
-            onChooseGarment={() => { setTool('type'); setSheetOpen(true); }} pickerOpen={tool === 'type' && (!isNarrow || sheetOpen)} setViewMode={setViewMode}/>
+            onChooseGarment={() => { setTool('type'); setSheetOpen(true); }} pickerOpen={tool === 'type' && (!isNarrow || sheetOpen)} setViewMode={setViewMode}
+            pieceBar={pieceBar}/>
         </div>
 
         {/* ── FIRST-VISIT ONBOARDING OVERLAY ── */}

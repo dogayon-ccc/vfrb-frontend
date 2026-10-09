@@ -55,7 +55,22 @@ export function assetFor(garment, sleeve, face = 'front', fit) {
 // Every photo base has an id; a gallery photo and a saved design resolve to the exact base through (garment, sleeve, face, fit), never through the family name alone.
 export const assetById = id => { for (const g of Object.values(ASSET_2D)) for (const sl of Object.values(g)) for (const f of Object.values(sl)) for (const a of Object.values(f)) if (a.id === id) return a; return null; };
 // Inverse of assetFor: the exact (garment, sleeve, fit) a photo-base templateId stands for, or null. Used to restore a saved design onto the same template.
-export const templateKeyById = id => { for (const [garment, g] of Object.entries(ASSET_2D)) for (const [sleeve, sl] of Object.entries(g)) for (const f of Object.values(sl)) for (const [fit, a] of Object.entries(f)) if (a.id === id) return { garment, sleeve, fit }; return null; };
+// Vector (non-photo) templates that carry their own canonical id. Same (garment, sleeve, fit) key shape as ASSET_2D; the 2D shape is the vector path set in garmentPaths.js.
+export const VECTOR_TEMPLATES = {
+  'Button-Down': { Short: { unisex: { id: 'button-down-work-shirt-short' } } },
+  'Polo Shirt': { Short: { male: { id: 'polo-shirt-short-male' }, female: { id: 'polo-shirt-short-female' } } },
+};
+// Families with no sleeve or fit choice (resolveSleeve/resolveFit return null) have one vector template each.
+export const SINGLE_TEMPLATES = { 'Pants': 'pants-trousers', 'Shorts': 'shorts-standard', 'Skirt': 'skirt-pencil' };
+export const vectorTemplateId = (garment, sleeve, fit) => VECTOR_TEMPLATES[garment]?.[sleeve]?.[fit]?.id ?? (sleeve == null && fit == null ? SINGLE_TEMPLATES[garment] ?? null : null);
+// The canonical templateId for (garment, sleeve, fit): the photo base id, else the vector template id, else null.
+export const templateIdFor = (garment, sleeve, fit) => assetFor(garment, sleeve, 'front', fit)?.id ?? vectorTemplateId(garment, sleeve, fit);
+export const templateKeyById = id => {
+  for (const [garment, g] of Object.entries(ASSET_2D)) for (const [sleeve, sl] of Object.entries(g)) for (const f of Object.values(sl)) for (const [fit, a] of Object.entries(f)) if (a.id === id) return { garment, sleeve, fit };
+  for (const [garment, g] of Object.entries(VECTOR_TEMPLATES)) for (const [sleeve, sl] of Object.entries(g)) for (const [fit, a] of Object.entries(sl)) if (a.id === id) return { garment, sleeve, fit };
+  for (const [garment, tid] of Object.entries(SINGLE_TEMPLATES)) if (tid === id) return { garment, sleeve: null, fit: null };
+  return null;
+};
 // Only the front is photographed: a photo-based garment has no back view (the vector back would be a different garment).
 export const hasBackView = (garment, sleeve, fit) => !assetFor(garment, sleeve, 'front', fit) || !!assetFor(garment, sleeve, 'back', fit);
 // Which zones a photo base can recolour, as customer-facing copy.

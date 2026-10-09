@@ -1,0 +1,48 @@
+VFRB READY-TO-COPY PUBLIC ASSET PACKAGE
+
+WHAT IS INCLUDED
+- 30 PNG masters from the uploaded preview ZIP
+- 30 WebP gallery previews generated from those PNGs
+- all 39 supplied Meshy GLBs
+- asset-inventory.csv and asset-inventory.json
+- prepare_vfrb_public_assets.py
+
+INSTALL INTO FRONTEND
+1. Open your vfrb-frontend repository.
+2. Copy everything inside this package's public/ directory into:
+      vfrb-frontend/public/
+3. Keep the PNG masters under:
+      public/garments2d/source/
+4. Keep the WebP previews under:
+      public/gallery/
+5. The Meshy originals are staged under:
+      public/models/garments/incoming-meshy/
+
+IMPORTANT 3D RULE
+The incoming-meshy directory is deliberately separate from the active
+public/models/garments/ directory. A GLB existing or parsing does NOT prove that
+it is the correct garment or that it is verified 3D.
+
+ACTIVATE ONE TESTED GLB
+Use the importer script with an exact canonical template ID, for example:
+
+  python prepare_vfrb_public_assets.py \
+    --png-zip "Replace the webp in the gallery with these pngs as preview.zip" \
+    --glb-zip "Converted pngs to 3d glb using meshy AI.zip" \
+    --frontend-root . \
+    --activate scrub-top-women-short
+
+Multiple tested IDs can be passed after --activate.
+
+CANDIDATE MAPPING
+asset-inventory.csv/json show filename-stem candidate matches. They are NOT a
+replacement for the app's canonical garment manifest. Confirm the visual/semantic
+mapping before activating a GLB.
+
+REUSING THE SCRIPT
+The script uses Pillow for PNG -> WebP and trimesh for optional GLB inspection.
+Fast import is the default. Add --inspect-glb only when you want geometry/material
+inspection of the full GLB set. Add --hash-glb only when you explicitly need
+checksums for all GLBs.
+
+The script will not overwrite an existing active GLB automatically.

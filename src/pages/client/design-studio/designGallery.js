@@ -39,6 +39,10 @@ const BASES = {
   'shirt-utility-beige-long': ['Industrial / Work', 'Button-Down', 'Long', null],
   'bir-blouse-trousers-blue': ['Corporate', 'Button-Down', 'Long', 'button-down-bir-long'],
   'blouse-roundneck-fuchsia': ['Corporate', 'Round Neck', 'Short', 'round-neck-fuchsia-short'],
+  // v3 product photos of single bottoms: each opens its own family's vector template (the family's 3D scan is a different garment, so the photo stays editable-2d).
+  'pants':           ['Corporate', 'Pants', null, null],
+  'shorts':          ['School Uniform', 'Shorts', null, null],
+  'corporate-skirt': ['Corporate', 'Skirt', null, null],
 };
 
 // sleeve = sleeve of the top/dress piece (null when no sleeve). source = how the photo was shot; worn = model photo with the body removed; mannequin/hanger photos fuse the
@@ -98,6 +102,13 @@ export const DESIGNS = [
   D('polo-red-claremont',      'Polo Shirt (Embroidered Logo)', 'corporate',   'unisex', 'upper', 'Short', 'Polo collar',   'worn'),
   D('shirt-two-tone-gpc',      'Two-Tone Short-Sleeve Shirt and Slacks','corporate','male','set', 'Short', 'Point collar',   'worn', ['upper', 'lower']),
   D('peplum-set-navy',         'Peplum Top and Pencil Skirt',   'corporate',   'female', 'set',   'Short', 'Square neck',    'worn', ['upper', 'lower']),
+  // product = supplied ghost-mannequin product photo (v3 previews, masters in public/garments2d/source). Reference only on purpose: school-skirt is pleated
+  // (the Skirt template and its 3D scan are a pencil skirt) and blazer-blouse-blue has a notch collar no template has.
+  D('pants',                   'Dress Slacks',                  'corporate',   'male',   'lower', null,    null,             'product'),
+  D('shorts',                  'School Shorts',                 'school',      'male',   'lower', null,    null,             'product'),
+  D('corporate-skirt',         'Pencil Skirt',                  'corporate',   'female', 'lower', null,    null,             'product'),
+  D('school-skirt',            'Pleated School Skirt',          'school',      'female', 'lower', null,    null,             'product'),
+  D('blazer-blouse-blue',      'Notch-Collar Short-Sleeve Blouse','corporate', 'female', 'upper', 'Short', 'Notch lapel',    'product'),
 ];
 
 export const TIER_LABEL = {

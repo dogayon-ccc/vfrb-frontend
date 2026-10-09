@@ -51,6 +51,9 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   const [initFailed, setInitFailed] = useState(false);
   const [ready, setReady] = useState(false);
   const redrawToken = useRef(0);
+  // Latest props for exportFace, which polls across a face switch.
+  const latest = useRef({ garment, sleeve, face });
+  latest.current = { garment, sleeve, face };
 
   // Init once on mount. useLayoutEffect (not useEffect) so cleanup runs
   // before React's own DOM removal — avoids a removeChild race with
@@ -323,12 +326,16 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     historyLock.current = true;
     const canvas = fc.current;
     if (!canvas) { historyLock.current = false; return; }
+    // Undo/redo rebuilds every overlay; keep the same element selected (by layer id) so editing continues.
+    const activeId = canvas.getActiveObject()?.__layerId ?? null;
     canvas.getObjects().filter(o => !o.__garmentBase && !o.__hoverGlow).forEach(o => canvas.remove(o));
     import('fabric').then((mod) => { const fabric = mod.fabric ?? mod.default ?? mod;
       if (!snapshot || snapshot.length === 0) { canvas.renderAll(); historyLock.current = false; bumpLayers(); return; }
       Promise.resolve(fabric.util.enlivenObjects(snapshot))
         .then(enlivened => {
           (enlivened ?? []).forEach(obj => canvas.add(obj));
+          const again = activeId && (enlivened ?? []).find(o => o.__layerId === activeId);
+          if (again) canvas.setActiveObject(again);
           canvas.renderAll();
           historyLock.current = false;
           bumpLayers();
@@ -503,6 +510,70 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       bumpLayers();
     }).catch(() => {});
   }, [pushHistory, bumpLayers]);
+
+  // Moves the selected unlocked element so its bounding box lines up with the garment (union of the
+  // base zones), or with the canvas when no garment is drawn. where: left | hcenter | right | top | vcenter | bottom.
+  const alignSelected = useCallback((where) => {
+    const canvas = fc.current;
+    const obj = canvas?.getActiveObject();
+    if (!obj || obj.__garmentBase || obj.__hoverGlow || obj.__locked) return;
+    const bases = canvas.getObjects().filter(o => o.__garmentBase && o.visible !== false);
+    const rects = bases.map(o => o.getBoundingRect());
+    const area = rects.length
+      ? (() => { const l = Math.min(...rects.map(r => r.left)), t = Math.min(...rects.map(r => r.top));
+          return { left: l, top: t, width: Math.max(...rects.map(r => r.left + r.width)) - l, height: Math.max(...rects.map(r => r.top + r.height)) - t }; })()
+      : { left: 0, top: 0, width: canvas.getWidth(), height: canvas.getHeight() };
+    const box = obj.getBoundingRect();
+    const dx = { left: area.left - box.left, right: area.left + area.width - box.left - box.width, hcenter: area.left + (area.width - box.width) / 2 - box.left }[where] ?? 0;
+    const dy = { top: area.top - box.top, bottom: area.top + area.height - box.top - box.height, vcenter: area.top + (area.height - box.height) / 2 - box.top }[where] ?? 0;
+    if (!dx && !dy) return;
+    obj.set({ left: (obj.left ?? 0) + dx, top: (obj.top ?? 0) + dy });
+    obj.setCoords();
+    canvas.renderAll();
+    pushHistory();
+    bumpLayers();
+  }, [pushHistory, bumpLayers]);
+
+  // Keyboard nudge for the selected unlocked element (not while its text is being edited).
+  const nudgeSelected = useCallback((dx, dy) => {
+    const canvas = fc.current;
+    const obj = canvas?.getActiveObject();
+    if (!obj || obj.__garmentBase || obj.__hoverGlow || obj.__locked || obj.isEditing) return;
+    obj.set({ left: (obj.left ?? 0) + dx, top: (obj.top ?? 0) + dy });
+    obj.setCoords();
+    canvas.renderAll();
+    pushHistory();
+    bumpLayers();
+  }, [pushHistory, bumpLayers]);
+
+  // Renders one face for export at a fixed output height once that face has finished drawing: the canvas is on
+  // `targetFace`, sized for it, every garment image has loaded and the object list is stable. Hover glow and the
+  // selection box are never part of the file. Returns a transparent PNG data URL, or null if the face never settles.
+  const exportFace = useCallback(async (targetFace, outHeight = 1600) => {
+    const sig = c => c.getObjects().map(o => (o.__garmentBase ? 'g' : o.__hoverGlow ? 'h' : 'o') + (o._element && !o._element.complete ? '!' : '')).join('');
+    let prev = null;
+    for (let i = 0; i < 60; i++) {
+      await new Promise(r => setTimeout(r, 50));
+      const c = fc.current;
+      if (!c || latest.current.face !== targetFace) continue;
+      const { w, h } = getGarmentPaths(latest.current.garment, latest.current.sleeve, targetFace);
+      const now = sig(c);
+      if (c.getWidth() === w && c.getHeight() === h && now.includes('g') && !now.includes('!') && now === prev) break;
+      prev = now;
+    }
+    const canvas = fc.current;
+    if (!canvas || latest.current.face !== targetFace) return null;
+    const active = canvas.getActiveObject();
+    const glow = canvas.getObjects().filter(o => o.__hoverGlow);
+    if (active) canvas.discardActiveObject();
+    glow.forEach(o => { o.visible = false; });
+    canvas.renderAll();
+    const url = canvas.toDataURL({ format: 'png', multiplier: outHeight / canvas.getHeight() });
+    glow.forEach(o => { o.visible = true; });
+    if (active && canvas.getObjects().includes(active)) canvas.setActiveObject(active);
+    canvas.renderAll();
+    return url;
+  }, []);
 
   // Toggles Fabric's PencilBrush. Caller must setDrawMode(false) on tab-exit
   // to restore normal selection.
@@ -705,7 +776,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   }, [findLayer, pushHistory, bumpLayers]);
 
   return {
-    addLogo, addText, addShape, updateSelected, deleteSelected, duplicateSelected, exportOverlays, exportPNG, getCanvasJSON, loadCanvasJSON,
+    addLogo, addText, addShape, updateSelected, deleteSelected, duplicateSelected, alignSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
     pushHistory, undo, redo, canUndo, canRedo, resizeCanvas,
     layers, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
     setDrawMode, setBrushStyle, initFailed,

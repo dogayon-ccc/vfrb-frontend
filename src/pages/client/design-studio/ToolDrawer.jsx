@@ -24,7 +24,7 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, sum
 
   const PANELS = {
     type:    () => <TypePanel cfg={p.cfg} setCfg={p.setCfg} setActiveZone={p.setActiveZone} onOpenTool={summary.onOpenTool}
-                     viewMode={p.viewMode} setViewMode={p.setViewMode} setHas3DLoaded={p.setHas3DLoaded}/>,
+                     viewMode={p.viewMode} setViewMode={p.setViewMode} setHas3DLoaded={p.setHas3DLoaded} pieceRole={p.pieceRole}/>,
     color:   () => <ColorsPanel cfg={p.cfg} setCfg={p.setCfg} activeZone={p.activeZone} setActiveZone={p.setActiveZone}/>,
     assets:  () => <AssetsPanel tab={p.assetsTab} setTab={p.setAssetsTab} cfg={p.cfg} logo={p.logoUpload}
                      shapes={{ selObj:p.selObj, onAdd:p.addShape, onUpdate:p.updateSelected }}
@@ -32,7 +32,7 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, sum
     text:    () => <TextPanel onAdd={p.addText} bodyColor={p.cfg?.colors?.body}/>,
     draw:    () => <DrawPanel size={p.brushSize} color={p.brushColor} onSizeChange={p.changeBrushSize} onColorChange={p.changeBrushColor}/>,
     ai:      () => <AIPanel onApply={p.applyAI} onTexture={noop}/>,
-    pattern: () => (assetFor(p.cfg.garment, p.cfg.sleeve)
+    pattern: () => (assetFor(p.cfg.garment, p.cfg.sleeve, 'front', p.cfg.fit)
       ? <p className="ds-note" style={{ padding:'20px 4px', textAlign:'center' }}>Patterns are not available on a real-photo garment base. Switch the sleeve or garment to use them.</p>
       : <PatternPanel cfg={p.cfg} setCfg={p.setCfg} activeZone={p.activeZone}/>),
     layers:  () => <LayersPanel layers={p.layers} selectedId={p.selObj?.__layerId} garment={p.cfg.garment} onSelect={p.selectLayer}
@@ -44,7 +44,7 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, sum
     selected: () => (
       <div className="ds-sum">
         {hasSelection
-          ? <SelectionInspector selObj={p.selObj} updateSelected={p.updateSelected} deleteSelected={p.deleteSelected} duplicateSelected={p.duplicateSelected}
+          ? <SelectionInspector selObj={p.selObj} updateSelected={p.updateSelected} deleteSelected={p.deleteSelected} duplicateSelected={p.duplicateSelected} alignSelected={p.alignSelected}
               toggleSelectedLock={p.toggleSelectedLock} pushHistory={p.pushHistory}/>
           : <p className="ds-sum-sub" style={{ padding:'24px 4px', textAlign:'center' }}>
               Tap a placed logo, text or shape on the canvas to edit it.

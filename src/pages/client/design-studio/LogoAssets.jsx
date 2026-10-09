@@ -71,7 +71,7 @@ export default function LogoAssets({ cfg, logo }) {
   const noGarment = !cfg.garment;
   const working = logo.status.phase === 'working';
   const blocked = noGarment || working;
-  const presets = placementsFor(cfg.garment, cfg.sleeve);
+  const presets = placementsFor(cfg.garment, cfg.sleeve, cfg.fit);
   const placement = presets.some((p) => p.id === logo.placement) ? logo.placement : presets[0].id;
   const modeHint = MODES.find((m) => m.id === logo.mode)?.hint;
   const art = logo.kind === 'artwork';

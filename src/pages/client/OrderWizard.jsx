@@ -8,7 +8,8 @@ import DesignPreview from '../../components/DesignPreview';
 import { useNavigate }                                   from 'react-router-dom';
 import { motion, AnimatePresence }                       from 'framer-motion';
 import axios                                             from 'axios';
-import MaterialsReveal                                   from './MaterialsReveal'; // post-submit AI-materials reveal, see its own header for SCOPE-001
+import MaterialsReveal                                   from './MaterialsReveal';
+import { orderQueue, setNote }                           from './design-studio/uniformSet'; // post-submit AI-materials reveal, see its own header for SCOPE-001
 import { NavIcon }                                        from '../../components/ui/icons';
 import { zonesFor }                                       from './design-studio/dsShared';
 import useDialogFocus                                    from '../../hooks/useDialogFocus';
@@ -1167,13 +1168,15 @@ export default function OrderWizard() {
   }, []);
   // Once set, short-circuits the wizard for the blocking MaterialsReveal screen.
   const [createdOrder,   setCreatedOrder]   = useState(null);
+  // Uniform set: one order per piece, submitted in turn; later pieces carry the earlier order ids.
+  const [setQueue, setSetQueue] = useState(null);
+  const [setIdx,   setSetIdx]   = useState(0);
+  const setOrderIds = useRef([]);
+  const moreInSet = !!setQueue && setIdx < setQueue.length - 1;
 
-  // Read studio_config from DesignStudio on mount
-  useEffect(() => {
+  // Pre-fill from one design snapshot: a single design, or one piece of a uniform set.
+  const applyStudio = (cfg) => {
     try {
-      const raw = sessionStorage.getItem('studio_config');
-      if (!raw) return;
-      const cfg = JSON.parse(raw);
       // Canonical fields (garment/sleeve/collar) with a legacy-alias fallback, matching the
       // same cfg.garmentType ?? cfg.garment pattern StudioBanner already uses below (line ~117)
       // — this mount effect was the one place in the file that only checked the legacy name,
@@ -1208,6 +1211,19 @@ export default function OrderWizard() {
       // Design Summary step to order logistics (Quantity & Sizes).
       if (studioComplete(garmentName, derivedCollar, derivedSleeve, notes, true)) setStep(1);
     } catch { /* silent */ }
+  };
+
+  // Read studio_config from DesignStudio on mount
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem('studio_config');
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      const q = orderQueue(parsed);
+      if (q) setSetQueue(q);
+      applyStudio(q ? q[0] : parsed);
+    } catch { /* silent */ }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const clearStudio = () => {
@@ -1291,7 +1307,9 @@ export default function OrderWizard() {
       if (form.quantity_ordered) fd.append('quantity_ordered', form.quantity_ordered);
       if (form.deadline)         fd.append('deadline',         form.deadline);
       if (form.po_reference)     fd.append('po_reference',     form.po_reference);
-      if (form.special_notes)    fd.append('special_notes',    form.special_notes);
+      const setLine = studio?.uniformSet ? setNote(studio.uniformSet) : '';
+      const notesOut = [setLine, form.special_notes].filter(Boolean).join('\n');
+      if (notesOut)              fd.append('special_notes',    notesOut);
       // Backend reads this as 'design_ref_file' (OrderController::customerStore).
       if (form.design_ref_file)  fd.append('design_ref_file', form.design_ref_file);
       if (studio) {
@@ -1326,9 +1344,17 @@ export default function OrderWizard() {
       const r = await axios.post('/api/customer/orders', fd,
         { headers:{ 'Content-Type':'multipart/form-data' } });
 
-      // Ordered from My Designs' draft: the draft is now an order, so retire it (Studio's own "Order this" does the same).
-      if (sessionStorage.getItem('studio_from_draft')) axios.delete('/api/customer/drafts/latest').catch(() => {});
-      clearStudioHandoff();
+      const newId = r.data.order?.order_id ?? r.data.order_id;
+      if (moreInSet) {
+        // Keep the remaining piece in the handoff so a refresh mid-set does not lose it.
+        setOrderIds.current = [...setOrderIds.current, newId];
+        const next = setQueue[setIdx + 1];
+        try { sessionStorage.setItem('studio_config', JSON.stringify({ ...next, uniformSet: { ...next.uniformSet, linkedOrderIds: setOrderIds.current } })); } catch { /* quota */ }
+      } else {
+        // Ordered from My Designs' draft: the draft is now an order, so retire it (Studio's own "Order this" does the same).
+        if (sessionStorage.getItem('studio_from_draft')) axios.delete('/api/customer/drafts/latest').catch(() => {});
+        clearStudioHandoff();
+      }
 
       // Confetti fires immediately; MaterialsReveal mounts once it finishes.
       setShowConfetti(true);
@@ -1366,7 +1392,15 @@ export default function OrderWizard() {
       {createdOrder && (
         <MaterialsReveal
           order={createdOrder}
-          onDone={() => nav(`/orders/${createdOrder.order_id}`, { state: { justCreated: true } })}
+          onDone={() => {
+            if (!moreInSet) { nav(`/orders/${createdOrder.order_id}`, { state: { justCreated: true } }); return; }
+            // Next piece of the set: same delivery details, its own garment, quantity and sizes.
+            const next = setQueue[setIdx + 1];
+            setSetIdx(setIdx + 1);
+            setCreatedOrder(null); setShowConfetti(false); setErrs({}); setDir(1); setStudio(null);
+            setForm(f => ({ ...INIT, order_type: f.order_type, deadline: f.deadline, po_reference: f.po_reference, special_notes: f.special_notes }));
+            applyStudio({ ...next, uniformSet: { ...next.uniformSet, linkedOrderIds: setOrderIds.current } });
+          }}
         />
       )}
       {!createdOrder && (
@@ -1408,6 +1442,12 @@ export default function OrderWizard() {
         </div>
         <p className="sr-only" role="status" aria-live="polite">{`Step ${step + 1} of ${STEPS.length}: ${STEPS[step]}`}</p>
         <StepBar step={step}/>
+        {setQueue && (
+          <p className="wz-set" role="status" style={{ margin:'0 0 14px', padding:'10px 14px', borderRadius:12, background:'var(--teal-50, #e6f4f5)', border:'1px solid var(--border)', fontSize:13, color:'var(--ink)' }}>
+            Uniform set · part {setIdx + 1} of {setQueue.length}: <strong>{setQueue[setIdx].garment}</strong>
+            {moreInSet ? <> · next: {setQueue[setIdx + 1].garment}</> : setOrderIds.current.length ? <> · with order #{setOrderIds.current.join(', #')}</> : null}
+          </p>
+        )}
         {(studio || form.garment_type) && (
           <div className="wz-mini" aria-label="Order snapshot">
             <style>{`.wz-mini{display:none;align-items:center;gap:12px;padding:10px 12px;margin-bottom:14px;border:1px solid var(--border);border-radius:14px;background:#fff}.wz-mini-t{width:48px;height:48px;border-radius:10px;display:grid;place-items:center;overflow:hidden;flex-shrink:0}.wz-mini-t img{width:100%;height:100%;object-fit:contain}.wz-mini-n{margin:0;font-size:14px;font-weight:800;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wz-mini-s{margin:2px 0 0;font-size:12px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}@media(max-width:639px){.wz-mini{display:flex}}`}</style>
