@@ -512,6 +512,8 @@ export default function DesignStudioStyles() {
       .ds-ins-note{font-size:var(--text-2xs);color:var(--text-subtle);text-align:center;line-height:1.5;margin:0;}
       .ds-act--danger{color:#dc2626;border-color:rgba(220,38,38,.3);}
       .ds-ins-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+      .ds-ins-align{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px;}
+      .ds-ins-align .ds-act{min-height:36px;padding:0 6px;font-size:12px;justify-content:center;}
       .ds-ins-actions .ds-act{min-height:44px;}
 
       .ds-dock{flex-shrink:0;padding-bottom:max(14px,env(safe-area-inset-bottom));}

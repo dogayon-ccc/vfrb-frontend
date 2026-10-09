@@ -141,7 +141,7 @@ export default function DesignStudio() {
   // writer on the same wrapper's style.transform made the zoom buttons fight it.
 
   // BUG 2 FIX: pass canvasEl (ref object), not canvasEl.current (null at render)
-  const { addLogo, addText, addShape, updateSelected, deleteSelected, duplicateSelected, exportOverlays, exportPNG, getCanvasJSON, loadCanvasJSON,
+  const { addLogo, addText, addShape, updateSelected, deleteSelected, duplicateSelected, alignSelected, nudgeSelected, exportOverlays, exportPNG, getCanvasJSON, loadCanvasJSON,
           pushHistory, undo, redo, canUndo, canRedo, resizeCanvas, initFailed,
           layers, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
           setDrawMode, setBrushStyle } =
@@ -247,16 +247,24 @@ export default function DesignStudio() {
   // ── Keyboard shortcuts: Ctrl+Z undo, Ctrl+Y redo ────────────────────────
   // MUST be after useGarmentCanvas destructuring — undo/redo are declared there.
   // Moving it before caused "Cannot access 'undo' before initialization" (TDZ crash).
+  // Delete/Backspace, Ctrl+D and arrow nudges act on the canvas selection only: never while typing in a field or editing text on the canvas.
   useEffect(() => {
     const handler = (e) => {
       const mod = e.ctrlKey || e.metaKey;
-      if (!mod) return;
-      if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
-      if (e.key === 'y' || (e.key === 'z' && e.shiftKey)) { e.preventDefault(); redo(); }
+      if (mod && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
+      if (mod && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redo(); return; }
+      const t = e.target;
+      if (t?.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t?.tagName ?? '')) return;
+      if (!selObj || selObj.__garmentBase || selObj.isEditing) return;
+      if (mod && e.key.toLowerCase() === 'd') { e.preventDefault(); duplicateSelected(); return; }
+      if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelected(); return; }
+      const step = e.shiftKey ? 10 : 1;
+      const d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
+      if (d) { e.preventDefault(); nudgeSelected(...d); }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [undo, redo]);
+  }, [undo, redo, selObj, duplicateSelected, deleteSelected, nudgeSelected]);
 
   // TASK O: save current face canvas JSON, then switch face + restore the other
   // Defined AFTER useGarmentCanvas so getCanvasJSON/loadCanvasJSON are in scope (no TDZ)
@@ -612,7 +620,7 @@ export default function DesignStudio() {
             setShowInspo={toggleInspo} setShowShowcase={toggleShowcase}
             brushSize={brushSize} brushColor={brushColor}
             changeBrushSize={changeBrushSize} changeBrushColor={changeBrushColor}
-            applyAI={applyAI} layers={layers} selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected}
+            applyAI={applyAI} layers={layers} selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected} alignSelected={alignSelected}
             selectLayer={selectLayer} toggleLayerVisibility={toggleLayerVisibility}
             toggleLayerLock={toggleLayerLock} toggleSelectedLock={toggleSelectedLock} setLayerOpacity={setLayerOpacity}
             pushHistory={pushHistory} viewMode={viewMode} setViewMode={setViewMode} setHas3DLoaded={setHas3DLoaded}
