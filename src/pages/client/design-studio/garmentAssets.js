@@ -60,12 +60,15 @@ export const VECTOR_TEMPLATES = {
   'Button-Down': { Short: { unisex: { id: 'button-down-work-shirt-short' } } },
   'Polo Shirt': { Short: { male: { id: 'polo-shirt-short-male' }, female: { id: 'polo-shirt-short-female' } } },
 };
-export const vectorTemplateId = (garment, sleeve, fit) => VECTOR_TEMPLATES[garment]?.[sleeve]?.[fit]?.id ?? null;
+// Families with no sleeve or fit choice (resolveSleeve/resolveFit return null) have one vector template each.
+export const SINGLE_TEMPLATES = { 'Pants': 'pants-trousers', 'Shorts': 'shorts-standard', 'Skirt': 'skirt-pencil' };
+export const vectorTemplateId = (garment, sleeve, fit) => VECTOR_TEMPLATES[garment]?.[sleeve]?.[fit]?.id ?? (sleeve == null && fit == null ? SINGLE_TEMPLATES[garment] ?? null : null);
 // The canonical templateId for (garment, sleeve, fit): the photo base id, else the vector template id, else null.
 export const templateIdFor = (garment, sleeve, fit) => assetFor(garment, sleeve, 'front', fit)?.id ?? vectorTemplateId(garment, sleeve, fit);
 export const templateKeyById = id => {
   for (const [garment, g] of Object.entries(ASSET_2D)) for (const [sleeve, sl] of Object.entries(g)) for (const f of Object.values(sl)) for (const [fit, a] of Object.entries(f)) if (a.id === id) return { garment, sleeve, fit };
   for (const [garment, g] of Object.entries(VECTOR_TEMPLATES)) for (const [sleeve, sl] of Object.entries(g)) for (const [fit, a] of Object.entries(sl)) if (a.id === id) return { garment, sleeve, fit };
+  for (const [garment, tid] of Object.entries(SINGLE_TEMPLATES)) if (tid === id) return { garment, sleeve: null, fit: null };
   return null;
 };
 // Only the front is photographed: a photo-based garment has no back view (the vector back would be a different garment).

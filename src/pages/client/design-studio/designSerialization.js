@@ -23,6 +23,10 @@
 
 import { resolveSleeve, resolveFit, LEGACY_GARMENT } from './garmentCatalog';
 import { assetFor, templateIdFor, templateKeyById } from './garmentAssets';
+import { ENTRIES as GALLERY } from './designGallery';
+
+// A gallery photo id is kept only while the design is still on the family that photo opens (reference, never geometry).
+const inspirationFor = (id, garment) => (typeof id === 'string' && GALLERY.find(d => d.id === id)?.base?.[1] === garment ? id : null);
 
 export const DEFAULT_CFG = {
   name: '',
@@ -76,6 +80,7 @@ export function serializeDesign(cfg, overlaysBundle = {}, previewPng) {
   });
   // Canonical template identity: photo-base id or registered vector-template id for (garment, sleeve, fit), else null.
   out.templateId = out.garment ? templateIdFor(out.garment, out.sleeve, out.fit) : null;
+  out.inspirationId = inspirationFor(cfg.inspirationId, out.garment);
   if (previewPng) out.previewPng = previewPng;
   return out;
 }
@@ -111,6 +116,7 @@ export function deserializeDesign(raw) {
     patterns:      { ...DEFAULT_CFG.patterns, ...(sc.patterns && typeof sc.patterns === 'object' ? sc.patterns : {}) },
     patternParams: { ...(sc.patternParams && typeof sc.patternParams === 'object' ? sc.patternParams : {}) },
   };
+  cfg.inspirationId = inspirationFor(sc.inspirationId, cfg.garment);
   if (assetFor(cfg.garment, cfg.sleeve, 'front', cfg.fit)) {
     cfg.patterns = { ...DEFAULT_CFG.patterns };
     cfg.patternParams = {};
