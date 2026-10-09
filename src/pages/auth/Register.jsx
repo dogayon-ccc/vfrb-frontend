@@ -1,4 +1,4 @@
-// POST /api/register — verified fields: name, email, password, password_confirmation, contact_number, organization_name, business_registration_number (optional), client_type.
+// POST /api/register — verified fields: name, username, email, password, password_confirmation, contact_number, organization_name, business_registration_number (optional), client_type.
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ViewLink as Link } from '../../components/ViewLink';
@@ -28,7 +28,7 @@ const STRENGTH_COLOR = ['', 'var(--danger)', '#f97316', '#eab308', 'var(--succes
 export default function CustomerRegister() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
-    name: '', email: '', password: '', password_confirmation: '',
+    name: '', username: '', email: '', password: '', password_confirmation: '',
     contact_number: '', organization_name: '', business_registration_number: '', client_type: '',
   });
   const [errors, setErrors] = useState({});
@@ -39,13 +39,14 @@ export default function CustomerRegister() {
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const strength = pwStrength(form.password);
   const firstError = (field) => errors?.[field]?.[0];
-  const SHOWN = ['name', 'email', 'client_type', 'organization_name', 'business_registration_number', 'contact_number', 'password', 'password_confirmation', 'agreed', 'general'];
+  const SHOWN = ['name', 'username', 'email', 'client_type', 'organization_name', 'business_registration_number', 'contact_number', 'password', 'password_confirmation', 'agreed', 'general'];
   const stray = Object.keys(errors).find(k => !SHOWN.includes(k) && errors[k]);
   const general = firstError('general') ?? (stray ? firstError(stray) : undefined);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrors({});
+    if (!/^[A-Za-z0-9._]{3,30}$/.test(form.username.trim())) { setErrors({ username: ['Use 3-30 letters, numbers, dots or underscores.'] }); return; }
     if (!form.client_type) { setErrors({ client_type: ['Select your organization type.'] }); return; }
     if (!form.organization_name.trim()) { setErrors({ organization_name: ['Enter your organization name.'] }); return; }
     if (!agreed) { setErrors({ agreed: ['Please agree to the Terms of Service and Privacy Policy to continue.'] }); return; }
@@ -55,8 +56,7 @@ export default function CustomerRegister() {
     try {
       const { data } = await axios.post('/api/register', form);
       startSession(data.token, data.user);
-      const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-      navigate(data.user?.email_verified_at || isLocalhost ? '/dashboard' : '/verify-email');
+      navigate(data.user?.email_verified_at ? '/dashboard' : '/verify-email');
     } catch (err) {
       setErrors(err.response?.data?.errors ?? { general: [err.response?.data?.message ?? 'Registration failed. Please try again.'] });
     } finally {
@@ -85,6 +85,15 @@ export default function CustomerRegister() {
             onFocus={() => setFocused('name')} onBlur={() => setFocused('')}
             placeholder="Juan Dela Cruz" style={authInput(focused, 'name', firstError('name'))}/>
           <FieldError id="reg-name" msg={firstError('name')}/>
+        </div>
+
+        <div>
+          <label htmlFor="reg-username" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Username</label>
+          <input id="reg-username" {...fieldA11y('reg-username', firstError('username'))} autoComplete="username" autoCapitalize="none" spellCheck={false} required
+            maxLength={30} value={form.username} onChange={e => set('username', e.target.value)}
+            onFocus={() => setFocused('username')} onBlur={() => setFocused('')}
+            placeholder="e.g. juan.delacruz" style={authInput(focused, 'username', firstError('username'))}/>
+          <FieldError id="reg-username" msg={firstError('username')}/>
         </div>
 
         <div>

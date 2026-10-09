@@ -78,6 +78,10 @@ export function installResponseGuards() {
         error.response.data = { ...error.response.data, message: STATUS_TEXT[status] ?? SERVER_ERROR };
       }
       const isAuthCall = AUTH_CALLS.some((p) => (error.config?.url || '').includes(p));
+      // Unverified client hit a client-only endpoint: send them to confirm their email.
+      if (status === 403 && error.response?.data?.code === 'email_unverified' && window.location.pathname !== '/verify-email') {
+        window.location.replace('/verify-email');
+      }
       if (status === 401 && localStorage.getItem(TOKEN) && !isAuthCall) {
         clearSession();
         if (!LOGGED_OUT_PAGES.includes(window.location.pathname)) window.location.replace('/login');
