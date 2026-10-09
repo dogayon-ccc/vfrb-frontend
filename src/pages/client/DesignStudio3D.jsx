@@ -17,7 +17,7 @@
 
 import { useRef, useMemo, useState, useEffect, Suspense } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { familyFor } from './design-studio/garmentCatalog';
+import { familyFor, resolveTarget } from './design-studio/garmentCatalog';
 import { OrbitControls, ContactShadows, Float, Environment, Lightformer } from '@react-three/drei';
 import * as THREE from 'three';
 import { scannedEntryFor, patternsFor3D } from './design-studio/garmentMeshManifest';
@@ -317,6 +317,7 @@ function GarmentMesh({ cfg, referenceTexture, overlays }) {
   const isPants    = /pant|scrub.?p|trouser/i.test(gt);
   const isShorts   = /short/i.test(gt);
   const scanned    = scannedEntryFor(gt, cfg.sleeve, cfg.fit ?? cfg.gender);
+  const target = resolveTarget(cfg.garment ?? cfg.garmentType, cfg.sleeve, cfg.fit ?? cfg.gender);
 
   const shirt = <ShirtMesh colors={colors} sleeveType={sleeve} collarType={collar} referenceTexture={referenceTexture}/>;
   // A failed GLB load falls back to the matching primitive, never a shirt for a skirt/pants/shorts.
@@ -327,7 +328,7 @@ function GarmentMesh({ cfg, referenceTexture, overlays }) {
     const fit = cfg.fit ?? cfg.gender;
     return (
       <GarmentMeshErrorBoundary key={`${gt}-${fit}`} fallback={primitive}>
-        <ScannedGarmentMesh manifest={scanned} colors={colors} patterns={patternsFor3D(scanned, cfg.patterns)} patternParams={cfg.patternParams} fit={fit} garment={cfg.garment} sleeve={cfg.sleeve} overlays={overlays}/>
+        <ScannedGarmentMesh manifest={scanned} colors={colors} patterns={patternsFor3D(scanned, cfg.patterns, { photoBase: !!target?.photo })} patternParams={cfg.patternParams} fit={fit} garment={cfg.garment} sleeve={cfg.sleeve} overlays={overlays}/>
       </GarmentMeshErrorBoundary>
     );
   }

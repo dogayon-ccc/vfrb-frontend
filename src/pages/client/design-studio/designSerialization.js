@@ -22,7 +22,7 @@
 //   never throws, always returns a fully-defaulted cfg.
 
 import { resolveSleeve, resolveFit, LEGACY_GARMENT } from './garmentCatalog';
-import { templateIdFor, templateKeyById } from './garmentAssets';
+import { assetFor, templateIdFor, templateKeyById } from './garmentAssets';
 
 export const DEFAULT_CFG = {
   name: '',
@@ -58,15 +58,18 @@ function withLegacyAliases(cfg) {
 // previewPng: optional data-URL, only ever set by orderThis().
 export function serializeDesign(cfg, overlaysBundle = {}, previewPng) {
   const { overlays = [], frontOverlays = [], backOverlays = [] } = overlaysBundle;
+  const fit = cfg.garment ? resolveFit(cfg.garment, cfg.fit) : (cfg.fit ?? DEFAULT_CFG.fit);
+  const sleeve = resolveSleeve(cfg.garment, cfg.sleeve ?? DEFAULT_CFG.sleeve);
+  const photoBase = !!assetFor(cfg.garment, sleeve, 'front', fit);
   const out = withLegacyAliases({
     name:          cfg.name ?? '',
     category:      cfg.category ?? DEFAULT_CFG.category,
     garment:       cfg.garment ?? null,
-    fit:           cfg.garment ? resolveFit(cfg.garment, cfg.fit) : (cfg.fit ?? DEFAULT_CFG.fit),
-    sleeve:        resolveSleeve(cfg.garment, cfg.sleeve ?? DEFAULT_CFG.sleeve),
+    fit,
+    sleeve,
     colors:        { ...DEFAULT_CFG.colors,   ...cfg.colors },
-    patterns:      { ...DEFAULT_CFG.patterns, ...cfg.patterns },
-    patternParams: { ...cfg.patternParams },
+    patterns:      photoBase ? { ...DEFAULT_CFG.patterns } : { ...DEFAULT_CFG.patterns, ...cfg.patterns },
+    patternParams: photoBase ? {} : { ...cfg.patternParams },
     overlays,
     frontOverlays,
     backOverlays,
@@ -108,6 +111,10 @@ export function deserializeDesign(raw) {
     patterns:      { ...DEFAULT_CFG.patterns, ...(sc.patterns && typeof sc.patterns === 'object' ? sc.patterns : {}) },
     patternParams: { ...(sc.patternParams && typeof sc.patternParams === 'object' ? sc.patternParams : {}) },
   };
+  if (assetFor(cfg.garment, cfg.sleeve, 'front', cfg.fit)) {
+    cfg.patterns = { ...DEFAULT_CFG.patterns };
+    cfg.patternParams = {};
+  }
 
   const asArray = v => Array.isArray(v) ? v : [];
   // Older saves only ever wrote a single `overlays` (whichever face was

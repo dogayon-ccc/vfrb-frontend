@@ -128,12 +128,16 @@ export function resolveFit(garment, fit) {
 export function applyGarment(cfg, garment, next = {}) {
   const fam = FAMILIES[garment];
   if (!fam) return { ...cfg, garment: garment ?? null };
+  const sleeve = resolveSleeve(fam.id, next.sleeve ?? (fam.styles.includes(cfg.sleeve) ? cfg.sleeve : null));
+  const fit = resolveFit(fam.id, next.fit ?? cfg.fit);
+  const photoBase = !!assetFor(fam.id, sleeve, 'front', fit);
   return {
     ...cfg,
     category: next.category ?? cfg.category,
     garment: fam.id,
-    sleeve: resolveSleeve(fam.id, next.sleeve ?? (fam.styles.includes(cfg.sleeve) ? cfg.sleeve : null)),
-    fit: resolveFit(fam.id, next.fit ?? cfg.fit),
+    sleeve,
+    fit,
+    ...(photoBase ? { patterns: {}, patternParams: {} } : {}),
   };
 }
 

@@ -43,6 +43,7 @@ function tiledGrainNormal(size) {
 }
 
 function partMaterial(color, part, map = null) {
+  if (part.unlit) return new THREE.MeshBasicMaterial({ color, side: THREE.FrontSide });
   if (part.plain) return new THREE.MeshStandardMaterial({ color, roughness: part.roughness ?? 0.4, metalness: part.metalness ?? 0, side: THREE.DoubleSide });
   return new THREE.MeshPhysicalMaterial({
     color, roughness: part.roughness ?? 0.88, metalness: 0,
