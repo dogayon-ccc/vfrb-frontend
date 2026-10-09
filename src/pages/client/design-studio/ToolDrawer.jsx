@@ -24,7 +24,7 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, sum
 
   const PANELS = {
     type:    () => <TypePanel cfg={p.cfg} setCfg={p.setCfg} setActiveZone={p.setActiveZone} onOpenTool={summary.onOpenTool}
-                     viewMode={p.viewMode} setViewMode={p.setViewMode} setHas3DLoaded={p.setHas3DLoaded}/>,
+                     viewMode={p.viewMode} setViewMode={p.setViewMode} setHas3DLoaded={p.setHas3DLoaded} pieceRole={p.pieceRole}/>,
     color:   () => <ColorsPanel cfg={p.cfg} setCfg={p.setCfg} activeZone={p.activeZone} setActiveZone={p.setActiveZone}/>,
     assets:  () => <AssetsPanel tab={p.assetsTab} setTab={p.setAssetsTab} cfg={p.cfg} logo={p.logoUpload}
                      shapes={{ selObj:p.selObj, onAdd:p.addShape, onUpdate:p.updateSelected }}

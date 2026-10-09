@@ -67,7 +67,7 @@ class ThreeEB extends Component {
 export default function CanvasViewport({
   cfg, setCfg, canvasWrapRef, canvasEl, aiPulse, face, switchFace, initFailed,
   selObj, deleteSelected, duplicateSelected, viewMode, has3DLoaded, onLogoFile, zoom, setZoom, snapshot, overlays,
-  onChooseGarment, pickerOpen, setViewMode,
+  onChooseGarment, pickerOpen, setViewMode, pieceBar = null,
 }) {
   const paneRef = useRef(null);
   const [webglOk, setWebglOk] = useState(hasWebGL);
@@ -126,6 +126,7 @@ export default function CanvasViewport({
             </motion.div>
           )}
         </AnimatePresence>
+        {pieceBar && <div className="ds-set-wrap">{pieceBar}</div>}
         <div className="ds-stage-ctl">
         <div className="ds-zoom" role="group" aria-label="Zoom">
           <button type="button" aria-label="Zoom out" onClick={()=>setZoom(z=>Math.max(0.6, +(z-0.15).toFixed(2)))}>−</button>

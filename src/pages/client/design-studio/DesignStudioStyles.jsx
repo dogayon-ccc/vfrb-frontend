@@ -512,6 +512,15 @@ export default function DesignStudioStyles() {
       .ds-ins-note{font-size:var(--text-2xs);color:var(--text-subtle);text-align:center;line-height:1.5;margin:0;}
       .ds-act--danger{color:#dc2626;border-color:rgba(220,38,38,.3);}
       .ds-ins-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+      .ds-set-wrap{position:absolute;top:56px;left:50%;transform:translateX(-50%);z-index:3;max-width:calc(100% - 24px);}
+      .ds-set-bar{display:flex;gap:4px;align-items:center;padding:4px;border-radius:999px;background:var(--bg-card,#fff);border:1px solid var(--border);box-shadow:0 4px 14px rgba(15,23,42,.08);}
+      .ds-set-bar button{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-height:40px;padding:4px 14px;border:0;border-radius:999px;background:transparent;cursor:pointer;font:inherit;color:var(--ink);text-align:left;}
+      .ds-set-bar button span{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-subtle);}
+      .ds-set-bar button strong{font-size:12.5px;white-space:nowrap;}
+      .ds-set-bar button[aria-pressed=true]{background:var(--teal,#028090);color:#fff;}
+      .ds-set-bar button[aria-pressed=true] span{color:rgba(255,255,255,.8);}
+      .ds-set-bar .ds-set-leave{min-height:32px;padding:0 10px;font-size:18px;color:var(--text-subtle);align-items:center;}
+      .ds-set-add{min-height:36px;padding:0 14px;border-radius:999px;border:1px dashed var(--teal,#028090);background:var(--bg-card,#fff);color:var(--teal,#028090);font:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;}
       .ds-ins-align{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px;}
       .ds-ins-align .ds-act{min-height:36px;padding:0 6px;font-size:12px;justify-content:center;}
       .ds-ins-actions .ds-act{min-height:44px;}

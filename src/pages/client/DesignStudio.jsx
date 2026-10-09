@@ -30,7 +30,8 @@ import InspoGallery from './design-studio/InspoGallery';
 import ShowcaseGallery from './design-studio/ShowcaseGallery';
 import { T, T2, CATS, INIT_CFG, FONTS, zonesFor } from './design-studio/dsShared';
 import { deserializeDesign, serializeDesign } from './design-studio/designSerialization';
-import { familyFor } from './design-studio/garmentCatalog';
+import { familyFor, pieceOf } from './design-studio/garmentCatalog';
+import { SET_ROLES, ROLE_LABEL, DEFAULT_PIECE, otherRole, normalizeSet, withSet } from './design-studio/uniformSet';
 
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────
@@ -56,6 +57,10 @@ export default function DesignStudio() {
   const [has3DLoaded, setHas3DLoaded] = useState(false);
   const [face,       setFace]       = useState('front');   // front / back
   const faceJSON = useRef({ front: [], back: [] }); // TASK O: per-face canvas state
+  // Uniform set (top + bottom). The active piece lives in cfg + canvas; the other piece is a serialized snapshot.
+  const [uset, setUset] = useState(() => {
+    try { return normalizeSet(JSON.parse(sessionStorage.getItem('studio_config') || 'null')?.uniformSet); } catch { return null; }
+  });
 
   const [selObj,     setSelObj]     = useState(null);
   const [activeZone, setActiveZone] = useState('body');
@@ -402,6 +407,7 @@ export default function DesignStudio() {
     if (!pendingDraft) return;
     const { cfg: restored, frontOverlays, backOverlays } = deserializeDesign(pendingDraft.studio_config);
     setCfg(p => ({ ...p, ...restored }));
+    setUset(normalizeSet(pendingDraft.studio_config?.uniformSet));
     faceJSON.current = { front: frontOverlays, back: backOverlays };
     const toLoad = faceJSON.current[face] ?? [];
     if (toLoad.length > 0) setTimeout(() => loadCanvasJSON(toLoad), 350);
@@ -425,7 +431,7 @@ export default function DesignStudio() {
   // fixed-later pocketType bug that the other two didn't get). One call site
   // now; every field this session's canonical DesignState is responsible for
   // goes through it, and no save can lose the face you're not looking at.
-  const snapshotDesign = useCallback((previewPng) => {
+  const pieceSnapshot = useCallback((previewPng) => {
     faceJSON.current[face] = getCanvasJSON() ?? [];
     return serializeDesign(cfg, {
       overlays:      faceJSON.current.front,
@@ -433,6 +439,49 @@ export default function DesignStudio() {
       backOverlays:  faceJSON.current.back,
     }, previewPng);
   }, [cfg, face, getCanvasJSON]);
+  const snapshotDesign = useCallback((previewPng) => withSet(pieceSnapshot(previewPng), uset), [pieceSnapshot, uset]);
+
+  // Put a piece (serialized snapshot, or a fresh default garment for that role) on the canvas, front view.
+  const loadPiece = useCallback((snap, role) => {
+    const { cfg: c, frontOverlays, backOverlays } = deserializeDesign(snap ?? { garment: DEFAULT_PIECE[role], category: cfg.category });
+    setCfg(p => ({ ...p, ...c, inspirationId: c.inspirationId ?? null }));
+    faceJSON.current = { front: frontOverlays, back: backOverlays };
+    if (face !== 'front') setFace('front');
+    setTimeout(() => loadCanvasJSON(faceJSON.current.front ?? []), 350);
+  }, [cfg.category, face, loadCanvasJSON]);
+
+  const startSet = useCallback(() => {
+    const role = pieceOf(cfg.garment);
+    if (!role || uset) return;
+    const other = otherRole(role);
+    setUset({ id: crypto.randomUUID(), active: other, pieces: { [role]: pieceSnapshot(), [other]: null } });
+    loadPiece(null, other);
+  }, [cfg.garment, uset, pieceSnapshot, loadPiece]);
+
+  const switchPiece = useCallback((role) => {
+    if (!uset || role === uset.active) return;
+    const target = uset.pieces[role];
+    setUset({ ...uset, active: role, pieces: { ...uset.pieces, [uset.active]: pieceOf(cfg.garment) === uset.active ? pieceSnapshot() : uset.pieces[uset.active] } });
+    loadPiece(target, role);
+  }, [uset, cfg.garment, pieceSnapshot, loadPiece]);
+
+  // Keeps the piece on screen as a single design; the other piece is discarded.
+  const leaveSet = useCallback(() => setUset(null), []);
+
+  const pieceBar = !cfg.garment ? null : uset ? (
+    <div className="ds-set-bar" role="group" aria-label="Uniform set pieces">
+      {SET_ROLES.map(r => (
+        <button key={r} type="button" aria-pressed={uset.active === r} onClick={() => switchPiece(r)}>
+          <span>{ROLE_LABEL[r]}</span><strong>{r === uset.active ? cfg.garment : uset.pieces[r]?.garment ?? 'Choose'}</strong>
+        </button>
+      ))}
+      <button type="button" className="ds-set-leave" aria-label="Leave uniform set" title="Keep only this piece" onClick={leaveSet}>×</button>
+    </div>
+  ) : pieceOf(cfg.garment) ? (
+    <button type="button" className="ds-set-add" onClick={startSet}>
+      + {otherRole(pieceOf(cfg.garment)) === 'bottom' ? 'Add a bottom' : 'Add a top'} to make a uniform set
+    </button>
+  ) : null;
 
   // ── Auto-save debounce — fires 30s after last cfg change ─────────────────
   useEffect(() => {
@@ -685,7 +734,7 @@ export default function DesignStudio() {
             selectLayer={selectLayer} toggleLayerVisibility={toggleLayerVisibility}
             toggleLayerLock={toggleLayerLock} toggleSelectedLock={toggleSelectedLock} setLayerOpacity={setLayerOpacity}
             pushHistory={pushHistory} viewMode={viewMode} setViewMode={setViewMode} setHas3DLoaded={setHas3DLoaded}
-            renameLayer={renameLayer} deleteLayer={deleteLayer} reorderLayers={reorderLayers}/>
+            renameLayer={renameLayer} deleteLayer={deleteLayer} reorderLayers={reorderLayers} pieceRole={uset?.active ?? null}/>
 
           {/* ── CANVAS AREA ── */}
           <CanvasViewport cfg={cfg} setCfg={setCfg} canvasWrapRef={canvasWrapRef} canvasEl={canvasEl} initFailed={initFailed}
@@ -693,7 +742,8 @@ export default function DesignStudio() {
             selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected}
             viewMode={viewMode} has3DLoaded={has3DLoaded} onLogoFile={onLogoFile}
             zoom={zoom} setZoom={setZoom} snapshot={snapshot} overlays={overlays}
-            onChooseGarment={() => { setTool('type'); setSheetOpen(true); }} pickerOpen={tool === 'type' && (!isNarrow || sheetOpen)} setViewMode={setViewMode}/>
+            onChooseGarment={() => { setTool('type'); setSheetOpen(true); }} pickerOpen={tool === 'type' && (!isNarrow || sheetOpen)} setViewMode={setViewMode}
+            pieceBar={pieceBar}/>
         </div>
 
         {/* ── FIRST-VISIT ONBOARDING OVERLAY ── */}
