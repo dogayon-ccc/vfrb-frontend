@@ -229,7 +229,7 @@ export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanv
   const loadDesign = (d, filters) => {
     const t = openTarget(d, filters);
     if (!t) return;
-    setCfg(p => applyGarment(p, t.garment, t));
+    setCfg(p => applyGarment(p, t.garment, { ...t, inspirationId: d.id }));
     setShowInspo(false);
   };
 

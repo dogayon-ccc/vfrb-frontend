@@ -78,7 +78,7 @@ const SCANNED_BASE = [
     // Unisex source, single model entry. Raw height matches the polo scan, so the polo scale (0.54) is reused.
     id: 'work-shirt',
     match: /button-down/i,
-    models: { unisex: '/models/processed/work-shirt-short-sleeve.glb' },
+    models: { unisex: '/models/processed/work-shirt-short-sleeve-capped.glb' },
     torso: { unisex: 0.45 },
     transform: { rotation: [0, 0, 0], scale: 0.54, position: [0, -0.05, 0] },
     parts: [{ node: 'mesh_node', decals: true, zoneOf: workShirtZone }],
@@ -87,8 +87,8 @@ const SCANNED_BASE = [
       zones: ['body', 'sleeve', 'collar', 'pocket'], patterns: { zones: ['body', 'sleeve', 'collar'], ids: ALL_PATTERNS.filter(p => p !== 'geometric') },
       sleeves: ['Short'], // the only sleeve length the GLB(s) actually have; other 2D styles are not shown in 3D
       text: true, logo: true, frontBack: true, fit: ['unisex'],
-      // Render-verified front/back (offline raster, zone overlay); the side seam under each arm is open (hidden behind the arm in the scan) and short sleeves only (the 2D "Long" style has no 3D counterpart).
-      limitations: ['open side seams under the arms', 'short sleeve only', 'front collar leaf points sit below the collar zone and take the body colour'],
+      // Live renderer check: continuous front/three-quarter garment, with small scan-cut irregularities still visible at the side/hem.
+      limitations: ['short sleeve only', 'small scan-cut irregularities remain at the side and hem', 'front collar leaf points sit below the collar zone and take the body colour', 'no arbitrary fabric-texture upload'],
     },
   },
   // Lower-body garments processed from fused Meshy figures (sources untouched; see tools/glb-extract/ and GLB-CAPABILITY-MATRIX.md §9).
@@ -99,13 +99,13 @@ const SCANNED_BASE = [
     id: 'pants', match: /^pants$/i,
     models: { unisex: '/models/processed/pants-trousers.glb' }, torso: { unisex: 0.19 },
     transform: { rotation: [0, 0, 0], scale: 1.35, position: [0, 0.52, 0] },
-    parts: [{ node: 'mesh_node', decals: false, zoneOf: bodyOnly }],
+    parts: [{ node: 'mesh_node', decals: false, unlit: true, zoneOf: bodyOnly }],
     capabilities: {
       regionMethod: 'vertex-mask', regionAccuracy: 'approximate (single body zone, no cut panels in the GLB)',
       zones: ['body'], patterns: { zones: ['body'], ids: ALL_PATTERNS.filter(p => p !== 'geometric') },
       sleeves: [],
       text: false, logo: false, frontBack: false, fit: ['unisex'],
-      limitations: ['female-cut trousers scan', 'small hand-stub remnant at the left hip', 'waist and hem are straight clips of the scan (open, no waistband or hem detail)'],
+      limitations: ['female-cut trousers scan', 'small hand-stub remnant at the left hip', 'waist and hem are straight clips of the scan (open, no waistband or hem detail)', 'flat shaded to avoid scan folds reading as an unintended fabric pattern; no arbitrary fabric-texture upload'],
     },
   },
   {
@@ -266,6 +266,13 @@ export const UNSUPPORTED_3D_MODELS = [
 // (rather than deleted) so a future candidate has a place to land without inventing a new list.
 export const PENDING_3D_MODELS = [];
 
+// Patterns a scanned entry really paints: only its listed zones and ids; everything else stays solid in 3D while the 2D design keeps it.
+export function patternsFor3D(entry, patterns, { photoBase = false } = {}) {
+  if (photoBase) return Object.fromEntries(Object.keys(patterns ?? {}).map(z => [z, 'solid']));
+  const { zones = [], ids = [] } = entry?.capabilities?.patterns ?? {};
+  return Object.fromEntries(Object.entries(patterns ?? {}).map(([z, id]) => [z, zones.includes(z) && ids.includes(id) ? id : 'solid']));
+}
+
 // Contract for Account 1's data-driven catalog: what the real 3D preview can do for a garment name (+ fit).
 export function get3DCapabilities(garment, fit, sleeve) {
   const name = garment ?? ''; // cfg.garment is `null` for a blank/new design, not `undefined` — a default param alone doesn't catch that.
@@ -273,6 +280,6 @@ export function get3DCapabilities(garment, fit, sleeve) {
   if (!g) return { supported: false, model: null, reason: 'no real GLB for this garment; the preview is a generic primitive shape' };
   const key = String(fit ?? '').toLowerCase();
   const fits = g.capabilities.fit;
-  return { supported: true, model: g.models[key] ?? Object.values(g.models)[0], fitApplied: fits.includes(key) ? key : fits[0], ...g.capabilities };
+  return { supported: true, model: g.models[key] ?? Object.values(g.models)[0], fitApplied: fits.includes(key) ? key : fits[0], customFabricTextures: false, ...g.capabilities };
 }
 

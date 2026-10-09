@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import InlineColorPicker from '../../../components/InlineColorPicker';
 import { NavIcon } from '../../../components/ui/icons';
-import { T, T2, secLabel, ZONE_LABEL, PH_SWATCHES, zonesFor } from './dsShared';
+import { T, T2, secLabel, ZONE_LABEL, PH_SWATCHES, zonesFor, zone3D, ONLY_2D_TAG } from './dsShared';
 import { assetFor } from './garmentAssets';
 
 // Black check on light swatches, white on dark, so the selected tick is always visible.
@@ -34,7 +34,7 @@ export default function ColorsPanel({ cfg, setCfg, activeZone, setActiveZone }) 
       )}
       <p style={secLabel}>Color Zone</p>
       <div style={{ display:'flex', gap:4, marginBottom:12, flexWrap:'wrap' }}>
-        {zonesFor(cfg.garment, cfg.sleeve).map(z => (
+        {zonesFor(cfg.garment, cfg.sleeve, cfg.fit).map(z => (
           <button key={z} type="button" className="ds-touch" onClick={() => setActiveZone(z)}
             style={{
               display:'flex', alignItems:'center', gap:5, padding:'5px 9px',
@@ -48,6 +48,7 @@ export default function ColorsPanel({ cfg, setCfg, activeZone, setActiveZone }) 
               fontWeight: activeZone===z ? 700 : 400 }}>
               {label(z)}
             </span>
+            {zone3D(cfg.garment, cfg.sleeve, cfg.fit, z) === false && <span title="The 3D model has no separate region for this zone" style={ONLY_2D_TAG}>2D only</span>}
           </button>
         ))}
       </div>

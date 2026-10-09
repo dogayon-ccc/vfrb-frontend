@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { NavIcon } from '../../../components/ui/icons';
 import { T2, DARK, SHAPE_TYPE_LABEL } from './dsShared';
 import { familyFor, STATUS_3D_LABEL } from './garmentCatalog';
-import { sleeves3DFor } from './garmentCapabilities';
+import { sleeves3DFor, get3DCapabilities } from './garmentCapabilities';
 import GarmentSilhouette from './GarmentSilhouette';
 import { hasWebGL } from './webglSupport';
 import { hasBackView } from './garmentAssets';
@@ -67,7 +67,7 @@ class ThreeEB extends Component {
 export default function CanvasViewport({
   cfg, setCfg, canvasWrapRef, canvasEl, aiPulse, face, switchFace, initFailed,
   selObj, deleteSelected, duplicateSelected, viewMode, has3DLoaded, onLogoFile, zoom, setZoom, snapshot, overlays,
-  onChooseGarment, pickerOpen, setViewMode,
+  onChooseGarment, pickerOpen, setViewMode, pieceBar = null,
 }) {
   const paneRef = useRef(null);
   const [webglOk, setWebglOk] = useState(hasWebGL);
@@ -126,6 +126,7 @@ export default function CanvasViewport({
             </motion.div>
           )}
         </AnimatePresence>
+        {pieceBar && <div className="ds-set-wrap">{pieceBar}</div>}
         <div className="ds-stage-ctl">
         <div className="ds-zoom" role="group" aria-label="Zoom">
           <button type="button" aria-label="Zoom out" onClick={()=>setZoom(z=>Math.max(0.6, +(z-0.15).toFixed(2)))}>−</button>
@@ -283,6 +284,15 @@ export default function CanvasViewport({
                 color:'#fff', fontSize:10, fontWeight:700, letterSpacing:.2,
                 pointerEvents:'none', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                 {label}
+              </div>
+            ) : null;
+          })()}
+          {cfg.garment && overlays?.length > 0 && (() => {
+            const cap = get3DCapabilities(cfg.garment, cfg.fit, cfg.sleeve);
+            return cap.supported && !(cap.logo && cap.text) ? (
+              <div style={{ position:'absolute', top:44, left:14, zIndex:2, padding:'4px 10px', borderRadius:99, background:'rgba(0,0,0,.58)',
+                border:'1px solid rgba(255,255,255,.14)', color:'#fff', fontSize:10, fontWeight:700, pointerEvents:'none' }}>
+                Logos and text are 2D only on this model
               </div>
             ) : null;
           })()}

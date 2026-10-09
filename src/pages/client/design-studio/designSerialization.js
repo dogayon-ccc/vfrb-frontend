@@ -22,7 +22,11 @@
 //   never throws, always returns a fully-defaulted cfg.
 
 import { resolveSleeve, resolveFit, LEGACY_GARMENT } from './garmentCatalog';
-import { assetFor, templateKeyById } from './garmentAssets';
+import { assetFor, templateIdFor, templateKeyById } from './garmentAssets';
+import { ENTRIES as GALLERY } from './designGallery';
+
+// A gallery photo id is kept only while the design is still on the family that photo opens (reference, never geometry).
+const inspirationFor = (id, garment) => (typeof id === 'string' && GALLERY.find(d => d.id === id)?.base?.[1] === garment ? id : null);
 
 export const DEFAULT_CFG = {
   name: '',
@@ -58,21 +62,25 @@ function withLegacyAliases(cfg) {
 // previewPng: optional data-URL, only ever set by orderThis().
 export function serializeDesign(cfg, overlaysBundle = {}, previewPng) {
   const { overlays = [], frontOverlays = [], backOverlays = [] } = overlaysBundle;
+  const fit = cfg.garment ? resolveFit(cfg.garment, cfg.fit) : (cfg.fit ?? DEFAULT_CFG.fit);
+  const sleeve = resolveSleeve(cfg.garment, cfg.sleeve ?? DEFAULT_CFG.sleeve);
+  const photoBase = !!assetFor(cfg.garment, sleeve, 'front', fit);
   const out = withLegacyAliases({
     name:          cfg.name ?? '',
     category:      cfg.category ?? DEFAULT_CFG.category,
     garment:       cfg.garment ?? null,
-    fit:           cfg.garment ? resolveFit(cfg.garment, cfg.fit) : (cfg.fit ?? DEFAULT_CFG.fit),
-    sleeve:        resolveSleeve(cfg.garment, cfg.sleeve ?? DEFAULT_CFG.sleeve),
+    fit,
+    sleeve,
     colors:        { ...DEFAULT_CFG.colors,   ...cfg.colors },
-    patterns:      { ...DEFAULT_CFG.patterns, ...cfg.patterns },
-    patternParams: { ...cfg.patternParams },
+    patterns:      photoBase ? { ...DEFAULT_CFG.patterns } : { ...DEFAULT_CFG.patterns, ...cfg.patterns },
+    patternParams: photoBase ? {} : { ...cfg.patternParams },
     overlays,
     frontOverlays,
     backOverlays,
   });
-  // Canonical template identity: the photo-base id for (garment, sleeve, fit), null for vector-only garments.
-  out.templateId = out.garment ? (assetFor(out.garment, out.sleeve, 'front', out.fit)?.id ?? null) : null;
+  // Canonical template identity: photo-base id or registered vector-template id for (garment, sleeve, fit), else null.
+  out.templateId = out.garment ? templateIdFor(out.garment, out.sleeve, out.fit) : null;
+  out.inspirationId = inspirationFor(cfg.inspirationId, out.garment);
   if (previewPng) out.previewPng = previewPng;
   return out;
 }
@@ -108,6 +116,11 @@ export function deserializeDesign(raw) {
     patterns:      { ...DEFAULT_CFG.patterns, ...(sc.patterns && typeof sc.patterns === 'object' ? sc.patterns : {}) },
     patternParams: { ...(sc.patternParams && typeof sc.patternParams === 'object' ? sc.patternParams : {}) },
   };
+  cfg.inspirationId = inspirationFor(sc.inspirationId, cfg.garment);
+  if (assetFor(cfg.garment, cfg.sleeve, 'front', cfg.fit)) {
+    cfg.patterns = { ...DEFAULT_CFG.patterns };
+    cfg.patternParams = {};
+  }
 
   const asArray = v => Array.isArray(v) ? v : [];
   // Older saves only ever wrote a single `overlays` (whichever face was

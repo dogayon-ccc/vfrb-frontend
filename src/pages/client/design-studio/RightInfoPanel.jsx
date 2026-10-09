@@ -31,7 +31,11 @@ function kindOf(o) {
 }
 
 // Same controls on desktop (right panel) and tablet/phone ('selected' tab in the sheet).
-export function SelectionInspector({ selObj, updateSelected, deleteSelected, duplicateSelected, toggleSelectedLock, pushHistory }) {
+// [where, short label, accessible label]
+const ALIGN = [['left', 'Left', 'Align left'], ['hcenter', 'Center', 'Center horizontally'], ['right', 'Right', 'Align right'],
+  ['top', 'Top', 'Align top'], ['vcenter', 'Middle', 'Center vertically'], ['bottom', 'Bottom', 'Align bottom']];
+
+export function SelectionInspector({ selObj, updateSelected, deleteSelected, duplicateSelected, alignSelected, toggleSelectedLock, pushHistory }) {
   const kind   = kindOf(selObj);
   const isText = !!selObj.__text || selObj.type === 'i-text' || selObj.type === 'text';
   const isLine = selObj.__shape && selObj.type === 'line';
@@ -107,6 +111,15 @@ export function SelectionInspector({ selObj, updateSelected, deleteSelected, dup
           {!isText && baseH > 0 && num('Height', dispH, v => updateSelected({ scaleY: v / baseH }))}
         </div>
         {range(`Rotation ${angle}°`, angle, 0, 360, v => live({ angle: v }), locked)}
+        {alignSelected && <p className="ds-group-label" style={{ marginTop: 12 }}>Align on garment</p>}
+        {alignSelected && (
+          <div className="ds-ins-align" role="group" aria-label="Align to garment">
+            {ALIGN.map(([where, short, label]) => (
+              <button key={where} type="button" className="ds-act" aria-label={label} title={`${label} on the garment`} disabled={locked}
+                onClick={() => alignSelected(where)}>{short}</button>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="ds-ins-sec">
@@ -137,8 +150,8 @@ export function SelectionInspector({ selObj, updateSelected, deleteSelected, dup
   );
 }
 
-export function SummaryContent({ cfg, saved, saveDesign, orderThis, ordering, downloadImage, clearGarment, onOpenTool, activeTool, layerCount = 0, face = 'front' }) {
-  const zones = zonesFor(cfg.garment, cfg.sleeve);
+export function SummaryContent({ cfg, saved, saveDesign, orderThis, ordering, downloadImage, downloadPdf, exporting, clearGarment, onOpenTool, activeTool, layerCount = 0, face = 'front' }) {
+  const zones = zonesFor(cfg.garment, cfg.sleeve, cfg.fit);
   const swatches = zones.filter(z => z !== 'tipping' || cfg.colors.tipping);
   const details = [zones.includes('sleeve') && `${cfg.sleeve} sleeve`, cfg.category].filter(Boolean).join(' · ');
 
@@ -194,9 +207,14 @@ export function SummaryContent({ cfg, saved, saveDesign, orderThis, ordering, do
         </nav>
       )}
       <div className="ds-actions">
-        <button type="button" className="ds-act" onClick={downloadImage} disabled={!cfg.garment}>
-          <NavIcon name="image" size={16}/> Image
+        <button type="button" className="ds-act" onClick={downloadImage} disabled={!cfg.garment || !!exporting} aria-busy={exporting === 'png'}>
+          {exporting === 'png' ? <span className="ds-spin"/> : <NavIcon name="image" size={16}/>} PNG
         </button>
+        {downloadPdf && (
+          <button type="button" className="ds-act" onClick={downloadPdf} disabled={!cfg.garment || !!exporting} aria-busy={exporting === 'pdf'}>
+            {exporting === 'pdf' ? <span className="ds-spin"/> : <NavIcon name="print" size={16}/>} PDF
+          </button>
+        )}
         {cfg.garment && clearGarment && (
           <button type="button" className="ds-link-danger ds-act--wide" onClick={clearGarment}>
             <NavIcon name="delete" size={14}/> Remove garment

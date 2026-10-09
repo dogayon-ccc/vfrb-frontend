@@ -1,0 +1,1116 @@
+{
+  "tool": "prepare_vfrb_public_assets.py",
+  "notes": [
+    "PNG masters are copied without resizing and remain the authoritative source images.",
+    "Gallery WebP files are derived from the PNG masters at the requested quality.",
+    "All supplied GLBs are preserved under models/garments/incoming-meshy/.",
+    "No GLB is automatically marked verified or activated unless explicitly listed with --activate.",
+    "Filename stem matches are candidates only; they do not prove visual/semantic 2D\u21943D correspondence."
+  ],
+  "counts": {
+    "png": 30,
+    "webp": 30,
+    "glb": 39,
+    "activated_glb": 0,
+    "duplicate_glb_hash_groups": 0
+  },
+  "png_manifest": [
+    {
+      "uploaded_name": "bir-blouse-trousers-blue.png",
+      "templateId_candidate": "bir-blouse-trousers-blue",
+      "png": "bir-blouse-trousers-blue.png",
+      "webp": "bir-blouse-trousers-blue.webp",
+      "width": 411,
+      "height": 607,
+      "mode": "RGBA",
+      "alpha": true,
+      "webp_bytes": 19982,
+      "png_bytes": 120537,
+      "png_sha256": "0e6a8d844aa2d2aa25a5c1f9b6d8af37485189eb66d4464c26051c3316847a9b"
+    },
+    {
+      "uploaded_name": "blazer-blouse-blue.png",
+      "templateId_candidate": "blazer-blouse-blue",
+      "png": "blazer-blouse-blue.png",
+      "webp": "blazer-blouse-blue.webp",
+      "width": 434,
+      "height": 575,
+      "mode": "RGBA",
+      "alpha": true,
+      "webp_bytes": 18242,
+      "png_bytes": 148436,
+      "png_sha256": "59eb0d162ace593647f22eef3146c3f68367e3d622bf1b8f1016ad279aea85da"
+    },
+    {
+      "uploaded_name": "blazer-collarless-tan.png",
+      "templateId_candidate": "blazer-collarless-tan",
+      "png": "blazer-collarless-tan.png",
+      "webp": "blazer-collarless-tan.webp",
+      "width": 433,
+      "height": 577,
+      "mode": "RGBA",
+      "alpha": true,
+      "webp_bytes": 28838,
+      "png_bytes": 206520,
+      "png_sha256": "3484c7a739c83cfdd25598a85cf6508c7e790d5ae44ebf79e29fcf5db8376032"
+    },
+    {
+      "uploaded_name": "blazer-double-breasted-gray.png",
+      "templateId_candidate": "blazer-double-breasted-gray",
+      "png": "blazer-double-breasted-gray.png",
+      "webp": "blazer-double-breasted-gray.webp",
+      "width": 408,
+      "height": 612,
+      "mode": "RGBA",
+      "alpha": true,
+      "webp_bytes": 19990,
+      "png_bytes": 122299,
+      "png_sha256": "117a7f073e28c9333d8220e78aac703f65ef7c98589e37b96a8f80c955fe0ab5"
+    },
+    {
+      "uploaded_name": "blazer-open-front-black.png",
+      "templateId_candidate": "blazer-open-front-black",
+      "png": "blazer-open-front-black.png",
+      "webp": "blazer-open-front-black.webp",
+      "width": 448,
+      "height": 557,
+      "mode": "RGBA",
+      "alpha": true,
+      "webp_bytes": 26706,
+      "png_bytes": 159203,
+      "png_sha256": "cf42e4c72f513a56c0f36a10e1f0d25d7422c53384ec5bd029997bee211323bc"
+    },
+    {
+      "uploaded_name": "blazer-pinstripe-navy.png",
+      "templateId_candidate": "blazer-pinstripe-navy",
+      "png": "blazer-pinstripe-navy.png",
+      "webp": "blazer-pinstripe-navy.webp",
+      "width": 393,
+      "height": 635,
+      "mode": "RGBA",
+      "alpha": true,
+      "webp_bytes": 25276,
+      "png_bytes": 141740,
+      "png_sha256": "5fd264960f2b94d0c60e4fe15f76053a78ced03a8c8e0b293ff5fce34fb4cb05"
+    },
+    {
+      "uploaded_name": "blazer-pinstripe-royal.png",
+      "templateId_candidate": "blazer-pinstripe-royal",
+      "png": "blazer-pinstripe-royal.png",
+      "webp": "blazer-pinstripe-royal.webp",
+      "width": 446,
+      "height": 560,
+      "mode": "RGBA",
+      "alpha": true,
+      "webp_bytes": 28558,
+      "png_bytes": 189627,
+      "png_sha256": "0a478988531fab83928b6de71e6fa306093fa5da26bbca6d2614ed11fff3bf32"
+    },
+    {
+      "uploaded_name": "blazer-tweed-herringbone.png",
+      "templateId_candidate": "blazer-tweed-herringbone",
+      "png": "blazer-tweed-herringbone.png",
+      "webp": "blazer-tweed-herringbone.webp",
+      "width": 433,
+      "height": 576,
+      "mode": "RGBA",
+      "alpha": true,
+      "webp_bytes": 48128,
+      "png_bytes": 217834,
+      "png_sha256": "5db393bd7f45ae876f462ca8f78ec55a10c9aa90764fc9e297e89c5d47f4504c"
+    },
+    {
+      "uploaded_name": "blazer-white-notch.png",
+      "templateId_candidate": "blazer-white-notch",
+      "png": "blazer-white-notch.png",
+      "webp": "blazer-white-notch.webp",
+      "width": 415,
+      "height": 601,
+      "mode": "RGBA",
+      "alpha": true,
+      "webp_bytes": 20882,
+      "png_bytes": 146963,
+      "png_sha256": "a931f3688474d105dafd629bd10ab6f569afafdf3744df69a2af6b6c9a3df334"
+    },
+    {
+      "uploaded_name": "blouse-asymmetric-blue.png",
+      "templateId_candidate": "blouse-asymmetric-blue",
+      "png": "blouse-asymmetric-blue.png",
+      "webp": "blouse-asymmetric-blue.webp",
+      "width": 427,
+      "height": 584,
+      "mode": "RGBA",
+      "alpha": true,
+      "webp_bytes": 21812,
+      "png_bytes": 158931,
+      "png_sha256": "a8dbb2b8f8871b5107f05ede5a2c2b89bc2d398a345b6c0ed4f93e2865c42668"
+    },
+    {
+      "uploaded_name": "blouse-mandarin-yellow.png",
+      "templateId_candidate": "blouse-mandarin-yellow",
+      "png": "blouse-mandarin-yellow.png",
+      "webp": "blouse-mandarin-yellow.webp",
+      "width": 435,
+      "height": 573,
+      "mode": "RGBA",
+      "alpha": true,
+      "webp_bytes": 21288,
+      "png_bytes": 157018,
+      "png_sha256": "f978aa96f2691f4c325fc10aa572c16e61d1448b77f7e630cc6b7dc55e6298ec"
+    },
+    {
+      "uploaded_name": "blouse-roundneck-fuchsia.png",
+      "templateId_candidate": "blouse-roundneck-fuchsia",
+      "png": "blouse-roundneck-fuchsia.png",
+      "webp": "blouse-roundneck-fuchsia.webp",
+      "width": 408,
+      "height": 612,
+      "mode": "RGBA",
+      "alpha": true,
+      "webp_bytes": 17660,
+      "png_bytes": 115836,
+      "png_sha256": "cfe60306858480f2252c7f35e13a9d0aed558b5b83518e3ef6280dd774576c21"
+    },
+    {
+      "uploaded_name": "blouse-roundneck-mustard.png",
+      "templateId_candidate": "blouse-roundneck-mustard",
+      "png": "blouse-roundneck-mustard.png",
+      "webp": "blouse-roundneck-mustard.webp",
+      "width": 415,
+      "height": 601,
+      "mode": "RGBA",
+      "alpha": true,
+      "webp_bytes": 16582,
+      "png_bytes": 116982,
+      "png_sha256": "cd4209af832da5796ec1730beccd7934a844e327e8478627c467ace4829506ec"
+    },
+    {
+      "uploaded_name": "blouse-scarf-cream.png",
+      "templateId_candidate": "blouse-scarf-cream",
+      "png": "blouse-scarf-cream.png",
+      "webp": "blouse-scarf-cream.webp",
+      "width": 466,
+      "height": 536,
+      "mode": "RGBA",
+      "alpha": true,
+      "webp_bytes": 28632,
+      "png_bytes": 199632,
+      "png_sha256": "c94b6d48f7c9687509726b8715d886827a5235efd61d7c6c10b3a9a9e8386310"
+    },
+    {
+      "uploaded_name": "blouse-tunic-roundneck-blue.png",
+      "templateId_candidate": "blouse-tunic-roundneck-blue",
+      "png": "blouse-tunic-roundneck-blue.png",
+      "webp": "blouse-tunic-roundneck-blue.webp",
+      "width": 442,
+      "height": 564,
+      "mode": "RGBA",
+      "alpha": true,
+      "webp_bytes": 21032,
+      "png_bytes": 147935,
+      "png_sha256": "ace1834ec4024d9eb823ff2af6efe3e0fea11cc27c2740316b5fd3660c543f38"
+    },
+    {
+      "uploaded_name": "corporate skirt.png",
+      "templateId_candidate": "corporate-skirt",
+      "png": "corporate-skirt.png",
+      "webp": "corporate-skirt.webp",
+      "width": 494,
+      "height": 505,
+      "mode": "RGBA",
+      "alpha": true,
+      "webp_bytes": 11358,
+      "png_bytes": 92018,
+      "png_sha256": "22bb79ff6b8d95a582fa4c9623d4174f9d63e6fabe4cfaccaeda637649392b63"
+    },
+    {
+      "uploaded_name": "dress-bir-green-yellow-collar.png",
+      "templateId_candidate": "dress-bir-green-yellow-collar",
+      "png": "dress-bir-green-yellow-collar.png",
+      "webp": "dress-bir-green-yellow-collar.webp",
+      "width": 392,
+      "height": 636,
+      "mode": "RGBA",
+      "alpha": true,
+      "webp_bytes": 12244,
+      "png_bytes": 83156,
+      "png_sha256": "1ec526955ddaa483c7d2fbf279c2fec170ed6c60d220a81c98bd0f1b765b95ec"
+    },
+    {
+      "uploaded_name": "dress-butter-belted.png",
+      "templateId_candidate": "dress-butter-belted",
+      "png": "dress-butter-belted.png",
+      "webp": "dress-butter-belted.webp",
+      "width": 426,
+      "height": 585,
+      "mode": "RGBA",
+      "alpha": true,
+      "webp_bytes": 12074,
+      "png_bytes": 86836,
+      "png_sha256": "48602cb6b9f69e00642462fa3b2d3e3b3a4dd2236ac3002e89392f20539811e2"
+    },
+    {
+      "uploaded_name": "dress-sheath-denim-blue.png",
+      "templateId_candidate": "dress-sheath-denim-blue",
+      "png": "dress-sheath-denim-blue.png",
+      "webp": "dress-sheath-denim-blue.webp",
+      "width": 408,
+      "height": 612,
+      "mode": "RGBA",
+      "alpha": true,
+      "webp_bytes": 21056,
+      "png_bytes": 134339,
+      "png_sha256": "a44d7e7dce128242cc23a603da11b9e9783911f7d0e9146d49050526e84792b3"
+    },
+    {
+      "uploaded_name": "dress-shift-geometric.png",
+      "templateId_candidate": "dress-shift-geometric",
+      "png": "dress-shift-geometric.png",
+      "webp": "dress-shift-geometric.webp",
+      "width": 446,
+      "height": 560,
+      "mode": "RGBA",
+      "alpha": true,
+      "webp_bytes": 28260,
+      "png_bytes": 204009,
+      "png_sha256": "f6973906cfebc4839c6f7d1189ec9b30602e0357c7c085290475c000f686843b"
+    },
+    {
+      "uploaded_name": "dress-tunic-maternity-navy.png",
+      "templateId_candidate": "dress-tunic-maternity-navy",
+      "png": "dress-tunic-maternity-navy.png",
+      "webp": "dress-tunic-maternity-navy.webp",
+      "width": 420,
+      "height": 594,
+      "mode": "RGBA",
+      "alpha": true,
+      "webp_bytes": 17798,
+      "png_bytes": 113762,
+      "png_sha256": "c338b9d66b8b50b3341d2f157e9f711f3f0ec28cf86b33bd9b36989372d623d0"
+    },
+    {
+      "uploaded_name": "jack-shirt-two-tone.png",
+      "templateId_candidate": "jack-shirt-two-tone",
+      "png": "jack-shirt-two-tone.png",
+      "webp": "jack-shirt-two-tone.webp",
+      "width": 457,
+      "height": 546,
+      "mode": "RGBA",
+      "alpha": true,
+      "webp_bytes": 21882,
+      "png_bytes": 185215,
+      "png_sha256": "2580c0f6e01883a273cdc956ea531a888c0992acdfcf8fdf60a2afd848662924"
+    },
+    {
+      "uploaded_name": "pants.png",
+      "templateId_candidate": "pants",
+      "png": "pants.png",
+      "webp": "pants.webp",
+      "width": 408,
+      "height": 612,
+      "mode": "RGBA",
+      "alpha": true,
+      "webp_bytes": 13160,
+      "png_bytes": 98411,
+      "png_sha256": "96a1af3930f4aa51cd34084677e8281657475f9f27634b1fb89def2bcd881a00"
+    },
+    {
+      "uploaded_name": "pantsuit-notch-short-gray.png",
+      "templateId_candidate": "pantsuit-notch-short-gray",
+      "png": "pantsuit-notch-short-gray.png",
+      "webp": "pantsuit-notch-short-gray.webp",
+      "width": 408,
+      "height": 611,
+      "mode": "RGBA",
+      "alpha": true,
+      "webp_bytes": 17676,
+      "png_bytes": 110900,
+      "png_sha256": "d041571b618218747ef4ec9a3ec05f702eff87d9f37a3310f7b356d722465339"
+    },
+    {
+      "uploaded_name": "peplum-set-navy.png",
+      "templateId_candidate": "peplum-set-navy",
+      "png": "peplum-set-navy.png",
+      "webp": "peplum-set-navy.webp",
+      "width": 386,
+      "height": 646,
+      "mode": "RGBA",
+      "alpha": true,
+      "webp_bytes": 16396,
+      "png_bytes": 124979,
+      "png_sha256": "84739a1686f7cb4288b3a4848ac5ff7c0226ffa33c7a58bc9b5063178a1f0594"
+    },
+    {
+      "uploaded_name": "polo-barong-brown.png",
+      "templateId_candidate": "polo-barong-brown",
+      "png": "polo-barong-brown.png",
+      "webp": "polo-barong-brown.webp",
+      "width": 442,
+      "height": 565,
+      "mode": "RGBA",
+      "alpha": true,
+      "webp_bytes": 14124,
+      "png_bytes": 85515,
+      "png_sha256": "8fe4470d6f27866434467ee82a7c5742514720f22e20ebc0195bafd7d32d41fd"
+    },
+    {
+      "uploaded_name": "polo-red-claremont.png",
+      "templateId_candidate": "polo-red-claremont",
+      "png": "polo-red-claremont.png",
+      "webp": "polo-red-claremont.webp",
+      "width": 445,
+      "height": 561,
+      "mode": "RGBA",
+      "alpha": true,
+      "webp_bytes": 14024,
+      "png_bytes": 112280,
+      "png_sha256": "a3650a216784f1f07f2ffbfcabb7dfe4cc744e98d7f6ba6657bc8123a71df6e3"
+    },
+    {
+      "uploaded_name": "school skirt.png",
+      "templateId_candidate": "school-skirt",
+      "png": "school-skirt.png",
+      "webp": "school-skirt.webp",
+      "width": 375,
+      "height": 666,
+      "mode": "RGBA",
+      "alpha": true,
+      "webp_bytes": 11654,
+      "png_bytes": 78316,
+      "png_sha256": "20aa6c9e889107571e5da038725babd82a015abdde593fb3c0b58a7fb0ae6819"
+    },
+    {
+      "uploaded_name": "shirt-two-tone-gpc.png",
+      "templateId_candidate": "shirt-two-tone-gpc",
+      "png": "shirt-two-tone-gpc.png",
+      "webp": "shirt-two-tone-gpc.webp",
+      "width": 452,
+      "height": 552,
+      "mode": "RGBA",
+      "alpha": true,
+      "webp_bytes": 14772,
+      "png_bytes": 95285,
+      "png_sha256": "a83197cd5c3cad22770e2f56146aa46d1e71074bb541d293e8cc232d4d64cc8b"
+    },
+    {
+      "uploaded_name": "shorts.png",
+      "templateId_candidate": "shorts",
+      "png": "shorts.png",
+      "webp": "shorts.webp",
+      "width": 478,
+      "height": 522,
+      "mode": "RGBA",
+      "alpha": true,
+      "webp_bytes": 29580,
+      "png_bytes": 230927,
+      "png_sha256": "c401014e0823c3013a46925a657c21ca506a7a81804956d85a729b3addf35e67"
+    }
+  ],
+  "glb_manifest": [
+    {
+      "uploaded_name": "bir-blouse-trousers-blue.glb",
+      "templateId_candidate": "bir-blouse-trousers-blue",
+      "glb_incoming": "bir-blouse-trousers-blue.glb",
+      "bytes": 1999960,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "blazer-blouse-blue.glb",
+      "templateId_candidate": "blazer-blouse-blue",
+      "glb_incoming": "blazer-blouse-blue.glb",
+      "bytes": 5527672,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "blazer-collarless-tan.glb",
+      "templateId_candidate": "blazer-collarless-tan",
+      "glb_incoming": "blazer-collarless-tan.glb",
+      "bytes": 5876864,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "blazer-double-breasted-gray.glb",
+      "templateId_candidate": "blazer-double-breasted-gray",
+      "glb_incoming": "blazer-double-breasted-gray.glb",
+      "bytes": 1948252,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "blazer-open-front-black.glb",
+      "templateId_candidate": "blazer-open-front-black",
+      "glb_incoming": "blazer-open-front-black.glb",
+      "bytes": 7151272,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "blazer-pinstripe-navy.glb",
+      "templateId_candidate": "blazer-pinstripe-navy",
+      "glb_incoming": "blazer-pinstripe-navy.glb",
+      "bytes": 1601284,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "blazer-pinstripe-royal.glb",
+      "templateId_candidate": "blazer-pinstripe-royal",
+      "glb_incoming": "blazer-pinstripe-royal.glb",
+      "bytes": 5188624,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "blazer-tweed-herringbone.glb",
+      "templateId_candidate": "blazer-tweed-herringbone",
+      "glb_incoming": "blazer-tweed-herringbone.glb",
+      "bytes": 6665156,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "blazer-white-notch.glb",
+      "templateId_candidate": "blazer-white-notch",
+      "glb_incoming": "blazer-white-notch.glb",
+      "bytes": 6149836,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "blouse-asymmetric-blue.glb",
+      "templateId_candidate": "blouse-asymmetric-blue",
+      "glb_incoming": "blouse-asymmetric-blue.glb",
+      "bytes": 1493784,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "blouse-mandarin-yellow.glb",
+      "templateId_candidate": "blouse-mandarin-yellow",
+      "glb_incoming": "blouse-mandarin-yellow.glb",
+      "bytes": 4200092,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "blouse-pleated-bib-white.glb",
+      "templateId_candidate": "blouse-pleated-bib-white",
+      "glb_incoming": "blouse-pleated-bib-white.glb",
+      "bytes": 2884624,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "blouse-roundneck-fuchsia.glb",
+      "templateId_candidate": "blouse-roundneck-fuchsia",
+      "glb_incoming": "blouse-roundneck-fuchsia.glb",
+      "bytes": 1258984,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "blouse-roundneck-mustard.glb",
+      "templateId_candidate": "blouse-roundneck-mustard",
+      "glb_incoming": "blouse-roundneck-mustard.glb",
+      "bytes": 1513636,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "blouse-scarf-cream.glb",
+      "templateId_candidate": "blouse-scarf-cream",
+      "glb_incoming": "blouse-scarf-cream.glb",
+      "bytes": 2607136,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "blouse-tunic-roundneck-blue.glb",
+      "templateId_candidate": "blouse-tunic-roundneck-blue",
+      "glb_incoming": "blouse-tunic-roundneck-blue.glb",
+      "bytes": 4328212,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "business-suit-fullset-women-pinstripe-pants.glb",
+      "templateId_candidate": "business-suit-fullset-women-pinstripe-pants",
+      "glb_incoming": "business-suit-fullset-women-pinstripe-pants.glb",
+      "bytes": 1073136,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "business-suit-fullset-women-pinstripe-skirt.glb",
+      "templateId_candidate": "business-suit-fullset-women-pinstripe-skirt",
+      "glb_incoming": "business-suit-fullset-women-pinstripe-skirt.glb",
+      "bytes": 2513752,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "corporate skirt.glb",
+      "templateId_candidate": "corporate-skirt",
+      "glb_incoming": "corporate-skirt.glb",
+      "bytes": 3286444,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "dress-bir-green-yellow-collar.glb",
+      "templateId_candidate": "dress-bir-green-yellow-collar",
+      "glb_incoming": "dress-bir-green-yellow-collar.glb",
+      "bytes": 1524192,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "dress-butter-belted.glb",
+      "templateId_candidate": "dress-butter-belted",
+      "glb_incoming": "dress-butter-belted.glb",
+      "bytes": 1480672,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "dress-sheath-denim-blue.glb",
+      "templateId_candidate": "dress-sheath-denim-blue",
+      "glb_incoming": "dress-sheath-denim-blue.glb",
+      "bytes": 1601284,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "dress-shift-geometric.glb",
+      "templateId_candidate": "dress-shift-geometric",
+      "glb_incoming": "dress-shift-geometric.glb",
+      "bytes": 67865612,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "dress-tunic-maternity-navy.glb",
+      "templateId_candidate": "dress-tunic-maternity-navy",
+      "glb_incoming": "dress-tunic-maternity-navy.glb",
+      "bytes": 1689652,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "jack-shirt-two-tone.glb",
+      "templateId_candidate": "jack-shirt-two-tone",
+      "glb_incoming": "jack-shirt-two-tone.glb",
+      "bytes": 3321424,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "pants.glb",
+      "templateId_candidate": "pants",
+      "glb_incoming": "pants.glb",
+      "bytes": 2014912,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "pantsuit-notch-short-gray.glb",
+      "templateId_candidate": "pantsuit-notch-short-gray",
+      "glb_incoming": "pantsuit-notch-short-gray.glb",
+      "bytes": 1592452,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "peplum-set-navy.glb",
+      "templateId_candidate": "peplum-set-navy",
+      "glb_incoming": "peplum-set-navy.glb",
+      "bytes": 1203004,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "polo-barong-brown.glb",
+      "templateId_candidate": "polo-barong-brown",
+      "glb_incoming": "polo-barong-brown.glb",
+      "bytes": 1943532,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "polo-red-claremont.glb",
+      "templateId_candidate": "polo-red-claremont",
+      "glb_incoming": "polo-red-claremont.glb",
+      "bytes": 3322780,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "school skirt.glb",
+      "templateId_candidate": "school-skirt",
+      "glb_incoming": "school-skirt.glb",
+      "bytes": 5562088,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "scrub-set-housekeeping.glb",
+      "templateId_candidate": "scrub-set-housekeeping",
+      "glb_incoming": "scrub-set-housekeeping.glb",
+      "bytes": 2463040,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "scrub-set-men-vneck.glb",
+      "templateId_candidate": "scrub-set-men-vneck",
+      "glb_incoming": "scrub-set-men-vneck.glb",
+      "bytes": 2930788,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "scrub-set-women-vneck.glb",
+      "templateId_candidate": "scrub-set-women-vneck",
+      "glb_incoming": "scrub-set-women-vneck.glb",
+      "bytes": 3028124,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "shirt-mandarin-polkadot.glb",
+      "templateId_candidate": "shirt-mandarin-polkadot",
+      "glb_incoming": "shirt-mandarin-polkadot.glb",
+      "bytes": 1987032,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "shirt-two-tone-gpc.glb",
+      "templateId_candidate": "shirt-two-tone-gpc",
+      "glb_incoming": "shirt-two-tone-gpc.glb",
+      "bytes": 1463380,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "shirt-utility-beige-long.glb",
+      "templateId_candidate": "shirt-utility-beige-long",
+      "glb_incoming": "shirt-utility-beige-long.glb",
+      "bytes": 1801908,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "shorts.glb",
+      "templateId_candidate": "shorts",
+      "glb_incoming": "shorts.glb",
+      "bytes": 2520772,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    },
+    {
+      "uploaded_name": "women-Pinstripe-Vest-Blouse.glb",
+      "templateId_candidate": "women-pinstripe-vest-blouse",
+      "glb_incoming": "women-pinstripe-vest-blouse.glb",
+      "bytes": 1523608,
+      "sha256": null,
+      "parse_ok": null,
+      "inspection": "not-run; use --inspect-glb"
+    }
+  ],
+  "candidate_mapping": [
+    {
+      "templateId_candidate": "bir-blouse-trousers-blue",
+      "png": "bir-blouse-trousers-blue.png",
+      "webp": "bir-blouse-trousers-blue.webp",
+      "glb": "bir-blouse-trousers-blue.glb",
+      "filename_stem_match": true,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "blazer-blouse-blue",
+      "png": "blazer-blouse-blue.png",
+      "webp": "blazer-blouse-blue.webp",
+      "glb": "blazer-blouse-blue.glb",
+      "filename_stem_match": true,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "blazer-collarless-tan",
+      "png": "blazer-collarless-tan.png",
+      "webp": "blazer-collarless-tan.webp",
+      "glb": "blazer-collarless-tan.glb",
+      "filename_stem_match": true,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "blazer-double-breasted-gray",
+      "png": "blazer-double-breasted-gray.png",
+      "webp": "blazer-double-breasted-gray.webp",
+      "glb": "blazer-double-breasted-gray.glb",
+      "filename_stem_match": true,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "blazer-open-front-black",
+      "png": "blazer-open-front-black.png",
+      "webp": "blazer-open-front-black.webp",
+      "glb": "blazer-open-front-black.glb",
+      "filename_stem_match": true,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "blazer-pinstripe-navy",
+      "png": "blazer-pinstripe-navy.png",
+      "webp": "blazer-pinstripe-navy.webp",
+      "glb": "blazer-pinstripe-navy.glb",
+      "filename_stem_match": true,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "blazer-pinstripe-royal",
+      "png": "blazer-pinstripe-royal.png",
+      "webp": "blazer-pinstripe-royal.webp",
+      "glb": "blazer-pinstripe-royal.glb",
+      "filename_stem_match": true,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "blazer-tweed-herringbone",
+      "png": "blazer-tweed-herringbone.png",
+      "webp": "blazer-tweed-herringbone.webp",
+      "glb": "blazer-tweed-herringbone.glb",
+      "filename_stem_match": true,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "blazer-white-notch",
+      "png": "blazer-white-notch.png",
+      "webp": "blazer-white-notch.webp",
+      "glb": "blazer-white-notch.glb",
+      "filename_stem_match": true,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "blouse-asymmetric-blue",
+      "png": "blouse-asymmetric-blue.png",
+      "webp": "blouse-asymmetric-blue.webp",
+      "glb": "blouse-asymmetric-blue.glb",
+      "filename_stem_match": true,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "blouse-mandarin-yellow",
+      "png": "blouse-mandarin-yellow.png",
+      "webp": "blouse-mandarin-yellow.webp",
+      "glb": "blouse-mandarin-yellow.glb",
+      "filename_stem_match": true,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "blouse-pleated-bib-white",
+      "png": null,
+      "webp": null,
+      "glb": "blouse-pleated-bib-white.glb",
+      "filename_stem_match": false,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "blouse-roundneck-fuchsia",
+      "png": "blouse-roundneck-fuchsia.png",
+      "webp": "blouse-roundneck-fuchsia.webp",
+      "glb": "blouse-roundneck-fuchsia.glb",
+      "filename_stem_match": true,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "blouse-roundneck-mustard",
+      "png": "blouse-roundneck-mustard.png",
+      "webp": "blouse-roundneck-mustard.webp",
+      "glb": "blouse-roundneck-mustard.glb",
+      "filename_stem_match": true,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "blouse-scarf-cream",
+      "png": "blouse-scarf-cream.png",
+      "webp": "blouse-scarf-cream.webp",
+      "glb": "blouse-scarf-cream.glb",
+      "filename_stem_match": true,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "blouse-tunic-roundneck-blue",
+      "png": "blouse-tunic-roundneck-blue.png",
+      "webp": "blouse-tunic-roundneck-blue.webp",
+      "glb": "blouse-tunic-roundneck-blue.glb",
+      "filename_stem_match": true,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "business-suit-fullset-women-pinstripe-pants",
+      "png": null,
+      "webp": null,
+      "glb": "business-suit-fullset-women-pinstripe-pants.glb",
+      "filename_stem_match": false,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "business-suit-fullset-women-pinstripe-skirt",
+      "png": null,
+      "webp": null,
+      "glb": "business-suit-fullset-women-pinstripe-skirt.glb",
+      "filename_stem_match": false,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "corporate-skirt",
+      "png": "corporate-skirt.png",
+      "webp": "corporate-skirt.webp",
+      "glb": "corporate-skirt.glb",
+      "filename_stem_match": true,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "dress-bir-green-yellow-collar",
+      "png": "dress-bir-green-yellow-collar.png",
+      "webp": "dress-bir-green-yellow-collar.webp",
+      "glb": "dress-bir-green-yellow-collar.glb",
+      "filename_stem_match": true,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "dress-butter-belted",
+      "png": "dress-butter-belted.png",
+      "webp": "dress-butter-belted.webp",
+      "glb": "dress-butter-belted.glb",
+      "filename_stem_match": true,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "dress-sheath-denim-blue",
+      "png": "dress-sheath-denim-blue.png",
+      "webp": "dress-sheath-denim-blue.webp",
+      "glb": "dress-sheath-denim-blue.glb",
+      "filename_stem_match": true,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "dress-shift-geometric",
+      "png": "dress-shift-geometric.png",
+      "webp": "dress-shift-geometric.webp",
+      "glb": "dress-shift-geometric.glb",
+      "filename_stem_match": true,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "dress-tunic-maternity-navy",
+      "png": "dress-tunic-maternity-navy.png",
+      "webp": "dress-tunic-maternity-navy.webp",
+      "glb": "dress-tunic-maternity-navy.glb",
+      "filename_stem_match": true,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "jack-shirt-two-tone",
+      "png": "jack-shirt-two-tone.png",
+      "webp": "jack-shirt-two-tone.webp",
+      "glb": "jack-shirt-two-tone.glb",
+      "filename_stem_match": true,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "pants",
+      "png": "pants.png",
+      "webp": "pants.webp",
+      "glb": "pants.glb",
+      "filename_stem_match": true,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "pantsuit-notch-short-gray",
+      "png": "pantsuit-notch-short-gray.png",
+      "webp": "pantsuit-notch-short-gray.webp",
+      "glb": "pantsuit-notch-short-gray.glb",
+      "filename_stem_match": true,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "peplum-set-navy",
+      "png": "peplum-set-navy.png",
+      "webp": "peplum-set-navy.webp",
+      "glb": "peplum-set-navy.glb",
+      "filename_stem_match": true,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "polo-barong-brown",
+      "png": "polo-barong-brown.png",
+      "webp": "polo-barong-brown.webp",
+      "glb": "polo-barong-brown.glb",
+      "filename_stem_match": true,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "polo-red-claremont",
+      "png": "polo-red-claremont.png",
+      "webp": "polo-red-claremont.webp",
+      "glb": "polo-red-claremont.glb",
+      "filename_stem_match": true,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "school-skirt",
+      "png": "school-skirt.png",
+      "webp": "school-skirt.webp",
+      "glb": "school-skirt.glb",
+      "filename_stem_match": true,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "scrub-set-housekeeping",
+      "png": null,
+      "webp": null,
+      "glb": "scrub-set-housekeeping.glb",
+      "filename_stem_match": false,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "scrub-set-men-vneck",
+      "png": null,
+      "webp": null,
+      "glb": "scrub-set-men-vneck.glb",
+      "filename_stem_match": false,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "scrub-set-women-vneck",
+      "png": null,
+      "webp": null,
+      "glb": "scrub-set-women-vneck.glb",
+      "filename_stem_match": false,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "shirt-mandarin-polkadot",
+      "png": null,
+      "webp": null,
+      "glb": "shirt-mandarin-polkadot.glb",
+      "filename_stem_match": false,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "shirt-two-tone-gpc",
+      "png": "shirt-two-tone-gpc.png",
+      "webp": "shirt-two-tone-gpc.webp",
+      "glb": "shirt-two-tone-gpc.glb",
+      "filename_stem_match": true,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "shirt-utility-beige-long",
+      "png": null,
+      "webp": null,
+      "glb": "shirt-utility-beige-long.glb",
+      "filename_stem_match": false,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "shorts",
+      "png": "shorts.png",
+      "webp": "shorts.webp",
+      "glb": "shorts.glb",
+      "filename_stem_match": true,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    },
+    {
+      "templateId_candidate": "women-pinstripe-vest-blouse",
+      "png": null,
+      "webp": null,
+      "glb": "women-pinstripe-vest-blouse.glb",
+      "filename_stem_match": false,
+      "activation": null,
+      "WARNING": "Candidate filename mapping only; verify canonical template identity and 3D suitability before activating."
+    }
+  ],
+  "duplicate_glb_hashes": {}
+}

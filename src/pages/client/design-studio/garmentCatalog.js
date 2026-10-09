@@ -14,7 +14,7 @@
 // female, only for families with a real multi-fit 3D model) -> STYLE (a sleeve length). A
 // family's fit/style options and 3D status are read once, here, from the real capability data
 // — never guessed, never invented for a garment that doesn't have it.
-import { photoFits, assetFor } from './garmentAssets';
+import { photoFits, assetFor, templateIdFor } from './garmentAssets';
 import { glbSlotFor, slotLive } from './glbSlots';
 import { BASE_PATHS, getGarmentPaths } from './garmentPaths';
 import { get3DCapabilities, fitsFor, sleeves3DFor } from './garmentCapabilities';
@@ -101,6 +101,13 @@ export const CATALOG = CATEGORY_DEFS.map(cat => ({
 // (badges, validation) without walking the category tree.
 export const FAMILY_BY_NAME = FAMILIES;
 
+// Which half of a uniform set a family is. Full-body garments (Lab Coverall) never join a set.
+export const PIECE_OF = {
+  'Polo Shirt': 'top', 'T-Shirt': 'top', 'Round Neck': 'top', 'Mandarin Collar': 'top', 'Button-Down': 'top', 'Scrub Top': 'top', 'Lab Coat': 'top',
+  'Pants': 'bottom', 'Shorts': 'bottom', 'Skirt': 'bottom',
+};
+export const pieceOf = garment => PIECE_OF[garment] ?? null;
+
 export function familyFor(garment) {
   return FAMILIES[garment] ?? null;
 }
@@ -128,12 +135,18 @@ export function resolveFit(garment, fit) {
 export function applyGarment(cfg, garment, next = {}) {
   const fam = FAMILIES[garment];
   if (!fam) return { ...cfg, garment: garment ?? null };
+  const sleeve = resolveSleeve(fam.id, next.sleeve ?? (fam.styles.includes(cfg.sleeve) ? cfg.sleeve : null));
+  const fit = resolveFit(fam.id, next.fit ?? cfg.fit);
+  const photoBase = !!assetFor(fam.id, sleeve, 'front', fit);
   return {
     ...cfg,
     category: next.category ?? cfg.category,
     garment: fam.id,
-    sleeve: resolveSleeve(fam.id, next.sleeve ?? (fam.styles.includes(cfg.sleeve) ? cfg.sleeve : null)),
-    fit: resolveFit(fam.id, next.fit ?? cfg.fit),
+    sleeve,
+    fit,
+    ...(photoBase ? { patterns: {}, patternParams: {} } : {}),
+    // The gallery photo a design was opened from; any other garment drops it so a design never claims the wrong photo.
+    inspirationId: next.inspirationId ?? (fam.id === cfg.garment ? cfg.inspirationId ?? null : null),
   };
 }
 
@@ -165,7 +178,7 @@ export function resolveTarget(garment, sleeve, fit, face = 'front') {
   const exactGlb = asset && slotLive(glbSlotFor(asset.id)) ? glbSlotFor(asset.id).file : null; // the photo base's own garment-only GLB
   const sleeve3D = fam.status3D !== 'none' && (!s || sleeves3DFor(garment, f).includes(s));
   return {
-    family: fam.id, sleeve: s, fit: f, face, assetId: asset?.id ?? null, photo: !!asset,
+    family: fam.id, sleeve: s, fit: f, face, assetId: asset?.id ?? null, templateId: templateIdFor(garment, s, f), photo: !!asset,
     zones: asset ? asset.zones : fam.zones, limitations: asset?.limitations ?? [],
     glb: exactGlb ?? (sleeve3D ? get3DCapabilities(garment, f, s).model : null),
     glbSlot: asset ? glbSlotFor(asset.id) : null, // reserved path for a future garment-only GLB of this exact photo base; never implies a model exists
