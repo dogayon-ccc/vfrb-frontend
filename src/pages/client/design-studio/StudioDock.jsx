@@ -3,7 +3,7 @@ import GarmentSilhouette from './GarmentSilhouette';
 import { zonesFor } from './dsShared';
 import { familyFor, STATUS_3D_LABEL } from './garmentCatalog';
 
-export default function StudioDock({ cfg, saved, saving, saveErr, draftSaved, saveDesign, orderThis, ordering, onOpenTool, layerCount = 0, face = 'front' }) {
+export default function StudioDock({ cfg, saved, saving, saveErr, draftSaved, saveDesign, orderThis, ordering, onOpenTool, downloadImage, downloadPdf, exporting, layerCount = 0, face = 'front' }) {
   const zones = zonesFor(cfg.garment, cfg.sleeve, cfg.fit).filter(z => z !== 'tipping' || cfg.colors.tipping);
   const st = STATUS_3D_LABEL[familyFor(cfg.garment)?.status3D];
   const details = [zones.includes('sleeve') && cfg.sleeve && `${cfg.sleeve} sleeve`, cfg.category].filter(Boolean).join(' · ');
@@ -42,6 +42,18 @@ export default function StudioDock({ cfg, saved, saving, saveErr, draftSaved, sa
             : <>Order this design <NavIcon name="chevronRight" size={14}/></>}
         </button>
       </div>
+      {downloadImage && (
+        <div className="ds-dock-export" role="group" aria-label="Export design">
+          <button type="button" className="ds-act" onClick={downloadImage} disabled={!cfg.garment || !!exporting} aria-busy={exporting === 'png'}
+            title="Transparent PNG of every view">
+            {exporting === 'png' ? <span className="ds-spin"/> : <NavIcon name="image" size={15}/>} PNG
+          </button>
+          <button type="button" className="ds-act" onClick={downloadPdf} disabled={!cfg.garment || !!exporting} aria-busy={exporting === 'pdf'}
+            title="A4 spec sheet with views, colours and details">
+            {exporting === 'pdf' ? <span className="ds-spin"/> : <NavIcon name="print" size={15}/>} PDF
+          </button>
+        </div>
+      )}
     </footer>
   );
 }

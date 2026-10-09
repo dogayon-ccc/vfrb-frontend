@@ -17,7 +17,9 @@ import axios from 'axios';
 import { NavIcon } from '../../components/ui/icons';
 import DesignStudioStyles from './design-studio/DesignStudioStyles';
 import { useGarmentCanvas, compositeFrontBack } from './design-studio/useGarmentCanvas';
-import { hasBackView } from './design-studio/garmentAssets';
+import { hasBackView, templateIdFor } from './design-studio/garmentAssets';
+import { EXPORT_FACE_HEIGHT, designPng, designPdf, downloadBlobOrUrl } from './design-studio/designExport';
+import { ENTRIES as GALLERY } from './design-studio/designGallery';
 import CanvasViewport from './design-studio/CanvasViewport';
 import TopBar from './design-studio/TopBar';
 import ToolDrawer from './design-studio/ToolDrawer';
@@ -141,7 +143,7 @@ export default function DesignStudio() {
   // writer on the same wrapper's style.transform made the zoom buttons fight it.
 
   // BUG 2 FIX: pass canvasEl (ref object), not canvasEl.current (null at render)
-  const { addLogo, addText, addShape, updateSelected, deleteSelected, duplicateSelected, alignSelected, nudgeSelected, exportOverlays, exportPNG, getCanvasJSON, loadCanvasJSON,
+  const { addLogo, addText, addShape, updateSelected, deleteSelected, duplicateSelected, alignSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
           pushHistory, undo, redo, canUndo, canRedo, resizeCanvas, initFailed,
           layers, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
           setDrawMode, setBrushStyle } =
@@ -471,17 +473,76 @@ export default function DesignStudio() {
   }, [cfg, saving, snapshotDesign, exportPNG, flashError]);
 
   // Order This → pass design to OrderWizard
+  // Export files: each face is rendered at EXPORT_FACE_HEIGHT after it has fully drawn (exportFace), then the
+  // live canvas returns to the face the customer was on. Photo bases have no back, so they export front only.
+  const [exporting, setExporting] = useState(null);
+  const captureExportFaces = useCallback(async () => {
+    const originalFace = face;
+    let activeFace = originalFace;
+    faceJSON.current[activeFace] = getCanvasJSON() ?? [];
+    const capture = async (target) => {
+      if (target !== activeFace) {
+        faceJSON.current[activeFace] = getCanvasJSON() ?? [];
+        setFace(target);
+        await new Promise(r => setTimeout(r, 150));
+        const want = faceJSON.current[target] ?? [];
+        loadCanvasJSON(want);
+        for (let i = 0; i < 40 && (getCanvasJSON() ?? []).length !== want.length; i++) await new Promise(r => setTimeout(r, 50));
+        activeFace = target;
+      }
+      return exportFace(target, EXPORT_FACE_HEIGHT);
+    };
+    const faces = [{ label: 'Front', url: await capture('front') }];
+    if (hasBackView(cfg.garment, cfg.sleeve, cfg.fit)) faces.push({ label: 'Back', url: await capture('back') });
+    if (activeFace !== originalFace) {
+      faceJSON.current[activeFace] = getCanvasJSON() ?? [];
+      setFace(originalFace);
+      await new Promise(r => setTimeout(r, 150));
+      loadCanvasJSON(faceJSON.current[originalFace] ?? []);
+    }
+    return faces.every(f => f.url) ? faces : null;
+  }, [face, getCanvasJSON, loadCanvasJSON, exportFace, cfg.garment, cfg.sleeve, cfg.fit]);
+
+  const exportName = ext => `vfrb-${(cfg.name?.trim() || cfg.garment || 'design').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${new Date().toLocaleDateString('en-CA')}.${ext}`; // local YYYY-MM-DD
+
   const downloadImage = useCallback(async () => {
-    if (!cfg.garment) return;
-    const dataUrl = await exportFrontBack();
-    if (!dataUrl) return;
-    const a = document.createElement('a');
-    a.href = dataUrl;
-    a.download = `vfrb-design-${cfg.garment.replace(/\s+/g,'-').toLowerCase()}-${Date.now()}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }, [exportFrontBack, cfg.garment]);
+    if (!cfg.garment || exporting) return;
+    setExporting('png');
+    try {
+      const faces = await captureExportFaces();
+      if (!faces) throw new Error('render');
+      downloadBlobOrUrl(await designPng(faces), exportName('png'));
+    } catch { flashError('Could not export the image. Please try again.'); }
+    finally { setExporting(null); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [captureExportFaces, cfg, exporting, flashError]);
+
+  const downloadPdf = useCallback(async () => {
+    if (!cfg.garment || exporting) return;
+    setExporting('pdf');
+    try {
+      const faces = await captureExportFaces();
+      if (!faces) throw new Error('render');
+      // Same zone list the dock shows: tipping only when the customer actually coloured it.
+      const zones = zonesFor(cfg.garment, cfg.sleeve, cfg.fit).filter(z => z !== 'tipping' || cfg.colors.tipping);
+      const photo = GALLERY.find(d => d.id === cfg.inspirationId);
+      const counts = { front: (faceJSON.current.front ?? []).length, back: (faceJSON.current.back ?? []).length };
+      const rows = [
+        ['Garment', [cfg.garment, cfg.sleeve && `${cfg.sleeve} sleeve`, cfg.fit && cfg.fit !== 'unisex' ? cfg.fit : null].filter(Boolean).join(', ')],
+        ['Category', cfg.category],
+        ['Colours', zones.map(z => `${z}: ${cfg.colors[z] ?? '-'}`).join('  ')],
+        ['Patterns', Object.entries(cfg.patterns ?? {}).filter(([, p]) => p && p !== 'solid').map(([z, p]) => `${z}: ${p}`).join('  ') || 'Solid'],
+        ['Placed items', `Front ${counts.front}${faces.length > 1 ? `, back ${counts.back}` : ''}`],
+        ['Views', faces.map(f => f.label).join(', ') + (faces.length === 1 ? ' (no back view for this garment)' : '')],
+        ['Template', templateIdFor(cfg.garment, cfg.sleeve, cfg.fit) ?? 'Vector template'],
+        ...(photo ? [['Inspired by', photo.name]] : []),
+      ];
+      const pdf = await designPdf(faces, { name: cfg.name?.trim(), garment: cfg.garment, date: new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }), rows });
+      downloadBlobOrUrl(pdf, exportName('pdf'));
+    } catch { flashError('Could not export the PDF. Please try again.'); }
+    finally { setExporting(null); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [captureExportFaces, cfg, exporting, flashError]);
 
   const orderThis = useCallback(async () => {
     if (!cfg.garment || ordering) return;
@@ -613,7 +674,7 @@ export default function DesignStudio() {
 
           {/* ── TOOL STRIP + PANEL DRAWER ── */}
           <ToolDrawer tool={tool} setTool={setTool} sheetOpen={sheetOpen} setSheetOpen={setSheetOpen}
-            summary={{ cfg, face, saved, saving, saveErr, draftSaved, saveDesign, orderThis, ordering, onOpenTool: (id) => { setTool(id); setSheetOpen(true); }, downloadImage, clearGarment }} cfg={cfg} setCfg={setCfg}
+            summary={{ cfg, face, saved, saving, saveErr, draftSaved, saveDesign, orderThis, ordering, onOpenTool: (id) => { setTool(id); setSheetOpen(true); }, downloadImage, downloadPdf, exporting, clearGarment }} cfg={cfg} setCfg={setCfg}
             activeZone={zone} setActiveZone={setActiveZone}
             addText={addText} addShape={addShape} updateSelected={updateSelected}
             assetsTab={assetsTab} setAssetsTab={setAssetsTab} logoUpload={logoUpload}

@@ -521,6 +521,8 @@ export default function DesignStudioStyles() {
       .ds-dock-state[data-tone="ok"]{color:var(--teal-dark);}
       .ds-dock-state[data-tone="err"]{color:#dc2626;}
       .ds-dock-actions .ds-act{min-height:44px;}
+      .ds-dock-export{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+      .ds-dock-export .ds-act{min-height:36px;font-size:12px;justify-content:center;}
       .ds-bar-save:disabled{opacity:.45;cursor:not-allowed;}
       @media (min-width:768px){.ds-bar-save{display:none!important;}}
       @media (pointer:coarse){.ds-lay-btn{width:44px;height:44px;}.ds-lay-pick{min-height:44px;}.ds-ins-field input,.ds-ins-field select{min-height:44px;}}
