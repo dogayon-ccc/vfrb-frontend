@@ -424,19 +424,21 @@ export default function AdminLayout() {
           flex-direction: column;
           align-items: center;
           gap: 2px;
-          padding: 5px 8px;
+          padding: 5px 2px;
           border: none;
           background: transparent;
           cursor: pointer;
           text-decoration: none;
-          min-width: 54px;
+          flex: 1 1 0;
+          min-width: 0;
+          max-width: 76px;
           border-radius: 14px;
           transition: transform .12s;
           position: relative;
         }
         .adm-bnav-btn:active { transform: scale(.9); }
         .adm-bnav-icon  { font-size: 23px; line-height:1; transition: transform .15s; }
-        .adm-bnav-label { font-size: 9px; font-weight: 600; color: var(--text-faint); letter-spacing:.02em; }
+        .adm-bnav-label { font-size: 9px; font-weight: 600; color: var(--text-faint); letter-spacing:.02em; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .adm-bnav-btn.mob-active {
           background: linear-gradient(135deg, rgba(2,128,144,.08), rgba(2,195,154,.06));
         }

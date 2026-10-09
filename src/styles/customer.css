@@ -226,6 +226,7 @@ html[data-wizard] .cm-studio-fab,html[data-wizard] .fbw-fab{display:none!importa
   .od-pane[data-on=true]{animation:odPaneIn .26s cubic-bezier(.22,1,.36,1) both}
 }
 @keyframes odPaneIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media(max-width:400px){.od-tab{padding:0 10px;font-size:12.5px}}
 @media(prefers-reduced-motion:reduce){.od-pane[data-on=true]{animation:none}.od-tab{transition:none}}
 
 /* Wizard size stepper: typed bulk quantities */

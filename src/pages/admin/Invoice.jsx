@@ -131,18 +131,18 @@ export default function AdminInvoice() {
         padding:'20px', marginBottom:24, boxShadow:'var(--shadow-xs)' }}>
         <p style={{ fontSize:12, fontWeight:700, color:'var(--text-subtle)', textTransform:'uppercase',
           letterSpacing:'.07em', marginBottom:10 }}>Order ID</p>
-        <div style={{ display:'flex', gap:10 }}>
+        <div style={{ display:'flex', flexWrap:'wrap', gap:10 }}>
           <input type="number" value={orderId} onChange={e => setOrderId(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && fetchOrder()}
             placeholder="Enter order ID (e.g. 42)"
-            style={{ flex:1, padding:'10px 14px', borderRadius:'var(--r-md)', border:'1px solid var(--border)',
+            style={{ flex:'1 1 160px', minWidth:0, padding:'10px 14px', borderRadius:'var(--r-md)', border:'1px solid var(--border)',
               background:'var(--bg)', color:'var(--ink)', fontSize:13, outline:'none',
               fontFamily:'var(--font)' }}
             onFocus={e => { e.target.style.borderColor='var(--teal)'; e.target.style.boxShadow='0 0 0 3px rgba(2,128,144,0.1)'; }}
             onBlur={e => { e.target.style.borderColor='var(--border)'; e.target.style.boxShadow='none'; }}/>
           <motion.button whileHover={{ scale:1.02 }} whileTap={{ scale:.97 }}
             onClick={fetchOrder} disabled={loading}
-            style={{ display:'flex', alignItems:'center', gap:6, padding:'10px 24px', borderRadius:'var(--r-md)', border:'none',
+            style={{ display:'flex', alignItems:'center', justifyContent:'center', flex:'1 0 auto', gap:6, padding:'10px 24px', borderRadius:'var(--r-md)', border:'none', whiteSpace:'nowrap',
               background:'linear-gradient(135deg,var(--teal),var(--teal-2))',
               color:'#fff', fontSize:13, fontWeight:700, cursor: loading ? 'not-allowed' : 'pointer',
               fontFamily:'var(--font)', opacity: loading ? .7 : 1 }}>
