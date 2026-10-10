@@ -56,6 +56,7 @@ function top(o) {
     w = 320, h = 380, neckW = 30, hpsY = 44, frontDrop = 22, backDrop = 6,
     sh = [88, 64], arm = [95, 128], hem = [97, 334], hemCurve = 4, waist = 0,
     sleeve = { angle: 40, len: 66, open: 56 }, collar = 'rib', pocket = null, placket = null, vents = false, coat = false,
+    lapel = 92, flaps = null,
   } = o;
   const cx = w / 2;
   const L = (dx, y) => [cx - dx, y], R = (dx, y) => [cx + dx, y];
@@ -113,7 +114,9 @@ function top(o) {
     // Lab coat: lapels folded back from a centre-front opening.
     const lap = s => {
       const H = s < 0 ? LH : RH;
-      return `M ${pt(H[0], H[1] - 4)} L ${pt(cx + s * 2, hpsY + 92)} L ${pt(cx + s * 26, hpsY + 64)} L ${pt(cx + s * 34, hpsY + 40)} L ${pt(cx + s * 42, hpsY + 34)} L ${pt(H[0] + s * 8, H[1] + 4)} Z`;
+      // `lapel` = depth of the opening (lab coat 92, blazer 104, blouse 60); the notch sits about 0.4 of the way down.
+      const k = lapel / 92;
+      return `M ${pt(H[0], H[1] - 4)} L ${pt(cx + s * 2, hpsY + lapel)} L ${pt(cx + s * 26, hpsY + 64 * k)} L ${pt(cx + s * 34, hpsY + 40 * k)} L ${pt(cx + s * 42, hpsY + 34 * k)} L ${pt(H[0] + s * 8, H[1] + 4)} Z`;
     };
     front = `M ${pt(LH[0] - 1, LH[1] - 4)} Q ${pt(cx, hpsY - 12)} ${pt(RH[0] + 1, RH[1] - 4)} L ${pt(...RH)} Q ${pt(cx, hpsY + 2 * backDrop)} ${pt(...LH)} Z ${lap(-1)} ${lap(1)}`;
   }
@@ -127,9 +130,13 @@ function top(o) {
     for (let i = 0; i < buttons; i++) frontDetails.push({ d: dot(cx, py0 + 9 + i * step), kind: 'button', over: true });
   }
   if (coat) {
-    frontDetails.push({ d: `M ${pt(cx, hpsY + 92)} L ${pt(cx, hem[1] + hemCurve)}`, kind: 'line' });
-    for (let i = 0; i < 4; i++) frontDetails.push({ d: dot(cx - 8, hpsY + 104 + i * 58, 3), kind: 'button', over: true });
+    // Centre-front edge below the lapels, and the buttons (lab coat: 4, 58 apart; blazer and blouse pass their own).
+    const { buttons = 4, step = 58 } = coat === true ? {} : coat;
+    frontDetails.push({ d: `M ${pt(cx, hpsY + lapel)} L ${pt(cx, hem[1] + hemCurve)}`, kind: 'line' });
+    for (let i = 0; i < buttons; i++) frontDetails.push({ d: dot(cx - 8, hpsY + lapel + 12 + i * step, 3), kind: 'button', over: true });
   }
+  // Flap pockets (blazer): modelled flaps, drawn as lines, never a colourable zone.
+  if (flaps) for (const s of [-1, 1]) frontDetails.push({ d: `M ${pt(cx + s * flaps.x0, flaps.y)} L ${pt(cx + s * (flaps.x0 + flaps.w), flaps.y)} L ${pt(cx + s * (flaps.x0 + flaps.w), flaps.y + 12)} L ${pt(cx + s * flaps.x0, flaps.y + 12)} Z`, kind: 'line' });
   if (pocket) frontDetails.push({ d: `M ${pt(pocket.x + 3, pocket.y + 6)} L ${pt(pocket.x + pocket.w - 3, pocket.y + 6)}`, kind: 'seam', over: true });
 
   const shared = [
@@ -207,6 +214,26 @@ function trousers({ w = 250, h = 420, waist = 76, waistY = 28, band = 15, hip = 
   return { w, h, body, collar: null, sleeveL: null, sleeveR: null, pocket: null, details };
 }
 
+// Pleated skirt: fitted waistband, then knife pleats flaring to a wide hem. One body zone; pleats are lines.
+function pleatedSkirt({ w = 280, h = 240, waist = 58, waistY = 26, band = 18, hemY = 206, hemX = 124, pleats = 9 }) {
+  const cx = w / 2, by = waistY + band;
+  const body = `M ${pt(cx - waist, waistY)} L ${pt(cx + waist, waistY)} L ${pt(cx + waist + 2, by)} Q ${pt(cx + waist + 30, (by + hemY) / 2 - 20)} ${pt(cx + hemX, hemY)} ` +
+    `Q ${pt(cx, hemY + 14)} ${pt(cx - hemX, hemY)} Q ${pt(cx - waist - 30, (by + hemY) / 2 - 20)} ${pt(cx - waist - 2, by)} Z`;
+  const lines = Array.from({ length: pleats }, (_, i) => {
+    const t = (i + 1) / (pleats + 1) * 2 - 1; // -1..1 across the skirt
+    return `M ${pt(cx + t * (waist + 2), by)} L ${pt(cx + t * (hemX - 6), hemY + 6 * (1 - t * t))}`;
+  }).join(' ');
+  return {
+    w, h, body, collar: null, sleeveL: null, sleeveR: null, pocket: null,
+    details: [
+      { d: `M ${pt(cx - waist - 2, by)} L ${pt(cx + waist + 2, by)}`, kind: 'line' },
+      { d: lines, kind: 'line' },
+      { d: `M ${pt(cx - hemX + 4, hemY - 7)} Q ${pt(cx, hemY + 7)} ${pt(cx + hemX - 4, hemY - 7)}`, kind: 'seam' },
+      { d: dot(cx + waist - 10, waistY + band / 2, 2.4), kind: 'button', face: 'front' },
+    ],
+  };
+}
+
 function skirt({ w = 260, h = 360, waist = 58, waistY = 30, band = 16, hip = 78, hipY = 132, hemY = 334, hemX = 68, hemCurve = 4 }) {
   const cx = w / 2, by = waistY + band;
   const body = `M ${pt(cx - waist, waistY)} L ${pt(cx + waist, waistY)} L ${pt(cx + waist + 2, by)} Q ${pt(cx + hip + 3, (by + hipY) / 2)} ${pt(cx + hip, hipY)} ` +
@@ -258,6 +285,14 @@ export const BASE_PATHS = {
   'Button-Down': top({ h: 390, collar: 'point', frontDrop: 16, neckW: 26, hem: [96, 346], hemCurve: 9, placket: { top: 62, bottom: 342, buttons: 7, width: 7 }, pocket: { x: 92, y: 112, w: 32, h: 38 } }),
   'Lab Coat':    top({ w: 340, h: 440, collar: 'notch', neckW: 28, hpsY: 40, sh: [92, 62], arm: [98, 132], hem: [108, 420], hemCurve: 3, sleeve: { angle: 42, len: 70, open: 58 }, pocket: { x: 92, y: 262, w: 44, h: 52 }, coat: true }),
   'Lab Coverall': coverall(),
+  // Corporate additions with real garment-only models (garmentCapabilities): notch-lapel blazer, notch-collar blouse, collared shirt-dress.
+  'Blazer':      top({ h: 400, collar: 'notch', neckW: 26, hpsY: 40, sh: [90, 62], arm: [94, 130], hem: [98, 360], hemCurve: 6, waist: 6,
+                       sleeve: { angle: 42, len: 70, open: 58 }, lapel: 104, coat: { buttons: 2, step: 48 }, flaps: { x0: 30, w: 46, y: 262 } }),
+  'Blouse':      top({ collar: 'notch', neckW: 26, hpsY: 44, sh: [86, 66], arm: [92, 128], hem: [94, 322], hemCurve: 5, waist: 8,
+                       sleeve: { angle: 38, len: 60, open: 54 }, lapel: 60, coat: { buttons: 4, step: 56 } }),
+  'Dress':       top({ h: 500, collar: 'notch', neckW: 26, hpsY: 40, sh: [86, 62], arm: [92, 126], hem: [104, 470], hemCurve: 6, waist: 18,
+                       sleeve: { angle: 38, len: 58, open: 52 }, lapel: 60, coat: { buttons: 4, step: 44 } }),
+  'Pleated Skirt': pleatedSkirt({}),
   'Pants':       trousers({}),
   'Shorts':      trousers({ h: 300, hemY: 252, hemOut: 84, hemIn: 9, crotchY: 172, crease: false }),
   'Track Pants': { ...trousers({ h: 440, hemY: 408, hemOut: 58, hemIn: 7, fly: false, crease: false, cuffs: true, drawstring: true }),

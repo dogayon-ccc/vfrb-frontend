@@ -15,7 +15,7 @@
 // Lazy-loaded from DesignStudio.jsx:
 //   const Scene3D = lazy(() => import('./DesignStudio3D'))
 
-import { useRef, useMemo, useState, useEffect, Suspense } from 'react';
+import { useRef, useMemo, useState, useEffect, useLayoutEffect, Suspense } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { familyFor, resolveTarget } from './design-studio/garmentCatalog';
 import { OrbitControls, ContactShadows, Float, Environment, Lightformer } from '@react-three/drei';
@@ -336,6 +336,32 @@ function GarmentMesh({ cfg, referenceTexture, overlays }) {
   }
 }
 
+// Uniform set preview: the top and the bottom each render their OWN model with their own colours (two separate pieces, never a
+// fused set model). After both have loaded, the bottom is moved so its waist sits just under the top's hem (10% overlap, measured
+// from the real bounding boxes), and the pair is scaled to the height of one garment so the existing camera frames it.
+function SetStack({ top, bottom }) {
+  const group = useRef(), topRef = useRef(), botRef = useRef();
+  const key = [top.garment, top.sleeve, top.fit, bottom.garment, bottom.sleeve, bottom.fit].join('|');
+  useLayoutEffect(() => {
+    const g = group.current, t = topRef.current, b = botRef.current;
+    if (!g || !t || !b) return;
+    g.scale.setScalar(1); g.position.set(0, 0, 0); b.position.set(0, 0, 0); g.updateMatrixWorld(true);
+    const tb = new THREE.Box3().setFromObject(t), bb = new THREE.Box3().setFromObject(b);
+    if (tb.isEmpty() || bb.isEmpty()) return;
+    b.position.y = tb.min.y + (tb.max.y - tb.min.y) * 0.1 - bb.max.y;
+    g.updateMatrixWorld(true);
+    const all = new THREE.Box3().setFromObject(g), s = 1.25 / (all.max.y - all.min.y);
+    g.scale.setScalar(s);
+    g.position.y = -((all.max.y + all.min.y) / 2) * s - 0.05;
+  }, [key]);
+  return (
+    <group ref={group}>
+      <group ref={topRef}><GarmentMesh cfg={top}/></group>
+      <group ref={botRef}><GarmentMesh cfg={bottom}/></group>
+    </group>
+  );
+}
+
 // Scanned garments are modelled smaller than the generic fallback shapes, so they get a closer camera.
 function CameraDistance({ z }) {
   const camera = useThree(s => s.camera);
@@ -380,7 +406,9 @@ function PauseWhenHidden() {
 }
 
 // ── Full scene ─────────────────────────────────────────────────────────────────
-export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overlays = null, onContextLost = null }) {
+// `companion` (optional): the other piece of a uniform set, shown with this one when both have their own model. `companionRole` says
+// which half `cfg` is ('top' or 'bottom'). Overlays (logos, text) stay on the piece being edited.
+export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overlays = null, onContextLost = null, companion = null, companionRole = null }) {
   // FIX (3D never showed logo/pattern/text): loads the live 2D canvas
   // snapshot (refreshed by DesignStudio.jsx each time "3D" is clicked) as
   // a texture for the body mesh. Falls back to flat color if there's no
@@ -427,7 +455,9 @@ export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overla
           the brief GLB-parse window after that. */}
       <Float speed={1.4} rotationIntensity={0.12} floatIntensity={0.22}>
         <Suspense fallback={null}>
-          <GarmentMesh cfg={cfg} referenceTexture={referenceTexture} overlays={overlays}/>
+          {companion
+            ? (companionRole === 'top' ? <SetStack top={companion} bottom={cfg}/> : <SetStack top={cfg} bottom={companion}/>)
+            : <GarmentMesh cfg={cfg} referenceTexture={referenceTexture} overlays={overlays}/>}
         </Suspense>
       </Float>
 

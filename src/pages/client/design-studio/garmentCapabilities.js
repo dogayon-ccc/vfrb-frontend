@@ -246,7 +246,41 @@ const UTILITY_LONG = [{
   },
 }];
 
-export const SCANNED_GARMENTS = [...SCANNED_BASE, ...SCRUB_TOP, ...MANDARIN_TUNIC, ...ROUND_NECK, ...BIR_BLOUSE, ...UTILITY_LONG];
+// Corporate and school families added with their own vector templates (garmentPaths.js) because a garment-only Meshy model of a
+// gallery photo of that exact garment exists. Staged copies of asset-staging/mesh-3d (byte-identical). All are fused single meshes
+// with no UVs, materials or separate parts, centred at the origin and facing +z (checked in 0/45/135/180 renders): one body colour
+// plus procedural patterns; collar, sleeve and pocket colours stay 2D only. exactSleeve entries keep each model on its own sleeve.
+const bodyCaps = (sleeves, extra = []) => ({
+  regionMethod: 'vertex-mask', regionAccuracy: 'approximate (single body zone, fused mesh with no cut panels in the GLB)',
+  zones: ['body'], patterns: { zones: ['body'], ids: ALL_PATTERNS.filter(p => p !== 'geometric') },
+  sleeves, text: false, logo: false, frontBack: false, fit: ['female'],
+  limitations: ['one body colour: lapels, collar, sleeves, buttons and pockets are modelled shapes, not separately colourable parts', 'no text or logos in 3D', ...extra, 'no arbitrary fabric-texture upload'],
+});
+const TOP_T = { rotation: [0, 0, 0], scale: 0.54, position: [0, -0.05, 0] };
+const CORPORATE_MODELS = [
+  { id: 'blazer-long', match: /^blazer$/i, exactSleeve: true, sourcePhoto: 'blazer-tweed-herringbone',
+    models: { female: '/models/vfrb-staged/blazer-tweed-herringbone.glb' }, torso: { female: 0.45 }, transform: TOP_T,
+    parts: [{ node: 'mesh_node', decals: false, zoneOf: bodyOnly }],
+    capabilities: bodyCaps(['Long'], ['notch-lapel, three-button cut with flap pockets (the model of the tweed blazer photo); the tweed weave is not modelled']) },
+  { id: 'blazer-three-quarter', match: /^blazer$/i, exactSleeve: true, sourcePhoto: 'blazer-white-notch',
+    models: { female: '/models/vfrb-staged/blazer-white-notch.glb' }, torso: { female: 0.45 }, transform: TOP_T,
+    parts: [{ node: 'mesh_node', decals: false, zoneOf: bodyOnly }],
+    capabilities: bodyCaps(['3/4'], ['notch-lapel, two-button cut (the model of the white notch blazer photo)']) },
+  { id: 'blouse-notch-short', match: /^blouse$/i, exactSleeve: true, sourcePhoto: 'blazer-blouse-blue',
+    models: { female: '/models/vfrb-staged/blazer-blouse-blue.glb' }, torso: { female: 0.42 }, transform: TOP_T,
+    parts: [{ node: 'mesh_node', decals: false, zoneOf: bodyOnly }],
+    capabilities: bodyCaps(['Short'], ['notch-collar, button-front short-sleeve cut (the model of the notch-collar blouse photo)']) },
+  { id: 'dress-collared-short', match: /^dress$/i, exactSleeve: true, sourcePhoto: 'dress-bir-green-yellow-collar',
+    models: { female: '/models/vfrb-staged/dress-bir-green-yellow-collar.glb' }, torso: { female: 0.36 }, transform: TOP_T,
+    parts: [{ node: 'mesh_node', decals: false, zoneOf: bodyOnly }],
+    capabilities: bodyCaps(['Short'], ['collared, button-front short-sleeve sheath (the model of the BIR shirt-dress photo); the contrast collar is not a separate part']) },
+  { id: 'pleated-skirt', match: /^pleated skirt$/i, sourcePhoto: 'school-skirt',
+    models: { unisex: '/models/vfrb-staged/school-skirt.glb' }, torso: { unisex: 0.56 }, transform: { rotation: [0, 0, 0], scale: 0.53, position: [0, -0.05, 0] },
+    parts: [{ node: 'mesh_node', decals: false, zoneOf: bodyOnly }],
+    capabilities: { ...bodyCaps([], ['knife-pleated mini skirt (the model of the pleated school skirt photo)']), fit: ['unisex'] } },
+];
+
+export const SCANNED_GARMENTS = [...SCANNED_BASE, ...SCRUB_TOP, ...MANDARIN_TUNIC, ...ROUND_NECK, ...BIR_BLOUSE, ...UTILITY_LONG, ...CORPORATE_MODELS];
 
 // The 3D entry generated from a gallery photo (`sourcePhoto`), if any.
 export const modelFromPhoto = id => SCANNED_GARMENTS.find(x => x.sourcePhoto === id) ?? null;

@@ -67,7 +67,7 @@ class ThreeEB extends Component {
 export default function CanvasViewport({
   cfg, setCfg, canvasWrapRef, canvasEl, aiPulse, face, switchFace, initFailed,
   selObj, deleteSelected, duplicateSelected, viewMode, has3DLoaded, onLogoFile, zoom, setZoom, snapshot, overlays,
-  onChooseGarment, pickerOpen, setViewMode, pieceBar = null,
+  onChooseGarment, pickerOpen, setViewMode, pieceBar = null, setCompanion = null, showSet = false, setShowSet = null,
 }) {
   const paneRef = useRef(null);
   const [webglOk, setWebglOk] = useState(hasWebGL);
@@ -251,9 +251,17 @@ export default function CanvasViewport({
                 </p>
               </div>
             }>
-              <Scene3D cfg={cfg} overlayDataUrl={snapshot} overlays={overlays} onContextLost={on3DLost}/>
+              <Scene3D cfg={cfg} overlayDataUrl={snapshot} overlays={overlays} onContextLost={on3DLost}
+                companion={showSet ? setCompanion?.cfg ?? null : null} companionRole={setCompanion?.role ?? null}/>
             </Suspense>
           </ThreeEB>
+          {/* Uniform set: both pieces have their own 3D model, so the pair can be previewed together (each keeps its own garment and colours). */}
+          {setCompanion && viewMode === '3d' && (
+            <div className="ds-seg ds-seg--sm" role="radiogroup" aria-label="3D preview scope" style={{ position:'absolute', top:14, right:14, zIndex:3 }}>
+              <button type="button" role="radio" aria-checked={!showSet} onClick={() => setShowSet(false)}>This piece</button>
+              <button type="button" role="radio" aria-checked={showSet} onClick={() => setShowSet(true)}>Whole set</button>
+            </div>
+          )}
           {!cfg.garment && (
             <p style={{ position:'absolute', top:'46%', left:0, right:0, textAlign:'center', margin:0,
               color:'rgba(15,23,42,.45)', fontSize:12, lineHeight:1.6, pointerEvents:'none' }}>
