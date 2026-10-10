@@ -1,6 +1,7 @@
 import { assetFor, assetById } from './garmentAssets';
 import { glbSlotFor, slotLive } from './glbSlots';
 import { applyGarment, resolveSleeve, FAMILY_BY_NAME } from './garmentCatalog';
+import { scannedEntryFor } from './garmentCapabilities';
 // Real VFRB inspiration gallery: photos only. Editable garment families live in garmentCatalog.js and are never listed here as designs. `glb` stays null until a garment-only GLB passes
 // docs/engineering/GLB-CAPABILITY-MATRIX.md; until then an entry is a photo reference and is never presented as editable 3D.
 // category/gender/sleeve are read from the photo, not confirmed by the client: verify before release.
@@ -39,7 +40,8 @@ const BASES = {
   'shirt-utility-beige-long': ['Industrial / Work', 'Button-Down', 'Long', null],
   'bir-blouse-trousers-blue': ['Corporate', 'Button-Down', 'Long', 'button-down-bir-long'],
   'blouse-roundneck-fuchsia': ['Corporate', 'Round Neck', 'Short', 'round-neck-fuchsia-short'],
-  // v3 product photos of single bottoms: each opens its own family's vector template (the family's 3D scan is a different garment, so the photo stays editable-2d).
+  // v3 product photos of single bottoms: each opens its own family's vector template. Pants and Shorts 3D are garment-only models generated from these exact photos
+  // (garmentCapabilities `sourcePhoto`), so those two photos carry their GLB; the corporate-skirt model was rejected (its back is modelled as shorts), so that photo stays editable-2d.
   'pants':           ['Corporate', 'Pants', null, null],
   'shorts':          ['School Uniform', 'Shorts', null, null],
   'corporate-skirt': ['Corporate', 'Skirt', null, null],
@@ -54,7 +56,10 @@ const D = (id, name, category, gender, piece, sleeve, collar, source, parts = [p
 };
 const build = (id, name, category, gender, piece, sleeve, collar, source, parts) => {
   const base = BASES[id] ?? null;
-  const asset = base?.[3] ? assetById(base[3]) : null, slot = asset ? glbSlotFor(asset.id) : null, live = slotLive(slot);
+  const asset = base?.[3] ? assetById(base[3]) : null;
+  // A vector-template photo has a 3D model only when its family's model was generated from this very photo.
+  const family3D = base && !asset ? scannedEntryFor(base[1], base[2], null) : null;
+  const slot = asset ? glbSlotFor(asset.id) : family3D?.sourcePhoto === id ? { state: 'approx', file: Object.values(family3D.models)[0] } : null, live = slotLive(slot);
   return {
     id, templateId: id, name, label: name, image: `/gallery/${id}.webp`, previewSrc: `/gallery/${id}.webp`, garmentFamily: base ? base[1] : null, editable2D: !!base, editable2d: !!base,
     kind: 'photo', exactBase: !!base?.[3], category, categories: [category], gender, genders: [gender], piece, sleeve, sleeves: sleeve ? [sleeve] : [], collar, source, parts, base,
