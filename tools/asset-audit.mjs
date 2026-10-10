@@ -12,7 +12,8 @@ const DIRS = ['models', 'garments2d', 'gallery'];
 export const UNREFERENCED_OK = {
   '/models/lab-coverall.glb': 'Listed in UNSUPPORTED_3D_MODELS (fused human figure, single mesh, no materials/UVs); kept as source, never rendered.',
   '/models/processed/work-shirt-short-sleeve.glb': 'Output of tools/glb-extract/build_processed.py and the input of cap_open_boundaries.py; the studio renders the capped copy.',
-  '/models/vfrb-staged/pants.glb': 'Staged by the project owner; no tool or registry uses it yet and its intended processing is unverified. pants-trousers.glb comes from a different source scan.',
+  '/models/processed/pants-trousers.glb': 'Superseded for Pants by /models/vfrb-staged/pants.glb (garment-only model of the gallery pants photo); kept as the output of tools/glb-extract/build_processed.py.',
+  '/models/processed/shorts-textured.glb': 'Superseded for Shorts by /models/vfrb-staged/shorts.glb (garment-only model of the gallery shorts photo); kept as the output of tools/glb-extract/build_processed.py.',
 };
 
 const v = await createServer({ root: ROOT, server: { middlewareMode: true }, appType: 'custom', logLevel: 'error' });

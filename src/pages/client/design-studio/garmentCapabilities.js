@@ -100,32 +100,35 @@ const SCANNED_BASE = [
   // The catalog gives these families no fit/style and only a 'body' zone, so: unisex single model, colour + pattern only, no overlays
   // (decals off: the overlay frame is body-shaped and unverified for lower garments). Scale is chosen so the longest side is ~1.05 units,
   // like the shirts; position centres the piece at the same height. Framing in the live camera is UNVERIFIED (no browser available).
+  // Pants and Shorts: garment-only Meshy models generated from the gallery product photos `pants` and `shorts` (staged copies of
+  // asset-staging/mesh-3d/{pants,shorts}.glb, byte-identical). Chosen over processed/pants-trousers.glb and processed/shorts-textured.glb
+  // (cuts of fused figures: ragged waist, hand-stub notch) after front/side/back renders of all candidates. Centred at the origin,
+  // front faces +z; scale gives the trousers the old ~0.97-unit height and keeps each model's own proportions (they match the photos).
+  // `sourcePhoto` = the gallery photo the model was generated from, so that photo can say it has a real 3D model.
   {
-    id: 'pants', match: /^pants$/i,
-    models: { unisex: '/models/processed/pants-trousers.glb' }, torso: { unisex: 0.19 },
-    transform: { rotation: [0, 0, 0], scale: 1.35, position: [0, 0.52, 0] },
-    // softShade: lit, with normals averaged over 0.035 units (see ScannedGarmentMesh.softenNormals). Unlit rendered the trousers as a
-    // flat dark silhouette with no legs or volume; plain lighting brought back the scan folds that read as a fabric pattern.
-    parts: [{ node: 'mesh_node', decals: false, softShade: 0.035, zoneOf: bodyOnly }],
+    id: 'pants', match: /^pants$/i, sourcePhoto: 'pants',
+    models: { unisex: '/models/vfrb-staged/pants.glb' }, torso: { unisex: 0.40 },
+    transform: { rotation: [0, 0, 0], scale: 0.509, position: [0, -0.05, 0] },
+    parts: [{ node: 'mesh_node', decals: false, zoneOf: bodyOnly }],
     capabilities: {
-      regionMethod: 'vertex-mask', regionAccuracy: 'approximate (single body zone, no cut panels in the GLB)',
+      regionMethod: 'vertex-mask', regionAccuracy: 'approximate (single body zone, fused mesh with no cut panels in the GLB)',
       zones: ['body'], patterns: { zones: ['body'], ids: ALL_PATTERNS.filter(p => p !== 'geometric') },
       sleeves: [],
       text: false, logo: false, frontBack: false, fit: ['unisex'],
-      limitations: ['female-cut trousers scan', 'small hand-stub remnant at the left hip', 'waist and hem are straight clips of the scan (open, no waistband or hem detail)', 'soft shading: scan folds smaller than ~3.5 cm are smoothed out of the lighting (geometry unchanged); no arbitrary fabric-texture upload'],
+      limitations: ['one body colour: waistband, belt loops, pockets and the button are modelled shapes, not separately colourable parts', 'no text or logos in 3D (overlay placement is unverified on trousers)', 'straight-leg cut only (the model of the Dress Slacks photo)', 'no arbitrary fabric-texture upload'],
     },
   },
   {
-    id: 'shorts', match: /^shorts$/i,
-    models: { unisex: '/models/processed/shorts-textured.glb' }, torso: { unisex: 0.215 },
-    transform: { rotation: [0, 0, 0], scale: 2.45, position: [0, 0.715, 0] },
+    id: 'shorts', match: /^shorts$/i, sourcePhoto: 'shorts',
+    models: { unisex: '/models/vfrb-staged/shorts.glb' }, torso: { unisex: 0.61 },
+    transform: { rotation: [0, 0, 0], scale: 0.42, position: [0, -0.05, 0] },
     parts: [{ node: 'mesh_node', decals: false, zoneOf: bodyOnly }],
     capabilities: {
-      regionMethod: 'vertex-mask', regionAccuracy: 'approximate (single body zone, no cut panels in the GLB)',
+      regionMethod: 'vertex-mask', regionAccuracy: 'approximate (single body zone, fused mesh with no cut panels in the GLB)',
       zones: ['body'], patterns: { zones: ['body'], ids: ALL_PATTERNS.filter(p => p !== 'geometric') },
       sleeves: [],
       text: false, logo: false, frontBack: false, fit: ['unisex'],
-      limitations: ['open notch at the hip side (hand fused to the scan)', 'waist and hem are straight clips of the scan (no waistband detail)'],
+      limitations: ['one body colour: waistband, button, pleats and pockets are modelled shapes, not separately colourable parts', 'no text or logos in 3D', 'pleated school-shorts cut only (the model of the School Shorts photo); fine fabric wrinkles are baked into the geometry', 'no arbitrary fabric-texture upload'],
     },
   },
   {
