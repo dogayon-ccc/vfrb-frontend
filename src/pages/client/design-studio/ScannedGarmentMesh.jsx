@@ -42,8 +42,42 @@ function tiledGrainNormal(size) {
   return tiledGrain;
 }
 
+// Shading-only smoothing: each vertex normal becomes the average of the normals within `radius` (model units), so the light
+// shows the garment's volume (legs, hips, drape) while scan wrinkles smaller than the radius stop catching light. Positions are
+// untouched, so the silhouette is exactly the scan's. Applied once per cached geometry.
+function softenNormals(geometry, radius) {
+  if (geometry.userData.softRadius === radius) return;
+  geometry.computeVertexNormals();
+  const pos = geometry.attributes.position, nor = geometry.attributes.normal, n = pos.count;
+  const key = (x, y, z) => `${Math.floor(x / radius)},${Math.floor(y / radius)},${Math.floor(z / radius)}`;
+  const grid = new Map();
+  for (let i = 0; i < n; i++) {
+    const k = key(pos.getX(i), pos.getY(i), pos.getZ(i));
+    (grid.get(k) ?? grid.set(k, []).get(k)).push(i);
+  }
+  const out = new Float32Array(n * 3), r2 = radius * radius;
+  for (let i = 0; i < n; i++) {
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    const cx = Math.floor(x / radius), cy = Math.floor(y / radius), cz = Math.floor(z / radius);
+    let sx = 0, sy = 0, sz = 0;
+    for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) for (let c = -1; c <= 1; c++) {
+      for (const j of grid.get(`${cx + a},${cy + b},${cz + c}`) ?? []) {
+        const dx = pos.getX(j) - x, dy = pos.getY(j) - y, dz = pos.getZ(j) - z;
+        // Same-facing neighbours only, so the front and back shells of a thin leg do not cancel out.
+        if (dx * dx + dy * dy + dz * dz > r2 || nor.getX(j) * nor.getX(i) + nor.getY(j) * nor.getY(i) + nor.getZ(j) * nor.getZ(i) < 0) continue;
+        sx += nor.getX(j); sy += nor.getY(j); sz += nor.getZ(j);
+      }
+    }
+    const len = Math.hypot(sx, sy, sz) || 1;
+    out.set([sx / len, sy / len, sz / len], i * 3);
+  }
+  geometry.setAttribute('normal', new THREE.BufferAttribute(out, 3));
+  geometry.userData.softRadius = radius;
+}
+
 function partMaterial(color, part, map = null) {
   if (part.unlit) return new THREE.MeshBasicMaterial({ color, side: THREE.FrontSide });
+  if (part.softShade) return new THREE.MeshStandardMaterial({ color, roughness: 0.92, metalness: 0, side: THREE.DoubleSide });
   if (part.plain) return new THREE.MeshStandardMaterial({ color, roughness: part.roughness ?? 0.4, metalness: part.metalness ?? 0, side: THREE.DoubleSide });
   return new THREE.MeshPhysicalMaterial({
     color, roughness: part.roughness ?? 0.88, metalness: 0,
@@ -120,6 +154,7 @@ function useRegionTexture(geometry, part, colors, patterns, patternParams, pxToM
 function useZoneMaterial(geometry, part, colors, patterns, patternParams, pxToModel) {
   const state = useMemo(() => {
     if (!part.zoneOf) return null;
+    if (part.softShade) softenNormals(geometry, part.softShade);
     ensureZoneMask(geometry, part.zoneOf);
     const uniforms = createZoneUniforms();
     return { uniforms, material: patchZoneMaterial(partMaterial('#ffffff', part), uniforms) };

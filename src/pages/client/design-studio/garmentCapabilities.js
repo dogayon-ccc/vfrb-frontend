@@ -17,18 +17,23 @@ const teeRegion = ({ c: [x, y] }) => {
   return 'body';
 };
 
+// Collar stand and fall: above y 0.78 AND within 0.22 of the neck axis (`f` = regionShader.neckFrame of the model). The old flat
+// y > 0.78 cut also caught the shoulder slope (|x| up to 0.31 at y 0.80), painting a collar-coloured cap over both shoulders.
+// Measured on both polo scans and the work shirt from top-down vertex projections: the collar ring sits at r 0.14..0.20.
+const nearNeck = (x, y, z, f) => y > 0.78 && Math.hypot(x - (f?.xc ?? 0), z - (f?.zc ?? -0.12)) < 0.22;
+
 // Polo GLBs are single fused Meshy meshes (no UVs, no materials, no panels), so zones come from geometry only (approximate).
-// Measured on both polo files: torso half-width 0.44 below the armpit (y < 0.1; the hem flares to 0.5 so sleeves also need y > 0.05), sleeves extend to |x| 0.75, collar band y > 0.78.
-const poloZone = (x, y) => (Math.abs(x) > 0.46 && y > 0.05 ? 'sleeve' : y > 0.78 ? 'collar' : 'body');
+// Measured on both polo files: torso half-width 0.44 below the armpit (y < 0.1; the hem flares to 0.5 so sleeves also need y > 0.05), sleeves extend to |x| 0.75.
+const poloZone = (x, y, z, f) => (Math.abs(x) > 0.46 && y > 0.05 ? 'sleeve' : nearNeck(x, y, z, f) ? 'collar' : 'body');
 
 // Work shirt: processed from the fused Meshy scan "Work_Uniform_Shirt with pocket on chest.glb" (source untouched) by
 // tools/glb-extract/build_processed.py into processed/work-shirt-short-sleeve.glb: bare arm tubes removed with plane clips (straight sleeve
 // hem / side edge) and the shirt mirrored x -> -x so the scanned chest pocket sits on the viewer's left, the same side as the 2D Button-Down
 // pocket. Model faces +z (neckline dips at +z). No UVs/materials, so zones are geometry thresholds (approximate), measured on the
-// processed file: collar stand y > 0.78 with |x| < 0.32, chest pocket x -0.48..-0.17 / y 0.20..0.42 on the FRONT face only (z > 0 — without
+// processed file: collar = nearNeck (above), chest pocket x -0.48..-0.17 / y 0.20..0.42 on the FRONT face only (z > 0 — without
 // the z test the pocket colour also painted the back of the shirt), sleeves |x| > 0.5 above the hem y 0.02.
-const workShirtZone = (x, y, z) => {
-  if (y > 0.78 && Math.abs(x) < 0.32) return 'collar';
+const workShirtZone = (x, y, z, f) => {
+  if (nearNeck(x, y, z, f)) return 'collar';
   if (z > 0 && x > -0.48 && x < -0.17 && y > 0.2 && y < 0.42) return 'pocket';
   if (Math.abs(x) > 0.5 && y > 0.02) return 'sleeve';
   return 'body';
@@ -99,13 +104,15 @@ const SCANNED_BASE = [
     id: 'pants', match: /^pants$/i,
     models: { unisex: '/models/processed/pants-trousers.glb' }, torso: { unisex: 0.19 },
     transform: { rotation: [0, 0, 0], scale: 1.35, position: [0, 0.52, 0] },
-    parts: [{ node: 'mesh_node', decals: false, unlit: true, zoneOf: bodyOnly }],
+    // softShade: lit, with normals averaged over 0.035 units (see ScannedGarmentMesh.softenNormals). Unlit rendered the trousers as a
+    // flat dark silhouette with no legs or volume; plain lighting brought back the scan folds that read as a fabric pattern.
+    parts: [{ node: 'mesh_node', decals: false, softShade: 0.035, zoneOf: bodyOnly }],
     capabilities: {
       regionMethod: 'vertex-mask', regionAccuracy: 'approximate (single body zone, no cut panels in the GLB)',
       zones: ['body'], patterns: { zones: ['body'], ids: ALL_PATTERNS.filter(p => p !== 'geometric') },
       sleeves: [],
       text: false, logo: false, frontBack: false, fit: ['unisex'],
-      limitations: ['female-cut trousers scan', 'small hand-stub remnant at the left hip', 'waist and hem are straight clips of the scan (open, no waistband or hem detail)', 'flat shaded to avoid scan folds reading as an unintended fabric pattern; no arbitrary fabric-texture upload'],
+      limitations: ['female-cut trousers scan', 'small hand-stub remnant at the left hip', 'waist and hem are straight clips of the scan (open, no waistband or hem detail)', 'soft shading: scan folds smaller than ~3.5 cm are smoothed out of the lighting (geometry unchanged); no arbitrary fabric-texture upload'],
     },
   },
   {
