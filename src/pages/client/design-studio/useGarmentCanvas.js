@@ -4,6 +4,35 @@ import { T2, LOGO_PRESETS, PATTERNS, SHAPE_TYPE_LABEL } from './dsShared';
 import { getGarmentPaths } from './garmentPaths';
 import { assetFor, tintedCanvas } from './garmentAssets';
 
+// Decorative template lines (garmentPaths `details`): no __zoneKey and not evented, so they never take a click or a hover.
+const DETAIL_STYLE = {
+  seam:   { fill: '', stroke: 'rgba(0,0,0,.32)', strokeWidth: 1, strokeDashArray: [3, 2.5] },
+  line:   { fill: '', stroke: 'rgba(0,0,0,.24)', strokeWidth: 1.2 },
+  fold:   { fill: '', stroke: 'rgba(0,0,0,.10)', strokeWidth: 2 },
+  shade:  { fill: 'rgba(0,0,0,.32)', stroke: null, strokeWidth: 0 },
+  button: { fill: 'rgba(255,255,255,.9)', stroke: 'rgba(0,0,0,.35)', strokeWidth: 0.8 },
+};
+
+// Zones are drawn first at indices 0..n-1 (body at 0). Under-details go just above the body (below collar, sleeves and
+// pocket); over-details go above every zone. Returns the index after the last garment object.
+function insertDetails(fabric, canvas, details = [], zoneCount) {
+  const under = details.filter(d => !d.over), over = details.filter(d => d.over);
+  const make = d => new fabric.Path(d.d, { ...DETAIL_STYLE[d.kind], selectable: false, evented: false, objectCaching: false, __garmentBase: true });
+  under.forEach((d, i) => canvas.insertAt(1 + i, make(d)));
+  const start = zoneCount + under.length;
+  over.forEach((d, i) => canvas.insertAt(start + i, make(d)));
+  return start + over.length;
+}
+
+// Topmost zone actually painted under the pointer. containsPoint alone tests the bounding box, so the body (whose box
+// covers the collar, pocket and most of the sleeves) used to win every click and hover.
+function zoneAt(canvas, e) {
+  const scene = canvas.getScenePoint?.(e) ?? canvas.getPointer(e);
+  const vp = canvas.getViewportPoint?.(e) ?? scene;
+  return canvas.getObjects().filter(o => o.__garmentBase && o.__zoneKey).reverse()
+    .find(o => o.containsPoint(scene) && !canvas.isTargetTransparent(o, vp.x, vp.y));
+}
+
 const OVERLAY_PROPS = ['__logo','__artwork','__text','__draw','__shape','__layerId','__layerName','__locked','lockMovementX','lockMovementY','lockRotation','lockScalingX','lockScalingY','hasControls'];
 
 // Composites front+back PNGs side by side; falls back to one side if the other fails to load.
@@ -81,7 +110,8 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         if (!c) return;
         const initPaths = getGarmentPaths(garment, sleeve, face);
         if (assetFor(garment, sleeve, face, fit)) { c.setWidth(initPaths.w); c.setHeight(initPaths.h); return; }
-        const draw = (d, fill, zoneKey, idx) => {
+        let zi = 0;
+        const draw = (d, fill, zoneKey) => {
           if (!d) return;
           // FIX (Sept 10 2026): pocket previously used the exact same
           // subtle structural-seam outline as body/collar/sleeve — at
@@ -89,7 +119,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
           // rather than a garment feature. A visible dashed stroke reads
           // as topstitching, the way a real pocket is actually finished.
           const isPocket = zoneKey === 'pocket';
-          c.insertAt(idx, new fabric.Path(d, {
+          c.insertAt(zi++, new fabric.Path(d, {
             fill,
             stroke: isPocket ? 'rgba(0,0,0,.38)' : 'rgba(0,0,0,.14)',
             strokeWidth: isPocket ? 1.5 : 1.5,
@@ -97,11 +127,12 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
             selectable:false, evented:true, __garmentBase:true, __zoneKey:zoneKey,
           }));
         };
-        draw(initPaths.body,    colors.body,                     'body',    0);
-        draw(initPaths.collar,  colors.collar,                   'collar',  1);
-        draw(initPaths.sleeveL, colors.sleeve ?? colors.body,    'sleeve',  2);
-        draw(initPaths.sleeveR, colors.sleeve ?? colors.body,    'sleeve',  3);
-        draw(initPaths.pocket,  colors.pocket  ?? colors.collar, 'pocket',  4);
+        draw(initPaths.body,    colors.body,                     'body');
+        draw(initPaths.collar,  colors.collar,                   'collar');
+        draw(initPaths.sleeveL, colors.sleeve ?? colors.body,    'sleeve');
+        draw(initPaths.sleeveR, colors.sleeve ?? colors.body,    'sleeve');
+        draw(initPaths.pocket,  colors.pocket  ?? colors.collar, 'pocket');
+        insertDetails(fabric, c, initPaths.details, zi);
         c.setWidth(initPaths.w);
         c.setHeight(initPaths.h);
         c.renderAll();
@@ -118,10 +149,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       }, 250);
 
       fc.current.on('mouse:move', (opt) => {
-        const ptr = fc.current.getPointer(opt.e);
-        const hit = fc.current.getObjects()
-          .filter(o => o.__garmentBase && o.__zoneKey)
-          .find(o => o.containsPoint(ptr));
+        const hit = zoneAt(fc.current, opt.e);
         if (hoverEl.current) { fc.current.remove(hoverEl.current); hoverEl.current = null; }
         if (hit) {
           const bounds = hit.getBoundingRect();
@@ -144,10 +172,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       // Only a real zone click (not a drag/resize handle) opens the color picker
       fc.current.on('mouse:down', (opt) => {
         if (opt.target && !opt.target.__zoneKey) return;
-        const ptr = fc.current.getPointer(opt.e);
-        const hit = fc.current.getObjects()
-          .filter(o => o.__garmentBase && o.__zoneKey)
-          .find(o => o.containsPoint(ptr));
+        const hit = zoneAt(fc.current, opt.e);
         if (hit?.__zoneKey) onZoneClick(hit.__zoneKey);
       });
 
@@ -212,9 +237,10 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         }).catch(() => {});
         return;
       }
-      redrawToken.current++;
+      const vectorToken = ++redrawToken.current;
 
-      const makeZone = (d, fill, zoneKey, idx) => {
+      let zi = 0;
+      const makeZone = (d, fill, zoneKey) => {
         if (!d) return;
         const patDef = PATTERNS.find(p => p.id === (patterns?.[zoneKey] ?? 'solid'));
         const zonePath = new fabric.Path(d, {
@@ -224,7 +250,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
           strokeDashArray: zoneKey === 'pocket' ? [3, 2] : undefined,
           selectable:false, evented:true, __garmentBase:true, __zoneKey:zoneKey,
         });
-        canvas.insertAt(idx, zonePath);
+        canvas.insertAt(zi++, zonePath);
         if (patDef?.svg) {
           const zoneParams = patternParams?.[zoneKey] ?? patDef.defaultParams;
           const svgStr = patDef.svg(fill, zoneParams?.width, zoneParams?.spacing);
@@ -246,11 +272,12 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         }
       };
 
-      makeZone(paths.body,    colors.body,                    'body',    0);
-      makeZone(paths.collar,  colors.collar,                  'collar',  1);
-      makeZone(paths.sleeveL, colors.sleeve ?? colors.body,   'sleeve',  2);
-      makeZone(paths.sleeveR, colors.sleeve ?? colors.body,   'sleeve',  3);
-      makeZone(paths.pocket,  colors.pocket ?? colors.collar, 'pocket',  4);
+      makeZone(paths.body,    colors.body,                    'body');
+      makeZone(paths.collar,  colors.collar,                  'collar');
+      makeZone(paths.sleeveL, colors.sleeve ?? colors.body,   'sleeve');
+      makeZone(paths.sleeveR, colors.sleeve ?? colors.body,   'sleeve');
+      makeZone(paths.pocket,  colors.pocket ?? colors.collar, 'pocket');
+      const baseEnd = insertDetails(fabric, canvas, paths.details, zi);
 
       // Tipping: contrast trim traced along the collar edge (real garment
       // term — a colored stripe at the collar/cuff seam, standard on most
@@ -260,7 +287,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       // customer picks one in ColorsPanel's Tipping zone); never has a
       // __zoneKey, so it's decorative-only like the sheen layer below.
       if (paths.collar && colors.tipping) {
-        canvas.insertAt(5, new fabric.Path(paths.collar, {
+        canvas.insertAt(baseEnd, new fabric.Path(paths.collar, {
           fill: 'transparent',
           stroke: colors.tipping,
           strokeWidth: 4,
@@ -290,7 +317,9 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
               { offset: 1,    color: 'rgba(0,0,0,.14)' },
             ],
           });
-          canvas.insertAt(5, new fabric2.Path(paths.body, {
+          // Directly above the body (index 1): below the collar, sleeves, pocket and detail lines, whatever loaded first.
+          if (fc.current !== canvas || redrawToken.current !== vectorToken) return;
+          canvas.insertAt(1, new fabric2.Path(paths.body, {
             fill: sheen, stroke: null,
             selectable: false, evented: false, __garmentBase: true,
           }));

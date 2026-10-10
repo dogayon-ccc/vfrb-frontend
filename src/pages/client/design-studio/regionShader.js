@@ -9,11 +9,25 @@ import { PATTERNS } from './dsShared';
 export const ZONES = ['body', 'sleeve', 'collar', 'pocket'];
 const PATTERN_TYPE = { hstripes: 1, vstripes: 2, diagonal: 3, checker: 4, polka: 5 }; // 'geometric' has no shader tile: paints solid
 
+// Neck axis of a top: centre of the x/z extent of the highest 0.08 units (the collar stand). Lets one zone rule serve
+// models whose neck sits at different depths (the male and female polo scans differ by ~0.06 in z).
+export function neckFrame(pos) {
+  let maxY = -Infinity;
+  for (let i = 0; i < pos.count; i++) maxY = Math.max(maxY, pos.getY(i));
+  let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+  for (let i = 0; i < pos.count; i++) if (pos.getY(i) > maxY - 0.08) {
+    const x = pos.getX(i), z = pos.getZ(i);
+    x0 = Math.min(x0, x); x1 = Math.max(x1, x); z0 = Math.min(z0, z); z1 = Math.max(z1, z);
+  }
+  return { xc: (x0 + x1) / 2, zc: (z0 + z1) / 2, maxY };
+}
+
 export function ensureZoneMask(geometry, zoneOf) {
   if (!geometry.attributes.normal) geometry.computeVertexNormals();
   if (geometry.attributes.zoneMask) return;
   const pos = geometry.attributes.position, mask = new Float32Array(pos.count * 4);
-  for (let i = 0; i < pos.count; i++) mask[i * 4 + Math.max(0, ZONES.indexOf(zoneOf(pos.getX(i), pos.getY(i), pos.getZ(i))))] = 1;
+  const frame = zoneOf.length > 3 ? neckFrame(pos) : null;
+  for (let i = 0; i < pos.count; i++) mask[i * 4 + Math.max(0, ZONES.indexOf(zoneOf(pos.getX(i), pos.getY(i), pos.getZ(i), frame)))] = 1;
   geometry.setAttribute('zoneMask', new THREE.BufferAttribute(mask, 4));
 }
 

@@ -1,8 +1,17 @@
-// Garment SVG path data, extracted from DesignStudio.jsx.
-// Sleeve paths are 4 points (shoulder, armpit, outer-hem, outer-cap) closed
-// with a curve back to the shoulder point. Parse/rebuild instead of regex
-// string-patching — patching broke silently the moment the cap edge became
-// a curve instead of a straight "L x,y Z" (no crash, just stopped matching).
+// Garment SVG path data for the 2D vector templates.
+//
+// Zones (body, collar, sleeveL, sleeveR, pocket) are the colourable, clickable regions. `details` are decorative
+// lines drawn on top (seams, plackets, buttons, the inside of the neck opening): they carry no zone and take no
+// clicks, so they never change what a customer can edit or what an order records.
+//
+// Sleeve paths are 4 points (shoulder A, armpit B, underarm hem C, outer hem D) closed with a curve back to A.
+// Every consumer that reshapes a sleeve reads those first 8 numbers, so the order is part of the contract.
+// The body path uses only M/L/Q commands with x,y pairs: overlayDecals.bodyBounds reads its numbers pairwise.
+
+const f = n => Math.round(n * 10) / 10;
+const pt = (x, y) => `${f(x)},${f(y)}`;
+
+// Legacy sleeve reshaping, kept for templates still drawn by hand (Lab Coverall).
 function parseSleeve(str) {
   if (!str) return null;
   const n = str.match(/-?\d+(\.\d+)?/g).map(Number);
@@ -13,10 +22,146 @@ function buildSleeve(p, bow) {
   return `M ${p.ax},${p.ay} L ${p.bx},${p.by} L ${p.cx},${p.cy} L ${p.dx},${p.dy} Q ${mx},${my} ${p.ax},${p.ay} Z`;
 }
 
+// One sleeve from its shoulder point A and armpit B. `angle` is degrees below horizontal, `len` the length of the
+// top edge, `open` the width of the hem opening. side = -1 for the viewer's left sleeve, +1 for the right.
+function sleeveGeom(A, B, side, { angle, len, open }) {
+  const a = angle * Math.PI / 180;
+  const u = [side * Math.cos(a), Math.sin(a)];   // down the arm, away from the body
+  const v = [-side * Math.sin(a), Math.cos(a)];  // across the hem, toward the underarm
+  const D = [A[0] + u[0] * len, A[1] + u[1] * len];
+  const C = [D[0] + v[0] * open, D[1] + v[1] * open];
+  const M = [(A[0] + D[0]) / 2 - v[0] * 5, (A[1] + D[1]) / 2 - v[1] * 5]; // top edge bows slightly outward
+  const d = `M ${pt(...A)} L ${pt(...B)} L ${pt(...C)} L ${pt(...D)} Q ${pt(...M)} ${pt(...A)} Z`;
+  // Hem stitching 6px up the sleeve; long sleeves get a cuff band instead.
+  const back = (P, k) => [P[0] - u[0] * k, P[1] - u[1] * k];
+  const hemLine = `M ${pt(...back(C, 6))} L ${pt(...back(D, 6))}`;
+  const cuff = `M ${pt(...back(C, 16))} L ${pt(...back(D, 16))}`;
+  return { d, hemLine, cuff };
+}
+
+const SLEEVE_SHAPES = {
+  'Short': s => s,
+  '3/4':   s => ({ angle: s.angle + 28, len: s.len * 2.05, open: s.open * 0.8 }),
+  'Long':  s => ({ angle: Math.min(80, s.angle + 38), len: s.len * 3.15, open: s.open * 0.68 }),
+};
+
+const roundRect = (x, y, w, h, r = 3) =>
+  `M ${pt(x + r, y)} L ${pt(x + w - r, y)} Q ${pt(x + w, y)} ${pt(x + w, y + r)} L ${pt(x + w, y + h - r)} Q ${pt(x + w, y + h)} ${pt(x + w - r, y + h)} ` +
+  `L ${pt(x + r, y + h)} Q ${pt(x, y + h)} ${pt(x, y + h - r)} L ${pt(x, y + r)} Q ${pt(x, y)} ${pt(x + r, y)} Z`;
+const dot = (x, y, r = 2.6) => `M ${pt(x - r, y)} Q ${pt(x - r, y - r)} ${pt(x, y - r)} Q ${pt(x + r, y - r)} ${pt(x + r, y)} Q ${pt(x + r, y + r)} ${pt(x, y + r)} Q ${pt(x - r, y + r)} ${pt(x - r, y)} Z`;
+
+// Tops: one parametric flat-lay shape. Proportions follow a men's M polo laid flat (chest 52 cm, length 72 cm, ratio ~0.66).
+function top(o) {
+  const {
+    w = 320, h = 380, neckW = 30, hpsY = 44, frontDrop = 22, backDrop = 6,
+    sh = [88, 64], arm = [95, 128], hem = [97, 334], hemCurve = 4, waist = 0,
+    sleeve = { angle: 40, len: 66, open: 56 }, collar = 'rib', pocket = null, placket = null, vents = false, coat = false,
+  } = o;
+  const cx = w / 2;
+  const L = (dx, y) => [cx - dx, y], R = (dx, y) => [cx + dx, y];
+  const LH = L(neckW, hpsY), RH = R(neckW, hpsY);
+  const vee = collar === 'v';
+  const frontY = hpsY + frontDrop;                   // lowest point of the front neckline
+  const frontNeck = vee ? `L ${pt(cx, frontY)} L` : `Q ${pt(cx, hpsY + 2 * frontDrop)}`;
+  const midSide = (arm[1] + hem[1]) / 2;
+  const sides = `L ${pt(...R(sh[0], sh[1]))} L ${pt(...R(arm[0], arm[1]))} Q ${pt(...R(arm[0] - waist, midSide))} ${pt(...R(hem[0], hem[1]))} ` +
+    `Q ${pt(cx, hem[1] + 2 * hemCurve)} ${pt(...L(hem[0], hem[1]))} Q ${pt(...L(arm[0] - waist, midSide))} ${pt(...L(arm[0], arm[1]))} L ${pt(...L(sh[0], sh[1]))} Z`;
+  // Front and back both use the high back neckline; on the front, the inside of the back shows through the opening (a shade detail).
+  const body = `M ${pt(...LH)} Q ${pt(cx, hpsY + 2 * backDrop)} ${pt(...RH)} ${sides}`;
+  const opening = `M ${pt(...LH)} Q ${pt(cx, hpsY + 2 * backDrop)} ${pt(...RH)} ${vee ? `L ${pt(cx, frontY)} L` : `Q ${pt(cx, hpsY + 2 * frontDrop)}`} ${pt(...LH)} Z`;
+
+  const sl = s => {
+    const l = sleeveGeom(L(sh[0], sh[1]), L(arm[0], arm[1]), -1, s), r = sleeveGeom(R(sh[0], sh[1]), R(arm[0], arm[1]), 1, s);
+    return { sleeveL: l.d, sleeveR: r.d, lines: [l, r] };
+  };
+
+  // Collar shapes (front view) and the band seen from the back.
+  const backBand = `M ${pt(...LH)} Q ${pt(cx, hpsY + 2 * backDrop)} ${pt(...RH)} L ${pt(RH[0] + 1, RH[1] - 7)} Q ${pt(cx, hpsY - 14 + 2 * backDrop)} ${pt(LH[0] - 1, LH[1] - 7)} Z`;
+  let front = null, back = backBand;
+  const frontDetails = [], over = [];
+  if (collar === 'rib') {
+    const rib = 7;
+    front = `M ${pt(...LH)} Q ${pt(cx, hpsY + 2 * frontDrop)} ${pt(...RH)} L ${pt(RH[0] + rib - 1, RH[1] + 2)} Q ${pt(cx, hpsY + 2 * (frontDrop + rib))} ${pt(LH[0] - rib + 1, LH[1] + 2)} Z ` +
+      `M ${pt(...LH)} Q ${pt(cx, hpsY + 2 * backDrop)} ${pt(...RH)} L ${pt(RH[0] - 3, RH[1] + 4)} Q ${pt(cx, hpsY + 2 * backDrop + 8)} ${pt(LH[0] + 3, LH[1] + 4)} Z`;
+    back = backBand;
+  } else if (collar === 'v') {
+    const b = 7;
+    front = `M ${pt(...LH)} L ${pt(cx, frontY)} L ${pt(...RH)} L ${pt(RH[0] + b, RH[1] + 2)} L ${pt(cx, frontY + b * 1.5)} L ${pt(LH[0] - b, LH[1] + 2)} Z ` +
+      `M ${pt(...LH)} Q ${pt(cx, hpsY + 2 * backDrop)} ${pt(...RH)} L ${pt(RH[0] - 3, RH[1] + 4)} Q ${pt(cx, hpsY + 2 * backDrop + 8)} ${pt(LH[0] + 3, LH[1] + 4)} Z`;
+  } else if (collar === 'mandarin') {
+    const band = 13;
+    // Stand-up band: lower edge on the front neckline, upper edge rising gently to the back of the neck; small gap at centre front.
+    const half = s => {
+      const H = s < 0 ? LH : RH;
+      const P = [[H[0] - s * 2, H[1] + 1], [cx + s * 12, frontY + 1], [cx + s * 2, frontY], [cx + s * 2, frontY - band], [cx + s * 14, frontY - band], [H[0] + s * 3, H[1] - 8]];
+      // Both halves wound the same way, or the nonzero fill punches a hole where a half overlaps the back band.
+      const [a, b, c, d, e, g] = s < 0 ? P : [P[5], P[4], P[3], P[2], P[1], P[0]];
+      return `M ${pt(...a)} Q ${pt(...b)} ${pt(...c)} L ${pt(...d)} Q ${pt(...e)} ${pt(...g)} Z`;
+    };
+    front = `${backBand} ${half(-1)} ${half(1)}`;
+  } else if (collar === 'polo' || collar === 'point') {
+    // Stand behind the neck, then two leaves lying on the chest meeting at the placket.
+    const spread = collar === 'polo' ? 1 : 0.8, drop = collar === 'polo' ? 34 : 38;
+    const leaf = s => {
+      const H = s < 0 ? LH : RH, tip = [cx + s * 30 * spread, hpsY + drop], inner = [cx + s * 3, frontY + 4];
+      return `M ${pt(H[0] - s * 1, H[1] - 6)} Q ${pt(H[0] + s * 9, H[1] + 12)} ${pt(...tip)} L ${pt(...inner)} Q ${pt(cx + s * 14, hpsY + 8)} ${pt(H[0] - s * 1, H[1] - 6)} Z`;
+    };
+    const stand = `M ${pt(LH[0] - 1, LH[1] - 6)} Q ${pt(cx, hpsY - 12)} ${pt(RH[0] + 1, RH[1] - 6)} L ${pt(...RH)} Q ${pt(cx, hpsY + 2 * backDrop)} ${pt(...LH)} Z`;
+    front = `${stand} ${leaf(-1)} ${leaf(1)}`;
+    back = `M ${pt(LH[0] - 4, LH[1] + 4)} Q ${pt(cx, hpsY + 2 * backDrop + 16)} ${pt(RH[0] + 4, RH[1] + 4)} L ${pt(RH[0] + 1, RH[1] - 6)} Q ${pt(cx, hpsY - 18)} ${pt(LH[0] - 1, LH[1] - 6)} Z`;
+  } else if (collar === 'notch') {
+    // Lab coat: lapels folded back from a centre-front opening.
+    const lap = s => {
+      const H = s < 0 ? LH : RH;
+      return `M ${pt(H[0], H[1] - 4)} L ${pt(cx + s * 2, hpsY + 92)} L ${pt(cx + s * 26, hpsY + 64)} L ${pt(cx + s * 34, hpsY + 40)} L ${pt(cx + s * 42, hpsY + 34)} L ${pt(H[0] + s * 8, H[1] + 4)} Z`;
+    };
+    front = `M ${pt(LH[0] - 1, LH[1] - 4)} Q ${pt(cx, hpsY - 16)} ${pt(RH[0] + 1, RH[1] - 4)} L ${pt(RH[0] - 3, RH[1] + 2)} Q ${pt(cx, hpsY - 6)} ${pt(LH[0] + 3, LH[1] + 2)} Z ${lap(-1)} ${lap(1)}`;
+  }
+
+  // Front-only details: neck opening, placket and buttons.
+  if (collar !== 'notch') frontDetails.push({ d: opening, kind: 'shade' });
+  if (placket) {
+    const { top: py0 = frontY, bottom: py1, buttons = 3, width = 8 } = placket;
+    frontDetails.push({ d: `M ${pt(cx - width, py0)} L ${pt(cx - width, py1)} L ${pt(cx + width, py1)} L ${pt(cx + width, py0)}`, kind: 'line' });
+    const step = (py1 - py0 - 14) / Math.max(1, buttons - 1);
+    for (let i = 0; i < buttons; i++) frontDetails.push({ d: dot(cx, py0 + 9 + i * step), kind: 'button', over: true });
+  }
+  if (coat) {
+    frontDetails.push({ d: `M ${pt(cx, hpsY + 92)} L ${pt(cx, hem[1] + hemCurve)}`, kind: 'line' });
+    for (let i = 0; i < 4; i++) frontDetails.push({ d: dot(cx - 8, hpsY + 104 + i * 58, 3), kind: 'button', over: true });
+  }
+  if (pocket) frontDetails.push({ d: `M ${pt(pocket.x + 3, pocket.y + 6)} L ${pt(pocket.x + pocket.w - 3, pocket.y + 6)}`, kind: 'seam', over: true });
+
+  const shared = [
+    { d: `M ${pt(...LH)} L ${pt(...L(sh[0], sh[1]))} M ${pt(...RH)} L ${pt(...R(sh[0], sh[1]))}`, kind: 'seam' },
+    { d: `M ${pt(...L(hem[0] - 2, hem[1] - 7))} Q ${pt(cx, hem[1] - 7 + 2 * hemCurve)} ${pt(...R(hem[0] - 2, hem[1] - 7))}`, kind: 'seam' },
+    ...(vents ? [{ d: `M ${pt(...L(hem[0] - 1, hem[1]))} L ${pt(...L(hem[0] - 1, hem[1] - 16))} M ${pt(...R(hem[0] - 1, hem[1]))} L ${pt(...R(hem[0] - 1, hem[1] - 16))}`, kind: 'line' }] : []),
+  ];
+
+  const pocketPath = pocket ? roundRect(pocket.x, pocket.y, pocket.w, pocket.h, 3) : null;
+  const base = sl(sleeve);
+  return {
+    w, h, body, collar: front, pocket: pocketPath, sleeveL: base.sleeveL, sleeveR: base.sleeveR,
+    sleeveSpec: { A: [L(sh[0], sh[1]), R(sh[0], sh[1])], B: [L(arm[0], arm[1]), R(arm[0], arm[1])], shape: sleeve },
+    details: [...shared.map(d => ({ ...d })), ...frontDetails.map(d => ({ ...d, face: 'front' }))],
+    back: { collar: back },
+  };
+}
+
+// Sleeves and their stitching for a sleeve style, rebuilt from the template's own shoulder/armpit points.
+function sleevesFor(base, style) {
+  const shape = (SLEEVE_SHAPES[style] ?? SLEEVE_SHAPES.Short)(base.sleeveSpec.shape);
+  const l = sleeveGeom(base.sleeveSpec.A[0], base.sleeveSpec.B[0], -1, shape);
+  const r = sleeveGeom(base.sleeveSpec.A[1], base.sleeveSpec.B[1], 1, shape);
+  const lines = style === 'Long' ? [l.hemLine, l.cuff, r.hemLine, r.cuff] : [l.hemLine, r.hemLine];
+  return { sleeveL: l.d, sleeveR: r.d, sleeveDetails: [{ d: lines.join(' '), kind: 'seam', over: true }] };
+}
+
 export const SLEEVE_VARIANTS = {
-  'Sleeveless': (base) => ({ ...base, sleeveL: null, sleeveR: null }),
-  'Short':      (base) => base,
+  'Sleeveless': (base) => ({ ...base, sleeveL: null, sleeveR: null, sleeveDetails: [] }),
+  'Short':      (base) => (base.sleeveSpec ? { ...base, ...sleevesFor(base, 'Short') } : base),
   '3/4':        (base) => {
+    if (base.sleeveSpec) return { ...base, ...sleevesFor(base, '3/4') };
     const l = parseSleeve(base.sleeveL), r = parseSleeve(base.sleeveR);
     if (!l || !r) return base;
     return {
@@ -26,6 +171,7 @@ export const SLEEVE_VARIANTS = {
     };
   },
   'Long':       (base) => {
+    if (base.sleeveSpec) return { ...base, ...sleevesFor(base, 'Long') };
     const l = parseSleeve(base.sleeveL), r = parseSleeve(base.sleeveR);
     if (!l || !r) return base;
     return {
@@ -36,71 +182,60 @@ export const SLEEVE_VARIANTS = {
   },
 };
 
+// Bottoms: waistband, hips, crotch and legs as a flat front view.
+function trousers({ w = 250, h = 420, waist = 76, waistY = 28, band = 15, hip = 84, hipY = 132, crotchY = 176, hemY = 392, hemOut = 66, hemIn = 7, fly = true, crease = true, cuffs = false, drawstring = false }) {
+  const cx = w / 2, by = waistY + band;
+  const body = `M ${pt(cx - waist, waistY)} L ${pt(cx + waist, waistY)} L ${pt(cx + waist + 2, by)} Q ${pt(cx + hip + 3, (by + hipY) / 2)} ${pt(cx + hip, hipY)} ` +
+    `L ${pt(cx + hemOut, hemY)} L ${pt(cx + hemIn, hemY)} L ${pt(cx + 2, crotchY + 6)} Q ${pt(cx, crotchY - 4)} ${pt(cx - 2, crotchY + 6)} L ${pt(cx - hemIn, hemY)} ` +
+    `L ${pt(cx - hemOut, hemY)} L ${pt(cx - hip, hipY)} Q ${pt(cx - hip - 3, (by + hipY) / 2)} ${pt(cx - waist - 2, by)} Z`;
+  const legMid = (cx + hemOut + cx + hemIn) / 2 - cx;
+  const details = [
+    { d: `M ${pt(cx - waist - 2, by)} L ${pt(cx + waist + 2, by)}`, kind: 'line' },
+    { d: [-0.72, -0.28, 0.28, 0.72].map(k => `M ${pt(cx + waist * k, waistY)} L ${pt(cx + waist * k, by + 2)}`).join(' '), kind: 'line' },
+    { d: `M ${pt(cx - hemOut + 2, hemY - 7)} L ${pt(cx - hemIn - 1, hemY - 7)} M ${pt(cx + hemIn + 1, hemY - 7)} L ${pt(cx + hemOut - 2, hemY - 7)}`, kind: cuffs ? 'line' : 'seam' },
+  ];
+  if (drawstring) details.push({ d: `M ${pt(cx - 6, by - 4)} Q ${pt(cx - 10, by + 14)} ${pt(cx - 14, by + 22)} M ${pt(cx + 6, by - 4)} Q ${pt(cx + 10, by + 14)} ${pt(cx + 14, by + 22)}`, kind: 'line', face: 'front' });
+  if (fly) details.push(
+    { d: `M ${pt(cx, by)} L ${pt(cx, crotchY - 8)}`, kind: 'line', face: 'front' },
+    { d: `M ${pt(cx + 11, by)} L ${pt(cx + 11, crotchY - 26)} Q ${pt(cx + 11, crotchY - 12)} ${pt(cx + 1, crotchY - 8)}`, kind: 'seam', face: 'front' },
+    { d: dot(cx, waistY + band / 2, 2.4), kind: 'button', face: 'front' },
+    // slanted front pockets
+    { d: `M ${pt(cx - waist + 8, by)} Q ${pt(cx - waist + 14, by + 34)} ${pt(cx - hip + 2, by + 48)} M ${pt(cx + waist - 8, by)} Q ${pt(cx + waist - 14, by + 34)} ${pt(cx + hip - 2, by + 48)}`, kind: 'line', face: 'front' },
+  );
+  if (fly) details.push({ d: `M ${pt(cx - waist + 16, by + 26)} L ${pt(cx - 18, by + 26)} M ${pt(cx + 18, by + 26)} L ${pt(cx + waist - 16, by + 26)}`, kind: 'line', face: 'back' });
+  if (crease) details.push({ d: `M ${pt(cx - legMid - 2, hipY + 10)} L ${pt(cx - legMid, hemY - 10)} M ${pt(cx + legMid + 2, hipY + 10)} L ${pt(cx + legMid, hemY - 10)}`, kind: 'fold' });
+  return { w, h, body, collar: null, sleeveL: null, sleeveR: null, pocket: null, details };
+}
+
+function skirt({ w = 260, h = 360, waist = 58, waistY = 30, band = 16, hip = 78, hipY = 132, hemY = 334, hemX = 68, hemCurve = 4 }) {
+  const cx = w / 2, by = waistY + band;
+  const body = `M ${pt(cx - waist, waistY)} L ${pt(cx + waist, waistY)} L ${pt(cx + waist + 2, by)} Q ${pt(cx + hip + 3, (by + hipY) / 2)} ${pt(cx + hip, hipY)} ` +
+    `L ${pt(cx + hemX, hemY)} Q ${pt(cx, hemY + 2 * hemCurve)} ${pt(cx - hemX, hemY)} L ${pt(cx - hip, hipY)} Q ${pt(cx - hip - 3, (by + hipY) / 2)} ${pt(cx - waist - 2, by)} Z`;
+  return {
+    w, h, body, collar: null, sleeveL: null, sleeveR: null, pocket: null,
+    details: [
+      { d: `M ${pt(cx - waist - 2, by)} L ${pt(cx + waist + 2, by)}`, kind: 'line' },
+      { d: `M ${pt(cx - 30, by)} L ${pt(cx - 28, by + 44)} M ${pt(cx + 30, by)} L ${pt(cx + 28, by + 44)}`, kind: 'seam' },
+      { d: `M ${pt(cx - hemX + 2, hemY - 7)} Q ${pt(cx, hemY - 7 + 2 * hemCurve)} ${pt(cx + hemX - 2, hemY - 7)}`, kind: 'seam' },
+      { d: `M ${pt(cx, by)} L ${pt(cx, by + 60)}`, kind: 'line', face: 'back' },
+      { d: `M ${pt(cx, hemY + hemCurve)} L ${pt(cx, hemY - 52)}`, kind: 'line', face: 'back' },
+      { d: `M ${pt(cx - 18, hipY + 20)} Q ${pt(cx - 22, hemY - 80)} ${pt(cx - 26, hemY - 14)} M ${pt(cx + 18, hipY + 20)} Q ${pt(cx + 22, hemY - 80)} ${pt(cx + 26, hemY - 14)}`, kind: 'fold' },
+    ],
+  };
+}
+
+const POLO = { collar: 'polo', frontDrop: 18, placket: { bottom: 128, buttons: 3 }, vents: true, pocket: { x: 92, y: 120, w: 34, h: 38 } };
+
 export const BASE_PATHS = {
-  'Polo Shirt': {
-    w:320, h:380,
-    body:    'M 82,62 L 132,30 L 160,56 L 188,30 L 238,62 L 228,94 Q 236,208 228,332 Q 160,342 92,332 Q 84,208 92,94 Z',
-    collar:  'M 132,30 Q 146,48 160,56 Q 174,48 188,30 L 178,50 L 160,62 L 142,50 Z',
-    sleeveL: 'M 82,62 L 92,94 L 50,108 L 36,76 Q 52,69 82,62 Z',
-    sleeveR: 'M 238,62 L 228,94 L 270,108 L 284,76 Q 268,69 238,62 Z',
-    pocket:  'M 108,122 L 134,122 Q 138,122 138,126 L 138,156 Q 138,160 134,160 L 108,160 Q 104,160 104,156 L 104,126 Q 104,122 108,122 Z',
-  },
-  'School Polo': {
-    w:320, h:380,
-    body:    'M 80,64 L 130,32 L 160,58 L 190,32 L 240,64 L 230,96 Q 238,210 230,334 Q 160,344 90,334 Q 82,210 90,96 Z',
-    collar:  'M 130,32 Q 145,50 160,58 Q 175,50 190,32 L 180,52 L 160,64 L 140,52 Z',
-    sleeveL: 'M 80,64 L 90,96 L 48,110 L 34,78 Q 50,71 80,64 Z',
-    sleeveR: 'M 240,64 L 230,96 L 272,110 L 286,78 Q 270,71 240,64 Z',
-    pocket:  'M 106,120 L 132,120 Q 136,120 136,124 L 136,154 Q 136,158 132,158 L 106,158 Q 102,158 102,154 L 102,124 Q 102,120 106,120 Z',
-  },
-  'Round Neck': {
-    w:320, h:380,
-    body:    'M 80,60 L 130,30 L 160,44 L 190,30 L 240,60 L 230,90 Q 238,206 230,330 Q 160,340 90,330 Q 82,206 90,90 Z',
-    collar:  'M 138,40 Q 160,56 182,40 Q 174,28 160,26 Q 146,28 138,40 Z',
-    sleeveL: 'M 80,60 L 90,90 L 48,106 L 34,74 Q 50,67 80,60 Z',
-    sleeveR: 'M 240,60 L 230,90 L 272,106 L 286,74 Q 270,67 240,60 Z',
-    pocket:  'M 106,116 L 130,116 Q 134,116 134,120 L 134,150 Q 134,154 130,154 L 106,154 Q 102,154 102,150 L 102,120 Q 102,116 106,116 Z',
-  },
-  'T-Shirt': {
-    w:320, h:380,
-    body:    'M 82,62 L 130,32 Q 160,50 190,32 L 238,62 L 228,92 Q 234,210 228,336 Q 160,346 92,336 Q 86,210 92,92 Z',
-    collar:  'M 130,32 Q 160,50 190,32 L 186,42 Q 160,60 134,42 Z',
-    sleeveL: 'M 82,62 L 92,92 L 50,108 L 36,76 Q 52,69 82,62 Z',
-    sleeveR: 'M 238,62 L 228,92 L 270,108 L 284,76 Q 268,69 238,62 Z',
-    pocket:  null,
-  },
-  'V-Neck Shirt': {
-    w:320, h:380,
-    body:    'M 78,60 L 128,28 L 160,82 L 192,28 L 242,60 L 232,90 Q 240,210 232,334 Q 160,344 88,334 Q 80,210 88,90 Z',
-    collar:  'M 128,28 L 160,82 L 192,28 L 182,50 L 160,80 L 138,50 Z',
-    sleeveL: 'M 78,60 L 88,90 L 46,106 L 32,74 Q 48,67 78,60 Z',
-    sleeveR: 'M 242,60 L 232,90 L 274,106 L 288,74 Q 272,67 242,60 Z',
-    pocket:  null,
-  },
-  'Mandarin Collar': {
-    w:320, h:380,
-    body:    'M 80,60 L 132,28 L 160,38 L 188,28 L 240,60 L 230,90 Q 238,208 230,332 Q 160,342 90,332 Q 82,208 90,90 Z',
-    collar:  'M 145,38 L 175,38 L 179,60 L 160,66 L 141,60 Z',
-    sleeveL: 'M 80,60 L 90,90 L 47,106 L 33,74 Q 49.5,67 80,60 Z',
-    sleeveR: 'M 240,60 L 230,90 L 273,106 L 287,74 Q 270.5,67 240,60 Z',
-    pocket:  null,
-  },
-  'Scrub Top': {
-    w:320, h:390,
-    body:    'M 78,60 L 130,26 L 160,64 L 190,26 L 242,60 L 232,90 Q 240,215 232,340 Q 160,350 88,340 Q 80,215 88,90 Z',
-    collar:  'M 138,38 L 182,38 L 186,60 L 160,68 L 134,60 Z',
-    sleeveL: 'M 78,60 L 88,90 L 46,106 L 32,74 Q 48,67 78,60 Z',
-    sleeveR: 'M 242,60 L 232,90 L 274,106 L 288,74 Q 272,67 242,60 Z',
-    pocket:  'M 104,118 L 140,118 Q 144,118 144,122 L 144,166 Q 144,170 140,170 L 104,170 Q 100,170 100,166 L 100,122 Q 100,118 104,118 Z',
-  },
-  'Lab Coat': {
-    w:340, h:440,
-    body:    'M 70,60 L 130,24 L 170,24 L 170,380 L 85,380 Q 62,210 70,60 Z M 170,24 L 210,24 L 270,60 Q 262,210 255,340 L 170,380 Z',
-    collar:  'M 130,24 L 160,28 L 160,60 L 148,56 Z M 170,24 L 200,24 L 192,56 L 180,60 L 180,28 Z',
-    sleeveL: 'M 70,60 L 85,90 L 30,110 L 15,78 Q 35.5,69 70,60 Z',
-    sleeveR: 'M 270,60 L 255,90 L 310,110 L 325,78 Q 304.5,69 270,60 Z',
-    pocket:  'M 100,180 L 142,180 Q 146,180 146,184 L 146,236 Q 146,240 142,240 L 100,240 Q 96,240 96,236 L 96,184 Q 96,180 100,180 Z',
-  },
+  'Polo Shirt':  top(POLO),
+  'School Polo': top(POLO),
+  'Round Neck':  top({ collar: 'rib', frontDrop: 20, pocket: { x: 92, y: 116, w: 32, h: 36 } }),
+  'T-Shirt':     top({ collar: 'rib', frontDrop: 18 }),
+  'V-Neck Shirt': top({ collar: 'v', frontDrop: 46, neckW: 28 }),
+  'Mandarin Collar': top({ collar: 'mandarin', frontDrop: 14, neckW: 26, placket: { top: 58, bottom: 330, buttons: 6, width: 7 } }),
+  'Scrub Top':   top({ h: 390, collar: 'v', frontDrop: 52, neckW: 28, hem: [99, 344], sleeve: { angle: 38, len: 68, open: 60 }, pocket: { x: 86, y: 132, w: 44, h: 46 } }),
+  'Button-Down': top({ h: 390, collar: 'point', frontDrop: 16, neckW: 26, hem: [96, 346], hemCurve: 9, placket: { top: 62, bottom: 342, buttons: 7, width: 7 }, pocket: { x: 92, y: 112, w: 32, h: 38 } }),
+  'Lab Coat':    top({ w: 340, h: 440, collar: 'notch', neckW: 28, hpsY: 40, sh: [92, 62], arm: [98, 132], hem: [108, 420], hemCurve: 3, sleeve: { angle: 42, len: 70, open: 58 }, pocket: { x: 76, y: 250, w: 46, h: 54 }, coat: true }),
   'Lab Coverall': {
     w:360, h:470,
     body:    'M 88,64 L 142,28 L 180,44 L 218,28 L 272,64 L 260,100 Q 268,190 262,252 L 242,452 L 198,452 L 180,292 L 162,452 L 118,452 L 98,252 Q 92,190 100,100 Z',
@@ -108,39 +243,16 @@ export const BASE_PATHS = {
     sleeveL: 'M 88,64 L 100,100 L 56,116 L 42,84 Q 58,74 88,64 Z',
     sleeveR: 'M 272,64 L 260,100 L 304,116 L 318,84 Q 302,74 272,64 Z',
     pocket:  'M 196,118 L 228,118 Q 232,118 232,122 L 232,158 Q 232,162 228,162 L 196,162 Q 192,162 192,158 L 192,122 Q 192,118 196,118 Z',
+    details: [
+      { d: 'M 180,70 L 180,292', kind: 'line', face: 'front' },
+      { d: 'M 100,252 L 262,252', kind: 'seam' },
+    ],
   },
-  'Button-Down': {
-    w:320, h:390,
-    body:    'M 78,58 L 130,26 L 160,36 L 190,26 L 242,58 L 232,90 Q 240,212 232,336 Q 160,346 88,336 Q 80,212 88,90 Z',
-    collar:  'M 130,26 L 150,36 L 160,34 L 170,36 L 190,26 L 180,50 L 160,60 L 140,50 Z',
-    sleeveL: 'M 78,58 L 88,90 L 44,106 L 30,72 Q 47,65 78,58 Z',
-    sleeveR: 'M 242,58 L 232,90 L 276,106 L 290,72 Q 273,65 242,58 Z',
-    pocket:  'M 104,118 L 132,118 Q 136,118 136,122 L 136,154 Q 136,158 132,158 L 104,158 Q 100,158 100,154 L 100,122 Q 100,118 104,118 Z',
-  },
-  'Pants': {
-    w:250, h:420,
-    body:    'M 48,30 L 202,30 L 210,200 L 165,385 L 130,385 L 125,215 L 120,385 L 85,385 L 40,200 Z',
-    collar:  null,
-    sleeveL: null, sleeveR: null, pocket: null,
-  },
-  'Shorts': {
-    w:250, h:300,
-    body:    'M 48,30 L 202,30 L 208,140 L 178,248 L 138,248 L 125,160 L 112,248 L 72,248 L 42,140 Z',
-    collar:  null,
-    sleeveL: null, sleeveR: null, pocket: null,
-  },
-  'Track Pants': {
-    w:250, h:440,
-    body:    'M 44,26 L 206,26 L 216,210 L 168,400 L 128,400 L 125,220 L 122,400 L 82,400 L 34,210 Z',
-    collar:  null,
-    sleeveL: null, sleeveR: null, pocket: 'M 44,180 L 71,180 Q 75,180 75,184 L 75,226 Q 75,230 71,230 L 44,230 Q 40,230 40,226 L 40,184 Q 40,180 44,180 Z',
-  },
-  'Skirt': {
-    w:260, h:360,
-    body:    'M 70,30 L 190,30 L 230,50 Q 244,196 250,340 Q 130,350 10,340 Q 16,196 30,50 Z',
-    collar:  null,
-    sleeveL: null, sleeveR: null, pocket: null,
-  },
+  'Pants':       trousers({}),
+  'Shorts':      trousers({ h: 300, hemY: 252, hemOut: 84, hemIn: 9, crotchY: 172, crease: false }),
+  'Track Pants': { ...trousers({ h: 440, hemY: 408, hemOut: 58, hemIn: 7, fly: false, crease: false, cuffs: true, drawstring: true }),
+    pocket: 'M 44,180 L 71,180 Q 75,180 75,184 L 75,226 Q 75,230 71,230 L 44,230 Q 40,230 40,226 L 40,184 Q 40,180 44,180 Z' },
+  'Skirt':       skirt({}),
 };
 
 // Blank-canvas state (no garment dropped yet): same default canvas
@@ -150,13 +262,14 @@ export const BASE_PATHS = {
 // selected yet", which is what garment==null used to fall through to
 // before this guard existed (`BASE_PATHS[garment] ?? BASE_PATHS['Polo Shirt']`
 // treats a missing garment exactly like an unrecognized one).
-export const EMPTY_PATHS = { w: 320, h: 380, body: null, collar: null, sleeveL: null, sleeveR: null, pocket: null };
+export const EMPTY_PATHS = { w: 320, h: 380, body: null, collar: null, sleeveL: null, sleeveR: null, pocket: null, details: [] };
 
 export function getGarmentPaths(garment, sleeve = 'Short', face = 'front') {
   if (!garment) return EMPTY_PATHS;
   const base = BASE_PATHS[garment] ?? BASE_PATHS['Polo Shirt'];
   const variant = SLEEVE_VARIANTS[sleeve];
   const paths = variant ? variant(base) : base;
-  // Back view: same silhouette, no collar flap or pocket (nothing back there to draw).
-  return face === 'back' ? { ...paths, collar: null, pocket: null } : paths;
+  const details = [...(paths.details ?? []), ...(paths.sleeveL ? paths.sleeveDetails ?? [] : [])].filter(d => !d.face || d.face === face);
+  // Back view: same silhouette, no pocket; the collar is the band seen from behind where the template has one.
+  return face === 'back' ? { ...paths, collar: paths.back?.collar ?? null, pocket: null, details } : { ...paths, details };
 }
