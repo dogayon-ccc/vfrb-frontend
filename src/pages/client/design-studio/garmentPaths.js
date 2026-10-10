@@ -292,6 +292,9 @@ export const BASE_PATHS = {
                        sleeve: { angle: 38, len: 60, open: 54 }, lapel: 60, coat: { buttons: 4, step: 56 } }),
   'Dress':       top({ h: 500, collar: 'notch', neckW: 26, hpsY: 40, sh: [86, 62], arm: [92, 126], hem: [104, 470], hemCurve: 6, waist: 18,
                        sleeve: { angle: 38, len: 58, open: 52 }, lapel: 60, coat: { buttons: 4, step: 44 } }),
+  // Collarless blazer: deep round-V neckline edged with a trim band (the 'collar' zone), one button, flap pockets, no lapels.
+  'Collarless Blazer': top({ h: 400, collar: 'v', frontDrop: 64, neckW: 26, hpsY: 40, sh: [90, 62], arm: [94, 130], hem: [98, 356], hemCurve: 6, waist: 6,
+                       sleeve: { angle: 42, len: 70, open: 58 }, lapel: 108, coat: { buttons: 1, step: 0 }, flaps: { x0: 30, w: 46, y: 262 } }),
   'Pleated Skirt': pleatedSkirt({}),
   'Pants':       trousers({}),
   'Shorts':      trousers({ h: 300, hemY: 252, hemOut: 84, hemIn: 9, crotchY: 172, crease: false }),

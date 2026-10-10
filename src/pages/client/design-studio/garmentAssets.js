@@ -58,7 +58,7 @@ export const assetById = id => { for (const g of Object.values(ASSET_2D)) for (c
 // Vector (non-photo) templates that carry their own canonical id. Same (garment, sleeve, fit) key shape as ASSET_2D; the 2D shape is the vector path set in garmentPaths.js.
 export const VECTOR_TEMPLATES = {
   'Button-Down': { Short: { unisex: { id: 'button-down-work-shirt-short' } } },
-  'Polo Shirt': { Short: { male: { id: 'polo-shirt-short-male' }, female: { id: 'polo-shirt-short-female' } } },
+  'Polo Shirt': { Short: { male: { id: 'polo-shirt-short-male' }, female: { id: 'polo-shirt-short-female' }, unisex: { id: 'polo-shirt-short-unisex' } } },
   'Mandarin Collar': { Long: { male: { id: 'mandarin-shirt-long-male' } } },
 };
 // Families with no sleeve or fit choice (resolveSleeve/resolveFit return null) have one vector template each.
