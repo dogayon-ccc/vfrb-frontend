@@ -115,7 +115,7 @@ function top(o) {
       const H = s < 0 ? LH : RH;
       return `M ${pt(H[0], H[1] - 4)} L ${pt(cx + s * 2, hpsY + 92)} L ${pt(cx + s * 26, hpsY + 64)} L ${pt(cx + s * 34, hpsY + 40)} L ${pt(cx + s * 42, hpsY + 34)} L ${pt(H[0] + s * 8, H[1] + 4)} Z`;
     };
-    front = `M ${pt(LH[0] - 1, LH[1] - 4)} Q ${pt(cx, hpsY - 16)} ${pt(RH[0] + 1, RH[1] - 4)} L ${pt(RH[0] - 3, RH[1] + 2)} Q ${pt(cx, hpsY - 6)} ${pt(LH[0] + 3, LH[1] + 2)} Z ${lap(-1)} ${lap(1)}`;
+    front = `M ${pt(LH[0] - 1, LH[1] - 4)} Q ${pt(cx, hpsY - 12)} ${pt(RH[0] + 1, RH[1] - 4)} L ${pt(...RH)} Q ${pt(cx, hpsY + 2 * backDrop)} ${pt(...LH)} Z ${lap(-1)} ${lap(1)}`;
   }
 
   // Front-only details: neck opening, placket and buttons.
@@ -224,6 +224,27 @@ function skirt({ w = 260, h = 360, waist = 58, waistY = 30, band = 16, hip = 78,
   };
 }
 
+// Coverall: the shirt top down to the waist, then trouser legs, as one body panel (one-piece garment, one body zone).
+function coverall() {
+  const t = top({ w: 360, h: 470, collar: 'point', frontDrop: 16, neckW: 28, hpsY: 36, sh: [92, 58], arm: [98, 122], hem: [100, 250], hemCurve: 0,
+    sleeve: { angle: 42, len: 72, open: 58 }, placket: { top: 58, bottom: 270, buttons: 6, width: 6 }, pocket: { x: 192, y: 104, w: 34, h: 40 } });
+  const cx = 180, waistY = 250, crotchY = 300, hemY = 452;
+  // Neck and shoulders as in the top (neckW 28, hpsY 36, back drop 6), then straight down to the waist and into the legs.
+  const body = `M ${pt(cx - 28, 36)} Q ${pt(cx, 48)} ${pt(cx + 28, 36)} L ${pt(cx + 92, 58)} L ${pt(cx + 98, 122)} L ${pt(cx + 100, waistY)} ` +
+    `Q ${pt(cx + 104, 270)} ${pt(cx + 100, 290)} L ${pt(cx + 70, hemY)} L ${pt(cx + 12, hemY)} L ${pt(cx + 2, crotchY + 6)} Q ${pt(cx, crotchY - 4)} ${pt(cx - 2, crotchY + 6)} ` +
+    `L ${pt(cx - 12, hemY)} L ${pt(cx - 70, hemY)} L ${pt(cx - 100, 290)} Q ${pt(cx - 104, 270)} ${pt(cx - 100, waistY)} L ${pt(cx - 98, 122)} L ${pt(cx - 92, 58)} Z`;
+  return {
+    ...t, body,
+    details: [
+      ...t.details.filter(d => !/250/.test(d.d) || d.kind === 'shade'),
+      { d: `M ${pt(cx - 100, waistY)} L ${pt(cx + 100, waistY)}`, kind: 'line' },
+      { d: `M ${pt(cx, 270)} L ${pt(cx, crotchY - 6)}`, kind: 'line', face: 'front' },
+      { d: `M ${pt(cx - 68, hemY - 7)} L ${pt(cx - 13, hemY - 7)} M ${pt(cx + 13, hemY - 7)} L ${pt(cx + 68, hemY - 7)}`, kind: 'seam' },
+      { d: `M ${pt(cx - 98, 262)} Q ${pt(cx - 84, 282)} ${pt(cx - 86, 300)} M ${pt(cx + 98, 262)} Q ${pt(cx + 84, 282)} ${pt(cx + 86, 300)}`, kind: 'line', face: 'front' },
+    ],
+  };
+}
+
 const POLO = { collar: 'polo', frontDrop: 18, placket: { bottom: 128, buttons: 3 }, vents: true, pocket: { x: 92, y: 120, w: 34, h: 38 } };
 
 export const BASE_PATHS = {
@@ -235,19 +256,8 @@ export const BASE_PATHS = {
   'Mandarin Collar': top({ collar: 'mandarin', frontDrop: 14, neckW: 26, placket: { top: 58, bottom: 330, buttons: 6, width: 7 } }),
   'Scrub Top':   top({ h: 390, collar: 'v', frontDrop: 52, neckW: 28, hem: [99, 344], sleeve: { angle: 38, len: 68, open: 60 }, pocket: { x: 86, y: 132, w: 44, h: 46 } }),
   'Button-Down': top({ h: 390, collar: 'point', frontDrop: 16, neckW: 26, hem: [96, 346], hemCurve: 9, placket: { top: 62, bottom: 342, buttons: 7, width: 7 }, pocket: { x: 92, y: 112, w: 32, h: 38 } }),
-  'Lab Coat':    top({ w: 340, h: 440, collar: 'notch', neckW: 28, hpsY: 40, sh: [92, 62], arm: [98, 132], hem: [108, 420], hemCurve: 3, sleeve: { angle: 42, len: 70, open: 58 }, pocket: { x: 76, y: 250, w: 46, h: 54 }, coat: true }),
-  'Lab Coverall': {
-    w:360, h:470,
-    body:    'M 88,64 L 142,28 L 180,44 L 218,28 L 272,64 L 260,100 Q 268,190 262,252 L 242,452 L 198,452 L 180,292 L 162,452 L 118,452 L 98,252 Q 92,190 100,100 Z',
-    collar:  'M 142,28 L 180,44 L 218,28 L 206,54 L 180,70 L 154,54 Z',
-    sleeveL: 'M 88,64 L 100,100 L 56,116 L 42,84 Q 58,74 88,64 Z',
-    sleeveR: 'M 272,64 L 260,100 L 304,116 L 318,84 Q 302,74 272,64 Z',
-    pocket:  'M 196,118 L 228,118 Q 232,118 232,122 L 232,158 Q 232,162 228,162 L 196,162 Q 192,162 192,158 L 192,122 Q 192,118 196,118 Z',
-    details: [
-      { d: 'M 180,70 L 180,292', kind: 'line', face: 'front' },
-      { d: 'M 100,252 L 262,252', kind: 'seam' },
-    ],
-  },
+  'Lab Coat':    top({ w: 340, h: 440, collar: 'notch', neckW: 28, hpsY: 40, sh: [92, 62], arm: [98, 132], hem: [108, 420], hemCurve: 3, sleeve: { angle: 42, len: 70, open: 58 }, pocket: { x: 92, y: 262, w: 44, h: 52 }, coat: true }),
+  'Lab Coverall': coverall(),
   'Pants':       trousers({}),
   'Shorts':      trousers({ h: 300, hemY: 252, hemOut: 84, hemIn: 9, crotchY: 172, crease: false }),
   'Track Pants': { ...trousers({ h: 440, hemY: 408, hemOut: 58, hemIn: 7, fly: false, crease: false, cuffs: true, drawstring: true }),
