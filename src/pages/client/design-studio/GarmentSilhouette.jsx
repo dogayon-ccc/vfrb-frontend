@@ -15,6 +15,13 @@ function PhotoBase({ asset, colors, width, height }) {
   return <img src={url ?? asset.src} alt="" width={width} height={height} style={{ objectFit: 'contain', display: 'block' }} draggable={false}/>;
 }
 
+// Same look as the Studio canvas details (useGarmentCanvas DETAIL_STYLE); fine seams are dropped at thumbnail size.
+const DETAIL = {
+  line:   { fill: 'none', stroke: 'rgba(0,0,0,.24)', strokeWidth: 1.2 },
+  shade:  { fill: 'rgba(0,0,0,.32)', stroke: 'none' },
+  button: { fill: 'rgba(255,255,255,.9)', stroke: 'rgba(0,0,0,.35)', strokeWidth: 0.8 },
+};
+
 export default function GarmentSilhouette({ garment, sleeve = 'Short', colors = {}, width = 44, height = 52, face = 'front', fit }) {
   const asset = assetFor(garment, sleeve, face, fit);
   if (asset) return <PhotoBase asset={asset} colors={colors} width={width} height={height}/>;
@@ -28,10 +35,16 @@ export default function GarmentSilhouette({ garment, sleeve = 'Short', colors = 
     { d: p.pocket,  fill: colors.pocket ?? colors.collar },
   ];
 
+  const details = (p.details ?? []).filter(d => DETAIL[d.kind] && (width >= 80 || d.kind === 'shade'));
+  const detail = (d, i) => <path key={`d${i}`} d={d.d} {...DETAIL[d.kind]}/>;
   return (
     <svg width={width} height={height} viewBox={`0 0 ${p.w} ${p.h}`} xmlns="http://www.w3.org/2000/svg">
-      {zones.map(({ d, fill }, i) => d &&
+      {zones.slice(0, 1).map(({ d, fill }, i) => d &&
         <path key={i} d={d} fill={fill ?? '#e2e8f0'} stroke="rgba(0,0,0,.14)" strokeWidth={1.5}/>)}
+      {details.filter(d => !d.over).map(detail)}
+      {zones.slice(1).map(({ d, fill }, i) => d &&
+        <path key={i + 1} d={d} fill={fill ?? '#e2e8f0'} stroke="rgba(0,0,0,.14)" strokeWidth={1.5}/>)}
+      {details.filter(d => d.over).map(detail)}
     </svg>
   );
 }

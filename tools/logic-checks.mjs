@@ -166,6 +166,6 @@ t('Pants exposes only enumerated procedural patterns, no arbitrary fabric upload
 const glbJson = file => { const b = fsx.readFileSync(pub(file)); if (b.toString('ascii', 0, 4) !== 'glTF' || b.readUInt32LE(4) !== 2) return null; const n = b.readUInt32LE(12); return JSON.parse(b.toString('utf8', 20, 20 + n).trim()); };
 const pantsPrimitive = glbJson('models/processed/pants-trousers.glb')?.meshes?.[0]?.primitives?.[0];
 t('Pants GLB has no UVs or baked material; only its enumerated procedural patterns are supported', !!pantsPrimitive && !('TEXCOORD_0' in pantsPrimitive.attributes) && pantsPrimitive.material === undefined && Cp.get3DCapabilities('Pants', null, null).customFabricTextures === false);
-t('Pants render material suppresses scan-fold contrast while preserving shader patterns', Cp.scannedEntryFor('Pants', null, null)?.parts[0]?.unlit === true);
+t('Pants render material suppresses scan-fold contrast (soft-shaded normals) while preserving shader patterns', Cp.scannedEntryFor('Pants', null, null)?.parts[0]?.softShade > 0 && !Cp.scannedEntryFor('Pants', null, null)?.parts[0]?.unlit);
 console.log(out.join('\n')); const f = out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);
