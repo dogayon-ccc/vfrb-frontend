@@ -182,3 +182,10 @@ No Dress category: there is no dress 2D definition and none was invented.
 (each remount force-loses a context → Chrome blocks the tab) — `import.meta.hot.decline()` on DesignStudio3D and GarmentPreview3D; ContactShadows re-rendering a
 depth pass every frame — now 2 frames, keyed per garment; `powerPreference:'high-performance'` removed; context-lost/restored handlers added; the error UI now offers a page reload after repeated failures. UNVERIFIED in a browser.
 
+
+## 10. Session addendum — Meshy staging audit, Pants/Shorts models replaced (2026-10-10)
+
+All 39 files in `asset-staging/mesh-3d/` were inspected statically and rendered (headless Chrome, `tools/glb-harness/raw.html`); results and per-file verdicts are in
+`GLB-STAGING-AUDIT.md`. Pants now renders `/models/vfrb-staged/pants.glb` and Shorts `/models/vfrb-staged/shorts.glb` (garment-only models of the gallery
+`pants`/`shorts` photos); `processed/pants-trousers.glb` and `processed/shorts-textured.glb` are kept but no longer rendered. Staging `corporate-skirt.glb` was
+rejected (its back is modelled as shorts). BROWSER-checked: Studio 3D, colour + H-stripes in 3D, Save → Reload, Order Wizard and Order Detail 3D previews load the same GLB.
