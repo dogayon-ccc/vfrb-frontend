@@ -1,7 +1,7 @@
 import { assetFor, assetById } from './garmentAssets';
 import { glbSlotFor, slotLive } from './glbSlots';
 import { applyGarment, resolveSleeve, FAMILY_BY_NAME } from './garmentCatalog';
-import { scannedEntryFor } from './garmentCapabilities';
+import { modelFromPhoto } from './garmentCapabilities';
 // Real VFRB inspiration gallery: photos only. Editable garment families live in garmentCatalog.js and are never listed here as designs. `glb` stays null until a garment-only GLB passes
 // docs/engineering/GLB-CAPABILITY-MATRIX.md; until then an entry is a photo reference and is never presented as editable 3D.
 // category/gender/sleeve are read from the photo, not confirmed by the client: verify before release.
@@ -58,8 +58,8 @@ const build = (id, name, category, gender, piece, sleeve, collar, source, parts)
   const base = BASES[id] ?? null;
   const asset = base?.[3] ? assetById(base[3]) : null;
   // A vector-template photo has a 3D model only when its family's model was generated from this very photo.
-  const family3D = base && !asset ? scannedEntryFor(base[1], base[2], null) : null;
-  const slot = asset ? glbSlotFor(asset.id) : family3D?.sourcePhoto === id ? { state: 'approx', file: Object.values(family3D.models)[0] } : null, live = slotLive(slot);
+  const family3D = base && !asset ? modelFromPhoto(id) : null;
+  const slot = asset ? glbSlotFor(asset.id) : family3D?.match.test(base[1]) ? { state: 'approx', file: Object.values(family3D.models)[0] } : null, live = slotLive(slot);
   return {
     id, templateId: id, name, label: name, image: `/gallery/${id}.webp`, previewSrc: `/gallery/${id}.webp`, garmentFamily: base ? base[1] : null, editable2D: !!base, editable2d: !!base,
     kind: 'photo', exactBase: !!base?.[3], category, categories: [category], gender, genders: [gender], piece, sleeve, sleeves: sleeve ? [sleeve] : [], collar, source, parts, base,

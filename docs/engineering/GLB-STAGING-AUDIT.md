@@ -34,6 +34,7 @@ Two problems found in the files:
 | Mandarin Collar / Short | `mandarin-tunic-housekeeping` | `scrub-set-housekeeping` | `/models/garments/mandarin-tunic-housekeeping.glb` (unchanged) | approximate-3d | See `ASSET-REGISTRY.md` |
 | Round Neck / Short | `round-neck-fuchsia-short` | `blouse-roundneck-fuchsia` | `/models/garments/round-neck-fuchsia-short.glb` (unchanged) | approximate-3d | See `ASSET-REGISTRY.md` |
 | Button-Down / Long (F) | `button-down-bir-long` | `bir-blouse-trousers-blue` | `/models/garments/button-down-bir-long.glb` (unchanged) | approximate-3d | See `ASSET-REGISTRY.md` |
+| Button-Down / Long (unisex) | vector `Button-Down` Long | `/gallery/shirt-utility-beige-long.webp` | `/models/vfrb-staged/shirt-utility-beige-long.glb` (copy of staging, identical SHA-1) | approximate-3d | Zones body, sleeve and collar (geometry thresholds, BROWSER-checked front, side and back). The chest flap pockets are shapes, so pocket stays 2D only. Front collar points take the body colour. Wrinkles and a banded hem are baked in. |
 
 **Pants decision** (RENDER, 5 angles each; all of these are at least two-legged trousers):
 - **Selected: staging `pants.glb`** (also staged as `public/models/vfrb-staged/pants.glb`). It is garment-only and has a clean waistband with belt loops, a fly, slant pockets, a front crease and finished hems. Its proportions (w/h 0.46) match the Dress Slacks photo (0.45).
@@ -49,12 +50,18 @@ Two problems found in the files:
 
 **Gallery effect:** the `pants` and `shorts` photos now show "2D + 3D (approx.)", because their family's model was generated from that exact photo (`sourcePhoto` in `garmentCapabilities.js`). `corporate-skirt` stays "Editable 2D".
 
+## Catalog garments with no usable 3D source
+- **Lab Coat:** no staging file is a lab coat. `blazer-white-notch` is a hip-length fitted blazer, so mapping it would show a different garment.
+- **Lab Coverall:** `public/models/lab-coverall.glb` is a fused figure with a hood and mitten hands.
+- **Mandarin Collar / Long, Round Neck / Long:** no matching long-sleeve model.
+
+All four stay 2D only, with the 3D button disabled and labelled. Each needs a garment-only model generated from a photo of that exact garment.
+
 ## Not promoted (reference-only unless noted)
 | Staging file | RENDER verdict | Why not wired |
 | --- | --- | --- |
 | school-skirt | Clean pleated skirt, garment-only | The Skirt family is a pencil skirt and there is no pleated 2D template. A pleated photo is never mapped onto the pencil Skirt. |
 | polo-red-claremont | Garment-only polo | Polo Shirt already has male and female models. Candidate replacement, not reviewed against the 2D zones. |
-| shirt-utility-beige-long | Garment-only long-sleeve work shirt, heavy wrinkles, banded hem | Button-Down / Long (unisex) has no 3D yet. Best next candidate, but its zones need calibration first. |
 | jack-shirt-two-tone | Garment-only short-sleeve shirt with two flap pockets | Button-Down / Short already uses the work-shirt model. Two-tone panels are not separate parts. |
 | shirt-mandarin-polkadot | Garment-only long-sleeve mandarin shirt | Mandarin Collar / Long is the BIR band-collar photo base, a different garment. |
 | blouse-mandarin-yellow, blouse-asymmetric-blue, blouse-scarf-cream, blouse-pleated-bib-white, blouse-tunic-roundneck-blue, blouse-roundneck-mustard | Garment-only blouses (mustard is a blouse+trousers set) | No matching 2D family or photo base (the tunic photo opens the T-Shirt vector). |

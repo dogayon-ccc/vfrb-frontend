@@ -222,7 +222,34 @@ const BIR_BLOUSE = slotLive(GLB_SLOTS['button-down-bir-long']) ? [{
   },
 }] : [];
 
-export const SCANNED_GARMENTS = [...SCANNED_BASE, ...SCRUB_TOP, ...MANDARIN_TUNIC, ...ROUND_NECK, ...BIR_BLOUSE];
+// Button-Down / Long (unisex): garment-only Meshy model of the gallery photo `shirt-utility-beige-long` (staged copy of asset-staging/mesh-3d,
+// byte-identical). Fused mesh, no UVs; zones are geometry thresholds measured on the file: the long sleeves hang beside the torso
+// (torso half-width ~0.37, open gap at |x| 0.34..0.42 from y -0.2 to -0.7), so sleeve = |x| > 0.40 below the shoulder line y 0.62;
+// collar = nearNeck. Its two chest flap pockets are modelled shapes, so the 2D pocket colour is not shown in 3D (pocket stays 2D only).
+// exactSleeve + fit ['unisex'] keep it off Short (work shirt) and off the female BIR blouse.
+const utilityZone = (x, y, z, f) => (nearNeck(x, y, z, f) ? 'collar' : Math.abs(x) > 0.4 && y < 0.62 ? 'sleeve' : 'body');
+const UTILITY_LONG = [{
+  id: 'button-down-utility-long',
+  match: /^button-down$/i,
+  exactSleeve: true,
+  sourcePhoto: 'shirt-utility-beige-long',
+  models: { unisex: '/models/vfrb-staged/shirt-utility-beige-long.glb' },
+  torso: { unisex: 0.37 },
+  transform: { rotation: [0, 0, 0], scale: 0.54, position: [0, -0.05, 0] },
+  parts: [{ node: 'mesh_node', decals: true, zoneOf: utilityZone }],
+  capabilities: {
+    regionMethod: 'vertex-mask', regionAccuracy: 'approximate (geometry thresholds, no cut panels in the GLB)',
+    zones: ['body', 'sleeve', 'collar'], patterns: { zones: ['body', 'sleeve', 'collar'], ids: ALL_PATTERNS.filter(p => p !== 'geometric') },
+    sleeves: ['Long'],
+    text: true, logo: true, frontBack: true, fit: ['unisex'],
+    limitations: ['long sleeve only (Short uses the work-shirt model)', 'two chest flap pockets are modelled shapes: the 2D pocket colour is not shown in 3D', 'heavy fabric wrinkles and a banded hem are baked into the geometry', 'sleeve/body boundary is a geometry threshold where the sleeves touch the torso', 'front collar points sit below the collar zone and take the body colour'],
+  },
+}];
+
+export const SCANNED_GARMENTS = [...SCANNED_BASE, ...SCRUB_TOP, ...MANDARIN_TUNIC, ...ROUND_NECK, ...BIR_BLOUSE, ...UTILITY_LONG];
+
+// The 3D entry generated from a gallery photo (`sourcePhoto`), if any.
+export const modelFromPhoto = id => SCANNED_GARMENTS.find(x => x.sourcePhoto === id) ?? null;
 
 // The one scanned entry a (garment, sleeve, fit) resolves to. An `exactSleeve` entry is a specific photo template: it wins only for a sleeve AND a fit it really has
 // (an explicit fit must be listed, so Button-Down unisex never lands on the women's BIR blouse). The family's general entry applies otherwise.
