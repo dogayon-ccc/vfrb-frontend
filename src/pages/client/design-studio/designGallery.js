@@ -47,6 +47,19 @@ const BASES = {
   'corporate-skirt': ['Corporate', 'Skirt', null, null],
 };
 
+// Read-only 3D reference of the photographed garment or set: a garment-only Meshy model generated from this very photo
+// (asset-staging/mesh-3d, copied to /models/reference/<photo id>.glb; matched by front/side/back renders, see GLB-STAGING-AUDIT.md).
+// It is a shape preview only: one neutral colour, not editable, and a fused set is never split into editable pieces.
+// Left out: dress-sheath-denim-blue (its file is a copy of blazer-pinstripe-navy), blazer-blouse-blue-short (the model is the blouse
+// alone), set-vest-blouse (mannequin hips fused in), corporate-skirt (back modelled as shorts), and files over 3.5 MB.
+const REF_3D = new Set([
+  'bir-blouse-trousers-blue', 'blazer-double-breasted-gray', 'blazer-pinstripe-navy', 'blouse-roundneck-fuchsia', 'blouse-roundneck-mustard',
+  'pantsuit-notch-short-gray', 'peplum-set-navy', 'polo-barong-brown', 'shirt-two-tone-gpc', 'set-pinstripe-pants', 'set-pinstripe-skirt',
+  'scrub-set-women-vneck', 'scrub-set-men-vneck', 'scrub-set-housekeeping',
+  'blouse-asymmetric-blue', 'blouse-pleated-bib-white', 'blouse-scarf-cream', 'dress-bir-green-yellow-collar', 'dress-butter-belted',
+  'dress-tunic-maternity-navy', 'jack-shirt-two-tone', 'polo-red-claremont', 'shirt-mandarin-polkadot',
+]);
+
 // sleeve = sleeve of the top/dress piece (null when no sleeve). source = how the photo was shot; worn = model photo with the body removed; mannequin/hanger photos fuse the
 // mannequin or hanger into an image-to-3D result, flat-lay photos do not.
 const D = (id, name, category, gender, piece, sleeve, collar, source, parts = [piece]) => {
@@ -63,6 +76,7 @@ const build = (id, name, category, gender, piece, sleeve, collar, source, parts)
   return {
     id, templateId: id, name, label: name, image: `/gallery/${id}.webp`, previewSrc: `/gallery/${id}.webp`, garmentFamily: base ? base[1] : null, editable2D: !!base, editable2d: !!base,
     kind: 'photo', exactBase: !!base?.[3], category, categories: [category], gender, genders: [gender], piece, sleeve, sleeves: sleeve ? [sleeve] : [], collar, source, parts, base,
+    ref3D: REF_3D.has(id) ? { file: `/models/reference/${id}.glb`, set: parts.length > 1 } : null,
     thumb: `/gallery/${id}.webp`, glb: live ? slot.file : null, glbSrc: live ? slot.file : null, glbStatus: slot?.state ?? 'none',
     zones: asset?.zones ?? [], faces: { front: !!base, back: false },
     // reference = photo only; editable-2d = opens the nearest 2D silhouette; 2d-3d-approx = exact photo base plus its own garment-only GLB (glbSlots.js).

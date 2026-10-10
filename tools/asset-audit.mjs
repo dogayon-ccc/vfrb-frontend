@@ -40,7 +40,7 @@ for (const [garment, bySleeve] of Object.entries(A.ASSET_2D))
 for (const s of Object.values(GS.GLB_SLOTS)) if (GS.slotLive(s) || fs.existsSync(path.join(ROOT, 'public', s.file))) add(s.file, `GLB slot ${s.id} (${s.state})`);
 for (const e of C.SCANNED_GARMENTS) for (const m of Object.values(e.models)) add(m, `3D entry ${e.id}`);
 for (const m of C.UNSUPPORTED_3D_MODELS ?? []) if (m?.path) add(m.path, `unsupported model (${m.reason ?? 'rejected'})`);
-for (const d of D.ENTRIES) add(d.image, `gallery photo ${d.id}`);
+for (const d of D.ENTRIES) { add(d.image, `gallery photo ${d.id}`); if (d.ref3D) add(d.ref3D.file, `gallery 3D reference ${d.id}`); }
 
 // Literal paths anywhere in src (thumbnails, previews, fallbacks).
 const walk = dir => fs.readdirSync(dir, { withFileTypes: true }).flatMap(f => f.isDirectory() ? walk(path.join(dir, f.name)) : [path.join(dir, f.name)]);
@@ -65,7 +65,7 @@ const sharedFiles = [...refs.entries()].filter(([p, who]) => [...who].filter(w =
 // Contract status per editable garment: verified-3d > approximate-3d > editable-2d; photos without a base are reference-only.
 const status3D = e => (e.verification || e.status === 'verified') ? 'verified-3d' : 'approximate-3d';
 const garmentRows = C.SCANNED_GARMENTS.map(e => ({ id: e.id, label: status3D(e), models: Object.entries(e.models).map(([f, m]) => `${f}: ${decodeURI(m)}`).join('; '), limits: (e.capabilities?.limitations ?? []).join('; ') }));
-const galleryRows = D.ENTRIES.map(d => ({ id: d.id, label: d.tier === 'reference' ? 'reference-only' : d.tier === 'editable-2d' ? 'editable-2d' : d.tier === '2d-3d' ? 'verified-3d' : 'approximate-3d', target: d.base ? `${d.base[1]} / ${d.base[2]}${d.base[3] ? ' (' + d.base[3] + ')' : ' (vector)'}` : '—', glb: d.glb ?? '—' }));
+const galleryRows = D.ENTRIES.map(d => ({ id: d.id, label: d.tier === 'reference' ? 'reference-only' : d.tier === 'editable-2d' ? 'editable-2d' : d.tier === '2d-3d' ? 'verified-3d' : 'approximate-3d', target: d.base ? `${d.base[1]} / ${d.base[2]}${d.base[3] ? ' (' + d.base[3] + ')' : ' (vector)'}` : '—', glb: d.glb ?? '—', ref: d.ref3D ? `${d.ref3D.file}${d.ref3D.set ? ' (set)' : ''}` : '—' }));
 
 const result = { referenced: refs.size, onDisk: onDisk.length, missing, unreferenced: unreferenced.filter(p => !isMaster(p)), masters: onDisk.filter(isMaster).length, mastersWithoutPreview, unexplained, dupIds, sharedFiles, photoBases: photoBases.length, garmentRows, galleryRows };
 
@@ -88,8 +88,8 @@ if (process.argv.includes('--write')) {
     ...garmentRows.map(r => row([r.id, r.label, r.models, r.limits || '—'])),
     '',
     '## Gallery photos',
-    row(['photo', 'status', 'opens', 'GLB']), row(['---', '---', '---', '---']),
-    ...galleryRows.map(r => row([r.id, r.label, r.target, r.glb])),
+    row(['photo', 'status', 'opens', 'editable GLB', '3D reference (read-only)']), row(['---', '---', '---', '---', '---']),
+    ...galleryRows.map(r => row([r.id, r.label, r.target, r.glb, r.ref])),
     '',
     '## Files kept but not rendered',
     ...unreferenced.filter(p => !isMaster(p)).map(p => `- \`${p}\`: ${UNREFERENCED_OK[p] ?? '**UNEXPLAINED: reference it or document why it is kept**'}`),

@@ -50,6 +50,31 @@ Two problems found in the files:
 
 **Gallery effect:** the `pants` and `shorts` photos now show "2D + 3D (approx.)", because their family's model was generated from that exact photo (`sourcePhoto` in `garmentCapabilities.js`). `corporate-skirt` stays "Editable 2D".
 
+## Model routing (one rule)
+`scannedEntryFor(garment, sleeve, fit)` in `garmentCapabilities.js` routes every 3D view: the Studio, capability labels, and the Order Wizard and Order Detail previews (`has3DModel`).
+- A selection gets 3D only from a model that has that exact sleeve: exact-sleeve photo-base models first, then the family model.
+- A model with no sleeve styles (bottoms) accepts any sleeve.
+- Otherwise the selection is 2D only. The 3D button is disabled with a reason, and previews say "No 3D model … Showing 2D".
+- The renderer draws nothing rather than a generic primitive or a different garment.
+
+This fixes Scrub Top / 3/4, Mandarin Collar / Long and Round Neck / Long, which previously showed a short-sleeve scan or a generic primitive shirt.
+
+## Gallery 3D references (read-only)
+23 photos carry `ref3D` (`designGallery.js`), the garment-only model generated from that photo, copied to `/models/reference/<photo id>.glb`. Gallery preview → "View in 3D" or "View the set in 3D" renders it with one neutral colour, orbit only. The caption says it is not editable, and that a fused set's pieces cannot be coloured separately.
+- **Sets (11):** bir-blouse-trousers-blue, blazer-double-breasted-gray, blazer-pinstripe-navy, blouse-roundneck-fuchsia, blouse-roundneck-mustard, pantsuit-notch-short-gray, peplum-set-navy, polo-barong-brown, shirt-two-tone-gpc, set-pinstripe-pants and set-pinstripe-skirt (the business-suit-fullset files).
+- **Scrub sets (3):** scrub-set-women-vneck, scrub-set-men-vneck and scrub-set-housekeeping. These show the full set; their editable pieces keep their own top models.
+- **Solo garments and dresses (9):** blouse-asymmetric-blue, blouse-pleated-bib-white, blouse-scarf-cream, dress-bir-green-yellow-collar, dress-butter-belted, dress-tunic-maternity-navy, jack-shirt-two-tone, polo-red-claremont and shirt-mandarin-polkadot.
+
+Each was matched photo-to-model on front renders, plus 0°/45°/135°/180° close renders for the hanger, mannequin and set cases. None has a head, hands, a mannequin or a hanger fused in.
+
+Not given a reference:
+- dress-sheath-denim-blue: its file duplicates blazer-pinstripe-navy.
+- blazer-blouse-blue-short: the model is the blouse alone, not the worn set.
+- set-vest-blouse: mannequin hips fused in.
+- corporate-skirt: the back is modelled as shorts.
+- Files over 3.5 MB (budget for read-only previews), which need an optimised copy first: blazer-collarless-tan, blazer-pinstripe-royal, blazer-tweed-herringbone, blazer-white-notch, blazer-open-front-black, blazer-blouse-blue, blouse-mandarin-yellow, blouse-tunic-roundneck-blue, school-skirt.
+- dress-shift-geometric: 67.9 MB.
+
 ## Catalog garments with no usable 3D source
 - **Lab Coat:** no staging file is a lab coat. `blazer-white-notch` is a hip-length fitted blazer, so mapping it would show a different garment.
 - **Lab Coverall:** `public/models/lab-coverall.glb` is a fused figure with a hood and mitten hands.

@@ -31,6 +31,7 @@ import ShowcaseGallery from './design-studio/ShowcaseGallery';
 import { T, T2, CATS, INIT_CFG, FONTS, zonesFor } from './design-studio/dsShared';
 import { deserializeDesign, serializeDesign } from './design-studio/designSerialization';
 import { familyFor, pieceOf } from './design-studio/garmentCatalog';
+import { has3DModel } from './design-studio/garmentCapabilities';
 import { SET_ROLES, ROLE_LABEL, DEFAULT_PIECE, otherRole, normalizeSet, withSet } from './design-studio/uniformSet';
 
 // MAIN COMPONENT
@@ -187,8 +188,8 @@ export default function DesignStudio() {
   }, [selObj, isNarrow]);
 
   useEffect(() => {
-    if (viewMode === '3d' && familyFor(cfg.garment)?.status3D === 'none') setViewMode('2d');
-  }, [cfg.garment, viewMode]);
+    if (viewMode === '3d' && !has3DModel(cfg.garment, cfg.sleeve, cfg.fit)) setViewMode('2d');
+  }, [cfg.garment, cfg.sleeve, cfg.fit, viewMode]);
   // Picking a garment whose 3D is only approximate always lands on the reliable 2D view; the customer can opt into 3D.
   const keep3DRef = useRef(false); // set by the gallery's "Open with 3D preview" so the 2D landing rule below skips that one load
   useEffect(() => {

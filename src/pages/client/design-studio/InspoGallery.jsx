@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { NavIcon } from '../../../components/ui/icons';
@@ -6,6 +6,9 @@ import { T2 } from './dsShared';
 import { BASE_PATHS } from './garmentPaths';
 import { CATEGORIES, PIECES, SLEEVES, GENDERS, ENTRIES, TIER_LABEL, filterDesigns, facetCounts, openTarget } from './designGallery';
 import { applyGarment } from './garmentCatalog';
+import { hasWebGL } from './webglSupport';
+
+const ReferenceModel3D = lazy(() => import('./ReferenceModel3D'));
 
 export function MiniPreview({ garment, colors }) {
   const paths = BASE_PATHS[garment] ?? BASE_PATHS['Polo Shirt'];
@@ -153,6 +156,8 @@ function DesignBrowser({ onOpen, onOpen3D }) {
   const [filters, setFilters] = useState({});
   const [kind, setKind] = useState('editable');
   const [preview, setPreview] = useState(null);
+  const [ref3D, setRef3D] = useState(false);
+  useEffect(() => setRef3D(false), [preview]);
   const counts = useMemo(() => facetCounts(filters), [filters]);
   const matched = useMemo(() => filterDesigns(filters), [filters]);
   const kindCount = { editable: matched.filter(d => d.editable2D).length, reference: matched.filter(d => !d.editable2D).length, all: matched.length };
@@ -167,13 +172,25 @@ function DesignBrowser({ onOpen, onOpen3D }) {
         <p className="ds-note" style={{ textAlign:'center', margin:0 }}>{facts(preview).join(' · ')}</p>
         <TierBadge tier={preview.tier}/>
         <p className="ds-note" style={{ textAlign:'center' }}>{preview.exactBase ? (preview.has3D ? 'Editable in 2D on a real VFRB photo base, with its own garment-only 3D model. 3D shows one body colour.' : 'Editable in 2D on a real VFRB photo base. No 3D model.')
-          : preview.has3D ? `Opens the VFRB ${preview.garmentFamily} template in 2D. The 3D model was made from this photo and shows one body colour (pattern optional).` : t.note}</p>
+          : preview.has3D ? `Opens the VFRB ${preview.garmentFamily} template in 2D. The 3D model was made from this photo and shows one body colour (pattern optional).`
+          : !preview.editable2D && preview.ref3D ? 'Inspiration only: no editable VFRB template for this design. A read-only 3D reference of this photo is available below.' : t.note}</p>
         {preview.editable2D && <p className="ds-note" style={{ textAlign:'center' }}>{preview.exactBase ? `Opens this garment as an editable real-photo base (${preview.garmentFamily}).` : `Opens the closest ${preview.garmentFamily} template${preview.sleeve ? `, ${preview.sleeve.toLowerCase()} sleeve` : ''}. It is not an exact copy of the photo.`}</p>}
         <div style={{ display:'flex', gap:8, flexWrap:'wrap', justifyContent:'center' }}>
           {preview.editable2D && <button type="button" className="ds-chip" aria-pressed="true" onClick={() => onOpen(preview, filters)}>{preview.exactBase ? 'Edit this garment' : `Open ${preview.garmentFamily} template`}</button>}
           {preview.has3D && <button type="button" className="ds-chip" onClick={() => onOpen3D(preview, filters)}>Open with 3D preview</button>}
+          {preview.ref3D && hasWebGL() && <button type="button" className="ds-chip" aria-pressed={ref3D} onClick={() => setRef3D(v => !v)}>{ref3D ? 'Hide 3D reference' : preview.ref3D.set ? 'View the set in 3D' : 'View in 3D'}</button>}
           <button type="button" className="ds-chip" onClick={() => setPreview(null)}>Back to photos</button>
         </div>
+        {ref3D && preview.ref3D && (
+          <div style={{ width:'100%' }}>
+            <Suspense fallback={<p className="ds-note" style={{ textAlign:'center' }}>Loading 3D reference…</p>}>
+              <ReferenceModel3D url={preview.ref3D.file}/>
+            </Suspense>
+            <p className="ds-note" style={{ textAlign:'center', marginTop:6 }}>
+              3D reference of this photo: shape only, one neutral colour, not editable.{preview.ref3D.set ? ' The set is one fused model, so its pieces cannot be coloured separately here.' : ''} Drag to rotate.
+            </p>
+          </div>
+        )}
       </div>
     );
   }
