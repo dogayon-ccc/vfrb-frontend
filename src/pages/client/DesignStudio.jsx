@@ -469,6 +469,18 @@ export default function DesignStudio() {
   // Keeps the piece on screen as a single design; the other piece is discarded.
   const leaveSet = useCallback(() => setUset(null), []);
 
+  // Uniform set 3D preview: the other piece, only while both pieces have their own model for their sleeve and fit (each renders
+  // its own GLB with its own colours; no fused set model and no substitute).
+  const [showSet, setShowSet] = useState(false);
+  const setCompanion = useMemo(() => {
+    if (!uset || pieceOf(cfg.garment) !== uset.active) return null;
+    const snap = uset.pieces[otherRole(uset.active)];
+    if (!snap?.garment) return null;
+    const other = deserializeDesign(snap).cfg;
+    if (!has3DModel(cfg.garment, cfg.sleeve, cfg.fit) || !has3DModel(other.garment, other.sleeve, other.fit)) return null;
+    return { cfg: other, role: otherRole(uset.active) };
+  }, [uset, cfg.garment, cfg.sleeve, cfg.fit]);
+
   const pieceBar = !cfg.garment ? null : uset ? (
     <div className="ds-set-bar" role="group" aria-label="Uniform set pieces">
       {SET_ROLES.map(r => (
@@ -744,7 +756,7 @@ export default function DesignStudio() {
             viewMode={viewMode} has3DLoaded={has3DLoaded} onLogoFile={onLogoFile}
             zoom={zoom} setZoom={setZoom} snapshot={snapshot} overlays={overlays}
             onChooseGarment={() => { setTool('type'); setSheetOpen(true); }} pickerOpen={tool === 'type' && (!isNarrow || sheetOpen)} setViewMode={setViewMode}
-            pieceBar={pieceBar}/>
+            pieceBar={pieceBar} setCompanion={setCompanion} showSet={showSet} setShowSet={setShowSet}/>
         </div>
 
         {/* ── FIRST-VISIT ONBOARDING OVERLAY ── */}

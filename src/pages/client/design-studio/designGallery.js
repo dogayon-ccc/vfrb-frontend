@@ -17,7 +17,7 @@ export const CATEGORIES = [
 // Gallery category id -> garmentCatalog.js category id. 'dress' has no 2D family, so it maps to nothing and dress entries stay reference-only.
 export const CATALOG_CATEGORY = {
   school: 'School Uniform', corporate: 'Corporate', medical: 'Medical / Scrubs',
-  hospitality: 'Hospitality / Service', industrial: 'Industrial / Work', dress: null,
+  hospitality: 'Hospitality / Service', industrial: 'Industrial / Work', dress: 'Corporate',
 };
 
 export const PIECES = [
@@ -45,6 +45,12 @@ const BASES = {
   'pants':           ['Corporate', 'Pants', null, null],
   'shorts':          ['School Uniform', 'Shorts', null, null],
   'corporate-skirt': ['Corporate', 'Skirt', null, null],
+  // Photos whose garment-only model now backs a catalog family of the same cut (garmentCapabilities `sourcePhoto`): each opens that family's vector template.
+  'blazer-tweed-herringbone': ['Corporate', 'Blazer', 'Long', null],
+  'blazer-white-notch': ['Corporate', 'Blazer', '3/4', null],
+  'blazer-blouse-blue': ['Corporate', 'Blouse', 'Short', null],
+  'dress-bir-green-yellow-collar': ['Corporate', 'Dress', 'Short', null],
+  'school-skirt': ['School Uniform', 'Pleated Skirt', null, null],
 };
 
 // Read-only 3D reference of the photographed garment or set: a garment-only Meshy model generated from this very photo
@@ -56,7 +62,7 @@ const REF_3D = new Set([
   'bir-blouse-trousers-blue', 'blazer-double-breasted-gray', 'blazer-pinstripe-navy', 'blouse-roundneck-fuchsia', 'blouse-roundneck-mustard',
   'pantsuit-notch-short-gray', 'peplum-set-navy', 'polo-barong-brown', 'shirt-two-tone-gpc', 'set-pinstripe-pants', 'set-pinstripe-skirt',
   'scrub-set-women-vneck', 'scrub-set-men-vneck', 'scrub-set-housekeeping',
-  'blouse-asymmetric-blue', 'blouse-pleated-bib-white', 'blouse-scarf-cream', 'dress-bir-green-yellow-collar', 'dress-butter-belted',
+  'blouse-asymmetric-blue', 'blouse-pleated-bib-white', 'blouse-scarf-cream', 'dress-butter-belted',
   'dress-tunic-maternity-navy', 'jack-shirt-two-tone', 'polo-red-claremont', 'shirt-mandarin-polkadot',
 ]);
 

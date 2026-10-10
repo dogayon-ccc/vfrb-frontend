@@ -50,6 +50,23 @@ Two problems found in the files:
 
 **Gallery effect:** the `pants` and `shorts` photos now show "2D + 3D (approx.)", because their family's model was generated from that exact photo (`sourcePhoto` in `garmentCapabilities.js`). `corporate-skirt` stays "Editable 2D".
 
+## Studio families added for existing models (2026-10-10)
+Each new family has its own vector 2D template in `garmentPaths.js` and an entry in `garmentCatalog.js`, `OrderWizard.jsx` (GARMENT_SPECS) and the gallery `BASES`. Its 3D is the garment-only model of the gallery photo of that exact cut, copied byte-identical to `/models/vfrb-staged/`. All of them are one body colour plus patterns; collar, sleeve and pocket colours stay 2D only. BROWSER evidence: each loads its own GLB in the Studio 3D workspace.
+
+| Family (category) | Fit · sleeve | Runtime GLB | Gallery photo |
+| --- | --- | --- | --- |
+| Blazer (Corporate) | female · Long | `blazer-tweed-herringbone.glb` | blazer-tweed-herringbone |
+| Blazer (Corporate) | female · 3/4 | `blazer-white-notch.glb` | blazer-white-notch |
+| Blouse (Corporate, Hospitality) | female · Short | `blazer-blouse-blue.glb` | blazer-blouse-blue |
+| Dress (Corporate, Hospitality) | female · Short | `dress-bir-green-yellow-collar.glb` | dress-bir-green-yellow-collar |
+| Pleated Skirt (School) | — | `school-skirt.glb` | school-skirt |
+
+- Blazer, Blouse and Pleated Skirt join uniform sets (top, top, bottom). Dress does not.
+- `dress-bir-green-yellow-collar` lost its read-only reference copy, because the editable model replaces it. 22 references remain.
+- `shirt-mandarin-polkadot` was not used for Mandarin Collar / Long: its collar is a point collar.
+
+**Uniform set 3D:** when both pieces of a set have their own model, the Studio 3D pane offers "This piece / Whole set". "Whole set" renders the two pieces' own GLBs with their own colours (`SetStack` in `DesignStudio3D.jsx`), stacked from their measured bounding boxes. A fused set model is never used for an editable set.
+
 ## Model routing (one rule)
 `scannedEntryFor(garment, sleeve, fit)` in `garmentCapabilities.js` routes every 3D view: the Studio, capability labels, and the Order Wizard and Order Detail previews (`has3DModel`).
 - A selection gets 3D only from a model that has that exact sleeve: exact-sleeve photo-base models first, then the family model.
@@ -60,10 +77,10 @@ Two problems found in the files:
 This fixes Scrub Top / 3/4, Mandarin Collar / Long and Round Neck / Long, which previously showed a short-sleeve scan or a generic primitive shirt.
 
 ## Gallery 3D references (read-only)
-23 photos carry `ref3D` (`designGallery.js`), the garment-only model generated from that photo, copied to `/models/reference/<photo id>.glb`. Gallery preview → "View in 3D" or "View the set in 3D" renders it with one neutral colour, orbit only. The caption says it is not editable, and that a fused set's pieces cannot be coloured separately.
+22 photos carry `ref3D` (`designGallery.js`), the garment-only model generated from that photo, copied to `/models/reference/<photo id>.glb`. Gallery preview → "View in 3D" or "View the set in 3D" renders it with one neutral colour, orbit only. The caption says it is not editable, and that a fused set's pieces cannot be coloured separately.
 - **Sets (11):** bir-blouse-trousers-blue, blazer-double-breasted-gray, blazer-pinstripe-navy, blouse-roundneck-fuchsia, blouse-roundneck-mustard, pantsuit-notch-short-gray, peplum-set-navy, polo-barong-brown, shirt-two-tone-gpc, set-pinstripe-pants and set-pinstripe-skirt (the business-suit-fullset files).
 - **Scrub sets (3):** scrub-set-women-vneck, scrub-set-men-vneck and scrub-set-housekeeping. These show the full set; their editable pieces keep their own top models.
-- **Solo garments and dresses (9):** blouse-asymmetric-blue, blouse-pleated-bib-white, blouse-scarf-cream, dress-bir-green-yellow-collar, dress-butter-belted, dress-tunic-maternity-navy, jack-shirt-two-tone, polo-red-claremont and shirt-mandarin-polkadot.
+- **Solo garments and dresses (8):** blouse-asymmetric-blue, blouse-pleated-bib-white, blouse-scarf-cream, dress-butter-belted, dress-tunic-maternity-navy, jack-shirt-two-tone, polo-red-claremont and shirt-mandarin-polkadot.
 
 Each was matched photo-to-model on front renders, plus 0°/45°/135°/180° close renders for the hanger, mannequin and set cases. None has a head, hands, a mannequin or a hanger fused in.
 
@@ -85,13 +102,13 @@ All four stay 2D only, with the 3D button disabled and labelled. Each needs a ga
 ## Not promoted (reference-only unless noted)
 | Staging file | RENDER verdict | Why not wired |
 | --- | --- | --- |
-| school-skirt | Clean pleated skirt, garment-only | The Skirt family is a pencil skirt and there is no pleated 2D template. A pleated photo is never mapped onto the pencil Skirt. |
+| school-skirt | Clean pleated skirt, garment-only | **Now wired** as the new Pleated Skirt family (never mapped onto the pencil Skirt). |
 | polo-red-claremont | Garment-only polo | Polo Shirt already has male and female models. Candidate replacement, not reviewed against the 2D zones. |
 | jack-shirt-two-tone | Garment-only short-sleeve shirt with two flap pockets | Button-Down / Short already uses the work-shirt model. Two-tone panels are not separate parts. |
 | shirt-mandarin-polkadot | Garment-only long-sleeve mandarin shirt | Mandarin Collar / Long is the BIR band-collar photo base, a different garment. |
-| blouse-mandarin-yellow, blouse-asymmetric-blue, blouse-scarf-cream, blouse-pleated-bib-white, blouse-tunic-roundneck-blue, blouse-roundneck-mustard | Garment-only blouses (mustard is a blouse+trousers set) | No matching 2D family or photo base (the tunic photo opens the T-Shirt vector). |
-| blazer-* (8 files), women-pinstripe-vest-blouse | Garment-only jackets and sets | No blazer or vest family in the catalog. |
-| dress-* (4 rendered), peplum-set-navy | Dresses and a skirt set | No dress family. dress-sheath-denim-blue is a mislabelled duplicate of blazer-pinstripe-navy. |
+| blouse-mandarin-yellow, blouse-asymmetric-blue, blouse-scarf-cream, blouse-pleated-bib-white, blouse-tunic-roundneck-blue, blouse-roundneck-mustard | Garment-only blouses (mustard is a blouse+trousers set) | Each has a different collar (mandarin-V, asymmetric, scarf, pleated bib, round) from the notch-collar Blouse template. The tunic photo opens the T-Shirt vector. Gallery references only. |
+| blazer-* (other 6 files), women-pinstripe-vest-blouse | Garment-only jackets and sets | The Blazer family uses tweed (Long) and white-notch (3/4). Collarless, open-front and peplum cuts differ from its notch-lapel template; double-breasted and pinstripe-navy are fused jacket+trouser sets. No vest family. |
+| dress-* (other 3), peplum-set-navy | Dresses and a skirt set | The Dress family uses the collared BIR shirt-dress. The belted round-neck and the maternity tunic dress are different cuts. dress-sheath-denim-blue is a mislabelled duplicate of blazer-pinstripe-navy. |
 | pantsuit-notch-short-gray, business-suit-fullset-women-pinstripe-pants/-skirt, polo-barong-brown, shirt-two-tone-gpc | Top+bottom sets fused into one mesh | No component split. They would need a spatial cut like the BIR blouse. No family target except Pants, which now has a clean model. |
 | dress-shift-geometric | Not rendered (67.9 MB, 2.8 M triangles) | Too heavy for the web, and no dress family. |
 

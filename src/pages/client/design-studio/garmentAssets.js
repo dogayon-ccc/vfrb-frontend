@@ -61,7 +61,7 @@ export const VECTOR_TEMPLATES = {
   'Polo Shirt': { Short: { male: { id: 'polo-shirt-short-male' }, female: { id: 'polo-shirt-short-female' } } },
 };
 // Families with no sleeve or fit choice (resolveSleeve/resolveFit return null) have one vector template each.
-export const SINGLE_TEMPLATES = { 'Pants': 'pants-trousers', 'Shorts': 'shorts-standard', 'Skirt': 'skirt-pencil' };
+export const SINGLE_TEMPLATES = { 'Pants': 'pants-trousers', 'Shorts': 'shorts-standard', 'Skirt': 'skirt-pencil', 'Pleated Skirt': 'skirt-pleated' };
 export const vectorTemplateId = (garment, sleeve, fit) => VECTOR_TEMPLATES[garment]?.[sleeve]?.[fit]?.id ?? (sleeve == null && fit == null ? SINGLE_TEMPLATES[garment] ?? null : null);
 // The canonical templateId for (garment, sleeve, fit): the photo base id, else the vector template id, else null.
 export const templateIdFor = (garment, sleeve, fit) => assetFor(garment, sleeve, 'front', fit)?.id ?? vectorTemplateId(garment, sleeve, fit);

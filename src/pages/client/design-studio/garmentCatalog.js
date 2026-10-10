@@ -26,10 +26,10 @@ import { get3DCapabilities, fitsFor, sleeves3DFor } from './garmentCapabilities'
 // Pants' had a real 2D path (garmentPaths.js) but appeared in no other category, so it is
 // dropped from the catalog along with it rather than invented a new home to keep it visible.
 const CATEGORY_DEFS = [
-  { id: 'School Uniform',      icon: 'school',      garments: ['Polo Shirt', 'Round Neck', 'Pants', 'Shorts', 'Skirt'] },
-  { id: 'Corporate',           icon: 'corporate',   garments: ['Polo Shirt', 'Button-Down', 'Mandarin Collar', 'T-Shirt', 'Pants', 'Skirt'] },
+  { id: 'School Uniform',      icon: 'school',      garments: ['Polo Shirt', 'Round Neck', 'Pants', 'Shorts', 'Skirt', 'Pleated Skirt'] },
+  { id: 'Corporate',           icon: 'corporate',   garments: ['Polo Shirt', 'Button-Down', 'Blouse', 'Blazer', 'Mandarin Collar', 'T-Shirt', 'Dress', 'Pants', 'Skirt'] },
   { id: 'Medical / Scrubs',    icon: 'medical',     garments: ['Scrub Top', 'Lab Coat', 'Lab Coverall', 'Pants'] },
-  { id: 'Hospitality / Service', icon: 'hospitality', garments: ['Mandarin Collar', 'Button-Down', 'Polo Shirt', 'Pants', 'Skirt'] },
+  { id: 'Hospitality / Service', icon: 'hospitality', garments: ['Mandarin Collar', 'Button-Down', 'Polo Shirt', 'Blouse', 'Dress', 'Pants', 'Skirt'] },
   { id: 'Industrial / Work',   icon: 'industrial',  garments: ['Button-Down', 'Polo Shirt', 'T-Shirt', 'Lab Coverall', 'Pants', 'Shorts'] },
 ];
 
@@ -43,7 +43,10 @@ const SLEEVE_OPTS = {
   'Scrub Top': ['Short', '3/4'],
   'Lab Coat': ['Long'],
   'Lab Coverall': ['Long'],
-  'Pants': [], 'Shorts': [], 'Skirt': [],
+  'Blazer': ['Long', '3/4'],
+  'Blouse': ['Short'],
+  'Dress': ['Short'],
+  'Pants': [], 'Shorts': [], 'Skirt': [], 'Pleated Skirt': [],
 };
 
 // Garment names retired as duplicates: 'School Polo' was an exact copy of 'Polo Shirt'; 'V-Neck Shirt' duplicated 'Scrub Top'. Old saved designs still carry the name.
@@ -104,7 +107,8 @@ export const FAMILY_BY_NAME = FAMILIES;
 // Which half of a uniform set a family is. Full-body garments (Lab Coverall) never join a set.
 export const PIECE_OF = {
   'Polo Shirt': 'top', 'T-Shirt': 'top', 'Round Neck': 'top', 'Mandarin Collar': 'top', 'Button-Down': 'top', 'Scrub Top': 'top', 'Lab Coat': 'top',
-  'Pants': 'bottom', 'Shorts': 'bottom', 'Skirt': 'bottom',
+  'Blouse': 'top', 'Blazer': 'top',
+  'Pants': 'bottom', 'Shorts': 'bottom', 'Skirt': 'bottom', 'Pleated Skirt': 'bottom',
 };
 export const pieceOf = garment => PIECE_OF[garment] ?? null;
 
