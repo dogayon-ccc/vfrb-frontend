@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { NavIcon } from '../../../components/ui/icons';
 import { T, T2, hexToRgb } from './dsShared';
-import { familyFor } from './garmentCatalog';
+import { has3DModel } from './garmentCapabilities';
 
 // Vertical hairline between command groups — the previous TopBar had 12
 // same-weight controls in one flat row with a single flex:1 spacer, so
@@ -20,7 +20,7 @@ export default function TopBar({
   saved, saving, saveErr, draftSaved, saveDesign, orderThis, ordering,
 }) {
 
-  const no3D = familyFor(cfg.garment)?.status3D === 'none';  const reduceMotion = useReducedMotion();
+  const no3D = !has3DModel(cfg.garment, cfg.sleeve, cfg.fit);  const reduceMotion = useReducedMotion();
   // Mobile "More" overflow — the bar has ~13 controls at desktop width; below 768px
   // (DesignStudioStyles.jsx's own breakpoint) most of them get hidden via CSS
   // (.ds-bar-brand/.ds-bar-cat/.ds-bar-secondary — see that file) and folded into
@@ -121,7 +121,7 @@ export default function TopBar({
                 if(m==='3d') setHas3DLoaded(true);
                 setViewMode(m);
               }}
-              title={m==='3d' ? (no3D ? 'No verified 3D model for this garment — 2D is the exact preview' : 'Quick spatial preview — for exact colors and placement, use 2D') : undefined}
+              title={m==='3d' ? (no3D ? 'No 3D model for this garment and sleeve — 2D is the exact preview' : 'Quick spatial preview — for exact colors and placement, use 2D') : undefined}
               style={{ padding:'6px 14px',border:'none',fontSize:12,fontWeight:700,
                 cursor:(m==='3d' && no3D)?'not-allowed':'pointer', opacity:(m==='3d' && no3D)?.4:1,
                 background:viewMode===m?T:'transparent',

@@ -324,7 +324,9 @@ function GarmentMesh({ cfg, referenceTexture, overlays }) {
   const primitive = isSkirt ? <SkirtMesh colors={colors} referenceTexture={referenceTexture}/>
     : isPants ? <PantsMesh colors={colors} referenceTexture={referenceTexture}/>
     : isShorts ? <ShortsMesh colors={colors} referenceTexture={referenceTexture}/> : shirt;
-  if (scanned) {
+  // No model for this exact selection: render nothing rather than a generic or different garment (the UI keeps the design in 2D).
+  if (!scanned) return null;
+  {
     const fit = cfg.fit ?? cfg.gender;
     return (
       <GarmentMeshErrorBoundary key={`${gt}-${fit}`} fallback={primitive}>
@@ -332,7 +334,6 @@ function GarmentMesh({ cfg, referenceTexture, overlays }) {
       </GarmentMeshErrorBoundary>
     );
   }
-  return primitive;
 }
 
 // Scanned garments are modelled smaller than the generic fallback shapes, so they get a closer camera.

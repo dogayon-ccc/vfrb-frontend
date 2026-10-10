@@ -255,12 +255,21 @@ export const modelFromPhoto = id => SCANNED_GARMENTS.find(x => x.sourcePhoto ===
 // (an explicit fit must be listed, so Button-Down unisex never lands on the women's BIR blouse). The family's general entry applies otherwise.
 // Studio 3D, the catalog and the capability contract all read this, so they cannot disagree.
 const fitOk = (x, f) => !f || !x.exactSleeve || x.capabilities.fit.includes(f);
+// A model serves a sleeve only if it has that sleeve; garments without sleeve styles (bottoms) accept any.
+const sleeveOk = (x, s) => !s || !(x.capabilities.sleeves?.length) || x.capabilities.sleeves.includes(s);
+// The one model-routing rule (Studio 3D, capability labels, Order Wizard and Order Detail previews all call this).
+// With a sleeve, the model must really have that sleeve (exact-sleeve photo-base models first, then the family model);
+// otherwise null, and the selection is 2D only. A short-sleeve scan is never shown for a long or 3/4 sleeve design.
+// Without a sleeve (family-level lookups) the family model, or an exact-sleeve model of that fit, is returned.
 export function scannedEntryFor(garment, sleeve, fit) {
   const name = String(garment ?? '').toLowerCase(), f = String(fit ?? '').toLowerCase();
   const cands = SCANNED_GARMENTS.filter(x => x.match.test(name));
   return (sleeve && cands.find(x => x.exactSleeve && x.capabilities.sleeves.includes(sleeve) && fitOk(x, f)))
-    || cands.find(x => !x.exactSleeve) || cands.find(x => x.exactSleeve && fitOk(x, f) && (!sleeve || x.capabilities.sleeves.includes(sleeve))) || null;
+    || cands.find(x => !x.exactSleeve && sleeveOk(x, sleeve))
+    || (!sleeve && cands.find(x => x.exactSleeve && fitOk(x, f))) || null;
 }
+// True when this exact selection (garment + sleeve + fit) has a real 3D model.
+export const has3DModel = (garment, sleeve, fit) => !!scannedEntryFor(garment, sleeve, fit);
 // Sleeve styles that really have a 3D model for this garment at this fit (union over the entries that apply). The single source for every "sleeve is 2D only" label.
 export function sleeves3DFor(garment, fit) {
   const name = String(garment ?? '').toLowerCase(), f = String(fit ?? '').toLowerCase();

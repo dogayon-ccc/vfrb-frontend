@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { NavIcon } from '../../../components/ui/icons';
 import { T2, DARK, SHAPE_TYPE_LABEL } from './dsShared';
 import { familyFor, STATUS_3D_LABEL } from './garmentCatalog';
-import { sleeves3DFor, get3DCapabilities } from './garmentCapabilities';
+import { get3DCapabilities } from './garmentCapabilities';
 import GarmentSilhouette from './GarmentSilhouette';
 import { hasWebGL } from './webglSupport';
 import { hasBackView } from './garmentAssets';
@@ -272,11 +272,9 @@ export default function CanvasViewport({
             const fam = familyFor(cfg.garment);
             const status = fam?.status3D;
             const info = status && status !== 'supported' ? STATUS_3D_LABEL[status] : null;
-            // The 3D scans have one sleeve length; say so instead of silently showing a different sleeve than the 2D design.
-            const sleeveGap = status && status !== 'none' && fam.styles.length > 0 && cfg.sleeve && !sleeves3DFor(fam.id, cfg.fit).includes(cfg.sleeve);
-            const label = sleeveGap ? `3D shows ${sleeves3DFor(fam.id, cfg.fit).join(' / ').toLowerCase()} sleeves — ${cfg.sleeve.toLowerCase()} is 2D only`
-              : status === 'none' ? 'Generic preview — exact shape not modeled' : info?.label;
-            return label && (info || sleeveGap) ? (
+            // A selection without its own model never reaches 3D (scannedEntryFor + has3DModel), so only the approximate label remains.
+            const label = status === 'none' ? null : info?.label;
+            return label ? (
               <div style={{ position:'absolute', top:14, left:14, zIndex:2, maxWidth:'calc(100% - 28px)',
                 padding:'4px 10px', borderRadius:99,
                 background: status === 'none' ? 'rgba(0,0,0,.58)' : 'rgba(217,119,6,.88)',
