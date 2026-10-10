@@ -59,6 +59,7 @@ export const assetById = id => { for (const g of Object.values(ASSET_2D)) for (c
 export const VECTOR_TEMPLATES = {
   'Button-Down': { Short: { unisex: { id: 'button-down-work-shirt-short' } } },
   'Polo Shirt': { Short: { male: { id: 'polo-shirt-short-male' }, female: { id: 'polo-shirt-short-female' } } },
+  'Mandarin Collar': { Long: { male: { id: 'mandarin-shirt-long-male' } } },
 };
 // Families with no sleeve or fit choice (resolveSleeve/resolveFit return null) have one vector template each.
 export const SINGLE_TEMPLATES = { 'Pants': 'pants-trousers', 'Shorts': 'shorts-standard', 'Skirt': 'skirt-pencil', 'Pleated Skirt': 'skirt-pleated' };

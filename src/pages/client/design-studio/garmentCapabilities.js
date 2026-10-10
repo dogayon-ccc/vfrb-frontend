@@ -300,7 +300,17 @@ const MEDICAL_MODELS = [
     capabilities: bodyCaps(['3/4'], ['V-neck scrub top with chest pocket, ribbed 3/4 cuffs and side slits (women\'s cut)']) },
 ];
 
-export const SCANNED_GARMENTS = [...SCANNED_BASE, ...SCRUB_TOP, ...MANDARIN_TUNIC, ...ROUND_NECK, ...BIR_BLOUSE, ...UTILITY_LONG, ...CORPORATE_MODELS, ...MEDICAL_MODELS];
+// Mandarin Collar / Long / male: garment-only Meshy model of the gallery photo `shirt-mandarin-polkadot` (men's long-sleeve shirt with a
+// stand-up band collar, button front and chest pocket; staged copy of asset-staging/mesh-3d, byte-identical). It renders on the vector
+// Mandarin template. Female Long stays the BIR blouse photo base with no model (a different garment: gathered shoulders, no pocket).
+const MANDARIN_SHIRT_LONG = [
+  { id: 'mandarin-shirt-long-male', match: /^mandarin collar$/i, exactSleeve: true, sourcePhoto: 'shirt-mandarin-polkadot',
+    models: { male: '/models/vfrb-staged/shirt-mandarin-long-male.glb' }, torso: { male: 0.4 }, transform: TOP_T,
+    parts: [{ node: 'mesh_node', decals: false, zoneOf: bodyOnly }],
+    capabilities: { ...bodyCaps(['Long'], ['band-collar, button-front long-sleeve shirt with chest pocket (the model of the polka-dot mandarin shirt photo); the print is not modelled']), fit: ['male'] } },
+];
+
+export const SCANNED_GARMENTS = [...SCANNED_BASE, ...SCRUB_TOP, ...MANDARIN_TUNIC, ...ROUND_NECK, ...BIR_BLOUSE, ...UTILITY_LONG, ...CORPORATE_MODELS, ...MEDICAL_MODELS, ...MANDARIN_SHIRT_LONG];
 
 // The 3D entry generated from a gallery photo (`sourcePhoto`), if any.
 export const modelFromPhoto = id => SCANNED_GARMENTS.find(x => x.sourcePhoto === id) ?? null;

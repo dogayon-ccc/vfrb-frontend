@@ -37,6 +37,7 @@ Files on disk: 125 · referenced paths: 91 · missing: 0 · unreferenced: 34 (un
 | lab-coat-long | approximate-3d | unisex: /models/vfrb-staged/lab-coat-long.glb | one body colour: lapels, collar, sleeves, buttons and pockets are modelled shapes, not separately colourable parts; no text or logos in 3D; knee-length, notch-lapel, button-front cut with one chest and two lower patch pockets; no arbitrary fabric-texture upload |
 | lab-coverall | approximate-3d | unisex: /models/vfrb-staged/lab-coverall-garment.glb | one body colour: lapels, collar, sleeves, buttons and pockets are modelled shapes, not separately colourable parts; no text or logos in 3D; one-piece full-length coverall (point collar, two flap chest pockets, waist seam); never part of a top + bottom set; no arbitrary fabric-texture upload |
 | scrub-top-women-three-quarter | approximate-3d | female: /models/vfrb-staged/scrub-top-women-three-quarter.glb | one body colour: lapels, collar, sleeves, buttons and pockets are modelled shapes, not separately colourable parts; no text or logos in 3D; V-neck scrub top with chest pocket, ribbed 3/4 cuffs and side slits (women's cut); no arbitrary fabric-texture upload |
+| mandarin-shirt-long-male | approximate-3d | male: /models/vfrb-staged/shirt-mandarin-long-male.glb | one body colour: lapels, collar, sleeves, buttons and pockets are modelled shapes, not separately colourable parts; no text or logos in 3D; band-collar, button-front long-sleeve shirt with chest pocket (the model of the polka-dot mandarin shirt photo); the print is not modelled; no arbitrary fabric-texture upload |
 
 ## Gallery photos
 | photo | status | opens | editable GLB | 3D reference (read-only) |
@@ -50,7 +51,7 @@ Files on disk: 125 · referenced paths: 91 · missing: 0 · unreferenced: 34 (un
 | blouse-asymmetric-blue | reference-only | — | — | /models/reference/blouse-asymmetric-blue.glb |
 | blouse-tunic-roundneck-blue | editable-2d | T-Shirt / Short (vector) | — | — |
 | shirt-utility-beige-long | approximate-3d | Button-Down / Long (vector) | /models/vfrb-staged/shirt-utility-beige-long.glb | — |
-| shirt-mandarin-polkadot | reference-only | — | — | /models/reference/shirt-mandarin-polkadot.glb |
+| shirt-mandarin-polkadot | approximate-3d | Mandarin Collar / Long (vector) | /models/vfrb-staged/shirt-mandarin-long-male.glb | — |
 | blazer-collarless-tan | reference-only | — | — | — |
 | blazer-pinstripe-royal | reference-only | — | — | — |
 | blazer-white-notch | approximate-3d | Blazer / 3/4 (vector) | /models/vfrb-staged/blazer-white-notch.glb | — |
