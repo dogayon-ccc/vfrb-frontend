@@ -82,6 +82,16 @@ The owner generated these in Meshy 6 from the reference photos in the repo root 
 - Lab Coat and Lab Coverall keep their 2D pocket colour, tagged "2D only" (`pocket2D`).
 - Both are unisex and serve male, female, unisex and no-fit selections.
 
+## Mandarin Collar / Long / male (2026-10-10)
+`shirt-mandarin-polkadot.glb` is a men's long-sleeve shirt with a stand-up band (mandarin) collar, button front and chest pocket. This corrects an earlier note that it had a point collar; close renders show the band collar.
+- **Runtime:** copied byte-identical to `/models/vfrb-staged/shirt-mandarin-long-male.glb`.
+- **Wiring:** Mandarin Collar / Long / **male**, on the vector Mandarin template (`mandarin-shirt-long-male`). The gallery photo `shirt-mandarin-polkadot` now opens it, and its read-only reference copy was removed.
+- **Fits:** Mandarin Collar now offers female and male.
+- **Female Long:** still the BIR blouse photo base with no model, because the BIR blouse has gathered shoulders and no pocket.
+- **Short male:** vector template, 2D only.
+
+**Round Neck / Long:** none of the 39 staging files, nor any runtime model, is a long-sleeve round-neck top. The round-neck models (fuchsia, mustard, tunic blue) are all short-sleeve. Round Neck / Long stays 2D only until a garment-only model is generated from a photo of that garment.
+
 ## Model routing (one rule)
 `scannedEntryFor(garment, sleeve, fit)` in `garmentCapabilities.js` routes every 3D view: the Studio, capability labels, and the Order Wizard and Order Detail previews (`has3DModel`).
 - A selection gets 3D only from a model that has that exact sleeve: exact-sleeve photo-base models first, then the family model.
@@ -97,10 +107,10 @@ Fit rule:
 - A unisex model never unlocks a sleeve it lacks.
 
 ## Gallery 3D references (read-only)
-22 photos carry `ref3D` (`designGallery.js`), the garment-only model generated from that photo, copied to `/models/reference/<photo id>.glb`. Gallery preview → "View in 3D" or "View the set in 3D" renders it with one neutral colour, orbit only. The caption says it is not editable, and that a fused set's pieces cannot be coloured separately.
+21 photos carry `ref3D` (`designGallery.js`), the garment-only model generated from that photo, copied to `/models/reference/<photo id>.glb`. Gallery preview → "View in 3D" or "View the set in 3D" renders it with one neutral colour, orbit only. The caption says it is not editable, and that a fused set's pieces cannot be coloured separately.
 - **Sets (11):** bir-blouse-trousers-blue, blazer-double-breasted-gray, blazer-pinstripe-navy, blouse-roundneck-fuchsia, blouse-roundneck-mustard, pantsuit-notch-short-gray, peplum-set-navy, polo-barong-brown, shirt-two-tone-gpc, set-pinstripe-pants and set-pinstripe-skirt (the business-suit-fullset files).
 - **Scrub sets (3):** scrub-set-women-vneck, scrub-set-men-vneck and scrub-set-housekeeping. These show the full set; their editable pieces keep their own top models.
-- **Solo garments and dresses (8):** blouse-asymmetric-blue, blouse-pleated-bib-white, blouse-scarf-cream, dress-butter-belted, dress-tunic-maternity-navy, jack-shirt-two-tone, polo-red-claremont and shirt-mandarin-polkadot.
+- **Solo garments and dresses (7):** blouse-asymmetric-blue, blouse-pleated-bib-white, blouse-scarf-cream, dress-butter-belted, dress-tunic-maternity-navy, jack-shirt-two-tone and polo-red-claremont.
 
 Each was matched photo-to-model on front renders, plus 0°/45°/135°/180° close renders for the hanger, mannequin and set cases. None has a head, hands, a mannequin or a hanger fused in.
 
@@ -113,7 +123,7 @@ Not given a reference:
 - dress-shift-geometric: 67.9 MB.
 
 ## Catalog garments with no usable 3D source
-- **Mandarin Collar / Long, Round Neck / Long, Scrub Top / 3/4 (male):** no matching model.
+- **Round Neck / Long, Mandarin Collar / Long (female, BIR blouse), Mandarin Collar / Short (male), Scrub Top / 3/4 (male):** no matching model.
 
 These stay 2D only, with the 3D button disabled and labelled. Each needs a garment-only model generated from a photo of that exact garment.
 
@@ -123,7 +133,7 @@ These stay 2D only, with the 3D button disabled and labelled. Each needs a garme
 | school-skirt | Clean pleated skirt, garment-only | **Now wired** as the new Pleated Skirt family (never mapped onto the pencil Skirt). |
 | polo-red-claremont | Garment-only polo | Polo Shirt already has male and female models. Candidate replacement, not reviewed against the 2D zones. |
 | jack-shirt-two-tone | Garment-only short-sleeve shirt with two flap pockets | Button-Down / Short already uses the work-shirt model. Two-tone panels are not separate parts. |
-| shirt-mandarin-polkadot | Garment-only long-sleeve mandarin shirt | Mandarin Collar / Long is the BIR band-collar photo base, a different garment. |
+| shirt-mandarin-polkadot | Garment-only long-sleeve band-collar shirt | **Now wired** as Mandarin Collar / Long / male (see above). |
 | blouse-mandarin-yellow, blouse-asymmetric-blue, blouse-scarf-cream, blouse-pleated-bib-white, blouse-tunic-roundneck-blue, blouse-roundneck-mustard | Garment-only blouses (mustard is a blouse+trousers set) | Each has a different collar (mandarin-V, asymmetric, scarf, pleated bib, round) from the notch-collar Blouse template. The tunic photo opens the T-Shirt vector. Gallery references only. |
 | blazer-* (other 6 files), women-pinstripe-vest-blouse | Garment-only jackets and sets | The Blazer family uses tweed (Long) and white-notch (3/4). Collarless, open-front and peplum cuts differ from its notch-lapel template; double-breasted and pinstripe-navy are fused jacket+trouser sets. No vest family. |
 | dress-* (other 3), peplum-set-navy | Dresses and a skirt set | The Dress family uses the collared BIR shirt-dress. The belted round-neck and the maternity tunic dress are different cuts. dress-sheath-denim-blue is a mislabelled duplicate of blazer-pinstripe-navy. |

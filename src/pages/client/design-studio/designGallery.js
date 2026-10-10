@@ -31,7 +31,8 @@ export const SLEEVES = ['Short', '3/4', 'Long'];
 
 // base = [catalog category, garment, sleeve, asset]. `asset` is the id of the exact 2D photo base the photo must land on, or null for the vector template.
 // An entry is editable only when the target really resolves to that base (see openTarget), so two photos of one family can never share the wrong base.
-// Left out on purpose (reference only): shirt-mandarin-polkadot (Mandarin Collar / Long is the band-collar BIR photo base, a different garment); blouse-mandarin-yellow is a full-placket blouse, but Mandarin Collar / Short is now the housekeeping tunic photo.
+// Left out on purpose (reference only): blouse-mandarin-yellow is a full-placket blouse, but Mandarin Collar / Short is now the housekeeping tunic photo.
+// shirt-mandarin-polkadot opens Mandarin Collar / Long / male (vector template + its own model); the female Long is the BIR blouse photo base.
 const BASES = {
   'scrub-set-women-vneck':  ['Medical / Scrubs', 'Scrub Top', 'Short', 'scrub-top-women-short'],
   'scrub-set-men-vneck':    ['Medical / Scrubs', 'Scrub Top', 'Short', 'scrub-top-men-short'],
@@ -51,6 +52,7 @@ const BASES = {
   'blazer-blouse-blue': ['Corporate', 'Blouse', 'Short', null],
   'dress-bir-green-yellow-collar': ['Corporate', 'Dress', 'Short', null],
   'school-skirt': ['School Uniform', 'Pleated Skirt', null, null],
+  'shirt-mandarin-polkadot': ['Corporate', 'Mandarin Collar', 'Long', null],
 };
 
 // Read-only 3D reference of the photographed garment or set: a garment-only Meshy model generated from this very photo
@@ -63,7 +65,7 @@ const REF_3D = new Set([
   'pantsuit-notch-short-gray', 'peplum-set-navy', 'polo-barong-brown', 'shirt-two-tone-gpc', 'set-pinstripe-pants', 'set-pinstripe-skirt',
   'scrub-set-women-vneck', 'scrub-set-men-vneck', 'scrub-set-housekeeping',
   'blouse-asymmetric-blue', 'blouse-pleated-bib-white', 'blouse-scarf-cream', 'dress-butter-belted',
-  'dress-tunic-maternity-navy', 'jack-shirt-two-tone', 'polo-red-claremont', 'shirt-mandarin-polkadot',
+  'dress-tunic-maternity-navy', 'jack-shirt-two-tone', 'polo-red-claremont',
 ]);
 
 // sleeve = sleeve of the top/dress piece (null when no sleeve). source = how the photo was shot; worn = model photo with the body removed; mannequin/hanger photos fuse the

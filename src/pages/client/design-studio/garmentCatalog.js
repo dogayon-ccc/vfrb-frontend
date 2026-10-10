@@ -17,7 +17,7 @@
 import { photoFits, assetFor, templateIdFor } from './garmentAssets';
 import { glbSlotFor, slotLive } from './glbSlots';
 import { BASE_PATHS, getGarmentPaths } from './garmentPaths';
-import { get3DCapabilities, fitsFor, sleeves3DFor } from './garmentCapabilities';
+import { get3DCapabilities, fitsFor, sleeves3DFor, has3DModel } from './garmentCapabilities';
 
 // Category -> its garments, in display order. Source: the VFRB interview's garment list
 // (unchanged from the previous CATS in dsShared.js — moved, not altered).
@@ -140,7 +140,11 @@ export function applyGarment(cfg, garment, next = {}) {
   const fam = FAMILIES[garment];
   if (!fam) return { ...cfg, garment: garment ?? null };
   const sleeve = resolveSleeve(fam.id, next.sleeve ?? (fam.styles.includes(cfg.sleeve) ? cfg.sleeve : null));
-  const fit = resolveFit(fam.id, next.fit ?? cfg.fit);
+  let fit = resolveFit(fam.id, next.fit ?? cfg.fit);
+  // A fit carried over from another garment (not asked for) must not land the new garment on a variant with neither a photo base nor a
+  // 3D model when another fit has one (e.g. the default 'male' on Mandarin Collar / Short, whose real variant is the female tunic).
+  const real = f => !!assetFor(fam.id, sleeve, 'front', f) || has3DModel(fam.id, sleeve, f);
+  if (!next.fit && fit && fam.id !== cfg.garment && !real(fit)) fit = fam.fits.find(real) ?? fit;
   const photoBase = !!assetFor(fam.id, sleeve, 'front', fit);
   return {
     ...cfg,
