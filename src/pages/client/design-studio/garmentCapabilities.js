@@ -310,7 +310,26 @@ const MANDARIN_SHIRT_LONG = [
     capabilities: { ...bodyCaps(['Long'], ['band-collar, button-front long-sleeve shirt with chest pocket (the model of the polka-dot mandarin shirt photo); the print is not modelled']), fit: ['male'] } },
 ];
 
-export const SCANNED_GARMENTS = [...SCANNED_BASE, ...SCRUB_TOP, ...MANDARIN_TUNIC, ...ROUND_NECK, ...BIR_BLOUSE, ...UTILITY_LONG, ...CORPORATE_MODELS, ...MEDICAL_MODELS, ...MANDARIN_SHIRT_LONG];
+// Batch of 2026-10-10: garment-only Meshy models of gallery photos (staged copies of asset-staging/mesh-3d, byte-identical), checked in
+// 0/45/90/180 renders next to their photos. Fused single meshes, no UVs/materials: one body colour plus patterns.
+const MORE_MODELS = [
+  // Polo / Short / unisex: the embroidered red polo (worn photo); male and female keep their own scans (family entry has the exact fit).
+  { id: 'polo-shirt-unisex-short', match: /polo/i, exactSleeve: true, sourcePhoto: 'polo-red-claremont',
+    models: { unisex: '/models/vfrb-staged/polo-shirt-unisex-short.glb' }, torso: { unisex: 0.4 }, transform: TOP_T,
+    parts: [{ node: 'mesh_node', decals: false, zoneOf: bodyOnly }],
+    capabilities: { ...bodyCaps(['Short'], ['straight-cut unisex polo with two-button placket and ribbed sleeve bands (the model of the red embroidered polo photo); the embroidered logo is not modelled']), fit: ['unisex'] } },
+  // Collarless Blazer: a separate family (round collarless neckline, no lapels), so it never stands in for the notch-lapel Blazer.
+  { id: 'collarless-blazer-long', match: /^collarless blazer$/i, exactSleeve: true, sourcePhoto: 'blazer-collarless-tan',
+    models: { female: '/models/vfrb-staged/collarless-blazer-long.glb' }, torso: { female: 0.42 }, transform: TOP_T,
+    parts: [{ node: 'mesh_node', decals: false, zoneOf: bodyOnly }],
+    capabilities: bodyCaps(['Long'], ['collarless, one-button cut with flap pockets (the model of the tan collarless blazer photo)', 'the photo\'s inner top and the top of the skirt are fused under the hem and take the body colour']) },
+  { id: 'collarless-blazer-short', match: /^collarless blazer$/i, exactSleeve: true, sourcePhoto: 'blazer-pinstripe-royal',
+    models: { female: '/models/vfrb-staged/collarless-blazer-short.glb' }, torso: { female: 0.42 }, transform: TOP_T,
+    parts: [{ node: 'mesh_node', decals: false, zoneOf: bodyOnly }],
+    capabilities: bodyCaps(['Short'], ['collarless, one-button short-sleeve cut with welt pockets (the model of the royal pinstripe blazer photo); the pinstripe is not modelled']) },
+];
+
+export const SCANNED_GARMENTS = [...SCANNED_BASE, ...SCRUB_TOP, ...MANDARIN_TUNIC, ...ROUND_NECK, ...BIR_BLOUSE, ...UTILITY_LONG, ...CORPORATE_MODELS, ...MEDICAL_MODELS, ...MANDARIN_SHIRT_LONG, ...MORE_MODELS];
 
 // The 3D entry generated from a gallery photo (`sourcePhoto`), if any.
 export const modelFromPhoto = id => SCANNED_GARMENTS.find(x => x.sourcePhoto === id) ?? null;
@@ -319,22 +338,24 @@ export const modelFromPhoto = id => SCANNED_GARMENTS.find(x => x.sourcePhoto ===
 // (an explicit fit must be listed, so Button-Down unisex never lands on the women's BIR blouse). The family's general entry applies otherwise.
 // Studio 3D, the catalog and the capability contract all read this, so they cannot disagree.
 // Fit match for exact-sleeve models: no fit asked, or the model has that fit, or the model is unisex (serves male and female alike).
-// Exact-fit models are tried before unisex ones (see scannedEntryFor), so a female-only model still wins for a female selection.
-const fitExact = (x, f) => !f || !x.exactSleeve || x.capabilities.fit.includes(f);
-const fitOk = (x, f) => fitExact(x, f) || x.capabilities.fit.includes('unisex');
+const fitOk = (x, f) => !f || !x.exactSleeve || x.capabilities.fit.includes(f) || x.capabilities.fit.includes('unisex');
 // A model serves a sleeve only if it has that sleeve; garments without sleeve styles (bottoms) accept any.
 const sleeveOk = (x, s) => !s || !(x.capabilities.sleeves?.length) || x.capabilities.sleeves.includes(s);
 // The one model-routing rule (Studio 3D, capability labels, Order Wizard and Order Detail previews all call this).
 // With a sleeve, the model must really have that sleeve (exact-sleeve photo-base models first, then the family model);
 // otherwise null, and the selection is 2D only. A short-sleeve scan is never shown for a long or 3/4 sleeve design.
 // Without a sleeve (family-level lookups) the family model, or an exact-sleeve model of that fit, is returned.
+// Precedence: (1) exact-sleeve model with the exact fit, (2) family model that has the fit, (3) unisex exact-sleeve model,
+// (4) with no fit asked, any exact-sleeve model of that sleeve, (5) any family model of that sleeve. So a male Polo keeps the male scan even
+// though a unisex Polo model exists, a female Button-Down Long keeps the BIR blouse, and a unisex model never unlocks a missing sleeve.
 export function scannedEntryFor(garment, sleeve, fit) {
   const name = String(garment ?? '').toLowerCase(), f = String(fit ?? '').toLowerCase();
   const cands = SCANNED_GARMENTS.filter(x => x.match.test(name));
-  const exactSleeve = fit => sleeve && cands.find(x => x.exactSleeve && x.capabilities.sleeves.includes(sleeve) && fit(x, f));
-  return exactSleeve(fitExact) || exactSleeve(fitOk)
-    || cands.find(x => !x.exactSleeve && sleeveOk(x, sleeve))
-    || (!sleeve && (cands.find(x => x.exactSleeve && fitExact(x, f)) || cands.find(x => x.exactSleeve && fitOk(x, f)))) || null;
+  const has = x => x.capabilities.fit.includes(f), uni = x => x.capabilities.fit.includes('unisex');
+  const exact = pred => sleeve && cands.find(x => x.exactSleeve && x.capabilities.sleeves.includes(sleeve) && pred(x));
+  const family = cands.filter(x => !x.exactSleeve && sleeveOk(x, sleeve));
+  return (f ? exact(has) : null) || family.find(x => !f || has(x)) || exact(uni) || (!f ? exact(() => true) : null) || family[0]
+    || (!sleeve && (cands.find(x => x.exactSleeve && (!f || has(x))) || cands.find(x => x.exactSleeve && uni(x)))) || null;
 }
 // True when this exact selection (garment + sleeve + fit) has a real 3D model.
 export const has3DModel = (garment, sleeve, fit) => !!scannedEntryFor(garment, sleeve, fit);

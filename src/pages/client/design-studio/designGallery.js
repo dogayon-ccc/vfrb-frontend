@@ -53,6 +53,9 @@ const BASES = {
   'dress-bir-green-yellow-collar': ['Corporate', 'Dress', 'Short', null],
   'school-skirt': ['School Uniform', 'Pleated Skirt', null, null],
   'shirt-mandarin-polkadot': ['Corporate', 'Mandarin Collar', 'Long', null],
+  'polo-red-claremont': ['Corporate', 'Polo Shirt', 'Short', null],
+  'blazer-collarless-tan': ['Corporate', 'Collarless Blazer', 'Long', null],
+  'blazer-pinstripe-royal': ['Corporate', 'Collarless Blazer', 'Short', null],
 };
 
 // Read-only 3D reference of the photographed garment or set: a garment-only Meshy model generated from this very photo
@@ -65,7 +68,7 @@ const REF_3D = new Set([
   'pantsuit-notch-short-gray', 'peplum-set-navy', 'polo-barong-brown', 'shirt-two-tone-gpc', 'set-pinstripe-pants', 'set-pinstripe-skirt',
   'scrub-set-women-vneck', 'scrub-set-men-vneck', 'scrub-set-housekeeping',
   'blouse-asymmetric-blue', 'blouse-pleated-bib-white', 'blouse-scarf-cream', 'dress-butter-belted',
-  'dress-tunic-maternity-navy', 'jack-shirt-two-tone', 'polo-red-claremont',
+  'dress-tunic-maternity-navy', 'jack-shirt-two-tone',
 ]);
 
 // sleeve = sleeve of the top/dress piece (null when no sleeve). source = how the photo was shot; worn = model photo with the body removed; mannequin/hanger photos fuse the
@@ -103,8 +106,8 @@ export const DESIGNS = [
   D('blouse-tunic-roundneck-blue', 'Round Neck Tunic Blouse',   'corporate',   'female', 'upper', 'Short', 'Round neck',    'mannequin'),
   D('shirt-utility-beige-long','Utility Work Shirt',            'industrial',  'male',   'upper', 'Long',  'Point collar',   'mannequin'),
   D('shirt-mandarin-polkadot', 'Polka Dot Mandarin Shirt',      'corporate',   'male',   'upper', 'Long',  'Mandarin',       'mannequin'),
-  D('blazer-collarless-tan',   'Collarless Blazer',             'corporate',   'female', 'upper', '3/4',   'Collarless',     'mannequin'),
-  D('blazer-pinstripe-royal',  'Pinstripe Collarless Blazer',   'corporate',   'female', 'upper', '3/4',   'Collarless',     'hanger'),
+  D('blazer-collarless-tan',   'Collarless Blazer',             'corporate',   'female', 'upper', 'Long',  'Collarless',     'mannequin'),
+  D('blazer-pinstripe-royal',  'Pinstripe Collarless Blazer',   'corporate',   'female', 'upper', 'Short', 'Collarless',     'hanger'),
   D('blazer-white-notch',      'White Single-Breasted Blazer',  'corporate',   'female', 'upper', '3/4',   'Notch lapel',    'hanger'),
   D('blazer-tweed-herringbone','Herringbone Tweed Blazer',      'corporate',   'female', 'upper', 'Long',  'Notch lapel',    'mannequin'),
   D('blazer-open-front-black', 'Open-Front Collarless Blazer',  'corporate',   'female', 'upper', 'Long',  'Collarless',     'mannequin'),

@@ -92,6 +92,36 @@ The owner generated these in Meshy 6 from the reference photos in the repo root 
 
 **Round Neck / Long:** none of the 39 staging files, nor any runtime model, is a long-sleeve round-neck top. The round-neck models (fuchsia, mustard, tunic blue) are all short-sleeve. Round Neck / Long stays 2D only until a garment-only model is generated from a photo of that garment.
 
+## Batch of remaining suitable models (2026-10-10)
+Each model was rendered at 0°, 45°, 90° and 180° next to its gallery photo, then copied byte-identical to `/models/vfrb-staged/`.
+
+| Catalog | Fit · sleeve | Runtime GLB (staging source) | Notes |
+| --- | --- | --- | --- |
+| Polo Shirt | unisex · Short | `polo-shirt-unisex-short.glb` (`polo-red-claremont`) | Male and female keep their own scans; the gallery red polo opens Polo / unisex. The logo is not modelled. |
+| Collarless Blazer (new family, Corporate) | female · Long | `collarless-blazer-long.glb` (`blazer-collarless-tan`) | The photo's inner top and skirt waistband are fused under the hem. |
+| Collarless Blazer | female · Short | `collarless-blazer-short.glb` (`blazer-pinstripe-royal`) | The pinstripe is not modelled. |
+
+- **Gallery sleeves corrected from the photos:** tan blazer Long (was 3/4), royal blazer Short (was 3/4).
+- **Read-only reference copies removed:** `polo-red-claremont`, because it now has an editable model.
+- **Resolver precedence fixed:**
+  1. Exact-sleeve model with the exact fit.
+  2. Family model with that fit.
+  3. Unisex exact-sleeve model.
+  4. Any exact-sleeve model (no fit asked).
+  5. Any family model.
+
+  Without step 2, the unisex polo would have replaced the male scan. Every earlier routing case resolves exactly as before.
+
+**Checked and excluded in this batch:**
+- `blouse-pleated-bib-white`: generated from a hanger photo; paper-thin from the side (flattened).
+- `jack-shirt-two-tone`: Button-Down / Short already has the work shirt (same cut family; two-tone panels are not parts).
+- `blouse-mandarin-yellow`: Mandarin / Short female is the tunic photo base.
+- `blouse-asymmetric-blue`, `blouse-scarf-cream`: no matching family (asymmetric / scarf collars).
+- `blouse-tunic-roundneck-blue`, `blouse-roundneck-mustard`: short-sleeve round-neck; Round Neck / Short already has its model; mustard is a fused set.
+- `blazer-open-front-black`: open-front, no closure; differs from both blazer families.
+- `dress-butter-belted`, `dress-tunic-maternity-navy`: different cuts from the Dress family.
+- Fused sets (`polo-barong-brown`, `shirt-two-tone-gpc`, `pantsuit-notch-short-gray`, the `business-suit-*` files, `peplum-set-navy`, `bir-blouse-trousers-blue`, `blazer-double-breasted-gray`, `blazer-pinstripe-navy`): gallery set-level previews only.
+
 ## Model routing (one rule)
 `scannedEntryFor(garment, sleeve, fit)` in `garmentCapabilities.js` routes every 3D view: the Studio, capability labels, and the Order Wizard and Order Detail previews (`has3DModel`).
 - A selection gets 3D only from a model that has that exact sleeve: exact-sleeve photo-base models first, then the family model.
@@ -107,10 +137,10 @@ Fit rule:
 - A unisex model never unlocks a sleeve it lacks.
 
 ## Gallery 3D references (read-only)
-21 photos carry `ref3D` (`designGallery.js`), the garment-only model generated from that photo, copied to `/models/reference/<photo id>.glb`. Gallery preview → "View in 3D" or "View the set in 3D" renders it with one neutral colour, orbit only. The caption says it is not editable, and that a fused set's pieces cannot be coloured separately.
+20 photos carry `ref3D` (`designGallery.js`), the garment-only model generated from that photo, copied to `/models/reference/<photo id>.glb`. Gallery preview → "View in 3D" or "View the set in 3D" renders it with one neutral colour, orbit only. The caption says it is not editable, and that a fused set's pieces cannot be coloured separately.
 - **Sets (11):** bir-blouse-trousers-blue, blazer-double-breasted-gray, blazer-pinstripe-navy, blouse-roundneck-fuchsia, blouse-roundneck-mustard, pantsuit-notch-short-gray, peplum-set-navy, polo-barong-brown, shirt-two-tone-gpc, set-pinstripe-pants and set-pinstripe-skirt (the business-suit-fullset files).
 - **Scrub sets (3):** scrub-set-women-vneck, scrub-set-men-vneck and scrub-set-housekeeping. These show the full set; their editable pieces keep their own top models.
-- **Solo garments and dresses (7):** blouse-asymmetric-blue, blouse-pleated-bib-white, blouse-scarf-cream, dress-butter-belted, dress-tunic-maternity-navy, jack-shirt-two-tone and polo-red-claremont.
+- **Solo garments and dresses (6):** blouse-asymmetric-blue, blouse-pleated-bib-white, blouse-scarf-cream, dress-butter-belted, dress-tunic-maternity-navy and jack-shirt-two-tone.
 
 Each was matched photo-to-model on front renders, plus 0°/45°/135°/180° close renders for the hanger, mannequin and set cases. None has a head, hands, a mannequin or a hanger fused in.
 
@@ -131,7 +161,7 @@ These stay 2D only, with the 3D button disabled and labelled. Each needs a garme
 | Staging file | RENDER verdict | Why not wired |
 | --- | --- | --- |
 | school-skirt | Clean pleated skirt, garment-only | **Now wired** as the new Pleated Skirt family (never mapped onto the pencil Skirt). |
-| polo-red-claremont | Garment-only polo | Polo Shirt already has male and female models. Candidate replacement, not reviewed against the 2D zones. |
+| polo-red-claremont | Garment-only polo | **Now wired** as Polo Shirt / Short / unisex. |
 | jack-shirt-two-tone | Garment-only short-sleeve shirt with two flap pockets | Button-Down / Short already uses the work-shirt model. Two-tone panels are not separate parts. |
 | shirt-mandarin-polkadot | Garment-only long-sleeve band-collar shirt | **Now wired** as Mandarin Collar / Long / male (see above). |
 | blouse-mandarin-yellow, blouse-asymmetric-blue, blouse-scarf-cream, blouse-pleated-bib-white, blouse-tunic-roundneck-blue, blouse-roundneck-mustard | Garment-only blouses (mustard is a blouse+trousers set) | Each has a different collar (mandarin-V, asymmetric, scarf, pleated bib, round) from the notch-collar Blouse template. The tunic photo opens the T-Shirt vector. Gallery references only. |

@@ -103,6 +103,7 @@ const GARMENT_SPECS = {
   'Mandarin Collar':            { needsCollar:true,  needsSleeve:true,  needsPocket:false, needsWaist:false, cat:'top' },
   'Button-Down':                { needsCollar:true,  needsSleeve:true,  needsPocket:true,  needsWaist:false, cat:'top' },
   'Blazer':                     { needsCollar:true,  needsSleeve:true,  needsPocket:true,  needsWaist:false, cat:'top' },
+  'Collarless Blazer':          { needsCollar:false, needsSleeve:true,  needsPocket:true,  needsWaist:false, cat:'top' },
   'Dress':                      { needsCollar:true,  needsSleeve:true,  needsPocket:false, needsWaist:true,  cat:'top' },
   'Pleated Skirt':              { needsCollar:false, needsSleeve:false, needsPocket:false, needsWaist:true,  cat:'bottom' },
   // 'Track Pants' removed — it only ever appeared under the PE/Sports category, which
@@ -123,7 +124,7 @@ const GARMENTS = Object.keys(GARMENT_SPECS);
 const STUDIO_GARMENTS = new Set([
   'T-Shirt','Polo Shirt','Shorts','Pants','Skirt','Scrub Top','V-Neck Shirt',
   'Lab Coat','Lab Coverall','School Polo','Round Neck','Mandarin Collar',
-  'Button-Down','Blouse','Blazer','Dress','Pleated Skirt',
+  'Button-Down','Blouse','Blazer','Collarless Blazer','Dress','Pleated Skirt',
 ]);
 for (const name of STUDIO_GARMENTS) {
   const zones = zonesFor(name);

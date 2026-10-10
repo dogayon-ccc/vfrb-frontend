@@ -27,7 +27,7 @@ import { get3DCapabilities, fitsFor, sleeves3DFor, has3DModel } from './garmentC
 // dropped from the catalog along with it rather than invented a new home to keep it visible.
 const CATEGORY_DEFS = [
   { id: 'School Uniform',      icon: 'school',      garments: ['Polo Shirt', 'Round Neck', 'Pants', 'Shorts', 'Skirt', 'Pleated Skirt'] },
-  { id: 'Corporate',           icon: 'corporate',   garments: ['Polo Shirt', 'Button-Down', 'Blouse', 'Blazer', 'Mandarin Collar', 'T-Shirt', 'Dress', 'Pants', 'Skirt'] },
+  { id: 'Corporate',           icon: 'corporate',   garments: ['Polo Shirt', 'Button-Down', 'Blouse', 'Blazer', 'Collarless Blazer', 'Mandarin Collar', 'T-Shirt', 'Dress', 'Pants', 'Skirt'] },
   { id: 'Medical / Scrubs',    icon: 'medical',     garments: ['Scrub Top', 'Lab Coat', 'Lab Coverall', 'Pants'] },
   { id: 'Hospitality / Service', icon: 'hospitality', garments: ['Mandarin Collar', 'Button-Down', 'Polo Shirt', 'Blouse', 'Dress', 'Pants', 'Skirt'] },
   { id: 'Industrial / Work',   icon: 'industrial',  garments: ['Button-Down', 'Polo Shirt', 'T-Shirt', 'Lab Coverall', 'Pants', 'Shorts'] },
@@ -44,6 +44,7 @@ const SLEEVE_OPTS = {
   'Lab Coat': ['Long'],
   'Lab Coverall': ['Long'],
   'Blazer': ['Long', '3/4'],
+  'Collarless Blazer': ['Long', 'Short'],
   'Blouse': ['Short'],
   'Dress': ['Short'],
   'Pants': [], 'Shorts': [], 'Skirt': [], 'Pleated Skirt': [],
@@ -107,7 +108,7 @@ export const FAMILY_BY_NAME = FAMILIES;
 // Which half of a uniform set a family is. Full-body garments (Lab Coverall) never join a set.
 export const PIECE_OF = {
   'Polo Shirt': 'top', 'T-Shirt': 'top', 'Round Neck': 'top', 'Mandarin Collar': 'top', 'Button-Down': 'top', 'Scrub Top': 'top', 'Lab Coat': 'top',
-  'Blouse': 'top', 'Blazer': 'top',
+  'Blouse': 'top', 'Blazer': 'top', 'Collarless Blazer': 'top',
   'Pants': 'bottom', 'Shorts': 'bottom', 'Skirt': 'bottom', 'Pleated Skirt': 'bottom',
 };
 export const pieceOf = garment => PIECE_OF[garment] ?? null;
