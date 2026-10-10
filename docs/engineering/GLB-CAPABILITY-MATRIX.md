@@ -189,3 +189,7 @@ All 39 files in `asset-staging/mesh-3d/` were inspected statically and rendered 
 `GLB-STAGING-AUDIT.md`. Pants now renders `/models/vfrb-staged/pants.glb` and Shorts `/models/vfrb-staged/shorts.glb` (garment-only models of the gallery
 `pants`/`shorts` photos); `processed/pants-trousers.glb` and `processed/shorts-textured.glb` are kept but no longer rendered. Staging `corporate-skirt.glb` was
 rejected (its back is modelled as shorts). BROWSER-checked: Studio 3D, colour + H-stripes in 3D, Save → Reload, Order Wizard and Order Detail 3D previews load the same GLB.
+
+## 11. Session addendum — Lab Coat, Lab Coverall, Scrub Top 3/4 (2026-10-10)
+
+Lab Coat and Lab Coverall now have garment-only models: `vfrb-staged/lab-coat-long.glb` and `vfrb-staged/lab-coverall-garment.glb`. The rows above that list `lab-coverall.glb` with no entry, and Lab Coat as a generic-primitive family, are historical: the legacy hooded `lab-coverall.glb` stays unsupported and is never rendered. Scrub Top / 3/4 / female uses `vfrb-staged/scrub-top-women-three-quarter.glb`. See `GLB-STAGING-AUDIT.md`.
