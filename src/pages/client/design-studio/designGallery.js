@@ -62,13 +62,14 @@ const BASES = {
 // (asset-staging/mesh-3d, copied to /models/reference/<photo id>.glb; matched by front/side/back renders, see GLB-STAGING-AUDIT.md).
 // It is a shape preview only: one neutral colour, not editable, and a fused set is never split into editable pieces.
 // Left out: dress-sheath-denim-blue (its file is a copy of blazer-pinstripe-navy), blazer-blouse-blue-short (the model is the blouse
-// alone), set-vest-blouse (mannequin hips fused in), corporate-skirt (back modelled as shorts), and files over 3.5 MB.
+// alone), set-vest-blouse (mannequin hips fused in), corporate-skirt (back modelled as shorts), dress-shift-geometric (67.9 MB, print embossed).
+// Garment-only photos with no catalog slot of their own (open-front blazer, belted round-neck tunic, mandarin-V blouse) are references too.
 const REF_3D = new Set([
   'bir-blouse-trousers-blue', 'blazer-double-breasted-gray', 'blazer-pinstripe-navy', 'blouse-roundneck-fuchsia', 'blouse-roundneck-mustard',
   'pantsuit-notch-short-gray', 'peplum-set-navy', 'polo-barong-brown', 'shirt-two-tone-gpc', 'set-pinstripe-pants', 'set-pinstripe-skirt',
   'scrub-set-women-vneck', 'scrub-set-men-vneck', 'scrub-set-housekeeping',
   'blouse-asymmetric-blue', 'blouse-pleated-bib-white', 'blouse-scarf-cream', 'dress-butter-belted',
-  'dress-tunic-maternity-navy', 'jack-shirt-two-tone',
+  'dress-tunic-maternity-navy', 'jack-shirt-two-tone', 'blazer-open-front-black', 'blouse-mandarin-yellow', 'blouse-tunic-roundneck-blue',
 ]);
 
 // sleeve = sleeve of the top/dress piece (null when no sleeve). source = how the photo was shot; worn = model photo with the body removed; mannequin/hanger photos fuse the
