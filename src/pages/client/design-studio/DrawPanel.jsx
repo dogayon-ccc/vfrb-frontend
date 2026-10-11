@@ -29,7 +29,7 @@ const COLORS = [
   { hex:'#000000', label:'Black'        },
 ];
 
-export default function DrawPanel({ size, color, onSizeChange, onColorChange }) {
+export default function DrawPanel({ size, color, onSizeChange, onColorChange, erasing = false, setErasing = () => {} }) {
   return (
     <div style={{ padding:'12px', display:'flex', flexDirection:'column', gap:14,
       flex:1, overflowY:'auto' }}>
@@ -42,6 +42,13 @@ export default function DrawPanel({ size, color, onSizeChange, onColorChange }) 
           element.
         </p>
       </div>
+
+      {/* Pen or eraser: the eraser cuts only your own strokes and uploaded art, never the garment, text or shapes */}
+      <div className="ds-seg ds-seg--sm" role="radiogroup" aria-label="Draw tool" style={{ margin:0 }}>
+        <button type="button" role="radio" aria-checked={!erasing} onClick={() => setErasing(false)}>Pen</button>
+        <button type="button" role="radio" aria-checked={erasing} onClick={() => setErasing(true)}>Eraser</button>
+      </div>
+      {erasing && <p className="ds-note" style={{ margin:0 }}>Rub over your drawings or uploaded art to erase part of them. The garment, text and shapes are never erased. Each stroke is one undo step.</p>}
 
       {/* Brush size — preset dots, not a slider (thumb-friendly on mobile) */}
       <div>
@@ -71,7 +78,7 @@ export default function DrawPanel({ size, color, onSizeChange, onColorChange }) 
       </div>
 
       {/* Brush color */}
-      <div>
+      {!erasing && <div>
         <p style={secLabel}>Brush Color</p>
         <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
           {COLORS.map(c => {
@@ -89,7 +96,7 @@ export default function DrawPanel({ size, color, onSizeChange, onColorChange }) 
             );
           })}
         </div>
-      </div>
+      </div>}
 
       <p className="ds-note" style={{ margin:'2px 0 0' }}>
         Undo (top bar) removes the last stroke. Switching to another tab

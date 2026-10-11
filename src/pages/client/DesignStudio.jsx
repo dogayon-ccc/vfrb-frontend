@@ -160,10 +160,10 @@ export default function DesignStudio() {
   // writer on the same wrapper's style.transform made the zoom buttons fight it.
 
   // BUG 2 FIX: pass canvasEl (ref object), not canvasEl.current (null at render)
-  const { addLogo, addText, addShape, updateSelected, deleteSelected, duplicateSelected, alignSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
+  const { addLogo, addText, addShape, updateSelected, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
           pushHistory, undo, redo, canUndo, canRedo, resizeCanvas, initFailed,
           layers, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
-          setDrawMode, setBrushStyle, setSnapOptions } =
+          setDrawMode, setBrushStyle, setSnapOptions, garmentRect } =
     useGarmentCanvas(
       canvasEl,
       cfg.garment,
@@ -233,19 +233,20 @@ export default function DesignStudio() {
   // ── FREEFORM DRAWING state (Sept 9 2026) ─────────────────────
   const [brushSize,  setBrushSize]  = useState(5);
   const [brushColor, setBrushColorState] = useState(T2);
+  const [erasing, setErasing] = useState(false); // Draw tool: pen or eraser (the eraser cuts the customer's strokes and art only)
 
   // Enter/exit drawing mode as the user switches tabs — only 'draw' should
   // ever leave isDrawingMode:true on the canvas; every other tab needs
   // normal selection back (this is what makes clicking a garment zone,
   // dragging a logo, etc. keep working once the user leaves the Draw tab).
   useEffect(() => {
-    setDrawMode(tool === 'draw', brushSize, brushColor);
+    setDrawMode(tool === 'draw', brushSize, brushColor, erasing);
     // Only re-run on tab change — brushSize/brushColor changes while
     // already drawing are pushed live via setBrushStyle below instead of
     // re-toggling isDrawingMode (which would interrupt an in-progress
     // decision, and unnecessarily re-runs discardActiveObject()).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tool]);
+  }, [tool, erasing]);
 
   const changeBrushSize = (size) => { setBrushSize(size); setBrushStyle(size, undefined); };
   const changeBrushColor = (color) => { setBrushColorState(color); setBrushStyle(undefined, color); };
@@ -730,7 +731,7 @@ export default function DesignStudio() {
             addText={addText} addShape={addShape} updateSelected={updateSelected}
             assetsTab={assetsTab} setAssetsTab={setAssetsTab} logoUpload={logoUpload}
             setShowInspo={openInspo} setShowShowcase={toggleShowcase} onChangeGarment={changeGarment}
-            brushSize={brushSize} brushColor={brushColor}
+            brushSize={brushSize} brushColor={brushColor} erasing={erasing} setErasing={setErasing}
             changeBrushSize={changeBrushSize} changeBrushColor={changeBrushColor}
             applyAI={applyAI} layers={layers} selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected} alignSelected={alignSelected}
             selectLayer={selectLayer} toggleLayerVisibility={toggleLayerVisibility}
@@ -741,7 +742,7 @@ export default function DesignStudio() {
           {/* ── CANVAS AREA ── */}
           <CanvasViewport cfg={cfg} setCfg={setCfg} canvasWrapRef={canvasWrapRef} canvasEl={canvasEl} initFailed={initFailed}
             aiPulse={aiPulse} face={face} switchFace={switchFace}
-            selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected}
+            selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected} alignSelected={alignSelected} arrangeSelected={arrangeSelected} garmentRect={garmentRect}
             viewMode={viewMode} has3DLoaded={has3DLoaded} onLogoFile={onLogoFile}
             zoom={zoom} setZoom={setZoom} snapshot={snapshot} overlays={overlays}
             blank={<GarmentPicker inline cfg={cfg} pieceRole={uset?.active ?? null} onPickPhoto={pickPhoto}

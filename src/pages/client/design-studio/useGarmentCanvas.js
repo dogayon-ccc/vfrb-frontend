@@ -3,7 +3,9 @@ import { useRef, useState, useCallback, useEffect, useLayoutEffect } from 'react
 import { T2, LOGO_PRESETS, PATTERNS, SHAPE_TYPE_LABEL } from './dsShared';
 import { getGarmentPaths } from './garmentPaths';
 import { assetFor, tintedCanvas } from './garmentAssets';
-import { snapTargets, computeSnap, snapThreshold, computeResizeSnap, movingEdges, readoutText } from './snapGuides';
+import { snapTargets, computeSnap, snapThreshold, computeResizeSnap, movingEdges } from './snapGuides';
+import { placementTargets, readoutPct, alignDeltas, distributeDeltas } from './canvasGuides';
+import { installStageLayers, drawPlacementGhosts, applyErase, garmentBox, plainObject } from './canvasLayers';
 
 // Decorative template lines (garmentPaths `details`): no __zoneKey and not evented, so they never take a click or a hover.
 const DETAIL_STYLE = {
@@ -34,7 +36,7 @@ function zoneAt(canvas, e) {
     .find(o => o.containsPoint(scene) && !canvas.isTargetTransparent(o, vp.x, vp.y));
 }
 
-const OVERLAY_PROPS = ['__logo','__artwork','__text','__draw','__shape','__layerId','__layerName','__locked','lockMovementX','lockMovementY','lockRotation','lockScalingX','lockScalingY','hasControls'];
+const OVERLAY_PROPS = ['__logo','__artwork','__text','__draw','__shape','__layerId','__layerName','__locked','__erase','lockMovementX','lockMovementY','lockRotation','lockScalingX','lockScalingY','hasControls'];
 
 // Composites front+back PNGs side by side; falls back to one side if the other fails to load.
 const FRONT_BACK_GAP = 36;
@@ -82,12 +84,19 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   const [ready, setReady] = useState(false);
   const redrawToken = useRef(0);
   // Latest props for exportFace, which polls across a face switch.
-  const latest = useRef({ garment, sleeve, face });
-  latest.current = { garment, sleeve, face };
+  const latest = useRef({ garment, sleeve, face, fit });
+  latest.current = { garment, sleeve, face, fit };
+  // The garment's box in canvas px, published after each base draw (the rulers measure 0-100 % of it).
+  const [garmentRect, setGarmentRect] = useState(null);
+  const publishGarment = useCallback((c) => {
+    const g = c ? garmentBox(c) : null;
+    setGarmentRect(p => (p && g && ['left', 'top', 'width', 'height'].every(k => Math.abs(p[k] - g[k]) < 0.5) ? p : g));
+  }, []);
+  const eraser = useRef(false); // Draw tool in eraser mode: a stroke cuts the customer's drawings and art, never the garment
   // Snapping options (set by the Studio's grid/snap toggles) and the guides of the current drag. Guides are drawn on Fabric's
   // interaction layer only, never added as objects, so they cannot be saved, exported or put in history.
-  const snapOpts = useRef({ snap: true, gridSize: 0, scale: 1 }); // scale: on-screen px per canvas px (zoom x fit)
-  const dragGuides = useRef({ targets: null, guides: [], readout: null });
+  const snapOpts = useRef({ snap: true, gridSize: 0, scale: 1, showGrid: false, centre: false, smart: true }); // scale: on-screen px per canvas px (zoom x fit)
+  const dragGuides = useRef({ targets: null, guides: [], readout: null, ghosts: null });
 
   // Init once on mount. useLayoutEffect (not useEffect) so cleanup runs
   // before React's own DOM removal — avoids a removeChild race with
@@ -109,6 +118,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       });
       fabricReady.current = true;
       setReady(true);
+      installStageLayers(fc.current, snapOpts); // grid between garment and design, centre line on top; live canvas only
 
       const drawInitialGarment = () => {
         const c = fc.current;
@@ -141,6 +151,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         c.setWidth(initPaths.w);
         c.setHeight(initPaths.h);
         c.renderAll();
+        publishGarment(c);
       };
       drawInitialGarment();
 
@@ -175,23 +186,29 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         if (hoverEl.current) { fc.current.remove(hoverEl.current); hoverEl.current = null; fc.current.renderAll(); }
       });
 
-      // Only a real zone click (not a drag/resize handle) opens the color picker
+      // Only a real tap on a zone opens the colour picker: released on the same zone having barely moved (not a drag, a resize
+      // handle or the first finger of a pinch, which on a phone used to open the colour sheet under the second finger).
+      let tap = null;
       fc.current.on('mouse:down', (opt) => {
-        if (opt.target && !opt.target.__zoneKey) return;
-        const hit = zoneAt(fc.current, opt.e);
-        if (hit?.__zoneKey) onZoneClick(hit.__zoneKey);
+        tap = opt.target && !opt.target.__zoneKey ? null : { p: fc.current.getViewportPoint(opt.e), zone: zoneAt(fc.current, opt.e)?.__zoneKey };
+      });
+      fc.current.on('mouse:up', (opt) => {
+        const t = tap; tap = null;
+        if (!t?.zone) return;
+        const p = fc.current.getViewportPoint(opt.e);
+        if (Math.hypot(p.x - t.p.x, p.y - t.p.y) <= 6 && zoneAt(fc.current, opt.e)?.__zoneKey === t.zone) onZoneClick(t.zone);
       });
 
       // Snapping, smart guides and a live readout while a design element is moved or resized. Targets are collected once per gesture.
       // Everything is drawn on Fabric's interaction layer (contextTop): never an object, so never saved, exported or undoable.
       const isOverlay = o => o && !o.__garmentBase && !o.__hoverGlow && o.visible !== false;
+      // Snap lines: the garment centre (and canvas centre) always; with smart guides also the garment edges and other elements'
+      // edges and centres; grid lines only while the grid is shown.
       const targetsFor = (c, obj) => {
-        const bases = c.getObjects().filter(o => o.__garmentBase && o.visible !== false).map(o => o.getBoundingRect());
-        const garmentBox = bases.length ? (() => { const l = Math.min(...bases.map(r => r.left)), t = Math.min(...bases.map(r => r.top));
-          return { left: l, top: t, width: Math.max(...bases.map(r => r.left + r.width)) - l, height: Math.max(...bases.map(r => r.top + r.height)) - t }; })() : null;
+        const smart = snapOpts.current.smart;
         const moving = new Set(obj.getObjects ? [obj, ...obj.getObjects()] : [obj]);
-        const others = c.getObjects().filter(o => isOverlay(o) && !moving.has(o)).map(o => o.getBoundingRect());
-        return snapTargets({ width: c.getWidth(), height: c.getHeight(), garment: garmentBox, others, gridSize: snapOpts.current.gridSize });
+        const others = smart ? c.getObjects().filter(o => isOverlay(o) && !moving.has(o)).map(o => o.getBoundingRect()) : [];
+        return snapTargets({ width: c.getWidth(), height: c.getHeight(), garment: garmentBox(c), garmentEdges: smart, others, gridSize: snapOpts.current.showGrid ? snapOpts.current.gridSize : 0 });
       };
       const threshold = () => snapThreshold(snapOpts.current.scale);
       // Fabric moves left/top during a drag without refreshing the cached corner coords that getBoundingRect() reads, so they are
@@ -227,6 +244,11 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       fc.current.on('object:moving', (e) => {
         const c = fc.current, obj = e.target;
         if (!c || !isOverlay(obj)) return;
+        // A logo or text being moved shows the garment's placement presets for this face as ghosts.
+        if ((obj.__logo && !obj.__artwork) || obj.__text) {
+          const L = latest.current;
+          dragGuides.current.ghosts ??= placementTargets(L.garment, L.sleeve, L.fit, L.face, c.getWidth(), c.getHeight());
+        }
         if (!snapOpts.current.snap) return track(obj, 'move', []);
         dragGuides.current.targets ??= targetsFor(c, obj);
         track(obj, 'move', applySnap(obj, dragGuides.current.targets));
@@ -239,13 +261,14 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         track(obj, 'scale', applyResizeSnap(obj, tr, dragGuides.current.targets));
       });
       fc.current.on('after:render', () => {
-        const c = fc.current, g = dragGuides.current.guides, ro = dragGuides.current.readout;
-        if (!c || (!g.length && !ro) || c.isDrawingMode || !c.contextTop) return;
+        const c = fc.current, g = dragGuides.current.guides, ro = dragGuides.current.readout, gh = dragGuides.current.ghosts;
+        if (!c || (!g.length && !ro && !gh?.length) || c.isDrawingMode || !c.contextTop) return;
         const ctx = c.contextTop, vt = c.viewportTransform, r = c.getRetinaScaling?.() ?? 1;
         c.clearContext(ctx);
         ctx.save();
         ctx.setTransform(r * vt[0], 0, 0, r * vt[3], r * vt[4], r * vt[5]);
         const px = 1 / (vt[0] * (snapOpts.current.scale || 1)); // one screen px through the wrapper's CSS zoom
+        if (gh?.length && ro) drawPlacementGhosts(ctx, c, gh, ro.obj, snapOpts.current.scale);
         // At least one backing-store px: the canvas bitmap is at canvas resolution, so a thinner line antialiases to a faint smear.
         ctx.lineWidth = Math.max(px, 1 / (r * vt[0]));
         for (const l of g) {
@@ -255,8 +278,8 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
           if (l.axis === 'v') { ctx.moveTo(l.at, 0); ctx.lineTo(l.at, c.getHeight()); } else { ctx.moveTo(0, l.at); ctx.lineTo(c.getWidth(), l.at); }
           ctx.stroke();
         }
-        if (ro) { // readout pill under the element (above it near the canvas bottom), constant on-screen size
-          const b = ro.obj.getBoundingRect(), text = readoutText(ro.obj, ro.action);
+        if (ro && garmentBox(c)) { // readout pill under the element (above it near the canvas bottom), constant on-screen size
+          const b = ro.obj.getBoundingRect(), text = readoutPct(b, garmentBox(c), ro.action); // % of the garment, never units
           ctx.setLineDash([]);
           ctx.font = `600 ${11 * px}px ui-sans-serif, system-ui, sans-serif`;
           const w = ctx.measureText(text).width + 12 * px, h = 18 * px;
@@ -273,11 +296,12 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       });
       const endDrag = () => {
         const c = fc.current;
-        const had = dragGuides.current.guides.length || dragGuides.current.readout;
-        dragGuides.current = { targets: null, guides: [], readout: null };
+        const had = dragGuides.current.guides.length || dragGuides.current.readout || dragGuides.current.ghosts;
+        dragGuides.current = { targets: null, guides: [], readout: null, ghosts: null };
         if (c && had && c.contextTop) { c.clearContext(c.contextTop); c.requestRenderAll(); }
       };
       fc.current.on('mouse:up', endDrag);
+      fc.current.on('mouse:down', endDrag); // a new press never inherits a previous gesture's guides, ghosts or readout
       // A drag, resize or rotate on the canvas is one undoable step (programmatic moves push their own history).
       fc.current.on('object:modified', (e) => {
         const c = fc.current, obj = e.target, action = e.action ?? e.transform?.action;
@@ -298,6 +322,14 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       fc.current.on('path:created', (e) => {
         const path = e.path;
         if (!path) return;
+        if (eraser.current) { // the eraser stroke is never kept: it cuts what it touched, as one undo step
+          const c = fc.current;
+          c.remove(path);
+          const n = applyErase(fabric, c, path, (c.freeDrawingBrush?.width ?? 10) / 2);
+          c.renderAll();
+          if (n) { pushHistory(); bumpLayers(); }
+          return;
+        }
         path.set({ __draw: true, __layerId: crypto.randomUUID(), __layerName: 'Drawing', selectable: true });
         fc.current.renderAll();
         pushHistory();
@@ -348,6 +380,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
             selectable: false, evented: true, objectCaching: false, __garmentBase: true, __zoneKey: 'body',
           }));
           canvas.renderAll();
+          publishGarment(canvas);
         }).catch(() => {});
         return;
       }
@@ -444,8 +477,9 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       canvas.setWidth(paths.w);
       canvas.setHeight(paths.h);
       canvas.renderAll();
+      publishGarment(canvas);
     }).catch(() => {});
-  }, [garment, sleeve, face, colors, patterns, patternParams, fit, ready]);
+  }, [garment, sleeve, face, colors, patterns, patternParams, fit, ready, publishGarment]);
 
   // History helpers — declared before addLogo/addText/deleteSelected, which depend on pushHistory
   const pushHistory = useCallback(() => {
@@ -455,7 +489,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     const snapshot = canvas.getObjects()
       .filter(o => !o.__garmentBase && !o.__hoverGlow)
       .filter(o => typeof o.toObject === 'function')
-      .map(o => o.toObject(OVERLAY_PROPS));
+      .map(o => plainObject(o, OVERLAY_PROPS));
     historyStack.current = historyStack.current.slice(0, historyIdx.current + 1);
     historyStack.current.push(snapshot);
     if (historyStack.current.length > 40) historyStack.current.shift();
@@ -621,6 +655,14 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     const canvas = fc.current;
     if (!canvas) return;
     const obj = canvas.getActiveObject();
+    if (obj?.type === 'activeselection') { // several selected: remove each unlocked member, one undo step
+      const gone = canvas.getActiveObjects().filter(o => !o.__garmentBase && !o.__locked);
+      canvas.discardActiveObject();
+      gone.forEach(o => canvas.remove(o));
+      canvas.renderAll();
+      if (gone.length) { pushHistory(); bumpLayers(); }
+      return;
+    }
     if (obj && !obj.__garmentBase && !obj.__hoverGlow && !obj.__locked) {
       canvas.remove(obj);
       canvas.discardActiveObject();
@@ -677,6 +719,25 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     bumpLayers();
   }, [pushHistory, bumpLayers]);
 
+  // Several selected elements: align to the selection's bounds, or distribute 3+ with equal gaps. The selection is dissolved so
+  // each member is moved in canvas px, then re-made; one undo step.
+  const arrangeSelected = useCallback((kind, where) => {
+    const canvas = fc.current;
+    if (!canvas || canvas.getActiveObject()?.type !== 'activeselection') return;
+    const objs = canvas.getActiveObjects().filter(o => !o.__garmentBase && !o.__locked);
+    if (objs.length < (kind === 'distribute' ? 3 : 2)) return;
+    canvas.discardActiveObject();
+    const boxes = objs.map(o => { o.setCoords(); return o.getBoundingRect(); });
+    const ds = kind === 'distribute' ? distributeDeltas(boxes, where) : alignDeltas(boxes, where);
+    objs.forEach((o, i) => { o.set({ left: (o.left ?? 0) + ds[i].dx, top: (o.top ?? 0) + ds[i].dy }); o.setCoords(); });
+    pushHistory();
+    bumpLayers();
+    import('fabric').then((mod) => { const fabric = mod.fabric ?? mod.default ?? mod;
+      canvas.setActiveObject(new fabric.ActiveSelection(objs, { canvas }));
+      canvas.renderAll();
+    }).catch(() => {});
+  }, [pushHistory, bumpLayers]);
+
   // Keyboard nudge for the selected unlocked element (not while its text is being edited).
   const nudgeSelected = useCallback((dx, dy) => {
     const canvas = fc.current;
@@ -720,16 +781,17 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
 
   // Toggles Fabric's PencilBrush. Caller must setDrawMode(false) on tab-exit
   // to restore normal selection.
-  const setDrawMode = useCallback((enabled, size = 4, color = '#02C39A') => {
+  const setDrawMode = useCallback((enabled, size = 4, color = '#02C39A', erase = false) => {
     const canvas = fc.current;
     if (!canvas) return;
+    eraser.current = enabled && erase;
     import('fabric').then((mod) => { const fabric = mod.fabric ?? mod.default ?? mod;
       if (enabled) {
         if (!canvas.freeDrawingBrush || !(canvas.freeDrawingBrush instanceof fabric.PencilBrush)) {
           canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
         }
-        canvas.freeDrawingBrush.width = size;
-        canvas.freeDrawingBrush.color = color;
+        canvas.freeDrawingBrush.width = erase ? Math.max(size * 3, 12) : size;
+        canvas.freeDrawingBrush.color = erase ? 'rgba(27,36,40,.28)' : color; // the eraser stroke shows as a soft trail while drawn
         canvas.discardActiveObject();
         canvas.selection = false;
         canvas.isDrawingMode = true;
@@ -752,7 +814,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     fc.current?.getObjects()
       .filter(o => !o.__garmentBase && !o.__hoverGlow)
       .filter(o => typeof o.toObject === 'function')
-      .map(o => o.toObject(OVERLAY_PROPS)) ?? []
+      .map(o => plainObject(o, OVERLAY_PROPS)) ?? []
   , []);
 
   // opaqueBg: hex color to temporarily paint behind the export, or null to
@@ -789,7 +851,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     return canvas.getObjects()
       .filter(o => !o.__garmentBase && !o.__hoverGlow)
       .filter(o => typeof o.toObject === 'function')
-      .map(o => o.toObject(OVERLAY_PROPS));
+      .map(o => plainObject(o, OVERLAY_PROPS));
   }, []);
 
   const loadCanvasJSON = useCallback((objects) => {
@@ -925,13 +987,13 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     if (commit) pushHistory();
   }, [findLayer, pushHistory, bumpLayers]);
 
-  const setSnapOptions = useCallback((o) => { snapOpts.current = { ...snapOpts.current, ...o }; }, []);
+  const setSnapOptions = useCallback((o) => { snapOpts.current = { ...snapOpts.current, ...o }; fc.current?.requestRenderAll(); }, []);
 
   return {
-    addLogo, addText, addShape, updateSelected, deleteSelected, duplicateSelected, alignSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
+    addLogo, addText, addShape, updateSelected, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
     pushHistory, undo, redo, canUndo, canRedo, resizeCanvas,
     layers, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
     setDrawMode, setBrushStyle, initFailed,
-    setSnapOptions,
+    setSnapOptions, garmentRect,
   };
 }
