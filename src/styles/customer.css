@@ -1,4 +1,32 @@
 /* Customer portal kit — wireframe-driven. Uses existing theme.css tokens only. */
+
+/* Atelier tokens: customer scope only (html[data-cx] is set while the customer shell is mounted; .cm-shell re-reads the accent). */
+:is(html[data-cx],.cm-shell){
+  --cx-paper:#f6f2ea;--cx-paper-2:#ede7dc;--cx-card:#fffdf8;
+  --cx-line:#e3dbcd;--cx-line-strong:#c4b9a6;
+  --cx-ink:#1b2428;--cx-ink-2:#465055;--cx-ink-3:#5a6467;
+  --cx-thread:var(--teal);--cx-thread-ink:var(--teal-dark);--cx-on-thread:var(--text-on-accent);
+  --cx-thread-tint:color-mix(in srgb,var(--teal) 10%,var(--cx-card));
+  --cx-thread-ring:color-mix(in srgb,var(--teal) 24%,transparent);
+  --cx-hover:color-mix(in srgb,var(--cx-ink) 5%,transparent);
+  --cx-bar-glass:color-mix(in srgb,var(--cx-card) 88%,transparent);
+  --cx-shade:40 30 16;--cx-weave-light:rgb(255 255 255 / .14);--cx-weave-dark:rgb(0 0 0 / .1);--cx-scrim:rgb(27 36 40 / .32);
+  --cx-elev-0:0 1px 0 rgb(var(--cx-shade) / .04),0 1px 3px rgb(var(--cx-shade) / .07);
+  --cx-elev-1:0 2px 4px rgb(var(--cx-shade) / .06),0 12px 26px -10px rgb(var(--cx-shade) / .22);
+  --cx-elev-2:0 4px 10px rgb(var(--cx-shade) / .08),0 22px 44px -12px rgb(var(--cx-shade) / .32);
+  --cx-r-sm:8px;--cx-r-md:12px;--cx-r-lg:16px;--cx-r-xl:22px;--cx-r-pill:999px;
+  --cx-dur-1:120ms;--cx-dur-2:200ms;--cx-dur-3:300ms;--cx-ease:cubic-bezier(.22,1,.36,1);--cx-ease-in:cubic-bezier(.4,0,1,1);
+  --cx-rise:8px;--cx-stagger:40ms;
+  --cx-serif:var(--font-display);--cx-sans:ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --cx-bar-h:56px;--cx-rail:232px;--cx-rail-sm:76px;--cx-nav-h:64px;
+  /* Existing theme tokens re-pointed at the atelier palette, so current pages adopt it without layout changes */
+  --bg:var(--cx-paper);--bg-page:var(--cx-paper);--bg-card:var(--cx-card);--bg-card-hover:var(--cx-paper);
+  --bg-surface:var(--cx-paper-2);--bg-surface-2:var(--cx-line);
+  --border:var(--cx-line);--border-hover:var(--cx-line-strong);--border-strong:var(--cx-line-strong);
+  --ink:var(--cx-ink);--text:var(--cx-ink);--text-muted:var(--cx-ink-2);--text-subtle:var(--cx-ink-3);--text-faint:var(--cx-ink-3);
+  --shadow-xs:var(--cx-elev-0);--shadow-sm:var(--cx-elev-0);--shadow-md:var(--cx-elev-1);--shadow-lg:var(--cx-elev-2);
+  --topbar-h:var(--cx-bar-h);--taskbar-h:var(--cx-nav-h);
+}
 .cx-page{width:100%;max-width:none;margin-inline:auto;padding-bottom:40px;color:var(--ink);overflow-x:hidden}
 .cx-head{display:flex;flex-direction:column;gap:12px;margin-bottom:18px}
 .cx-head h1{font-size:clamp(20px,3vw,26px);font-weight:800;margin:0 0 3px;letter-spacing:-.01em}
@@ -265,3 +293,52 @@ html[data-wizard] .cm-studio-fab,html[data-wizard] .fbw-fab{display:none!importa
 .wz-stp-i{order:-1;flex:1 0 100%;width:100%}
 .wz-stp-b{flex:1 1 0;width:auto}
 }
+
+/* Atelier primitives: page header, section, empty/error, swatch chip, stage tape, motion helpers */
+.cm-shell .cx-head h1{font-family:var(--cx-serif);font-weight:400;font-size:clamp(28px,3.4vw,38px);line-height:1.08;letter-spacing:-.01em;color:var(--cx-ink)}
+.cm-shell .cx-head p{font-size:14px;color:var(--cx-ink-2);max-width:62ch}
+.cx-sec{display:flex;flex-direction:column;gap:12px;margin:0 0 22px}
+.cx-sec-h{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.cx-sec-h h2{font-family:var(--cx-serif);font-weight:400;font-size:clamp(20px,2.2vw,24px);line-height:1.15;color:var(--cx-ink)}
+.cx-sec-h p{margin-top:2px;font-size:13px;color:var(--cx-ink-2)}
+.cx-state{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:36px 20px;border:1px dashed var(--cx-line-strong);border-radius:var(--cx-r-lg);background:var(--cx-card)}
+.cx-state-i{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;margin-bottom:4px;background:var(--cx-thread-tint);color:var(--cx-thread-ink)}
+.cx-state h3{font-family:var(--cx-serif);font-weight:400;font-size:21px;line-height:1.2;color:var(--cx-ink)}
+.cx-state p{max-width:46ch;font-size:13px;line-height:1.5;color:var(--cx-ink-2)}
+.cx-state-a{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:8px}
+.cx-state[data-tone=error]{border-style:solid;border-color:var(--danger-border)}
+.cx-state[data-tone=error] .cx-state-i{background:var(--danger-bg);color:var(--danger-text)}
+.cx-swatch{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 14px 0 6px;border-radius:var(--cx-r-pill);border:1px solid var(--cx-line);background:var(--cx-card);color:var(--cx-ink);font:600 13px/1.2 var(--cx-sans);cursor:pointer;transition:border-color var(--cx-dur-1) var(--cx-ease),box-shadow var(--cx-dur-2) var(--cx-ease)}
+span.cx-swatch{cursor:default}
+.cx-swatch:hover:not(:disabled):not(span){border-color:var(--cx-line-strong);box-shadow:var(--cx-elev-0)}
+.cx-swatch:disabled{opacity:.55;cursor:not-allowed}
+.cx-swatch-dot{flex-shrink:0;width:30px;height:30px;border-radius:50%;background:repeating-linear-gradient(45deg,var(--cx-weave-light) 0 1px,transparent 1px 4px),repeating-linear-gradient(-45deg,var(--cx-weave-dark) 0 1px,transparent 1px 4px),var(--sw);box-shadow:inset 0 0 0 1px rgb(var(--cx-shade) / .2);outline:2px dashed transparent;outline-offset:3px;transition:outline-color var(--cx-dur-2) var(--cx-ease)}
+.cx-swatch[aria-pressed=true]{border-color:var(--cx-thread)}
+.cx-swatch[aria-pressed=true] .cx-swatch-dot{outline-color:var(--cx-thread)}
+.cx-swatch[data-size=sm]{min-height:36px;font-size:12px}.cx-swatch[data-size=sm] .cx-swatch-dot{width:22px;height:22px;outline-offset:2px}
+.cx-swatch:focus-visible{outline:3px solid var(--cx-thread-ink);outline-offset:2px}
+@media(pointer:coarse){.cx-swatch[data-size=sm]{min-height:44px}}
+.cx-tape{container-type:inline-size;color:var(--cx-ink)}
+.cx-tape ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.cx-tape li{position:relative;display:flex;flex-direction:column;gap:6px;min-width:0}
+.cx-tape-seg{position:relative;height:26px;background:repeating-linear-gradient(90deg,var(--cx-line-strong) 0 1px,transparent 1px 7px) left bottom/100% 30% no-repeat,var(--cx-card);border-block:1px solid var(--cx-line-strong);border-left:1.5px solid var(--cx-ink-3)}
+.cx-tape li:first-child .cx-tape-seg{border-radius:4px 0 0 4px}
+.cx-tape li:last-child .cx-tape-seg{border-right:1px solid var(--cx-line-strong);border-radius:0 4px 4px 0}
+.cx-tape-seg b{position:absolute;left:4px;top:3px;font:700 10px/1 var(--cx-sans);color:var(--cx-ink-3)}
+.cx-tape li[data-s=done] .cx-tape-seg{background:repeating-linear-gradient(90deg,var(--cx-thread) 0 1px,transparent 1px 7px) left bottom/100% 30% no-repeat,var(--cx-thread-tint)}
+.cx-tape li[data-s=now] .cx-tape-seg{background:linear-gradient(90deg,var(--cx-thread-tint) 50%,var(--cx-card) 50%),var(--cx-card)}
+.cx-tape li[data-s=now] .cx-tape-seg::after{content:"";position:absolute;left:50%;top:-6px;bottom:-6px;width:2px;margin-left:-1px;border-radius:2px;background:var(--cx-thread);box-shadow:0 0 0 3px var(--cx-thread-ring)}
+.cx-tape li[data-s=done] b,.cx-tape li[data-s=now] b{color:var(--cx-thread-ink)}
+.cx-tape-lbl{font-size:11px;font-weight:600;line-height:1.2;color:var(--cx-ink-3);overflow-wrap:anywhere;padding-right:4px}
+.cx-tape li[data-s=now] .cx-tape-lbl{font-weight:800;color:var(--cx-ink)}
+.cx-tape-cap{display:none;margin-top:10px;font-size:13px;color:var(--cx-ink-2)}
+.cx-tape-cap strong{color:var(--cx-ink);font-weight:800}
+.cx-tape--sm .cx-tape-seg{height:16px}.cx-tape--sm .cx-tape-seg b{display:none}
+.cx-tape--sm .cx-tape-lbl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.cx-tape--sm .cx-tape-cap{display:block;margin-top:8px}
+@container (max-width:560px){.cx-tape li:not([data-s=now]) .cx-tape-lbl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.cx-tape-cap{display:block}}
+.cx-rise{animation:cx-rise var(--cx-dur-3) var(--cx-ease) both;animation-delay:calc(var(--i,0) * var(--cx-stagger))}
+@keyframes cx-rise{from{opacity:0;transform:translateY(var(--cx-rise))}to{opacity:1;transform:none}}
+.cx-lift{transition:transform var(--cx-dur-2) var(--cx-ease),box-shadow var(--cx-dur-2) var(--cx-ease)}
+.cx-lift:hover{transform:translateY(-2px);box-shadow:var(--cx-elev-1)}
+@media(prefers-reduced-motion:reduce){.cx-rise{animation:none}.cx-lift,.cx-swatch,.cx-swatch-dot{transition:none}.cx-lift:hover{transform:none}}

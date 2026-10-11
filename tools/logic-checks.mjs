@@ -319,5 +319,32 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('Home and My Designs title a design by the customer\'s saved name first', /savedDesignName\(draft\.studio_config\) \|\| draft\.label/.test(home) && /savedDesignName\(d\.config\) \|\| d\.label/.test(home) && /savedDesignName\(c\) \|\| label \|\| fallback/.test(my));
   t('the draft preview render (exportPNG) hides the zone hover outline, like exportFace', /const exportPNG[\s\S]{0,300}__hoverGlow[\s\S]{0,120}o\.visible = false/.test(canvas));
 }
+// Customer atelier foundation: tokens stay in the customer scope, admin never imports them, StageTape is exactly the 7 real stages.
+{
+  const K = await L('/src/components/customer/kit.jsx');
+  const html = (C, p) => renderToString(React.createElement(C, p));
+  const stages = s => [...s.matchAll(/data-stage="([a-z]+)"/g)].map(m => m[1]);
+  const SEVEN = ['pattern', 'segregation', 'cutting', 'sewing', 'qc', 'pressing', 'packing'];
+  const sewing = html(K.StageTape, { status: 'sewing' }), small = html(K.StageTape, { status: 'sewing', compact: true });
+  t('StageTape renders exactly the 7 production stages in shop-floor order, full and compact', [sewing, small].every(s => stages(s).join() === SEVEN.join()) && K.STAGES.join() === SEVEN.join() && /cx-tape--sm/.test(small));
+  t('StageTape emphasises only the current stage (aria-current) and marks earlier ones done', (sewing.match(/aria-current="step"/g) ?? []).length === 1 && /data-stage="sewing" data-s="now" aria-current="step"/.test(sewing) && (sewing.match(/data-s="done"/g) ?? []).length === 3 && (sewing.match(/data-s="todo"/g) ?? []).length === 3);
+  const done = html(K.StageTape, { status: 'completed' }), pend = html(K.StageTape, { status: 'pending' });
+  t('StageTape: completed = all 7 done; not started = no current stage; status names come from STATUS labels', (done.match(/data-s="done"/g) ?? []).length === 7 && !/aria-current/.test(pend) && (pend.match(/data-s="todo"/g) ?? []).length === 7 && />QC</.test(sewing) && /Production has not started yet/.test(pend));
+  const err = html(K.ErrorState, { onRetry: () => {} }), sw = html(K.SwatchChip, { color: '#800000', name: 'Maroon', selected: true, onSelect: () => {} });
+  t('ErrorState announces itself and offers a retry; SwatchChip exposes its selection as aria-pressed', /role="alert"/.test(err) && /<button[^>]*>.*Try again<\/button>/.test(err) && /aria-pressed="true"/.test(sw) && /--sw:#800000/.test(sw) && !/<button/.test(html(K.SwatchChip, { color: '#fff', name: 'White' })));
+  const src = p => fsx.readFileSync(urlx.fileURLToPath(new URL(p, import.meta.url)), 'utf8');
+  const walk = d => fsx.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(`${d}/${e.name}`) : /\.(jsx?|css)$/.test(e.name) ? [`${d}/${e.name}`] : []);
+  const root = urlx.fileURLToPath(new URL('../src', import.meta.url));
+  const admin = [`${root}/layouts/AdminLayout.jsx`, ...walk(`${root}/pages/admin`), ...(fsx.existsSync(`${root}/components/admin`) ? walk(`${root}/components/admin`) : [])];
+  const leaks = admin.filter(f => /customer(-shell)?\.css|premium\.css|components\/customer\/|layouts\/CustomerLayout|--cx-/.test(fsx.readFileSync(f, 'utf8')));
+  t('admin routes import no customer tokens, shell styles or customer kit', admin.length > 10 && leaks.length === 0);
+  const cust = src('../src/styles/customer.css'), shell = src('../src/styles/customer-shell.css'), layout = src('../src/layouts/CustomerLayout.jsx');
+  const defs = [...cust.matchAll(/([^{}]+)\{[^{}]*--cx-[\w-]+\s*:/g)].map(m => m[1].trim());
+  const global = ['theme.css', 'admin.css', 'site.css', 'auth.css', 'modals.css', 'responsive.css'].filter(f => /--cx-/.test(src(`../src/styles/${f}`))).concat(/--cx-/.test(src('../src/main.css')) ? ['main.css'] : []);
+  t('customer tokens are defined only on the customer root (html[data-cx] / .cm-shell), never on :root or shared stylesheets', defs.length === 1 && defs[0].endsWith(':is(html[data-cx],.cm-shell)') && global.length === 0);
+  const sels = [...shell.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/(?:^|[;}])\s*([^{}@;]+)\{/g)].map(m => m[1].trim()).filter(s => !/^(from|to|\d+%)$/.test(s)).flatMap(s => s.split(','));
+  t('every customer shell rule is scoped to the customer root, so admin is untouched after the shell has loaded', sels.length > 30 && sels.every(s => /data-cx|\.cx-|\.cm-(shell|main|content|studio-fab)/.test(s)));
+  t('the customer shell sets data-cx on mount and removes it on unmount; shell CSS is imported only by the layout', /useLayoutEffect\(\(\) => \{[\s\S]{0,120}dataset\.cx = ''[\s\S]{0,60}delete root\.dataset\.cx/.test(layout) && /import '\.\.\/styles\/customer-shell\.css'/.test(layout) && !/customer-shell\.css/.test(src('../src/main.jsx')));
+}
 console.log(out.join('\n')); const f = out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);

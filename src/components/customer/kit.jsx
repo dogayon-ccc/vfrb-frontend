@@ -1,6 +1,7 @@
-// Shared customer-portal building blocks (status, thumbnails, KPI, chips, stepper, toast).
-import { useEffect, useState, useCallback } from 'react';
+// Shared customer-portal building blocks (status, thumbnails, KPI, chips, steppers, states, swatches, toast).
+import { useEffect, useState, useCallback, useId } from 'react';
 import { Link } from 'react-router-dom';
+import { Inbox, AlertTriangle, RotateCw } from 'lucide-react';
 import { NavIcon } from '../ui/icons';
 import { MiniPreview } from '../../pages/client/design-studio/InspoGallery';
 import { savedDesignName } from '../../utils/designName';
@@ -163,9 +164,80 @@ export function Stepper({ steps, current }) {
   );
 }
 
-export function Skeleton({ h = 16, w = '100%', style }) {
-  return <div className="cx-sk" style={{ height: h, width: w, ...style }} />;
+export function Skeleton({ h = 16, w = '100%', circle = false, style }) {
+  return <div className="cx-sk" aria-hidden="true" style={{ height: h, width: circle ? h : w, ...(circle && { borderRadius: '50%' }), ...style }} />;
 }
+
+// Titled page section; the heading labels the region.
+export function Section({ title, subtitle, action, children, className = '' }) {
+  const id = useId();
+  return (
+    <section className={`cx-sec ${className}`.trim()} aria-labelledby={title ? id : undefined}>
+      {title && <div className="cx-sec-h"><div><h2 id={id}>{title}</h2>{subtitle && <p>{subtitle}</p>}</div>{action}</div>}
+      {children}
+    </section>
+  );
+}
+
+// Nothing to show yet: say what is missing and offer the next step.
+export function EmptyState({ icon: Icon = Inbox, title, children, action }) {
+  return (
+    <div className="cx-state">
+      <span className="cx-state-i" aria-hidden="true"><Icon size={22} strokeWidth={1.8} /></span>
+      <h3>{title}</h3>
+      {children && <p>{children}</p>}
+      {action && <div className="cx-state-a">{action}</div>}
+    </div>
+  );
+}
+
+// Load failure with a retry; announced to assistive tech.
+export function ErrorState({ title = 'This didn’t load', children = 'Check your connection, then try again.', onRetry, retrying = false }) {
+  return (
+    <div className="cx-state" data-tone="error" role="alert">
+      <span className="cx-state-i" aria-hidden="true"><AlertTriangle size={22} strokeWidth={1.8} /></span>
+      <h3>{title}</h3>
+      <p>{children}</p>
+      {onRetry && <div className="cx-state-a"><button type="button" className="cx-btn cx-btn-s" onClick={onRetry} disabled={retrying}><RotateCw size={15} strokeWidth={2} aria-hidden="true" />{retrying ? 'Trying again…' : 'Try again'}</button></div>}
+    </div>
+  );
+}
+
+// Fabric-swatch colour chip; selectable when onSelect is given (stitched ring marks the selection).
+export function SwatchChip({ color, name, selected = false, onSelect, size = 'md', disabled = false }) {
+  const body = <><span className="cx-swatch-dot" style={{ '--sw': color }} aria-hidden="true" /><span>{name}</span></>;
+  return onSelect
+    ? <button type="button" className="cx-swatch" data-size={size} aria-pressed={selected} onClick={onSelect} disabled={disabled}>{body}</button>
+    : <span className="cx-swatch" data-size={size}>{body}</span>;
+}
+
+// The 7 real production stages, in shop-floor order.
+export const STAGES = ['pattern', 'segregation', 'cutting', 'sewing', 'qc', 'pressing', 'packing'];
+const stageCaption = (status, cur) => status === 'completed' ? 'All 7 stages done'
+  : status === 'cancelled' ? 'Order cancelled'
+  : cur >= 0 ? <><strong>{STATUS[STAGES[cur]].label}</strong>, stage {cur + 1} of {STAGES.length}</> : 'Production has not started yet';
+
+// Measuring-tape stepper over the production stages; data in (order status), no fetching.
+export function StageTape({ status, compact = false, label = 'Production stages' }) {
+  const cur = STAGES.indexOf(status);
+  const done = status === 'completed' ? STAGES.length : Math.max(cur, 0);
+  return (
+    <div className={`cx-tape${compact ? ' cx-tape--sm' : ''}`}>
+      <ol aria-label={label}>
+        {STAGES.map((s, i) => (
+          <li key={s} data-stage={s} data-s={i < done ? 'done' : i === cur ? 'now' : 'todo'} aria-current={i === cur ? 'step' : undefined}>
+            <span className="cx-tape-seg" aria-hidden="true"><b>{i + 1}</b></span>
+            <span className="cx-tape-lbl">{STATUS[s].label}</span>
+          </li>
+        ))}
+      </ol>
+      <p className="cx-tape-cap" aria-hidden="true">{stageCaption(status, cur)}</p>
+    </div>
+  );
+}
+
+// Staggered entrance for list items: spread onto an element; CSS disables it under reduced motion.
+export const rise = (i, className = '') => ({ className: `cx-rise ${className}`.trim(), style: { '--i': Math.min(i, 6) } });
 
 export function useToast() {
   const [t, setT] = useState(null);
