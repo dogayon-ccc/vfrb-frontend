@@ -25,9 +25,9 @@ function ParamSlider({ label, value, range, onChange }) {
   return (
     <label style={{ display:'flex', flexDirection:'column', gap:3 }}>
       <span style={{ display:'flex', justifyContent:'space-between',
-        fontSize:10, color:'rgba(15,23,42,.5)' }}>
+        fontSize:11, color:'var(--cx-ink-2)' }}>
         <span>{label}</span>
-        <span style={{ color:T2, fontWeight:700 }}>{value}px</span>
+        <span style={{ color:'var(--cx-thread-ink)', fontWeight:700 }}>{value}px</span>
       </span>
       <input type="range" min={range.min} max={range.max} value={value}
         onChange={e => onChange(Number(e.target.value))}
@@ -66,7 +66,7 @@ export default function PatternPanel({ cfg, setCfg, activeZone }) {
         <p style={{ fontSize:13,fontWeight:700,color:'#1a2332',margin:'0 0 2px' }}>
           Pattern Overlay
         </p>
-        <p style={{ fontSize:12,color:'rgba(15,23,42,.6)',margin:0 }}>
+        <p style={{ fontSize:12,color:'var(--cx-ink-2)',margin:0 }}>
           Applied on top of zone color. Select zone in Colors tab.
         </p>
       </div>
@@ -75,7 +75,7 @@ export default function PatternPanel({ cfg, setCfg, activeZone }) {
         Patterns are unavailable on this photo base. Choose a vector garment to add a pattern.
       </p>}
 
-      <p style={secLabel}>Active Zone: <span style={{ color:T2 }}>{ZONE_LABEL[activeZone]}</span></p>
+      <p style={secLabel}>Active Zone: <span style={{ color:'var(--cx-thread-ink)' }}>{ZONE_LABEL[activeZone]}</span></p>
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6 }}>
         {PATTERNS.map(pat => {
@@ -92,8 +92,8 @@ export default function PatternPanel({ cfg, setCfg, activeZone }) {
                 outline:    sel ? `2px solid ${T2}` : '1px solid rgba(15,23,42,.07)',
                 display:'flex', flexDirection:'column', alignItems:'center', gap:4,
               }}>
-              <NavIcon name={pat.icon} size={18} color={sel ? T2 : 'rgba(15,23,42,.6)'}/>
-              <span style={{ fontSize:11, color: sel?T2:'rgba(15,23,42,.6)',
+              <NavIcon name={pat.icon} size={18} color={sel ? 'var(--cx-thread-ink)' : 'var(--cx-ink-2)'}/>
+              <span style={{ fontSize:11, color: sel?'var(--cx-thread-ink)':'var(--cx-ink-2)',
                 fontWeight:sel?700:400, textAlign:'center' }}>
                 {pat.label}
               </span>
@@ -109,7 +109,7 @@ export default function PatternPanel({ cfg, setCfg, activeZone }) {
           style={{ padding:'11px 12px', borderRadius:10, marginTop:2,
             background:'rgba(2,195,154,.06)', border:`1px solid rgba(2,195,154,.18)`,
             display:'flex', flexDirection:'column', gap:10, overflow:'hidden' }}>
-          <p style={{ fontSize:11, fontWeight:700, color:T2, margin:0,
+          <p style={{ fontSize:11, fontWeight:700, color:'var(--cx-thread-ink)', margin:0,
             display:'flex', alignItems:'center', gap:5 }}>
             <NavIcon name={patDef.icon} size={12}/> Adjust {patDef.label}
           </p>
@@ -123,7 +123,7 @@ export default function PatternPanel({ cfg, setCfg, activeZone }) {
             }))}
             style={{ alignSelf:'flex-start', padding:'3px 9px', borderRadius:7,
               border:'1px solid rgba(15,23,42,.15)', background:'transparent',
-              color:'rgba(15,23,42,.4)', fontSize:9, cursor:'pointer' }}>
+              color:'var(--cx-ink-2)', fontSize:11, cursor:'pointer' }}>
             Reset to default
           </button>
         </motion.div>

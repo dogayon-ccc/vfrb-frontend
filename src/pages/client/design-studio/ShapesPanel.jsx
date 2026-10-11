@@ -81,24 +81,24 @@ export default function ShapesPanel({ selObj, onAdd, onUpdate }) {
             <p style={secLabel}>Border</p>
             <div style={{ display:'flex', gap:6 }}>
               <button type="button" onClick={() => onUpdate({ strokeWidth: 0 })}
-                style={{ flex:1, padding:'7px', borderRadius:8, cursor:'pointer', fontSize:10,
+                style={{ flex:1, padding:'7px', borderRadius:8, cursor:'pointer', fontSize:11,
                   border:`1px solid ${(selObj.strokeWidth ?? 1) === 0 ? T2 : 'rgba(15,23,42,.12)'}`,
                   background: (selObj.strokeWidth ?? 1) === 0 ? 'rgba(2,195,154,.14)' : '#fff',
-                  color:'rgba(15,23,42,.6)', fontWeight:600 }}>
+                  color:'var(--cx-ink-2)', fontWeight:600 }}>
                 None
               </button>
               <button type="button" onClick={() => onUpdate({ strokeWidth: 1, stroke:'rgba(0,0,0,.25)' })}
-                style={{ flex:1, padding:'7px', borderRadius:8, cursor:'pointer', fontSize:10,
+                style={{ flex:1, padding:'7px', borderRadius:8, cursor:'pointer', fontSize:11,
                   border:`1px solid ${(selObj.strokeWidth ?? 0) === 1 ? T2 : 'rgba(15,23,42,.12)'}`,
                   background: (selObj.strokeWidth ?? 0) === 1 ? 'rgba(2,195,154,.14)' : '#fff',
-                  color:'rgba(15,23,42,.6)', fontWeight:600 }}>
+                  color:'var(--cx-ink-2)', fontWeight:600 }}>
                 Thin
               </button>
               <button type="button" onClick={() => onUpdate({ strokeWidth: 3, stroke:'rgba(0,0,0,.4)' })}
-                style={{ flex:1, padding:'7px', borderRadius:8, cursor:'pointer', fontSize:10,
+                style={{ flex:1, padding:'7px', borderRadius:8, cursor:'pointer', fontSize:11,
                   border:`1px solid ${selObj.strokeWidth === 3 ? T2 : 'rgba(15,23,42,.12)'}`,
                   background: selObj.strokeWidth === 3 ? 'rgba(2,195,154,.14)' : '#fff',
-                  color:'rgba(15,23,42,.6)', fontWeight:600 }}>
+                  color:'var(--cx-ink-2)', fontWeight:600 }}>
                 Thick
               </button>
             </div>

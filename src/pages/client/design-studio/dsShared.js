@@ -26,8 +26,8 @@ export const DARK  = '#F8FAFC';
 export const DARK2 = '#EEF2F7';
 
 export const secLabel = {
-  fontSize: 9, fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '.09em', color: 'rgba(15,23,42,.4)',
+  fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
+  letterSpacing: '.09em', color: 'var(--cx-ink-2)',
   margin: '10px 0 5px 1px',
 };
 
@@ -139,7 +139,7 @@ export function pattern3D(garment, sleeve, fit, zone, id) {
   const cap = get3DCapabilities(garment, fit, sleeve);
   return cap.supported ? (cap.patterns?.zones ?? []).includes(zone) && (cap.patterns?.ids ?? []).includes(id) : null;
 }
-export const ONLY_2D_TAG = { fontSize: 8, fontWeight: 700, color: 'rgba(15,23,42,.45)' };
+export const ONLY_2D_TAG = { fontSize: 11, fontWeight: 700, color: 'var(--cx-ink-2)' };
 
 export const placementsFor = (garment, sleeve, fit) =>
   zonesFor(garment, sleeve, fit).includes('sleeve') ? LOGO_PRESETS : LOGO_PRESETS.filter(p => !p.id.endsWith('_arm'));
@@ -258,7 +258,6 @@ export const TOOLS = [
   { id:'layers',   icon:'layersPanel', label:'Layers',  hint:'Reorder, hide or rename items' },
   { id:'draw',     icon:'draw',        label:'Draw',    hint:'Sketch freehand on the garment' },
   { id:'ai',       icon:'ai',          label:'AI',      hint:'Describe a design in words' },
-  { id:'summary',  icon:'info',        label:'Summary', hint:'Your design at a glance' },
   { id:'selected', icon:'cursor',      label:'Selection', hint:'Adjust the item you picked' },
 ];
 

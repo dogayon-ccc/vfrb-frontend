@@ -1,8 +1,5 @@
-import { motion, AnimatePresence } from 'framer-motion';
 import { NavIcon } from '../../../components/ui/icons';
-import GarmentSilhouette from './GarmentSilhouette';
-import { ZONE_LABEL, zonesFor, SHAPE_TYPE_LABEL, TOOLS, FONTS } from './dsShared';
-import AIDesignChat from '../AIDesignChat';
+import { SHAPE_TYPE_LABEL, FONTS } from './dsShared';
 
 // Real contextual inspector for the currently-selected Fabric object — shown
 // in place of the static Design Summary whenever something is selected.
@@ -147,84 +144,5 @@ export function SelectionInspector({ selObj, updateSelected, deleteSelected, dup
       </div>
       <p className="ds-ins-note">Tap empty canvas to deselect.</p>
     </div>
-  );
-}
-
-export function SummaryContent({ cfg, clearGarment, onOpenTool, activeTool, layerCount = 0, face = 'front' }) {
-  const zones = zonesFor(cfg.garment, cfg.sleeve, cfg.fit);
-  const swatches = zones.filter(z => z !== 'tipping' || cfg.colors.tipping);
-  const details = [zones.includes('sleeve') && `${cfg.sleeve} sleeve`, cfg.category].filter(Boolean).join(' · ');
-
-  return (
-    <>
-      <h2 className="ds-eyebrow">Design summary</h2>
-      <AnimatePresence mode="wait" initial={false}>
-        {cfg.garment ? (
-          <motion.div key={cfg.garment} className="ds-sum-card"
-            initial={{ opacity:0, y:8, scale:.97 }} animate={{ opacity:1, y:0, scale:1 }}
-            exit={{ opacity:0, y:-6 }} transition={{ duration:.2, ease:'easeOut' }}>
-            <div className="ds-sum-thumb">
-              <GarmentSilhouette garment={cfg.garment} sleeve={cfg.sleeve} fit={cfg.fit} colors={cfg.colors} width={64} height={76}/>
-            </div>
-            <div style={{ minWidth:0 }}>
-              <p className="ds-sum-title" style={{ margin:0 }}>{cfg.garment}</p>
-              <p className="ds-sum-sub" style={{ margin:'2px 0 0' }}>{details}</p>
-            </div>
-          </motion.div>
-        ) : (
-          <motion.p key="none" className="ds-sum-sub" initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}>
-            No garment selected yet — choose one in the Type tab.
-          </motion.p>
-        )}
-      </AnimatePresence>
-      <ul className="ds-swatch-row" aria-label="Zone colors">
-        {swatches.map(z => (
-          <li key={z} title={`${ZONE_LABEL[z]}: ${cfg.colors[z] ?? 'Not set'}`}>
-            <span className="ds-swatch ds-swatch--lg" style={{ background: cfg.colors[z] ?? 'var(--bg-surface)' }}/>
-            <span className="ds-swatch-name">{ZONE_LABEL[z]}</span>
-          </li>
-        ))}
-      </ul>
-      {cfg.garment && (
-        <ul className="ds-stats" aria-label="Design at a glance">
-          <li><b>{swatches.length}</b><span>colour zones</span></li>
-          <li><b>{layerCount}</b><span>{layerCount === 1 ? 'layer' : 'layers'} · {face}</span></li>
-        </ul>
-      )}
-      {cfg.garment && onOpenTool && (
-        <nav className="ds-jump" aria-label="Jump to a design tool">
-          {[['type', zones.includes('sleeve') ? 'Garment & sleeve' : 'Garment', zones.includes('sleeve') ? cfg.sleeve : cfg.garment], ['color', 'Colors', `${swatches.length} zones`],
-            ['pattern', 'Pattern'], ['assets', 'Logos & shapes'], ['text', 'Text']].map(([id, label, val]) => {
-            const icon = TOOLS.find(t => t.id === id)?.icon ?? 'info';
-            return (
-              <button key={id} type="button" data-active={activeTool === id ? 'true' : undefined} onClick={() => onOpenTool(id)}>
-                <NavIcon name={icon} size={15}/>
-                <span>{label}</span>{val && <em>{val}</em>}
-                <NavIcon name="chevronRight" size={13}/>
-              </button>
-            );
-          })}
-        </nav>
-      )}
-      {/* PNG/PDF export lives in the dock's secondary Export menu */}
-      {cfg.garment && clearGarment && (
-        <button type="button" className="ds-link-danger" onClick={clearGarment}>
-          <NavIcon name="delete" size={14}/> Remove garment
-        </button>
-      )}
-      <AIDesignChat docked/>
-    </>
-  );
-}
-
-export default function RightInfoPanel({ selObj, updateSelected, deleteSelected, duplicateSelected, toggleSelectedLock, pushHistory, open, onClose, ...rest }) {
-  const showInspector = !!selObj && !selObj.__garmentBase && !selObj.__hoverGlow;
-  return (
-    <aside className="ds-info" data-open={open ? 'true' : 'false'} aria-label={showInspector ? 'Selected object' : 'Design summary'}>
-      {onClose && <button type="button" className="ds-info-close" aria-label="Close panel" onClick={onClose}><NavIcon name="close" size={16}/></button>}
-      {showInspector
-        ? <SelectionInspector selObj={selObj} updateSelected={updateSelected} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected} toggleSelectedLock={toggleSelectedLock} pushHistory={pushHistory}/>
-        : <SummaryContent {...rest}/>}
-    </aside>
   );
 }

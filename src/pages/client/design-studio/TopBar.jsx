@@ -36,7 +36,6 @@ export default function TopBar({ nav, cfg, setCfg, undo, redo, canUndo, canRedo,
       {/* Design name feeds cfg.name, carried into studio_config on every save */}
       <input className="ds-bar-name" value={cfg.name ?? ''} maxLength={80} placeholder="Untitled design" aria-label="Design name"
         onChange={e => setCfg(p => ({ ...p, name: e.target.value.slice(0, 80) }))} />
-      {cfg.garment && <span className="ds-bar-cat">{cfg.category}</span>}
       <div className="ds-bar-sp" />
 
       <div className="ds-bar-group" role="group" aria-label="History">

@@ -34,7 +34,8 @@ import { applyGarment, pieceOf } from './design-studio/garmentCatalog';
 import { openTarget } from './design-studio/designGallery';
 import { landingViewFor } from './design-studio/studioView';
 import DraftStrip from './design-studio/DraftStrip';
-import FirstRunGallery from './design-studio/FirstRunGallery';
+import GarmentPicker from './design-studio/GarmentPicker';
+import { selectFamily } from './design-studio/selectGarment';
 import { has3DFor } from './design-studio/garmentCapabilities';
 import { SET_ROLES, ROLE_LABEL, DEFAULT_PIECE, otherRole, normalizeSet, withSet } from './design-studio/uniformSet';
 
@@ -92,6 +93,10 @@ export default function DesignStudio() {
   const toggleInspo = useCallback((v) => {
     setShowInspo(prev => { const next = typeof v === 'function' ? v(prev) : v; if (next) setShowShowcase(false); return next; });
   }, []);
+  // One picker, two doors: the Inspo button opens it on Inspiration, "Change garment" on Templates.
+  const [pickerTab, setPickerTab] = useState('inspiration');
+  const openInspo = useCallback((v) => { setPickerTab('inspiration'); toggleInspo(v); }, [toggleInspo]);
+  const changeGarment = useCallback(() => { setPickerTab('templates'); toggleInspo(true); }, [toggleInspo]);
   const toggleShowcase = useCallback((v) => {
     setShowShowcase(prev => { const next = typeof v === 'function' ? v(prev) : v; if (next) setShowInspo(false); return next; });
   }, []);
@@ -430,8 +435,8 @@ export default function DesignStudio() {
   useEffect(() => { if (cfg.garment || layers.length) setPendingDraft(null); }, [cfg.garment, layers.length]);
 
   // First run: open a gallery photo exactly like the Inspo gallery does (same target rules), then show the garment's properties.
-  const pickPhoto = useCallback((d) => {
-    const t = openTarget(d);
+  const pickPhoto = useCallback((d, filters) => {
+    const t = openTarget(d, filters);
     if (!t) return;
     setCfg(p => applyGarment(p, t.garment, { ...t, inspirationId: d.id }));
   }, []);
@@ -699,7 +704,7 @@ export default function DesignStudio() {
         <TopBar nav={nav} cfg={cfg} setCfg={setCfg} undo={undo} redo={redo}
           canUndo={canUndo} canRedo={canRedo}
           viewMode={viewMode} setViewMode={setViewMode} setHas3DLoaded={setHas3DLoaded}
-          showInspo={showInspo} setShowInspo={toggleInspo}
+          showInspo={showInspo} setShowInspo={openInspo}
           showShowcase={showShowcase} setShowShowcase={toggleShowcase} showcaseCount={showcaseCount}/>
 
         {/* ── DRAFT OFFER ── in the page flow under the bar, so it can never cover menus or stage controls */}
@@ -721,12 +726,11 @@ export default function DesignStudio() {
 
           {/* ── TOOL STRIP + PANEL DRAWER ── */}
           <ToolDrawer tool={tool} setTool={setTool} sheetOpen={sheetOpen} setSheetOpen={setSheetOpen} sheetFull={sheetFull} setSheetFull={setSheetFull}
-            history={{ undo, redo, canUndo, canRedo }}
             summary={{ cfg, face, saved, saving, saveErr, draftSaved, saveDesign, orderThis, ordering, onOpenTool: (id) => { setTool(id); setSheetOpen(true); }, downloadImage, downloadPdf, exporting, clearGarment }} cfg={cfg} setCfg={setCfg}
             activeZone={zone} setActiveZone={setActiveZone}
             addText={addText} addShape={addShape} updateSelected={updateSelected}
             assetsTab={assetsTab} setAssetsTab={setAssetsTab} logoUpload={logoUpload}
-            setShowInspo={toggleInspo} setShowShowcase={toggleShowcase}
+            setShowInspo={openInspo} setShowShowcase={toggleShowcase} onChangeGarment={changeGarment}
             brushSize={brushSize} brushColor={brushColor}
             changeBrushSize={changeBrushSize} changeBrushColor={changeBrushColor}
             applyAI={applyAI} layers={layers} selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected} alignSelected={alignSelected}
@@ -741,8 +745,10 @@ export default function DesignStudio() {
             selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected}
             viewMode={viewMode} has3DLoaded={has3DLoaded} onLogoFile={onLogoFile}
             zoom={zoom} setZoom={setZoom} snapshot={snapshot} overlays={overlays}
-            blank={<FirstRunGallery onPick={pickPhoto} onUpload={startUpload} onBrowseAll={() => toggleInspo(true)}
-              pendingArt={pendingArt} onCancelArt={() => setPendingArt(null)}/>} setViewMode={setViewMode}
+            blank={<GarmentPicker inline cfg={cfg} pieceRole={uset?.active ?? null} onPickPhoto={pickPhoto}
+              onPick3D={(d, f) => { keep3DRef.current = true; pickPhoto(d, f); setHas3DLoaded(true); setViewMode('3d'); }}
+              onPickFamily={(fam, category) => selectFamily(setCfg, fam, category)}
+              onUpload={startUpload} pendingArt={pendingArt} onCancelArt={() => setPendingArt(null)}/>} setViewMode={setViewMode}
             pieceBar={pieceBar} setCompanion={setCompanion} showSet={showSet} setShowSet={setShowSet} setSnapOptions={setSnapOptions}/>
         </div>
 
@@ -756,8 +762,8 @@ export default function DesignStudio() {
             style={{ position:'absolute', inset:0, zIndex:'var(--cx-z-modal)', background:'var(--cx-scrim)' }}/>
         )}
 
-        {/* ── INSPIRATION GALLERY OVERLAY ── */}
-        <InspoGallery showInspo={showInspo} setShowInspo={toggleInspo} setCfg={setCfg}
+        {/* ── GARMENT PICKER MODAL (Inspo / Change garment) ── */}
+        <InspoGallery showInspo={showInspo} setShowInspo={toggleInspo} setCfg={setCfg} tab={pickerTab} cfg={cfg} pieceRole={uset?.active ?? null}
           loadCanvasJSON={loadCanvasJSON} onOpen3D={() => { keep3DRef.current = true; setHas3DLoaded(true); setViewMode('3d'); }}/>
 
         {/* ── SHOWCASE GALLERY OVERLAY ── */}

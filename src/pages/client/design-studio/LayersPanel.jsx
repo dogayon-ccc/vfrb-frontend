@@ -39,15 +39,10 @@ export default function LayersPanel({ layers, selectedId, garment, onSelect, onT
 
   return (
     <div className="ds-lay">
-      <p className="ds-lay-count">Layers on this side · {layers.length}</p>
-
       {layers.length === 0 ? (
-        <div className="ds-empty">
-          <span className="ds-empty-icon"><NavIcon name="layersPanel" size={22} color="var(--teal-dark)"/></span>
-          <p className="ds-empty-title">No layers on this side yet</p>
-          <p className="ds-empty-sub">Logos, text, shapes and drawings you add show up here, where you can reorder, hide, lock or rename them.</p>
-        </div>
-      ) : (
+        <p className="ds-lay-empty">Layers: nothing on this side yet. Text, logos and shapes you add appear here.</p>
+      ) : (<>
+        <p className="ds-lay-count">Layers on this side · {layers.length}</p>
         <ul className="ds-lay-list" aria-label="Layers, front-most first">
           {layers.map((layer, i) => {
             const sel = layer.id === selectedId;
@@ -116,15 +111,14 @@ export default function LayersPanel({ layers, selectedId, garment, onSelect, onT
             );
           })}
         </ul>
-      )}
-
-      {garment && (
-        <div className="ds-lay-base" aria-label="Garment base layer">
-          <span className="ds-lay-type" aria-hidden="true"><NavIcon name="garmentType" size={14}/></span>
-          <span className="ds-lay-name">{garment}<em>{familyFor(garment) ? 'Base garment · colors set in Garment' : 'Base garment'}</em></span>
-          <NavIcon name="lock" size={13} color="var(--text-subtle)"/>
-        </div>
-      )}
+        {garment && (
+          <div className="ds-lay-base" aria-label="Garment base layer">
+            <span className="ds-lay-type" aria-hidden="true"><NavIcon name="garmentType" size={14}/></span>
+            <span className="ds-lay-name">Garment base<em>{familyFor(garment) ? 'Locked; colours are set in Garment' : 'Locked'}</em></span>
+            <NavIcon name="lock" size={13} color="var(--text-subtle)"/>
+          </div>
+        )}
+      </>)}
     </div>
   );
 }

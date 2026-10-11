@@ -35,7 +35,7 @@ export default function ColorsPanel({ cfg, setCfg, activeZone, setActiveZone }) 
             }}>
             <div style={{ width:12,height:12,borderRadius:3, background:cfg.colors[z]??'#028090',
               border:'1px solid rgba(15,23,42,.2)' }}/>
-            <span style={{ fontSize:10, color: activeZone===z ? T2 : 'rgba(15,23,42,.5)',
+            <span style={{ fontSize:11, color: activeZone===z ? 'var(--cx-thread-ink)' : 'var(--cx-ink-2)',
               fontWeight: activeZone===z ? 700 : 400 }}>
               {label(z)}
             </span>
@@ -76,10 +76,10 @@ export default function ColorsPanel({ cfg, setCfg, activeZone, setActiveZone }) 
               }}>
               <div style={{ width:22, height:22, borderRadius:6, flexShrink:0, background:cfg.colors[activeZone]??'#028090',
                 border:'1px solid rgba(15,23,42,.22)' }}/>
-              <span style={{ fontSize:11, color:'rgba(15,23,42,.6)', fontFamily:'monospace' }}>
+              <span style={{ fontSize:11, color:'var(--cx-ink-2)', fontFamily:'monospace' }}>
                 {cfg.colors[activeZone]??'#028090'}
               </span>
-              <span style={{ marginLeft:'auto', fontSize:9, color:'rgba(15,23,42,.3)' }}>
+              <span style={{ marginLeft:'auto', fontSize:11, color:'var(--cx-ink-2)' }}>
                 {pickerOpen ? '▲' : '▼'}
               </span>
             </button>
@@ -96,7 +96,7 @@ export default function ColorsPanel({ cfg, setCfg, activeZone, setActiveZone }) 
           {activeZone === 'tipping' && (
             <button onClick={() => setColor('tipping', null)}
               style={{ marginTop:10, background:'none', border:'none', cursor:'pointer',
-                fontSize:10, color:'rgba(15,23,42,.35)', textDecoration:'underline' }}>
+                fontSize:11, color:'rgba(15,23,42,.35)', textDecoration:'underline' }}>
               Turn off tipping
             </button>
           )}

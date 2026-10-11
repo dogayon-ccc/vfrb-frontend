@@ -311,21 +311,13 @@ export default function CanvasViewport({
       {/* Both panes stay mounted and only toggle visibility, so Fabric and WebGL keep their state; show2D also covers
           viewMode==='3d' before the 3D pane exists, so the workspace is never blank. Rulers are pinned outside the scaled wrapper. */}
       {rulersOn && view && <PinnedRulers view={view} w={canvasSize.w} h={canvasSize.h}/>}
-      <div ref={paneRef} className="ds-pane" data-pan={canPan ? '1' : undefined}
+      <div ref={paneRef} className="ds-pane" data-pan={canPan ? '1' : undefined} data-sel={selObj ? '1' : undefined}
         onPointerDownCapture={onPaneDownCapture} onPointerMove={movePan} onPointerUp={endPan} onPointerCancel={endPan} style={{
           display:'flex', alignItems:'center', justifyContent:'center',
           visibility: show2D ? 'visible' : 'hidden',
           pointerEvents: show2D ? 'auto' : 'none',
           zIndex: show2D ? 1 : 0,
         }}>
-        <AnimatePresence mode="wait" initial={false}>
-          {cfg.garment && (
-            <motion.div key={`${cfg.garment}-${face}`} className="ds-ctx-chip" aria-live="polite"
-              initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} transition={{ duration:.2 }}>
-              <strong>{cfg.garment}</strong><span>{face === 'front' ? 'Front view' : 'Back view'}</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
         {pieceBar && <div className="ds-set-wrap">{pieceBar}</div>}
         <div className="ds-stage-ctl">
           {cfg.garment && viewMode !== '3d' && (
@@ -352,7 +344,6 @@ export default function CanvasViewport({
               </button>
             </div>
           )}
-          {stageBtn}
         </div>
 
         {/* Pan tool / Space held: a layer over the artboard takes the drag so Fabric never starts a selection or a move. */}
@@ -387,24 +378,6 @@ export default function CanvasViewport({
         {/* First run: the gallery takes the stage. It lives outside the zoom-scaled wrapper so its text stays readable. */}
         {!cfg.garment && !initFailed && blank}
 
-        {cfg.garment && (
-          <div className="ds-bottombar" role="group" aria-label="Zoom and garment side">
-            <div className="ds-zoom" role="group" aria-label="Zoom">
-              <button type="button" aria-label="Zoom out" onClick={()=>setZoom(z=>Math.max(ZOOM_MIN, +(z-0.15).toFixed(2)))}><Minus size={16} aria-hidden="true"/></button>
-              <button type="button" aria-label="Reset zoom" title="Reset zoom" onClick={()=>setZoom(1)}>{Math.round(zoom*fit*100)}%</button>
-              <button type="button" aria-label="Zoom in" onClick={()=>setZoom(z=>Math.min(ZOOM_MAX, +(z+0.15).toFixed(2)))}><Plus size={16} aria-hidden="true"/></button>
-            </div>
-            <div className="ds-face" role="group" aria-label="Garment side">
-              {['front','back'].map(v=>(
-                <button key={v} type="button" aria-pressed={face===v} onClick={()=>switchFace(v)}
-                  disabled={v === 'back' && !backOk} title={v === 'back' && !backOk ? 'No back photo for this garment yet' : undefined}>
-                  {face === v && <motion.span layoutId="ds-face-pill" className="ds-face-pill" aria-hidden="true" transition={{ duration:.2, ease:[.22, 1, .36, 1] }}/>}
-                  <span>{v === 'front' ? 'Front' : 'Back'}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
 
         <AnimatePresence>
           {selObj && at && show2D && <FloatingToolbar key="ftb" selObj={selObj} at={at} duplicateSelected={duplicateSelected} deleteSelected={deleteSelected}/>}
@@ -462,6 +435,35 @@ export default function CanvasViewport({
           </div>
         </div>
       )}
+      {/* The garment's name, once, on the stage (2D and 3D) */}
+      <AnimatePresence mode="wait" initial={false}>
+        {cfg.garment && (
+          <motion.div key={cfg.garment} className="ds-ctx-chip" aria-live="polite"
+            initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} transition={{ duration:.2 }}>
+            <strong>{cfg.garment}</strong>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* One bottom bar: zoom and Front/Back once a garment exists, and the stage light always */}
+      <div className="ds-bottombar" role="group" aria-label="Stage controls">
+        {cfg.garment && show2D && (<>
+          <div className="ds-zoom" role="group" aria-label="Zoom">
+            <button type="button" aria-label="Zoom out" onClick={()=>setZoom(z=>Math.max(ZOOM_MIN, +(z-0.15).toFixed(2)))}><Minus size={16} aria-hidden="true"/></button>
+            <button type="button" aria-label="Reset zoom" title="Reset zoom" onClick={()=>setZoom(1)}>{Math.round(zoom*fit*100)}%</button>
+            <button type="button" aria-label="Zoom in" onClick={()=>setZoom(z=>Math.min(ZOOM_MAX, +(z+0.15).toFixed(2)))}><Plus size={16} aria-hidden="true"/></button>
+          </div>
+          <div className="ds-face" role="group" aria-label="Garment side">
+            {['front','back'].map(v=>(
+              <button key={v} type="button" aria-pressed={face===v} onClick={()=>switchFace(v)}
+                disabled={v === 'back' && !backOk} title={v === 'back' && !backOk ? 'No back photo for this garment yet' : undefined}>
+                {face === v && <motion.span layoutId="ds-face-pill" className="ds-face-pill" aria-hidden="true" transition={{ duration:.2, ease:[.22, 1, .36, 1] }}/>}
+                <span>{v === 'front' ? 'Front' : 'Back'}</span>
+              </button>
+            ))}
+          </div>
+        </>)}
+        {stageBtn}
+      </div>
     </div>
   );
 }
