@@ -66,7 +66,7 @@ function PinnedRulers({ view, w, h }) {
 
 const Scene3D = lazy(() => import('../DesignStudio3D'));
 
-// Fit the artboard so the garment fills ~65% of the stage height (width permitting), centred. The artboard holds the garment
+// Fit the artboard so the garment fills ~65% of the fit area between the stage lanes (width permitting), centred. The artboard holds the garment
 // with a margin, so GARMENT_SHARE converts garment height to artboard height; MAX_FIT keeps the raster canvas crisp.
 const STAGE_FILL = 0.65, GARMENT_SHARE = 0.9, MAX_FIT = 2;
 function useFit(paneRef, wrapRef) {
@@ -310,24 +310,29 @@ export default function CanvasViewport({
     </button>
   );
 
+  // 3D honesty notes, said in the top lane (never over the model).
+  const notes3D = viewMode === '3d' ? [
+    !webglOk && { id: 'nogl', text: '3D preview is not available on this device. Showing the 2D design.' },
+    ...(show3D && cfg.garment ? (() => {
+      const status = familyFor(cfg.garment)?.status3D;
+      const info = status && status !== 'supported' ? STATUS_3D_LABEL[status] : null;
+      const approx = GALLERY.find(d => d.id === cfg.inspirationId)?.familyApprox3D;
+      const label = status === 'none' ? null : approx ? `3D shows the generic ${cfg.garment} model, not the photo` : info?.label;
+      const c3 = get3DCapabilities(cfg.garment, cfg.fit, cfg.sleeve);
+      return [label && { id: 'approx', text: label, warn: true }, overlays?.length > 0 && c3.supported && !(c3.logo && c3.text) && { id: 'decals', text: 'Logos and text are 2D only on this model' }];
+    })() : []),
+  ].filter(Boolean) : [];
+
   return (
     <div className="ds-cv" data-stage={dark ? 'dark' : undefined} data-rulers={rulersOn ? '1' : undefined} data-first={!cfg.garment ? '1' : undefined}
       onDragOver={e=>e.preventDefault()}
       onDrop={onDrop}>
 
-      {/* Both panes stay mounted and only toggle visibility, so Fabric and WebGL keep their state; show2D also covers
-          viewMode==='3d' before the 3D pane exists, so the workspace is never blank. Rulers are pinned outside the scaled wrapper. */}
-      {rulersOn && view && <PinnedRulers view={view} w={canvasSize.w} h={canvasSize.h}/>}
-      <div ref={paneRef} className="ds-pane" data-pan={canPan ? '1' : undefined} data-sel={selObj ? '1' : undefined}
-        onPointerDownCapture={onPaneDownCapture} onPointerMove={movePan} onPointerUp={endPan} onPointerCancel={endPan} style={{
-          display:'flex', alignItems:'center', justifyContent:'center',
-          visibility: show2D ? 'visible' : 'hidden',
-          pointerEvents: show2D ? 'auto' : 'none',
-          zIndex: show2D ? 1 : 0,
-        }}>
-        {pieceBar && <div className="ds-set-wrap">{pieceBar}</div>}
-        <div className="ds-stage-ctl">
-          {cfg.garment && viewMode !== '3d' && (
+      {/* Lane contract: chips, the set bar, guides and 3D notes sit in the top lane and stage controls in the bottom lane; the garment
+          is fitted into the area between them, so nothing on the stage overlays it (only the selection toolbar, inside that area). */}
+      {cfg.garment && (
+        <div className="ds-lane ds-lane-top">
+          {show2D && !initFailed && (
             <div className="ds-guides" role="group" aria-label="Guides">
               <button type="button" aria-pressed={guides.grid} aria-label="Grid and rulers" title="Show grid and rulers (canvas units)" onClick={() => setGuides(g => ({ ...g, grid: !g.grid }))}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M3 3h18v18H3zM9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
@@ -351,126 +356,124 @@ export default function CanvasViewport({
               </button>
             </div>
           )}
-        </div>
-
-        {/* Pan tool / Space held: a layer over the artboard takes the drag so Fabric never starts a selection or a move. */}
-        {canPan && (hand || space) && (
-          <div className="ds-pan-layer" aria-hidden="true" onPointerDown={startPan} onPointerMove={movePan} onPointerUp={endPan} onPointerCancel={endPan}/>
-        )}
-        {/* No transform transition: rulers are computed from the same zoom and pan, so an animated canvas would drift from them. */}
-        <div ref={canvasWrapRef} className="ds-artboard" data-fading={faceFading ? '1' : undefined} data-empty={!cfg.garment ? '1' : undefined} style={{
-            position:'relative', transform:`translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
-          }}>
-          {initFailed ? (
-            // A failed 2D init (e.g. a stale cached 'fabric' chunk) is never silent: say so and offer a reload.
-            <div style={{ width:320,height:320,display:'flex',flexDirection:'column',
-              alignItems:'center',justifyContent:'center',gap:12,textAlign:'center',padding:24 }}>
-              <NavIcon name="warning" size={32} color="var(--cx-stage-ink-2)"/>
-              <p style={{ color:'var(--cx-stage-ink-2)',fontSize:12,lineHeight:1.6 }}>
-                The design canvas failed to load.<br/>This is usually a stale cached
-                version — reloading the page fixes it.
-              </p>
-              <button type="button" onClick={()=>window.location.reload()} className="ds-btn ds-btn--primary">Reload</button>
-            </div>
-          ) : (
-            <>
-              <canvas ref={canvasEl} style={{ display:'block' }}/>
-              {guides.grid && cfg.garment && canvasSize.w > 0 && <Grid w={canvasSize.w} h={canvasSize.h} size={guides.size} scale={scale}/>}
-              {aiPulse && <div className="ai-pulse"/>}
-              {cfg.garment && <div className="ds-stage-floor" aria-hidden="true"/>}
-            </>
-          )}
-        </div>
-
-        {/* First run: the gallery takes the stage. It lives outside the zoom-scaled wrapper so its text stays readable. */}
-        {!cfg.garment && !initFailed && blank}
-
-
-        <AnimatePresence>
-          {selObj && at && show2D && <FloatingToolbar key="ftb" selObj={selObj} at={at} duplicateSelected={duplicateSelected} deleteSelected={deleteSelected}/>}
-        </AnimatePresence>
-      </div>
-
-      {viewMode==='3d' && !webglOk && (
-        <div role="status" className="ds-stage-note" style={{ top:14, left:14 }}>3D preview is not available on this device. Showing the 2D design.</div>
-      )}
-
-      {show3D && (
-        <div className="ds-pane" style={{
-            visibility: viewMode==='3d' ? 'visible' : 'hidden',
-            pointerEvents: viewMode==='3d' ? 'auto' : 'none',
-            zIndex: viewMode==='3d' ? 1 : 0,
-          }}>
-          <ThreeEB>
-            <Suspense fallback={
-              <div style={{ width:'100%',height:'100%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10 }}>
-                <span className="ds-spin" style={{ width:32, height:32, borderWidth:3 }} aria-hidden="true"/>
-                <p style={{ color:'var(--cx-stage-ink-2)',fontSize:12 }}>Loading 3D engine…</p>
-              </div>
-            }>
-              <Scene3D cfg={cfg} overlayDataUrl={snapshot} overlays={overlays} onContextLost={on3DLost}
-                companion={showSet ? setCompanion?.cfg ?? null : null} companionRole={setCompanion?.role ?? null}/>
-            </Suspense>
-          </ThreeEB>
+          {/* The garment's name, once, on the stage (2D and 3D) */}
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div key={cfg.garment} className="ds-ctx-chip" aria-live="polite"
+              initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} transition={{ duration:.2 }}>
+              <strong>{cfg.garment}</strong>{!photo && <span className="ds-sketch" title="A flat VFRB template drawing; no photo base exists for this garment, sleeve and fit">Sketch</span>}
+            </motion.div>
+          </AnimatePresence>
+          {pieceBar && <div className="ds-set-wrap">{pieceBar}</div>}
           {/* Uniform set: both pieces have their own 3D model, so the pair can be previewed together (each keeps its own garment and colours). */}
-          {setCompanion && viewMode === '3d' && (
-            <div className="ds-seg ds-seg--sm" role="radiogroup" aria-label="3D preview scope" style={{ position:'absolute', top:14, right:14, zIndex:'var(--cx-z-stage)' }}>
+          {setCompanion && viewMode === '3d' && show3D && (
+            <div className="ds-seg ds-seg--sm" role="radiogroup" aria-label="3D preview scope">
               <button type="button" role="radio" aria-checked={!showSet} onClick={() => setShowSet(false)}>This piece</button>
               <button type="button" role="radio" aria-checked={showSet} onClick={() => setShowSet(true)}>Whole set</button>
             </div>
           )}
-          {!cfg.garment && (
-            <p className="ds-stage-text" style={{ position:'absolute', top:'46%', left:0, right:0, textAlign:'center', pointerEvents:'none' }}>
-              Pick a garment to see it in 3D.
-            </p>
+          {notes3D.map(n => <div key={n.id} role="status" className="ds-stage-note" data-tone={n.warn ? 'warn' : undefined}>{n.text}</div>)}
+        </div>
+      )}
+
+      <div className="ds-stage-fit">
+        {/* Both panes stay mounted and only toggle visibility, so Fabric and WebGL keep their state; show2D also covers
+            viewMode==='3d' before the 3D pane exists, so the workspace is never blank. Rulers are pinned outside the scaled wrapper. */}
+        {rulersOn && view && <PinnedRulers view={view} w={canvasSize.w} h={canvasSize.h}/>}
+        <div ref={paneRef} className="ds-pane" data-pan={canPan ? '1' : undefined} data-sel={selObj ? '1' : undefined}
+          onPointerDownCapture={onPaneDownCapture} onPointerMove={movePan} onPointerUp={endPan} onPointerCancel={endPan} style={{
+            display:'flex', alignItems:'center', justifyContent:'center',
+            visibility: show2D ? 'visible' : 'hidden',
+            pointerEvents: show2D ? 'auto' : 'none',
+            zIndex: show2D ? 1 : 0,
+          }}>
+          {/* Pan tool / Space held: a layer over the artboard takes the drag so Fabric never starts a selection or a move. */}
+          {canPan && (hand || space) && (
+            <div className="ds-pan-layer" aria-hidden="true" onPointerDown={startPan} onPointerMove={movePan} onPointerUp={endPan} onPointerCancel={endPan}/>
           )}
-          {/* Honesty label: generic or approximate 3D is said in the 3D pane itself, not only at selection time. */}
-          {cfg.garment && (() => {
-            const fam = familyFor(cfg.garment);
-            const status = fam?.status3D;
-            const info = status && status !== 'supported' ? STATUS_3D_LABEL[status] : null;
-            const approx = GALLERY.find(d => d.id === cfg.inspirationId)?.familyApprox3D;
-            const label = status === 'none' ? null : approx ? `3D shows the generic ${cfg.garment} model, not the photo` : info?.label;
-            return label ? <div className="ds-stage-note" data-tone={status === 'none' ? undefined : 'warn'} style={{ top:14, left:14 }}>{label}</div> : null;
-          })()}
-          {cfg.garment && overlays?.length > 0 && (() => {
-            const cap = get3DCapabilities(cfg.garment, cfg.fit, cfg.sleeve);
-            return cap.supported && !(cap.logo && cap.text) ? <div className="ds-stage-note" style={{ top:48, left:14 }}>Logos and text are 2D only on this model</div> : null;
-          })()}
-          <div className="ds-stage-note ds-stage-hint">
-            <NavIcon name="cursor" size={11}/> Drag to rotate, pinch or scroll to zoom
+          {/* No transform transition: rulers are computed from the same zoom and pan, so an animated canvas would drift from them. */}
+          <div ref={canvasWrapRef} className="ds-artboard" data-fading={faceFading ? '1' : undefined} data-empty={!cfg.garment ? '1' : undefined} style={{
+              position:'relative', transform:`translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
+            }}>
+            {initFailed ? (
+              // A failed 2D init (e.g. a stale cached 'fabric' chunk) is never silent: say so and offer a reload.
+              <div style={{ width:320,height:320,display:'flex',flexDirection:'column',
+                alignItems:'center',justifyContent:'center',gap:12,textAlign:'center',padding:24 }}>
+                <NavIcon name="warning" size={32} color="var(--cx-stage-ink-2)"/>
+                <p style={{ color:'var(--cx-stage-ink-2)',fontSize:12,lineHeight:1.6 }}>
+                  The design canvas failed to load.<br/>This is usually a stale cached
+                  version — reloading the page fixes it.
+                </p>
+                <button type="button" onClick={()=>window.location.reload()} className="ds-btn ds-btn--primary">Reload</button>
+              </div>
+            ) : (
+              <>
+                <canvas ref={canvasEl} style={{ display:'block' }}/>
+                {guides.grid && cfg.garment && canvasSize.w > 0 && <Grid w={canvasSize.w} h={canvasSize.h} size={guides.size} scale={scale}/>}
+                {aiPulse && <div className="ai-pulse"/>}
+                {cfg.garment && <div className="ds-stage-floor" aria-hidden="true"/>}
+              </>
+            )}
+          </div>
+
+          {/* First run: the gallery takes the stage. It lives outside the zoom-scaled wrapper so its text stays readable. */}
+          {!cfg.garment && !initFailed && blank}
+
+          <AnimatePresence>
+            {selObj && at && show2D && <FloatingToolbar key="ftb" selObj={selObj} at={at} duplicateSelected={duplicateSelected} deleteSelected={deleteSelected}/>}
+          </AnimatePresence>
+        </div>
+
+        {show3D && (
+          <div className="ds-pane" style={{
+              visibility: viewMode==='3d' ? 'visible' : 'hidden',
+              pointerEvents: viewMode==='3d' ? 'auto' : 'none',
+              zIndex: viewMode==='3d' ? 1 : 0,
+            }}>
+            <ThreeEB>
+              <Suspense fallback={
+                <div style={{ width:'100%',height:'100%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10 }}>
+                  <span className="ds-spin" style={{ width:32, height:32, borderWidth:3 }} aria-hidden="true"/>
+                  <p style={{ color:'var(--cx-stage-ink-2)',fontSize:12 }}>Loading 3D engine…</p>
+                </div>
+              }>
+                <Scene3D cfg={cfg} overlayDataUrl={snapshot} overlays={overlays} onContextLost={on3DLost}
+                  companion={showSet ? setCompanion?.cfg ?? null : null} companionRole={setCompanion?.role ?? null}/>
+              </Suspense>
+            </ThreeEB>
+            {!cfg.garment && (
+              <p className="ds-stage-text" style={{ position:'absolute', top:'46%', left:0, right:0, textAlign:'center', pointerEvents:'none' }}>
+                Pick a garment to see it in 3D.
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Bottom lane: zoom and Front/Back (2D) or the rotate hint (3D), plus the stage light; none while the first-run picker is up */}
+      {cfg.garment && (
+        <div className="ds-lane ds-lane-bottom">
+          {!show2D && <p className="ds-stage-hint"><NavIcon name="cursor" size={11}/> Drag to rotate, pinch or scroll to zoom</p>}
+          <div className="ds-bottombar" role="group" aria-label="Stage controls">
+            {show2D && (<>
+              <div className="ds-zoom" role="group" aria-label="Zoom">
+                <button type="button" aria-label="Zoom out" onClick={()=>setZoom(z=>Math.max(ZOOM_MIN, +(z-0.15).toFixed(2)))}><Minus size={16} aria-hidden="true"/></button>
+                <button type="button" aria-label="Reset zoom" title={photo ? 'Reset zoom (a photo base never goes above its full resolution)' : 'Reset zoom'} onClick={()=>setZoom(1)}>{Math.round(scale*100)}%</button>
+                <button type="button" aria-label="Zoom in" disabled={atCap} title={atCap ? 'Full photo resolution: zooming further would blur it' : undefined} onClick={()=>setZoom(z=>Math.min(ZOOM_MAX, +(z+0.15).toFixed(2)))}><Plus size={16} aria-hidden="true"/></button>
+              </div>
+              <div className="ds-face" role="group" aria-label="Garment side">
+                {['front','back'].map(v=>(
+                  <button key={v} type="button" aria-pressed={face===v} onClick={()=>switchFace(v)}
+                    disabled={v === 'back' && !backOk} title={v === 'back' && !backOk ? 'No back photo for this garment yet' : undefined}>
+                    {face === v && <motion.span layoutId="ds-face-pill" className="ds-face-pill" aria-hidden="true" transition={{ duration:.2, ease:[.22, 1, .36, 1] }}/>}
+                    <span>{v === 'front' ? 'Front' : 'Back'}</span>
+                  </button>
+                ))}
+              </div>
+            </>)}
+            {stageBtn}
           </div>
         </div>
       )}
-      {/* The garment's name, once, on the stage (2D and 3D) */}
-      <AnimatePresence mode="wait" initial={false}>
-        {cfg.garment && (
-          <motion.div key={cfg.garment} className="ds-ctx-chip" aria-live="polite"
-            initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} transition={{ duration:.2 }}>
-            <strong>{cfg.garment}</strong>{!photo && <span className="ds-sketch" title="A flat VFRB template drawing; no photo base exists for this garment, sleeve and fit">Sketch</span>}
-          </motion.div>
-        )}
-      </AnimatePresence>
-      {/* One bottom bar: zoom and Front/Back once a garment exists, and the stage light always */}
-      <div className="ds-bottombar" role="group" aria-label="Stage controls">
-        {cfg.garment && show2D && (<>
-          <div className="ds-zoom" role="group" aria-label="Zoom">
-            <button type="button" aria-label="Zoom out" onClick={()=>setZoom(z=>Math.max(ZOOM_MIN, +(z-0.15).toFixed(2)))}><Minus size={16} aria-hidden="true"/></button>
-            <button type="button" aria-label="Reset zoom" title={photo ? 'Reset zoom (a photo base never goes above its full resolution)' : 'Reset zoom'} onClick={()=>setZoom(1)}>{Math.round(scale*100)}%</button>
-            <button type="button" aria-label="Zoom in" disabled={atCap} title={atCap ? 'Full photo resolution: zooming further would blur it' : undefined} onClick={()=>setZoom(z=>Math.min(ZOOM_MAX, +(z+0.15).toFixed(2)))}><Plus size={16} aria-hidden="true"/></button>
-          </div>
-          <div className="ds-face" role="group" aria-label="Garment side">
-            {['front','back'].map(v=>(
-              <button key={v} type="button" aria-pressed={face===v} onClick={()=>switchFace(v)}
-                disabled={v === 'back' && !backOk} title={v === 'back' && !backOk ? 'No back photo for this garment yet' : undefined}>
-                {face === v && <motion.span layoutId="ds-face-pill" className="ds-face-pill" aria-hidden="true" transition={{ duration:.2, ease:[.22, 1, .36, 1] }}/>}
-                <span>{v === 'front' ? 'Front' : 'Back'}</span>
-              </button>
-            ))}
-          </div>
-        </>)}
-        {stageBtn}
-      </div>
     </div>
   );
 }

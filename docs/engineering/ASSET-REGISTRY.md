@@ -23,7 +23,6 @@ Files on disk: 130 · referenced paths: 96 · missing: 0 · unreferenced: 34 (un
 | work-shirt | approximate-3d | unisex: /models/processed/work-shirt-short-sleeve-capped.glb | short sleeve only; small scan-cut irregularities remain at the side and hem; front collar leaf points sit below the collar zone and take the body colour; no arbitrary fabric-texture upload |
 | pants | approximate-3d | unisex: /models/vfrb-staged/pants.glb | one body colour: waistband, belt loops, pockets and the button are modelled shapes, not separately colourable parts; no text or logos in 3D (overlay placement is unverified on trousers); straight-leg cut only (the model of the Dress Slacks photo); no arbitrary fabric-texture upload |
 | shorts | approximate-3d | unisex: /models/vfrb-staged/shorts.glb | one body colour: waistband, button, pleats and pockets are modelled shapes, not separately colourable parts; no text or logos in 3D; pleated school-shorts cut only (the model of the School Shorts photo); fine fabric wrinkles are baked into the geometry; no arbitrary fabric-texture upload |
-| skirt | approximate-3d | unisex: /models/processed/skirt-pencil.glb | low-poly (1.3k vertices) pencil skirt; waist and hem are straight clips of the scan (no waistband detail) |
 | scrub-top | approximate-3d | female: /models/garments/scrub-top-women-short.glb; male: /models/garments/scrub-top-men-short.glb | one body colour only: the fused scan has no separate collar, sleeve or trim parts; no text, logos or patterns in 3D (the 2D photo base has none either); short sleeve only; fused scan surface: fine seams and wrinkles are baked into the geometry |
 | mandarin-tunic | approximate-3d | female: /models/garments/mandarin-tunic-housekeeping.glb | one body colour only: the fused scan has no separate collar band, cuff or button parts, so the 2D trim colour is not shown in 3D; no text, logos or patterns in 3D; short sleeve only (the long-sleeve BIR blouse base has no 3D model); fused scan surface: fine seams and wrinkles are baked into the geometry |
 | round-neck-fuchsia | approximate-3d | female: /models/garments/round-neck-fuchsia-short.glb | one body colour only: the fused scan has no separate collar, sleeve or trim parts; no text, logos or patterns in 3D (the 2D photo base has none either); short sleeve only (no long-sleeve base exists); trousers were cut off at the blouse hem; a small waist tab and the scan's fine wrinkles are baked into the geometry |
@@ -43,16 +42,16 @@ Files on disk: 130 · referenced paths: 96 · missing: 0 · unreferenced: 34 (un
 | collarless-blazer-short | approximate-3d | female: /models/vfrb-staged/collarless-blazer-short.glb | one body colour: lapels, collar, sleeves, buttons and pockets are modelled shapes, not separately colourable parts; no text or logos in 3D; collarless, one-button short-sleeve cut with welt pockets (the model of the royal pinstripe blazer photo); the pinstripe is not modelled; no arbitrary fabric-texture upload |
 
 ## 3D coverage by kind
-- Editable single-garment 3D models (Studio, Order Wizard, Order Detail): 26 files in 23 entries (table above).
+- Editable single-garment 3D models (Studio, Order Wizard, Order Detail): 25 files in 22 entries (table above).
 - Working read-only full-set previews (gallery "View the set in 3D"): 14 (scrub-set-women-vneck, scrub-set-men-vneck, scrub-set-housekeeping, set-pinstripe-pants, set-pinstripe-skirt, bir-blouse-trousers-blue, pantsuit-notch-short-gray, polo-barong-brown, blazer-double-breasted-gray, blazer-pinstripe-navy, blouse-roundneck-fuchsia, blouse-roundneck-mustard, shirt-two-tone-gpc, peplum-set-navy).
 - Working read-only single-garment references (gallery "View in 3D"): 9 (blouse-mandarin-yellow, blouse-pleated-bib-white, blouse-scarf-cream, blouse-asymmetric-blue, blouse-tunic-roundneck-blue, blazer-open-front-black, dress-tunic-maternity-navy, jack-shirt-two-tone, dress-butter-belted).
 - Reference files with no viewer connection: none (every file in `/models/reference/` is mapped to its gallery photo).
 
 ### Gallery photos by 3D kind
 - Photo-matched single-garment GLB (editable, the model was made from that photo or its exact cut): 17.
-- Family-level approximation, labelled (editable 2D; the Studio 3D is the family model, not the photo): 1 (corporate-skirt).
+- Family-level approximation, labelled (editable 2D; the Studio 3D is the family model, not the photo): 0 ().
 - Editable 2D, family model withheld because it is a different garment (Studio 3D off for designs from this photo): 1 (blouse-tunic-roundneck-blue).
-- Editable 2D without a compatible GLB: 0.
+- Editable 2D without a compatible GLB: 1.
 - Read-only full-set previews: 14 (5 of them also open their cut garment for editing).
 - Reference-only photos (no editor): 21 (17 with a read-only 3D viewer, 4 photo only).
 - Duplicates and rejected staging sources: see `GLB-STAGING-AUDIT.md` (dress-sheath-denim-blue duplicate; corporate-skirt, dress-shift-geometric, women-pinstripe-vest-blouse rejected).

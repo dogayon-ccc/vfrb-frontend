@@ -46,8 +46,9 @@ function partMaterial(color, part, map = null) {
   if (part.unlit) return new THREE.MeshBasicMaterial({ color, side: THREE.FrontSide });
   if (part.plain) return new THREE.MeshStandardMaterial({ color, roughness: part.roughness ?? 0.4, metalness: part.metalness ?? 0, side: THREE.DoubleSide });
   return new THREE.MeshPhysicalMaterial({
-    color, roughness: part.roughness ?? 0.88, metalness: 0,
-    sheen: 0.4, sheenRoughness: 0.6, sheenColor: new THREE.Color(color).lerp(new THREE.Color('#ffffff'), 0.2),
+    // Matte cloth: low specular and a sheen in the cloth's own colour, so dark and saturated colours are not veiled grey (calibrated in DesignStudio3D LIGHT).
+    color, roughness: part.roughness ?? 0.88, metalness: 0, specularIntensity: 0.2,
+    sheen: 0.4, sheenRoughness: 0.6, sheenColor: new THREE.Color(color),
     // No UVs (zone-mask path) means no normal map.
     map, normalMap: part.zoneOf ? null : (map ? tiledGrainNormal(map.image.width) : grainNormal()),
     normalScale: new THREE.Vector2(0.35, 0.35), side: THREE.DoubleSide,

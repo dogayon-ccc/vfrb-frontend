@@ -84,8 +84,10 @@ export function patchZoneMaterial(material, uniforms) {
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvZoneMask = zoneMask;\nvZonePos = position;');
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>\n${DECL}`)
-      .replace('#include <color_fragment>', `#include <color_fragment>\n${MAIN}`);
+      .replace('#include <color_fragment>', `#include <color_fragment>\n${MAIN}`)
+      // The material is built white, so its sheen takes the zone colour; a white sheen veiled dark and saturated colours grey.
+      .replace('#include <lights_physical_fragment>', '#include <lights_physical_fragment>\n#ifdef USE_SHEEN\nmaterial.sheenColor *= diffuseColor.rgb;\n#endif');
   };
-  material.customProgramCacheKey = () => 'vfrb-zone-mask-v1';
+  material.customProgramCacheKey = () => 'vfrb-zone-mask-v2';
   return material;
 }

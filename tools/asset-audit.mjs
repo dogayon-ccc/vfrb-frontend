@@ -13,6 +13,7 @@ export const UNREFERENCED_OK = {
   '/models/lab-coverall.glb': 'Listed in UNSUPPORTED_3D_MODELS (fused human figure, single mesh, no materials/UVs); kept as source, never rendered.',
   '/models/processed/work-shirt-short-sleeve.glb': 'Output of tools/glb-extract/build_processed.py and the input of cap_open_boundaries.py; the studio renders the capped copy.',
   '/models/processed/pants-trousers.glb': 'Superseded for Pants by /models/vfrb-staged/pants.glb (garment-only model of the gallery pants photo); kept as the output of tools/glb-extract/build_processed.py.',
+  '/models/processed/skirt-pencil.glb': 'Listed in STAND_IN_3D_MODELS (garmentCapabilities.js): a low-poly cut of the peplum dress figure, not a skirt of ours, so Skirt is 2D only; kept as the output of tools/glb-extract/build_processed.py.',
   '/models/processed/shorts-textured.glb': 'Superseded for Shorts by /models/vfrb-staged/shorts.glb (garment-only model of the gallery shorts photo); kept as the output of tools/glb-extract/build_processed.py.',
 };
 

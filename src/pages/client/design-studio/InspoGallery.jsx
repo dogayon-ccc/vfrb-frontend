@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
-import { NavIcon } from '../../../components/ui/icons';
 import { BASE_PATHS } from './garmentPaths';
 import { openTarget } from './designGallery';
 import { applyGarment } from './garmentCatalog';
@@ -99,7 +98,7 @@ function Tile({ label, sub, thumb, onClick, editable, onRename, onDelete, onSubm
   );
 }
 
-// The picker modal: past designs, then the one GarmentPicker, opened on Inspiration (Inspo button) or Templates (Change garment).
+// The picker modal: the one GarmentPicker (past designs under its header), opened on Inspiration (empty canvas) or Templates (Change garment).
 export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanvasJSON, onOpen3D, tab = 'inspiration', cfg, pieceRole = null }) {
   const [archived, setArchived] = useState([]);
 
@@ -154,29 +153,28 @@ export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanv
           initial={{ opacity:0, y:-10 }}
           animate={{ opacity:1, y:0, transition:{ duration:.2, ease:'easeOut' } }}
           exit={{   opacity:0, y:-10, transition:{ duration:.15 } }}
-          className="ds-modal" role="dialog" aria-label="Choose a garment" style={{ x:'-50%' }}>
-          <button type="button" className="ds-pick-close" aria-label="Close" onClick={() => setShowInspo(false)}><NavIcon name="close" size={18}/></button>
-          {archived.length > 0 && (
-            <>
-              <h3 className="ds-pick-sec">Your past designs</h3>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(150px,1fr))', gap:10, marginBottom:18 }}>
-                {archived.map(d => (
-                  <Tile key={`d-${d.id}`} label={d.label} sub={d.garment} editable
-                    onClick={() => loadArchived(d)}
-                    onRename={(newLabel) => renameDesign(d.id, newLabel)}
-                    onDelete={() => deleteDesign(d.id)}
-                    onSubmitShowcase={() => submitShowcase(d.id)}
-                    showcaseStatus={d.showcase_status}
-                    thumb={d.photo_path
-                      ? <img src={d.photo_path} alt={d.label} width="54" height="66"
-                          style={{ objectFit:'contain', borderRadius:6 }}/>
-                      : <span className="ds-sketch-wrap"><MiniPreview garment={d.config.garment} colors={d.config.colors ?? {}}/><span className="ds-sketch">Sketch</span></span>}/>
-                ))}
+          className="ds-modal" role="dialog" aria-labelledby="ds-pick-h" style={{ x:'-50%' }}>
+          {/* The picker owns the sticky header (title, close) and action footer; past designs sit under its header. */}
+          <GarmentPicker key={tab} tab={tab} cfg={cfg} pieceRole={pieceRole} onPickPhoto={loadDesign} onPick3D={loadDesign3D} onPickFamily={loadFamily}
+            onClose={() => setShowInspo(false)} extra={archived.length > 0 && (
+              <div className="ds-pick-past">
+                <h3 className="ds-pick-sec">Your past designs</h3>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(150px,1fr))', gap:10 }}>
+                  {archived.map(d => (
+                    <Tile key={`d-${d.id}`} label={d.label} sub={d.garment} editable
+                      onClick={() => loadArchived(d)}
+                      onRename={(newLabel) => renameDesign(d.id, newLabel)}
+                      onDelete={() => deleteDesign(d.id)}
+                      onSubmitShowcase={() => submitShowcase(d.id)}
+                      showcaseStatus={d.showcase_status}
+                      thumb={d.photo_path
+                        ? <img src={d.photo_path} alt={d.label} width="54" height="66"
+                            style={{ objectFit:'contain', borderRadius:6 }}/>
+                        : <span className="ds-sketch-wrap"><MiniPreview garment={d.config.garment} colors={d.config.colors ?? {}}/><span className="ds-sketch">Sketch</span></span>}/>
+                  ))}
+                </div>
               </div>
-            </>
-          )}
-
-          <GarmentPicker key={tab} tab={tab} cfg={cfg} pieceRole={pieceRole} onPickPhoto={loadDesign} onPick3D={loadDesign3D} onPickFamily={loadFamily}/>
+            )}/>
         </motion.div>
       )}
     </AnimatePresence>
