@@ -219,6 +219,11 @@ Two problems found in the files:
   545 KB. Rendered in the Studio renderer (session-only injection, nothing enabled): garment-only from every angle; colour vs hex
   mean dE 3.9 / max 5.9 (Navy 1.4, Red 5.9, Sky Blue 4.4) against Pants 3.4 / 4.9. Registered in `PENDING_3D_MODELS` as
   "3D (approx.)"; Skirt does not offer 3D until it is moved to `SCANNED_GARMENTS`.
+- **Enabled as Skirt's "3D (approx.)" (2026-10-11, fallback).** The re-supplied `Downloads/corporate skirt.glb` is byte-identical
+  (SHA-256 `09f723e47fb8…`) to the rejected staging `corporate-skirt.glb`: front/back/left/right/top renders show two legs from the back
+  and two leg openings from the top, so it is still rejected. The authored pencil skirt moved from `PENDING_3D_MODELS` to the served list
+  (`AUTHORED_MODELS`); the peplum stand-in file stays withheld. The `corporate-skirt` photo now shows "3D shows the generic Skirt model,
+  not the photo". The re-supplied `school skirt.glb`, `pants.glb` and `shorts.glb` are byte-identical to the served `vfrb-staged/` files.
 
 **Gallery effect:** the `pants` and `shorts` photos now show "2D + 3D (approx.)", because their family's model was generated from that exact photo (`sourcePhoto` in `garmentCapabilities.js`). `corporate-skirt` stays "Editable 2D".
 

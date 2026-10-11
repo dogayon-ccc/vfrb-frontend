@@ -20,6 +20,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { resolveTarget } from './design-studio/garmentCatalog';
 import { OrbitControls, ContactShadows, Float, Bounds, useBounds } from '@react-three/drei';
 import * as THREE from 'three';
+import { LIGHT, KEY_POS, RIM_POS } from './design-studio/lightRig';
 import { scannedEntryFor, patternsFor3D } from './design-studio/garmentMeshManifest';
 import { DEFAULT_GARMENT_COLOR } from './design-studio/regionTexture';
 import ScannedGarmentMesh from './design-studio/ScannedGarmentMesh';
@@ -413,8 +414,8 @@ function PauseWhenHidden() {
 // ── Full scene ─────────────────────────────────────────────────────────────────
 // `companion` (optional): the other piece of a uniform set, shown with this one when both have their own model. `companionRole` says
 // which half `cfg` is ('top' or 'bottom'). Overlays (logos, text) stay on the piece being edited.
-// Linear tone mapping keeps the chosen hue; ACES at these levels lifted every colour by 10-17 L* and washed out reds.
-export const LIGHT = { fill: 0.42, key: 0.85, rim: 1.0 };
+// Linear tone mapping keeps the chosen hue; ACES at these levels lifted every colour by 10-17 L* and washed out reds. The rig is shared.
+export { LIGHT } from './design-studio/lightRig';
 export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overlays = null, onContextLost = null, companion = null, companionRole = null }) {
   // FIX (3D never showed logo/pattern/text): loads the live 2D canvas
   // snapshot (refreshed by DesignStudio.jsx each time "3D" is clicked) as
@@ -437,8 +438,8 @@ export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overla
 
       {/* Local lights only (no HDRI, no network), calibrated so a front-facing panel receives ~1x its colour (measured dE, see logic checks): fill + key, rim from behind for the edge */}
       <hemisphereLight intensity={LIGHT.fill}/>
-      <directionalLight position={[2.5, 3.5, 4]} intensity={LIGHT.key}/>
-      <directionalLight position={[-3, 2.5, -4]} intensity={LIGHT.rim}/>
+      <directionalLight position={KEY_POS} intensity={LIGHT.key}/>
+      <directionalLight position={RIM_POS} intensity={LIGHT.rim}/>
 
       {/* BUG FIX (3D doesn't render): ScannedGarmentMesh calls useGLTF(), which
           suspends on first load. react-three-fiber's <Canvas> renders its own
