@@ -1,7 +1,7 @@
 // src/pages/client/OrderWizard.jsx
 // 4-step order wizard: Design → Configure → Sizing → Review.
 // On submit, hands off to MaterialsReveal instead of navigating directly.
-import { clearStudioHandoff, draftFingerprint } from '../../utils/studioHandoff';
+import { clearStudioHandoff, draftFingerprint, peekDesignRef } from '../../utils/studioHandoff';
 import { checkUpload } from '../../utils/fileCheck';
 import { useState, useEffect, useRef } from 'react';
 import DesignPreview from '../../components/DesignPreview';
@@ -221,12 +221,27 @@ function Adv({ on, open, children }) {
   );
 }
 
+function StudioRefNote({ file, onRemove }) {
+  const [url, setUrl] = useState(null);
+  useEffect(() => { const u = URL.createObjectURL(file); setUrl(u); return () => URL.revokeObjectURL(u); }, [file]);
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:12, padding:12, borderRadius:14, border:'1px solid var(--border)', background:'#fff' }}>
+      {url && <img src={url} alt="" width={56} height={56} style={{ objectFit:'cover', borderRadius:8, flexShrink:0, background:'var(--bg-surface)' }}/>}
+      <div style={{ flex:1, minWidth:0 }}>
+        <p style={{ margin:0, fontSize:13, fontWeight:700, color:'var(--ink)', fontFamily:FONT }}>Reference photo for VFRB</p>
+        <p style={{ margin:'2px 0 0', fontSize:12, color:'var(--text-subtle)', fontFamily:FONT, overflowWrap:'anywhere' }}>{file.name} · from the Design Studio, sent as this order's reference image</p>
+      </div>
+      <button type="button" onClick={onRemove} style={{ minHeight:44, padding:'0 12px', borderRadius:10, border:'1px solid var(--border)', background:'#fff', color:'var(--ink)', fontWeight:600, cursor:'pointer', fontFamily:FONT }}>Remove</button>
+    </div>
+  );
+}
+
 function StepDesign({ form, set, errors, studio, onClearStudio, onOpenStudio }) {
   const fileRef  = useRef(null);
   const [refErr, setRefErr] = useState('');
   const pickRef = async (e) => {
     const f = e.target.files?.[0] || null;
-    const msg = await checkUpload(f, { kinds: ['jpg', 'png', 'pdf'], maxBytes: 10 * 1048576 });
+    const msg = await checkUpload(f, { kinds: ['jpg', 'png', 'pdf'], maxBytes: 5 * 1048576 }); // the server's limit (OrderController: max:5120)
     setRefErr(msg);
     if (msg) { e.target.value = ''; return; }
     set('design_ref_file', f);
@@ -247,6 +262,8 @@ function StepDesign({ form, set, errors, studio, onClearStudio, onOpenStudio }) 
           <DesignPreview cfg={studio} previewUrl={studio.previewPng ?? null} height={300}/>
         </div>
       )}
+      {/* A reference photo chosen in the Studio ("Use as: Reference photo for VFRB") rides on the order's reference field. */}
+      {studio && form.design_ref_file && <StudioRefNote file={form.design_ref_file} onRemove={() => set('design_ref_file', null)}/>}
 
       {!studio && (
         <motion.div
@@ -431,7 +448,7 @@ function StepDesign({ form, set, errors, studio, onClearStudio, onOpenStudio }) 
                <p style={{ color:'var(--text-subtle)', fontSize:13, fontFamily:FONT }}>
                 Click to upload reference image or PDF</p>
                <p style={{ color:'var(--text-faint)', fontSize:11, marginTop:4, fontFamily:FONT }}>
-                JPG, PNG, PDF — max 10MB</p></>)
+                JPG, PNG, PDF — max 5 MB</p></>)
           }
         </motion.div>
         <input ref={fileRef} type="file" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" aria-label="Reference image or PDF" aria-describedby={refErr ? 'ref-file-err' : undefined} style={{ display:'none' }}
@@ -909,6 +926,7 @@ function WizSummary({ form, studio, step }) {
     ['Sizes assigned', total ? `${total} pcs` : null],
     ['Needed by', form.deadline],
     ['PO / Ref', form.po_reference],
+    ...(form.design_ref_file ? [['Reference photo', form.design_ref_file.name]] : []), // e.g. one chosen in the Studio (Use as: Reference photo)
   ];
   return (
     <aside className="cx-card wz-sum" aria-label="Order summary">
@@ -1158,7 +1176,7 @@ export default function OrderWizard() {
   const nav = useNavigate();
 
   const [step,   setStep]   = useState(0);
-  const [form,   setForm]   = useState(INIT);
+  const [form,   setForm]   = useState(() => ({ ...INIT, design_ref_file: peekDesignRef() })); // a reference photo chosen in the Studio arrives here
   const [errs,   setErrs]   = useState({});
   const [busy,   setBusy]   = useState(false);
   const [apiErr, setApiErr] = useState('');

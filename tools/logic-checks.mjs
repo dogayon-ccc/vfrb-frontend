@@ -452,8 +452,8 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const sim = refs.map(d => D.filterDesigns(P.similarFilters(d, D.ENTRIES, x => x.editable2D), D.ENTRIES).filter(x => x.editable2D));
   t('every inspiration-only photo offers "See editable garments like this": its category/piece filter (relaxed only when empty) lists existing editable photos only',
     refs.length === 21 && sim.every(list => list.length > 0 && list.every(x => D.ENTRIES.includes(x) && x.editable2D)) && /See editable garments like this/.test(gp));
-  t('preview says one sentence and puts status in chips (3D reference collapsed behind "Show 3D reference")',
-    refs.concat(D.ENTRIES.filter(d => d.editable2D)).every(d => (P.previewSentence(d).match(/[.!?](\s|$)/g) ?? []).length === 1 && P.previewChips(d).length >= 3) && /<details className="ds-pick-ref3d"/.test(gp) && /Show 3D reference/.test(gp));
+  t('preview says one sentence and puts status in chips; a photo with a 3D reference shows it by default (photo + 3D on desktop, Photo | 3D switch on phones)',
+    refs.concat(D.ENTRIES.filter(d => d.editable2D)).every(d => (P.previewSentence(d).match(/[.!?](\s|$)/g) ?? []).length === 1 && P.previewChips(d).length >= 3) && /className="ds-pick-media" data-view=\{view3D\}/.test(gp) && /useState\('3d'\)/.test(gp) && !/Show 3D reference/.test(gp));
   // The phone "Editable (4)": a uniform set with the bottom active limits the photos to bottoms; the limit is now a visible, removable chip.
   const bottoms = D.ENTRIES.filter(d => d.base && G.pieceOf(d.base[1]) === 'bottom');
   t('a uniform set limits the picker to its active piece (bottom = 4 editable photos of 40) and says so with a removable chip; templates default to All',
@@ -584,6 +584,45 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('Guides panel is rendered at the Studio root (above rulers and sheet): modal dialog with backdrop, close button and Escape up to 1023px; desktop popover capped to the stage height with internal scroll',
     /createPortal\(/.test(gm) && /aria-modal="true"/.test(gm) && /className="ds-guides-scrim"/.test(gm) && /className="ds-guides-close"/.test(gm) && /e\.key === 'Escape'/.test(gm) && /max-width: 1023px/.test(gm)
     && /maxHeight: Math\.max\(160, \(stage \? stage\.bottom : innerHeight\) - top - 8\)/.test(gm) && /\.ds-guides-modal\{position:fixed;inset:0;z-index:var\(--cx-z-modal\)/.test(css) && /\.ds-guides-pop\{z-index:var\(--cx-z-popover\);[^}]*overflow-y:auto/.test(css));
+}
+// Upload my design: content-checked types, SVG rasterised, min size, original kept, background removal review, Use as artwork or
+// reference (existing reference-file field); reference/set 3D in the picker preview; GLB inventory honesty.
+{
+  const src = q => fsx.readFileSync(urlx.fileURLToPath(new URL(q, import.meta.url)), 'utf8');
+  const UG = await L('/src/pages/client/design-studio/uploadGuard.js');
+  const ug = src('../src/pages/client/design-studio/uploadGuard.js'), up = src('../src/pages/client/design-studio/useLogoUpload.js'), wiz = src('../src/pages/client/OrderWizard.jsx');
+  const B = a => Uint8Array.from(a);
+  t('uploads are typed by their bytes (PNG, JPG, WEBP, SVG with prolog/comments/doctype); text, PDF or HTML named .png is rejected',
+    UG.sniffBytes(B([0x89, 0x50, 0x4e, 0x47])) === 'png' && UG.sniffBytes(B([0xff, 0xd8, 0xff, 0xe0])) === 'jpg' && UG.sniffBytes(B([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50])) === 'webp'
+    && UG.sniffBytes(B([0x3c]), '<?xml version="1.0"?>\n<!-- logo -->\n<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "x">\n<svg xmlns="http://www.w3.org/2000/svg">') === 'svg'
+    && UG.sniffBytes(B([0x68, 0x65]), 'hello') === null && UG.sniffBytes(B([0x25, 0x50, 0x44, 0x46]), '%PDF-1.7') === null && UG.sniffBytes(B([0x3c]), '<html><body><svg></svg>') === null
+    && /if \(!kind\) return \{ ok: false, code: 'TYPE'/.test(ug));
+  t('SVG is only ever decoded as an image and rasterised to PNG (no scripts or links survive; never put in the DOM as markup); 5 MB cap; minimum size message; original kept',
+    UG.svgDrawSize('<svg viewBox="0 0 300 150">').w === 1600 && UG.svgDrawSize('<svg viewBox="0 0 300 150">').h === 800 && UG.svgDrawSize('<svg width="40" height="80">').h === 1600
+    && UG.MAX_BYTES === 5 * 1024 * 1024 && UG.MIN_SIDE.artwork === 200 && /c\.getContext\('2d'\)\.drawImage\(img, 0, 0, w, h\)/.test(ug) && !/innerHTML|dangerouslySetInnerHTML|DOMParser/.test(ug + up)
+    && /Use one at least \$\{min\} px on its shortest side/.test(ug) && /original: file/.test(ug) && /prepareUpload\(file, kind === 'artwork' \? 'artwork' : 'logo'\)/.test(up));
+  t('artwork goes through the existing lazy background removal with a review: before/after, "Remove background" on by default (a toggle back to the original), AI on request',
+    /processLogo\(prep\.file, \{ mode: method/.test(up) && /removeBg: removed/.test(up) && /phase: 'review'/.test(up) && /const tryAi = /.test(up) && /s\.removeBg && s\.cut/.test(up)
+    && /import\('\.\/bgRemove'\)/.test(src('../src/lib/logoBackground.js')) && /Remove background/.test(src('../src/pages/client/design-studio/LogoAssets.jsx')));
+  t('"Use as: artwork | reference photo": both accepted; a reference rides the order\'s existing design_ref_file field (no new field), within the server\'s JPG/PNG 5 MB rule',
+    /useAs === 'reference'/.test(up) && /setDesignRef\(ref\)/.test(up) && /design_ref_file: peekDesignRef\(\)/.test(wiz) && /fd\.append\('design_ref_file', form\.design_ref_file\)/.test(wiz)
+    && /maxBytes: 5 \* 1048576/.test(wiz) && /prep\.kind === 'jpg' \|\| prep\.kind === 'png'\) return prep\.original/.test(ug) && /\['Reference photo', form\.design_ref_file\.name\]/.test(wiz)
+    && /'studio_design_ref'/.test(src('../src/utils/studioHandoff.js')));
+  t('first-run "Upload my design" is no longer cancelled by its own effect (the file is cleared only when its timer fires)',
+    /setTimeout\(\(\) => \{ setPendingArt\(null\); onLogoFileRef\.current\(pendingArt\); \}, 450\)/.test(src('../src/pages/client/DesignStudio.jsx')));
+  // Reference and full-set 3D in the picker preview.
+  const r3 = src('../src/pages/client/design-studio/ReferenceModel3D.jsx'), gp2 = src('../src/pages/client/design-studio/GarmentPicker.jsx');
+  t('every gallery photo with a 3D reference (23, 14 of them full sets) shows it by default: one lazy Canvas, DPR capped, skeleton while loading, photo fallback, context released on close; label kept',
+    D.ENTRIES.filter(d => d.ref3D).length === 23 && D.ENTRIES.filter(d => d.ref3D?.set).length === 14 && /const ReferenceModel3D = lazy\(/.test(gp2) && /useState\('3d'\)/.test(gp2)
+    && /DPR = [^;]*\[1, 1\.5\] : \[1, 2\]/.test(r3) && /forceContextLoss\(\)/.test(r3) && /useGLTF\.clear\(url\)/.test(r3) && /ds-ref3d-skel/.test(r3) && /onError=\{\(\) => \{ setRef3DFailed\(true\); setView3D\('photo'\); \}\}/.test(gp2)
+    && /neutral colour, not editable/.test(gp2) && D.ENTRIES.filter(d => d.ref3D).every(d => fsx.existsSync(urlx.fileURLToPath(new URL('../public' + d.ref3D.file, import.meta.url)))));
+  // GLB inventory: nothing non-garment-only or stand-in is wired; the five unwired files stay unwired with a recorded reason.
+  const Cp4 = await L('/src/pages/client/design-studio/garmentCapabilities.js');
+  const served = new Set([...Cp4.SCANNED_GARMENTS.flatMap(x => Object.values(x.models).map(decodeURI)), ...D.ENTRIES.filter(d => d.ref3D).map(d => d.ref3D.file)]);
+  const unwired = ['/models/lab-coverall.glb', '/models/processed/pants-trousers.glb', '/models/processed/shorts-textured.glb', '/models/processed/skirt-pencil.glb', '/models/processed/work-shirt-short-sleeve.glb'];
+  const audit = src('./asset-audit.mjs');
+  t('GLB inventory: the five unwired files (fused figure, superseded cuts with hand stubs/notches, stand-in, uncapped build input) are not served and each has a recorded reason',
+    unwired.every(f => !served.has(f) && audit.includes(`'${f}'`)));
 }
 console.log(out.join('\n')); const f = out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);

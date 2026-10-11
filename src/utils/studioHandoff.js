@@ -1,4 +1,4 @@
-export const HANDOFF_KEYS = ['studio_config', 'studio_preview', 'studio_from_draft'];
+export const HANDOFF_KEYS = ['studio_config', 'studio_preview', 'studio_from_draft', 'studio_design_ref'];
 
 export function stashStudioConfig(snap, { fromDraft = false } = {}) {
   const write = (cfg) => {
@@ -9,7 +9,29 @@ export function stashStudioConfig(snap, { fromDraft = false } = {}) {
   try { const { previewPng, ...rest } = snap; write(rest); return { ok: true, previewKept: false }; } catch { return { ok: false, previewKept: false }; }
 }
 
-export const clearStudioHandoff = () => HANDOFF_KEYS.forEach(k => { try { sessionStorage.removeItem(k); } catch { /* storage blocked */ } });
+export const clearStudioHandoff = () => { refMem = null; HANDOFF_KEYS.forEach(k => { try { sessionStorage.removeItem(k); } catch { /* storage blocked */ } }); };
+
+// Reference photo picked in the Studio ("Use as: Reference photo for VFRB"). It goes to the order's existing reference-file field
+// (design_ref_file), never a new one. Kept in memory for the SPA hop to the Order Wizard, and in this tab's session when it fits.
+let refMem = null;
+export function setDesignRef(file) {
+  refMem = file;
+  try { sessionStorage.removeItem('studio_design_ref'); } catch { /* storage blocked */ }
+  if (!file || file.size > 3 * 1024 * 1024) return; // base64 of a larger file would not fit the session quota
+  const r = new FileReader();
+  r.onload = () => { try { sessionStorage.setItem('studio_design_ref', JSON.stringify({ name: file.name, type: file.type, data: r.result })); } catch { /* quota */ } };
+  r.readAsDataURL(file);
+}
+export function peekDesignRef() {
+  if (refMem) return refMem;
+  try {
+    const v = JSON.parse(sessionStorage.getItem('studio_design_ref') || 'null');
+    if (!v?.data) return null;
+    const bin = atob(v.data.split(',')[1] ?? ''), u = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+    return (refMem = new File([u], v.name, { type: v.type }));
+  } catch { return null; }
+}
 
 // Identity of a design for "is the account draft the design that was just ordered?".
 // Survives the Laravel JSON round trip: key order, null-valued keys, {} vs [] and float formatting are normalised,
