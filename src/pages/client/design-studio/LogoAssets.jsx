@@ -4,7 +4,7 @@ import { placementsFor } from './dsShared';
 
 const KINDS = [
   { id: 'logo',    label: 'Logo',       hint: 'A logo or mark placed on the garment, with its background removed.' },
-  { id: 'artwork', label: 'My artwork', hint: 'Your own design or a reference image. It becomes a movable image layer, exactly as uploaded. It does not change the garment shape, collar, sleeves or pockets.' },
+  { id: 'artwork', label: 'My artwork', hint: 'Your own design or a reference photo. You check it first: background removed or kept, and placed on the garment or sent to VFRB as a reference. It never changes the garment shape, collar, sleeves or pockets.' },
 ];
 
 const MODES = [
@@ -30,7 +30,7 @@ function StatusCard({ logo }) {
   if (s.phase === 'working') {
     return (
       <div className="ds-status" data-phase="working" role="status" aria-live="polite">
-        <div className="ds-status-row"><span className="ds-spin"/><strong>{s.method === 'ai' ? 'Removing background with AI…' : 'Removing background…'}</strong></div>
+        <div className="ds-status-row"><span className="ds-spin"/><strong>{s.method === 'check' ? 'Checking the file…' : s.method === 'ai' ? 'Removing background with AI…' : 'Removing background…'}</strong></div>
         <p className="ds-note">{s.fileName}</p>
         {s.method === 'ai' && <Progress progress={s.progress}/>}
       </div>
@@ -40,7 +40,7 @@ function StatusCard({ logo }) {
     const canAi = mode !== 'ai' && (s.code === 'NO_SOLID_BG' || s.code === 'OVER_REMOVED');
     return (
       <div className="ds-status" data-phase="error" role="alert">
-        <div className="ds-status-row"><NavIcon name="warning" size={16}/><strong>Background not removed</strong></div>
+        <div className="ds-status-row"><NavIcon name="warning" size={16}/><strong>{['TYPE', 'SIZE', 'SMALL', 'DECODE', 'READ', 'EMPTY'].includes(s.code) ? 'Upload not accepted' : 'Background not removed'}</strong></div>
         <p className="ds-note">{s.message}</p>
         {s.file && (
           <div className="ds-status-actions">
@@ -49,6 +49,43 @@ function StatusCard({ logo }) {
             <button type="button" className="ds-btn" onClick={addOriginal}>Add original anyway</button>
           </div>
         )}
+        <button type="button" className="ds-link" onClick={dismiss}>Dismiss</button>
+      </div>
+    );
+  }
+  // Artwork review: before/after, "Remove background" toggle (back to the original), and Use as artwork or reference photo.
+  if (s.phase === 'review') {
+    const art = s.useAs === 'artwork';
+    return (
+      <div className="ds-status" data-phase="review" role="group" aria-label="Check your upload">
+        <div className="ds-status-row"><strong>Check your upload</strong><span className="ds-note" style={{ marginLeft: 'auto' }}>{s.fileName}</span></div>
+        <div className="ds-ba">
+          <figure><div className="ds-checker"><img src={s.before} alt="Original upload"/></div><figcaption>Original</figcaption></figure>
+          <figure aria-hidden={!s.after || undefined}><div className="ds-checker">{s.after ? <img src={s.after} alt="Background removed"/> : <span className="ds-note">No change</span>}</div><figcaption>Background removed</figcaption></figure>
+        </div>
+        <p className="ds-note">{s.note}</p>
+        {art && s.after && (
+          <label className="ds-switch"><input type="checkbox" checked={s.removeBg} onChange={e => logo.setRemoveBg(e.target.checked)}/><span>Remove background</span></label>
+        )}
+        {art && s.canAi && <button type="button" className="ds-btn" onClick={logo.tryAi}>Try AI background removal</button>}
+        <fieldset className="ds-useas">
+          <legend>Use as</legend>
+          <label><input type="radio" name="ds-useas" checked={art} onChange={() => logo.setUseAs('artwork')}/><span><b>Artwork on my garment</b><small>A movable image layer on the design</small></span></label>
+          <label><input type="radio" name="ds-useas" checked={!art} onChange={() => logo.setUseAs('reference')}/><span><b>Reference photo for VFRB</b><small>Sent with your order as its reference image; not printed</small></span></label>
+        </fieldset>
+        <div className="ds-status-actions">
+          <button type="button" className="ds-btn ds-btn--primary" onClick={logo.confirm}>{art ? 'Add to garment' : 'Attach as reference'}</button>
+          <button type="button" className="ds-btn" onClick={dismiss}>Cancel</button>
+        </div>
+      </div>
+    );
+  }
+  if (s.phase === 'reference') {
+    return (
+      <div className="ds-status" data-phase="done" role="status" aria-live="polite">
+        <div className="ds-status-row"><NavIcon name="success" size={16}/><strong>Reference photo attached</strong></div>
+        <div className="ds-checker"><img src={s.preview} alt="Reference photo"/></div>
+        <p className="ds-note">{s.message}</p>
         <button type="button" className="ds-link" onClick={dismiss}>Dismiss</button>
       </div>
     );

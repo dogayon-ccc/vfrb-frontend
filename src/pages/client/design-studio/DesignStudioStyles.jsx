@@ -212,11 +212,24 @@ export default function DesignStudioStyles() {
       .ds-pick[data-inline] .ds-pick-sum{color:var(--cx-stage-ink);}
       .ds-pick-status{list-style:none;display:flex;flex-wrap:wrap;justify-content:center;gap:6px;}
       .ds-pick-status li{padding:3px 10px;border-radius:var(--cx-r-pill);background:var(--cx-paper-2);color:var(--cx-ink-2);font-size:12px;font-weight:600;}
-      .ds-pick-ref3d{width:100%;}
-      .ds-pick-ref3d>summary{min-height:44px;display:inline-flex;align-items:center;padding:0 16px;border:1px solid var(--cx-line-strong);border-radius:var(--cx-r-pill);background:var(--cx-card);
-        color:var(--cx-thread-ink);font-size:13px;font-weight:700;cursor:pointer;list-style:none;}
-      .ds-pick-ref3d>summary::-webkit-details-marker{display:none;}
-      .ds-pick-ref3d[open]>summary{margin-bottom:8px;}
+      /* Photo + read-only 3D reference: side by side on desktop, a Photo | 3D switch below 1024px */
+      .ds-pick-preview:has(.ds-pick-media){max-width:900px;}
+      .ds-pick-media{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;}
+      .ds-pick-media figure{margin:0;display:flex;flex-direction:column;gap:6px;min-width:0;}
+      .ds-pick-media .ds-pick-photo img{width:100%;height:min(50vh,360px);max-height:none;}
+      .ds-pick-media>.ds-pick-switch{display:none;}
+      .ds-ref3d-stage{position:relative;width:100%;height:min(50vh,360px);border-radius:var(--cx-r-md);overflow:hidden;background:var(--cx-paper-2);touch-action:none;}
+      .ds-ref3d-skel{position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;font-size:12.5px;font-weight:600;color:var(--cx-ink-2);
+        background:linear-gradient(100deg,var(--cx-paper-2) 30%,var(--cx-paper) 50%,var(--cx-paper-2) 70%) 0 0/300% 100%;animation:dsSkel 1.4s var(--cx-ease) infinite;}
+      .ds-ref3d-skel span{width:42%;height:58%;border-radius:40% 40% 12% 12%;background:color-mix(in srgb,var(--cx-line) 70%,transparent);}
+      @keyframes dsSkel{to{background-position:-150% 0}}
+      @media (prefers-reduced-motion:reduce){.ds-ref3d-skel{animation:none;}}
+      @media (max-width:1023px){
+        .ds-pick-media{grid-template-columns:1fr;}
+        .ds-pick-media>.ds-pick-switch{display:flex;justify-self:center;margin:0;}
+        .ds-pick-media>.ds-pick-switch button{min-width:80px;min-height:44px;}
+        .ds-pick-media[data-view="3d"] .ds-pick-photo,.ds-pick-media[data-view="photo"] .ds-pick-3d{display:none;}
+      }
       /* Colour controls: compact named dots, custom swatch + hex */
       .ds-colors{padding:8px 10px 16px;}
       .ds-zones{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
@@ -344,6 +357,19 @@ export default function DesignStudioStyles() {
       .ds-status[data-phase="error"] .ds-status-row{color:var(--danger-text);}
       .ds-status .ds-note{margin-top:0;}
       .ds-status-actions{display:flex;flex-wrap:wrap;gap:6px;}
+      .ds-status-actions .ds-btn{min-height:44px;}
+      /* Upload review: before/after, the remove-background switch and "Use as" */
+      .ds-ba{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+      .ds-ba figure{margin:0;display:flex;flex-direction:column;gap:4px;}
+      .ds-ba figcaption{font-size:11.5px;font-weight:700;color:var(--cx-ink-2);text-align:center;}
+      .ds-switch{min-height:44px;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;color:var(--cx-ink);cursor:pointer;}
+      .ds-switch input,.ds-useas input{width:18px;height:18px;accent-color:var(--cx-thread);flex-shrink:0;}
+      .ds-useas{border:0;padding:0;margin:0;display:flex;flex-direction:column;gap:2px;}
+      .ds-useas legend{margin-bottom:4px;font-size:12px;font-weight:800;color:var(--cx-ink);}
+      .ds-useas label{min-height:44px;display:flex;align-items:center;gap:10px;padding:4px 6px;border-radius:var(--cx-r-md);cursor:pointer;}
+      .ds-useas label:has(input:checked){background:var(--cx-thread-tint);}
+      .ds-useas b{display:block;font-size:13px;color:var(--cx-ink);}
+      .ds-useas small{display:block;font-size:11.5px;color:var(--cx-ink-2);}
       .ds-spin{width:14px;height:14px;border:2px solid color-mix(in srgb,var(--teal) 30%,transparent);border-top-color:var(--teal);border-radius:50%;animation:dspin .7s linear infinite;}
       .ds-bar-track{height:6px;border-radius:99px;background:var(--border);overflow:hidden;}
       .ds-bar-track span{display:block;height:100%;background:var(--teal);transition:width .2s;}

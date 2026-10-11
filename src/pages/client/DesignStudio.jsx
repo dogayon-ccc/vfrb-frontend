@@ -450,13 +450,14 @@ export default function DesignStudio() {
   // "Upload my design": the file waits until a garment is chosen, then goes through the normal upload as artwork.
   const [pendingArt, setPendingArt] = useState(null);
   const startUpload = useCallback((file) => { logoUpload.setKind('artwork'); setPendingArt(file); }, [logoUpload]);
+  // The file is cleared only when the timer fires: clearing it first re-ran this effect, whose cleanup cancelled the upload.
+  const onLogoFileRef = useRef(onLogoFile);
+  onLogoFileRef.current = onLogoFile;
   useEffect(() => {
     if (!cfg.garment || !pendingArt) return undefined;
-    const file = pendingArt;
-    setPendingArt(null);
-    const t = setTimeout(() => onLogoFile(file), 450); // after the garment base has drawn
+    const t = setTimeout(() => { setPendingArt(null); onLogoFileRef.current(pendingArt); }, 450); // after the garment base has drawn
     return () => clearTimeout(t);
-  }, [cfg.garment, pendingArt, onLogoFile]);
+  }, [cfg.garment, pendingArt]);
 
   // Flush the live canvas for whichever face is on-screen right now into
   // faceJSON.current, then hand both faces to the one canonical serializer.

@@ -109,7 +109,8 @@ function Photos({ head, onClose, pieceRole, onPickPhoto, onPick3D, onUpload, ext
   const [filters, setFilters] = useState({});
   const [kind, setKind] = useState('editable');
   const [preview, setPreview] = useState(null);
-  const [ref3D, setRef3D] = useState(false);
+  const [view3D, setView3D] = useState('3d'); // phone: Photo | 3D switch, 3D first; desktop shows both
+  const [ref3DFailed, setRef3DFailed] = useState(false);
   const [roleOn, setRoleOn] = useState(true);
   // In a uniform set only photos of the active piece can open; with the chip removed the rest stay visible as inspiration.
   const fitsRole = d => !pieceRole || (!!d.base && pieceOf(d.base[1]) === pieceRole);
@@ -122,7 +123,7 @@ function Photos({ head, onClose, pieceRole, onPickPhoto, onPick3D, onUpload, ext
   const shown = kind === 'all' ? matched : matched.filter(d => (kind === 'editable' ? canEdit(d) : !canEdit(d)));
   const active = FILTERS.filter(([k]) => filters[k]).length;
   const legend = <Legend labels={PHOTO_LABEL} icons={PHOTO_BADGE} present={Object.keys(PHOTO_BADGE).filter(k => shown.some(d => tierOf(d) === k))}/>;
-  const back = () => { setPreview(null); setRef3D(false); };
+  const back = () => { setPreview(null); setView3D('3d'); setRef3DFailed(false); };
 
   if (preview) {
     const offRole = preview.editable2D && !fitsRole(preview) ? ROLE_LABEL[pieceRole] : null;
@@ -134,17 +135,25 @@ function Photos({ head, onClose, pieceRole, onPickPhoto, onPick3D, onUpload, ext
       <>
         {head(null)}
         <div className="ds-pick-preview">
-          <img src={preview.image} alt={preview.label}/>
+          {preview.ref3D && hasWebGL() && !ref3DFailed ? (
+            // Photo and its read-only 3D reference: side by side on desktop, a Photo | 3D switch on phones. One lazy Canvas.
+            <div className="ds-pick-media" data-view={view3D}>
+              <div className="ds-seg ds-seg--sm ds-pick-switch" role="radiogroup" aria-label="Show the photo or the 3D reference">
+                {[['photo', 'Photo'], ['3d', '3D']].map(([v, l]) => <button key={v} type="button" role="radio" aria-checked={view3D === v} onClick={() => setView3D(v)}>{l}</button>)}
+              </div>
+              <figure className="ds-pick-photo"><img src={preview.image} alt={preview.label}/></figure>
+              <figure className="ds-pick-3d">
+                <Suspense fallback={<div className="ds-ref3d-stage"><div className="ds-ref3d-skel" role="status"><span/>Loading 3D reference…</div></div>}>
+                  <ReferenceModel3D url={preview.ref3D.file} onError={() => { setRef3DFailed(true); setView3D('photo'); }}/>
+                </Suspense>
+                <figcaption className="ds-note">3D reference{preview.ref3D.set ? ' of the full set' : ''}: neutral colour, not editable.{preview.ref3D.set ? ' The set is one fused model, so its pieces cannot be coloured separately.' : ''} Drag to rotate.</figcaption>
+              </figure>
+            </div>
+          ) : <img src={preview.image} alt={preview.label}/>}
+          {ref3DFailed && <p className="ds-note">The 3D reference could not load; the photo is the reference.</p>}
           <h3>{preview.label}</h3>
           <p className="ds-pick-sum">{previewSentence(preview, offRole)}</p>
           <ul className="ds-pick-status" aria-label="Status">{previewChips(preview, offRole).map(c => <li key={c}>{c}</li>)}</ul>
-          {preview.ref3D && hasWebGL() && (
-            <details className="ds-pick-ref3d" open={ref3D} onToggle={e => setRef3D(e.currentTarget.open)}>
-              <summary>{ref3D ? 'Hide 3D reference' : 'Show 3D reference'}</summary>
-              {ref3D && <Suspense fallback={<p className="ds-note">Loading 3D reference…</p>}><ReferenceModel3D url={preview.ref3D.file}/></Suspense>}
-              <p className="ds-note">Shape only, one neutral colour, not editable.{preview.ref3D.set ? ' The set is one fused model, so its pieces cannot be coloured separately.' : ''} Drag to rotate.</p>
-            </details>
-          )}
         </div>
         <Foot>
           <button type="button" className="ds-btn" onClick={back}>Back to photos</button>
