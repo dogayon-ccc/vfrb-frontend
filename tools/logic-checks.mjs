@@ -624,5 +624,31 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('GLB inventory: the five unwired files (fused figure, superseded cuts with hand stubs/notches, stand-in, uncapped build input) are not served and each has a recorded reason',
     unwired.every(f => !served.has(f) && audit.includes(`'${f}'`)));
 }
+// Skirt: redrawn 2D pencil template; authored garment-only GLB registered as a pending "3D (approx.)" candidate (not served).
+{
+  const src = q => fsx.readFileSync(urlx.fileURLToPath(new URL(q, import.meta.url)), 'utf8');
+  const GP2 = await L('/src/pages/client/design-studio/garmentPaths.js');
+  const front = GP2.getGarmentPaths('Skirt', null, 'front'), back = GP2.getGarmentPaths('Skirt', null, 'back');
+  const kinds = d => d.details.map(x => x.kind).join();
+  t('Skirt 2D: one body zone; pencil silhouette with curved waistband, side darts (front and back), centre-back zip and a lapped back vent on the back only',
+    !!front.body && !front.collar && !front.sleeveL && !front.pocket && JSON.stringify(Sh.zonesFor('Skirt', null, null)) === '["body"]' && /C /.test(front.body)
+    && back.details.length > front.details.length && back.details.some(x => x.kind === 'button') && !front.details.some(x => x.kind === 'button') && /seam/.test(kinds(front)));
+  // The GLB itself: a new file, garment-only authored geometry, two UV-mapped parts, y up, about 1.9 units tall, <= 20k triangles.
+  const glbPath = urlx.fileURLToPath(new URL('../public/models/authored/skirt-pencil-lofted.glb', import.meta.url));
+  const buf = fsx.readFileSync(glbPath), jl = buf.readUInt32LE(12), gj = JSON.parse(buf.subarray(20, 20 + jl).toString('utf8'));
+  const tris = gj.meshes.reduce((n, m) => n + m.primitives.reduce((k, pr) => k + gj.accessors[pr.indices].count / 3, 0), 0);
+  const pos = gj.meshes.map(m => gj.accessors[m.primitives[0].attributes.POSITION]);
+  const ymin = Math.min(...pos.map(a => a.min[1])), ymax = Math.max(...pos.map(a => a.max[1])), zmax = Math.max(...pos.map(a => a.max[2])), zmin = Math.min(...pos.map(a => a.min[2]));
+  t('authored pencil-skirt GLB: two named parts (skirt_body, waistband), both with UVs and normals, <= 20k triangles, y up and 1.9 units tall, built by tools/glb-extract/build_pencil_skirt.py',
+    JSON.stringify(gj.nodes.map(n => n.name).sort()) === '["skirt_body","waistband"]' && gj.meshes.every(m => ['POSITION', 'NORMAL', 'TEXCOORD_0'].every(a => a in m.primitives[0].attributes))
+    && tris <= 20000 && tris > 10000 && Math.abs(ymax - ymin - 1.9) < 0.01 && zmax - zmin < 0.9 && fsx.existsSync(urlx.fileURLToPath(new URL('./glb-extract/build_pencil_skirt.py', import.meta.url))));
+  // Registered as pending: never served, so Skirt still offers no 3D until the client approves; the stand-in stays withheld.
+  const Cp5 = await L('/src/pages/client/design-studio/garmentCapabilities.js');
+  const cand = Cp5.PENDING_3D_MODELS.find(x => x.id === 'skirt-pencil-lofted');
+  t('the authored skirt is a pending "3D (approx.)" candidate with its licence recorded, painted by the calibrated zone-mask path, and Skirt still has no 3D (not in SCANNED_GARMENTS)',
+    !!cand && cand.label === '3D (approx.)' && cand.approval === 'pending' && /VFRB-authored/.test(cand.license) && cand.parts.every(pt => pt.zoneOf && !pt.regionOf)
+    && !Cp5.SCANNED_GARMENTS.includes(cand) && !Cp5.has3DModel('Skirt', null, null) && G.FAMILY_BY_NAME.Skirt.status3D === 'none' && Cp5.standIn3D('Skirt')
+    && /skirt-pencil-lofted/.test(src('../docs/engineering/GLB-STAGING-AUDIT.md')));
+}
 console.log(out.join('\n')); const f = out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);

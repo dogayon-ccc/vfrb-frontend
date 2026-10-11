@@ -211,7 +211,14 @@ Two problems found in the files:
 
 **Skirt decision:**
 - **Rejected: staging `corporate-skirt.glb`.** Its front matches the pencil-skirt photo, but the back and sides are modelled as two legs, so it is shorts from behind. A skirt model that turns into shorts when rotated would mislead.
-- `processed/skirt-pencil.glb` stays.
+- `processed/skirt-pencil.glb` stays on disk but is withheld (2026-10-11): a 1.4k-vertex cut of the fused Navy_Blue_Peplum_Dress figure,
+  a bucket shape rather than a skirt (`STAND_IN_3D_MODELS`). Skirt is 2D only.
+- **Candidate, pending client approval (2026-10-11): `authored/skirt-pencil-lofted.glb`.** VFRB-authored procedural geometry
+  (`python tools/glb-extract/build_pencil_skirt.py`; no third-party mesh, scan or generation credits). Lofted elliptical rings waist to
+  hem, separate waistband part, shallow side darts and a back-vent hint, UV-mapped, y up, front +z, 1.9 units tall, 19,040 triangles,
+  545 KB. Rendered in the Studio renderer (session-only injection, nothing enabled): garment-only from every angle; colour vs hex
+  mean dE 3.9 / max 5.9 (Navy 1.4, Red 5.9, Sky Blue 4.4) against Pants 3.4 / 4.9. Registered in `PENDING_3D_MODELS` as
+  "3D (approx.)"; Skirt does not offer 3D until it is moved to `SCANNED_GARMENTS`.
 
 **Gallery effect:** the `pants` and `shorts` photos now show "2D + 3D (approx.)", because their family's model was generated from that exact photo (`sourcePhoto` in `garmentCapabilities.js`). `corporate-skirt` stays "Editable 2D".
 
