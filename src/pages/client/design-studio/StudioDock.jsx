@@ -1,11 +1,12 @@
 // Sticky save/order dock: Save and "Order this design" always in reach; PNG/PDF live behind a secondary Export toggle.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Save, Check, ChevronRight, MoreHorizontal, Image as ImageIcon, FileText } from 'lucide-react';
 import { familyFor, STATUS_3D_LABEL } from './garmentCatalog';
 import { NO_FAMILY_3D } from './garmentCapabilities';
 
-export default function StudioDock({ cfg, saved, saving, saveErr, draftSaved, saveDesign, orderThis, ordering, downloadImage, downloadPdf, exporting, onNeedRoom }) {
+export default function StudioDock({ cfg, saved, saving, saveErr, draftSaved, saveDesign, orderThis, ordering, downloadImage, downloadPdf, exporting, onNeedRoom, collapsed = false }) {
   const [exportOpen, setExportOpen] = useState(false);
+  useEffect(() => { if (collapsed && window.matchMedia('(max-width: 1023px)').matches) setExportOpen(false); }, [collapsed]); // phone/tablet: the export row closes when the sheet collapses to peek
   const st = NO_FAMILY_3D.has(cfg.inspirationId) ? null : STATUS_3D_LABEL[familyFor(cfg.garment)?.status3D];
   // Account vs browser-only saves are never shown the same way: a failed account save that kept a browser copy says so.
   const state = saving ? 'Saving…' : saveErr ? (saveErr === 'local' ? 'On this device only — account save failed, retry' : 'Not saved — retry') : draftSaved ? 'Saved to your account' : saved ? 'Saved on this device' : null;

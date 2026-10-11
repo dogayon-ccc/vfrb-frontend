@@ -482,14 +482,14 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const ph = CG.guideDefaults(true), dk = CG.guideDefaults(false), old = CG.readGuidePrefs({ grid: true, snap: false, size: 40 }, false);
   t('guides: one popover with Grid, grid size, Snap, Rulers, Centre line, Smart guides; visual guides off by default on phones; old prefs carried over',
     ['Grid', 'Snap', 'Rulers', 'Centre line', 'Smart guides'].every(l => gm.includes(`'${l}'`)) && /aria-label="Grid size"/.test(gm) && /<GuidesMenu /.test(cv) && !/aria-label="Grid and rulers"/.test(cv)
-    && !ph.grid && !ph.rulers && !ph.centre && !ph.smart && dk.centre && dk.smart && !dk.grid && old.grid && old.rulers && !old.snap && old.size === 40 && CG.readGuidePrefs({ size: 33 }).size === 20);
+    && !ph.grid && !ph.rulers && !ph.centre && !ph.smart && dk.centre && dk.smart && !dk.grid && old.grid && old.rulers && !old.snap && old.size === 20 && CG.readGuidePrefs({ size: 33 }).size === 10 && CG.readGuidePrefs({ v: 2, size: 10 }).size === 10);
   // 2. Grid: neutral ink, minor ~10% / every 5th ~18%, fades at low zoom, over the garment only between base and design, never in exports.
-  t('grid: neutral ink (no teal), minor 10% and every 5th line 18%, fades out below 12 screen px, stage grid follows the artboard',
-    CG.GRID_ALPHA.minor === 0.1 && CG.GRID_ALPHA.major === 0.18 && CG.GRID_MAJOR_EVERY === 5 && CG.gridFade(12) === 1 && CG.gridFade(4) === 0 && CG.gridFade(8) === 0.5
-    && /\.ds-stage-fit\[data-grid\]\{background-image:linear-gradient\(to right,rgb\(var\(--ds-grid-ink\)/.test(css) && /--ds-grid-ink:var\(--cx-shade\)/.test(css) && !/ds-grid line\{stroke:rgba\(2,128,144/.test(css)
-    && /'--ds-gx': `\$\{x\}px`/.test(cv) && !/<Grid /.test(cv));
+  t('grid: neutral ink (no teal), minor 10% and every 5th line 18%, fades from 12 to 6 screen px, stage grid follows the artboard',
+    CG.GRID_ALPHA.minor === 0.1 && CG.GRID_ALPHA.major === 0.18 && CG.GRID_MAJOR_EVERY === 5 && CG.gridFade(12) === 1 && CG.gridFade(6) === 0 && CG.gridFade(9) === 0.5
+    && /\.ds-sgrid line\{stroke:rgb\(var\(--ds-grid-ink\)/.test(css) && /--ds-grid-ink:var\(--cx-shade\)/.test(css) && !/ds-grid line\{stroke:rgba\(2,128,144/.test(css)
+    && /<StageGrid view=\{view\} g=\{garmentRect\}/.test(cv) && !/<Grid /.test(cv));
   t('grid on the garment is painted between the garment base and the design layers, on the live canvas only (exports render elsewhere), two-tone for dark and light cloth',
-    /if \(ctx !== c\.contextContainer/.test(layers) && /globalCompositeOperation = 'source-atop'/.test(layers) && /render\(ctx, split < 0 \? objects : objects\.slice\(0, split\)\);\s*if \(o\.showGrid && o\.gridSize > 0\) drawGrid/.test(layers)
+    /if \(ctx !== c\.contextContainer/.test(layers) && /globalCompositeOperation = 'source-atop'/.test(layers) && /render\(ctx, split < 0 \? objects : objects\.slice\(0, split\)\);\s*if \(o\.showGrid\) drawGrid/.test(layers)
     && /rgba\('#ffffff', a\)/.test(layers) && /installStageLayers\(fc\.current, snapOpts\)/.test(hook));
   // 3-4. Centre line and smart guides: centre always a snap line; edges and other elements only with smart guides.
   const box = { left: 60, top: 40, width: 200, height: 300 }, oth = [{ left: 100, top: 100, width: 40, height: 20 }];
@@ -504,11 +504,11 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     front.join() === 'left_chest,center_chest,left_arm,right_arm' && back.join() === 'back_center,left_arm,right_arm' && !scrub.some(id => id.endsWith('_arm')) && CG.placementTargets(null, null, null, 'front', 1, 1).length === 0
     && /dragGuides\.current\.ghosts \?\?= placementTargets\(/.test(hook) && /\(obj\.__logo && !obj\.__artwork\) \|\| obj\.__text/.test(hook));
   // 6. Rulers: relative units only.
-  const ticks = CG.relativeTicks(10, 1.5, 600, 40, 200);
-  t('rulers: 0-100 % of the garment only (whole-number labels, never units or sizes), horizontal 11 px labels, ink-2 on paper',
-    ticks[0].v === 0 && ticks[ticks.length - 1].v === 100 && ticks.every(x => Number.isInteger(x.v) && x.v >= 0 && x.v <= 100) && Math.abs(ticks[0].at - (10 + 40 * 1.5)) < 1e-9 && Math.abs(ticks[ticks.length - 1].at - (10 + 240 * 1.5)) < 1e-9
-    && /fontSize=\{11\}/.test(cv) && !/rotate\(-90/.test(cv) && !/\b(cm|mm|inch|inches)\b/i.test(cv + layers) && /\.ds-ruler text\{fill:var\(--cx-ink-2\)/.test(css) && /relativeTicks\(/.test(cv) && !/pinnedTicks|rulerSteps/.test(cv)
-    && CG.readoutPct({ left: 100, top: 50, width: 40, height: 20 }, box, 'move') === 'X 30%  Y 7%' && CG.readoutPct({ left: 0, top: 0, width: 50, height: 30 }, box, 'scale') === '25% × 10%');
+  const rul = src('../src/pages/client/design-studio/StageRulers.jsx');
+  const ticks = CG.relativeTicks(10, 1.5, 600, 40, 200), t0 = ticks.find(x => x.v === 0), t100 = ticks.find(x => x.v === 100);
+  t('rulers: % of the garment only (whole-number labels, never units or sizes), horizontal 11 px labels, ink-2 on paper; 0 and 100 sit on the garment edges',
+    ticks.every(x => Number.isInteger(x.v)) && !!t0 && !!t100 && Math.abs(t0.at - (10 + 40 * 1.5)) < 1e-9 && Math.abs(t100.at - (10 + 240 * 1.5)) < 1e-9
+    && /fontSize=\{11\}/.test(rul) && !/rotate\(-90/.test(cv + rul) && !/\b(cm|mm|inch|inches)\b/i.test(cv + layers + rul) && /\.ds-ruler text\{fill:var\(--cx-ink-2\)/.test(css) && /relativeTicks\(/.test(rul) && !/pinnedTicks|rulerSteps/.test(cv + rul));
   // 7. Alignment and distribution.
   const bs = [{ left: 10, top: 10, width: 20, height: 10 }, { left: 50, top: 40, width: 40, height: 20 }, { left: 30, top: 100, width: 10, height: 10 }];
   const L0 = CG.alignDeltas(bs, 'left'), C0 = CG.alignDeltas(bs, 'hcenter'), D0 = CG.distributeDeltas(bs, 'v');
@@ -532,6 +532,58 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     CG.erasable({ __draw: true }) && CG.erasable({ __logo: true }) && CG.erasable({ __artwork: true, __logo: true }) && !CG.erasable({ __text: true }) && !CG.erasable({ __shape: true }) && !CG.erasable({ __garmentBase: true, __draw: true })
     && !CG.erasable({ __draw: true, __locked: true }) && !CG.erasable({ __draw: true, visible: false }) && pts.length === 11 && pts.every((p, i) => !i || Math.hypot(p[0] - pts[i - 1][0], p[1] - pts[i - 1][1]) <= 2 + 1e-9)
     && /inverted: true/.test(layers) && /invertTransform\(o\.calcTransformMatrix\(\)\)/.test(layers) && /'__erase'/.test(hook) && /if \(n\) \{ pushHistory\(\); bumpLayers\(\); \}/.test(hook) && /c\.remove\(path\);/.test(hook));
+}
+// One garment-relative coordinate system: grid, rulers, ruler guides, metrics; phone stage space; Guides panel layering.
+{
+  const src = q => fsx.readFileSync(urlx.fileURLToPath(new URL(q, import.meta.url)), 'utf8');
+  const CG = await L('/src/pages/client/design-studio/canvasGuides.js');
+  const SN3 = await L('/src/pages/client/design-studio/snapGuides.js');
+  const rul = src('../src/pages/client/design-studio/StageRulers.jsx'), cv = src('../src/pages/client/design-studio/CanvasViewport.jsx'), css = src('../src/pages/client/design-studio/DesignStudioStyles.jsx');
+  const gm = src('../src/pages/client/design-studio/GuidesMenu.jsx'), layers = src('../src/pages/client/design-studio/canvasLayers.js'), ins = src('../src/pages/client/design-studio/RightInfoPanel.jsx');
+  // Grid lines coincide with ruler ticks: same origin (garment top-left) and the same % per px, for every size, zoom and offset tried.
+  const g = { left: 37, top: 21, width: 246, height: 301 };
+  let worst = 0, missing = 0, cases = 0, has50 = true;
+  for (const pct of CG.GRID_PCTS) for (const s of [0.5, 0.9, 1.3, 2.4]) for (const o of [-60, 0, 85]) {
+    const cell = (g.width * pct / 100) * s, fade = CG.gridFade(Math.min(cell, (g.height * pct / 100) * s));
+    const lines = CG.gridLines(o + g.left * s, cell, pct, 0, 900).filter(l => fade > 0 || l.v % 50 === 0);
+    const ticks = new Map(CG.relativeTicks(o, s, 900, g.left, g.width, 30).map(t => [t.v, t.at]));
+    has50 = has50 && CG.gridLines(o + g.left * s, cell, pct, 0, 900).some(l => l.v === 50);
+    for (const l of lines) { cases++; if (!ticks.has(l.v)) missing++; else worst = Math.max(worst, Math.abs(ticks.get(l.v) - l.at)); }
+  }
+  t('grid lines coincide with ruler ticks (garment top-left origin; Fine 5% / Medium 10% / Coarse 20%; every zoom and pan tried) and the 50% centre is a grid line at every size',
+    cases > 300 && missing === 0 && worst < 1e-6 && has50 && JSON.stringify(CG.GRID_PCTS) === '[5,10,20]' && JSON.stringify(CG.gridSpec(g, 10)) === JSON.stringify({ x0: 37, y0: 21, sx: 24.6, sy: 30.1, pct: 10 }));
+  t('the stage grid is an SVG over the whole stage under the artboard, drawn from the same gridLines() as the garment grid and the snapping grid',
+    /<StageGrid view=\{view\} g=\{garmentRect\} pct=\{guides\.size\}/.test(cv) && /w=\{view\.pw \+ stageOff\.dx\} h=\{view\.ph \+ stageOff\.dy\}/.test(cv) && /gridLines\(/.test(rul) && /gridLines\(spec\.x0/.test(layers)
+    && /\.ds-sgrid\{position:absolute;left:0;top:0;z-index:0;pointer-events:none;\}/.test(css) && SN3.snapTargets({ width: 320, height: 400, grid: CG.gridSpec(g, 10) }).v.some(l => l.kind === 'grid' && Math.abs(l.at - (37 + 24.6 * 3)) < 1e-9));
+  // Rulers: full stage length, beyond 0 and 100, labels every 10% when they fit, 0/50/100 emphasised, live pointer marker, '%' corner.
+  const tk = CG.relativeTicks(200, 1.4, 900, 37, 246, 30), lab = tk.filter(x => x.major).map(x => x.v);
+  t('rulers run the full stage edge in garment % (negative before it, over 100 after it), label every 10% when it fits (else 25/50/100), emphasise 0, 50 and 100, show a live pointer marker',
+    tk.some(x => x.v < 0) && tk.some(x => x.v > 100) && lab.includes(-10) && lab.includes(110) && lab.every(v => v % 10 === 0) && ['0', '50', '100'].every(v => tk.find(x => String(x.v) === v)?.key)
+    && CG.relSteps(150, 30).major === 25 && CG.relSteps(400, 30).major === 10 && CG.relSteps(60, 30).major === 50 && /className="ds-ruler-mark"/.test(rul) && /fit\.addEventListener\('pointermove', move\)/.test(rul) && />%<\/div>/.test(rul));
+  // Ruler guides: pulled from a ruler, snap to whole % (50 within 1.5), objects snap to them, session only (never saved), double-click removes.
+  const gl = CG.guideLines(g, [{ axis: 'v', pct: 50 }, { axis: 'h', pct: 10 }]);
+  t('ruler guides: drag from a ruler creates one, it snaps to whole % (and 50%), elements snap to it, double-click or Delete removes it, kept for the session only',
+    CG.snapGuidePct(48.7) === 50 && CG.snapGuidePct(37.4) === 37 && gl[0].at === 37 + 123 && Math.abs(gl[1].at - (21 + 30.1)) < 1e-9 && SN3.snapTargets({ width: 320, height: 400, guides: gl }).v.some(l => l.kind === 'guide')
+    && /onPointerDown=\{start\('h'\)\}/.test(rul) && /onDoubleClick=\{onRemove/.test(rul) && /const \[rulerGuides, setRulerGuides\] = useState\(\[\]\)/.test(cv) && !/rulerGuides/.test(src('../src/pages/client/design-studio/designSerialization.js')) && !/localStorage[^;]*rulerGuides/.test(cv));
+  // Metrics: X, Y, W, H in % of the garment and rotation; multi-selection = group bounds + "N elements".
+  const one = { type: 'i-text', width: 100, height: 20, scaleX: 1.5, scaleY: 1, angle: 30, getBoundingRect: () => ({ left: 37 + 24.6, top: 21 + 60.2, width: 150, height: 20 }) };
+  const many = { type: 'activeselection', getObjects: () => [1, 2, 3], getBoundingRect: () => ({ left: 37, top: 21, width: 123, height: 150.5 }) };
+  const m1 = CG.metricsPct(one, g), m3 = CG.metricsPct(many, g);
+  t('metrics are % of the garment from its top-left (X, Y, W, H) plus rotation, while moving/resizing and in the inspector; a multi-selection shows its bounds and "N elements"; never units',
+    m1.x === 10 && m1.y === 20 && m1.w === 61 && m1.h === 6.6 && m1.r === 30 && m3.n === 3 && m3.w === 50 && m3.h === 50 && CG.readoutPct(one, g) === 'X 10%  Y 20%  W 61%  H 7%  30°' && CG.readoutPct(many, g).startsWith('3 elements · X 0%')
+    && /metricsPct\(active, garmentRect\)/.test(ins) && /`\$\{m\?\.n \?\? 2\} elements`/.test(ins) && /'X %'/.test(ins) && !/\b(cm|mm|inch|px)\b/.test(ins.match(/Position &amp; size[^<]*/)?.[0] ?? '') && /readoutPct\(ro\.obj, garmentBox\(c\)\)/.test(src('../src/pages/client/design-studio/useGarmentCanvas.js')));
+  t('old guide prefs migrate: px sizes 10/20/40 become 5/10/20 % once (v2), and stay put after',
+    CG.readGuidePrefs({ grid: true, size: 40 }).size === 20 && CG.readGuidePrefs({ size: 10 }).size === 5 && CG.readGuidePrefs({ v: 2, size: 5 }).size === 5 && CG.guideDefaults().v === 2);
+  // Phone stage space: one-row top lane, compact set switch, half sheet gives the tool body the room, export row closes on collapse.
+  const dock = src('../src/pages/client/design-studio/StudioDock.jsx');
+  t('phone/tablet stage space: one-row top lane (icon Guides with count, truncating chip, compact set switch), compact half sheet, export row closes when the sheet collapses',
+    /\.ds-lane-top:not\(\[data-notes\]\)\{flex-wrap:nowrap;\}/.test(css) && /\.ds-guides-txt\{display:none;\}/.test(css) && /\.ds-ctx-chip strong\{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\}/.test(css)
+    && /\.ds-set-bar button strong\{display:none;\}/.test(css) && /\.ds\[data-snap=half\] :is\(\.ds-dock-sub,\.ds-dock-state:not\(\[data-tone=err\]\)\)\{display:none;\}/.test(css)
+    && /if \(collapsed && window\.matchMedia\('\(max-width: 1023px\)'\)\.matches\) setExportOpen\(false\)/.test(dock) && /collapsed=\{!sheetOpen\}/.test(src('../src/pages/client/design-studio/ToolDrawer.jsx')));
+  // Guides panel: rendered at the Studio root; a modal dialog up to 1023px; on desktop capped to the stage and scrolling inside.
+  t('Guides panel is rendered at the Studio root (above rulers and sheet): modal dialog with backdrop, close button and Escape up to 1023px; desktop popover capped to the stage height with internal scroll',
+    /createPortal\(/.test(gm) && /aria-modal="true"/.test(gm) && /className="ds-guides-scrim"/.test(gm) && /className="ds-guides-close"/.test(gm) && /e\.key === 'Escape'/.test(gm) && /max-width: 1023px/.test(gm)
+    && /maxHeight: Math\.max\(160, \(stage \? stage\.bottom : innerHeight\) - top - 8\)/.test(gm) && /\.ds-guides-modal\{position:fixed;inset:0;z-index:var\(--cx-z-modal\)/.test(css) && /\.ds-guides-pop\{z-index:var\(--cx-z-popover\);[^}]*overflow-y:auto/.test(css));
 }
 console.log(out.join('\n')); const f = out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);

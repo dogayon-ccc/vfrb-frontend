@@ -1,56 +1,94 @@
 // Pure helpers for the Studio's guides, rulers, placement targets, alignment and eraser. No Fabric, no DOM: logic-checks.mjs tests them.
 // Units are canvas logical px unless a name says otherwise. Rulers speak only in % of the garment: VFRB sizing is never shown.
 import { placementsFor } from './dsShared';
-import { GRID_SIZES } from './snapGuides';
+
+// ── One coordinate system: garment-relative. Origin = the garment's top-left; x in % of its width, y in % of its height. ──
+// Grid, rulers, ruler guides, snapping and every readout use it, so grid lines land exactly on ruler ticks.
 
 // ── Guide preferences (per viewer, remembered in this browser) ──
 export const GUIDE_KEYS = ['grid', 'snap', 'rulers', 'centre', 'smart'];
-export const guideDefaults = (phone = false) => ({ grid: false, size: 20, snap: true, rulers: false, centre: !phone, smart: !phone });
-// Stored prefs win; the older { grid, snap, size } shape (grid meant grid + rulers) is carried over.
+export const GRID_PCTS = [5, 10, 20]; // grid cell in % of the garment: Fine, Medium, Coarse
+export const GRID_LABEL = { 5: 'Fine · 5%', 10: 'Medium · 10%', 20: 'Coarse · 20%' };
+export const guideDefaults = (phone = false) => ({ v: 2, grid: false, size: 10, snap: true, rulers: false, centre: !phone, smart: !phone });
+// Stored prefs win; older shapes carry over: { grid, snap, size } (grid meant grid + rulers) and px sizes 10/20/40 (now 5/10/20 %).
 export function readGuidePrefs(stored, phone = false) {
   const d = guideDefaults(phone);
   if (!stored || typeof stored !== 'object') return d;
-  const g = { ...d, ...stored };
+  const g = { ...d, ...stored, v: 2 };
   if (!('rulers' in stored) && 'grid' in stored) g.rulers = !!stored.grid;
+  if (stored.v !== 2 && 'size' in stored) g.size = { 10: 5, 20: 10, 40: 20 }[stored.size] ?? d.size;
   for (const k of GUIDE_KEYS) g[k] = !!g[k];
-  if (!GRID_SIZES.includes(g.size)) g.size = d.size;
+  if (!GRID_PCTS.includes(g.size)) g.size = d.size;
   return g;
 }
 
 // ── Grid ──
-// Opacity factor for grid lines `spacingPx` apart on screen: full from 12 px, gone below 4 px (the grid fades at low zoom).
-export const gridFade = spacingPx => Math.max(0, Math.min(1, (spacingPx - 4) / 8));
+// Opacity factor for grid lines `spacingPx` apart on screen: full from 12 px, gone below 6 px (the grid fades at low zoom). Never
+// drawing lines closer than 6 px matches the rulers' finest ticks, so a visible grid line always has a tick.
+export const gridFade = spacingPx => Math.max(0, Math.min(1, (spacingPx - 6) / 6));
 export const GRID_MAJOR_EVERY = 5;
 export const GRID_ALPHA = { minor: 0.1, major: 0.18 };
+// Grid in canvas px: origin at the garment's top-left, cell = pct of the garment's width (x) and height (y).
+export const gridSpec = (g, pct) => (g?.width > 0 && g?.height > 0 && pct > 0 ? { x0: g.left, y0: g.top, sx: (g.width * pct) / 100, sy: (g.height * pct) / 100, pct } : null);
+// Grid lines along one axis across [from, to] (any units): value in %, position, and whether it is a major line (every 5th cell
+// from the origin, plus the 50% centre line, which is a grid line at every size).
+export function gridLines(origin, cell, pct, from, to) {
+  if (!(cell > 0)) return [];
+  const out = [];
+  for (let k = Math.ceil((from - origin) / cell - 1e-9); origin + k * cell <= to + 1e-9; k++) out.push({ v: k * pct, at: origin + k * cell, major: k % GRID_MAJOR_EVERY === 0 });
+  const half = origin + (50 / pct) * cell;
+  if (half >= from && half <= to && !out.some(l => Math.abs(l.v - 50) < 1e-9)) out.push({ v: 50, at: half, major: true });
+  return out.sort((a, b) => a.at - b.at);
+}
 
-// ── Relative rulers: 0-100 % of the garment box ──
-const REL_STEPS = [1, 2, 5, 10, 25, 50];
-const REL_MAJORS = [5, 10, 25, 50, 100];
-// Steps for a garment `extentPx` screen px long: minor ticks >= 6 px apart, labels >= `minLabelPx` apart.
-export function relSteps(extentPx, minLabelPx = 40) {
+// ── Rulers: % of the garment along the full stage edge (negative before the garment, beyond 100 after it) ──
+const MINORS = [1, 5, 10, 25, 50];
+const LABELS = [10, 25, 50, 100];
+// Label every 10% when it fits (>= minLabelPx apart), otherwise 25/50/100, so 0, 50 and 100 are always labelled; minor ticks >= 6 px
+// apart, dividing the label step and (from 5% up) every grid size, so each visible grid line lands on a tick.
+export function relSteps(extentPx, minLabelPx = 36) {
   const per = extentPx / 100;
-  const step = REL_STEPS.find(s => s * per >= 6) ?? 50;
-  const major = REL_MAJORS.find(m => m % step === 0 && m * per >= minLabelPx) ?? 100;
+  const major = LABELS.find(m => m * per >= minLabelPx) ?? 100;
+  const step = MINORS.find(s => major % s === 0 && s * per >= 6) ?? major;
   return { step, major };
 }
-// Ticks for a ruler `length` screen px long whose canvas 0 lands at `origin` with `scale` screen px per canvas px; the garment spans
-// [gStart, gStart + gSize] canvas px. Only 0..100 % is marked; labels are whole percentages.
-export function relativeTicks(origin, scale, length, gStart, gSize, minLabelPx = 40) {
+// Ticks for a ruler `length` screen px long; screen = origin + canvas * scale; the garment spans [gStart, gStart + gSize] canvas px.
+// Every whole multiple of the step that is on the ruler is marked, before 0 and after 100 too; 0, 50 and 100 are key ticks.
+export function relativeTicks(origin, scale, length, gStart, gSize, minLabelPx = 36) {
   if (!(scale > 0) || !(gSize > 0)) return [];
   const { step, major } = relSteps(gSize * scale, minLabelPx);
+  const g0 = origin + gStart * scale, per = (gSize * scale) / 100;
   const out = [];
-  for (let v = 0; v <= 100; v += step) {
-    const at = origin + (gStart + (v / 100) * gSize) * scale;
-    if (at >= -0.5 && at <= length + 0.5) out.push({ v, at, major: v % major === 0 });
+  for (let k = Math.ceil(-g0 / per / step - 1e-9); g0 + k * step * per <= length + 1e-9; k++) {
+    const v = k * step;
+    out.push({ v, at: g0 + v * per, major: v % major === 0, key: v === 0 || v === 50 || v === 100 });
   }
   return out;
 }
-// Live readout while moving or resizing, in % of the garment (never canvas px, never real units).
-export function readoutPct(box, garment, action) {
-  if (!garment?.width || !garment?.height) return '';
-  const p = (v, n) => Math.round((v / n) * 100);
-  return action === 'scale' ? `${p(box.width, garment.width)}% × ${p(box.height, garment.height)}%`
-    : `X ${p(box.left + box.width / 2 - garment.left, garment.width)}%  Y ${p(box.top + box.height / 2 - garment.top, garment.height)}%`;
+// Screen position <-> garment % along one axis (for the pointer marker and ruler guides).
+export const toPct = (screen, origin, scale, gStart, gSize) => ((screen - origin - gStart * scale) / (gSize * scale)) * 100;
+export const fromPct = (pct, origin, scale, gStart, gSize) => origin + (gStart + (pct / 100) * gSize) * scale;
+// A ruler guide snaps to whole percent, and to the 50% centre within 1.5%.
+export const snapGuidePct = v => (Math.abs(v - 50) <= 1.5 ? 50 : Math.round(v));
+// Ruler guides (in %) as snap lines in canvas px.
+export const guideLines = (g, guides = []) => (g?.width > 0 ? guides.map(x => ({ axis: x.axis, at: x.axis === 'v' ? g.left + (x.pct / 100) * g.width : g.top + (x.pct / 100) * g.height })) : []);
+
+// ── Metrics: X, Y (top-left of the bounds), W, H in % of the garment, rotation in degrees; a multi-selection is its group bounds ──
+export function metricsPct(o, g) {
+  if (!o || !(g?.width > 0) || !(g?.height > 0)) return null;
+  const b = o.getBoundingRect(), multi = o.type === 'activeselection';
+  const n = multi ? (o.getObjects?.().length ?? 0) : 1;
+  const w = multi ? b.width : Math.abs((o.width ?? 0) * (o.scaleX ?? 1)), h = multi ? b.height : Math.abs((o.height ?? 0) * (o.scaleY ?? 1));
+  const r1 = v => Math.round(v * 10) / 10;
+  return { x: r1(((b.left - g.left) / g.width) * 100), y: r1(((b.top - g.top) / g.height) * 100), w: r1((w / g.width) * 100), h: r1((h / g.height) * 100),
+    r: multi ? 0 : Math.round(((o.angle ?? 0) % 360 + 360) % 360), n };
+}
+// Live readout while moving or resizing: X, Y, W, H (and rotation when turned), never canvas px or real units.
+export function readoutPct(o, garment) {
+  const m = metricsPct(o, garment);
+  if (!m) return '';
+  const f = v => `${Math.round(v)}%`;
+  return `${m.n > 1 ? `${m.n} elements · ` : ''}X ${f(m.x)}  Y ${f(m.y)}  W ${f(m.w)}  H ${f(m.h)}${m.r ? `  ${m.r}°` : ''}`;
 }
 
 // ── Placement targets: the garment's existing logo presets for the face shown ──

@@ -9,7 +9,8 @@ import { hasWebGL } from './webglSupport';
 import { hasBackView, assetFor } from './garmentAssets';
 import { photoMaxScale } from './studioView';
 import { panLimits, clampPan } from './snapGuides';
-import { readGuidePrefs, relativeTicks, gridFade, GRID_ALPHA, GRID_MAJOR_EVERY } from './canvasGuides';
+import { readGuidePrefs } from './canvasGuides';
+import { StageGrid, PinnedRulers, GuideLine, RULER_H, RULER_W } from './StageRulers';
 import FloatingToolbar from './FloatingToolbar';
 import GuidesMenu from './GuidesMenu';
 
@@ -18,37 +19,8 @@ const readGuides = () => {
   const phone = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches;
   try { return readGuidePrefs(JSON.parse(localStorage.getItem('ds_guides') || 'null'), phone); } catch { return readGuidePrefs(null, phone); }
 };
-const RULER_H = 18, RULER_W = 32; // ruler bands on screen: the top ruler's height and the left ruler's width (the pane shifts by them)
 const ZOOM_MIN = 0.6, ZOOM_MAX = 1.8;
 const clampZoom = z => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, +z.toFixed(3)));
-
-// Rulers pinned to the top and left of the stage, in % of the garment (0-100) only: never units or sizes. `view` says where canvas
-// (0, 0) lands in the pane and at what scale; `g` is the garment's box in canvas px. Labels are horizontal on both rulers.
-function PinnedRulers({ view, g }) {
-  const { ox, oy, s, pw, ph } = view;
-  const xs = relativeTicks(ox, s, pw, g.left, g.width, 40), ys = relativeTicks(oy, s, ph, g.top, g.height, 24);
-  const span = (o, a, ext, len) => [Math.max(0, o + a * s), Math.min(len, o + (a + ext) * s)];
-  const [x0, x1] = span(ox, g.left, g.width, pw), [y0, y1] = span(oy, g.top, g.height, ph);
-  return (
-    <>
-      <div className="ds-ruler-corner" aria-hidden="true">%</div>
-      <svg className="ds-ruler ds-ruler-x" aria-hidden="true" width={pw} height={RULER_H}>
-        {x1 > x0 && <rect className="ds-ruler-art" x={x0} y={0} width={x1 - x0} height={RULER_H}/>}
-        {xs.map(t => <g key={t.v}>
-          <line x1={t.at} y1={t.major ? 8 : 13} x2={t.at} y2={RULER_H}/>
-          {t.major && <text x={t.at + 3} y={12} fontSize={11}>{t.v}</text>}
-        </g>)}
-      </svg>
-      <svg className="ds-ruler ds-ruler-y" aria-hidden="true" width={RULER_W} height={ph}>
-        {y1 > y0 && <rect className="ds-ruler-art" x={0} y={y0} width={RULER_W} height={y1 - y0}/>}
-        {ys.map(t => <g key={t.v}>
-          <line x1={t.major ? RULER_W - 8 : RULER_W - 4} y1={t.at} x2={RULER_W} y2={t.at}/>
-          {t.major && <text x={2} y={t.at + 4} fontSize={11}>{t.v}</text>}
-        </g>)}
-      </svg>
-    </>
-  );
-}
 
 const Scene3D = lazy(() => import('../DesignStudio3D'));
 
@@ -156,7 +128,7 @@ export default function CanvasViewport({
   // Guides (Grid, size, Snap, Rulers, Centre line, Smart guides): per-viewer convenience, remembered in this browser.
   const [guides, setGuides] = useState(readGuides);
   useEffect(() => {
-    setSnapOptions?.({ snap: guides.snap, gridSize: guides.size, showGrid: guides.grid, centre: guides.centre, smart: guides.smart, scale });
+    setSnapOptions?.({ snap: guides.snap, gridPct: guides.size, showGrid: guides.grid, centre: guides.centre, smart: guides.smart, scale });
     try { localStorage.setItem('ds_guides', JSON.stringify(guides)); } catch { /* storage blocked */ }
   }, [guides, scale, setSnapOptions]);
   const [dark, setDark] = useState(false);
@@ -166,6 +138,10 @@ export default function CanvasViewport({
   // canvas (0, 0) lands at content centre + pan - size * scale / 2. Computed, not measured, so rulers never lag the canvas.
   const show2D = viewMode === '2d' || !show3D;
   const rulersOn = guides.rulers && !!cfg.garment && show2D && !initFailed && !!garmentRect;
+  // Ruler guides: pulled out of a ruler, kept for this session only (never saved); they snap while the rulers are shown.
+  const [rulerGuides, setRulerGuides] = useState([]);
+  useEffect(() => { setSnapOptions?.({ rulerGuides: rulersOn ? rulerGuides : [] }); }, [rulersOn, rulerGuides, setSnapOptions]);
+  const fitRef = useRef(null);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const panRef = useRef(pan);
   const limits = useRef({ x: 0, y: 0 });
@@ -293,13 +269,8 @@ export default function CanvasViewport({
     </button>
   );
 
-  // Stage grid (CSS, under the artboard, over the stage background), aligned to canvas 0 and the same spacing as the grid drawn on the
-  // garment by the canvas; it fades out at low zoom. Neutral ink, minor lines lighter than every 5th.
-  const gridStyle = guides.grid && cfg.garment && show2D && view ? (() => {
-    const minor = guides.size * view.s, x = (rulersOn ? RULER_W : 0) + view.ox, y = (rulersOn ? RULER_H : 0) + view.oy;
-    return { '--ds-gm': `${minor}px`, '--ds-gM': `${minor * GRID_MAJOR_EVERY}px`, '--ds-gx': `${x}px`, '--ds-gy': `${y}px`,
-      '--ds-ga': GRID_ALPHA.minor * gridFade(minor), '--ds-gA': GRID_ALPHA.major * Math.max(gridFade(minor), 0.6) };
-  })() : null;
+  const gridOn = guides.grid && !!cfg.garment && show2D && !!view && !!garmentRect;
+  const stageOff = { dx: rulersOn ? RULER_W : 0, dy: rulersOn ? RULER_H : 0 };
 
   // 3D honesty notes, said in the top lane (never over the model).
   const notes3D = viewMode === '3d' ? [
@@ -322,7 +293,7 @@ export default function CanvasViewport({
       {/* Lane contract: chips, the set bar, guides and 3D notes sit in the top lane and stage controls in the bottom lane; the garment
           is fitted into the area between them, so nothing on the stage overlays it (only the selection toolbar, inside that area). */}
       {cfg.garment && (
-        <div className="ds-lane ds-lane-top">
+        <div className="ds-lane ds-lane-top" data-notes={notes3D.length ? '1' : undefined}>
           {show2D && !initFailed && <GuidesMenu guides={guides} setGuides={setGuides}/>}
           {show2D && canPan && (
             <button type="button" className="ds-pan-btn" aria-pressed={hand} aria-label="Pan" title="Pan the zoomed design (or scroll, hold Space and drag, or drag the empty stage)" onClick={() => setHand(v => !v)}>
@@ -348,10 +319,12 @@ export default function CanvasViewport({
         </div>
       )}
 
-      <div className="ds-stage-fit" data-grid={gridStyle ? '1' : undefined} style={gridStyle ?? undefined}>
+      <div ref={fitRef} className="ds-stage-fit">
         {/* Both panes stay mounted and only toggle visibility, so Fabric and WebGL keep their state; show2D also covers
             viewMode==='3d' before the 3D pane exists, so the workspace is never blank. Rulers are pinned outside the scaled wrapper. */}
-        {rulersOn && view && <PinnedRulers view={view} g={garmentRect}/>}
+        {gridOn && <StageGrid view={view} g={garmentRect} pct={guides.size} {...stageOff} w={view.pw + stageOff.dx} h={view.ph + stageOff.dy}/>}
+        {rulersOn && view && <PinnedRulers view={view} g={garmentRect} fitRef={fitRef} onGuide={gd => setRulerGuides(l => [...l.filter(x => !(x.axis === gd.axis && x.pct === gd.pct)), gd])}/>}
+        {rulersOn && view && rulerGuides.map(gd => <GuideLine key={gd.axis + gd.pct} guide={gd} view={view} g={garmentRect} onRemove={() => setRulerGuides(l => l.filter(x => x !== gd))}/>)}
         <div ref={paneRef} className="ds-pane" data-pan={canPan ? '1' : undefined} data-sel={selObj ? '1' : undefined} data-garment={cfg.garment && show2D ? '1' : undefined}
           onPointerDownCapture={onPaneDownCapture} onPointerMoveCapture={onPaneMoveCapture} onPointerUpCapture={onPaneUpCapture} onPointerCancelCapture={onPaneUpCapture}
           onPointerMove={movePan} onPointerUp={endPan} onPointerCancel={endPan} style={{
