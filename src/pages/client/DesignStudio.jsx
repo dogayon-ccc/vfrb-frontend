@@ -7,7 +7,7 @@
 //            zone hover glow, garment card grid, logo placement presets,
 //            font selector, Pollinations.ai texture, Save Design
 
-import { stashStudioConfig } from '../../utils/studioHandoff';
+import { stashStudioConfig, draftFingerprint } from '../../utils/studioHandoff';
 import {
   useState, useEffect, useRef, useCallback, useMemo,
 } from 'react';
@@ -18,7 +18,7 @@ import { NavIcon } from '../../components/ui/icons';
 import DesignStudioStyles from './design-studio/DesignStudioStyles';
 import { useGarmentCanvas, compositeFrontBack } from './design-studio/useGarmentCanvas';
 import { hasBackView, templateIdFor } from './design-studio/garmentAssets';
-import { EXPORT_FACE_HEIGHT, designPng, designPdf, downloadBlobOrUrl } from './design-studio/designExport';
+import { EXPORT_FACE_HEIGHT, designPng, designPdf, downloadBlobOrUrl, fitDraftPreview } from './design-studio/designExport';
 import { ENTRIES as GALLERY } from './design-studio/designGallery';
 import CanvasViewport from './design-studio/CanvasViewport';
 import TopBar from './design-studio/TopBar';
@@ -29,9 +29,9 @@ import OnboardingOverlay from './design-studio/OnboardingOverlay';
 import InspoGallery from './design-studio/InspoGallery';
 import ShowcaseGallery from './design-studio/ShowcaseGallery';
 import { T, T2, CATS, INIT_CFG, FONTS, zonesFor } from './design-studio/dsShared';
-import { deserializeDesign, serializeDesign } from './design-studio/designSerialization';
+import { deserializeDesign, serializeDesign, draftLabel } from './design-studio/designSerialization';
 import { familyFor, pieceOf } from './design-studio/garmentCatalog';
-import { has3DModel } from './design-studio/garmentCapabilities';
+import { has3DFor } from './design-studio/garmentCapabilities';
 import { SET_ROLES, ROLE_LABEL, DEFAULT_PIECE, otherRole, normalizeSet, withSet } from './design-studio/uniformSet';
 
 // MAIN COMPONENT
@@ -108,7 +108,7 @@ export default function DesignStudio() {
     const prev = savedPrev.current;
     let msg = null;
     if (draftSaved && !prev.draftSaved) msg = 'Design saved to your account';
-    else if (saved && !prev.saved) msg = 'Design saved on this device';
+    // No toast for the browser copy alone: it is written before the account save, and a failed account save shows its own browser-only message.
     savedPrev.current = { saved, draftSaved };
     if (!msg) return undefined;
     setToast(msg);
@@ -152,7 +152,7 @@ export default function DesignStudio() {
   const { addLogo, addText, addShape, updateSelected, deleteSelected, duplicateSelected, alignSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
           pushHistory, undo, redo, canUndo, canRedo, resizeCanvas, initFailed,
           layers, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
-          setDrawMode, setBrushStyle } =
+          setDrawMode, setBrushStyle, setSnapOptions } =
     useGarmentCanvas(
       canvasEl,
       cfg.garment,
@@ -188,8 +188,9 @@ export default function DesignStudio() {
   }, [selObj, isNarrow]);
 
   useEffect(() => {
-    if (viewMode === '3d' && !has3DModel(cfg.garment, cfg.sleeve, cfg.fit)) setViewMode('2d');
-  }, [cfg.garment, cfg.sleeve, cfg.fit, viewMode]);
+    if (viewMode === '3d' && !has3DFor(cfg)) setViewMode('2d');
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- has3DFor reads exactly these fields
+  }, [cfg.garment, cfg.sleeve, cfg.fit, cfg.inspirationId, viewMode]);
   // Picking a garment whose 3D is only approximate always lands on the reliable 2D view; the customer can opt into 3D.
   const keep3DRef = useRef(false); // set by the gallery's "Open with 3D preview" so the 2D landing rule below skips that one load
   useEffect(() => {
@@ -477,9 +478,10 @@ export default function DesignStudio() {
     const snap = uset.pieces[otherRole(uset.active)];
     if (!snap?.garment) return null;
     const other = deserializeDesign(snap).cfg;
-    if (!has3DModel(cfg.garment, cfg.sleeve, cfg.fit) || !has3DModel(other.garment, other.sleeve, other.fit)) return null;
+    if (!has3DFor(cfg) || !has3DFor(other)) return null;
     return { cfg: other, role: otherRole(uset.active) };
-  }, [uset, cfg.garment, cfg.sleeve, cfg.fit]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- has3DFor reads exactly these fields
+  }, [uset, cfg.garment, cfg.sleeve, cfg.fit, cfg.inspirationId]);
 
   const pieceBar = !cfg.garment ? null : uset ? (
     <div className="ds-set-bar" role="group" aria-label="Uniform set pieces">
@@ -496,18 +498,34 @@ export default function DesignStudio() {
     </button>
   ) : null;
 
+  // ── Account draft write — the one payload for manual Save, autosave and Order ──
+  // POST /drafts replaces every column of the single row, so a request without preview_dataurl
+  // erases the stored thumbnail: each write sends a preview of the design it saves.
+  const lastSavedFp = useRef(null);
+  const persistDraft = useCallback(async (snap) => {
+    const { previewPng, ...studio_config } = snap; // eslint-disable-line no-unused-vars
+    await axios.post('/api/customer/drafts', {
+      studio_config,
+      preview_dataurl: await fitDraftPreview(exportPNG()),
+      label:           draftLabel(cfg),
+    });
+    lastSavedFp.current = draftFingerprint(studio_config);
+  }, [cfg, exportPNG]);
+
   // ── Auto-save debounce — fires 30s after last cfg change ─────────────────
+  // Skipped when the account already holds exactly this design (e.g. right after a manual Save).
   useEffect(() => {
     clearTimeout(autoSaveTimer.current);
     if (!cfg.garment) return; // nothing to persist yet
     autoSaveTimer.current = setTimeout(() => {
-      axios.post('/api/customer/drafts', {
-        studio_config: snapshotDesign(),
-        label: `${cfg.garment} — ${cfg.category}`,
-      }).catch(() => {}); // silently ignore network errors
+      const snap = snapshotDesign();
+      if (draftFingerprint(snap) === lastSavedFp.current) return;
+      // A reload restores the browser copy before the account draft, so an existing copy must not stay older than the autosave.
+      try { if (sessionStorage.getItem('studio_config')) sessionStorage.setItem('studio_config', JSON.stringify(snap)); } catch { /* quota: the account draft still saves */ }
+      persistDraft(snap).catch(() => {}); // silently ignore network errors
     }, 30_000);
     return () => clearTimeout(autoSaveTimer.current);
-  }, [cfg, snapshotDesign]);
+  }, [cfg, snapshotDesign, persistDraft]);
 
   // ── Manual save: sessionStorage + DB ─────────────────────────────────────
   const saveDesign = useCallback(async () => {
@@ -522,17 +540,15 @@ export default function DesignStudio() {
       setTimeout(() => setSaved(false), 2000);
     } catch { /* quota: large logos; the cloud draft below still runs */ }
     try {
-      await axios.post('/api/customer/drafts', {
-        studio_config:   snap,
-        preview_dataurl: exportPNG(),
-        label:           `${cfg.garment} — ${cfg.category}`,
-      });
+      await persistDraft(snap);
       setDraftSaved(true);
       setTimeout(() => setDraftSaved(false), 2500);
     } catch {
-      if (!local) { setSaveErr(true); flashError('Could not save your design. Check your connection and try again.'); }
+      // The account copy is what My Designs and other devices read; a browser-only copy must not look like a full save.
+      setSaveErr(local ? 'local' : 'none'); // 'local': the browser copy exists, only the account save failed
+      flashError(local ? 'Saved in this browser only: your account could not store the design. Try Save again.' : 'Could not save your design. Check your connection and try again.');
     } finally { setSaving(false); }
-  }, [cfg, saving, snapshotDesign, exportPNG, flashError]);
+  }, [cfg, saving, snapshotDesign, persistDraft, flashError]);
 
   // Order This → pass design to OrderWizard
   // Export files: each face is rendered at EXPORT_FACE_HEIGHT after it has fully drawn (exportFace), then the
@@ -618,8 +634,9 @@ export default function DesignStudio() {
       const previewPng = await exportFrontBack();
       const snap = snapshotDesign(previewPng);
       if (!stashStudioConfig(snap).ok) throw new Error('storage');
-      // Clear DB draft — design is now an order, draft is no longer needed
-      axios.delete('/api/customer/drafts/latest').catch(() => {});
+      // Keep the account draft until the order is actually placed: store exactly this design, so leaving or
+      // failing in the Wizard still finds it in My Designs. OrderWizard retires it after a successful submit.
+      await persistDraft(snap).catch(() => {}); // the browser handoff above already carries the design
       nav('/order/create');
     } catch {
       // Export failed (e.g. canvas mid-init) — un-stick the button so the
@@ -627,7 +644,7 @@ export default function DesignStudio() {
       setOrdering(false);
       flashError('Could not prepare your design for ordering. Try removing very large logos, then retry.');
     }
-  }, [cfg, ordering, snapshotDesign, exportFrontBack, nav, flashError]);
+  }, [cfg, ordering, snapshotDesign, exportFrontBack, persistDraft, nav, flashError]);
 
   const clearGarment = useCallback(() => setCfg(p => ({ ...p, garment: null })), []);
 
@@ -756,7 +773,7 @@ export default function DesignStudio() {
             viewMode={viewMode} has3DLoaded={has3DLoaded} onLogoFile={onLogoFile}
             zoom={zoom} setZoom={setZoom} snapshot={snapshot} overlays={overlays}
             onChooseGarment={() => { setTool('type'); setSheetOpen(true); }} pickerOpen={tool === 'type' && (!isNarrow || sheetOpen)} setViewMode={setViewMode}
-            pieceBar={pieceBar} setCompanion={setCompanion} showSet={showSet} setShowSet={setShowSet}/>
+            pieceBar={pieceBar} setCompanion={setCompanion} showSet={showSet} setShowSet={setShowSet} setSnapOptions={setSnapOptions}/>
         </div>
 
         {/* ── FIRST-VISIT ONBOARDING OVERLAY ── */}

@@ -14,6 +14,7 @@
 // Caching: cacheGet('order_detail_'+id) 30s TTL, cleared on AI accept/reject.
 
 import { humanize } from '../../utils/humanize';
+import { savedDesignName } from '../../utils/designName';
 import { useState, useEffect, useCallback } from 'react';
 import DesignPreview from '../../components/DesignPreview';
 import { useParams, useNavigate }            from 'react-router-dom';
@@ -22,7 +23,7 @@ import axios                                 from 'axios';
 import { cacheGet, cacheSet, cacheClear }    from '../../utils/cache';
 import { getStorageUrl, isImageFile }        from '../../utils/fileUrl';
 import { NavIcon }                           from '../../components/ui/icons';
-import { OrderThumb, Stepper, StatusPill, LIFECYCLE, lifecycleIndex, orderTitle, fmtDate } from '../../components/customer/kit';
+import { OrderThumb, Stepper, StatusPill, LIFECYCLE, lifecycleIndex, orderTitle, parseCfg, fmtDate } from '../../components/customer/kit';
 
 
 const T    = 'var(--teal)';
@@ -242,6 +243,9 @@ export default function CustomerOrderDetail() {
 
   // ── Derived state — all O(1) ───────────────────────────────────────────────
   const status    = order?.status ?? 'pending';
+  // Summary title is the saved design name (orderTitle); the line under it keeps the garment when the name replaced it.
+  const savedName = savedDesignName(order?.studio_config);
+  const garmentLine = [savedName && humanize(order?.garment_type), parseCfg(order).category, `${order?.quantity_ordered ?? 0} pcs`].filter(Boolean).join(' · ');
   const curIdx    = STATUS_SEQ.indexOf(status);            // O(10) = O(1)
   const stageIdx  = STAGES.findIndex(s => s.key === status); // O(7) = O(1)
   const pct       = curIdx >= 0
@@ -471,7 +475,7 @@ export default function CustomerOrderDetail() {
                 <div style={{ flex:1, minWidth:0 }}>
                   <p title={orderTitle(order)} style={{ margin:0, fontSize:15, fontWeight:800, color:'var(--ink)', overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflowWrap:'anywhere' }}>{orderTitle(order)}</p>
                   <p style={{ margin:'3px 0 0', fontSize:12, color:'var(--text-subtle)' }}>
-                    {order.quantity_ordered ?? 0} pcs{order.target_delivery_date ? ` · Due ${fmtDate(order.target_delivery_date)}` : ''}
+                    {garmentLine}{order.target_delivery_date ? ` · Due ${fmtDate(order.target_delivery_date)}` : ''}
                   </p>
                 </div>
                 <button className="cx-btn cx-btn-s" style={{ minHeight:40 }} onClick={() => nav(`/messages?order=${orderId}`)}>Messages</button>
@@ -495,7 +499,11 @@ export default function CustomerOrderDetail() {
           <section {...pane('overview', 'od-hero')} aria-label="Design preview">
             <div className="od-card-body">
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap', marginBottom:12 }}>
-                <p className="od-section-title" style={{ fontFamily:FONT, margin:0 }}>Your Design</p>
+                <div style={{ minWidth:0 }}>
+                  <p className="od-section-title" style={{ fontFamily:FONT, margin:0 }}>Your Design</p>
+                  {/* Cancelled orders have no summary card above, so the design's title is shown here instead. */}
+                  {status === 'cancelled' && <p style={{ margin:'4px 0 0', fontSize:15, fontWeight:800, color:'var(--ink)', overflowWrap:'anywhere' }}>{orderTitle(order)}</p>}
+                </div>
                 {order.design_preview_url && (
                   <button className="cx-btn cx-btn-s" style={{ minHeight:40 }} disabled={dlBusy} aria-busy={dlBusy}
                     onClick={() => downloadDesign(order.design_preview_url, `VFRB-ORD-${order.order_id}-design.png`)}>

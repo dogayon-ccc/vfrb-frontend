@@ -1,7 +1,7 @@
 import { Component, Suspense, lazy, useMemo, useState } from 'react';
 import GarmentSilhouette from '../pages/client/design-studio/GarmentSilhouette';
 import { familyFor, STATUS_3D_LABEL } from '../pages/client/design-studio/garmentCatalog';
-import { has3DModel } from '../pages/client/design-studio/garmentCapabilities';
+import { has3DModel, has3DFor } from '../pages/client/design-studio/garmentCapabilities';
 import { deserializeDesign } from '../pages/client/design-studio/designSerialization';
 import { hasBackView } from '../pages/client/design-studio/garmentAssets';
 import { hasWebGL } from '../pages/client/design-studio/webglSupport';
@@ -28,11 +28,13 @@ export default function DesignPreview({ cfg, previewUrl = null, referenceImageUr
   }, [cfg]);
   const garment = design?.garment ?? cfg?.garmentType ?? null;
   const fam = familyFor(garment);
-  const can3D = !!(design && fam && has3DModel(design.garment, design.sleeve, design.fit) && hasWebGL());
+  const can3D = !!(design && fam && has3DFor(design) && hasWebGL());
+  // Opened from a photo whose family model is a different garment (NO_FAMILY_3D): the model exists but is withheld.
+  const withheld = !!(design && fam && !can3D && has3DModel(design.garment, design.sleeve, design.fit));
   const approx = fam?.status3D === 'partial';
   const note = approx ? 'Approximate 3D: colors and fit may differ from your 2D design. The 2D design is what VFRB produces from.' : null;
   // A selection without its own model (e.g. a long-sleeve design of a short-sleeve-only scan) stays 2D: no substitute model is shown.
-  const no3DNote = design && fam && fam.status3D !== 'none' && !can3D && hasWebGL() ? `No 3D model for ${design.garment}${design.sleeve ? ` · ${design.sleeve.toLowerCase()} sleeve` : ''}. Showing 2D.` : null;
+  const no3DNote = design && fam && fam.status3D !== 'none' && !can3D && hasWebGL() ? (withheld ? `No 3D model matches this design's garment. Showing 2D.` : `No 3D model for ${design.garment}${design.sleeve ? ` · ${design.sleeve.toLowerCase()} sleeve` : ''}. Showing 2D.`) : null;
 
   const flat = (
     <div style={box(height)}>

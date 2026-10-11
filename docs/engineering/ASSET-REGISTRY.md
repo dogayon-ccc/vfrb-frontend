@@ -47,6 +47,14 @@ Files on disk: 130 · referenced paths: 96 · missing: 0 · unreferenced: 34 (un
 - Working read-only full-set previews (gallery "View the set in 3D"): 14 (scrub-set-women-vneck, scrub-set-men-vneck, scrub-set-housekeeping, set-pinstripe-pants, set-pinstripe-skirt, bir-blouse-trousers-blue, pantsuit-notch-short-gray, polo-barong-brown, blazer-double-breasted-gray, blazer-pinstripe-navy, blouse-roundneck-fuchsia, blouse-roundneck-mustard, shirt-two-tone-gpc, peplum-set-navy).
 - Working read-only single-garment references (gallery "View in 3D"): 9 (blouse-mandarin-yellow, blouse-pleated-bib-white, blouse-scarf-cream, blouse-asymmetric-blue, blouse-tunic-roundneck-blue, blazer-open-front-black, dress-tunic-maternity-navy, jack-shirt-two-tone, dress-butter-belted).
 - Reference files with no viewer connection: none (every file in `/models/reference/` is mapped to its gallery photo).
+
+### Gallery photos by 3D kind
+- Photo-matched single-garment GLB (editable, the model was made from that photo or its exact cut): 17.
+- Family-level approximation, labelled (editable 2D; the Studio 3D is the family model, not the photo): 1 (corporate-skirt).
+- Editable 2D, family model withheld because it is a different garment (Studio 3D off for designs from this photo): 1 (blouse-tunic-roundneck-blue).
+- Editable 2D without a compatible GLB: 0.
+- Read-only full-set previews: 14 (5 of them also open their cut garment for editing).
+- Reference-only photos (no editor): 21 (17 with a read-only 3D viewer, 4 photo only).
 - Duplicates and rejected staging sources: see `GLB-STAGING-AUDIT.md` (dress-sheath-denim-blue duplicate; corporate-skirt, dress-shift-geometric, women-pinstripe-vest-blouse rejected).
 
 ## Gallery photos

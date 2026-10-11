@@ -349,6 +349,41 @@ export default function DesignStudioStyles() {
       .ds-cv[data-stage="dark"] .ds-stage-floor{background:radial-gradient(ellipse at center,rgba(0,0,0,.6),transparent 70%);}
       .ds-stage-ctl{position:absolute;z-index:2;top:14px;left:14px;display:flex;align-items:flex-start;gap:8px;}
       .ds-stage-ctl .ds-zoom{position:static;}
+      .ds-guides{position:relative;z-index:2;display:flex;gap:2px;padding:2px;border-radius:var(--r-md);background:var(--bg-card,#fff);border:1px solid var(--border);box-shadow:var(--shadow-sm);}
+      .ds-guides button{display:flex;align-items:center;gap:5px;min-height:34px;padding:0 10px;border:0;border-radius:calc(var(--r-md) - 2px);background:transparent;color:var(--text-subtle);font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;}
+      .ds-guides button[aria-pressed=true]{background:rgba(2,128,144,.12);color:var(--teal,#028090);}
+      .ds-grid{position:absolute;left:0;top:0;pointer-events:none;overflow:visible;}
+      .ds-guides select{min-height:34px;padding:0 4px;border:0;border-radius:calc(var(--r-md) - 3px);background:rgba(2,128,144,.08);color:var(--teal,#028090);font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;}
+      .ds-grid line{stroke:rgba(2,128,144,.18);}
+      .ds-grid line[data-major]{stroke:rgba(2,128,144,.4);}
+      /* Rulers pinned to the stage's top and left edges; the pane moves out from under them so no control covers a ruler. */
+      .ds-cv[data-rulers] .ds-pane{top:16px;left:16px;}
+      .ds-ruler,.ds-ruler-corner{position:absolute;z-index:3;pointer-events:none;background:rgba(241,245,249,.97);}
+      .ds-ruler{overflow:hidden;}
+      .ds-ruler-x{left:16px;top:0;box-shadow:inset 0 -1px 0 rgba(15,23,42,.14);}
+      .ds-ruler-y{left:0;top:16px;box-shadow:inset -1px 0 0 rgba(15,23,42,.14);}
+      .ds-ruler-corner{left:0;top:0;width:16px;height:16px;box-shadow:inset -1px -1px 0 rgba(15,23,42,.14);}
+      .ds-ruler-art{fill:#fff;}
+      .ds-ruler line{stroke:rgba(15,23,42,.5);stroke-width:1;shape-rendering:crispEdges;}
+      .ds-ruler text{fill:rgba(15,23,42,.75);font-family:inherit;font-variant-numeric:tabular-nums;}
+      .ds-cv[data-stage="dark"] .ds-ruler,.ds-cv[data-stage="dark"] .ds-ruler-corner{background:rgba(15,23,42,.92);}
+      .ds-cv[data-stage="dark"] .ds-ruler-art{fill:rgba(255,255,255,.08);}
+      .ds-cv[data-stage="dark"] .ds-ruler line{stroke:rgba(255,255,255,.55);}
+      .ds-cv[data-stage="dark"] .ds-ruler text{fill:rgba(255,255,255,.85);}
+      .ds-pane[data-pan]{cursor:grab;touch-action:none;}
+      .ds-pan-layer{position:absolute;inset:0;z-index:1;cursor:grab;touch-action:none;}
+      .ds-pan-layer:active,.ds-pane[data-pan]:active{cursor:grabbing;}
+      @media (max-width:1100px){ .ds-guides button span{display:none;} .ds-guides button{padding:0 9px;} } /* icon-only so the centred selection bar never covers them */
+      /* Tablet and desktop: the selection bar owns the top of the stage (top-right on tablet, centred on desktop), so the top row
+         keeps only the zoom; guides go bottom-left and the stage toggle bottom-right, both clear of the centred Front/Back switcher. */
+      @media (min-width:768px){
+        .ds-stage-ctl{display:contents;}
+        .ds-stage-ctl .ds-zoom{position:absolute;left:14px;top:14px;}
+        .ds-stage-ctl .ds-guides{position:absolute;left:14px;bottom:14px;}
+        .ds-stage-ctl .ds-stage-btn{position:absolute;right:14px;bottom:14px;} /* must beat the later base rule, or the button joins the flex row and shifts the canvas */
+      }
+      @media (min-width:768px){ .ds-pane[data-selbar="1"] .ds-set-wrap{top:66px;} } /* the top selection bar is 46px tall from 12-14px: keep the set pill below it */
+      @media (min-width:768px) and (max-width:1279px){ .ds-stage-ctl .ds-guides{flex-direction:column;} .ds-stage-ctl .ds-guides select{width:40px;padding:0 2px;font-size:11px;} } /* narrow panes: a column, clear of the centred Front/Back switcher */
       .ds-stage-btn{position:relative;z-index:2;width:40px;height:40px;display:grid;place-items:center;border-radius:var(--r-md);
         border:1px solid var(--border);background:var(--bg-card);color:var(--ink);cursor:pointer;box-shadow:var(--shadow-sm);transition:transform .12s,background .16s;}
       .ds-stage-btn:active{transform:scale(.94);}
@@ -360,6 +395,9 @@ export default function DesignStudioStyles() {
         .ds-stage-ctl{display:contents;}
         .ds-stage-ctl .ds-zoom{position:absolute;left:12px;top:12px;}
         .ds-stage-btn{position:absolute;right:12px;top:12px;}
+        .ds-guides{position:absolute;left:12px;top:114px;flex-direction:column;} /* a narrow column below the zoom and the centred set pill, left of the artboard */
+        .ds-guides select{width:40px;padding:0 2px;font-size:11px;}
+        .ds-guides button span{display:none;}
         .ds-face:has(.ds-face-thumb){padding:3px;gap:3px;bottom:auto;top:12px;left:auto;right:64px;margin-inline:0;box-shadow:var(--shadow-sm);border-radius:var(--r-md);}
         .ds-face .ds-face-thumb{flex-direction:row;min-width:0;padding:0 12px;min-height:36px;}
         .ds-face .ds-face-thumb svg,.ds-face .ds-face-thumb img,.ds-face .ds-face-thumb canvas{display:none!important;}
@@ -386,8 +424,10 @@ export default function DesignStudioStyles() {
       .ds-zone-now b{color:var(--ink);}
       .ds-zone-now code{margin-left:auto;font-size:var(--text-2xs);color:var(--text-muted);}
       .ds-zone-dot{width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(15,23,42,.18);flex-shrink:0;transition:background .2s;}
-      .ds-toast{position:absolute;z-index:60;left:50%;bottom:92px;transform:translateX(-50%);display:flex;align-items:center;gap:8px;
-        padding:10px 16px;border-radius:99px;background:var(--ink);color:#fff;font-size:var(--text-xs);font-weight:700;box-shadow:var(--shadow-md);white-space:nowrap;}
+      /* Centred with margins, not translateX: framer-motion owns transform for the enter animation and would drop the centring. */
+      .ds-toast{position:absolute;z-index:60;left:0;right:0;margin-inline:auto;width:max-content;max-width:calc(100% - 24px);bottom:92px;display:flex;align-items:center;gap:8px;
+        padding:10px 16px;border-radius:99px;background:var(--ink);color:#fff;font-size:var(--text-xs);font-weight:700;box-shadow:var(--shadow-md);}
+      .ds-toast svg{flex:none;}
       .ds-toast svg{color:var(--teal-light,#02C39A);}
       @media (max-width:767px){.ds-toast{bottom:calc(var(--ds-nav-h) + 24px);}}
       /* Mobile sheet grabber (hidden on tablet/desktop) */
@@ -513,6 +553,7 @@ export default function DesignStudioStyles() {
       .ds-act--danger{color:#dc2626;border-color:rgba(220,38,38,.3);}
       .ds-ins-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
       .ds-set-wrap{position:absolute;top:56px;left:50%;transform:translateX(-50%);z-index:3;max-width:calc(100% - 24px);}
+      @media (max-width:767px){ .ds-set-wrap{top:70px;} } /* phone zoom is 52px tall from 12px with 44px touch targets */
       .ds-set-bar{display:flex;gap:4px;align-items:center;padding:4px;border-radius:999px;background:var(--bg-card,#fff);border:1px solid var(--border);box-shadow:0 4px 14px rgba(15,23,42,.08);}
       .ds-set-bar button{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-height:40px;padding:4px 14px;border:0;border-radius:999px;background:transparent;cursor:pointer;font:inherit;color:var(--ink);text-align:left;}
       .ds-set-bar button span{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-subtle);}

@@ -359,6 +359,13 @@ export function scannedEntryFor(garment, sleeve, fit) {
 }
 // True when this exact selection (garment + sleeve + fit) has a real 3D model.
 export const has3DModel = (garment, sleeve, fit) => !!scannedEntryFor(garment, sleeve, fit);
+// Gallery photos opened on a family template whose family model contradicts the photo, so 3D would show the wrong garment.
+// blouse-tunic-roundneck-blue: a round-neck belted tunic with a placket; the female T-Shirt model is a V-neck tee with contrast
+// trim. It stays editable in 2D, and its photo has its own read-only reference model in the gallery.
+export const NO_FAMILY_3D = new Set(['blouse-tunic-roundneck-blue']);
+// 3D for a design (cfg or saved studio_config): its model, unless it was opened from a photo the family model would misrepresent.
+// inspirationId is dropped when the garment changes, so choosing T-Shirt directly keeps its 3D.
+export const has3DFor = d => !!d && !NO_FAMILY_3D.has(d.inspirationId) && has3DModel(d.garment, d.sleeve, d.fit);
 // Sleeve styles that really have a 3D model for this garment at this fit (union over the entries that apply). The single source for every "sleeve is 2D only" label.
 export function sleeves3DFor(garment, fit) {
   const name = String(garment ?? '').toLowerCase(), f = String(fit ?? '').toLowerCase();

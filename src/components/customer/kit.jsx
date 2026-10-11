@@ -3,6 +3,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { NavIcon } from '../ui/icons';
 import { MiniPreview } from '../../pages/client/design-studio/InspoGallery';
+import { savedDesignName } from '../../utils/designName';
+import { humanize } from '../../utils/humanize';
 
 // Real orders.status enum → label/colors (same values used across customer pages).
 export const STATUS = {
@@ -41,7 +43,8 @@ export function lifecycleIndex(status) {
 
 export const fmtDate = (d, o = { month: 'short', day: 'numeric', year: 'numeric' }) =>
   d ? new Date(d).toLocaleDateString('en-PH', o) : '—';
-export const orderTitle = (o) => o?.design?.design_name ?? o?.garment_type ?? 'Custom Order';
+// The customer's saved design name (studio_config.name; the order API has no separate name field), else the garment.
+export const orderTitle = (o) => savedDesignName(o?.studio_config) || humanize(o?.garment_type)?.trim() || 'Custom Order';
 export const parseCfg = (o) => {
   const raw = o?.studio_config;
   if (!raw) return {};
