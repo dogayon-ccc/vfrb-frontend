@@ -1,0 +1,105 @@
+/* Customer shell (atelier): paper top bar + light stitched rail on desktop, collapsing header + one bottom nav on phones.
+   Everything is scoped to html[data-cx] / .cm-shell so the admin portal is untouched even after this file has loaded. */
+
+/* Base reset while the customer shell is mounted (zero specificity, same reach as the old inline reset) */
+:where(html[data-cx]) *,:where(html[data-cx]) *::before,:where(html[data-cx]) *::after{box-sizing:border-box;margin:0;padding:0}
+html[data-cx],html[data-cx] body{min-height:100%;font-family:var(--cx-sans);background:var(--cx-paper);color:var(--cx-ink)}
+html[data-cx] ::-webkit-scrollbar{width:6px;height:6px}
+html[data-cx] ::-webkit-scrollbar-thumb{background:var(--cx-line-strong);border-radius:3px}
+
+/* Frame: one column on phones; rail + content on tablet/desktop */
+.cm-shell{--cx-rail-w:var(--cx-rail);min-height:100dvh;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr;background:var(--cx-paper);color:var(--cx-ink)}
+.cm-shell[data-rail=slim]{--cx-rail-w:var(--cx-rail-sm)}
+.cm-main{grid-column:1/-1;min-width:0;display:flex;flex-direction:column}
+.cm-content{flex:1;width:100%;min-width:0;padding:16px max(16px,env(safe-area-inset-right)) calc(var(--cx-nav-h) + 24px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left))}
+.cm-content[data-fab]{padding-bottom:calc(var(--cx-nav-h) + 86px + env(safe-area-inset-bottom,0px))}
+
+/* Top bar */
+.cx-bar{grid-column:1/-1;position:sticky;top:0;z-index:100;height:calc(var(--cx-bar-h) + env(safe-area-inset-top,0px));padding:env(safe-area-inset-top,0px) max(12px,env(safe-area-inset-right)) 0 max(12px,env(safe-area-inset-left));display:flex;align-items:center;gap:8px;background:var(--cx-bar-glass);-webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);border-bottom:1px solid var(--cx-line);transition:transform var(--cx-dur-2) var(--cx-ease)}
+.cx-brand{display:flex;align-items:center;gap:10px;min-height:44px;min-width:0;padding-right:6px;color:inherit;text-decoration:none;border-radius:var(--cx-r-md)}
+.cx-brand img{width:32px;height:32px;border-radius:9px;object-fit:cover;flex-shrink:0;box-shadow:0 0 0 1px var(--cx-line)}
+.cx-brand b{display:block;font:400 21px/1 var(--cx-serif);color:var(--cx-ink)}
+.cx-brand small{display:block;margin-top:2px;font-size:11px;font-weight:600;color:var(--cx-ink-3)}
+.cx-crumb{display:none;flex-direction:column;gap:2px;min-width:0;padding-left:16px;margin-left:4px;border-left:1px solid var(--cx-line)}
+.cx-crumb b{font-size:14px;font-weight:700;color:var(--cx-ink)}
+.cx-crumb span{font-size:11px;color:var(--cx-ink-3);white-space:nowrap}
+.cx-bar-sp{flex:1}
+.cx-bar .cx-bar-msg{display:none}
+.cx-bar-cta{display:none;align-items:center;gap:8px;height:44px;padding:0 16px;border:0;border-radius:var(--cx-r-pill);background:var(--cx-thread);color:var(--cx-on-thread);font:700 13px/1 var(--cx-sans);cursor:pointer;white-space:nowrap;box-shadow:var(--cx-elev-0);transition:box-shadow var(--cx-dur-2) var(--cx-ease),transform var(--cx-dur-1) var(--cx-ease)}
+.cx-bar-cta:hover{box-shadow:var(--cx-elev-1);transform:translateY(-1px)}
+.cx-icon-btn{position:relative;display:grid;place-items:center;width:44px;height:44px;flex-shrink:0;border-radius:var(--cx-r-md);color:var(--cx-ink-2);text-decoration:none;transition:background var(--cx-dur-1)}
+.cx-icon-btn:hover{background:var(--cx-hover);color:var(--cx-ink)}
+.cx-dot{position:absolute;top:10px;right:10px;width:9px;height:9px;border-radius:50%;background:var(--danger);box-shadow:0 0 0 2px var(--cx-card)}
+.cx-user{display:flex;align-items:center;gap:8px;min-height:44px;min-width:44px;padding:4px;border-radius:var(--cx-r-pill);color:var(--cx-ink);text-decoration:none;transition:background var(--cx-dur-1)}
+.cx-user:hover{background:var(--cx-hover)}
+.cx-av{width:34px;height:34px;flex-shrink:0;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;color:var(--cx-on-thread);background:var(--cx-thread);box-shadow:0 0 0 2px var(--cx-card),0 0 0 3px var(--cx-line)}
+.cx-user-n{display:none;max-width:16ch;padding-right:8px;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Rail (desktop): light paper, sewn to the page with a stitched seam */
+.cx-rail{display:none}
+.cx-rail-link{position:relative;display:flex;align-items:center;gap:12px;width:100%;min-height:44px;padding:0 12px;border:0;border-radius:var(--cx-r-md);background:none;color:var(--cx-ink-2);font:600 14px/1.2 var(--cx-sans);text-decoration:none;text-align:left;white-space:nowrap;cursor:pointer;transition:background var(--cx-dur-1),color var(--cx-dur-1)}
+.cx-rail-link svg{flex-shrink:0;color:var(--cx-ink-3);transition:color var(--cx-dur-1)}
+.cx-rail-link:hover{background:var(--cx-hover);color:var(--cx-ink)}
+.cx-rail-link[aria-current=page]{background:var(--cx-card);color:var(--cx-ink);font-weight:700;box-shadow:var(--cx-elev-0)}
+.cx-rail-link[aria-current=page] svg,.cx-rail-studio svg{color:var(--cx-thread)}
+.cx-rail-link[aria-current=page]::before{content:"";position:absolute;left:-8px;top:10px;bottom:10px;width:2px;background:repeating-linear-gradient(to bottom,var(--cx-thread) 0 4px,transparent 4px 7px)}
+.cx-rail-link span{flex:1;overflow:hidden;text-overflow:ellipsis}
+.cx-count{min-width:20px;height:20px;padding:0 6px;border-radius:var(--cx-r-pill);background:var(--danger);color:var(--cx-on-thread);font-size:11px;font-weight:700;display:grid;place-items:center}
+.cx-rail-sep{height:0;margin:10px 4px;border-top:1px dashed var(--cx-line-strong)}
+.cx-rail-foot{display:flex;flex-direction:column;gap:2px;padding:10px 12px 14px}
+.cx-rail-out{color:var(--danger-text)}
+.cx-rail-out svg{color:currentColor}
+.cm-shell[data-rail=slim] .cx-rail-link{justify-content:center;padding:0}
+.cm-shell[data-rail=slim] .cx-rail-link::before{left:-6px}
+
+/* Bottom nav (phone): the only fixed navigation */
+.cx-nav{position:fixed;left:0;right:0;bottom:0;z-index:300;display:flex;align-items:stretch;height:calc(var(--cx-nav-h) + env(safe-area-inset-bottom,0px));padding:0 max(4px,env(safe-area-inset-right)) env(safe-area-inset-bottom,0px) max(4px,env(safe-area-inset-left));background:var(--cx-bar-glass);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border-top:1px solid var(--cx-line)}
+.cx-nav-item{position:relative;flex:1;min-width:44px;min-height:44px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:0;background:none;color:var(--cx-ink-3);font:600 11px/1 var(--cx-sans);text-decoration:none;cursor:pointer;border-radius:var(--cx-r-md)}
+.cx-nav-ico{display:grid;place-items:center;width:54px;height:30px;border-radius:var(--cx-r-pill);transition:background var(--cx-dur-2) var(--cx-ease),color var(--cx-dur-2)}
+.cx-nav-item[aria-current=page],.cx-nav-item[aria-expanded=true]{color:var(--cx-thread-ink);font-weight:700}
+.cx-nav-item[aria-current=page] .cx-nav-ico,.cx-nav-item[aria-expanded=true] .cx-nav-ico{background:var(--cx-thread-tint)}
+.cx-nav-item:active .cx-nav-ico{transform:scale(.94)}
+.cx-badge{position:absolute;top:6px;left:calc(50% + 6px);min-width:16px;height:16px;padding:0 4px;border-radius:var(--cx-r-pill);background:var(--danger);color:var(--cx-on-thread);font-size:10px;font-weight:800;display:grid;place-items:center;box-shadow:0 0 0 2px var(--cx-card)}
+
+/* Studio shortcut (phone, list pages) */
+.cm-studio-fab{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:calc(var(--cx-nav-h) + 14px + env(safe-area-inset-bottom,0px));z-index:310;width:56px;height:56px;display:grid;place-items:center;border:0;border-radius:50%;background:var(--cx-thread);color:var(--cx-on-thread);cursor:pointer;box-shadow:0 0 0 4px var(--cx-paper),var(--cx-elev-2);transition:transform var(--cx-dur-1) var(--cx-ease)}
+.cm-studio-fab:active{transform:scale(.94)}
+
+/* More sheet (phone) */
+.cx-scrim{position:fixed;inset:0;z-index:280;background:var(--cx-scrim)}
+.cx-sheet{position:fixed;left:0;right:0;bottom:calc(var(--cx-nav-h) + env(safe-area-inset-bottom,0px));z-index:290;padding:16px max(16px,env(safe-area-inset-right)) 10px max(16px,env(safe-area-inset-left));background:var(--cx-card);border-radius:var(--cx-r-xl) var(--cx-r-xl) 0 0;border-top:1px solid var(--cx-line);box-shadow:var(--cx-elev-2)}
+.cx-sheet h2{margin:0 0 8px 4px;font:400 19px/1.2 var(--cx-serif);color:var(--cx-ink)}
+.cx-sheet .cx-rail-link{min-height:48px}
+.cx-sheet .cx-rail-sep{margin:6px 4px}
+
+/* Focus */
+.cm-shell :is(.cx-bar,.cx-rail,.cx-nav,.cx-sheet,.cm-studio-fab) :focus-visible,.cm-studio-fab:focus-visible{outline:3px solid var(--cx-thread-ink);outline-offset:2px}
+
+/* Phone: header slides away while scrolling down; a flow's action bar replaces the bottom nav */
+@media(max-width:767px){
+  .cx-bar[data-hidden=true]:not(:focus-within){transform:translateY(-100%)}
+  html[data-wizard] .cx-nav{display:none}
+  html[data-wizard] .cm-content,html[data-wizard] .cm-main{padding-bottom:0}
+  html[data-cx][data-wizard] .wz-actions{bottom:0;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+}
+
+/* Tablet/desktop: slim bar across, rail on the left, content uses the full remaining width */
+@media(min-width:768px){
+  .cm-shell{grid-template-columns:var(--cx-rail-w) minmax(0,1fr);transition:grid-template-columns var(--cx-dur-3) var(--cx-ease)}
+  .cx-bar{padding-inline:16px 20px}
+  .cx-crumb,.cx-bar-cta{display:flex}
+  .cx-bar .cx-bar-msg{display:grid}
+  .cx-user-n{display:block}
+  .cx-rail{grid-column:1;grid-row:2;position:sticky;top:var(--cx-bar-h);height:calc(100dvh - var(--cx-bar-h));display:flex;flex-direction:column;overflow:hidden auto;scrollbar-width:thin;background:repeating-linear-gradient(to bottom,var(--cx-line-strong) 0 6px,transparent 6px 11px) right top/1px 100% no-repeat var(--cx-paper-2)}
+  .cx-rail nav{flex:1;display:flex;flex-direction:column;gap:2px;padding:16px 12px 8px 16px}
+  .cm-shell[data-rail=slim] .cx-rail nav{padding-inline:12px}
+  .cm-main{grid-column:2;grid-row:2}
+  .cm-content{padding:24px clamp(20px,2.6vw,40px) 48px}
+  .cx-nav,.cm-studio-fab,.cx-sheet,.cx-scrim{display:none}
+}
+@media(min-width:768px) and (max-width:1023px){.cx-crumb span{display:none}}
+
+@media(prefers-reduced-motion:reduce){
+  .cm-shell,.cx-bar,.cx-bar-cta,.cx-rail-link,.cx-rail-link svg,.cx-nav-ico,.cx-icon-btn,.cx-user,.cm-studio-fab{transition:none}
+  .cx-bar-cta:hover{transform:none}
+}
