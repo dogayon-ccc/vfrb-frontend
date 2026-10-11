@@ -4,7 +4,7 @@ import { T2, LOGO_PRESETS, PATTERNS, SHAPE_TYPE_LABEL } from './dsShared';
 import { getGarmentPaths } from './garmentPaths';
 import { assetFor, tintedCanvas } from './garmentAssets';
 import { snapTargets, computeSnap, snapThreshold, computeResizeSnap, movingEdges } from './snapGuides';
-import { placementTargets, readoutPct, alignDeltas, distributeDeltas } from './canvasGuides';
+import { placementTargets, readoutPct, alignDeltas, distributeDeltas, gridSpec, guideLines } from './canvasGuides';
 import { installStageLayers, drawPlacementGhosts, applyErase, garmentBox, plainObject } from './canvasLayers';
 
 // Decorative template lines (garmentPaths `details`): no __zoneKey and not evented, so they never take a click or a hover.
@@ -95,7 +95,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   const eraser = useRef(false); // Draw tool in eraser mode: a stroke cuts the customer's drawings and art, never the garment
   // Snapping options (set by the Studio's grid/snap toggles) and the guides of the current drag. Guides are drawn on Fabric's
   // interaction layer only, never added as objects, so they cannot be saved, exported or put in history.
-  const snapOpts = useRef({ snap: true, gridSize: 0, scale: 1, showGrid: false, centre: false, smart: true }); // scale: on-screen px per canvas px (zoom x fit)
+  const snapOpts = useRef({ snap: true, gridPct: 10, rulerGuides: [], scale: 1, showGrid: false, centre: false, smart: true }); // scale: on-screen px per canvas px (zoom x fit)
   const dragGuides = useRef({ targets: null, guides: [], readout: null, ghosts: null });
 
   // Init once on mount. useLayoutEffect (not useEffect) so cleanup runs
@@ -208,7 +208,8 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         const smart = snapOpts.current.smart;
         const moving = new Set(obj.getObjects ? [obj, ...obj.getObjects()] : [obj]);
         const others = smart ? c.getObjects().filter(o => isOverlay(o) && !moving.has(o)).map(o => o.getBoundingRect()) : [];
-        return snapTargets({ width: c.getWidth(), height: c.getHeight(), garment: garmentBox(c), garmentEdges: smart, others, gridSize: snapOpts.current.showGrid ? snapOpts.current.gridSize : 0 });
+        const g = garmentBox(c); // grid and ruler guides are garment-relative (origin at its top-left)
+        return snapTargets({ width: c.getWidth(), height: c.getHeight(), garment: g, garmentEdges: smart, others, grid: snapOpts.current.showGrid ? gridSpec(g, snapOpts.current.gridPct) : null, guides: guideLines(g, snapOpts.current.rulerGuides) });
       };
       const threshold = () => snapThreshold(snapOpts.current.scale);
       // Fabric moves left/top during a drag without refreshing the cached corner coords that getBoundingRect() reads, so they are
@@ -279,7 +280,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
           ctx.stroke();
         }
         if (ro && garmentBox(c)) { // readout pill under the element (above it near the canvas bottom), constant on-screen size
-          const b = ro.obj.getBoundingRect(), text = readoutPct(b, garmentBox(c), ro.action); // % of the garment, never units
+          const b = ro.obj.getBoundingRect(), text = readoutPct(ro.obj, garmentBox(c)); // X Y W H % of the garment (+ rotation), never units
           ctx.setLineDash([]);
           ctx.font = `600 ${11 * px}px ui-sans-serif, system-ui, sans-serif`;
           const w = ctx.measureText(text).width + 12 * px, h = 18 * px;

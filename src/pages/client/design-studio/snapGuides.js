@@ -11,8 +11,9 @@ export const GRID_SIZES = [10, 20, 40];
 export const snapThreshold = (scale = 1) => Math.min(12, Math.max(2, SNAP_SCREEN_PX / (scale > 0 ? scale : 1)));
 
 // Candidate lines an element can snap to: the canvas centre, the garment's centre (and its edges unless garmentEdges is false),
-// other visible design elements' edges and centres, and (only while the grid is shown) every grid line.
-export function snapTargets({ width, height, garment, garmentEdges = true, others = [], gridSize = 0 }) {
+// other visible design elements' edges and centres, ruler guides, and (only while the grid is shown) every grid line: either a
+// garment-relative grid spec { x0, y0, sx, sy } (origin at the garment's top-left) or a plain spacing from canvas 0.
+export function snapTargets({ width, height, garment, garmentEdges = true, others = [], gridSize = 0, grid = null, guides = [] }) {
   const v = [{ at: width / 2, kind: 'canvas' }], h = [{ at: height / 2, kind: 'canvas' }];
   if (garment) {
     v.push({ at: garment.left + garment.width / 2, kind: 'garment' });
@@ -26,7 +27,12 @@ export function snapTargets({ width, height, garment, garmentEdges = true, other
     v.push({ at: o.left, kind: 'object' }, { at: o.left + o.width / 2, kind: 'object' }, { at: o.left + o.width, kind: 'object' });
     h.push({ at: o.top, kind: 'object' }, { at: o.top + o.height / 2, kind: 'object' }, { at: o.top + o.height, kind: 'object' });
   }
-  if (gridSize > 0) {
+  for (const g of guides) (g.axis === 'v' ? v : h).push({ at: g.at, kind: 'guide' });
+  if (grid?.sx > 0 && grid?.sy > 0) {
+    for (let x = grid.x0 - Math.floor(grid.x0 / grid.sx) * grid.sx; x <= width; x += grid.sx) v.push({ at: x, kind: 'grid' });
+    for (let y = grid.y0 - Math.floor(grid.y0 / grid.sy) * grid.sy; y <= height; y += grid.sy) h.push({ at: y, kind: 'grid' });
+    v.push({ at: grid.x0 + (50 / grid.pct) * grid.sx, kind: 'grid' }); // the 50% centre is a grid line at every size
+  } else if (gridSize > 0) {
     for (let x = gridSize; x < width; x += gridSize) v.push({ at: x, kind: 'grid' });
     for (let y = gridSize; y < height; y += gridSize) h.push({ at: y, kind: 'grid' });
   }
@@ -35,7 +41,7 @@ export function snapTargets({ width, height, garment, garmentEdges = true, other
 
 // Nearest line within the threshold for any of the box's three edges (start, centre, end). Object, garment and canvas lines
 // win over grid lines at equal distance, so content alignment beats grid alignment.
-const RANK = { object: 0, garment: 1, canvas: 2, grid: 3 };
+const RANK = { object: 0, guide: 1, garment: 2, canvas: 3, grid: 4 };
 function best(edges, lines, threshold) {
   let hit = null;
   for (const e of edges) for (const l of lines) {

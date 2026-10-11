@@ -731,7 +731,7 @@ export default function DesignStudio() {
             addText={addText} addShape={addShape} updateSelected={updateSelected}
             assetsTab={assetsTab} setAssetsTab={setAssetsTab} logoUpload={logoUpload}
             setShowInspo={openInspo} setShowShowcase={toggleShowcase} onChangeGarment={changeGarment}
-            brushSize={brushSize} brushColor={brushColor} erasing={erasing} setErasing={setErasing}
+            brushSize={brushSize} brushColor={brushColor} erasing={erasing} setErasing={setErasing} garmentRect={garmentRect}
             changeBrushSize={changeBrushSize} changeBrushColor={changeBrushColor}
             applyAI={applyAI} layers={layers} selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected} alignSelected={alignSelected}
             selectLayer={selectLayer} toggleLayerVisibility={toggleLayerVisibility}

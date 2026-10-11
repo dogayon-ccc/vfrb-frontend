@@ -1,5 +1,6 @@
 import { NavIcon } from '../../../components/ui/icons';
 import { SHAPE_TYPE_LABEL, FONTS } from './dsShared';
+import { metricsPct } from './canvasGuides';
 
 // Real contextual inspector for the currently-selected Fabric object — shown
 // in place of the static Design Summary whenever something is selected.
@@ -32,8 +33,11 @@ function kindOf(o) {
 const ALIGN = [['left', 'Left', 'Align left'], ['hcenter', 'Center', 'Center horizontally'], ['right', 'Right', 'Align right'],
   ['top', 'Top', 'Align top'], ['vcenter', 'Middle', 'Center vertically'], ['bottom', 'Bottom', 'Align bottom']];
 
-export function SelectionInspector({ selObj, updateSelected, deleteSelected, duplicateSelected, alignSelected, toggleSelectedLock, pushHistory }) {
-  const kind   = kindOf(selObj);
+export function SelectionInspector({ selObj, updateSelected, deleteSelected, duplicateSelected, alignSelected, toggleSelectedLock, pushHistory, garmentRect = null }) {
+  // Metrics are % of the garment (origin = its top-left), the same system as the rulers; a multi-selection shows its group bounds.
+  const active = selObj.canvas?.getActiveObject?.() ?? selObj, multi = active.type === 'activeselection';
+  const m = metricsPct(active, garmentRect), g = garmentRect;
+  const kind   = multi ? `${m?.n ?? 2} elements` : kindOf(selObj);
   const isText = !!selObj.__text || selObj.type === 'i-text' || selObj.type === 'text';
   const isLine = selObj.__shape && selObj.type === 'line';
   const hasFill = selObj.__shape || isText;
@@ -41,16 +45,14 @@ export function SelectionInspector({ selObj, updateSelected, deleteSelected, dup
   const angle  = Math.round(selObj.angle ?? 0);
   const baseW = selObj.width ?? 0;
   const baseH = selObj.height ?? 0;
-  const dispW = Math.round(baseW * (selObj.scaleX ?? 1));
-  const dispH = Math.round(baseH * (selObj.scaleY ?? 1));
   const live = (props) => updateSelected(props, false);
   const commit = () => pushHistory?.();
   const fontId = FONTS.find(f => f.css === selObj.fontFamily)?.id ?? '';
 
-  const num = (label, value, onCommit) => (
+  const num = (label, value, onCommit, readOnly = false) => (
     <label className="ds-ins-field">
       <span>{label}</span>
-      <input type="number" inputMode="numeric" defaultValue={Math.round(value)} key={`${label}-${Math.round(value)}`} disabled={locked}
+      <input type="number" inputMode="decimal" step="0.1" defaultValue={value} key={`${label}-${value}`} disabled={locked} readOnly={readOnly}
         onBlur={e => { const v = Number(e.target.value); if (!Number.isNaN(v)) onCommit(v); }}
         onKeyDown={e => { if (e.key === 'Enter') e.target.blur(); }}/>
     </label>
@@ -66,15 +68,15 @@ export function SelectionInspector({ selObj, updateSelected, deleteSelected, dup
   return (
     <div className="ds-ins">
       <div className="ds-ins-head">
-        <h2 className="ds-eyebrow">{kind}{selObj.__layerName && selObj.__layerName !== kind ? ` · ${selObj.__layerName}` : ''}</h2>
-        <button type="button" className="ds-lay-btn" aria-pressed={locked} aria-label={locked ? 'Unlock item' : 'Lock item'}
+        <h2 className="ds-eyebrow">{kind}{!multi && selObj.__layerName && selObj.__layerName !== kind ? ` · ${selObj.__layerName}` : ''}</h2>
+        {!multi && <button type="button" className="ds-lay-btn" aria-pressed={locked} aria-label={locked ? 'Unlock item' : 'Lock item'}
           title={locked ? 'Unlock' : 'Lock position and size'} onClick={toggleSelectedLock}>
           <NavIcon name="lock" size={15}/>
-        </button>
+        </button>}
       </div>
       {locked && <p className="ds-ins-note">Locked — unlock to move, resize or delete.</p>}
 
-      {isText && (
+      {isText && !multi && (
         <section className="ds-ins-sec">
           <p className="ds-group-label">Text</p>
           <label className="ds-ins-field ds-ins-wide">
@@ -100,16 +102,18 @@ export function SelectionInspector({ selObj, updateSelected, deleteSelected, dup
       )}
 
       <section className="ds-ins-sec">
-        <p className="ds-group-label">Position &amp; size</p>
-        <div className="ds-ins-grid">
-          {num('X', selObj.left ?? 0, v => updateSelected({ left: v }))}
-          {num('Y', selObj.top ?? 0, v => updateSelected({ top: v }))}
-          {!isText && baseW > 0 && num('Width', dispW, v => updateSelected({ scaleX: v / baseW }))}
-          {!isText && baseH > 0 && num('Height', dispH, v => updateSelected({ scaleY: v / baseH }))}
-        </div>
-        {range(`Rotation ${angle}°`, angle, 0, 360, v => live({ angle: v }), locked)}
-        {alignSelected && <p className="ds-group-label" style={{ marginTop: 12 }}>Align on garment</p>}
-        {alignSelected && (
+        <p className="ds-group-label">Position &amp; size · % of garment</p>
+        {m && (
+          <div className="ds-ins-grid">
+            {num('X %', m.x, v => updateSelected({ left: (active.left ?? 0) + ((v - m.x) / 100) * g.width }))}
+            {num('Y %', m.y, v => updateSelected({ top: (active.top ?? 0) + ((v - m.y) / 100) * g.height }))}
+            {num('W %', m.w, v => updateSelected({ scaleX: ((v / 100) * g.width) / baseW }), multi || isText || !(baseW > 0))}
+            {num('H %', m.h, v => updateSelected({ scaleY: ((v / 100) * g.height) / baseH }), multi || isText || !(baseH > 0))}
+          </div>
+        )}
+        {!multi && range(`Rotation ${angle}°`, angle, 0, 360, v => live({ angle: v }), locked)}
+        {alignSelected && !multi && <p className="ds-group-label" style={{ marginTop: 12 }}>Align on garment</p>}
+        {alignSelected && !multi && (
           <div className="ds-ins-align" role="group" aria-label="Align to garment">
             {ALIGN.map(([where, short, label]) => (
               <button key={where} type="button" className="ds-act" aria-label={label} title={`${label} on the garment`} disabled={locked}
@@ -119,7 +123,7 @@ export function SelectionInspector({ selObj, updateSelected, deleteSelected, dup
         )}
       </section>
 
-      <section className="ds-ins-sec">
+      {!multi && <section className="ds-ins-sec">
         <p className="ds-group-label">Appearance</p>
         {hasFill && (
           <label className="ds-ins-field ds-ins-wide">
@@ -130,10 +134,10 @@ export function SelectionInspector({ selObj, updateSelected, deleteSelected, dup
         )}
         {range(`Opacity ${Math.round((selObj.opacity ?? 1) * 100)}%`, Math.round((selObj.opacity ?? 1) * 100), 10, 100,
           v => live({ opacity: v / 100 }), false)}
-      </section>
+      </section>}
 
       <div className="ds-ins-actions">
-        {duplicateSelected && (
+        {duplicateSelected && !multi && (
           <button type="button" className="ds-act" onClick={duplicateSelected} disabled={locked}>
             <NavIcon name="duplicate" size={16}/> Duplicate
           </button>
