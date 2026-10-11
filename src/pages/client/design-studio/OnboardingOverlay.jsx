@@ -46,7 +46,7 @@ export default function OnboardingOverlay({ showOnboarding, onboardStep, nextOnb
             exit={{   opacity:0 }}
             transition={{ duration:.22 }}
             style={{
-              position:'absolute', inset:0, zIndex:200,
+              position:'absolute', inset:0, zIndex:'var(--cx-z-modal)',
               background:'rgba(2,8,20,.78)',
               backdropFilter:'blur(3px)',
               display:'flex', alignItems:'center', justifyContent:'center',

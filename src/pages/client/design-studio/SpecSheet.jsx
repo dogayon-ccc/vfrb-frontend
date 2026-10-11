@@ -34,7 +34,7 @@ export default function SpecSheet({ order, onClose }) {
   return (
     <AnimatePresence>
       <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
-        style={{ position:'fixed', inset:0, zIndex:400, background:'rgba(15,23,42,.55)',
+        style={{ position:'fixed', inset:0, zIndex:'var(--cx-z-modal)', background:'rgba(15,23,42,.55)',
           display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}
         onClick={onClose}>
         <motion.div initial={{ opacity:0, scale:.96 }} animate={{ opacity:1, scale:1 }}

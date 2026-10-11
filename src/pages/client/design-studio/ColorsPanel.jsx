@@ -1,17 +1,8 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import InlineColorPicker from '../../../components/InlineColorPicker';
-import { NavIcon } from '../../../components/ui/icons';
-import { T, T2, secLabel, ZONE_LABEL, PH_SWATCHES, zonesFor, zone3D, ONLY_2D_TAG } from './dsShared';
+import { SwatchChip } from '../../../components/customer/kit';
+import { T2, secLabel, ZONE_LABEL, PH_SWATCHES, zonesFor, zone3D, ONLY_2D_TAG } from './dsShared';
 import { assetFor } from './garmentAssets';
-
-// Black check on light swatches, white on dark, so the selected tick is always visible.
-function isLight(hex) {
-  const h = (hex || '').replace('#', '');
-  if (h.length !== 6) return false;
-  const [r, g, b] = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16));
-  return (0.299 * r + 0.587 * g + 0.114 * b) > 170;
-}
 
 export default function ColorsPanel({ cfg, setCfg, activeZone, setActiveZone }) {
   const setColor = (zone, c) => setCfg(p => ({ ...p, colors:{ ...p.colors, [zone]:c } }));
@@ -65,29 +56,14 @@ export default function ColorsPanel({ cfg, setCfg, activeZone, setActiveZone }) 
       ) : (
         <>
           <p style={secLabel}>Philippine Colors</p>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(34px,1fr))', gap:6, marginBottom:12 }}>
-            {PH_SWATCHES.map(sw => {
-              const on = (cfg.colors[activeZone]??'').toLowerCase()===sw.hex.toLowerCase();
-              const light = isLight(sw.hex);
-              return (
-                <motion.button key={sw.hex} type="button" className="ds-touch" title={sw.name} aria-label={sw.name} aria-pressed={on}
-                  whileHover={{ scale:1.1 }} whileTap={{ scale:0.94 }} transition={{ duration:.12 }}
-                  onClick={() => setColor(activeZone, sw.hex)}
-                  style={{
-                    position:'relative', height:34, minWidth:0, borderRadius:8, cursor:'pointer', border:'none', background: sw.hex,
-                    boxShadow: on ? `0 0 0 2px #fff, 0 0 0 4px ${T}` : 'inset 0 0 0 1px rgba(15,23,42,.14)',
-                    transition:'box-shadow .14s',
-                  }}>
-                  {on && (
-                    <motion.span initial={{ scale:0 }} animate={{ scale:1 }} transition={{ type:'spring', stiffness:520, damping:26 }}
-                      style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                      <NavIcon name="success" size={15} color={light ? '#0f172a' : '#fff'}/>
-                    </motion.span>
-                  )}
-                </motion.button>
-              );
-            })}
-          </div>
+          <ul className="ds-swatch-chips" aria-label={`Colours for ${label(activeZone)}`}>
+            {PH_SWATCHES.map(sw => (
+              <li key={sw.hex}>
+                <SwatchChip size="sm" color={sw.hex} name={sw.name} selected={(cfg.colors[activeZone] ?? '').toLowerCase() === sw.hex.toLowerCase()}
+                  onSelect={() => setColor(activeZone, sw.hex)}/>
+              </li>
+            ))}
+          </ul>
 
           <p style={secLabel}>Custom Color</p>
           <div style={{ position:'relative' }}>

@@ -21,7 +21,7 @@ function CardImage({ fam, cfg }) {
 }
 
 // Options come from the canonical CATALOG only; nothing here invents a garment, style or fit.
-export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, viewMode, setViewMode, setHas3DLoaded, pieceRole = null }) {
+export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, pieceRole = null }) {
   const reduce  = useReducedMotion();
   const [openZone, setOpenZone] = useState(null);
   const [picking, setPicking] = useState(!cfg.garment);
@@ -227,31 +227,16 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, view
                   </button>
                 </div>
               )}
-            <div className="ds-acc-item" data-open={openZone === 'preview'}>
-              <button type="button" className="ds-acc-head" aria-expanded={openZone === 'preview'} onClick={() => setOpenZone(o => (o === 'preview' ? null : 'preview'))}>
-                <NavIcon name="show" size={15}/>
-                <span>Preview</span>
-                <NavIcon name="chevronRight" size={13}/>
-              </button>
-              {openZone === 'preview' && (
-                <div className="ds-acc-body ds-tp-prev">
-                  <div className="ds-seg ds-seg--sm" role="radiogroup" aria-label="Preview mode">
-                    <button type="button" role="radio" aria-checked={viewMode !== '3d'} onClick={() => setViewMode?.('2d')}>2D</button>
-                    <button type="button" role="radio" aria-checked={viewMode === '3d'} disabled={!has3DFor(cfg)}
-                      onClick={() => { setHas3DLoaded?.(true); setViewMode?.('3d'); }}>3D</button>
-                  </div>
-                  <p className="ds-note" style={{ margin: 0 }}>
-                    {family?.status3D === 'none'
-                      ? `${cfg.garment} has no verified 3D model yet — the 2D design is the exact preview.`
-                      : NO_FAMILY_3D.has(cfg.inspirationId)
-                        ? `2D only for this design: the ${cfg.garment} 3D model is a different garment from its photo.`
-                      : family?.status3D === 'partial'
-                        ? '3D is a quick approximation. Use 2D for exact colors and placement.'
-                        : '3D is a quick spatial view. Use 2D for exact colors and placement.'}
-                  </p>
-                </div>
-              )}
-            </div>
+            {/* 2D/3D is chosen in the top bar only; this states what 3D can show for this garment */}
+            <p className="ds-note" style={{ margin: '4px 2px 0' }}>
+              {family?.status3D === 'none'
+                ? `${cfg.garment} has no 3D model yet; the 2D design is the exact preview.`
+                : NO_FAMILY_3D.has(cfg.inspirationId)
+                  ? `2D only for this design: the ${cfg.garment} 3D model is a different garment from its photo.`
+                : !has3DFor(cfg)
+                  ? 'No 3D model for this sleeve and fit; the 2D design is the exact preview.'
+                  : '3D is an approximate preview. Use 2D for exact colours and placement.'}
+            </p>
           </div>
         </>
       )}

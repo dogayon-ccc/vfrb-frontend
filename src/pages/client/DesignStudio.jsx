@@ -28,9 +28,13 @@ import { useLogoUpload } from './design-studio/useLogoUpload';
 import OnboardingOverlay from './design-studio/OnboardingOverlay';
 import InspoGallery from './design-studio/InspoGallery';
 import ShowcaseGallery from './design-studio/ShowcaseGallery';
-import { T, T2, CATS, INIT_CFG, FONTS, zonesFor } from './design-studio/dsShared';
+import { T2, INIT_CFG, FONTS, zonesFor } from './design-studio/dsShared';
 import { deserializeDesign, serializeDesign, draftLabel } from './design-studio/designSerialization';
-import { familyFor, pieceOf } from './design-studio/garmentCatalog';
+import { applyGarment, pieceOf } from './design-studio/garmentCatalog';
+import { openTarget } from './design-studio/designGallery';
+import { landingViewFor } from './design-studio/studioView';
+import DraftStrip from './design-studio/DraftStrip';
+import FirstRunGallery from './design-studio/FirstRunGallery';
 import { has3DFor } from './design-studio/garmentCapabilities';
 import { SET_ROLES, ROLE_LABEL, DEFAULT_PIECE, otherRole, normalizeSet, withSet } from './design-studio/uniformSet';
 
@@ -48,6 +52,7 @@ export default function DesignStudio() {
   const [tool,       setTool]       = useState('type');
   const [assetsTab,  setAssetsTab]  = useState('logo');
   const [sheetOpen,  setSheetOpen]  = useState(false);
+  const [sheetFull,  setSheetFull]  = useState(false); // phone sheet: peek (closed) / half (open) / full
   const [viewMode,   setViewMode]   = useState('2d');
   const [snapshot,   setSnapshot]   = useState(null);
   const [overlays,   setOverlays]   = useState(null);
@@ -80,6 +85,8 @@ export default function DesignStudio() {
   const [saved,      setSaved]      = useState(false);
   const [showInspo,  setShowInspo]  = useState(false); // inspiration gallery overlay
   const [showShowcase, setShowShowcase] = useState(false); // cross-client showcase overlay
+  const [showcaseCount, setShowcaseCount] = useState(0);
+  useEffect(() => { axios.get('/api/customer/designs/showcase').then(r => setShowcaseCount(Array.isArray(r.data) ? r.data.length : 0)).catch(() => setShowcaseCount(0)); }, []);
   // Inspo and Showcase are anchored at the same spot; with both open they stacked on top of
   // each other and clipped (seen in screenshots). Opening one now closes the other.
   const toggleInspo = useCallback((v) => {
@@ -95,7 +102,6 @@ export default function DesignStudio() {
     return () => window.removeEventListener('keydown', onKey);
   }, [showInspo, showShowcase]);
   const [draftSaved, setDraftSaved] = useState(false); // "Draft saved to cloud" feedback
-  const [draftRestored, setDraftRestored] = useState(false); // banner on restore
   // Transient success toast driven by the REAL save flags (local write first, then cloud draft).
   const [toast, setToast] = useState(null);
   const [toastErr, setToastErr] = useState(false);
@@ -191,11 +197,12 @@ export default function DesignStudio() {
     if (viewMode === '3d' && !has3DFor(cfg)) setViewMode('2d');
   // eslint-disable-next-line react-hooks/exhaustive-deps -- has3DFor reads exactly these fields
   }, [cfg.garment, cfg.sleeve, cfg.fit, cfg.inspirationId, viewMode]);
-  // Picking a garment whose 3D is only approximate always lands on the reliable 2D view; the customer can opt into 3D.
-  const keep3DRef = useRef(false); // set by the gallery's "Open with 3D preview" so the 2D landing rule below skips that one load
+  // A garment lands in 2D unless its 3D is verified (studioView.js); the customer can opt into 3D.
+  const keep3DRef = useRef(false); // set by the gallery's "Open with 3D preview" so this landing rule skips that one load
   useEffect(() => {
     const keep = keep3DRef.current; keep3DRef.current = false;
-    if (!keep && familyFor(cfg.garment)?.status3D === 'partial') setViewMode('2d');
+    if (!keep) setViewMode(v => landingViewFor(cfg, v));
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- landing runs once per garment change
   }, [cfg.garment]);
   useEffect(() => { keep3DRef.current = false; }, [viewMode]);
 
@@ -414,11 +421,36 @@ export default function DesignStudio() {
     const toLoad = faceJSON.current[face] ?? [];
     if (toLoad.length > 0) setTimeout(() => loadCanvasJSON(toLoad), 350);
     setPendingDraft(null);
-    setDraftRestored(true);
-    setTimeout(() => setDraftRestored(false), 4000);
+    setToast('Design restored from your last session');
+    setTimeout(() => setToast(null), 3000);
   }, [pendingDraft, loadCanvasJSON, face]);
 
   const dismissDraft = useCallback(() => setPendingDraft(null), []);
+  // The offer is only for a fresh, empty canvas: picking a garment or placing anything retires it.
+  useEffect(() => { if (cfg.garment || layers.length) setPendingDraft(null); }, [cfg.garment, layers.length]);
+
+  // First run: open a gallery photo exactly like the Inspo gallery does (same target rules), then show the garment's properties.
+  const pickPhoto = useCallback((d) => {
+    const t = openTarget(d);
+    if (!t) return;
+    setCfg(p => applyGarment(p, t.garment, { ...t, inspirationId: d.id }));
+  }, []);
+  const prevGarment = useRef(cfg.garment);
+  useEffect(() => {
+    if (!prevGarment.current && cfg.garment && tool === 'type') setTool('color');
+    prevGarment.current = cfg.garment;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cfg.garment]);
+  // "Upload my design": the file waits until a garment is chosen, then goes through the normal upload as artwork.
+  const [pendingArt, setPendingArt] = useState(null);
+  const startUpload = useCallback((file) => { logoUpload.setKind('artwork'); setPendingArt(file); }, [logoUpload]);
+  useEffect(() => {
+    if (!cfg.garment || !pendingArt) return undefined;
+    const file = pendingArt;
+    setPendingArt(null);
+    const t = setTimeout(() => onLogoFile(file), 450); // after the garment base has drawn
+    return () => clearTimeout(t);
+  }, [cfg.garment, pendingArt, onLogoFile]);
 
   // Flush the live canvas for whichever face is on-screen right now into
   // faceJSON.current, then hand both faces to the one canonical serializer.
@@ -655,89 +687,25 @@ export default function DesignStudio() {
   // on the same tick as the click, before any await, so the button reflects
   // "in progress" immediately rather than waiting on the async work to resolve.
 
-  const catData   = useMemo(() => CATS.find(c=>c.id===cfg.category) ?? CATS[0], [cfg.category]);
   const zone = zonesFor(cfg.garment, cfg.sleeve, cfg.fit).includes(activeZone) ? activeZone : 'body';
 
   return (
     <>
       <DesignStudioStyles/>
 
-      <div className="ds" data-sheet={sheetOpen ? 'open' : 'closed'} style={{ position:'relative' }}>
+      <div className="ds" data-sheet={sheetOpen ? 'open' : 'closed'} data-snap={sheetOpen ? (sheetFull ? 'full' : 'half') : cfg.garment ? 'peek' : 'none'} style={{ position:'relative' }}>
 
         {/* ── TOP BAR ── */}
-        <TopBar nav={nav} cfg={cfg} setCfg={setCfg} catData={catData} undo={undo} redo={redo}
+        <TopBar nav={nav} cfg={cfg} setCfg={setCfg} undo={undo} redo={redo}
           canUndo={canUndo} canRedo={canRedo}
           viewMode={viewMode} setViewMode={setViewMode} setHas3DLoaded={setHas3DLoaded}
-          selObj={selObj} deleteSelected={deleteSelected}
           showInspo={showInspo} setShowInspo={toggleInspo}
-          showShowcase={showShowcase} setShowShowcase={toggleShowcase}
-          saved={saved} draftSaved={draftSaved} saveDesign={saveDesign}
-          orderThis={orderThis} ordering={ordering}/>
+          showShowcase={showShowcase} setShowShowcase={toggleShowcase} showcaseCount={showcaseCount}/>
 
-        {/* ── PENDING DRAFT OFFER ── an unfinished design exists; ask before applying it */}
-        <AnimatePresence>
-          {pendingDraft && (
-            // FIX: a plain wrapper carries left:50%/translateX(-50%) for horizontal centering.
-            // Framer Motion writes its own `transform` from the `y` animation prop straight onto
-            // the animated element's style, silently overwriting any translateX we set there —
-            // so the animated motion.div must not be the one doing the centering.
-            <div style={{ position:'absolute', top:58, left:'50%', transform:'translateX(-50%)',
-              zIndex:90, width:'max-content', maxWidth:'calc(100vw - 24px)' }}>
-            <motion.div
-              initial={{ opacity:0, y:-8 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-8 }}
-              style={{
-                padding:'10px 12px', borderRadius:14,
-                background:'#fff', border:`1px solid ${T}55`,
-                boxShadow:'0 8px 24px rgba(15,23,42,.14)',
-                display:'flex', flexWrap:'wrap', alignItems:'center', gap:'6px 10px',
-              }}>
-              <div style={{ display:'flex', alignItems:'center', gap:8, minWidth:0 }}>
-                <NavIcon name="cloudSaved" size={14} style={{ color:T, flexShrink:0 }}/>
-                <span style={{ fontSize:12, fontWeight:600, color:'#1a2332', lineHeight:1.4 }}>
-                  You have an unfinished design{pendingDraft.studio_config?.garment ? ` (${pendingDraft.studio_config.garment})` : ''}.
-                </span>
-              </div>
-              <div style={{ display:'flex', gap:8, marginLeft:'auto' }}>
-                <button type="button" onClick={restoreDraft}
-                  style={{ fontSize:12, fontWeight:700, color:'#fff', background:T,
-                    border:'none', borderRadius:8, padding:'6px 12px', cursor:'pointer', whiteSpace:'nowrap' }}>
-                  Restore
-                </button>
-                <button type="button" onClick={dismissDraft}
-                  style={{ fontSize:12, fontWeight:600, color:'#64748b', background:'transparent',
-                    border:'none', cursor:'pointer', padding:'6px 4px', whiteSpace:'nowrap' }}>
-                  Start blank
-                </button>
-              </div>
-            </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
-
-        {/* ── DRAFT RESTORED BANNER ── */}
-        <AnimatePresence>
-          {draftRestored && (
-            // Same centering fix as the pending-draft offer above: transform must live on a
-            // non-animated wrapper, not on the motion.div that also animates `y`.
-            <div style={{ position:'absolute', top:58, left:'50%', transform:'translateX(-50%)',
-              zIndex:90, width:'max-content', maxWidth:'calc(100vw - 24px)' }}>
-            <motion.div
-              initial={{ opacity:0, y:-8 }}
-              animate={{ opacity:1, y:0, transition:{ duration:.25 } }}
-              exit={{   opacity:0, y:-8, transition:{ duration:.2  } }}
-              style={{
-                padding:'7px 18px', borderRadius:99,
-                background:`linear-gradient(135deg,${T},${T2})`,
-                color:'#000', fontSize:11, fontWeight:700,
-                boxShadow:'0 4px 16px rgba(2,195,154,.35)',
-                whiteSpace:'nowrap', pointerEvents:'none',
-                display:'flex', alignItems:'center', gap:6,
-              }}>
-              <NavIcon name="cloudSaved" size={13}/> Design restored from your last session
-            </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
+        {/* ── DRAFT OFFER ── in the page flow under the bar, so it can never cover menus or stage controls */}
+        {pendingDraft && !cfg.garment && layers.length === 0 && (
+          <DraftStrip draft={pendingDraft} hasWork={!!cfg.name?.trim() || layers.length > 0} onRestore={restoreDraft} onDismiss={dismissDraft}/>
+        )}
 
         {/* ── BODY ── */}
         <div className="ds-body">
@@ -752,7 +720,8 @@ export default function DesignStudio() {
           </AnimatePresence>
 
           {/* ── TOOL STRIP + PANEL DRAWER ── */}
-          <ToolDrawer tool={tool} setTool={setTool} sheetOpen={sheetOpen} setSheetOpen={setSheetOpen}
+          <ToolDrawer tool={tool} setTool={setTool} sheetOpen={sheetOpen} setSheetOpen={setSheetOpen} sheetFull={sheetFull} setSheetFull={setSheetFull}
+            history={{ undo, redo, canUndo, canRedo }}
             summary={{ cfg, face, saved, saving, saveErr, draftSaved, saveDesign, orderThis, ordering, onOpenTool: (id) => { setTool(id); setSheetOpen(true); }, downloadImage, downloadPdf, exporting, clearGarment }} cfg={cfg} setCfg={setCfg}
             activeZone={zone} setActiveZone={setActiveZone}
             addText={addText} addShape={addShape} updateSelected={updateSelected}
@@ -763,7 +732,7 @@ export default function DesignStudio() {
             applyAI={applyAI} layers={layers} selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected} alignSelected={alignSelected}
             selectLayer={selectLayer} toggleLayerVisibility={toggleLayerVisibility}
             toggleLayerLock={toggleLayerLock} toggleSelectedLock={toggleSelectedLock} setLayerOpacity={setLayerOpacity}
-            pushHistory={pushHistory} viewMode={viewMode} setViewMode={setViewMode} setHas3DLoaded={setHas3DLoaded}
+            pushHistory={pushHistory}
             renameLayer={renameLayer} deleteLayer={deleteLayer} reorderLayers={reorderLayers} pieceRole={uset?.active ?? null}/>
 
           {/* ── CANVAS AREA ── */}
@@ -772,7 +741,8 @@ export default function DesignStudio() {
             selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected}
             viewMode={viewMode} has3DLoaded={has3DLoaded} onLogoFile={onLogoFile}
             zoom={zoom} setZoom={setZoom} snapshot={snapshot} overlays={overlays}
-            onChooseGarment={() => { setTool('type'); setSheetOpen(true); }} pickerOpen={tool === 'type' && (!isNarrow || sheetOpen)} setViewMode={setViewMode}
+            blank={<FirstRunGallery onPick={pickPhoto} onUpload={startUpload} onBrowseAll={() => toggleInspo(true)}
+              pendingArt={pendingArt} onCancelArt={() => setPendingArt(null)}/>} setViewMode={setViewMode}
             pieceBar={pieceBar} setCompanion={setCompanion} showSet={showSet} setShowSet={setShowSet} setSnapOptions={setSnapOptions}/>
         </div>
 
@@ -783,7 +753,7 @@ export default function DesignStudio() {
         {/* Click-away scrim behind whichever gallery is open (z-index sits under the galleries' 100). */}
         {(showInspo || showShowcase) && (
           <div aria-hidden="true" onClick={() => { setShowInspo(false); setShowShowcase(false); }}
-            style={{ position:'absolute', inset:0, zIndex:90, background:'rgba(15,23,42,.18)' }}/>
+            style={{ position:'absolute', inset:0, zIndex:'var(--cx-z-modal)', background:'var(--cx-scrim)' }}/>
         )}
 
         {/* ── INSPIRATION GALLERY OVERLAY ── */}

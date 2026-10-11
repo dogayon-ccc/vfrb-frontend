@@ -1,7 +1,7 @@
 /* Customer portal kit — wireframe-driven. Uses existing theme.css tokens only. */
 
-/* Atelier tokens: customer scope only (html[data-cx] is set while the customer shell is mounted; .cm-shell re-reads the accent). */
-:is(html[data-cx],.cm-shell){
+/* Atelier tokens: customer scope only (html[data-cx] while the customer shell is mounted, .cm-shell for the accent, .ds for the full-screen Studio). */
+:is(html[data-cx],.cm-shell,.ds){
   --cx-paper:#f6f2ea;--cx-paper-2:#ede7dc;--cx-card:#fffdf8;
   --cx-line:#e3dbcd;--cx-line-strong:#c4b9a6;
   --cx-ink:#1b2428;--cx-ink-2:#465055;--cx-ink-3:#5a6467;
@@ -26,6 +26,10 @@
   --ink:var(--cx-ink);--text:var(--cx-ink);--text-muted:var(--cx-ink-2);--text-subtle:var(--cx-ink-3);--text-faint:var(--cx-ink-3);
   --shadow-xs:var(--cx-elev-0);--shadow-sm:var(--cx-elev-0);--shadow-md:var(--cx-elev-1);--shadow-lg:var(--cx-elev-2);
   --topbar-h:var(--cx-bar-h);--taskbar-h:var(--cx-nav-h);
+  /* One stacking scale: bar < banner < popover < sheet < modal (stage controls sit below the bar) */
+  --cx-z-stage:2;--cx-z-bar:20;--cx-z-banner:30;--cx-z-popover:40;--cx-z-sheet:50;--cx-z-modal:60;
+  /* Stage: neutral workspace, light or dark; text and icons on it use --cx-stage-ink (>= 4.5:1 on both) */
+  --cx-stage:#ebe6dc;--cx-stage-lit:#fbf8f2;--cx-stage-ink:var(--cx-ink);--cx-stage-ink-2:var(--cx-ink-2);
 }
 .cx-page{width:100%;max-width:none;margin-inline:auto;padding-bottom:40px;color:var(--ink);overflow-x:hidden}
 .cx-head{display:flex;flex-direction:column;gap:12px;margin-bottom:18px}
