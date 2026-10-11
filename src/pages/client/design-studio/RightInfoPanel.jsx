@@ -150,7 +150,7 @@ export function SelectionInspector({ selObj, updateSelected, deleteSelected, dup
   );
 }
 
-export function SummaryContent({ cfg, saved, saveDesign, orderThis, ordering, downloadImage, downloadPdf, exporting, clearGarment, onOpenTool, activeTool, layerCount = 0, face = 'front' }) {
+export function SummaryContent({ cfg, clearGarment, onOpenTool, activeTool, layerCount = 0, face = 'front' }) {
   const zones = zonesFor(cfg.garment, cfg.sleeve, cfg.fit);
   const swatches = zones.filter(z => z !== 'tipping' || cfg.colors.tipping);
   const details = [zones.includes('sleeve') && `${cfg.sleeve} sleeve`, cfg.category].filter(Boolean).join(' · ');
@@ -206,21 +206,12 @@ export function SummaryContent({ cfg, saved, saveDesign, orderThis, ordering, do
           })}
         </nav>
       )}
-      <div className="ds-actions">
-        <button type="button" className="ds-act" onClick={downloadImage} disabled={!cfg.garment || !!exporting} aria-busy={exporting === 'png'}>
-          {exporting === 'png' ? <span className="ds-spin"/> : <NavIcon name="image" size={16}/>} PNG
+      {/* PNG/PDF export lives in the dock's secondary Export menu */}
+      {cfg.garment && clearGarment && (
+        <button type="button" className="ds-link-danger" onClick={clearGarment}>
+          <NavIcon name="delete" size={14}/> Remove garment
         </button>
-        {downloadPdf && (
-          <button type="button" className="ds-act" onClick={downloadPdf} disabled={!cfg.garment || !!exporting} aria-busy={exporting === 'pdf'}>
-            {exporting === 'pdf' ? <span className="ds-spin"/> : <NavIcon name="print" size={16}/>} PDF
-          </button>
-        )}
-        {cfg.garment && clearGarment && (
-          <button type="button" className="ds-link-danger ds-act--wide" onClick={clearGarment}>
-            <NavIcon name="delete" size={14}/> Remove garment
-          </button>
-        )}
-      </div>
+      )}
       <AIDesignChat docked/>
     </>
   );

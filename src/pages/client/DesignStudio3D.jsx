@@ -17,8 +17,8 @@
 
 import { useRef, useMemo, useState, useEffect, useLayoutEffect, Suspense } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { familyFor, resolveTarget } from './design-studio/garmentCatalog';
-import { OrbitControls, ContactShadows, Float, Environment, Lightformer } from '@react-three/drei';
+import { resolveTarget } from './design-studio/garmentCatalog';
+import { OrbitControls, ContactShadows, Float, Bounds, useBounds } from '@react-three/drei';
 import * as THREE from 'three';
 import { scannedEntryFor, patternsFor3D } from './design-studio/garmentMeshManifest';
 import { DEFAULT_GARMENT_COLOR } from './design-studio/regionTexture';
@@ -362,10 +362,15 @@ function SetStack({ top, bottom }) {
   );
 }
 
-// Scanned garments are modelled smaller than the generic fallback shapes, so they get a closer camera.
-function CameraDistance({ z }) {
-  const camera = useThree(s => s.camera);
-  useEffect(() => { camera.position.z = z; camera.updateProjectionMatrix(); }, [camera, z]);
+// Frames whatever is on the stage once it has loaded (and again when it changes): the garment fills ~65% of the view height.
+// Also reports the garment's lowest point so the contact shadow sits right under it.
+function FitOnLoad({ dep, target, onFloor }) {
+  const api = useBounds();
+  useEffect(() => {
+    api.refresh().clip().fit();
+    const box = target.current ? new THREE.Box3().setFromObject(target.current) : null;
+    if (box && Number.isFinite(box.min.y)) onFloor({ y: box.min.y - 0.02, w: Math.max(box.max.x - box.min.x, box.max.z - box.min.z) });
+  }, [api, dep, target, onFloor]);
   return null;
 }
 
@@ -415,29 +420,24 @@ export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overla
   // snapshot yet or it fails to load — same safe fallback as
   // GarmentPreview3D's reference-image texture.
   const referenceTexture = useOverlayTexture(overlayDataUrl);
+  const garmentRef = useRef(null);
+  const [floor, setFloor] = useState({ y: -1.55, w: 2.5 });
 
   return (
     <Canvas
       dpr={DPR}
       camera={{ position:[0, 0.15, 3.8], fov:40 }}
-      gl={{ antialias:true, alpha:true, toneMapping:THREE.ACESFilmicToneMapping, toneMappingExposure:0.85 }}
+      gl={{ antialias:true, alpha:true, toneMapping:THREE.ACESFilmicToneMapping, toneMappingExposure:1 }}
       style={{ width:'100%', height:'100%', background:'transparent' }}>
 
       <PauseWhenHidden/>
       <ContextWatch onLost={onContextLost}/>
-      <CameraDistance z={familyFor(cfg.garment)?.status3D === 'none' ? 3.8 : 3.1}/>
 
-      {/* Offline studio: soft-box reflections instead of a fetched HDR */}
-      <Environment resolution={256} frames={1}>
-        <Lightformer form="rect" intensity={1.3} position={[0, 3, 4]} scale={[6, 3, 1]}/>
-        <Lightformer form="rect" intensity={0.7} position={[-4, 1, 2]} scale={[2, 5, 1]}/>
-        <Lightformer form="rect" intensity={0.9} position={[4, 1, -2]} scale={[2, 5, 1]}/>
-        <Lightformer form="rect" intensity={1.3} position={[0, 3, -4]} scale={[6, 3, 1]}/>
-        <Lightformer form="rect" intensity={0.35} position={[0, -2, 3]} scale={[6, 1.5, 1]}/>
-      </Environment>
+      {/* Lit stage from local lights only (no HDRI, no network): soft fill, a key from the front right, a rim from behind for the silhouette edge */}
+      <hemisphereLight intensity={0.55}/>
       <ambientLight intensity={0.12}/>
-      <directionalLight position={[2.5, 4, 4]} intensity={0.9}/>
-      <directionalLight position={[-2.5, 3, -4]} intensity={0.7}/>
+      <directionalLight position={[2.5, 3.5, 4]} intensity={1.7}/>
+      <directionalLight position={[-3, 2.5, -4]} intensity={1.3}/>
 
       {/* BUG FIX (3D doesn't render): ScannedGarmentMesh calls useGLTF(), which
           suspends on first load. react-three-fiber's <Canvas> renders its own
@@ -453,30 +453,35 @@ export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overla
           correct here (not a spinner) because CanvasViewport already shows its
           own "Loading 3D engine…" state for the lazy import; this only covers
           the brief GLB-parse window after that. */}
-      <Float speed={1.4} rotationIntensity={0.12} floatIntensity={0.22}>
-        <Suspense fallback={null}>
-          {companion
-            ? (companionRole === 'top' ? <SetStack top={companion} bottom={cfg}/> : <SetStack top={cfg} bottom={companion}/>)
-            : <GarmentMesh cfg={cfg} referenceTexture={referenceTexture} overlays={overlays}/>}
-        </Suspense>
-      </Float>
+      {/* Margin 1.5: the framed garment spans ~65% of the stage height */}
+      <Bounds margin={1.5} maxDuration={0.3}>
+        <Float speed={1.4} rotationIntensity={0.12} floatIntensity={0.22}>
+          <Suspense fallback={null}>
+            <group ref={garmentRef}>{companion
+              ? (companionRole === 'top' ? <SetStack top={companion} bottom={cfg}/> : <SetStack top={cfg} bottom={companion}/>)
+              : <GarmentMesh cfg={cfg} referenceTexture={referenceTexture} overlays={overlays}/>}</group>
+            <FitOnLoad dep={`${cfg.garment}|${cfg.sleeve}|${cfg.fit}|${companion?.garment ?? ''}`} target={garmentRef} onFloor={setFloor}/>
+          </Suspense>
+        </Float>
+      </Bounds>
 
       {/* ── Ground shadow ── */}
-      <ContactShadows
+      <ContactShadows key={`${floor.y.toFixed(3)}`}
         frames={2}
-        position={[0, -1.55, 0]}
-        opacity={0.32} scale={5}
-        blur={2.5} far={2.2}
+        position={[0, floor.y, 0]}
+        opacity={0.42} scale={Math.max(2, floor.w * 1.8)}
+        blur={2.4} far={Math.max(1.2, floor.w)}
       />
 
       {/* ── Camera controls ── */}
       <OrbitControls
+        makeDefault
         enablePan={false}
         enableDamping dampingFactor={0.08}
         autoRotate autoRotateSpeed={1.6}
         minPolarAngle={Math.PI / 5}
         maxPolarAngle={Math.PI * 0.75}
-        minDistance={2.2} maxDistance={6.5}
+        minDistance={1.2} maxDistance={8}
       />
     </Canvas>
   );

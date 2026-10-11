@@ -24,7 +24,7 @@ export default function DragGhost({ ghost }) {
             ? { type: 'spring', stiffness: 420, damping: 26 }
             : { x: { duration: 0 }, y: { duration: 0 }, scale: { type: 'spring', stiffness: 380, damping: 22 } }}
           style={{
-            position: 'fixed', top: 0, left: 0, zIndex: 999,
+            position: 'fixed', top: 0, left: 0, zIndex: 'var(--cx-z-modal)',
             translateX: '-50%', translateY: '-50%',
             pointerEvents: 'none', display: 'flex', flexDirection: 'column',
             alignItems: 'center', gap: 4,

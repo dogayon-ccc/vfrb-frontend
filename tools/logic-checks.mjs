@@ -341,10 +341,32 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const cust = src('../src/styles/customer.css'), shell = src('../src/styles/customer-shell.css'), layout = src('../src/layouts/CustomerLayout.jsx');
   const defs = [...cust.matchAll(/([^{}]+)\{[^{}]*--cx-[\w-]+\s*:/g)].map(m => m[1].trim());
   const global = ['theme.css', 'admin.css', 'site.css', 'auth.css', 'modals.css', 'responsive.css'].filter(f => /--cx-/.test(src(`../src/styles/${f}`))).concat(/--cx-/.test(src('../src/main.css')) ? ['main.css'] : []);
-  t('customer tokens are defined only on the customer root (html[data-cx] / .cm-shell), never on :root or shared stylesheets', defs.length === 1 && defs[0].endsWith(':is(html[data-cx],.cm-shell)') && global.length === 0);
+  t('customer tokens are defined only on customer roots (html[data-cx], .cm-shell, the Studio .ds), never on :root or shared stylesheets', defs.length === 1 && defs[0].endsWith(':is(html[data-cx],.cm-shell,.ds)') && global.length === 0);
   const sels = [...shell.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/(?:^|[;}])\s*([^{}@;]+)\{/g)].map(m => m[1].trim()).filter(s => !/^(from|to|\d+%)$/.test(s)).flatMap(s => s.split(','));
   t('every customer shell rule is scoped to the customer root, so admin is untouched after the shell has loaded', sels.length > 30 && sels.every(s => /data-cx|\.cx-|\.cm-(shell|main|content|studio-fab)/.test(s)));
   t('the customer shell sets data-cx on mount and removes it on unmount; shell CSS is imported only by the layout', /useLayoutEffect\(\(\) => \{[\s\S]{0,120}dataset\.cx = ''[\s\S]{0,60}delete root\.dataset\.cx/.test(layout) && /import '\.\.\/styles\/customer-shell\.css'/.test(layout) && !/customer-shell\.css/.test(src('../src/main.jsx')));
+}
+// Studio shell: one stacking scale, one 2D/3D toggle, and 2D as the landing view for any garment whose 3D is not verified.
+{
+  const src = p => fsx.readFileSync(urlx.fileURLToPath(new URL(p, import.meta.url)), 'utf8');
+  const z = Object.fromEntries([...src('../src/styles/customer.css').matchAll(/--cx-z-(\w+):(\d+)/g)].map(m => [m[1], +m[2]]));
+  t('z-index tokens order bar < banner < popover < sheet < modal, with stage controls below the bar', z.stage < z.bar && z.bar < z.banner && z.banner < z.popover && z.popover < z.sheet && z.sheet < z.modal);
+  const dir = urlx.fileURLToPath(new URL('../src/pages/client/design-studio', import.meta.url));
+  const files = [...fsx.readdirSync(dir).filter(f => f.endsWith('.jsx')).map(f => `${dir}/${f}`), urlx.fileURLToPath(new URL('../src/pages/client/DesignStudio.jsx', import.meta.url))];
+  const literals = files.flatMap(f => [...fsx.readFileSync(f, 'utf8').matchAll(/z-?[iI]ndex\s*:\s*'?(\d+)/g)].filter(m => +m[1] >= 10).map(m => `${f.split(/[\\/]/).pop()}:${m[1]}`));
+  t('Studio overlays use the z-index tokens: no literal z-index of 10 or more in Studio files', literals.length === 0);
+  const styles = src('../src/pages/client/design-studio/DesignStudioStyles.jsx');
+  t('Studio bar, draft strip, menu, sheet and toast sit on their token levels', [/\.ds-bar\{[^}]*z-index:var\(--cx-z-bar\)/, /\.ds-bar\[data-menu=open\]\{z-index:var\(--cx-z-popover\)/, /\.ds-draft\{[^}]*z-index:var\(--cx-z-banner\)/, /\.ds-panel\{position:fixed[^}]*z-index:var\(--cx-z-sheet\)/, /\.ds-toast\{[^}]*z-index:var\(--cx-z-popover\)/].every(r => r.test(styles)));
+  const studio = files.map(f => [f.split(/[\\/]/).pop(), fsx.readFileSync(f, 'utf8')]);
+  const toggles = studio.filter(([, s]) => /\[\s*'2d'\s*,\s*'3d'\s*\]\.map/.test(s)).map(([n]) => n);
+  t('exactly one 2D/3D toggle (TopBar); the inspector has no duplicate Preview toggle', toggles.length === 1 && toggles[0] === 'TopBar.jsx' && !/Preview mode/.test(src('../src/pages/client/design-studio/TypePanel.jsx')));
+  const V = await L('/src/pages/client/design-studio/studioView.js');
+  const C = await L('/src/pages/client/design-studio/garmentCatalog.js');
+  const combos = C.CATALOG.flatMap(c => c.families).flatMap(f => (f.styles?.length ? f.styles : [null]).flatMap(sl => (f.fits?.length ? f.fits : [undefined]).map(fit => ({ garment: f.id, sleeve: sl, fit }))));
+  const unverified = combos.filter(c => C.resolveTarget(c.garment, c.sleeve, c.fit)?.status !== '2d-3d');
+  t('a garment lands in 2D unless its 3D is verified (every catalog garment/sleeve/fit today; a verified one keeps the current view)', combos.length > 20 && unverified.every(c => V.landingViewFor(c, '3d') === '2d') && V.landingView('2d-3d', '3d') === '3d' && V.landingView('2d-3d-approx', '3d') === '2d' && V.landingViewFor({ garment: null }, '3d') === '2d');
+  const ds = src('../src/pages/client/DesignStudio.jsx');
+  t('the draft offer is an in-flow strip shown only on an empty canvas; restoring over existing work asks first', /pendingDraft && !cfg\.garment && layers\.length === 0 && \(\s*<DraftStrip/.test(ds) && /hasWork \? setConfirm\(true\) : onRestore\(\)/.test(src('../src/pages/client/design-studio/DraftStrip.jsx')) && !/position:'absolute', top:58/.test(ds));
 }
 console.log(out.join('\n')); const f = out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);

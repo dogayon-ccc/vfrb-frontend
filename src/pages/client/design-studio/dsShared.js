@@ -259,7 +259,7 @@ export const TOOLS = [
   { id:'draw',     icon:'draw',        label:'Draw',    hint:'Sketch freehand on the garment' },
   { id:'ai',       icon:'ai',          label:'AI',      hint:'Describe a design in words' },
   { id:'summary',  icon:'info',        label:'Summary', hint:'Your design at a glance' },
-  { id:'selected', icon:'cursor',      label:'Selected', hint:'Adjust the item you picked' },
+  { id:'selected', icon:'cursor',      label:'Selection', hint:'Adjust the item you picked' },
 ];
 
 // 6 starter designs from VFRB's common garment types (PH institutional palette).
