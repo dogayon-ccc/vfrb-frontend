@@ -531,7 +531,7 @@ export default function DesignStudio() {
     </div>
   ) : pieceOf(cfg.garment) ? (
     <button type="button" className="ds-set-add" onClick={startSet}>
-      + {otherRole(pieceOf(cfg.garment)) === 'bottom' ? 'Add a bottom' : 'Add a top'} to make a uniform set
+      + {otherRole(pieceOf(cfg.garment)) === 'bottom' ? 'Add a bottom' : 'Add a top'}<span className="ds-wide-only"> to make a uniform set</span>
     </button>
   ) : null;
 
@@ -698,13 +698,12 @@ export default function DesignStudio() {
     <>
       <DesignStudioStyles/>
 
-      <div className="ds" data-sheet={sheetOpen ? 'open' : 'closed'} data-snap={sheetOpen ? (sheetFull ? 'full' : 'half') : cfg.garment ? 'peek' : 'none'} style={{ position:'relative' }}>
+      <div className="ds" data-sheet={sheetOpen ? 'open' : 'closed'} data-snap={sheetOpen ? (sheetFull ? 'full' : 'half') : cfg.garment ? 'peek' : 'none'} data-first={!cfg.garment || undefined} style={{ position:'relative' }}>
 
         {/* ── TOP BAR ── */}
         <TopBar nav={nav} cfg={cfg} setCfg={setCfg} undo={undo} redo={redo}
           canUndo={canUndo} canRedo={canRedo}
           viewMode={viewMode} setViewMode={setViewMode} setHas3DLoaded={setHas3DLoaded}
-          showInspo={showInspo} setShowInspo={openInspo}
           showShowcase={showShowcase} setShowShowcase={toggleShowcase} showcaseCount={showcaseCount}/>
 
         {/* ── DRAFT OFFER ── in the page flow under the bar, so it can never cover menus or stage controls */}

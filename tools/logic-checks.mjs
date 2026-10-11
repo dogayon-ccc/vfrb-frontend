@@ -171,7 +171,7 @@ t('Pants and Shorts render the garment-only models of their gallery photos, lit,
 t('gallery pants and shorts photos expose their real 3D model; corporate-skirt (back modelled as shorts) stays 2D only', ['pants', 'shorts'].every(id => { const d = D.ENTRIES.find(x => x.id === id); return d.tier === '2d-3d-approx' && d.glb === Cp.scannedEntryFor(d.garmentFamily, null, null).models.unisex; }) && D.ENTRIES.find(x => x.id === 'corporate-skirt').tier === 'editable-2d' && D.ENTRIES.find(x => x.id === 'corporate-skirt').glb === null);
 t('routing: a selection gets 3D only from a model with that exact sleeve; no short-sleeve substitute for 3/4 or Long', Cp.scannedEntryFor('Scrub Top', '3/4', 'male') === null && Cp.scannedEntryFor('Mandarin Collar', 'Long', 'female') === null && Cp.scannedEntryFor('Round Neck', 'Long', 'female') === null && Cp.scannedEntryFor('Scrub Top', 'Short', 'male')?.id === 'scrub-top' && Cp.scannedEntryFor('Pants', 'Short', null)?.id === 'pants' && Cp.has3DModel('Button-Down', 'Long', 'unisex') && !Cp.has3DModel('Mandarin Collar', 'Long', 'female') && Cp.has3DModel('Mandarin Collar', 'Short', 'female'));
 t('gallery 3D references: 23 read-only models, each file present, sets flagged; mismatched photos and photos with an editable model have none', (() => { const refs = D.ENTRIES.filter(d => d.ref3D); return refs.length === 23 && ['blazer-open-front-black', 'blouse-mandarin-yellow', 'blouse-tunic-roundneck-blue'].every(id => E0(id).ref3D && !E0(id).ref3D.set && !E0(id).has3D) && !E0('polo-red-claremont').ref3D && !E0('shirt-mandarin-polkadot').ref3D && !E0('dress-bir-green-yellow-collar').ref3D && refs.every(d => d.ref3D.file === `/models/reference/${d.id}.glb` && fsx.existsSync(pub(d.ref3D.file.slice(1)))) && D.ENTRIES.find(d => d.id === 'set-pinstripe-skirt').ref3D.set && ['dress-sheath-denim-blue', 'blazer-blouse-blue-short', 'set-vest-blouse', 'corporate-skirt'].every(id => !D.ENTRIES.find(d => d.id === id).ref3D); })());
-t('new families route to their own models per sleeve; no model for a sleeve they lack', Cp.scannedEntryFor('Blazer', 'Long', null)?.id === 'blazer-long' && Cp.scannedEntryFor('Blazer', '3/4', null)?.id === 'blazer-three-quarter' && Cp.scannedEntryFor('Blouse', 'Short', null)?.id === 'blouse-notch-short' && Cp.scannedEntryFor('Dress', 'Short', null)?.id === 'dress-collared-short' && Cp.scannedEntryFor('Pleated Skirt', null, null)?.id === 'pleated-skirt' && Cp.scannedEntryFor('Skirt', null, null)?.id === 'skirt' && Cp.scannedEntryFor('Blouse', 'Long', null) === null && ['Blazer', 'Blouse', 'Dress', 'Pleated Skirt'].every(g => G.FAMILY_BY_NAME[g]?.has2D && G.FAMILY_BY_NAME[g].status3D === 'partial'));
+t('new families route to their own models per sleeve; no model for a sleeve they lack', Cp.scannedEntryFor('Blazer', 'Long', null)?.id === 'blazer-long' && Cp.scannedEntryFor('Blazer', '3/4', null)?.id === 'blazer-three-quarter' && Cp.scannedEntryFor('Blouse', 'Short', null)?.id === 'blouse-notch-short' && Cp.scannedEntryFor('Dress', 'Short', null)?.id === 'dress-collared-short' && Cp.scannedEntryFor('Pleated Skirt', null, null)?.id === 'pleated-skirt' && Cp.scannedEntryFor('Skirt', null, null) === null && Cp.scannedEntryFor('Blouse', 'Long', null) === null && ['Blazer', 'Blouse', 'Dress', 'Pleated Skirt'].every(g => G.FAMILY_BY_NAME[g]?.has2D && G.FAMILY_BY_NAME[g].status3D === 'partial'));
 {
   const e = (g, s, f) => Cp.scannedEntryFor(g, s, f), model = (g, s, f) => { const x = e(g, s, f); return x ? (x.models[f] ?? Object.values(x.models)[0]) : null; };
   t('Lab Coat + Long resolves to the garment-only lab coat GLB', model('Lab Coat', 'Long', null) === '/models/vfrb-staged/lab-coat-long.glb' && G.resolveTarget('Lab Coat', 'Long').glb === '/models/vfrb-staged/lab-coat-long.glb' && G.FAMILY_BY_NAME['Lab Coat'].status3D === 'partial');
@@ -209,7 +209,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     };
     const broken = editable.filter(d => !trip(d)).map(d => d.id);
     t('all 19 editable gallery photos survive Save -> Reopen -> Order payload with garment, sleeve, fit, template, gallery id, colour and the same 3D model (photo GLB when the photo has one)', broken.length === 0, broken.join());
-    t('3D coverage kinds: 17 photo-matched GLBs, 1 labelled family-level approximation (corporate skirt -> pencil-skirt model), 1 editable-2D with its misleading family model withheld (tunic), 14 full-set previews, 21 reference-only', editable.filter(d => d.has3D).length === 17 && D.ENTRIES.filter(d => d.familyApprox3D).map(d => d.id).join() === 'corporate-skirt' && editable.filter(d => !d.has3D && !d.familyApprox3D).map(d => d.id).join() === 'blouse-tunic-roundneck-blue' && E0('blouse-tunic-roundneck-blue').family3DOff && D.ENTRIES.filter(d => d.ref3D?.set).length === 14 && D.ENTRIES.filter(d => d.tier === 'reference').length === 21 && D.ENTRIES.filter(d => d.familyApprox3D).every(d => d.tier === 'editable-2d' && !d.has3D && !d.glb));
+    t('3D coverage kinds: 17 photo-matched GLBs, no family-level approximation (the pencil-skirt stand-in is withdrawn), 2 editable-2D without 3D (tunic: family model withheld; corporate skirt: no real skirt model), 14 full-set previews, 21 reference-only', editable.filter(d => d.has3D).length === 17 && D.ENTRIES.filter(d => d.familyApprox3D).length === 0 && editable.filter(d => !d.has3D && !d.familyApprox3D).map(d => d.id).sort().join() === 'blouse-tunic-roundneck-blue,corporate-skirt' && E0('blouse-tunic-roundneck-blue').family3DOff && D.ENTRIES.filter(d => d.ref3D?.set).length === 14 && D.ENTRIES.filter(d => d.tier === 'reference').length === 21 && D.ENTRIES.filter(d => d.familyApprox3D).every(d => d.tier === 'editable-2d' && !d.has3D && !d.glb));
     {
       // The tunic photo opens T-Shirt / Short / female; that family model is a V-neck tee, so 3D is withheld for designs opened from
       // this photo (Studio, Wizard, Order Detail all gate on has3DFor), while choosing T-Shirt directly keeps its model.
@@ -218,7 +218,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
       const plain = G.applyGarment(S.DEFAULT_CFG, 'T-Shirt', { fit: 'female' });
       t('tunic photo: T-Shirt model exists but 3D is withheld for the design and its saved/ordered copy; a plain T-Shirt keeps 3D; changing garment drops the photo and the block',
         Cp.has3DModel(tunic.garment, tunic.sleeve, tunic.fit) && !Cp.has3DFor(tunic) && saved.inspirationId === 'blouse-tunic-roundneck-blue' && !Cp.has3DFor(saved) && Cp.has3DFor(plain) && Cp.has3DFor(G.applyGarment(tunic, 'Polo Shirt', {})) === Cp.has3DModel('Polo Shirt', G.applyGarment(tunic, 'Polo Shirt', {}).sleeve, G.applyGarment(tunic, 'Polo Shirt', {}).fit) && G.applyGarment(tunic, 'Polo Shirt', {}).inspirationId == null);
-      t('the only approximation still shown in 3D is labelled in the 3D pane and the gallery (corporate skirt), and every NO_FAMILY_3D id is an editable photo without its own model', [...Cp.NO_FAMILY_3D].every(id => E0(id).tier === 'editable-2d' && !E0(id).has3D && !E0(id).familyApprox3D) && E0('corporate-skirt').familyApprox3D && Cp.has3DFor({ ...G.applyGarment(S.DEFAULT_CFG, 'Skirt', {}), inspirationId: 'corporate-skirt' }));
+      t('a generic stand-in model never offers 3D (Skirt: catalog 2D only, no 3D for the corporate-skirt photo or a plain Skirt), and every NO_FAMILY_3D id is an editable photo without its own model', [...Cp.NO_FAMILY_3D].every(id => E0(id).tier === 'editable-2d' && !E0(id).has3D && !E0(id).familyApprox3D) && Cp.standIn3D('Skirt') && !E0('corporate-skirt').familyApprox3D && !Cp.has3DFor({ ...G.applyGarment(S.DEFAULT_CFG, 'Skirt', {}), inspirationId: 'corporate-skirt' }) && !Cp.has3DFor(G.applyGarment(S.DEFAULT_CFG, 'Skirt', {})) && G.FAMILY_BY_NAME.Skirt.status3D === 'none');
     }
     t('My Designs fallback thumbnail and Order previews have a 2D shape for every catalog family', Object.keys(G.FAMILY_BY_NAME).every(g => !!GP.BASE_PATHS[g]));
   }
@@ -356,7 +356,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const literals = files.flatMap(f => [...fsx.readFileSync(f, 'utf8').matchAll(/z-?[iI]ndex\s*:\s*'?(\d+)/g)].filter(m => +m[1] >= 10).map(m => `${f.split(/[\\/]/).pop()}:${m[1]}`));
   t('Studio overlays use the z-index tokens: no literal z-index of 10 or more in Studio files', literals.length === 0);
   const styles = src('../src/pages/client/design-studio/DesignStudioStyles.jsx');
-  t('Studio bar, draft strip, menu, sheet and toast sit on their token levels', [/\.ds-bar\{[^}]*z-index:var\(--cx-z-bar\)/, /\.ds-bar\[data-menu=open\]\{z-index:var\(--cx-z-popover\)/, /\.ds-draft\{[^}]*z-index:var\(--cx-z-banner\)/, /\.ds-panel\{position:fixed[^}]*z-index:var\(--cx-z-sheet\)/, /\.ds-toast\{[^}]*z-index:var\(--cx-z-popover\)/].every(r => r.test(styles)));
+  t('Studio bar, draft strip, sheet and toast sit on their token levels', [/\.ds-bar\{[^}]*z-index:var\(--cx-z-bar\)/, /\.ds-draft\{[^}]*z-index:var\(--cx-z-banner\)/, /\.ds-panel\{position:fixed[^}]*z-index:var\(--cx-z-sheet\)/, /\.ds-toast\{[^}]*z-index:var\(--cx-z-popover\)/].every(r => r.test(styles)));
   const studio = files.map(f => [f.split(/[\\/]/).pop(), fsx.readFileSync(f, 'utf8')]);
   const toggles = studio.filter(([, s]) => /\[\s*'2d'\s*,\s*'3d'\s*\]\.map/.test(s)).map(([n]) => n);
   t('exactly one 2D/3D toggle (TopBar); the inspector has no duplicate Preview toggle', toggles.length === 1 && toggles[0] === 'TopBar.jsx' && !/Preview mode/.test(src('../src/pages/client/design-studio/TypePanel.jsx')));
@@ -418,6 +418,58 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     one(polo.colors) && !!realTrim && tunic.colors.collar === realTrim && one(G2.applyGarment(tunic, 'Polo Shirt').colors) && C.realTrimFor('Polo Shirt', 'Short', 'male') === null);
   const moved = C.withBody({ body: '#111111', collar: '#111111', sleeve: '#111111', pocket: '#ffffff' }, '#800000');
   t('a new base colour moves the zones that follow it, not a zone coloured on purpose', moved.collar === '#800000' && moved.sleeve === '#800000' && moved.pocket === '#ffffff');
+}
+// Stage lanes, picker, phone first run, 3D honesty and 3D colour calibration.
+{
+  const src = q => fsx.readFileSync(urlx.fileURLToPath(new URL(q, import.meta.url)), 'utf8');
+  const cv = src('../src/pages/client/design-studio/CanvasViewport.jsx'), css = src('../src/pages/client/design-studio/DesignStudioStyles.jsx');
+  // Lane contract: chip, set bar, guides and 3D notes are in the top lane; zoom, Front/Back and the stage light in the bottom lane; the panes sit in the fit area between.
+  const at = k => cv.indexOf(k), top = at('className="ds-lane ds-lane-top"'), fit = at('className="ds-stage-fit"'), bot = at('className="ds-lane ds-lane-bottom"');
+  const inTop = ['className="ds-guides"', 'className="ds-ctx-chip"', 'className="ds-set-wrap"', 'className="ds-stage-note"', 'aria-label="3D preview scope"'].every(k => at(k) > top && at(k) < fit);
+  const inFit = [...cv.matchAll(/className="ds-pane"/g)].every(m => m.index > fit && m.index < bot);
+  const inBot = ['className="ds-bottombar"', 'className="ds-stage-hint"', 'aria-label="Zoom"'].every(k => at(k) > bot) && at('{stageBtn}') > bot;
+  const rule = sel => (css.match(new RegExp(sel.replace(/[.[\]()]/g, '\\$&') + '\\{([^}]*)\\}')) ?? [])[1] ?? '';
+  const noOverlay = ['.ds-ctx-chip', '.ds-bottombar', '.ds-stage-note', '.ds-set-wrap', '.ds-stage-hint', '.ds-guides'].every(sel => !/position:absolute/.test(rule(sel)));
+  t('stage lane contract: top lane (chip, set bar, guides, 3D notes) and bottom lane (zoom, Front/Back, stage light) are outside the fit area that holds the garment panes; none of them is absolutely positioned over it',
+    top > 0 && top < fit && fit < bot && inTop && inFit && inBot && noOverlay && /\.ds-stage-fit\{position:relative;flex:1;min-height:0;\}/.test(css) && /\.ds-pane\{position:absolute;inset:0;\}/.test(css) && /\.ds-cv\{[^}]*flex-direction:column/.test(css));
+  t('the garment is fitted into the area between the lanes (fit measures the pane, and the pane fills only that area)', /const byH = \(pane\.clientHeight \* STAGE_FILL/.test(cv) && cv.indexOf('ref={paneRef}') > fit && cv.indexOf('ref={paneRef}') < bot);
+  // Picker: sticky header (title + close) and sticky action footer; every card carries its badge and the key lists each badge shown.
+  const gp = src('../src/pages/client/design-studio/GarmentPicker.jsx');
+  t('picker header (title, close, tabs, badge key) and action footer stick to the scroll box; the close lives in the header, never over a card',
+    /\.ds-pick-head\{position:sticky;top:0;/.test(css) && /\.ds-pick-foot\{position:sticky;bottom:0;/.test(css) && /function Head\([^)]*onClose/.test(gp) && (gp.match(/ds-pick-close/g) ?? []).length === 1 && !/float:right/.test(rule('.ds-pick-close')));
+  t('every picker card shows its status badge (no hidden default) and the key lists the badges present', !/!== def &&/.test(gp) && (gp.match(/<Badge icon=/g) ?? []).length === 2 && /<Legend labels=\{PHOTO_LABEL\}/.test(gp) && /<Legend labels=\{TEMPLATE_STATUS\}/.test(gp));
+  // Top bar: no Inspo, no menu (a menu with one item is never rendered).
+  const tb = src('../src/pages/client/design-studio/TopBar.jsx');
+  t('top bar has no Inspo button and no overflow menu; Showcase is a direct button shown only with designs', !/<span>Inspo<|label: 'Inspo'|role="menu"|aria-haspopup/.test(tb) && /showcaseCount > 0 &&/.test(tb));
+  // Phone first run: no sheet, no Save/Order, no stage light until a garment exists.
+  const ds = src('../src/pages/client/DesignStudio.jsx');
+  t('phone first run hides the sheet and tool bar (the picker gets the full height) and the stage lanes (stage light) until a garment exists',
+    /data-first=\{!cfg\.garment \|\| undefined\}/.test(ds) && /\.ds\[data-first\] :is\(\.ds-strip,\.ds-panel\)\{display:none;\}/.test(css) && /\.ds\[data-first\]\{--ds-pad-b:0px;\}/.test(css)
+    && /\{cfg\.garment && \(\s*<div className="ds-lane ds-lane-bottom">/.test(cv) && !/inset:0 0 64px/.test(css));
+  // Picker honesty: one sentence + chips; inspiration-only photos get a real path to existing editable garments, never an invented template.
+  const P = await L('/src/pages/client/design-studio/GarmentPicker.jsx');
+  const refs = D.ENTRIES.filter(d => !d.editable2D);
+  const sim = refs.map(d => D.filterDesigns(P.similarFilters(d, D.ENTRIES, x => x.editable2D), D.ENTRIES).filter(x => x.editable2D));
+  t('every inspiration-only photo offers "See editable garments like this": its category/piece filter (relaxed only when empty) lists existing editable photos only',
+    refs.length === 21 && sim.every(list => list.length > 0 && list.every(x => D.ENTRIES.includes(x) && x.editable2D)) && /See editable garments like this/.test(gp));
+  t('preview says one sentence and puts status in chips (3D reference collapsed behind "Show 3D reference")',
+    refs.concat(D.ENTRIES.filter(d => d.editable2D)).every(d => (P.previewSentence(d).match(/[.!?](\s|$)/g) ?? []).length === 1 && P.previewChips(d).length >= 3) && /<details className="ds-pick-ref3d"/.test(gp) && /Show 3D reference/.test(gp));
+  // The phone "Editable (4)": a uniform set with the bottom active limits the photos to bottoms; the limit is now a visible, removable chip.
+  const bottoms = D.ENTRIES.filter(d => d.base && G.pieceOf(d.base[1]) === 'bottom');
+  t('a uniform set limits the picker to its active piece (bottom = 4 editable photos of 40) and says so with a removable chip; templates default to All',
+    bottoms.length === 4 && bottoms.every(d => d.editable2D) && /<RoleChip /.test(gp) && /Remove filter:/.test(gp) && /useState\(ALL\)/.test(gp));
+  // 3D honesty: a generic stand-in model is never served.
+  const Cp2 = await L('/src/pages/client/design-studio/garmentCapabilities.js');
+  const standInFiles = Cp2.STAND_IN_3D_MODELS.flatMap(x => Object.values(x.models));
+  t('generic stand-in 3D models are never served: Skirt (bucket cut of the peplum-dress figure) has no 3D toggle, and no served entry uses a stand-in file',
+    JSON.stringify(Cp2.STAND_IN_3D_MODELS.map(x => x.id)) === '["skirt"]' && Cp2.SCANNED_GARMENTS.every(x => Object.values(x.models).every(m => !standInFiles.includes(m))) && !Cp2.has3DModel('Skirt', null, 'unisex')
+    && G.FAMILY_BY_NAME.Skirt.status3D === 'none' && /standIn3D\(cfg\.garment\)/.test(tb));
+  // 3D colour: linear tone mapping and ~1x irradiance on a front-facing panel, sheen tinted by the zone colour (measured dE 18.3 -> 2.4 in the browser).
+  const s3 = src('../src/pages/client/DesignStudio3D.jsx'), rs = src('../src/pages/client/design-studio/regionShader.js'), sg = src('../src/pages/client/design-studio/ScannedGarmentMesh.jsx');
+  const Lt = Object.fromEntries([...(s3.match(/export const LIGHT = \{([^}]*)\}/)?.[1] ?? '').matchAll(/(\w+): ([\d.]+)/g)].map(m => [m[1], +m[2]]));
+  const key = [2.5, 3.5, 4], irr = Lt.fill + Lt.key * key[2] / Math.hypot(...key);
+  t('3D lighting is calibrated: linear tone mapping, front panel irradiance within 5% of 1x, cloth sheen follows the zone colour and specular stays low',
+    /toneMapping:THREE\.LinearToneMapping/.test(s3) && !/ACESFilmic/.test(s3) && Math.abs(irr - 1) < 0.05 && /material\.sheenColor \*= diffuseColor\.rgb/.test(rs) && /specularIntensity: 0\.2/.test(sg));
 }
 console.log(out.join('\n')); const f = out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);

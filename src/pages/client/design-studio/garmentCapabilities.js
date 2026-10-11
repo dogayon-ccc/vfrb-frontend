@@ -131,19 +131,7 @@ const SCANNED_BASE = [
       limitations: ['one body colour: waistband, button, pleats and pockets are modelled shapes, not separately colourable parts', 'no text or logos in 3D', 'pleated school-shorts cut only (the model of the School Shorts photo); fine fabric wrinkles are baked into the geometry', 'no arbitrary fabric-texture upload'],
     },
   },
-  {
-    id: 'skirt', match: /^skirt$/i,
-    models: { unisex: '/models/processed/skirt-pencil.glb' }, torso: { unisex: 0.183 },
-    transform: { rotation: [0, 0, 0], scale: 2.85, position: [0, 0.734, 0] },
-    parts: [{ node: 'mesh_node', decals: false, zoneOf: bodyOnly }],
-    capabilities: {
-      regionMethod: 'vertex-mask', regionAccuracy: 'approximate (single body zone, no cut panels in the GLB)',
-      zones: ['body'], patterns: { zones: ['body'], ids: ALL_PATTERNS.filter(p => p !== 'geometric') },
-      sleeves: [],
-      text: false, logo: false, frontBack: false, fit: ['unisex'],
-      limitations: ['low-poly (1.3k vertices) pencil skirt', 'waist and hem are straight clips of the scan (no waistband detail)'],
-    },
-  },
+
 ];
 
 // Scrub Top: Meshy scrub-set scans split by mesh connectivity into top and trousers (tools/glb-intake/glbtools.py); only the top is served.
@@ -328,6 +316,17 @@ const MORE_MODELS = [
     parts: [{ node: 'mesh_node', decals: false, zoneOf: bodyOnly }],
     capabilities: bodyCaps(['Short'], ['collarless, one-button short-sleeve cut with welt pockets (the model of the royal pinstripe blazer photo); the pinstripe is not modelled']) },
 ];
+
+// Generic stand-ins: models that are not of the garment they would show. They are never served (no 3D toggle, catalog says 2D only).
+// skirt-pencil.glb is a 1.4k-vertex spatial cut from the fused Navy_Blue_Peplum_Dress figure (ragged waist and hem), a bucket shape, not a VFRB skirt.
+export const STAND_IN_3D_MODELS = [{
+  id: 'skirt', match: /^skirt$/i, reason: 'spatial cut of a different garment (peplum dress figure); low-poly bucket shape',
+  models: { unisex: '/models/processed/skirt-pencil.glb' }, torso: { unisex: 0.183 },
+  transform: { rotation: [0, 0, 0], scale: 2.85, position: [0, 0.734, 0] },
+  parts: [{ node: 'mesh_node', decals: false, zoneOf: bodyOnly }],
+  capabilities: { zones: ['body'], fit: ['unisex'], limitations: ['low-poly (1.3k vertices)', 'waist and hem are straight clips of the scan (no waistband detail)'] },
+}];
+export const standIn3D = garment => STAND_IN_3D_MODELS.some(x => x.match.test(String(garment ?? '')));
 
 export const SCANNED_GARMENTS = [...SCANNED_BASE, ...SCRUB_TOP, ...MANDARIN_TUNIC, ...ROUND_NECK, ...BIR_BLOUSE, ...UTILITY_LONG, ...CORPORATE_MODELS, ...MEDICAL_MODELS, ...MANDARIN_SHIRT_LONG, ...MORE_MODELS];
 
