@@ -7,7 +7,8 @@ import { familyFor, STATUS_3D_LABEL } from './garmentCatalog';
 import { get3DCapabilities } from './garmentCapabilities';
 import { ENTRIES as GALLERY } from './designGallery';
 import { hasWebGL } from './webglSupport';
-import { hasBackView } from './garmentAssets';
+import { hasBackView, assetFor } from './garmentAssets';
+import { photoMaxScale } from './studioView';
 import { rulerSteps, GRID_SIZES, pinnedTicks, panLimits, clampPan } from './snapGuides';
 
 const GUIDES_DEFAULT = { grid: false, snap: true, size: 20 };
@@ -173,13 +174,6 @@ export default function CanvasViewport({
   const on3DLost = () => { setWebglOk(false); setViewMode?.('2d'); };
   const fit = useFit(paneRef, canvasWrapRef);
   const at = useSelectionAnchor(selObj, canvasEl, paneRef);
-  const scale = zoom * fit; // canvas logical px -> screen px
-  // Grid + rulers and snapping toggles (per-viewer convenience, remembered in this browser).
-  const [guides, setGuides] = useState(readGuides);
-  useEffect(() => {
-    setSnapOptions?.({ snap: guides.snap, gridSize: guides.grid ? guides.size : 0, scale });
-    try { localStorage.setItem('ds_guides', JSON.stringify(guides)); } catch { /* storage blocked */ }
-  }, [guides, scale, setSnapOptions]);
   // The artboard's real logical size, read from the Fabric canvas (photo bases and templates differ), not assumed.
   const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 });
   useEffect(() => {
@@ -191,6 +185,19 @@ export default function CanvasViewport({
     ro.observe(el);
     return () => ro.disconnect();
   }, [canvasEl, initFailed]);
+  // A raster photo base is never shown above its native resolution: fit x zoom is capped so the photo is at most 1:1 on screen.
+  const photo = cfg.garment ? assetFor(cfg.garment, cfg.sleeve, face, cfg.fit) : null;
+  const cap = photoMaxScale(photo, canvasSize);
+  const base = Math.min(fit, cap); // the fitted size, never above the photo's native resolution; zoom scales from here
+  const scale = Math.min(zoom * base, cap); // canvas logical px -> screen px
+  const atCap = zoom * base >= cap - 1e-6;
+  useEffect(() => { setZoom(1); }, [cfg.garment, cfg.sleeve, cfg.fit, setZoom]); // a new garment starts at the fitted size
+  // Grid + rulers and snapping toggles (per-viewer convenience, remembered in this browser).
+  const [guides, setGuides] = useState(readGuides);
+  useEffect(() => {
+    setSnapOptions?.({ snap: guides.snap, gridSize: guides.grid ? guides.size : 0, scale });
+    try { localStorage.setItem('ds_guides', JSON.stringify(guides)); } catch { /* storage blocked */ }
+  }, [guides, scale, setSnapOptions]);
   const [dark, setDark] = useState(false);
 
   // ── Pan + pinned rulers ──
@@ -440,7 +447,7 @@ export default function CanvasViewport({
         {cfg.garment && (
           <motion.div key={cfg.garment} className="ds-ctx-chip" aria-live="polite"
             initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} transition={{ duration:.2 }}>
-            <strong>{cfg.garment}</strong>
+            <strong>{cfg.garment}</strong>{!photo && <span className="ds-sketch" title="A flat VFRB template drawing; no photo base exists for this garment, sleeve and fit">Sketch</span>}
           </motion.div>
         )}
       </AnimatePresence>
@@ -449,8 +456,8 @@ export default function CanvasViewport({
         {cfg.garment && show2D && (<>
           <div className="ds-zoom" role="group" aria-label="Zoom">
             <button type="button" aria-label="Zoom out" onClick={()=>setZoom(z=>Math.max(ZOOM_MIN, +(z-0.15).toFixed(2)))}><Minus size={16} aria-hidden="true"/></button>
-            <button type="button" aria-label="Reset zoom" title="Reset zoom" onClick={()=>setZoom(1)}>{Math.round(zoom*fit*100)}%</button>
-            <button type="button" aria-label="Zoom in" onClick={()=>setZoom(z=>Math.min(ZOOM_MAX, +(z+0.15).toFixed(2)))}><Plus size={16} aria-hidden="true"/></button>
+            <button type="button" aria-label="Reset zoom" title={photo ? 'Reset zoom (a photo base never goes above its full resolution)' : 'Reset zoom'} onClick={()=>setZoom(1)}>{Math.round(scale*100)}%</button>
+            <button type="button" aria-label="Zoom in" disabled={atCap} title={atCap ? 'Full photo resolution: zooming further would blur it' : undefined} onClick={()=>setZoom(z=>Math.min(ZOOM_MAX, +(z+0.15).toFixed(2)))}><Plus size={16} aria-hidden="true"/></button>
           </div>
           <div className="ds-face" role="group" aria-label="Garment side">
             {['front','back'].map(v=>(

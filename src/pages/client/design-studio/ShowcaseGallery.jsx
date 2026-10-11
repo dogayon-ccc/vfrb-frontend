@@ -66,7 +66,7 @@ export default function ShowcaseGallery({ showShowcase, setShowShowcase, setCfg,
                   }}>
                   {d.photo_path
                     ? <img src={d.photo_path} alt={d.label} width="54" height="66" style={{ objectFit:'contain', borderRadius:6 }}/>
-                    : <GarmentSilhouette garment={d.config?.garment} sleeve={d.config?.sleeve} colors={d.config?.colors ?? {}}/>}
+                    : <span className="ds-sketch-wrap"><GarmentSilhouette garment={d.config?.garment} sleeve={d.config?.sleeve} colors={d.config?.colors ?? {}}/><span className="ds-sketch">Sketch</span></span>}
                   <p style={{ fontSize:10, fontWeight:700, color:'rgba(15,23,42,.7)', margin:0, textAlign:'center' }}>{d.label}</p>
                   <p style={{ fontSize:9, color:'rgba(15,23,42,.28)', margin:0 }}>{d.garment}</p>
                 </button>

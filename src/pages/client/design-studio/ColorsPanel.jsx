@@ -1,105 +1,46 @@
-import { useState } from 'react';
-import InlineColorPicker from '../../../components/InlineColorPicker';
-import { SwatchChip } from '../../../components/customer/kit';
-import { T2, secLabel, ZONE_LABEL, PH_SWATCHES, zonesFor, zone3D, ONLY_2D_TAG } from './dsShared';
+import { secLabel, ZONE_LABEL, zonesFor, zone3D, ONLY_2D_TAG } from './dsShared';
 import { assetFor } from './garmentAssets';
+import { withBody } from './colorRules';
+import { SwatchGrid, CustomColor, colourName } from './SwatchGrid';
 
+// Colours of the chosen garment, zone by zone: named swatch dots, then a custom swatch with a hex field.
 export default function ColorsPanel({ cfg, setCfg, activeZone, setActiveZone }) {
-  const setColor = (zone, c) => setCfg(p => ({ ...p, colors:{ ...p.colors, [zone]:c } }));
-  const [pickerOpen, setPickerOpen] = useState(false);
+  // The base colour carries every zone still following it (colorRules.js); other zones change alone.
+  const setColor = (zone, c) => setCfg(p => ({ ...p, colors: zone === 'body' ? withBody(p.colors, c) : { ...p.colors, [zone]: c } }));
   // On a photo base with a trim mask the 'collar' zone recolours the whole trim (band, cuffs, welts), so it is called Trim.
   const photo = cfg.garment ? assetFor(cfg.garment, cfg.sleeve, 'front', cfg.fit) : null;
   const label = z => (photo?.trim && z === 'collar' ? 'Trim' : ZONE_LABEL[z] ?? z);
+  const cur = cfg.colors[activeZone];
 
   return (
-    <div style={{ overflowY:'auto', flex:1, padding:'8px 10px 16px' }}>
-      {!cfg.garment && (
-        <p className="ds-note" style={{ marginBottom:8 }}>Pick a garment in the Garment tab to color its collar, sleeves and pocket.</p>
-      )}
+    <div className="ds-colors">
       {cfg.garment && (
         <div className="ds-zone-now">
-          <span className="ds-zone-dot" style={{ background: cfg.colors[activeZone] ?? '#028090' }}/>
-          <span>Editing <b>{label(activeZone)}</b></span>
-          <code>{(cfg.colors[activeZone] ?? '').toUpperCase()}</code>
+          <span className="ds-zone-dot" style={{ background: cur ?? 'var(--cx-paper-2)' }}/>
+          <span>Editing <b>{label(activeZone)}</b>: {colourName(cur)}</span>
+          <code>{(cur ?? '').toUpperCase()}</code>
         </div>
       )}
-      <p style={secLabel}>Color Zone</p>
-      <div style={{ display:'flex', gap:4, marginBottom:12, flexWrap:'wrap' }}>
+      <p style={secLabel}>Colour zone</p>
+      <div className="ds-zones" role="group" aria-label="Colour zone">
         {zonesFor(cfg.garment, cfg.sleeve, cfg.fit).map(z => (
-          <button key={z} type="button" className="ds-touch" onClick={() => setActiveZone(z)}
-            style={{
-              display:'flex', alignItems:'center', gap:5, padding:'5px 9px',
-              borderRadius:8, border:`1px solid ${activeZone===z?T2:'rgba(15,23,42,.08)'}`,
-              background: activeZone===z ? 'rgba(2,195,154,.1)' : 'rgba(15,23,42,.03)',
-              cursor:'pointer',
-            }}>
-            <div style={{ width:12,height:12,borderRadius:3, background:cfg.colors[z]??'#028090',
-              border:'1px solid rgba(15,23,42,.2)' }}/>
-            <span style={{ fontSize:11, color: activeZone===z ? 'var(--cx-thread-ink)' : 'var(--cx-ink-2)',
-              fontWeight: activeZone===z ? 700 : 400 }}>
-              {label(z)}
-            </span>
+          <button key={z} type="button" className="ds-zone" aria-pressed={activeZone === z} onClick={() => setActiveZone(z)}>
+            <span className="ds-zone-sw" style={{ background: cfg.colors[z] ?? 'var(--cx-paper-2)' }} aria-hidden="true"/>
+            {label(z)}
             {zone3D(cfg.garment, cfg.sleeve, cfg.fit, z) === false && <span title="The 3D model has no separate region for this zone" style={ONLY_2D_TAG}>2D only</span>}
           </button>
         ))}
       </div>
 
       {activeZone === 'tipping' && cfg.colors.tipping === null ? (
-        <button onClick={() => setColor('tipping', '#FFFFFF')}
-          style={{
-            width:'100%', padding:'10px 12px', borderRadius:9, cursor:'pointer',
-            border:'1px dashed rgba(2,195,154,.5)', background:'rgba(2,195,154,.06)',
-            color:'#028090', fontSize:11, fontWeight:700,
-          }}>
-          + Enable Tipping (contrast collar trim)
-        </button>
+        <button type="button" className="ds-btn" onClick={() => setColor('tipping', '#ffffff')}>+ Add tipping (contrast collar edge)</button>
       ) : (
         <>
-          <p style={secLabel}>Philippine Colors</p>
-          <ul className="ds-swatch-chips" aria-label={`Colours for ${label(activeZone)}`}>
-            {PH_SWATCHES.map(sw => (
-              <li key={sw.hex}>
-                <SwatchChip size="sm" color={sw.hex} name={sw.name} selected={(cfg.colors[activeZone] ?? '').toLowerCase() === sw.hex.toLowerCase()}
-                  onSelect={() => setColor(activeZone, sw.hex)}/>
-              </li>
-            ))}
-          </ul>
-
-          <p style={secLabel}>Custom Color</p>
-          <div style={{ position:'relative' }}>
-            <button onClick={() => setPickerOpen(p => !p)}
-              style={{
-                display:'flex', alignItems:'center', gap:9, width:'100%',
-                padding:'8px 11px', borderRadius:9, cursor:'pointer',
-                border:`1px solid ${pickerOpen ? T2 : 'rgba(15,23,42,.14)'}`,
-                background: pickerOpen ? 'rgba(2,195,154,.08)' : 'rgba(15,23,42,.05)',
-              }}>
-              <div style={{ width:22, height:22, borderRadius:6, flexShrink:0, background:cfg.colors[activeZone]??'#028090',
-                border:'1px solid rgba(15,23,42,.22)' }}/>
-              <span style={{ fontSize:11, color:'var(--cx-ink-2)', fontFamily:'monospace' }}>
-                {cfg.colors[activeZone]??'#028090'}
-              </span>
-              <span style={{ marginLeft:'auto', fontSize:11, color:'var(--cx-ink-2)' }}>
-                {pickerOpen ? '▲' : '▼'}
-              </span>
-            </button>
-
-            {pickerOpen && (
-              <InlineColorPicker
-                value={cfg.colors[activeZone]??'#028090'}
-                onChange={hex => setColor(activeZone, hex)}
-                onClose={() => setPickerOpen(false)}
-              />
-            )}
-          </div>
-
-          {activeZone === 'tipping' && (
-            <button onClick={() => setColor('tipping', null)}
-              style={{ marginTop:10, background:'none', border:'none', cursor:'pointer',
-                fontSize:11, color:'rgba(15,23,42,.35)', textDecoration:'underline' }}>
-              Turn off tipping
-            </button>
-          )}
+          <p style={secLabel}>Philippine colours</p>
+          <SwatchGrid label={label(activeZone)} current={cur} onPick={hex => setColor(activeZone, hex)}/>
+          <p style={secLabel}>Custom</p>
+          <CustomColor label={label(activeZone)} current={cur} onPick={hex => setColor(activeZone, hex)}/>
+          {activeZone === 'tipping' && <button type="button" className="ds-link" onClick={() => setColor('tipping', null)}>Turn off tipping</button>}
         </>
       )}
     </div>

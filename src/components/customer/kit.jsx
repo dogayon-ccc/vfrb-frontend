@@ -203,12 +203,13 @@ export function ErrorState({ title = 'This didn’t load', children = 'Check you
   );
 }
 
-// Fabric-swatch colour chip; selectable when onSelect is given (stitched ring marks the selection).
+// Fabric-swatch colour chip; selectable when onSelect is given (stitched ring marks the selection). size="dot" keeps only the dot, named for assistive tech and on hover.
 export function SwatchChip({ color, name, selected = false, onSelect, size = 'md', disabled = false }) {
-  const body = <><span className="cx-swatch-dot" style={{ '--sw': color }} aria-hidden="true" /><span>{name}</span></>;
+  const dot = size === 'dot';
+  const body = <><span className="cx-swatch-dot" style={{ '--sw': color }} aria-hidden="true" /><span className={dot ? 'sr-only' : undefined}>{name}</span></>;
   return onSelect
-    ? <button type="button" className="cx-swatch" data-size={size} aria-pressed={selected} onClick={onSelect} disabled={disabled}>{body}</button>
-    : <span className="cx-swatch" data-size={size}>{body}</span>;
+    ? <button type="button" className="cx-swatch" data-size={size} aria-pressed={selected} onClick={onSelect} disabled={disabled} title={dot ? name : undefined}>{body}</button>
+    : <span className="cx-swatch" data-size={size} title={dot ? name : undefined}>{body}</span>;
 }
 
 // The 7 real production stages, in shop-floor order.

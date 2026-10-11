@@ -18,6 +18,7 @@ import { photoFits, assetFor, templateIdFor } from './garmentAssets';
 import { glbSlotFor, slotLive } from './glbSlots';
 import { BASE_PATHS, getGarmentPaths } from './garmentPaths';
 import { get3DCapabilities, fitsFor, sleeves3DFor, has3DModel } from './garmentCapabilities';
+import { realTrimFor, colorsForGarment } from './colorRules';
 
 // Category -> its garments, in display order. Source: the VFRB interview's garment list
 // (unchanged from the previous CATS in dsShared.js — moved, not altered).
@@ -147,8 +148,11 @@ export function applyGarment(cfg, garment, next = {}) {
   const real = f => !!assetFor(fam.id, sleeve, 'front', f) || has3DModel(fam.id, sleeve, f);
   if (!next.fit && fit && fam.id !== cfg.garment && !real(fit)) fit = fam.fits.find(real) ?? fit;
   const photoBase = !!assetFor(fam.id, sleeve, 'front', fit);
+  // Only a real garment trim gets its own colour; otherwise the collar keeps following the base colour (colorRules.js).
+  const colors = cfg.colors && fam.id !== cfg.garment ? colorsForGarment(cfg.colors, realTrimFor(cfg.garment, cfg.sleeve, cfg.fit), realTrimFor(fam.id, sleeve, fit)) : cfg.colors;
   return {
     ...cfg,
+    ...(colors ? { colors } : {}),
     category: next.category ?? cfg.category,
     garment: fam.id,
     sleeve,

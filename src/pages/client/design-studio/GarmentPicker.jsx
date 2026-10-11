@@ -4,7 +4,7 @@ import { Suspense, lazy, useMemo, useState } from 'react';
 import { Upload, SlidersHorizontal, Eye, Square, CheckCircle2, Box, X } from 'lucide-react';
 import { BASE_PATHS } from './garmentPaths';
 import GarmentThumb from './GarmentThumb';
-import { CATALOG, resolveFit, pieceOf } from './garmentCatalog';
+import { CATALOG, pieceOf, applyGarment } from './garmentCatalog';
 import { CATEGORIES, PIECES, SLEEVES, GENDERS, ENTRIES, TIER_LABEL, filterDesigns, facetCounts } from './designGallery';
 import { assetFor } from './garmentAssets';
 import { hasWebGL } from './webglSupport';
@@ -144,10 +144,12 @@ function Photos({ pieceRole, onPickPhoto, onPick3D, onUpload }) {
   );
 }
 
-// A template card shows the family's real photo base when it has one, otherwise its 2D template drawing.
+// A template card shows exactly what picking it opens: the real photo base when there is one, otherwise the flat sketch, labelled so.
 function TemplateImage({ fam, cfg }) {
-  const asset = assetFor(fam.id, fam.defaultStyle, 'front', resolveFit(fam.id, cfg.fit));
-  return asset ? <img src={asset.src} alt="" decoding="async" draggable={false}/> : <GarmentThumb paths={BASE_PATHS[fam.id] ?? BASE_PATHS['Polo Shirt']} colors={cfg.colors} size={96}/>;
+  const r = applyGarment(cfg, fam.id);
+  const asset = assetFor(r.garment, r.sleeve, 'front', r.fit);
+  return asset ? <img src={asset.src} alt="" decoding="async" draggable={false}/>
+    : <><GarmentThumb paths={BASE_PATHS[fam.id] ?? BASE_PATHS['Polo Shirt']} colors={cfg.colors} size={96}/><span className="ds-sketch">Sketch</span></>;
 }
 
 function Templates({ cfg, pieceRole, onPickFamily, onUpload }) {
