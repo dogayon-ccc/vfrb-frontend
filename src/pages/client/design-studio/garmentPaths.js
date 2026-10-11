@@ -234,19 +234,33 @@ function pleatedSkirt({ w = 280, h = 240, waist = 58, waistY = 26, band = 18, he
   };
 }
 
-function skirt({ w = 260, h = 360, waist = 58, waistY = 30, band = 16, hip = 78, hipY = 132, hemY = 334, hemX = 68, hemCurve = 4 }) {
-  const cx = w / 2, by = waistY + band;
-  const body = `M ${pt(cx - waist, waistY)} L ${pt(cx + waist, waistY)} L ${pt(cx + waist + 2, by)} Q ${pt(cx + hip + 3, (by + hipY) / 2)} ${pt(cx + hip, hipY)} ` +
-    `L ${pt(cx + hemX, hemY)} Q ${pt(cx, hemY + 2 * hemCurve)} ${pt(cx - hemX, hemY)} L ${pt(cx - hip, hipY)} Q ${pt(cx - hip - 3, (by + hipY) / 2)} ${pt(cx - waist - 2, by)} Z`;
+// Pencil skirt: curved waistband, a smooth hip curve that tapers back in to the hem, side darts (narrow Vs, front and back), a
+// centre-back zip and a lapped back vent. One body zone; everything else is a drawn detail.
+function skirt({ w = 260, h = 360, waist = 58, waistY = 30, band = 16, hip = 79, hipY = 128, hemY = 334, hemX = 66, hemCurve = 4 }) {
+  const cx = w / 2, by = waistY + band, dip = 3;
+  const side = s => `${pt(cx + s * (waist + 3), by)} C ${pt(cx + s * (hip + 2), by + 28)} ${pt(cx + s * (hip + 2), hipY - 26)} ${pt(cx + s * hip, hipY)} ` +
+    `C ${pt(cx + s * (hip - 1), hipY + 72)} ${pt(cx + s * (hemX + 3), hemY - 70)} ${pt(cx + s * hemX, hemY)}`;
+  const body = `M ${pt(cx - waist, waistY)} Q ${pt(cx, waistY + dip)} ${pt(cx + waist, waistY)} L ${side(1)} Q ${pt(cx, hemY + 2 * hemCurve)} ${pt(cx - hemX, hemY)} ` +
+    `C ${pt(cx - hemX - 3, hemY - 70)} ${pt(cx - hip + 1, hipY + 72)} ${pt(cx - hip, hipY)} C ${pt(cx - hip - 2, hipY - 26)} ${pt(cx - hip - 2, by + 28)} ${pt(cx - waist - 3, by)} Z`;
+  // Side darts: a narrow V from the waistband seam, a third of the way in from each side.
+  const dart = (s, len) => { const x = cx + s * waist * 0.64; return `M ${pt(x - 3, by)} L ${pt(x + s * 2, by + len)} L ${pt(x + 3, by)}`; };
+  const vent = 56; // back vent height above the hem
   return {
     w, h, body, collar: null, sleeveL: null, sleeveR: null, pocket: null,
     details: [
-      { d: `M ${pt(cx - waist - 2, by)} L ${pt(cx + waist + 2, by)}`, kind: 'line' },
-      { d: `M ${pt(cx - 30, by)} L ${pt(cx - 28, by + 44)} M ${pt(cx + 30, by)} L ${pt(cx + 28, by + 44)}`, kind: 'seam' },
+      { d: `M ${pt(cx - waist - 3, by)} Q ${pt(cx, by + dip)} ${pt(cx + waist + 3, by)}`, kind: 'line' },
+      { d: `M ${pt(cx - waist + 2, waistY + 3)} Q ${pt(cx, waistY + dip + 3)} ${pt(cx + waist - 2, waistY + 3)} M ${pt(cx - waist, by - 3)} Q ${pt(cx, by + dip - 3)} ${pt(cx + waist, by - 3)}`, kind: 'seam' },
+      { d: `${dart(-1, 46)} ${dart(1, 46)}`, kind: 'seam', face: 'front' },
+      { d: `${dart(-1, 58)} ${dart(1, 58)}`, kind: 'seam', face: 'back' },
       { d: `M ${pt(cx - hemX + 2, hemY - 7)} Q ${pt(cx, hemY - 7 + 2 * hemCurve)} ${pt(cx + hemX - 2, hemY - 7)}`, kind: 'seam' },
-      { d: `M ${pt(cx, by)} L ${pt(cx, by + 60)}`, kind: 'line', face: 'back' },
-      { d: `M ${pt(cx, hemY + hemCurve)} L ${pt(cx, hemY - 52)}`, kind: 'line', face: 'back' },
-      { d: `M ${pt(cx - 18, hipY + 20)} Q ${pt(cx - 22, hemY - 80)} ${pt(cx - 26, hemY - 14)} M ${pt(cx + 18, hipY + 20)} Q ${pt(cx + 22, hemY - 80)} ${pt(cx + 26, hemY - 14)}`, kind: 'fold' },
+      // Back: hook at the waistband, centre-back zip, lapped vent (left panel laps over the right, with a tack at the top).
+      { d: dot(cx, waistY + band / 2, 2.2), kind: 'button', face: 'back' },
+      { d: `M ${pt(cx, by)} L ${pt(cx, by + 64)}`, kind: 'line', face: 'back' },
+      { d: `M ${pt(cx - 2, by + 2)} L ${pt(cx - 2, by + 62)} M ${pt(cx + 2, by + 2)} L ${pt(cx + 2, by + 62)}`, kind: 'seam', face: 'back' },
+      { d: `M ${pt(cx, hemY + hemCurve)} L ${pt(cx, hemY - vent)} L ${pt(cx + 6, hemY - vent + 6)} L ${pt(cx + 6, hemY + hemCurve - 0.5)}`, kind: 'line', face: 'back' },
+      { d: `M ${pt(cx - 1, hemY - vent - 4)} L ${pt(cx + 7, hemY - vent + 2)}`, kind: 'seam', face: 'back' },
+      // Soft drape: two long folds from the hips toward the hem.
+      { d: `M ${pt(cx - 22, hipY + 18)} Q ${pt(cx - 25, hemY - 80)} ${pt(cx - 28, hemY - 14)} M ${pt(cx + 22, hipY + 18)} Q ${pt(cx + 25, hemY - 80)} ${pt(cx + 28, hemY - 14)}`, kind: 'fold' },
     ],
   };
 }

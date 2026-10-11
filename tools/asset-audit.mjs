@@ -38,6 +38,7 @@ for (const [garment, bySleeve] of Object.entries(A.ASSET_2D))
         if (a.trim?.mask) add(a.trim.mask, `trim mask ${a.id}`);
       }
 
+for (const e of C.PENDING_3D_MODELS ?? []) for (const m of Object.values(e.models)) add(m, `pending candidate ${e.id} (${e.approval ?? 'pending'}, not served)`);
 for (const s of Object.values(GS.GLB_SLOTS)) if (GS.slotLive(s) || fs.existsSync(path.join(ROOT, 'public', s.file))) add(s.file, `GLB slot ${s.id} (${s.state})`);
 for (const e of C.SCANNED_GARMENTS) for (const m of Object.values(e.models)) add(m, `3D entry ${e.id}`);
 for (const m of C.UNSUPPORTED_3D_MODELS ?? []) if (m?.path) add(m.path, `unsupported model (${m.reason ?? 'rejected'})`);
