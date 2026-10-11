@@ -8,10 +8,10 @@ import { asList } from '../../utils/asList';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
 import { NavIcon } from '../../components/ui/icons';
 import EmptyState from '../../components/EmptyState';
-import { MiniPreview } from './design-studio/InspoGallery';
+import { savedDesignName } from '../../utils/designName';
 import heroPhoto from '../../assets/brand/uniforms.jpg';
 import {
-  Kpi, StatusPill, OrderThumb, Skeleton, useToast, Stepper, LIFECYCLE, lifecycleIndex,
+  Kpi, StatusPill, OrderThumb, DesignThumb, Skeleton, useToast, Stepper, LIFECYCLE, lifecycleIndex,
   orderTitle, fmtDate, reltime, parseCfg, IN_PRODUCTION,
 } from '../../components/customer/kit';
 
@@ -143,6 +143,8 @@ export default function CustomerDashboard() {
   const completed = stats?.completed_orders ?? orders.filter(o => o.status === 'completed').length;
   const pending = orders.filter(o => o.status === 'pending' || o.status === 'confirmed').length;
   const unread = notifs.filter(n => !n.is_read).length;
+  // Same title as My Designs: the customer's design name, else the draft label, else the garment.
+  const draftTitle = draft ? savedDesignName(draft.studio_config) || draft.label || humanize(draft.studio_config.garment) : '';
 
   return (
     <div className="cx-page">
@@ -208,10 +210,10 @@ export default function CustomerDashboard() {
           })()}
           {!loading && draft && (
             <section className="cx-card cx-cont" aria-label="Continue your design">
-              <div className="cx-thumb" style={{ width: 56, height: 64, flexShrink: 0 }}><MiniPreview garment={draft.studio_config.garment} colors={draft.studio_config.colors ?? {}} /></div>
+              <div className="cx-thumb" style={{ width: 56, height: 64, flexShrink: 0 }}><DesignThumb compact src={draft.preview_dataurl} garment={draft.studio_config.garment} colors={draft.studio_config.colors} name={draftTitle} /></div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Continue where you left off</p>
-                <p style={{ margin: '3px 0 0', fontWeight: 800, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{draft.label || humanize(draft.studio_config.garment)}</p>
+                <p style={{ margin: '3px 0 0', fontWeight: 800, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{draftTitle}</p>
                 <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-subtle)' }}>Draft · edited {reltime(draft.updated_at)}</p>
               </div>
               <button className="cx-btn cx-btn-p" onClick={openStudio}>Continue</button>
@@ -238,8 +240,8 @@ export default function CustomerDashboard() {
               <div className="cx-rd">
                 {designs.map(d => (
                   <button key={d.id} type="button" className="cx-rd-item" onClick={() => { sessionStorage.setItem('studio_config', JSON.stringify(d.config)); nav('/design-studio'); }}>
-                    <span className="cx-thumb" style={{ width: 56, height: 64 }}><MiniPreview garment={d.garment} colors={d.config?.colors ?? {}} /></span>
-                    <strong>{d.label || humanize(d.garment)}</strong><em>Saved · reuse</em>
+                    <span className="cx-thumb" style={{ width: 56, height: 64 }}><DesignThumb compact src={d.photo_path} garment={d.garment} colors={d.config?.colors} name={savedDesignName(d.config) || d.label || humanize(d.garment)} /></span>
+                    <strong>{savedDesignName(d.config) || d.label || humanize(d.garment)}</strong><em>Saved · reuse</em>
                   </button>
                 ))}
               </div>

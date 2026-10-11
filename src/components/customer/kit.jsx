@@ -87,6 +87,28 @@ export function OrderThumb({ order, size = 52 }) {
   );
 }
 
+// Thumbnail of a saved design. `src` is the persisted artwork (a draft's preview_dataurl, or the order artwork an archived design
+// keeps as photo_path) and is shown as the design. Without one, or if it fails to load, the garment silhouette in the design's
+// colours stands in, framed and labelled so it never passes for the saved artwork. data-kind: preview | loading | fallback.
+export function DesignThumb({ src, garment, colors, name, compact = false, scale = 1, style, what = 'Saved preview' }) {
+  const [loaded, setLoaded] = useState(null);
+  const [failed, setFailed] = useState(null);
+  const usable = !!src && failed !== src;
+  const kind = !usable ? 'fallback' : loaded === src ? 'preview' : 'loading';
+  const why = src ? `${what} unavailable` : `No ${what.toLowerCase()}`;
+  const label = kind === 'fallback' ? `${why}: garment colours only${name ? ` for ${name}` : ''}` : `${what}${name ? ` of ${name}` : ''}`;
+  return (
+    <div className={`cx-dthumb${compact ? ' cx-dthumb--sm' : ''}`} data-kind={kind} role="img" aria-label={label} title={kind === 'fallback' ? `${why} — garment colours only` : undefined} style={style}>
+      {usable && <img key={src} src={src} alt="" loading="lazy" decoding="async" onLoad={() => setLoaded(src)} onError={() => setFailed(src)}/>}
+      {kind === 'loading' && <span className="cx-dthumb-wait" aria-hidden="true"/>}
+      {kind === 'fallback' && <>
+        <span className="cx-dthumb-sil" style={{ transform: `scale(${scale})` }} aria-hidden="true"><MiniPreview garment={garment} colors={colors ?? {}}/></span>
+        {!compact && <span className="cx-dthumb-note" aria-hidden="true">{src ? 'Preview unavailable' : 'Colours only'}</span>}
+      </>}
+    </div>
+  );
+}
+
 export function PageHeader({ title, subtitle, children }) {
   return (
     <div className="cx-head">
