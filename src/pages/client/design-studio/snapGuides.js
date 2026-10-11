@@ -10,13 +10,17 @@ export const GRID_SIZES = [10, 20, 40];
 // Threshold in logical px for an on-screen scale (zoom x fit), so snapping feels the same at 40% on a phone and 270% on a desktop.
 export const snapThreshold = (scale = 1) => Math.min(12, Math.max(2, SNAP_SCREEN_PX / (scale > 0 ? scale : 1)));
 
-// Candidate lines an element can snap to: the canvas centre, the garment's edges and centre, other visible design
-// elements' edges and centres, and (only while the grid is shown) every grid line.
-export function snapTargets({ width, height, garment, others = [], gridSize = 0 }) {
+// Candidate lines an element can snap to: the canvas centre, the garment's centre (and its edges unless garmentEdges is false),
+// other visible design elements' edges and centres, and (only while the grid is shown) every grid line.
+export function snapTargets({ width, height, garment, garmentEdges = true, others = [], gridSize = 0 }) {
   const v = [{ at: width / 2, kind: 'canvas' }], h = [{ at: height / 2, kind: 'canvas' }];
   if (garment) {
-    v.push({ at: garment.left, kind: 'garment' }, { at: garment.left + garment.width / 2, kind: 'garment' }, { at: garment.left + garment.width, kind: 'garment' });
-    h.push({ at: garment.top, kind: 'garment' }, { at: garment.top + garment.height / 2, kind: 'garment' }, { at: garment.top + garment.height, kind: 'garment' });
+    v.push({ at: garment.left + garment.width / 2, kind: 'garment' });
+    h.push({ at: garment.top + garment.height / 2, kind: 'garment' });
+    if (garmentEdges) {
+      v.push({ at: garment.left, kind: 'garment' }, { at: garment.left + garment.width, kind: 'garment' });
+      h.push({ at: garment.top, kind: 'garment' }, { at: garment.top + garment.height, kind: 'garment' });
+    }
   }
   for (const o of others) {
     v.push({ at: o.left, kind: 'object' }, { at: o.left + o.width / 2, kind: 'object' }, { at: o.left + o.width, kind: 'object' });

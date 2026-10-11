@@ -35,7 +35,7 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, she
                      shapes={{ selObj:p.selObj, onAdd:p.addShape, onUpdate:p.updateSelected }}
                      onInspo={() => p.setShowInspo(true)} onShowcase={() => p.setShowShowcase(true)}/>,
     text:    () => <TextPanel onAdd={p.addText} bodyColor={p.cfg?.colors?.body}/>,
-    draw:    () => <DrawPanel size={p.brushSize} color={p.brushColor} onSizeChange={p.changeBrushSize} onColorChange={p.changeBrushColor}/>,
+    draw:    () => <DrawPanel size={p.brushSize} color={p.brushColor} onSizeChange={p.changeBrushSize} onColorChange={p.changeBrushColor} erasing={p.erasing} setErasing={p.setErasing}/>,
     ai:      () => <div className="ds-sum"><AIPanel onApply={p.applyAI} onTexture={noop}/><AIDesignChat docked/></div>,
     pattern: () => (assetFor(p.cfg.garment, p.cfg.sleeve, 'front', p.cfg.fit)
       ? <p className="ds-note" style={{ padding:'20px 4px', textAlign:'center' }}>Patterns are not available on a real-photo garment base. Switch the sleeve or garment to use them.</p>

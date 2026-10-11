@@ -1,63 +1,49 @@
 import { Component, Suspense, lazy, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Copy, Trash2, Minus, Plus, Moon, Sun } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Minus, Plus, Moon, Sun, Maximize } from 'lucide-react';
 import { NavIcon } from '../../../components/ui/icons';
-import { SHAPE_TYPE_LABEL } from './dsShared';
 import { familyFor, STATUS_3D_LABEL } from './garmentCatalog';
 import { get3DCapabilities } from './garmentCapabilities';
 import { ENTRIES as GALLERY } from './designGallery';
 import { hasWebGL } from './webglSupport';
 import { hasBackView, assetFor } from './garmentAssets';
 import { photoMaxScale } from './studioView';
-import { rulerSteps, GRID_SIZES, pinnedTicks, panLimits, clampPan } from './snapGuides';
+import { panLimits, clampPan } from './snapGuides';
+import { readGuidePrefs, relativeTicks, gridFade, GRID_ALPHA, GRID_MAJOR_EVERY } from './canvasGuides';
+import FloatingToolbar from './FloatingToolbar';
+import GuidesMenu from './GuidesMenu';
 
-const GUIDES_DEFAULT = { grid: false, snap: true, size: 20 };
+// Guides are remembered per viewer in this browser; on a phone they start off (the screen is small and touch is coarse).
 const readGuides = () => {
-  try { const g = { ...GUIDES_DEFAULT, ...JSON.parse(localStorage.getItem('ds_guides') || '{}') }; return GRID_SIZES.includes(g.size) ? g : { ...g, size: GUIDES_DEFAULT.size }; }
-  catch { return { ...GUIDES_DEFAULT }; }
+  const phone = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches;
+  try { return readGuidePrefs(JSON.parse(localStorage.getItem('ds_guides') || 'null'), phone); } catch { return readGuidePrefs(null, phone); }
 };
-const RULER_PX = 16; // ruler band thickness on screen (also how far the pane shifts so no control sits on a ruler)
+const RULER_H = 18, RULER_W = 32; // ruler bands on screen: the top ruler's height and the left ruler's width (the pane shifts by them)
 const ZOOM_MIN = 0.6, ZOOM_MAX = 1.8;
 const clampZoom = z => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, +z.toFixed(3)));
 
-// Grid: canvas logical px inside the zoom-scaled wrapper, so it is aligned with the artboard by construction. Strokes are
-// divided by the on-screen scale to stay one screen px. A DOM overlay, never a canvas object: not saved, exported or undoable.
-function Grid({ w, h, size, scale }) {
-  const k = 1 / scale;
-  const lines = n => Array.from({ length: Math.floor((n - 1e-6) / size) }, (_, i) => (i + 1) * size);
-  const majorLine = at => at % (size * 5) === 0 || undefined;
-  return (
-    <svg className="ds-grid" aria-hidden="true" width={w} height={h}>
-      {lines(w).map(x => <line key={'x' + x} x1={x} y1={0} x2={x} y2={h} strokeWidth={k} data-major={majorLine(x)}/>)}
-      {lines(h).map(y => <line key={'y' + y} x1={0} y1={y} x2={w} y2={y} strokeWidth={k} data-major={majorLine(y)}/>)}
-    </svg>
-  );
-}
-
-// Rulers pinned to the top and left edges of the viewport, in screen px. `view` says where canvas (0, 0) lands in the pane and
-// at what scale, so each tick sits over the canvas value it labels whatever the zoom or pan; only the artboard span is marked.
-function PinnedRulers({ view, w, h }) {
+// Rulers pinned to the top and left of the stage, in % of the garment (0-100) only: never units or sizes. `view` says where canvas
+// (0, 0) lands in the pane and at what scale; `g` is the garment's box in canvas px. Labels are horizontal on both rulers.
+function PinnedRulers({ view, g }) {
   const { ox, oy, s, pw, ph } = view;
-  const { step, major } = rulerSteps(s);
-  const xs = pinnedTicks(ox, s, pw, w, step, major), ys = pinnedTicks(oy, s, ph, h, step, major);
-  const span = (o, ext, len) => [Math.max(0, o), Math.min(len, o + ext * s)];
-  const [x0, x1] = span(ox, w, pw), [y0, y1] = span(oy, h, ph);
-  const px = a => a; // exact position; crispEdges (CSS) snaps the 1px line to the device pixel grid
+  const xs = relativeTicks(ox, s, pw, g.left, g.width, 40), ys = relativeTicks(oy, s, ph, g.top, g.height, 24);
+  const span = (o, a, ext, len) => [Math.max(0, o + a * s), Math.min(len, o + (a + ext) * s)];
+  const [x0, x1] = span(ox, g.left, g.width, pw), [y0, y1] = span(oy, g.top, g.height, ph);
   return (
     <>
-      <div className="ds-ruler-corner" aria-hidden="true"/>
-      <svg className="ds-ruler ds-ruler-x" aria-hidden="true" width={pw} height={RULER_PX}>
-        {x1 > x0 && <rect className="ds-ruler-art" x={x0} y={0} width={x1 - x0} height={RULER_PX}/>}
+      <div className="ds-ruler-corner" aria-hidden="true">%</div>
+      <svg className="ds-ruler ds-ruler-x" aria-hidden="true" width={pw} height={RULER_H}>
+        {x1 > x0 && <rect className="ds-ruler-art" x={x0} y={0} width={x1 - x0} height={RULER_H}/>}
         {xs.map(t => <g key={t.v}>
-          <line x1={px(t.at)} y1={t.major ? 5 : 10} x2={px(t.at)} y2={RULER_PX}/>
-          {t.major && <text x={t.at + 2} y={9} fontSize={9.5}>{t.v}</text>}
+          <line x1={t.at} y1={t.major ? 8 : 13} x2={t.at} y2={RULER_H}/>
+          {t.major && <text x={t.at + 3} y={12} fontSize={11}>{t.v}</text>}
         </g>)}
       </svg>
-      <svg className="ds-ruler ds-ruler-y" aria-hidden="true" width={RULER_PX} height={ph}>
-        {y1 > y0 && <rect className="ds-ruler-art" x={0} y={y0} width={RULER_PX} height={y1 - y0}/>}
+      <svg className="ds-ruler ds-ruler-y" aria-hidden="true" width={RULER_W} height={ph}>
+        {y1 > y0 && <rect className="ds-ruler-art" x={0} y={y0} width={RULER_W} height={y1 - y0}/>}
         {ys.map(t => <g key={t.v}>
-          <line x1={t.major ? 5 : 10} y1={px(t.at)} x2={RULER_PX} y2={px(t.at)}/>
-          {t.major && <text x={10} y={t.at + 2} fontSize={9.5} transform={`rotate(-90 10 ${t.at + 2})`} textAnchor="end">{t.v}</text>}
+          <line x1={t.major ? RULER_W - 8 : RULER_W - 4} y1={t.at} x2={RULER_W} y2={t.at}/>
+          {t.major && <text x={2} y={t.at + 4} fontSize={11}>{t.v}</text>}
         </g>)}
       </svg>
     </>
@@ -99,42 +85,17 @@ function useSelectionAnchor(selObj, canvasEl, paneRef) {
       raf = requestAnimationFrame(tick);
       const c = canvasEl.current, pane = paneRef.current;
       if (!c || !pane || !selObj.canvas || !c.offsetWidth) return;
-      const r = selObj.getBoundingRect(), cr = c.getBoundingClientRect(), pr = pane.getBoundingClientRect(), k = cr.width / c.offsetWidth;
+      const act = selObj.canvas.getActiveObject() ?? selObj, n = selObj.canvas.getActiveObjects().length || 1; // a multi-selection anchors on its whole box
+      const r = act.getBoundingRect(), cr = c.getBoundingClientRect(), pr = pane.getBoundingClientRect(), k = cr.width / c.offsetWidth;
       const next = { x: Math.round(cr.left - pr.left + (r.left + r.width / 2) * k), top: Math.round(cr.top - pr.top + r.top * k),
-        bottom: Math.round(cr.top - pr.top + (r.top + r.height) * k), w: Math.round(pr.width), h: Math.round(pr.height), k: +k.toFixed(3) };
-      const key = `${next.x},${next.top},${next.bottom},${next.w},${next.h},${next.k}`;
+        bottom: Math.round(cr.top - pr.top + (r.top + r.height) * k), w: Math.round(pr.width), h: Math.round(pr.height), k: +k.toFixed(3), n };
+      const key = `${next.x},${next.top},${next.bottom},${next.w},${next.h},${next.k},${n}`;
       if (key !== last) { last = key; setAt(next); }
     };
     tick();
     return () => cancelAnimationFrame(raf);
   }, [selObj, canvasEl, paneRef]);
   return at;
-}
-
-const kindLabel = o => (o.__artwork ? 'Artwork' : o.__logo ? 'Logo' : o.__shape ? (SHAPE_TYPE_LABEL[o.type] ?? 'Shape') : o.__draw ? 'Drawing' : 'Text');
-
-// Contextual toolbar above the selection (below it when there is no room). The align slot is reserved, intentionally empty.
-function FloatingToolbar({ selObj, at, duplicateSelected, deleteSelected }) {
-  const ref = useRef(null);
-  const reduce = useReducedMotion();
-  const [size, setSize] = useState({ w: 0, h: 0 });
-  useLayoutEffect(() => { const e = ref.current; if (e && (e.offsetWidth !== size.w || e.offsetHeight !== size.h)) setSize({ w: e.offsetWidth, h: e.offsetHeight }); });
-  // Clear of Fabric's rotate handle, which sits 40 canvas px above the object.
-  const gap = 10 + Math.round(40 * at.k);
-  const above = at.top - gap - size.h >= 8;
-  const left = Math.max(8, Math.min(at.w - size.w - 8, at.x - size.w / 2));
-  const top = above ? at.top - gap - size.h : Math.min(at.h - size.h - 8, at.bottom + 12);
-  return (
-    <motion.div ref={ref} className="ds-ftb" role="toolbar" aria-label={`${kindLabel(selObj)} actions`} data-place={above ? 'above' : 'below'}
-      style={{ left, top, visibility: size.w ? 'visible' : 'hidden' }}
-      initial={reduce ? false : { opacity: 0, y: above ? 4 : -4 }} animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: reduce ? 0 : .2, ease: [.4, 0, 1, 1] }}>
-      <span className="ds-ftb-kind">{kindLabel(selObj)}</span>
-      <span className="ds-ftb-slot" data-slot="align" aria-hidden="true"/>
-      <button type="button" onClick={duplicateSelected} aria-label="Duplicate" title="Duplicate (Ctrl+D)"><Copy size={17} aria-hidden="true"/></button>
-      <button type="button" className="ds-ftb-danger" onClick={deleteSelected} aria-label="Delete" title="Delete (Del)"><Trash2 size={17} aria-hidden="true"/></button>
-    </motion.div>
-  );
 }
 
 class ThreeEB extends Component {
@@ -165,7 +126,7 @@ class ThreeEB extends Component {
 
 export default function CanvasViewport({
   cfg, setCfg, canvasWrapRef, canvasEl, aiPulse, face, switchFace, initFailed,
-  selObj, deleteSelected, duplicateSelected, viewMode, has3DLoaded, onLogoFile, zoom, setZoom, snapshot, overlays,
+  selObj, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, garmentRect = null, viewMode, has3DLoaded, onLogoFile, zoom, setZoom, snapshot, overlays,
   blank = null, setViewMode, pieceBar = null, setCompanion = null, showSet = false, setShowSet = null, setSnapOptions = null,
 }) {
   const paneRef = useRef(null);
@@ -192,10 +153,10 @@ export default function CanvasViewport({
   const scale = Math.min(zoom * base, cap); // canvas logical px -> screen px
   const atCap = zoom * base >= cap - 1e-6;
   useEffect(() => { setZoom(1); }, [cfg.garment, cfg.sleeve, cfg.fit, setZoom]); // a new garment starts at the fitted size
-  // Grid + rulers and snapping toggles (per-viewer convenience, remembered in this browser).
+  // Guides (Grid, size, Snap, Rulers, Centre line, Smart guides): per-viewer convenience, remembered in this browser.
   const [guides, setGuides] = useState(readGuides);
   useEffect(() => {
-    setSnapOptions?.({ snap: guides.snap, gridSize: guides.grid ? guides.size : 0, scale });
+    setSnapOptions?.({ snap: guides.snap, gridSize: guides.size, showGrid: guides.grid, centre: guides.centre, smart: guides.smart, scale });
     try { localStorage.setItem('ds_guides', JSON.stringify(guides)); } catch { /* storage blocked */ }
   }, [guides, scale, setSnapOptions]);
   const [dark, setDark] = useState(false);
@@ -204,7 +165,7 @@ export default function CanvasViewport({
   // The wrapper is flex-centred in the pane's content box and transformed by translate(pan) scale(scale) about its centre, so
   // canvas (0, 0) lands at content centre + pan - size * scale / 2. Computed, not measured, so rulers never lag the canvas.
   const show2D = viewMode === '2d' || !show3D;
-  const rulersOn = guides.grid && !!cfg.garment && show2D && !initFailed;
+  const rulersOn = guides.rulers && !!cfg.garment && show2D && !initFailed && !!garmentRect;
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const panRef = useRef(pan);
   const limits = useRef({ x: 0, y: 0 });
@@ -279,10 +240,32 @@ export default function CanvasViewport({
     applyPan(clampPan({ x: d.p.x + e.clientX - d.x, y: d.p.y + e.clientY - d.y }, limits.current));
   };
   const endPan = (e) => { if (drag.current?.id === e.pointerId) drag.current = null; };
+  // Pinch on touch zooms (two fingers anywhere on the stage); the pan limits are re-applied by measure() at the new scale.
+  const fingers = useRef(new Map()), pinch = useRef(null), zoomNow = useRef(zoom);
+  zoomNow.current = zoom;
+  const dist = () => { const [a, b] = [...fingers.current.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
   const onPaneDownCapture = (e) => {
+    if (e.pointerType === 'touch' && cfg.garment && show2D) {
+      fingers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (fingers.current.size === 2) { pinch.current = { d: dist(), z: zoomNow.current }; e.stopPropagation(); e.preventDefault(); return; }
+    }
     if (!canPan) return;
     if (e.button === 1 || (e.button === 0 && e.target === paneRef.current)) startPan(e); // stopPropagation keeps Fabric out of it
   };
+  const onPaneMoveCapture = (e) => {
+    if (!fingers.current.has(e.pointerId)) return;
+    fingers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch.current && fingers.current.size === 2) { e.stopPropagation(); setZoom(clampZoom(pinch.current.z * dist() / (pinch.current.d || 1))); }
+  };
+  const onPaneUpCapture = (e) => { fingers.current.delete(e.pointerId); if (fingers.current.size < 2) pinch.current = null; };
+  // Fit: back to the fitted size, centred (Ctrl+0 or the zoom readout).
+  const fitView = useCallback(() => { setZoom(1); applyPan({ x: 0, y: 0 }); }, [setZoom, applyPan]);
+  useEffect(() => {
+    if (!cfg.garment || !show2D) return undefined;
+    const key = (e) => { if ((e.ctrlKey || e.metaKey) && (e.key === '0' || e.code === 'Digit0' || e.code === 'Numpad0')) { e.preventDefault(); fitView(); } };
+    window.addEventListener('keydown', key);
+    return () => window.removeEventListener('keydown', key);
+  }, [cfg.garment, show2D, fitView]);
 
   // Cross-fade on the artboard when the face or the garment changes. The <canvas> itself never remounts (Fabric owns it),
   // so this is an opacity dip on the existing wrapper (CSS, --cx-dur-2) while the new face or garment draws.
@@ -310,6 +293,14 @@ export default function CanvasViewport({
     </button>
   );
 
+  // Stage grid (CSS, under the artboard, over the stage background), aligned to canvas 0 and the same spacing as the grid drawn on the
+  // garment by the canvas; it fades out at low zoom. Neutral ink, minor lines lighter than every 5th.
+  const gridStyle = guides.grid && cfg.garment && show2D && view ? (() => {
+    const minor = guides.size * view.s, x = (rulersOn ? RULER_W : 0) + view.ox, y = (rulersOn ? RULER_H : 0) + view.oy;
+    return { '--ds-gm': `${minor}px`, '--ds-gM': `${minor * GRID_MAJOR_EVERY}px`, '--ds-gx': `${x}px`, '--ds-gy': `${y}px`,
+      '--ds-ga': GRID_ALPHA.minor * gridFade(minor), '--ds-gA': GRID_ALPHA.major * Math.max(gridFade(minor), 0.6) };
+  })() : null;
+
   // 3D honesty notes, said in the top lane (never over the model).
   const notes3D = viewMode === '3d' ? [
     !webglOk && { id: 'nogl', text: '3D preview is not available on this device. Showing the 2D design.' },
@@ -332,29 +323,11 @@ export default function CanvasViewport({
           is fitted into the area between them, so nothing on the stage overlays it (only the selection toolbar, inside that area). */}
       {cfg.garment && (
         <div className="ds-lane ds-lane-top">
-          {show2D && !initFailed && (
-            <div className="ds-guides" role="group" aria-label="Guides">
-              <button type="button" aria-pressed={guides.grid} aria-label="Grid and rulers" title="Show grid and rulers (canvas units)" onClick={() => setGuides(g => ({ ...g, grid: !g.grid }))}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M3 3h18v18H3zM9 3v18M15 3v18M3 9h18M3 15h18"/></svg>
-                <span>Grid</span>
-              </button>
-              {guides.grid && (
-                <select aria-label="Grid spacing (canvas px)" title="Grid spacing, in canvas px" value={guides.size}
-                  onChange={e => setGuides(g => ({ ...g, size: Number(e.target.value) }))}>
-                  {GRID_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
-              )}
-              {canPan && (
-                <button type="button" aria-pressed={hand} aria-label="Pan" title="Pan the zoomed design (or scroll, hold Space and drag, or drag the empty stage)" onClick={() => setHand(v => !v)}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.9-5.9-2.3l-3.6-3.6a2 2 0 0 1 2.8-2.8L7 15"/></svg>
-                  <span>Pan</span>
-                </button>
-              )}
-              <button type="button" aria-pressed={guides.snap} aria-label="Snap" title="Snap to the garment, other elements and the grid while dragging" onClick={() => setGuides(g => ({ ...g, snap: !g.snap }))}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M6 3v7a6 6 0 0 0 12 0V3M6 7h4M14 7h4"/></svg>
-                <span>Snap</span>
-              </button>
-            </div>
+          {show2D && !initFailed && <GuidesMenu guides={guides} setGuides={setGuides}/>}
+          {show2D && canPan && (
+            <button type="button" className="ds-pan-btn" aria-pressed={hand} aria-label="Pan" title="Pan the zoomed design (or scroll, hold Space and drag, or drag the empty stage)" onClick={() => setHand(v => !v)}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.9-5.9-2.3l-3.6-3.6a2 2 0 0 1 2.8-2.8L7 15"/></svg>
+            </button>
           )}
           {/* The garment's name, once, on the stage (2D and 3D) */}
           <AnimatePresence mode="wait" initial={false}>
@@ -375,12 +348,13 @@ export default function CanvasViewport({
         </div>
       )}
 
-      <div className="ds-stage-fit">
+      <div className="ds-stage-fit" data-grid={gridStyle ? '1' : undefined} style={gridStyle ?? undefined}>
         {/* Both panes stay mounted and only toggle visibility, so Fabric and WebGL keep their state; show2D also covers
             viewMode==='3d' before the 3D pane exists, so the workspace is never blank. Rulers are pinned outside the scaled wrapper. */}
-        {rulersOn && view && <PinnedRulers view={view} w={canvasSize.w} h={canvasSize.h}/>}
-        <div ref={paneRef} className="ds-pane" data-pan={canPan ? '1' : undefined} data-sel={selObj ? '1' : undefined}
-          onPointerDownCapture={onPaneDownCapture} onPointerMove={movePan} onPointerUp={endPan} onPointerCancel={endPan} style={{
+        {rulersOn && view && <PinnedRulers view={view} g={garmentRect}/>}
+        <div ref={paneRef} className="ds-pane" data-pan={canPan ? '1' : undefined} data-sel={selObj ? '1' : undefined} data-garment={cfg.garment && show2D ? '1' : undefined}
+          onPointerDownCapture={onPaneDownCapture} onPointerMoveCapture={onPaneMoveCapture} onPointerUpCapture={onPaneUpCapture} onPointerCancelCapture={onPaneUpCapture}
+          onPointerMove={movePan} onPointerUp={endPan} onPointerCancel={endPan} style={{
             display:'flex', alignItems:'center', justifyContent:'center',
             visibility: show2D ? 'visible' : 'hidden',
             pointerEvents: show2D ? 'auto' : 'none',
@@ -408,7 +382,6 @@ export default function CanvasViewport({
             ) : (
               <>
                 <canvas ref={canvasEl} style={{ display:'block' }}/>
-                {guides.grid && cfg.garment && canvasSize.w > 0 && <Grid w={canvasSize.w} h={canvasSize.h} size={guides.size} scale={scale}/>}
                 {aiPulse && <div className="ai-pulse"/>}
                 {cfg.garment && <div className="ds-stage-floor" aria-hidden="true"/>}
               </>
@@ -419,7 +392,8 @@ export default function CanvasViewport({
           {!cfg.garment && !initFailed && blank}
 
           <AnimatePresence>
-            {selObj && at && show2D && <FloatingToolbar key="ftb" selObj={selObj} at={at} duplicateSelected={duplicateSelected} deleteSelected={deleteSelected}/>}
+            {selObj && at && show2D && <FloatingToolbar key="ftb" selObj={selObj} at={at} duplicateSelected={duplicateSelected} deleteSelected={deleteSelected}
+              alignSelected={alignSelected} arrangeSelected={arrangeSelected}/>}
           </AnimatePresence>
         </div>
 
@@ -457,7 +431,8 @@ export default function CanvasViewport({
             {show2D && (<>
               <div className="ds-zoom" role="group" aria-label="Zoom">
                 <button type="button" aria-label="Zoom out" onClick={()=>setZoom(z=>Math.max(ZOOM_MIN, +(z-0.15).toFixed(2)))}><Minus size={16} aria-hidden="true"/></button>
-                <button type="button" aria-label="Reset zoom" title={photo ? 'Reset zoom (a photo base never goes above its full resolution)' : 'Reset zoom'} onClick={()=>setZoom(1)}>{Math.round(scale*100)}%</button>
+                <output className="ds-zoom-val" aria-label="Zoom level" title={photo ? 'Zoom level (a photo base never goes above its full resolution)' : 'Zoom level'}>{Math.round(scale*100)}%</output>
+                <button type="button" aria-label="Fit" title="Fit to the stage (Ctrl+0)" onClick={fitView}><Maximize size={15} aria-hidden="true"/></button>
                 <button type="button" aria-label="Zoom in" disabled={atCap} title={atCap ? 'Full photo resolution: zooming further would blur it' : undefined} onClick={()=>setZoom(z=>Math.min(ZOOM_MAX, +(z+0.15).toFixed(2)))}><Plus size={16} aria-hidden="true"/></button>
               </div>
               <div className="ds-face" role="group" aria-label="Garment side">

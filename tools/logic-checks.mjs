@@ -425,7 +425,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const cv = src('../src/pages/client/design-studio/CanvasViewport.jsx'), css = src('../src/pages/client/design-studio/DesignStudioStyles.jsx');
   // Lane contract: chip, set bar, guides and 3D notes are in the top lane; zoom, Front/Back and the stage light in the bottom lane; the panes sit in the fit area between.
   const at = k => cv.indexOf(k), top = at('className="ds-lane ds-lane-top"'), fit = at('className="ds-stage-fit"'), bot = at('className="ds-lane ds-lane-bottom"');
-  const inTop = ['className="ds-guides"', 'className="ds-ctx-chip"', 'className="ds-set-wrap"', 'className="ds-stage-note"', 'aria-label="3D preview scope"'].every(k => at(k) > top && at(k) < fit);
+  const inTop = ['<GuidesMenu ', 'className="ds-ctx-chip"', 'className="ds-set-wrap"', 'className="ds-stage-note"', 'aria-label="3D preview scope"'].every(k => at(k) > top && at(k) < fit);
   const inFit = [...cv.matchAll(/className="ds-pane"/g)].every(m => m.index > fit && m.index < bot);
   const inBot = ['className="ds-bottombar"', 'className="ds-stage-hint"', 'aria-label="Zoom"'].every(k => at(k) > bot) && at('{stageBtn}') > bot;
   const rule = sel => (css.match(new RegExp(sel.replace(/[.[\]()]/g, '\\$&') + '\\{([^}]*)\\}')) ?? [])[1] ?? '';
@@ -470,6 +470,68 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const key = [2.5, 3.5, 4], irr = Lt.fill + Lt.key * key[2] / Math.hypot(...key);
   t('3D lighting is calibrated: linear tone mapping, front panel irradiance within 5% of 1x, cloth sheen follows the zone colour and specular stays low',
     /toneMapping:THREE\.LinearToneMapping/.test(s3) && !/ACESFilmic/.test(s3) && Math.abs(irr - 1) < 0.05 && /material\.sheenColor \*= diffuseColor\.rgb/.test(rs) && /specularIntensity: 0\.2/.test(sg));
+}
+// Canvas, grid, guides, alignment, navigation and eraser.
+{
+  const src = q => fsx.readFileSync(urlx.fileURLToPath(new URL(q, import.meta.url)), 'utf8');
+  const CG = await L('/src/pages/client/design-studio/canvasGuides.js');
+  const SN2 = await L('/src/pages/client/design-studio/snapGuides.js');
+  const cv = src('../src/pages/client/design-studio/CanvasViewport.jsx'), css = src('../src/pages/client/design-studio/DesignStudioStyles.jsx');
+  const layers = src('../src/pages/client/design-studio/canvasLayers.js'), hook = src('../src/pages/client/design-studio/useGarmentCanvas.js'), gm = src('../src/pages/client/design-studio/GuidesMenu.jsx');
+  // 1. One Guides button and popover; defaults off on phones; the old prefs shape carries over.
+  const ph = CG.guideDefaults(true), dk = CG.guideDefaults(false), old = CG.readGuidePrefs({ grid: true, snap: false, size: 40 }, false);
+  t('guides: one popover with Grid, grid size, Snap, Rulers, Centre line, Smart guides; visual guides off by default on phones; old prefs carried over',
+    ['Grid', 'Snap', 'Rulers', 'Centre line', 'Smart guides'].every(l => gm.includes(`'${l}'`)) && /aria-label="Grid size"/.test(gm) && /<GuidesMenu /.test(cv) && !/aria-label="Grid and rulers"/.test(cv)
+    && !ph.grid && !ph.rulers && !ph.centre && !ph.smart && dk.centre && dk.smart && !dk.grid && old.grid && old.rulers && !old.snap && old.size === 40 && CG.readGuidePrefs({ size: 33 }).size === 20);
+  // 2. Grid: neutral ink, minor ~10% / every 5th ~18%, fades at low zoom, over the garment only between base and design, never in exports.
+  t('grid: neutral ink (no teal), minor 10% and every 5th line 18%, fades out below 12 screen px, stage grid follows the artboard',
+    CG.GRID_ALPHA.minor === 0.1 && CG.GRID_ALPHA.major === 0.18 && CG.GRID_MAJOR_EVERY === 5 && CG.gridFade(12) === 1 && CG.gridFade(4) === 0 && CG.gridFade(8) === 0.5
+    && /\.ds-stage-fit\[data-grid\]\{background-image:linear-gradient\(to right,rgb\(var\(--ds-grid-ink\)/.test(css) && /--ds-grid-ink:var\(--cx-shade\)/.test(css) && !/ds-grid line\{stroke:rgba\(2,128,144/.test(css)
+    && /'--ds-gx': `\$\{x\}px`/.test(cv) && !/<Grid /.test(cv));
+  t('grid on the garment is painted between the garment base and the design layers, on the live canvas only (exports render elsewhere), two-tone for dark and light cloth',
+    /if \(ctx !== c\.contextContainer/.test(layers) && /globalCompositeOperation = 'source-atop'/.test(layers) && /render\(ctx, split < 0 \? objects : objects\.slice\(0, split\)\);\s*if \(o\.showGrid && o\.gridSize > 0\) drawGrid/.test(layers)
+    && /rgba\('#ffffff', a\)/.test(layers) && /installStageLayers\(fc\.current, snapOpts\)/.test(hook));
+  // 3-4. Centre line and smart guides: centre always a snap line; edges and other elements only with smart guides.
+  const box = { left: 60, top: 40, width: 200, height: 300 }, oth = [{ left: 100, top: 100, width: 40, height: 20 }];
+  const centreOnly = SN2.snapTargets({ width: 320, height: 400, garment: box, garmentEdges: false }), full = SN2.snapTargets({ width: 320, height: 400, garment: box, others: oth });
+  t('centre line: dashed garment-centre line drawn on the live canvas, and the garment centre is a snap line even without smart guides; smart guides add edges and other elements',
+    centreOnly.v.some(l => l.at === 160 && l.kind === 'garment') && !centreOnly.v.some(l => l.at === 60) && full.v.some(l => l.at === 60) && full.v.some(l => l.kind === 'object' && l.at === 120)
+    && /setLineDash\(\[6 \* px, 4 \* px\]\)/.test(layers) && /garmentEdges: smart/.test(hook) && /const others = smart \?/.test(hook));
+  // 5. Placement targets: only the garment's existing presets, per face.
+  const front = CG.placementTargets('Polo Shirt', 'Short', 'unisex', 'front', 320, 380).map(x => x.id), back = CG.placementTargets('Polo Shirt', 'Short', 'unisex', 'back', 320, 380).map(x => x.id);
+  const scrub = CG.placementTargets('Scrub Top', 'Short', 'female', 'front', 320, 380).map(x => x.id);
+  t('placement ghosts show only the existing logo presets for the garment and face (no back centre on the front, no arm targets without sleeves)',
+    front.join() === 'left_chest,center_chest,left_arm,right_arm' && back.join() === 'back_center,left_arm,right_arm' && !scrub.some(id => id.endsWith('_arm')) && CG.placementTargets(null, null, null, 'front', 1, 1).length === 0
+    && /dragGuides\.current\.ghosts \?\?= placementTargets\(/.test(hook) && /\(obj\.__logo && !obj\.__artwork\) \|\| obj\.__text/.test(hook));
+  // 6. Rulers: relative units only.
+  const ticks = CG.relativeTicks(10, 1.5, 600, 40, 200);
+  t('rulers: 0-100 % of the garment only (whole-number labels, never units or sizes), horizontal 11 px labels, ink-2 on paper',
+    ticks[0].v === 0 && ticks[ticks.length - 1].v === 100 && ticks.every(x => Number.isInteger(x.v) && x.v >= 0 && x.v <= 100) && Math.abs(ticks[0].at - (10 + 40 * 1.5)) < 1e-9 && Math.abs(ticks[ticks.length - 1].at - (10 + 240 * 1.5)) < 1e-9
+    && /fontSize=\{11\}/.test(cv) && !/rotate\(-90/.test(cv) && !/\b(cm|mm|inch|inches)\b/i.test(cv + layers) && /\.ds-ruler text\{fill:var\(--cx-ink-2\)/.test(css) && /relativeTicks\(/.test(cv) && !/pinnedTicks|rulerSteps/.test(cv)
+    && CG.readoutPct({ left: 100, top: 50, width: 40, height: 20 }, box, 'move') === 'X 30%  Y 7%' && CG.readoutPct({ left: 0, top: 0, width: 50, height: 30 }, box, 'scale') === '25% × 10%');
+  // 7. Alignment and distribution.
+  const bs = [{ left: 10, top: 10, width: 20, height: 10 }, { left: 50, top: 40, width: 40, height: 20 }, { left: 30, top: 100, width: 10, height: 10 }];
+  const L0 = CG.alignDeltas(bs, 'left'), C0 = CG.alignDeltas(bs, 'hcenter'), D0 = CG.distributeDeltas(bs, 'v');
+  const tops = bs.map((b, i) => ({ t: b.top + D0[i].dy, h: b.height })).sort((a, b) => a.t - b.t);
+  t('align left/centre/right/top/middle/bottom to the selection bounds; distribute 3+ with equal gaps (ends fixed); fewer elements do nothing',
+    bs.every((b, i) => b.left + L0[i].dx === 10) && bs.every((b, i) => b.left + b.width / 2 + C0[i].dx === 50) && Math.abs((tops[1].t - tops[0].t - tops[0].h) - (tops[2].t - tops[1].t - tops[1].h)) < 1e-9
+    && tops[0].t === 10 && tops[2].t === 100 && CG.distributeDeltas(bs.slice(0, 2), 'h').every(d => !d.dx && !d.dy) && CG.alignDeltas(bs.slice(0, 1), 'left').every(d => !d.dx));
+  const ftb = src('../src/pages/client/design-studio/FloatingToolbar.jsx');
+  t('alignment lives in the toolbar slot: align for 2+, distribute for 3+, centre-on-garment for one; one undo step each; arrow keys move between buttons; 44 px on touch',
+    /data-slot="align"/.test(ftb) && /n >= 3 && DISTRIBUTE/.test(ftb) && /alignSelected\('hcenter'\)/.test(ftb) && /function roving/.test(ftb)
+    && (hook.match(/const arrangeSelected[\s\S]*?\}, \[pushHistory, bumpLayers\]\);/)?.[0].match(/pushHistory\(\)/g) ?? []).length === 1 && /\.ds-ftb button,[^{]*\{min-width:44px;min-height:44px;\}/.test(css));
+  t('a multi-selection is saved, autosaved and put in history in canvas coordinates (members of an active selection are decomposed), never relative to the selection',
+    (hook.match(/plainObject\(o, OVERLAY_PROPS\)/g) ?? []).length === 3 && !/o\.toObject\(OVERLAY_PROPS\)/.test(hook) && /export function plainObject/.test(layers) && /translateToGivenOrigin/.test(layers));
+  // 8. Navigation: Fit (Ctrl+0), Space-drag pan, pinch zoom on touch, existing pan limits kept.
+  t('navigation: Fit button and Ctrl+0, Space-drag pan kept, two-finger pinch zoom clamped to the zoom range, pan limits re-applied; a zone opens its colours on a tap, not on the first finger of a pinch',
+    /aria-label="Fit"/.test(cv) && /e\.key === '0'/.test(cv) && /e\.code === 'Space'/.test(cv) && /setZoom\(clampZoom\(pinch\.current\.z \* dist\(\)/.test(cv) && /limits\.current = panLimits\(/.test(cv) && /clampPan\(/.test(cv)
+    && /\.ds-pane\[data-garment\]\{touch-action:none;\}/.test(css) && /fc\.current\.on\('mouse:up', \(opt\) => \{\s*const t = tap; tap = null;/.test(hook));
+  // 9. Eraser: customer strokes and uploaded art only, one undo step, holes move with the layer.
+  const pts = CG.samplePath([['M', 0, 0], ['L', 10, 0], ['Q', 15, 0, 20, 0]], 2);
+  t('eraser cuts only free drawings and uploaded art (never the garment, text, shapes, locked or hidden layers), samples the stroke without gaps, one undo step',
+    CG.erasable({ __draw: true }) && CG.erasable({ __logo: true }) && CG.erasable({ __artwork: true, __logo: true }) && !CG.erasable({ __text: true }) && !CG.erasable({ __shape: true }) && !CG.erasable({ __garmentBase: true, __draw: true })
+    && !CG.erasable({ __draw: true, __locked: true }) && !CG.erasable({ __draw: true, visible: false }) && pts.length === 11 && pts.every((p, i) => !i || Math.hypot(p[0] - pts[i - 1][0], p[1] - pts[i - 1][1]) <= 2 + 1e-9)
+    && /inverted: true/.test(layers) && /invertTransform\(o\.calcTransformMatrix\(\)\)/.test(layers) && /'__erase'/.test(hook) && /if \(n\) \{ pushHistory\(\); bumpLayers\(\); \}/.test(hook) && /c\.remove\(path\);/.test(hook));
 }
 console.log(out.join('\n')); const f = out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);

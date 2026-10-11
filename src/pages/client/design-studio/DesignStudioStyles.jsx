@@ -110,6 +110,7 @@ export default function DesignStudioStyles() {
       /* Stage lanes: chips, set bar, guides and 3D notes on top; zoom, Front/Back and the stage light below; the garment fits the area between */
       .ds-lane{position:relative;z-index:var(--cx-z-stage);flex:none;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px 8px;padding:10px 12px 0;min-width:0;}
       .ds-lane-bottom{padding:0 12px 12px;}
+      .ds-lane-top{z-index:calc(var(--cx-z-stage) + 1);} /* the Guides popover opens over the fit area */
       .ds-stage-fit{position:relative;flex:1;min-height:0;}
       .ds-pane{position:absolute;inset:0;}
       .ds-bottombar{max-width:100%;
@@ -124,10 +125,10 @@ export default function DesignStudioStyles() {
       .ds-face button:disabled{color:var(--cx-ink-3);opacity:.6;cursor:not-allowed;}
       .ds-face-pill{position:absolute;inset:0;z-index:-1;border-radius:var(--cx-r-md);background:var(--cx-thread-tint);box-shadow:inset 0 0 0 1.5px var(--cx-thread);}
       /* Floating contextual toolbar, anchored above the selection */
-      .ds-ftb{position:absolute;z-index:var(--cx-z-stage);display:flex;align-items:center;gap:2px;padding:4px 4px 4px 12px;white-space:nowrap;
+      .ds-ftb{position:absolute;z-index:var(--cx-z-stage);display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:2px;max-width:calc(100% - 16px);padding:4px 4px 4px 12px;white-space:nowrap;
         border:1px solid var(--cx-line);border-radius:var(--cx-r-lg);background:var(--cx-card);box-shadow:var(--cx-elev-2);}
       .ds-ftb-kind{margin-right:6px;font-size:12px;font-weight:700;color:var(--cx-ink-2);}
-      .ds-ftb-slot{display:contents;} /* reserved for alignment tools; intentionally empty */
+      .ds-ftb-slot{display:contents;} /* alignment: centre one element on the garment, align 2+, distribute 3+ */
       .ds-ftb button{width:40px;height:40px;display:grid;place-items:center;border:0;border-radius:var(--cx-r-md);background:transparent;color:var(--cx-ink);cursor:pointer;transition:background var(--cx-dur-1);}
       .ds-ftb button:hover{background:var(--cx-hover);}
       .ds-ftb .ds-ftb-danger{color:var(--danger-text);}
@@ -460,31 +461,44 @@ export default function DesignStudioStyles() {
       .ds-tool-btn{position:relative;isolation:isolate;}
       .ds-tool-btn[aria-pressed="true"],.ds-tool-btn[aria-expanded="true"]{background:transparent;border-color:transparent;}
       .ds-rail-pill{position:absolute;inset:0;z-index:-1;border-radius:var(--r-md);background:var(--teal-50);border:1px solid var(--teal);box-shadow:var(--shadow-xs);}
-      .ds-guides{display:flex;gap:2px;padding:2px;border-radius:var(--r-md);background:var(--bg-card,#fff);border:1px solid var(--border);box-shadow:var(--shadow-sm);}
-      .ds-guides button{display:flex;align-items:center;gap:5px;min-height:34px;padding:0 10px;border:0;border-radius:calc(var(--r-md) - 2px);background:transparent;color:var(--text-subtle);font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;}
-      .ds-guides button[aria-pressed=true]{background:rgba(2,128,144,.12);color:var(--teal,#028090);}
-      .ds-grid{position:absolute;left:0;top:0;pointer-events:none;overflow:visible;}
-      .ds-guides select{min-height:34px;padding:0 4px;border:0;border-radius:calc(var(--r-md) - 3px);background:rgba(2,128,144,.08);color:var(--teal,#028090);font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;}
-      .ds-grid line{stroke:rgba(2,128,144,.18);}
-      .ds-grid line[data-major]{stroke:rgba(2,128,144,.4);}
-      /* Rulers pinned to the stage's top and left edges; the pane moves out from under them so no control covers a ruler. */
-      .ds-cv[data-rulers] .ds-pane{top:16px;left:16px;}
-      .ds-ruler,.ds-ruler-corner{position:absolute;z-index:3;pointer-events:none;background:rgba(241,245,249,.97);}
+      /* Guides: one button in the top lane; its popover holds every guide toggle */
+      .ds-guides{position:relative;}
+      .ds-guides-btn,.ds-pan-btn{min-height:40px;display:inline-flex;align-items:center;gap:6px;padding:0 12px;border:1px solid var(--cx-line);border-radius:var(--cx-r-md);
+        background:var(--cx-card);color:var(--cx-ink);font:700 12.5px var(--cx-sans);cursor:pointer;box-shadow:var(--cx-elev-0);}
+      .ds-pan-btn{padding:0 10px;}
+      .ds-guides-btn[aria-expanded=true],.ds-pan-btn[aria-pressed=true]{border-color:var(--cx-thread);color:var(--cx-thread-ink);background:var(--cx-thread-tint);}
+      .ds-guides-n{min-width:18px;height:18px;display:grid;place-items:center;padding:0 5px;border-radius:var(--cx-r-pill);background:var(--cx-thread);color:var(--cx-on-thread);font-size:11px;}
+      .ds-guides-pop{position:absolute;top:calc(100% + 6px);left:0;z-index:var(--cx-z-popover);width:min(300px,calc(100vw - 24px));padding:6px;display:flex;flex-direction:column;gap:2px;
+        border:1px solid var(--cx-line);border-radius:var(--cx-r-lg);background:var(--cx-card);box-shadow:var(--cx-elev-2);text-align:left;}
+      .ds-guides-row{display:flex;align-items:center;gap:8px;border-radius:var(--cx-r-md);}
+      .ds-guides-row:hover{background:var(--cx-hover);}
+      .ds-guides-row label{flex:1;min-height:44px;display:flex;align-items:center;gap:10px;padding:6px 8px;cursor:pointer;}
+      .ds-guides-row input{width:18px;height:18px;flex-shrink:0;accent-color:var(--cx-thread);}
+      .ds-guides-row b{display:block;font-size:13px;color:var(--cx-ink);}
+      .ds-guides-row small{display:block;font-size:11.5px;line-height:1.35;color:var(--cx-ink-2);}
+      .ds-guides-row select{min-height:36px;margin-right:6px;padding:0 6px;border:1px solid var(--cx-line-strong);border-radius:var(--cx-r-md);background:var(--cx-card);color:var(--cx-ink);font:600 12px var(--cx-sans);}
+      .ds-guides-row select:disabled{opacity:.5;}
+      /* Stage grid: neutral ink under the artboard, aligned to it and zoomed with it; minor lines lighter than every 5th */
+      .ds-cv{--ds-grid-ink:var(--cx-shade);}
+      .ds-cv[data-stage=dark]{--ds-grid-ink:255 255 255;}
+      .ds-stage-fit[data-grid]{background-image:linear-gradient(to right,rgb(var(--ds-grid-ink) / var(--ds-gA)) 1px,transparent 1px),linear-gradient(to bottom,rgb(var(--ds-grid-ink) / var(--ds-gA)) 1px,transparent 1px),
+        linear-gradient(to right,rgb(var(--ds-grid-ink) / var(--ds-ga)) 1px,transparent 1px),linear-gradient(to bottom,rgb(var(--ds-grid-ink) / var(--ds-ga)) 1px,transparent 1px);
+        background-size:var(--ds-gM) var(--ds-gM),var(--ds-gM) var(--ds-gM),var(--ds-gm) var(--ds-gm),var(--ds-gm) var(--ds-gm);background-position:var(--ds-gx) var(--ds-gy);}
+      .ds-pane[data-garment]{touch-action:none;} /* pinch zoom and drags belong to the Studio, not the page */
+      .ds-zoom-val{min-width:52px;display:inline-grid;place-items:center;font:700 12.5px var(--cx-sans);font-variant-numeric:tabular-nums;color:var(--cx-ink);}
+      /* Rulers: % of the garment only (0-100), horizontal labels at 11px, ink on card (>= 4.5:1) on light and dark stages */
+      .ds-cv[data-rulers] .ds-pane{top:18px;left:32px;}
+      .ds-ruler,.ds-ruler-corner{position:absolute;z-index:3;pointer-events:none;background:var(--cx-paper-2);}
       .ds-ruler{overflow:hidden;}
-      .ds-ruler-x{left:16px;top:0;box-shadow:inset 0 -1px 0 rgba(15,23,42,.14);}
-      .ds-ruler-y{left:0;top:16px;box-shadow:inset -1px 0 0 rgba(15,23,42,.14);}
-      .ds-ruler-corner{left:0;top:0;width:16px;height:16px;box-shadow:inset -1px -1px 0 rgba(15,23,42,.14);}
-      .ds-ruler-art{fill:#fff;}
-      .ds-ruler line{stroke:rgba(15,23,42,.5);stroke-width:1;shape-rendering:crispEdges;}
-      .ds-ruler text{fill:rgba(15,23,42,.75);font-family:inherit;font-variant-numeric:tabular-nums;}
-      .ds-cv[data-stage="dark"] .ds-ruler,.ds-cv[data-stage="dark"] .ds-ruler-corner{background:rgba(15,23,42,.92);}
-      .ds-cv[data-stage="dark"] .ds-ruler-art{fill:rgba(255,255,255,.08);}
-      .ds-cv[data-stage="dark"] .ds-ruler line{stroke:rgba(255,255,255,.55);}
-      .ds-cv[data-stage="dark"] .ds-ruler text{fill:rgba(255,255,255,.85);}
+      .ds-ruler-x{left:32px;top:0;box-shadow:inset 0 -1px 0 var(--cx-line-strong);}
+      .ds-ruler-y{left:0;top:18px;box-shadow:inset -1px 0 0 var(--cx-line-strong);}
+      .ds-ruler-corner{left:0;top:0;width:32px;height:18px;display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--cx-ink-2);box-shadow:inset -1px -1px 0 var(--cx-line-strong);}
+      .ds-ruler-art{fill:var(--cx-card);}
+      .ds-ruler line{stroke:var(--cx-ink-3);stroke-width:1;shape-rendering:crispEdges;}
+      .ds-ruler text{fill:var(--cx-ink-2);font-family:inherit;font-weight:600;font-variant-numeric:tabular-nums;}
       .ds-pane[data-pan]{cursor:grab;touch-action:none;}
       .ds-pan-layer{position:absolute;inset:0;z-index:1;cursor:grab;touch-action:none;}
       .ds-pan-layer:active,.ds-pane[data-pan]:active{cursor:grabbing;}
-      @media (max-width:1100px){ .ds-guides button span{display:none;} .ds-guides button{padding:0 9px;} } /* icon-only so the centred selection bar never covers them */
       .ds-stage-btn{position:relative;z-index:2;width:40px;height:40px;display:grid;place-items:center;border-radius:var(--r-md);
         border:1px solid var(--border);background:var(--bg-card);color:var(--ink);cursor:pointer;box-shadow:var(--shadow-sm);transition:transform .12s,background .16s;}
       .ds-stage-btn:active{transform:scale(.94);}
@@ -567,8 +581,6 @@ export default function DesignStudioStyles() {
         .ds-assets-body{padding:12px 14px 16px;}
         .ds-hints{display:none;}
         .ds-toast{bottom:calc(var(--ds-pad-b) + 16px);}
-        .ds-guides button span{display:none;}
-        .ds-guides select{width:40px;padding:0 2px;font-size:11px;}
         .ds-lane{padding:8px 8px 0;}
         .ds-lane-bottom{padding:0 8px 8px;}
         .ds-wide-only{display:none;}
@@ -587,7 +599,7 @@ export default function DesignStudioStyles() {
         .ai-pulse{animation:none;}
       }
       @media (pointer:coarse){
-        .ds-zoom button,.ds-face button,.ds-touch,.ds-ftb button,.ds-bar-btn,.ds-bar-view button,.ds-stage-btn{min-width:44px;min-height:44px;}
+        .ds-zoom button,.ds-face button,.ds-touch,.ds-ftb button,.ds-bar-btn,.ds-bar-view button,.ds-stage-btn,.ds-guides-btn,.ds-pan-btn{min-width:44px;min-height:44px;}
         .ds input[type="range"]{min-height:44px;}
       }
 
