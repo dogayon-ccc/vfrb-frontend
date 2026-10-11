@@ -3,6 +3,25 @@
 // PDF: one A4 landscape spec sheet (JPEG on white + the design's real settings), written without a PDF library.
 
 export const EXPORT_FACE_HEIGHT = 1600;
+
+// The drafts API accepts a preview of at most 300 000 characters (OrderDraftController: preview_dataurl max:300000) and rejects the
+// whole draft (422) when it is longer. Photo-base garments at 2x often exceed it, so the preview is scaled down until it fits;
+// if it still cannot fit, the draft is saved without a preview (the design itself is never dropped).
+export const DRAFT_PREVIEW_MAX = 300000;
+export async function fitDraftPreview(url, max = DRAFT_PREVIEW_MAX) {
+  if (!url || url.length <= max) return url ?? null;
+  try {
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+    for (let k = 0.75; k >= 0.2; k -= 0.15) {
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(img.naturalWidth * k)); c.height = Math.max(1, Math.round(img.naturalHeight * k));
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      const out = c.toDataURL('image/png');
+      if (out.length <= max) return out;
+    }
+  } catch { /* decode failed: fall through */ }
+  return null;
+}
 const GAP = 120;
 const LABEL_H = 90;
 

@@ -1,7 +1,7 @@
 // src/pages/client/OrderWizard.jsx
 // 4-step order wizard: Design → Configure → Sizing → Review.
 // On submit, hands off to MaterialsReveal instead of navigating directly.
-import { clearStudioHandoff } from '../../utils/studioHandoff';
+import { clearStudioHandoff, draftFingerprint } from '../../utils/studioHandoff';
 import { checkUpload } from '../../utils/fileCheck';
 import { useState, useEffect, useRef } from 'react';
 import DesignPreview from '../../components/DesignPreview';
@@ -1176,6 +1176,9 @@ export default function OrderWizard() {
   const [setQueue, setSetQueue] = useState(null);
   const [setIdx,   setSetIdx]   = useState(0);
   const setOrderIds = useRef([]);
+  // Fingerprint of the design handed in from the Studio or My Designs: after the order is placed,
+  // the account draft is retired only if it is still this same design.
+  const handoffFp = useRef(null);
   const moreInSet = !!setQueue && setIdx < setQueue.length - 1;
 
   // Pre-fill from one design snapshot: a single design, or one piece of a uniform set.
@@ -1223,6 +1226,7 @@ export default function OrderWizard() {
       const raw = sessionStorage.getItem('studio_config');
       if (!raw) return;
       const parsed = JSON.parse(raw);
+      handoffFp.current = draftFingerprint(parsed);
       const q = orderQueue(parsed);
       if (q) setSetQueue(q);
       applyStudio(q ? q[0] : parsed);
@@ -1355,8 +1359,12 @@ export default function OrderWizard() {
         const next = setQueue[setIdx + 1];
         try { sessionStorage.setItem('studio_config', JSON.stringify({ ...next, uniformSet: { ...next.uniformSet, linkedOrderIds: setOrderIds.current } })); } catch { /* quota */ }
       } else {
-        // Ordered from My Designs' draft: the draft is now an order, so retire it (Studio's own "Order this" does the same).
-        if (sessionStorage.getItem('studio_from_draft')) axios.delete('/api/customer/drafts/latest').catch(() => {});
+        // The design now lives on the order (studio_config + preview), so retire the account draft, but only when it
+        // still holds this design: a draft changed elsewhere since the handoff is a different design and stays.
+        const fp = handoffFp.current;
+        if (fp) axios.get('/api/customer/drafts/latest')
+          .then(d => { if (draftFingerprint(d.data?.draft?.studio_config) === fp) return axios.delete('/api/customer/drafts/latest'); })
+          .catch(() => {});
         clearStudioHandoff();
       }
 

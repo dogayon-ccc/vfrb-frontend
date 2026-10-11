@@ -1,7 +1,7 @@
 import { assetFor, assetById } from './garmentAssets';
 import { glbSlotFor, slotLive } from './glbSlots';
 import { applyGarment, resolveSleeve, FAMILY_BY_NAME } from './garmentCatalog';
-import { modelFromPhoto } from './garmentCapabilities';
+import { modelFromPhoto, has3DModel, NO_FAMILY_3D } from './garmentCapabilities';
 // Real VFRB inspiration gallery: photos only. Editable garment families live in garmentCatalog.js and are never listed here as designs. `glb` stays null until a garment-only GLB passes
 // docs/engineering/GLB-CAPABILITY-MATRIX.md; until then an entry is a photo reference and is never presented as editable 3D.
 // category/gender/sleeve are read from the photo, not confirmed by the client: verify before release.
@@ -76,7 +76,11 @@ const REF_3D = new Set([
 // mannequin or hanger into an image-to-3D result, flat-lay photos do not.
 const D = (id, name, category, gender, piece, sleeve, collar, source, parts = [piece]) => {
   const e = build(id, name, category, gender, piece, sleeve, collar, source, parts);
-  const ok = !!openTarget(e);
+  const t = openTarget(e), ok = !!t;
+  // Opens a template whose family has a 3D model that was NOT made from this photo: the Studio's 3D is a generic family approximation.
+  const r = t && applyGarment({}, t.garment, t);
+  if (ok) e.familyApprox3D = !e.has3D && !NO_FAMILY_3D.has(id) && !!r && has3DModel(r.garment, r.sleeve, r.fit);
+  if (ok && NO_FAMILY_3D.has(id)) e.family3DOff = true; // 2D only in the Studio; the family model would show a different garment
   return ok ? e : { ...e, base: null, garmentFamily: null, editable2D: false, editable2d: false, exactBase: false, glb: null, glbSrc: null, glbStatus: 'none', zones: [], faces: { front: false, back: false }, has3D: false, status: 'photo-only', tier: 'reference' };
 };
 const build = (id, name, category, gender, piece, sleeve, collar, source, parts) => {

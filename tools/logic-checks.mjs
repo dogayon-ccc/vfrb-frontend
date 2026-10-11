@@ -192,7 +192,112 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     t('fused sets stay read-only: only sets with a separately cut garment also offer an editable model, and that model is the cut, never the fused file', SETS.filter(id => E0(id).has3D).sort().join() === 'bir-blouse-trousers-blue,blouse-roundneck-fuchsia,scrub-set-housekeeping,scrub-set-men-vneck,scrub-set-women-vneck' && SETS.every(id => !E0(id).glb || (E0(id).glb.startsWith('/models/garments/') && E0(id).glb !== E0(id).ref3D.file)));
     t('rejected or mismatched sources have no 3D viewer at all (vest set with mannequin, worn blouse photo, corporate skirt)', ['set-vest-blouse', 'blazer-blouse-blue-short', 'corporate-skirt'].every(id => !E0(id).ref3D && !(E0(id).has3D && /vest|corporate-skirt/.test(E0(id).glb ?? ''))) && !Cp.SCANNED_GARMENTS.some(x => Object.values(x.models).some(m => /corporate-skirt|dress-shift|vest-blouse/.test(m))));
   }
+  {
+    const GP = await L('/src/pages/client/design-studio/garmentPaths.js');
+    // Every gallery photo has exactly one explicit path, and every editable one survives Save -> Reopen -> Order with its identity and model.
+    const galDir = pathx.join(urlx.fileURLToPath(new URL('../public/', import.meta.url)), 'gallery');
+    const webp = fsx.readdirSync(galDir).filter(f => f.endsWith('.webp')).map(f => f.slice(0, -5)).sort();
+    t('gallery: one entry per public/gallery image (40), every image file present', webp.length === 40 && JSON.stringify(webp) === JSON.stringify(D.ENTRIES.map(d => d.id).sort()));
+    const editable = D.ENTRIES.filter(d => D.openTarget(d, {}));
+    t('gallery paths are explicit: 19 open an editable template, 21 are reference-only (17 with a read-only 3D viewer, 4 photo-only)', editable.length === 19 && D.ENTRIES.filter(d => !D.openTarget(d, {})).length === 21 && D.ENTRIES.filter(d => !D.openTarget(d, {}) && d.ref3D).length === 17 && D.ENTRIES.filter(d => !D.openTarget(d, {}) && !d.ref3D).map(d => d.id).sort().join() === 'blazer-blouse-blue-short,dress-sheath-denim-blue,dress-shift-geometric,set-vest-blouse' && D.ENTRIES.every(d => (d.tier === 'reference') === !D.openTarget(d, {})));
+    const trip = d => {
+      const t0 = D.openTarget(d, {}), cfg = { ...G.applyGarment(S.DEFAULT_CFG, t0.garment, { ...t0, inspirationId: d.id }), colors: { ...S.DEFAULT_CFG.colors, body: '#7a1f2b' } };
+      const saved = JSON.parse(JSON.stringify(S.serializeDesign(cfg, {}))), back = S.deserializeDesign(saved).cfg, order = S.deserializeDesign(JSON.parse(JSON.stringify(S.serializeDesign(back, {})))).cfg;
+      const r0 = G.resolveTarget(cfg.garment, cfg.sleeve, cfg.fit);
+      return [back, order].every(x => x.garment === cfg.garment && x.sleeve === cfg.sleeve && x.fit === cfg.fit && x.inspirationId === d.id && x.colors.body === '#7a1f2b' && G.resolveTarget(x.garment, x.sleeve, x.fit).templateId === r0.templateId && G.resolveTarget(x.garment, x.sleeve, x.fit).glb === r0.glb && Cp.has3DModel(x.garment, x.sleeve, x.fit) === !!r0.glb)
+        && saved.templateId === r0.templateId && saved.inspirationId === d.id && (!d.has3D || r0.glb === d.glb);
+    };
+    const broken = editable.filter(d => !trip(d)).map(d => d.id);
+    t('all 19 editable gallery photos survive Save -> Reopen -> Order payload with garment, sleeve, fit, template, gallery id, colour and the same 3D model (photo GLB when the photo has one)', broken.length === 0, broken.join());
+    t('3D coverage kinds: 17 photo-matched GLBs, 1 labelled family-level approximation (corporate skirt -> pencil-skirt model), 1 editable-2D with its misleading family model withheld (tunic), 14 full-set previews, 21 reference-only', editable.filter(d => d.has3D).length === 17 && D.ENTRIES.filter(d => d.familyApprox3D).map(d => d.id).join() === 'corporate-skirt' && editable.filter(d => !d.has3D && !d.familyApprox3D).map(d => d.id).join() === 'blouse-tunic-roundneck-blue' && E0('blouse-tunic-roundneck-blue').family3DOff && D.ENTRIES.filter(d => d.ref3D?.set).length === 14 && D.ENTRIES.filter(d => d.tier === 'reference').length === 21 && D.ENTRIES.filter(d => d.familyApprox3D).every(d => d.tier === 'editable-2d' && !d.has3D && !d.glb));
+    {
+      // The tunic photo opens T-Shirt / Short / female; that family model is a V-neck tee, so 3D is withheld for designs opened from
+      // this photo (Studio, Wizard, Order Detail all gate on has3DFor), while choosing T-Shirt directly keeps its model.
+      const tunic = G.applyGarment(S.DEFAULT_CFG, D.openTarget(E0('blouse-tunic-roundneck-blue'), {}).garment, { ...D.openTarget(E0('blouse-tunic-roundneck-blue'), {}), inspirationId: 'blouse-tunic-roundneck-blue' });
+      const saved = S.deserializeDesign(JSON.parse(JSON.stringify(S.serializeDesign(tunic, {})))).cfg;
+      const plain = G.applyGarment(S.DEFAULT_CFG, 'T-Shirt', { fit: 'female' });
+      t('tunic photo: T-Shirt model exists but 3D is withheld for the design and its saved/ordered copy; a plain T-Shirt keeps 3D; changing garment drops the photo and the block',
+        Cp.has3DModel(tunic.garment, tunic.sleeve, tunic.fit) && !Cp.has3DFor(tunic) && saved.inspirationId === 'blouse-tunic-roundneck-blue' && !Cp.has3DFor(saved) && Cp.has3DFor(plain) && Cp.has3DFor(G.applyGarment(tunic, 'Polo Shirt', {})) === Cp.has3DModel('Polo Shirt', G.applyGarment(tunic, 'Polo Shirt', {}).sleeve, G.applyGarment(tunic, 'Polo Shirt', {}).fit) && G.applyGarment(tunic, 'Polo Shirt', {}).inspirationId == null);
+      t('the only approximation still shown in 3D is labelled in the 3D pane and the gallery (corporate skirt), and every NO_FAMILY_3D id is an editable photo without its own model', [...Cp.NO_FAMILY_3D].every(id => E0(id).tier === 'editable-2d' && !E0(id).has3D && !E0(id).familyApprox3D) && E0('corporate-skirt').familyApprox3D && Cp.has3DFor({ ...G.applyGarment(S.DEFAULT_CFG, 'Skirt', {}), inspirationId: 'corporate-skirt' }));
+    }
+    t('My Designs fallback thumbnail and Order previews have a 2D shape for every catalog family', Object.keys(G.FAMILY_BY_NAME).every(g => !!GP.BASE_PATHS[g]));
+  }
   t('every 3D runtime model path exists under public/', Cp.SCANNED_GARMENTS.every(x => Object.values(x.models).every(m => fsx.existsSync(pub(decodeURI(m).slice(1))))));
+}
+{
+  const SN = await L('/src/pages/client/design-studio/snapGuides.js');
+  const tg = SN.snapTargets({ width: 320, height: 400, garment: { left: 60, top: 40, width: 200, height: 300 }, others: [{ left: 100, top: 100, width: 40, height: 20 }], gridSize: 20 });
+  const a = SN.computeSnap({ left: 137, top: 200, width: 46, height: 30 }, tg);
+  t('snap: centre within 6px jumps to the canvas/garment centre line, with one vertical guide', a.dx === 160 - 160 + (160 - (137 + 23)) && a.guides.some(g => g.axis === 'v' && g.at === 160));
+  const b = SN.computeSnap({ left: 101, top: 300, width: 30, height: 10 }, tg);
+  t('snap: an element edge snaps to another element edge before a grid line', b.dx === -1 && b.guides.find(g => g.axis === 'v').kind === 'object');
+  const c = SN.computeSnap({ left: 13, top: 13, width: 2, height: 2 }, SN.snapTargets({ width: 320, height: 400, gridSize: 0 }));
+  t('snap: no target within the threshold -> no move, no guides; grid lines only when the grid is on', c.dx === 0 && c.dy === 0 && c.guides.length === 0 && SN.computeSnap({ left: 18, top: 300, width: 4, height: 4 }, SN.snapTargets({ width: 320, height: 400, gridSize: 20 })).guides.some(g => g.kind === 'grid'));
+  t('rulers: minor tick every 10 canvas px, labelled major every 50, spanning the full canvas', (r => r.length === 33 && r[0].at === 0 && r[r.length - 1].at === 320 && r.filter(x => x.major).length === 7)(SN.rulerTicks(320)));
+  t('snap threshold is ~6 screen px at any zoom (logical px = 6 / scale), clamped to 2..12 logical px', SN.snapThreshold(1) === 6 && SN.snapThreshold(2) === 3 && SN.snapThreshold(0.5) === 12 && SN.snapThreshold(0.3) === 12 && SN.snapThreshold(4) === 2 && SN.snapThreshold(0) === 6);
+  t('zoom-aware threshold: a 5 px gap snaps at 100% and on a phone (scale 0.5) but not at 270% (13.5 screen px away)', (() => { const tg = SN.snapTargets({ width: 320, height: 400 }), box = { left: 145, top: 10, width: 10, height: 4 }; /* right edge 155, centre line 160 */
+    return SN.computeSnap(box, tg, SN.snapThreshold(1)).dx === 5 && SN.computeSnap(box, tg, SN.snapThreshold(0.5)).dx === 5 && SN.computeSnap(box, tg, SN.snapThreshold(2.7)).dx === 0; })());
+  t('ruler steps keep minor ticks >= 6 and labels >= 44 screen px apart on round values, at every zoom from phone to 270%', [0.3, 0.45, 0.6, 1, 1.5, 2.7].every(s => { const { step, major } = SN.rulerSteps(s); return step * s >= 6 && major * s >= 44 && major % step === 0 && [2, 5, 10, 20, 25, 50, 100, 200].includes(step); }) && SN.rulerSteps(1).step === 10 && SN.rulerSteps(1).major === 50);
+  t('resize: each control moves only its own sides (tl/tr/bl/br/ml/mr/mt/mb); unknown controls move nothing', ['tl', 'tr', 'bl', 'br', 'ml', 'mr', 'mt', 'mb', 'mtr'].map(c => { const e = SN.movingEdges(c); return `${e.x ?? '-'}/${e.y ?? '-'}`; }).join() === 'left/top,right/top,left/bottom,right/bottom,left/-,right/-,-/top,-/bottom,-/-');
+  {
+    const tg = SN.snapTargets({ width: 320, height: 400, others: [{ left: 200, top: 300, width: 50, height: 20 }] });
+    const r = SN.computeResizeSnap({ left: 100, top: 100, width: 97, height: 40 }, 'mr', tg, 6); // right side 197 -> 200
+    t('resize snap: the right handle 3 px from an element edge widens to it (ratio 100/97), height untouched, one vertical guide', Math.abs(r.rx - 100 / 97) < 1e-9 && r.ry === 1 && r.guides.length === 1 && r.guides[0].at === 200 && r.guides[0].kind === 'object');
+    const l = SN.computeResizeSnap({ left: 163, top: 100, width: 40, height: 40 }, 'ml', tg, 6); // left side 163 -> centre line 160
+    t('resize snap: the left handle grows leftwards onto the centre line (width 43/40)', Math.abs(l.rx - 43 / 40) < 1e-9 && l.guides[0].at === 160);
+    const u = SN.computeResizeSnap({ left: 100, top: 100, width: 98, height: 196 }, 'br', tg, 6, true); // right 198 (2 off 200), bottom 296 (4 off 300)
+    t('proportional corner resize uses one ratio from the closer side and shows only that side\'s guide (no false guide for the other)', Math.abs(u.rx - 100 / 98) < 1e-9 && u.ry === u.rx && u.guides.length === 1 && u.guides[0].axis === 'v');
+    t('resize snap never collapses or flips an element, and far from any line changes nothing', (r0 => r0.rx === 1 && r0.guides.length === 0)(SN.computeResizeSnap({ left: 158, top: 0, width: 1, height: 10 }, 'ml', tg, 6)) && SN.computeResizeSnap({ left: 10, top: 10, width: 30, height: 30 }, 'br', tg, 2).guides.length === 0);
+  }
+  t('readout shows the inspector numbers: X/Y while moving, rounded W × H while resizing', SN.readoutText({ left: 120.4, top: 80.6 }, 'move') === 'X 120  Y 81' && SN.readoutText({ width: 50, height: 20, scaleX: 1.5, scaleY: -2 }, 'scale') === '75 × 40');
+  {
+    // Pinned rulers: screen position = origin + value * scale. Artboard 320 wide at scale 2, scrolled so canvas 0 is 150 px left
+    // of the ruler (origin -150) on a 400 px ruler: visible canvas range is 75..275, step 10 / major 50 at that scale's choice.
+    const tk = SN.pinnedTicks(-150, 2, 400, 320, 10, 50);
+    t('pinned ruler with the artboard origin scrolled out of view continues from the real coordinates (80..270), never restarts at 0, no negatives', tk[0].v === 80 && tk[tk.length - 1].v === 270 && tk.every(x => x.v >= 0 && Math.abs(x.at - (-150 + x.v * 2)) < 1e-9 && x.at >= 0 && x.at <= 400));
+    t('pinned ruler values are whole multiples of the step: no duplicate labels from rounding, majors exactly on multiples of 50', new Set(tk.map(x => x.v)).size === tk.length && tk.every(x => x.v % 10 === 0) && tk.filter(x => x.major).map(x => x.v).join() === '100,150,200,250');
+    const fitT = SN.pinnedTicks(40, 1.5, 600, 320, 10, 50);
+    t('artboard fully visible: ticks span exactly 0..320 and stop at the artboard edges (none over the empty stage)', fitT[0].v === 0 && fitT[0].at === 40 && fitT[fitT.length - 1].v === 320 && fitT[fitT.length - 1].at === 40 + 320 * 1.5);
+    t('pinned ruler handles fractional origins and steps that do not divide the extent', (r => r[0].v === 0 && r[r.length - 1].v === 375 && r.length === 16)(SN.pinnedTicks(12.37, 0.587, 375, 380, 25, 100)));
+    const lim = SN.panLimits({ w: 320, h: 380, scale: 2.7, viewW: 900, viewH: 700 });
+    t('pan limits: only where the zoomed artboard overflows (by overflow + margin), zero when it fits', lim.x === 0 && Math.abs(lim.y - ((380 * 2.7 - 700) / 2 + SN.PAN_MARGIN)) < 1e-9 && SN.panLimits({ w: 320, h: 380, scale: 1, viewW: 900, viewH: 700 }).y === 0);
+    t('pan clamp keeps the artboard reachable and never returns -0', (c => c.x === 0 && Object.is(c.x, 0) && c.y === -lim.y)(SN.clampPan({ x: -50, y: -9999 }, lim)) && Object.is(SN.clampPan({ x: -0, y: 0 }, { x: 0, y: 0 }).x, 0));
+  }
+  t('grid spacing options are 10/20/40 canvas px and snapping uses the chosen spacing', SN.GRID_SIZES.join() === '10,20,40' && SN.snapTargets({ width: 100, height: 100, gridSize: 40 }).v.filter(l => l.kind === 'grid').map(l => l.at).join() === '40,80');
+}
+// P0 draft continuity (G1-G3): account draft label, design identity across the Laravel JSON round trip, and the save/delete call sites.
+{
+  const H = await L('/src/utils/studioHandoff.js');
+  const named = 'Bayanihan Clinic — Ñoño’s “Lab Coat” #2 (Pasig)';
+  t('draft label is the customer\'s design name (Unicode, punctuation and spacing kept; runs of whitespace collapsed)', S.draftLabel({ name: `  ${named.replace(' ', '   ')} `, garment: 'Lab Coat', category: 'Medical / Scrubs' }) === named);
+  t('draft label falls back to "<garment> — <category>" for unnamed or blank-named designs, never "undefined"', S.draftLabel({ name: '   ', garment: 'Lab Coat', category: 'Medical / Scrubs' }) === 'Lab Coat — Medical / Scrubs' && S.draftLabel({ garment: 'Pants' }) === 'Pants' && S.draftLabel({}) === '');
+  t('draft label fits the 120-character backend limit', S.draftLabel({ name: 'x'.repeat(300) }).length === 120);
+  const cfgN = { ...G.applyGarment({ ...base }, 'Lab Coat', { category: 'Medical / Scrubs' }), name: named, colors: { body: '#123456' } };
+  const snap = S.serializeDesign(cfgN, { overlays: [{ type: 'textbox', text: 'Ñoño', left: 10.5, top: 20 }], frontOverlays: [{ type: 'textbox', text: 'Ñoño', left: 10.5, top: 20 }], backOverlays: [] }, 'data:image/png;base64,AAAA');
+  t('design name rides the serialized snapshot and reads back unchanged', snap.name === named && S.deserializeDesign(JSON.parse(JSON.stringify(snap))).cfg.name === named);
+  // What Laravel hands back: keys reordered, {} and [] swapped, null-valued keys dropped, floats re-printed, no preview.
+  const php = v => Array.isArray(v) ? (v.length ? v.map(php) : {}) : v && typeof v === 'object' ? (Object.keys(v).length ? Object.fromEntries(Object.keys(v).reverse().filter(k => v[k] !== null).map(k => [k, php(v[k])])) : []) : v;
+  const { previewPng, ...stored } = snap; // eslint-disable-line no-unused-vars
+  const fp = H.draftFingerprint(snap);
+  t('design fingerprint matches the same design after the backend JSON round trip, and ignores the preview image', !!fp && fp === H.draftFingerprint(php(JSON.parse(JSON.stringify(stored)))) && fp === H.draftFingerprint({ ...snap, previewPng: 'data:image/png;base64,BBBB' }));
+  t('design fingerprint differs for any real design change (colour, name, overlay text, overlay position)', [{ ...snap, colors: { ...snap.colors, body: '#123457' } }, { ...snap, name: named + '.' }, { ...snap, frontOverlays: [{ ...snap.frontOverlays[0], text: 'Nono' }] }, { ...snap, frontOverlays: [{ ...snap.frontOverlays[0], left: 10.6 }] }].every(x => H.draftFingerprint(x) !== fp) && H.draftFingerprint(null) === null);
+  const src = p => fsx.readFileSync(urlx.fileURLToPath(new URL(p, import.meta.url)), 'utf8');
+  const studio = src('../src/pages/client/DesignStudio.jsx'), wizard = src('../src/pages/client/OrderWizard.jsx');
+  t('Studio: every account draft write goes through one payload that always carries a preview and the design-name label', (studio.match(/axios\.post\('\/api\/customer\/drafts'/g) ?? []).length === 1 && /preview_dataurl: await fitDraftPreview\(exportPNG\(\)\)/.test(studio) && /label:\s+draftLabel\(cfg\)/.test(studio) && !/`\$\{cfg\.garment\} — \$\{cfg\.category\}`/.test(studio));
+  t('Studio never deletes the account draft (Order keeps it; the Wizard retires it after a successful submit)', !/drafts\/latest'\)/.test(studio.replace(/axios\.get\('\/api\/customer\/drafts\/latest'\)/g, '')) && !/axios\.delete\([^)]*drafts/.test(studio));
+  t('Wizard deletes the draft only after the order POST succeeds, and only when the draft is still the ordered design', (m => m.length === 1)(wizard.match(/axios\.delete\('\/api\/customer\/drafts\/latest'\)/g) ?? []) && wizard.indexOf("axios.post('/api/customer/orders'") < wizard.indexOf("axios.delete('/api/customer/drafts/latest')") && /draftFingerprint\(d\.data\?\.draft\?\.studio_config\) === fp\) return axios\.delete/.test(wizard) && !/catch\(e\)[\s\S]{0,400}drafts\/latest/.test(wizard));
+}
+// Order title = the saved design name (studio_config.name, the only place the API stores it), else the garment; never blank.
+{
+  const N = await L('/src/utils/designName.js'), K = await L('/src/components/customer/kit.jsx');
+  const nm = 'Bayanihan Clinic — Ñoño’s “Lab Coat” #2 (Pasig)';
+  t('order title is the saved design name from studio_config (decoded object on detail, JSON string on the list endpoint)', K.orderTitle({ garment_type: 'Lab Coat', studio_config: { name: nm } }) === nm && K.orderTitle({ garment_type: 'Lab Coat', studio_config: JSON.stringify({ name: `  ${nm}  ` }) }) === nm);
+  t('legacy/unnamed orders fall back to the humanized garment, then "Custom Order"; never undefined, null or empty', [
+    [{ garment_type: 'polo_shirt', studio_config: { name: '' } }, 'Polo Shirt'], [{ garment_type: 'Lab Coat', studio_config: { name: '   ' } }, 'Lab Coat'],
+    [{ garment_type: 'Lab Coat', studio_config: null }, 'Lab Coat'], [{ garment_type: 'Lab Coat', studio_config: '{bad json' }, 'Lab Coat'],
+    [{ garment_type: '', studio_config: { name: null } }, 'Custom Order'], [{}, 'Custom Order'], [null, 'Custom Order'], [{ garment_type: 'Pants', studio_config: { name: 42 } }, 'Pants'],
+  ].every(([o, want]) => K.orderTitle(o) === want));
+  t('saved design name helper is shared by the draft label (one rule for drafts and orders)', N.savedDesignName({ name: ' a  b ' }) === 'a b' && S.draftLabel({ name: ' a  b ', garment: 'Pants' }) === 'a b' && N.savedDesignName('null') === '' && N.savedDesignName(undefined) === '');
 }
 console.log(out.join('\n')); const f = out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);

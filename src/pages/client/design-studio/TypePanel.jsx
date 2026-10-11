@@ -6,7 +6,7 @@ import GarmentThumb from './GarmentThumb';
 import GarmentSilhouette from './GarmentSilhouette';
 import { selectFamily } from './selectGarment';
 import { CATALOG, familyFor, resolveFit, STATUS_3D_LABEL, pieceOf } from './garmentCatalog';
-import { sleeves3DFor } from './garmentCapabilities';
+import { sleeves3DFor, has3DFor, NO_FAMILY_3D } from './garmentCapabilities';
 import { PH_SWATCHES, ZONE_LABEL, zonesFor } from './dsShared';
 import { assetFor, photoZoneNote } from './garmentAssets';
 
@@ -57,7 +57,7 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, view
           <span className="ds-tp-thumb ds-tp-thumb--sm"><GarmentSilhouette garment={cfg.garment} sleeve={cfg.sleeve} fit={cfg.fit} colors={cfg.colors} width={40} height={48}/></span>
           <div className="ds-tp-current-txt">
             <strong>{cfg.garment}</strong>
-            <span>{catData.id}{STATUS_3D_LABEL[family?.status3D] ? ` · ${STATUS_3D_LABEL[family.status3D].label}` : ''}</span>
+            <span>{catData.id}{STATUS_3D_LABEL[family?.status3D] && !NO_FAMILY_3D.has(cfg.inspirationId) ? ` · ${STATUS_3D_LABEL[family.status3D].label}` : ''}</span>
           </div>
           <button type="button" className="ds-btn" onClick={() => setPicking(true)}>Change</button>
         </div>
@@ -237,12 +237,14 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, view
                 <div className="ds-acc-body ds-tp-prev">
                   <div className="ds-seg ds-seg--sm" role="radiogroup" aria-label="Preview mode">
                     <button type="button" role="radio" aria-checked={viewMode !== '3d'} onClick={() => setViewMode?.('2d')}>2D</button>
-                    <button type="button" role="radio" aria-checked={viewMode === '3d'} disabled={family?.status3D === 'none'}
+                    <button type="button" role="radio" aria-checked={viewMode === '3d'} disabled={!has3DFor(cfg)}
                       onClick={() => { setHas3DLoaded?.(true); setViewMode?.('3d'); }}>3D</button>
                   </div>
                   <p className="ds-note" style={{ margin: 0 }}>
                     {family?.status3D === 'none'
                       ? `${cfg.garment} has no verified 3D model yet — the 2D design is the exact preview.`
+                      : NO_FAMILY_3D.has(cfg.inspirationId)
+                        ? `2D only for this design: the ${cfg.garment} 3D model is a different garment from its photo.`
                       : family?.status3D === 'partial'
                         ? '3D is a quick approximation. Use 2D for exact colors and placement.'
                         : '3D is a quick spatial view. Use 2D for exact colors and placement.'}

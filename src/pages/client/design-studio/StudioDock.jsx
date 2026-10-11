@@ -2,12 +2,14 @@ import { NavIcon } from '../../../components/ui/icons';
 import GarmentSilhouette from './GarmentSilhouette';
 import { zonesFor } from './dsShared';
 import { familyFor, STATUS_3D_LABEL } from './garmentCatalog';
+import { NO_FAMILY_3D } from './garmentCapabilities';
 
 export default function StudioDock({ cfg, saved, saving, saveErr, draftSaved, saveDesign, orderThis, ordering, onOpenTool, downloadImage, downloadPdf, exporting, layerCount = 0, face = 'front' }) {
   const zones = zonesFor(cfg.garment, cfg.sleeve, cfg.fit).filter(z => z !== 'tipping' || cfg.colors.tipping);
-  const st = STATUS_3D_LABEL[familyFor(cfg.garment)?.status3D];
+  const st = NO_FAMILY_3D.has(cfg.inspirationId) ? null : STATUS_3D_LABEL[familyFor(cfg.garment)?.status3D];
   const details = [zones.includes('sleeve') && cfg.sleeve && `${cfg.sleeve} sleeve`, cfg.category].filter(Boolean).join(' · ');
-  const state = saving ? 'Saving…' : saveErr ? 'Not saved — retry' : draftSaved ? 'Saved to your account' : saved ? 'Saved on this device' : null;
+  // Account vs browser-only saves are never shown the same way: a failed account save that kept a browser copy says so.
+  const state = saving ? 'Saving…' : saveErr ? (saveErr === 'local' ? 'On this device only — account save failed, retry' : 'Not saved — retry') : draftSaved ? 'Saved to your account' : saved ? 'Saved on this device' : null;
 
   return (
     <footer className="ds-dock" aria-label="Save and order">

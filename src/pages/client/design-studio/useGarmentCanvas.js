@@ -3,6 +3,7 @@ import { useRef, useState, useCallback, useEffect, useLayoutEffect } from 'react
 import { T2, LOGO_PRESETS, PATTERNS, SHAPE_TYPE_LABEL } from './dsShared';
 import { getGarmentPaths } from './garmentPaths';
 import { assetFor, tintedCanvas } from './garmentAssets';
+import { snapTargets, computeSnap, snapThreshold, computeResizeSnap, movingEdges, readoutText } from './snapGuides';
 
 // Decorative template lines (garmentPaths `details`): no __zoneKey and not evented, so they never take a click or a hover.
 const DETAIL_STYLE = {
@@ -83,6 +84,10 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   // Latest props for exportFace, which polls across a face switch.
   const latest = useRef({ garment, sleeve, face });
   latest.current = { garment, sleeve, face };
+  // Snapping options (set by the Studio's grid/snap toggles) and the guides of the current drag. Guides are drawn on Fabric's
+  // interaction layer only, never added as objects, so they cannot be saved, exported or put in history.
+  const snapOpts = useRef({ snap: true, gridSize: 0, scale: 1 }); // scale: on-screen px per canvas px (zoom x fit)
+  const dragGuides = useRef({ targets: null, guides: [], readout: null });
 
   // Init once on mount. useLayoutEffect (not useEffect) so cleanup runs
   // before React's own DOM removal — avoids a removeChild race with
@@ -149,7 +154,8 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       }, 250);
 
       fc.current.on('mouse:move', (opt) => {
-        const hit = zoneAt(fc.current, opt.e);
+        // No zone highlight while an element is being moved or resized: it would compete with the snap guides.
+        const hit = fc.current._currentTransform ? null : zoneAt(fc.current, opt.e);
         if (hoverEl.current) { fc.current.remove(hoverEl.current); hoverEl.current = null; }
         if (hit) {
           const bounds = hit.getBoundingRect();
@@ -174,6 +180,114 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         if (opt.target && !opt.target.__zoneKey) return;
         const hit = zoneAt(fc.current, opt.e);
         if (hit?.__zoneKey) onZoneClick(hit.__zoneKey);
+      });
+
+      // Snapping, smart guides and a live readout while a design element is moved or resized. Targets are collected once per gesture.
+      // Everything is drawn on Fabric's interaction layer (contextTop): never an object, so never saved, exported or undoable.
+      const isOverlay = o => o && !o.__garmentBase && !o.__hoverGlow && o.visible !== false;
+      const targetsFor = (c, obj) => {
+        const bases = c.getObjects().filter(o => o.__garmentBase && o.visible !== false).map(o => o.getBoundingRect());
+        const garmentBox = bases.length ? (() => { const l = Math.min(...bases.map(r => r.left)), t = Math.min(...bases.map(r => r.top));
+          return { left: l, top: t, width: Math.max(...bases.map(r => r.left + r.width)) - l, height: Math.max(...bases.map(r => r.top + r.height)) - t }; })() : null;
+        const moving = new Set(obj.getObjects ? [obj, ...obj.getObjects()] : [obj]);
+        const others = c.getObjects().filter(o => isOverlay(o) && !moving.has(o)).map(o => o.getBoundingRect());
+        return snapTargets({ width: c.getWidth(), height: c.getHeight(), garment: garmentBox, others, gridSize: snapOpts.current.gridSize });
+      };
+      const threshold = () => snapThreshold(snapOpts.current.scale);
+      // Fabric moves left/top during a drag without refreshing the cached corner coords that getBoundingRect() reads, so they are
+      // refreshed first; otherwise the snap measures where the drag started and draws guides for alignments that no longer exist.
+      const applySnap = (obj, targets) => {
+        obj.setCoords();
+        const { dx, dy, guides } = computeSnap(obj.getBoundingRect(), targets, threshold());
+        if (dx || dy) { obj.set({ left: (obj.left ?? 0) + dx, top: (obj.top ?? 0) + dy }); obj.setCoords(); }
+        return guides;
+      };
+      // Resize: pull only the moving sides to a line, keeping the opposite side anchored the way Fabric does. Axis-aligned elements
+      // only (a rotated box's sides are not its bounding box), and never after a flip (the anchor has switched sides).
+      const applyResizeSnap = (obj, tr, targets) => {
+        const { x, y } = movingEdges(tr.corner);
+        const anchoredX = !x || tr.originX === (x === 'left' ? 'right' : 'left'), anchoredY = !y || tr.originY === (y === 'top' ? 'bottom' : 'top');
+        if ((obj.angle ?? 0) % 360 !== 0 || !anchoredX || !anchoredY || obj.scaleX <= 0 || obj.scaleY <= 0) return [];
+        const o0 = tr.original ?? {};
+        const uniform = !!(x && y) && Math.abs(obj.scaleX / obj.scaleY - (o0.scaleX ?? 1) / (o0.scaleY ?? 1)) < 1e-6;
+        let guides = [];
+        for (let pass = 0; pass < 2; pass++) { // the second pass removes stroke rounding, so a guide only shows for a real alignment
+          obj.setCoords(); // Fabric does not refresh the cached coords while scaling either
+          const r = computeResizeSnap(obj.getBoundingRect(), tr.corner, targets, threshold(), uniform);
+          guides = r.guides;
+          if (r.rx === 1 && r.ry === 1) break;
+          const anchor = obj.translateToOriginPoint(obj.getRelativeCenterPoint(), tr.originX, tr.originY);
+          obj.set({ scaleX: obj.scaleX * r.rx, scaleY: obj.scaleY * r.ry });
+          obj.setPositionByOrigin(anchor, tr.originX, tr.originY);
+          obj.setCoords();
+        }
+        return guides;
+      };
+      const track = (obj, action, guides) => { dragGuides.current.guides = guides; dragGuides.current.readout = { obj, action }; };
+      fc.current.on('object:moving', (e) => {
+        const c = fc.current, obj = e.target;
+        if (!c || !isOverlay(obj)) return;
+        if (!snapOpts.current.snap) return track(obj, 'move', []);
+        dragGuides.current.targets ??= targetsFor(c, obj);
+        track(obj, 'move', applySnap(obj, dragGuides.current.targets));
+      });
+      fc.current.on('object:scaling', (e) => {
+        const c = fc.current, obj = e.target, tr = e.transform;
+        if (!c || !isOverlay(obj)) return;
+        if (!snapOpts.current.snap || !tr) return track(obj, 'scale', []);
+        dragGuides.current.targets ??= targetsFor(c, obj);
+        track(obj, 'scale', applyResizeSnap(obj, tr, dragGuides.current.targets));
+      });
+      fc.current.on('after:render', () => {
+        const c = fc.current, g = dragGuides.current.guides, ro = dragGuides.current.readout;
+        if (!c || (!g.length && !ro) || c.isDrawingMode || !c.contextTop) return;
+        const ctx = c.contextTop, vt = c.viewportTransform, r = c.getRetinaScaling?.() ?? 1;
+        c.clearContext(ctx);
+        ctx.save();
+        ctx.setTransform(r * vt[0], 0, 0, r * vt[3], r * vt[4], r * vt[5]);
+        const px = 1 / (vt[0] * (snapOpts.current.scale || 1)); // one screen px through the wrapper's CSS zoom
+        // At least one backing-store px: the canvas bitmap is at canvas resolution, so a thinner line antialiases to a faint smear.
+        ctx.lineWidth = Math.max(px, 1 / (r * vt[0]));
+        for (const l of g) {
+          ctx.strokeStyle = l.kind === 'grid' ? 'rgba(2,128,144,.55)' : '#e11d74';
+          ctx.setLineDash(l.kind === 'grid' ? [3 * px, 3 * px] : []);
+          ctx.beginPath();
+          if (l.axis === 'v') { ctx.moveTo(l.at, 0); ctx.lineTo(l.at, c.getHeight()); } else { ctx.moveTo(0, l.at); ctx.lineTo(c.getWidth(), l.at); }
+          ctx.stroke();
+        }
+        if (ro) { // readout pill under the element (above it near the canvas bottom), constant on-screen size
+          const b = ro.obj.getBoundingRect(), text = readoutText(ro.obj, ro.action);
+          ctx.setLineDash([]);
+          ctx.font = `600 ${11 * px}px ui-sans-serif, system-ui, sans-serif`;
+          const w = ctx.measureText(text).width + 12 * px, h = 18 * px;
+          const x = Math.min(Math.max(b.left + b.width / 2 - w / 2, 2 * px), c.getWidth() - w - 2 * px);
+          const below = b.top + b.height + 8 * px, y = below + h > c.getHeight() ? Math.max(2 * px, b.top - 8 * px - h) : below;
+          ctx.fillStyle = 'rgba(15,23,42,.86)';
+          ctx.beginPath();
+          if (ctx.roundRect) ctx.roundRect(x, y, w, h, 4 * px); else ctx.rect(x, y, w, h);
+          ctx.fill();
+          ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+          ctx.fillText(text, x + w / 2, y + h / 2);
+        }
+        ctx.restore();
+      });
+      const endDrag = () => {
+        const c = fc.current;
+        const had = dragGuides.current.guides.length || dragGuides.current.readout;
+        dragGuides.current = { targets: null, guides: [], readout: null };
+        if (c && had && c.contextTop) { c.clearContext(c.contextTop); c.requestRenderAll(); }
+      };
+      fc.current.on('mouse:up', endDrag);
+      // A drag, resize or rotate on the canvas is one undoable step (programmatic moves push their own history).
+      fc.current.on('object:modified', (e) => {
+        const c = fc.current, obj = e.target, action = e.action ?? e.transform?.action;
+        // The release can re-apply the raw pointer position after the last snapped move, so a drag is snapped once more here.
+        if (c && isOverlay(obj) && snapOpts.current.snap && action === 'drag') {
+          applySnap(obj, dragGuides.current.targets ?? targetsFor(c, obj));
+          c.requestRenderAll();
+        }
+        endDrag();
+        if (isOverlay(obj)) { pushHistory(); bumpLayers(); }
       });
 
       fc.current.on('selection:created', e => onSelect(e.selected?.[0] ?? null));
@@ -804,10 +918,13 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     if (commit) pushHistory();
   }, [findLayer, pushHistory, bumpLayers]);
 
+  const setSnapOptions = useCallback((o) => { snapOpts.current = { ...snapOpts.current, ...o }; }, []);
+
   return {
     addLogo, addText, addShape, updateSelected, deleteSelected, duplicateSelected, alignSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
     pushHistory, undo, redo, canUndo, canRedo, resizeCanvas,
     layers, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
     setDrawMode, setBrushStyle, initFailed,
+    setSnapOptions,
   };
 }

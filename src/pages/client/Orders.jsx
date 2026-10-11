@@ -74,7 +74,7 @@ export default function CustomerOrders() {
     const q = search.toLowerCase().trim();
     const out = orders.filter(o => g.test(o.status) && (!q
       || String(o.order_id).includes(q)
-      || o.design?.design_name?.toLowerCase().includes(q)
+      || orderTitle(o).toLowerCase().includes(q)
       || o.garment_type?.toLowerCase().includes(q)
       || o.color?.toLowerCase().includes(q)
       || o.client_design_notes?.toLowerCase().includes(q)));

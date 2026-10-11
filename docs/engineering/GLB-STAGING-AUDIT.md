@@ -9,6 +9,77 @@ Evidence:
 
 Live per-garment status is generated in `ASSET-REGISTRY.md`; this file records the audit and the choices.
 
+## Gallery → Studio → Save → Order coverage (2026-10-10): 40 of 40 gallery images
+
+Built from the real code (`designGallery.openTarget` → `applyGarment` → `serializeDesign` → `deserializeDesign` → `resolveTarget` / `has3DModel`, the same calls the Studio, My Designs, Order Wizard and Order Detail make) and pinned by `logic-checks`.
+- **Save → reopen → order** is the code-level round trip: garment, sleeve, fit, template, gallery id, colour and 3D model all stay identical.
+- **Browser:** local headless Chrome with an isolated test account; order submission was stubbed, so no real order was created.
+  - The 8 E2E steps: open from the gallery, edit (body colour), account Save read back from `GET /api/customer/drafts/latest`, My Designs card, Continue editing (garment, sleeve, fit and 3D model), Order this → Wizard review with 3D, submit payload, and Order Detail with 3D.
+  - All 19 editable entries passed every step: 8 in the first run, 11 in a sequential rerun with waits on real state. The first run lost those 11 to a test sleeve-selector issue and a slow single-threaded local `php artisan serve`, not to app defects.
+- Every gallery 3D viewer (23) was also browser-checked on its own (see "Viewer connection status").
+
+| # | Gallery photo | Gallery tier | Studio action → opens | Editable 2D | 3D in Studio (model) | Read-only 3D | Save → reopen → order | Browser |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | `bir-blouse-trousers-blue` | 2d-3d-approx | "Edit this garment" → Button-Down / Long / female | photo base `button-down-bir-long` | `button-down-bir-long.glb` (photo-matched) | set preview | pass | E2E browser: all 8 steps pass |
+| 2 | `blazer-blouse-blue` | 2d-3d-approx | "Open Blouse template" → Blouse / Short | vector `None` | `blazer-blouse-blue.glb` (photo-matched) | — | pass | E2E browser: all 8 steps pass |
+| 3 | `blazer-blouse-blue-short` | reference | none (reference photo only) | — | — | — | n/a (cannot be opened, so it cannot be saved) | Browser: "Reference photo" badge, Back only (no 3D, no editor) |
+| 4 | `blazer-collarless-tan` | 2d-3d-approx | "Open Collarless Blazer template" → Collarless Blazer / Long | vector `None` | `collarless-blazer-long.glb` (photo-matched) | — | pass | E2E browser: all 8 steps pass |
+| 5 | `blazer-double-breasted-gray` | reference | none (reference photo only) | — | — | set preview | n/a (cannot be opened, so it cannot be saved) | Browser: "Reference photo" badge, read-only 3D view only |
+| 6 | `blazer-open-front-black` | reference | none (reference photo only) | — | — | single-garment reference | n/a (cannot be opened, so it cannot be saved) | Browser: "Reference photo" badge, read-only 3D view only |
+| 7 | `blazer-pinstripe-navy` | reference | none (reference photo only) | — | — | set preview | n/a (cannot be opened, so it cannot be saved) | Browser: "Reference photo" badge, read-only 3D view only |
+| 8 | `blazer-pinstripe-royal` | 2d-3d-approx | "Open Collarless Blazer template" → Collarless Blazer / Short | vector `None` | `collarless-blazer-short.glb` (photo-matched) | — | pass | E2E browser: all 8 steps pass |
+| 9 | `blazer-tweed-herringbone` | 2d-3d-approx | "Open Blazer template" → Blazer / Long | vector `None` | `blazer-tweed-herringbone.glb` (photo-matched) | — | pass | E2E browser: all 8 steps pass |
+| 10 | `blazer-white-notch` | 2d-3d-approx | "Open Blazer template" → Blazer / 3/4 | vector `None` | `blazer-white-notch.glb` (photo-matched) | — | pass | E2E browser: all 8 steps pass |
+| 11 | `blouse-asymmetric-blue` | reference | none (reference photo only) | — | — | single-garment reference | n/a (cannot be opened, so it cannot be saved) | Browser: "Reference photo" badge, read-only 3D view only |
+| 12 | `blouse-mandarin-yellow` | reference | none (reference photo only) | — | — | single-garment reference | n/a (cannot be opened, so it cannot be saved) | Browser: "Reference photo" badge, read-only 3D view only |
+| 13 | `blouse-pleated-bib-white` | reference | none (reference photo only) | — | — | single-garment reference | n/a (cannot be opened, so it cannot be saved) | Browser: "Reference photo" badge, read-only 3D view only |
+| 14 | `blouse-roundneck-fuchsia` | 2d-3d-approx | "Edit this garment" → Round Neck / Short | photo base `round-neck-fuchsia-short` | `round-neck-fuchsia-short.glb` (photo-matched) | set preview | pass | E2E browser: all 8 steps pass |
+| 15 | `blouse-roundneck-mustard` | reference | none (reference photo only) | — | — | set preview | n/a (cannot be opened, so it cannot be saved) | Browser: "Reference photo" badge, read-only 3D view only |
+| 16 | `blouse-scarf-cream` | reference | none (reference photo only) | — | — | single-garment reference | n/a (cannot be opened, so it cannot be saved) | Browser: "Reference photo" badge, read-only 3D view only |
+| 17 | `blouse-tunic-roundneck-blue` | editable-2d | "Open T-Shirt template" → T-Shirt / Short / female | vector `None` | none in the Studio: `t-shirt-female.glb` withheld (V-neck tee, wrong garment for this round-neck tunic; 2026-10-10) | single-garment reference | pass | E2E browser: all 8 steps pass (run before the 3D was withheld) |
+| 18 | `corporate-skirt` | editable-2d | "Open Skirt template" → Skirt | vector `skirt-pencil` | `skirt-pencil.glb` (labelled family-level approximation, not this photo) | — | pass | E2E browser: all 8 steps pass |
+| 19 | `dress-bir-green-yellow-collar` | 2d-3d-approx | "Open Dress template" → Dress / Short | vector `None` | `dress-bir-green-yellow-collar.glb` (photo-matched) | — | pass | E2E browser: all 8 steps pass |
+| 20 | `dress-butter-belted` | reference | none (reference photo only) | — | — | single-garment reference | n/a (cannot be opened, so it cannot be saved) | Browser: "Reference photo" badge, read-only 3D view only |
+| 21 | `dress-sheath-denim-blue` | reference | none (reference photo only) | — | — | — | n/a (cannot be opened, so it cannot be saved) | Browser: "Reference photo" badge, Back only (no 3D, no editor) |
+| 22 | `dress-shift-geometric` | reference | none (reference photo only) | — | — | — | n/a (cannot be opened, so it cannot be saved) | Browser: "Reference photo" badge, Back only (no 3D, no editor) |
+| 23 | `dress-tunic-maternity-navy` | reference | none (reference photo only) | — | — | single-garment reference | n/a (cannot be opened, so it cannot be saved) | Browser: "Reference photo" badge, read-only 3D view only |
+| 24 | `jack-shirt-two-tone` | reference | none (reference photo only) | — | — | single-garment reference | n/a (cannot be opened, so it cannot be saved) | Browser: "Reference photo" badge, read-only 3D view only |
+| 25 | `pants` | 2d-3d-approx | "Open Pants template" → Pants | vector `pants-trousers` | `pants.glb` (photo-matched) | — | pass | E2E browser: all 8 steps pass |
+| 26 | `pantsuit-notch-short-gray` | reference | none (reference photo only) | — | — | set preview | n/a (cannot be opened, so it cannot be saved) | Browser: "Reference photo" badge, read-only 3D view only |
+| 27 | `peplum-set-navy` | reference | none (reference photo only) | — | — | set preview | n/a (cannot be opened, so it cannot be saved) | Browser: "Reference photo" badge, read-only 3D view only |
+| 28 | `polo-barong-brown` | reference | none (reference photo only) | — | — | set preview | n/a (cannot be opened, so it cannot be saved) | Browser: "Reference photo" badge, read-only 3D view only |
+| 29 | `polo-red-claremont` | 2d-3d-approx | "Open Polo Shirt template" → Polo Shirt / Short / unisex | vector `polo-shirt-short-unisex` | `polo-shirt-unisex-short.glb` (photo-matched) | — | pass | E2E browser: all 8 steps pass |
+| 30 | `school-skirt` | 2d-3d-approx | "Open Pleated Skirt template" → Pleated Skirt | vector `skirt-pleated` | `school-skirt.glb` (photo-matched) | — | pass | E2E browser: all 8 steps pass |
+| 31 | `scrub-set-housekeeping` | 2d-3d-approx | "Edit this garment" → Mandarin Collar / Short / female | photo base `mandarin-tunic-housekeeping` | `mandarin-tunic-housekeeping.glb` (photo-matched) | set preview | pass | E2E browser: all 8 steps pass |
+| 32 | `scrub-set-men-vneck` | 2d-3d-approx | "Edit this garment" → Scrub Top / Short / male | photo base `scrub-top-men-short` | `scrub-top-men-short.glb` (photo-matched) | set preview | pass | E2E browser: all 8 steps pass |
+| 33 | `scrub-set-women-vneck` | 2d-3d-approx | "Edit this garment" → Scrub Top / Short / female | photo base `scrub-top-women-short` | `scrub-top-women-short.glb` (photo-matched) | set preview | pass | E2E browser: all 8 steps pass |
+| 34 | `set-pinstripe-pants` | reference | none (reference photo only) | — | — | set preview | n/a (cannot be opened, so it cannot be saved) | Browser: "Reference photo" badge, read-only 3D view only |
+| 35 | `set-pinstripe-skirt` | reference | none (reference photo only) | — | — | set preview | n/a (cannot be opened, so it cannot be saved) | Browser: "Reference photo" badge, read-only 3D view only |
+| 36 | `set-vest-blouse` | reference | none (reference photo only) | — | — | — | n/a (cannot be opened, so it cannot be saved) | Browser: "Reference photo" badge, Back only (no 3D, no editor) |
+| 37 | `shirt-mandarin-polkadot` | 2d-3d-approx | "Open Mandarin Collar template" → Mandarin Collar / Long / male | vector `mandarin-shirt-long-male` | `shirt-mandarin-long-male.glb` (photo-matched) | — | pass | E2E browser: all 8 steps pass |
+| 38 | `shirt-two-tone-gpc` | reference | none (reference photo only) | — | — | set preview | n/a (cannot be opened, so it cannot be saved) | Browser: "Reference photo" badge, read-only 3D view only |
+| 39 | `shirt-utility-beige-long` | 2d-3d-approx | "Open Button-Down template" → Button-Down / Long / unisex | vector `None` | `shirt-utility-beige-long.glb` (photo-matched) | — | pass | E2E browser: all 8 steps pass |
+| 40 | `shorts` | 2d-3d-approx | "Open Shorts template" → Shorts | vector `shorts-standard` | `shorts.glb` (photo-matched) | — | pass | E2E browser: all 8 steps pass |
+
+Totals: 40 images · 19 open an editable template (17 photo-matched GLBs, 2 labelled family-level approximations, 0 editable 2D without a GLB) · 21 reference-only (17 with a read-only 3D viewer, 4 photo only)
+
+**Gaps found and fixed in this pass:**
+- **Save of photo-base garments failed in the account.** `POST /api/customer/drafts` returned 422: the 2x canvas preview exceeded the API limit of `preview_dataurl` (300 000 characters), so the whole draft was rejected.
+  - Fix: `fitDraftPreview` (`designExport.js`) scales the preview down until it fits, or sends no preview. The design is never dropped.
+  - Browser-verified: it shrinks a real 753 414-character photo-base preview to 226 682, and returns null when the preview cannot fit.
+  - The API accepts `preview_dataurl: null` (200) and keeps the design.
+- **Account vs browser save:** on success the dock shows "Saved to your account" and the toast "Design saved to your account"; the earlier "saved on this device" toast that flashed first on every save is gone.
+  - If the account save fails, the dock keeps "On this device only — account save failed, retry" until the next save, and the toast says "Saved in this browser only…". It is never shown as an account save.
+  - Browser-verified with a stubbed 500.
+- **Family-level approximations are labelled:** the gallery card says the 3D view is the generic family model, and the Studio 3D pane shows "3D shows the generic <garment> model, not the photo". Only the corporate skirt (pencil-skirt model, same fitted straight silhouette) keeps one.
+
+**Known limitations (not fixed here, by design):**
+- `blouse-tunic-roundneck-blue` opens the "closest" T-Shirt template in 2D. Its Studio 3D is withheld (`NO_FAMILY_3D` in `garmentCapabilities.js`): the female T-Shirt model is a V-neck tee with contrast trim, while the photo is a round-neck belted tunic with a placket, so showing it would misrepresent the garment. Studio, Order Wizard and Order Detail all gate on `has3DFor`, so the design stays 2D everywhere; choosing T-Shirt directly keeps its model. The photo's true shape is viewable read-only in the gallery.
+- `corporate-skirt` opens the pencil Skirt template; its 3D is the family's low-poly pencil skirt, labelled as an approximation (its own model was rejected).
+- Reference-only photos have no "use this design" path. They cannot be saved or ordered, which is truthful because there is no editable garment behind them.
+- In the Studio dock, the summary line of photo-base garments omits the sleeve text; the sleeve chip shows it.
+
+
 ## Exhaustive staging inventory (2026-10-10): 42 of 42 files
 
 Every `.glb` under `asset-staging/mesh-3d/` (recursive) was enumerated and recorded with its size, SHA-256 and GLTF structure (`inventory.py`). Each file was rendered at 0°, 45°, 90° and 180° in the GLB harness and compared with its gallery or reference photo.

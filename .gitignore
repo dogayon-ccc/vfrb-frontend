@@ -24,3 +24,5 @@ dist-ssr
 *.sw?
 asset-staging/mesh-3d/
 asset-staging/mesh-3d/
+
+.claude

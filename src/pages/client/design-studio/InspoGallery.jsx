@@ -173,6 +173,8 @@ function DesignBrowser({ onOpen, onOpen3D }) {
         <TierBadge tier={preview.tier}/>
         <p className="ds-note" style={{ textAlign:'center' }}>{preview.exactBase ? (preview.has3D ? 'Editable in 2D on a real VFRB photo base, with its own garment-only 3D model. 3D shows one body colour.' : 'Editable in 2D on a real VFRB photo base. No 3D model.')
           : preview.has3D ? `Opens the VFRB ${preview.garmentFamily} template in 2D. The 3D model was made from this photo and shows one body colour (pattern optional).`
+          : preview.familyApprox3D ? `${t.note} Its 3D view is the generic ${preview.garmentFamily} model, an approximation, not this exact garment.`
+          : preview.family3DOff ? `${t.note} The Studio shows it in 2D only: the ${preview.garmentFamily} 3D model is a different garment.${preview.ref3D ? ' A read-only 3D reference of this photo is available below.' : ''}`
           : !preview.editable2D && preview.ref3D ? 'Inspiration only: no editable VFRB template for this design. A read-only 3D reference of this photo is available below.' : t.note}</p>
         {preview.editable2D && <p className="ds-note" style={{ textAlign:'center' }}>{preview.exactBase ? `Opens this garment as an editable real-photo base (${preview.garmentFamily}).` : `Opens the closest ${preview.garmentFamily} template${preview.sleeve ? `, ${preview.sleeve.toLowerCase()} sleeve` : ''}. It is not an exact copy of the photo.`}</p>}
         <div style={{ display:'flex', gap:8, flexWrap:'wrap', justifyContent:'center' }}>

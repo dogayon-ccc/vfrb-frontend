@@ -24,6 +24,7 @@
 import { resolveSleeve, resolveFit, LEGACY_GARMENT } from './garmentCatalog';
 import { assetFor, templateIdFor, templateKeyById } from './garmentAssets';
 import { ENTRIES as GALLERY } from './designGallery';
+import { savedDesignName } from '../../../utils/designName';
 
 // A gallery photo id is kept only while the design is still on the family that photo opens (reference, never geometry).
 const inspirationFor = (id, garment) => (typeof id === 'string' && GALLERY.find(d => d.id === id)?.base?.[1] === garment ? id : null);
@@ -38,6 +39,12 @@ export const DEFAULT_CFG = {
   patterns: { body:'solid', collar:'solid', sleeve:'solid', pocket:'solid' },
   patternParams: {},
 };
+
+// Account draft label (order_drafts.label, max 120): the customer's own design name when set,
+// otherwise the older "<garment> — <category>" form. Every save (manual, autosave, Order) uses this one rule.
+export function draftLabel(cfg) {
+  return (savedDesignName(cfg) || [cfg?.garment, cfg?.category].filter(Boolean).join(' — ')).slice(0, 120);
+}
 
 // Legacy producers wrote garmentType/sleeveType alongside garment/sleeve (the
 // backend and several read-only consumers — OrderDetail/Orders/Dashboard —

@@ -5,6 +5,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getStorageUrl, isImageFile } from '../../utils/fileUrl';
 import DesignPreview from '../../components/DesignPreview';
+import { savedDesignName } from '../../utils/designName';
 import { NavIcon } from '../../components/ui';
 import { canAccessArea, readAdminUser } from '../../utils/jobAccess';
 import { Panel, StatusPill, Meter, EmptyBlock, Toast, useToast, useIsMobile } from '../../components/admin/AdminUI';
@@ -343,8 +344,8 @@ export default function AdminOrderDetail() {
           <Panel title="Submitted Design" style={{ order:2 }}>
             {hasStudioConfig ? (
               <div style={{ display:'flex', flexDirection:'column', alignItems:'stretch', gap:6, width:'100%', minWidth:0 }}>
-                {order.studio_config?.name && (
-                  <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)', textAlign:'center' }}>{order.studio_config.name}</div>
+                {savedDesignName(order.studio_config) && (
+                  <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)', textAlign:'center', overflowWrap:'anywhere' }}>{savedDesignName(order.studio_config)}</div>
                 )}
                 <DesignPreview cfg={order.studio_config} height={isMobile ? 260 : 360} previewUrl={order.design_preview_url ?? null}/>
                 {order.design_preview_url && (
