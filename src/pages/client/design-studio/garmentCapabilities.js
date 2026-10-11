@@ -326,9 +326,27 @@ export const STAND_IN_3D_MODELS = [{
   parts: [{ node: 'mesh_node', decals: false, zoneOf: bodyOnly }],
   capabilities: { zones: ['body'], fit: ['unisex'], limitations: ['low-poly (1.3k vertices)', 'waist and hem are straight clips of the scan (no waistband detail)'] },
 }];
-export const standIn3D = garment => STAND_IN_3D_MODELS.some(x => x.match.test(String(garment ?? '')));
+// A stand-in blocks a garment only while no real model serves it (Skirt now has the authored pencil skirt; the stand-in file stays withheld).
+export const standIn3D = garment => STAND_IN_3D_MODELS.some(x => x.match.test(String(garment ?? ''))) && !SCANNED_GARMENTS.some(x => x.match.test(String(garment ?? '')));
 
-export const SCANNED_GARMENTS = [...SCANNED_BASE, ...SCRUB_TOP, ...MANDARIN_TUNIC, ...ROUND_NECK, ...BIR_BLOUSE, ...UTILITY_LONG, ...CORPORATE_MODELS, ...MEDICAL_MODELS, ...MANDARIN_SHIRT_LONG, ...MORE_MODELS];
+// VFRB-authored garment models (procedural, garment-only, UV-mapped). skirt-pencil-lofted: tools/glb-extract/build_pencil_skirt.py,
+// rendered in the Studio renderer (colour dE mean 3.9 / max 5.9, see GLB-STAGING-AUDIT.md), the Skirt family's "3D (approx.)".
+const AUTHORED_MODELS = [{
+  id: 'skirt-pencil-lofted', match: /^skirt$/i, label: '3D (approx.)', approval: 'enabled 2026-10-11 (fallback: the Downloads corporate skirt is the rejected staging file)',
+  license: 'VFRB-authored procedural geometry (no third-party mesh, no scan, no generation credits)',
+  models: { unisex: '/models/authored/skirt-pencil-lofted.glb' }, torso: { unisex: 0.42 },
+  transform: { rotation: [0, 0, 0], scale: 0.5, position: [0, -0.05, 0] },
+  // Painted through the calibrated zone-mask path (as Pants/Shorts); the UV path still has a white sheen (measured dE up to 14.6).
+  parts: [{ node: 'skirt_body', colorKey: 'body', decals: false, zoneOf: bodyOnly }, { node: 'waistband', colorKey: 'body', decals: false, zoneOf: bodyOnly }],
+  capabilities: {
+    regionMethod: 'vertex-mask', regionAccuracy: 'approximate (one body zone; waistband is a separate part in the body colour; the GLB is UV-mapped)',
+    zones: ['body'], patterns: { zones: ['body'], ids: ALL_PATTERNS.filter(p => p !== 'geometric') }, sleeves: [],
+    text: false, logo: false, frontBack: false, fit: ['unisex'],
+    limitations: ['authored pencil silhouette, not a scan of a VFRB skirt', 'darts and the back vent are shallow shape hints', 'one body colour', 'no text or logos in 3D'],
+  },
+}];
+
+export const SCANNED_GARMENTS = [...SCANNED_BASE, ...SCRUB_TOP, ...MANDARIN_TUNIC, ...ROUND_NECK, ...BIR_BLOUSE, ...UTILITY_LONG, ...CORPORATE_MODELS, ...MEDICAL_MODELS, ...MANDARIN_SHIRT_LONG, ...MORE_MODELS, ...AUTHORED_MODELS];
 
 // The 3D entry generated from a gallery photo (`sourcePhoto`), if any.
 export const modelFromPhoto = id => SCANNED_GARMENTS.find(x => x.sourcePhoto === id) ?? null;
@@ -401,23 +419,9 @@ export const UNSUPPORTED_3D_MODELS = [
 
 // Present in public/models, not a fused figure by either static or visual/rendered evidence, but
 // not yet promoted to SCANNED_GARMENTS: same reasons as any entry that moves out of this list once
-// verified. A candidate here is never served (no 3D toggle, catalog status unchanged) until it is moved.
-// skirt-pencil-lofted: VFRB-authored pencil skirt (tools/glb-extract/build_pencil_skirt.py), garment-only, UV-mapped, two parts
-// (body + waistband) in one colour; awaiting the client's approval before Skirt offers 3D (replaces the withheld stand-in).
-export const PENDING_3D_MODELS = [{
-  id: 'skirt-pencil-lofted', match: /^skirt$/i, label: '3D (approx.)', approval: 'pending',
-  license: 'VFRB-authored procedural geometry (no third-party mesh, no scan, no generation credits)',
-  models: { unisex: '/models/authored/skirt-pencil-lofted.glb' }, torso: { unisex: 0.42 },
-  transform: { rotation: [0, 0, 0], scale: 0.5, position: [0, -0.05, 0] },
-  // Painted through the calibrated zone-mask path (as Pants/Shorts); the UV path still has a white sheen (measured dE up to 14.6).
-  parts: [{ node: 'skirt_body', colorKey: 'body', decals: false, zoneOf: bodyOnly }, { node: 'waistband', colorKey: 'body', decals: false, zoneOf: bodyOnly }],
-  capabilities: {
-    regionMethod: 'vertex-mask', regionAccuracy: 'approximate (one body zone; waistband is a separate part in the body colour; the GLB is UV-mapped)',
-    zones: ['body'], patterns: { zones: ['body'], ids: ALL_PATTERNS.filter(p => p !== 'geometric') }, sleeves: [],
-    text: false, logo: false, frontBack: false, fit: ['unisex'],
-    limitations: ['authored pencil silhouette, not a scan of a VFRB skirt', 'darts and the back vent are shallow shape hints', 'one body colour', 'no text or logos in 3D'],
-  },
-}];
+// verified. A candidate here is never served (no 3D toggle, catalog status unchanged) until it is moved. Empty: the authored pencil skirt
+// was moved to AUTHORED_MODELS on 2026-10-11.
+export const PENDING_3D_MODELS = [];
 
 // Patterns a scanned entry really paints: only its listed zones and ids; everything else stays solid in 3D while the 2D design keeps it.
 export function patternsFor3D(entry, patterns, { photoBase = false } = {}) {

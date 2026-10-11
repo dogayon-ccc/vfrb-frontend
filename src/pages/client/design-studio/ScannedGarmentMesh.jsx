@@ -42,10 +42,10 @@ function tiledGrainNormal(size) {
   return tiledGrain;
 }
 
-function partMaterial(color, part, map = null) {
+export function partMaterial(color, part, map = null) {
   if (part.unlit) return new THREE.MeshBasicMaterial({ color, side: THREE.FrontSide });
   if (part.plain) return new THREE.MeshStandardMaterial({ color, roughness: part.roughness ?? 0.4, metalness: part.metalness ?? 0, side: THREE.DoubleSide });
-  return new THREE.MeshPhysicalMaterial({
+  const m = new THREE.MeshPhysicalMaterial({
     // Matte cloth: low specular and a sheen in the cloth's own colour, so dark and saturated colours are not veiled grey (calibrated in DesignStudio3D LIGHT).
     color, roughness: part.roughness ?? 0.88, metalness: 0, specularIntensity: 0.2,
     sheen: 0.4, sheenRoughness: 0.6, sheenColor: new THREE.Color(color),
@@ -53,6 +53,13 @@ function partMaterial(color, part, map = null) {
     map, normalMap: part.zoneOf ? null : (map ? tiledGrainNormal(map.image.width) : grainNormal()),
     normalScale: new THREE.Vector2(0.35, 0.35), side: THREE.DoubleSide,
   });
+  // UV path: the colour lives in the zone texture and the material is white, so the sheen takes the painted texel colour (same fix as
+  // the zone-mask shader in regionShader.js); a white sheen veiled the T-shirt (measured dE up to 20.4).
+  if (map) {
+    m.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace('#include <lights_physical_fragment>', '#include <lights_physical_fragment>\n#ifdef USE_SHEEN\nmaterial.sheenColor *= diffuseColor.rgb;\n#endif'); };
+    m.customProgramCacheKey = () => 'vfrb-uv-sheen-v1';
+  }
+  return m;
 }
 
 const loadTexture = url => new Promise(resolve => new THREE.TextureLoader().load(url, t => {

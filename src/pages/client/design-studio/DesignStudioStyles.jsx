@@ -223,6 +223,12 @@ export default function DesignStudioStyles() {
         background:linear-gradient(100deg,var(--cx-paper-2) 30%,var(--cx-paper) 50%,var(--cx-paper-2) 70%) 0 0/300% 100%;animation:dsSkel 1.4s var(--cx-ease) infinite;}
       .ds-ref3d-skel span{width:42%;height:58%;border-radius:40% 40% 12% 12%;background:color-mix(in srgb,var(--cx-line) 70%,transparent);}
       @keyframes dsSkel{to{background-position:-150% 0}}
+      /* Try colours on the 3D reference (preview only) */
+      .ds-ref-try{display:flex;flex-direction:column;align-items:stretch;gap:8px;text-align:left;}
+      .ds-ref-try>.ds-btn{align-self:center;min-height:44px;}
+      .ds-ref-try .ds-zones{align-items:center;margin:0;}
+      .ds-ref-approx{font-size:11.5px;font-weight:700;color:var(--cx-ink-2);font-style:italic;}
+      .ds-ref-try .ds-swatch-dots{margin:0;}
       @media (prefers-reduced-motion:reduce){.ds-ref3d-skel{animation:none;}}
       @media (max-width:1023px){
         .ds-pick-media{grid-template-columns:1fr;}

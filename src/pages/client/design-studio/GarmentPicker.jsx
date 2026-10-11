@@ -9,6 +9,8 @@ import { CATEGORIES, PIECES, SLEEVES, GENDERS, ENTRIES, TIER_LABEL, filterDesign
 import { assetFor } from './garmentAssets';
 import { hasWebGL } from './webglSupport';
 import { ROLE_LABEL } from './uniformSet';
+import { SwatchGrid } from './SwatchGrid';
+import { REF_SPLIT, PREVIEW_CAPTION, previewColors } from './referenceColour';
 
 const ReferenceModel3D = lazy(() => import('./ReferenceModel3D'));
 const CAT_SHORT = { 'School Uniform': 'School', 'Medical / Scrubs': 'Medical', 'Hospitality / Service': 'Hospitality', 'Industrial / Work': 'Industrial' };
@@ -110,6 +112,10 @@ function Photos({ head, onClose, pieceRole, onPickPhoto, onPick3D, onUpload, ext
   const [kind, setKind] = useState('editable');
   const [preview, setPreview] = useState(null);
   const [view3D, setView3D] = useState('3d'); // phone: Photo | 3D switch, 3D first; desktop shows both
+  // "Try colours" on the 3D reference: a preview held only here, never saved or sent with an order (VFRB produces from the 2D design).
+  const [tryCol, setTryCol] = useState(false);
+  const [refCol, setRefCol] = useState({ top: '#1B2A4A', bottom: '#1B2A4A' });
+  const [refPart, setRefPart] = useState('top');
   const [ref3DFailed, setRef3DFailed] = useState(false);
   const [roleOn, setRoleOn] = useState(true);
   // In a uniform set only photos of the active piece can open; with the chip removed the rest stay visible as inspiration.
@@ -123,7 +129,7 @@ function Photos({ head, onClose, pieceRole, onPickPhoto, onPick3D, onUpload, ext
   const shown = kind === 'all' ? matched : matched.filter(d => (kind === 'editable' ? canEdit(d) : !canEdit(d)));
   const active = FILTERS.filter(([k]) => filters[k]).length;
   const legend = <Legend labels={PHOTO_LABEL} icons={PHOTO_BADGE} present={Object.keys(PHOTO_BADGE).filter(k => shown.some(d => tierOf(d) === k))}/>;
-  const back = () => { setPreview(null); setView3D('3d'); setRef3DFailed(false); };
+  const back = () => { setPreview(null); setView3D('3d'); setRef3DFailed(false); setTryCol(false); setRefPart('top'); };
 
   if (preview) {
     const offRole = preview.editable2D && !fitsRole(preview) ? ROLE_LABEL[pieceRole] : null;
@@ -144,9 +150,27 @@ function Photos({ head, onClose, pieceRole, onPickPhoto, onPick3D, onUpload, ext
               <figure className="ds-pick-photo"><img src={preview.image} alt={preview.label}/></figure>
               <figure className="ds-pick-3d">
                 <Suspense fallback={<div className="ds-ref3d-stage"><div className="ds-ref3d-skel" role="status"><span/>Loading 3D reference…</div></div>}>
-                  <ReferenceModel3D url={preview.ref3D.file} onError={() => { setRef3DFailed(true); setView3D('photo'); }}/>
+                  <ReferenceModel3D url={preview.ref3D.file} onError={() => { setRef3DFailed(true); setView3D('photo'); }}
+                    colors={tryCol ? previewColors(preview.ref3D.set ? refCol : { top: refCol.top }) : null} split={preview.ref3D.set ? REF_SPLIT[preview.id] ?? null : null}/>
                 </Suspense>
-                <figcaption className="ds-note">3D reference{preview.ref3D.set ? ' of the full set' : ''}: neutral colour, not editable.{preview.ref3D.set ? ' The set is one fused model, so its pieces cannot be coloured separately.' : ''} Drag to rotate.</figcaption>
+                <figcaption className="ds-note">{tryCol ? PREVIEW_CAPTION : `3D reference${preview.ref3D.set ? ' of the full set' : ''}: neutral colour, not editable.${preview.ref3D.set ? ' The set is one fused model.' : ''} Drag to rotate.`}</figcaption>
+                <div className="ds-ref-try">
+                  <button type="button" className="ds-btn" aria-pressed={tryCol} onClick={() => setTryCol(v => !v)}>{tryCol ? 'Back to neutral' : 'Try colours'}</button>
+                  {tryCol && (<>
+                    {preview.ref3D.set && (
+                      <div className="ds-zones" role="group" aria-label="Part to colour">
+                        {[['top', 'Top'], ['bottom', 'Bottom']].map(([k, l]) => (
+                          <button key={k} type="button" className="ds-zone" aria-pressed={refPart === k} onClick={() => setRefPart(k)}>
+                            <span className="ds-zone-sw" style={{ background: refCol[k] }} aria-hidden="true"/>{l}
+                          </button>
+                        ))}
+                        <span className="ds-ref-approx">approximate split</span>
+                      </div>
+                    )}
+                    <SwatchGrid label={preview.ref3D.set ? (refPart === 'top' ? 'Top' : 'Bottom') : 'Garment'} current={preview.ref3D.set ? refCol[refPart] : refCol.top}
+                      onPick={hex => setRefCol(c => ({ ...c, [preview.ref3D.set ? refPart : 'top']: hex }))}/>
+                  </>)}
+                </div>
               </figure>
             </div>
           ) : <img src={preview.image} alt={preview.label}/>}
