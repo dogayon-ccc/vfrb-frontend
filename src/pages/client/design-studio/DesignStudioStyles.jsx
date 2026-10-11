@@ -83,7 +83,7 @@ export default function DesignStudioStyles() {
       .ds-tool-btn[aria-pressed="true"],.ds-tool-btn[aria-expanded="true"]{
         background:var(--teal-50);border-color:var(--teal);color:var(--teal-dark);
       }
-      @media (min-width:768px){.ds-tool-btn[aria-pressed="true"]{box-shadow:inset 3px 0 0 var(--teal);}}
+      @media (min-width:1024px){.ds-tool-btn[aria-pressed="true"]{box-shadow:inset 3px 0 0 var(--teal);}}
       .ds-more-btn{display:none;}
       .ds-tool-btn[data-tool="draw"]{margin-top:10px;}
 
@@ -201,6 +201,27 @@ export default function DesignStudioStyles() {
       .ds-pick-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;}
       .ds-pick-actions .ds-btn{min-height:44px;}
       .ds-pick-ref3d{width:100%;}
+      /* Colour controls: compact named dots, custom swatch + hex */
+      .ds-colors{padding:8px 10px 16px;}
+      .ds-zones{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+      .ds-zone{min-height:40px;display:inline-flex;align-items:center;gap:6px;padding:0 12px;border:1px solid var(--cx-line);border-radius:var(--cx-r-pill);background:var(--cx-card);color:var(--cx-ink-2);font:600 12.5px var(--cx-sans);cursor:pointer;}
+      .ds-zone[aria-pressed=true]{border-color:var(--cx-thread);background:var(--cx-thread-tint);color:var(--cx-thread-ink);font-weight:700;}
+      .ds-zone-sw{width:14px;height:14px;border-radius:50%;box-shadow:inset 0 0 0 1px rgb(var(--cx-shade) / .25);}
+      .ds-swatch-dots{list-style:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:2px;margin:0 0 10px;}
+      .ds-custom{display:flex;align-items:center;gap:10px;}
+      .ds-custom-sw{width:44px;height:44px;padding:3px;flex-shrink:0;border:1px solid var(--cx-line-strong);border-radius:50%;background:var(--cx-card);cursor:pointer;}
+      .ds-custom-sw::-webkit-color-swatch-wrapper{padding:0;}
+      .ds-custom-sw::-webkit-color-swatch{border:0;border-radius:50%;}
+      .ds-custom-sw::-moz-color-swatch{border:0;border-radius:50%;}
+      .ds-custom-hex{flex:1;display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--cx-ink-2);}
+      .ds-custom-hex input{flex:1;min-width:0;min-height:44px;padding:0 12px;border:1px solid var(--cx-line-strong);border-radius:var(--cx-r-md);background:var(--cx-card);color:var(--cx-ink);font:600 14px ui-monospace,monospace;text-transform:uppercase;}
+      .ds-custom-hex input[aria-invalid=true]{border-color:var(--danger-text);}
+      .ds-h3-val{text-transform:none;letter-spacing:0;color:var(--cx-ink);}
+      /* Honest label on a flat template drawing (no photo base for it) */
+      .ds-sketch{display:inline-block;padding:2px 7px;border-radius:var(--cx-r-pill);background:var(--cx-paper-2);color:var(--cx-ink-2);font-size:11px;font-weight:700;letter-spacing:.02em;}
+      .ds-pick-img,.ds-sketch-wrap{position:relative;}
+      .ds-pick-img .ds-sketch,.ds-sketch-wrap .ds-sketch{position:absolute;left:6px;bottom:6px;}
+      .ds-ctx-chip .ds-sketch{margin-left:8px;}
       /* Picker modal */
       .ds-modal{position:absolute;top:64px;left:50%;z-index:var(--cx-z-modal);width:min(760px,calc(100vw - 24px));max-height:calc(100dvh - 88px);overflow-y:auto;overscroll-behavior:contain;
         padding:20px clamp(12px,3vw,24px);border:1px solid var(--cx-line);border-radius:var(--cx-r-xl);background:var(--cx-card);box-shadow:var(--cx-elev-2);}
@@ -370,7 +391,7 @@ export default function DesignStudioStyles() {
       .ds-tp-thumb{flex:1;display:flex;align-items:center;justify-content:center;width:100%;border-radius:var(--r-md);background:var(--bg-surface);padding:8px 0;}
       .ds-tp-card[aria-pressed="true"] .ds-tp-thumb{background:var(--bg-card);}
       .ds-tp-photo{display:block;height:128px;width:auto;max-width:100%;object-fit:contain;}
-      @media (max-width:767px){.ds-tp-photo{height:104px;}}
+      @media (max-width:1023px){.ds-tp-photo{height:104px;}}
       .ds-tp-name{font-size:var(--text-xs);font-weight:700;color:var(--ink);text-align:center;line-height:1.2;}
       .ds-chip-note{font-size:11px;font-weight:800;color:var(--cx-ink-2);}
       .ds-tp-chip{white-space:nowrap;font-size:11px;font-weight:800;letter-spacing:.02em;padding:2px 7px;border-radius:99px;background:var(--bg-surface);color:var(--text-muted);}
@@ -489,19 +510,12 @@ export default function DesignStudioStyles() {
       .ds-under .ds-lay{padding-top:6px;}
       .ds-swatch-chips{list-style:none;display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
 
-      @media (min-width:768px) and (max-width:1023px){
-        .ds-strip{width:64px;}
-        .ds-tool-btn{width:54px;}
-        .ds-panel{width:276px;}
-        .ds-dock .ds-dock-actions{grid-template-columns:1fr 44px;}
-        .ds-dock-actions .ds-act--primary{grid-column:1 / -1;order:-1;}
-      }
       /* Short phones: the canvas must stay the focal area, so the sheet shrinks (its body scrolls; the grabber still expands it to 80dvh). */
-      @media (max-width:767px) and (max-height:720px){.ds{--ds-sheet-h:min(34dvh,15rem);}}
-      @media (min-width:768px){
+      @media (max-width:1023px) and (max-height:720px){.ds{--ds-sheet-h:min(34dvh,15rem);}}
+      @media (min-width:1024px){
         .ds-tool-btn[data-narrow-only]{display:none;}
       }
-      @media (max-width:767px){
+      @media (max-width:1023px){
         .ds{--ds-pad-b:calc(var(--ds-nav-h) + var(--ds-inset));}
         .ds[data-snap=peek]{--ds-pad-b:calc(var(--ds-nav-h) + var(--ds-inset) + var(--ds-peek));}
         .ds[data-snap=half]{--ds-pad-b:calc(var(--ds-nav-h) + var(--ds-inset) + var(--ds-sheet-h));}
@@ -606,7 +620,7 @@ export default function DesignStudioStyles() {
       .ds-act--danger{color:#dc2626;border-color:rgba(220,38,38,.3);}
       .ds-ins-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
       .ds-set-wrap{position:absolute;top:56px;left:50%;transform:translateX(-50%);z-index:var(--cx-z-stage);max-width:calc(100% - 24px);}
-      @media (max-width:767px){ .ds-set-wrap{top:60px;} } /* below the 44px stage controls that start at 8px */
+      @media (max-width:1023px){ .ds-set-wrap{top:60px;} } /* below the 44px stage controls that start at 8px */
       .ds-set-bar{display:flex;gap:4px;align-items:center;padding:4px;border-radius:999px;background:var(--bg-card,#fff);border:1px solid var(--border);box-shadow:0 4px 14px rgba(15,23,42,.08);}
       .ds-set-bar button{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-height:40px;padding:4px 14px;border:0;border-radius:999px;background:transparent;cursor:pointer;font:inherit;color:var(--ink);text-align:left;}
       .ds-set-bar button span{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-subtle);}

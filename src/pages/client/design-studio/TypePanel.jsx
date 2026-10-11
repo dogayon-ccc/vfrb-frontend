@@ -2,20 +2,12 @@ import { useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Replace, Trash2 } from 'lucide-react';
 import { NavIcon } from '../../../components/ui/icons';
-import { SwatchChip } from '../../../components/customer/kit';
+import { SwatchGrid, colourName } from './SwatchGrid';
+import { withBody } from './colorRules';
 import { familyFor, resolveFit } from './garmentCatalog';
 import { sleeves3DFor } from './garmentCapabilities';
-import { PH_SWATCHES, ZONE_LABEL, zonesFor } from './dsShared';
+import { ZONE_LABEL, zonesFor } from './dsShared';
 import { assetFor, photoZoneNote } from './garmentAssets';
-
-// Named fabric swatches for one zone; the stitched ring marks the current colour.
-function Swatches({ label, current, onPick }) {
-  return (
-    <ul className="ds-swatch-chips" aria-label={`${label} colour`}>
-      {PH_SWATCHES.map(s => <li key={s.hex}><SwatchChip size="sm" color={s.hex} name={s.name} selected={current === s.hex.toLowerCase()} onSelect={() => onPick(s.hex)}/></li>)}
-    </ul>
-  );
-}
 
 // Properties of the chosen garment. Choosing or changing the garment happens in the one GarmentPicker (canvas or modal).
 export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, onChangeGarment }) {
@@ -77,8 +69,8 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, onCh
           )}
 
           <section>
-            <p className="ds-h3">Base color</p>
-            <Swatches label="Base" current={body} onPick={hex => setCfg(p => ({ ...p, colors: { ...p.colors, body: hex } }))}/>
+            <p className="ds-h3">Base colour: <span className="ds-h3-val">{colourName(cfg.colors.body)}</span></p>
+            <SwatchGrid label="Base" current={body} onPick={hex => setCfg(p => ({ ...p, colors: withBody(p.colors, hex) }))}/>
           </section>
 
           <div className="ds-acc" role="group" aria-label="Refine the design">
@@ -114,7 +106,7 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, onCh
                             })}
                           </div>
                         )}
-                        <div className="ds-acc-sw"><Swatches label={label} current={cur} onPick={hex => setZoneColor(z, hex)}/></div>
+                        <div className="ds-acc-sw"><SwatchGrid label={label} current={cur} onPick={hex => setZoneColor(z, hex)}/></div>
                       </motion.div>
                     )}
                   </AnimatePresence>

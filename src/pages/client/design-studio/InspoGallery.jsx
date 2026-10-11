@@ -170,7 +170,7 @@ export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanv
                     thumb={d.photo_path
                       ? <img src={d.photo_path} alt={d.label} width="54" height="66"
                           style={{ objectFit:'contain', borderRadius:6 }}/>
-                      : <MiniPreview garment={d.config.garment} colors={d.config.colors ?? {}}/>}/>
+                      : <span className="ds-sketch-wrap"><MiniPreview garment={d.config.garment} colors={d.config.colors ?? {}}/><span className="ds-sketch">Sketch</span></span>}/>
                 ))}
               </div>
             </>

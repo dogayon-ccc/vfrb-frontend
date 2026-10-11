@@ -104,6 +104,23 @@ const shade = (lum, ref, gain, [tr, tg, tb]) => {
   return [tr + (255 - tr) * k, tg + (255 - tg) * k, tb + (255 - tb) * k];
 };
 
+// 3x3 average of one RGBA channel: the basis for softening hard cut-out and trim-mask edges by one pixel at runtime.
+const box3 = (px, w, h, ch) => {
+  const out = new Float32Array(w * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    let s = 0, n = 0;
+    for (let dy = -1; dy <= 1; dy++) { const yy = y + dy; if (yy < 0 || yy >= h) continue; for (let dx = -1; dx <= 1; dx++) { const xx = x + dx; if (xx < 0 || xx >= w) continue; s += px[(yy * w + xx) * 4 + ch]; n++; } }
+    out[y * w + x] = s / n;
+  }
+  return out;
+};
+// Anti-aliases the cut-out edge: an edge pixel's alpha drops toward its neighbourhood average; alpha never rises, so no dark fringe appears.
+export function featherEdge(px, w, h) {
+  const avg = box3(px, w, h, 3);
+  for (let i = 0; i < w * h; i++) { const a = px[i * 4 + 3]; if (a > 0 && avg[i] < a) px[i * 4 + 3] = Math.round(avg[i]); }
+  return px;
+}
+
 // `colors` is a hex string (body only) or { body, collar }. `collar` is honoured only for assets that declare a trim zone.
 export async function tintedCanvas(asset, colors) {
   const body = typeof colors === 'string' ? colors : colors?.body;
@@ -116,27 +133,28 @@ export async function tintedCanvas(asset, colors) {
   c.width = img.naturalWidth; c.height = img.naturalHeight;
   const ctx = c.getContext('2d', { willReadFrequently: true });
   ctx.drawImage(img, 0, 0);
+  const d = ctx.getImageData(0, 0, c.width, c.height); const px = d.data;
   if (isHex(body) || isHex(trim)) {
-    const d = ctx.getImageData(0, 0, c.width, c.height); const px = d.data;
     let maskPx = null;
     if (asset.trim?.mask && isHex(trim)) {
       const m = await loadImage(asset.trim.mask), mc = document.createElement('canvas');
       mc.width = c.width; mc.height = c.height;
       const mx = mc.getContext('2d', { willReadFrequently: true }); mx.drawImage(m, 0, 0, c.width, c.height);
-      maskPx = mx.getImageData(0, 0, c.width, c.height).data;
+      maskPx = box3(mx.getImageData(0, 0, c.width, c.height).data, c.width, c.height, 0); // softened trim boundary
     }
     const bRgb = isHex(body) ? hexRgb(body) : null; const tRgb = isHex(trim) ? hexRgb(trim) : null;
     for (let i = 0; i < px.length; i += 4) {
       if (px[i + 3] === 0) continue;
       const lum = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
-      const w = maskPx ? maskPx[i] / 255 : 0; // 1 inside the trim mask
+      const w = maskPx ? maskPx[i >> 2] / 255 : 0; // 1 inside the trim mask
       const orig = [px[i], px[i + 1], px[i + 2]];
       const b = bRgb ? shade(lum, asset.refLum, asset.gain ?? 1, bRgb) : orig;
       const t = tRgb ? shade(lum, asset.trim.refLum, asset.gain ?? 1, tRgb) : orig;
       px[i] = b[0] * (1 - w) + t[0] * w; px[i + 1] = b[1] * (1 - w) + t[1] * w; px[i + 2] = b[2] * (1 - w) + t[2] * w;
     }
-    ctx.putImageData(d, 0, 0);
   }
+  featherEdge(px, c.width, c.height);
+  ctx.putImageData(d, 0, 0);
   if (tintCache.size > 24) tintCache.delete(tintCache.keys().next().value);
   tintCache.set(key, c);
   return c;

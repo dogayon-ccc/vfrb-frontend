@@ -72,12 +72,12 @@ export default function DesignStudio() {
   const [selObj,     setSelObj]     = useState(null);
   const [activeZone, setActiveZone] = useState('body');
 
-  // Mirrors the phone/tablet breakpoint in DesignStudioStyles.jsx (native matchMedia, no new dependency).
+  // Mirrors the phone/tablet (bottom sheet) breakpoint in DesignStudioStyles.jsx (native matchMedia, no new dependency).
   const [isNarrow, setIsNarrow] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches
   );
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 767px)');
+    const mq = window.matchMedia('(max-width: 1023px)');
     const onChange = (e) => setIsNarrow(e.matches);
     mq.addEventListener('change', onChange);
     return () => mq.removeEventListener('change', onChange);

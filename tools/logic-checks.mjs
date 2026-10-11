@@ -388,5 +388,36 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('Layers live in one section: the rail tile focuses it; no second Layers panel', !/layers:\s*\(\)\s*=>/.test(drawer) && /if \(id === 'layers'\) return focusLayers\(\)/.test(drawer) && (drawer.match(/<LayersPanel\b/g) ?? []).length === 1);
   t('each fact once: no category pill in the top bar; the dock carries category and 3D status; no "No garment yet" row', !/ds-bar-cat|cfg\.category/.test(get('TopBar.jsx')) && /ds-dock-sub/.test(get('StudioDock.jsx')) && !/No garment yet|Choose one/.test(get('StudioDock.jsx')));
 }
+// Studio visual quality: photo bases never above native resolution; a new design starts with one base colour.
+{
+  const A = await L('/src/pages/client/design-studio/garmentAssets.js');
+  const Pth = await L('/src/pages/client/design-studio/garmentPaths.js');
+  const V = await L('/src/pages/client/design-studio/studioView.js');
+  const bases = Object.entries(A.ASSET_2D).flatMap(([g, bs]) => Object.entries(bs).flatMap(([sl, bf]) => Object.entries(bf).flatMap(([face, bfit]) => Object.values(bfit).map(a => ({ a, art: Pth.getGarmentPaths(g, sl, face) })))));
+  // On-screen size of the photo = native x in-canvas scale x viewport scale; at the cap that is exactly native or less, for every base.
+  t('every photo base is capped at 1:1 on screen (in-canvas scale x max viewport scale <= 1)', bases.length >= 6 && bases.every(({ a, art }) => V.inCanvasScale(a, art) * V.photoMaxScale(a, art) <= 1 + 1e-9) && V.photoMaxScale(null, { w: 320, h: 380 }) === Infinity);
+  const cv = fsx.readFileSync(urlx.fileURLToPath(new URL('../src/pages/client/design-studio/CanvasViewport.jsx', import.meta.url)), 'utf8');
+  t('the viewport applies the photo cap to fit x zoom and disables zoom-in at it', /const cap = photoMaxScale\(photo, canvasSize\)/.test(cv) && /const base = Math\.min\(fit, cap\)/.test(cv) && /const scale = Math\.min\(zoom \* base, cap\)/.test(cv) && /aria-label="Zoom in" disabled=\{atCap\}/.test(cv));
+  // Runtime anti-aliasing of the cut-out edge: alpha only ever drops, transparent stays transparent, the interior stays opaque.
+  const w = 6, h = 6, px = new Uint8ClampedArray(w * h * 4);
+  for (let y = 1; y < 5; y++) for (let x = 1; x < 5; x++) px[(y * w + x) * 4 + 3] = 255;
+  const before = Array.from({ length: w * h }, (_, i) => px[i * 4 + 3]);
+  A.featherEdge(px, w, h);
+  const after = Array.from({ length: w * h }, (_, i) => px[i * 4 + 3]);
+  t('photo cut-out edges are anti-aliased at runtime without fringes (alpha never rises; edges soften; interior opaque)', after.every((v, i) => v <= before[i]) && after[0] === 0 && after[1 * w + 1] < 255 && after[1 * w + 1] > 0 && after[2 * w + 2] === 255);
+  const C = await L('/src/pages/client/design-studio/colorRules.js');
+  const G2 = await L('/src/pages/client/design-studio/garmentCatalog.js');
+  const S2 = await L('/src/pages/client/design-studio/designSerialization.js');
+  const one = c => ['collar', 'sleeve', 'pocket'].every(z => c[z] === c.body);
+  t('a new design starts with one base colour on every zone', one(S2.DEFAULT_CFG.colors) && one(C.startColors('#800000')) && one(S2.deserializeDesign(null).cfg.colors));
+  const fresh = { ...S2.DEFAULT_CFG, colors: { ...S2.DEFAULT_CFG.colors } };
+  const polo = G2.applyGarment(fresh, 'Polo Shirt');
+  const tunic = G2.applyGarment(fresh, 'Mandarin Collar', { sleeve: 'Short', fit: 'female' });
+  const realTrim = C.realTrimFor('Mandarin Collar', 'Short', 'female');
+  t('picking a garment keeps one colour, except a real garment trim (housekeeping tunic keeps its photo trim); leaving it follows the body again',
+    one(polo.colors) && !!realTrim && tunic.colors.collar === realTrim && one(G2.applyGarment(tunic, 'Polo Shirt').colors) && C.realTrimFor('Polo Shirt', 'Short', 'male') === null);
+  const moved = C.withBody({ body: '#111111', collar: '#111111', sleeve: '#111111', pocket: '#ffffff' }, '#800000');
+  t('a new base colour moves the zones that follow it, not a zone coloured on purpose', moved.collar === '#800000' && moved.sleeve === '#800000' && moved.pocket === '#ffffff');
+}
 console.log(out.join('\n')); const f = out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);

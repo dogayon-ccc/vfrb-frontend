@@ -22,6 +22,7 @@
 //   never throws, always returns a fully-defaulted cfg.
 
 import { resolveSleeve, resolveFit, LEGACY_GARMENT } from './garmentCatalog';
+import { startColors } from './colorRules';
 import { assetFor, templateIdFor, templateKeyById } from './garmentAssets';
 import { ENTRIES as GALLERY } from './designGallery';
 import { savedDesignName } from '../../../utils/designName';
@@ -35,7 +36,7 @@ export const DEFAULT_CFG = {
   garment: null,
   fit: 'male',
   sleeve: 'Short',
-  colors:   { body:'#1e3a5f', collar:'#c8a96e', sleeve:'#1e3a5f', pocket:'#c8a96e', tipping:null },
+  colors:   startColors('#1B2A4A'), // one named base colour (Navy) on every zone (colorRules.js)
   patterns: { body:'solid', collar:'solid', sleeve:'solid', pocket:'solid' },
   patternParams: {},
 };
