@@ -36,7 +36,7 @@ export default function DrawPanel({ size, color, onSizeChange, onColorChange }) 
 
       <div style={{ padding:'10px 11px', borderRadius:10,
         background:'rgba(2,195,154,.08)', border:'1px solid rgba(2,195,154,.2)' }}>
-        <p style={{ fontSize:11, color:'rgba(15,23,42,.55)', margin:0, lineHeight:1.4 }}>
+        <p style={{ fontSize:11, color:'var(--cx-ink-2)', margin:0, lineHeight:1.4 }}>
           Draw directly on the garment. Strokes become their own layer —
           reorder, hide, or delete them from the Layers tab like any other
           element.

@@ -52,10 +52,10 @@ export default function AIPanel({ onApply, onTexture }) {
   return (
     <div style={{ padding:'12px', display:'flex', flexDirection:'column', gap:10, flex:1, overflowY:'auto' }}>
       <div style={{ padding:'10px 12px', borderRadius:10, background:'rgba(2,195,154,.07)', border:'1px solid rgba(2,195,154,.2)' }}>
-        <p style={{ fontSize:11,fontWeight:700,color:T2,margin:'0 0 3px', display:'flex', alignItems:'center', gap:5 }}>
+        <p style={{ fontSize:11,fontWeight:700,color:'var(--cx-thread-ink)',margin:'0 0 3px', display:'flex', alignItems:'center', gap:5 }}>
           <NavIcon name="ai" size={13}/> AI Design Generator
         </p>
-        <p style={{ fontSize:10,color:'rgba(15,23,42,.4)',margin:0,lineHeight:1.5 }}>
+        <p style={{ fontSize:11,color:'var(--cx-ink-2)',margin:0,lineHeight:1.5 }}>
           Describe your uniform — Gemini fills all zones. Results cached per session.
         </p>
       </div>
@@ -82,25 +82,25 @@ export default function AIPanel({ onApply, onTexture }) {
           style={{
             padding:'8px 10px', borderRadius:9, border:`1px solid rgba(2,195,154,.25)`,
             cursor: !prompt.trim() ? 'not-allowed' : 'pointer',
-            background:'rgba(2,195,154,.07)', color:T2, fontSize:11, fontWeight:700,
+            background:'rgba(2,195,154,.07)', color:'var(--cx-thread-ink)', fontSize:11, fontWeight:700,
             display:'flex', alignItems:'center', gap:5,
           }}>
           <NavIcon name="image" size={13}/> Texture
         </button>
       </div>
 
-      {err && <p style={{ fontSize:10,color:'#fca5a5',margin:0, display:'flex', alignItems:'center', gap:4 }}>
+      {err && <p style={{ fontSize:11,color:'#fca5a5',margin:0, display:'flex', alignItems:'center', gap:4 }}>
         <NavIcon name="warning" size={11} color="#fca5a5"/> {err}
       </p>}
       {msg && (
         <div style={{ padding:'8px 10px',borderRadius:9, background:'rgba(34,197,94,.07)',border:'1px solid rgba(34,197,94,.2)' }}>
-          <p style={{ fontSize:10,color:'#86efac',margin:0 }}>{msg}</p>
+          <p style={{ fontSize:11,color:'#86efac',margin:0 }}>{msg}</p>
         </div>
       )}
 
       {texUrl && (
         <div style={{ borderRadius:10,overflow:'hidden',border:'1px solid rgba(15,23,42,.1)' }}>
-          <p style={{ fontSize:9,color:'rgba(15,23,42,.3)',margin:'0 0 4px', padding:'6px 8px 0',
+          <p style={{ fontSize:11,color:'var(--cx-ink-2)',margin:'0 0 4px', padding:'6px 8px 0',
             textTransform:'uppercase',letterSpacing:'.07em' }}>
             Texture Inspiration (Pollinations.ai)
           </p>
@@ -112,8 +112,8 @@ export default function AIPanel({ onApply, onTexture }) {
       {EXAMPLES.map((ex,i) => (
         <button key={i} onClick={()=>setPrompt(ex)}
           style={{ padding:'7px 9px',borderRadius:8, border:'1px solid rgba(15,23,42,.07)',
-            background:'rgba(15,23,42,.03)',color:'rgba(15,23,42,.4)',
-            fontSize:10,cursor:'pointer',textAlign:'left',lineHeight:1.4 }}>
+            background:'rgba(15,23,42,.03)',color:'var(--cx-ink-2)',
+            fontSize:11,cursor:'pointer',textAlign:'left',lineHeight:1.4 }}>
           {ex}
         </button>
       ))}

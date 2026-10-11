@@ -368,5 +368,25 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const ds = src('../src/pages/client/DesignStudio.jsx');
   t('the draft offer is an in-flow strip shown only on an empty canvas; restoring over existing work asks first', /pendingDraft && !cfg\.garment && layers\.length === 0 && \(\s*<DraftStrip/.test(ds) && /hasWork \? setConfirm\(true\) : onRestore\(\)/.test(src('../src/pages/client/design-studio/DraftStrip.jsx')) && !/position:'absolute', top:58/.test(ds));
 }
+// Studio: every element once. One garment picker, undo/redo only in the top bar, rail tools wait for a garment.
+{
+  const dir = urlx.fileURLToPath(new URL('../src/pages/client/design-studio', import.meta.url));
+  const rd = f => fsx.readFileSync(f, 'utf8');
+  const all = [...fsx.readdirSync(dir).filter(f => /\.jsx?$/.test(f)).map(f => [f, rd(`${dir}/${f}`)]), ['DesignStudio.jsx', rd(urlx.fileURLToPath(new URL('../src/pages/client/DesignStudio.jsx', import.meta.url)))]];
+  const get = n => all.find(([f]) => f === n)?.[1] ?? '';
+  const pickers = all.filter(([f, s]) => f.endsWith('.jsx') && /CATALOG\.map|\.families\.map|filterDesigns\(/.test(s)).map(([f]) => f); // UI components only; data modules may map the catalog
+  const users = all.filter(([f, s]) => f !== 'GarmentPicker.jsx' && /<GarmentPicker\b/.test(s)).map(([f]) => f).sort();
+  t('one garment picker component: only GarmentPicker lists garments or photos; used inline on the canvas (DesignStudio) and in the picker modal (InspoGallery)',
+    pickers.length === 1 && pickers[0] === 'GarmentPicker.jsx' && users.join() === 'DesignStudio.jsx,InspoGallery.jsx' && !all.some(([f]) => f === 'FirstRunGallery.jsx')
+    && /tab=\{pickerTab\}/.test(get('DesignStudio.jsx')) && /setPickerTab\('templates'\)/.test(get('DesignStudio.jsx')) && /setPickerTab\('inspiration'\)/.test(get('DesignStudio.jsx')) && !/CATALOG|selectFamily/.test(get('TypePanel.jsx')));
+  const undoUi = all.filter(([f, s]) => f !== 'TopBar.jsx' && /Undo2|Redo2|aria-label="(Undo|Redo)"|onClick=\{(history\.)?(undo|redo)\}/.test(s)).map(([f]) => f);
+  t('undo/redo controls exist only in the top bar', undoUi.length === 0 && /aria-label="Undo"/.test(get('TopBar.jsx')) && /aria-label="Redo"/.test(get('TopBar.jsx')));
+  const drawer = get('ToolDrawer.jsx');
+  t('rail tools are disabled (aria-disabled, "Choose a garment first") and inert until a garment exists',
+    /const noGarment = !p\.cfg\.garment/.test(drawer) && /aria-disabled=\{noGarment \|\| undefined\}/.test(drawer) && /title=\{noGarment \? 'Choose a garment first'/.test(drawer) && /const pick = id => \{\s*if \(noGarment\) return;/.test(drawer)
+    && /\.ds-tool-btn\[aria-disabled=true\]\{opacity:\.45;cursor:not-allowed;\}/.test(get('DesignStudioStyles.jsx')));
+  t('Layers live in one section: the rail tile focuses it; no second Layers panel', !/layers:\s*\(\)\s*=>/.test(drawer) && /if \(id === 'layers'\) return focusLayers\(\)/.test(drawer) && (drawer.match(/<LayersPanel\b/g) ?? []).length === 1);
+  t('each fact once: no category pill in the top bar; the dock carries category and 3D status; no "No garment yet" row', !/ds-bar-cat|cfg\.category/.test(get('TopBar.jsx')) && /ds-dock-sub/.test(get('StudioDock.jsx')) && !/No garment yet|Choose one/.test(get('StudioDock.jsx')));
+}
 console.log(out.join('\n')); const f = out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);
