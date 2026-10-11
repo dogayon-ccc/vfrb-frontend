@@ -299,5 +299,23 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   ].every(([o, want]) => K.orderTitle(o) === want));
   t('saved design name helper is shared by the draft label (one rule for drafts and orders)', N.savedDesignName({ name: ' a  b ' }) === 'a b' && S.draftLabel({ name: ' a  b ', garment: 'Pants' }) === 'a b' && N.savedDesignName('null') === '' && N.savedDesignName(undefined) === '');
 }
+// P2 thumbnails: one DesignThumb for saved designs; a real saved preview is never confused with the colour-silhouette fallback.
+{
+  const K = await L('/src/components/customer/kit.jsx');
+  const html = p => renderToString(React.createElement(K.DesignThumb, p));
+  const png = 'data:image/png;base64,iVBORw0KGgo=';
+  const withSrc = html({ src: png, garment: 'Lab Coat', colors: { body: '#800000' }, name: 'Ñoño’s coat' });
+  t('DesignThumb with a saved preview renders that image (loading until it decodes) and no silhouette or fallback note', /data-kind="loading"/.test(withSrc) && withSrc.includes(`src="${png}"`) && !/<svg/.test(withSrc) && !/cx-dthumb-note/.test(withSrc) && /aria-label="Saved preview of Ñoño’s coat"/.test(withSrc));
+  const none = html({ src: null, garment: 'Lab Coat', colors: { body: '#800000' }, name: 'Ñoño’s coat', scale: 2.3 });
+  t('DesignThumb without a preview shows the colour silhouette as a labelled fallback ("Colours only"), never an <img>', /data-kind="fallback"/.test(none) && /<svg/.test(none) && /#800000/.test(none) && !/<img/.test(none) && />Colours only</.test(none) && /aria-label="No saved preview: garment colours only for Ñoño’s coat"/.test(none));
+  const small = html({ src: '', garment: 'Pants', compact: true });
+  t('compact DesignThumb fallback keeps the framed silhouette and an accessible label, without the caption that would not fit', /data-kind="fallback"/.test(small) && /cx-dthumb--sm/.test(small) && !/cx-dthumb-note/.test(small) && /aria-label="No saved preview: garment colours only"/.test(small));
+  t('starter-design photos are labelled as starter photos, not as the customer\'s saved preview', /aria-label="Starter design photo of Polo"/.test(html({ src: png, garment: 'Polo Shirt', name: 'Polo', what: 'Starter design photo' })));
+  const src = p => fsx.readFileSync(urlx.fileURLToPath(new URL(p, import.meta.url)), 'utf8');
+  const my = src('../src/pages/client/MyDesigns.jsx'), home = src('../src/pages/client/Dashboard.jsx'), canvas = src('../src/pages/client/design-studio/useGarmentCanvas.js');
+  t('My Designs and Home draw saved-design thumbnails only through DesignThumb (draft preview_dataurl, archived photo_path)', !/MiniPreview/.test(my) && !/MiniPreview/.test(home) && /<DesignThumb src=\{img\}/.test(my) && /img=\{draft\.preview_dataurl\}/.test(my) && /DesignThumb compact src=\{draft\.preview_dataurl\}/.test(home) && /DesignThumb compact src=\{d\.photo_path\}/.test(home));
+  t('Home and My Designs title a design by the customer\'s saved name first', /savedDesignName\(draft\.studio_config\) \|\| draft\.label/.test(home) && /savedDesignName\(d\.config\) \|\| d\.label/.test(home) && /savedDesignName\(c\) \|\| label \|\| fallback/.test(my));
+  t('the draft preview render (exportPNG) hides the zone hover outline, like exportFace', /const exportPNG[\s\S]{0,300}__hoverGlow[\s\S]{0,120}o\.visible = false/.test(canvas));
+}
 console.log(out.join('\n')); const f = out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);

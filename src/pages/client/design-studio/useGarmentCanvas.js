@@ -764,16 +764,23 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   const exportPNG = useCallback((opaqueBg = null) => {
     const canvas = fc.current;
     if (!canvas) return null;
-    if (opaqueBg) {
-      const prevBg = canvas.backgroundColor;
-      canvas.backgroundColor = opaqueBg;
-      canvas.renderAll();
-      const url = canvas.toDataURL({ format:'png', multiplier:2 });
-      canvas.backgroundColor = prevBg;
-      canvas.renderAll();
-      return url;
+    // The zone hover outline is a canvas object; like exportFace, keep it out of the image (an autosave can fire mid-hover).
+    const glow = canvas.getObjects().filter(o => o.__hoverGlow && o.visible !== false);
+    glow.forEach(o => { o.visible = false; });
+    try {
+      if (opaqueBg) {
+        const prevBg = canvas.backgroundColor;
+        canvas.backgroundColor = opaqueBg;
+        canvas.renderAll();
+        const url = canvas.toDataURL({ format:'png', multiplier:2 });
+        canvas.backgroundColor = prevBg;
+        return url;
+      }
+      return canvas.toDataURL({ format:'png', multiplier:2 });
+    } finally {
+      glow.forEach(o => { o.visible = true; });
+      if (opaqueBg) canvas.renderAll();
     }
-    return canvas.toDataURL({ format:'png', multiplier:2 });
   }, []);
 
   const getCanvasJSON = useCallback(() => {
