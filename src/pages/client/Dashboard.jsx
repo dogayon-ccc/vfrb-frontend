@@ -240,7 +240,7 @@ export default function CustomerDashboard() {
               <div className="cx-rd">
                 {designs.map(d => (
                   <button key={d.id} type="button" className="cx-rd-item" onClick={() => { sessionStorage.setItem('studio_config', JSON.stringify(d.config)); nav('/design-studio'); }}>
-                    <span className="cx-thumb" style={{ width: 56, height: 64 }}><DesignThumb compact src={d.photo_path} garment={d.garment} colors={d.config?.colors} name={savedDesignName(d.config) || d.label || humanize(d.garment)} /></span>
+                    <span className="cx-thumb" style={{ width: 56, height: 64 }} aria-hidden="true"><DesignThumb compact src={d.photo_path} garment={d.garment} colors={d.config?.colors} name={savedDesignName(d.config) || d.label || humanize(d.garment)} /></span>
                     <strong>{savedDesignName(d.config) || d.label || humanize(d.garment)}</strong><em>Saved · reuse</em>
                   </button>
                 ))}
