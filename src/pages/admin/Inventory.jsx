@@ -100,7 +100,8 @@ export default function AdminInventory() {
       const lgList = l.status==='fulfilled' ? (l.value.data?.data ?? l.value.data ?? []) : [];
       setMaterials(mats);
       setLogs(lgList);
-      if (m.status==='rejected' && l.status==='rejected') setLoadError(true);
+      // Stock levels are the page's main content: a failed stock fetch is an error even if the log loaded.
+      if (m.status==='rejected') setLoadError(true);
       else cacheSet('inventory_full', { materials:mats, logs:lgList }, TTL.MATERIALS);
     }).finally(() => setLoading(false));
   }, []);
@@ -172,7 +173,7 @@ export default function AdminInventory() {
           )}
 
           {loading ? <Panel flush><SkeletonRows rows={6} h={44} /></Panel>
-          : filtered.length===0 ? (
+          : loadError ? null : filtered.length===0 ? (
             <Panel><div className="adm-empty"><NavIcon name="stock" size={30} color="currentColor" /><div style={{ marginTop:8, fontWeight:700 }}>No materials found</div>
               {(search || cat!=='all') && <button className="adm-link-btn" onClick={()=>{ setSearch(''); setCat('all'); }}>Clear filters</button>}</div></Panel>
           ) : (

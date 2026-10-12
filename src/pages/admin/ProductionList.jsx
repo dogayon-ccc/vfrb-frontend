@@ -12,7 +12,8 @@ const STAGE_ORDER = ['pattern', 'segregation', 'cutting', 'sewing', 'qc', 'press
 const LABEL = { pattern: 'Pattern', segregation: 'Segregation', cutting: 'Cutting', sewing: 'Sewing', qc: 'QC', pressing: 'Pressing', packing: 'Packing' };
 const ICON = { pattern: 'pattern', segregation: 'segregation', cutting: 'cutting', sewing: 'garmentType', qc: 'qc', pressing: 'pressing', packing: 'package' };
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—');
-const qcHold = (o) => o.status === 'qc' && o.qc_required === 1 && !o.qc_passed_at;
+// qc_required arrives as true from Postgres (1 from MySQL), so compare by number like ProductionTracking does.
+const qcHold = (o) => o.status === 'qc' && !!Number(o.qc_required) && !o.qc_passed_at;
 const dueOf = (o) => o.target_delivery_date ?? o.deadline;
 const isOverdue = (o) => { const d = dueOf(o); return d && new Date(d) < new Date(new Date().toDateString()); };
 
@@ -152,7 +153,7 @@ export default function ProductionList() {
 
       <div className="adm-only-m adm-stagger" key={`${stage}-${search}`}>
         {loading ? <SkeletonRows rows={3} h={150} />
-          : filtered.length === 0 ? <div className="adm-empty">{search ? `No results for “${search}”` : 'No orders in production right now'}</div>
+          : loadError ? null : filtered.length === 0 ? <div className="adm-empty">{search ? `No results for “${search}”` : 'No orders in production right now'}</div>
             : filtered.map((o, i) => (
               <div key={o.order_id} className="adm-mcard accent" style={{ '--i': Math.min(i, 8), '--acc': qcHold(o) ? 'var(--danger)' : 'var(--teal)' }} onClick={() => go(o)}>
                 <div className="adm-mrow">

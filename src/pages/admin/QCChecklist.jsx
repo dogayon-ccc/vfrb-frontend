@@ -201,7 +201,7 @@ export default function AdminQCChecklist() {
 
   const load = () => {
     setLoading(true); setLoadErr(false);
-    axios.get('/api/admin/orders?status=qc').then((r) => {
+    axios.get('/api/admin/orders?status=qc&per_page=100').then((r) => {
       const all = r.data?.data ?? r.data ?? [];
       setOrders(all);
       setSelId((cur) => cur || (all.length ? String(all[0].order_id) : ''));
@@ -227,7 +227,9 @@ export default function AdminQCChecklist() {
 
       <div className="qc-layout">
         <Panel title={`In QC${loading ? '' : ` (${orders.length})`}`} flush>
-          {loading ? <SkeletonRows rows={3} h={56} /> : orders.length === 0 ? (
+          {loading ? <SkeletonRows rows={3} h={56} /> : loadErr ? (
+            <div className="adm-empty">Orders in QC could not be loaded.</div>
+          ) : orders.length === 0 ? (
             <div className="adm-empty"><NavIcon name="qc" size={30} color="currentColor" /><div style={{ marginTop: 8, fontWeight: 700 }}>No orders in QC stage</div></div>
           ) : (
             <div className="qc-queue" role="listbox" aria-label="Orders in QC stage">

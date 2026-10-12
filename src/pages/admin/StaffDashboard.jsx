@@ -4,7 +4,7 @@ import { TTL } from '../../utils/cache';
 import { useCachedResource } from '../../hooks/useCachedResource';
 import { NavIcon } from '../../components/ui/icons';
 import { canAccessArea } from '../../utils/jobAccess';
-import { PageHeader, StatGrid, Panel, StatusPill, SkeletonRows, EmptyBlock, Meter, Toast, useToast } from '../../components/admin/AdminUI';
+import { PageHeader, StatGrid, Panel, StatusPill, SkeletonRows, EmptyBlock, ErrorBlock, Meter, Toast, useToast } from '../../components/admin/AdminUI';
 
 const ROLE_LABEL = { sales: 'Sales Staff', production: 'Production Staff', inventory: 'Inventory Staff' };
 const STAGE_LABEL = { pattern: 'Pattern', segregation: 'Segregation', cutting: 'Cutting', sewing: 'Sewing', qc: 'QC', pressing: 'Pressing', packing: 'Packing' };
@@ -29,7 +29,7 @@ export default function StaffDashboard() {
   const fn = user.job_function ?? 'general';
   const [toast, setToast] = useToast();
 
-  const [data, loading] = useCachedResource(
+  const [data, loading, reload] = useCachedResource(
     'staff_dashboard',
     () => axios.get('/api/admin/dashboard/staff').then((r) => r.data),
     TTL.DASHBOARD,
@@ -42,10 +42,10 @@ export default function StaffDashboard() {
   const s = data?.stats ?? {};
 
   const stats = fn === 'sales'
-    ? [{ label: 'Total orders', value: s.total_orders ?? 0 }, { label: 'Needs follow-up', value: s.needs_follow_up ?? 0, color: '#b45309' }, { label: 'Total value', value: s.total_value ? peso(s.total_value) : '—' }]
+    ? [{ label: 'Total orders', value: s.total_orders ?? 0 }, { label: 'Needs follow-up', value: s.needs_follow_up ?? 0, color: 'var(--warning-text)' }, { label: 'Total value', value: s.total_value ? peso(s.total_value) : '—' }]
     : fn === 'production'
     ? [{ label: 'Assigned today', value: s.assigned_today ?? 0 }, { label: 'At my stage', value: s.at_my_stage ?? 0 }, { label: 'Completed', value: s.completed ?? 0 }]
-    : [{ label: 'Active orders', value: s.active_orders ?? 0 }, { label: 'Low stock', value: s.low_stock ?? 0, color: '#b45309' }, { label: 'Urgent', value: s.urgent ?? 0, color: '#dc2626' }];
+    : [{ label: 'Active orders', value: s.active_orders ?? 0 }, { label: 'Low stock', value: s.low_stock ?? 0, color: 'var(--warning-text)' }, { label: 'Urgent', value: s.urgent ?? 0, color: 'var(--danger-text)' }];
 
   const actions = fn === 'production'
     ? <button className="adm-btn primary" onClick={() => nav('/admin/output-log')}><NavIcon name="production" size={14} color="currentColor" /> Log output</button>
@@ -68,16 +68,17 @@ export default function StaffDashboard() {
   return (
     <>
       <PageHeader title={`${ROLE_LABEL[fn] ?? 'Staff'} Dashboard`} sub={`${greet}, ${user.name?.split(' ')[0] ?? 'there'} · ${today}`}>{actions}</PageHeader>
+      {!loading && !data && <div style={{ marginBottom: 16 }}><ErrorBlock msg="Your dashboard could not be loaded." onRetry={() => reload(true)} /></div>}
       <StatGrid items={stats} loading={loading} />
       {fn === 'sales' ? <SalesBody data={data} loading={loading} nav={nav} />
         : fn === 'production' ? <ProductionBody data={data} loading={loading} nav={nav} />
-        : <GeneralBody data={data} loading={loading} nav={nav} />}
+        : <GeneralBody data={data} loading={loading} nav={nav} user={user} />}
       <Toast toast={toast} />
     </>
   );
 }
 
-function GeneralBody({ data, loading, nav }) {
+function GeneralBody({ data, loading, nav, user }) {
   const urgent = data?.urgent_orders ?? [];
   const low = data?.low_stock_materials ?? [];
   return (
@@ -86,7 +87,7 @@ function GeneralBody({ data, loading, nav }) {
         <List loading={loading} items={urgent} empty="Nothing urgent right now.">
           {urgent.map((o) => (
             <Row key={o.order_id} onClick={() => nav(`/admin/orders/${o.order_id}`)}>
-              <span><b>ORD-{o.order_id}</b> · {o.customer_name}</span>
+              <span><b>#{o.order_id}</b> · {o.customer_name}</span>
               <StatusPill status="urgent" />
             </Row>
           ))}
@@ -97,7 +98,7 @@ function GeneralBody({ data, loading, nav }) {
           {low.map((m) => (
             <Row key={m.material_id}>
               <span>{m.material_name}</span>
-              <b style={{ color: '#dc2626' }}>{m.quantity_in_stock} {m.unit}</b>
+              <b style={{ color: 'var(--danger-text)' }}>{m.quantity_in_stock} {m.unit}</b>
             </Row>
           ))}
         </List>
@@ -119,7 +120,7 @@ function SalesBody({ data, loading, nav }) {
             {followUp.map((o) => (
               <Row key={o.order_id} onClick={() => nav(`/admin/orders/${o.order_id}`)}>
                 <span>
-                  <b>ORD-{o.order_id}</b> · {o.customer_name}
+                  <b>#{o.order_id}</b> · {o.customer_name}
                   <small className="adm-row-sub">Balance due {peso(o.balance)}</small>
                 </span>
                 <StatusPill status="pending" label={o.paid > 0 ? 'Partial' : 'Awaiting DP'} />
@@ -141,11 +142,11 @@ function SalesBody({ data, loading, nav }) {
           {payments.map((o) => (
             <Row key={o.order_id} onClick={() => nav(`/admin/orders/${o.order_id}`)}>
               <span style={{ flex: 1, minWidth: 0 }}>
-                <b>ORD-{o.order_id}</b> · {o.customer_name}
+                <b>#{o.order_id}</b> · {o.customer_name}
                 <Meter pct={o.dp_pct} tone={o.balance > 0 ? 'warn' : 'ok'} />
                 <small className="adm-row-sub">Paid {peso(o.paid)} · Balance {peso(o.balance)}</small>
               </span>
-              <b style={{ color: o.balance > 0 ? '#dc2626' : '#15803d' }}>{o.balance > 0 ? `${o.dp_pct}% paid` : 'Fully paid'}</b>
+              <b style={{ color: o.balance > 0 ? 'var(--danger-text)' : 'var(--success-text)' }}>{o.balance > 0 ? `${o.dp_pct}% paid` : 'Fully paid'}</b>
             </Row>
           ))}
         </List>
@@ -166,7 +167,7 @@ function ProductionBody({ data, loading, nav }) {
             {orders.map((o) => (
               <button key={o.order_id} className="adm-panel adm-order-card" onClick={() => nav(`/admin/production/${o.order_id}`)}>
                 <span className="adm-order-card-top">
-                  <span><b>ORD-{o.order_id}</b> · {o.garment_type}<small className="adm-row-sub">{o.customer_name}</small></span>
+                  <span><b>#{o.order_id}</b> · {o.garment_type}<small className="adm-row-sub">{o.customer_name}</small></span>
                   <StatusPill status={o.status} label={STAGE_LABEL[o.status] ?? o.status} />
                 </span>
                 {o.stages.map((st) => {
