@@ -10,6 +10,23 @@ import './styles/customer.css'; // Customer portal kit
 import './styles/responsive.css'; // Breakpoint overrides
 import './styles/premium.css';    // Client portal premium layer (scoped to .cm-shell)
 import App from './App.jsx';
+import { isChunkLoadError } from './components/PageErrorBoundary';
+
+// After a deploy, a tab still running the old shell (served by the PWA worker)
+// asks for chunk hashes that no longer exist. Reload once to pick up the new
+// build; the session flag stops a loop if the chunk is genuinely unreachable.
+const RELOAD_FLAG = 'vfrb_chunk_reload';
+function reloadForNewBuild() {
+  try {
+    if (sessionStorage.getItem(RELOAD_FLAG)) return false;
+    sessionStorage.setItem(RELOAD_FLAG, '1');
+  } catch { return false; }
+  window.location.reload();
+  return true;
+}
+window.addEventListener('vite:preloadError', (e) => { if (reloadForNewBuild()) e.preventDefault(); });
+// Loaded fine: re-arm so the next deploy can self-heal too.
+setTimeout(() => { try { sessionStorage.removeItem(RELOAD_FLAG); } catch { /* storage blocked */ } }, 15000);
 
 // ── Top-level error boundary ──────────────────────────────────────────────
 // FIX (BUG-007 hardening): before this, nothing anywhere in the app caught
@@ -31,6 +48,7 @@ class RootErrorBoundary extends Component {
   componentDidCatch(error, info) {
     // eslint-disable-next-line no-console
     console.error('[RootErrorBoundary] Uncaught error:', error, info);
+    if (isChunkLoadError(error)) reloadForNewBuild();
   }
   render() {
     if (this.state.hasError) {

@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { STATUS_TONE } from './statusTone';
@@ -192,5 +192,36 @@ export const FilterSheet = ({ title = 'Filter', options, value, onChange, onClos
 export const FilterButton = ({ label, onClick }) => (
   <button className="adm-btn adm-only-m" onClick={onClick} aria-haspopup="dialog">
     <NavIcon name="checklist" size={14} color="currentColor" /> {label}
+  </button>
+);
+
+// Live data: re-runs `refresh` every `ms` while the tab is visible, and once when the
+// tab comes back. `data` is the page's current payload; each new payload stamps the time.
+export function useLivePoll(refresh, data, ms = 30_000) {
+  const [at, setAt] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const inFlight = useRef(false);
+  const fn = useRef(refresh);
+  fn.current = refresh;
+  useEffect(() => { if (data) setAt(new Date()); }, [data]);
+  const run = useCallback(async () => {
+    if (inFlight.current) return;
+    inFlight.current = true; setBusy(true);
+    try { await fn.current(); } finally { inFlight.current = false; setBusy(false); }
+  }, []);
+  useEffect(() => {
+    const tick = () => { if (document.visibilityState === 'visible') run(); };
+    const id = setInterval(tick, ms);
+    document.addEventListener('visibilitychange', tick);
+    return () => { clearInterval(id); document.removeEventListener('visibilitychange', tick); };
+  }, [run, ms]);
+  return { at, busy, run };
+}
+
+export const LiveStamp = ({ at, busy, onRefresh, className = 'adm-btn' }) => (
+  <button className={`${className} adm-live`} onClick={onRefresh} disabled={busy} aria-label="Refresh now" title="Refreshes every 30 seconds while this tab is open">
+    <span className={`adm-live-dot${busy ? ' busy' : ''}`} aria-hidden="true" />
+    {at ? `Updated ${at.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })}` : 'Live'}
+    <NavIcon name="refresh" size={14} color="currentColor" />
   </button>
 );

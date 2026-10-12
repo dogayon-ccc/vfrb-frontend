@@ -42,7 +42,7 @@ const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif`;
 const CHUNK_ERROR_PATTERN =
   /failed to fetch dynamically imported module|error loading dynamically imported module|importing a module script failed/i;
 
-function isChunkLoadError(error) {
+export function isChunkLoadError(error) {
   return !!error && typeof error.message === 'string' && CHUNK_ERROR_PATTERN.test(error.message);
 }
 

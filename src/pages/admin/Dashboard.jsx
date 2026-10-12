@@ -8,7 +8,7 @@ import { useCachedResource } from '../../hooks/useCachedResource';
 import { NavIcon } from '../../components/ui/icons';
 import { navColor } from '../../utils/navColors';
 import logo from '../../assets/company-logo.jpg';
-import { StatGrid, PillTabs, Panel, StatusPill, SkeletonRows, EmptyBlock, ErrorBlock } from '../../components/admin/AdminUI';
+import { StatGrid, PillTabs, Panel, StatusPill, SkeletonRows, EmptyBlock, ErrorBlock, useLivePoll, LiveStamp } from '../../components/admin/AdminUI';
 
 const T = 'var(--teal)', T2 = 'var(--teal-2)';
 const STAGE_ORDER = ['pending', 'confirmed', 'pattern', 'segregation', 'cutting', 'sewing', 'qc', 'pressing', 'packing', 'completed'];
@@ -16,7 +16,6 @@ const STAGE_RAMP = ['#0b3d47', '#0f5966', '#028090', '#0aa3a0', '#02C39A', '#4fd
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const fmtDate = (d, o = { month: 'short', day: 'numeric' }) => (d ? new Date(d).toLocaleDateString('en-PH', o) : '—');
 const peso = (n) => `₱${Number(n).toLocaleString('en-PH')}`;
-const ageLabel = (ms) => (!ms || ms === Infinity ? null : ms < 10_000 ? 'just now' : ms < 60_000 ? `${Math.round(ms / 1000)}s ago` : `${Math.round(ms / 60_000)}m ago`);
 
 function Toast({ msg, type, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 3000); return () => clearTimeout(t); }, [onDone]);
@@ -55,10 +54,10 @@ export default function AdminDashboard() {
   const [toast, setToast] = useState(null);
   const [chartTab, setChartTab] = useState('orders');
 
-  const [data, loading, loadDashboard, dataAge] = useCachedResource('dashboard_stats', () => axios.get('/api/admin/dashboard').then((r) => r.data), TTL.DASHBOARD, { onError: () => setToast({ msg: 'Failed to load dashboard data.', type: 'error' }) });
-  const [pendingRaw, poLoading] = useCachedResource('dashboard_pending_orders', () => axios.get('/api/admin/orders?status=pending&per_page=5').then((r) => r.data?.data ?? []), TTL.ORDERS);
-  const [rfqRaw, rfqLoading] = useCachedResource('dashboard_pending_rfqs', () => axios.get('/api/admin/rfq?status=sent&per_page=5').then((r) => r.data?.data ?? []), TTL.SUPPLIERS);
-  const [delivRaw, delivLoading] = useCachedResource('dashboard_upcoming_deliveries', () => axios.get('/api/admin/delivery?per_page=20').then((r) => (r.data?.data ?? []).filter((d) => !['delivered', 'returned'].includes(d.delivery_status)).slice(0, 5)), TTL.ORDERS);
+  const [data, dataLoading, loadDashboard] = useCachedResource('dashboard_stats', () => axios.get('/api/admin/dashboard').then((r) => r.data), TTL.DASHBOARD, { onError: () => setToast({ msg: 'Failed to load dashboard data.', type: 'error' }) });
+  const [pendingRaw, poFetching, loadPending] = useCachedResource('dashboard_pending_orders', () => axios.get('/api/admin/orders?status=pending&per_page=5').then((r) => r.data?.data ?? []), TTL.ORDERS);
+  const [rfqRaw, rfqFetching, loadRfqs] = useCachedResource('dashboard_pending_rfqs', () => axios.get('/api/admin/rfq?status=sent&per_page=5').then((r) => r.data?.data ?? []), TTL.SUPPLIERS);
+  const [delivRaw, delivFetching, loadDeliv] = useCachedResource('dashboard_upcoming_deliveries', () => axios.get('/api/admin/delivery?per_page=20').then((r) => (r.data?.data ?? []).filter((d) => !['delivered', 'returned'].includes(d.delivery_status)).slice(0, 5)), TTL.ORDERS);
 
   const [aiText, setAiText] = useState('');
   const [aiLoading, setAiLoad] = useState(false);
@@ -70,12 +69,12 @@ export default function AdminDashboard() {
     finally { setAiLoad(false); }
   }, [isManager]);
 
-  useEffect(() => {
-    const tick = () => { if (document.visibilityState === 'visible') loadDashboard(); };
-    const id = setInterval(tick, TTL.DASHBOARD);
-    document.addEventListener('visibilitychange', tick);
-    return () => { clearInterval(id); document.removeEventListener('visibilitychange', tick); };
-  }, [loadDashboard]);
+  // Skeletons only before the first payload; refreshes keep the previous data on screen.
+  const loading = dataLoading && !data;
+  const poLoading = poFetching && !pendingRaw;
+  const rfqLoading = rfqFetching && !rfqRaw;
+  const delivLoading = delivFetching && !delivRaw;
+  const live = useLivePoll(() => Promise.all([loadDashboard(), loadPending(), loadRfqs(), loadDeliv()]), data);
 
   const o = data?.orders ?? {};
   const low = data?.inventory?.low_stock_materials ?? [];
@@ -91,7 +90,6 @@ export default function AdminDashboard() {
 
   const h = new Date().getHours();
   const greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
-  const age = ageLabel(dataAge);
 
   const kpis = [
     { label: 'Total Orders', value: o.total ?? 0, chip: o.new_this_week != null ? `+${o.new_this_week} this week` : null, chipTone: 'up', onClick: () => nav('/admin/orders') },
@@ -149,7 +147,7 @@ export default function AdminDashboard() {
         <div className="dsh-hero-txt">
           <p className="dsh-eyebrow">VFRB Enterprise · Custom Uniforms. Smarter Solutions.</p>
           <h1>{greet}, {user.name?.split(' ')[0] ?? 'Admin'}</h1>
-          <p className="dsh-hero-sub">{new Date().toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}{age ? ` · Updated ${age}` : ''}</p>
+          <p className="dsh-hero-sub">{new Date().toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
         </div>
         <div className="dsh-hero-stats">
           <button onClick={() => nav('/admin/production')}><b>{loading ? '–' : o.in_production ?? 0}</b><span>In production</span></button>
@@ -157,13 +155,13 @@ export default function AdminDashboard() {
           <button onClick={() => nav('/admin/inventory')}><b>{loading ? '–' : data?.inventory?.low_stock_count ?? 0}</b><span>Low stock</span></button>
         </div>
         <div className="dsh-hero-actions">
-          <button className="dsh-ghost" onClick={() => loadDashboard(true)} disabled={loading} aria-label="Refresh dashboard"><NavIcon name="refresh" size={14} color="currentColor" /> Refresh</button>
+          <LiveStamp className="dsh-ghost" at={live.at} busy={live.busy} onRefresh={live.run} />
           {isManager && <button className="dsh-ghost" onClick={fetchAI} disabled={aiLoading}><NavIcon name="ai" size={14} color="currentColor" /> {aiLoading ? 'Analyzing…' : 'AI Summary'}</button>}
           <button className="dsh-solid" onClick={() => nav('/admin/orders')}>View orders <NavIcon name="chevronRight" size={14} color="currentColor" /></button>
         </div>
       </section>
 
-      {!loading && !data && <div style={{ marginBottom: 16 }}><ErrorBlock msg="Dashboard data is unavailable." onRetry={() => loadDashboard(true)} /></div>}
+      {!loading && !data && <div style={{ marginBottom: 16 }}><ErrorBlock msg="Dashboard data is unavailable." onRetry={live.run} /></div>}
 
       <StatGrid items={kpis} loading={loading} />
 
@@ -179,7 +177,7 @@ export default function AdminDashboard() {
                   <XAxis dataKey="m" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} width={48} tickFormatter={(v) => (chartTab === 'revenue' && v >= 1000 ? `${Math.round(v / 1000)}k` : v)} />
                   <Tooltip formatter={(v) => (chartTab === 'revenue' ? peso(v) : v)} contentStyle={{ borderRadius: 10, border: '1px solid #e2e8f0', fontSize: 12 }} />
-                  <Area type="monotone" dataKey="v" stroke="#028090" strokeWidth={2.5} fill="url(#admTrend)" dot={{ r: 3, fill: '#028090' }} isAnimationActive={!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches} />
+                  <Area type="monotone" dataKey="v" stroke="#028090" strokeWidth={2.5} fill="url(#admTrend)" dot={{ r: 3, fill: '#028090' }} isAnimationActive={!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches} animationDuration={300} />
                 </AreaChart>
               </ResponsiveContainer>
             )}
@@ -216,7 +214,7 @@ export default function AdminDashboard() {
               <>
                 <div style={{ position: 'relative', height: 170 }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <PieChart><Pie data={stageData} dataKey="value" innerRadius={52} outerRadius={76} paddingAngle={2} stroke="none" isAnimationActive={!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches}>
+                    <PieChart><Pie data={stageData} dataKey="value" innerRadius={52} outerRadius={76} paddingAngle={2} stroke="none" isAnimationActive={!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches} animationDuration={300}>
                       {stageData.map((s) => <Cell key={s.name} fill={s.color} />)}</Pie></PieChart>
                   </ResponsiveContainer>
                   <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>

@@ -437,3 +437,23 @@ button.adm-row:focus-visible,.adm-order-card:focus-visible{outline:2px solid var
 .adm-content [role=switch]{box-sizing:content-box!important;border:10px solid transparent!important;background-clip:padding-box}
 .adm-content a.adm-btn,.set-nav a{min-height:44px}
 }
+
+/* Live refresh stamp (dashboards, reports) */
+.adm-live{font-variant-numeric:tabular-nums;gap:8px}
+.adm-live-dot{width:7px;height:7px;border-radius:50%;background:var(--success,#16a34a);flex-shrink:0;transition:opacity .2s var(--ease-out)}
+.adm-live-dot.busy{animation:admPulse .9s ease-in-out infinite}
+@keyframes admPulse{50%{opacity:.25}}
+@media(prefers-reduced-motion:reduce){.adm-live-dot.busy{animation:none;opacity:.5}}
+
+/* AI recommendation: manager guidance + staff verdicts */
+.adm-guide-list{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-direction:column;gap:8px}
+.adm-guide-list li{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r-md,10px)}
+.adm-guide-list li p{margin:6px 0 0;font-size:13px;line-height:1.5;color:var(--ink);overflow-wrap:anywhere}
+.adm-guide-list li.off{opacity:.55}
+.adm-guide-form{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.adm-guide-form textarea,.adm-guide-form button{grid-column:1/-1}
+@media(max-width:600px){.adm-guide-form{grid-template-columns:1fr}}
+.adm-verdict{display:flex;gap:6px;flex-wrap:wrap}
+.adm-verdict .adm-btn{min-height:32px;padding:0 10px;font-size:12px}
+.adm-verdict .adm-btn.on.ok{background:var(--success-bg,#dcfce7);color:var(--success-text,#166534);border-color:currentColor}
+.adm-verdict .adm-btn.on.no{background:var(--danger-bg,#fee2e2);color:var(--danger-text,#991b1b);border-color:currentColor}
