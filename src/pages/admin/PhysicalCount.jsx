@@ -11,7 +11,6 @@ import { PageHeader, StatGrid, PillTabs, Panel, StatusPill, Banner, SkeletonRows
 const T    = 'var(--teal)';
 const T2   = 'var(--teal-2)';
 const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif`;
-const SK   = { borderRadius:6, background:'linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%)', backgroundSize:'400px', animation:'sk 1.4s infinite' };
 const inp  = {
   width:'100%', padding:'10px 14px', borderRadius:10,
   border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)',

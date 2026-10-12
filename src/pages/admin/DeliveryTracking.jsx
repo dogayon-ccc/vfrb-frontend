@@ -4,9 +4,8 @@ import { motion } from 'framer-motion';
 import axios from 'axios';
 import { cacheGet, cacheSet } from '../../utils/cache';
 import { NavIcon } from '../../components/ui';
-import { PageHeader, StatGrid, PillTabs, Panel, StatusPill, SearchBox, ErrorBlock, SkeletonRows, FilterSheet, FilterButton, useIsMobile } from '../../components/admin/AdminUI';
+import { PageHeader, StatGrid, PillTabs, Panel, StatusPill, SearchBox, ErrorBlock, SkeletonRows, FilterSheet, FilterButton, useIsMobile, OrderLink } from '../../components/admin/AdminUI';
 
-const SK  = { borderRadius:'var(--r-sm)', background:'linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%)', backgroundSize:'400px', animation:'dt-shimmer 1.4s infinite' };
 const inp = { width:'100%', padding:'10px 14px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)', fontSize:13, outline:'none', fontFamily:'var(--font)', boxSizing:'border-box' };
 const fi  = e => { e.target.style.borderColor='var(--teal)'; e.target.style.boxShadow='0 0 0 3px rgba(2,128,144,.1)'; };
 const fo  = e => { e.target.style.borderColor='var(--border)'; e.target.style.boxShadow='none'; };
@@ -305,7 +304,7 @@ export default function AdminDeliveryTracking() {
                   return (
                     <tr key={d.tracking_id ?? i}>
                       <td style={{ fontWeight: 800, color: 'var(--teal)' }}>#{d.tracking_id}</td>
-                      <td style={{ fontWeight: 600 }}>#{d.order_id}</td>
+                      <td style={{ fontWeight: 600 }}><OrderLink id={d.order_id}/></td>
                       <td>{d.customer_name ?? '—'}</td>
                       <td style={{ whiteSpace: 'nowrap', fontSize: 12, color: 'var(--text-subtle)' }}>{fmtDate(schedOf(d))}</td>
                       <td className="adm-hide-t" style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12, color: 'var(--text-subtle)' }} title={d.delivery_address ?? d.customer_address ?? ''}>{d.delivery_address ?? d.customer_address ?? '—'}</td>
@@ -338,7 +337,7 @@ export default function AdminDeliveryTracking() {
           const ds = d.delivery_status ?? 'preparing';
           return (
             <div key={d.tracking_id ?? i} className="adm-mcard accent" style={{ '--i': Math.min(i, 8), '--acc': DEL_CFG[ds]?.c ?? 'var(--teal)' }}>
-              <div className="adm-mrow"><b style={{ color: 'var(--teal)' }}>Order #{d.order_id}</b><StatusPill status={ds} label={DEL_CFG[ds]?.l} /></div>
+              <div className="adm-mrow"><b style={{ color: 'var(--teal)' }}><OrderLink id={d.order_id} prefix="Order #"/></b><StatusPill status={ds} label={DEL_CFG[ds]?.l} /></div>
               <div style={{ marginTop: 6, fontWeight: 700 }}>{d.customer_name ?? '—'}</div>
               <div style={{ fontSize: 12, color: 'var(--text-subtle)' }}>Tracking #{d.tracking_id} · scheduled {fmtDate(schedOf(d))}</div>
               {(d.delivery_address ?? d.customer_address) && <div style={{ fontSize: 12, color: 'var(--text-subtle)', marginTop: 4, display: 'flex', gap: 5 }}><NavIcon name="location" size={13} color="currentColor" style={{ flexShrink: 0, marginTop: 2 }} />{d.delivery_address ?? d.customer_address}</div>}

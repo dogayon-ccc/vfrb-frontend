@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { STATUS_TONE } from './statusTone';
 import { NavIcon } from '../ui/icons';
 import BottomSheet from '../ui/BottomSheet';
@@ -79,6 +80,11 @@ export const PillTabs = ({ tabs, value, onChange }) => {
 };
 
 export const TabPanel = ({ k, children }) => <div key={k} className="adm-tabpanel" role="tabpanel">{children}</div>;
+
+// An order number that opens that order: a real link (keyboard, middle-click), 44px tall on touch, never triggers its row.
+export const OrderLink = ({ id, prefix = '#' }) => (
+  <Link className="adm-order-link" to={`/admin/orders/${id}`} onClick={e => e.stopPropagation()}>{prefix}{id}</Link>
+);
 
 export const Panel = ({ title, action, children, flush, style }) => (
   <section className="adm-panel adm-in" style={style}>

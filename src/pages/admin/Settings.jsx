@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { NavIcon } from '../../components/ui/icons';
 import { checkUpload } from '../../utils/fileCheck';
-import { PageHeader, Panel, Banner, Toast, useToast, SkeletonRows } from '../../components/admin/AdminUI';
+import { PageHeader, Panel, Banner, Toast, useToast, SkeletonRows, Meter } from '../../components/admin/AdminUI';
+import { PASSWORD_RULE_TEXT, passwordOk, passwordLevel, levelLabel } from '../../utils/passwordRules';
 
 function getIsManager() {
   try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}').role === 'manager'; } catch { return false; }
@@ -11,12 +12,51 @@ function getIsManager() {
 
 const NOTIFY = [
   { key: 'email_enabled', live: 'email_provider_live', label: 'Email notifications', icon: 'email', note: 'Order updates, AI recommendations ready, and account alerts.',
-    warn: 'No production email provider is connected yet — this saves your preference but no real email is sent.' },
+    warn: 'The mail server is a test inbox, so no real email is sent yet. Your preference is saved for when VFRB connects its mail provider.' },
   { key: 'sms_enabled', live: 'sms_provider_live', label: 'SMS notifications', icon: 'phone', note: 'Text alerts for urgent order or delivery updates.',
     warn: 'No SMS provider is connected — this reserves the setting for when one is added.', off: 'SMS needs a gateway; not enabled.' },
 ];
 
 const Field = ({ label, id, children }) => (<div><label className="adm-field" htmlFor={id}>{label}</label>{children}</div>);
+
+const BLANK_PW = { current_password: '', password: '', password_confirmation: '' };
+// The signed-in staff member's or manager's own password (PUT /api/admin/profile/password; same rules as customers).
+function PasswordPanel({ setToast }) {
+  const [pw, setPw] = useState(BLANK_PW);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const set = k => e => { setPw(f => ({ ...f, [k]: e.target.value })); setErr(''); };
+  const level = passwordLevel(pw.password);
+  const save = async () => {
+    if (!pw.current_password) return setErr('Enter your current password.');
+    if (!passwordOk(pw.password)) return setErr(PASSWORD_RULE_TEXT);
+    if (pw.password !== pw.password_confirmation) return setErr('The new passwords do not match.');
+    setBusy(true);
+    try { await axios.put('/api/admin/profile/password', pw); setPw(BLANK_PW); setToast({ msg: 'Password changed.', type: 'success' }); }
+    catch (e) { setErr(e.response?.data?.message ?? 'Could not change the password.'); }
+    finally { setBusy(false); }
+  };
+  return (
+    <Panel title="Password">
+      <p className="adm-sub" style={{ marginTop: -6 }}>Change the password you sign in with. {PASSWORD_RULE_TEXT}</p>
+      <div className="set-form">
+        <Field label="Current password" id="pw-current"><input id="pw-current" className="adm-input" type="password" autoComplete="current-password" value={pw.current_password} onChange={set('current_password')} /></Field>
+        <Field label="New password" id="pw-new"><input id="pw-new" className="adm-input" type="password" autoComplete="new-password" value={pw.password} onChange={set('password')} aria-describedby="pw-strength" /></Field>
+        {pw.password && (
+          <div id="pw-strength" aria-live="polite" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ flex: 1 }}><Meter pct={level * 25} tone={level >= 4 ? 'ok' : undefined} label="Password strength" /></div>
+            <span className="adm-sub" style={{ margin: 0, minWidth: 48 }}>{levelLabel(level)}</span>
+          </div>
+        )}
+        <Field label="Confirm new password" id="pw-confirm"><input id="pw-confirm" className="adm-input" type="password" autoComplete="new-password" value={pw.password_confirmation} onChange={set('password_confirmation')} /></Field>
+        {err && <p role="alert" style={{ margin: 0, fontSize: 13, color: 'var(--danger-text)' }}>{err}</p>}
+      </div>
+      <div className="adm-actionbar" style={{ marginTop: 18 }}>
+        <button className="adm-btn primary" onClick={save} disabled={busy}>{busy ? 'Changing…' : 'Change password'}</button>
+      </div>
+    </Panel>
+  );
+}
 
 export default function Settings() {
   const isManager = getIsManager();
@@ -96,6 +136,7 @@ export default function Settings() {
         <nav className="set-nav" aria-label="Settings sections">
           <a href="#set-company"><NavIcon name="settings" size={15} color="currentColor" /> Company</a>
           <a href="#set-notify"><NavIcon name="notifications" size={15} color="currentColor" /> Notifications</a>
+          <a href="#set-password"><NavIcon name="lock" size={15} color="currentColor" /> Password</a>
           {isManager && <a href="#set-users"><NavIcon name="users" size={15} color="currentColor" /> Users</a>}
         </nav>
 
@@ -165,6 +206,8 @@ export default function Settings() {
               })}
             </Panel>
           </div>
+
+          <div id="set-password" className="set-anchor"><PasswordPanel setToast={setToast} /></div>
 
           {isManager && (
             <div id="set-users" className="set-anchor">

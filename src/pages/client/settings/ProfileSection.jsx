@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Card, Button, Field, Badge, NavIcon } from '../../../components/ui';
 import { Skeleton, useToast, fmtDate } from '../../../components/customer/kit';
 import { phPhoneError, compactPhone } from '../../../utils/phPhone';
+import { PASSWORD_RULE_TEXT, passwordOk, passwordLevel, levelLabel } from '../../../utils/passwordRules';
 
 
 export function ProfileSection() {
@@ -91,7 +92,7 @@ export function PasswordSection() {
 
   const save = async () => {
     if (pw.password !== pw.password_confirmation) return show('Passwords do not match.', 'error');
-    if (!(pw.password.length >= 8 && /[A-Z]/.test(pw.password) && /[a-z]/.test(pw.password) && /[0-9]/.test(pw.password) && /[^A-Za-z0-9]/.test(pw.password))) return show('Use 8+ characters with upper and lower case, a number and a symbol.', 'error');
+    if (!passwordOk(pw.password)) return show(PASSWORD_RULE_TEXT, 'error');
     setSaving(true);
     try {
       await axios.put('/api/customer/profile/password', pw);
@@ -101,7 +102,7 @@ export function PasswordSection() {
     } finally { setSaving(false); }
   };
 
-  const level = [pw.password.length >= 8, /[A-Z]/.test(pw.password) && /[a-z]/.test(pw.password), /[0-9]/.test(pw.password), /[^A-Za-z0-9]/.test(pw.password)].filter(Boolean).length || 1;
+  const level = passwordLevel(pw.password);
   return (
     <div className="st-stack">
       <Card title="Change Password">
@@ -112,7 +113,7 @@ export function PasswordSection() {
           {pw.password && (
             <div className="st-meter" aria-live="polite">
               {[1, 2, 3, 4].map(i => <i key={i} data-on={i <= level} data-l={level} />)}
-              <span>{level === 1 ? 'Weak' : level === 2 ? 'Fair' : 'Strong'}</span>
+              <span>{levelLabel(level)}</span>
             </div>
           )}
           <Button variant="primary" fullWidth icon="lock" loading={saving} onClick={save}>{saving ? 'Changing' : 'Change Password'}</Button>

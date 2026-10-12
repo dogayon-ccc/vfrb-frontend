@@ -208,7 +208,7 @@ function NotificationsSection() {
         <div>
           <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{label}</p>
           {off ? <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 0' }}>{off}</p>
-            : !live && <p style={{ fontSize: 11, color: 'var(--warning)', margin: '2px 0 0' }}>Delivery isn't active yet. Your preference is saved for when it is.</p>}
+            : !live && <p style={{ fontSize: 11, color: 'var(--warning)', margin: '2px 0 0' }}>Email goes to a test inbox for now. Your preference is saved for when real delivery is on.</p>}
         </div>
         <button role="switch" aria-checked={on} aria-label={`Toggle ${label}`} onClick={() => toggle(k)} disabled={locked}
           style={{ width: 42, height: 24, borderRadius: 99, border: 'none', cursor: locked ? 'not-allowed' : 'pointer', opacity: off ? 0.5 : 1,
