@@ -1,6 +1,6 @@
 // src/App.jsx — route config. All admin + customer pages lazy-loaded; only
 
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import { lazy, Suspense, useEffect } from 'react';
 import axios from 'axios';
 import { readUser, readAuth, isSignedIn, homeFor } from './utils/authRoute';
@@ -159,6 +159,19 @@ function RequireManager({ children }) {
   return children;
 }
 
+// Unknown /admin/* path: say so inside the shell instead of an empty outlet.
+function AdminNotFound() {
+  return (
+    <div role="alert" style={{ maxWidth: 520, margin: '64px auto', padding: '0 20px', textAlign: 'center' }}>
+      <h1 style={{ fontSize: 22, margin: '0 0 8px', color: 'var(--ink, #0f172a)' }}>Page not found</h1>
+      <p style={{ margin: '0 0 20px', fontSize: 14, lineHeight: 1.6, color: 'var(--text-muted, #475569)' }}>
+        There is no admin page at this address. It may have moved, or the link was mistyped.
+      </p>
+      <Link to="/admin/dashboard" className="adm-btn primary" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, padding: '0 18px' }}>Back to dashboard</Link>
+    </div>
+  );
+}
+
 // ── Root route handlers ───────────────────────────────────────────────────────
 function CustomerRootRoute() {
   const tok  = localStorage.getItem('vfrb_token');
@@ -285,6 +298,7 @@ export default function App() {
             <Route path="suppliers" element={<RequireManager><AdminSuppliers/></RequireManager>}/>
             <Route path="users"     element={<RequireManager><AdminUserManagement/></RequireManager>}/>
             <Route path="designs/showcase-queue" element={<RequireManager><AdminShowcaseQueue/></RequireManager>}/>
+            <Route path="*" element={<AdminNotFound/>}/>
           </Route>
 
           {/* ── CUSTOMER PORTAL — root-level paths, no /client or /customer prefix ── */}

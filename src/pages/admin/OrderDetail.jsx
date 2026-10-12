@@ -121,6 +121,30 @@ function ReviewPanel({ order, onUpdated }) {
   );
 }
 
+// Staff verdict on one AI-recommended line. Rejections become "avoid" hints in later prompts.
+function StaffCheck({ rec, setToast, onSaved }) {
+  const [busy, setBusy] = useState(false);
+  if (!rec.rec_id) return null;
+  const send = async (verdict) => {
+    setBusy(true);
+    try {
+      const r = await axios.patch(`/api/admin/material-recommendations/${rec.rec_id}/feedback`, { verdict });
+      onSaved(r.data?.data ?? { staff_feedback: verdict === 'clear' ? null : verdict });
+    } catch (e) {
+      setToast({ type: 'error', msg: e.response?.data?.message ?? 'Could not save your check.' });
+    } finally { setBusy(false); }
+  };
+  const v = rec.staff_feedback;
+  return (
+    <div className="adm-verdict" role="group" aria-label={`Staff check for ${rec.material_name ?? 'material'}`}>
+      <button type="button" className={`adm-btn${v === 'accept' ? ' on ok' : ''}`} disabled={busy} aria-pressed={v === 'accept'}
+        onClick={() => send(v === 'accept' ? 'clear' : 'accept')}>Suits</button>
+      <button type="button" className={`adm-btn${v === 'reject' ? ' on no' : ''}`} disabled={busy} aria-pressed={v === 'reject'}
+        onClick={() => send(v === 'reject' ? 'clear' : 'reject')}>Wrong pick</button>
+    </div>
+  );
+}
+
 export default function AdminOrderDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -384,12 +408,13 @@ export default function AdminOrderDetail() {
             ) : (
               <div className="adm-tbl-scroll">
                 <table className="adm-table">
-                  <thead><tr><th>Material</th><th>Customer</th><th>Actual Used</th><th>In Stock</th></tr></thead>
+                  <thead><tr><th>Material</th><th>Customer</th><th>Staff check</th><th>Actual Used</th><th>In Stock</th></tr></thead>
                   <tbody>
                     {recs.map((rec, i) => (
                       <tr key={rec.rec_id ?? i}>
                         <td style={{ fontWeight:600 }}>{rec.material_name ?? rec.material?.material_name ?? rec.category ?? '—'}</td>
                         <td style={{ textTransform:'capitalize' }}>{rec.customer_accepted ? 'Accepted' : (rec.status ?? 'pending')}</td>
+                        <td><StaffCheck rec={rec} setToast={setToast} onSaved={(f) => setOrder(o => ({ ...o, recommendations: o.recommendations.map(r => r.rec_id === rec.rec_id ? { ...r, ...f } : r) }))}/></td>
                         <td>{rec.actual_qty_issued != null ? `${rec.actual_qty_issued} ${rec.unit ?? ''}` : <span style={{ color:'var(--text-faint)' }}>Not yet issued</span>}</td>
                         <td style={{ color:'var(--text-subtle)' }}>{rec.material?.quantity_in_stock ?? '—'} {rec.material?.unit ?? ''}</td>
                       </tr>

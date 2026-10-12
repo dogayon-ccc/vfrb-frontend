@@ -4,6 +4,7 @@ import axios from 'axios';
 import { NavIcon } from '../../components/ui/icons';
 import { checkUpload } from '../../utils/fileCheck';
 import { PageHeader, Panel, Banner, Toast, useToast, SkeletonRows, Meter } from '../../components/admin/AdminUI';
+import RecommendationGuidancePanel from '../../components/admin/RecommendationGuidancePanel';
 import { PASSWORD_RULE_TEXT, passwordOk, passwordLevel, levelLabel } from '../../utils/passwordRules';
 
 function getIsManager() {
@@ -137,6 +138,7 @@ export default function Settings() {
           <a href="#set-company"><NavIcon name="settings" size={15} color="currentColor" /> Company</a>
           <a href="#set-notify"><NavIcon name="notifications" size={15} color="currentColor" /> Notifications</a>
           <a href="#set-password"><NavIcon name="lock" size={15} color="currentColor" /> Password</a>
+          {isManager && <a href="#set-ai"><NavIcon name="ai" size={15} color="currentColor" /> AI guidance</a>}
           {isManager && <a href="#set-users"><NavIcon name="users" size={15} color="currentColor" /> Users</a>}
         </nav>
 
@@ -208,6 +210,8 @@ export default function Settings() {
           </div>
 
           <div id="set-password" className="set-anchor"><PasswordPanel setToast={setToast} /></div>
+
+          {isManager && <div id="set-ai" className="set-anchor"><RecommendationGuidancePanel setToast={setToast} /></div>}
 
           {isManager && (
             <div id="set-users" className="set-anchor">

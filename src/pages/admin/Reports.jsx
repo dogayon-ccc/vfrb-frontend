@@ -6,7 +6,7 @@ import {
 import axios                            from 'axios';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
 import { NavIcon } from '../../components/ui/icons';
-import { PageHeader, StatGrid, PillTabs, Panel, Banner, ErrorBlock, SkeletonRows, Meter, OrderLink } from '../../components/admin/AdminUI';
+import { PageHeader, StatGrid, PillTabs, Panel, Banner, ErrorBlock, SkeletonRows, Meter, OrderLink, useLivePoll, LiveStamp } from '../../components/admin/AdminUI';
 
 function downloadCSV(rows, filename) {
   const csv = rows
@@ -122,10 +122,12 @@ function AlertCard({ a }) {
   );
 }
 
+const REDUCED = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
 export default function AdminReports() {
   const [data, setData] = useState(null);
   const [sales, setSales] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [fetching, setFetching] = useState(true);
   const [loadErr, setLoadErr] = useState(false);
   const [tab, setTab] = useState('overview');
   const [runningDigest, setRunningDigest] = useState(false);
@@ -134,17 +136,20 @@ export default function AdminReports() {
   const load = useCallback((force = false) => {
     if (!force) {
       const c = cacheGet('admin_reports');
-      if (c) { setData(c.data); setSales(c.sales); setLoading(false); return; }
+      if (c) { setData(c.data); setSales(c.sales); setFetching(false); return Promise.resolve(); }
     }
-    setLoading(true); setLoadErr(false);
-    Promise.allSettled([axios.get('/api/admin/reports'), axios.get('/api/admin/reports/sales')]).then(([r, s]) => {
+    setFetching(true); setLoadErr(false);
+    return Promise.allSettled([axios.get('/api/admin/reports'), axios.get('/api/admin/reports/sales')]).then(([r, s]) => {
       if (r.status !== 'fulfilled') { setLoadErr(true); return; }
       const d = r.value.data; const sl = s.status === 'fulfilled' ? s.value.data : null;
       setData(d); setSales(sl);
       cacheSet('admin_reports', { data: d, sales: sl }, TTL.REPORTS);
-    }).finally(() => setLoading(false));
+    }).finally(() => setFetching(false));
   }, []);
   useEffect(() => { load(); }, [load]);
+  // Skeletons only before the first payload; refreshes keep the previous charts on screen.
+  const loading = fetching && !data;
+  const live = useLivePoll(() => load(true), data);
 
   const runDigest = useCallback(async () => {
     setRunningDigest(true); setDigestMsg('');
@@ -184,7 +189,7 @@ export default function AdminReports() {
         <PageHeader title="Reports" sub="Sales analytics · Orders & production · Stock and deadline alerts">
           <button className="adm-btn" onClick={exportCsv} disabled={loading || !data || !buildCSV(data, csvTab)}><NavIcon name="download" size={14} color="currentColor" /> Export CSV</button>
           <button className="adm-btn adm-hide-t" onClick={() => window.print()}><NavIcon name="print" size={14} color="currentColor" /> Print</button>
-          <button className="adm-btn" onClick={() => { cacheClear('admin_reports'); load(true); }}><NavIcon name="refresh" size={14} color="currentColor" /> Refresh</button>
+          <LiveStamp at={live.at} busy={live.busy} onRefresh={live.run} />
           <button className="adm-btn primary" onClick={runDigest} disabled={runningDigest}
             title="Run the automated low-stock digest, auto-suggested RFQs, and deadline reminders now">
             <NavIcon name={runningDigest ? 'loading' : 'ai'} size={14} color="currentColor" /> {runningDigest ? 'Running…' : 'Run automation'}
@@ -214,8 +219,8 @@ export default function AdminReports() {
                     <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: CHART_TICK }} axisLine={false} tickLine={false} />
                     <Tooltip cursor={{ fill: 'rgba(2,128,144,0.06)' }} contentStyle={tip} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Bar dataKey="orders" name="Orders" fill={CHART_BAR} radius={[6, 6, 0, 0]} />
-                    <Bar dataKey="completed" name="Completed" fill={CHART_BAR2} radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="orders" name="Orders" fill={CHART_BAR} radius={[6, 6, 0, 0]} animationDuration={300} isAnimationActive={!REDUCED} />
+                    <Bar dataKey="completed" name="Completed" fill={CHART_BAR2} radius={[6, 6, 0, 0]} animationDuration={300} isAnimationActive={!REDUCED} />
                   </BarChart>
                 </ResponsiveContainer>
               )}
@@ -262,8 +267,8 @@ export default function AdminReports() {
                   <YAxis tick={{ fontSize: 11, fill: CHART_TICK }} axisLine={false} tickLine={false} tickFormatter={(v) => `₱${(v / 1000).toFixed(0)}k`} />
                   <Tooltip cursor={{ fill: 'rgba(2,128,144,0.06)' }} formatter={(v, n) => [peso(v), n]} contentStyle={tip} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="collected" name="Collected" fill={CHART_BAR} radius={[6, 6, 0, 0]} />
-                  <Bar dataKey="outstanding" name="Outstanding" fill={CHART_WARN} radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="collected" name="Collected" fill={CHART_BAR} radius={[6, 6, 0, 0]} animationDuration={300} isAnimationActive={!REDUCED} />
+                  <Bar dataKey="outstanding" name="Outstanding" fill={CHART_WARN} radius={[6, 6, 0, 0]} animationDuration={300} isAnimationActive={!REDUCED} />
                 </BarChart>
               </ResponsiveContainer>
             )}

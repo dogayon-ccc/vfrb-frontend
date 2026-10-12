@@ -4,7 +4,7 @@ import { TTL } from '../../utils/cache';
 import { useCachedResource } from '../../hooks/useCachedResource';
 import { NavIcon } from '../../components/ui/icons';
 import { canAccessArea } from '../../utils/jobAccess';
-import { PageHeader, StatGrid, Panel, StatusPill, SkeletonRows, EmptyBlock, ErrorBlock, Meter, Toast, useToast } from '../../components/admin/AdminUI';
+import { PageHeader, StatGrid, Panel, StatusPill, SkeletonRows, EmptyBlock, ErrorBlock, Meter, Toast, useToast, useLivePoll, LiveStamp } from '../../components/admin/AdminUI';
 
 const ROLE_LABEL = { sales: 'Sales Staff', production: 'Production Staff', inventory: 'Inventory Staff' };
 const STAGE_LABEL = { pattern: 'Pattern', segregation: 'Segregation', cutting: 'Cutting', sewing: 'Sewing', qc: 'QC', pressing: 'Pressing', packing: 'Packing' };
@@ -29,12 +29,15 @@ export default function StaffDashboard() {
   const fn = user.job_function ?? 'general';
   const [toast, setToast] = useToast();
 
-  const [data, loading, reload] = useCachedResource(
+  const [data, fetching, reload] = useCachedResource(
     'staff_dashboard',
     () => axios.get('/api/admin/dashboard/staff').then((r) => r.data),
     TTL.DASHBOARD,
     { onError: () => setToast({ type: 'error', msg: 'Failed to load your dashboard.' }) },
   );
+
+  const loading = fetching && !data; // keep the last payload on screen while refreshing
+  const live = useLivePoll(reload, data);
 
   const h = new Date().getHours();
   const greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
@@ -67,8 +70,8 @@ export default function StaffDashboard() {
 
   return (
     <>
-      <PageHeader title={`${ROLE_LABEL[fn] ?? 'Staff'} Dashboard`} sub={`${greet}, ${user.name?.split(' ')[0] ?? 'there'} · ${today}`}>{actions}</PageHeader>
-      {!loading && !data && <div style={{ marginBottom: 16 }}><ErrorBlock msg="Your dashboard could not be loaded." onRetry={() => reload(true)} /></div>}
+      <PageHeader title={`${ROLE_LABEL[fn] ?? 'Staff'} Dashboard`} sub={`${greet}, ${user.name?.split(' ')[0] ?? 'there'} · ${today}`}><LiveStamp at={live.at} busy={live.busy} onRefresh={live.run} />{actions}</PageHeader>
+      {!loading && !data && <div style={{ marginBottom: 16 }}><ErrorBlock msg="Your dashboard could not be loaded." onRetry={live.run} /></div>}
       <StatGrid items={stats} loading={loading} />
       {fn === 'sales' ? <SalesBody data={data} loading={loading} nav={nav} />
         : fn === 'production' ? <ProductionBody data={data} loading={loading} nav={nav} />
