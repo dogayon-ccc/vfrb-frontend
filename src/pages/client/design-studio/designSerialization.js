@@ -13,7 +13,7 @@
 //
 // DesignState (the canonical shape, matches what customers actually design):
 //   { name, category, garment, fit, sleeve, colors, patterns, patternParams,
-//     overlays, frontOverlays, backOverlays }
+//     details, overlays, frontOverlays, backOverlays }
 //
 // serializeDesign(cfg, overlaysBundle) -> plain object safe to
 //   JSON.stringify into sessionStorage / order_drafts.studio_config /
@@ -25,6 +25,7 @@ import { resolveSleeve, resolveFit, LEGACY_GARMENT } from './garmentCatalog';
 import { startColors } from './colorRules';
 import { assetFor, templateIdFor, templateKeyById } from './garmentAssets';
 import { photoFamilies } from './designGallery';
+import { normalizeDetails } from './garmentDetails';
 import { savedDesignName } from '../../../utils/designName';
 
 // A gallery photo id is kept only while the design is on a family that photo opens (reference, never geometry): designGallery.photoFamilies.
@@ -39,6 +40,7 @@ export const DEFAULT_CFG = {
   colors:   startColors('#1B2A4A'), // one named base colour (Navy) on every zone (colorRules.js)
   patterns: { body:'solid', collar:'solid', sleeve:'solid', pocket:'solid' },
   patternParams: {},
+  details: {}, // pockets, buttons, closures (garmentDetails.js): only changes from the template
 };
 
 // Account draft label (order_drafts.label, max 120): the customer's own design name when set,
@@ -82,6 +84,7 @@ export function serializeDesign(cfg, overlaysBundle = {}, previewPng) {
     colors:        { ...DEFAULT_CFG.colors,   ...cfg.colors },
     patterns:      photoBase ? { ...DEFAULT_CFG.patterns } : { ...DEFAULT_CFG.patterns, ...cfg.patterns },
     patternParams: photoBase ? {} : { ...cfg.patternParams },
+    details:       normalizeDetails(cfg.details, cfg.garment ?? null, sleeve, fit),
     overlays,
     frontOverlays,
     backOverlays,
@@ -124,6 +127,7 @@ export function deserializeDesign(raw) {
     patterns:      { ...DEFAULT_CFG.patterns, ...(sc.patterns && typeof sc.patterns === 'object' ? sc.patterns : {}) },
     patternParams: { ...(sc.patternParams && typeof sc.patternParams === 'object' ? sc.patternParams : {}) },
   };
+  cfg.details = normalizeDetails(sc.details, cfg.garment, cfg.sleeve, cfg.fit);
   cfg.inspirationId = inspirationFor(sc.inspirationId, cfg.garment);
   if (assetFor(cfg.garment, cfg.sleeve, 'front', cfg.fit)) {
     cfg.patterns = { ...DEFAULT_CFG.patterns };

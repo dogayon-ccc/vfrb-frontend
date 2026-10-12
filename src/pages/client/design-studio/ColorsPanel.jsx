@@ -23,7 +23,7 @@ export default function ColorsPanel({ cfg, setCfg, activeZone, setActiveZone }) 
       )}
       <p style={secLabel}>Colour zone</p>
       <div className="ds-zones" role="group" aria-label="Colour zone">
-        {zonesFor(cfg.garment, cfg.sleeve, cfg.fit).map(z => (
+        {zonesFor(cfg.garment, cfg.sleeve, cfg.fit).filter(z => z !== 'pocket' || cfg.details?.patchPocket?.show !== false).map(z => (
           <button key={z} type="button" className="ds-zone" aria-pressed={activeZone === z} onClick={() => setActiveZone(z)}>
             <span className="ds-zone-sw" style={{ background: cfg.colors[z] ?? 'var(--cx-paper-2)' }} aria-hidden="true"/>
             {label(z)}

@@ -1,7 +1,7 @@
-// Fabric-side drawing for the Studio's guides: the grid between the garment and the design, the garment centre line, placement
-// ghosts while a logo or text moves, and the eraser cut. Grid and centre line are painted on the live canvas only (never in an
-// export, which renders to its own canvas); ghosts go on the interaction layer. None of them is a canvas object.
-import { gridFade, GRID_ALPHA, gridSpec, gridLines, samplePath, erasable, touches } from './canvasGuides';
+// Fabric-side drawing for the Studio's guides: the garment centre line, placement ghosts while a logo or text moves, and the eraser
+// cut. The centre line is painted on the live canvas only (never in an export, which renders to its own canvas); ghosts go on the
+// interaction layer. None of them is a canvas object. The grid is the stage's SVG behind the canvas, never drawn on the garment.
+import { samplePath, erasable, touches } from './canvasGuides';
 
 // Colour tokens read from the page (customer tokens are scoped to the Studio root), as rgba with an alpha.
 const token = (el, name, fallback) => (el && getComputedStyle(el).getPropertyValue(name).trim()) || fallback;
@@ -23,31 +23,6 @@ export function garmentBox(c) {
 // One screen px in canvas units through the Fabric zoom and the wrapper's CSS scale.
 const screenPx = (c, scale) => 1 / ((c.viewportTransform?.[0] || 1) * (scale || 1));
 
-// Grid over the garment's own pixels only (source-atop), two-tone so it reads on dark and light cloth; the stage grid around it is
-// the viewport's SVG. Both use gridLines() from the garment's top-left, so every line sits on a ruler tick.
-function drawGrid(ctx, c, o) {
-  const spec = gridSpec(garmentBox(c), o.gridPct);
-  if (!spec) return;
-  const px = screenPx(c, o.scale), fade = gridFade(Math.min(spec.sx, spec.sy) / px);
-  const ink = token(c.lowerCanvasEl, '--cx-ink', '#1b2428'), w = c.getWidth(), h = c.getHeight();
-  const keep = l => fade > 0 || l.v % 50 === 0; // same rule as the stage grid
-  const xs = gridLines(spec.x0, spec.sx, spec.pct, 0, w).filter(keep), ys = gridLines(spec.y0, spec.sy, spec.pct, 0, h).filter(keep);
-  ctx.save();
-  ctx.globalCompositeOperation = 'source-atop';
-  ctx.lineWidth = px;
-  for (const [major, a] of [[false, GRID_ALPHA.minor * fade], [true, GRID_ALPHA.major * Math.max(fade, 0.6)]]) {
-    if (!a) continue;
-    for (const [colour, off] of [[rgba(ink, a), 0], [rgba('#ffffff', a), px]]) {
-      ctx.strokeStyle = colour;
-      ctx.beginPath();
-      for (const l of xs) if (l.major === major) { ctx.moveTo(l.at + off, 0); ctx.lineTo(l.at + off, h); }
-      for (const l of ys) if (l.major === major) { ctx.moveTo(0, l.at + off); ctx.lineTo(w, l.at + off); }
-      ctx.stroke();
-    }
-  }
-  ctx.restore();
-}
-
 // Dashed vertical line through the garment's centre, the full height of the artboard.
 function drawCentre(ctx, c, o) {
   const g = garmentBox(c);
@@ -61,17 +36,13 @@ function drawCentre(ctx, c, o) {
   ctx.restore();
 }
 
-// Paints garment base -> grid -> design layers -> centre line on the live canvas; exports and previews render without them.
+// Paints the design, then the centre line (when on) on the live canvas; exports and previews render without it. The grid is never
+// painted over the garment: it is the stage's SVG grid behind the canvas, so the cloth always reads clean.
 export function installStageLayers(c, opts) {
   const render = c._renderObjects.bind(c);
   c._renderObjects = (ctx, objects) => {
-    const o = opts.current;
-    if (ctx !== c.contextContainer || (!o.showGrid && !o.centre)) { render(ctx, objects); return; }
-    const split = objects.findIndex(x => !x.__garmentBase);
-    render(ctx, split < 0 ? objects : objects.slice(0, split));
-    if (o.showGrid) drawGrid(ctx, c, o);
-    if (split >= 0) render(ctx, objects.slice(split));
-    if (o.centre) drawCentre(ctx, c, o);
+    render(ctx, objects);
+    if (ctx === c.contextContainer && opts.current.centre) drawCentre(ctx, c, opts.current);
   };
 }
 

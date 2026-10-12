@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getGarmentPaths } from './garmentPaths';
+import { detailedPaths } from './garmentDetails';
 import { assetFor, tintedCanvas } from './garmentAssets';
 
 // Photo-based garments render the real recoloured photo (same compositor as the Studio canvas); everything else keeps the vector template.
@@ -22,10 +22,10 @@ const DETAIL = {
   button: { fill: 'rgba(255,255,255,.9)', stroke: 'rgba(0,0,0,.35)', strokeWidth: 0.8 },
 };
 
-export default function GarmentSilhouette({ garment, sleeve = 'Short', colors = {}, width = 44, height = 52, face = 'front', fit }) {
+export default function GarmentSilhouette({ garment, sleeve = 'Short', colors = {}, width = 44, height = 52, face = 'front', fit, details }) {
   const asset = assetFor(garment, sleeve, face, fit);
   if (asset) return <PhotoBase asset={asset} colors={colors} width={width} height={height}/>;
-  const p = getGarmentPaths(garment, sleeve, face);
+  const p = detailedPaths(garment, sleeve, face, details);
 
   const zones = [
     { d: p.body,    fill: colors.body },
@@ -35,16 +35,17 @@ export default function GarmentSilhouette({ garment, sleeve = 'Short', colors = 
     { d: p.pocket,  fill: colors.pocket ?? colors.collar },
   ];
 
-  const details = (p.details ?? []).filter(d => DETAIL[d.kind] && (width >= 80 || d.kind === 'shade'));
-  const detail = (d, i) => <path key={`d${i}`} d={d.d} {...DETAIL[d.kind]}/>;
+  const lines = (p.details ?? []).filter(d => DETAIL[d.kind] && (width >= 80 || d.kind === 'shade'));
+  // The customer's button or closure colour (garmentDetails.js) overrides the template ink.
+  const detail = (d, i) => <path key={`d${i}`} d={d.d} {...DETAIL[d.kind]} {...(d.style?.fill && { fill: d.style.fill })} {...(d.style?.stroke && { stroke: d.style.stroke, strokeWidth: d.style.strokeWidth })}/>;
   return (
     <svg width={width} height={height} viewBox={`0 0 ${p.w} ${p.h}`} xmlns="http://www.w3.org/2000/svg">
       {zones.slice(0, 1).map(({ d, fill }, i) => d &&
         <path key={i} d={d} fill={fill ?? '#e2e8f0'} stroke="rgba(0,0,0,.14)" strokeWidth={1.5}/>)}
-      {details.filter(d => !d.over).map(detail)}
+      {lines.filter(d => !d.over).map(detail)}
       {zones.slice(1).map(({ d, fill }, i) => d &&
         <path key={i + 1} d={d} fill={fill ?? '#e2e8f0'} stroke="rgba(0,0,0,.14)" strokeWidth={1.5}/>)}
-      {details.filter(d => d.over).map(detail)}
+      {lines.filter(d => d.over).map(detail)}
       {/* Derived template: the reference model's own lighting multiplied over the fill, as on the Studio canvas. */}
       {p.shade?.[face] && <image href={p.shade[face]} x={0} y={0} width={p.w} height={p.h} preserveAspectRatio="none" style={{ mixBlendMode: 'multiply' }}/>}
     </svg>

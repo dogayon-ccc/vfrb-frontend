@@ -250,12 +250,14 @@ export const inputStyle = {
 };
 
 export const TOOLS = [
-  { id:'type',     icon:'garmentType', label:'Garment', primary:true, hint:'Category, garment, fit and sleeve' },
-  { id:'color',    icon:'colorZone',   label:'Colors',  primary:true, hint:'Color each part of the garment' },
-  { id:'pattern',  icon:'pattern',     label:'Pattern', hint:'Stripes, checks and more' },
+  // `section`: the uniform itself. On desktop these are the right panel's section tabs (the rail keeps the tools that add things).
+  { id:'type',     icon:'garmentType', label:'Garment', primary:true, section:true, hint:'Category, garment, fit and sleeve' },
+  { id:'color',    icon:'colorZone',   label:'Colors',  primary:true, section:true, hint:'Color each part of the garment' },
+  { id:'details',  icon:'qcFastener',  label:'Details', section:true, hint:'Pockets, buttons and closures (2D)' },
+  { id:'pattern',  icon:'pattern',     label:'Pattern', section:true, hint:'Stripes, checks and more' },
   { id:'text',     icon:'text',        label:'Text',    primary:true, hint:'Add names, slogans or numbers' },
   { id:'assets',   icon:'logo',        label:'Logo',    primary:true, hint:'Logos, shapes and starter templates' },
-  { id:'layers',   icon:'layersPanel', label:'Layers',  hint:'Reorder, hide or rename items' },
+  { id:'layers',   icon:'layersPanel', label:'Layers',  section:true, hint:'Reorder, hide or rename items' },
   { id:'draw',     icon:'draw',        label:'Draw',    hint:'Sketch freehand on the garment' },
   { id:'ai',       icon:'ai',          label:'AI',      hint:'Describe a design in words' },
   { id:'selected', icon:'cursor',      label:'Selection', hint:'Adjust the item you picked' },

@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { ENTRIES } from '../../pages/client/design-studio/designGallery';
+import { describeDetails } from '../../pages/client/design-studio/garmentDetails';
 import { getStorageUrl, isImageFile } from '../../utils/fileUrl';
 import { NavIcon } from '../ui';
 
 // Read-only facts an order's Studio design carries that the preview alone hides: the gallery photo it started from, the
-// template, zone colours, the customer's reference photo and the order notes. Admin never edits a submitted design here.
+// template, zone colours, pocket/button/closure changes, the customer's reference photo and the order notes. Admin never edits a submitted design here.
 
 const ZONE_LABEL = { body: 'Body', sleeve: 'Sleeves', collar: 'Collar', pocket: 'Pocket / lower', tipping: 'Tipping' };
 const label = { fontSize: 11, fontWeight: 700, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 6 };
@@ -39,7 +40,8 @@ export function ReferenceFile({ path }) {
 export default function OrderDesignDetails({ order }) {
   const cfg = parseCfg(order.studio_config);
   const photo = cfg?.inspirationId ? ENTRIES.find((d) => d.id === cfg.inspirationId) : null;
-  const zones = Object.entries(cfg?.colors ?? {}).filter(([z, c]) => ZONE_LABEL[z] && typeof c === 'string' && c);
+  const details = describeDetails(cfg?.details);
+  const zones = Object.entries(cfg?.colors ?? {}).filter(([z, c]) => ZONE_LABEL[z] && typeof c === 'string' && c && (z !== 'pocket' || cfg.details?.patchPocket?.show !== false));
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 16, minWidth: 0 }}>
       {cfg && (photo || cfg.inspirationId || cfg.templateId) && (
@@ -66,6 +68,12 @@ export default function OrderDesignDetails({ order }) {
               </span>
             ))}
           </div>
+        </div>
+      )}
+      {details.length > 0 && (
+        <div>
+          <div style={label}>Garment details (2D)</div>
+          <ul style={{ ...box, margin: 0, paddingLeft: 28 }}>{details.map(d => <li key={d}>{d}</li>)}</ul>
         </div>
       )}
       {cfg && order.client_design_ref_file && (

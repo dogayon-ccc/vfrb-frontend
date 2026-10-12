@@ -7,6 +7,7 @@ import PatternPanel from './PatternPanel';
 import DrawPanel from './DrawPanel';
 import TypePanel from './TypePanel';
 import ColorsPanel from './ColorsPanel';
+import DetailsPanel from './DetailsPanel';
 import TextPanel from './TextPanel';
 import AIPanel from './AIPanel';
 import StudioDock from './StudioDock';
@@ -17,7 +18,8 @@ import { assetFor } from './garmentAssets';
 
 const noop = () => {};
 
-// Panel/sheet: tool content, then the one Layers section, then the sticky dock. Phone sheet snaps to peek (dock only), half or full.
+// Panel/sheet: tool content, then the one Layers section, then the sticky dock. Phone sheet snaps to peek (dock only), half (the active
+// tool only, ~30% of the screen) or full. On desktop the uniform's sections (Garment, Colors, Details, Pattern, Layers) are tabs here.
 export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, sheetFull, setSheetFull, summary, ...p }) {
   const [more, setMore] = useState(false);
   const hasSelection = isEditableSelection(p.selObj);
@@ -31,6 +33,7 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, she
   const PANELS = {
     type:    () => <TypePanel cfg={p.cfg} setCfg={p.setCfg} setActiveZone={p.setActiveZone} onOpenTool={summary.onOpenTool} onChangeGarment={p.onChangeGarment}/>,
     color:   () => <ColorsPanel cfg={p.cfg} setCfg={p.setCfg} activeZone={p.activeZone} setActiveZone={p.setActiveZone}/>,
+    details: () => <DetailsPanel cfg={p.cfg} setCfg={p.setCfg} focus={p.detailFocus} onColourPocket={() => { p.setActiveZone('pocket'); setTool('color'); }}/>,
     assets:  () => <AssetsPanel tab={p.assetsTab} setTab={p.setAssetsTab} cfg={p.cfg} logo={p.logoUpload}
                      shapes={{ selObj:p.selObj, onAdd:p.addShape, onUpdate:p.updateSelected }}
                      onInspo={() => p.setShowInspo(true)} onShowcase={() => p.setShowShowcase(true)}/>,
@@ -105,7 +108,7 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, she
       <div className="ds-strip" role="toolbar" aria-label="Design tools">
         {tools.map(t => (
           <button key={t.id} type="button" className="ds-tool-btn" title={noGarment ? 'Choose a garment first' : t.label}
-            data-group={t.primary || t.id === 'selected' ? 'primary' : 'more'}
+            data-group={t.primary || t.id === 'selected' ? 'primary' : 'more'} data-section={t.section || undefined}
             data-tool={t.id} aria-disabled={noGarment || undefined}
             aria-pressed={tool === t.id && sheetOpen && !more && !noGarment} onClick={() => pick(t.id)}>
             {tool === t.id && sheetOpen && !more && !noGarment && (
@@ -129,6 +132,15 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, she
           onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (sheetOpen) toPeek(); else setSheetOpen(true); } }}>
           <span/>
         </div>
+        {/* Desktop: the uniform's sections as tabs (phones reach them from the bottom bar and More). */}
+        {!noGarment && (
+          <nav className="ds-sections" aria-label="Uniform sections">
+            {TOOLS.filter(t => t.section).map(t => (
+              <button key={t.id} type="button" aria-current={t.id === tool && !more ? 'true' : undefined}
+                onClick={() => (t.id === 'layers' ? focusLayers() : (setTool(t.id), setMore(false), setSheetOpen(true)))}>{t.label}</button>
+            ))}
+          </nav>
+        )}
         <header className="ds-sheet-head">
           <span className="ds-sheet-icon" aria-hidden="true"><NavIcon name={more ? 'chevronUp' : active.icon} size={16}/></span>
           <div className="ds-sheet-title">

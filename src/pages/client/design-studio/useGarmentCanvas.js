@@ -2,13 +2,15 @@
 import { useRef, useState, useCallback, useEffect, useLayoutEffect } from 'react';
 import { T2, LOGO_PRESETS, PATTERNS, SHAPE_TYPE_LABEL } from './dsShared';
 import { getGarmentPaths } from './garmentPaths';
+import { detailedPaths } from './garmentDetails';
 import { addFabricShading } from './fabricShading';
 import { assetFor, tintedCanvas } from './garmentAssets';
 import { snapTargets, computeSnap, snapThreshold, computeResizeSnap, movingEdges } from './snapGuides';
 import { placementTargets, readoutPct, alignDeltas, distributeDeltas, gridSpec, guideLines } from './canvasGuides';
 import { installStageLayers, drawPlacementGhosts, applyErase, garmentBox, plainObject } from './canvasLayers';
 
-// Decorative template lines (garmentPaths `details`): no __zoneKey and not evented, so they never take a click or a hover.
+// Template lines (garmentPaths `details`). Untagged ones are decorative: no __zoneKey, never clicked or hovered. A tagged part (pocket,
+// buttons, closure) is tappable as zone 'detail:<part>' and carries the customer's colour as `style` (garmentDetails.js).
 const DETAIL_STYLE = {
   seam:   { fill: '', stroke: 'rgba(0,0,0,.32)', strokeWidth: 1, strokeDashArray: [3, 2.5] },
   line:   { fill: '', stroke: 'rgba(0,0,0,.24)', strokeWidth: 1.2 },
@@ -21,7 +23,8 @@ const DETAIL_STYLE = {
 // pocket); over-details go above every zone. Returns the index after the last garment object.
 function insertDetails(fabric, canvas, details = [], zoneCount) {
   const under = details.filter(d => !d.over), over = details.filter(d => d.over);
-  const make = d => new fabric.Path(d.d, { ...DETAIL_STYLE[d.kind], selectable: false, evented: false, objectCaching: false, __garmentBase: true });
+  const make = d => new fabric.Path(d.d, { ...DETAIL_STYLE[d.kind], ...d.style, selectable: false, evented: !!d.part, objectCaching: false, __garmentBase: true,
+    ...(d.part && { __zoneKey: `detail:${d.part}`, perPixelTargetFind: false }) });
   under.forEach((d, i) => canvas.insertAt(1 + i, make(d)));
   const start = zoneCount + under.length;
   over.forEach((d, i) => canvas.insertAt(start + i, make(d)));
@@ -68,7 +71,7 @@ export function compositeFrontBack(frontUrl, backUrl) {
   });
 }
 
-export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patterns, patternParams, onSelect, onZoneClick, fit) {
+export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patterns, patternParams, onSelect, onZoneClick, fit, details) {
   const fc = useRef(null);
   const hoverEl = useRef(null);
   const fabricReady = useRef(false);
@@ -124,7 +127,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       const drawInitialGarment = () => {
         const c = fc.current;
         if (!c) return;
-        const initPaths = getGarmentPaths(garment, sleeve, face);
+        const initPaths = detailedPaths(garment, sleeve, face, details);
         if (assetFor(garment, sleeve, face, fit)) { c.setWidth(initPaths.w); c.setHeight(initPaths.h); return; }
         let zi = 0;
         const zones = [];
@@ -369,7 +372,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     if (!canvas || !fabricReady.current) return;
 
     import('fabric').then((mod) => { const fabric = mod.fabric ?? mod.default ?? mod;
-      const paths = getGarmentPaths(garment, sleeve, face);
+      const paths = detailedPaths(garment, sleeve, face, details);
       canvas.getObjects().filter(o => o.__garmentBase || o.__hoverGlow).forEach(o => canvas.remove(o));
 
       // Photo base: one recoloured cut-out in the body zone, same canvas size as the vector template so logo/text placement is unchanged.
@@ -458,7 +461,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       canvas.renderAll();
       publishGarment(canvas);
     }).catch(() => {});
-  }, [garment, sleeve, face, colors, patterns, patternParams, fit, ready, publishGarment]);
+  }, [garment, sleeve, face, colors, patterns, patternParams, fit, details, ready, publishGarment]);
 
   // History helpers — declared before addLogo/addText/deleteSelected, which depend on pushHistory
   const pushHistory = useCallback(() => {

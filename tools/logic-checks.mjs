@@ -425,7 +425,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const cv = src('../src/pages/client/design-studio/CanvasViewport.jsx'), css = src('../src/pages/client/design-studio/DesignStudioStyles.jsx');
   // Lane contract: chip, set bar, guides and 3D notes are in the top lane; zoom, Front/Back and the stage light in the bottom lane; the panes sit in the fit area between.
   const at = k => cv.indexOf(k), top = at('className="ds-lane ds-lane-top"'), fit = at('className="ds-stage-fit"'), bot = at('className="ds-lane ds-lane-bottom"');
-  const inTop = ['<GuidesMenu ', 'className="ds-ctx-chip"', 'className="ds-set-wrap"', 'className="ds-stage-note"', 'aria-label="3D preview scope"'].every(k => at(k) > top && at(k) < fit);
+  const inTop = ['<GuidesMenu ', 'className="ds-ctx-chip"', 'className="ds-set-wrap"', 'className="ds-stage-note"'].every(k => at(k) > top && at(k) < fit);
   const inFit = [...cv.matchAll(/className="ds-pane"/g)].every(m => m.index > fit && m.index < bot);
   const inBot = ['className="ds-bottombar"', 'className="ds-stage-hint"', 'aria-label="Zoom"'].every(k => at(k) > bot) && at('{stageBtn}') > bot;
   const rule = sel => (css.match(new RegExp(sel.replace(/[.[\]()]/g, '\\$&') + '\\{([^}]*)\\}')) ?? [])[1] ?? '';
@@ -480,17 +480,17 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const layers = src('../src/pages/client/design-studio/canvasLayers.js'), hook = src('../src/pages/client/design-studio/useGarmentCanvas.js'), gm = src('../src/pages/client/design-studio/GuidesMenu.jsx');
   // 1. One Guides button and popover; defaults off on phones; the old prefs shape carries over.
   const ph = CG.guideDefaults(true), dk = CG.guideDefaults(false), old = CG.readGuidePrefs({ grid: true, snap: false, size: 40 }, false);
-  t('guides: one popover with Grid, grid size, Snap, Rulers, Centre line, Smart guides; visual guides off by default on phones; old prefs carried over',
+  t('guides: one popover with Grid, grid size, Snap, Rulers, Centre line, Smart guides; grid, rulers and centre line off by default (smart guides on desktop only); old prefs carried over',
     ['Grid', 'Snap', 'Rulers', 'Centre line', 'Smart guides'].every(l => gm.includes(`'${l}'`)) && /aria-label="Grid size"/.test(gm) && /<GuidesMenu /.test(cv) && !/aria-label="Grid and rulers"/.test(cv)
-    && !ph.grid && !ph.rulers && !ph.centre && !ph.smart && dk.centre && dk.smart && !dk.grid && old.grid && old.rulers && !old.snap && old.size === 20 && CG.readGuidePrefs({ size: 33 }).size === 10 && CG.readGuidePrefs({ v: 2, size: 10 }).size === 10);
+    && !ph.grid && !ph.rulers && !ph.centre && !ph.smart && !dk.centre && dk.smart && !dk.grid && old.grid && old.rulers && !old.snap && old.size === 20 && CG.readGuidePrefs({ size: 33 }).size === 10 && CG.readGuidePrefs({ v: 2, size: 10 }).size === 10);
   // 2. Grid: neutral ink, minor ~10% / every 5th ~18%, fades at low zoom, over the garment only between base and design, never in exports.
   t('grid: neutral ink (no teal), minor 10% and every 5th line 18%, fades from 12 to 6 screen px, stage grid follows the artboard',
     CG.GRID_ALPHA.minor === 0.1 && CG.GRID_ALPHA.major === 0.18 && CG.GRID_MAJOR_EVERY === 5 && CG.gridFade(12) === 1 && CG.gridFade(6) === 0 && CG.gridFade(9) === 0.5
     && /\.ds-sgrid line\{stroke:rgb\(var\(--ds-grid-ink\)/.test(css) && /--ds-grid-ink:var\(--cx-shade\)/.test(css) && !/ds-grid line\{stroke:rgba\(2,128,144/.test(css)
     && /<StageGrid view=\{view\} g=\{garmentRect\}/.test(cv) && !/<Grid /.test(cv));
-  t('grid on the garment is painted between the garment base and the design layers, on the live canvas only (exports render elsewhere), two-tone for dark and light cloth',
-    /if \(ctx !== c\.contextContainer/.test(layers) && /globalCompositeOperation = 'source-atop'/.test(layers) && /render\(ctx, split < 0 \? objects : objects\.slice\(0, split\)\);\s*if \(o\.showGrid\) drawGrid/.test(layers)
-    && /rgba\('#ffffff', a\)/.test(layers) && /installStageLayers\(fc\.current, snapOpts\)/.test(hook));
+  t('the grid is never painted over the garment: the live canvas paints only the design and (when on) the centre line; exports render elsewhere',
+    /render\(ctx, objects\);\s*if \(ctx === c\.contextContainer && opts\.current\.centre\) drawCentre/.test(layers) && !/drawGrid|source-atop/.test(layers)
+    && /installStageLayers\(fc\.current, snapOpts\)/.test(hook));
   // 3-4. Centre line and smart guides: centre always a snap line; edges and other elements only with smart guides.
   const box = { left: 60, top: 40, width: 200, height: 300 }, oth = [{ left: 100, top: 100, width: 40, height: 20 }];
   const centreOnly = SN2.snapTargets({ width: 320, height: 400, garment: box, garmentEdges: false }), full = SN2.snapTargets({ width: 320, height: 400, garment: box, others: oth });
@@ -553,7 +553,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('grid lines coincide with ruler ticks (garment top-left origin; Fine 5% / Medium 10% / Coarse 20%; every zoom and pan tried) and the 50% centre is a grid line at every size',
     cases > 300 && missing === 0 && worst < 1e-6 && has50 && JSON.stringify(CG.GRID_PCTS) === '[5,10,20]' && JSON.stringify(CG.gridSpec(g, 10)) === JSON.stringify({ x0: 37, y0: 21, sx: 24.6, sy: 30.1, pct: 10 }));
   t('the stage grid is an SVG over the whole stage under the artboard, drawn from the same gridLines() as the garment grid and the snapping grid',
-    /<StageGrid view=\{view\} g=\{garmentRect\} pct=\{guides\.size\}/.test(cv) && /w=\{view\.pw \+ stageOff\.dx\} h=\{view\.ph \+ stageOff\.dy\}/.test(cv) && /gridLines\(/.test(rul) && /gridLines\(spec\.x0/.test(layers)
+    /<StageGrid view=\{view\} g=\{garmentRect\} pct=\{guides\.size\}/.test(cv) && /w=\{view\.pw \+ stageOff\.dx\} h=\{view\.ph \+ stageOff\.dy\}/.test(cv) && /gridLines\(/.test(rul)
     && /\.ds-sgrid\{position:absolute;left:0;top:0;z-index:0;pointer-events:none;\}/.test(css) && SN3.snapTargets({ width: 320, height: 400, grid: CG.gridSpec(g, 10) }).v.some(l => l.kind === 'grid' && Math.abs(l.at - (37 + 24.6 * 3)) < 1e-9));
   // Rulers: full stage length, beyond 0 and 100, labels every 10% when they fit, 0/50/100 emphasised, live pointer marker, '%' corner.
   const tk = CG.relativeTicks(200, 1.4, 900, 37, 246, 30), lab = tk.filter(x => x.major).map(x => x.v);
@@ -576,9 +576,9 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     CG.readGuidePrefs({ grid: true, size: 40 }).size === 20 && CG.readGuidePrefs({ size: 10 }).size === 5 && CG.readGuidePrefs({ v: 2, size: 5 }).size === 5 && CG.guideDefaults().v === 2);
   // Phone stage space: one-row top lane, compact set switch, half sheet gives the tool body the room, export row closes on collapse.
   const dock = src('../src/pages/client/design-studio/StudioDock.jsx');
-  t('phone/tablet stage space: one-row top lane (icon Guides with count, truncating chip, compact set switch), compact half sheet, export row closes when the sheet collapses',
-    /\.ds-lane-top:not\(\[data-notes\]\)\{flex-wrap:nowrap;\}/.test(css) && /\.ds-guides-txt\{display:none;\}/.test(css) && /\.ds-ctx-chip strong\{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;\}/.test(css)
-    && /\.ds-set-bar button strong\{display:none;\}/.test(css) && /\.ds\[data-snap=half\] :is\(\.ds-dock-sub,\.ds-dock-state:not\(\[data-tone=err\]\)\)\{display:none;\}/.test(css)
+  t('phone/tablet stage space: one-row top lane (icon Guides with count, Top/Bottom/Set selector, one status badge that never truncates), ~30% half sheet with the active tool only, export row closes when the sheet collapses',
+    /\.ds-lane-top:not\(\[data-notes\]\)\{flex-wrap:nowrap;\}/.test(css) && /\.ds-guides-txt\{display:none;\}/.test(css) && !/text-overflow:ellipsis/.test(css.match(/\.ds-ctx-chip\{[^}]*\}/)?.[0] ?? 'text-overflow:ellipsis')
+    && /--ds-sheet-h:clamp\(12\.5rem,30dvh,17rem\)/.test(css) && /\.ds\[data-snap=half\] :is\(\.ds-dock,\.ds-under,\.ds-lane-bottom\)\{display:none;\}/.test(css)
     && /if \(collapsed && window\.matchMedia\('\(max-width: 1023px\)'\)\.matches\) setExportOpen\(false\)/.test(dock) && /collapsed=\{!sheetOpen\}/.test(src('../src/pages/client/design-studio/ToolDrawer.jsx')));
   // Guides panel: rendered at the Studio root; a modal dialog up to 1023px; on desktop capped to the stage and scrolling inside.
   t('Guides panel is rendered at the Studio root (above rulers and sheet): modal dialog with backdrop, close button and Escape up to 1023px; desktop popover capped to the stage height with internal scroll',
@@ -761,9 +761,9 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const fams = Object.values(CAT.FAMILY_BY_NAME);
   t('"Start from scratch": every listed family offers only combinations that open an editable template (Category -> Garment -> Fit/Cut -> Style -> Studio); derived families are grouped under "From reference"; no family is the default',
     fams.every(f => { const r = CAT.resolveTarget(f.id, f.defaultStyle, f.fits[0]); return !r || r.status === 'reference' || CAT.applyGarment({}, f.id, { fit: r.fit, sleeve: r.sleeve }).garment === f.id; })
-    && /\['templates', 'Start from scratch'\]/.test(PK) && /<h3>From reference<\/h3>/.test(PK) && /r\.status !== 'reference'/.test(PK) && /Open in Studio/.test(PK));
+    && /\['templates', 'Start from scratch', 'Scratch'\]/.test(PK) && /<h3>From reference<\/h3>/.test(PK) && /r\.status !== 'reference'/.test(PK) && /Open in Studio/.test(PK));
   t('"Start from a reference": every reference photo with derived pieces opens its template (Use as template), sets open their top with the bottom waiting as the other set piece, in the photo\'s measured colours',
-    /\['inspiration', 'Start from a reference'\]/.test(PK) && />Use as template</.test(PK)
+    /\['inspiration', 'Start from a reference', 'Reference'\]/.test(PK) && />Use as template</.test(PK)
     && [...new Set(DF.DERIVED_FAMILIES.map(d => d.ref))].every(ref => { const d = GAL.ENTRIES.find(e => e.id === ref), tg = GAL.openTarget(d); return d.editable2D && tg && CAT.applyGarment({}, tg.garment, tg).garment === tg.garment; })
     && /withPhotoColour\(b\.colors, d\.id, 1\)/.test(fsx.readFileSync(rel('../src/pages/client/DesignStudio.jsx'), 'utf8')));
   t('2D realism layers are decorative only: no zone key, never selectable or evented, so they never reach history or the saved design',
@@ -820,5 +820,34 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     ['DeliveryTracking', 'PhysicalCount', 'PurchaseOrders', 'UserManagement'].every(f => !/\bconst SK\b/.test(rd(`../src/pages/admin/${f}.jsx`))) && !/\bTTL\b/.test(rd('../src/pages/admin/UserManagement.jsx')));
 }
 
+// Garment details (pockets, buttons, closures): one table, only what each 2D template really draws, saved in studio_config.details.
+{
+  const GD = await L('/src/pages/client/design-studio/garmentDetails.js'), GP = await L('/src/pages/client/design-studio/garmentPaths.js');
+  const rdx = q => fsx.readFileSync(urlx.fileURLToPath(new URL(q, import.meta.url)), 'utf8');
+  const fams = Object.values(G.FAMILY_BY_NAME);
+  const combos = fams.flatMap(f => (f.styles.length ? f.styles : [null]).flatMap(sl => (f.fits.length ? f.fits : [null]).map(fit => [f.id, sl, fit])));
+  t('details: an older design (no details key) opens unchanged: empty details, and every template draws exactly as before',
+    (() => { const old = { garment: 'Polo Shirt', sleeve: 'Short', fit: 'male', colors: { body: '#1b2a4a' }, frontOverlays: [] }; const c = S.deserializeDesign(JSON.parse(JSON.stringify(old))).cfg; return JSON.stringify(c.details) === '{}' && JSON.stringify(S.serializeDesign(c).details) === '{}'; })()
+    && combos.every(([g, sl]) => ['front', 'back'].every(f => JSON.stringify(GD.detailedPaths(g, sl, f, {})) === JSON.stringify(GP.getGarmentPaths(g, sl, f)))));
+  t('details: hidden pocket and recoloured buttons survive Save -> My Designs reload -> Order Wizard snapshot -> Order Detail, and print on the spec sheet and admin view',
+    (() => {
+      const cfg = { ...G.applyGarment(base, 'Button-Down'), details: { patchPocket: { show: false }, buttons: { color: '#C0A060' }, closure: { color: 'red' } } };
+      const saved = S.serializeDesign(cfg, {}); const order = S.serializeDesign(S.deserializeDesign(JSON.parse(JSON.stringify(saved))).cfg, {});
+      const shown = GD.detailedPaths(order.garment, order.sleeve, 'front', S.deserializeDesign(order).cfg.details);
+      return JSON.stringify(order.details) === JSON.stringify({ patchPocket: { show: false }, buttons: { color: '#c0a060' } }) && shown.pocket === null
+        && shown.details.filter(d => d.part === 'buttons').every(d => d.style.fill === '#c0a060') && !shown.details.some(d => d.part === 'patchPocket')
+        && JSON.stringify(GD.describeDetails(order.details)) === JSON.stringify(['Patch pocket: none', 'Buttons: #C0A060']);
+    })()
+    && /\['Details', describeDetails\(cfg\.details\)/.test(rdx('../src/pages/client/DesignStudio.jsx')) && /describeDetails\(cfg\?\.details\)/.test(rdx('../src/components/admin/OrderDesignDetails.jsx'))
+    && /details=\{design\.details\}/.test(rdx('../src/components/DesignPreview.jsx')) && /cfg\.fit,\s*cfg\.details\s*\);/.test(rdx('../src/pages/client/DesignStudio.jsx')));
+  t('details: no control for a garment that cannot draw it: every listed option is drawn by that template; photo bases and derived templates list none; unsupported keys are dropped on save',
+    combos.every(([g, sl, fit]) => GD.detailsFor(g, sl, fit).every(o => ['front', 'back'].some(f => { const p = GP.getGarmentPaths(g, sl, f); return o.id === 'patchPocket' ? !!p.pocket : p.details.some(d => d.part === o.id); })))
+    && GD.detailsFor('Scrub Top', 'Short', 'female').length === 0 && GD.detailsFor('T-Shirt', 'Short', 'male').length === 0
+    && fams.filter(f => f.derived).every(f => GD.detailsFor(f.id, f.styles[0] ?? null, f.fits[0] ?? null).length === 0)
+    && GD.detailsFor('Polo Shirt', 'Short', 'male').map(o => o.id).join() === 'patchPocket,buttons,closure' && GD.detailsFor('Pants', null, null).map(o => o.id).join() === 'sidePockets,backPockets,buttons,closure'
+    && JSON.stringify(S.serializeDesign({ ...G.applyGarment(base, 'T-Shirt'), details: { buttons: { color: '#000000' } } }).details) === '{}'
+    && /const options = detailsFor\(cfg\.garment, cfg\.sleeve, cfg\.fit\);/.test(rdx('../src/pages/client/design-studio/DetailsPanel.jsx'))
+    && /changes are shown in 2D only/.test(rdx('../src/pages/client/design-studio/CanvasViewport.jsx')));
+}
 console.log(out.join('\n')); const f = out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);
