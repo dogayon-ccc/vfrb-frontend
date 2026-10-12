@@ -11,6 +11,7 @@ import BillingSection from './settings/BillingSection';
 import HelpSection from './settings/HelpSection';
 import FeedbackSection from './settings/FeedbackSection';
 import LoadError from './settings/LoadError';
+import { phPhoneError, compactPhone } from '../../utils/phPhone';
 
 function Toast({ msg, type }) {
   return (
@@ -44,9 +45,11 @@ function AddressForm({ initial, onCancel, onSaved }) {
     if (!form.label.trim() || !form.recipient_name.trim() || !form.contact_number.trim() || !form.address_line.trim() || !form.city.trim() || !form.province.trim()) {
       setErr('Please fill in all required fields.'); return;
     }
+    const phoneErr = phPhoneError(form.contact_number, { required: true });
+    if (phoneErr) { setErr(phoneErr); return; }
     setSaving(true); setErr('');
     try {
-      const body = { label: form.label, recipient_name: form.recipient_name, contact_number: form.contact_number,
+      const body = { label: form.label, recipient_name: form.recipient_name, contact_number: compactPhone(form.contact_number),
         address_line: form.address_line, city: form.city, province: form.province,
         postal_code: form.postal_code || null, is_default: !!form.is_default };
       const { data } = form.shipping_id
@@ -64,7 +67,8 @@ function AddressForm({ initial, onCancel, onSaved }) {
         <Field label="Label" value={form.label} onChange={e => set('label', e.target.value)} placeholder="e.g. Main Office, Warehouse"/>
         <div className="acct-field-row">
           <Field label="Recipient Name" value={form.recipient_name} onChange={e => set('recipient_name', e.target.value)}/>
-          <Field label="Contact Number" value={form.contact_number} onChange={e => set('contact_number', e.target.value)} placeholder="09XXXXXXXXX"/>
+          <Field label="Contact Number" value={form.contact_number} onChange={e => set('contact_number', e.target.value)} placeholder="09XXXXXXXXX" inputMode="tel"
+            error={(form.contact_number && phPhoneError(form.contact_number)) || undefined}/>
         </div>
         <Field label="Address Line" value={form.address_line} onChange={e => set('address_line', e.target.value)} placeholder="Street, barangay, building"/>
         <div className="acct-field-row">
@@ -167,6 +171,8 @@ function ShippingSection() {
 }
 
 // ── Notification Preferences ─────────────────────────────────────────────
+const SMS_OFF = 'SMS needs a gateway; not enabled. Your contact number is kept for when one is added.';
+
 function NotificationsSection() {
   const [prefs, setPrefs] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -194,25 +200,30 @@ function NotificationsSection() {
   if (failed) return <LoadError what="notification settings" onRetry={load}/>;
   if (!prefs) return <div className="acct-sk"/>;
 
-  const Row = ({ k, label, live }) => (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
-      <div>
-        <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{label}</p>
-        {!live && <p style={{ fontSize: 11, color: 'var(--warning)', margin: '2px 0 0' }}>Delivery isn't active yet. Your preference is saved for when it is.</p>}
+  // `off`: the channel cannot be turned on (SMS has no gateway); shown off and disabled whatever is stored.
+  const Row = ({ k, label, live, off }) => {
+    const on = !off && !!prefs[k], locked = saving || !!off;
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
+        <div>
+          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{label}</p>
+          {off ? <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 0' }}>{off}</p>
+            : !live && <p style={{ fontSize: 11, color: 'var(--warning)', margin: '2px 0 0' }}>Delivery isn't active yet. Your preference is saved for when it is.</p>}
+        </div>
+        <button role="switch" aria-checked={on} aria-label={`Toggle ${label}`} onClick={() => toggle(k)} disabled={locked}
+          style={{ width: 42, height: 24, borderRadius: 99, border: 'none', cursor: locked ? 'not-allowed' : 'pointer', opacity: off ? 0.5 : 1,
+            background: on ? 'var(--teal)' : 'var(--border)', position: 'relative', transition: 'background .18s', flexShrink: 0 }}>
+          <span style={{ position: 'absolute', top: 3, left: on ? 21 : 3, width: 18, height: 18, borderRadius: '50%',
+            background: '#fff', transition: 'left .18s', boxShadow: '0 1px 3px rgba(0,0,0,.2)' }}/>
+        </button>
       </div>
-      <button role="switch" aria-checked={prefs[k]} aria-label={`Toggle ${label}`} onClick={() => toggle(k)} disabled={saving}
-        style={{ width: 42, height: 24, borderRadius: 99, border: 'none', cursor: saving ? 'not-allowed' : 'pointer',
-          background: prefs[k] ? 'var(--teal)' : 'var(--border)', position: 'relative', transition: 'background .18s', flexShrink: 0 }}>
-        <span style={{ position: 'absolute', top: 3, left: prefs[k] ? 21 : 3, width: 18, height: 18, borderRadius: '50%',
-          background: '#fff', transition: 'left .18s', boxShadow: '0 1px 3px rgba(0,0,0,.2)' }}/>
-      </button>
-    </div>
-  );
+    );
+  };
 
   return (
     <Card>
       <Row k="email_enabled" label="Email Notifications" live={prefs.email_provider_live}/>
-      <Row k="sms_enabled" label="SMS Notifications" live={prefs.sms_provider_live}/>
+      <Row k="sms_enabled" label="SMS Notifications" live={prefs.sms_provider_live} off={SMS_OFF}/>
       <Toast msg={msg} type="success"/><Toast msg={err} type="error"/>
     </Card>
   );
