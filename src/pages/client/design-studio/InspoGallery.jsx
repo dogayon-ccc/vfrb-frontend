@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { BASE_PATHS } from './garmentPaths';
 import { openTarget } from './designGallery';
-import { applyGarment } from './garmentCatalog';
 import { selectFamily } from './selectGarment';
 import GarmentPicker from './GarmentPicker';
 
@@ -99,7 +98,7 @@ function Tile({ label, sub, thumb, onClick, editable, onRename, onDelete, onSubm
 }
 
 // The picker modal: the one GarmentPicker (past designs under its header), opened on Inspiration (empty canvas) or Templates (Change garment).
-export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanvasJSON, onOpen3D, tab = 'inspiration', cfg, pieceRole = null }) {
+export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanvasJSON, onOpen3D, onPickPhoto, tab = 'inspiration', cfg, pieceRole = null }) {
   const [archived, setArchived] = useState([]);
 
   useEffect(() => {
@@ -118,15 +117,11 @@ export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanv
     setShowInspo(false);
   };
 
-  const loadDesign = (d, filters) => {
-    const t = openTarget(d, filters);
-    if (!t) return;
-    setCfg(p => applyGarment(p, t.garment, { ...t, inspirationId: d.id }));
-    setShowInspo(false);
-  };
+  // The Studio's own "Use as template" (garment, fit, photo colour, set pieces), then close.
+  const loadDesign = (d, filters) => { if (!openTarget(d, filters)) return; onPickPhoto(d, filters); setShowInspo(false); };
 
   const loadDesign3D = (d, filters) => { loadDesign(d, filters); onOpen3D?.(); };
-  const loadFamily = (fam, category) => { selectFamily(setCfg, fam, category); setShowInspo(false); };
+  const loadFamily = (fam, category, pick) => { selectFamily(setCfg, fam, category, pick); setShowInspo(false); };
 
   const renameDesign = (id, newLabel) => {
     const prev = archived;

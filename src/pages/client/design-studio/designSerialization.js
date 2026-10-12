@@ -24,11 +24,11 @@
 import { resolveSleeve, resolveFit, LEGACY_GARMENT } from './garmentCatalog';
 import { startColors } from './colorRules';
 import { assetFor, templateIdFor, templateKeyById } from './garmentAssets';
-import { ENTRIES as GALLERY } from './designGallery';
+import { photoFamilies } from './designGallery';
 import { savedDesignName } from '../../../utils/designName';
 
-// A gallery photo id is kept only while the design is still on the family that photo opens (reference, never geometry).
-const inspirationFor = (id, garment) => (typeof id === 'string' && GALLERY.find(d => d.id === id)?.base?.[1] === garment ? id : null);
+// A gallery photo id is kept only while the design is on a family that photo opens (reference, never geometry): designGallery.photoFamilies.
+const inspirationFor = (id, garment) => (typeof id === 'string' && photoFamilies(id).includes(garment) ? id : null);
 
 export const DEFAULT_CFG = {
   name: '',

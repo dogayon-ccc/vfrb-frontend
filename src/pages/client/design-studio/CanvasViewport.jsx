@@ -7,6 +7,7 @@ import { get3DCapabilities } from './garmentCapabilities';
 import { ENTRIES as GALLERY } from './designGallery';
 import { hasWebGL } from './webglSupport';
 import { hasBackView, assetFor } from './garmentAssets';
+import { isDerived } from './derivedFamilies';
 import { photoMaxScale } from './studioView';
 import { panLimits, clampPan } from './snapGuides';
 import { readGuidePrefs } from './canvasGuides';
@@ -304,7 +305,9 @@ export default function CanvasViewport({
           <AnimatePresence mode="wait" initial={false}>
             <motion.div key={cfg.garment} className="ds-ctx-chip" aria-live="polite"
               initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} transition={{ duration:.2 }}>
-              <strong>{cfg.garment}</strong>{!photo && <span className="ds-sketch" title="A flat VFRB template drawing; no photo base exists for this garment, sleeve and fit">Sketch</span>}
+              <strong>{cfg.garment}</strong>{!photo && (isDerived(cfg.garment)
+                ? <span className="ds-sketch" title="Outline and shading traced from the 3D model of a VFRB reference photo; pending VFRB confirmation">Derived</span>
+                : <span className="ds-sketch" title="A flat VFRB template drawing; no photo base exists for this garment, sleeve and fit">Sketch</span>)}
             </motion.div>
           </AnimatePresence>
           {pieceBar && <div className="ds-set-wrap">{pieceBar}</div>}

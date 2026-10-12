@@ -2,6 +2,7 @@
 import { useRef, useState, useCallback, useEffect, useLayoutEffect } from 'react';
 import { T2, LOGO_PRESETS, PATTERNS, SHAPE_TYPE_LABEL } from './dsShared';
 import { getGarmentPaths } from './garmentPaths';
+import { addFabricShading } from './fabricShading';
 import { assetFor, tintedCanvas } from './garmentAssets';
 import { snapTargets, computeSnap, snapThreshold, computeResizeSnap, movingEdges } from './snapGuides';
 import { placementTargets, readoutPct, alignDeltas, distributeDeltas, gridSpec, guideLines } from './canvasGuides';
@@ -126,6 +127,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         const initPaths = getGarmentPaths(garment, sleeve, face);
         if (assetFor(garment, sleeve, face, fit)) { c.setWidth(initPaths.w); c.setHeight(initPaths.h); return; }
         let zi = 0;
+        const zones = [];
         const draw = (d, fill, zoneKey) => {
           if (!d) return;
           // FIX (Sept 10 2026): pocket previously used the exact same
@@ -134,13 +136,15 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
           // rather than a garment feature. A visible dashed stroke reads
           // as topstitching, the way a real pocket is actually finished.
           const isPocket = zoneKey === 'pocket';
-          c.insertAt(zi++, new fabric.Path(d, {
+          const zone = new fabric.Path(d, {
             fill,
             stroke: isPocket ? 'rgba(0,0,0,.38)' : 'rgba(0,0,0,.14)',
             strokeWidth: isPocket ? 1.5 : 1.5,
             strokeDashArray: isPocket ? [3, 2] : undefined,
             selectable:false, evented:true, __garmentBase:true, __zoneKey:zoneKey,
-          }));
+          });
+          c.insertAt(zi++, zone);
+          zones.push({ obj: zone, d });
         };
         draw(initPaths.body,    colors.body,                     'body');
         draw(initPaths.collar,  colors.collar,                   'collar');
@@ -148,6 +152,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         draw(initPaths.sleeveR, colors.sleeve ?? colors.body,    'sleeve');
         draw(initPaths.pocket,  colors.pocket  ?? colors.collar, 'pocket');
         insertDetails(fabric, c, initPaths.details, zi);
+        addFabricShading(fabric, c, initPaths, face, zones, () => fc.current === c && redrawToken.current === 0);
         c.setWidth(initPaths.w);
         c.setHeight(initPaths.h);
         c.renderAll();
@@ -388,6 +393,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       const vectorToken = ++redrawToken.current;
 
       let zi = 0;
+      const zones = [];
       const makeZone = (d, fill, zoneKey) => {
         if (!d) return;
         const patDef = PATTERNS.find(p => p.id === (patterns?.[zoneKey] ?? 'solid'));
@@ -399,6 +405,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
           selectable:false, evented:true, __garmentBase:true, __zoneKey:zoneKey,
         });
         canvas.insertAt(zi++, zonePath);
+        zones.push({ obj: zonePath, d });
         if (patDef?.svg) {
           const zoneParams = patternParams?.[zoneKey] ?? patDef.defaultParams;
           const svgStr = patDef.svg(fill, zoneParams?.width, zoneParams?.spacing);
@@ -443,37 +450,8 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         }));
       }
 
-      // FIX (Sept 10 2026): purely decorative fabric-sheen overlay, added
-      // on top of every zone — a flat solid fill reads as plastic/paper,
-      // not cloth. A soft diagonal light-to-dark gradient traced over the
-      // same body silhouette gives the garment a woven, dimensional feel
-      // without needing real texture images. Deliberately has NO
-      // __zoneKey (only __garmentBase, so it's still cleared on redraw
-      // at line ~156) — every hit-test/click handler in this file filters
-      // on __zoneKey being truthy, so this layer can never intercept a
-      // zone click or steal a hover highlight, by construction.
-      if (paths.body) {
-        import('fabric').then((mod) => {
-          const fabric2 = mod.fabric ?? mod.default ?? mod;
-          const sheen = new fabric2.Gradient({
-            type: 'linear',
-            coords: { x1: 0, y1: 0, x2: paths.w, y2: paths.h },
-            colorStops: [
-              { offset: 0,    color: 'rgba(255,255,255,.16)' },
-              { offset: 0.45, color: 'rgba(255,255,255,0)' },
-              { offset: 0.7,  color: 'rgba(0,0,0,0)' },
-              { offset: 1,    color: 'rgba(0,0,0,.14)' },
-            ],
-          });
-          // Directly above the body (index 1): below the collar, sleeves, pocket and detail lines, whatever loaded first.
-          if (fc.current !== canvas || redrawToken.current !== vectorToken) return;
-          canvas.insertAt(1, new fabric2.Path(paths.body, {
-            fill: sheen, stroke: null,
-            selectable: false, evented: false, __garmentBase: true,
-          }));
-          canvas.renderAll();
-        });
-      }
+      // Fabric realism (drop shadow, woven grain, edge shading or the derived model's own lighting): fabricShading.js.
+      addFabricShading(fabric, canvas, paths, face, zones, () => fc.current === canvas && redrawToken.current === vectorToken);
 
       canvas.setWidth(paths.w);
       canvas.setHeight(paths.h);

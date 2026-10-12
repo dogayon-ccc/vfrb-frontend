@@ -32,6 +32,7 @@ import { T2, INIT_CFG, FONTS, zonesFor } from './design-studio/dsShared';
 import { deserializeDesign, serializeDesign, draftLabel } from './design-studio/designSerialization';
 import { applyGarment, pieceOf } from './design-studio/garmentCatalog';
 import { openTarget } from './design-studio/designGallery';
+import { withPhotoColour } from './design-studio/photoColours';
 import { landingViewFor } from './design-studio/studioView';
 import DraftStrip from './design-studio/DraftStrip';
 import GarmentPicker from './design-studio/GarmentPicker';
@@ -436,11 +437,17 @@ export default function DesignStudio() {
   useEffect(() => { if (cfg.garment || layers.length) setPendingDraft(null); }, [cfg.garment, layers.length]);
 
   // First run: open a gallery photo exactly like the Inspo gallery does (same target rules), then show the garment's properties.
+  // "Use as template": the photo's garment and fit in the photo's colour; a reference set also opens its bottom as the other set piece.
   const pickPhoto = useCallback((d, filters) => {
     const t = openTarget(d, filters);
     if (!t) return;
-    setCfg(p => applyGarment(p, t.garment, { ...t, inspirationId: d.id }));
-  }, []);
+    setCfg(p => { const c = applyGarment(p, t.garment, { ...t, inspirationId: d.id }); return { ...c, colors: withPhotoColour(c.colors, d.id, 0) }; });
+    if (d.pieces?.bottom && !uset && pieceOf(t.garment) === 'top') {
+      const b = applyGarment(cfg, d.pieces.bottom, { category: t.category, inspirationId: d.id });
+      const bottom = serializeDesign({ ...b, colors: withPhotoColour(b.colors, d.id, 1) }, { overlays: [], frontOverlays: [], backOverlays: [] });
+      setUset({ id: crypto.randomUUID(), active: 'top', pieces: { top: null, bottom } });
+    }
+  }, [uset, cfg]);
   const prevGarment = useRef(cfg.garment);
   useEffect(() => {
     if (!prevGarment.current && cfg.garment && tool === 'type') setTool('color');
@@ -748,7 +755,7 @@ export default function DesignStudio() {
             zoom={zoom} setZoom={setZoom} snapshot={snapshot} overlays={overlays}
             blank={<GarmentPicker inline cfg={cfg} pieceRole={uset?.active ?? null} onPickPhoto={pickPhoto}
               onPick3D={(d, f) => { keep3DRef.current = true; pickPhoto(d, f); setHas3DLoaded(true); setViewMode('3d'); }}
-              onPickFamily={(fam, category) => selectFamily(setCfg, fam, category)}
+              onPickFamily={(fam, category, pick) => selectFamily(setCfg, fam, category, pick)}
               onUpload={startUpload} pendingArt={pendingArt} onCancelArt={() => setPendingArt(null)}/>} setViewMode={setViewMode}
             pieceBar={pieceBar} setCompanion={setCompanion} showSet={showSet} setShowSet={setShowSet} setSnapOptions={setSnapOptions}/>
         </div>
@@ -764,7 +771,7 @@ export default function DesignStudio() {
         )}
 
         {/* ── GARMENT PICKER MODAL (Inspo / Change garment) ── */}
-        <InspoGallery showInspo={showInspo} setShowInspo={toggleInspo} setCfg={setCfg} tab={pickerTab} cfg={cfg} pieceRole={uset?.active ?? null}
+        <InspoGallery showInspo={showInspo} setShowInspo={toggleInspo} setCfg={setCfg} onPickPhoto={pickPhoto} tab={pickerTab} cfg={cfg} pieceRole={uset?.active ?? null}
           loadCanvasJSON={loadCanvasJSON} onOpen3D={() => { keep3DRef.current = true; setHas3DLoaded(true); setViewMode('3d'); }}/>
 
         {/* ── SHOWCASE GALLERY OVERLAY ── */}

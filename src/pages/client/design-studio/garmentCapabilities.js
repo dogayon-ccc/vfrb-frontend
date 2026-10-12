@@ -43,6 +43,7 @@ const workShirtZone = (x, y, z, f) => {
 const bodyOnly = () => 'body';
 
 import { GLB_SLOTS, slotLive } from './glbSlots';
+import { DERIVED_FAMILIES, DERIVED_APPROVAL, DERIVED_SOURCE, DERIVED_LICENCE, isDerived } from './derivedFamilies';
 
 const ALL_PATTERNS = ['hstripes', 'vstripes', 'diagonal', 'checker', 'polka', 'geometric'];
 
@@ -346,7 +347,25 @@ const AUTHORED_MODELS = [{
   },
 }];
 
-export const SCANNED_GARMENTS = [...SCANNED_BASE, ...SCRUB_TOP, ...MANDARIN_TUNIC, ...ROUND_NECK, ...BIR_BLOUSE, ...UTILITY_LONG, ...CORPORATE_MODELS, ...MEDICAL_MODELS, ...MANDARIN_SHIRT_LONG, ...MORE_MODELS, ...AUTHORED_MODELS];
+// Pieces derived from the reference models (tools/glb-extract/derive_template.py, derivedFamilies.js): garment-only, recentred to height
+// 1.9 like the staged Meshy models, so tops share TOP_T and bottoms the Pants transform. Painted through the calibrated zone-mask path,
+// one body zone. torso = half the model's front width, because the derived 2D body is that model's full front outline (1:1 mapping).
+const escapeRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const DERIVED_MODELS = DERIVED_FAMILIES.filter(d => !d.no3D).map(d => ({
+  id: `derived-${d.id}`, match: new RegExp(`^${escapeRe(d.name)}$`, 'i'), sourcePhoto: d.ref, label: '3D (approx.)', approval: DERIVED_APPROVAL,
+  source: DERIVED_SOURCE, license: DERIVED_LICENCE,
+  models: { [d.fit]: d.geo.glb }, torso: { [d.fit]: d.geo.torso },
+  transform: d.role === 'bottom' ? { rotation: [0, 0, 0], scale: 0.509, position: [0, -0.05, 0] } : TOP_T,
+  parts: [{ node: 'mesh_node', decals: false, zoneOf: bodyOnly }],
+  capabilities: {
+    ...bodyCaps([], [`derived from the reference model of the "${d.ref}" gallery photo, pending VFRB confirmation`,
+      ...(d.role === 'top' && d.id.endsWith('-top') ? ["cut from a fused set at the top's hem: a thin strip of the bottom garment can show under the hem"] : []),
+      ...(d.role === 'bottom' ? ["cut from a fused set at the top's hem: the waist edge is a straight cut, and a lip of the top's hem can remain at the waist"] : [])]),
+    fit: [d.fit],
+  },
+}));
+
+export const SCANNED_GARMENTS = [...SCANNED_BASE, ...SCRUB_TOP, ...MANDARIN_TUNIC, ...ROUND_NECK, ...BIR_BLOUSE, ...UTILITY_LONG, ...CORPORATE_MODELS, ...MEDICAL_MODELS, ...MANDARIN_SHIRT_LONG, ...MORE_MODELS, ...AUTHORED_MODELS, ...DERIVED_MODELS];
 
 // The 3D entry generated from a gallery photo (`sourcePhoto`), if any.
 export const modelFromPhoto = id => SCANNED_GARMENTS.find(x => x.sourcePhoto === id) ?? null;
@@ -382,7 +401,8 @@ export const has3DModel = (garment, sleeve, fit) => !!scannedEntryFor(garment, s
 export const NO_FAMILY_3D = new Set(['blouse-tunic-roundneck-blue']);
 // 3D for a design (cfg or saved studio_config): its model, unless it was opened from a photo the family model would misrepresent.
 // inspirationId is dropped when the garment changes, so choosing T-Shirt directly keeps its 3D.
-export const has3DFor = d => !!d && !NO_FAMILY_3D.has(d.inspirationId) && has3DModel(d.garment, d.sleeve, d.fit);
+// A derived family is that photo's own model, so the photo's family-model block does not apply to it.
+export const has3DFor = d => !!d && !(NO_FAMILY_3D.has(d.inspirationId) && !isDerived(d.garment)) && has3DModel(d.garment, d.sleeve, d.fit);
 // Sleeve styles that really have a 3D model for this garment at this fit (union over the entries that apply). The single source for every "sleeve is 2D only" label.
 export function sleeves3DFor(garment, fit) {
   const name = String(garment ?? '').toLowerCase(), f = String(fit ?? '').toLowerCase();

@@ -2,6 +2,7 @@ import { assetFor, assetById } from './garmentAssets';
 import { glbSlotFor, slotLive } from './glbSlots';
 import { applyGarment, resolveSleeve, FAMILY_BY_NAME } from './garmentCatalog';
 import { modelFromPhoto, has3DModel, NO_FAMILY_3D } from './garmentCapabilities';
+import { DERIVED_FAMILIES, DERIVED_BY_NAME, REUSED_TOPS, derivedPiecesFor } from './derivedFamilies';
 // Real VFRB inspiration gallery: photos only. Editable garment families live in garmentCatalog.js and are never listed here as designs. `glb` stays null until a garment-only GLB passes
 // docs/engineering/GLB-CAPABILITY-MATRIX.md; until then an entry is a photo reference and is never presented as editable 3D.
 // category/gender/sleeve are read from the photo, not confirmed by the client: verify before release.
@@ -33,7 +34,7 @@ export const SLEEVES = ['Short', '3/4', 'Long'];
 // An entry is editable only when the target really resolves to that base (see openTarget), so two photos of one family can never share the wrong base.
 // Left out on purpose (reference only): blouse-mandarin-yellow is a full-placket blouse, but Mandarin Collar / Short is now the housekeeping tunic photo.
 // shirt-mandarin-polkadot opens Mandarin Collar / Long / male (vector template + its own model); the female Long is the BIR blouse photo base.
-const BASES = {
+const PHOTO_BASES = {
   'scrub-set-women-vneck':  ['Medical / Scrubs', 'Scrub Top', 'Short', 'scrub-top-women-short'],
   'scrub-set-men-vneck':    ['Medical / Scrubs', 'Scrub Top', 'Short', 'scrub-top-men-short'],
   'scrub-set-housekeeping': ['Hospitality / Service', 'Mandarin Collar', 'Short', 'mandarin-tunic-housekeeping'],
@@ -56,6 +57,13 @@ const BASES = {
   'polo-red-claremont': ['Corporate', 'Polo Shirt', 'Short', null],
   'blazer-collarless-tan': ['Corporate', 'Collarless Blazer', 'Long', null],
   'blazer-pinstripe-royal': ['Corporate', 'Collarless Blazer', 'Short', null],
+};
+// Reference photos with derived pieces (derivedFamilies.js) open their derived template; a set whose top is a reused exact template keeps
+// that photo base. This replaces the old closest-family targets of those photos (the tunic used to open the T-Shirt template).
+const BASES = {
+  ...PHOTO_BASES,
+  ...Object.fromEntries([...new Set(DERIVED_FAMILIES.map(d => d.ref))].map(ref => [ref, derivedPiecesFor(ref)]).filter(([ref, p]) => p && !REUSED_TOPS[ref])
+    .map(([ref, p]) => { const top = p.single ?? p.top; return [ref, [DERIVED_BY_NAME[top].category, top, null, null]]; })),
 };
 
 // Read-only 3D reference of the photographed garment or set: a garment-only Meshy model generated from this very photo
@@ -90,7 +98,8 @@ const build = (id, name, category, gender, piece, sleeve, collar, source, parts)
   const family3D = base && !asset ? modelFromPhoto(id) : null;
   const slot = asset ? glbSlotFor(asset.id) : family3D?.match.test(base[1]) ? { state: 'approx', file: Object.values(family3D.models)[0] } : null, live = slotLive(slot);
   return {
-    id, templateId: id, name, label: name, image: `/gallery/${id}.webp`, previewSrc: `/gallery/${id}.webp`, garmentFamily: base ? base[1] : null, editable2D: !!base, editable2d: !!base,
+    id, templateId: id, name, label: name, pieces: derivedPiecesFor(id), // { single } or a set's { top, bottom } to open together
+    image: `/gallery/${id}.webp`, previewSrc: `/gallery/${id}.webp`, garmentFamily: base ? base[1] : null, editable2D: !!base, editable2d: !!base,
     kind: 'photo', exactBase: !!base?.[3], category, categories: [category], gender, genders: [gender], piece, sleeve, sleeves: sleeve ? [sleeve] : [], collar, source, parts, base,
     ref3D: REF_3D.has(id) ? { file: `/models/reference/${id}.glb`, set: parts.length > 1 } : null,
     thumb: `/gallery/${id}.webp`, glb: live ? slot.file : null, glbSrc: live ? slot.file : null, glbStatus: slot?.state ?? 'none',
@@ -154,6 +163,15 @@ export const TIER_LABEL = {
 };
 
 export const ENTRIES = DESIGNS;
+
+// Families a photo id may stay attached to: the family it opens, its derived set pieces, and the family it opened before 2026-10-12
+// (designs saved then keep their photo, and with it the 3D block NO_FAMILY_3D gives the tunic on the T-Shirt template).
+const LEGACY_FAMILY = { 'blouse-tunic-roundneck-blue': 'T-Shirt' };
+export function photoFamilies(id) {
+  const d = DESIGNS.find(x => x.id === id);
+  if (!d) return [];
+  return [d.base?.[1], d.pieces?.single, d.pieces?.top, d.pieces?.bottom, LEGACY_FAMILY[id]].filter(Boolean);
+}
 
 const matchesQuery = (d, q) => {
   const t = (q ?? '').trim().toLowerCase();

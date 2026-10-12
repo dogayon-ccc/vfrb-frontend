@@ -45,6 +45,8 @@ export default function GarmentSilhouette({ garment, sleeve = 'Short', colors = 
       {zones.slice(1).map(({ d, fill }, i) => d &&
         <path key={i + 1} d={d} fill={fill ?? '#e2e8f0'} stroke="rgba(0,0,0,.14)" strokeWidth={1.5}/>)}
       {details.filter(d => d.over).map(detail)}
+      {/* Derived template: the reference model's own lighting multiplied over the fill, as on the Studio canvas. */}
+      {p.shade?.[face] && <image href={p.shade[face]} x={0} y={0} width={p.w} height={p.h} preserveAspectRatio="none" style={{ mixBlendMode: 'multiply' }}/>}
     </svg>
   );
 }
