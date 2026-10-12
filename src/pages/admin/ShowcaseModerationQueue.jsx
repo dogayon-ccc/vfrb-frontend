@@ -1,46 +1,45 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Card, Badge, NavIcon } from '../../components/ui';
+import { NavIcon } from '../../components/ui';
 import GarmentSilhouette from '../client/design-studio/GarmentSilhouette';
+import { PageHeader, Panel, StatusPill, ErrorBlock, SkeletonRows } from '../../components/admin/AdminUI';
 
 function ActionRow({ design, onDone }) {
   const [mode, setMode] = useState(null);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
+  const [err,  setErr]  = useState('');
 
   const submit = async () => {
-    setBusy(true);
+    setBusy(true); setErr('');
     try {
       mode === 'approve'
         ? await axios.post(`/api/admin/designs/${design.id}/showcase-approve`, { showcase_label: text })
         : await axios.post(`/api/admin/designs/${design.id}/showcase-reject`, { note: text || undefined });
       onDone(design.id);
-    } catch { setBusy(false); }
+    } catch (e) { setErr(e.response?.data?.message ?? 'That did not go through. Please retry.'); setBusy(false); }
   };
 
-  if (mode) {
+  if (!mode) {
     return (
-      <div style={{ display:'flex', gap:6, marginTop:8 }}>
-        <input autoFocus value={text} onChange={e => setText(e.target.value)}
-          placeholder={mode === 'approve' ? 'Showcase label…' : 'Reason (optional)…'}
-          style={{ flex:1, padding:'6px 9px', borderRadius:'var(--r-sm)', border:'1px solid var(--border)', fontSize:12, fontFamily:'var(--font)' }}/>
-        <button disabled={busy || (mode === 'approve' && !text.trim())} onClick={submit}
-          style={{ padding:'6px 12px', borderRadius:'var(--r-sm)', border:'none', background:'var(--teal)', color:'#fff', fontSize:11, fontWeight:700, cursor:'pointer' }}>
-          {busy ? '…' : 'Confirm'}
-        </button>
+      <div className="adm-mfoot">
+        <button className="adm-btn primary" onClick={() => setMode('approve')}><NavIcon name="success" size={13} color="currentColor" /> Approve</button>
+        <button className="adm-btn" onClick={() => setMode('reject')}>Reject</button>
       </div>
     );
   }
   return (
-    <div style={{ display:'flex', gap:6, marginTop:8 }}>
-      <button onClick={() => setMode('approve')}
-        style={{ flex:1, padding:'6px 0', borderRadius:'var(--r-sm)', border:'none', background:'var(--teal)', color:'#fff', fontSize:11, fontWeight:700, cursor:'pointer' }}>
-        Approve
-      </button>
-      <button onClick={() => setMode('reject')}
-        style={{ flex:1, padding:'6px 0', borderRadius:'var(--r-sm)', border:'1px solid var(--border)', background:'var(--bg-surface)', color:'var(--ink)', fontSize:11, fontWeight:700, cursor:'pointer' }}>
-        Reject
-      </button>
+    <div style={{ marginTop: 10 }}>
+      <label><span className="adm-field">{mode === 'approve' ? 'Showcase label *' : 'Reason (optional)'}</span>
+        <input className="adm-input" autoFocus value={text} onChange={(e) => setText(e.target.value)} placeholder={mode === 'approve' ? 'e.g. Nursing scrubs set' : 'Shown to the customer'} />
+      </label>
+      {err && <div style={{ marginTop: 8 }}><ErrorBlock msg={err} /></div>}
+      <div className="adm-mfoot">
+        <button className="adm-btn" onClick={() => { setMode(null); setText(''); setErr(''); }} disabled={busy}>Cancel</button>
+        <button className={`adm-btn primary${mode === 'approve' ? '' : ' danger-solid'}`} disabled={busy || (mode === 'approve' && !text.trim())} onClick={submit}>
+          {busy ? 'Saving…' : mode === 'approve' ? 'Approve' : 'Reject'}
+        </button>
+      </div>
     </div>
   );
 }
@@ -48,55 +47,43 @@ function ActionRow({ design, onDone }) {
 export default function ShowcaseModerationQueue() {
   const [designs, setDesigns] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadErr, setLoadErr] = useState(false);
 
   const load = useCallback(() => {
-    setLoading(true);
+    setLoading(true); setLoadErr(false);
     axios.get('/api/admin/designs/showcase-queue')
-      .then(r => setDesigns(r.data ?? []))
-      .catch(() => {})
+      .then((r) => setDesigns(r.data?.data ?? r.data ?? []))
+      .catch(() => setLoadErr(true))
       .finally(() => setLoading(false));
   }, []);
-
   useEffect(() => { load(); }, [load]);
 
-  const remove = (id) => setDesigns(list => list.filter(d => d.id !== id));
+  const remove = (id) => setDesigns((list) => list.filter((d) => d.id !== id));
 
   return (
-    <div style={{ fontFamily:'var(--font)', color:'var(--ink)' }}>
-      <div style={{ marginBottom:22 }}>
-        <h1 style={{ fontSize:22, fontWeight:800, color:'var(--ink)', marginBottom:4 }}>Showcase Queue</h1>
-        <p style={{ color:'var(--text-subtle)', fontSize:13 }}>{designs.length} design{designs.length !== 1 ? 's' : ''} pending review</p>
-      </div>
+    <>
+      <PageHeader title="Showcase Queue" sub={loading ? 'Designs customers asked to feature' : `${designs.length} design${designs.length !== 1 ? 's' : ''} pending review`}>
+        <button className="adm-btn" onClick={load}><NavIcon name="refresh" size={14} color="currentColor" /> Refresh</button>
+      </PageHeader>
+      {loadErr && <div style={{ marginBottom: 14 }}><ErrorBlock msg="Could not load the showcase queue." onRetry={load} /></div>}
 
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))', gap:14 }}>
-        {loading ? [1,2,3].map(i => (
-          <Card key={i} padding="md">
-            {[70,50,40].map(w => <div key={w} style={{ height:10, width:`${w}%`, borderRadius:'var(--r-xs)', background:'linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%)', backgroundSize:'400px', animation:'shq-shimmer 1.4s infinite', marginBottom:10 }}/>)}
-          </Card>
-        )) : designs.length === 0 ? (
-          <div style={{ gridColumn:'1/-1' }}>
-            <Card>
-              <div style={{ textAlign:'center', padding:'20px 0' }}>
-                <NavIcon name="ai" size={32} color="var(--text-faint)" style={{ marginBottom:10 }}/>
-                <p style={{ color:'var(--text-subtle)', fontSize:13, fontWeight:600 }}>Nothing pending review</p>
+      {loading ? <div className="adm-cards-grid">{[1, 2, 3].map((i) => <Panel key={i} flush><SkeletonRows rows={3} h={18} /></Panel>)}</div>
+        : loadErr ? null : designs.length === 0 ? (
+          <Panel><div className="adm-empty"><NavIcon name="ai" size={30} color="currentColor" /><div style={{ marginTop: 8, fontWeight: 700 }}>Nothing pending review</div></div></Panel>
+        ) : (
+          <div className="adm-cards-grid adm-stagger">
+            {designs.map((d, i) => (
+              <div key={d.id} className="adm-mcard" style={{ '--i': Math.min(i, 8), marginBottom: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
+                  <GarmentSilhouette garment={d.config?.garment} sleeve={d.config?.sleeve} colors={d.config?.colors ?? {}} patterns={d.config?.patterns} patternParams={d.config?.patternParams} width={72} height={86} />
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 800, textAlign: 'center', overflowWrap: 'anywhere' }}>{d.label}</div>
+                {d.garment && <div style={{ display: 'flex', justifyContent: 'center', marginTop: 6 }}><StatusPill status="pending" label={d.garment} /></div>}
+                <ActionRow design={d} onDone={remove} />
               </div>
-            </Card>
+            ))}
           </div>
-        ) : designs.map(d => (
-          <Card key={d.id} padding="md">
-            <div style={{ display:'flex', justifyContent:'center', marginBottom:10 }}>
-              <GarmentSilhouette garment={d.config?.garment} sleeve={d.config?.sleeve} colors={d.config?.colors ?? {}} width={64} height={76}/>
-            </div>
-            <p style={{ fontSize:13, fontWeight:800, color:'var(--ink)', margin:'0 0 4px', textAlign:'center' }}>{d.label}</p>
-            <div style={{ display:'flex', justifyContent:'center' }}>
-              <Badge tone="warning">{d.garment}</Badge>
-            </div>
-            <ActionRow design={d} onDone={remove}/>
-          </Card>
-        ))}
-      </div>
-
-      <style>{`@keyframes shq-shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}`}</style>
-    </div>
+        )}
+    </>
   );
 }

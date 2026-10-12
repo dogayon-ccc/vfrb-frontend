@@ -6,7 +6,7 @@ import { cacheGet, cacheSet, cacheClear, TTL }              from '../../utils/ca
 import { NavIcon }                                           from '../../components/ui/icons';
 import { escapeHtml }                                        from '../../utils/escapeHtml';
 import BottomSheet                                           from '../../components/ui/BottomSheet';
-import { PageHeader, StatGrid, PillTabs, Panel, StatusPill, Banner, SkeletonRows } from '../../components/admin/AdminUI';
+import { PageHeader, StatGrid, PillTabs, Panel, StatusPill, Banner, SkeletonRows, ErrorBlock } from '../../components/admin/AdminUI';
 
 const T    = 'var(--teal)';
 const T2   = 'var(--teal-2)';
@@ -320,6 +320,7 @@ export default function AdminPhysicalCount() {
   const [materials,   setMaterials]   = useState([]);
   const [summary,     setSummary]     = useState({});
   const [loading,     setLoading]     = useState(true);
+  const [loadErr,     setLoadErr]     = useState(false);
   const [filterR,     setFilterR]     = useState('all');
   const [showLog,     setShowLog]     = useState(false);
   const [reconciling, setReconciling] = useState(null);
@@ -330,7 +331,7 @@ export default function AdminPhysicalCount() {
   const showToast = (msg, type = 'success') => setToast({ msg, type });
 
   const load = useCallback(() => {
-    setLoading(true);
+    setLoading(true); setLoadErr(false);
 
     const cachedMats = cacheGet('materials_list');
     const matProm = cachedMats
@@ -347,6 +348,7 @@ export default function AdminPhysicalCount() {
       matProm,
     ]).then(([c, s, m]) => {
       setCounts(   c.status==='fulfilled' ? (c.value.data?.data ?? c.value.data ?? []) : []);
+      setLoadErr(c.status === 'rejected');
       setSummary(  s.status==='fulfilled' ? s.value.data : {});
       setMaterials(m.status==='fulfilled' ? (Array.isArray(m.value.data) ? m.value.data : (m.value.data?.data ?? [])) : []);
     }).finally(() => setLoading(false));
@@ -374,8 +376,14 @@ export default function AdminPhysicalCount() {
   });
 
   const printSheet = async () => {
-    const r = await axios.get('/api/admin/physical-counts/sheet');
+    // Open the window inside the click so popup blockers allow it, then fill it once the sheet arrives.
     const w = window.open('', '_blank');
+    if (!w) { showToast('Allow pop-ups for this site to print the count sheet.', 'error'); return; }
+    w.document.write('<p style="font-family:Arial,sans-serif">Preparing count sheet…</p>');
+    let r;
+    try { r = await axios.get('/api/admin/physical-counts/sheet'); }
+    catch { w.close(); showToast('Could not load the count sheet. Please try again.', 'error'); return; }
+    w.document.open();
     const mats = r.data.count_sheet ?? [];
     w.document.write(`
       <html><head><title>VFRB Count Sheet</title>
@@ -460,6 +468,7 @@ export default function AdminPhysicalCount() {
         { label: 'Last count', value: summary.last_count_date ?? '—', sub: 'Most recent' },
       ]} />
 
+      {loadErr && !loading && <div style={{ marginBottom: 14 }}><ErrorBlock msg="Could not load physical counts." onRetry={load} /></div>}
       <Banner tone="info" icon="info">Variance over 5% is flagged for manager review. Reconciling can optionally adjust system stock to match the physical count, and every adjustment is logged.</Banner>
 
       <PillTabs value={filterR} onChange={setFilterR} tabs={tabs} />
@@ -486,7 +495,7 @@ export default function AdminPhysicalCount() {
             </table>
           </div>
           {loading && <SkeletonRows rows={5} h={50} />}
-          {!loading && filtered.length === 0 && (
+          {!loading && !loadErr && filtered.length === 0 && (
             <div className="adm-empty"><NavIcon name="physicalCount" size={30} color="currentColor" />
               <div style={{ marginTop: 8, fontWeight: 700 }}>{filterR === 'all' ? 'No counts logged yet' : 'No records match this filter'}</div>
               {filterR === 'all' && <button className="adm-btn primary" style={{ marginTop: 12 }} onClick={() => openLog()}>Log the first count</button>}
@@ -496,7 +505,7 @@ export default function AdminPhysicalCount() {
       </div>
 
       <div className="adm-only-m adm-stagger" key={filterR}>
-        {loading ? <SkeletonRows rows={3} h={120} /> : filtered.length === 0 ? (
+        {loading ? <SkeletonRows rows={3} h={120} /> : loadErr ? null : filtered.length === 0 ? (
           <div className="adm-empty">{filterR === 'all' ? 'No counts logged yet' : 'No records match this filter'}</div>
         ) : filtered.map((c, i) => (
           <div key={c.count_id} className="adm-mcard accent" style={{ '--i': Math.min(i, 8), '--acc': Math.abs(Number(c.variance_pct)) > 5 ? 'var(--warning)' : 'var(--teal)' }}>

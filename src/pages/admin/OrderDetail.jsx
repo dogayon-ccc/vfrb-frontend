@@ -132,6 +132,7 @@ export default function AdminOrderDetail() {
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [toast, setToast] = useToast();
   const [stages,  setStages]  = useState(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -158,7 +159,7 @@ export default function AdminOrderDetail() {
       }
     })();
     return () => { cancelled = true; };
-  }, [id]);
+  }, [id, attempt]);
 
   const handleDownloadPdf = async () => {
     if (!order) return;
@@ -195,7 +196,7 @@ export default function AdminOrderDetail() {
   if (error) {
     return (
       <div className="adm-od">
-        <div className="adm-err"><span>{error}</span></div>
+        <div className="adm-err"><span>{error}</span>{!/not found/.test(error) && <button className="adm-btn" onClick={() => setAttempt((n) => n + 1)}>Retry</button>}</div>
         <button className="adm-btn" style={{ marginTop:12 }} onClick={() => navigate('/admin/orders')}>
           <NavIcon name="back" size={14} color="currentColor" /> Back to Orders
         </button>

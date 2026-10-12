@@ -1,77 +1,54 @@
-
-import { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
-import { Card, Badge, NavIcon } from '../../components/ui';
+import { NavIcon } from '../../components/ui';
 import BottomSheet from '../../components/ui/BottomSheet';
 import MaterialCode from '../../components/admin/MaterialCode';
+import { PageHeader, Panel, StatusPill, SearchBox, ErrorBlock, SkeletonRows, useIsMobile } from '../../components/admin/AdminUI';
 
-const inp = { width:'100%', padding:'10px 14px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)', fontSize:13, outline:'none', fontFamily:'var(--font)', transition:'border .15s, box-shadow .15s', boxSizing:'border-box' };
-const fi  = e => { e.target.style.borderColor='var(--teal)'; e.target.style.boxShadow='0 0 0 3px rgba(2,128,144,.1)'; };
-const fo  = e => { e.target.style.borderColor='var(--border)'; e.target.style.boxShadow='none'; };
-const lbl = { display:'block', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'var(--text-subtle)', marginBottom:7, fontFamily:'var(--font)' };
-const SK  = { borderRadius:'var(--r-sm)', background:'linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%)', backgroundSize:'400px', animation:'mat-shimmer 1.4s infinite' };
-
-const UNITS = ['meters','kg','grams','yards','pieces','rolls','packs'];
-const CATS  = ['Fabric','Thread','Accessory','Elastic','Lining','Interfacing','Other'];
-
-const INIT = { material_name:'', unit:'meters', category:'Fabric', quantity_in_stock:0, reorder_threshold:10, unit_cost:'' };
+const UNITS = ['meters', 'kg', 'grams', 'yards', 'pieces', 'rolls', 'packs'];
+const CATS  = ['Fabric', 'Thread', 'Accessory', 'Elastic', 'Lining', 'Interfacing', 'Other'];
+const INIT  = { material_name: '', unit: 'meters', category: 'Fabric', quantity_in_stock: 0, reorder_threshold: 10, unit_cost: '' };
+const peso  = (v) => (v ? `₱${Number(v).toLocaleString('en-PH', { minimumFractionDigits: 2 })}` : '—');
+const isLow = (m) => Number(m.quantity_in_stock ?? 0) <= Number(m.reorder_threshold ?? 0);
 
 function MaterialModal({ item, onClose, onDone, isMobile }) {
   const isEdit = !!item;
   const [form, setForm] = useState(isEdit ? { ...item } : { ...INIT });
   const [busy, setBusy] = useState(false);
   const [err,  setErr]  = useState('');
-  const set = (k,v) => setForm(f => ({ ...f, [k]:v }));
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const submit = async () => {
     if (!form.material_name?.trim()) { setErr('Material name required.'); return; }
     setBusy(true); setErr('');
     try {
-      isEdit
-        ? await axios.put(`/api/admin/materials/${item.material_id}`, form)
-        : await axios.post('/api/admin/materials', form);
+      isEdit ? await axios.put(`/api/admin/materials/${item.material_id}`, form) : await axios.post('/api/admin/materials', form);
       onDone();
-    } catch(e) { setErr(e.response?.data?.message ?? 'Failed.'); }
+    } catch (e) { setErr(e.response?.data?.message ?? 'Could not save the material.'); }
     finally { setBusy(false); }
   };
 
+  const field = (label, el) => <label><span className="adm-field">{label}</span>{el}</label>;
   return (
-    <BottomSheet title={isEdit ? 'Edit Material' : 'Add Material'} onClose={onClose} isMobile={isMobile} maxWidth={520}>
-        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-          <div><label style={lbl}>Material Name *</label>
-            <input value={form.material_name ?? ''} onChange={e => set('material_name', e.target.value)} placeholder="e.g. Cotton Fabric" style={inp} onFocus={fi} onBlur={fo}/></div>
-          <div><label style={lbl}>Material Code</label>
-            <input value={form.material_code ?? ''} onChange={e => set('material_code', e.target.value.toUpperCase())} placeholder="Auto, e.g. MAT-FAB-001" maxLength={20} style={inp} onFocus={fi} onBlur={fo}/></div>
-          <div className="mat-modal-grid2">
-            <div><label style={lbl}>Unit</label>
-              <select value={form.unit ?? 'meters'} onChange={e => set('unit', e.target.value)} style={{ ...inp, cursor:'pointer' }}>
-                {UNITS.map(u => <option key={u} value={u}>{u}</option>)}</select></div>
-            <div><label style={lbl}>Category</label>
-              <select value={form.category ?? 'Fabric'} onChange={e => set('category', e.target.value)} style={{ ...inp, cursor:'pointer' }}>
-                {CATS.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
-          </div>
-          <div className="mat-modal-grid3">
-            <div><label style={lbl}>In Stock</label>
-              <input type="number" min={0} step={0.01} value={form.quantity_in_stock ?? 0} onChange={e => set('quantity_in_stock', Number(e.target.value))} style={inp} onFocus={fi} onBlur={fo}/></div>
-            <div><label style={lbl}>Reorder Threshold</label>
-              <input type="number" min={0} step={0.01} value={form.reorder_threshold ?? 0} onChange={e => set('reorder_threshold', Number(e.target.value))} style={inp} onFocus={fi} onBlur={fo}/></div>
-            <div><label style={lbl}>Unit Cost (₱)</label>
-              <input type="number" min={0} step={0.01} value={form.unit_cost ?? ''} onChange={e => set('unit_cost', e.target.value)} placeholder="0.00" style={inp} onFocus={fi} onBlur={fo}/></div>
-          </div>
-          {err && (
-            <p style={{ display:'flex', alignItems:'center', gap:6, color:'var(--danger-text)', fontSize:12, fontWeight:600, margin:0 }}>
-              <NavIcon name="warning" size={13} color="var(--danger)" />{err}
-            </p>
-          )}
-          <div style={{ display:'flex', gap:10, justifyContent:'flex-end', marginTop:6 }}>
-            <button onClick={onClose} style={{ padding:'9px 18px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)' }}>Cancel</button>
-            <button onClick={submit} disabled={busy} style={{ padding:'9px 22px', borderRadius:'var(--r-md)', border:'none', background:'linear-gradient(135deg,var(--teal),var(--teal-2))', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'var(--font)', opacity:busy?.7:1, display:'flex', alignItems:'center', gap:7 }}>
-              {busy && <NavIcon name="loading" size={13} color="#fff" style={{ animation:'mat-spin .8s linear infinite' }} />}
-              {busy ? 'Saving…' : isEdit ? 'Save Changes' : 'Add Material'}
-            </button>
-          </div>
+    <BottomSheet title={isEdit ? 'Edit material' : 'Add material'} onClose={onClose} isMobile={isMobile} maxWidth={520}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {field('Material name *', <input className="adm-input" value={form.material_name ?? ''} onChange={(e) => set('material_name', e.target.value)} placeholder="e.g. Cotton Fabric" />)}
+        {field('Material code', <input className="adm-input" value={form.material_code ?? ''} onChange={(e) => set('material_code', e.target.value.toUpperCase())} placeholder="Auto, e.g. MAT-FAB-001" maxLength={20} />)}
+        <div className="adm-form-grid">
+          {field('Unit', <select className="adm-input" value={form.unit ?? 'meters'} onChange={(e) => set('unit', e.target.value)}>{UNITS.map((u) => <option key={u} value={u}>{u}</option>)}</select>)}
+          {field('Category', <select className="adm-input" value={form.category ?? 'Fabric'} onChange={(e) => set('category', e.target.value)}>{CATS.map((c) => <option key={c} value={c}>{c}</option>)}</select>)}
         </div>
+        <div className="adm-form-grid mat-grid3">
+          {field('In stock', <input className="adm-input" type="number" inputMode="decimal" min={0} step={0.01} value={form.quantity_in_stock ?? 0} onChange={(e) => set('quantity_in_stock', Number(e.target.value))} />)}
+          {field('Reorder at', <input className="adm-input" type="number" inputMode="decimal" min={0} step={0.01} value={form.reorder_threshold ?? 0} onChange={(e) => set('reorder_threshold', Number(e.target.value))} />)}
+          {field('Unit cost (₱)', <input className="adm-input" type="number" inputMode="decimal" min={0} step={0.01} value={form.unit_cost ?? ''} onChange={(e) => set('unit_cost', e.target.value)} placeholder="0.00" />)}
+        </div>
+        {err && <ErrorBlock msg={err} />}
+        <div className="adm-sheet-foot">
+          <button className="adm-btn" onClick={onClose}>Cancel</button>
+          <button className="adm-btn primary" onClick={submit} disabled={busy}>{busy ? 'Saving…' : isEdit ? 'Save changes' : 'Add material'}</button>
+        </div>
+      </div>
     </BottomSheet>
   );
 }
@@ -79,128 +56,91 @@ function MaterialModal({ item, onClose, onDone, isMobile }) {
 export default function AdminMaterials() {
   const [mats,    setMats]    = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadErr, setLoadErr] = useState(false);
   const [search,  setSearch]  = useState('');
   const [modal,   setModal]   = useState(null);
-
-  const [winW, setWinW] = useState(typeof window !== 'undefined' ? window.innerWidth : 1280);
-  useEffect(() => { const h = () => setWinW(window.innerWidth); window.addEventListener('resize', h); return () => window.removeEventListener('resize', h); }, []);
-  const isMobile = winW <= 767;
+  const isMobile = useIsMobile();
 
   const load = useCallback(() => {
-    setLoading(true);
-    axios.get('/api/admin/materials', { params: { per_page: 200 } }).then(r => setMats(r.data?.data ?? r.data ?? [])).catch(() => {}).finally(() => setLoading(false));
+    setLoading(true); setLoadErr(false);
+    axios.get('/api/admin/materials', { params: { per_page: 200 } })
+      .then((r) => setMats(r.data?.data ?? r.data ?? []))
+      .catch(() => setLoadErr(true))
+      .finally(() => setLoading(false));
   }, []);
-
   useEffect(() => { load(); }, [load]);
 
-  const filtered = mats.filter(m => !search || m.material_name?.toLowerCase().includes(search.toLowerCase()) || m.material_code?.toLowerCase().includes(search.toLowerCase()) || m.category?.toLowerCase().includes(search.toLowerCase()));
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    return mats.filter((m) => !q || [m.material_name, m.material_code, m.category].some((v) => v?.toLowerCase().includes(q)));
+  }, [mats, search]);
+  const lowN = mats.filter(isLow).length;
+
+  const empty = (
+    <div className="adm-empty"><NavIcon name="materials" size={30} color="currentColor" />
+      <div style={{ marginTop: 8, fontWeight: 700 }}>{search ? `No materials match “${search}”` : 'No materials yet'}</div>
+      {search ? <button className="adm-link-btn" onClick={() => setSearch('')}>Clear search</button>
+        : <button className="adm-link-btn" onClick={() => setModal('add')}>Add the first material</button>}
+    </div>
+  );
 
   return (
     <>
-      <style>{`@keyframes mat-shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}@keyframes mat-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-        .mat-modal-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-        .mat-modal-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
-        @media(max-width:480px){.mat-modal-grid2,.mat-modal-grid3{grid-template-columns:1fr;}}
-      `}</style>
-      {modal && <MaterialModal item={modal === 'add' ? null : modal} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} isMobile={isMobile}/>}
-      <div style={{ fontFamily:'var(--font)', color:'var(--ink)' }}>
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:22, flexWrap:'wrap', gap:12 }}>
-          <div>
-            <h1 style={{ fontSize:22, fontWeight:800, color:'var(--ink)', marginBottom:4 }}>Materials</h1>
-            <p style={{ color:'var(--text-subtle)', fontSize:13 }}>{mats.length} materials in master data</p>
-          </div>
-          <button onClick={() => setModal('add')} style={{ display:'flex', alignItems:'center', gap:6, padding:'10px 22px', borderRadius:'var(--r-lg)', border:'none', background:'linear-gradient(135deg,var(--teal),var(--teal-2))', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'var(--font)', boxShadow:'var(--shadow-teal)' }}>
-            <NavIcon name="add" size={14} color="#fff" /> Add Material
-          </button>
-        </div>
-        <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search materials…"
-          style={{ ...inp, marginBottom:18 }} onFocus={fi} onBlur={fo}/>
+      <style>{`@media(min-width:521px){.mat-grid3{grid-template-columns:1fr 1fr 1fr}}`}</style>
+      {modal && <MaterialModal item={modal === 'add' ? null : modal} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} isMobile={isMobile} />}
 
-        {isMobile ? (
-          loading ? (
-            <div style={{ padding:40, textAlign:'center' }}>
-              {[1,2,3].map(i => <div key={i} style={{ ...SK, height:60, marginBottom:10 }}/>)}
-            </div>
-          ) : filtered.length === 0 ? (
-            <Card>
-              <div style={{ textAlign:'center', padding:'20px 0' }}>
-                <NavIcon name="materials" size={32} color="var(--text-faint)" style={{ marginBottom:8 }} />
-                <p style={{ color:'var(--text-subtle)', fontSize:13, fontWeight:600 }}>No materials found</p>
-              </div>
-            </Card>
-          ) : (
-            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-              {filtered.map(m => {
-                const low = (m.quantity_in_stock ?? 0) <= (m.reorder_threshold ?? 0);
-                return (
-                  <Card key={m.material_id} padding="sm">
-                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8 }}>
-                      <div>
-                        <p style={{ fontSize:14, fontWeight:700, color:'var(--ink)', margin:0 }}>{m.material_name}<MaterialCode code={m.material_code}/></p>
-                        <p style={{ fontSize:11, color:'var(--text-subtle)', margin:'2px 0 0' }}>{m.category ?? '—'} · {m.unit}</p>
-                      </div>
-                      <button onClick={() => setModal(m)} style={{ padding:'6px 14px', borderRadius:'var(--r-sm)', border:'1px solid var(--border)', background:'var(--bg-surface)', color:'var(--ink)', fontSize:11, fontWeight:600, cursor:'pointer', minHeight:44, fontFamily:'var(--font)' }}>Edit</button>
-                    </div>
-                    <div style={{ display:'flex', alignItems:'center', gap:16, fontSize:12, color:'var(--text-subtle)', flexWrap:'wrap' }}>
-                      <span>Stock: <b style={{ color: low ? 'var(--danger-text)' : 'var(--success-text)' }}>{m.quantity_in_stock ?? 0}</b></span>
-                      {low && <Badge tone="danger">LOW</Badge>}
-                      <span>Reorder at: {m.reorder_threshold ?? 0}</span>
-                      <span>{m.unit_cost ? `₱${Number(m.unit_cost).toFixed(2)}` : '—'}</span>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          )
-        ) : (
-          <Card padding="sm" bodyStyle={{ padding:0 }} style={{ overflowX:'auto' }}>
-            <table style={{ width:'100%', borderCollapse:'collapse', minWidth:640 }}>
-              <thead><tr style={{ background:'var(--bg-surface)' }}>
-                {['Material Name','Category','Unit','In Stock','Reorder Threshold','Unit Cost','Action'].map(h => (
-                  <th key={h} style={{ padding:'10px 14px', textAlign:'left', fontSize:10, fontWeight:700, color:'var(--text-subtle)', textTransform:'uppercase', letterSpacing:'.06em', borderBottom:'2px solid var(--border)', whiteSpace:'nowrap' }}>{h}</th>
-                ))}
-              </tr></thead>
-              <tbody>
-                {loading ? (
-                  <tr><td colSpan={7} style={{ padding:40, textAlign:'center' }}>
-                    {[1,2,3].map(i => <div key={i} style={{ ...SK, height:12, width:'80%', margin:'0 auto 10px' }}/>)}
-                  </td></tr>
-                ) : filtered.length === 0 ? (
-                  <tr><td colSpan={7} style={{ padding:'40px', textAlign:'center' }}>
-                    <NavIcon name="materials" size={32} color="var(--text-faint)" style={{ marginBottom:8 }} />
-                    <p style={{ color:'var(--text-subtle)', fontSize:13, fontWeight:600 }}>No materials found</p>
-                  </td></tr>
-                ) : filtered.map(m => {
-                  const low = (m.quantity_in_stock ?? 0) <= (m.reorder_threshold ?? 0);
-                  return (
-                    <tr key={m.material_id} style={{ borderBottom:'1px solid var(--border)' }}
-                      onMouseEnter={e => e.currentTarget.style.background='var(--bg-surface)'}
-                      onMouseLeave={e => e.currentTarget.style.background='transparent'}>
-                      <td style={{ padding:'11px 14px' }}>
-                        <p style={{ fontSize:13, fontWeight:700, color:'var(--ink)', margin:0 }}>{m.material_name}<MaterialCode code={m.material_code}/></p>
+      <PageHeader title="Materials" sub={loading ? 'Master data' : `${mats.length} materials in master data${lowN ? ` · ${lowN} at or below reorder level` : ''}`}>
+        <button className="adm-btn primary" onClick={() => setModal('add')}><NavIcon name="add" size={14} color="currentColor" /> Add material</button>
+      </PageHeader>
+      <div className="adm-toolbar"><SearchBox value={search} onChange={setSearch} placeholder="Search name, code or category…" label="Search materials" /></div>
+      {loadErr && <div style={{ marginBottom: 14 }}><ErrorBlock msg="Could not load materials." onRetry={load} /></div>}
+
+      <div className="adm-only-d">
+        <Panel flush>
+          {loading ? <SkeletonRows rows={6} h={44} /> : loadErr ? null : filtered.length === 0 ? empty : (
+            <div className="adm-tbl-scroll">
+              <table className="adm-table">
+                <thead><tr><th>Material</th><th>Category</th><th>Unit</th><th>In stock</th><th className="adm-hide-t">Reorder at</th><th className="adm-hide-t">Unit cost</th><th style={{ textAlign: 'right' }}>Action</th></tr></thead>
+                <tbody>
+                  {filtered.map((m) => (
+                    <tr key={m.material_id}>
+                      <td style={{ fontWeight: 700 }}>{m.material_name}<MaterialCode code={m.material_code} /></td>
+                      <td style={{ color: 'var(--text-subtle)' }}>{m.category ?? '—'}</td>
+                      <td style={{ color: 'var(--text-subtle)' }}>{m.unit}</td>
+                      <td>
+                        <span style={{ fontWeight: 800, color: isLow(m) ? 'var(--danger-text)' : 'var(--ink)', marginRight: 8 }}>{m.quantity_in_stock ?? 0}</span>
+                        {isLow(m) && <StatusPill status="cancelled" label="Low" />}
                       </td>
-                      <td style={{ padding:'11px 14px', fontSize:12, color:'var(--text-subtle)' }}>{m.category ?? '—'}</td>
-                      <td style={{ padding:'11px 14px', fontSize:12, color:'var(--text-subtle)' }}>{m.unit}</td>
-                      <td style={{ padding:'11px 14px' }}>
-                        <span style={{ display:'inline-flex', alignItems:'center', gap:8 }}>
-                          <span style={{ fontSize:13, fontWeight:700, color: low ? 'var(--danger-text)' : 'var(--success-text)' }}>{m.quantity_in_stock ?? 0}</span>
-                          {low && <Badge tone="danger">LOW</Badge>}
-                        </span>
-                      </td>
-                      <td style={{ padding:'11px 14px', fontSize:12, color:'var(--text-subtle)' }}>{m.reorder_threshold ?? 0}</td>
-                      <td style={{ padding:'11px 14px', fontSize:12, color:'var(--text-subtle)' }}>
-                        {m.unit_cost ? `₱${Number(m.unit_cost).toFixed(2)}` : '—'}
-                      </td>
-                      <td style={{ padding:'11px 14px' }}>
-                        <button onClick={() => setModal(m)} style={{ padding:'5px 12px', borderRadius:'var(--r-sm)', border:'1px solid var(--border)', background:'var(--bg-surface)', color:'var(--ink)', fontSize:11, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)' }}>Edit</button>
-                      </td>
+                      <td className="adm-hide-t" style={{ color: 'var(--text-subtle)' }}>{m.reorder_threshold ?? 0}</td>
+                      <td className="adm-hide-t" style={{ color: 'var(--text-subtle)' }}>{peso(m.unit_cost)}</td>
+                      <td style={{ textAlign: 'right' }}><button className="adm-btn" onClick={() => setModal(m)}><NavIcon name="edit" size={13} color="currentColor" /> Edit</button></td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </Card>
-        )}
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Panel>
+      </div>
+
+      <div className="adm-only-m adm-stagger" key={search}>
+        {loading ? <SkeletonRows rows={3} h={96} /> : loadErr ? null : filtered.length === 0 ? empty : filtered.map((m, i) => (
+          <div key={m.material_id} className="adm-mcard accent" style={{ '--i': Math.min(i, 8), '--acc': isLow(m) ? 'var(--danger)' : 'var(--success)' }}>
+            <div className="adm-mrow">
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 800 }}>{m.material_name}<MaterialCode code={m.material_code} /></div>
+                <div style={{ fontSize: 11, color: 'var(--text-subtle)', marginTop: 2 }}>{m.category ?? '—'} · {m.unit}</div>
+              </div>
+              {isLow(m) && <StatusPill status="cancelled" label="Low" />}
+            </div>
+            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 8, fontSize: 12, color: 'var(--text-subtle)' }}>
+              <span>Stock <b style={{ color: isLow(m) ? 'var(--danger-text)' : 'var(--ink)' }}>{m.quantity_in_stock ?? 0}</b></span>
+              <span>Reorder at {m.reorder_threshold ?? 0}</span>
+              <span>{peso(m.unit_cost)}</span>
+            </div>
+            <div className="adm-mfoot"><button className="adm-btn" onClick={() => setModal(m)}><NavIcon name="edit" size={13} color="currentColor" /> Edit {m.material_name}</button></div>
+          </div>
+        ))}
       </div>
     </>
   );

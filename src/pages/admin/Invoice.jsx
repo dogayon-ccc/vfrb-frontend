@@ -23,9 +23,11 @@ export default function AdminInvoice() {
 
   const fetchOrder = async () => {
     if (!orderId.trim()) { setError('Enter an order ID'); return; }
+    // The API takes a whole number only; anything else would come back as a server error.
+    if (!/^\d+$/.test(orderId.trim())) { setError('Order IDs are whole numbers, e.g. 42'); return; }
     setLoading(true); setError(''); setOrder(null);
     try {
-      const r = await axios.get(`/api/admin/orders/${orderId}`);
+      const r = await axios.get(`/api/admin/orders/${orderId.trim()}`);
       setOrder(r.data?.order ?? r.data);
     } catch (e) {
       setError(e.response?.status === 404

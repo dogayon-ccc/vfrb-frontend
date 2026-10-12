@@ -2,11 +2,13 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion }                            from 'framer-motion';
 import axios                                 from 'axios';
+import { Link }                              from 'react-router-dom';
 import { cacheGet, cacheSet, cacheClear } from '../../utils/cache';
 import { NavIcon }                             from '../../components/ui/icons';
 import { escapeHtml }                          from '../../utils/escapeHtml';
 import { PageHeader, StatGrid, PillTabs, Panel, StatusPill, SearchBox, Banner, Toast, useToast, ErrorBlock, SkeletonRows, FilterSheet, FilterButton, useIsMobile } from '../../components/admin/AdminUI';
 
+const readRole = () => { try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}').role; } catch { return null; } };
 const T    = 'var(--teal)';
 const T2   = 'var(--teal-2)';
 const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif`;
@@ -279,6 +281,11 @@ function LogResponseModal({ rfq, suppliers, onClose, onDone }) {
                 </option>
               ))}
             </select>
+            {suppliers.length === 0 && (
+              <p style={{ fontSize:12, color:'var(--warning-text)', margin:'6px 0 0' }}>
+                No suppliers on file yet. {readRole() === 'manager' ? <Link to="/admin/suppliers">Add one in Suppliers</Link> : 'Ask a manager to add the supplier first.'}
+              </p>
+            )}
           </div>
           <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:12 }}>
             <div>
@@ -758,12 +765,12 @@ export default function AdminPurchaseOrders() {
                 </table>
               </div>
               {loading && <SkeletonRows rows={5} h={52} />}
-              {!loading && filteredPos.length === 0 && empty('procurement', search || poFilter !== 'all' ? 'No purchase orders match' : 'No purchase orders yet. Create one from an approved RFQ.',
+              {!loading && !loadErr && filteredPos.length === 0 && empty('procurement', search || poFilter !== 'all' ? 'No purchase orders match' : 'No purchase orders yet. Create one from an approved RFQ.',
                 (search || poFilter !== 'all') && <button className="adm-link-btn" onClick={() => { setSearch(''); setPoFilter('all'); }}>Clear filters</button>)}
             </Panel>
           </div>
           <div className="adm-only-m adm-stagger" key={`${poFilter}-${search}`}>
-            {loading ? <SkeletonRows rows={3} h={140} /> : filteredPos.length === 0 ? empty('procurement', 'No purchase orders match') : filteredPos.map((po, i) => {
+            {loading ? <SkeletonRows rows={3} h={140} /> : loadErr ? null : filteredPos.length === 0 ? empty('procurement', search || poFilter !== 'all' ? 'No purchase orders match' : 'No purchase orders yet. Create one from an approved RFQ.') : filteredPos.map((po, i) => {
               const items = Array.isArray(po.items) ? po.items : [];
               const hold = po.color_mismatch && !po.color_confirmed;
               return (
@@ -784,7 +791,7 @@ export default function AdminPurchaseOrders() {
 
       {tab === 'rfq' && (
         <div className="po-rfqs adm-stagger" key={search}>
-          {loading ? <SkeletonRows rows={3} h={120} /> : filteredRfqs.length === 0 ? (
+          {loading ? <SkeletonRows rows={3} h={120} /> : loadErr ? null : filteredRfqs.length === 0 ? (
             <Panel>{empty('invoice', search ? 'No RFQs match' : 'No RFQs yet. Create one when stock is low.', !search && <button className="adm-btn primary" style={{ marginTop: 12 }} onClick={() => setNewRFQ(true)}>New RFQ</button>)}</Panel>
           ) : filteredRfqs.map((rfq, idx) => {
             const isOpen = rfq.status === 'open';

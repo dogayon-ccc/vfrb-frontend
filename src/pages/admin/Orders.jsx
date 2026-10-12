@@ -1,9 +1,10 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate }                                        from 'react-router-dom';
+import { useNavigate, useSearchParams }                       from 'react-router-dom';
 import axios                                                  from 'axios';
 import { cacheGet, cacheSet, cacheClear, TTL }               from '../../utils/cache';
 import { NavIcon }                                            from '../../components/ui/icons';
+import { canAccessArea }                                      from '../../utils/jobAccess';
 import { PageHeader, StatGrid, PillTabs, ErrorBlock, Panel, StatusPill, SearchBox, Segments, Banner, Toast, useToast, useIsMobile, FilterSheet, FilterButton, SkeletonRows } from '../../components/admin/AdminUI';
 
 const STATUS_CFG = {
@@ -53,9 +54,12 @@ function getSwatchColor(order) {
   }
 }
 
+// Staff track an order's production only if their job function includes the production area (else the route is AccessDenied).
+const canTrack = () => canAccessArea(JSON.parse(localStorage.getItem('vfrb_user') || '{}'), 'production');
+
 function OrderActions({ order, isManager, onConfirm, confirming, stop, hideView }) {
   const navigate = useNavigate();
-  const live = isLive(order.status);
+  const live = isLive(order.status) && canTrack();
   const click = (fn) => (e) => { if (stop) e.stopPropagation(); fn(); };
   return (
     <>
@@ -138,7 +142,7 @@ function OrderCard({ order, isManager, onConfirm, confirming, index }) {
       </div>
       {due && <div style={{ fontSize:11, color:'var(--text-faint)', marginTop:2 }}>Due {fmtDate(due, true)}</div>}
       {isLive(order.status) && <div style={{ marginTop:10 }}><StageBar status={order.status} /></div>}
-      {((isLive(order.status) && !isManager) || (isManager && order.status === 'pending')) && (
+      {((isLive(order.status) && !isManager && canTrack()) || (isManager && order.status === 'pending')) && (
         <div className="adm-mfoot">
           <OrderActions order={order} isManager={isManager} onConfirm={onConfirm} confirming={confirming} stop hideView />
         </div>
@@ -151,7 +155,10 @@ export default function AdminOrders() {
   const [orders,     setOrders]     = useState([]);
   const [serverTotal, setServerTotal] = useState(null);
   const [loading,    setLoading]    = useState(true);
-  const [tab,        setTab]        = useState('all');
+  const [params, setParams] = useSearchParams();
+  const tab = ALL_TABS.includes(params.get('status')) ? params.get('status') : 'all';
+  // The status tab lives in the URL, so dashboard links like ?status=pending open on that tab.
+  const setTab = useCallback((k) => setParams(k === 'all' ? {} : { status: k }, { replace: true }), [setParams]);
   const [search,     setSearch]     = useState('');
   const [confirming, setConfirming] = useState(null);
   const [toast,      setToast]      = useToast();
@@ -234,7 +241,7 @@ export default function AdminOrders() {
 
       {isManager && (
         <Banner tone="info" icon="manager">
-          Manager view — review and confirm pending orders. Stage advancement is Staff-only.
+          Manager view — confirm pending orders here. Staff advance stages by logging output; you can override a stage from Production tracking.
         </Banner>
       )}
       {loadErr && <div style={{ marginBottom:14 }}><ErrorBlock msg="Could not load orders." onRetry={() => load(true)} /></div>}
@@ -273,7 +280,7 @@ export default function AdminOrders() {
             </table>
           </div>
           {loading && <SkeletonRows rows={6} h={44} />}
-          {!loading && filtered.length === 0 && (
+          {!loading && !loadErr && filtered.length === 0 && (
             <div className="adm-empty">
               <NavIcon name="orders" size={30} color="currentColor" />
               <div style={{ marginTop:8, fontWeight:700 }}>{search ? `No results for “${search}”` : `No ${tab === 'all' ? '' : `${tab} `}orders`}</div>
@@ -290,7 +297,7 @@ export default function AdminOrders() {
 
       <div className="adm-only-m adm-stagger" key={`${tab}-${search}`}>
         {loading ? <SkeletonRows rows={4} h={150} />
-          : filtered.length === 0 ? (
+          : loadErr ? null : filtered.length === 0 ? (
             <div className="adm-empty"><NavIcon name="orders" size={30} color="currentColor" />
               <div style={{ marginTop:8, fontWeight:700 }}>{search ? `No results for “${search}”` : `No ${tab === 'all' ? '' : `${tab} `}orders`}</div>
             </div>

@@ -38,11 +38,11 @@ const ListRow = ({ title, sub, right, rightColor, onClick }) => (
   </div>
 );
 
-function AttentionPanel({ title, color, items, loading, empty, render, footer, onFooter }) {
+function AttentionPanel({ title, color, items, loading, failed, empty, render, footer, onFooter }) {
   return (
     <Panel flush title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />{title}{!loading && items.length > 0 && <span className="adm-chip" style={{ background: color, color: '#fff' }}>{items.length}</span>}</span>}
       action={!loading && items.length > 0 && <button className="adm-link-btn" onClick={onFooter}>{footer} →</button>}>
-      {loading ? <SkeletonRows rows={2} h={32} /> : items.length === 0 ? <EmptyBlock>{empty}</EmptyBlock> : items.slice(0, 4).map(render)}
+      {loading ? <SkeletonRows rows={2} h={32} /> : failed ? <EmptyBlock>Couldn't load this list.</EmptyBlock> : items.length === 0 ? <EmptyBlock>{empty}</EmptyBlock> : items.slice(0, 4).map(render)}
       {!loading && items.length > 4 && <button className="dsh-more" onClick={onFooter}>+{items.length - 4} more</button>}
     </Panel>
   );
@@ -113,15 +113,15 @@ export default function AdminDashboard() {
   ];
 
   const attention = [
-    { title: 'Orders Needing Action', color: T, items: pendingRaw ?? [], loading: poLoading, empty: 'No pending orders — all caught up', footer: 'All pending', onFooter: () => nav('/admin/orders?status=pending'),
+    { title: 'Orders Needing Action', color: T, items: pendingRaw ?? [], loading: poLoading, failed: pendingRaw == null, empty: 'No pending orders — all caught up', footer: 'All pending', onFooter: () => nav('/admin/orders?status=pending'),
       render: (x) => <ListRow key={x.order_id} onClick={() => nav(`/admin/orders/${x.order_id}`)} title={`#${x.order_id} · ${x.garment_type ?? '—'}`} sub={x.customer_name} right={fmtDate(x.created_at)} /> },
-    { title: 'Materials Running Low', color: 'var(--danger-text)', items: low, loading, empty: 'No materials below reorder threshold', footer: 'Inventory', onFooter: () => nav('/admin/inventory'),
+    { title: 'Materials Running Low', color: 'var(--danger-text)', items: low, loading, failed: !data, empty: 'No materials below reorder threshold', footer: 'Inventory', onFooter: () => nav('/admin/inventory'),
       render: (m) => <ListRow key={m.material_id} onClick={() => nav('/admin/inventory')} title={m.material_name} right={`${m.quantity_in_stock} ${m.unit}`} rightColor="var(--danger)" /> },
-    { title: 'Production Delays', color: 'var(--warning-text)', items: delayed, loading, empty: `No stages stalled ${delayDays}+ days`, footer: 'Production', onFooter: () => nav('/admin/production'),
+    { title: 'Production Delays', color: 'var(--warning-text)', items: delayed, loading, failed: !data, empty: `No stages stalled ${delayDays}+ days`, footer: 'Production', onFooter: () => nav('/admin/production'),
       render: (x) => <ListRow key={x.order_id} onClick={() => nav(`/admin/orders/${x.order_id}`)} title={`Order #${x.order_id} — ${x.customer_name}`} sub={`${x.stage} · ${x.qty_completed}/${x.qty_target} pcs`} right={`${x.days_stalled}d stalled`} rightColor="var(--warning)" /> },
-    { title: 'RFQs Awaiting Response', color: T, items: rfqRaw ?? [], loading: rfqLoading, empty: 'No RFQs waiting on a supplier', footer: 'Procurement', onFooter: () => nav('/admin/procurement'),
+    { title: 'RFQs Awaiting Response', color: T, items: rfqRaw ?? [], loading: rfqLoading, failed: rfqRaw == null, empty: 'No RFQs waiting on a supplier', footer: 'Procurement', onFooter: () => nav('/admin/procurement'),
       render: (r) => <ListRow key={r.rfq_id} onClick={() => nav('/admin/procurement')} title={r.material_name} sub={`${r.qty_needed} ${r.unit}`} right={r.needed_by_date ? fmtDate(r.needed_by_date) : 'No deadline'} /> },
-    { title: 'Upcoming Deliveries', color: T, items: delivRaw ?? [], loading: delivLoading, empty: 'No deliveries in progress', footer: 'Delivery', onFooter: () => nav('/admin/delivery'),
+    { title: 'Upcoming Deliveries', color: T, items: delivRaw ?? [], loading: delivLoading, failed: delivRaw == null, empty: 'No deliveries in progress', footer: 'Delivery', onFooter: () => nav('/admin/delivery'),
       render: (d) => <ListRow key={d.tracking_id} onClick={() => nav('/admin/delivery')} title={`${d.customer_name ?? '—'} · ${d.garment_type ?? '—'}`} sub={d.delivery_status?.replace('_', ' ')} right={fmtDate(d.estimated_delivery_date)} /> },
   ];
 
@@ -171,7 +171,7 @@ export default function AdminDashboard() {
       <div className="adm-dash-grid">
         <div className="adm-dash-col">
           <Panel title="Orders Overview" action={<PillTabs tabs={[{ key: 'orders', label: 'Orders' }, { key: 'revenue', label: 'Revenue' }]} value={chartTab} onChange={setChartTab} />} style={{ overflow: 'visible' }}>
-            {loading ? <div className="adm-sk" style={{ height: 220 }} /> : chartData.length < 2 ? <EmptyBlock>Not enough history yet to draw a trend.</EmptyBlock> : (
+            {loading ? <div className="adm-sk" style={{ height: 220 }} /> : !data ? <EmptyBlock>Unavailable.</EmptyBlock> : chartData.length < 2 ? <EmptyBlock>Not enough history yet to draw a trend.</EmptyBlock> : (
               <ResponsiveContainer width="100%" height={260}>
                 <AreaChart data={chartData} margin={{ left: -12, right: 6, top: 6 }}>
                   <defs><linearGradient id="admTrend" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#028090" stopOpacity={0.28} /><stop offset="100%" stopColor="#028090" stopOpacity={0} /></linearGradient></defs>
@@ -186,7 +186,7 @@ export default function AdminDashboard() {
           </Panel>
 
           <Panel flush title="Recent Orders" action={<button className="adm-link-btn" onClick={() => nav('/admin/orders')}>View all →</button>}>
-            {loading ? <SkeletonRows /> : recent.length === 0 ? <EmptyBlock>No orders yet.</EmptyBlock> : (
+            {loading ? <SkeletonRows /> : !data ? <EmptyBlock>Unavailable.</EmptyBlock> : recent.length === 0 ? <EmptyBlock>No orders yet.</EmptyBlock> : (
               <>
                 <div className="adm-recent-table" style={{ overflowX: 'auto' }}>
                   <table className="adm-table">
@@ -212,7 +212,7 @@ export default function AdminDashboard() {
 
         <div className="adm-dash-col">
           <Panel title="Production Status">
-            {loading ? <div className="adm-sk" style={{ height: 180 }} /> : stageTotal === 0 ? <EmptyBlock>No orders in production stages.</EmptyBlock> : (
+            {loading ? <div className="adm-sk" style={{ height: 180 }} /> : !data ? <EmptyBlock>Unavailable.</EmptyBlock> : stageTotal === 0 ? <EmptyBlock>No orders in production stages.</EmptyBlock> : (
               <>
                 <div style={{ position: 'relative', height: 170 }}>
                   <ResponsiveContainer width="100%" height="100%">
@@ -240,7 +240,7 @@ export default function AdminDashboard() {
           </Panel>
 
           <Panel title="Recent Order Mix" action={<span className="adm-chip">last {recent.length}</span>}>
-            {loading ? <div className="adm-sk" style={{ height: 90 }} /> : mix.length === 0 ? <EmptyBlock>No orders yet.</EmptyBlock> : mix.map(([name, n]) => (
+            {loading ? <div className="adm-sk" style={{ height: 90 }} /> : !data ? <EmptyBlock>Unavailable.</EmptyBlock> : mix.length === 0 ? <EmptyBlock>No orders yet.</EmptyBlock> : mix.map(([name, n]) => (
               <div key={name} style={{ marginBottom: 10 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}><span style={{ color: 'var(--ink)', fontWeight: 600 }}>{name}</span><span style={{ color: 'var(--text-subtle)' }}>{Math.round((n / recent.length) * 100)}%</span></div>
                 <div style={{ height: 6, borderRadius: 99, background: 'var(--bg-surface)' }}><div style={{ height: '100%', width: `${(n / recent.length) * 100}%`, borderRadius: 99, background: `linear-gradient(90deg,${T},${T2})`, transition: 'width .3s' }} /></div>

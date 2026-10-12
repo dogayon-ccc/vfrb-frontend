@@ -1,107 +1,72 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Card, Badge, NavIcon } from '../../components/ui';
+import { NavIcon } from '../../components/ui';
+import { PageHeader, PillTabs, Panel, StatusPill, ErrorBlock, SkeletonRows, Toast, useToast } from '../../components/admin/AdminUI';
 
 const CATEGORY_ICON = { bug: 'bug', suggestion: 'suggestion', other: 'chat' };
-const STATUS_TONE   = { new: 'danger', reviewed: 'warning', archived: 'neutral' };
-const STATUS_LABEL  = { new: 'New', reviewed: 'Reviewed', archived: 'Archived' };
+const STATUS = { new: ['pending', 'New'], reviewed: ['confirmed', 'Reviewed'], archived: ['default', 'Archived'] };
+const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '');
 
 export default function AdminFeedback() {
   const [items, setItems]     = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadErr, setLoadErr] = useState(false);
   const [filter, setFilter]   = useState('');
+  const [toast, setToast]     = useToast();
 
   const load = useCallback(() => {
-    setLoading(true);
-    const params = filter ? { status: filter } : {};
-    axios.get('/api/admin/feedback', { params })
+    setLoading(true); setLoadErr(false);
+    axios.get('/api/admin/feedback', { params: filter ? { status: filter } : {} })
       .then(({ data }) => setItems(data?.data ?? data ?? []))
-      .catch(() => {})
+      .catch(() => setLoadErr(true))
       .finally(() => setLoading(false));
   }, [filter]);
-
   useEffect(() => { load(); }, [load]);
 
   const setStatus = async (id, status) => {
     const prev = items;
-    setItems(items.map(i => i.feedback_id === id ? { ...i, status } : i));
-    try {
-      await axios.patch(`/api/admin/feedback/${id}`, { status });
-    } catch {
-      setItems(prev);
-    }
+    setItems(items.map((i) => (i.feedback_id === id ? { ...i, status } : i)));
+    try { await axios.patch(`/api/admin/feedback/${id}`, { status }); }
+    catch { setItems(prev); setToast({ type: 'error', msg: 'Could not update that feedback. Please retry.' }); }
   };
 
   return (
-    <div style={{ fontFamily: 'var(--font)', paddingBottom: 40 }}>
-      <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, color: 'var(--ink)', margin: 0 }}>
-          Feedback
-        </h1>
-        <p style={{ fontSize: 'var(--text-base)', color: 'var(--text-subtle)', margin: '4px 0 0' }}>
-          What customers and staff have said about the system itself.
-        </p>
-      </div>
+    <>
+      <Toast toast={toast} />
+      <PageHeader title="Feedback" sub="What customers and staff have said about the system itself">
+        <button className="adm-btn" onClick={load}><NavIcon name="refresh" size={14} color="currentColor" /> Refresh</button>
+      </PageHeader>
+      <PillTabs value={filter} onChange={setFilter} tabs={[{ key: '', label: 'All' }, { key: 'new', label: 'New' }, { key: 'reviewed', label: 'Reviewed' }, { key: 'archived', label: 'Archived' }]} />
+      {loadErr && <div style={{ marginBottom: 14 }}><ErrorBlock msg="Could not load feedback." onRetry={load} /></div>}
 
-      <select value={filter} onChange={e => setFilter(e.target.value)} style={{
-        padding: '10px 14px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)',
-        background: 'var(--bg-card)', color: 'var(--ink)', fontSize: 'var(--text-base)',
-        fontFamily: 'var(--font)', marginBottom: 16, minHeight: 44,
-      }}>
-        <option value="">All statuses</option>
-        <option value="new">New</option>
-        <option value="reviewed">Reviewed</option>
-        <option value="archived">Archived</option>
-      </select>
-
-      {loading ? (
-        <p style={{ color: 'var(--text-subtle)', fontSize: 'var(--text-base)' }}>Loading…</p>
-      ) : items.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-faint)' }}>
-          <NavIcon name="chat" size={36} color="var(--text-faint)" style={{ marginBottom: 8 }} />
-          <p style={{ fontSize: 'var(--text-md)' }}>No feedback yet.</p>
-        </div>
+      {loading ? <Panel flush><SkeletonRows rows={3} h={90} /></Panel> : loadErr ? null : items.length === 0 ? (
+        <Panel><div className="adm-empty"><NavIcon name="chat" size={30} color="currentColor" /><div style={{ marginTop: 8, fontWeight: 700 }}>{filter ? `No ${STATUS[filter][1].toLowerCase()} feedback` : 'No feedback yet'}</div></div></Panel>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {items.map(item => (
-            <Card key={item.feedback_id} padding="sm">
-              <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--text-base)', fontWeight: 700, color: 'var(--ink)' }}>
-                  <NavIcon name={CATEGORY_ICON[item.category] ?? 'chat'} size={14} color="var(--text-subtle)" />
-                  {item.user?.name ?? 'Unknown user'}
-                </span>
-                <Badge tone={STATUS_TONE[item.status] ?? 'danger'}>
-                  {STATUS_LABEL[item.status] ?? 'New'}
-                </Badge>
-              </div>
-              <p style={{ fontSize: 'var(--text-base)', color: 'var(--text-muted)', margin: '0 0 10px' }}>
-                {item.message}
-              </p>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {item.status !== 'reviewed' && (
-                  <button onClick={() => setStatus(item.feedback_id, 'reviewed')} style={{
-                    background: 'var(--warning-bg)', color: 'var(--warning-text)', border: '1px solid var(--warning-border)',
-                    borderRadius: 'var(--r-md)', padding: '6px 12px', fontSize: 'var(--text-xs)', fontWeight: 700,
-                    fontFamily: 'var(--font)', cursor: 'pointer', minHeight: 44,
-                  }}>
-                    Mark Reviewed
-                  </button>
-                )}
+        <div className="adm-stagger" style={{ display: 'flex', flexDirection: 'column', gap: 10 }} key={filter}>
+          {items.map((item, i) => {
+            const [tone, label] = STATUS[item.status] ?? STATUS.new;
+            return (
+              <div key={item.feedback_id} className="adm-mcard" style={{ '--i': Math.min(i, 8), marginBottom: 0 }}>
+                <div className="adm-mrow">
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 700, minWidth: 0 }}>
+                    <NavIcon name={CATEGORY_ICON[item.category] ?? 'chat'} size={14} color="var(--text-subtle)" />
+                    {item.user?.name ?? 'Unknown user'}
+                    {item.created_at && <small style={{ fontWeight: 400, color: 'var(--text-faint)' }}>· {fmtDate(item.created_at)}</small>}
+                  </span>
+                  <StatusPill status={tone} label={label} />
+                </div>
+                <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '8px 0 0', lineHeight: 1.55, overflowWrap: 'anywhere' }}>{item.message}</p>
                 {item.status !== 'archived' && (
-                  <button onClick={() => setStatus(item.feedback_id, 'archived')} style={{
-                    background: 'var(--bg-surface)', color: 'var(--text-subtle)', border: '1px solid var(--border)',
-                    borderRadius: 'var(--r-md)', padding: '6px 12px', fontSize: 'var(--text-xs)', fontWeight: 700,
-                    fontFamily: 'var(--font)', cursor: 'pointer', minHeight: 44,
-                  }}>
-                    Archive
-                  </button>
+                  <div className="adm-mfoot">
+                    {item.status !== 'reviewed' && <button className="adm-btn" onClick={() => setStatus(item.feedback_id, 'reviewed')}><NavIcon name="success" size={13} color="currentColor" /> Mark reviewed</button>}
+                    <button className="adm-btn" onClick={() => setStatus(item.feedback_id, 'archived')}>Archive</button>
+                  </div>
                 )}
               </div>
-            </Card>
-          ))}
+            );
+          })}
         </div>
       )}
-    </div>
+    </>
   );
 }
