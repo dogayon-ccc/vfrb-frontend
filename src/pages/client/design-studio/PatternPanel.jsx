@@ -13,6 +13,7 @@ import { motion } from 'framer-motion';
 import { NavIcon } from '../../../components/ui/icons';
 import { T2, secLabel, ZONE_LABEL, PATTERNS, pattern3D, ONLY_2D_TAG } from './dsShared';
 import { assetFor } from './garmentAssets';
+import { wovenParams, wovenTileUrl, tileSize, SCALE_RANGE } from './wovenPatterns';
 
 // Universal slider ranges across all 3 parametric pattern types. Not
 // per-type-tuned (diagonal's useful range genuinely differs a bit from
@@ -36,13 +37,45 @@ function ParamSlider({ label, value, range, onChange }) {
   );
 }
 
+// Woven patterns: colour 1 is the zone's own colour (the same value the Colours tab edits), colour 2, scale and rotation are
+// saved in cfg.patternParams[zone].
+function WovenControls({ cfg, setCfg, zone, patDef }) {
+  const c1 = cfg.colors?.[zone] ?? cfg.colors?.body ?? '#1b2a4a';
+  const p = wovenParams(patDef.id, cfg.patternParams?.[zone], c1);
+  const setP = (k, v) => setCfg(s => ({ ...s, patternParams: { ...(s.patternParams ?? {}), [zone]: { ...wovenParams(patDef.id, s.patternParams?.[zone], c1), [k]: v } } }));
+  const row = { display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, fontSize:12, color:'var(--cx-ink-2)', minHeight:44 };
+  return (
+    <motion.div initial={{ opacity:0, height:0 }} animate={{ opacity:1, height:'auto' }}
+      style={{ padding:'11px 12px', borderRadius:10, background:'rgba(2,195,154,.06)', border:'1px solid rgba(2,195,154,.18)', display:'flex', flexDirection:'column', gap:6, overflow:'hidden' }}>
+      <p style={{ fontSize:12, fontWeight:700, color:'var(--cx-thread-ink)', margin:0 }}>Adjust {patDef.label}</p>
+      <label style={row}><span>Colour 1 (zone colour)</span>
+        <input type="color" value={c1} onChange={e => setCfg(s => ({ ...s, colors: { ...s.colors, [zone]: e.target.value } }))} style={{ width:44, height:32 }}/></label>
+      <label style={row}><span>Colour 2</span>
+        <input type="color" value={p.c2} onChange={e => setP('c2', e.target.value)} style={{ width:44, height:32 }}/></label>
+      <label style={{ ...row, flexDirection:'column', alignItems:'stretch', gap:2 }}>
+        <span style={{ display:'flex', justifyContent:'space-between' }}><span>Scale</span><b>{p.scale}x</b></span>
+        <input type="range" min={SCALE_RANGE.min} max={SCALE_RANGE.max} step={0.25} value={p.scale} onChange={e => setP('scale', Number(e.target.value))} style={{ accentColor:T2 }}/></label>
+      <label style={{ ...row, flexDirection:'column', alignItems:'stretch', gap:2 }}>
+        <span style={{ display:'flex', justifyContent:'space-between' }}><span>Rotation</span><b>{p.rotation}°</b></span>
+        <input type="range" min={0} max={165} step={15} value={p.rotation} onChange={e => setP('rotation', Number(e.target.value))} style={{ accentColor:T2 }}/></label>
+      <button type="button" onClick={() => setCfg(s => { const pp = { ...(s.patternParams ?? {}) }; delete pp[zone]; return { ...s, patternParams: pp }; })}
+        style={{ alignSelf:'flex-start', minHeight:32, padding:'3px 9px', borderRadius:7, border:'1px solid rgba(15,23,42,.15)', background:'transparent', color:'var(--cx-ink-2)', fontSize:12, cursor:'pointer' }}>
+        Reset to default
+      </button>
+      <p style={{ fontSize:11, color:'var(--cx-ink-2)', margin:0 }}>Shown in 2D, previews, PNG and PDF. The 3D model shows this zone in its solid colour.</p>
+    </motion.div>
+  );
+}
+
 export default function PatternPanel({ cfg, setCfg, activeZone }) {
   const photoBase = assetFor(cfg.garment, cfg.sleeve, 'front', cfg.fit);
   const zonePattern = photoBase ? 'solid' : (cfg.patterns?.[activeZone] ?? 'solid');
   const patDef       = PATTERNS.find(p => p.id === zonePattern);
-  const setPattern  = (id) => { if (photoBase) return; setCfg(p => ({
-    ...p, patterns: { ...(p.patterns??{}), [activeZone]:id }
-  })); };
+  // Switching to another pattern drops the zone's old params: stripe width/spacing and woven scale/colour 2 do not carry over.
+  const setPattern  = (id) => { if (photoBase || id === zonePattern) return; setCfg(p => {
+    const patternParams = { ...(p.patternParams ?? {}) }; delete patternParams[activeZone];
+    return { ...p, patterns: { ...(p.patterns??{}), [activeZone]:id }, patternParams };
+  }); };
 
   // Current width/spacing for this zone — falls back to the selected
   // pattern's own defaults if the customer hasn't dragged a slider yet,
@@ -92,7 +125,12 @@ export default function PatternPanel({ cfg, setCfg, activeZone }) {
                 outline:    sel ? `2px solid ${T2}` : '1px solid rgba(15,23,42,.07)',
                 display:'flex', flexDirection:'column', alignItems:'center', gap:4,
               }}>
-              <NavIcon name={pat.icon} size={18} color={sel ? 'var(--cx-thread-ink)' : 'var(--cx-ink-2)'}/>
+              {pat.woven
+                ? <span aria-hidden="true" style={{ width:30, height:22, borderRadius:5, border:'1px solid rgba(15,23,42,.15)',
+                    backgroundSize: (z => `${z.w}px ${z.h}px`)(tileSize(pat.id, 0.75)),
+                    backgroundImage: (u => u ? `url(${u})` : undefined)(wovenTileUrl(pat.id, cfg.colors?.[activeZone] ?? cfg.colors?.body ?? '#1b2a4a',
+                      wovenParams(pat.id, cfg.patternParams?.[activeZone], cfg.colors?.[activeZone] ?? cfg.colors?.body).c2, 0.75)) }}/>
+                : <NavIcon name={pat.icon} size={18} color={sel ? 'var(--cx-thread-ink)' : 'var(--cx-ink-2)'}/>}
               <span style={{ fontSize:11, color: sel?'var(--cx-thread-ink)':'var(--cx-ink-2)',
                 fontWeight:sel?700:400, textAlign:'center' }}>
                 {pat.label}
@@ -102,6 +140,8 @@ export default function PatternPanel({ cfg, setCfg, activeZone }) {
           );
         })}
       </div>
+
+      {!photoBase && patDef?.woven && <WovenControls cfg={cfg} setCfg={setCfg} zone={activeZone} patDef={patDef}/>}
 
       {!photoBase && patDef?.parametric && (
         <motion.div

@@ -4,9 +4,9 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Copy, Trash2, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal,
   AlignHorizontalDistributeCenter, AlignVerticalDistributeCenter } from 'lucide-react';
-import { SHAPE_TYPE_LABEL } from './dsShared';
+import { shapeLabel } from './overlayTools';
 
-const kindLabel = o => (o.__artwork ? 'Artwork' : o.__logo ? 'Logo' : o.__shape ? (SHAPE_TYPE_LABEL[o.type] ?? 'Shape') : o.__draw ? 'Drawing' : 'Text');
+const kindLabel = o => (o.__artwork ? 'Artwork' : o.__logo ? 'Logo' : o.__shape ? shapeLabel(o) : o.__draw ? 'Drawing' : 'Text');
 const ALIGN = [['left', 'Align left edges', AlignStartVertical], ['hcenter', 'Align centres horizontally', AlignCenterVertical], ['right', 'Align right edges', AlignEndVertical],
   ['top', 'Align top edges', AlignStartHorizontal], ['vcenter', 'Align middles', AlignCenterHorizontal], ['bottom', 'Align bottom edges', AlignEndHorizontal]];
 const DISTRIBUTE = [['h', 'Distribute horizontally', AlignHorizontalDistributeCenter], ['v', 'Distribute vertically', AlignVerticalDistributeCenter]];

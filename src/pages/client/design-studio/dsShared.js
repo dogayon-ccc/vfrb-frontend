@@ -10,6 +10,8 @@
 // T2's hex value in two files would be a real, easy-to-miss divergence
 // risk the next time the brand color changes.
 import { assetFor } from './garmentAssets';
+import { WEB_FONTS } from './studioFonts';
+import { WOVEN_PATTERNS } from './wovenPatterns';
 import { getGarmentPaths, BASE_PATHS } from './garmentPaths';
 import { deserializeDesign } from './designSerialization';
 // Pure-data capability lookup only — NOT garmentMeshManifest.js. That file also calls
@@ -59,6 +61,8 @@ export const PATTERNS = [
   { id:'geometric',  label:'Geometric',   icon:'patternGeometric',
     svg: (c) => `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><polygon points="12,2 22,20 2,20" fill="none" stroke="${c}" stroke-width="1.5" opacity="0.35"/></svg>` },
   { id:'gradient',   label:'Gradient',    icon:'patternGradient', svg: null }, // handled specially
+  // Woven and printed patterns (wovenPatterns.js): colour 2, scale and rotation per zone, 2D only.
+  ...WOVEN_PATTERNS.map(p => ({ ...p, icon: 'pattern', woven: true, svg: null })),
 ];
 
 // Used by both LogoPanel (preset picker UI) and DesignStudio.jsx's
@@ -158,13 +162,11 @@ export function garmentRequirements(garment, sleeve) {
 // System emoji fonts appended as fallback — no CDN, relies on the OS's own
 // installed emoji font (Segoe UI Emoji / Apple Color Emoji / Noto Color Emoji).
 const EMOJI_FALLBACK = `,'Noto Color Emoji','Apple Color Emoji','Segoe UI Emoji'`;
-// Expanded to real, widely pre-installed system font stacks — still zero
-// CDN calls (the "no CDN" coding standard for this offline project), just
-// a wider set of what the OS already ships instead of the original 5.
-// A stack that isn't installed silently falls through to its own generic
-// keyword (serif/sans-serif/monospace/cursive/fantasy), so nothing renders
-// blank even on a machine missing a given face.
-export const FONTS = [
+// The fonts offered for new text: self-hosted OFL faces (studioFonts.js), identical on every device.
+export const FONTS = WEB_FONTS;
+// Earlier system-font stacks. No longer offered, but designs saved with them keep their exact fontFamily string and still
+// render (each stack falls back to its generic keyword); the inspector names them by these labels.
+export const LEGACY_FONTS = [
   { id:'bold',       label:'Bold Block',    css:`Arial Black, 'Arial Bold', sans-serif${EMOJI_FALLBACK}` },
   { id:'clean',      label:'Clean',         css:`ui-sans-serif, system-ui, sans-serif${EMOJI_FALLBACK}` },
   { id:'helvetica',  label:'Helvetica',     css:`Helvetica, Arial, sans-serif${EMOJI_FALLBACK}` },
@@ -219,18 +221,6 @@ export const EMOJIS = [
 // into the UI"). All four additions below (Triangle, Ellipse, Line, Star)
 // use only standard Fabric.js classes already in this project's Fabric 6.x
 // dependency — no new package needed.
-// Maps Fabric's own `.type` string (set automatically by each shape class)
-// to the label shown in layers/selection UI. Keyed off the real object,
-// not a remembered "which button did they click" flag, so it can't drift
-// from what's actually on the canvas. 'polygon' only ever means Star here
-// (the only polygon-based shape addShape() creates) — if a second
-// polygon-built shape is ever added, this map needs a second signal
-// (e.g. a __starShape tag) to disambiguate.
-export const SHAPE_TYPE_LABEL = {
-  rect: 'Rectangle', circle: 'Circle', triangle: 'Triangle',
-  ellipse: 'Ellipse', line: 'Line', polygon: 'Star',
-};
-
 export const SHAPES = [
   { id:'rect',     label:'Rectangle', kind:'rect'     },
   { id:'circle',   label:'Circle',    kind:'circle'   },
@@ -238,6 +228,9 @@ export const SHAPES = [
   { id:'ellipse',  label:'Ellipse',   kind:'ellipse'  },
   { id:'line',     label:'Line',      kind:'line'     },
   { id:'star',     label:'Star',      kind:'star'     },
+  { id:'roundrect',label:'Rounded',   kind:'roundrect'},
+  { id:'polygon',  label:'Hexagon',   kind:'polygon'  },
+  { id:'arrow',    label:'Arrow',     kind:'arrow'    },
 ];
 
 

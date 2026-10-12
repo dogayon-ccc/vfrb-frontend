@@ -5,6 +5,9 @@
 //  - woven grain: a fine noise tile multiplied over every zone (patterns included)
 //  - vector templates: soft inner-edge shading toward the outline, plus a light diagonal sheen
 //  - derived templates (traced from a reference model): the model's own lighting (folds, seams, buttons) multiplied over the fill
+//  - template details (detailRealism): seams sit in a soft groove with a raised topstitch, folds blur out, buttons catch a
+//    highlight and cast a small shadow, the pocket casts a shadow onto the body. No blur on the many seam lines, so phones stay fast.
+//  Woven patterns carry their own thread shading in the tile (wovenPatterns.js).
 
 let grainTile = null;
 // 96px tile of soft two-scale noise around white: multiply darkens by at most ~7%, so colours stay true.
@@ -26,6 +29,35 @@ function grain() {
 
 const deco = { selectable: false, evented: false, objectCaching: false, __garmentBase: true };
 
+// Detail lines are tagged by useGarmentCanvas insertDetails (__detailKind, __detailPart). New layers go directly under or over
+// the detail they belong to, so the template's own stacking (under-collar vs over-everything) is kept.
+function detailRealism(fabric, canvas) {
+  const at = o => canvas.getObjects().indexOf(o);
+  const pathOf = (o, extra) => new fabric.Path(o.path, { ...deco, objectCaching: true, ...extra });
+  for (const o of canvas.getObjects().filter(x => x.__detailKind)) {
+    const k = o.__detailKind;
+    if (k === 'seam' || k === 'line') {
+      // Groove: a wide, faint stroke under the seam line. Topstitch: the dashed thread lifts with a 1px light edge.
+      canvas.insertAt(at(o), pathOf(o, { fill: '', stroke: 'rgba(15,23,42,.07)', strokeWidth: k === 'seam' ? 4 : 3, strokeLineCap: 'round' }));
+      if (k === 'seam') o.set({ shadow: new fabric.Shadow({ color: 'rgba(255,255,255,.5)', blur: 0, offsetX: 0, offsetY: 0.8 }) });
+    } else if (k === 'fold') {
+      canvas.insertAt(at(o), pathOf(o, { fill: '', stroke: 'rgba(15,23,42,.05)', strokeWidth: 7, strokeLineCap: 'round' }));
+    } else if (k === 'button') {
+      o.set({ shadow: new fabric.Shadow({ color: 'rgba(15,23,42,.35)', blur: 2, offsetX: 0, offsetY: 1 }) });
+      canvas.insertAt(at(o) + 1, pathOf(o, { stroke: null, fill: new fabric.Gradient({ type: 'radial', gradientUnits: 'percentage',
+        coords: { x1: 0.36, y1: 0.3, r1: 0, x2: 0.36, y2: 0.3, r2: 0.62 },
+        colorStops: [{ offset: 0, color: 'rgba(255,255,255,.75)' }, { offset: 1, color: 'rgba(255,255,255,0)' }] }) }));
+    } else if (/pocket/i.test(o.__detailPart ?? '')) {
+      o.set({ shadow: new fabric.Shadow({ color: 'rgba(15,23,42,.22)', blur: 0, offsetX: 0, offsetY: 1 }) });
+    }
+  }
+  // Pocket zone: a soft shadow cast outside its edge only (an inverted clip), so the pocket's own colour or pattern is untouched.
+  const pocket = canvas.getObjects().find(x => x.__zoneKey === 'pocket');
+  if (pocket) canvas.insertAt(at(pocket), new fabric.Path(pocket.path, { ...deco, objectCaching: true, fill: '#000000', stroke: null,
+    shadow: new fabric.Shadow({ color: 'rgba(15,23,42,.3)', blur: 5, offsetX: 0, offsetY: 2 }),
+    clipPath: new fabric.Path(pocket.path, { absolutePositioned: true, inverted: true }) }));
+}
+
 // Inserts the layers around the `zones` already drawn ([{ obj, d }], bottom-most first). `current()` is false once a newer redraw
 // started, so a late-loading shade image never lands on the wrong garment. The caller renders.
 export function addFabricShading(fabric, canvas, paths, face, zones, current) {
@@ -40,6 +72,7 @@ export function addFabricShading(fabric, canvas, paths, face, zones, current) {
   if (tile) for (const z of zones) {
     canvas.insertAt(at(z.obj) + 1, new fabric.Path(z.d, { ...deco, fill: new fabric.Pattern({ source: tile, repeat: 'repeat' }), stroke: null, opacity: 0.85, globalCompositeOperation: 'multiply' }));
   }
+  detailRealism(fabric, canvas);
   const top = Math.max(...zones.map(z => at(z.obj))) + 2; // above the last zone and its grain, below detail lines and the customer's design
   const overBody = at(zones[0].obj) + 2;                     // just above the body and its grain, under collar, sleeves and pocket
   const shadeUrl = paths.shade?.[face];

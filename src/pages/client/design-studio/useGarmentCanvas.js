@@ -1,6 +1,6 @@
 // Fabric.js canvas hook for Design Studio. Extracted from DesignStudio.jsx.
 import { useRef, useState, useCallback, useEffect, useLayoutEffect } from 'react';
-import { T2, LOGO_PRESETS, PATTERNS, SHAPE_TYPE_LABEL } from './dsShared';
+import { T2, LOGO_PRESETS, PATTERNS } from './dsShared';
 import { getGarmentPaths } from './garmentPaths';
 import { detailedPaths } from './garmentDetails';
 import { addFabricShading } from './fabricShading';
@@ -8,6 +8,9 @@ import { assetFor, tintedCanvas } from './garmentAssets';
 import { snapTargets, computeSnap, snapThreshold, computeResizeSnap, movingEdges } from './snapGuides';
 import { placementTargets, readoutPct, alignDeltas, distributeDeltas, gridSpec, guideLines } from './canvasGuides';
 import { installStageLayers, drawPlacementGhosts, applyErase, garmentBox, plainObject } from './canvasLayers';
+import { reviveOverlays, restyleText, changesLayout, makeShape, shapeLabel, moveInStack, installTouchHandles } from './overlayTools';
+import { wovenFill } from './wovenPatterns';
+import { loadFont, webFontFor, defaultWeight } from './studioFonts';
 
 // Template lines (garmentPaths `details`). Untagged ones are decorative: no __zoneKey, never clicked or hovered. A tagged part (pocket,
 // buttons, closure) is tappable as zone 'detail:<part>' and carries the customer's colour as `style` (garmentDetails.js).
@@ -23,7 +26,7 @@ const DETAIL_STYLE = {
 // pocket); over-details go above every zone. Returns the index after the last garment object.
 function insertDetails(fabric, canvas, details = [], zoneCount) {
   const under = details.filter(d => !d.over), over = details.filter(d => d.over);
-  const make = d => new fabric.Path(d.d, { ...DETAIL_STYLE[d.kind], ...d.style, selectable: false, evented: !!d.part, objectCaching: false, __garmentBase: true,
+  const make = d => new fabric.Path(d.d, { ...DETAIL_STYLE[d.kind], ...d.style, selectable: false, evented: !!d.part, objectCaching: false, __garmentBase: true, __detailKind: d.kind, __detailPart: d.part,
     ...(d.part && { __zoneKey: `detail:${d.part}`, perPixelTargetFind: false }) });
   under.forEach((d, i) => canvas.insertAt(1 + i, make(d)));
   const start = zoneCount + under.length;
@@ -40,7 +43,7 @@ function zoneAt(canvas, e) {
     .find(o => o.containsPoint(scene) && !canvas.isTargetTransparent(o, vp.x, vp.y));
 }
 
-const OVERLAY_PROPS = ['__logo','__artwork','__text','__draw','__shape','__layerId','__layerName','__locked','__erase','lockMovementX','lockMovementY','lockRotation','lockScalingX','lockScalingY','hasControls'];
+const OVERLAY_PROPS = ['__logo','__artwork','__text','__draw','__shape','__layerId','__layerName','__locked','__erase','__curve','__shapeKind','lockMovementX','lockMovementY','lockRotation','lockScalingX','lockScalingY','hasControls'];
 
 // Composites front+back PNGs side by side; falls back to one side if the other fails to load.
 const FRONT_BACK_GAP = 36;
@@ -77,8 +80,9 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   const fabricReady = useRef(false);
   const disposePending = useRef(null); // in-flight dispose() Promise, guards StrictMode double-mount
 
-  const historyStack = useRef([]);
-  const historyIdx = useRef(-1);
+  // Starts at an empty baseline so the first action can be undone; a design or face load restarts it (resetHistory).
+  const historyStack = useRef([[]]);
+  const historyIdx = useRef(0);
   const historyLock = useRef(false);
   const [, setHistoryTick] = useState(0); // refs don't trigger re-render; this forces one
 
@@ -87,6 +91,8 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   const [initFailed, setInitFailed] = useState(false);
   const [ready, setReady] = useState(false);
   const redrawToken = useRef(0);
+  // Overlay loads (reload, face switch, undo/redo) finish asynchronously (enliven, then web fonts); only the newest may land.
+  const overlayLoad = useRef(0);
   // Latest props for exportFace, which polls across a face switch.
   const latest = useRef({ garment, sleeve, face, fit });
   latest.current = { garment, sleeve, face, fit };
@@ -114,6 +120,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       if (cancelled || !canvasRef.current) return;
       const paths = getGarmentPaths(garment, sleeve, face);
 
+      installTouchHandles(fabric);
       fc.current = new fabric.Canvas(canvasRef.current, {
         width: paths.w, height: paths.h,
         backgroundColor: 'transparent',
@@ -409,7 +416,10 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         });
         canvas.insertAt(zi++, zonePath);
         zones.push({ obj: zonePath, d });
-        if (patDef?.svg) {
+        if (patDef?.woven) {
+          const woven = wovenFill(fabric, patDef.id, fill, patternParams?.[zoneKey]);
+          if (woven) zonePath.set('fill', woven);
+        } else if (patDef?.svg) {
           const zoneParams = patternParams?.[zoneKey] ?? patDef.defaultParams;
           const svgStr = patDef.svg(fill, zoneParams?.width, zoneParams?.spacing);
           const blob = new Blob([svgStr], { type:'image/svg+xml' });
@@ -479,6 +489,13 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     setHistoryTick(t => t + 1);
   }, []);
 
+  // The loaded overlays become the new baseline: undo never steps back into the previous design or the other face.
+  const resetHistory = useCallback(() => {
+    historyStack.current = [];
+    historyIdx.current = -1;
+    pushHistory();
+  }, [pushHistory]);
+
   const restoreSnapshot = useCallback((snapshot, setIdx) => {
     setIdx();
     setHistoryTick(t => t + 1);
@@ -490,8 +507,10 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     canvas.getObjects().filter(o => !o.__garmentBase && !o.__hoverGlow).forEach(o => canvas.remove(o));
     import('fabric').then((mod) => { const fabric = mod.fabric ?? mod.default ?? mod;
       if (!snapshot || snapshot.length === 0) { canvas.renderAll(); historyLock.current = false; bumpLayers(); return; }
-      Promise.resolve(fabric.util.enlivenObjects(snapshot))
+      const token = ++overlayLoad.current;
+      Promise.resolve(fabric.util.enlivenObjects(snapshot)).then(reviveOverlays)
         .then(enlivened => {
+          if (token !== overlayLoad.current) { historyLock.current = false; return; }
           (enlivened ?? []).forEach(obj => canvas.add(obj));
           const again = activeId && (enlivened ?? []).find(o => o.__layerId === activeId);
           if (again) canvas.setActiveObject(again);
@@ -553,12 +572,13 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     const canvas = fc.current;
     if (!canvas) return;
     const paths = getGarmentPaths(garment, sleeve);
-    import('fabric').then((mod) => { const fabric = mod.fabric ?? mod.default ?? mod;
+    const web = webFontFor(fontCss), weight = web ? defaultWeight(web) : 'bold';
+    Promise.all([import('fabric'), loadFont(fontCss, weight)]).then(([mod]) => { const fabric = mod.fabric ?? mod.default ?? mod;
       const t = new fabric.IText(text, {
         left: pos ? pos.x : paths.w / 2, top: pos ? pos.y : paths.h * 0.4,
         originX: 'center', originY: 'center', fontSize: sizePx ?? 18,
         fontFamily: fontCss ?? 'Arial Black, sans-serif',
-        fill: color, fontWeight: 'bold', __text: true,
+        fill: color, fontWeight: weight, paintFirst: 'stroke', strokeLineJoin: 'round', __text: true,
         __layerId: crypto.randomUUID(),
         __layerName: text.length > 20 ? text.slice(0, 20) + '…' : text,
       });
@@ -569,22 +589,6 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       bumpLayers();
     }).catch(() => {});
   }, [garment, sleeve, pushHistory, bumpLayers]);
-
-  // Star has no native Fabric class — built as a Polygon from computed
-  // spike points, the standard way to draw a star shape on a canvas.
-  // Everything else below is a stock Fabric.js 6.x constructor (Triangle,
-  // Ellipse, Line all ship with the version already in this project's
-  // package.json — no new dependency).
-  const starPoints = (spikes = 5, outerR = 32, innerR = 13) => {
-    const pts = [];
-    const step = Math.PI / spikes;
-    for (let i = 0; i < spikes * 2; i++) {
-      const r = i % 2 === 0 ? outerR : innerR;
-      const a = i * step - Math.PI / 2;
-      pts.push({ x: outerR + r * Math.cos(a), y: outerR + r * Math.sin(a) });
-    }
-    return pts;
-  };
 
   // pos: optional {x,y} in canvas-logical space from a drag-drop; falls
   // back to dead-center when placed via the keyboard-accessible path.
@@ -599,17 +603,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         fill: color, stroke: 'rgba(0,0,0,.25)', strokeWidth: 1,
         __shape: true, __layerId: crypto.randomUUID(),
       };
-      const names = { rect:'Rectangle', circle:'Circle', triangle:'Triangle', ellipse:'Ellipse', line:'Line', star:'Star' };
-      let shape;
-      switch (kind) {
-        case 'circle':   shape = new fabric.Circle({ ...common, radius: 32 }); break;
-        case 'triangle': shape = new fabric.Triangle({ ...common, width: 64, height: 56 }); break;
-        case 'ellipse':  shape = new fabric.Ellipse({ ...common, rx: 38, ry: 24 }); break;
-        case 'line':     shape = new fabric.Line([0, 0, 84, 0], { ...common, fill: undefined, stroke: color, strokeWidth: 4 }); break;
-        case 'star':     shape = new fabric.Polygon(starPoints(5, 32, 13), { ...common }); break;
-        default:         shape = new fabric.Rect({ ...common, width: 64, height: 64 });
-      }
-      shape.set('__layerName', names[kind] ?? 'Shape');
+      const shape = makeShape(fabric, kind, common, color); // overlayTools.js
       canvas.add(shape);
       canvas.setActiveObject(shape);
       canvas.renderAll();
@@ -628,8 +622,21 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     if (obj.__locked && !('__locked' in props)) return;
     obj.set(props);
     if (typeof props.text === 'string') obj.__layerName = props.text.slice(0, 20) + (props.text.length > 20 ? '…' : '');
+    if (typeof obj.text === 'string' && changesLayout(props)) {
+      restyleText(obj, props).then(() => { canvas.renderAll(); if (commit) pushHistory(); bumpLayers(); }).catch(() => {});
+      return;
+    }
     canvas.renderAll();
     if (commit) pushHistory();
+    bumpLayers();
+  }, [pushHistory, bumpLayers]);
+
+  // Stacking order among the customer's elements: front | forward | backward | back. One undo step.
+  const arrangeLayer = useCallback((where) => {
+    const canvas = fc.current, obj = canvas?.getActiveObject();
+    if (!obj || obj.__garmentBase || obj.type === 'activeselection' || !moveInStack(canvas, obj, where)) return;
+    canvas.renderAll();
+    pushHistory();
     bumpLayers();
   }, [pushHistory, bumpLayers]);
 
@@ -663,7 +670,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     const canvas = fc.current;
     const obj = canvas?.getActiveObject();
     if (!obj || obj.__garmentBase || obj.__hoverGlow) return;
-    obj.clone(OVERLAY_PROPS).then((copy) => {
+    obj.clone(OVERLAY_PROPS).then(c => reviveOverlays([c])).then(([copy]) => {
       copy.set({
         left: (obj.left ?? 0) + 16,
         top: (obj.top ?? 0) + 16,
@@ -836,21 +843,28 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       .map(o => plainObject(o, OVERLAY_PROPS));
   }, []);
 
-  const loadCanvasJSON = useCallback((objects) => {
+  // keepHistory: the export's temporary face swap, which must not cost the customer their undo history.
+  const loadCanvasJSON = useCallback((objects, { keepHistory = false } = {}) => {
     const canvas = fc.current;
     if (!canvas || !Array.isArray(objects)) return;
+    const token = ++overlayLoad.current;
+    const clear = () => canvas.getObjects().filter(o => !o.__garmentBase && !o.__hoverGlow).forEach(o => canvas.remove(o));
     import('fabric').then((mod) => { const fabric = mod.fabric ?? mod.default ?? mod;
-      canvas.getObjects().filter(o => !o.__garmentBase && !o.__hoverGlow).forEach(o => canvas.remove(o));
-      if (objects.length === 0) { canvas.renderAll(); bumpLayers(); return; }
-      Promise.resolve(fabric.util.enlivenObjects(objects))
+      if (token !== overlayLoad.current) return;
+      clear();
+      if (objects.length === 0) { canvas.renderAll(); if (!keepHistory) resetHistory(); bumpLayers(); return; }
+      Promise.resolve(fabric.util.enlivenObjects(objects)).then(reviveOverlays)
         .then(enlivened => {
+          if (token !== overlayLoad.current) return;
+          clear();
           (enlivened ?? []).forEach(obj => canvas.add(obj));
           canvas.renderAll();
+          if (!keepHistory) resetHistory();
           bumpLayers();
         })
         .catch(() => {});
     }).catch(() => {});
-  }, [bumpLayers]);
+  }, [bumpLayers, resetHistory]);
 
   // Forces a resize+redraw after e.g. an onboarding overlay closes and reveals the canvas
   // Re-paint after e.g. the onboarding overlay closes. Does NOT touch
@@ -873,15 +887,11 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     .filter(o => typeof o.toObject === 'function')
     .map(o => {
       if (!o.__layerId) o.__layerId = crypto.randomUUID(); // lazy-assign for legacy objects
-      // Shape sub-kind now comes straight off Fabric's own `.type` (set by
-      // whichever constructor addShape() used) via SHAPE_TYPE_LABEL, so
-      // Triangle/Ellipse/Line/Star show their real name instead of being
-      // collapsed into "rect" the way this used to binary-check circle-vs-not.
       const kind = o.__shape ? 'shape' : o.__draw ? 'drawing' : o.__artwork ? 'artwork' : (o.__logo ? 'logo' : 'text');
       return {
         id: o.__layerId, type: kind,
         name: o.__layerName || (kind === 'drawing' ? 'Drawing' : kind === 'artwork' ? 'Artwork' : kind === 'logo' ? 'Logo'
-          : kind === 'shape' ? (SHAPE_TYPE_LABEL[o.type] ?? 'Shape') : 'Text'),
+          : kind === 'shape' ? shapeLabel(o) : 'Text'),
         visible: o.visible !== false,
         locked: !!o.__locked,
         opacity: o.opacity ?? 1,
@@ -972,7 +982,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   const setSnapOptions = useCallback((o) => { snapOpts.current = { ...snapOpts.current, ...o }; fc.current?.requestRenderAll(); }, []);
 
   return {
-    addLogo, addText, addShape, updateSelected, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
+    addLogo, addText, addShape, updateSelected, arrangeLayer, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
     pushHistory, undo, redo, canUndo, canRedo, resizeCanvas,
     layers, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
     setDrawMode, setBrushStyle, initFailed,

@@ -92,11 +92,10 @@ t('selectFamily without a category keeps the current one', (c => { let st = { ..
   const kept = JSON.stringify(r).includes('"__artwork":true');
   t('artwork tag survives save/restore', kept);
   t('artwork does not alter garment, sleeve or fit', r.cfg.garment === 'Scrub Top' && r.cfg.sleeve === cfg.sleeve && r.cfg.fit === cfg.fit); }
-// Text fonts: only named families are probed; generic-only stacks are always kept so the list is never empty.
-const FA = await L('/src/pages/client/design-studio/fontAvailable.js');
-t('primaryFamilies skips generics and emoji', JSON.stringify(FA.primaryFamilies("Arial Black, 'Arial Bold', sans-serif, 'Apple Color Emoji'")) === JSON.stringify(['Arial Black', 'Arial Bold']));
-t('generic-only stack has no probe family', FA.primaryFamilies('cursive').length === 0 && FA.primaryFamilies('ui-sans-serif, system-ui, sans-serif').length === 0);
-t('availableFonts without a canvas keeps every font', FA.availableFonts([{ id: 'a', css: 'Papyrus, fantasy' }]).length === 1);
+// Text fonts: self-hosted web faces resolved from a saved CSS stack; legacy system stacks resolve to none and are left alone.
+const SF = await L('/src/pages/client/design-studio/studioFonts.js');
+t('studio fonts: a saved stack resolves to its web face; legacy system stacks do not', SF.webFontFor("'Bebas Neue', sans-serif,'Noto Color Emoji'")?.id === 'bebas' && SF.webFontFor("Arial Black, 'Arial Bold', sans-serif") === null && SF.primaryFamily("'Great Vibes', cursive") === 'Great Vibes');
+t('studio fonts: weights snap to an existing cut', SF.nearestWeight(SF.WEB_FONTS.find(f => f.id === 'inter'), SF.numericWeight('bold')) === 700 && SF.nearestWeight(SF.WEB_FONTS.find(f => f.id === 'anton'), 700) === 400 && SF.numericWeight('normal') === 400);
 // Hero: Button-Down / Short / unisex work shirt has an explicit vector templateId that survives save/restore; photo ids and old records are unaffected.
 { const HID = 'button-down-work-shirt-short', hc = { ...base, garment: 'Button-Down', sleeve: 'Short', fit: 'unisex' };
   const sv = S.serializeDesign(hc, {}), r = S.deserializeDesign(JSON.parse(JSON.stringify(sv)));
@@ -848,6 +847,87 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && JSON.stringify(S.serializeDesign({ ...G.applyGarment(base, 'T-Shirt'), details: { buttons: { color: '#000000' } } }).details) === '{}'
     && /const options = detailsFor\(cfg\.garment, cfg\.sleeve, cfg\.fit\);/.test(rdx('../src/pages/client/design-studio/DetailsPanel.jsx'))
     && /changes are shown in 2D only/.test(rdx('../src/pages/client/design-studio/CanvasViewport.jsx')));
+}
+// ── Prompt 1B: text, shapes, woven patterns, layer tools, 2D realism ──
+{
+  const rdx = q => fsx.readFileSync(urlx.fileURLToPath(new URL(q, import.meta.url)), 'utf8');
+  const W = await L('/src/pages/client/design-studio/wovenPatterns.js');
+  const OT = await L('/src/pages/client/design-studio/overlayTools.js');
+  const doc = rdx('../docs/engineering/FONT-LICENSES.md');
+  t('fonts: 12 OFL faces across sans, serif, script, display, condensed and mono; every weight file exists; each has its licence text and a row in FONT-LICENSES.md',
+    SF.WEB_FONTS.length === 12 && ['Sans', 'Serif', 'Script', 'Display', 'Condensed', 'Mono'].every(c => SF.WEB_FONTS.some(f => f.cat === c))
+    && SF.WEB_FONTS.every(f => f.weights.every(w => fsx.existsSync(pub(`fonts/${f.file}-${w}.woff2`)))
+      && /SIL OPEN FONT LICENSE Version 1\.1/.test(fsx.readFileSync(pub(`fonts/licenses/${f.file}.txt`), 'utf8'))
+      && doc.includes(`| ${f.label} |`) && doc.includes('`' + f.file + '`'))
+    && Sh.FONTS === SF.WEB_FONTS && Sh.LEGACY_FONTS.length > 0);
+  t('fonts: lazy, never precached by the service worker, loaded only through FontFace on first use',
+    /"fonts\/\*\*"\]/.test(rdx('../vite.config.js')) && !/fonts\.googleapis/.test(rdx('../index.html'))
+    && /loadFontPreviews\(\)/.test(rdx('../src/pages/client/design-studio/TextPanel.jsx')) && /new FontFace\(/.test(rdx('../src/pages/client/design-studio/studioFonts.js')));
+
+  const woven = Sh.PATTERNS.filter(p => p.woven).map(p => p.id);
+  t('patterns: at least 12 procedural woven/printed patterns (no image assets), each with a bounded tile',
+    woven.length >= 12 && ['pinstripe', 'chalkstripe', 'houndstooth', 'glenplaid', 'tartan', 'gingham', 'herringbone', 'pindot', 'windowpane', 'twill', 'tweed', 'denim'].every(id => woven.includes(id))
+    && woven.every(id => { const { cols, rows } = W.tileThreads(id); return cols > 0 && rows > 0 && cols <= 64 && rows <= 64; })
+    && W.wovenTile('tartan', '#123456', '#ffffff', 1) === null);
+  t('patterns: params are clamped (scale, rotation, colour 2) so a bad record cannot break rendering',
+    (p => p.scale === 3 && p.rotation === 10 && p.c2 === '#f8fafc')(W.wovenParams('tartan', { scale: 99, rotation: 190, c2: 'red' }, '#1b2a4a'))
+    && W.wovenParams('denim', null, '#1b2a4a').c2 === '#e9e4d8' && W.wovenParams('gingham', null, '#ffffff').c2 === '#1f2937');
+  t('patterns: woven zones are 2D only (the 3D path paints them solid and the panel says so)',
+    Sh.pattern3D('Pants', null, null, 'body', 'houndstooth') === false && /The 3D model shows this zone in its solid colour/.test(rdx('../src/pages/client/design-studio/PatternPanel.jsx')));
+
+  // Round trip: a design using every new property survives Save -> My Designs reload -> Order Wizard -> order studio_config.
+  const textObj = { type: 'IText', text: 'VARSITY', fontFamily: SF.WEB_FONTS[5].css, fontWeight: 400, fontSize: 30, charSpacing: 120, lineHeight: 1.2, textAlign: 'center',
+    fill: '#ffffff', stroke: '#111111', strokeWidth: 2, paintFirst: 'stroke', shadow: { color: 'rgba(0,0,0,.35)', blur: 8, offsetX: 0, offsetY: 3 }, flipX: true, opacity: 0.8, angle: 12,
+    __text: true, __curve: 40, __layerId: 't1', __layerName: 'VARSITY' };
+  const shapeObj = { type: 'Polygon', points: [{ x: 0, y: 0 }, { x: 10, y: 5 }, { x: 0, y: 10 }], fill: '#ff0000', stroke: '#000000', strokeWidth: 3, strokeUniform: true, flipY: true,
+    __shape: true, __shapeKind: 'arrow', __locked: true, visible: false, __layerId: 's1' };
+  const rectObj = { type: 'Rect', width: 72, height: 56, rx: 12, ry: 12, fill: '#00ff00', __shape: true, __shapeKind: 'roundrect', __layerId: 'r1' };
+  const cfg1B = { ...G.applyGarment(base, 'Pants'), colors: { body: '#274c77' }, patterns: { body: 'houndstooth' }, patternParams: { body: { scale: 1.5, rotation: 45, c2: '#f5f0e8' } } };
+  const bundle = { overlays: [textObj, shapeObj, rectObj], frontOverlays: [textObj, shapeObj, rectObj], backOverlays: [] };
+  const saved = S.serializeDesign(cfg1B, bundle);
+  const reopened = S.deserializeDesign(JSON.parse(JSON.stringify(saved)));
+  const order = JSON.parse(JSON.stringify(S.serializeDesign(reopened.cfg, { overlays: reopened.frontOverlays, frontOverlays: reopened.frontOverlays, backOverlays: reopened.backOverlays })));
+  t('1B round trip: woven pattern + params, curved/outlined/shadowed text, shape kind, lock, hide and flip survive Save -> reload -> order',
+    order.patterns.body === 'houndstooth' && JSON.stringify(order.patternParams.body) === JSON.stringify(cfg1B.patternParams.body)
+    && JSON.stringify(order.frontOverlays) === JSON.stringify(bundle.frontOverlays)
+    && W.describePatterns(order.patterns, order.patternParams, order.colors, id => Sh.PATTERNS.find(p => p.id === id)?.label).join() === 'Body: Houndstooth (colour 2 #F5F0E8, scale 1.5x, 45°)');
+  t('1B: the overlay props that carry the new tools are saved with every overlay, and every load path revives fonts and arcs',
+    (h => /'__curve','__shapeKind'/.test(h) && (h.match(/then\(reviveOverlays\)/g) ?? []).length === 2 && /reviveOverlays\(\[c\]\)/.test(h))(rdx('../src/pages/client/design-studio/useGarmentCanvas.js'))
+    && /reviveOverlays\(await fabric\.util\.enlivenObjects/.test(rdx('../src/pages/client/design-studio/overlayDecals.js')));
+
+  // An older design (stripe params, a system-font text, a pre-1B star) opens and re-saves identically.
+  const oldRaw = { name: 'Old', category: 'School Uniform', garment: 'Pants', colors: { body: '#123456' }, patterns: { body: 'hstripes', collar: 'solid', sleeve: 'solid', pocket: 'solid' },
+    patternParams: { body: { width: 6, spacing: 8 } }, details: {},
+    frontOverlays: [{ type: 'IText', text: 'OLD', fontFamily: Sh.LEGACY_FONTS[0].css, fontWeight: 'bold', __text: true }, { type: 'Polygon', points: [], __shape: true }], backOverlays: [] };
+  const oldBack = S.deserializeDesign(JSON.parse(JSON.stringify(oldRaw)));
+  const oldSaved = S.serializeDesign(oldBack.cfg, { overlays: oldBack.frontOverlays, frontOverlays: oldBack.frontOverlays, backOverlays: oldBack.backOverlays });
+  t('old designs unchanged: legacy stripes, params, system-font text and an untagged star re-save identically and keep their labels',
+    JSON.stringify(oldSaved.patterns) === JSON.stringify(oldRaw.patterns) && JSON.stringify(oldSaved.patternParams) === JSON.stringify(oldRaw.patternParams)
+    && JSON.stringify(oldSaved.frontOverlays) === JSON.stringify(oldRaw.frontOverlays) && OT.shapeLabel({ type: 'polygon' }) === 'Star' && SF.webFontFor(oldRaw.frontOverlays[0].fontFamily) === null);
+
+  const arc = OT.arcPathD(200, 50), m = arc && arc.match(/A ([\d.]+) /);
+  t('curved text: off at 0, an arc as long as the straight text otherwise, clamped to -100..100',
+    OT.arcPathD(200, 0) === null && OT.arcPathD(200, 1) === null && !!arc && Math.abs(Number(m[1]) * 0.5 * 1.75 * Math.PI - 200) < 0.1 && / 1 [-\d.]+ [-\d.]+$/.test(arc)
+    && / 0 [-\d.]+ [-\d.]+$/.test(OT.arcPathD(200, -50)) && OT.clampCurve(400) === 100 && OT.clampCurve('x') === 0);
+  t('shapes: all nine (rectangle, rounded, circle, ellipse, triangle, star, hexagon, line, arrow) are offered and labelled',
+    ['rect', 'roundrect', 'circle', 'ellipse', 'triangle', 'star', 'polygon', 'line', 'arrow'].every(k => Sh.SHAPES.some(x => x.kind === k) && OT.SHAPE_KIND_LABEL[k]));
+  t('editing tools: contextual text/shape controls, flip, z-order, shortcuts and 44px touch handles are wired',
+    (x => ['Letter spacing', 'Curve', 'Outline', 'Shadow', 'Letter case', 'Corner radius', 'Flip horizontally', 'Bring to front'].every(k => x.includes(k)))(rdx('../src/pages/client/design-studio/StyleSections.jsx'))
+    && /TextStyleSection/.test(rdx('../src/pages/client/design-studio/RightInfoPanel.jsx')) && /ShapeStyleSection/.test(rdx('../src/pages/client/design-studio/RightInfoPanel.jsx'))
+    && /BracketRight/.test(rdx('../src/pages/client/DesignStudio.jsx')) && /KeyL/.test(rdx('../src/pages/client/DesignStudio.jsx'))
+    && /touchCornerSize: 44/.test(rdx('../src/pages/client/design-studio/overlayTools.js')));
+  t('undo/redo: text restyles commit after the async relayout; z-order goes through history',
+    (h => /restyleText\(obj, props\)\.then\(\(\) => \{ canvas\.renderAll\(\); if \(commit\) pushHistory\(\)/.test(h) && /moveInStack\(canvas, obj, where\)\) return;\s+canvas\.renderAll\(\);\s+pushHistory\(\);/.test(h))(rdx('../src/pages/client/design-studio/useGarmentCanvas.js')));
+  t('history: starts at an empty baseline (the first action is undoable); a design or face load restarts it, the export face swap keeps it; only the newest overlay load lands',
+    (h => /historyStack = useRef\(\[\[\]\]\)/.test(h) && /historyIdx = useRef\(0\)/.test(h) && /if \(!keepHistory\) resetHistory\(\)/.test(h) && (h.match(/token !== overlayLoad\.current/g) ?? []).length === 3)(rdx('../src/pages/client/design-studio/useGarmentCanvas.js'))
+    && (rdx('../src/pages/client/DesignStudio.jsx').match(/keepHistory: true/g) ?? []).length === 2);
+  t('2D realism layers are decorative only: built from deco (never selectable, never saved)',
+    (x => /function detailRealism/.test(x) && !/selectable: true|evented: true/.test(x) && (x.match(/\.\.\.deco/g) ?? []).length >= 6)(rdx('../src/pages/client/design-studio/fabricShading.js'))
+    && /__garmentBase: true, __detailKind: d\.kind/.test(rdx('../src/pages/client/design-studio/useGarmentCanvas.js')));
+  t('previews and specs: shared preview passes woven patterns; PDF and admin list them; SSR renders without a DOM',
+    /patterns=\{design\.patterns\} patternParams=\{design\.patternParams\}/.test(rdx('../src/components/DesignPreview.jsx'))
+    && /\['Patterns', describePatterns\(/.test(rdx('../src/pages/client/DesignStudio.jsx')) && /describePatterns\(cfg\?\.patterns/.test(rdx('../src/components/admin/OrderDesignDetails.jsx'))
+    && renderToString(React.createElement(Prev, { cfg: saved })).includes('<svg'));
 }
 console.log(out.join('\n')); const f = out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);

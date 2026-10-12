@@ -91,8 +91,14 @@ export default defineConfig(({ mode }) => {
         // content-hashed + browser-cached); measured precache drop: ~4.9MB
         // -> ~2.1MB. Runtime correctness is unaffected — dynamic import()
         // doesn't depend on SW precache.
-        globIgnores: ["**/three-*.js", "**/fabric-*.js", "**/bg-remove-*.js", "**/charts-*.js"],
+        // Studio fonts (public/fonts, ~580 KB) load on first use and are cached by the rule below, not precached.
+        globIgnores: ["**/three-*.js", "**/fabric-*.js", "**/bg-remove-*.js", "**/charts-*.js", "fonts/**"],
         runtimeCaching: [
+          {
+            urlPattern: /\/fonts\/[^/]+\.woff2$/,
+            handler: "CacheFirst",
+            options: { cacheName: "vfrb-fonts", cacheableResponse: { statuses: [0, 200] }, expiration: { maxEntries: 40 } },
+          },
           {
             urlPattern: /\/api\/.*/,
             handler: "NetworkFirst",

@@ -1,7 +1,7 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { NavIcon } from '../../../components/ui/icons';
 import { T, T2, secLabel, inputStyle, FONTS, EMOJIS } from './dsShared';
-import { availableFonts } from './fontAvailable';
+import { loadFontPreviews, defaultWeight } from './studioFonts';
 
 // EMOJIS contains repeats (e.g. 🦺) which made React warn about duplicate keys and
 // could drop/duplicate buttons — de-dupe once at module load.
@@ -20,13 +20,16 @@ export default function TextPanel({ onAdd, bodyColor }) {
   const [val,  setVal]  = useState('');
   const [picked, setClr] = useState(null);
   const clr = picked ?? readableOn(bodyColor);
-  const fonts = useMemo(() => availableFonts(FONTS), []);
+  const fonts = FONTS;
   const [font, setFont] = useState(fonts[0].id);
+  // Self-hosted faces load on first use; the panel opening is the first use of their previews.
+  const [, setFontsReady] = useState(false);
+  useEffect(() => { let live = true; loadFontPreviews().then(() => live && setFontsReady(true)); return () => { live = false; }; }, []);
   const [size, setSize] = useState(18);
   const [showEmoji, setShowEmoji] = useState(false);
   const inputRef = useRef(null);
 
-  const fontCss = fonts.find(f=>f.id===font)?.css ?? fonts[0].css;
+  const fontDef = fonts.find(f=>f.id===font) ?? fonts[0], fontCss = fontDef.css;
 
   const insertEmoji = (e) => {
     const input = inputRef.current;
@@ -60,7 +63,7 @@ export default function TextPanel({ onAdd, bodyColor }) {
         </div>
       )}
 
-      <p style={secLabel}>Font Style</p>
+      <p style={secLabel}>Font · {fontDef.cat}</p>
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, maxHeight:236, minHeight:236, flexShrink:0, overflowY:'auto', paddingRight:2 }}>
         {fonts.map(f => (
           <button key={f.id} onClick={() => setFont(f.id)}
@@ -73,6 +76,7 @@ export default function TextPanel({ onAdd, bodyColor }) {
               fontWeight: font===f.id ? 700 : 400,
             }}>
             {f.label}
+            <span style={{ display:'block', fontFamily:'inherit', fontSize:10, fontWeight:400, opacity:.7 }}>{f.cat}</span>
           </button>
         ))}
       </div>
@@ -103,8 +107,7 @@ export default function TextPanel({ onAdd, bodyColor }) {
 
       {val && (
         <div style={{ padding:'10px', borderRadius:9, background: bodyColor ?? 'rgba(0,0,0,.3)', textAlign:'center' }}>
-          <p style={{ color:clr, fontSize:size>32?22:size, fontFamily:fontCss, fontWeight:800,
-            letterSpacing:2, textTransform:'uppercase', margin:0,
+          <p style={{ color:clr, fontSize:size>32?22:size, fontFamily:fontCss, fontWeight:defaultWeight(fontDef), margin:0,
             overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
             {val}
           </p>
