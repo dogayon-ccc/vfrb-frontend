@@ -92,7 +92,7 @@ function ReviewPanel({ order, onUpdated }) {
 
       <div style={{ marginBottom:14 }}>
         <label style={{ display:'block', fontSize:11, fontWeight:700, color:'var(--text-subtle)',
-          textTransform:'uppercase', marginBottom:6, fontFamily:'var(--font)' }}>Notes (required if cancelling)</label>
+          textTransform:'uppercase', marginBottom:6, fontFamily:'var(--font)' }}>Note to the customer (required if cancelling)</label>
         <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
           placeholder="e.g. Quantity exceeds this week's production quota, proposing split delivery"
           style={{ width:'100%', padding:'9px 12px', borderRadius:'var(--r-md)', border:'1px solid var(--border)',
@@ -209,6 +209,7 @@ export default function AdminOrderDetail() {
   const client = order.user ?? {};
   const clientName = client.name ?? order.customer_name;
 
+  const isManager = getIsManager(), canTrack = canAccessArea(readAdminUser(), 'production');
   const hasStudioConfig = !!order.studio_config;
   const hasRefFile      = !!order.client_design_ref_file;
 
@@ -233,18 +234,25 @@ export default function AdminOrderDetail() {
             {order.po_reference ? ` · PO ${order.po_reference}` : ''}
           </div>
         </div>
-        <div className="adm-actions">
-          <button className="adm-btn primary" onClick={() => navigate(`/admin/production/${order.order_id}`)}>
-            <NavIcon name="production" size={14} color="currentColor" /> Track Production
-          </button>
-          <button className="adm-btn" onClick={handleDownloadPdf} disabled={downloadingPdf}>
-            <NavIcon name="download" size={14} color="currentColor" />
-            {downloadingPdf ? 'Generating…' : 'Order Summary (PDF)'}
-          </button>
-        </div>
+        {/* Each action only for accounts its route allows: production tracking (job area) and the PDF (manager-only endpoint). */}
+        {(canTrack || isManager) && (
+          <div className="adm-actions">
+            {canTrack && (
+              <button className="adm-btn primary" onClick={() => navigate(`/admin/production/${order.order_id}`)}>
+                <NavIcon name="production" size={14} color="currentColor" /> Track Production
+              </button>
+            )}
+            {isManager && (
+              <button className="adm-btn" onClick={handleDownloadPdf} disabled={downloadingPdf}>
+                <NavIcon name="download" size={14} color="currentColor" />
+                {downloadingPdf ? 'Generating…' : 'Order Summary (PDF)'}
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
-      {order.status === 'pending' && getIsManager() && (
+      {order.status === 'pending' && isManager && (
         <ReviewPanel order={order} onUpdated={(updated) => setOrder(o => ({ ...o, ...updated }))}/>
       )}
 
@@ -286,7 +294,7 @@ export default function AdminOrderDetail() {
           </Panel>
 
           <Panel title="Production" style={{ order:4 }}
-            action={<button className="adm-link-btn" onClick={() => navigate(`/admin/production/${order.order_id}`)}>Open tracking →</button>}>
+            action={canTrack ? <button className="adm-link-btn" onClick={() => navigate(`/admin/production/${order.order_id}`)}>Open tracking →</button> : null}>
             {stages === null ? (
               <div className="adm-sk" style={{ height:120 }} />
             ) : stages === false ? (

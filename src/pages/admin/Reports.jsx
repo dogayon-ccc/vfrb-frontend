@@ -6,7 +6,7 @@ import {
 import axios                            from 'axios';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
 import { NavIcon } from '../../components/ui/icons';
-import { PageHeader, StatGrid, PillTabs, Panel, Banner, ErrorBlock, SkeletonRows, Meter } from '../../components/admin/AdminUI';
+import { PageHeader, StatGrid, PillTabs, Panel, Banner, ErrorBlock, SkeletonRows, Meter, OrderLink } from '../../components/admin/AdminUI';
 
 function downloadCSV(rows, filename) {
   const csv = rows
@@ -114,7 +114,8 @@ function AlertCard({ a }) {
       {a.action && <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', margin: '10px 0 0' }}>{a.action}</p>}
       {affected.length > 0 && (
         <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 9, background: 'var(--bg)', fontSize: 11, color: 'var(--text-subtle)' }}>
-          <b style={{ color: 'var(--ink)' }}>{affected.length} order{affected.length !== 1 ? 's' : ''} at risk:</b> #{affected.slice(0, 5).join(', #')}{affected.length > 5 ? ` and ${affected.length - 5} more` : ''}
+          <b style={{ color: 'var(--ink)' }}>{affected.length} order{affected.length !== 1 ? 's' : ''} at risk:</b>{' '}
+          {affected.slice(0, 5).map((id, i) => <span key={id}>{i ? ', ' : ''}<OrderLink id={id}/></span>)}{affected.length > 5 ? ` and ${affected.length - 5} more` : ''}
         </div>
       )}
     </div>

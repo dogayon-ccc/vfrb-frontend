@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
+import { cacheGet, cacheSet, cacheClear } from '../../utils/cache';
 import BottomSheet from '../../components/ui/BottomSheet';
 import { NavIcon } from '../../components/ui/icons';
 import { PageHeader, StatGrid, PillTabs, ErrorBlock, Panel, StatusPill, SearchBox, Avatar, SkeletonRows, useIsMobile } from '../../components/admin/AdminUI';
@@ -12,7 +12,6 @@ const inp = { width:'100%', padding:'10px 14px', borderRadius:10, border:'1px so
 const fi  = e => { e.target.style.borderColor=T; e.target.style.boxShadow=`0 0 0 3px rgba(2,128,144,.1)`; };
 const fo  = e => { e.target.style.borderColor='var(--border)'; e.target.style.boxShadow='none'; };
 const lbl = { display:'block', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'var(--text-subtle)', marginBottom:7 };
-const SK  = { borderRadius:6, background:'linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%)', backgroundSize:'400px', animation:'sk 1.4s infinite' };
 
 const ROLE_CFG = {
   manager:  { c:'var(--teal)', bg:'var(--teal-50, #f0fdfa)', l:'Manager'  },

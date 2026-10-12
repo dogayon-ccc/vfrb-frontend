@@ -771,5 +771,54 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && !/__zoneKeys*:/.test(fsx.readFileSync(rel('../src/pages/client/design-studio/fabricShading.js'), 'utf8')));
 }
 
+// Validator-readiness fixes (2026-10-12). Backend items are source checks of the Laravel repo (VFRB_BACKEND, default the Laragon path).
+{
+  const rd = q => fsx.readFileSync(urlx.fileURLToPath(new URL(q, import.meta.url)), 'utf8');
+  const BE = process.env.VFRB_BACKEND || 'C:/laragon/www/vfrb-capstone';
+  const be = q => fsx.readFileSync(`${BE}/${q}`, 'utf8');
+  if (fsx.existsSync(`${BE}/routes/api.php`)) {
+    const inv = be('app/Http/Controllers/Api/InventoryController.php');
+    const adj = inv.slice(inv.indexOf('private function adjustStock'), inv.indexOf('private function notifyLowStock'));
+    t('stock-out/wastage larger than the stock is refused inside the locked transaction (422 "Only X unit in stock; cannot remove Y."), with no clamp and no log row; cache and low-stock handling unchanged',
+      /lockForUpdate\(\)->first\(\);\s*\/\/[^\n]*\n\s*if \(\$locked->quantity_in_stock \+ \$delta < 0\) \{\s*return \['short'/.test(adj) && !/max\(0,/.test(adj)
+      && /"Only \{\$fmt\(\$newStock\['short'\]\)\} \{\$material->unit\} in stock; cannot remove \{\$fmt\(\$qty\)\}\."/.test(adj) && /\], 422\);\s*\}\s*Cache::forget\('materials_list'\);/.test(adj)
+      && adj.indexOf("return ['short'") < adj.indexOf("DB::table('inventory_logs')->insert") && /notifyLowStock\(/.test(adj));
+    const ord = be('app/Http/Controllers/Api/OrderController.php');
+    const upd = ord.slice(ord.indexOf('public function adminUpdate'), ord.indexOf('private function notifyManagers'));
+    t('admin order update: status, total, negotiated delivery date and review notes are manager-only; the manager note goes to the customer message and never overwrites orders.notes (the customer\'s own notes)',
+      /hasAny\(\['status', 'agreed_total', 'negotiated_delivery_date', 'notes'\]\) && !\$request->user\(\)->isManager\(\)/.test(upd)
+      && /collect\(\$request->only\(\['status', 'negotiated_delivery_date'\]\)\)/.test(upd) && !/only\(\[[^\]]*'notes'/.test(upd)
+      && /Reason: \{\$request->input\('notes'\)\}/.test(upd) && /Note from VFRB: \{\$request->input\('notes'\)\}/.test(upd));
+    const st = be('app/Http/Controllers/Api/SettingsController.php');
+    t('email_provider_live comes from the mail config: false for log/array mailers and sandbox hosts (mailtrap, sandbox, mailhog, mailpit, localhost), true otherwise; no hard-coded false',
+      /'email_provider_live' => self::emailProviderLive\(\)/.test(st) && /in_array\(\$mailer, \['log', 'array'\], true\)/.test(st) && /mailtrap\|sandbox\|mailhog\|mailpit\|localhost/.test(st));
+    const api = be('routes/api.php'), uc = be('app/Http/Controllers/Api/UserController.php');
+    const staffGroup = api.slice(api.lastIndexOf("Route::middleware(['auth:sanctum', 'role:staff,manager'", api.indexOf("'/profile/password', [UserController::class, 'adminUpdatePassword']")));
+    t('admin password change: PUT /api/admin/profile/password in the staff+manager group, customer and admin routes share one method (current password check + the same strength rule)',
+      /Route::put\('\/profile\/password', \[UserController::class, 'adminUpdatePassword'\]\)/.test(api) && /role:staff,manager/.test(staffGroup.slice(0, 200))
+      && /function customerUpdatePassword\(Request \$request\)\s*\{\s*return \$this->changeOwnPassword\(\$request\);/.test(uc) && /function adminUpdatePassword\(Request \$request\)\s*\{\s*return \$this->changeOwnPassword\(\$request\);/.test(uc)
+      && /private function changeOwnPassword[\s\S]*PasswordRule::min\(8\)->mixedCase\(\)->numbers\(\)->symbols\(\)[\s\S]*Hash::check\(\$request->input\('current_password'\)/.test(uc));
+  } else console.log(`NOTE backend repo not found at ${BE}: the four backend source checks were not run`);
+  const od = rd('../src/pages/admin/OrderDetail.jsx');
+  t('admin OrderDetail: "Order Summary (PDF)" only for managers (manager-only endpoint); "Track Production" and "Open tracking" only with the production area',
+    /const isManager = getIsManager\(\), canTrack = canAccessArea\(readAdminUser\(\), 'production'\);/.test(od) && /\{canTrack && \(\s*<button className="adm-btn primary"[^\n]*\n\s*<NavIcon name="production"[^\n]*Track Production/.test(od)
+    && /\{isManager && \(\s*<button className="adm-btn" onClick=\{handleDownloadPdf\}/.test(od) && /action=\{canTrack \? <button className="adm-link-btn"[^\n]*Open tracking →<\/button> : null\}/.test(od) && /Note to the customer \(required if cancelling\)/.test(od));
+  const ui = rd('../src/components/admin/AdminUI.jsx'), css = rd('../src/styles/admin.css');
+  t('order ids in Delivery, Incidents and Reports are real links to /admin/orders/:id (react-router Link, keyboard focus ring, 44px on touch, row click not triggered)',
+    /export const OrderLink = \(\{ id, prefix = '#' \}\) => \(\s*<Link className="adm-order-link" to=\{`\/admin\/orders\/\$\{id\}`\} onClick=\{e => e\.stopPropagation\(\)\}>/.test(ui)
+    && /\.adm-order-link:focus-visible\{outline:2px solid var\(--teal\)/.test(css) && /@media\(pointer:coarse\)\{\.adm-order-link\{min-height:44px;min-width:44px/.test(css)
+    && ['DeliveryTracking', 'ProductionIncidents', 'Reports'].every(f => /<OrderLink id=\{/.test(rd(`../src/pages/admin/${f}.jsx`)))
+    && !/#\{d\.order_id\}<\/td>|Order #\{item\.order_id\}<\/span>|#\{affected\.slice/.test(['DeliveryTracking', 'ProductionIncidents', 'Reports'].map(f => rd(`../src/pages/admin/${f}.jsx`)).join('\n')));
+  const PR = await L('/src/utils/passwordRules.js'), as = rd('../src/pages/admin/Settings.jsx'), ps = rd('../src/pages/client/settings/ProfileSection.jsx');
+  t('one password rule for customer and admin panels (8+, upper and lower case, number, symbol), admin Settings has its own Password panel calling PUT /api/admin/profile/password; no profile edit or session logout',
+    PR.passwordOk('Abcdef1!') && !PR.passwordOk('abcdef1!') && !PR.passwordOk('Abcdefg!') && !PR.passwordOk('Abcdefg1') && !PR.passwordOk('Ab1!') && PR.passwordLevel('') === 1 && PR.passwordLevel('Abcdef1!') === 4
+    && /axios\.put\('\/api\/admin\/profile\/password', pw\)/.test(as) && /passwordOk\(pw\.password\)/.test(as) && /passwordOk\(pw\.password\)/.test(ps) && /autoComplete="current-password"/.test(as)
+    && !/admin\/profile'|logout-other|other-sessions/.test(as));
+  t('email preference copy says "test inbox" (no provider name) and the validation docs no longer name Mailtrap',
+    /test inbox/.test(as) && /test inbox/.test(rd('../src/pages/client/AccountSettings.jsx')) && !/mailtrap/i.test(as + rd('../docs/validation/SURVEY-EVIDENCE-MATRIX.md') + rd('../docs/validation/VALIDATOR-RUNBOOK.md')));
+  t('dead code removed: no unused SK style const in Delivery, Physical Count, Purchase Orders, Users; no unused TTL import in Users',
+    ['DeliveryTracking', 'PhysicalCount', 'PurchaseOrders', 'UserManagement'].every(f => !/\bconst SK\b/.test(rd(`../src/pages/admin/${f}.jsx`))) && !/\bTTL\b/.test(rd('../src/pages/admin/UserManagement.jsx')));
+}
+
 console.log(out.join('\n')); const f = out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);

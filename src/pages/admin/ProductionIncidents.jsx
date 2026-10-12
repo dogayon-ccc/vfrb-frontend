@@ -4,6 +4,7 @@ import { motion, AnimatePresence }           from 'framer-motion';
 import axios                                 from 'axios';
 import { Card, Badge, NavIcon }              from '../../components/ui';
 import BottomSheet                           from '../../components/ui/BottomSheet';
+import { OrderLink }                         from '../../components/admin/AdminUI';
 
 const STAGES = ['pattern','segregation','cutting','sewing','qc','pressing','packing'];
 
@@ -185,7 +186,7 @@ export default function ProductionIncidents() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                     {ty.icon && <NavIcon name={ty.icon} size={14} color="var(--text-subtle)" />}
                     <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{ty.label}</span>
-                    {item.order_id && <span style={{ marginLeft: 4, fontSize: 12, color: 'var(--text-subtle)' }}>Order #{item.order_id}</span>}
+                    {item.order_id && <span style={{ marginLeft: 4, fontSize: 12, color: 'var(--text-subtle)' }}><OrderLink id={item.order_id} prefix="Order #"/></span>}
                     {item.stage && <span style={{ marginLeft: 4, fontSize: 12, color: 'var(--text-subtle)', textTransform: 'capitalize' }}>· {item.stage}</span>}
                   </div>
                   <Badge tone={STATUS_TONE[item.status] ?? 'danger'}>{STATUS_LABEL[item.status] ?? 'Reported'}</Badge>
