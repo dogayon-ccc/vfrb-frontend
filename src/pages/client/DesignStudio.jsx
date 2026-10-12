@@ -38,7 +38,9 @@ import DraftStrip from './design-studio/DraftStrip';
 import GarmentPicker from './design-studio/GarmentPicker';
 import { selectFamily } from './design-studio/selectGarment';
 import { has3DFor } from './design-studio/garmentCapabilities';
-import { SET_ROLES, ROLE_LABEL, DEFAULT_PIECE, otherRole, normalizeSet, withSet } from './design-studio/uniformSet';
+import { describeDetails } from './design-studio/garmentDetails';
+import { DEFAULT_PIECE, otherRole, normalizeSet, withSet } from './design-studio/uniformSet';
+import PieceSelector from './design-studio/PieceSelector';
 
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────
@@ -72,6 +74,7 @@ export default function DesignStudio() {
 
   const [selObj,     setSelObj]     = useState(null);
   const [activeZone, setActiveZone] = useState('body');
+  const [detailFocus, setDetailFocus] = useState(null); // the detail last tapped on the canvas, highlighted in the Details panel
 
   // Mirrors the phone/tablet (bottom sheet) breakpoint in DesignStudioStyles.jsx (native matchMedia, no new dependency).
   const [isNarrow, setIsNarrow] = useState(
@@ -178,8 +181,10 @@ export default function DesignStudio() {
       // panel is always visible so the tab switch alone was enough to look like it worked,
       // but on tablet/mobile that panel is a bottom sheet gated by sheetOpen, so tapping a
       // garment zone silently did nothing visible until the customer separately opened it.
-      (zone) => { setActiveZone(zone); setTool('color'); setSheetOpen(true); },
-      cfg.fit
+      // A tapped pocket, button or closure detail ('detail:<part>') opens the Details panel on that part instead.
+      (zone) => { if (zone.startsWith('detail:')) { setDetailFocus(zone.slice(7)); setTool('details'); } else { setActiveZone(zone); setTool('color'); } setSheetOpen(true); },
+      cfg.fit,
+      cfg.details
     );
 
   // Picking a placed item swaps the inspector to its controls at every width. On phones the
@@ -529,20 +534,11 @@ export default function DesignStudio() {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- has3DFor reads exactly these fields
   }, [uset, cfg.garment, cfg.sleeve, cfg.fit, cfg.inspirationId]);
 
-  const pieceBar = !cfg.garment ? null : uset ? (
-    <div className="ds-set-bar" role="group" aria-label="Uniform set pieces">
-      {SET_ROLES.map(r => (
-        <button key={r} type="button" aria-pressed={uset.active === r} onClick={() => switchPiece(r)}>
-          <span>{ROLE_LABEL[r]}</span><strong>{r === uset.active ? cfg.garment : uset.pieces[r]?.garment ?? 'Choose'}</strong>
-        </button>
-      ))}
-      <button type="button" className="ds-set-leave" aria-label="Leave uniform set" title="Keep only this piece" onClick={leaveSet}>×</button>
-    </div>
-  ) : pieceOf(cfg.garment) ? (
-    <button type="button" className="ds-set-add" onClick={startSet}>
-      + {otherRole(pieceOf(cfg.garment)) === 'bottom' ? 'Add a bottom' : 'Add a top'}<span className="ds-wide-only"> to make a uniform set</span>
-    </button>
-  ) : null;
+  const pieceBar = cfg.garment && (
+    <PieceSelector cfg={cfg} uset={uset} onSwitch={switchPiece} onStart={startSet} onLeave={leaveSet}
+      canSet={!!setCompanion} showSet={showSet && viewMode === '3d'}
+      onShowSet={v => { if (v) { setHas3DLoaded(true); setViewMode('3d'); } setShowSet(v); }}/>
+  );
 
   // ── Account draft write — the one payload for manual Save, autosave and Order ──
   // POST /drafts replaces every column of the single row, so a request without preview_dataurl
@@ -648,7 +644,7 @@ export default function DesignStudio() {
       const faces = await captureExportFaces();
       if (!faces) throw new Error('render');
       // Same zone list the dock shows: tipping only when the customer actually coloured it.
-      const zones = zonesFor(cfg.garment, cfg.sleeve, cfg.fit).filter(z => z !== 'tipping' || cfg.colors.tipping);
+      const zones = zonesFor(cfg.garment, cfg.sleeve, cfg.fit).filter(z => (z !== 'tipping' || cfg.colors.tipping) && (z !== 'pocket' || cfg.details?.patchPocket?.show !== false));
       const photo = GALLERY.find(d => d.id === cfg.inspirationId);
       const counts = { front: (faceJSON.current.front ?? []).length, back: (faceJSON.current.back ?? []).length };
       const rows = [
@@ -656,6 +652,7 @@ export default function DesignStudio() {
         ['Category', cfg.category],
         ['Colours', zones.map(z => `${z}: ${cfg.colors[z] ?? '-'}`).join('  ')],
         ['Patterns', Object.entries(cfg.patterns ?? {}).filter(([, p]) => p && p !== 'solid').map(([z, p]) => `${z}: ${p}`).join('  ') || 'Solid'],
+        ['Details', describeDetails(cfg.details).join('  ') || 'As the template'],
         ['Placed items', `Front ${counts.front}${faces.length > 1 ? `, back ${counts.back}` : ''}`],
         ['Views', faces.map(f => f.label).join(', ') + (faces.length === 1 ? ' (no back view for this garment)' : '')],
         ['Template', templateIdFor(cfg.garment, cfg.sleeve, cfg.fit) ?? 'Vector template'],
@@ -735,7 +732,7 @@ export default function DesignStudio() {
           {/* ── TOOL STRIP + PANEL DRAWER ── */}
           <ToolDrawer tool={tool} setTool={setTool} sheetOpen={sheetOpen} setSheetOpen={setSheetOpen} sheetFull={sheetFull} setSheetFull={setSheetFull}
             summary={{ cfg, face, saved, saving, saveErr, draftSaved, saveDesign, orderThis, ordering, onOpenTool: (id) => { setTool(id); setSheetOpen(true); }, downloadImage, downloadPdf, exporting, clearGarment }} cfg={cfg} setCfg={setCfg}
-            activeZone={zone} setActiveZone={setActiveZone}
+            activeZone={zone} setActiveZone={setActiveZone} detailFocus={detailFocus}
             addText={addText} addShape={addShape} updateSelected={updateSelected}
             assetsTab={assetsTab} setAssetsTab={setAssetsTab} logoUpload={logoUpload}
             setShowInspo={openInspo} setShowShowcase={toggleShowcase} onChangeGarment={changeGarment}
@@ -757,7 +754,7 @@ export default function DesignStudio() {
               onPick3D={(d, f) => { keep3DRef.current = true; pickPhoto(d, f); setHas3DLoaded(true); setViewMode('3d'); }}
               onPickFamily={(fam, category, pick) => selectFamily(setCfg, fam, category, pick)}
               onUpload={startUpload} pendingArt={pendingArt} onCancelArt={() => setPendingArt(null)}/>} setViewMode={setViewMode}
-            pieceBar={pieceBar} setCompanion={setCompanion} showSet={showSet} setShowSet={setShowSet} setSnapOptions={setSnapOptions}/>
+            pieceBar={pieceBar} setCompanion={setCompanion} showSet={showSet} setSnapOptions={setSnapOptions}/>
         </div>
 
         {/* ── FIRST-VISIT ONBOARDING OVERLAY ── */}

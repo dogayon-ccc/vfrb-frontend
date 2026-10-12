@@ -1,6 +1,6 @@
 // The one garment picker: Inspiration (real VFRB photos with their honest status) and Templates (the catalog).
 // Used inline on the empty canvas and inside the picker modal ("Change garment"). Header and action footer stay in view while it scrolls.
-import { Suspense, lazy, useMemo, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { Upload, SlidersHorizontal, Eye, Square, CheckCircle2, Box, X } from 'lucide-react';
 import { BASE_PATHS } from './garmentPaths';
 import GarmentThumb from './GarmentThumb';
@@ -33,8 +33,9 @@ function Legend({ labels, icons, present }) {
   );
 }
 
-// Header (title, close, tabs, badge key) and footer (actions) stick to the picker's scroll box.
-function Head({ title, sub, onClose, view, setView, legend }) {
+// Header (title, close, tabs + Upload, badge key) and footer (actions) stick to the picker's scroll box. Once the grid scrolls, the
+// header collapses to one opaque row: the tabs and Upload (the picker sets data-compact).
+function Head({ title, sub, onClose, view, setView, legend, onUpload }) {
   return (
     <header className="ds-pick-head">
       <div className="ds-pick-titlebar">
@@ -42,10 +43,15 @@ function Head({ title, sub, onClose, view, setView, legend }) {
         {onClose && <button type="button" className="ds-pick-close" aria-label="Close" onClick={onClose}><X size={18} aria-hidden="true"/></button>}
       </div>
       {sub}
-      <div className="ds-pick-tabs" role="tablist" aria-label="Garment source">
-        {[['inspiration', 'Start from a reference'], ['templates', 'Start from scratch']].map(([id, label]) => (
-          <button key={id} type="button" role="tab" aria-selected={view === id} onClick={() => setView(id)}>{label}</button>
-        ))}
+      <div className="ds-pick-row">
+        <div className="ds-pick-tabs" role="tablist" aria-label="Garment source">
+          {[['inspiration', 'Start from a reference', 'Reference'], ['templates', 'Start from scratch', 'Scratch']].map(([id, label, short]) => (
+            <button key={id} type="button" role="tab" aria-selected={view === id} aria-label={label} onClick={() => setView(id)}>
+              <span className="ds-tab-long">{label}</span><span className="ds-tab-short" aria-hidden="true">{short}</span>
+            </button>
+          ))}
+        </div>
+        {onUpload && <UploadButton onUpload={onUpload}/>}
       </div>
       {legend}
     </header>
@@ -54,20 +60,17 @@ function Head({ title, sub, onClose, view, setView, legend }) {
 const Foot = ({ children }) => (children ? <footer className="ds-pick-foot">{children}</footer> : null);
 
 const ACCEPT = 'image/png,image/jpeg,image/webp,image/svg+xml';
-function UploadCard({ onUpload }) {
+// "Upload my design" in the header: tap to choose a file, or drop one on it. The file waits until a garment is chosen.
+function UploadButton({ onUpload }) {
   const [over, setOver] = useState(false);
   const take = f => { if (f) onUpload(f); };
   return (
-    <li>
-      <label className="ds-pick-card ds-pick-up" data-over={over || undefined}
-        onDragOver={e => { e.preventDefault(); e.stopPropagation(); setOver(true); }} onDragLeave={() => setOver(false)}
-        onDrop={e => { e.preventDefault(); e.stopPropagation(); setOver(false); take(e.dataTransfer.files?.[0]); }}>
-        <span className="ds-pick-img"><Upload size={28} strokeWidth={1.8} aria-hidden="true"/><span className="ds-pick-drop">Drop or tap to upload</span></span>
-        <strong>Upload my design</strong>
-        <span className="ds-pick-sub">PNG, JPG, WEBP or SVG, up to 5 MB</span>
-        <input type="file" className="sr-only" accept={ACCEPT} onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; take(f); }}/>
-      </label>
-    </li>
+    <label className="ds-pick-upbtn" data-over={over || undefined} title="PNG, JPG, WEBP or SVG, up to 5 MB"
+      onDragOver={e => { e.preventDefault(); e.stopPropagation(); setOver(true); }} onDragLeave={() => setOver(false)}
+      onDrop={e => { e.preventDefault(); e.stopPropagation(); setOver(false); take(e.dataTransfer.files?.[0]); }}>
+      <Upload size={16} strokeWidth={2} aria-hidden="true"/>Upload<span className="ds-wide-only">my design</span>
+      <input type="file" className="sr-only" accept={ACCEPT} onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; take(f); }}/>
+    </label>
   );
 }
 
@@ -109,7 +112,7 @@ export function similarFilters(p, pool, canEdit) {
   return tries.find(f => filterDesigns(f, pool).some(canEdit)) ?? tries[0];
 }
 
-function Photos({ head, onClose, pieceRole, onPickPhoto, onPick3D, onUpload, extra }) {
+function Photos({ head, onClose, pieceRole, onPickPhoto, onPick3D, extra }) {
   const [filters, setFilters] = useState({});
   const [kind, setKind] = useState('editable');
   const [preview, setPreview] = useState(null);
@@ -221,7 +224,6 @@ function Photos({ head, onClose, pieceRole, onPickPhoto, onPick3D, onUpload, ext
         </details>
       </div>
       <ul className="ds-pick-grid">
-        {onUpload && <UploadCard onUpload={onUpload}/>}
         {shown.map((d, i) => (
           <li key={d.id} style={{ '--i': Math.min(i, 8) }}>
             <button type="button" className="ds-pick-card" onClick={() => setPreview(d)} title={TIER_LABEL[tierOf(d)].note} aria-label={`${d.label}, ${PHOTO_LABEL[tierOf(d)]}`}>
@@ -316,7 +318,7 @@ function FamilySteps({ fam, cfg, onBack, onOpen }) {
   );
 }
 
-function Templates({ head, onClose, cfg, pieceRole, onPickFamily, onUpload, extra }) {
+function Templates({ head, onClose, cfg, pieceRole, onPickFamily, extra }) {
   const [cat, setCat] = useState(ALL);
   const [roleOn, setRoleOn] = useState(true);
   const [fam, setFam] = useState(null);
@@ -340,7 +342,6 @@ function Templates({ head, onClose, cfg, pieceRole, onPickFamily, onUpload, extr
         ))}
       </div>
       <ul className="ds-pick-grid">
-        {onUpload && <UploadCard onUpload={onUpload}/>}
         {own.map(card)}
       </ul>
       {derived.length > 0 && (
@@ -361,12 +362,23 @@ export default function GarmentPicker({ tab = 'inspiration', inline = false, cfg
   const sub = pendingArt
     ? <p>Your file <strong>{pendingArt.name}</strong> goes on the garment you pick. <button type="button" className="ds-pick-link" onClick={onCancelArt}><X size={14} aria-hidden="true"/>Cancel upload</button></p>
     : <p>Real uniforms we have made, or a VFRB template.</p>;
-  const head = legend => <Head title={title} sub={sub} onClose={onClose} view={view} setView={setView} legend={legend}/>;
+  const head = legend => <Head title={title} sub={sub} onClose={onClose} view={view} setView={setView} legend={legend} onUpload={pendingArt ? null : onUpload}/>;
+  // Compact header once the picker's scroll box (the inline stage or the modal) has scrolled. The gap between the two thresholds, with
+  // scroll anchoring off (CSS), keeps the header's own height change from flipping it back.
+  const root = useRef(null);
+  const [compact, setCompact] = useState(false);
+  useEffect(() => {
+    const box = root.current?.closest('.ds-modal') ?? root.current;
+    if (!box) return undefined;
+    const onScroll = () => setCompact(c => (c ? box.scrollTop > 24 : box.scrollTop > 120));
+    box.addEventListener('scroll', onScroll, { passive: true });
+    return () => box.removeEventListener('scroll', onScroll);
+  }, []);
   return (
-    <section className="ds-pick" data-inline={inline || undefined} aria-labelledby="ds-pick-h">
+    <section ref={root} className="ds-pick" data-inline={inline || undefined} data-compact={compact || undefined} aria-labelledby="ds-pick-h">
       {view === 'inspiration'
-        ? <Photos head={head} onClose={onClose} pieceRole={pieceRole} onPickPhoto={onPickPhoto} onPick3D={onPick3D} onUpload={pendingArt ? null : onUpload} extra={extra}/>
-        : <Templates head={head} onClose={onClose} cfg={cfg} pieceRole={pieceRole} onPickFamily={onPickFamily} onUpload={pendingArt ? null : onUpload} extra={extra}/>}
+        ? <Photos head={head} onClose={onClose} pieceRole={pieceRole} onPickPhoto={onPickPhoto} onPick3D={onPick3D} extra={extra}/>
+        : <Templates head={head} onClose={onClose} cfg={cfg} pieceRole={pieceRole} onPickFamily={onPickFamily} extra={extra}/>}
     </section>
   );
 }

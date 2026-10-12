@@ -9,7 +9,8 @@ import { placementsFor } from './dsShared';
 export const GUIDE_KEYS = ['grid', 'snap', 'rulers', 'centre', 'smart'];
 export const GRID_PCTS = [5, 10, 20]; // grid cell in % of the garment: Fine, Medium, Coarse
 export const GRID_LABEL = { 5: 'Fine · 5%', 10: 'Medium · 10%', 20: 'Coarse · 20%' };
-export const guideDefaults = (phone = false) => ({ v: 2, grid: false, size: 10, snap: true, rulers: false, centre: !phone, smart: !phone });
+// Visual guides start off (a clean garment); snapping and, on desktop, smart guides help without drawing anything until a drag.
+export const guideDefaults = (phone = false) => ({ v: 2, grid: false, size: 10, snap: true, rulers: false, centre: false, smart: !phone });
 // Stored prefs win; older shapes carry over: { grid, snap, size } (grid meant grid + rulers) and px sizes 10/20/40 (now 5/10/20 %).
 export function readGuidePrefs(stored, phone = false) {
   const d = guideDefaults(phone);

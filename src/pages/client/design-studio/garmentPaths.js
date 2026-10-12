@@ -1,8 +1,9 @@
 // Garment SVG path data for the 2D vector templates.
 //
 // Zones (body, collar, sleeveL, sleeveR, pocket) are the colourable, clickable regions. `details` are decorative
-// lines drawn on top (seams, plackets, buttons, the inside of the neck opening): they carry no zone and take no
-// clicks, so they never change what a customer can edit or what an order records.
+// lines drawn on top (seams, plackets, buttons, the inside of the neck opening): they carry no colour zone. A detail with a
+// `part` (pockets, buttons, closure) is one the customer can show, hide or recolour (garmentDetails.js), and a click on it
+// opens those controls; untagged details take no clicks and never change.
 //
 // Sleeve paths are 4 points (shoulder A, armpit B, underarm hem C, outer hem D) closed with a curve back to A.
 // Every consumer that reshapes a sleeve reads those first 8 numbers, so the order is part of the contract.
@@ -127,19 +128,19 @@ function top(o) {
   if (collar !== 'notch') frontDetails.push({ d: opening, kind: 'shade' });
   if (placket) {
     const { top: py0 = frontY, bottom: py1, buttons = 3, width = 8 } = placket;
-    frontDetails.push({ d: `M ${pt(cx - width, py0)} L ${pt(cx - width, py1)} L ${pt(cx + width, py1)} L ${pt(cx + width, py0)}`, kind: 'line' });
+    frontDetails.push({ d: `M ${pt(cx - width, py0)} L ${pt(cx - width, py1)} L ${pt(cx + width, py1)} L ${pt(cx + width, py0)}`, kind: 'line', part: 'closure' });
     const step = (py1 - py0 - 14) / Math.max(1, buttons - 1);
-    for (let i = 0; i < buttons; i++) frontDetails.push({ d: dot(cx, py0 + 9 + i * step), kind: 'button', over: true });
+    for (let i = 0; i < buttons; i++) frontDetails.push({ d: dot(cx, py0 + 9 + i * step), kind: 'button', over: true, part: 'buttons' });
   }
   if (coat) {
     // Centre-front edge below the lapels, and the buttons (lab coat: 4, 58 apart; blazer and blouse pass their own).
     const { buttons = 4, step = 58 } = coat === true ? {} : coat;
-    frontDetails.push({ d: `M ${pt(cx, hpsY + lapel)} L ${pt(cx, hem[1] + hemCurve)}`, kind: 'line' });
-    for (let i = 0; i < buttons; i++) frontDetails.push({ d: dot(cx - 8, hpsY + lapel + 12 + i * step, 3), kind: 'button', over: true });
+    frontDetails.push({ d: `M ${pt(cx, hpsY + lapel)} L ${pt(cx, hem[1] + hemCurve)}`, kind: 'line', part: 'closure' });
+    for (let i = 0; i < buttons; i++) frontDetails.push({ d: dot(cx - 8, hpsY + lapel + 12 + i * step, 3), kind: 'button', over: true, part: 'buttons' });
   }
   // Flap pockets (blazer): modelled flaps, drawn as lines, never a colourable zone.
-  if (flaps) for (const s of [-1, 1]) frontDetails.push({ d: `M ${pt(cx + s * flaps.x0, flaps.y)} L ${pt(cx + s * (flaps.x0 + flaps.w), flaps.y)} L ${pt(cx + s * (flaps.x0 + flaps.w), flaps.y + 12)} L ${pt(cx + s * flaps.x0, flaps.y + 12)} Z`, kind: 'line' });
-  if (pocket) frontDetails.push({ d: `M ${pt(pocket.x + 3, pocket.y + 6)} L ${pt(pocket.x + pocket.w - 3, pocket.y + 6)}`, kind: 'seam', over: true });
+  if (flaps) for (const s of [-1, 1]) frontDetails.push({ d: `M ${pt(cx + s * flaps.x0, flaps.y)} L ${pt(cx + s * (flaps.x0 + flaps.w), flaps.y)} L ${pt(cx + s * (flaps.x0 + flaps.w), flaps.y + 12)} L ${pt(cx + s * flaps.x0, flaps.y + 12)} Z`, kind: 'line', part: 'flapPockets' });
+  if (pocket) frontDetails.push({ d: `M ${pt(pocket.x + 3, pocket.y + 6)} L ${pt(pocket.x + pocket.w - 3, pocket.y + 6)}`, kind: 'seam', over: true, part: 'patchPocket' });
 
   const shared = [
     { d: `M ${pt(...LH)} L ${pt(...L(sh[0], sh[1]))} M ${pt(...RH)} L ${pt(...R(sh[0], sh[1]))}`, kind: 'seam' },
@@ -205,13 +206,13 @@ function trousers({ w = 250, h = 420, waist = 76, waistY = 28, band = 15, hip = 
   ];
   if (drawstring) details.push({ d: `M ${pt(cx - 6, by - 4)} Q ${pt(cx - 10, by + 14)} ${pt(cx - 14, by + 22)} M ${pt(cx + 6, by - 4)} Q ${pt(cx + 10, by + 14)} ${pt(cx + 14, by + 22)}`, kind: 'line', face: 'front' });
   if (fly) details.push(
-    { d: `M ${pt(cx, by)} L ${pt(cx, crotchY - 8)}`, kind: 'line', face: 'front' },
-    { d: `M ${pt(cx + 11, by)} L ${pt(cx + 11, crotchY - 26)} Q ${pt(cx + 11, crotchY - 12)} ${pt(cx + 1, crotchY - 8)}`, kind: 'seam', face: 'front' },
-    { d: dot(cx, waistY + band / 2, 2.4), kind: 'button', face: 'front' },
+    { d: `M ${pt(cx, by)} L ${pt(cx, crotchY - 8)}`, kind: 'line', face: 'front', part: 'closure' },
+    { d: `M ${pt(cx + 11, by)} L ${pt(cx + 11, crotchY - 26)} Q ${pt(cx + 11, crotchY - 12)} ${pt(cx + 1, crotchY - 8)}`, kind: 'seam', face: 'front', part: 'closure' },
+    { d: dot(cx, waistY + band / 2, 2.4), kind: 'button', face: 'front', part: 'buttons' },
     // slanted front pockets
-    { d: `M ${pt(cx - waist + 8, by)} Q ${pt(cx - waist + 14, by + 34)} ${pt(cx - hip + 2, by + 48)} M ${pt(cx + waist - 8, by)} Q ${pt(cx + waist - 14, by + 34)} ${pt(cx + hip - 2, by + 48)}`, kind: 'line', face: 'front' },
+    { d: `M ${pt(cx - waist + 8, by)} Q ${pt(cx - waist + 14, by + 34)} ${pt(cx - hip + 2, by + 48)} M ${pt(cx + waist - 8, by)} Q ${pt(cx + waist - 14, by + 34)} ${pt(cx + hip - 2, by + 48)}`, kind: 'line', face: 'front', part: 'sidePockets' },
   );
-  if (fly) details.push({ d: `M ${pt(cx - waist + 16, by + 26)} L ${pt(cx - 18, by + 26)} M ${pt(cx + 18, by + 26)} L ${pt(cx + waist - 16, by + 26)}`, kind: 'line', face: 'back' });
+  if (fly) details.push({ d: `M ${pt(cx - waist + 16, by + 26)} L ${pt(cx - 18, by + 26)} M ${pt(cx + 18, by + 26)} L ${pt(cx + waist - 16, by + 26)}`, kind: 'line', face: 'back', part: 'backPockets' });
   if (crease) details.push({ d: `M ${pt(cx - legMid - 2, hipY + 10)} L ${pt(cx - legMid, hemY - 10)} M ${pt(cx + legMid + 2, hipY + 10)} L ${pt(cx + legMid, hemY - 10)}`, kind: 'fold' });
   return { w, h, body, collar: null, sleeveL: null, sleeveR: null, pocket: null, details };
 }
@@ -231,7 +232,7 @@ function pleatedSkirt({ w = 280, h = 240, waist = 58, waistY = 26, band = 18, he
       { d: `M ${pt(cx - waist - 2, by)} L ${pt(cx + waist + 2, by)}`, kind: 'line' },
       { d: lines, kind: 'line' },
       { d: `M ${pt(cx - hemX + 4, hemY - 7)} Q ${pt(cx, hemY + 7)} ${pt(cx + hemX - 4, hemY - 7)}`, kind: 'seam' },
-      { d: dot(cx + waist - 10, waistY + band / 2, 2.4), kind: 'button', face: 'front' },
+      { d: dot(cx + waist - 10, waistY + band / 2, 2.4), kind: 'button', face: 'front', part: 'buttons' },
     ],
   };
 }
@@ -256,9 +257,9 @@ function skirt({ w = 260, h = 360, waist = 58, waistY = 30, band = 16, hip = 79,
       { d: `${dart(-1, 58)} ${dart(1, 58)}`, kind: 'seam', face: 'back' },
       { d: `M ${pt(cx - hemX + 2, hemY - 7)} Q ${pt(cx, hemY - 7 + 2 * hemCurve)} ${pt(cx + hemX - 2, hemY - 7)}`, kind: 'seam' },
       // Back: hook at the waistband, centre-back zip, lapped vent (left panel laps over the right, with a tack at the top).
-      { d: dot(cx, waistY + band / 2, 2.2), kind: 'button', face: 'back' },
-      { d: `M ${pt(cx, by)} L ${pt(cx, by + 64)}`, kind: 'line', face: 'back' },
-      { d: `M ${pt(cx - 2, by + 2)} L ${pt(cx - 2, by + 62)} M ${pt(cx + 2, by + 2)} L ${pt(cx + 2, by + 62)}`, kind: 'seam', face: 'back' },
+      { d: dot(cx, waistY + band / 2, 2.2), kind: 'button', face: 'back', part: 'buttons' },
+      { d: `M ${pt(cx, by)} L ${pt(cx, by + 64)}`, kind: 'line', face: 'back', part: 'closure' },
+      { d: `M ${pt(cx - 2, by + 2)} L ${pt(cx - 2, by + 62)} M ${pt(cx + 2, by + 2)} L ${pt(cx + 2, by + 62)}`, kind: 'seam', face: 'back', part: 'closure' },
       { d: `M ${pt(cx, hemY + hemCurve)} L ${pt(cx, hemY - vent)} L ${pt(cx + 6, hemY - vent + 6)} L ${pt(cx + 6, hemY + hemCurve - 0.5)}`, kind: 'line', face: 'back' },
       { d: `M ${pt(cx - 1, hemY - vent - 4)} L ${pt(cx + 7, hemY - vent + 2)}`, kind: 'seam', face: 'back' },
       // Soft drape: two long folds from the hips toward the hem.
@@ -281,9 +282,9 @@ function coverall() {
     details: [
       ...t.details.filter(d => !/250/.test(d.d) || d.kind === 'shade'),
       { d: `M ${pt(cx - 100, waistY)} L ${pt(cx + 100, waistY)}`, kind: 'line' },
-      { d: `M ${pt(cx, 270)} L ${pt(cx, crotchY - 6)}`, kind: 'line', face: 'front' },
+      { d: `M ${pt(cx, 270)} L ${pt(cx, crotchY - 6)}`, kind: 'line', face: 'front', part: 'closure' },
       { d: `M ${pt(cx - 68, hemY - 7)} L ${pt(cx - 13, hemY - 7)} M ${pt(cx + 13, hemY - 7)} L ${pt(cx + 68, hemY - 7)}`, kind: 'seam' },
-      { d: `M ${pt(cx - 98, 262)} Q ${pt(cx - 84, 282)} ${pt(cx - 86, 300)} M ${pt(cx + 98, 262)} Q ${pt(cx + 84, 282)} ${pt(cx + 86, 300)}`, kind: 'line', face: 'front' },
+      { d: `M ${pt(cx - 98, 262)} Q ${pt(cx - 84, 282)} ${pt(cx - 86, 300)} M ${pt(cx + 98, 262)} Q ${pt(cx + 84, 282)} ${pt(cx + 86, 300)}`, kind: 'line', face: 'front', part: 'sidePockets' },
     ],
   };
 }

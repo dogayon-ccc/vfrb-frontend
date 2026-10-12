@@ -10,7 +10,7 @@ export default function DesignStudioStyles() {
       .ds{
         --ds-nav-h:56px;
         --ds-inset:env(safe-area-inset-bottom,0px);
-        --ds-sheet-h:min(42dvh,22rem);
+        --ds-sheet-h:clamp(12.5rem,30dvh,17rem); /* phone half sheet: ~30% so the garment keeps over half the screen */
         --ds-sheet-full:min(80dvh,40rem);
         --ds-peek:78px;
         --ds-pad-b:0px;
@@ -21,7 +21,7 @@ export default function DesignStudioStyles() {
       .ds button:focus-visible,.ds [role=button]:focus-visible{outline:2px solid var(--cx-thread-ink);outline-offset:2px;}
 
       /* Top bar: one row at every width; undo/redo and the single 2D/3D toggle never fold away */
-      .ds-bar{height:56px;flex-shrink:0;display:flex;align-items:center;gap:8px;padding:0 12px;
+      .ds-bar{height:calc(56px + env(safe-area-inset-top,0px));flex-shrink:0;display:flex;align-items:center;gap:8px;padding:env(safe-area-inset-top,0px) max(12px,env(safe-area-inset-right,0px)) 0 max(12px,env(safe-area-inset-left,0px));
         background:var(--cx-card);border-bottom:1px solid var(--cx-line);z-index:var(--cx-z-bar);}
       .ds-bar-btn{min-width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 10px;flex-shrink:0;
         border:1px solid transparent;border-radius:var(--cx-r-md);background:transparent;color:var(--cx-ink-2);font:600 13px/1 var(--cx-sans);cursor:pointer;
@@ -66,10 +66,10 @@ export default function DesignStudioStyles() {
       }
       .ds-tool-btn{
         width:60px;min-height:56px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
-        border:1px solid transparent;border-radius:var(--r-md);background:transparent;color:var(--text-subtle);
+        border:1px solid transparent;border-radius:var(--r-md);background:transparent;color:var(--cx-ink-2);
         cursor:pointer;transition:background .14s,border-color .14s,color .14s,transform .1s;
       }
-      .ds-tool-btn span{font-size:var(--text-2xs);font-weight:600;line-height:1;}
+      .ds-tool-btn span{font-size:12px;font-weight:700;line-height:1;}
       .ds-tool-btn:hover{background:var(--bg-surface);color:var(--ink);}
       .ds-tool-btn:active{transform:scale(.95);}
       .ds-tool-btn[aria-pressed="true"],.ds-tool-btn[aria-expanded="true"]{
@@ -193,11 +193,6 @@ export default function DesignStudioStyles() {
       .ds-pick-card strong{font-size:13px;font-weight:700;line-height:1.3;}
       .ds-pick-sub{font-size:12px;font-weight:600;color:var(--cx-ink-2);line-height:1.4;}
       .ds-pick-badge{position:absolute;top:14px;right:14px;width:26px;height:26px;display:grid;place-items:center;border-radius:50%;background:var(--cx-card);color:var(--cx-ink);box-shadow:var(--cx-elev-1);}
-      .ds-pick-up{border:1.5px dashed var(--cx-thread);background:var(--cx-thread-tint);cursor:pointer;}
-      .ds-pick-up .ds-pick-img{align-content:center;gap:8px;border:1.5px dashed var(--cx-line-strong);background:var(--cx-card);}
-      .ds-pick-up[data-over]{border-style:solid;box-shadow:0 0 0 3px var(--cx-thread-ring);}
-      .ds-pick-up[data-over] .ds-pick-img{border-color:var(--cx-thread);}
-      .ds-pick-drop{font-size:12px;font-weight:700;color:var(--cx-thread-ink);}
       .ds-pick-card:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none;}
       .ds-chip-x{display:inline-flex;align-items:center;gap:5px;}
       .ds-pick-link{min-height:44px;display:inline-flex;align-items:center;gap:6px;padding:0 12px;border:0;border-radius:var(--cx-r-pill);background:transparent;color:var(--cx-thread-ink);font:700 13px var(--cx-sans);cursor:pointer;}
@@ -265,7 +260,6 @@ export default function DesignStudioStyles() {
       .ds-sketch{display:inline-block;padding:2px 7px;border-radius:var(--cx-r-pill);background:var(--cx-paper-2);color:var(--cx-ink-2);font-size:11px;font-weight:700;letter-spacing:.02em;}
       .ds-pick-img,.ds-sketch-wrap{position:relative;}
       .ds-pick-img .ds-sketch,.ds-sketch-wrap .ds-sketch{position:absolute;left:6px;bottom:6px;}
-      .ds-ctx-chip .ds-sketch{margin-left:8px;}
       /* Picker modal */
       .ds-modal{position:absolute;top:64px;left:50%;z-index:var(--cx-z-modal);width:min(760px,calc(100vw - 24px));max-height:calc(100dvh - 88px);overflow-y:auto;overscroll-behavior:contain;
         padding:0 clamp(12px,3vw,24px);border:1px solid var(--cx-line);border-radius:var(--cx-r-xl);background:var(--cx-card);box-shadow:var(--cx-elev-2);}
@@ -572,10 +566,10 @@ export default function DesignStudioStyles() {
       .ds-stage-floor{position:absolute;left:8%;right:8%;bottom:-3%;height:7%;border-radius:50%;pointer-events:none;
         background:radial-gradient(ellipse at center,rgb(var(--cx-shade) / .34),transparent 70%);filter:blur(6px);}
       .ds-cv[data-stage=dark] .ds-stage-floor{background:radial-gradient(ellipse at center,rgb(0 0 0 / .55),transparent 70%);}
-      .ds-ctx-chip{display:flex;max-width:100%;overflow:hidden;align-items:baseline;gap:8px;
-        padding:6px 14px;border-radius:99px;background:var(--bg-card);border:1px solid var(--border);box-shadow:var(--shadow-sm);white-space:nowrap;pointer-events:none;}
-      .ds-ctx-chip strong{font-size:var(--text-xs);font-weight:800;color:var(--ink);}
-      .ds-ctx-chip span{font-size:var(--text-2xs);font-weight:600;color:var(--text-muted);}
+      /* Quiet status badge (Sketch / Derived / Photo): plain text in a soft pill, never truncated */
+      .ds-ctx-chip{display:inline-flex;align-items:center;gap:6px;flex:none;min-height:28px;padding:0 10px;border-radius:99px;background:var(--cx-paper-2);
+        color:var(--cx-ink-2);font-size:12px;font-weight:700;white-space:nowrap;}
+      .ds-ctx-chip strong{font-weight:800;color:var(--cx-ink);}
       /* Summary: stat chips + icon jump rows with an active state */
       .ds-stats{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:8px;}
       .ds-stats li{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--bg-card);}
@@ -606,7 +600,6 @@ export default function DesignStudioStyles() {
       .ds-swatch-chips{list-style:none;display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
 
       /* Short phones: the canvas must stay the focal area, so the sheet shrinks (its body scrolls; the grabber still expands it to 80dvh). */
-      @media (max-width:1023px) and (max-height:720px){.ds{--ds-sheet-h:min(34dvh,15rem);}}
       @media (min-width:1024px){
         .ds-tool-btn[data-narrow-only]{display:none;}
       }
@@ -651,18 +644,11 @@ export default function DesignStudioStyles() {
         /* Phones and tablets: the top lane is one row (icon Guides with its count, a truncating garment chip, a compact set switch) */
         .ds-lane-top:not([data-notes]){flex-wrap:nowrap;}
         .ds-lane-top>*{flex-shrink:0;}
-        .ds-lane-top>.ds-ctx-chip{flex-shrink:1;min-width:0;}
-        .ds-ctx-chip strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-        .ds-ctx-chip .ds-sketch{flex-shrink:0;}
         .ds-guides-txt{display:none;}
         .ds-guides-btn{padding:0 10px;}
-        .ds-set-bar button{padding:4px 10px;}
-        .ds-set-bar button strong{display:none;}
-        .ds-set-bar button span{font-size:11px;}
-        .ds-set-add{padding:0 10px;}
-        /* Half sheet: the tool body gets the room; the category line and an ok save state wait for peek/full */
-        .ds[data-snap=half] :is(.ds-dock-sub,.ds-dock-state:not([data-tone=err])){display:none;}
-        .ds[data-snap=half] .ds-dock{padding-bottom:6px;}
+        .ds-piece button{padding:0 12px;}
+        /* Half sheet (~30%): the active tool only. Save/Order (peek, full), Layers (full) and the zoom lane (pinch instead) step aside. */
+        .ds[data-snap=half] :is(.ds-dock,.ds-under,.ds-lane-bottom){display:none;}
         .ds-sheet-head{min-height:0;}
         .ds-sheet-head .ds-sheet-close{width:44px;height:44px;}
         .ds-lane-bottom{padding:0 8px 8px;}
@@ -732,14 +718,6 @@ export default function DesignStudioStyles() {
       .ds-act--danger{color:#dc2626;border-color:rgba(220,38,38,.3);}
       .ds-ins-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
       .ds-set-wrap{max-width:100%;}
-      .ds-set-bar{display:flex;gap:4px;align-items:center;padding:4px;border-radius:999px;background:var(--bg-card,#fff);border:1px solid var(--border);box-shadow:0 4px 14px rgba(15,23,42,.08);}
-      .ds-set-bar button{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-height:40px;padding:4px 14px;border:0;border-radius:999px;background:transparent;cursor:pointer;font:inherit;color:var(--ink);text-align:left;}
-      .ds-set-bar button span{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-subtle);}
-      .ds-set-bar button strong{font-size:12.5px;white-space:nowrap;}
-      .ds-set-bar button[aria-pressed=true]{background:var(--teal,#028090);color:#fff;}
-      .ds-set-bar button[aria-pressed=true] span{color:rgba(255,255,255,.8);}
-      .ds-set-bar .ds-set-leave{min-height:32px;padding:0 10px;font-size:18px;color:var(--text-subtle);align-items:center;}
-      .ds-set-add{min-height:36px;padding:0 14px;border-radius:999px;border:1px dashed var(--teal,#028090);background:var(--bg-card,#fff);color:var(--teal,#028090);font:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;}
       .ds-ins-align{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px;}
       .ds-ins-align .ds-act{min-height:36px;padding:0 6px;font-size:12px;justify-content:center;}
       .ds-ins-actions .ds-act{min-height:44px;}
@@ -756,6 +734,75 @@ export default function DesignStudioStyles() {
       .ds-dock-export{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
       .ds-dock-export .ds-act{min-height:44px;font-size:12px;justify-content:center;}
       @media (pointer:coarse){.ds-lay-btn{width:44px;height:44px;}.ds-lay-pick{min-height:44px;}.ds-ins-field input,.ds-ins-field select{min-height:44px;}}
+
+      /* Stage piece selector: Top / Bottom / Set as one segmented control (PieceSelector.jsx) */
+      .ds-piece{display:flex;align-items:center;gap:2px;padding:3px;border-radius:999px;background:var(--cx-card);border:1px solid var(--cx-line);box-shadow:var(--cx-elev-1,0 2px 8px rgb(15 23 42 / .06));}
+      .ds-piece button{display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 14px;border:0;border-radius:999px;background:transparent;
+        font:700 12.5px var(--cx-sans);color:var(--cx-ink-2);cursor:pointer;white-space:nowrap;}
+      .ds-piece button span{font-weight:600;color:var(--cx-ink-2);}
+      .ds-piece button[aria-pressed=true]{background:var(--cx-thread);color:var(--cx-on-thread);}
+      .ds-piece button[aria-pressed=true] span{color:inherit;opacity:.85;}
+      .ds-piece button[data-add]{color:var(--cx-thread-ink);}
+      .ds-piece button:disabled{opacity:.45;cursor:not-allowed;}
+      .ds-piece .ds-piece-leave{min-width:38px;padding:0;justify-content:center;font-size:18px;}
+      @media (pointer:coarse){.ds-piece button{min-height:44px;}}
+
+      /* Plain colour swatches in the Studio (the kit's woven hatch hid the true colour) */
+      .ds .cx-swatch-dot{background:var(--sw);}
+
+      /* Desktop right panel: the uniform's sections as tabs; the rail keeps the tools that add things */
+      .ds-sections{display:none;}
+      @media (min-width:1024px){
+        .ds-sections{display:flex;gap:2px;padding:6px 10px 0;border-bottom:1px solid var(--cx-line);overflow-x:auto;scrollbar-width:none;}
+        .ds-sections button{flex:1 0 auto;min-height:40px;padding:0 8px;margin-bottom:-1px;border:0;border-bottom:2px solid transparent;background:none;
+          font:700 12.5px var(--cx-sans);color:var(--cx-ink-2);cursor:pointer;}
+        .ds-sections button:hover{color:var(--cx-ink);}
+        .ds-sections button[aria-current]{color:var(--cx-thread-ink);border-bottom-color:var(--cx-thread);}
+        .ds-tool-btn[data-section]{display:none;}
+      }
+
+      /* Details: pockets, buttons, closures (DetailsPanel.jsx) */
+      .ds-det{display:flex;flex-direction:column;gap:10px;padding:10px 12px 16px;}
+      .ds-det-note{margin:0;padding:8px 10px;border-radius:var(--cx-r-md);background:var(--cx-paper-2);font-size:12px;line-height:1.45;color:var(--cx-ink-2);}
+      .ds-det-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;}
+      .ds-det-row{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:48px;padding:0 4px 0 12px;
+        border:1px solid var(--cx-line);border-radius:var(--cx-r-md);background:var(--cx-card);}
+      .ds-det-row[data-focus]{border-color:var(--cx-thread);}
+      .ds-det-row--col{flex-direction:column;align-items:stretch;padding:0;}
+      .ds-det-head{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:48px;padding:0 12px;border:0;background:none;font:inherit;color:var(--cx-ink);cursor:pointer;text-align:left;}
+      .ds-det-name{display:flex;align-items:center;gap:10px;font:700 13px var(--cx-sans);color:var(--cx-ink);}
+      .ds-det-name .ds-link{align-self:center;}
+      .ds-det-val{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--cx-ink-2);}
+      .ds-det-body{padding:8px 12px 12px;border-top:1px solid var(--cx-line);}
+      .ds-switch{flex:none;width:56px;height:44px;display:flex;align-items:center;justify-content:center;border:0;background:none;cursor:pointer;}
+      .ds-switch span{position:relative;width:40px;height:24px;border-radius:999px;background:var(--cx-line-strong);transition:background var(--cx-dur-2) var(--cx-ease);}
+      .ds-switch span::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgb(0 0 0 / .25);transition:transform var(--cx-dur-2) var(--cx-ease);}
+      .ds-switch[aria-checked=true] span{background:var(--cx-thread);}
+      .ds-switch[aria-checked=true] span::after{transform:translateX(16px);}
+      @media (prefers-reduced-motion:reduce){.ds-switch span,.ds-switch span::after{transition:none;}}
+
+      /* Picker header: tabs + Upload on one row; after scrolling it collapses to that row alone, opaque, over the grid */
+      .ds-pick[data-inline],.ds-modal{overflow-anchor:none;}
+      .ds-pick-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;margin-top:4px;}
+      .ds-pick-row .ds-pick-tabs{margin-top:0;}
+      .ds-tab-short{display:none;}
+      .ds-pick-upbtn{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 16px;border:1.5px dashed var(--cx-thread);border-radius:var(--cx-r-md);
+        background:var(--cx-card);color:var(--cx-thread-ink);font:700 13px var(--cx-sans);cursor:pointer;white-space:nowrap;}
+      .ds-pick-upbtn[data-over]{border-style:solid;box-shadow:0 0 0 3px var(--cx-thread-ring);}
+      .ds-pick-upbtn:focus-within{outline:2px solid var(--cx-thread-ink);outline-offset:2px;}
+      .ds-pick[data-compact] .ds-pick-head{padding:8px 0;box-shadow:0 1px 0 var(--cx-line),0 8px 16px -12px rgb(0 0 0 / .3);}
+      .ds-pick[data-compact] .ds-pick-head::before{content:"";position:absolute;left:0;right:0;bottom:100%;height:48px;background:inherit;}
+      .ds-pick[data-compact] .ds-pick-head>:is(p,.ds-pick-legend){display:none;}
+      .ds-pick[data-compact] .ds-pick-titlebar{position:absolute;top:8px;right:0;width:auto;display:block;}
+      .ds-pick[data-compact] .ds-pick-titlebar h2{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+      .ds-pick[data-compact][data-inline] .ds-pick-titlebar{display:none;}
+      .ds-pick[data-compact] .ds-pick-row{margin-top:0;flex-wrap:nowrap;}
+      .ds-modal .ds-pick[data-compact] .ds-pick-row{padding-right:48px;}
+      @media (max-width:599px){
+        .ds-pick[data-compact] .ds-tab-long{display:none;}
+        .ds-pick[data-compact] .ds-tab-short{display:inline;}
+        .ds-pick[data-compact] .ds-pick-tabs button{padding:0 14px;}
+      }
       ::-webkit-scrollbar{width:3px;}
       ::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:2px;}
     

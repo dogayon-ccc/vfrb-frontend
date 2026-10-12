@@ -100,7 +100,7 @@ class ThreeEB extends Component {
 export default function CanvasViewport({
   cfg, setCfg, canvasWrapRef, canvasEl, aiPulse, face, switchFace, initFailed,
   selObj, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, garmentRect = null, viewMode, has3DLoaded, onLogoFile, zoom, setZoom, snapshot, overlays,
-  blank = null, setViewMode, pieceBar = null, setCompanion = null, showSet = false, setShowSet = null, setSnapOptions = null,
+  blank = null, setViewMode, pieceBar = null, setCompanion = null, showSet = false, setSnapOptions = null,
 }) {
   const paneRef = useRef(null);
   const [webglOk, setWebglOk] = useState(hasWebGL);
@@ -273,6 +273,10 @@ export default function CanvasViewport({
   const gridOn = guides.grid && !!cfg.garment && show2D && !!view && !!garmentRect;
   const stageOff = { dx: rulersOn ? RULER_W : 0, dy: rulersOn ? RULER_H : 0 };
 
+  const status = photo ? { label: 'Photo', title: 'A recoloured photo of the real garment' }
+    : isDerived(cfg.garment) ? { label: 'Derived', title: 'Outline and shading traced from the 3D model of a VFRB reference photo; pending VFRB confirmation' }
+    : { label: 'Sketch', title: 'A flat VFRB template drawing; no photo base exists for this garment, sleeve and fit' };
+
   // 3D honesty notes, said in the top lane (never over the model).
   const notes3D = viewMode === '3d' ? [
     !webglOk && { id: 'nogl', text: '3D preview is not available on this device. Showing the 2D design.' },
@@ -282,7 +286,8 @@ export default function CanvasViewport({
       const approx = GALLERY.find(d => d.id === cfg.inspirationId)?.familyApprox3D;
       const label = status === 'none' ? null : approx ? `3D shows the generic ${cfg.garment} model, not the photo` : info?.label;
       const c3 = get3DCapabilities(cfg.garment, cfg.fit, cfg.sleeve);
-      return [label && { id: 'approx', text: label, warn: true }, overlays?.length > 0 && c3.supported && !(c3.logo && c3.text) && { id: 'decals', text: 'Logos and text are 2D only on this model' }];
+      return [label && { id: 'approx', text: label, warn: true }, overlays?.length > 0 && c3.supported && !(c3.logo && c3.text) && { id: 'decals', text: 'Logos and text are 2D only on this model' },
+        Object.keys(cfg.details ?? {}).length > 0 && { id: 'details', text: 'Pocket, button and closure changes are shown in 2D only' }];
     })() : []),
   ].filter(Boolean) : [];
 
@@ -301,23 +306,14 @@ export default function CanvasViewport({
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.9-5.9-2.3l-3.6-3.6a2 2 0 0 1 2.8-2.8L7 15"/></svg>
             </button>
           )}
-          {/* The garment's name, once, on the stage (2D and 3D) */}
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div key={cfg.garment} className="ds-ctx-chip" aria-live="polite"
-              initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} transition={{ duration:.2 }}>
-              <strong>{cfg.garment}</strong>{!photo && (isDerived(cfg.garment)
-                ? <span className="ds-sketch" title="Outline and shading traced from the 3D model of a VFRB reference photo; pending VFRB confirmation">Derived</span>
-                : <span className="ds-sketch" title="A flat VFRB template drawing; no photo base exists for this garment, sleeve and fit">Sketch</span>)}
-            </motion.div>
-          </AnimatePresence>
           {pieceBar && <div className="ds-set-wrap">{pieceBar}</div>}
-          {/* Uniform set: both pieces have their own 3D model, so the pair can be previewed together (each keeps its own garment and colours). */}
-          {setCompanion && viewMode === '3d' && show3D && (
-            <div className="ds-seg ds-seg--sm" role="radiogroup" aria-label="3D preview scope">
-              <button type="button" role="radio" aria-checked={!showSet} onClick={() => setShowSet(false)}>This piece</button>
-              <button type="button" role="radio" aria-checked={showSet} onClick={() => setShowSet(true)}>Whole set</button>
-            </div>
-          )}
+          {/* One quiet status badge: what kind of 2D base this is (the garment's name is in the selector and the Garment panel). */}
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.span key={cfg.garment} className="ds-ctx-chip" aria-live="polite" title={status.title}
+              initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} transition={{ duration:.2 }}>
+              {!pieceBar && <strong className="ds-wide-only">{cfg.garment}</strong>}{status.label}
+            </motion.span>
+          </AnimatePresence>
           {notes3D.map(n => <div key={n.id} role="status" className="ds-stage-note" data-tone={n.warn ? 'warn' : undefined}>{n.text}</div>)}
         </div>
       )}

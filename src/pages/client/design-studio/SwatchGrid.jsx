@@ -27,7 +27,7 @@ export function CustomColor({ label, current, onPick }) {
         onChange={e => onPick(e.target.value)}/>
       <label className="ds-custom-hex">
         <span>Hex</span>
-        <input type="text" inputMode="text" maxLength={7} spellCheck={false} value={text} aria-invalid={!valid || undefined}
+        <input type="text" inputMode="text" maxLength={7} spellCheck={false} value={text} aria-invalid={(text.trim() !== '' && !valid) || undefined}
           onChange={e => { setText(e.target.value); commit(e.target.value); }} onBlur={() => setText(current ?? '')}/>
       </label>
     </div>
