@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { Card, Button, Field, Badge, NavIcon } from '../../../components/ui';
 import { Skeleton, useToast, fmtDate } from '../../../components/customer/kit';
+import { phPhoneError, compactPhone } from '../../../utils/phPhone';
 
 
 export function ProfileSection() {
@@ -19,11 +20,14 @@ export function ProfileSection() {
       .finally(() => setLoading(false));
   }, [show]);
 
+  const phoneErr = phPhoneError(form.contact_number);
+
   const save = async () => {
+    if (phoneErr) { show(phoneErr, 'error'); return; }
     setSaving(true);
     try {
       await axios.put('/api/customer/profile', {
-        name: form.name, contact_number: form.contact_number, address: form.address,
+        name: form.name, contact_number: compactPhone(form.contact_number) || null, address: form.address,
         organization_name: form.organization_name, client_type: form.client_type,
       });
       const u = JSON.parse(localStorage.getItem('vfrb_user') || '{}');
@@ -44,7 +48,7 @@ export function ProfileSection() {
             <div className="st-2col">
               <Field label="Full Name" value={form.name ?? ''} onChange={e => set('name', e.target.value)} placeholder="Your full name" />
               <Field label="Email Address" value={form.email ?? ''} disabled />
-              <Field label="Contact Number" value={form.contact_number ?? ''} onChange={e => set('contact_number', e.target.value)} placeholder="09XXXXXXXXX" />
+              <Field label="Contact Number" value={form.contact_number ?? ''} onChange={e => set('contact_number', e.target.value)} placeholder="09XXXXXXXXX" inputMode="tel" error={phoneErr || undefined} />
             </div>
             <Field label="Organization / School Name" value={form.organization_name ?? ''} onChange={e => set('organization_name', e.target.value)} placeholder="e.g. Southville International School" />
             <Field label="Address" value={form.address ?? ''} onChange={e => set('address', e.target.value)} placeholder="City, Province" />

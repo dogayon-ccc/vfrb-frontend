@@ -13,7 +13,7 @@ const NOTIFY = [
   { key: 'email_enabled', live: 'email_provider_live', label: 'Email notifications', icon: 'email', note: 'Order updates, AI recommendations ready, and account alerts.',
     warn: 'No production email provider is connected yet — this saves your preference but no real email is sent.' },
   { key: 'sms_enabled', live: 'sms_provider_live', label: 'SMS notifications', icon: 'phone', note: 'Text alerts for urgent order or delivery updates.',
-    warn: 'No SMS provider is connected — this reserves the setting for when one is added.' },
+    warn: 'No SMS provider is connected — this reserves the setting for when one is added.', off: 'SMS needs a gateway; not enabled.' },
 ];
 
 const Field = ({ label, id, children }) => (<div><label className="adm-field" htmlFor={id}>{label}</label>{children}</div>);
@@ -147,7 +147,7 @@ export default function Settings() {
             <Panel title="Notification preferences">
               <p className="adm-sub" style={{ marginTop: -6 }}>Your own preferences — they apply only to your account.</p>
               {prefsLoading ? <SkeletonRows rows={2} h={64} /> : NOTIFY.map((row, i) => {
-                const live = prefs[row.live]; const on = !!prefs[row.key];
+                const live = prefs[row.live]; const on = !row.off && !!prefs[row.key];
                 return (
                   <div key={row.key} className="set-pref" style={{ borderTop: i ? '1px solid var(--bg-surface)' : 'none' }}>
                     <span className="set-pref-ico"><NavIcon name={row.icon} size={18} color="currentColor" /></span>
@@ -157,9 +157,9 @@ export default function Settings() {
                         {!live && <span className="adm-pill" style={{ background: 'var(--warning-bg)', color: 'var(--warning-text)' }}>Not yet active</span>}
                       </div>
                       <p className="adm-sub" style={{ margin: '2px 0 0' }}>{row.note}</p>
-                      {!live && <p style={{ fontSize: 11, color: 'var(--warning-text)', margin: '3px 0 0' }}>{row.warn}</p>}
+                      {!live && <p style={{ fontSize: 11, color: 'var(--warning-text)', margin: '3px 0 0' }}>{row.off ?? row.warn}</p>}
                     </div>
-                    <button role="switch" aria-checked={on} aria-label={row.label} className={`set-switch${on ? ' on' : ''}`} disabled={prefsBusy} onClick={() => togglePref(row.key)}><i /></button>
+                    <button role="switch" aria-checked={on} aria-label={row.label} className={`set-switch${on ? ' on' : ''}`} disabled={prefsBusy || !!row.off} onClick={() => togglePref(row.key)}><i /></button>
                   </div>
                 );
               })}

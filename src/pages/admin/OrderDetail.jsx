@@ -3,8 +3,8 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { getStorageUrl, isImageFile } from '../../utils/fileUrl';
 import DesignPreview from '../../components/DesignPreview';
+import OrderDesignDetails, { ReferenceFile } from '../../components/admin/OrderDesignDetails';
 import { savedDesignName } from '../../utils/designName';
 import { NavIcon } from '../../components/ui';
 import { canAccessArea, readAdminUser } from '../../utils/jobAccess';
@@ -211,7 +211,6 @@ export default function AdminOrderDetail() {
 
   const hasStudioConfig = !!order.studio_config;
   const hasRefFile      = !!order.client_design_ref_file;
-  const refIsImage      = hasRefFile && isImageFile(order.client_design_ref_file);
 
   const stageRows = Array.isArray(stages) ? STAGES.map((k) => ({ key:k, row: stages.find((t) => t.stage === k) })) : [];
   const stagesWithData = stageRows.filter((x) => x.row);
@@ -356,22 +355,8 @@ export default function AdminOrderDetail() {
                   </a>
                 )}
               </div>
-            ) : refIsImage ? (
-              <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:12 }}>
-                <img src={getStorageUrl(order.client_design_ref_file)} alt="Client reference"
-                  style={{ maxWidth:'100%', maxHeight:480, borderRadius:'var(--r-lg)', border:'1px solid var(--border)',
-                    objectFit:'contain' }}
-                  onError={(e) => { e.currentTarget.style.display = 'none'; }}/>
-                <a href={getStorageUrl(order.client_design_ref_file)} target="_blank" rel="noopener noreferrer"
-                  style={{ display:'flex', alignItems:'center', gap:5, fontSize:13, fontWeight:600, color:'var(--teal)', textDecoration:'none' }}>
-                  <NavIcon name="download" size={13} color="var(--teal)" /> Download Reference File
-                </a>
-              </div>
             ) : hasRefFile ? (
-              <a href={getStorageUrl(order.client_design_ref_file)} target="_blank" rel="noopener noreferrer"
-                style={{ display:'flex', alignItems:'center', gap:6, fontSize:14, fontWeight:600, color:'var(--teal)', textDecoration:'none' }}>
-                <NavIcon name="download" size={14} color="var(--teal)" /> Download Reference File
-              </a>
+              <ReferenceFile path={order.client_design_ref_file} />
             ) : (
               <EmptyBlock>No design submitted for this order.</EmptyBlock>
             )}
@@ -381,6 +366,7 @@ export default function AdminOrderDetail() {
                 <strong style={{ color:'var(--ink)' }}>Client notes: </strong>{order.client_design_notes}
               </div>
             )}
+            <OrderDesignDetails order={order} />
           </Panel>
 
           <Panel title="Material Recommendations" flush style={{ order:8 }}>

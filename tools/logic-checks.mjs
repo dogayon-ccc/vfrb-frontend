@@ -685,5 +685,22 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('the re-supplied Downloads corporate skirt is recorded as the rejected staging file (same SHA-256) and the authored pencil skirt as Skirt\'s 3D',
     /09f723e47fb8/.test(src('../docs/engineering/GLB-STAGING-AUDIT.md')) && /Enabled as Skirt's "3D \(approx\.\)"/.test(src('../docs/engineering/GLB-STAGING-AUDIT.md')));
 }
+// Settings: PH mobile numbers (same cases as App\Rules\PhMobile on the API).
+{
+  const P = await L('/src/utils/phPhone.js');
+  const ok = ['0917 123 4567', '+63 917-123-4567', '09171234567'], bad = ['0917123456', '+6391712345678', '(02) 8123 4567'];
+  t('PH mobile: 09XXXXXXXXX or +639XXXXXXXXX accepted with spaces/dashes, short, long and landline numbers rejected, empty allowed unless required',
+    ok.every(P.isPhMobile) && !bad.some(P.isPhMobile) && P.compactPhone('0917 123-4567') === '09171234567'
+    && P.phPhoneError('') === '' && P.phPhoneError('', { required: true }) === 'Enter a contact number.' && /^Use a PH mobile number/.test(P.phPhoneError('12345')));
+}
+// Admin order detail: a Studio order still shows the customer's reference photo, order notes, gallery origin and zone colours (read-only).
+{
+  const od = fsx.readFileSync(urlx.fileURLToPath(new URL('../src/pages/admin/OrderDetail.jsx', import.meta.url)), 'utf8');
+  const dd = fsx.readFileSync(urlx.fileURLToPath(new URL('../src/components/admin/OrderDesignDetails.jsx', import.meta.url)), 'utf8');
+  t('admin OrderDetail renders OrderDesignDetails under the design (reference photo, notes, origin, colours); the reference image has skeleton and error states; no edit controls',
+    /<OrderDesignDetails order=\{order\} \/>/.test(od) && /cfg && order\.client_design_ref_file/.test(dd) && /order\.notes &&/.test(dd) && /cfg\.inspirationId/.test(dd)
+    && /state === 'loading' && <div className="adm-sk"/.test(dd) && /could not be displayed/.test(dd) && !/axios|onChange|<input|<textarea/.test(dd));
+}
+
 console.log(out.join('\n')); const f = out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);
