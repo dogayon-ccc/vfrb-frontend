@@ -28,7 +28,8 @@ import { useLogoUpload } from './design-studio/useLogoUpload';
 import OnboardingOverlay from './design-studio/OnboardingOverlay';
 import InspoGallery from './design-studio/InspoGallery';
 import ShowcaseGallery from './design-studio/ShowcaseGallery';
-import { T2, INIT_CFG, FONTS, zonesFor } from './design-studio/dsShared';
+import { T2, INIT_CFG, FONTS, PATTERNS, zonesFor } from './design-studio/dsShared';
+import { describePatterns } from './design-studio/wovenPatterns';
 import { deserializeDesign, serializeDesign, draftLabel } from './design-studio/designSerialization';
 import { applyGarment, pieceOf } from './design-studio/garmentCatalog';
 import { openTarget } from './design-studio/designGallery';
@@ -164,7 +165,7 @@ export default function DesignStudio() {
   // writer on the same wrapper's style.transform made the zoom buttons fight it.
 
   // BUG 2 FIX: pass canvasEl (ref object), not canvasEl.current (null at render)
-  const { addLogo, addText, addShape, updateSelected, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
+  const { addLogo, addText, addShape, updateSelected, arrangeLayer, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
           pushHistory, undo, redo, canUndo, canRedo, resizeCanvas, initFailed,
           layers, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
           setDrawMode, setBrushStyle, setSnapOptions, garmentRect } =
@@ -285,6 +286,11 @@ export default function DesignStudio() {
       if (t?.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t?.tagName ?? '')) return;
       if (!selObj || selObj.__garmentBase || selObj.isEditing) return;
       if (mod && e.key.toLowerCase() === 'd') { e.preventDefault(); duplicateSelected(); return; }
+      // Ctrl+] / Ctrl+[ forward / backward, with Shift to the front / back; Ctrl+Shift+L lock; Ctrl+Shift+H hide.
+      const z = { BracketRight: e.shiftKey ? 'front' : 'forward', BracketLeft: e.shiftKey ? 'back' : 'backward' }[e.code];
+      if (mod && z) { e.preventDefault(); arrangeLayer(z); return; }
+      if (mod && e.shiftKey && e.code === 'KeyL') { e.preventDefault(); toggleSelectedLock(); return; }
+      if (mod && e.shiftKey && e.code === 'KeyH' && selObj.__layerId) { e.preventDefault(); toggleLayerVisibility(selObj.__layerId); return; }
       if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelected(); return; }
       const step = e.shiftKey ? 10 : 1;
       const d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
@@ -292,7 +298,7 @@ export default function DesignStudio() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [undo, redo, selObj, duplicateSelected, deleteSelected, nudgeSelected]);
+  }, [undo, redo, selObj, duplicateSelected, deleteSelected, nudgeSelected, arrangeLayer, toggleSelectedLock, toggleLayerVisibility]);
 
   // TASK O: save current face canvas JSON, then switch face + restore the other
   // Defined AFTER useGarmentCanvas so getCanvasJSON/loadCanvasJSON are in scope (no TDZ)
@@ -356,7 +362,7 @@ export default function DesignStudio() {
     // them, so nothing on the frontend could ever apply them. Backend now
     // returns textContent/textBold; place it the same way TextPanel does.
     if (aiCfg.textContent) {
-      const fontCss = FONTS.find(f => f.id === (aiCfg.textBold ? 'bold' : 'clean')).css;
+      const fontCss = FONTS.find(f => f.id === (aiCfg.textBold ? 'montserrat' : 'inter')).css;
       const textColor = aiCfg.colors?.accent ?? '#FFFFFF';
       setTimeout(() => addText(aiCfg.textContent, textColor, fontCss, 22), 250);
     }
@@ -606,7 +612,7 @@ export default function DesignStudio() {
         setFace(target);
         await new Promise(r => setTimeout(r, 150));
         const want = faceJSON.current[target] ?? [];
-        loadCanvasJSON(want);
+        loadCanvasJSON(want, { keepHistory: true });
         for (let i = 0; i < 40 && (getCanvasJSON() ?? []).length !== want.length; i++) await new Promise(r => setTimeout(r, 50));
         activeFace = target;
       }
@@ -618,7 +624,7 @@ export default function DesignStudio() {
       faceJSON.current[activeFace] = getCanvasJSON() ?? [];
       setFace(originalFace);
       await new Promise(r => setTimeout(r, 150));
-      loadCanvasJSON(faceJSON.current[originalFace] ?? []);
+      loadCanvasJSON(faceJSON.current[originalFace] ?? [], { keepHistory: true });
     }
     return faces.every(f => f.url) ? faces : null;
   }, [face, getCanvasJSON, loadCanvasJSON, exportFace, cfg.garment, cfg.sleeve, cfg.fit]);
@@ -651,7 +657,7 @@ export default function DesignStudio() {
         ['Garment', [cfg.garment, cfg.sleeve && `${cfg.sleeve} sleeve`, cfg.fit && cfg.fit !== 'unisex' ? cfg.fit : null].filter(Boolean).join(', ')],
         ['Category', cfg.category],
         ['Colours', zones.map(z => `${z}: ${cfg.colors[z] ?? '-'}`).join('  ')],
-        ['Patterns', Object.entries(cfg.patterns ?? {}).filter(([, p]) => p && p !== 'solid').map(([z, p]) => `${z}: ${p}`).join('  ') || 'Solid'],
+        ['Patterns', describePatterns(cfg.patterns, cfg.patternParams, cfg.colors, id => PATTERNS.find(p => p.id === id)?.label ?? id).join('  ') || 'Solid'],
         ['Details', describeDetails(cfg.details).join('  ') || 'As the template'],
         ['Placed items', `Front ${counts.front}${faces.length > 1 ? `, back ${counts.back}` : ''}`],
         ['Views', faces.map(f => f.label).join(', ') + (faces.length === 1 ? ' (no back view for this garment)' : '')],
@@ -733,7 +739,7 @@ export default function DesignStudio() {
           <ToolDrawer tool={tool} setTool={setTool} sheetOpen={sheetOpen} setSheetOpen={setSheetOpen} sheetFull={sheetFull} setSheetFull={setSheetFull}
             summary={{ cfg, face, saved, saving, saveErr, draftSaved, saveDesign, orderThis, ordering, onOpenTool: (id) => { setTool(id); setSheetOpen(true); }, downloadImage, downloadPdf, exporting, clearGarment }} cfg={cfg} setCfg={setCfg}
             activeZone={zone} setActiveZone={setActiveZone} detailFocus={detailFocus}
-            addText={addText} addShape={addShape} updateSelected={updateSelected}
+            addText={addText} addShape={addShape} updateSelected={updateSelected} arrangeLayer={arrangeLayer}
             assetsTab={assetsTab} setAssetsTab={setAssetsTab} logoUpload={logoUpload}
             setShowInspo={openInspo} setShowShowcase={toggleShowcase} onChangeGarment={changeGarment}
             brushSize={brushSize} brushColor={brushColor} erasing={erasing} setErasing={setErasing} garmentRect={garmentRect}

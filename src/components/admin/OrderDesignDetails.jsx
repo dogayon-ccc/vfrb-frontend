@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { ENTRIES } from '../../pages/client/design-studio/designGallery';
 import { describeDetails } from '../../pages/client/design-studio/garmentDetails';
+import { describePatterns } from '../../pages/client/design-studio/wovenPatterns';
+import { PATTERNS } from '../../pages/client/design-studio/dsShared';
 import { getStorageUrl, isImageFile } from '../../utils/fileUrl';
 import { NavIcon } from '../ui';
 
@@ -41,6 +43,7 @@ export default function OrderDesignDetails({ order }) {
   const cfg = parseCfg(order.studio_config);
   const photo = cfg?.inspirationId ? ENTRIES.find((d) => d.id === cfg.inspirationId) : null;
   const details = describeDetails(cfg?.details);
+  const patterns = describePatterns(cfg?.patterns, cfg?.patternParams, cfg?.colors, id => PATTERNS.find(p => p.id === id)?.label ?? id);
   const zones = Object.entries(cfg?.colors ?? {}).filter(([z, c]) => ZONE_LABEL[z] && typeof c === 'string' && c && (z !== 'pocket' || cfg.details?.patchPocket?.show !== false));
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 16, minWidth: 0 }}>
@@ -74,6 +77,12 @@ export default function OrderDesignDetails({ order }) {
         <div>
           <div style={label}>Garment details (2D)</div>
           <ul style={{ ...box, margin: 0, paddingLeft: 28 }}>{details.map(d => <li key={d}>{d}</li>)}</ul>
+        </div>
+      )}
+      {patterns.length > 0 && (
+        <div>
+          <div style={label}>Patterns (2D)</div>
+          <ul style={{ ...box, margin: 0, paddingLeft: 28 }}>{patterns.map(d => <li key={d}>{d}</li>)}</ul>
         </div>
       )}
       {cfg && order.client_design_ref_file && (

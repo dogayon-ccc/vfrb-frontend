@@ -1,5 +1,6 @@
 import { NavIcon } from '../../../components/ui/icons';
-import { SHAPE_TYPE_LABEL, FONTS } from './dsShared';
+import { shapeLabel } from './overlayTools';
+import { TextStyleSection, ShapeStyleSection, ArrangeRow } from './StyleSections';
 import { metricsPct } from './canvasGuides';
 
 // Real contextual inspector for the currently-selected Fabric object — shown
@@ -17,11 +18,7 @@ export function isEditableSelection(o) {
 }
 
 function kindOf(o) {
-  // o.type is Fabric's own class tag (rect/circle/triangle/ellipse/line/
-  // polygon) — reading it directly (via SHAPE_TYPE_LABEL) means Triangle/
-  // Ellipse/Line/Star show their real name instead of every non-circle
-  // shape being mislabeled "Rectangle".
-  if (o.__shape) return SHAPE_TYPE_LABEL[o.type] ?? 'Shape';
+  if (o.__shape) return shapeLabel(o);
   if (o.__draw)  return 'Drawing';
   if (o.__artwork) return 'Artwork';
   if (o.__logo)  return 'Logo';
@@ -33,21 +30,18 @@ function kindOf(o) {
 const ALIGN = [['left', 'Left', 'Align left'], ['hcenter', 'Center', 'Center horizontally'], ['right', 'Right', 'Align right'],
   ['top', 'Top', 'Align top'], ['vcenter', 'Middle', 'Center vertically'], ['bottom', 'Bottom', 'Align bottom']];
 
-export function SelectionInspector({ selObj, updateSelected, deleteSelected, duplicateSelected, alignSelected, toggleSelectedLock, pushHistory, garmentRect = null }) {
+export function SelectionInspector({ selObj, updateSelected, deleteSelected, duplicateSelected, alignSelected, toggleSelectedLock, pushHistory, arrangeLayer, garmentRect = null }) {
   // Metrics are % of the garment (origin = its top-left), the same system as the rulers; a multi-selection shows its group bounds.
   const active = selObj.canvas?.getActiveObject?.() ?? selObj, multi = active.type === 'activeselection';
   const m = metricsPct(active, garmentRect), g = garmentRect;
   const kind   = multi ? `${m?.n ?? 2} elements` : kindOf(selObj);
   const isText = !!selObj.__text || selObj.type === 'i-text' || selObj.type === 'text';
-  const isLine = selObj.__shape && selObj.type === 'line';
-  const hasFill = selObj.__shape || isText;
   const locked = !!selObj.__locked;
   const angle  = Math.round(selObj.angle ?? 0);
   const baseW = selObj.width ?? 0;
   const baseH = selObj.height ?? 0;
   const live = (props) => updateSelected(props, false);
   const commit = () => pushHistory?.();
-  const fontId = FONTS.find(f => f.css === selObj.fontFamily)?.id ?? '';
 
   const num = (label, value, onCommit, readOnly = false) => (
     <label className="ds-ins-field">
@@ -81,23 +75,16 @@ export function SelectionInspector({ selObj, updateSelected, deleteSelected, dup
           <p className="ds-group-label">Text</p>
           <label className="ds-ins-field ds-ins-wide">
             <span>Content</span>
-            <input type="text" maxLength={32} defaultValue={selObj.text ?? ''} key={selObj.__layerId} disabled={locked}
-              onChange={e => e.target.value && live({ text: e.target.value })} onBlur={commit}/>
+            {/* Controlled: the case buttons and undo change the text from outside this box. */}
+            <input type="text" maxLength={32} value={selObj.text ?? ''} disabled={locked}
+              onChange={e => live({ text: e.target.value })} onBlur={commit}/>
           </label>
           <label className="ds-ins-field ds-ins-wide">
-            <span>Font</span>
-            <select value={fontId} disabled={locked} onChange={e => updateSelected({ fontFamily: FONTS.find(f => f.id === e.target.value)?.css })}>
-              {fontId === '' && <option value="">Current</option>}
-              {FONTS.map(f => <option key={f.id} value={f.id}>{f.label ?? f.id}</option>)}
-            </select>
+            <span>Colour</span>
+            <input type="color" disabled={locked} value={/^#[0-9a-f]{6}$/i.test(selObj.fill ?? '') ? selObj.fill : '#ffffff'}
+              onChange={e => live({ fill: e.target.value })} onBlur={commit}/>
           </label>
-          {range(`Size ${Math.round(selObj.fontSize ?? 18)}px`, Math.round(selObj.fontSize ?? 18), 8, 96, v => live({ fontSize: v }), locked)}
-          <div className="ds-seg ds-seg--sm" role="radiogroup" aria-label="Text alignment">
-            {['left', 'center', 'right'].map(a => (
-              <button key={a} type="button" role="radio" aria-checked={(selObj.textAlign ?? 'left') === a} disabled={locked}
-                onClick={() => updateSelected({ textAlign: a })}>{a[0].toUpperCase() + a.slice(1)}</button>
-            ))}
-          </div>
+          <TextStyleSection o={selObj} set={updateSelected} live={live} commit={commit} locked={locked}/>
         </section>
       )}
 
@@ -125,15 +112,10 @@ export function SelectionInspector({ selObj, updateSelected, deleteSelected, dup
 
       {!multi && <section className="ds-ins-sec">
         <p className="ds-group-label">Appearance</p>
-        {hasFill && (
-          <label className="ds-ins-field ds-ins-wide">
-            <span>Color</span>
-            <input type="color" disabled={locked} value={(isLine ? selObj.stroke : selObj.fill) || '#02C39A'}
-              onChange={e => live(isLine ? { stroke: e.target.value } : { fill: e.target.value })} onBlur={commit}/>
-          </label>
-        )}
+        {selObj.__shape && <ShapeStyleSection o={selObj} live={live} commit={commit} locked={locked}/>}
         {range(`Opacity ${Math.round((selObj.opacity ?? 1) * 100)}%`, Math.round((selObj.opacity ?? 1) * 100), 10, 100,
           v => live({ opacity: v / 100 }), false)}
+        <ArrangeRow o={selObj} set={updateSelected} arrangeLayer={arrangeLayer} locked={locked}/>
       </section>}
 
       <div className="ds-ins-actions">

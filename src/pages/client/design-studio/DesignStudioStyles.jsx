@@ -733,7 +733,7 @@ export default function DesignStudioStyles() {
       .ds-spin--on-thread{border-color:rgb(255 255 255 / .4);border-top-color:var(--cx-on-thread);}
       .ds-dock-export{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
       .ds-dock-export .ds-act{min-height:44px;font-size:12px;justify-content:center;}
-      @media (pointer:coarse){.ds-lay-btn{width:44px;height:44px;}.ds-lay-pick{min-height:44px;}.ds-ins-field input,.ds-ins-field select{min-height:44px;}}
+      @media (pointer:coarse){.ds-lay-btn{width:44px;height:44px;}.ds-lay-pick{min-height:44px;}.ds-ins-field input,.ds-ins-field select{min-height:44px;}.ds-ins .ds-seg button,.ds-ins-align .ds-act{min-height:44px;}.ds-ins-range input{min-height:44px;}}
 
       /* Stage piece selector: Top / Bottom / Set as one segmented control (PieceSelector.jsx) */
       .ds-piece{display:flex;align-items:center;gap:2px;padding:3px;border-radius:999px;background:var(--cx-card);border:1px solid var(--cx-line);box-shadow:var(--cx-elev-1,0 2px 8px rgb(15 23 42 / .06));}

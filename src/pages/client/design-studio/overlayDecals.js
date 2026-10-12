@@ -1,3 +1,4 @@
+import { reviveOverlays } from './overlayTools';
 import { getGarmentPaths } from './garmentPaths';
 
 // Extent of the sketch's body panel (torso and legs, no sleeves); overlay coordinates are normalised against it.
@@ -12,7 +13,7 @@ export async function renderDecals(objects) {
   if (!objects?.length) return [];
   const mod = await import('fabric');
   const fabric = mod.fabric ?? mod.default ?? mod;
-  const live = await fabric.util.enlivenObjects(objects);
+  const live = await reviveOverlays(await fabric.util.enlivenObjects(objects));
   return live.filter(o => o.visible !== false).map(o => {
     const r = o.getBoundingRect();
     return { url: o.toDataURL({ multiplier: 3, enableRetinaScaling: false }), cx: r.left + r.width / 2, cy: r.top + r.height / 2, w: r.width, h: r.height };

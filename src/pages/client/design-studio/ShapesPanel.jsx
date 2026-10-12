@@ -21,6 +21,8 @@ const star = Array.from({ length:10 }, (_, i) => {
   return `${(12 + r * Math.cos(a)).toFixed(1)},${(12 + r * Math.sin(a)).toFixed(1)}`;
 }).join(' ');
 
+const hexagon = Array.from({ length:6 }, (_, i) => `${(12 + 10 * Math.cos(i * Math.PI / 3)).toFixed(1)},${(12 + 10 * Math.sin(i * Math.PI / 3)).toFixed(1)}`).join(' ');
+
 function ShapeGlyph({ kind }) {
   const p = { fill:T2, stroke:T2 };
   return (
@@ -31,6 +33,9 @@ function ShapeGlyph({ kind }) {
       {kind === 'ellipse' && <ellipse cx="12" cy="12" rx="10" ry="6" {...p}/>}
       {kind === 'line' && <line x1="3" y1="20" x2="21" y2="4" stroke={T2} strokeWidth="3" strokeLinecap="round"/>}
       {kind === 'star' && <polygon points={star} {...p}/>}
+      {kind === 'roundrect' && <rect x="3" y="5" width="18" height="14" rx="5" {...p}/>}
+      {kind === 'polygon' && <polygon points={hexagon} {...p}/>}
+      {kind === 'arrow' && <polygon points="2,9 14,9 14,4 22,12 14,20 14,15 2,15" {...p} strokeLinejoin="round"/>}
     </svg>
   );
 }
@@ -106,7 +111,7 @@ export default function ShapesPanel({ selObj, onAdd, onUpdate }) {
         </>
       ) : (
         <p style={{ fontSize:11, color:'rgba(15,23,42,.35)', textAlign:'center', margin:'4px 0 0', lineHeight:1.5 }}>
-          Select a shape on the canvas to edit its color, opacity, or border.
+          Select a shape on the canvas to edit its fill, border, corners, opacity, rotation, flip and order.
         </p>
       )}
     </div>
