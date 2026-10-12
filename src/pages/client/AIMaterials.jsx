@@ -488,7 +488,7 @@ export default function AIMaterials() {
               </p>
               <p style={{ fontSize:12, color:'var(--text-muted)', lineHeight:1.65,
                 margin:0, fontFamily:FONT }}>
-                Gemini Flash analyzes your garment type, quantity, color, and specifications
+                Gemini Flash reads your garment type, fit, colors, and design details
                 to recommend the types of raw materials your order will need.
                 Exact quantities are determined by VFRB's production team — the AI provides
                 general guidance on material categories and descriptions.
