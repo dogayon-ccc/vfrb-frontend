@@ -19,6 +19,7 @@ import { glbSlotFor, slotLive } from './glbSlots';
 import { BASE_PATHS, getGarmentPaths } from './garmentPaths';
 import { get3DCapabilities, fitsFor, sleeves3DFor, has3DModel } from './garmentCapabilities';
 import { realTrimFor, colorsForGarment } from './colorRules';
+import { DERIVED_FAMILIES, DERIVED_BY_NAME } from './derivedFamilies';
 
 // Category -> its garments, in display order. Source: the VFRB interview's garment list
 // (unchanged from the previous CATS in dsShared.js — moved, not altered).
@@ -26,13 +27,15 @@ import { realTrimFor, colorsForGarment } from './colorRules';
 // SPORTS / PE CATEGORY") — it is a hard-locked business rule, not a style choice. 'Track
 // Pants' had a real 2D path (garmentPaths.js) but appeared in no other category, so it is
 // dropped from the catalog along with it rather than invented a new home to keep it visible.
-const CATEGORY_DEFS = [
+const BASE_CATEGORY_DEFS = [
   { id: 'School Uniform',      icon: 'school',      garments: ['Polo Shirt', 'Round Neck', 'Pants', 'Shorts', 'Skirt', 'Pleated Skirt'] },
   { id: 'Corporate',           icon: 'corporate',   garments: ['Polo Shirt', 'Button-Down', 'Blouse', 'Blazer', 'Collarless Blazer', 'Mandarin Collar', 'T-Shirt', 'Dress', 'Pants', 'Skirt'] },
   { id: 'Medical / Scrubs',    icon: 'medical',     garments: ['Scrub Top', 'Lab Coat', 'Lab Coverall', 'Pants'] },
   { id: 'Hospitality / Service', icon: 'hospitality', garments: ['Mandarin Collar', 'Button-Down', 'Polo Shirt', 'Blouse', 'Dress', 'Pants', 'Skirt'] },
   { id: 'Industrial / Work',   icon: 'industrial',  garments: ['Button-Down', 'Polo Shirt', 'T-Shirt', 'Lab Coverall', 'Pants', 'Shorts'] },
 ];
+// Derived families join their category after its own garments (the picker groups them under "From reference").
+const CATEGORY_DEFS = BASE_CATEGORY_DEFS.map(c => ({ ...c, garments: [...c.garments, ...DERIVED_FAMILIES.filter(d => d.category === c.id).map(d => d.name)] }));
 
 // Sleeve styles VFRB really offers per garment. One row to edit if the client adds a style; every consumer reads FAMILIES.
 const SLEEVE_OPTS = {
@@ -49,6 +52,8 @@ const SLEEVE_OPTS = {
   'Blouse': ['Short'],
   'Dress': ['Short'],
   'Pants': [], 'Shorts': [], 'Skirt': [], 'Pleated Skirt': [],
+  // A derived template is one traced outline: its sleeve is part of the shape, not a style choice.
+  ...Object.fromEntries(DERIVED_FAMILIES.map(d => [d.name, []])),
 };
 
 // Garment names retired as duplicates: 'School Polo' was an exact copy of 'Polo Shirt'; 'V-Neck Shirt' duplicated 'Scrub Top'. Old saved designs still carry the name.
@@ -92,6 +97,7 @@ const FAMILIES = Object.fromEntries(FAMILY_NAMES.map(name => {
     supportsText: cap.supported ? !!cap.text : null,
     supportsLogo: cap.supported ? !!cap.logo : null,
     frontBack: cap.supported ? !!cap.frontBack : null,
+    derived: !!DERIVED_BY_NAME[name], // traced from a reference model, pending VFRB confirmation
   }];
 }));
 
@@ -111,6 +117,7 @@ export const PIECE_OF = {
   'Polo Shirt': 'top', 'T-Shirt': 'top', 'Round Neck': 'top', 'Mandarin Collar': 'top', 'Button-Down': 'top', 'Scrub Top': 'top', 'Lab Coat': 'top',
   'Blouse': 'top', 'Blazer': 'top', 'Collarless Blazer': 'top',
   'Pants': 'bottom', 'Shorts': 'bottom', 'Skirt': 'bottom', 'Pleated Skirt': 'bottom',
+  ...Object.fromEntries(DERIVED_FAMILIES.filter(d => d.role).map(d => [d.name, d.role])),
 };
 export const pieceOf = garment => PIECE_OF[garment] ?? null;
 

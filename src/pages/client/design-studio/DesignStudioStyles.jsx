@@ -209,6 +209,15 @@ export default function DesignStudioStyles() {
       .ds-pick-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;}
       .ds-pick-actions .ds-btn{min-height:44px;}
       .ds-pick-sum{max-width:52ch;font-size:14px;line-height:1.5;color:var(--cx-ink);}
+      /* "Start from scratch" step 2 and the "From reference" group of derived templates. */
+      .ds-pick-steps .ds-pick-img{width:min(220px,60vw);aspect-ratio:4/5;display:grid;place-items:center;position:relative;}
+      .ds-pick-steps .ds-pick-frow{justify-content:center;}
+      .ds-pick-tier{display:inline-flex;align-items:center;gap:8px;text-align:left;}
+      .ds-pick-tier .ds-pick-badge{position:static;flex:none;}
+      .ds-pick-sec{width:100%;max-width:1040px;display:grid;gap:6px;margin-top:18px;padding-top:14px;border-top:1px dashed var(--cx-line);}
+      .ds-pick-sec>h3{font:600 15px/1.3 var(--cx-sans);color:var(--cx-ink);padding:0 14px;}
+      .ds-pick[data-inline] .ds-pick-sec>h3{color:var(--cx-stage-ink);}
+      .ds-pick-sec>.ds-note{padding:0 14px;}
       .ds-pick[data-inline] .ds-pick-sum{color:var(--cx-stage-ink);}
       .ds-pick-status{list-style:none;display:flex;flex-wrap:wrap;justify-content:center;gap:6px;}
       .ds-pick-status li{padding:3px 10px;border-radius:var(--cx-r-pill);background:var(--cx-paper-2);color:var(--cx-ink-2);font-size:12px;font-weight:600;}

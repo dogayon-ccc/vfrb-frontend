@@ -348,3 +348,61 @@ These stay 2D only, with the 3D button disabled and labelled. Each needs a garme
 | dress-shift-geometric | Not rendered (67.9 MB, 2.8 M triangles) | Too heavy for the web, and no dress family. |
 
 `verified-3d` is used for none of these. The labelling contract needs a `verification: { method, date }` record signed off by the owner on a real device. The Pants and Shorts models passed the static check and the RENDER and BROWSER reviews above, so they are the first candidates for that record.
+
+## Derived editable pieces (2026-10-12)
+
+`tools/glb-extract/derive_template.py` derives garment-only pieces from the 23 files in `/models/reference/`. Those files are read-only: they are hashed before and after each run, and the hashes match. Outputs go only to `public/models/vfrb-derived/`. Evidence for every step is in `tools/glb-extract/derived-manifest.json`.
+
+- **Source:** public/models/reference/peplum-set-navy.glb, which is a copy of a Meshy image-to-3D generation from the gallery photo (rows above).
+- **Licence:** unknown (not recorded in this audit or elsewhere in the repo).
+- **Approval:** enabled 2026-10-12 (derived from reference; VFRB confirmation pending).
+- **Decimator:** fast-simplification==0.2.0 (tooling only).
+
+Cleaning:
+- 21 of 23 sources showed no non-garment part in front, left, back and top renders.
+- `set-pinstripe-pants` and `set-pinstripe-skirt` had a mannequin neck fused into the collar. 1,054 and 2,021 faces were removed inside the measured neck cylinder.
+- No floating fragments were found.
+
+Splitting:
+- The three flat-lay scrub sets split along their components.
+- The other sets are plane-clipped at REF_SPLIT. Pieces that hung below the hem went back to the top: 90 faces (pinstripe navy) and 223 faces (fuchsia).
+
+| Piece | Family | Triangles | GLB SHA-256 | Status |
+|---|---|---|---|---|
+| `bir-blouse-trousers-blue-bottom` | Straight Trousers | 30,769 (under cap) | `dc6e1d3985ce` | 3D (approx.), enabled 2026-10-12, pending VFRB confirmation |
+| `bir-blouse-trousers-blue-top` | — | 81,529 -> 49,800 (front IoU 0.9985, views min 0.9985) | `cf6c3f8393b0` | not registered: the exact template of this photo already serves the top |
+| `blazer-double-breasted-gray-bottom` | Slim Suit Trousers | 30,283 (under cap) | `69e486dc34c1` | 3D (approx.), enabled 2026-10-12, pending VFRB confirmation |
+| `blazer-double-breasted-gray-top` | Double-Breasted Blazer | 78,961 -> 49,799 (front IoU 0.9988, views min 0.9986) | `e98013b532b3` | 3D (approx.), enabled 2026-10-12, pending VFRB confirmation |
+| `blazer-open-front-black` | Open-Front Blazer | 397,564 -> 49,798 (front IoU 0.9986, views min 0.9969) | `3bac6b86a31f` | 3D (approx.), enabled 2026-10-12, pending VFRB confirmation |
+| `blazer-pinstripe-navy-bottom` | Slim Trousers | 35,850 (under cap) | `65220ca95013` | 3D (approx.), enabled 2026-10-12, pending VFRB confirmation |
+| `blazer-pinstripe-navy-top` | Fitted Notch Jacket | 54,124 -> 49,800 (front IoU 0.9999, views min 0.9999) | `2c5857dfb724` | 3D (approx.), enabled 2026-10-12, pending VFRB confirmation |
+| `blouse-asymmetric-blue` | Asymmetric Collar Blouse | 82,946 -> 49,800 (front IoU 0.9998, views min 0.9997) | `a52b2ef60843` | 3D (approx.), enabled 2026-10-12, pending VFRB confirmation |
+| `blouse-mandarin-yellow` | Mandarin Blouse | 233,300 -> 49,800 (front IoU 0.9991, views min 0.999) | `2678801c30ab` | 3D (approx.), enabled 2026-10-12, pending VFRB confirmation |
+| `blouse-pleated-bib-white` | Pleated Bib Blouse | 160,216 -> 49,800 (front IoU 0.9995, views min 0.9974) | `64482f0ce5d5` | 2D only (flattened hanger scan) |
+| `blouse-roundneck-fuchsia-bottom` | Ankle Trousers | 32,561 (under cap) | `d48bc12b9d0c` | 3D (approx.), enabled 2026-10-12, pending VFRB confirmation |
+| `blouse-roundneck-fuchsia-top` | — | 38,743 (under cap) | `36a131ea9b6f` | not registered: the exact template of this photo already serves the top |
+| `blouse-roundneck-mustard-bottom` | Creased Trousers | 29,921 (under cap) | `3595c5893bbd` | 3D (approx.), enabled 2026-10-12, pending VFRB confirmation |
+| `blouse-roundneck-mustard-top` | Banded Round Neck Blouse | 54,975 -> 49,799 (front IoU 0.9991, views min 0.9991) | `a3ec8c96a04e` | 3D (approx.), enabled 2026-10-12, pending VFRB confirmation |
+| `blouse-scarf-cream` | Scarf-Tie Blouse | 144,812 -> 49,800 (front IoU 0.9995, views min 0.9984) | `78db0c31a480` | 3D (approx.), enabled 2026-10-12, pending VFRB confirmation |
+| `blouse-tunic-roundneck-blue` | Belted Tunic Blouse | 240,458 -> 49,798 (front IoU 0.9992, views min 0.9989) | `3ad94e10743c` | 3D (approx.), enabled 2026-10-12, pending VFRB confirmation |
+| `dress-butter-belted` | Belted Shift Dress | 82,220 -> 49,800 (front IoU 0.9998, views min 0.9993) | `9fcfa9654b41` | 3D (approx.), enabled 2026-10-12, pending VFRB confirmation |
+| `dress-tunic-maternity-navy` | Maternity Tunic Dress | 93,830 -> 49,800 (front IoU 0.9995, views min 0.9992) | `c19721e8ded6` | 3D (approx.), enabled 2026-10-12, pending VFRB confirmation |
+| `jack-shirt-two-tone` | Jack Shirt | kept 184,492 (gate failed: opening cover 0.0 -> 0.234) | `55ade7b8fc6d` | 3D (approx.), enabled 2026-10-12, pending VFRB confirmation |
+| `pantsuit-notch-short-gray-bottom` | Pantsuit Trousers | 36,775 (under cap) | `071b95920222` | 3D (approx.), enabled 2026-10-12, pending VFRB confirmation |
+| `pantsuit-notch-short-gray-top` | Short-Sleeve Notch Jacket | 52,917 -> 49,799 (front IoU 0.9989, views min 0.9989) | `aec74df25e24` | 3D (approx.), enabled 2026-10-12, pending VFRB confirmation |
+| `peplum-set-navy-bottom` | Midi Pencil Skirt | 20,503 (under cap) | `a73172a15960` | 3D (approx.), enabled 2026-10-12, pending VFRB confirmation |
+| `peplum-set-navy-top` | Peplum Top | 49,377 (under cap) | `462072e1f115` | 3D (approx.), enabled 2026-10-12, pending VFRB confirmation |
+| `polo-barong-brown-bottom` | Men | 29,267 (under cap) | `ccc436bc1a11` | 3D (approx.), enabled 2026-10-12, pending VFRB confirmation |
+| `polo-barong-brown-top` | Barong Shirt | 79,751 -> 49,800 (front IoU 0.9988, views min 0.9988) | `4d2dfd3c282e` | 3D (approx.), enabled 2026-10-12, pending VFRB confirmation |
+| `scrub-set-housekeeping-bottom` | Housekeeping Trousers | 53,870 -> 49,800 (front IoU 0.9998, views min 0.9998) | `15ef41ae04ea` | 3D (approx.), enabled 2026-10-12, pending VFRB confirmation |
+| `scrub-set-housekeeping-top` | — | 82,930 -> 49,800 (front IoU 0.9997, views min 0.9996) | `8a85f7004ef0` | not registered: the exact template of this photo already serves the top |
+| `scrub-set-men-vneck-bottom` | Men | 67,800 -> 49,800 (front IoU 0.9997, views min 0.9996) | `2e51fb4553b5` | 3D (approx.), enabled 2026-10-12, pending VFRB confirmation |
+| `scrub-set-men-vneck-top` | — | 94,990 -> 49,800 (front IoU 0.9997, views min 0.9994) | `18777080cfc9` | not registered: the exact template of this photo already serves the top |
+| `scrub-set-women-vneck-bottom` | Women | 75,592 -> 49,800 (front IoU 0.9996, views min 0.9994) | `739de60bebe9` | 3D (approx.), enabled 2026-10-12, pending VFRB confirmation |
+| `scrub-set-women-vneck-top` | — | 92,600 -> 49,798 (front IoU 0.9996, views min 0.9994) | `d9054fbe9e67` | not registered: the exact template of this photo already serves the top |
+| `set-pinstripe-pants-bottom` | Cuffed Trousers | 28,508 (under cap) | `f121af16da86` | not promoted (garment split fails review) |
+| `set-pinstripe-pants-top` | Pant-Suit Jacket | 30,496 (under cap) | `bcb3ba54f585` | not promoted (garment split fails review) |
+| `set-pinstripe-skirt-bottom` | Straight Skirt | 44,289 (under cap) | `45badc1ee409` | not promoted (garment split fails review) |
+| `set-pinstripe-skirt-top` | Skirt-Suit Jacket | 94,392 -> 49,800 (front IoU 0.9987, views min 0.9967) | `76b49eba4101` | not promoted (garment split fails review) |
+| `shirt-two-tone-gpc-bottom` | Straight Slacks | 34,814 (under cap) | `69a094dcd80c` | 3D (approx.), enabled 2026-10-12, pending VFRB confirmation |
+| `shirt-two-tone-gpc-top` | Two-Tone Shirt | 47,820 (under cap) | `54cbecd9f2fc` | 3D (approx.), enabled 2026-10-12, pending VFRB confirmation |

@@ -8,6 +8,8 @@
 // Every consumer that reshapes a sleeve reads those first 8 numbers, so the order is part of the contract.
 // The body path uses only M/L/Q commands with x,y pairs: overlayDecals.bodyBounds reads its numbers pairwise.
 
+import { DERIVED_FAMILIES, derivedPaths } from './derivedFamilies';
+
 const f = n => Math.round(n * 10) / 10;
 const pt = (x, y) => `${f(x)},${f(y)}`;
 
@@ -315,6 +317,8 @@ export const BASE_PATHS = {
   'Track Pants': { ...trousers({ h: 440, hemY: 408, hemOut: 58, hemIn: 7, fly: false, crease: false, cuffs: true, drawstring: true }),
     pocket: 'M 44,180 L 71,180 Q 75,180 75,184 L 75,226 Q 75,230 71,230 L 44,230 Q 40,230 40,226 L 40,184 Q 40,180 44,180 Z' },
   'Skirt':       skirt({}),
+  // Families derived from the reference models: one traced body outline each (derivedFamilies.js).
+  ...Object.fromEntries(DERIVED_FAMILIES.map(d => [d.name, derivedPaths(d)])),
 };
 
 // Blank-canvas state (no garment dropped yet): same default canvas
@@ -333,5 +337,5 @@ export function getGarmentPaths(garment, sleeve = 'Short', face = 'front') {
   const paths = variant ? variant(base) : base;
   const details = [...(paths.details ?? []), ...(paths.sleeveL ? paths.sleeveDetails ?? [] : [])].filter(d => !d.face || d.face === face);
   // Back view: same silhouette, no pocket; the collar is the band seen from behind where the template has one.
-  return face === 'back' ? { ...paths, collar: paths.back?.collar ?? null, pocket: null, details } : { ...paths, details };
+  return face === 'back' ? { ...paths, body: paths.back?.body ?? paths.body, collar: paths.back?.collar ?? null, pocket: null, details } : { ...paths, details };
 }

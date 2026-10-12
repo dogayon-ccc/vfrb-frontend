@@ -1,0 +1,86 @@
+// Garment families derived from the read-only reference models (public/models/reference): each piece was cleaned, split at its set
+// split and traced into a closed 2D outline by tools/glb-extract/derive_template.py (geometry in derivedTemplates.generated.js).
+// THE one table: catalog, 2D paths, 3D entries, template ids and the gallery all read it. One body colour zone per piece: no derived
+// model or outline separates collar, sleeve or pocket. Names are generic garment names, pending VFRB confirmation.
+import { DERIVED_GEOMETRY } from './derivedTemplates.generated';
+
+export const DERIVED_LABEL = 'Derived from reference, pending VFRB confirmation';
+export const DERIVED_APPROVAL = 'enabled 2026-10-12 (derived from reference; VFRB confirmation pending)';
+// Recorded in GLB-STAGING-AUDIT.md: Meshy generations from the gallery photos, staged in asset-staging/mesh-3d; no licence is recorded.
+export const DERIVED_SOURCE = 'Meshy image-to-3D generation of the gallery photo (asset-staging/mesh-3d, byte-identical copy in public/models/reference)';
+export const DERIVED_LICENCE = 'unknown (not recorded)';
+
+// [piece id, family name, catalog category, set role (null = full-length, never in a set), sleeve as photographed, fit, 3D off reason]
+const ROWS = [
+  ['blazer-open-front-black', 'Open-Front Blazer', 'Corporate', 'top', 'Long', 'female'],
+  ['blouse-asymmetric-blue', 'Asymmetric Collar Blouse', 'Corporate', 'top', 'Short', 'female'],
+  ['blouse-mandarin-yellow', 'Mandarin Blouse', 'Hospitality / Service', 'top', 'Short', 'female'],
+  ['blouse-pleated-bib-white', 'Pleated Bib Blouse', 'School Uniform', 'top', 'Short', 'female',
+    'flattened hanger scan: torso depth 0.07-0.09 against 0.66-0.74 for worn blouses at the same scale (GLB-STAGING-AUDIT.md)'],
+  ['blouse-scarf-cream', 'Scarf-Tie Blouse', 'Corporate', 'top', 'Short', 'female'],
+  ['blouse-tunic-roundneck-blue', 'Belted Tunic Blouse', 'Corporate', 'top', 'Short', 'female'],
+  ['dress-butter-belted', 'Belted Shift Dress', 'Corporate', null, 'Short', 'female'],
+  ['dress-tunic-maternity-navy', 'Maternity Tunic Dress', 'Corporate', null, '3/4', 'female'],
+  ['jack-shirt-two-tone', 'Jack Shirt', 'Industrial / Work', 'top', 'Short', 'male'],
+  ['blazer-double-breasted-gray-top', 'Double-Breasted Blazer', 'Corporate', 'top', 'Long', 'female'],
+  ['blazer-double-breasted-gray-bottom', 'Slim Suit Trousers', 'Corporate', 'bottom', null, 'female'],
+  ['blazer-pinstripe-navy-top', 'Fitted Notch Jacket', 'Corporate', 'top', '3/4', 'female'],
+  ['blazer-pinstripe-navy-bottom', 'Slim Trousers', 'Corporate', 'bottom', null, 'female'],
+  ['bir-blouse-trousers-blue-bottom', 'Straight Trousers', 'Corporate', 'bottom', null, 'female'],
+  ['blouse-roundneck-fuchsia-bottom', 'Ankle Trousers', 'Corporate', 'bottom', null, 'female'],
+  ['blouse-roundneck-mustard-top', 'Banded Round Neck Blouse', 'Corporate', 'top', 'Short', 'female'],
+  ['blouse-roundneck-mustard-bottom', 'Creased Trousers', 'Corporate', 'bottom', null, 'female'],
+  ['pantsuit-notch-short-gray-top', 'Short-Sleeve Notch Jacket', 'Corporate', 'top', 'Short', 'female'],
+  ['pantsuit-notch-short-gray-bottom', 'Pantsuit Trousers', 'Corporate', 'bottom', null, 'female'],
+  ['peplum-set-navy-top', 'Peplum Top', 'Corporate', 'top', 'Short', 'female'],
+  ['peplum-set-navy-bottom', 'Midi Pencil Skirt', 'Corporate', 'bottom', null, 'female'],
+  ['polo-barong-brown-top', 'Barong Shirt', 'Corporate', 'top', 'Short', 'male'],
+  ['polo-barong-brown-bottom', "Men's Slacks", 'Corporate', 'bottom', null, 'male'],
+  ['scrub-set-housekeeping-bottom', 'Housekeeping Trousers', 'Hospitality / Service', 'bottom', null, 'female'],
+  ['scrub-set-men-vneck-bottom', "Men's Jogger Scrub Pants", 'Medical / Scrubs', 'bottom', null, 'male'],
+  ['scrub-set-women-vneck-bottom', "Women's Jogger Scrub Pants", 'Medical / Scrubs', 'bottom', null, 'female'],
+  ['set-pinstripe-pants-top', 'Pant-Suit Jacket', 'Corporate', 'top', '3/4', 'female'],
+  ['set-pinstripe-pants-bottom', 'Cuffed Trousers', 'Corporate', 'bottom', null, 'female'],
+  ['set-pinstripe-skirt-top', 'Skirt-Suit Jacket', 'Corporate', 'top', '3/4', 'female'],
+  ['set-pinstripe-skirt-bottom', 'Straight Skirt', 'Corporate', 'bottom', null, 'female'],
+  ['shirt-two-tone-gpc-top', 'Two-Tone Shirt', 'Corporate', 'top', 'Short', 'male'],
+  ['shirt-two-tone-gpc-bottom', 'Straight Slacks', 'Corporate', 'bottom', null, 'male'],
+];
+
+// Set tops that already have an exact template of the same photo (photo base + its own model cut from the same scan): reused, not duplicated.
+// Their derived -top.glb is still written (a set always keeps both pieces) but not registered.
+export const REUSED_TOPS = {
+  'bir-blouse-trousers-blue': 'Button-Down', 'blouse-roundneck-fuchsia': 'Round Neck', 'scrub-set-housekeeping': 'Mandarin Collar',
+  'scrub-set-men-vneck': 'Scrub Top', 'scrub-set-women-vneck': 'Scrub Top',
+};
+
+// Derived but not promoted (files written, reported, never registered): the plane at the set's REF_SPLIT does not separate the garments.
+// Checked in front/back/side renders of the derived pieces on 2026-10-12.
+export const NOT_PROMOTED = {
+  'set-pinstripe-skirt': "the split plane (0.485) lies above the jacket's front hem: the skirt piece carries the jacket's lower front panels with their pockets, and the neck cut leaves a ragged rim above the collar",
+  'set-pinstripe-pants': "the trousers carry the jacket's hanging front tail, and the neck cut leaves a ragged rim above the collar",
+};
+
+// Rows whose geometry has been generated and passed review (a batch not yet run is simply absent, never half-registered).
+export const DERIVED_FAMILIES = ROWS.filter(([id]) => DERIVED_GEOMETRY[id] && !NOT_PROMOTED[DERIVED_GEOMETRY[id].ref]).map(([id, name, category, role, sleeve, fit, no3D = null]) => ({
+  id, name, category, role, sleeve, fit, no3D, geo: DERIVED_GEOMETRY[id], ref: DERIVED_GEOMETRY[id].ref,
+}));
+export const DERIVED_BY_NAME = Object.fromEntries(DERIVED_FAMILIES.map(d => [d.name, d]));
+export const isDerived = garment => !!DERIVED_BY_NAME[garment];
+
+// What "Use as template" opens for a reference photo: the single piece, or a set's top and bottom (top may be a reused family).
+export function derivedPiecesFor(photoId) {
+  const mine = DERIVED_FAMILIES.filter(d => d.ref === photoId);
+  if (!mine.length) return null;
+  const single = mine.find(d => d.id === photoId);
+  if (single) return { single: single.name };
+  const top = mine.find(d => d.id === `${photoId}-top`)?.name ?? REUSED_TOPS[photoId] ?? null;
+  const bottom = mine.find(d => d.id === `${photoId}-bottom`)?.name ?? null;
+  return top && bottom ? { top, bottom } : null;
+}
+
+// 2D paths: one body zone; the back uses its own traced outline only where it differs from the front. `shade` = the model's lighting.
+export const derivedPaths = d => ({
+  w: d.geo.w, h: d.geo.h, body: d.geo.body, collar: null, sleeveL: null, sleeveR: null, pocket: null, details: [],
+  back: d.geo.back ? { body: d.geo.back } : null, shade: d.geo.shade, derived: true,
+});

@@ -1,0 +1,1235 @@
+{
+ "families": {
+  "Polo Shirt|null|null": {
+   "templateId": "polo-shirt-short-male",
+   "model": "polo-shirt",
+   "status": "2d-3d-approx",
+   "glb": "/models/Polo%20Shirt%20male.glb"
+  },
+  "Polo Shirt|Short|null": {
+   "templateId": "polo-shirt-short-male",
+   "model": "polo-shirt",
+   "status": "2d-3d-approx",
+   "glb": "/models/Polo%20Shirt%20male.glb"
+  },
+  "Polo Shirt|null|male": {
+   "templateId": "polo-shirt-short-male",
+   "model": "polo-shirt",
+   "status": "2d-3d-approx",
+   "glb": "/models/Polo%20Shirt%20male.glb"
+  },
+  "Polo Shirt|Short|male": {
+   "templateId": "polo-shirt-short-male",
+   "model": "polo-shirt",
+   "status": "2d-3d-approx",
+   "glb": "/models/Polo%20Shirt%20male.glb"
+  },
+  "Polo Shirt|null|female": {
+   "templateId": "polo-shirt-short-female",
+   "model": "polo-shirt",
+   "status": "2d-3d-approx",
+   "glb": "/models/female%20polo%20shirt.glb"
+  },
+  "Polo Shirt|Short|female": {
+   "templateId": "polo-shirt-short-female",
+   "model": "polo-shirt",
+   "status": "2d-3d-approx",
+   "glb": "/models/female%20polo%20shirt.glb"
+  },
+  "Polo Shirt|null|unisex": {
+   "templateId": "polo-shirt-short-unisex",
+   "model": "polo-shirt",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/polo-shirt-unisex-short.glb"
+  },
+  "Polo Shirt|Short|unisex": {
+   "templateId": "polo-shirt-short-unisex",
+   "model": "polo-shirt-unisex-short",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/polo-shirt-unisex-short.glb"
+  },
+  "Round Neck|null|null": {
+   "templateId": "round-neck-fuchsia-short",
+   "model": "round-neck-fuchsia",
+   "status": "2d-3d-approx",
+   "glb": "/models/garments/round-neck-fuchsia-short.glb"
+  },
+  "Round Neck|Short|null": {
+   "templateId": "round-neck-fuchsia-short",
+   "model": "round-neck-fuchsia",
+   "status": "2d-3d-approx",
+   "glb": "/models/garments/round-neck-fuchsia-short.glb"
+  },
+  "Round Neck|Long|null": {
+   "templateId": null,
+   "model": null,
+   "status": "editable-2d",
+   "glb": null
+  },
+  "Round Neck|null|male": {
+   "templateId": "round-neck-fuchsia-short",
+   "model": null,
+   "status": "2d-3d-approx",
+   "glb": "/models/garments/round-neck-fuchsia-short.glb"
+  },
+  "Round Neck|Short|male": {
+   "templateId": "round-neck-fuchsia-short",
+   "model": null,
+   "status": "2d-3d-approx",
+   "glb": "/models/garments/round-neck-fuchsia-short.glb"
+  },
+  "Round Neck|Long|male": {
+   "templateId": null,
+   "model": null,
+   "status": "editable-2d",
+   "glb": null
+  },
+  "Round Neck|null|female": {
+   "templateId": "round-neck-fuchsia-short",
+   "model": "round-neck-fuchsia",
+   "status": "2d-3d-approx",
+   "glb": "/models/garments/round-neck-fuchsia-short.glb"
+  },
+  "Round Neck|Short|female": {
+   "templateId": "round-neck-fuchsia-short",
+   "model": "round-neck-fuchsia",
+   "status": "2d-3d-approx",
+   "glb": "/models/garments/round-neck-fuchsia-short.glb"
+  },
+  "Round Neck|Long|female": {
+   "templateId": null,
+   "model": null,
+   "status": "editable-2d",
+   "glb": null
+  },
+  "Round Neck|null|unisex": {
+   "templateId": "round-neck-fuchsia-short",
+   "model": null,
+   "status": "2d-3d-approx",
+   "glb": "/models/garments/round-neck-fuchsia-short.glb"
+  },
+  "Round Neck|Short|unisex": {
+   "templateId": "round-neck-fuchsia-short",
+   "model": null,
+   "status": "2d-3d-approx",
+   "glb": "/models/garments/round-neck-fuchsia-short.glb"
+  },
+  "Round Neck|Long|unisex": {
+   "templateId": null,
+   "model": null,
+   "status": "editable-2d",
+   "glb": null
+  },
+  "Pants|null|null": {
+   "templateId": "pants-trousers",
+   "model": "pants",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/pants.glb"
+  },
+  "Pants|null|male": {
+   "templateId": "pants-trousers",
+   "model": "pants",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/pants.glb"
+  },
+  "Pants|null|female": {
+   "templateId": "pants-trousers",
+   "model": "pants",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/pants.glb"
+  },
+  "Pants|null|unisex": {
+   "templateId": "pants-trousers",
+   "model": "pants",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/pants.glb"
+  },
+  "Shorts|null|null": {
+   "templateId": "shorts-standard",
+   "model": "shorts",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/shorts.glb"
+  },
+  "Shorts|null|male": {
+   "templateId": "shorts-standard",
+   "model": "shorts",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/shorts.glb"
+  },
+  "Shorts|null|female": {
+   "templateId": "shorts-standard",
+   "model": "shorts",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/shorts.glb"
+  },
+  "Shorts|null|unisex": {
+   "templateId": "shorts-standard",
+   "model": "shorts",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/shorts.glb"
+  },
+  "Skirt|null|null": {
+   "templateId": "skirt-pencil",
+   "model": "skirt-pencil-lofted",
+   "status": "2d-3d-approx",
+   "glb": "/models/authored/skirt-pencil-lofted.glb"
+  },
+  "Skirt|null|male": {
+   "templateId": "skirt-pencil",
+   "model": "skirt-pencil-lofted",
+   "status": "2d-3d-approx",
+   "glb": "/models/authored/skirt-pencil-lofted.glb"
+  },
+  "Skirt|null|female": {
+   "templateId": "skirt-pencil",
+   "model": "skirt-pencil-lofted",
+   "status": "2d-3d-approx",
+   "glb": "/models/authored/skirt-pencil-lofted.glb"
+  },
+  "Skirt|null|unisex": {
+   "templateId": "skirt-pencil",
+   "model": "skirt-pencil-lofted",
+   "status": "2d-3d-approx",
+   "glb": "/models/authored/skirt-pencil-lofted.glb"
+  },
+  "Pleated Skirt|null|null": {
+   "templateId": "skirt-pleated",
+   "model": "pleated-skirt",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/school-skirt.glb"
+  },
+  "Pleated Skirt|null|male": {
+   "templateId": "skirt-pleated",
+   "model": "pleated-skirt",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/school-skirt.glb"
+  },
+  "Pleated Skirt|null|female": {
+   "templateId": "skirt-pleated",
+   "model": "pleated-skirt",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/school-skirt.glb"
+  },
+  "Pleated Skirt|null|unisex": {
+   "templateId": "skirt-pleated",
+   "model": "pleated-skirt",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/school-skirt.glb"
+  },
+  "Button-Down|null|null": {
+   "templateId": "button-down-work-shirt-short",
+   "model": "work-shirt",
+   "status": "2d-3d-approx",
+   "glb": "/models/processed/work-shirt-short-sleeve-capped.glb"
+  },
+  "Button-Down|Short|null": {
+   "templateId": "button-down-work-shirt-short",
+   "model": "work-shirt",
+   "status": "2d-3d-approx",
+   "glb": "/models/processed/work-shirt-short-sleeve-capped.glb"
+  },
+  "Button-Down|Long|null": {
+   "templateId": null,
+   "model": "button-down-utility-long",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/shirt-utility-beige-long.glb"
+  },
+  "Button-Down|null|male": {
+   "templateId": "button-down-work-shirt-short",
+   "model": "work-shirt",
+   "status": "2d-3d-approx",
+   "glb": "/models/processed/work-shirt-short-sleeve-capped.glb"
+  },
+  "Button-Down|Short|male": {
+   "templateId": "button-down-work-shirt-short",
+   "model": "work-shirt",
+   "status": "2d-3d-approx",
+   "glb": "/models/processed/work-shirt-short-sleeve-capped.glb"
+  },
+  "Button-Down|Long|male": {
+   "templateId": null,
+   "model": "button-down-utility-long",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/shirt-utility-beige-long.glb"
+  },
+  "Button-Down|null|female": {
+   "templateId": null,
+   "model": "work-shirt",
+   "status": "2d-3d-approx",
+   "glb": "/models/processed/work-shirt-short-sleeve-capped.glb"
+  },
+  "Button-Down|Short|female": {
+   "templateId": null,
+   "model": "work-shirt",
+   "status": "2d-3d-approx",
+   "glb": "/models/processed/work-shirt-short-sleeve-capped.glb"
+  },
+  "Button-Down|Long|female": {
+   "templateId": "button-down-bir-long",
+   "model": "button-down-bir-blouse",
+   "status": "2d-3d-approx",
+   "glb": "/models/garments/button-down-bir-long.glb"
+  },
+  "Button-Down|null|unisex": {
+   "templateId": "button-down-work-shirt-short",
+   "model": "work-shirt",
+   "status": "2d-3d-approx",
+   "glb": "/models/processed/work-shirt-short-sleeve-capped.glb"
+  },
+  "Button-Down|Short|unisex": {
+   "templateId": "button-down-work-shirt-short",
+   "model": "work-shirt",
+   "status": "2d-3d-approx",
+   "glb": "/models/processed/work-shirt-short-sleeve-capped.glb"
+  },
+  "Button-Down|Long|unisex": {
+   "templateId": null,
+   "model": "button-down-utility-long",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/shirt-utility-beige-long.glb"
+  },
+  "Blouse|null|null": {
+   "templateId": null,
+   "model": "blouse-notch-short",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/blazer-blouse-blue.glb"
+  },
+  "Blouse|Short|null": {
+   "templateId": null,
+   "model": "blouse-notch-short",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/blazer-blouse-blue.glb"
+  },
+  "Blouse|null|male": {
+   "templateId": null,
+   "model": null,
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/blazer-blouse-blue.glb"
+  },
+  "Blouse|Short|male": {
+   "templateId": null,
+   "model": null,
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/blazer-blouse-blue.glb"
+  },
+  "Blouse|null|female": {
+   "templateId": null,
+   "model": "blouse-notch-short",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/blazer-blouse-blue.glb"
+  },
+  "Blouse|Short|female": {
+   "templateId": null,
+   "model": "blouse-notch-short",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/blazer-blouse-blue.glb"
+  },
+  "Blouse|null|unisex": {
+   "templateId": null,
+   "model": null,
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/blazer-blouse-blue.glb"
+  },
+  "Blouse|Short|unisex": {
+   "templateId": null,
+   "model": null,
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/blazer-blouse-blue.glb"
+  },
+  "Blazer|null|null": {
+   "templateId": null,
+   "model": "blazer-long",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/blazer-tweed-herringbone.glb"
+  },
+  "Blazer|Long|null": {
+   "templateId": null,
+   "model": "blazer-long",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/blazer-tweed-herringbone.glb"
+  },
+  "Blazer|3/4|null": {
+   "templateId": null,
+   "model": "blazer-three-quarter",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/blazer-white-notch.glb"
+  },
+  "Blazer|null|male": {
+   "templateId": null,
+   "model": null,
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/blazer-tweed-herringbone.glb"
+  },
+  "Blazer|Long|male": {
+   "templateId": null,
+   "model": null,
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/blazer-tweed-herringbone.glb"
+  },
+  "Blazer|3/4|male": {
+   "templateId": null,
+   "model": null,
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/blazer-white-notch.glb"
+  },
+  "Blazer|null|female": {
+   "templateId": null,
+   "model": "blazer-long",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/blazer-tweed-herringbone.glb"
+  },
+  "Blazer|Long|female": {
+   "templateId": null,
+   "model": "blazer-long",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/blazer-tweed-herringbone.glb"
+  },
+  "Blazer|3/4|female": {
+   "templateId": null,
+   "model": "blazer-three-quarter",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/blazer-white-notch.glb"
+  },
+  "Blazer|null|unisex": {
+   "templateId": null,
+   "model": null,
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/blazer-tweed-herringbone.glb"
+  },
+  "Blazer|Long|unisex": {
+   "templateId": null,
+   "model": null,
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/blazer-tweed-herringbone.glb"
+  },
+  "Blazer|3/4|unisex": {
+   "templateId": null,
+   "model": null,
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/blazer-white-notch.glb"
+  },
+  "Collarless Blazer|null|null": {
+   "templateId": null,
+   "model": "collarless-blazer-long",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/collarless-blazer-long.glb"
+  },
+  "Collarless Blazer|Long|null": {
+   "templateId": null,
+   "model": "collarless-blazer-long",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/collarless-blazer-long.glb"
+  },
+  "Collarless Blazer|Short|null": {
+   "templateId": null,
+   "model": "collarless-blazer-short",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/collarless-blazer-short.glb"
+  },
+  "Collarless Blazer|null|male": {
+   "templateId": null,
+   "model": null,
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/collarless-blazer-long.glb"
+  },
+  "Collarless Blazer|Long|male": {
+   "templateId": null,
+   "model": null,
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/collarless-blazer-long.glb"
+  },
+  "Collarless Blazer|Short|male": {
+   "templateId": null,
+   "model": null,
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/collarless-blazer-short.glb"
+  },
+  "Collarless Blazer|null|female": {
+   "templateId": null,
+   "model": "collarless-blazer-long",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/collarless-blazer-long.glb"
+  },
+  "Collarless Blazer|Long|female": {
+   "templateId": null,
+   "model": "collarless-blazer-long",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/collarless-blazer-long.glb"
+  },
+  "Collarless Blazer|Short|female": {
+   "templateId": null,
+   "model": "collarless-blazer-short",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/collarless-blazer-short.glb"
+  },
+  "Collarless Blazer|null|unisex": {
+   "templateId": null,
+   "model": null,
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/collarless-blazer-long.glb"
+  },
+  "Collarless Blazer|Long|unisex": {
+   "templateId": null,
+   "model": null,
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/collarless-blazer-long.glb"
+  },
+  "Collarless Blazer|Short|unisex": {
+   "templateId": null,
+   "model": null,
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/collarless-blazer-short.glb"
+  },
+  "Mandarin Collar|null|null": {
+   "templateId": "mandarin-tunic-housekeeping",
+   "model": "mandarin-tunic",
+   "status": "2d-3d-approx",
+   "glb": "/models/garments/mandarin-tunic-housekeeping.glb"
+  },
+  "Mandarin Collar|Short|null": {
+   "templateId": "mandarin-tunic-housekeeping",
+   "model": "mandarin-tunic",
+   "status": "2d-3d-approx",
+   "glb": "/models/garments/mandarin-tunic-housekeeping.glb"
+  },
+  "Mandarin Collar|Long|null": {
+   "templateId": "mandarin-blouse-bir-long",
+   "model": "mandarin-shirt-long-male",
+   "status": "editable-2d",
+   "glb": null
+  },
+  "Mandarin Collar|null|male": {
+   "templateId": null,
+   "model": "mandarin-shirt-long-male",
+   "status": "editable-2d",
+   "glb": null
+  },
+  "Mandarin Collar|Short|male": {
+   "templateId": null,
+   "model": null,
+   "status": "editable-2d",
+   "glb": null
+  },
+  "Mandarin Collar|Long|male": {
+   "templateId": "mandarin-shirt-long-male",
+   "model": "mandarin-shirt-long-male",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/shirt-mandarin-long-male.glb"
+  },
+  "Mandarin Collar|null|female": {
+   "templateId": "mandarin-tunic-housekeeping",
+   "model": "mandarin-tunic",
+   "status": "2d-3d-approx",
+   "glb": "/models/garments/mandarin-tunic-housekeeping.glb"
+  },
+  "Mandarin Collar|Short|female": {
+   "templateId": "mandarin-tunic-housekeeping",
+   "model": "mandarin-tunic",
+   "status": "2d-3d-approx",
+   "glb": "/models/garments/mandarin-tunic-housekeeping.glb"
+  },
+  "Mandarin Collar|Long|female": {
+   "templateId": "mandarin-blouse-bir-long",
+   "model": null,
+   "status": "editable-2d",
+   "glb": null
+  },
+  "Mandarin Collar|null|unisex": {
+   "templateId": "mandarin-tunic-housekeeping",
+   "model": null,
+   "status": "2d-3d-approx",
+   "glb": "/models/garments/mandarin-tunic-housekeeping.glb"
+  },
+  "Mandarin Collar|Short|unisex": {
+   "templateId": "mandarin-tunic-housekeeping",
+   "model": null,
+   "status": "2d-3d-approx",
+   "glb": "/models/garments/mandarin-tunic-housekeeping.glb"
+  },
+  "Mandarin Collar|Long|unisex": {
+   "templateId": "mandarin-blouse-bir-long",
+   "model": null,
+   "status": "editable-2d",
+   "glb": null
+  },
+  "T-Shirt|null|null": {
+   "templateId": null,
+   "model": "t-shirt",
+   "status": "2d-3d-approx",
+   "glb": "/models/t-shirt-male.glb"
+  },
+  "T-Shirt|Short|null": {
+   "templateId": null,
+   "model": "t-shirt",
+   "status": "2d-3d-approx",
+   "glb": "/models/t-shirt-male.glb"
+  },
+  "T-Shirt|null|male": {
+   "templateId": null,
+   "model": "t-shirt",
+   "status": "2d-3d-approx",
+   "glb": "/models/t-shirt-male.glb"
+  },
+  "T-Shirt|Short|male": {
+   "templateId": null,
+   "model": "t-shirt",
+   "status": "2d-3d-approx",
+   "glb": "/models/t-shirt-male.glb"
+  },
+  "T-Shirt|null|female": {
+   "templateId": null,
+   "model": "t-shirt",
+   "status": "2d-3d-approx",
+   "glb": "/models/t-shirt-female.glb"
+  },
+  "T-Shirt|Short|female": {
+   "templateId": null,
+   "model": "t-shirt",
+   "status": "2d-3d-approx",
+   "glb": "/models/t-shirt-female.glb"
+  },
+  "T-Shirt|null|unisex": {
+   "templateId": null,
+   "model": "t-shirt",
+   "status": "2d-3d-approx",
+   "glb": "/models/t-shirt-male.glb"
+  },
+  "T-Shirt|Short|unisex": {
+   "templateId": null,
+   "model": "t-shirt",
+   "status": "2d-3d-approx",
+   "glb": "/models/t-shirt-male.glb"
+  },
+  "Dress|null|null": {
+   "templateId": null,
+   "model": "dress-collared-short",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/dress-bir-green-yellow-collar.glb"
+  },
+  "Dress|Short|null": {
+   "templateId": null,
+   "model": "dress-collared-short",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/dress-bir-green-yellow-collar.glb"
+  },
+  "Dress|null|male": {
+   "templateId": null,
+   "model": null,
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/dress-bir-green-yellow-collar.glb"
+  },
+  "Dress|Short|male": {
+   "templateId": null,
+   "model": null,
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/dress-bir-green-yellow-collar.glb"
+  },
+  "Dress|null|female": {
+   "templateId": null,
+   "model": "dress-collared-short",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/dress-bir-green-yellow-collar.glb"
+  },
+  "Dress|Short|female": {
+   "templateId": null,
+   "model": "dress-collared-short",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/dress-bir-green-yellow-collar.glb"
+  },
+  "Dress|null|unisex": {
+   "templateId": null,
+   "model": null,
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/dress-bir-green-yellow-collar.glb"
+  },
+  "Dress|Short|unisex": {
+   "templateId": null,
+   "model": null,
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/dress-bir-green-yellow-collar.glb"
+  },
+  "Scrub Top|null|null": {
+   "templateId": "scrub-top-women-short",
+   "model": "scrub-top",
+   "status": "2d-3d-approx",
+   "glb": "/models/garments/scrub-top-women-short.glb"
+  },
+  "Scrub Top|Short|null": {
+   "templateId": "scrub-top-women-short",
+   "model": "scrub-top",
+   "status": "2d-3d-approx",
+   "glb": "/models/garments/scrub-top-women-short.glb"
+  },
+  "Scrub Top|3/4|null": {
+   "templateId": null,
+   "model": "scrub-top-women-three-quarter",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/scrub-top-women-three-quarter.glb"
+  },
+  "Scrub Top|null|male": {
+   "templateId": "scrub-top-men-short",
+   "model": "scrub-top",
+   "status": "2d-3d-approx",
+   "glb": "/models/garments/scrub-top-men-short.glb"
+  },
+  "Scrub Top|Short|male": {
+   "templateId": "scrub-top-men-short",
+   "model": "scrub-top",
+   "status": "2d-3d-approx",
+   "glb": "/models/garments/scrub-top-men-short.glb"
+  },
+  "Scrub Top|3/4|male": {
+   "templateId": null,
+   "model": null,
+   "status": "editable-2d",
+   "glb": null
+  },
+  "Scrub Top|null|female": {
+   "templateId": "scrub-top-women-short",
+   "model": "scrub-top",
+   "status": "2d-3d-approx",
+   "glb": "/models/garments/scrub-top-women-short.glb"
+  },
+  "Scrub Top|Short|female": {
+   "templateId": "scrub-top-women-short",
+   "model": "scrub-top",
+   "status": "2d-3d-approx",
+   "glb": "/models/garments/scrub-top-women-short.glb"
+  },
+  "Scrub Top|3/4|female": {
+   "templateId": null,
+   "model": "scrub-top-women-three-quarter",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/scrub-top-women-three-quarter.glb"
+  },
+  "Scrub Top|null|unisex": {
+   "templateId": "scrub-top-women-short",
+   "model": "scrub-top",
+   "status": "2d-3d-approx",
+   "glb": "/models/garments/scrub-top-women-short.glb"
+  },
+  "Scrub Top|Short|unisex": {
+   "templateId": "scrub-top-women-short",
+   "model": "scrub-top",
+   "status": "2d-3d-approx",
+   "glb": "/models/garments/scrub-top-women-short.glb"
+  },
+  "Scrub Top|3/4|unisex": {
+   "templateId": null,
+   "model": null,
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/scrub-top-women-three-quarter.glb"
+  },
+  "Lab Coat|null|null": {
+   "templateId": null,
+   "model": "lab-coat-long",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/lab-coat-long.glb"
+  },
+  "Lab Coat|Long|null": {
+   "templateId": null,
+   "model": "lab-coat-long",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/lab-coat-long.glb"
+  },
+  "Lab Coat|null|male": {
+   "templateId": null,
+   "model": "lab-coat-long",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/lab-coat-long.glb"
+  },
+  "Lab Coat|Long|male": {
+   "templateId": null,
+   "model": "lab-coat-long",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/lab-coat-long.glb"
+  },
+  "Lab Coat|null|female": {
+   "templateId": null,
+   "model": "lab-coat-long",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/lab-coat-long.glb"
+  },
+  "Lab Coat|Long|female": {
+   "templateId": null,
+   "model": "lab-coat-long",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/lab-coat-long.glb"
+  },
+  "Lab Coat|null|unisex": {
+   "templateId": null,
+   "model": "lab-coat-long",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/lab-coat-long.glb"
+  },
+  "Lab Coat|Long|unisex": {
+   "templateId": null,
+   "model": "lab-coat-long",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/lab-coat-long.glb"
+  },
+  "Lab Coverall|null|null": {
+   "templateId": null,
+   "model": "lab-coverall",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/lab-coverall-garment.glb"
+  },
+  "Lab Coverall|Long|null": {
+   "templateId": null,
+   "model": "lab-coverall",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/lab-coverall-garment.glb"
+  },
+  "Lab Coverall|null|male": {
+   "templateId": null,
+   "model": "lab-coverall",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/lab-coverall-garment.glb"
+  },
+  "Lab Coverall|Long|male": {
+   "templateId": null,
+   "model": "lab-coverall",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/lab-coverall-garment.glb"
+  },
+  "Lab Coverall|null|female": {
+   "templateId": null,
+   "model": "lab-coverall",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/lab-coverall-garment.glb"
+  },
+  "Lab Coverall|Long|female": {
+   "templateId": null,
+   "model": "lab-coverall",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/lab-coverall-garment.glb"
+  },
+  "Lab Coverall|null|unisex": {
+   "templateId": null,
+   "model": "lab-coverall",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/lab-coverall-garment.glb"
+  },
+  "Lab Coverall|Long|unisex": {
+   "templateId": null,
+   "model": "lab-coverall",
+   "status": "2d-3d-approx",
+   "glb": "/models/vfrb-staged/lab-coverall-garment.glb"
+  }
+ },
+ "gallery": {
+  "scrub-set-women-vneck": {
+   "target": {
+    "category": "Medical / Scrubs",
+    "garment": "Scrub Top",
+    "sleeve": "Short",
+    "fit": "female"
+   },
+   "tier": "2d-3d-approx",
+   "base": [
+    "Medical / Scrubs",
+    "Scrub Top",
+    "Short",
+    "scrub-top-women-short"
+   ]
+  },
+  "scrub-set-men-vneck": {
+   "target": {
+    "category": "Medical / Scrubs",
+    "garment": "Scrub Top",
+    "sleeve": "Short",
+    "fit": "male"
+   },
+   "tier": "2d-3d-approx",
+   "base": [
+    "Medical / Scrubs",
+    "Scrub Top",
+    "Short",
+    "scrub-top-men-short"
+   ]
+  },
+  "scrub-set-housekeeping": {
+   "target": {
+    "category": "Hospitality / Service",
+    "garment": "Mandarin Collar",
+    "sleeve": "Short",
+    "fit": "female"
+   },
+   "tier": "2d-3d-approx",
+   "base": [
+    "Hospitality / Service",
+    "Mandarin Collar",
+    "Short",
+    "mandarin-tunic-housekeeping"
+   ]
+  },
+  "blouse-mandarin-yellow": {
+   "target": null,
+   "tier": "reference",
+   "base": null
+  },
+  "blouse-pleated-bib-white": {
+   "target": null,
+   "tier": "reference",
+   "base": null
+  },
+  "blouse-scarf-cream": {
+   "target": null,
+   "tier": "reference",
+   "base": null
+  },
+  "blouse-asymmetric-blue": {
+   "target": null,
+   "tier": "reference",
+   "base": null
+  },
+  "blouse-tunic-roundneck-blue": {
+   "target": {
+    "category": "Corporate",
+    "garment": "T-Shirt",
+    "sleeve": "Short",
+    "fit": "female"
+   },
+   "tier": "editable-2d",
+   "base": [
+    "Corporate",
+    "T-Shirt",
+    "Short",
+    null
+   ]
+  },
+  "shirt-utility-beige-long": {
+   "target": {
+    "category": "Industrial / Work",
+    "garment": "Button-Down",
+    "sleeve": "Long",
+    "fit": "male"
+   },
+   "tier": "2d-3d-approx",
+   "base": [
+    "Industrial / Work",
+    "Button-Down",
+    "Long",
+    null
+   ]
+  },
+  "shirt-mandarin-polkadot": {
+   "target": {
+    "category": "Corporate",
+    "garment": "Mandarin Collar",
+    "sleeve": "Long",
+    "fit": "male"
+   },
+   "tier": "2d-3d-approx",
+   "base": [
+    "Corporate",
+    "Mandarin Collar",
+    "Long",
+    null
+   ]
+  },
+  "blazer-collarless-tan": {
+   "target": {
+    "category": "Corporate",
+    "garment": "Collarless Blazer",
+    "sleeve": "Long",
+    "fit": "female"
+   },
+   "tier": "2d-3d-approx",
+   "base": [
+    "Corporate",
+    "Collarless Blazer",
+    "Long",
+    null
+   ]
+  },
+  "blazer-pinstripe-royal": {
+   "target": {
+    "category": "Corporate",
+    "garment": "Collarless Blazer",
+    "sleeve": "Short",
+    "fit": "female"
+   },
+   "tier": "2d-3d-approx",
+   "base": [
+    "Corporate",
+    "Collarless Blazer",
+    "Short",
+    null
+   ]
+  },
+  "blazer-white-notch": {
+   "target": {
+    "category": "Corporate",
+    "garment": "Blazer",
+    "sleeve": "3/4",
+    "fit": "female"
+   },
+   "tier": "2d-3d-approx",
+   "base": [
+    "Corporate",
+    "Blazer",
+    "3/4",
+    null
+   ]
+  },
+  "blazer-tweed-herringbone": {
+   "target": {
+    "category": "Corporate",
+    "garment": "Blazer",
+    "sleeve": "Long",
+    "fit": "female"
+   },
+   "tier": "2d-3d-approx",
+   "base": [
+    "Corporate",
+    "Blazer",
+    "Long",
+    null
+   ]
+  },
+  "blazer-open-front-black": {
+   "target": null,
+   "tier": "reference",
+   "base": null
+  },
+  "set-pinstripe-pants": {
+   "target": null,
+   "tier": "reference",
+   "base": null
+  },
+  "set-pinstripe-skirt": {
+   "target": null,
+   "tier": "reference",
+   "base": null
+  },
+  "set-vest-blouse": {
+   "target": null,
+   "tier": "reference",
+   "base": null
+  },
+  "dress-shift-geometric": {
+   "target": null,
+   "tier": "reference",
+   "base": null
+  },
+  "dress-tunic-maternity-navy": {
+   "target": null,
+   "tier": "reference",
+   "base": null
+  },
+  "bir-blouse-trousers-blue": {
+   "target": {
+    "category": "Corporate",
+    "garment": "Button-Down",
+    "sleeve": "Long",
+    "fit": "female"
+   },
+   "tier": "2d-3d-approx",
+   "base": [
+    "Corporate",
+    "Button-Down",
+    "Long",
+    "button-down-bir-long"
+   ]
+  },
+  "pantsuit-notch-short-gray": {
+   "target": null,
+   "tier": "reference",
+   "base": null
+  },
+  "polo-barong-brown": {
+   "target": null,
+   "tier": "reference",
+   "base": null
+  },
+  "jack-shirt-two-tone": {
+   "target": null,
+   "tier": "reference",
+   "base": null
+  },
+  "blazer-double-breasted-gray": {
+   "target": null,
+   "tier": "reference",
+   "base": null
+  },
+  "dress-butter-belted": {
+   "target": null,
+   "tier": "reference",
+   "base": null
+  },
+  "dress-bir-green-yellow-collar": {
+   "target": {
+    "category": "Corporate",
+    "garment": "Dress",
+    "sleeve": "Short",
+    "fit": "female"
+   },
+   "tier": "2d-3d-approx",
+   "base": [
+    "Corporate",
+    "Dress",
+    "Short",
+    null
+   ]
+  },
+  "dress-sheath-denim-blue": {
+   "target": null,
+   "tier": "reference",
+   "base": null
+  },
+  "blazer-pinstripe-navy": {
+   "target": null,
+   "tier": "reference",
+   "base": null
+  },
+  "blazer-blouse-blue-short": {
+   "target": null,
+   "tier": "reference",
+   "base": null
+  },
+  "blouse-roundneck-fuchsia": {
+   "target": {
+    "category": "Corporate",
+    "garment": "Round Neck",
+    "sleeve": "Short",
+    "fit": "female"
+   },
+   "tier": "2d-3d-approx",
+   "base": [
+    "Corporate",
+    "Round Neck",
+    "Short",
+    "round-neck-fuchsia-short"
+   ]
+  },
+  "blouse-roundneck-mustard": {
+   "target": null,
+   "tier": "reference",
+   "base": null
+  },
+  "polo-red-claremont": {
+   "target": {
+    "category": "Corporate",
+    "garment": "Polo Shirt",
+    "sleeve": "Short",
+    "fit": "unisex"
+   },
+   "tier": "2d-3d-approx",
+   "base": [
+    "Corporate",
+    "Polo Shirt",
+    "Short",
+    null
+   ]
+  },
+  "shirt-two-tone-gpc": {
+   "target": null,
+   "tier": "reference",
+   "base": null
+  },
+  "peplum-set-navy": {
+   "target": null,
+   "tier": "reference",
+   "base": null
+  },
+  "pants": {
+   "target": {
+    "category": "Corporate",
+    "garment": "Pants",
+    "sleeve": null,
+    "fit": "male"
+   },
+   "tier": "2d-3d-approx",
+   "base": [
+    "Corporate",
+    "Pants",
+    null,
+    null
+   ]
+  },
+  "shorts": {
+   "target": {
+    "category": "School Uniform",
+    "garment": "Shorts",
+    "sleeve": null,
+    "fit": "male"
+   },
+   "tier": "2d-3d-approx",
+   "base": [
+    "School Uniform",
+    "Shorts",
+    null,
+    null
+   ]
+  },
+  "corporate-skirt": {
+   "target": {
+    "category": "Corporate",
+    "garment": "Skirt",
+    "sleeve": null,
+    "fit": "female"
+   },
+   "tier": "editable-2d",
+   "base": [
+    "Corporate",
+    "Skirt",
+    null,
+    null
+   ]
+  },
+  "school-skirt": {
+   "target": {
+    "category": "School Uniform",
+    "garment": "Pleated Skirt",
+    "sleeve": null,
+    "fit": "female"
+   },
+   "tier": "2d-3d-approx",
+   "base": [
+    "School Uniform",
+    "Pleated Skirt",
+    null,
+    null
+   ]
+  },
+  "blazer-blouse-blue": {
+   "target": {
+    "category": "Corporate",
+    "garment": "Blouse",
+    "sleeve": "Short",
+    "fit": "female"
+   },
+   "tier": "2d-3d-approx",
+   "base": [
+    "Corporate",
+    "Blouse",
+    "Short",
+    null
+   ]
+  }
+ },
+ "saved": {
+  "0": {
+   "garment": "Scrub Top",
+   "sleeve": "Short",
+   "fit": "female",
+   "templateId": "scrub-top-women-short",
+   "has3D": true
+  },
+  "1": {
+   "garment": "Pants",
+   "sleeve": null,
+   "fit": null,
+   "templateId": "pants-trousers",
+   "has3D": true
+  },
+  "2": {
+   "garment": "T-Shirt",
+   "sleeve": "Short",
+   "fit": "female",
+   "templateId": null,
+   "has3D": false
+  }
+ }
+}

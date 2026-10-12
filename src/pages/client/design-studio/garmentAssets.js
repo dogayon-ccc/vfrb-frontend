@@ -1,3 +1,5 @@
+import { DERIVED_FAMILIES } from './derivedFamilies';
+
 // Photo-based 2D bases, keyed garment > sleeve > face > fit. Anything not listed keeps the vector template.
 // `zones` lists the colour zones the photo supports. `gain` (default 1) compresses tone for dark sources so recolouring stays smooth.
 // Add an entry only after tools/make-base-asset.py cut it and the edge was checked on a contrasting background.
@@ -62,7 +64,8 @@ export const VECTOR_TEMPLATES = {
   'Mandarin Collar': { Long: { male: { id: 'mandarin-shirt-long-male' } } },
 };
 // Families with no sleeve or fit choice (resolveSleeve/resolveFit return null) have one vector template each.
-export const SINGLE_TEMPLATES = { 'Pants': 'pants-trousers', 'Shorts': 'shorts-standard', 'Skirt': 'skirt-pencil', 'Pleated Skirt': 'skirt-pleated' };
+export const SINGLE_TEMPLATES = { 'Pants': 'pants-trousers', 'Shorts': 'shorts-standard', 'Skirt': 'skirt-pencil', 'Pleated Skirt': 'skirt-pleated',
+  ...Object.fromEntries(DERIVED_FAMILIES.map(d => [d.name, `derived-${d.id}`])) };
 export const vectorTemplateId = (garment, sleeve, fit) => VECTOR_TEMPLATES[garment]?.[sleeve]?.[fit]?.id ?? (sleeve == null && fit == null ? SINGLE_TEMPLATES[garment] ?? null : null);
 // The canonical templateId for (garment, sleeve, fit): the photo base id, else the vector template id, else null.
 export const templateIdFor = (garment, sleeve, fit) => assetFor(garment, sleeve, 'front', fit)?.id ?? vectorTemplateId(garment, sleeve, fit);

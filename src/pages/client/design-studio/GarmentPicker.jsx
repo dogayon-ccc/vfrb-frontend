@@ -4,7 +4,8 @@ import { Suspense, lazy, useMemo, useState } from 'react';
 import { Upload, SlidersHorizontal, Eye, Square, CheckCircle2, Box, X } from 'lucide-react';
 import { BASE_PATHS } from './garmentPaths';
 import GarmentThumb from './GarmentThumb';
-import { CATALOG, pieceOf, applyGarment } from './garmentCatalog';
+import { CATALOG, pieceOf, applyGarment, resolveTarget } from './garmentCatalog';
+import { DERIVED_LABEL } from './derivedFamilies';
 import { CATEGORIES, PIECES, SLEEVES, GENDERS, ENTRIES, TIER_LABEL, filterDesigns, facetCounts } from './designGallery';
 import { assetFor } from './garmentAssets';
 import { hasWebGL } from './webglSupport';
@@ -18,8 +19,6 @@ const CAT_SHORT = { 'School Uniform': 'School', 'Medical / Scrubs': 'Medical', '
 // Every card carries its status badge; the key in the header names each badge shown.
 const PHOTO_BADGE = { reference: Eye, 'editable-2d': Square, '2d-3d-approx': Box, '2d-3d': CheckCircle2 };
 const PHOTO_LABEL = Object.fromEntries(Object.entries(TIER_LABEL).map(([k, t]) => [k, t.label]));
-const TEMPLATE_STATUS = { partial: '3D (approx.)', none: '2D only', supported: '3D' };
-const TEMPLATE_BADGE = { none: Square, supported: CheckCircle2, partial: Box };
 
 function Badge({ icon: Icon, label }) {
   return <span className="ds-pick-badge" title={label}><Icon size={13} strokeWidth={2.2} aria-hidden="true"/><span className="sr-only">{label}</span></span>;
@@ -44,7 +43,7 @@ function Head({ title, sub, onClose, view, setView, legend }) {
       </div>
       {sub}
       <div className="ds-pick-tabs" role="tablist" aria-label="Garment source">
-        {[['inspiration', 'Inspiration'], ['templates', 'Templates']].map(([id, label]) => (
+        {[['inspiration', 'Start from a reference'], ['templates', 'Start from scratch']].map(([id, label]) => (
           <button key={id} type="button" role="tab" aria-selected={view === id} onClick={() => setView(id)}>{label}</button>
         ))}
       </div>
@@ -93,13 +92,16 @@ const sleeveTxt = p => (p.sleeve ? `, ${p.sleeve.toLowerCase()} sleeve` : '');
 export function previewSentence(p, offRole = null) {
   if (offRole) return `Your set needs a ${offRole.toLowerCase()} here, so this photo is inspiration only.`;
   if (!p.editable2D) return 'Inspiration only: VFRB has no editable template for this design.';
+  if (p.pieces?.bottom) return `Opens the ${p.garmentFamily} and the ${p.pieces.bottom} as one uniform set, in the photo's colours.`;
+  if (p.pieces?.single) return `Opens the ${p.garmentFamily} template traced from this photo's 3D model, in the photo's colour.`;
   if (p.exactBase) return `Opens this garment as an editable real-photo base (${p.garmentFamily}).`;
   return `Opens the closest ${p.garmentFamily} template${sleeveTxt(p)}; it is not an exact copy of the photo.`;
 }
 export function previewChips(p, offRole = null) {
   const three = !p.editable2D || offRole ? (p.ref3D ? '3D reference only' : 'No 3D') : p.has3D ? '3D (approx.), one body colour'
     : p.familyApprox3D ? `3D is the generic ${p.garmentFamily} model` : '2D only';
-  return [offRole ? TIER_LABEL.reference.label : TIER_LABEL[p.tier].label, CAT_LABEL[p.category], PIECE_LABEL[p.piece], GENDER_LABEL[p.gender], p.sleeve && `${p.sleeve} sleeve`, three].filter(Boolean);
+  return [offRole ? TIER_LABEL.reference.label : TIER_LABEL[p.tier].label, CAT_LABEL[p.category], PIECE_LABEL[p.piece], GENDER_LABEL[p.gender], p.sleeve && `${p.sleeve} sleeve`, three,
+    p.pieces && !offRole && DERIVED_LABEL].filter(Boolean);
 }
 // Filters for "See editable garments like this": the photo's category and piece, relaxed only when nothing editable matches.
 export function similarFilters(p, pool, canEdit) {
@@ -134,7 +136,7 @@ function Photos({ head, onClose, pieceRole, onPickPhoto, onPick3D, onUpload, ext
   if (preview) {
     const offRole = preview.editable2D && !fitsRole(preview) ? ROLE_LABEL[pieceRole] : null;
     const primary = canEdit(preview)
-      ? <button type="button" className="ds-btn ds-btn--primary" onClick={() => onPickPhoto(preview, filters)}>{preview.exactBase ? 'Edit this garment' : `Open ${preview.garmentFamily} template`}</button>
+      ? <button type="button" className="ds-btn ds-btn--primary" onClick={() => onPickPhoto(preview, filters)}>Use as template</button>
       : offRole ? <button type="button" className="ds-btn ds-btn--primary" onClick={() => { setRoleOn(true); setKind('editable'); back(); }}>Show {offRole.toLowerCase()}s for my set</button>
       : <button type="button" className="ds-btn ds-btn--primary" onClick={() => { setFilters(similarFilters(preview, pool, canEdit)); setKind('editable'); back(); }}>See editable garments like this</button>;
     return (
@@ -236,26 +238,95 @@ function Photos({ head, onClose, pieceRole, onPickPhoto, onPick3D, onUpload, ext
   );
 }
 
-// A template card shows exactly what picking it opens: the real photo base when there is one, otherwise the flat sketch, labelled so.
-function TemplateImage({ fam, cfg }) {
-  const r = applyGarment(cfg, fam.id);
+// A template card shows exactly what picking it opens: the real photo base, the model's own lighting for a derived template, or the sketch.
+function TemplateImage({ fam, cfg, pick = {} }) {
+  const r = applyGarment(cfg, fam.id, pick);
   const asset = assetFor(r.garment, r.sleeve, 'front', r.fit);
-  return asset ? <img src={asset.src} alt="" decoding="async" draggable={false}/>
-    : <><GarmentThumb paths={BASE_PATHS[fam.id] ?? BASE_PATHS['Polo Shirt']} colors={cfg.colors} size={96}/><span className="ds-sketch">Sketch</span></>;
+  const paths = BASE_PATHS[fam.id] ?? BASE_PATHS['Polo Shirt'];
+  if (asset) return <img src={asset.src} alt="" decoding="async" draggable={false}/>;
+  if (paths.shade) return <><img src={paths.shade.front} alt="" decoding="async" draggable={false}/><span className="ds-sketch">From model</span></>;
+  return <><GarmentThumb paths={paths} colors={cfg.colors} size={96}/><span className="ds-sketch">Sketch</span></>;
 }
+
+const FIT_LABEL = { male: 'Men', female: 'Women', unisex: 'Unisex' };
+// Every fit and style of a family that resolves to an editable template, once each, with its tier (reference combinations are left out).
+export function combosFor(fam) {
+  const seen = new Map();
+  for (const fit of fam.fits.length ? fam.fits : [null]) for (const sleeve of fam.styles.length ? fam.styles : [null]) {
+    const r = resolveTarget(fam.id, sleeve, fit);
+    if (r && r.status !== 'reference' && !seen.has(`${r.fit}|${r.sleeve}`)) seen.set(`${r.fit}|${r.sleeve}`, { fit: r.fit, sleeve: r.sleeve, status: r.status });
+  }
+  return [...seen.values()];
+}
+const tierOfFamily = fam => combosFor(fam)[0]?.status ?? 'reference';
 
 // All families once, each opened in the browsed category, or the customer's current one when it lists that family.
 const ALL = 'all';
 const homeOf = (famId, cur) => (CATALOG.find(c => c.id === cur && c.families.some(f => f.id === famId)) ?? CATALOG.find(c => c.families.some(f => f.id === famId))).id;
 const ALL_FAMILIES = [...new Map(CATALOG.flatMap(c => c.families).map(f => [f.id, f])).values()];
 
+function FamilyCard({ fam, cfg, fitsRole, pieceRole, onPick, i }) {
+  const tier = tierOfFamily(fam);
+  return (
+    <li style={{ '--i': Math.min(i, 8) }}>
+      <button type="button" className="ds-pick-card" aria-pressed={cfg.garment === fam.id} disabled={!fitsRole(fam)}
+        title={fitsRole(fam) ? TIER_LABEL[tier].note : `Your set needs a ${ROLE_LABEL[pieceRole].toLowerCase()} here`}
+        onClick={() => onPick(fam)} aria-label={`${fam.id}, ${PHOTO_LABEL[tier]}`}>
+        <span className="ds-pick-img"><TemplateImage fam={fam} cfg={cfg}/></span>
+        <strong>{fam.id}</strong>
+        <Badge icon={PHOTO_BADGE[tier]} label={PHOTO_LABEL[tier]}/>
+      </button>
+    </li>
+  );
+}
+
+function Choice({ label, items, value, set, text }) {
+  if (items.length < 2) return null;
+  return (
+    <div className="ds-pick-frow" role="radiogroup" aria-label={label}>
+      <span>{label}</span>
+      {items.map(v => <button key={String(v)} type="button" role="radio" className="ds-chip" aria-checked={value === v} aria-pressed={value === v} onClick={() => set(v)}>{text(v)}</button>)}
+    </div>
+  );
+}
+
+// Step 2 of "Start from scratch": fit / cut, then style, offering only combinations that open an editable template. Back keeps the draft.
+function FamilySteps({ fam, cfg, onBack, onOpen }) {
+  const combos = combosFor(fam);
+  const fits = [...new Set(combos.map(c => c.fit))];
+  const [fit, setFit] = useState(combos.find(c => c.fit === cfg.fit)?.fit ?? fits[0]);
+  const styles = combos.filter(c => c.fit === fit);
+  const [sleeve, setSleeve] = useState(styles[0]?.sleeve ?? null);
+  const chosen = styles.find(c => c.sleeve === sleeve) ?? styles[0];
+  return (
+    <>
+      <div className="ds-pick-preview ds-pick-steps">
+        <span className="ds-pick-img"><TemplateImage fam={fam} cfg={cfg} pick={{ fit: chosen?.fit, sleeve: chosen?.sleeve }}/></span>
+        <h3>{fam.id}</h3>
+        {fam.derived && <p className="ds-note">{DERIVED_LABEL}. One colour zone: the outline is traced from the reference model.</p>}
+        <Choice label="Fit / cut" items={fits} value={fit} set={v => { setFit(v); setSleeve(combos.find(c => c.fit === v)?.sleeve ?? null); }} text={v => FIT_LABEL[v] ?? 'Standard'}/>
+        <Choice label="Style" items={styles.map(c => c.sleeve)} value={chosen?.sleeve} set={setSleeve} text={v => `${v ?? 'Standard'} sleeve`}/>
+        {chosen && <p className="ds-pick-sum ds-pick-tier"><Badge icon={PHOTO_BADGE[chosen.status]} label={PHOTO_LABEL[chosen.status]}/>{PHOTO_LABEL[chosen.status]}: {TIER_LABEL[chosen.status].note}</p>}
+      </div>
+      <Foot>
+        <button type="button" className="ds-btn" onClick={onBack}>Back to garments</button>
+        <button type="button" className="ds-btn ds-btn--primary" disabled={!chosen} onClick={() => onOpen({ fit: chosen.fit, sleeve: chosen.sleeve })}>Open in Studio</button>
+      </Foot>
+    </>
+  );
+}
+
 function Templates({ head, onClose, cfg, pieceRole, onPickFamily, onUpload, extra }) {
   const [cat, setCat] = useState(ALL);
   const [roleOn, setRoleOn] = useState(true);
+  const [fam, setFam] = useState(null);
   const fitsRole = f => !pieceRole || pieceOf(f.id) === pieceRole;
-  const inCat = c => (c === ALL ? ALL_FAMILIES : CATALOG.find(x => x.id === c).families).filter(f => !(pieceRole && roleOn) || fitsRole(f));
+  const inCat = c => (c === ALL ? ALL_FAMILIES : CATALOG.find(x => x.id === c).families).filter(f => tierOfFamily(f) !== 'reference' && (!(pieceRole && roleOn) || fitsRole(f)));
   const families = inCat(cat);
-  const legend = <Legend labels={TEMPLATE_STATUS} icons={TEMPLATE_BADGE} present={Object.keys(TEMPLATE_BADGE).filter(k => families.some(f => f.status3D === k))}/>;
+  const own = families.filter(f => !f.derived), derived = families.filter(f => f.derived);
+  const legend = <Legend labels={PHOTO_LABEL} icons={PHOTO_BADGE} present={Object.keys(PHOTO_BADGE).filter(k => families.some(f => tierOfFamily(f) === k))}/>;
+  if (fam) return <>{head(null)}<FamilySteps fam={fam} cfg={cfg} onBack={() => setFam(null)} onOpen={pick => onPickFamily(fam, cat === ALL ? homeOf(fam.id, cfg.category) : cat, pick)}/></>;
+  const card = (f, i) => <FamilyCard key={f.id} fam={f} cfg={cfg} fitsRole={fitsRole} pieceRole={pieceRole} onPick={setFam} i={i}/>;
   return (
     <>
       {head(legend)}
@@ -270,18 +341,15 @@ function Templates({ head, onClose, cfg, pieceRole, onPickFamily, onUpload, extr
       </div>
       <ul className="ds-pick-grid">
         {onUpload && <UploadCard onUpload={onUpload}/>}
-        {families.map((fam, i) => (
-          <li key={fam.id} style={{ '--i': Math.min(i, 8) }}>
-            <button type="button" className="ds-pick-card" aria-pressed={cfg.garment === fam.id} disabled={!fitsRole(fam)}
-              title={fitsRole(fam) ? undefined : `Your set needs a ${ROLE_LABEL[pieceRole].toLowerCase()} here`}
-              onClick={() => onPickFamily(fam, cat === ALL ? homeOf(fam.id, cfg.category) : cat)} aria-label={`${fam.id}, ${TEMPLATE_STATUS[fam.status3D]}`}>
-              <span className="ds-pick-img"><TemplateImage fam={fam} cfg={cfg}/></span>
-              <strong>{fam.id}</strong>
-              <Badge icon={TEMPLATE_BADGE[fam.status3D]} label={TEMPLATE_STATUS[fam.status3D]}/>
-            </button>
-          </li>
-        ))}
+        {own.map(card)}
       </ul>
+      {derived.length > 0 && (
+        <section className="ds-pick-sec" aria-label="From reference">
+          <h3>From reference</h3>
+          <p className="ds-note">{DERIVED_LABEL}: each template is traced from the 3D model of a VFRB reference photo, with one colour zone.</p>
+          <ul className="ds-pick-grid">{derived.map(card)}</ul>
+        </section>
+      )}
       {onClose && <Foot><span className="ds-pick-count">{families.length} templates</span><button type="button" className="ds-btn" onClick={onClose}>Keep current garment</button></Foot>}
     </>
   );
