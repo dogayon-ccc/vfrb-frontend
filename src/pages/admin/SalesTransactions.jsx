@@ -22,11 +22,16 @@ const Method = ({ m }) => {
   const c = METHOD_CFG[m] ?? { label: m ?? '—', icon: 'ewallet', bg: 'var(--bg-surface)', fg: 'var(--text-subtle)' };
   return <span className="adm-pill" style={{ background: c.bg, color: c.fg, display: 'inline-flex', alignItems: 'center', gap: 4 }}><NavIcon name={c.icon} size={12} color="currentColor" />{c.label}</span>;
 };
+// The order total is a manager decision (the API rejects amount_total from staff), so only managers see or set it.
+function getIsManager() {
+  try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}').role === 'manager'; }
+  catch { return false; }
+}
 const Balance = ({ t }) => (Number(t.balance_due) > 0
   ? <span style={{ fontWeight: 700, color: 'var(--warning-text)' }}>{fmt(t.balance_due)}</span>
   : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontWeight: 700, color: 'var(--success-text)' }}><NavIcon name="success" size={12} color="currentColor" />Paid</span>);
 
-function RecordModal({ onClose, onDone, isMobile }) {
+function RecordModal({ onClose, onDone, isMobile, isManager }) {
   const [orders,    setOrders]    = useState(null);
   const [orderInfo, setOrderInfo] = useState(null);
   const [form, setForm] = useState({ order_id: '', amount_paid: '', amount_total: '', payment_method: 'cash', payment_terms: 'down_payment', or_number: '', notes: '' });
@@ -48,18 +53,21 @@ function RecordModal({ onClose, onDone, isMobile }) {
   const existingTxn = orderInfo?.transactions?.[0] ?? null;
   const isFirstPayment = !existingTxn;
   const alreadyPaid = existingTxn ? Number(existingTxn.amount_paid ?? 0) : 0;
-  const agreedTotal = isFirstPayment ? Number(form.amount_total || 0) : Number(existingTxn.amount_total ?? orderInfo?.agreed_total ?? 0);
+  const agreedTotal = !isFirstPayment ? Number(existingTxn.amount_total ?? orderInfo?.agreed_total ?? 0)
+    : isManager ? Number(form.amount_total || 0) : Number(orderInfo?.agreed_total ?? 0);
+  const staffBlocked = !isManager && !!orderInfo && orderInfo.agreed_total == null;
   const paid = Number(form.amount_paid ?? 0);
   const balance = Math.max(0, agreedTotal - alreadyPaid - paid);
 
   const submit = async () => {
     if (!form.order_id) { setErr('Select an order.'); return; }
+    if (staffBlocked) { setErr('A manager must set the order total first.'); return; }
     if (!paid || paid <= 0) { setErr('Enter a valid amount paid.'); return; }
-    if (isFirstPayment && (!form.amount_total || Number(form.amount_total) <= 0)) { setErr("Enter the order total — required for this order's first payment."); return; }
+    if (isManager && isFirstPayment && (!form.amount_total || Number(form.amount_total) <= 0)) { setErr("Enter the order total — required for this order's first payment."); return; }
     setBusy(true); setErr('');
     try {
       const payload = { order_id: Number(form.order_id), amount_paid: paid, payment_method: form.payment_method, payment_terms: form.payment_terms, or_number: form.or_number || null, notes: form.notes || null };
-      if (isFirstPayment) payload.amount_total = Number(form.amount_total);
+      if (isManager && isFirstPayment) payload.amount_total = Number(form.amount_total);
       await axios.post('/api/admin/transactions', payload);
       onDone();
     } catch (e) { setErr(e.response?.data?.message ?? 'Failed to record payment.'); }
@@ -83,23 +91,34 @@ function RecordModal({ onClose, onDone, isMobile }) {
             <NavIcon name="orders" size={16} color="currentColor" />
             <div>
               <b>{orderInfo.garment_type ?? 'Order'} · {orderInfo.quantity_ordered ?? '—'} pcs</b>
-              {isFirstPayment ? 'First payment for this order — enter the agreed total.' : <>Total {fmt(agreedTotal)} · paid {fmt(alreadyPaid)} · remaining {fmt(Math.max(0, agreedTotal - alreadyPaid))}</>}
+              {isManager
+                ? (isFirstPayment ? 'First payment for this order — enter the agreed total.' : <>Total {fmt(agreedTotal)} · paid {fmt(alreadyPaid)} · remaining {fmt(Math.max(0, agreedTotal - alreadyPaid))}</>)
+                : (!staffBlocked && <>Paid {fmt(alreadyPaid)} · remaining {fmt(Math.max(0, agreedTotal - alreadyPaid))}</>)}
             </div>
           </div>
         )}
 
+        {staffBlocked && (
+          <div className="adm-callout warn" style={{ marginBottom: 0 }} role="alert">
+            <NavIcon name="warning" size={16} color="currentColor" />
+            <div><b>A manager must set the order total first</b>Payments for this order can be recorded once the total is set.</div>
+          </div>
+        )}
+
         <div className="adm-form-grid">
-          <label><span className="adm-field">Order total (₱){isFirstPayment ? ' *' : ''}</span>
-            {isFirstPayment
-              ? <input className="adm-input" type="number" inputMode="decimal" min={0.01} step={0.01} value={form.amount_total} onChange={(e) => set('amount_total', e.target.value)} placeholder="0.00" />
-              : <input className="adm-input" value={fmt(agreedTotal)} readOnly disabled />}
-          </label>
+          {isManager && (
+            <label><span className="adm-field">Order total (₱){isFirstPayment ? ' *' : ''}</span>
+              {isFirstPayment
+                ? <input className="adm-input" type="number" inputMode="decimal" min={0.01} step={0.01} value={form.amount_total} onChange={(e) => set('amount_total', e.target.value)} placeholder="0.00" />
+                : <input className="adm-input" value={fmt(agreedTotal)} readOnly disabled />}
+            </label>
+          )}
           <label><span className="adm-field">Amount paid (₱) *</span>
             <input className="adm-input" type="number" inputMode="decimal" min={0.01} step={0.01} value={form.amount_paid} onChange={(e) => set('amount_paid', e.target.value)} placeholder="0.00" />
           </label>
         </div>
 
-        {paid > 0 && orderInfo && (isFirstPayment ? agreedTotal > 0 : true) && (
+        {paid > 0 && orderInfo && !staffBlocked && (isFirstPayment ? agreedTotal > 0 : true) && (
           <div className={`adm-callout ${balance > 0 ? 'warn' : 'ok'}`} style={{ marginBottom: 0 }} role="status">
             <NavIcon name={balance > 0 ? 'pending' : 'success'} size={16} color="currentColor" />
             <div><b>{balance > 0 ? fmt(balance) : 'Fully paid'}</b>Balance after this payment</div>
@@ -135,7 +154,7 @@ function RecordModal({ onClose, onDone, isMobile }) {
         {err && <ErrorBlock msg={err} />}
         <div className="adm-sheet-foot">
           <button className="adm-btn" onClick={onClose}>Cancel</button>
-          <button className="adm-btn primary" onClick={submit} disabled={busy}>{busy ? 'Recording…' : 'Record payment'}</button>
+          <button className="adm-btn primary" onClick={submit} disabled={busy || staffBlocked}>{busy ? 'Recording…' : 'Record payment'}</button>
         </div>
       </div>
     </BottomSheet>
@@ -150,6 +169,7 @@ export default function AdminSalesTransactions() {
   const [search,  setSearch]  = useState('');
   const [modal,   setModal]   = useState(false);
   const isMobile = useIsMobile();
+  const isManager = getIsManager();
 
   const load = useCallback((force = false) => {
     if (!force) {
@@ -186,7 +206,7 @@ export default function AdminSalesTransactions() {
 
   return (
     <>
-      {modal && <RecordModal isMobile={isMobile} onClose={() => setModal(false)} onDone={() => { setModal(false); cacheClear('sales_transactions_v2'); load(true); }} />}
+      {modal && <RecordModal isMobile={isMobile} isManager={isManager} onClose={() => setModal(false)} onDone={() => { setModal(false); cacheClear('sales_transactions_v2'); load(true); }} />}
 
       <PageHeader title="Sales & Payments" sub="Manual recording · Cash, GCash, e-wallet or bank transfer · no payment gateway">
         <button className="adm-btn" onClick={() => load(true)}><NavIcon name="refresh" size={14} color="currentColor" /> Refresh</button>
