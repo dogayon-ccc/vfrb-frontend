@@ -170,6 +170,7 @@ export default function AdminDashboard() {
         <div className="adm-dash-col">
           <Panel title="Orders Overview" action={<PillTabs tabs={[{ key: 'orders', label: 'Orders' }, { key: 'revenue', label: 'Revenue' }]} value={chartTab} onChange={setChartTab} />} style={{ overflow: 'visible' }}>
             {loading ? <div className="adm-sk" style={{ height: 220 }} /> : !data ? <EmptyBlock>Unavailable.</EmptyBlock> : chartData.length < 2 ? <EmptyBlock>Not enough history yet to draw a trend.</EmptyBlock> : (
+              <div style={{ width: '100%', minWidth: 0, minHeight: 260 }}>
               <ResponsiveContainer width="100%" height={260}>
                 <AreaChart data={chartData} margin={{ left: -12, right: 6, top: 6 }}>
                   <defs><linearGradient id="admTrend" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#028090" stopOpacity={0.28} /><stop offset="100%" stopColor="#028090" stopOpacity={0} /></linearGradient></defs>
@@ -180,6 +181,7 @@ export default function AdminDashboard() {
                   <Area type="monotone" dataKey="v" stroke="#028090" strokeWidth={2.5} fill="url(#admTrend)" dot={{ r: 3, fill: '#028090' }} isAnimationActive={!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches} animationDuration={300} />
                 </AreaChart>
               </ResponsiveContainer>
+              </div>
             )}
           </Panel>
 
@@ -212,7 +214,7 @@ export default function AdminDashboard() {
           <Panel title="Production Status">
             {loading ? <div className="adm-sk" style={{ height: 180 }} /> : !data ? <EmptyBlock>Unavailable.</EmptyBlock> : stageTotal === 0 ? <EmptyBlock>No orders in production stages.</EmptyBlock> : (
               <>
-                <div style={{ position: 'relative', height: 170 }}>
+                <div style={{ position: 'relative', height: 170, minHeight: 170, minWidth: 0 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart><Pie data={stageData} dataKey="value" innerRadius={52} outerRadius={76} paddingAngle={2} stroke="none" isAnimationActive={!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches} animationDuration={300}>
                       {stageData.map((s) => <Cell key={s.name} fill={s.color} />)}</Pie></PieChart>

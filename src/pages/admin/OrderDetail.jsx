@@ -5,6 +5,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import DesignPreview from '../../components/DesignPreview';
 import OrderDesignDetails, { ReferenceFile } from '../../components/admin/OrderDesignDetails';
+import OrderBilling from '../../components/OrderBilling';
 import { savedDesignName } from '../../utils/designName';
 import { NavIcon } from '../../components/ui';
 import { canAccessArea, readAdminUser } from '../../utils/jobAccess';
@@ -157,23 +158,23 @@ export default function AdminOrderDetail() {
   const [toast, setToast] = useToast();
   const [stages,  setStages]  = useState(null);
   const [attempt, setAttempt] = useState(0);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      setLoading(true); setError(''); setStages(null);
+      setLoading(true); setError(''); setStages(null); setNotFound(false);
       try {
         const r = await axios.get(`/api/admin/orders/${id}`);
         if (!cancelled) setOrder(r.data?.order ?? r.data);
       } catch (e) {
-        if (!cancelled) {
-          setError(e.response?.status === 404
-            ? `Order #${id} not found`
-            : 'Failed to load order.');
-        }
-      } finally {
         if (!cancelled) setLoading(false);
+        // A missing order is final: no follow-up requests and no Retry.
+        if (e.response?.status === 404) { if (!cancelled) setNotFound(true); return; }
+        if (!cancelled) setError('Failed to load order.');
+        return;
       }
+      if (!cancelled) setLoading(false);
       try {
         const p = await axios.get(`/api/admin/orders/${id}/production`);
         const list = p.data?.stages ?? p.data;
@@ -217,10 +218,21 @@ export default function AdminOrderDetail() {
       </div>
     );
   }
+  if (notFound) {
+    return (
+      <div className="adm-od" style={{ textAlign:'center', padding:'48px 16px' }}>
+        <h1 className="adm-h1" style={{ margin:'0 0 6px', fontSize:20 }}>Order not found</h1>
+        <p className="adm-sub" style={{ margin:'0 0 16px' }}>Order #{id} does not exist or was removed.</p>
+        <button className="adm-btn" style={{ minHeight:44 }} onClick={() => navigate('/admin/orders')}>
+          <NavIcon name="back" size={14} color="currentColor" /> Back to Orders
+        </button>
+      </div>
+    );
+  }
   if (error) {
     return (
       <div className="adm-od">
-        <div className="adm-err"><span>{error}</span>{!/not found/.test(error) && <button className="adm-btn" onClick={() => setAttempt((n) => n + 1)}>Retry</button>}</div>
+        <div className="adm-err"><span>{error}</span><button className="adm-btn" onClick={() => setAttempt((n) => n + 1)}>Retry</button></div>
         <button className="adm-btn" style={{ marginTop:12 }} onClick={() => navigate('/admin/orders')}>
           <NavIcon name="back" size={14} color="currentColor" /> Back to Orders
         </button>
@@ -230,7 +242,6 @@ export default function AdminOrderDetail() {
   if (!order) return null;
 
   const recs = order.recommendations ?? [];
-  const txn  = order.transactions?.[0] ?? null;
   const client = order.user ?? {};
   const clientName = client.name ?? order.customer_name;
 
@@ -425,19 +436,8 @@ export default function AdminOrderDetail() {
             )}
           </Panel>
 
-          <Panel title="Payment" style={{ order:9 }}>
-            {!txn ? (
-              <div style={{ color:'var(--text-faint)', fontSize:13 }}>No payment records yet.</div>
-            ) : (
-              <div className="adm-od-fields">
-                <Field label="Amount Paid"  value={txn.amount_paid  != null ? `₱${txn.amount_paid}`  : null}/>
-                <Field label="Amount Total" value={txn.amount_total != null ? `₱${txn.amount_total}` : null}/>
-                <Field label="Balance Due"
-                  value={(txn.amount_total != null && txn.amount_paid != null)
-                    ? `₱${(txn.amount_total - txn.amount_paid)}` : null}/>
-                <Field label="Date Processed" value={txn.date_processed}/>
-              </div>
-            )}
+          <Panel title="Billing" style={{ order:9 }}>
+            <OrderBilling orderId={order.order_id} mode="admin" isManager={isManager} />
           </Panel>
         </div>
       </div>

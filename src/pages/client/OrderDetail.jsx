@@ -17,6 +17,7 @@ import { humanize } from '../../utils/humanize';
 import { savedDesignName } from '../../utils/designName';
 import { useState, useEffect, useCallback } from 'react';
 import DesignPreview from '../../components/DesignPreview';
+import OrderBilling from '../../components/OrderBilling';
 import { useParams, useNavigate }            from 'react-router-dom';
 import { motion, AnimatePresence }           from 'framer-motion';
 import axios                                 from 'axios';
@@ -378,7 +379,7 @@ export default function CustomerOrderDetail() {
         Order not found
       </p>
       <button onClick={() => nav('/orders')} style={{
-        marginTop:16, padding:'10px 22px', borderRadius:10, border:'none',
+        marginTop:16, padding:'10px 22px', minHeight:44, borderRadius:10, border:'none',
         background:T, color:'#fff', fontSize:13, fontWeight:700,
         cursor:'pointer', fontFamily:FONT,
       }}>
@@ -723,6 +724,11 @@ export default function CustomerOrderDetail() {
         )}
 
         </div><div className="od-side">
+        {/* Billing reads its own endpoint, so it mounts only once the order itself has loaded. */}
+        <div {...pane('overview')}><div className="od-card-body">
+          <p className="od-section-title" style={{ fontFamily:FONT }}>Billing</p>
+          <OrderBilling orderId={order.order_id ?? orderId} mode="customer" />
+        </div></div>
         {!matShown && (
           <div {...pane('materials', 'od-empty')}><div className="od-card-body">
             <p className="od-section-title" style={{ fontFamily:FONT }}>Materials</p>
