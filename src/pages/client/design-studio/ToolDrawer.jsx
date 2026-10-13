@@ -9,14 +9,12 @@ import TypePanel from './TypePanel';
 import ColorsPanel from './ColorsPanel';
 import DetailsPanel from './DetailsPanel';
 import TextPanel from './TextPanel';
-import AIPanel from './AIPanel';
 import StudioDock from './StudioDock';
 import { SelectionInspector, isEditableSelection } from './RightInfoPanel';
 import AIDesignChat from '../AIDesignChat';
 import { TOOLS } from './dsShared';
 import { assetFor } from './garmentAssets';
 
-const noop = () => {};
 
 // Panel/sheet: tool content, then the one Layers section, then the sticky dock. Phone sheet snaps to peek (dock only), half (the active
 // tool only, ~30% of the screen) or full. On desktop the uniform's sections (Garment, Colors, Details, Pattern, Layers) are tabs here.
@@ -39,7 +37,7 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, she
                      onInspo={() => p.setShowInspo(true)} onShowcase={() => p.setShowShowcase(true)}/>,
     text:    () => <TextPanel onAdd={p.addText} bodyColor={p.cfg?.colors?.body}/>,
     draw:    () => <DrawPanel size={p.brushSize} color={p.brushColor} onSizeChange={p.changeBrushSize} onColorChange={p.changeBrushColor} erasing={p.erasing} setErasing={p.setErasing}/>,
-    ai:      () => <div className="ds-sum"><AIPanel onApply={p.applyAI} onTexture={noop}/><AIDesignChat docked/></div>,
+    ai:      () => <div className="ds-sum"><AIDesignChat cfg={p.cfg} textItems={p.textItems} ai={p.ai}/></div>,
     pattern: () => (assetFor(p.cfg.garment, p.cfg.sleeve, 'front', p.cfg.fit)
       ? <p className="ds-note" style={{ padding:'20px 4px', textAlign:'center' }}>Patterns are not available on a real-photo garment base. Switch the sleeve or garment to use them.</p>
       : <PatternPanel cfg={p.cfg} setCfg={p.setCfg} activeZone={p.activeZone}/>),

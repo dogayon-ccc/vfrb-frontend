@@ -1,33 +1,15 @@
 // src/utils/accentColor.js
-// CUSTOMER-ONLY portal accent color preference.
-//
-// SCOPE (locked by master prompt):
-//   - Affects ONLY the customer portal view for the customer who set it.
-//   - Does NOT touch VFRB's own brand identity (theme.css --teal stays
-//     the locked brand color for admin/staff and for the login page).
-//   - Does NOT affect any other customer's session.
-//   - Preset list only — NOT a freeform color picker.
-//
-// PALETTE ORIGIN: reuses hex values already live in this codebase
-// (PH_SWATCHES in admin/PurchaseOrders.jsx — "Philippine institutional
-// colour swatches, master prompt color map") instead of inventing new
-// hex values. Pale/low-contrast swatches from that list (White, Light
-// Blue, Mint, etc.) are excluded here because they fail contrast as a
-// button/accent color against white text — that filtering is the only
-// deviation from the source list.
-//
-// PERSISTENCE (current state — read this before editing):
-//   Storage is localStorage only, keyed per customer user_id, e.g.
-//   "vfrb_accent_42". There is NO backend column for this yet — no
-//   `accent_color` (or similar) field exists on `users` in vfrb_db.sql
-//   as of this build. Do NOT wire this to PUT /api/customer/profile
-//   until that column is confirmed and added — see the note at the
-//   bottom of this file for the exact swap-in point when it exists.
+// Per-user portal accent (preset list only, no freeform picker), applied as CSS vars on <html> by useAppearance while a
+// signed-in portal (customer or admin) is mounted. Login, auth pages and the Design Studio keep the VFRB teal.
+// Palette: values 2-7 reuse PH_SWATCHES (admin/PurchaseOrders.jsx); pale swatches are excluded because they fail as a fill.
+// Persistence: localStorage per user_id ("vfrb_accent_42") for instant paint, plus notification_preferences.theme_accent
+//   (PATCH /api/settings/appearance), seeded at sign-in by seedAccentFromUser().
+
+import axios from "axios";
+import { mix, liftForSurface } from "./colorMath";
 
 const STORAGE_PREFIX = "vfrb_accent_";
 
-// ── Preset palette (7 total incl. default) ────────────────────────────────
-// Values 2–7 copied verbatim from PH_SWATCHES in admin/PurchaseOrders.jsx.
 export const ACCENT_PRESETS = [
   { id: "teal", name: "VFRB Teal (Default)", hex: "#028090" },
   { id: "navy", name: "Navy Blue", hex: "#1B2A4A" },
@@ -40,64 +22,39 @@ export const ACCENT_PRESETS = [
 
 export const DEFAULT_ACCENT_HEX = ACCENT_PRESETS[0].hex;
 
-// ── Color math (no dependency — mixes hex with white/black) ──────────────
-function hexToRgb(hex) {
-  const h = hex.replace("#", "");
-  return {
-    r: parseInt(h.substring(0, 2), 16),
-    g: parseInt(h.substring(2, 4), 16),
-    b: parseInt(h.substring(4, 6), 16),
-  };
-}
+// Dark-mode reference surface (the lightest dark card, --cx-card) and the dark text used on accent fills (--on-teal).
+export const DARK_SURFACE = "#1f2528";
+export const DARK_ON_ACCENT = "#0b1215";
 
-function rgbToHex(r, g, b) {
-  const c = (v) => Math.max(0, Math.min(255, Math.round(v)))
-    .toString(16)
-    .padStart(2, "0");
-  return `#${c(r)}${c(g)}${c(b)}`;
-}
-
-/**
- * Mix a hex color toward white (percent > 0) or black (percent < 0).
- * @param {string} hex
- * @param {number} percent  -1..1
- */
-function shade(hex, percent) {
-  const { r, g, b } = hexToRgb(hex);
-  const target = percent > 0 ? 255 : 0;
-  const p = Math.abs(percent);
-  return rgbToHex(
-    r + (target - r) * p,
-    g + (target - g) * p,
-    b + (target - b) * p,
-  );
-}
-
-/**
- * Given a preset hex, derive the 3 CSS vars the app already reads
- * (--teal, --teal-2, --teal-dark). Returns null for the default teal —
- * meaning "no override, let theme.css's real values through unchanged."
- *
- * @param {string} hex
- * @returns {{ '--teal': string, '--teal-2': string, '--teal-dark': string } | null}
- */
-export function getAccentVars(hex) {
-  if (!hex || hex.toLowerCase() === DEFAULT_ACCENT_HEX.toLowerCase()) {
-    return null;
+// Accent tokens for a preset. Light + default teal returns null so theme.css's real values stay untouched.
+// Dark lifts the accent until it reads as text on dark cards; fills then carry dark text (DARK_ON_ACCENT) instead of white.
+export function getAccentVars(hex, dark = false) {
+  if (!hex) hex = DEFAULT_ACCENT_HEX;
+  if (dark) {
+    const ink = liftForSurface(hex, DARK_SURFACE);
+    return {
+      "--teal": ink,
+      "--teal-2": mix(ink, "#ffffff", 0.3),
+      "--teal-dark": mix(ink, "#ffffff", 0.18),
+      "--teal-darker": mix(ink, "#ffffff", 0.3),
+      "--teal-50": mix(DARK_SURFACE, hex, 0.22),
+      "--teal-100": mix(DARK_SURFACE, hex, 0.36),
+      "--border-focus": `${ink}99`,
+    };
   }
+  if (hex.toLowerCase() === DEFAULT_ACCENT_HEX.toLowerCase()) return null;
   return {
     "--teal": hex,
-    "--teal-2": shade(hex, 0.22),
-    "--teal-dark": shade(hex, -0.18),
+    "--teal-2": mix(hex, "#ffffff", 0.22),
+    "--teal-dark": mix(hex, "#000000", 0.18),
+    "--teal-darker": mix(hex, "#000000", 0.32),
+    "--teal-50": mix(hex, "#ffffff", 0.93),
+    "--teal-100": mix(hex, "#ffffff", 0.8),
+    "--border-focus": `${hex}80`,
   };
 }
 
-// ── Storage (localStorage, customer-scoped by user_id) ────────────────────
-
-/**
- * @param {string|number} userId  users.user_id of the logged-in customer
- * @returns {string} hex — falls back to DEFAULT_ACCENT_HEX if unset/unreadable
- */
+// Saved hex for a user, or the default teal.
 export function loadAccent(userId) {
   if (!userId) return DEFAULT_ACCENT_HEX;
   try {
@@ -107,13 +64,7 @@ export function loadAccent(userId) {
   }
 }
 
-/**
- * Persist + broadcast an accent change so CustomerLayout (mounted once,
- * above the routed page) picks it up without a page reload.
- *
- * @param {string|number} userId
- * @param {string} hex
- */
+// Saves locally and tells the mounted portal layout to repaint.
 export function saveAccent(userId, hex) {
   if (!userId) return;
   try {
@@ -126,14 +77,20 @@ export function saveAccent(userId, hex) {
 
 export const ACCENT_CHANGE_EVENT = "vfrb:accent-change";
 
-// ── Backend swap-in point (not active yet) ─────────────────────────────────
-// Once `users.accent_color` (or equivalent) is confirmed and migrated:
-//   1. In saveAccent(), after the localStorage write, add:
-//        axios.put('/api/customer/profile', { accent_color: hex }).catch(() => {});
-//      (safe today too — UserController@customerUpdateProfile ignores
-//      unknown fields, so sending this early would not error, it would
-//      just silently not persist server-side — hence why it's commented
-//      out rather than left in as dead weight.)
-//   2. In loadAccent(), prefer `user.accent_color` from GET /api/customer/profile
-//      over localStorage, falling back to localStorage during the migration
-//      window so existing local picks aren't lost.
+// ── Server copy (notification_preferences.theme_accent, stored as the preset id) ──
+export const accentIdFor = (hex) => ACCENT_PRESETS.find((p) => p.hex.toLowerCase() === String(hex).toLowerCase())?.id ?? "teal";
+export const accentHexFor = (id) => ACCENT_PRESETS.find((p) => p.id === id)?.hex ?? DEFAULT_ACCENT_HEX;
+
+// Saves locally (applied at once) and on the account; resolves to an error message or ''.
+export async function saveAccentEverywhere(userId, hex) {
+  saveAccent(userId, hex);
+  try { await axios.patch("/api/settings/appearance", { theme_accent: accentIdFor(hex) }); return ""; }
+  catch (e) { return e.response?.data?.message ?? "Saved on this device only; could not reach the server."; }
+}
+
+// On sign-in: the account's saved accent wins over whatever this device last had.
+export function seedAccentFromUser(user) {
+  const id = user?.appearance?.theme_accent;
+  if (!user?.user_id || !id) return;
+  try { localStorage.setItem(STORAGE_PREFIX + user.user_id, accentHexFor(id)); } catch { /* private mode */ }
+}

@@ -29,6 +29,7 @@ import OnboardingOverlay from './design-studio/OnboardingOverlay';
 import InspoGallery from './design-studio/InspoGallery';
 import ShowcaseGallery from './design-studio/ShowcaseGallery';
 import { T2, INIT_CFG, FONTS, PATTERNS, zonesFor } from './design-studio/dsShared';
+import { templateFacts, checkEdit, applyStateEdits } from './design-studio/designEdits';
 import { describePatterns } from './design-studio/wovenPatterns';
 import { deserializeDesign, serializeDesign, draftLabel } from './design-studio/designSerialization';
 import { applyGarment, pieceOf } from './design-studio/garmentCatalog';
@@ -168,7 +169,7 @@ export default function DesignStudio() {
   const { addLogo, addText, addShape, updateSelected, arrangeLayer, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
           pushHistory, undo, redo, canUndo, canRedo, resizeCanvas, initFailed,
           layers, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
-          setDrawMode, setBrushStyle, setSnapOptions, garmentRect } =
+          setDrawMode, setBrushStyle, setSnapOptions, garmentRect, presetPos, textItems, editText } =
     useGarmentCanvas(
       canvasEl,
       cfg.garment,
@@ -341,32 +342,42 @@ export default function DesignStudio() {
     return compositeFrontBack(frontUrl, backUrl);
   }, [face, getCanvasJSON, loadCanvasJSON, exportPNG, cfg.garment, cfg.sleeve, cfg.fit]);
 
-  // Apply Gemini AI response
-  const applyAI = useCallback((aiCfg) => {
-    setAiPulse(true);
-    setTimeout(() => setAiPulse(false), 1200);
-    setCfg(p => ({
-      ...p,
-      category: aiCfg.category ?? p.category,
-      garment:  aiCfg.garmentType ?? p.garment,
-      sleeve:   aiCfg.sleeveType  ?? p.sleeve,
-      colors: {
-        body:    aiCfg.colors?.body   ?? p.colors.body,
-        collar:  aiCfg.colors?.collar ?? aiCfg.colors?.accent ?? p.colors.collar,
-        sleeve:  aiCfg.colors?.sleeve ?? aiCfg.colors?.body   ?? p.colors.sleeve,
-        pocket:  aiCfg.colors?.pocket ?? aiCfg.colors?.accent ?? p.colors.pocket,
-      },
-    }));
-    // Schema gap fix: "bold font", names, numbers described in a prompt
-    // were silently dropped — the Gemini schema had no field to carry
-    // them, so nothing on the frontend could ever apply them. Backend now
-    // returns textContent/textBold; place it the same way TextPanel does.
-    if (aiCfg.textContent) {
-      const fontCss = FONTS.find(f => f.id === (aiCfg.textBold ? 'montserrat' : 'inter')).css;
-      const textColor = aiCfg.colors?.accent ?? '#FFFFFF';
-      setTimeout(() => addText(aiCfg.textContent, textColor, fontCss, 22), 250);
-    }
-  }, [addText]);
+  // AI design edits (B5). Every operation is re-checked against the template it lands on (the current one, or the template a
+  // from-scratch brief maps to). Preview applies them to the one DesignState, so the 2D canvas and the 3D view show the same thing;
+  // Undo restores the exact design and overlays from before; Keep makes the edit part of the design. One preview at a time.
+  const [aiPreview, setAiPreview] = useState(null); // { cfg, canvas, result } while an AI edit is previewed
+  const previewAI = useCallback(({ start = null, ops = [] }) => {
+    if (aiPreview) return { applied: 0, skipped: [{ why: 'keep or undo the current preview first' }] };
+    const base = start ?? cfg;
+    const facts = templateFacts(base), ids = start ? [] : textItems().map(t => t.id);
+    const ok = [], skipped = [];
+    ops.forEach(op => { const why = checkEdit(op, facts, ids); (why ? skipped : ok).push(why ? { op, why } : op); });
+    if (!ok.length && !start) return { applied: 0, skipped };
+    const result = applyStateEdits(base, ok);
+    setAiPreview({ cfg, canvas: getCanvasJSON(), result });
+    setCfg(result);
+    const font = FONTS.find(f => f.id === 'inter').css;
+    const ink = parseInt((result.colors?.body ?? '#000000').slice(1), 16) > 0x7fffff ? '#111827' : '#FFFFFF'; // readable on the body colour
+    const texts = () => ok.forEach(op => {
+      if (op.op === 'add_text') addText(op.text, ink, font, 22, presetPos(op.placement, result.garment, result.sleeve));
+      if (op.op === 'edit_text') editText(op.target, { text: op.text });
+      if (op.op === 'move_text') editText(op.target, { presetId: op.placement });
+    });
+    if (start) setTimeout(texts, 250); else texts(); // a new template draws its base first
+    setAiPulse(true); setTimeout(() => setAiPulse(false), 1200);
+    return { applied: ok.length, skipped };
+  }, [aiPreview, cfg, textItems, getCanvasJSON, addText, editText, presetPos]);
+  const undoAI = useCallback(() => {
+    if (!aiPreview) return;
+    setCfg(aiPreview.cfg);
+    loadCanvasJSON(aiPreview.canvas, { keepHistory: true });
+    setTimeout(pushHistory, 300); // the restore is itself one undoable step
+    setAiPreview(null);
+  }, [aiPreview, loadCanvasJSON, pushHistory]);
+  const keepAI = useCallback(() => setAiPreview(null), []);
+  // Changes made by hand during a preview are lost on Undo; the panel says so.
+  const aiEditedSince = !!aiPreview && cfg !== aiPreview.result;
+  const viewAI3D = useCallback(() => { if (has3DFor(cfg)) { setHas3DLoaded(true); setViewMode('3d'); } }, [cfg]);
 
   // ── Draft restore on mount ────────────────────────────────────────────────
   // REGRESSION FIX: this used to apply the saved draft's garment straight into
@@ -527,23 +538,22 @@ export default function DesignStudio() {
   // Keeps the piece on screen as a single design; the other piece is discarded.
   const leaveSet = useCallback(() => setUset(null), []);
 
-  // Uniform set 3D preview: the other piece, only while both pieces have their own model for their sleeve and fit (each renders
-  // its own GLB with its own colours; no fused set model and no substitute).
+  // Uniform set preview: the other piece. 2D always draws both on one scale; 3D only while both pieces have their own model for
+  // their sleeve and fit (each renders its own GLB with its own colours; no fused set model and no substitute).
   const [showSet, setShowSet] = useState(false);
   const setCompanion = useMemo(() => {
     if (!uset || pieceOf(cfg.garment) !== uset.active) return null;
     const snap = uset.pieces[otherRole(uset.active)];
     if (!snap?.garment) return null;
     const other = deserializeDesign(snap).cfg;
-    if (!has3DFor(cfg) || !has3DFor(other)) return null;
-    return { cfg: other, role: otherRole(uset.active) };
+    return { cfg: other, role: otherRole(uset.active), can3D: has3DFor(cfg) && has3DFor(other) };
   // eslint-disable-next-line react-hooks/exhaustive-deps -- has3DFor reads exactly these fields
   }, [uset, cfg.garment, cfg.sleeve, cfg.fit, cfg.inspirationId]);
 
   const pieceBar = cfg.garment && (
     <PieceSelector cfg={cfg} uset={uset} onSwitch={switchPiece} onStart={startSet} onLeave={leaveSet}
-      canSet={!!setCompanion} showSet={showSet && viewMode === '3d'}
-      onShowSet={v => { if (v) { setHas3DLoaded(true); setViewMode('3d'); } setShowSet(v); }}/>
+      canSet={!!setCompanion} showSet={showSet}
+      onShowSet={v => { if (v && viewMode === '3d' && setCompanion?.can3D) setHas3DLoaded(true); setShowSet(v); }}/>
   );
 
   // ── Account draft write — the one payload for manual Save, autosave and Order ──
@@ -744,7 +754,7 @@ export default function DesignStudio() {
             setShowInspo={openInspo} setShowShowcase={toggleShowcase} onChangeGarment={changeGarment}
             brushSize={brushSize} brushColor={brushColor} erasing={erasing} setErasing={setErasing} garmentRect={garmentRect}
             changeBrushSize={changeBrushSize} changeBrushColor={changeBrushColor}
-            applyAI={applyAI} layers={layers} selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected} alignSelected={alignSelected}
+            ai={{ preview: previewAI, undo: undoAI, keep: keepAI, previewing: !!aiPreview, editedSince: aiEditedSince, view3D: viewAI3D, has3D: has3DFor(cfg) }} textItems={textItems} layers={layers} selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected} alignSelected={alignSelected}
             selectLayer={selectLayer} toggleLayerVisibility={toggleLayerVisibility}
             toggleLayerLock={toggleLayerLock} toggleSelectedLock={toggleSelectedLock} setLayerOpacity={setLayerOpacity}
             pushHistory={pushHistory}
@@ -778,8 +788,7 @@ export default function DesignStudio() {
           loadCanvasJSON={loadCanvasJSON} onOpen3D={() => { keep3DRef.current = true; setHas3DLoaded(true); setViewMode('3d'); }}/>
 
         {/* ── SHOWCASE GALLERY OVERLAY ── */}
-        <ShowcaseGallery showShowcase={showShowcase} setShowShowcase={toggleShowcase} setCfg={setCfg}
-          loadCanvasJSON={loadCanvasJSON}/>
+        <ShowcaseGallery showShowcase={showShowcase} setShowShowcase={toggleShowcase} setCfg={setCfg}/>
 
       </div>
     </>

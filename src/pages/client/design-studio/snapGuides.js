@@ -5,15 +5,14 @@
 
 export const SNAP_THRESHOLD = 6; // logical px at 100% (the default when no on-screen scale is known)
 export const SNAP_SCREEN_PX = 6; // the pull distance as the user sees it, at any zoom
-export const GRID_SIZES = [10, 20, 40];
 
 // Threshold in logical px for an on-screen scale (zoom x fit), so snapping feels the same at 40% on a phone and 270% on a desktop.
 export const snapThreshold = (scale = 1) => Math.min(12, Math.max(2, SNAP_SCREEN_PX / (scale > 0 ? scale : 1)));
 
 // Candidate lines an element can snap to: the canvas centre, the garment's centre (and its edges unless garmentEdges is false),
-// other visible design elements' edges and centres, ruler guides, and (only while the grid is shown) every grid line: either a
-// garment-relative grid spec { x0, y0, sx, sy } (origin at the garment's top-left) or a plain spacing from canvas 0.
-export function snapTargets({ width, height, garment, garmentEdges = true, others = [], gridSize = 0, grid = null, guides = [] }) {
+// other visible design elements' edges and centres, ruler guides, and (only while the grid is shown) every line of the garment-
+// relative grid spec { x0, y0, sx, sy, pct } (canvasGuides.gridSpec: origin at the garment's top-left, the rulers' unit).
+export function snapTargets({ width, height, garment, garmentEdges = true, others = [], grid = null, guides = [] }) {
   const v = [{ at: width / 2, kind: 'canvas' }], h = [{ at: height / 2, kind: 'canvas' }];
   if (garment) {
     v.push({ at: garment.left + garment.width / 2, kind: 'garment' });
@@ -31,10 +30,9 @@ export function snapTargets({ width, height, garment, garmentEdges = true, other
   if (grid?.sx > 0 && grid?.sy > 0) {
     for (let x = grid.x0 - Math.floor(grid.x0 / grid.sx) * grid.sx; x <= width; x += grid.sx) v.push({ at: x, kind: 'grid' });
     for (let y = grid.y0 - Math.floor(grid.y0 / grid.sy) * grid.sy; y <= height; y += grid.sy) h.push({ at: y, kind: 'grid' });
-    v.push({ at: grid.x0 + (50 / grid.pct) * grid.sx, kind: 'grid' }); // the 50% centre is a grid line at every size
-  } else if (gridSize > 0) {
-    for (let x = gridSize; x < width; x += gridSize) v.push({ at: x, kind: 'grid' });
-    for (let y = gridSize; y < height; y += gridSize) h.push({ at: y, kind: 'grid' });
+    // The 50% centre is a grid line at every size, on both axes (the stage grid draws it on both).
+    v.push({ at: grid.x0 + (50 / grid.pct) * grid.sx, kind: 'grid' });
+    h.push({ at: grid.y0 + (50 / grid.pct) * grid.sy, kind: 'grid' });
   }
   return { v, h };
 }
@@ -86,42 +84,7 @@ export function computeResizeSnap(box, corner, targets, threshold = SNAP_THRESHO
   return { rx, ry, guides: [...(gx ? [{ axis: 'v', at: gx.at, kind: gx.kind }] : []), ...(gy ? [{ axis: 'h', at: gy.at, kind: gy.kind }] : [])] };
 }
 
-// Live readout while transforming, in the same numbers the inspector shows (X/Y = the element's left/top, size = width x height).
-export const readoutText = (o, action) => action === 'scale'
-  ? `${Math.round((o.width ?? 0) * Math.abs(o.scaleX ?? 1))} × ${Math.round((o.height ?? 0) * Math.abs(o.scaleY ?? 1))}`
-  : `X ${Math.round(o.left ?? 0)}  Y ${Math.round(o.top ?? 0)}`;
-
-// Ruler ticks for a length in logical px: a minor tick every `step`, a labelled major tick every `major`.
-export function rulerTicks(length, step = 10, major = 50) {
-  const out = [];
-  for (let p = 0; p <= length + 1e-6; p += step) out.push({ at: p, major: Math.round(p) % major === 0 });
-  return out;
-}
-
-// Tick spacing for an on-screen scale: minor ticks at least 6 screen px apart, labels at least 44 screen px apart, both on
-// round canvas values, so the rulers stay readable at every zoom and screen width.
-const STEPS = [2, 5, 10, 20, 25, 50, 100, 200];
-export function rulerSteps(scale = 1) {
-  const s = scale > 0 ? scale : 1;
-  const step = STEPS.find(x => x * s >= 6) ?? STEPS[STEPS.length - 1];
-  const major = [10, 20, 50, 100, 200, 500, 1000].find(x => x % step === 0 && x * s >= 44) ?? step * 10;
-  return { step, major };
-}
-
-// ── Pinned rulers and panning ─────────────────────────────────────────────────────────────────────────────────────────────
-// The artboard is drawn at screen position origin + v * scale for canvas value v (origin = where canvas 0 lands on the ruler).
-
-// Ticks for a ruler pinned to the viewport edge: only the part of the artboard [0, extent] that is visible on a ruler of
-// `length` screen px. Values are whole multiples of `step`, so labels never duplicate or drift with rounding, and they continue
-// from the artboard's real coordinates when its origin is scrolled out of view (never restart at 0, never negative).
-export function pinnedTicks(origin, scale, length, extent, step, major) {
-  if (!(scale > 0) || !(step > 0)) return [];
-  const from = Math.max(0, Math.ceil(-origin / scale / step - 1e-9));
-  const to = Math.min(Math.floor(extent / step + 1e-9), Math.floor((length - origin) / scale / step + 1e-9));
-  const out = [];
-  for (let k = from; k <= to; k++) { const v = k * step; out.push({ v, at: origin + v * scale, major: v % major === 0 }); }
-  return out;
-}
+// ── Panning ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 // How far the artboard may be panned from centre: only along an axis where it overflows the viewport, by the overflow plus a
 // margin, so every edge can be brought into view and the artboard can never be lost.

@@ -13,7 +13,11 @@ export const formatPhMobile = (v) => {
   return String(v ?? '');
 };
 
-// No SMS gateway exists: nothing is ever sent. The line says only what is true about the number on the account.
+// While VFRB's SMS switch is off (sms_provider_live false) nothing is sent; the line says only what is true about the number.
 export const SMS_NOT_ACTIVE = 'Text alerts are not active yet; your number is saved.';
 export const smsStatusLine = (stored, { noNumber = 'Text alerts are not active yet. Add a mobile number to have it ready.' } = {}) =>
   isPhMobile(stored) ? SMS_NOT_ACTIVE : noNumber;
+
+// With SMS switched on: where texts go, or what is missing before the switch can be turned on.
+export const smsLiveLine = (stored) =>
+  isPhMobile(stored) ? `Texts go to ${formatPhMobile(stored)}.` : 'Add a PH mobile number to your profile to turn on text alerts.';

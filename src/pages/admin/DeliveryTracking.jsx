@@ -17,7 +17,12 @@ const METHODS = ['cash','gcash','ewallet','bank_transfer'];
 const TERMS   = ['full_payment','down_payment','net_30'];
 const METHOD_LABEL = { cash:'Cash', gcash:'GCash', ewallet:'E-Wallet', bank_transfer:'Bank Transfer' };
 
+// Auto-created deliveries fall back to "Address pending"; the server refuses Delivered until a real address is on file.
+const lacksAddress = (d) => d.delivery_method !== 'pickup' && (!d.delivery_address?.trim() || /^address pending$/i.test(d.delivery_address.trim()));
+
 function MarkDeliveredModal({ delivery, onClose, onDone, isMobile }) {
+  const needsAddress = lacksAddress(delivery);
+  const [address, setAddress] = useState(needsAddress ? (delivery.customer_address ?? '') : '');
   const [notes, setNotes] = useState('');
   const [busy,  setBusy]  = useState(false);
   const [err,   setErr]   = useState('');
@@ -33,7 +38,7 @@ function MarkDeliveredModal({ delivery, onClose, onDone, isMobile }) {
   const submit = async () => {
     setBusy(true); setErr(''); setWarn('');
     try {
-      await axios.patch(`/api/admin/delivery/${delivery.tracking_id}/delivered`, { notes });
+      await axios.patch(`/api/admin/delivery/${delivery.tracking_id}/delivered`, { notes, ...(needsAddress ? { delivery_address: address.trim() } : {}) });
     } catch (e) {
       setErr(e.response?.data?.message ?? 'Failed to mark delivered.');
       setBusy(false);
@@ -57,6 +62,12 @@ function MarkDeliveredModal({ delivery, onClose, onDone, isMobile }) {
   return (
     <BottomSheet title={`Mark order #${delivery.order_id} delivered`} onClose={marked ? onDone : onClose} isMobile={isMobile} maxWidth={480}>
       <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+        {needsAddress && (
+          <label><span className="adm-field">Delivery address (required)</span>
+            <textarea className="adm-input" rows={2} value={address} onChange={e=>setAddress(e.target.value)} disabled={marked} required
+              placeholder="Street, barangay, city" />
+          </label>
+        )}
         <label><span className="adm-field">Delivery notes</span>
           <textarea className="adm-input" rows={3} value={notes} onChange={e=>setNotes(e.target.value)} disabled={marked}
             placeholder="e.g. Received by the principal, complete, no damage…" />
@@ -99,7 +110,7 @@ function MarkDeliveredModal({ delivery, onClose, onDone, isMobile }) {
           {marked ? <button className="adm-btn primary" onClick={onDone}>Close</button> : (
             <>
               <button className="adm-btn" onClick={onClose}>Cancel</button>
-              <button className="adm-btn success" onClick={submit} disabled={busy}><NavIcon name="success" size={14} color="currentColor" /> {busy ? 'Saving…' : 'Confirm delivery'}</button>
+              <button className="adm-btn success" onClick={submit} disabled={busy || (needsAddress && !address.trim())}><NavIcon name="success" size={14} color="currentColor" /> {busy ? 'Saving…' : 'Confirm delivery'}</button>
             </>
           )}
         </div>

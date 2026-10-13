@@ -55,7 +55,6 @@ function CreateUserModal({ onClose, onDone, isMobile }) {
               <select value={form.role} onChange={e=>set('role',e.target.value)} style={{ ...inp, cursor:'pointer' }}>
                 <option value="staff">Staff</option>
                 <option value="manager">Manager</option>
-                <option value="customer">Client</option>
               </select>
             </div>
           </div>

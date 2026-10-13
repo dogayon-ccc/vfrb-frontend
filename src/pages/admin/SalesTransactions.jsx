@@ -3,10 +3,9 @@ import axios from 'axios';
 import { cacheGet, cacheSet, cacheClear } from '../../utils/cache';
 import { NavIcon } from '../../components/ui';
 import BottomSheet from '../../components/ui/BottomSheet';
-import { PageHeader, StatGrid, Panel, SearchBox, Banner, ErrorBlock, SkeletonRows, OrderLink, useIsMobile } from '../../components/admin/AdminUI';
+import { PageHeader, StatGrid, Panel, SearchBox, Banner, ErrorBlock, SkeletonRows, OrderLink, useIsMobile, RecordedBy } from '../../components/admin/AdminUI';
 
 const fmt = (v) => `₱${Number(v || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
-const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—');
 const METHODS = ['cash', 'gcash', 'ewallet', 'bank_transfer'];
 const TERMS   = ['full_payment', 'down_payment', 'net_30'];
 const METHOD_CFG = {
@@ -17,6 +16,8 @@ const METHOD_CFG = {
   not_yet_paid:  { label: 'Not yet paid',  icon: 'pending',  bg: 'var(--danger-bg)',  fg: 'var(--danger-text)' },
 };
 // Admin list endpoints return the client as customer_name (a join), not a nested user.
+// When the payment was recorded (the server's processed_at), with older fallbacks.
+const recordedAt = (t) => t.processed_at ?? t.date_processed ?? t.created_at ?? t.payment_date;
 const clientOf = (x) => x?.customer_name ?? x?.user?.name ?? x?.order?.user?.name ?? '—';
 const Method = ({ m }) => {
   const c = METHOD_CFG[m] ?? { label: m ?? '—', icon: 'ewallet', bg: 'var(--bg-surface)', fg: 'var(--text-subtle)' };
@@ -228,7 +229,7 @@ export default function AdminSalesTransactions() {
           {loading ? <SkeletonRows rows={5} h={44} /> : loadErr ? null : filtered.length === 0 ? empty : (
             <div className="adm-tbl-scroll">
               <table className="adm-table">
-                <thead><tr><th>Txn</th><th>Order</th><th>Client</th><th>Paid</th><th>Balance</th><th>Method</th><th className="adm-hide-t">OR / Ref</th><th>Date</th></tr></thead>
+                <thead><tr><th>Txn</th><th>Order</th><th>Client</th><th>Paid</th><th>Balance</th><th>Method</th><th className="adm-hide-t">OR / Ref</th><th>Recorded</th></tr></thead>
                 <tbody>
                   {filtered.map((t, i) => (
                     <tr key={t.transaction_id ?? i}>
@@ -239,7 +240,7 @@ export default function AdminSalesTransactions() {
                       <td><Balance t={t} /></td>
                       <td><Method m={t.payment_method} /></td>
                       <td className="adm-hide-t" style={{ color: 'var(--text-subtle)' }}>{t.or_number ?? '—'}</td>
-                      <td style={{ whiteSpace: 'nowrap', color: 'var(--text-faint)', fontSize: 12 }}>{fmtDate(t.date_processed ?? t.payment_date ?? t.created_at)}</td>
+                      <td style={{ minWidth: 150 }}><RecordedBy name={t.processed_by_name} at={recordedAt(t)} label="" /></td>
                     </tr>
                   ))}
                 </tbody>
@@ -258,7 +259,7 @@ export default function AdminSalesTransactions() {
               <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--success-text)' }}>{fmt(t.amount_paid)}</span>
               <Balance t={t} />
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 4 }}>{fmtDate(t.date_processed ?? t.payment_date ?? t.created_at)}{t.or_number ? ` · ${t.or_number}` : ''}</div>
+            <div style={{ marginTop: 4 }}><RecordedBy name={t.processed_by_name} at={recordedAt(t)} label="Recorded by" />{t.or_number && <span className="adm-recby"> · OR {t.or_number}</span>}</div>
           </div>
         ))}
       </div>

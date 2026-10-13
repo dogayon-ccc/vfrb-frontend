@@ -1,171 +1,133 @@
-// src/pages/client/AccountSettings.jsx — Shipping Addresses, Notification Preferences, Preferred Fabrics.
-// All three backends already existed with zero frontend consuming them — same gap class as BillingProfiles.jsx.
+// src/pages/client/AccountSettings.jsx — settings hub: profile, photo & appearance, addresses, notifications, fabrics, billing, security.
 import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import axios from 'axios';
-import { Card, Button, Field, Badge, NavIcon, ConfirmDialog } from '../../components/ui';
+import { Card, Button, Field, NavIcon, ConfirmDialog } from '../../components/ui';
 import EmptyState from '../../components/EmptyState';
 import { ProfileSection, PasswordSection } from './settings/ProfileSection';
 import BillingSection from './settings/BillingSection';
 import HelpSection from './settings/HelpSection';
 import FeedbackSection from './settings/FeedbackSection';
 import LoadError from './settings/LoadError';
-import { phPhoneError, compactPhone, formatPhMobile, isPhMobile, smsStatusLine } from '../../utils/phPhone';
-
-function Toast({ msg, type }) {
-  return (
-    <AnimatePresence>
-      {msg && (
-        <motion.div initial={{ opacity: 0, y: -8, height: 0 }} animate={{ opacity: 1, y: 0, height: 'auto' }}
-          exit={{ opacity: 0, height: 0 }} role="status" aria-live="polite"
-          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 14px',
-            borderRadius: 'var(--r-md)', fontSize: 12, fontWeight: 700, marginTop: 12,
-            background: type === 'error' ? '#fef2f2' : '#f0fdf4',
-            border: `1px solid ${type === 'error' ? '#fecaca' : '#bbf7d0'}`,
-            color: type === 'error' ? '#dc2626' : '#16a34a' }}>
-          <NavIcon name={type === 'error' ? 'error' : 'success'} size={14}/>
-          {msg}
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-}
+import { Notice as Toast, useFlash, useRecords, fieldErrors, RecordRow, DefaultToggle, Skeletons } from './settings/RecordKit';
+import { phPhoneError, compactPhone, formatPhMobile, isPhMobile, smsStatusLine, smsLiveLine } from '../../utils/phPhone';
+import ProfilePhotoField from '../../components/ProfilePhotoField';
+import AppearanceField from '../../components/AppearanceField';
+import { readUser } from '../../utils/authRoute';
+import { USER_CHANGE_EVENT } from '../../utils/session';
 
 // ── Shipping Addresses ───────────────────────────────────────────────────
 const BLANK_ADDR = { label: '', recipient_name: '', contact_number: '', address_line: '', city: '', province: '', postal_code: '', is_default: false };
+const ADDR_REQUIRED = { label: 'Label', recipient_name: 'Recipient name', contact_number: 'Contact number', address_line: 'Address line', city: 'City', province: 'Province' };
+const postalError = (v) => (v && !/^\d{4}$/.test(String(v).trim()) ? 'Use the 4-digit postal code.' : '');
+const addrBody = (a, over = {}) => ({ label: a.label.trim(), recipient_name: a.recipient_name.trim(), contact_number: compactPhone(a.contact_number),
+  address_line: a.address_line.trim(), city: a.city.trim(), province: a.province.trim(), postal_code: a.postal_code?.trim() || null, is_default: !!a.is_default, ...over });
 
 function AddressForm({ initial, onCancel, onSaved }) {
-  const [form, setForm] = useState(initial ?? BLANK_ADDR);
+  const [form, setForm] = useState({ ...BLANK_ADDR, ...initial, postal_code: initial?.postal_code ?? '' });
+  const [errs, setErrs] = useState({});
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setErrs(e => ({ ...e, [k]: undefined })); };
 
   const save = async () => {
-    if (!form.label.trim() || !form.recipient_name.trim() || !form.contact_number.trim() || !form.address_line.trim() || !form.city.trim() || !form.province.trim()) {
-      setErr('Please fill in all required fields.'); return;
-    }
-    const phoneErr = phPhoneError(form.contact_number, { required: true });
-    if (phoneErr) { setErr(phoneErr); return; }
+    const e = Object.fromEntries(Object.entries(ADDR_REQUIRED).filter(([k]) => !String(form[k] ?? '').trim()).map(([k, l]) => [k, `${l} is required.`]));
+    if (!e.contact_number) { const p = phPhoneError(form.contact_number, { required: true }); if (p) e.contact_number = p; }
+    if (postalError(form.postal_code)) e.postal_code = postalError(form.postal_code);
+    setErrs(e);
+    if (Object.keys(e).length) { setErr('Check the highlighted fields.'); return; }
     setSaving(true); setErr('');
     try {
-      const body = { label: form.label, recipient_name: form.recipient_name, contact_number: compactPhone(form.contact_number),
-        address_line: form.address_line, city: form.city, province: form.province,
-        postal_code: form.postal_code || null, is_default: !!form.is_default };
       const { data } = form.shipping_id
-        ? await axios.put(`/api/customer/shipping-addresses/${form.shipping_id}`, body)
-        : await axios.post('/api/customer/shipping-addresses', body);
+        ? await axios.put(`/api/customer/shipping-addresses/${form.shipping_id}`, addrBody(form))
+        : await axios.post('/api/customer/shipping-addresses', addrBody(form));
       onSaved(data);
-    } catch (e) {
-      setErr(e.response?.data?.message ?? 'Failed to save address.');
+    } catch (x) {
+      setErrs(fieldErrors(x));
+      setErr(x.response?.data?.message ?? 'Failed to save address.');
     } finally { setSaving(false); }
   };
 
   return (
     <Card title={form.shipping_id ? 'Edit Address' : 'New Address'}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <Field label="Label" value={form.label} onChange={e => set('label', e.target.value)} placeholder="e.g. Main Office, Warehouse"/>
+      <form noValidate onSubmit={e => { e.preventDefault(); save(); }} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <Field label="Label" value={form.label} onChange={e => set('label', e.target.value)} placeholder="e.g. Main Office, Warehouse" maxLength={50} error={errs.label} autoFocus/>
         <div className="acct-field-row">
-          <Field label="Recipient Name" value={form.recipient_name} onChange={e => set('recipient_name', e.target.value)}/>
-          <Field label="Contact Number" value={form.contact_number} onChange={e => set('contact_number', e.target.value)} placeholder="09XXXXXXXXX" inputMode="tel"
-            error={(form.contact_number && phPhoneError(form.contact_number)) || undefined}/>
+          <Field label="Recipient Name" value={form.recipient_name} onChange={e => set('recipient_name', e.target.value)} maxLength={100} autoComplete="name" error={errs.recipient_name}/>
+          <Field label="Contact Number" value={form.contact_number} onChange={e => set('contact_number', e.target.value)} placeholder="09XX XXX XXXX" inputMode="tel" autoComplete="tel"
+            onBlur={() => isPhMobile(form.contact_number) && set('contact_number', formatPhMobile(form.contact_number))}
+            error={errs.contact_number || (form.contact_number && phPhoneError(form.contact_number)) || undefined}/>
         </div>
-        <Field label="Address Line" value={form.address_line} onChange={e => set('address_line', e.target.value)} placeholder="Street, barangay, building"/>
+        <Field label="Address Line" value={form.address_line} onChange={e => set('address_line', e.target.value)} placeholder="Unit, building, street, barangay" maxLength={255} autoComplete="street-address" error={errs.address_line}/>
         <div className="acct-field-row">
-          <Field label="City" value={form.city} onChange={e => set('city', e.target.value)}/>
-          <Field label="Province" value={form.province} onChange={e => set('province', e.target.value)}/>
+          <Field label="City / Municipality" value={form.city} onChange={e => set('city', e.target.value)} maxLength={100} autoComplete="address-level2" error={errs.city}/>
+          <Field label="Province" value={form.province} onChange={e => set('province', e.target.value)} maxLength={100} autoComplete="address-level1" error={errs.province}/>
         </div>
-        <Field label="Postal Code (optional)" value={form.postal_code} onChange={e => set('postal_code', e.target.value)}/>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink)', cursor: 'pointer' }}>
-          <input type="checkbox" checked={!!form.is_default} onChange={e => set('is_default', e.target.checked)}
-            style={{ width: 16, height: 16, accentColor: 'var(--teal)' }}/>
-          Set as default address
-        </label>
+        <Field label="Postal Code (optional)" value={form.postal_code} onChange={e => set('postal_code', e.target.value)} inputMode="numeric" maxLength={4} autoComplete="postal-code"
+          placeholder="e.g. 1770" error={errs.postal_code || postalError(form.postal_code) || undefined}/>
+        <DefaultToggle checked={form.is_default} onChange={v => set('is_default', v)}>Use as my default delivery address</DefaultToggle>
         <Toast msg={err} type="error"/>
         <div style={{ display: 'flex', gap: 10 }}>
           <Button variant="ghost" fullWidth onClick={onCancel}>Cancel</Button>
-          <Button variant="primary" fullWidth icon="save" loading={saving} onClick={save}>{saving ? 'Saving…' : 'Save Address'}</Button>
+          <Button type="submit" variant="primary" fullWidth icon="save" loading={saving}>{saving ? 'Saving…' : 'Save Address'}</Button>
         </div>
-      </div>
+      </form>
     </Card>
   );
 }
 
-function AddressRow({ a, onEdit, onDelete }) {
-  return (
-    <div className="vfrb-row-card" style={{ padding: '14px 16px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-card)',
-      display: 'flex', alignItems: 'flex-start', gap: 12, justifyContent: 'space-between', flexWrap: 'wrap' }}>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <p style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)', margin: 0 }}>{a.label}</p>
-          {!!a.is_default && <Badge tone="teal">Default</Badge>}
-        </div>
-        <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 0' }}>{a.recipient_name} · {a.contact_number}</p>
-        <p style={{ fontSize: 12, color: 'var(--text-faint)', margin: '2px 0 0' }}>
-          {a.address_line}, {a.city}, {a.province}{a.postal_code ? ` ${a.postal_code}` : ''}
-        </p>
-      </div>
-      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-        <button onClick={() => onEdit(a)} aria-label={`Edit ${a.label}`}
-          style={{ border: '1px solid var(--border)', background: 'var(--bg-card)', borderRadius: 9, padding: 8,
-            cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', minWidth: 44, minHeight: 44,
-            alignItems: 'center', justifyContent: 'center' }}>
-          <NavIcon name="edit" size={14}/>
-        </button>
-        <button onClick={() => onDelete(a)} aria-label={`Delete ${a.label}`}
-          style={{ border: '1px solid var(--border)', background: 'var(--bg-card)', borderRadius: 9, padding: 8,
-            cursor: 'pointer', color: 'var(--danger)', display: 'flex', minWidth: 44, minHeight: 44,
-            alignItems: 'center', justifyContent: 'center' }}>
-          <NavIcon name="delete" size={14}/>
-        </button>
-      </div>
-    </div>
-  );
-}
-
 function ShippingSection() {
-  const [addrs, setAddrs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { items: addrs, loading, failed, load } = useRecords('/api/customer/shipping-addresses');
   const [editing, setEditing] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
-  const [msg, setMsg] = useState(''); const [err, setErr] = useState('');
+  const [busyId, setBusyId] = useState(null);
+  const [msg, flash] = useFlash(); const [err, setErr] = useState('');
 
-  const [failed, setFailed] = useState(false);
-  const load = () => {
-    setLoading(true); setFailed(false);
-    axios.get('/api/customer/shipping-addresses').then(r => setAddrs(r.data ?? []))
-      .catch(() => setFailed(true)).finally(() => setLoading(false));
+  const onSaved = () => { setEditing(null); setErr(''); flash('Address saved.'); load(); };
+  const makeDefault = async (a) => {
+    setBusyId(a.shipping_id); setErr('');
+    try { await axios.put(`/api/customer/shipping-addresses/${a.shipping_id}`, addrBody(a, { is_default: true })); flash(`"${a.label}" is now your default address.`); await load(); }
+    catch (x) { setErr(x.response?.data?.message ?? 'Could not change the default address.'); }
+    finally { setBusyId(null); }
   };
-  useEffect(load, []);
-
-  const onSaved = () => { setEditing(null); setMsg('Address saved.'); load(); };
   const doDelete = async (a) => {
-    try { await axios.delete(`/api/customer/shipping-addresses/${a.shipping_id}`); setMsg('Address removed.'); setConfirmDelete(null); load(); }
+    setBusyId(a.shipping_id); setErr('');
+    try { await axios.delete(`/api/customer/shipping-addresses/${a.shipping_id}`); flash('Address removed.'); setConfirmDelete(null); await load(); }
     catch { setErr('Failed to delete address.'); setConfirmDelete(null); }
+    finally { setBusyId(null); }
   };
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 10, flexWrap: 'wrap' }}>
-        <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Saved delivery addresses for your orders.</p>
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Saved delivery addresses. Your default is filled in when you place an order.</p>
         {!editing && !failed && addrs.length > 0 && <Button variant="primary" icon="add" onClick={() => setEditing({})}>New Address</Button>}
       </div>
       <Toast msg={msg} type="success"/><Toast msg={err} type="error"/>
       {editing ? (
         <AddressForm initial={editing.shipping_id ? editing : null} onCancel={() => setEditing(null)} onSaved={onSaved}/>
-      ) : loading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{[1, 2].map(i => <div key={i} className="acct-sk"/>)}</div>
-      ) : failed ? (
+      ) : loading ? <Skeletons/> : failed ? (
         <LoadError what="addresses" onRetry={load}/>
       ) : addrs.length === 0 ? (
         <EmptyState illustration="order" headline="No saved addresses" sub="Add a delivery address to speed up future orders."
           cta={{ label: '+ Add Address', onClick: () => setEditing({}) }}/>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {addrs.map(a => <AddressRow key={a.shipping_id} a={a} onEdit={setEditing} onDelete={setConfirmDelete}/>)}
+          {addrs.map(a => (
+            <RecordRow key={a.shipping_id} title={a.label} isDefault={!!a.is_default} busy={busyId === a.shipping_id}
+              onEdit={() => setEditing(a)} onDelete={() => setConfirmDelete(a)} onMakeDefault={() => makeDefault(a)}>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 0' }}>{a.recipient_name} · {formatPhMobile(a.contact_number) || a.contact_number}</p>
+              <p style={{ fontSize: 12, color: 'var(--text-subtle)', margin: '2px 0 0', overflowWrap: 'anywhere' }}>
+                {[a.address_line, a.city, a.province].filter(Boolean).join(', ')}{a.postal_code ? ` ${a.postal_code}` : ''}
+              </p>
+            </RecordRow>
+          ))}
         </div>
       )}
-      <ConfirmDialog open={!!confirmDelete} title={`Remove "${confirmDelete?.label ?? ''}"?`} body="This can't be undone." confirmLabel="Remove" onCancel={() => setConfirmDelete(null)} onConfirm={() => doDelete(confirmDelete)}/>
+      <ConfirmDialog open={!!confirmDelete} title={`Remove "${confirmDelete?.label ?? ''}"?`}
+        body={confirmDelete?.is_default ? "This is your default address. You can pick another default afterwards. This can't be undone." : "This can't be undone."}
+        confirmLabel="Remove" busy={busyId === confirmDelete?.shipping_id} onCancel={() => setConfirmDelete(null)} onConfirm={() => doDelete(confirmDelete)}/>
     </div>
   );
 }
@@ -192,30 +154,31 @@ function NotificationsSection() {
     try {
       await axios.patch('/api/settings/notifications', { [key]: next[key] });
       setMsg('Preferences updated.');
-    } catch {
+    } catch (e) {
       setPrefs(prefs); // rollback
-      setErr('Failed to update. Please try again.');
+      setErr(e.response?.data?.message ?? 'Failed to update. Please try again.');
     } finally { setSaving(false); }
   };
 
   if (failed) return <LoadError what="notification settings" onRetry={load}/>;
   if (!prefs) return <div className="acct-sk"/>;
 
-  // `off`: the channel cannot be turned on (SMS has no gateway); shown off and disabled whatever is stored.
-  const Row = ({ k, label, live, off }) => {
+  // `off`: the channel cannot be turned on (VFRB's SMS switch is off); shown off and disabled whatever is stored. `note`: status line when live.
+  const Row = ({ k, label, live, off, note }) => {
     const on = !off && !!prefs[k], locked = saving || !!off;
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
         <div>
           <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{label}</p>
           {off ? <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 0' }}>{off}</p>
+            : note ? <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 0' }}>{note}</p>
             : !live && <p style={{ fontSize: 11, color: 'var(--warning)', margin: '2px 0 0' }}>Email goes to a test inbox for now. Your preference is saved for when real delivery is on.</p>}
         </div>
         <button role="switch" aria-checked={on} aria-label={`Toggle ${label}`} onClick={() => toggle(k)} disabled={locked}
           style={{ width: 42, height: 24, borderRadius: 99, border: 'none', cursor: locked ? 'not-allowed' : 'pointer', opacity: off ? 0.5 : 1,
             background: on ? 'var(--teal)' : 'var(--border)', position: 'relative', transition: 'background .18s', flexShrink: 0 }}>
           <span style={{ position: 'absolute', top: 3, left: on ? 21 : 3, width: 18, height: 18, borderRadius: '50%',
-            background: '#fff', transition: 'left .18s', boxShadow: '0 1px 3px rgba(0,0,0,.2)' }}/>
+            background: 'var(--bg-card)', transition: 'left .18s', boxShadow: '0 1px 3px rgba(0,0,0,.2)' }}/>
         </button>
       </div>
     );
@@ -224,10 +187,23 @@ function NotificationsSection() {
   return (
     <Card>
       <Row k="email_enabled" label="Email Notifications" live={prefs.email_provider_live}/>
-      <Row k="sms_enabled" label="SMS Notifications" live={prefs.sms_provider_live}
-        off={<>{phone === undefined ? 'Text alerts are not active yet.' : smsStatusLine(phone)}
+      <Row k="sms_enabled" label="SMS Notifications" live={prefs.sms_provider_live} note={prefs.sms_provider_live && <>{smsLiveLine(phone)}{' '}
+          <Link to="/settings?tab=profile" style={{ color: 'var(--teal)', fontWeight: 700 }}>{isPhMobile(phone) ? 'Change' : 'Add number'}</Link></>}
+        off={!prefs.sms_provider_live && <>{phone === undefined ? 'Text alerts are not active yet.' : smsStatusLine(phone)}
           {isPhMobile(phone) && <> Number: <b>{formatPhMobile(phone)}</b>.</>} <Link to="/settings?tab=profile" style={{ color: 'var(--teal)', fontWeight: 700 }}>{isPhMobile(phone) ? 'Change' : 'Add number'}</Link></>}/>
       <Toast msg={msg} type="success"/><Toast msg={err} type="error"/>
+    </Card>
+  );
+}
+
+// ── Photo & Appearance ───────────────────────────────────────────────────
+function AppearanceSection() {
+  const [user, setUser] = useState(readUser);
+  return (
+    <Card>
+      <ProfilePhotoField avatar={user.avatar} name={user.name} onChange={(avatar) => setUser((u) => ({ ...u, avatar }))}/>
+      <div style={{ borderTop: '1px solid var(--border)', margin: '16px 0' }}/>
+      <AppearanceField userId={user.user_id}/>
     </Card>
   );
 }
@@ -329,6 +305,7 @@ function FabricsSection() {
 const SECTIONS = [
   { id: 'profile',       label: 'Personal Information', hint: 'Name, contact, organization', icon: 'profile' },
   { id: 'shipping',      label: 'Shipping Addresses',   hint: 'Where your orders are delivered', icon: 'delivery' },
+  { id: 'appearance',    label: 'Photo & Appearance',   hint: 'Profile photo, mode and accent colour', icon: 'camera' },
   { id: 'notifications', label: 'Notifications',        hint: 'Choose what you get notified about', icon: 'notifications' },
   { id: 'fabrics',       label: 'Preferred Fabrics',    hint: 'Fabrics staff should know about', icon: 'package' },
   { id: 'billing',       label: 'Billing Profiles',     hint: 'Invoice recipient details', icon: 'invoice' },
@@ -337,7 +314,7 @@ const SECTIONS = [
   { id: 'feedback',      label: 'Feedback',             hint: 'Report a bug or suggest an idea', icon: 'chat' },
 ];
 const PANELS = {
-  profile: ProfileSection, shipping: ShippingSection, notifications: NotificationsSection,
+  profile: ProfileSection, appearance: AppearanceSection, shipping: ShippingSection, notifications: NotificationsSection,
   fabrics: FabricsSection, billing: BillingSection, password: PasswordSection, help: HelpSection, feedback: FeedbackSection,
 };
 
@@ -358,6 +335,10 @@ export default function AccountSettings() {
   }, []);
   useEffect(() => {
     axios.get('/api/customer/profile').then(r => setMe(m => ({ ...m, ...(r.data?.user ?? r.data ?? {}) }))).catch(() => {});
+    // A new photo from the Photo & Appearance panel shows on the header card at once.
+    const onUser = (e) => setMe(m => ({ ...m, avatar: e.detail?.avatar ?? null }));
+    window.addEventListener(USER_CHANGE_EVENT, onUser);
+    return () => window.removeEventListener(USER_CHANGE_EVENT, onUser);
   }, []);
 
   const active = wide ? (sec ?? 'profile') : sec;
@@ -417,9 +398,9 @@ export default function AccountSettings() {
 
       {(wide || !sec) && (
         <div className="cx-card" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px', marginBottom: 16 }}>
-          <div aria-hidden="true" style={{ width: 54, height: 54, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center',
-            background: 'linear-gradient(135deg,var(--teal),var(--teal-2))', color: '#fff', fontSize: 22, fontWeight: 800 }}>
-            {(me.name ?? '?').charAt(0).toUpperCase()}
+          <div aria-hidden="true" style={{ width: 54, height: 54, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center', overflow: 'hidden',
+            background: 'linear-gradient(135deg,var(--teal),var(--teal-2))', color: 'var(--on-teal)', fontSize: 22, fontWeight: 800 }}>
+            {me.avatar ? <img src={me.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}/> : (me.name ?? '?').charAt(0).toUpperCase()}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ margin: 0, fontSize: 16, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{me.name ?? 'Client'}</p>

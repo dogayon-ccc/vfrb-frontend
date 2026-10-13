@@ -18,7 +18,8 @@
  *   - NO Google Fonts CDN. NO external @import. Offline Laragon environment.
  *   - NO hardcoded colors in component files — use these vars.
  *   - Every new color must be added HERE first, then used.
- *   - Dark mode: Design Studio only (#060d1a). All portals + auth flow: light.
+ *   - Dark mode: per-user opt-in for the signed-in portals (html[data-theme=dark], below);
+ *     the Design Studio keeps its own stage and the auth flow stays light.
  *
  * FF-1 FIX: Google Fonts CDN import removed (was breaking offline rendering).
  * FF-2 FIX: DM Sans references removed throughout — system font stack only.
@@ -72,7 +73,8 @@
   --text-subtle:       #5b6b7f;   /* Tertiary, labels              */
   --text-faint:        #5f6f83;   /* Placeholders, disabled        */
   --text-disabled:     #cbd5e1;   /* Truly disabled                */
-  --text-on-accent:    #ffffff;   /* Text on teal/colored buttons  */
+  --text-on-accent:    #ffffff;   /* Text on coloured fills        */
+  --on-teal:           #ffffff;   /* Text on accent (teal) fills; dark in dark mode */
 
   /* ── Surfaces ── */
   --bg:                #f8fafc;   /* Page background               */
@@ -217,6 +219,28 @@
   --z-toast:    400;
   --z-tooltip:  500;
 }
+
+/* ─── DARK MODE ──────────────────────────────────────────────────────────────
+   Set on <html> by useAppearance while a signed-in portal is mounted. Accent tokens
+   (--teal*, --on-teal, --border-focus) are computed per preset in accentColor.js so text stays >= 4.5:1.
+   ─────────────────────────────────────────────────────────────────────────── */
+html[data-theme=dark] {
+  color-scheme: dark;
+  --purple-50:#211a33; --purple-100:#2c2147; --purple-text:#c4b5fd;
+  --success-bg:#0f2a1a; --success-border:#1f5135; --success-text:#86efac;
+  --warning-bg:#2a2010; --warning-border:#5c4313; --warning-text:#fcd34d;
+  --danger-bg:#2c1416;  --danger-border:#5b2327;  --danger-text:#fca5a5;
+  --info-bg:#111f38;    --info-border:#1e3a6b;    --info-text:#93c5fd;
+  --ink:#e6edf3; --text:#e6edf3; --field-border:#7d8b9c;
+  --text-muted:#b4c0cd; --text-subtle:#9aa8b6; --text-faint:#8b98a6; --text-disabled:#4b5563;
+  --bg:#0e1419; --bg-card:#161d24; --bg-card-hover:#1b232b; --bg-surface:#1d262f; --bg-surface-2:#26313b; --bg-input:#11181e;
+  --bg-sidebar:#161d24; --bg-sidebar-item:rgba(255,255,255,.03); --bg-sidebar-active:rgba(255,255,255,.07);
+  --border:#2a3540; --border-hover:#3a4753; --border-strong:#4a5866;
+  --input-bg:#11181e; --input-border:#2a3540; --input-text:#e6edf3; --input-placeholder:#7b8896;
+  --shadow-xs:0 1px 2px rgba(0,0,0,.4); --shadow-sm:0 1px 3px rgba(0,0,0,.45),0 1px 2px rgba(0,0,0,.3);
+  --shadow-md:0 4px 12px rgba(0,0,0,.45); --shadow-lg:0 8px 24px rgba(0,0,0,.5); --shadow-xl:0 16px 48px rgba(0,0,0,.55);
+}
+html[data-theme=dark] body { background: var(--bg); color: var(--ink); }
 
 
 /* ─── GLOBAL RESETS ──────────────────────────────────────────────────────────

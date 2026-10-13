@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { NavIcon } from '../../components/ui';
-import { PageHeader, PillTabs, TabPanel, Panel, StatusPill, ErrorBlock, EmptyBlock, SkeletonRows, OrderLink } from '../../components/admin/AdminUI';
+import { PageHeader, PillTabs, TabPanel, Panel, StatusPill, ErrorBlock, EmptyBlock, SkeletonRows, OrderLink, RecordedBy } from '../../components/admin/AdminUI';
+import QCChecklistForm from '../../components/admin/QCChecklistForm';
 
 const STAGES = ['pattern', 'segregation', 'cutting', 'sewing', 'qc', 'pressing', 'packing'];
 const SIZES  = ['xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl', 'custom'];
@@ -37,6 +38,7 @@ export default function AdminDailyOutputLog() {
   const [tab,     setTab]     = useState('log');
   const [orderMaterials, setOrderMaterials] = useState([]);
   const [materialQty,    setMaterialQty]    = useState({});
+  const [qc, setQc] = useState(null); // latest QC for the selected order: { checklist, qc_required } | { error }
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   const count = (k) => (e) => set(k, Math.max(0, Number(e.target.value) || 0));
@@ -61,7 +63,7 @@ export default function AdminDailyOutputLog() {
   }, [selOrder]);
 
   useEffect(() => {
-    setSummary(null); setMaterialQty({}); setOrderMaterials([]);
+    setSummary(null); setMaterialQty({}); setOrderMaterials([]); setQc(null);
     if (!form.order_id) return undefined;
     let off = false;
     axios.get(`/api/admin/output-logs/summary/${form.order_id}`).then((r) => { if (!off) setSummary(r.data); }).catch(() => {});
@@ -70,6 +72,14 @@ export default function AdminDailyOutputLog() {
     }).catch(() => {});
     return () => { off = true; };
   }, [form.order_id]);
+
+  // The advance to Pressing is held server-side until the latest QC checklist passed (QC-required orders only).
+  const atQc = form.stage === 'qc' && !!form.order_id;
+  const qcHeld = atQc && !!qc && !qc.error && qc.qc_required && !qc.checklist?.passed;
+  const onQcDone = (d) => {
+    setErr(''); setSuccess(d.message ?? '');
+    if (d.advanced) { setForm(emptyForm()); load(); }
+  };
 
   const totalInForm = SIZES.reduce((sum, s) => sum + (Number(form[`qty_${s}`]) || 0), 0);
   const materialActuals = () => Object.entries(materialQty)
@@ -83,7 +93,12 @@ export default function AdminDailyOutputLog() {
     try {
       const r = await axios.post('/api/admin/output-logs', { ...form, material_actuals: materialActuals() });
       const id = form.order_id;
-      if (r.data.materials_blocked) {
+      // A resubmit on a finished stage logs nothing; the server says why the stage is still held.
+      if (r.data.already_complete && !r.data.advanced) {
+        setSuccess(`Order #${id}: ${r.data.detail}`);
+      } else if (r.data.qc_blocked) {
+        setSuccess(`Logged ${r.data.total_output} pieces for Order #${id}. ${r.data.message}`);
+      } else if (r.data.materials_blocked) {
         const names = (r.data.materials_needing_actual ?? []).map((m) => m.material_name).join(', ');
         setSuccess(`Logged ${r.data.total_output} pieces for Order #${id}. Stage advance is on hold until actual usage is entered for: ${names}.`);
       } else {
@@ -91,7 +106,8 @@ export default function AdminDailyOutputLog() {
         setSuccess(`Logged ${r.data.total_output} pieces for Order #${id}.${n ? ` ${n} material(s) deducted from stock.` : ''}`);
       }
       if (r.data.low_stock?.length) setErr(`Low stock after deduction: ${r.data.low_stock.map((m) => m.material_name).join(', ')}`);
-      setForm(emptyForm());
+      // A held QC order stays selected so its checklist is right there.
+      setForm(r.data.qc_blocked ? emptyForm(id, 'qc') : emptyForm());
       load();
     } catch (e) { setErr(e.response?.data?.message ?? 'Failed to log output.'); }
     finally { setSaving(false); }
@@ -112,6 +128,7 @@ export default function AdminDailyOutputLog() {
         .dol-rows{display:flex;flex-direction:column}
         .dol-rows>div{display:flex;justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px solid var(--bg-surface);font-size:13px}
         .dol-rows>div:last-child{border-bottom:none}
+        .dol-qc{display:flex;flex-direction:column;gap:14px;padding:14px;border:1px solid var(--border);border-radius:12px;background:var(--bg-surface)}
         @media(max-width:420px){.dol-sizes{grid-template-columns:repeat(2,minmax(0,1fr))}}
       `}</style>
 
@@ -176,6 +193,17 @@ export default function AdminDailyOutputLog() {
                     ))}
                   </div>
                 </div>
+              )}
+
+              {atQc && (
+                <section className="dol-qc" aria-label="QC checklist">
+                  {!qc ? <div className="adm-callout info" style={{ marginBottom: 0 }}><NavIcon name="loading" size={16} color="currentColor" /><div>Checking the latest QC result…</div></div>
+                    : qc.error ? <div className="adm-callout danger" role="alert" style={{ marginBottom: 0 }}><NavIcon name="warning" size={16} color="currentColor" /><div><b>QC status could not be loaded</b>The order still cannot move to Pressing without a passing QC check.</div></div>
+                    : !qc.qc_required ? <div className="adm-callout info" style={{ marginBottom: 0 }}><NavIcon name="info" size={16} color="currentColor" /><div><b>QC is optional for this order</b>Recording a check is still kept in QC history.</div></div>
+                    : qcHeld ? <div className="adm-callout danger" role="status" style={{ marginBottom: 0 }}><NavIcon name="warning" size={16} color="currentColor" /><div><b>Pressing is blocked until QC passes</b>You can keep logging QC pieces. Submit a passing checklist below to release the order.</div></div>
+                    : <div className="adm-callout ok" role="status" style={{ marginBottom: 0 }}><NavIcon name="success" size={16} color="currentColor" /><div><b>QC passed</b>The order moves to Pressing once every QC piece is logged.</div></div>}
+                  <QCChecklistForm inline orderId={form.order_id} orderData={selOrder} onStatus={setQc} onComplete={onQcDone} />
+                </section>
               )}
 
               <div className="adm-form-grid">
@@ -244,7 +272,7 @@ export default function AdminDailyOutputLog() {
           ) : (
             <div className="adm-tbl-scroll">
               <table className="adm-table" style={{ minWidth: 560 }}>
-                <thead><tr><th>Order</th><th>Stage</th><th>Total</th><th>By size</th><th>Defects</th><th>Logged by</th></tr></thead>
+                <thead><tr><th>Order</th><th>Stage</th><th>Total</th><th>By size</th><th>Defects</th><th>Recorded</th></tr></thead>
                 <tbody>
                   {logs.map((l, i) => (
                     <tr key={l.log_id ?? i}>
@@ -256,7 +284,7 @@ export default function AdminDailyOutputLog() {
                         {l.defect_count > 0 ? <span style={{ color: 'var(--danger-text)', fontWeight: 700 }}>{l.defect_count} defect{l.defect_count > 1 ? 's' : ''}</span> : '—'}
                         {l.alteration_count > 0 && <span style={{ color: 'var(--warning-text)', fontWeight: 700, marginLeft: 6 }}>{l.alteration_count} alt.</span>}
                       </td>
-                      <td style={{ color: 'var(--text-subtle)' }}>{l.logger?.name ?? '—'}</td>
+                      <td><RecordedBy name={l.logged_by_name} at={l.created_at} label="" /></td>
                     </tr>
                   ))}
                 </tbody>

@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { sessionWipeAll } from './cache';
 import { clearQueue } from './offlineQueue';
+import { seedAppearance } from './themeMode';
 
 const TOKEN = 'vfrb_token';
 const USER  = 'vfrb_user';
@@ -40,6 +41,17 @@ export function startSession(token, user) {
   clearApiCache();
   localStorage.setItem(TOKEN, token);
   localStorage.setItem(USER, JSON.stringify(user));
+  seedAppearance(user);
+}
+
+// Keeps the cached signed-in user in step after a profile change (e.g. a new photo) and tells open layouts.
+export const USER_CHANGE_EVENT = 'vfrb:user-change';
+export function patchStoredUser(patch) {
+  try {
+    const next = { ...JSON.parse(localStorage.getItem(USER) || '{}'), ...patch };
+    localStorage.setItem(USER, JSON.stringify(next));
+    window.dispatchEvent(new CustomEvent(USER_CHANGE_EVENT, { detail: next }));
+  } catch { /* storage unavailable: the next sign-in refreshes it */ }
 }
 
 const inflight = new Map();

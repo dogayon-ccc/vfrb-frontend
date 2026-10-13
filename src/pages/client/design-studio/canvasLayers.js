@@ -12,9 +12,17 @@ function rgba(color, a) {
   return m && m.length >= 3 ? `rgba(${m[0]},${m[1]},${m[2]},${a})` : `rgba(27,36,40,${a})`;
 }
 
+// A base object's box in canvas px; a photo uses its opaque pixels (__content), not its transparent border.
+export function baseRect(o) {
+  const r = o.getBoundingRect(), k = o.__content;
+  if (!k || !(k.w > 0) || !(k.h > 0)) return r;
+  const sx = r.width / k.w, sy = r.height / k.h;
+  return { left: r.left + k.l * sx, top: r.top + k.t * sy, width: (k.r - k.l + 1) * sx, height: (k.b - k.t + 1) * sy };
+}
+
 // Union of the garment base objects' boxes (canvas px), or null before the base has drawn.
 export function garmentBox(c) {
-  const rs = c.getObjects().filter(o => o.__garmentBase && o.visible !== false).map(o => o.getBoundingRect());
+  const rs = c.getObjects().filter(o => o.__garmentBase && o.visible !== false).map(baseRect);
   if (!rs.length) return null;
   const l = Math.min(...rs.map(r => r.left)), t = Math.min(...rs.map(r => r.top));
   return { left: l, top: t, width: Math.max(...rs.map(r => r.left + r.width)) - l, height: Math.max(...rs.map(r => r.top + r.height)) - t };

@@ -1,5 +1,5 @@
 // The one uniform-piece selector on the stage: Top / Bottom / Set. Without a set, the other piece reads "+ Bottom" (or "+ Top") and starts
-// one. "Set" previews both pieces together in 3D, and only exists while each piece has its own model (no fused or substitute model).
+// one. "Set" previews both pieces together on one scale: in 2D always, in 3D while each piece has its own model (no fused or substitute model).
 import { SET_ROLES, ROLE_LABEL } from './uniformSet';
 import { pieceOf } from './garmentCatalog';
 
@@ -26,7 +26,7 @@ export default function PieceSelector({ cfg, uset, onSwitch, onStart, onLeave, c
       })}
       {uset && (
         <button type="button" aria-pressed={showSet} disabled={!canSet} onClick={() => onShowSet(true)}
-          title={canSet ? 'Preview both pieces together in 3D' : 'Both pieces need their own 3D model to preview the set together'}>Set</button>
+          title={canSet ? 'Preview both pieces together' : 'Choose a garment for both pieces to preview the set'}>Set</button>
       )}
       {uset && <button type="button" className="ds-piece-leave" aria-label="Leave uniform set" title="Keep only this piece" onClick={onLeave}>×</button>}
     </div>

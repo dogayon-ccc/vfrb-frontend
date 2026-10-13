@@ -5,6 +5,7 @@ import { BASE_PATHS } from './garmentPaths';
 import { openTarget } from './designGallery';
 import { selectFamily } from './selectGarment';
 import GarmentPicker from './GarmentPicker';
+import ShowcaseConsent from './ShowcaseConsent';
 
 export function MiniPreview({ garment, colors }) {
   const paths = BASE_PATHS[garment] ?? BASE_PATHS['Polo Shirt'];
@@ -32,7 +33,7 @@ function IconBtn({ children, onClick, danger }) {
   );
 }
 
-function Tile({ label, sub, thumb, onClick, editable, onRename, onDelete, onSubmitShowcase, showcaseStatus }) {
+function Tile({ label, sub, thumb, onClick, editable, onRename, onDelete, showcase = null }) {
   const [renaming, setRenaming] = useState(false);
   const [value, setValue] = useState(label);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -86,13 +87,9 @@ function Tile({ label, sub, thumb, onClick, editable, onRename, onDelete, onSubm
           <IconBtn danger onClick={handleDeleteClick}>
             {confirmingDelete ? 'Sure?' : '🗑'}
           </IconBtn>
-          {onSubmitShowcase && (!showcaseStatus || showcaseStatus === 'none' || showcaseStatus === 'rejected') && (
-            <IconBtn onClick={(e) => { e.stopPropagation(); onSubmitShowcase(); }}>🏆</IconBtn>
-          )}
-          {showcaseStatus === 'submitted' && <span style={{ fontSize:11, color:'var(--cx-ink-2)', alignSelf:'center' }}>Pending review</span>}
-          {showcaseStatus === 'approved'  && <span style={{ fontSize:11, color:'var(--cx-thread-ink)', fontWeight:700, alignSelf:'center' }}>In showcase</span>}
         </div>
       )}
+      {editable && !renaming && showcase}
     </motion.div>
   );
 }
@@ -135,11 +132,8 @@ export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanv
     axios.delete(`/api/customer/designs/${id}`).catch(() => setArchived(prev));
   };
 
-  const submitShowcase = (id) => {
-    const prev = archived;
-    setArchived(list => list.map(d => d.id === id ? { ...d, showcase_status:'submitted' } : d));
-    axios.post(`/api/customer/designs/${id}/submit-showcase`).catch(() => setArchived(prev));
-  };
+  // ShowcaseConsent reports the status only after the server accepted the change.
+  const setShowcase = (id, status) => setArchived(list => list.map(d => d.id === id ? { ...d, showcase_status: status, showcase_note: null } : d));
 
   return (
     <AnimatePresence>
@@ -160,8 +154,7 @@ export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanv
                       onClick={() => loadArchived(d)}
                       onRename={(newLabel) => renameDesign(d.id, newLabel)}
                       onDelete={() => deleteDesign(d.id)}
-                      onSubmitShowcase={() => submitShowcase(d.id)}
-                      showcaseStatus={d.showcase_status}
+                      showcase={<ShowcaseConsent id={d.id} status={d.showcase_status ?? 'none'} note={d.showcase_note} onStatus={setShowcase}/>}
                       thumb={d.photo_path
                         ? <img src={d.photo_path} alt={d.label} width="54" height="66"
                             style={{ objectFit:'contain', borderRadius:6 }}/>
