@@ -6,6 +6,7 @@ import { checkUpload } from '../../utils/fileCheck';
 import { PageHeader, Panel, Banner, Toast, useToast, SkeletonRows, Meter } from '../../components/admin/AdminUI';
 import RecommendationGuidancePanel from '../../components/admin/RecommendationGuidancePanel';
 import { PASSWORD_RULE_TEXT, passwordOk, passwordLevel, levelLabel } from '../../utils/passwordRules';
+import { formatPhMobile, isPhMobile, smsStatusLine } from '../../utils/phPhone';
 
 function getIsManager() {
   try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}').role === 'manager'; } catch { return false; }
@@ -15,7 +16,7 @@ const NOTIFY = [
   { key: 'email_enabled', live: 'email_provider_live', label: 'Email notifications', icon: 'email', note: 'Order updates, AI recommendations ready, and account alerts.',
     warn: 'The mail server is a test inbox, so no real email is sent yet. Your preference is saved for when VFRB connects its mail provider.' },
   { key: 'sms_enabled', live: 'sms_provider_live', label: 'SMS notifications', icon: 'phone', note: 'Text alerts for urgent order or delivery updates.',
-    warn: 'No SMS provider is connected — this reserves the setting for when one is added.', off: 'SMS needs a gateway; not enabled.' },
+    warn: 'No SMS provider is connected — this reserves the setting for when one is added.', off: true },
 ];
 
 const Field = ({ label, id, children }) => (<div><label className="adm-field" htmlFor={id}>{label}</label>{children}</div>);
@@ -70,6 +71,7 @@ export default function Settings() {
   const [prefs, setPrefs] = useState({ email_enabled: true, sms_enabled: false, email_provider_live: false, sms_provider_live: false });
   const [prefsLoading, setPrefsLoading] = useState(true);
   const [prefsBusy, setPrefsBusy] = useState(false);
+  const [myPhone, setMyPhone] = useState(undefined); // this staff account's stored mobile number (read-only here)
   const [toast, setToast] = useToast();
   const fileRef = useRef(null);
 
@@ -82,6 +84,7 @@ export default function Settings() {
     loadCompany();
     axios.get('/api/settings/notifications').then((r) => setPrefs(r.data))
       .catch(() => setToast({ msg: 'Could not load notification preferences.', type: 'error' })).finally(() => setPrefsLoading(false));
+    axios.get('/api/user').then((r) => setMyPhone(r.data?.contact_number ?? null)).catch(() => setMyPhone(undefined));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -200,7 +203,12 @@ export default function Settings() {
                         {!live && <span className="adm-pill" style={{ background: 'var(--warning-bg)', color: 'var(--warning-text)' }}>Not yet active</span>}
                       </div>
                       <p className="adm-sub" style={{ margin: '2px 0 0' }}>{row.note}</p>
-                      {!live && <p style={{ fontSize: 11, color: 'var(--warning-text)', margin: '3px 0 0' }}>{row.off ?? row.warn}</p>}
+                      {row.off ? (
+                        <p style={{ fontSize: 11, color: 'var(--warning-text)', margin: '3px 0 0' }}>
+                          {myPhone === undefined ? 'Text alerts are not active yet.' : smsStatusLine(myPhone, { noNumber: 'Text alerts are not active yet. No mobile number is on this account.' })}
+                          {isPhMobile(myPhone) && <> Number: <b>{formatPhMobile(myPhone)}</b>.</>}
+                        </p>
+                      ) : !live && <p style={{ fontSize: 11, color: 'var(--warning-text)', margin: '3px 0 0' }}>{row.warn}</p>}
                     </div>
                     <button role="switch" aria-checked={on} aria-label={row.label} className={`set-switch${on ? ' on' : ''}`} disabled={prefsBusy || !!row.off} onClick={() => togglePref(row.key)}><i /></button>
                   </div>

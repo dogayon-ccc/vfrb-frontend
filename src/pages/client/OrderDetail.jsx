@@ -21,6 +21,8 @@ import { useParams, useNavigate }            from 'react-router-dom';
 import { motion, AnimatePresence }           from 'framer-motion';
 import axios                                 from 'axios';
 import { cacheGet, cacheSet, cacheClear }    from '../../utils/cache';
+import { fetchFailed }                       from '../../utils/loadState';
+import LoadError                             from './settings/LoadError';
 import { getStorageUrl, isImageFile }        from '../../utils/fileUrl';
 import { NavIcon }                           from '../../components/ui/icons';
 import { OrderThumb, Stepper, StatusPill, LIFECYCLE, lifecycleIndex, orderTitle, parseCfg, fmtDate } from '../../components/customer/kit';
@@ -162,6 +164,7 @@ export default function CustomerOrderDetail() {
   const [messages, setMessages] = useState([]);
   const [aiRec,    setAiRec]    = useState(null);
   const [loading,  setLoading]  = useState(true);
+  const [loadErr,  setLoadErr]  = useState(false); // the order request failed (network/5xx), as opposed to a missing order
   const [aiAction, setAiAction] = useState(null);
   const [toast,    setToast]    = useState(null);
   const [dlBusy,   setDlBusy]   = useState(false);
@@ -226,11 +229,14 @@ export default function CustomerOrderDetail() {
       const msgsData  = m.status === 'fulfilled' ? (m.value.data?.messages ?? m.value.data?.data ?? m.value.data ?? []) : [];
       const aiData    = a.status === 'fulfilled' ? (a.value.data?.recommendation ?? a.value.data) : null;
 
+      const failed = fetchFailed(o);
+      setLoadErr(failed);
       setOrder(orderData);
       setDelivery(delivData);
       setMessages(Array.isArray(msgsData) ? msgsData : []);
       setAiRec(aiData);
-      cacheSet(CACHE_KEY, {
+      // A failed load is not cached: a retry must ask the server again instead of replaying the failure for 30s.
+      if (!failed) cacheSet(CACHE_KEY, {
         order: orderData, delivery: delivData,
         messages: msgsData, aiRec: aiData,
       }, 30_000);
@@ -352,6 +358,16 @@ export default function CustomerOrderDetail() {
         ))}
       </div>
     </>
+  );
+
+  // ── Could not load (network/server): retryable, never shown as "not found" ──
+  if (loadErr) return (
+    <div style={{ padding:'40px 16px', maxWidth:420, margin:'0 auto' }}>
+      <LoadError what="this order" onRetry={() => load(true)}/>
+      <div style={{ textAlign:'center', marginTop:12 }}>
+        <button onClick={() => nav('/orders')} className="cx-btn cx-btn-s" style={{ minHeight:44 }}>← Back to Orders</button>
+      </div>
+    </div>
   );
 
   // ── Not found ─────────────────────────────────────────────────────────────

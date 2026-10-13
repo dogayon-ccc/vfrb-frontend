@@ -451,6 +451,15 @@ export function patternsFor3D(entry, patterns, { photoBase = false } = {}) {
 }
 
 // Contract for Account 1's data-driven catalog: what the real 3D preview can do for a garment name (+ fit).
+// A model cut from a fused photo model can show part of the other garment at the hem or waist (its registry limitation says so).
+// The 3D stage says it in one line, so the customer does not read it as part of the garment they are ordering.
+export function hemNote3D(caps) {
+  const l = caps?.limitations ?? [];
+  if (l.some(x => /under the hem/.test(x))) return '3D: the strip under the hem is not part of this garment';
+  if (l.some(x => /hem can remain at the waist/.test(x))) return '3D: any lip at the waist is not part of this garment';
+  return null;
+}
+
 export function get3DCapabilities(garment, fit, sleeve) {
   const name = garment ?? ''; // cfg.garment is `null` for a blank/new design, not `undefined` — a default param alone doesn't catch that.
   const g = scannedEntryFor(name, sleeve, fit);

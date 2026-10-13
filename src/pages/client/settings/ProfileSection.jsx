@@ -1,36 +1,45 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { Card, Button, Field, Badge, NavIcon } from '../../../components/ui';
 import { Skeleton, useToast, fmtDate } from '../../../components/customer/kit';
-import { phPhoneError, compactPhone } from '../../../utils/phPhone';
+import { phPhoneError, compactPhone, smsStatusLine } from '../../../utils/phPhone';
+import LoadError from './LoadError';
 import { PASSWORD_RULE_TEXT, passwordOk, passwordLevel, levelLabel } from '../../../utils/passwordRules';
 
 
 export function ProfileSection() {
   const [form, setForm] = useState({});
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [savedPhone, setSavedPhone] = useState(null); // the number the account actually holds (loaded or last saved)
   const [saving, setSaving] = useState(false);
   const [toast, show] = useToast();
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  useEffect(() => {
+  // A failed load must not leave a blank, saveable form: saving it would overwrite the stored profile with empty fields.
+  const load = useCallback(() => {
+    setLoading(true); setFailed(false);
     axios.get('/api/customer/profile')
-      .then(r => setForm(r.data?.user ?? r.data ?? {}))
-      .catch(() => show('Could not load your profile. Please refresh.', 'error'))
+      .then(r => { const u = r.data?.user ?? r.data ?? {}; setForm(u); setSavedPhone(u.contact_number ?? null); })
+      .catch(() => setFailed(true))
       .finally(() => setLoading(false));
-  }, [show]);
+  }, []);
+  useEffect(load, [load]);
 
   const phoneErr = phPhoneError(form.contact_number);
 
   const save = async () => {
+    if (failed) return;
     if (phoneErr) { show(phoneErr, 'error'); return; }
     setSaving(true);
     try {
+      const phone = compactPhone(form.contact_number) || null;
       await axios.put('/api/customer/profile', {
-        name: form.name, contact_number: compactPhone(form.contact_number) || null, address: form.address,
+        name: form.name, contact_number: phone, address: form.address,
         organization_name: form.organization_name, client_type: form.client_type,
       });
+      setSavedPhone(phone);
       const u = JSON.parse(localStorage.getItem('vfrb_user') || '{}');
       localStorage.setItem('vfrb_user', JSON.stringify({ ...u, name: form.name }));
       show('Profile updated.');
@@ -38,6 +47,8 @@ export function ProfileSection() {
       show(e.response?.data?.message ?? 'Failed to update profile.', 'error');
     } finally { setSaving(false); }
   };
+
+  if (failed) return <div className="st-stack"><LoadError what="your profile" onRetry={load}/></div>;
 
   return (
     <div className="st-stack">
@@ -49,7 +60,11 @@ export function ProfileSection() {
             <div className="st-2col">
               <Field label="Full Name" value={form.name ?? ''} onChange={e => set('name', e.target.value)} placeholder="Your full name" />
               <Field label="Email Address" value={form.email ?? ''} disabled />
-              <Field label="Contact Number" value={form.contact_number ?? ''} onChange={e => set('contact_number', e.target.value)} placeholder="09XXXXXXXXX" inputMode="tel" error={phoneErr || undefined} />
+              <div>
+                <Field label="Mobile Number" value={form.contact_number ?? ''} onChange={e => set('contact_number', e.target.value)} placeholder="09XXXXXXXXX" inputMode="tel" autoComplete="tel"
+                  error={phoneErr || undefined} aria-invalid={!!phoneErr} aria-describedby="st-sms-line" />
+                <p id="st-sms-line" className="st-privt" style={{ margin: '6px 0 0' }}>{smsStatusLine(savedPhone)}</p>
+              </div>
             </div>
             <Field label="Organization / School Name" value={form.organization_name ?? ''} onChange={e => set('organization_name', e.target.value)} placeholder="e.g. Southville International School" />
             <Field label="Address" value={form.address ?? ''} onChange={e => set('address', e.target.value)} placeholder="City, Province" />
