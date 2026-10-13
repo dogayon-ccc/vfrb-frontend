@@ -213,6 +213,9 @@ export default function OrderBilling({ orderId, mode = 'customer', isManager = f
           <p className="ob-note">{data.void_count} voided invoice{data.void_count === 1 ? '' : 's'} on record.</p>
         )}
 
+        {canManage && data.awaiting_delivery && (
+          <p className="ob-note">The invoice can be issued once the order reaches Delivery. Down payments before then get a receipt only.</p>
+        )}
         {canManage && !form && (data.can_issue || invoice?.status === 'issued') && (
           <div className="ob-actions">
             {data.can_issue && <button type="button" className="ob-btn ob-btn-p" onClick={() => setForm('issue')}>Issue invoice</button>}

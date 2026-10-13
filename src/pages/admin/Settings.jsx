@@ -6,7 +6,10 @@ import { checkUpload } from '../../utils/fileCheck';
 import { PageHeader, Panel, Banner, Toast, useToast, SkeletonRows, Meter } from '../../components/admin/AdminUI';
 import RecommendationGuidancePanel from '../../components/admin/RecommendationGuidancePanel';
 import { PASSWORD_RULE_TEXT, passwordOk, passwordLevel, levelLabel } from '../../utils/passwordRules';
-import { formatPhMobile, isPhMobile, smsStatusLine } from '../../utils/phPhone';
+import { formatPhMobile, isPhMobile, smsStatusLine, smsLiveLine } from '../../utils/phPhone';
+import ProfilePhotoField from '../../components/ProfilePhotoField';
+import AppearanceField from '../../components/AppearanceField';
+import { readUser } from '../../utils/authRoute';
 
 function getIsManager() {
   try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}').role === 'manager'; } catch { return false; }
@@ -16,7 +19,7 @@ const NOTIFY = [
   { key: 'email_enabled', live: 'email_provider_live', label: 'Email notifications', icon: 'email', note: 'Order updates, AI recommendations ready, and account alerts.',
     warn: 'The mail server is a test inbox, so no real email is sent yet. Your preference is saved for when VFRB connects its mail provider.' },
   { key: 'sms_enabled', live: 'sms_provider_live', label: 'SMS notifications', icon: 'phone', note: 'Text alerts for urgent order or delivery updates.',
-    warn: 'No SMS provider is connected — this reserves the setting for when one is added.', off: true },
+    warn: 'VFRB has not switched text alerts on yet — this reserves the setting.', sms: true },
 ];
 
 const Field = ({ label, id, children }) => (<div><label className="adm-field" htmlFor={id}>{label}</label>{children}</div>);
@@ -73,6 +76,7 @@ export default function Settings() {
   const [prefsBusy, setPrefsBusy] = useState(false);
   const [myPhone, setMyPhone] = useState(undefined); // this staff account's stored mobile number (read-only here)
   const [toast, setToast] = useToast();
+  const [me, setMe] = useState(readUser);
   const fileRef = useRef(null);
 
   const loadCompany = () => {
@@ -139,6 +143,7 @@ export default function Settings() {
       <div className="set-layout">
         <nav className="set-nav" aria-label="Settings sections">
           <a href="#set-company"><NavIcon name="settings" size={15} color="currentColor" /> Company</a>
+          <a href="#set-profile"><NavIcon name="profile" size={15} color="currentColor" /> Your profile</a>
           <a href="#set-notify"><NavIcon name="notifications" size={15} color="currentColor" /> Notifications</a>
           <a href="#set-password"><NavIcon name="lock" size={15} color="currentColor" /> Password</a>
           {isManager && <a href="#set-ai"><NavIcon name="ai" size={15} color="currentColor" /> AI guidance</a>}
@@ -189,11 +194,20 @@ export default function Settings() {
             </Panel>
           </div>
 
+          <div id="set-profile" className="set-anchor">
+            <Panel title="Your profile">
+              <p className="adm-sub" style={{ marginTop: -6 }}>Your photo, display mode and accent colour. They apply only to your account.</p>
+              <ProfilePhotoField avatar={me.avatar} name={me.name} onChange={(avatar) => setMe((u) => ({ ...u, avatar }))} />
+              <div style={{ borderTop: '1px solid var(--bg-surface)', margin: '16px 0' }} />
+              <AppearanceField userId={me.user_id} />
+            </Panel>
+          </div>
+
           <div id="set-notify" className="set-anchor">
             <Panel title="Notification preferences">
               <p className="adm-sub" style={{ marginTop: -6 }}>Your own preferences — they apply only to your account.</p>
               {prefsLoading ? <SkeletonRows rows={2} h={64} /> : NOTIFY.map((row, i) => {
-                const live = prefs[row.live]; const on = !row.off && !!prefs[row.key];
+                const live = prefs[row.live]; const off = row.sms && !live; const on = !off && !!prefs[row.key];
                 return (
                   <div key={row.key} className="set-pref" style={{ borderTop: i ? '1px solid var(--bg-surface)' : 'none' }}>
                     <span className="set-pref-ico"><NavIcon name={row.icon} size={18} color="currentColor" /></span>
@@ -203,14 +217,16 @@ export default function Settings() {
                         {!live && <span className="adm-pill" style={{ background: 'var(--warning-bg)', color: 'var(--warning-text)' }}>Not yet active</span>}
                       </div>
                       <p className="adm-sub" style={{ margin: '2px 0 0' }}>{row.note}</p>
-                      {row.off ? (
+                      {row.sms && live ? (
+                        <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '3px 0 0' }}>{smsLiveLine(myPhone)}</p>
+                      ) : off ? (
                         <p style={{ fontSize: 11, color: 'var(--warning-text)', margin: '3px 0 0' }}>
                           {myPhone === undefined ? 'Text alerts are not active yet.' : smsStatusLine(myPhone, { noNumber: 'Text alerts are not active yet. No mobile number is on this account.' })}
                           {isPhMobile(myPhone) && <> Number: <b>{formatPhMobile(myPhone)}</b>.</>}
                         </p>
                       ) : !live && <p style={{ fontSize: 11, color: 'var(--warning-text)', margin: '3px 0 0' }}>{row.warn}</p>}
                     </div>
-                    <button role="switch" aria-checked={on} aria-label={row.label} className={`set-switch${on ? ' on' : ''}`} disabled={prefsBusy || !!row.off} onClick={() => togglePref(row.key)}><i /></button>
+                    <button role="switch" aria-checked={on} aria-label={row.label} className={`set-switch${on ? ' on' : ''}`} disabled={prefsBusy || off} onClick={() => togglePref(row.key)}><i /></button>
                   </div>
                 );
               })}

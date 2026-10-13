@@ -124,6 +124,14 @@ export function featherEdge(px, w, h) {
   return px;
 }
 
+// Opaque pixel bounds (alpha > 24) of an RGBA buffer, inclusive, or null when empty. Some cut-outs keep a transparent border, so
+// the rulers' 0-100% must come from the cloth, not the image box.
+export function opaqueBounds(px, w, h, min = 24) {
+  let l = w, t = h, r = -1, b = -1;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (px[(y * w + x) * 4 + 3] > min) { if (x < l) l = x; if (x > r) r = x; if (y < t) t = y; if (y > b) b = y; }
+  return r < 0 ? null : { l, t, r, b, w, h };
+}
+
 // `colors` is a hex string (body only) or { body, collar }. `collar` is honoured only for assets that declare a trim zone.
 export async function tintedCanvas(asset, colors) {
   const body = typeof colors === 'string' ? colors : colors?.body;
@@ -158,6 +166,7 @@ export async function tintedCanvas(asset, colors) {
   }
   featherEdge(px, c.width, c.height);
   ctx.putImageData(d, 0, 0);
+  c.__content = opaqueBounds(px, c.width, c.height); // read by canvasLayers.garmentBox
   if (tintCache.size > 24) tintCache.delete(tintCache.keys().next().value);
   tintCache.set(key, c);
   return c;

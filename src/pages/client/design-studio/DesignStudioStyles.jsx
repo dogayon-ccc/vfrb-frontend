@@ -112,6 +112,9 @@ export default function DesignStudioStyles() {
       .ds-lane-bottom{padding:0 12px 12px;}
       .ds-lane-top{z-index:calc(var(--cx-z-stage) + 1);} /* the Guides popover opens over the fit area */
       .ds-stage-fit{position:relative;flex:1;min-height:0;}
+      .ds-set2d{position:absolute;inset:0;z-index:4;display:flex;flex-direction:column;align-items:center;gap:10px;padding:56px 16px 64px;background:var(--cx-stage);}
+      .ds-set2d-fit{flex:1;min-height:0;width:100%;display:flex;align-items:center;justify-content:center;}
+      .ds-set2d-note{margin:0;max-width:52ch;text-align:center;font-size:12px;line-height:1.5;color:var(--cx-stage-ink-2);}
       .ds-pane{position:absolute;inset:0;}
       .ds-bottombar{max-width:100%;
         display:flex;align-items:center;gap:6px;padding:4px;border:1px solid var(--cx-line);border-radius:var(--cx-r-lg);background:var(--cx-card);box-shadow:var(--cx-elev-1);}

@@ -1,18 +1,19 @@
-// src/layouts/CustomerLayout.jsx — customer shell: top bar + rail (desktop), collapsing header + bottom nav (mobile), Studio FAB.
-import { useState, useEffect, useLayoutEffect, Suspense } from 'react';
+// src/layouts/CustomerLayout.jsx — customer shell: top bar + bell + rail (desktop), collapsing header + bottom nav (mobile), Studio FAB.
+import { useState, useEffect, useLayoutEffect, useRef, Suspense } from 'react';
 import { Outlet, NavLink, Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import axios from 'axios';
 import { useVisiblePoll } from '../hooks/useVisiblePoll';
 import { useHideOnScroll } from '../hooks/useHideOnScroll';
+import { asList } from '../utils/asList';
 import PageErrorBoundary from '../components/PageErrorBoundary';
 import { AppPageSkeleton } from '../components/PageSkeletons';
 import FeedbackWidget from '../components/FeedbackWidget';
-import { signOut } from '../utils/session';
+import { signOut, USER_CHANGE_EVENT } from '../utils/session';
 import logo from '../assets/company-logo.jpg';
-import { loadAccent, getAccentVars, ACCENT_CHANGE_EVENT } from '../utils/accentColor';
+import { useAppearance } from '../hooks/useAppearance';
 import '../styles/customer-shell.css';
-import { LayoutDashboard, ClipboardList, MessageSquare, Settings, Palette, LogOut, Shirt, MoreHorizontal, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, MessageSquare, Settings, Palette, LogOut, Shirt, MoreHorizontal, Bell, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 
 const NAV = [
   { to:'/dashboard',  icon:LayoutDashboard, label:'Dashboard',  short:'Home',    end:true  },
@@ -24,7 +25,8 @@ const NAV = [
 ];
 // Bottom nav follows the wireframe: Home, Designs, Orders, Chat + More.
 const MOB_NAV = NAV.slice(0, 4);
-const FAB_ROUTES = ['/my-designs', '/orders'];
+// Studio entry: rail on desktop, this FAB on phones (main tabs only, so it never covers a composer or action bar).
+const FAB_ROUTES = ['/dashboard', '/my-designs', '/orders'];
 const readUser = () => { try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}'); } catch { return {}; } };
 
 export default function CustomerLayout() {
@@ -36,13 +38,17 @@ export default function CustomerLayout() {
   const [name, setName] = useState('Client');
   const [unread, setUnread] = useState(0);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [bellOpen, setBellOpen] = useState(false);
+  const [notifs, setNotifs] = useState(null);
+  const [notifsErr, setNotifsErr] = useState(false);
+  const bellRef = useRef(null);
   const [collapsed, setCollapsed] = useState(() => {
     // A saved manual toggle always wins; tablets default to the slim rail.
     try { const s = localStorage.getItem('vfrb_cust_sb'); if (s !== null) return JSON.parse(s); } catch { /* width default */ }
     return typeof window !== 'undefined' && window.innerWidth >= 768 && window.innerWidth <= 1023;
   });
-  // Per-customer accent override, applied as CSS vars on .cm-shell only; admin keeps the brand teal.
-  const [accentVars, setAccentVars] = useState(() => getAccentVars(loadAccent(readUser().user_id)));
+  const [me, setMe] = useState(readUser);
+  useAppearance(me.user_id);
   const barHidden = useHideOnScroll(location.pathname);
 
   // Customer tokens and base styles apply only while this shell is mounted (portals included).
@@ -53,11 +59,12 @@ export default function CustomerLayout() {
   }, []);
 
   useEffect(() => {
-    const onAccentChange = (e) => setAccentVars(getAccentVars(e.detail));
-    window.addEventListener(ACCENT_CHANGE_EVENT, onAccentChange);
-    return () => window.removeEventListener(ACCENT_CHANGE_EVENT, onAccentChange);
+    // A new profile photo or name from Settings shows in the bar at once.
+    const onUser = (e) => setMe(e.detail ?? readUser());
+    window.addEventListener(USER_CHANGE_EVENT, onUser);
+    return () => window.removeEventListener(USER_CHANGE_EVENT, onUser);
   }, []);
-  useEffect(() => { setName(readUser().name || 'Client'); setMoreOpen(false); }, [location.pathname]);
+  useEffect(() => { setName(readUser().name || 'Client'); setMoreOpen(false); setBellOpen(false); }, [location.pathname]);
 
   // Visibility-aware, non-overlapping poll — no request stacking when the tab is hidden or the server is slow.
   useVisiblePoll(async () => {
@@ -65,15 +72,44 @@ export default function CustomerLayout() {
     setUnread(r.data?.unread_count ?? 0);
   }, 60000);
 
+  // Bell closes on outside click or Escape.
+  useEffect(() => {
+    if (!bellOpen) return;
+    const away = e => { if (!bellRef.current?.contains(e.target)) setBellOpen(false); };
+    const esc = e => { if (e.key === 'Escape') setBellOpen(false); };
+    document.addEventListener('pointerdown', away);
+    document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('pointerdown', away); document.removeEventListener('keydown', esc); };
+  }, [bellOpen]);
+
+  const loadNotifs = async () => {
+    setNotifsErr(false);
+    try {
+      const l = asList((await axios.get('/api/customer/notifications?per_page=20')).data);
+      setNotifs(l); setUnread(l.filter(n => !n.is_read).length);
+    } catch { setNotifsErr(true); }
+  };
+  const toggleBell = () => { if (!bellOpen) loadNotifs(); setBellOpen(o => !o); };
+  const markRead = async (id) => {
+    setNotifs(p => p.map(n => (n.notif_id ?? n.id) === id ? { ...n, is_read: 1 } : n));
+    setUnread(u => Math.max(0, u - 1));
+    try { await axios.patch(`/api/customer/notifications/${id}/read`); } catch { loadNotifs(); }
+  };
+  const markAllRead = async () => {
+    setNotifs(p => p.map(n => ({ ...n, is_read: 1 })));
+    setUnread(0);
+    try { await axios.post('/api/customer/notifications/read-all'); } catch { loadNotifs(); }
+  };
+
   const toggle = () => setCollapsed(c => { const n = !c; localStorage.setItem('vfrb_cust_sb', JSON.stringify(n)); return n; });
   const logout = () => { signOut(); navigate('/login', { replace: true }); };
   const openStudio = () => navigate('/design-studio');
   const initials = name ? name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() : 'C';
-  const unreadLabel = unread > 0 ? `Messages, ${unread} unread` : 'Messages';
+  const bellLabel = unread > 0 ? `Notifications, ${unread} unread` : 'Notifications';
   const fab = FAB_ROUTES.includes(location.pathname);
 
   return (
-    <div className="cm-shell" data-rail={collapsed ? 'slim' : 'full'} style={accentVars || undefined}>
+    <div className="cm-shell" data-rail={collapsed ? 'slim' : 'full'}>
       <header className="cx-bar" data-hidden={barHidden}>
         <Link to="/dashboard" className="cx-brand" aria-label="VFRB Enterprise, back to dashboard">
           <img src={logo} alt="" />
@@ -84,30 +120,59 @@ export default function CustomerLayout() {
           <span>{new Date().toLocaleDateString('en-PH', { weekday:'long', month:'long', day:'numeric', year:'numeric' })}</span>
         </div>
         <div className="cx-bar-sp" />
-        <button type="button" className="cx-bar-cta" onClick={openStudio}><Palette size={16} strokeWidth={2} aria-hidden="true" />Design Studio</button>
-        <NavLink to="/messages" className="cx-icon-btn cx-bar-msg" aria-label={unreadLabel}>
+        <div className="cx-bell" ref={bellRef}>
+          <button type="button" className="cx-icon-btn" onClick={toggleBell} aria-label={bellLabel}
+            aria-expanded={bellOpen} aria-controls="cx-bell-panel">
+            <Bell size={19} strokeWidth={1.9} aria-hidden="true" />
+            {unread > 0 && <b className="cx-bell-n" aria-hidden="true">{unread > 99 ? '99+' : unread}</b>}
+          </button>
+          {bellOpen && (
+            <div className="cx-bell-panel" id="cx-bell-panel" role="region" aria-label="Notifications">
+              <div className="cx-bell-h">
+                <b>Notifications</b>
+                {unread > 0 && <button type="button" className="cx-link" onClick={markAllRead}>Mark all read</button>}
+              </div>
+              <div className="cx-bell-list" aria-busy={notifs === null && !notifsErr}>
+                {notifsErr && !notifs?.length ? (
+                  <div className="cx-bell-empty" role="alert">Unable to load notifications.
+                    <button type="button" className="cx-btn cx-btn-s" onClick={loadNotifs}>Retry</button></div>
+                ) : notifs === null ? (
+                  <p className="cx-bell-empty">Loading…</p>
+                ) : notifs.length === 0 ? (
+                  <p className="cx-bell-empty">You're all caught up.</p>
+                ) : notifs.map(n => {
+                  const id = n.notif_id ?? n.id;
+                  return (
+                    <button key={id} type="button" className="cx-bell-item" data-unread={!n.is_read || undefined}
+                      onClick={() => !n.is_read && markRead(id)} aria-label={n.is_read ? n.message : `Mark as read: ${n.message}`}>
+                      <i aria-hidden="true" />
+                      <span><span className="cx-bell-msg">{n.message}</span>
+                        {n.date_sent && <small>{new Date(n.date_sent).toLocaleString('en-PH', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' })}</small>}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+        <NavLink to="/messages" className="cx-icon-btn cx-bar-msg" aria-label="Messages">
           <MessageSquare size={19} strokeWidth={1.9} aria-hidden="true" />
-          {unread > 0 && <i className="cx-dot" />}
         </NavLink>
         <NavLink to="/settings" className="cx-user" aria-label="Account settings">
-          <span className="cx-av" aria-hidden="true">{initials}</span>
+          <span className="cx-av" aria-hidden="true">{me.avatar ? <img src={me.avatar} alt="" /> : initials}</span>
           <span className="cx-user-n" aria-hidden="true">{name}</span>
         </NavLink>
       </header>
 
       <aside className="cx-rail" aria-label="Main navigation">
         <nav>
-          {NAV.map(item => {
-            const badge = item.to === '/messages' && unread > 0;
-            return (
-              <NavLink key={item.to} to={item.to} end={item.end} className="cx-rail-link"
-                title={collapsed ? item.label : undefined} aria-label={collapsed ? (badge ? unreadLabel : item.label) : undefined}>
-                <item.icon size={18} strokeWidth={1.9} aria-hidden="true" />
-                {!collapsed && <span>{item.label}</span>}
-                {!collapsed && badge && <b className="cx-count">{unread > 99 ? '99+' : unread}</b>}
-              </NavLink>
-            );
-          })}
+          {NAV.map(item => (
+            <NavLink key={item.to} to={item.to} end={item.end} className="cx-rail-link"
+              title={collapsed ? item.label : undefined} aria-label={collapsed ? item.label : undefined}>
+              <item.icon size={18} strokeWidth={1.9} aria-hidden="true" />
+              {!collapsed && <span>{item.label}</span>}
+            </NavLink>
+          ))}
           <div className="cx-rail-sep" />
           <button type="button" className="cx-rail-link cx-rail-studio" onClick={openStudio}
             title={collapsed ? 'Design Studio' : undefined} aria-label={collapsed ? 'Design Studio' : undefined}>
@@ -156,7 +221,6 @@ export default function CustomerLayout() {
               initial={still ? false : { y:40, opacity:0 }} animate={{ y:0, opacity:1 }} exit={still ? { opacity:0 } : { y:40, opacity:0 }}
               transition={{ duration: still ? 0 : .3, ease:[.22, 1, .36, 1] }}>
               <h2>More</h2>
-              <button type="button" className="cx-rail-link cx-rail-studio" onClick={openStudio}><Palette size={20} strokeWidth={1.9} aria-hidden="true" /><span>Design Studio</span></button>
               <NavLink to="/settings" end className="cx-rail-link" onClick={() => setMoreOpen(false)}><Settings size={20} strokeWidth={1.9} aria-hidden="true" /><span>Settings</span></NavLink>
               <NavLink to="/settings?tab=feedback" className="cx-rail-link" onClick={() => setMoreOpen(false)}><MessageSquare size={20} strokeWidth={1.9} aria-hidden="true" /><span>Send feedback</span></NavLink>
               <div className="cx-rail-sep" />
@@ -168,11 +232,9 @@ export default function CustomerLayout() {
 
       <nav className="cx-nav" aria-label="Mobile navigation">
         {MOB_NAV.map(item => (
-          <NavLink key={item.to} to={item.to} end={item.end} className="cx-nav-item"
-            aria-label={item.to === '/messages' && unread > 0 ? `Chat, ${unread} unread` : undefined}>
+          <NavLink key={item.to} to={item.to} end={item.end} className="cx-nav-item">
             <span className="cx-nav-ico"><item.icon size={21} strokeWidth={1.9} aria-hidden="true" /></span>
             {item.short}
-            {item.to === '/messages' && unread > 0 && <span className="cx-badge" aria-hidden="true">{unread > 9 ? '9+' : unread}</span>}
           </NavLink>
         ))}
         <button type="button" className="cx-nav-item" onClick={() => setMoreOpen(o => !o)} aria-expanded={moreOpen} aria-controls="cx-more">

@@ -393,7 +393,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
           canvas.getObjects().filter(o => o.__garmentBase).forEach(o => canvas.remove(o));
           canvas.insertAt(0, new fabric.Image(src, {
             left: (paths.w - asset.w * scale) / 2, top: (paths.h - asset.h * scale) / 2, scaleX: scale, scaleY: scale,
-            selectable: false, evented: true, objectCaching: false, __garmentBase: true, __zoneKey: 'body',
+            selectable: false, evented: true, objectCaching: false, __garmentBase: true, __zoneKey: 'body', __content: src.__content ?? null,
           }));
           canvas.renderAll();
           publishGarment(canvas);
@@ -981,11 +981,39 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
 
   const setSnapOptions = useCallback((o) => { snapOpts.current = { ...snapOpts.current, ...o }; fc.current?.requestRenderAll(); }, []);
 
+  // AI design edits: the same preset anchors addLogo uses, on this garment's real paths; null for an unknown preset.
+  // g/s: the garment a just-switched design is moving to (the AI start path), before this hook sees it.
+  const presetPos = useCallback((presetId, g = garment, s = sleeve) => {
+    const p = LOGO_PRESETS.find(x => x.id === presetId);
+    if (!p) return null;
+    const paths = getGarmentPaths(g, s);
+    return { x: paths.w * p.x, y: paths.h * p.y };
+  }, [garment, sleeve]);
+
+  // Text layers on the visible face, as { id, text } for the AI request.
+  const textItems = useCallback(() => (fc.current?.getObjects() ?? [])
+    .filter(o => o.__text && o.__layerId).map(o => ({ id: o.__layerId, text: String(o.text ?? '') })), []);
+
+  // Changes one text layer's content or moves it to a preset; false when the layer or preset is gone.
+  const editText = useCallback((id, { text, presetId } = {}) => {
+    const obj = findLayer(id);
+    const pos = presetId ? presetPos(presetId) : null;
+    if (!obj?.__text || (presetId && !pos)) return false;
+    if (text != null) obj.set({ text, __layerName: text.length > 20 ? text.slice(0, 20) + '…' : text });
+    if (pos) obj.set({ left: pos.x, top: pos.y, originX: 'center', originY: 'center' });
+    obj.setCoords();
+    fc.current.renderAll();
+    pushHistory();
+    bumpLayers();
+    return true;
+  }, [findLayer, presetPos, pushHistory, bumpLayers]);
+
   return {
     addLogo, addText, addShape, updateSelected, arrangeLayer, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
     pushHistory, undo, redo, canUndo, canRedo, resizeCanvas,
     layers, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
     setDrawMode, setBrushStyle, initFailed,
     setSnapOptions, garmentRect,
+    presetPos, textItems, editText,
   };
 }

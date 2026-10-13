@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { Card, NavIcon } from '../../components/ui';
+import { RecordedBy } from '../../components/admin/AdminUI';
 
 const ACTION_LABELS = {
   output_logged:        { label: 'Output Logged',      icon: 'package',      color: 'var(--teal)',       bg: 'var(--teal-50)' },
@@ -17,6 +18,7 @@ const ACTION_LABELS = {
   delivery_updated:      { label: 'Delivery Update',     icon: 'delivery',     color: 'var(--warning-text)',    bg: 'var(--warning-bg)' },
   po_created:             { label: 'PO Created',          icon: 'invoice',      color: 'var(--purple)',     bg: 'var(--purple-50)' },
   rfq_created:            { label: 'RFQ Created',         icon: 'email',        color: 'var(--purple)',     bg: 'var(--purple-50)' },
+  payment_recorded:       { label: 'Payment Recorded',    icon: 'salesPay',     color: 'var(--success-text)', bg: 'var(--success-bg)' },
   settings_updated:       { label: 'Settings Updated',    icon: 'settings',     color: 'var(--text-muted)', bg: 'var(--bg-surface)' },
 };
 
@@ -138,11 +140,10 @@ export default function ActivityLog() {
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginBottom:2 }}>
                       <span style={{ fontSize:12, fontWeight:800, color:meta.color, textTransform:'uppercase', letterSpacing:'.03em' }}>{meta.label}</span>
-                      <span style={{ fontSize:12, color:'var(--text-faint)' }}>·</span>
-                      <span style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)' }}>{row.actor_name}</span>
                       <span style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', color:'var(--text-faint)', background:'var(--bg-surface)', borderRadius:'var(--r-xs)', padding:'1px 6px' }}>{row.actor_role}</span>
                     </div>
                     <p style={{ fontSize:13, color:'var(--ink)', margin:0 }}>{row.description}</p>
+                    <RecordedBy name={row.actor_name} at={row.occurred_at} label="Recorded by" />
                   </div>
                   <span style={{ fontSize:11, color:'var(--text-faint)', whiteSpace:'nowrap', flexShrink:0, paddingTop:2 }} title={new Date(row.occurred_at).toLocaleString('en-PH')}>
                     {timeAgo(row.occurred_at)}

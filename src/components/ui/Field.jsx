@@ -29,7 +29,7 @@
 import { useState } from 'react';
 
 export default function Field({
-  as = 'input', label, error, disabled, style, children, id, ...rest
+  as = 'input', label, error, hint, disabled, style, children, id, ...rest
 }) {
   const [focused, setFocused] = useState(false);
   // Auto id from label text when the caller doesn't pass one — keeps existing call sites working unchanged.
@@ -37,17 +37,19 @@ export default function Field({
 
   const inputStyle = {
     width: '100%', padding: '11px 14px', borderRadius: 'var(--r-md)',
-    border: `1px solid ${error ? 'var(--danger)' : focused ? 'var(--teal)' : 'var(--border)'}`,
+    border: `1px solid ${error ? 'var(--danger-text)' : focused ? 'var(--teal)' : 'var(--border)'}`,
     background: disabled ? 'var(--bg-surface)' : 'var(--bg-card)',
     color: disabled ? 'var(--text-faint)' : 'var(--ink)',
     fontSize: 13, outline: 'none', boxSizing: 'border-box',
-    boxShadow: focused && !error ? '0 0 0 3px rgba(2,128,144,.10)' : 'none',
+    boxShadow: focused && !error ? '0 0 0 3px var(--teal-50)' : 'none',
     transition: 'border-color .15s, box-shadow .15s',
     cursor: disabled ? 'not-allowed' : (as === 'select' ? 'pointer' : 'text'),
     ...style,
   };
 
   const Tag = as; // 'input' | 'select' | 'textarea'
+  const noteId = fieldId && (error || hint) ? `${fieldId}-note` : undefined;
+  const a11y = { 'aria-invalid': error ? true : undefined, 'aria-describedby': noteId };
 
   return (
     <div>
@@ -64,24 +66,26 @@ export default function Field({
           id={fieldId}
           disabled={disabled}
           style={inputStyle}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
+          {...a11y}
           {...rest}
+          onFocus={(e) => { setFocused(true); rest.onFocus?.(e); }}
+          onBlur={(e) => { setFocused(false); rest.onBlur?.(e); }}
         />
       ) : (
         <Tag
           id={fieldId}
           disabled={disabled}
           style={inputStyle}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          {...rest}>
+          {...a11y}
+          {...rest}
+          onFocus={(e) => { setFocused(true); rest.onFocus?.(e); }}
+          onBlur={(e) => { setFocused(false); rest.onBlur?.(e); }}>
           {children}
         </Tag>
       )}
-      {error && (
-        <p style={{ fontSize: 11, color: 'var(--danger)', margin: '5px 0 0' }}>
-          {error}
+      {(error || hint) && (
+        <p id={noteId} style={{ fontSize: 11, color: error ? 'var(--danger-text)' : 'var(--text-subtle)', margin: '5px 0 0' }}>
+          {error || hint}
         </p>
       )}
     </div>

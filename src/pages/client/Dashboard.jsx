@@ -1,4 +1,4 @@
-// src/pages/client/Dashboard.jsx — Customer home (wireframe: hero → KPIs → recent orders + notifications)
+// src/pages/client/Dashboard.jsx — Customer home (hero → KPIs → active orders, designs, recent orders; notifications live in the navbar bell)
 import { humanize } from '../../utils/humanize';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
@@ -11,7 +11,7 @@ import EmptyState from '../../components/EmptyState';
 import { savedDesignName } from '../../utils/designName';
 import heroPhoto from '../../assets/brand/uniforms.jpg';
 import {
-  Kpi, StatusPill, OrderThumb, DesignThumb, Skeleton, useToast, Stepper, LIFECYCLE, lifecycleIndex,
+  Kpi, StatusPill, OrderThumb, DesignThumb, Skeleton, Stepper, LIFECYCLE, lifecycleIndex,
   orderTitle, fmtDate, reltime, parseCfg, IN_PRODUCTION,
 } from '../../components/customer/kit';
 
@@ -76,15 +76,12 @@ export default function CustomerDashboard() {
   const user = useMemo(() => { try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}'); } catch { return {}; } }, []);
   const [stats, setStats] = useState(null);
   const [orders, setOrders] = useState([]);
-  const [notifs, setNotifs] = useState([]);
   const [draft, setDraft] = useState(null);
   const openStudio = () => { try { if (draft?.studio_config) sessionStorage.setItem('studio_config', JSON.stringify(draft.studio_config)); else sessionStorage.removeItem('studio_config'); } catch { /* private mode */ } nav('/design-studio'); };
   const [designs, setDesigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [notifsError, setNotifsError] = useState(false);
   const [confetti, setConfetti] = useState(false);
-  const [toast, showToast] = useToast();
 
   useEffect(() => {
     if (!location.state?.justCreated) return;
@@ -96,43 +93,25 @@ export default function CustomerDashboard() {
   }, []); // eslint-disable-line
 
   const load = useCallback(async (force = false) => {
-    if (force) { cacheClear('orders_list'); cacheClear('customer_dashboard'); cacheClear('customer_notifs'); }
+    if (force) { cacheClear('orders_list'); cacheClear('customer_dashboard'); }
     setError(false);
-    const cs = cacheGet('customer_dashboard'), co = cacheGet('orders_list'), cn = cacheGet('customer_notifs');
-    if (cs) setStats(cs); if (co) setOrders(asList(co)); if (cn) setNotifs(asList(cn));
-    if (cs && co && cn) { setLoading(false); }
-    const [s, o, n, d, g] = await Promise.allSettled([
+    const cs = cacheGet('customer_dashboard'), co = cacheGet('orders_list');
+    if (cs) setStats(cs); if (co) setOrders(asList(co));
+    if (cs && co) { setLoading(false); }
+    const [s, o, d, g] = await Promise.allSettled([
       cs ? null : axios.get('/api/customer/dashboard'),
       co ? null : axios.get('/api/customer/orders'),
-      cn ? null : axios.get('/api/customer/notifications?per_page=5'),
       axios.get('/api/customer/drafts/latest'),
       axios.get('/api/customer/designs'),
     ]);
     if (s.status === 'fulfilled' && s.value) { setStats(s.value.data); cacheSet('customer_dashboard', s.value.data, TTL.DASHBOARD); }
     if (o.status === 'fulfilled' && o.value) { const l = asList(o.value.data); setOrders(l); cacheSet('orders_list', l, TTL.ORDERS); }
     else if (o.status === 'rejected' && !co) setError(true);
-    if (n.status === 'fulfilled' && n.value) { const l = asList(n.value.data); setNotifs(l); setNotifsError(false); cacheSet('customer_notifs', l, TTL.NOTIFICATIONS); }
-    else if (n.status === 'rejected' && !cn) setNotifsError(true);
     if (d.status === 'fulfilled' && d.value.data?.draft?.studio_config?.garment) setDraft(d.value.data.draft);
     if (g.status === 'fulfilled' && Array.isArray(g.value.data)) setDesigns(g.value.data.filter(x => x.is_archived && x.config?.garment).slice(0, 4));
     setLoading(false);
   }, []);
   useEffect(() => { load(); }, [load]);
-
-  const retryNotifs = useCallback(async () => {
-    setNotifsError(false);
-    try {
-      const r = await axios.get('/api/customer/notifications?per_page=5');
-      const l = asList(r.data); setNotifs(l); cacheSet('customer_notifs', l, TTL.NOTIFICATIONS);
-    } catch { setNotifsError(true); }
-  }, []);
-
-  const markRead = async (id) => {
-    const prev = notifs;
-    setNotifs(p => p.map(n => (n.notif_id ?? n.id) === id ? { ...n, is_read: 1 } : n));
-    try { await axios.patch(`/api/customer/notifications/${id}/read`); cacheClear('customer_notifs'); }
-    catch { setNotifs(prev); showToast('Could not mark as read.', 'error'); }
-  };
 
   const sorted = useMemo(() => [...orders].sort((a, b) => new Date(b.created_at ?? 0) - new Date(a.created_at ?? 0)), [orders]);
   const active = sorted.filter(o => !['completed', 'cancelled'].includes(o.status));
@@ -142,14 +121,12 @@ export default function CustomerDashboard() {
   const inProd = stats?.in_production ?? orders.filter(o => IN_PRODUCTION.includes(o.status)).length;
   const completed = stats?.completed_orders ?? orders.filter(o => o.status === 'completed').length;
   const pending = orders.filter(o => o.status === 'pending' || o.status === 'confirmed').length;
-  const unread = notifs.filter(n => !n.is_read).length;
   // Same title as My Designs: the customer's design name, else the draft label, else the garment.
   const draftTitle = draft ? savedDesignName(draft.studio_config) || draft.label || humanize(draft.studio_config.garment) : '';
 
   return (
     <div className="cx-page">
       {confetti && <Confetti />}
-      {toast}
 
       {confetti && (
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} role="status"
@@ -275,38 +252,6 @@ export default function CustomerDashboard() {
           </section>}
         </div>
 
-        {/* Right rail */}
-        <aside style={{ display: 'grid', gap: 16, alignContent: 'start', minWidth: 0 }}>
-          <section className="cx-card" aria-label="Notifications">
-            <div className="cx-card-h">
-              <h2>Notifications{unread > 0 && <span className="cx-pill" style={{ background: 'var(--danger)', color: '#fff', marginLeft: 8 }}>{unread}</span>}</h2>
-              <Link to="/messages" className="cx-link">Messages →</Link>
-            </div>
-            {loading ? (
-              <div aria-busy="true" style={{ padding: 16, display: 'grid', gap: 10 }}><Skeleton h={34} /><Skeleton h={34} /></div>
-            ) : notifsError && notifs.length === 0 ? (
-              <div role="alert" style={{ padding: '18px 16px', textAlign: 'center' }}>
-                <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--text-subtle)' }}>Unable to load notifications.</p>
-                <button className="cx-btn cx-btn-s" style={{ minHeight: 44 }} onClick={retryNotifs}>Retry</button>
-              </div>
-            ) : notifs.length === 0 ? (
-              <p style={{ padding: '22px 16px', textAlign: 'center', fontSize: 12, color: 'var(--text-faint)', margin: 0 }}>You're all caught up.</p>
-            ) : notifs.slice(0, 4).map(n => {
-              const id = n.notif_id ?? n.id;
-              return (
-                <button key={id} className="cx-row" style={{ alignItems: 'flex-start' }} onClick={() => !n.is_read && markRead(id)}
-                  aria-label={n.is_read ? n.message : `Mark as read: ${n.message}`}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', marginTop: 5, flexShrink: 0, background: n.is_read ? 'var(--border)' : 'var(--teal-2)' }} />
-                  <div style={{ minWidth: 0 }}>
-                    <p style={{ margin: 0, fontSize: 12, lineHeight: 1.4, fontWeight: n.is_read ? 400 : 700, color: n.is_read ? 'var(--text-subtle)' : 'var(--ink)',
-                      display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{n.message}</p>
-                    <p style={{ margin: '3px 0 0', fontSize: 10, color: 'var(--text-faint)' }}>{reltime(n.date_sent)}</p>
-                  </div>
-                </button>
-              );
-            })}
-          </section>
-        </aside>
       </div>
       <style>{`.cx-rd{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px;padding:12px 16px 16px}
         .cx-rd-item{display:flex;flex-direction:column;align-items:center;gap:6px;min-height:44px;padding:10px 6px;border:1px solid var(--border);border-radius:12px;background:var(--bg-surface);cursor:pointer;font:inherit;color:inherit;text-align:center}
@@ -315,8 +260,7 @@ export default function CustomerDashboard() {
         .cx-rd-item em{font-style:normal;font-size:10px;color:var(--text-subtle)}
         .cx-cont{display:flex;align-items:center;gap:14px;padding:14px 16px}
         @media(max-width:420px){.cx-cont{flex-wrap:wrap}.cx-cont .cx-btn{width:100%}}
-        .cx-dash-grid{display:grid;grid-template-columns:1fr;gap:18px}
-        @media(min-width:1024px){.cx-dash-grid{grid-template-columns:minmax(0,1fr) 340px;align-items:start}}`}</style>
+        .cx-dash-grid{display:grid;grid-template-columns:1fr;gap:18px}`}</style>
     </div>
   );
 }

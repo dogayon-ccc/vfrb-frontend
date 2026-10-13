@@ -41,7 +41,7 @@ import { NavIcon } from './icons';
 const VARIANTS = {
   primary: {
     base: 'linear-gradient(135deg, var(--teal), var(--teal-2))',
-    color: 'var(--text-on-accent)', border: 'none', shadow: 'var(--shadow-teal)',
+    color: 'var(--on-teal)', border: 'none', shadow: 'var(--shadow-teal)',
   },
   secondary: {
     base: 'var(--bg-card)', color: 'var(--ink)',
@@ -51,7 +51,7 @@ const VARIANTS = {
     base: 'transparent', color: 'var(--teal)', border: 'none', shadow: 'none',
   },
   danger: {
-    base: '#b91c1c', color: 'var(--text-on-accent)', border: 'none',
+    base: '#b91c1c', color: '#fff', border: 'none',
     shadow: '0 4px 14px rgba(185,28,28,.22)',
   },
 };

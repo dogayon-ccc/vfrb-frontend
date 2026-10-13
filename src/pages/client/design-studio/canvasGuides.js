@@ -27,16 +27,16 @@ export function readGuidePrefs(stored, phone = false) {
 // Opacity factor for grid lines `spacingPx` apart on screen: full from 12 px, gone below 6 px (the grid fades at low zoom). Never
 // drawing lines closer than 6 px matches the rulers' finest ticks, so a visible grid line always has a tick.
 export const gridFade = spacingPx => Math.max(0, Math.min(1, (spacingPx - 6) / 6));
-export const GRID_MAJOR_EVERY = 5;
+export const GRID_MAJOR_PCT = 50; // major lines at 0, 50, 100 (and -50, 150 …): the ruler labels these at every zoom
 export const GRID_ALPHA = { minor: 0.1, major: 0.18 };
 // Grid in canvas px: origin at the garment's top-left, cell = pct of the garment's width (x) and height (y).
 export const gridSpec = (g, pct) => (g?.width > 0 && g?.height > 0 && pct > 0 ? { x0: g.left, y0: g.top, sx: (g.width * pct) / 100, sy: (g.height * pct) / 100, pct } : null);
-// Grid lines along one axis across [from, to] (any units): value in %, position, and whether it is a major line (every 5th cell
-// from the origin, plus the 50% centre line, which is a grid line at every size).
+// Grid lines along one axis across [from, to] (any units): value in %, position, and whether it is a major line (a multiple of
+// GRID_MAJOR_PCT, so a major line always has a labelled ruler tick); the 50% centre line is a grid line at every size.
 export function gridLines(origin, cell, pct, from, to) {
   if (!(cell > 0)) return [];
   const out = [];
-  for (let k = Math.ceil((from - origin) / cell - 1e-9); origin + k * cell <= to + 1e-9; k++) out.push({ v: k * pct, at: origin + k * cell, major: k % GRID_MAJOR_EVERY === 0 });
+  for (let k = Math.ceil((from - origin) / cell - 1e-9); origin + k * cell <= to + 1e-9; k++) out.push({ v: k * pct, at: origin + k * cell, major: (k * pct) % GRID_MAJOR_PCT === 0 });
   const half = origin + (50 / pct) * cell;
   if (half >= from && half <= to && !out.some(l => Math.abs(l.v - 50) < 1e-9)) out.push({ v: 50, at: half, major: true });
   return out.sort((a, b) => a.at - b.at);

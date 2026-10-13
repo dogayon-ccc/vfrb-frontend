@@ -86,6 +86,13 @@ export const OrderLink = ({ id, prefix = '#' }) => (
   <Link className="adm-order-link" to={`/admin/orders/${id}`} onClick={e => e.stopPropagation()}>{prefix}{id}</Link>
 );
 
+// Date and time a row was recorded, in the shop's locale.
+export const fmtWhen = (d) => (d ? new Date(d).toLocaleString('en-PH', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '');
+// "by Ana Cruz · Oct 13, 2026, 2:30 PM": who recorded a row and when.
+export const RecordedBy = ({ name, at, label = 'by' }) => (
+  <span className="adm-recby">{label && `${label} `}<b>{name || 'Unknown user'}</b>{at && <> · <time dateTime={new Date(at).toISOString()}>{fmtWhen(at)}</time></>}</span>
+);
+
 export const Panel = ({ title, action, children, flush, style }) => (
   <section className="adm-panel adm-in" style={style}>
     {(title || action) && (

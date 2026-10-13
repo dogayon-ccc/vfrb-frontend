@@ -65,15 +65,15 @@
 
 /* ── Card ──────────────────────────────────────────────────────────────────── */
 .vfrb-card {
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
   border-radius: 14px;
   padding: 20px 22px;
   box-shadow: 0 1px 3px rgba(0,0,0,.05);
 }
 .vfrb-card-sm {
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 14px 16px;
   box-shadow: 0 1px 3px rgba(0,0,0,.04);
@@ -97,13 +97,13 @@
 .vfrb-page-title {
   font-size: 22px;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--ink);
   margin: 0 0 4px;
   font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
 .vfrb-page-sub {
   font-size: 13px;
-  color: #64748b;
+  color: var(--text-subtle);
   margin: 0;
   font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
@@ -113,7 +113,7 @@
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   border-radius: 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
 }
 .vfrb-table-wrap table {
   width: 100%;
@@ -126,9 +126,9 @@
   width: 100%;
   padding: 11px 14px;
   border-radius: 10px;
-  border: 1px solid #e2e8f0;
-  background: #fff;
-  color: #0f172a;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--ink);
   font-size: 13px;
   outline: none;
   font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
@@ -136,7 +136,7 @@
   box-sizing: border-box;
 }
 .vfrb-input:focus {
-  border-color: #028090;
+  border-color: var(--teal);
   box-shadow: 0 0 0 3px rgba(2,128,144,.1);
 }
 

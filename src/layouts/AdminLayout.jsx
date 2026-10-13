@@ -3,8 +3,9 @@ import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { enqueue, flushQueue, queueSize } from '../utils/offlineQueue';
-import { signOut } from '../utils/session';
+import { signOut, USER_CHANGE_EVENT } from '../utils/session';
 import PageErrorBoundary from '../components/PageErrorBoundary';
+import { useAppearance } from '../hooks/useAppearance';
 import { AppPageSkeleton } from '../components/PageSkeletons';
 import IconBox from '../components/ui/IconBox';
 import '../styles/admin.css';
@@ -89,7 +90,7 @@ function NotifRow({ n, onRead }) {
       style={{
         padding:'10px 16px', cursor: isRead ? 'default' : 'pointer',
         borderBottom:'1px solid var(--bg-surface)',
-        background: isRead ? '#fff' : 'rgba(2,195,154,.04)',
+        background: isRead ? 'var(--bg-card)' : 'var(--teal-50)',
         display:'flex', gap:10, alignItems:'flex-start',
         transition:'background .13s',
       }}>
@@ -140,6 +141,8 @@ export default function AdminLayout() {
     return false;
   });
   const [moreOpen,  setMoreOpen]  = useState(false);
+  const [userId] = useState(() => { try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}').user_id; } catch { return null; } });
+  useAppearance(userId);
 
   const SW         = collapsed ? 68 : 226;
   const isManager  = role === 'manager';
@@ -197,6 +200,13 @@ export default function AdminLayout() {
     setAvatar(u.avatar || null);
     setJobFn(u.job_function || 'general');
   }, [location.pathname]);
+
+  // A new profile photo from Settings shows in the header at once.
+  useEffect(() => {
+    const onUser = (e) => setAvatar(e.detail?.avatar || null);
+    window.addEventListener(USER_CHANGE_EVENT, onUser);
+    return () => window.removeEventListener(USER_CHANGE_EVENT, onUser);
+  }, []);
 
   useEffect(() => { setMoreOpen(false); }, [location.pathname]);
 
@@ -267,7 +277,7 @@ export default function AdminLayout() {
         .adm-shell {
           display: flex;
           min-height: 100vh;
-          background: #f4f7fe;
+          background: var(--bg);
           position: relative;
         }
         .adm-shell::before {
@@ -470,8 +480,8 @@ export default function AdminLayout() {
         .adm-drawer-tile {
           display: flex; flex-direction: column; align-items: center; gap: 6px;
           padding: 10px 4px; border-radius: 12px; text-decoration: none;
-          color: #1a2332; font-size: 10px; font-weight: 600; text-align: center;
-          border: 1px solid var(--border); background: #fff;
+          color: var(--ink); font-size: 10px; font-weight: 600; text-align: center;
+          border: 1px solid var(--border); background: var(--bg-card);
           font-family: ui-sans-serif,system-ui,-apple-system,sans-serif;
         }
         .adm-drawer-tile.active { border-color: ${T}; background: rgba(2,128,144,.06); }
@@ -517,7 +527,7 @@ export default function AdminLayout() {
         }
 
         ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+        ::-webkit-scrollbar-thumb { background: var(--border-hover); border-radius: 2px; }
 
         @media (prefers-reduced-motion: reduce) {
           *, *::before, *::after { transition-duration: .01ms !important; }
@@ -653,7 +663,7 @@ export default function AdminLayout() {
                         fontSize:9, fontWeight:800,
                         display:'flex', alignItems:'center',
                         justifyContent:'center', padding:'0 3px',
-                        border:'2px solid #fff',
+                        border:'2px solid var(--bg-card)',
                       }}>
                       {unread > 99 ? '99+' : unread}
                     </motion.span>
@@ -672,7 +682,7 @@ export default function AdminLayout() {
                     style={{
                       position:'absolute', top:'calc(100% + 8px)', right:0,
                       width:340, maxHeight:480,
-                      background:'#fff', border:'1px solid var(--border)',
+                      background:'var(--bg-card)', border:'1px solid var(--border)',
                       borderRadius:16, overflow:'hidden',
                       boxShadow:'0 12px 40px rgba(0,0,0,.14)',
                       zIndex:500, display:'flex', flexDirection:'column',
@@ -724,7 +734,7 @@ export default function AdminLayout() {
                             <>
                               <div style={{ padding:'8px 16px 4px', fontSize:9, fontWeight:800,
                                 color:'var(--text-faint)', textTransform:'uppercase',
-                                letterSpacing:'.08em', background:'#fafafa' }}>Today</div>
+                                letterSpacing:'.08em', background:'var(--bg-surface)' }}>Today</div>
                               {notifToday.map(n => (
                                 <NotifRow key={n.notif_id ?? n.id} n={n} onRead={markRead}/>
                               ))}
@@ -734,7 +744,7 @@ export default function AdminLayout() {
                             <>
                               <div style={{ padding:'8px 16px 4px', fontSize:9, fontWeight:800,
                                 color:'var(--text-faint)', textTransform:'uppercase',
-                                letterSpacing:'.08em', background:'#fafafa',
+                                letterSpacing:'.08em', background:'var(--bg-surface)',
                                 borderTop: notifToday.length > 0 ? '1px solid var(--bg-surface)' : 'none' }}>
                                 Earlier
                               </div>
@@ -761,7 +771,7 @@ export default function AdminLayout() {
                   background: isManager ? 'var(--purple)' : T,
                   border:'2px solid var(--border)',
                   display:'flex', alignItems:'center', justifyContent:'center',
-                  color:'#fff', fontSize:12, fontWeight:800, flexShrink:0,
+                  color: isManager ? '#fff' : 'var(--on-teal)', fontSize:12, fontWeight:800, flexShrink:0,
                   overflow:'hidden' }}>
                   {avatar ? <img src={avatar} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : initials}
                 </div>
@@ -776,7 +786,7 @@ export default function AdminLayout() {
                   <motion.div
                     initial={{ opacity:0, y:-6 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-6 }}
                     style={{ position:'absolute', top:'calc(100% + 8px)', right:0, width:180,
-                      background:'#fff', borderRadius:12, boxShadow:'0 8px 32px rgba(0,0,0,.16)',
+                      background:'var(--bg-card)', borderRadius:12, boxShadow:'0 8px 32px rgba(0,0,0,.16)',
                       border:'1px solid var(--border)', overflow:'hidden', zIndex:400 }}>
                     <div style={{ padding:'10px 14px', borderBottom:'1px solid var(--bg-surface)' }}>
                       <p style={{ fontSize:12, fontWeight:700, color:'var(--ink)', margin:0 }}>{name}</p>
@@ -801,9 +811,9 @@ export default function AdminLayout() {
 
           <div className="adm-content">
             {pendingSync > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', marginBottom: 14, borderRadius: 10, border: '1px solid #fed7aa', background: '#fff7ed' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', marginBottom: 14, borderRadius: 10, border: '1px solid var(--warning-border)', background: 'var(--warning-bg)' }}>
                 <span style={{ fontSize: 12 }}>↻</span>
-                <span style={{ fontSize: 11, color: '#92400e', fontWeight: 600 }}>{pendingSync} change{pendingSync > 1 ? 's' : ''} waiting to sync — will send automatically once you're back online.</span>
+                <span style={{ fontSize: 11, color: 'var(--warning-text)', fontWeight: 600 }}>{pendingSync} change{pendingSync > 1 ? 's' : ''} waiting to sync — will send automatically once you're back online.</span>
               </div>
             )}
             <PageErrorBoundary resetKey={location.pathname}>

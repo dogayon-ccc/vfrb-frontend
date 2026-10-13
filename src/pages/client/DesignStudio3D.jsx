@@ -20,6 +20,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { resolveTarget } from './design-studio/garmentCatalog';
 import { OrbitControls, ContactShadows, Float, Bounds, useBounds } from '@react-three/drei';
 import * as THREE from 'three';
+import { realLength, SET_OVERLAP } from './design-studio/setScale';
 import { LIGHT, KEY_POS, RIM_POS } from './design-studio/lightRig';
 import { scannedEntryFor, patternsFor3D } from './design-studio/garmentMeshManifest';
 import { DEFAULT_GARMENT_COLOR } from './design-studio/regionTexture';
@@ -338,18 +339,23 @@ function GarmentMesh({ cfg, referenceTexture, overlays }) {
 }
 
 // Uniform set preview: the top and the bottom each render their OWN model with their own colours (two separate pieces, never a
-// fused set model). After both have loaded, the bottom is moved so its waist sits just under the top's hem (10% overlap, measured
-// from the real bounding boxes), and the pair is scaled to the height of one garment so the existing camera frames it.
+// fused set model). After both have loaded, each piece is scaled so its model height matches its real length (setScale.js, the
+// same scale as the 2D set view; each model's own transform only frames it alone), the bottom's waist is tucked SET_OVERLAP under
+// the top's hem, and the pair is scaled to the height of one garment so the existing camera frames it.
 function SetStack({ top, bottom }) {
   const group = useRef(), topRef = useRef(), botRef = useRef();
   const key = [top.garment, top.sleeve, top.fit, bottom.garment, bottom.sleeve, bottom.fit].join('|');
   useLayoutEffect(() => {
     const g = group.current, t = topRef.current, b = botRef.current;
     if (!g || !t || !b) return;
-    g.scale.setScalar(1); g.position.set(0, 0, 0); b.position.set(0, 0, 0); g.updateMatrixWorld(true);
+    g.scale.setScalar(1); g.position.set(0, 0, 0); t.scale.setScalar(1); b.scale.setScalar(1); b.position.set(0, 0, 0); g.updateMatrixWorld(true);
+    const h0 = o => { const x = new THREE.Box3().setFromObject(o); return x.isEmpty() ? 0 : x.max.y - x.min.y; };
+    const lt = realLength(top.garment, top.sleeve)?.cm, lb = realLength(bottom.garment, bottom.sleeve)?.cm;
+    const ht = h0(t), hb = h0(b);
+    if (!ht || !hb) return;
+    if (lt && lb) { const unit = ht / lt; b.scale.setScalar((lb * unit) / hb); g.updateMatrixWorld(true); } // one world unit per cm for both
     const tb = new THREE.Box3().setFromObject(t), bb = new THREE.Box3().setFromObject(b);
-    if (tb.isEmpty() || bb.isEmpty()) return;
-    b.position.y = tb.min.y + (tb.max.y - tb.min.y) * 0.1 - bb.max.y;
+    b.position.y = tb.min.y + (tb.max.y - tb.min.y) * SET_OVERLAP - bb.max.y;
     g.updateMatrixWorld(true);
     const all = new THREE.Box3().setFromObject(g), s = 1.25 / (all.max.y - all.min.y);
     g.scale.setScalar(s);

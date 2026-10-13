@@ -12,6 +12,7 @@ import { photoMaxScale } from './studioView';
 import { panLimits, clampPan } from './snapGuides';
 import { readGuidePrefs } from './canvasGuides';
 import { StageGrid, PinnedRulers, GuideLine, RULER_H, RULER_W } from './StageRulers';
+import SetView2D from './SetView2D';
 import FloatingToolbar from './FloatingToolbar';
 import GuidesMenu from './GuidesMenu';
 
@@ -138,7 +139,9 @@ export default function CanvasViewport({
   // The wrapper is flex-centred in the pane's content box and transformed by translate(pan) scale(scale) about its centre, so
   // canvas (0, 0) lands at content centre + pan - size * scale / 2. Computed, not measured, so rulers never lag the canvas.
   const show2D = viewMode === '2d' || !show3D;
-  const rulersOn = guides.rulers && !!cfg.garment && show2D && !initFailed && !!garmentRect;
+  // The set view shows both pieces; rulers, guides and grid measure one garment, so they step aside while it is open.
+  const set2D = showSet && !!setCompanion && (viewMode !== '3d' || !setCompanion.can3D);
+  const rulersOn = guides.rulers && !!cfg.garment && show2D && !initFailed && !!garmentRect && !set2D;
   // Ruler guides: pulled out of a ruler, kept for this session only (never saved); they snap while the rulers are shown.
   const [rulerGuides, setRulerGuides] = useState([]);
   useEffect(() => { setSnapOptions?.({ rulerGuides: rulersOn ? rulerGuides : [] }); }, [rulersOn, rulerGuides, setSnapOptions]);
@@ -270,7 +273,7 @@ export default function CanvasViewport({
     </button>
   );
 
-  const gridOn = guides.grid && !!cfg.garment && show2D && !!view && !!garmentRect;
+  const gridOn = guides.grid && !!cfg.garment && show2D && !!view && !!garmentRect && !set2D;
   const stageOff = { dx: rulersOn ? RULER_W : 0, dy: rulersOn ? RULER_H : 0 };
 
   const status = photo ? { label: 'Photo', title: 'A recoloured photo of the real garment' }
@@ -320,6 +323,9 @@ export default function CanvasViewport({
       )}
 
       <div ref={fitRef} className="ds-stage-fit">
+        {/* Set view: both pieces on one scale. In 3D it shows here only when a piece has no model of its own. */}
+        {set2D && <SetView2D top={setCompanion.role === 'top' ? setCompanion.cfg : cfg} bottom={setCompanion.role === 'top' ? cfg : setCompanion.cfg}
+          note={viewMode === '3d' ? 'The 3D set view needs a 3D model for both pieces, so this is the 2D set.' : null}/>}
         {/* Both panes stay mounted and only toggle visibility, so Fabric and WebGL keep their state; show2D also covers
             viewMode==='3d' before the 3D pane exists, so the workspace is never blank. Rulers are pinned outside the scaled wrapper. */}
         {gridOn && <StageGrid view={view} g={garmentRect} pct={guides.size} {...stageOff} w={view.pw + stageOff.dx} h={view.ph + stageOff.dy}/>}
@@ -384,7 +390,7 @@ export default function CanvasViewport({
                 </div>
               }>
                 <Scene3D cfg={cfg} overlayDataUrl={snapshot} overlays={overlays} onContextLost={on3DLost}
-                  companion={showSet ? setCompanion?.cfg ?? null : null} companionRole={setCompanion?.role ?? null}/>
+                  companion={showSet && setCompanion?.can3D ? setCompanion.cfg : null} companionRole={setCompanion?.role ?? null}/>
               </Suspense>
             </ThreeEB>
             {!cfg.garment && (

@@ -213,8 +213,11 @@ export default function AdminOrders() {
     setConfirming(orderId);
     cacheClear('admin_orders_list');
     try {
-      await axios.patch(`/api/admin/orders/${orderId}/confirm`);
-      setToast({ msg:`Order #${orderId} confirmed.`, type:'success' });
+      const r = await axios.patch(`/api/admin/orders/${orderId}/confirm`);
+      // The other piece of a uniform set is confirmed with it server-side.
+      const setIds = r.data?.set_confirmed_ids ?? [];
+      if (setIds.length) setOrders(os => os.map(o => setIds.includes(o.order_id) ? { ...o, status:'confirmed' } : o));
+      setToast({ msg: r.data?.message ?? `Order #${orderId} confirmed.`, type:'success' });
     } catch (e) {
       setOrders(prev);
       setToast({ msg: e.response?.data?.message ?? 'Could not confirm order. Please retry.', type:'error' });

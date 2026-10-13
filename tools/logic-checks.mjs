@@ -224,19 +224,22 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('every 3D runtime model path exists under public/', Cp.SCANNED_GARMENTS.every(x => Object.values(x.models).every(m => fsx.existsSync(pub(decodeURI(m).slice(1))))));
 }
 {
-  const SN = await L('/src/pages/client/design-studio/snapGuides.js');
-  const tg = SN.snapTargets({ width: 320, height: 400, garment: { left: 60, top: 40, width: 200, height: 300 }, others: [{ left: 100, top: 100, width: 40, height: 20 }], gridSize: 20 });
+  const SN = await L('/src/pages/client/design-studio/snapGuides.js'), GS = (await L('/src/pages/client/design-studio/canvasGuides.js')).gridSpec;
+  const G0 = { left: 60, top: 40, width: 200, height: 300 };
+  const tg = SN.snapTargets({ width: 320, height: 400, garment: G0, others: [{ left: 100, top: 100, width: 40, height: 20 }], grid: GS(G0, 10) });
   const a = SN.computeSnap({ left: 137, top: 200, width: 46, height: 30 }, tg);
   t('snap: centre within 6px jumps to the canvas/garment centre line, with one vertical guide', a.dx === 160 - 160 + (160 - (137 + 23)) && a.guides.some(g => g.axis === 'v' && g.at === 160));
   const b = SN.computeSnap({ left: 101, top: 300, width: 30, height: 10 }, tg);
   t('snap: an element edge snaps to another element edge before a grid line', b.dx === -1 && b.guides.find(g => g.axis === 'v').kind === 'object');
-  const c = SN.computeSnap({ left: 13, top: 13, width: 2, height: 2 }, SN.snapTargets({ width: 320, height: 400, gridSize: 0 }));
-  t('snap: no target within the threshold -> no move, no guides; grid lines only when the grid is on', c.dx === 0 && c.dy === 0 && c.guides.length === 0 && SN.computeSnap({ left: 18, top: 300, width: 4, height: 4 }, SN.snapTargets({ width: 320, height: 400, gridSize: 20 })).guides.some(g => g.kind === 'grid'));
-  t('rulers: minor tick every 10 canvas px, labelled major every 50, spanning the full canvas', (r => r.length === 33 && r[0].at === 0 && r[r.length - 1].at === 320 && r.filter(x => x.major).length === 7)(SN.rulerTicks(320)));
+  const c = SN.computeSnap({ left: 13, top: 13, width: 2, height: 2 }, SN.snapTargets({ width: 320, height: 400 }));
+  t('snap: no target within the threshold -> no move, no guides; grid lines only when the grid is on', c.dx === 0 && c.dy === 0 && c.guides.length === 0 && SN.computeSnap({ left: 18, top: 300, width: 4, height: 4 }, SN.snapTargets({ width: 320, height: 400, grid: GS({ left: 0, top: 0, width: 200, height: 200 }, 10) })).guides.some(g => g.kind === 'grid'));
+  t('snap grid is the rulers\' grid: lines from the garment top-left every pct of its width/height, plus the 50% centre on BOTH axes', (() => {
+    const g20 = SN.snapTargets({ width: 320, height: 400, grid: GS(G0, 20) }); // sx 40, sy 60: 50% (160, 190) is off-cell on y
+    const gv = g20.v.filter(l => l.kind === 'grid').map(l => l.at), gh = g20.h.filter(l => l.kind === 'grid').map(l => l.at);
+    return gv.includes(60) && gv.includes(100) && gv.includes(160) && gh.includes(40) && gh.includes(100) && gh.includes(190) && SN.computeSnap({ left: 0, top: 187, width: 6, height: 6 }, g20).dy === 0; })());
   t('snap threshold is ~6 screen px at any zoom (logical px = 6 / scale), clamped to 2..12 logical px', SN.snapThreshold(1) === 6 && SN.snapThreshold(2) === 3 && SN.snapThreshold(0.5) === 12 && SN.snapThreshold(0.3) === 12 && SN.snapThreshold(4) === 2 && SN.snapThreshold(0) === 6);
   t('zoom-aware threshold: a 5 px gap snaps at 100% and on a phone (scale 0.5) but not at 270% (13.5 screen px away)', (() => { const tg = SN.snapTargets({ width: 320, height: 400 }), box = { left: 145, top: 10, width: 10, height: 4 }; /* right edge 155, centre line 160 */
     return SN.computeSnap(box, tg, SN.snapThreshold(1)).dx === 5 && SN.computeSnap(box, tg, SN.snapThreshold(0.5)).dx === 5 && SN.computeSnap(box, tg, SN.snapThreshold(2.7)).dx === 0; })());
-  t('ruler steps keep minor ticks >= 6 and labels >= 44 screen px apart on round values, at every zoom from phone to 270%', [0.3, 0.45, 0.6, 1, 1.5, 2.7].every(s => { const { step, major } = SN.rulerSteps(s); return step * s >= 6 && major * s >= 44 && major % step === 0 && [2, 5, 10, 20, 25, 50, 100, 200].includes(step); }) && SN.rulerSteps(1).step === 10 && SN.rulerSteps(1).major === 50);
   t('resize: each control moves only its own sides (tl/tr/bl/br/ml/mr/mt/mb); unknown controls move nothing', ['tl', 'tr', 'bl', 'br', 'ml', 'mr', 'mt', 'mb', 'mtr'].map(c => { const e = SN.movingEdges(c); return `${e.x ?? '-'}/${e.y ?? '-'}`; }).join() === 'left/top,right/top,left/bottom,right/bottom,left/-,right/-,-/top,-/bottom,-/-');
   {
     const tg = SN.snapTargets({ width: 320, height: 400, others: [{ left: 200, top: 300, width: 50, height: 20 }] });
@@ -248,21 +251,11 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     t('proportional corner resize uses one ratio from the closer side and shows only that side\'s guide (no false guide for the other)', Math.abs(u.rx - 100 / 98) < 1e-9 && u.ry === u.rx && u.guides.length === 1 && u.guides[0].axis === 'v');
     t('resize snap never collapses or flips an element, and far from any line changes nothing', (r0 => r0.rx === 1 && r0.guides.length === 0)(SN.computeResizeSnap({ left: 158, top: 0, width: 1, height: 10 }, 'ml', tg, 6)) && SN.computeResizeSnap({ left: 10, top: 10, width: 30, height: 30 }, 'br', tg, 2).guides.length === 0);
   }
-  t('readout shows the inspector numbers: X/Y while moving, rounded W × H while resizing', SN.readoutText({ left: 120.4, top: 80.6 }, 'move') === 'X 120  Y 81' && SN.readoutText({ width: 50, height: 20, scaleX: 1.5, scaleY: -2 }, 'scale') === '75 × 40');
   {
-    // Pinned rulers: screen position = origin + value * scale. Artboard 320 wide at scale 2, scrolled so canvas 0 is 150 px left
-    // of the ruler (origin -150) on a 400 px ruler: visible canvas range is 75..275, step 10 / major 50 at that scale's choice.
-    const tk = SN.pinnedTicks(-150, 2, 400, 320, 10, 50);
-    t('pinned ruler with the artboard origin scrolled out of view continues from the real coordinates (80..270), never restarts at 0, no negatives', tk[0].v === 80 && tk[tk.length - 1].v === 270 && tk.every(x => x.v >= 0 && Math.abs(x.at - (-150 + x.v * 2)) < 1e-9 && x.at >= 0 && x.at <= 400));
-    t('pinned ruler values are whole multiples of the step: no duplicate labels from rounding, majors exactly on multiples of 50', new Set(tk.map(x => x.v)).size === tk.length && tk.every(x => x.v % 10 === 0) && tk.filter(x => x.major).map(x => x.v).join() === '100,150,200,250');
-    const fitT = SN.pinnedTicks(40, 1.5, 600, 320, 10, 50);
-    t('artboard fully visible: ticks span exactly 0..320 and stop at the artboard edges (none over the empty stage)', fitT[0].v === 0 && fitT[0].at === 40 && fitT[fitT.length - 1].v === 320 && fitT[fitT.length - 1].at === 40 + 320 * 1.5);
-    t('pinned ruler handles fractional origins and steps that do not divide the extent', (r => r[0].v === 0 && r[r.length - 1].v === 375 && r.length === 16)(SN.pinnedTicks(12.37, 0.587, 375, 380, 25, 100)));
     const lim = SN.panLimits({ w: 320, h: 380, scale: 2.7, viewW: 900, viewH: 700 });
     t('pan limits: only where the zoomed artboard overflows (by overflow + margin), zero when it fits', lim.x === 0 && Math.abs(lim.y - ((380 * 2.7 - 700) / 2 + SN.PAN_MARGIN)) < 1e-9 && SN.panLimits({ w: 320, h: 380, scale: 1, viewW: 900, viewH: 700 }).y === 0);
     t('pan clamp keeps the artboard reachable and never returns -0', (c => c.x === 0 && Object.is(c.x, 0) && c.y === -lim.y)(SN.clampPan({ x: -50, y: -9999 }, lim)) && Object.is(SN.clampPan({ x: -0, y: 0 }, { x: 0, y: 0 }).x, 0));
   }
-  t('grid spacing options are 10/20/40 canvas px and snapping uses the chosen spacing', SN.GRID_SIZES.join() === '10,20,40' && SN.snapTargets({ width: 100, height: 100, gridSize: 40 }).v.filter(l => l.kind === 'grid').map(l => l.at).join() === '40,80');
 }
 // P0 draft continuity (G1-G3): account draft label, design identity across the Laravel JSON round trip, and the save/delete call sites.
 {
@@ -340,7 +333,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const cust = src('../src/styles/customer.css'), shell = src('../src/styles/customer-shell.css'), layout = src('../src/layouts/CustomerLayout.jsx');
   const defs = [...cust.matchAll(/([^{}]+)\{[^{}]*--cx-[\w-]+\s*:/g)].map(m => m[1].trim());
   const global = ['theme.css', 'admin.css', 'site.css', 'auth.css', 'modals.css', 'responsive.css'].filter(f => /--cx-/.test(src(`../src/styles/${f}`))).concat(/--cx-/.test(src('../src/main.css')) ? ['main.css'] : []);
-  t('customer tokens are defined only on customer roots (html[data-cx], .cm-shell, the Studio .ds), never on :root or shared stylesheets', defs.length === 1 && defs[0].endsWith(':is(html[data-cx],.cm-shell,.ds)') && global.length === 0);
+  t('customer tokens are defined only on customer roots (html[data-cx], .cm-shell, the Studio .ds; dark mode re-points the same roots, never .ds), never on :root or shared stylesheets', defs.length === 2 && defs[0].endsWith(':is(html[data-cx],.cm-shell,.ds)') && defs[1].endsWith('html[data-theme=dark]:is([data-cx]),html[data-theme=dark] .cm-shell') && global.length === 0);
   const sels = [...shell.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/(?:^|[;}])\s*([^{}@;]+)\{/g)].map(m => m[1].trim()).filter(s => !/^(from|to|\d+%)$/.test(s)).flatMap(s => s.split(','));
   t('every customer shell rule is scoped to the customer root, so admin is untouched after the shell has loaded', sels.length > 30 && sels.every(s => /data-cx|\.cx-|\.cm-(shell|main|content|studio-fab)/.test(s)));
   t('the customer shell sets data-cx on mount and removes it on unmount; shell CSS is imported only by the layout', /useLayoutEffect\(\(\) => \{[\s\S]{0,120}dataset\.cx = ''[\s\S]{0,60}delete root\.dataset\.cx/.test(layout) && /import '\.\.\/styles\/customer-shell\.css'/.test(layout) && !/customer-shell\.css/.test(src('../src/main.jsx')));
@@ -484,7 +477,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && !ph.grid && !ph.rulers && !ph.centre && !ph.smart && !dk.centre && dk.smart && !dk.grid && old.grid && old.rulers && !old.snap && old.size === 20 && CG.readGuidePrefs({ size: 33 }).size === 10 && CG.readGuidePrefs({ v: 2, size: 10 }).size === 10);
   // 2. Grid: neutral ink, minor ~10% / every 5th ~18%, fades at low zoom, over the garment only between base and design, never in exports.
   t('grid: neutral ink (no teal), minor 10% and every 5th line 18%, fades from 12 to 6 screen px, stage grid follows the artboard',
-    CG.GRID_ALPHA.minor === 0.1 && CG.GRID_ALPHA.major === 0.18 && CG.GRID_MAJOR_EVERY === 5 && CG.gridFade(12) === 1 && CG.gridFade(6) === 0 && CG.gridFade(9) === 0.5
+    CG.GRID_ALPHA.minor === 0.1 && CG.GRID_ALPHA.major === 0.18 && CG.GRID_MAJOR_PCT === 50 && CG.gridFade(12) === 1 && CG.gridFade(6) === 0 && CG.gridFade(9) === 0.5
     && /\.ds-sgrid line\{stroke:rgb\(var\(--ds-grid-ink\)/.test(css) && /--ds-grid-ink:var\(--cx-shade\)/.test(css) && !/ds-grid line\{stroke:rgba\(2,128,144/.test(css)
     && /<StageGrid view=\{view\} g=\{garmentRect\}/.test(cv) && !/<Grid /.test(cv));
   t('the grid is never painted over the garment: the live canvas paints only the design and (when on) the centre line; exports render elsewhere',
@@ -945,7 +938,8 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     (h => /restyleText\(obj, props\)\.then\(\(\) => \{ canvas\.renderAll\(\); if \(commit\) pushHistory\(\)/.test(h) && /moveInStack\(canvas, obj, where\)\) return;\s+canvas\.renderAll\(\);\s+pushHistory\(\);/.test(h))(rdx('../src/pages/client/design-studio/useGarmentCanvas.js')));
   t('history: starts at an empty baseline (the first action is undoable); a design or face load restarts it, the export face swap keeps it; only the newest overlay load lands',
     (h => /historyStack = useRef\(\[\[\]\]\)/.test(h) && /historyIdx = useRef\(0\)/.test(h) && /if \(!keepHistory\) resetHistory\(\)/.test(h) && (h.match(/token !== overlayLoad\.current/g) ?? []).length === 3)(rdx('../src/pages/client/design-studio/useGarmentCanvas.js'))
-    && (rdx('../src/pages/client/DesignStudio.jsx').match(/keepHistory: true/g) ?? []).length === 2);
+    && (rdx('../src/pages/client/DesignStudio.jsx').match(/keepHistory: true/g) ?? []).length === 3 // export face swap x2 + AI undo (restore, then one pushed step)
+    && /loadCanvasJSON\(aiPreview\.canvas, \{ keepHistory: true \}\)/.test(rdx('../src/pages/client/DesignStudio.jsx')));
   t('2D realism layers are decorative only: built from deco (never selectable, never saved)',
     (x => /function detailRealism/.test(x) && !/selectable: true|evented: true/.test(x) && (x.match(/\.\.\.deco/g) ?? []).length >= 6)(rdx('../src/pages/client/design-studio/fabricShading.js'))
     && /__garmentBase: true, __detailKind: d\.kind/.test(rdx('../src/pages/client/design-studio/useGarmentCanvas.js')));
@@ -953,6 +947,140 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     /patterns=\{design\.patterns\} patternParams=\{design\.patternParams\}/.test(rdx('../src/components/DesignPreview.jsx'))
     && /\['Patterns', describePatterns\(/.test(rdx('../src/pages/client/DesignStudio.jsx')) && /describePatterns\(cfg\?\.patterns/.test(rdx('../src/components/admin/OrderDesignDetails.jsx'))
     && renderToString(React.createElement(Prev, { cfg: saved })).includes('<svg'));
+}
+// Account settings: square photo crop, dark-mode accent contrast, mode resolution.
+{
+  const C = await L('/src/utils/squareCrop.js'), K = await L('/src/utils/colorMath.js'), Ac = await L('/src/utils/accentColor.js'), Tm = await L('/src/utils/themeMode.js');
+  const st = 240, near = (a, b) => Math.abs(a - b) < 1e-6, src = f => fsx.readFileSync(f, 'utf8');
+  t('crop: a landscape photo covers the square stage and starts centred, so the crop is the middle square', (r => near(r.size, 1000) && near(r.sx, 250) && near(r.sy, 0))(C.cropRect(C.centerPan(1500, 1000, st, 1), 1500, 1000, st, 1)));
+  t('crop: panning past an edge is clamped so no gap shows', (p => p.x === 0 && near(p.y, 0))(C.clampPan(500, 500, 1500, 1000, st, 1)) && (p => near(p.x, st - 360) && near(p.y, 0))(C.clampPan(-9999, 0, 1500, 1000, st, 1)));
+  t('crop: zooming keeps the stage centre on the same image point and shrinks the square', (() => { const p = C.zoomAround(C.centerPan(1000, 1000, st, 1), 1000, 1000, st, 1, 2); const r = C.cropRect(p, 1000, 1000, st, 2); return near(r.size, 500) && near(r.sx, 250) && near(r.sy, 250); })());
+  t('crop: the source rectangle never leaves the image', [[800, 600], [600, 800], [64, 64]].every(([w, h]) => [1, 1.7, 3].every(z => { const r = C.cropRect(C.clampPan(-1e6, -1e6, w, h, st, z), w, h, st, z); return r.sx >= 0 && r.sy >= 0 && r.sx + r.size <= w + 1e-6 && r.sy + r.size <= h + 1e-6; })));
+  t('accent: light default teal leaves theme.css alone; other presets set the accent tokens', Ac.getAccentVars(Ac.DEFAULT_ACCENT_HEX) === null && Ac.getAccentVars('#800000')['--teal'] === '#800000');
+  t('accent: every preset in dark mode reads at 4.5:1 as text on both dark cards, on its tint, and carries dark button text at 4.5:1',
+    Ac.ACCENT_PRESETS.every(p => { const v = Ac.getAccentVars(p.hex, true); return K.contrast(v['--teal'], Ac.DARK_SURFACE) >= 4.5 && K.contrast(v['--teal'], '#161d24') >= 4.5 && K.contrast(v['--teal'], Ac.DARK_ON_ACCENT) >= 4.5 && K.contrast(v['--teal-dark'], v['--teal-50']) >= 4.5; }));
+  t('accent: server ids and preset hexes round-trip', Ac.ACCENT_PRESETS.every(p => Ac.accentIdFor(Ac.accentHexFor(p.id)) === p.id));
+  t('mode: system follows the device, light and dark are fixed', Tm.isDarkMode('dark', false) && !Tm.isDarkMode('light', true) && Tm.isDarkMode('system', true) && !Tm.isDarkMode('system', false));
+  t('appearance is painted only by the portal layouts (Design Studio and auth keep the default look)',
+    ['src/layouts/CustomerLayout.jsx', 'src/layouts/AdminLayout.jsx'].every(f => /useAppearance\(/.test(src(f))) && !/useAppearance/.test(src('src/pages/client/DesignStudio.jsx')));
+  t('settings records: addresses and billing share one kit; no hard-coded status colours left in either',
+    ['src/pages/client/AccountSettings.jsx', 'src/pages/client/settings/BillingSection.jsx'].every(f => /from '\.\/(settings\/)?RecordKit'/.test(src(f)) && !/#fef2f2|#f0fdf4|#dc2626|#16a34a/.test(src(f))));
+}
+// QC inline in Daily Output Log: one write path, one gate, read-only history, recorded-by everywhere.
+{
+  const src = f => fsx.readFileSync(f, 'utf8'), BE = process.env.VFRB_BACKEND ?? 'C:/laragon/www/vfrb-capstone', be = f => fsx.existsSync(`${BE}/${f}`) ? src(`${BE}/${f}`) : null;
+  const dol = src('src/pages/admin/DailyOutputLog.jsx'), form = src('src/components/admin/QCChecklistForm.jsx'), hist = src('src/pages/admin/QCChecklist.jsx');
+  t('QC: Daily Output Log shows the checklist inline at the QC stage and says Pressing is blocked until it passes',
+    /const atQc = form\.stage === 'qc'/.test(dol) && /\{atQc && \(/.test(dol) && /<QCChecklistForm inline orderId=\{form\.order_id\}/.test(dol) && /Pressing is blocked until QC passes/.test(dol));
+  t('QC: the inline form writes to the same endpoint Reports read (POST /api/admin/orders/{id}/qc)', /axios\.post\(`\/api\/admin\/orders\/\$\{orderId\}\/qc`/.test(form));
+  t('QC: the QC page is read-only history (GET /api/admin/qc-checklists, no writes, no form)',
+    /axios\.get\('\/api\/admin\/qc-checklists'/.test(hist) && !/axios\.(post|put|patch|delete)/.test(hist) && !/<QCChecklistForm/.test(hist));
+  t('QC: the form previews pass/fail by the server rule (an optional check answered Fail also fails)', /CHECKS\.every\(\(c\) => checks\[c\.key\] !== false\)/.test(form));
+  t('recorded-by name and date: Sales & Pay, Activity Log, QC history and today\'s output use one RecordedBy',
+    ['src/pages/admin/SalesTransactions.jsx', 'src/pages/admin/ActivityLog.jsx', 'src/pages/admin/QCChecklist.jsx', 'src/pages/admin/DailyOutputLog.jsx'].every(f => /<RecordedBy name=/.test(src(f)))
+    && /RecordedBy name=\{l\.logged_by_name\}/.test(dol) && /RecordedBy name=\{t\.processed_by_name\}/.test(src('src/pages/admin/SalesTransactions.jsx')));
+  const svc = be('app/Services/ProductionStageService.php'), prod = be('app/Http/Controllers/Api/ProductionController.php'), qcc = be('app/Http/Controllers/Api/QCChecklistController.php'), act = be('app/Http/Controllers/Api/ActivityLogController.php');
+  if (svc) {
+    t('QC gate (backend): one rule for output logging and the manager override, latest checklist must have passed',
+      /public static function qcBlocked\(object \$order\): bool/.test(svc) && /return !\(\$latest && \$latest->passed\);/.test(svc) && /self::qcBlocked\(\$order\)/.test(svc)
+      && /ProductionStageService::qcBlocked\(\$order\)/.test(prod) && !/function checkQCGate/.test(svc + prod));
+    t('QC (backend): a passing checklist releases a held QC order once every QC piece is logged; history endpoint is read-only',
+      /releaseQcHold\(\$orderId\)/.test(qcc) && /incompleteStages\(\$orderId, 'qc', true\)/.test(svc) && /public function index\(Request \$request\)/.test(qcc));
+    t('Activity Log (backend): payments appear with who recorded them, without amounts', /'payment_recorded' as action_type, processed_by as actor_user_id/.test(act) && !/amount_paid|amount_total/.test(act.slice(act.indexOf("'payment_recorded'"), act.indexOf("'payment_recorded'") + 400)));
+  }
+}
+// Rulers origin and grid units; set scale shared by 2D and 3D; template-backed details and garments.
+{
+  const GA = await L('/src/pages/client/design-studio/garmentAssets.js'), CL = await L('/src/pages/client/design-studio/canvasLayers.js');
+  const CG = await L('/src/pages/client/design-studio/canvasGuides.js'), SS = await L('/src/pages/client/design-studio/setScale.js');
+  const CT = await L('/src/pages/client/design-studio/garmentCatalog.js'), GD = await L('/src/pages/client/design-studio/garmentDetails.js'), GP = await L('/src/pages/client/design-studio/garmentPaths.js');
+  const DF = await L('/src/pages/client/design-studio/derivedFamilies.js'), SC = await L('/src/utils/sizeChart.js');
+  const src = f => fsx.readFileSync(f, 'utf8');
+  const px = new Uint8ClampedArray(10 * 8 * 4); for (let y = 2; y <= 5; y++) for (let x = 3; x <= 7; x++) px[(y * 10 + x) * 4 + 3] = 255;
+  const ob = GA.opaqueBounds(px, 10, 8);
+  t('rulers origin: a photo with a transparent border measures from its opaque pixels (6 px border = 0% sits on the cloth)', ob.l === 3 && ob.r === 7 && ob.t === 2 && ob.b === 5 && GA.opaqueBounds(new Uint8ClampedArray(16), 2, 2) === null);
+  const img = { getBoundingRect: () => ({ left: 10, top: 20, width: 200, height: 160 }), __content: { ...ob } }; // 10x8 image drawn 20x
+  t('rulers origin: garmentBox uses the opaque box for a photo base and the plain box for a vector path', (r => r.left === 70 && r.top === 60 && r.width === 100 && r.height === 80)(CL.baseRect(img))
+    && CL.baseRect({ getBoundingRect: () => ({ left: 1, top: 2, width: 3, height: 4 }) }).width === 3 && /__content: src\.__content/.test(src('src/pages/client/design-studio/useGarmentCanvas.js')));
+  t('grid units: major grid lines are exactly the always-labelled ruler values (multiples of 50%) at every grid size',
+    [5, 10, 20].every(pct => CG.gridLines(0, pct * 2, pct, -400, 800).every(l => l.major === (Math.abs(l.v % 50) < 1e-9))));
+  t('one unit system: the pixel-unit ruler/readout helpers are gone; rulers, grid, snap and readout are % of the garment',
+    !/rulerTicks|rulerSteps|pinnedTicks|readoutText|GRID_SIZES|gridSize/.test(src('src/pages/client/design-studio/snapGuides.js') + src('src/pages/client/design-studio/useGarmentCanvas.js')));
+  const polo = SS.realLength('Polo Shirt', 'Short'), pants = SS.realLength('Pants'), shorts = SS.realLength('Shorts');
+  t('set scale: anchored to the PH size chart (size M top body length 70, bottom length 100), not to each template\'s framing',
+    SC.chartLengthCm('tops') === 70 && SC.chartLengthCm('bottoms') === 100 && Math.abs(polo.cm - 70) < 1e-9 && Math.abs(pants.cm - 100) < 1e-9 && !polo.approx && !pants.approx);
+  t('set scale: base templates keep their drawn ratio within a role (shorts shorter than pants); derived pieces are flagged approximate',
+    shorts.cm > 50 && shorts.cm < 70 && !shorts.approx && DF.DERIVED_FAMILIES.filter(d => d.role).every(d => SS.realLength(d.name)?.approx === true));
+  const bd = SS.realLength('Button-Down', 'Long'), bdT = SS.templateSpan('Button-Down', 'Long'), poT = SS.templateSpan('Polo Shirt', 'Short');
+  const bdLay = SS.setLayout2D({ garment: 'Button-Down', sleeve: 'Long' }, { garment: 'Pants' }), bdD = SS.drawnSpan('Button-Down', 'Long');
+  t('set scale: a photo-base piece takes its template length, not the fitted photo height, and is drawn at that length',
+    Math.abs(bd.cm - 70 * (bdT.y1 - bdT.y0) / (poT.y1 - poT.y0)) < 1e-9 && bd.cm < 80 && Math.abs((bdD.y1 - bdD.y0) * (bdLay.top.h / bdD.h) - bd.cm) < 1e-6);
+  const lay = SS.setLayout2D({ garment: 'Polo Shirt', sleeve: 'Short' }, { garment: 'Pants' });
+  t('2D set layout: one px-per-cm for both pieces, bottom waist tucked 10% of the top\'s length under its hem, pieces centred',
+    !!lay && Math.abs((lay.extent.y1 - lay.extent.y0) - (70 + 100 - 7)) < 0.5 && Math.abs((lay.top.x + lay.top.w / 2) - (lay.bottom.x + lay.bottom.w / 2)) < 1e-9 && !lay.approx);
+  t('3D set: SetStack scales each piece to its real length (setScale) and tucks by the same SET_OVERLAP; 2D set view and rulers-off wired',
+    /realLength\(top\.garment/.test(src('src/pages/client/DesignStudio3D.jsx')) && /SET_OVERLAP - bb\.max\.y/.test(src('src/pages/client/DesignStudio3D.jsx'))
+    && /<SetView2D /.test(src('src/pages/client/design-studio/CanvasViewport.jsx')) && /!!garmentRect && !set2D/.test(src('src/pages/client/design-studio/CanvasViewport.jsx'))
+    && /companion=\{showSet && setCompanion\?\.can3D/.test(src('src/pages/client/design-studio/CanvasViewport.jsx')));
+  const fams = Object.values(CT.FAMILY_BY_NAME);
+  t('details: a control exists only where the 2D template draws that part; photo bases and derived templates get none',
+    fams.every(f => GD.detailsFor(f.id, f.styles[0] ?? 'Short').every(o => ['front', 'back'].some(face => { const p = GP.getGarmentPaths(f.id, f.styles[0] ?? 'Short', face); return o.id === 'patchPocket' ? !!p.pocket : p.details.some(d => d.part === o.id); })))
+    && DF.DERIVED_FAMILIES.every(d => GD.detailsFor(d.name).length === 0) && GD.detailsFor('Polo Shirt', 'Short').map(o => o.id).join() === 'patchPocket,buttons,closure');
+  t('garments with real paths already in the catalog: Mandarin Collar (vector + derived blouse), straight trousers, jogger scrub pants; Track Pants stays out (no PE)',
+    ['Mandarin Collar', 'Mandarin Blouse', 'Pants', 'Straight Trousers', 'Straight Slacks', "Men's Jogger Scrub Pants", "Women's Jogger Scrub Pants"].every(n => CT.FAMILY_BY_NAME[n]?.has2D) && !CT.FAMILY_BY_NAME['Track Pants']);
+}
+// AI design assistant (B5): strict operations only, from a template or from scratch, preview/undo on the one DesignState.
+{
+  const DE = await L('/src/pages/client/design-studio/designEdits.js'), CT = await L('/src/pages/client/design-studio/garmentCatalog.js');
+  const src = f => fsx.readFileSync(f, 'utf8'), BE = process.env.VFRB_BACKEND ?? 'C:/laragon/www/vfrb-capstone';
+  const base = { garment: null, sleeve: null, fit: null, colors: { body: '#FFFFFF', collar: '#FFFFFF' }, patterns: {}, patternParams: {} };
+  const a = DE.briefToStart({ garmentType: 'Top', collarType: 'Polo Collar', sleeveType: 'Long Sleeve', category: 'School Uniform', colors: { body: '#1b2a4a', accent: '#ffffff' }, pattern: 'h-stripe', textContent: 'SMITH' }, base);
+  t('AI from scratch: a brief maps to one real catalog template by fixed rules, an unoffered sleeve is corrected and said, ops are checked',
+    a.cfg.garment === 'Polo Shirt' && !!CT.FAMILY_BY_NAME[a.cfg.garment] && a.cfg.sleeve === 'Short' && a.notes.some(n => /Long Sleeve is not offered/.test(n))
+    && a.ops.every(op => DE.checkEdit(op, DE.templateFacts(a.cfg), []) === '') && a.ops.some(op => op.op === 'add_text' && op.placement === 'left_chest'));
+  const b = DE.briefToStart({ garmentType: 'Bottom', colors: { body: '#333333', accent: '#ff0000' }, textContent: '' }, base);
+  t('AI from scratch: a bottom starts on Pants; an accent with no collar zone is reported, never forced onto another zone',
+    b.cfg.garment === 'Pants' && !b.ops.some(op => op.zone === 'collar') && b.notes.some(n => /accent colour was not used/.test(n)));
+  const ph = DE.briefToStart({ garmentType: 'Top', collarType: 'V-Neck', sleeveType: 'Short Sleeve', colors: { body: '#123456' }, pattern: 'dots' }, base);
+  t('AI from scratch: a pattern the template cannot show (photo base) is listed as not applied, with the reason',
+    DE.templateFacts(ph.cfg).patterns.length > 0 || ph.skipped.some(x => x.why === 'pattern not available here'));
+  t('B5 client re-check: unknown zones, placements, texts and operations are refused with a plain reason',
+    DE.checkEdit({ op: 'set_color', zone: 'hood', hex: '#000000' }, DE.templateFacts({ garment: 'Polo Shirt', sleeve: 'Short' }), []) === 'zone not on this garment'
+    && DE.checkEdit({ op: 'move_text', target: 'gone', placement: 'left_chest' }, DE.templateFacts({ garment: 'Polo Shirt', sleeve: 'Short' }), []) === 'text no longer on the design'
+    && DE.checkEdit({ op: 'resize_everything' }, {}, []) === 'unknown operation');
+  const ds = src('src/pages/client/DesignStudio.jsx'), chat = src('src/pages/client/AIDesignChat.jsx'), drawer = src('src/pages/client/design-studio/ToolDrawer.jsx');
+  t('B5 preview and undo: preview re-checks every op against the template it lands on and snapshots design + overlays; undo restores both as one undoable step',
+    /checkEdit\(op, facts, ids\)/.test(ds) && /setAiPreview\(\{ cfg, canvas: getCanvasJSON\(\), result \}\)/.test(ds) && /setCfg\(aiPreview\.cfg\)/.test(ds)
+    && /loadCanvasJSON\(aiPreview\.canvas, \{ keepHistory: true \}\)/.test(ds) && /setTimeout\(pushHistory/.test(ds));
+  t('B5 3D: the preview is the one DesignState, so 3D shows it; "See it in 3D" only when a model exists, otherwise it says so',
+    /view3D: viewAI3D, has3D: has3DFor\(cfg\)/.test(ds) && /No 3D model for this garment; the 2D design is the preview\./.test(chat));
+  t('AI scope: one Studio AI panel of strict B5 operations; no free chat, no sizing, quantity, yardage or price prompts',
+    /<AIDesignChat cfg=\{p\.cfg\}/.test(drawer) && !/AIPanel|AIEditPanel/.test(drawer) && !fsx.existsSync('src/pages/client/design-studio/AIPanel.jsx')
+    && !/\byards?\b|(?<!box-)\bsizing\b|mode:\s*'chat'|chat_context|QUICK/i.test(chat.replace(/^\s*\/\/.*$/gm, '')) &&!/applyAI\b|applyAIEdits/.test(ds));
+  const ai = fsx.existsSync(`${BE}/app/Http/Controllers/Api/AIController.php`) ? src(`${BE}/app/Http/Controllers/Api/AIController.php`) : null;
+  if (ai) t('AI scope (backend): describe-design has no free chat branch (no client-supplied prompt is passed to the model)', !/describeDesignChat|chat_context|chat_response/.test(ai));
+  t('CLAUDE.md states the approved AI scope', /AI is restricted to raw-material recommendation and strict, deterministic Studio B5 design editing/.test(src('CLAUDE.md')));
+}
+// Showcase: explicit opt-in with withdraw, manager approval, allowlisted publishing, safe open.
+{
+  const SG = await L('/src/pages/client/design-studio/ShowcaseGallery.jsx');
+  const src = f => fsx.readFileSync(f, 'utf8'), BE = process.env.VFRB_BACKEND ?? 'C:/laragon/www/vfrb-capstone';
+  const mine = { name: 'My school polo', garment: 'Polo Shirt', sleeve: 'Short', fit: null, colors: { body: '#111111', collar: '#111111' }, patterns: {}, patternParams: {}, details: {}, inspirationId: 'p1' };
+  const opened = SG.openShowcase(mine, { name: 'OTHER CLIENT', garment: 'Pants', colors: { body: '#274C77' }, overlays: [{ text: 'X' }], uniformSet: { id: 'z' } });
+  t('showcase open: another client\'s look changes garment and colours only; the customer keeps their own name; no overlays or set are taken',
+    opened.garment === 'Pants' && opened.colors.body === '#274C77' && opened.name === 'My school polo' && !('overlays' in opened) && !('uniformSet' in opened) && opened.inspirationId === null
+    && SG.openShowcase(mine, { garment: 'Not A Garment' }).garment !== 'Not A Garment');
+  const gal = src('src/pages/client/design-studio/ShowcaseGallery.jsx'), cons = src('src/pages/client/design-studio/ShowcaseConsent.jsx'), q = src('src/pages/admin/ShowcaseModerationQueue.jsx');
+  t('showcase gallery: never loads another client\'s overlays, shows a load failure honestly, lucide icons and tokens only',
+    !/loadCanvasJSON|photo_path\s*\?/.test(gal) && /could not be loaded/.test(gal) && !/rgba\(|#[0-9a-f]{3,6}\b|✕/i.test(gal.replace(/^\s*\/\/.*$/gm, '')));
+  t('showcase opt-in: says what is and is never shared before sharing; pending, published and rejected (with reason) shown; withdraw offered; no emoji',
+    /SHOWCASE_NOT_SHARED/.test(cons) && /withdraw-showcase/.test(cons) && /Not approved\{note/.test(cons) && !/🏆/.test(src('src/pages/client/design-studio/InspoGallery.jsx')) && /<ShowcaseConsent /.test(src('src/pages/client/design-studio/InspoGallery.jsx')));
+  t('showcase moderation: manager sees pending and published, can take a published design down, and is told the label is public',
+    /status: 'approved'/.test(q) && /showcase-remove/.test(q) && /never use a person's, school's or company's name/.test(q) && /RequireManager><AdminShowcaseQueue/.test(src('src/App.jsx')));
+  const dc = fsx.existsSync(`${BE}/app/Http/Controllers/Api/DesignController.php`) ? src(`${BE}/app/Http/Controllers/Api/DesignController.php`) : null;
+  if (dc) t('showcase (backend): public list = approved AND active, through the allowlist with no photo; withdraw and delete end consent',
+    /where\('showcase_status', 'approved'\)->where\('is_active', 1\)/.test(dc) && /SHOWCASE_KEYS = \['garment', 'fit', 'sleeve', 'category', 'colors', 'patterns', 'patternParams', 'details', 'templateId'\]/.test(dc)
+    && /'photo_path' => null/.test(dc) && /function customerWithdrawShowcase/.test(dc) && /Deleted by the customer/.test(dc));
 }
 console.log(out.join('\n')); const f = out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);

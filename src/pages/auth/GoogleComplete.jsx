@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { startSession, clearSession } from '../../utils/session';
+import { seedAppearance } from '../../utils/themeMode';
 import { homeFor } from '../../utils/authRoute';
 import { NavIcon } from '../../components/ui/icons';
 import AuthShell from '../../components/AuthShell';
@@ -38,6 +39,7 @@ export default function GoogleComplete() {
         const real = { ...user, ...data };
         if (!validRoles.includes(real.role)) throw new Error('role');
         localStorage.setItem('vfrb_user', JSON.stringify(real));
+        seedAppearance(real);
         window.location.href = homeFor(real);
       }).catch(() => { clearSession(); setError('Could not complete sign-in. Please try again.'); });
     } catch {
