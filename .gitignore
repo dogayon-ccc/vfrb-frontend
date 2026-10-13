@@ -26,3 +26,6 @@ asset-staging/mesh-3d/
 asset-staging/mesh-3d/
 
 .claude
+__pycache__/
+
+CLAUDE.md

@@ -212,6 +212,7 @@ export default function AdminReports() {
           <div className="rpt-two">
             <ChartPanel title="Orders — last 6 months" sub="Orders placed vs completed, by month" empty={!loading && trends.length === 0 && 'No orders in the last 6 months.'}>
               {loading ? <SkeletonRows rows={1} h={220} /> : (
+                <div style={{ width: '100%', minWidth: 0, minHeight: 230 }}>
                 <ResponsiveContainer width="100%" height={230}>
                   <BarChart data={trends} margin={{ top: 4, right: 0, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} vertical={false} />
@@ -223,6 +224,7 @@ export default function AdminReports() {
                     <Bar dataKey="completed" name="Completed" fill={CHART_BAR2} radius={[6, 6, 0, 0]} animationDuration={300} isAnimationActive={!REDUCED} />
                   </BarChart>
                 </ResponsiveContainer>
+                </div>
               )}
             </ChartPanel>
             <ChartPanel title="Pipeline snapshot" sub="Orders per status right now" empty={!loading && pipeline.length === 0 && 'No orders yet.'}>
@@ -260,6 +262,7 @@ export default function AdminReports() {
           ]} />
           <ChartPanel title="Monthly sales — last 6 months" sub="Collected vs outstanding balance, by payment month" empty={!loading && sales && monthly.length === 0 && 'No payments recorded in the last 6 months.'}>
             {loading ? <SkeletonRows rows={1} h={230} /> : monthly.length > 0 && (
+              <div style={{ width: '100%', minWidth: 0, minHeight: 240 }}>
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={monthly} margin={{ top: 4, right: 0, left: -5, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} vertical={false} />
@@ -271,6 +274,7 @@ export default function AdminReports() {
                   <Bar dataKey="outstanding" name="Outstanding" fill={CHART_WARN} radius={[6, 6, 0, 0]} animationDuration={300} isAnimationActive={!REDUCED} />
                 </BarChart>
               </ResponsiveContainer>
+              </div>
             )}
           </ChartPanel>
           {(totals?.by_method?.length ?? 0) > 0 && (
