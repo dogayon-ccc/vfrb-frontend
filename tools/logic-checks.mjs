@@ -691,6 +691,31 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('PH mobile: 09XXXXXXXXX or +639XXXXXXXXX accepted with spaces/dashes, short, long and landline numbers rejected, empty allowed unless required',
     ok.every(P.isPhMobile) && !bad.some(P.isPhMobile) && P.compactPhone('0917 123-4567') === '09171234567'
     && P.phPhoneError('') === '' && P.phPhoneError('', { required: true }) === 'Enter a contact number.' && /^Use a PH mobile number/.test(P.phPhoneError('12345')));
+  const rd = q => fsx.readFileSync(urlx.fileURLToPath(new URL(q, import.meta.url)), 'utf8');
+  const prof = rd('../src/pages/client/settings/ProfileSection.jsx'), acct = rd('../src/pages/client/AccountSettings.jsx'), adm = rd('../src/pages/admin/Settings.jsx');
+  t('SMS line: "your number is saved" only for a stored PH mobile number; display format 0917 123 4567 / +63 917 123 4567',
+    P.SMS_NOT_ACTIVE === 'Text alerts are not active yet; your number is saved.' && P.smsStatusLine('09171234567') === P.SMS_NOT_ACTIVE
+    && ![null, '', '12345', undefined].some(v => P.smsStatusLine(v) === P.SMS_NOT_ACTIVE) && P.smsStatusLine(null, { noNumber: 'x' }) === 'x'
+    && P.formatPhMobile('09171234567') === '0917 123 4567' && P.formatPhMobile('+639171234567') === '+63 917 123 4567' && P.formatPhMobile('(02) 8123') === '(02) 8123');
+  t('SMS settings: the number saves only through PUT /api/customer/profile (stored value, not the typed one, drives the line); SMS stays off and disabled for customer and admin; no sending code',
+    /axios\.put\('\/api\/customer\/profile', \{[^}]*contact_number: phone/.test(prof) && /setSavedPhone\(phone\)/.test(prof) && /smsStatusLine\(savedPhone\)/.test(prof)
+    && /k="sms_enabled"[\s\S]{0,80}off=\{/.test(acct) && /key: 'sms_enabled'[^}]*off: true/.test(adm) && /disabled=\{prefsBusy \|\| !!row\.off\}/.test(adm) && /axios\.get\('\/api\/user'\)/.test(adm)
+    && ![prof, acct, adm, rd('../src/utils/phPhone.js')].some(s => /sms\/send|\/api\/sms|semaphore|twilio|vonage|nexmo|itexmo/i.test(s)));
+  t('Profile: a failed load shows a retryable error instead of a blank form that could be saved over the real profile',
+    /\.catch\(\(\) => setFailed\(true\)\)/.test(prof) && /if \(failed\) return <div className="st-stack"><LoadError what="your profile" onRetry=\{load\}\/><\/div>;/.test(prof) && /if \(failed\) return;/.test(prof));
+  const LS = await L('/src/utils/loadState.js'); const od = rd('../src/pages/client/OrderDetail.jsx');
+  const rej = s => ({ status: 'rejected', reason: s ? { response: { status: s } } : new Error('Network Error') });
+  t('Order Detail: a network or server failure is a retryable error, never "Order not found", and is not cached; 404/403 stay "not found"',
+    LS.fetchFailed(rej()) && LS.fetchFailed(rej(500)) && LS.fetchFailed(rej(429)) && !LS.fetchFailed(rej(404)) && !LS.fetchFailed(rej(403)) && !LS.fetchFailed({ status: 'fulfilled', value: {} })
+    && /const failed = fetchFailed\(o\);/.test(od) && /if \(!failed\) cacheSet\(CACHE_KEY/.test(od) && od.indexOf('if (loadErr) return') < od.indexOf('if (!order) return') && /onRetry=\{\(\) => load\(true\)\}/.test(od));
+  const Cp = await L('/src/pages/client/design-studio/garmentCapabilities.js');
+  const noted = Cp.SCANNED_GARMENTS.filter(g => Cp.hemNote3D(g.capabilities)).map(g => g.id);
+  const cv = rd('../src/pages/client/design-studio/CanvasViewport.jsx');
+  t('3D hem note: every model whose registry limitation says another garment shows at the hem or waist says so on the stage; models without it say nothing',
+    noted.includes('collarless-blazer-long') && !noted.includes('collarless-blazer-short') && !noted.some(id => /^polo|^t-shirt|scrub-top/.test(id))
+    && Cp.SCANNED_GARMENTS.every(g => !!Cp.hemNote3D(g.capabilities) === (g.capabilities.limitations ?? []).some(l => /under the hem|hem can remain at the waist/.test(l)))
+    && Cp.hemNote3D(Cp.get3DCapabilities('Collarless Blazer', 'female', 'Long'))?.startsWith('3D: the strip under the hem') && Cp.hemNote3D(Cp.get3DCapabilities('Polo Shirt', 'male', 'Short')) === null
+    && /const hem = hemNote3D\(c3\);/.test(cv) && /hem && \{ id: 'hem', text: hem, warn: true \}/.test(cv));
 }
 // Admin order detail: a Studio order still shows the customer's reference photo, order notes, gallery origin and zone colours (read-only).
 {

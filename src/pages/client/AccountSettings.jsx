@@ -1,7 +1,7 @@
 // src/pages/client/AccountSettings.jsx — Shipping Addresses, Notification Preferences, Preferred Fabrics.
 // All three backends already existed with zero frontend consuming them — same gap class as BillingProfiles.jsx.
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import axios from 'axios';
 import { Card, Button, Field, Badge, NavIcon, ConfirmDialog } from '../../components/ui';
@@ -11,7 +11,7 @@ import BillingSection from './settings/BillingSection';
 import HelpSection from './settings/HelpSection';
 import FeedbackSection from './settings/FeedbackSection';
 import LoadError from './settings/LoadError';
-import { phPhoneError, compactPhone } from '../../utils/phPhone';
+import { phPhoneError, compactPhone, formatPhMobile, isPhMobile, smsStatusLine } from '../../utils/phPhone';
 
 function Toast({ msg, type }) {
   return (
@@ -171,17 +171,18 @@ function ShippingSection() {
 }
 
 // ── Notification Preferences ─────────────────────────────────────────────
-const SMS_OFF = 'SMS needs a gateway; not enabled. Your contact number is kept for when one is added.';
 
 function NotificationsSection() {
   const [prefs, setPrefs] = useState(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState(''); const [err, setErr] = useState('');
   const [failed, setFailed] = useState(false);
+  const [phone, setPhone] = useState(undefined); // the stored mobile number; undefined while unknown
 
   const load = () => {
     setFailed(false);
     axios.get('/api/settings/notifications').then(r => setPrefs(r.data)).catch(() => setFailed(true));
+    axios.get('/api/customer/profile').then(r => setPhone((r.data?.user ?? r.data)?.contact_number ?? null)).catch(() => setPhone(undefined));
   };
   useEffect(load, []);
 
@@ -223,7 +224,9 @@ function NotificationsSection() {
   return (
     <Card>
       <Row k="email_enabled" label="Email Notifications" live={prefs.email_provider_live}/>
-      <Row k="sms_enabled" label="SMS Notifications" live={prefs.sms_provider_live} off={SMS_OFF}/>
+      <Row k="sms_enabled" label="SMS Notifications" live={prefs.sms_provider_live}
+        off={<>{phone === undefined ? 'Text alerts are not active yet.' : smsStatusLine(phone)}
+          {isPhMobile(phone) && <> Number: <b>{formatPhMobile(phone)}</b>.</>} <Link to="/settings?tab=profile" style={{ color: 'var(--teal)', fontWeight: 700 }}>{isPhMobile(phone) ? 'Change' : 'Add number'}</Link></>}/>
       <Toast msg={msg} type="success"/><Toast msg={err} type="error"/>
     </Card>
   );

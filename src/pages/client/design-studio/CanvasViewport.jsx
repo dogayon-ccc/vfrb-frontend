@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Minus, Plus, Moon, Sun, Maximize } from 'lucide-react';
 import { NavIcon } from '../../../components/ui/icons';
 import { familyFor, STATUS_3D_LABEL } from './garmentCatalog';
-import { get3DCapabilities } from './garmentCapabilities';
+import { get3DCapabilities, hemNote3D } from './garmentCapabilities';
 import { ENTRIES as GALLERY } from './designGallery';
 import { hasWebGL } from './webglSupport';
 import { hasBackView, assetFor } from './garmentAssets';
@@ -286,7 +286,8 @@ export default function CanvasViewport({
       const approx = GALLERY.find(d => d.id === cfg.inspirationId)?.familyApprox3D;
       const label = status === 'none' ? null : approx ? `3D shows the generic ${cfg.garment} model, not the photo` : info?.label;
       const c3 = get3DCapabilities(cfg.garment, cfg.fit, cfg.sleeve);
-      return [label && { id: 'approx', text: label, warn: true }, overlays?.length > 0 && c3.supported && !(c3.logo && c3.text) && { id: 'decals', text: 'Logos and text are 2D only on this model' },
+      const hem = hemNote3D(c3);
+      return [label && { id: 'approx', text: label, warn: true }, hem && { id: 'hem', text: hem, warn: true }, overlays?.length > 0 && c3.supported && !(c3.logo && c3.text) && { id: 'decals', text: 'Logos and text are 2D only on this model' },
         Object.keys(cfg.details ?? {}).length > 0 && { id: 'details', text: 'Pocket, button and closure changes are shown in 2D only' }];
     })() : []),
   ].filter(Boolean) : [];
