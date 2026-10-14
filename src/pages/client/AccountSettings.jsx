@@ -171,7 +171,7 @@ function NotificationsSection() {
         </div>
         <button role="switch" aria-checked={on} aria-label={`Toggle ${label}`} onClick={() => toggle(k)} disabled={saving}
           style={{ width: 42, height: 24, borderRadius: 99, border: 'none', cursor: saving ? 'not-allowed' : 'pointer',
-            background: on ? 'var(--teal)' : 'var(--border)', position: 'relative', transition: 'background .18s', flexShrink: 0 }}>
+            background: on ? 'var(--teal)' : 'var(--border-strong)', position: 'relative', transition: 'background .18s', flexShrink: 0 }}>
           <span style={{ position: 'absolute', top: 3, left: on ? 21 : 3, width: 18, height: 18, borderRadius: '50%',
             background: 'var(--bg-card)', transition: 'left .18s', boxShadow: '0 1px 3px rgba(0,0,0,.2)' }}/>
         </button>

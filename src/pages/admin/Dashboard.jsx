@@ -91,6 +91,8 @@ export default function AdminDashboard() {
   const stageData = [...stageDist]
     .sort((a, b) => STAGE_ORDER.indexOf(a.stage) - STAGE_ORDER.indexOf(b.stage)).map((x, i) => ({ name: cap(x.stage), value: Number(x.count), color: STAGE_RAMP[i % STAGE_RAMP.length] }));
   const chartData = chartTab === 'orders' ? (data?.order_trends ?? []).map((r) => ({ m: r.month, v: r.orders })) : (data?.monthly_sales ?? []).map((r) => ({ m: r.month, v: r.total }));
+  // Collapse the chart panel only when neither series can draw a trend, so revenue data is never hidden.
+  const noTrend = !!data && (data.order_trends ?? []).length < 2 && (data.monthly_sales ?? []).length < 2;
   const mix = Object.entries(recent.reduce((a, r) => ({ ...a, [r.garment_type ?? 'Other']: (a[r.garment_type ?? 'Other'] ?? 0) + 1 }), {})).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
   const h = new Date().getHours();
@@ -156,11 +158,6 @@ export default function AdminDashboard() {
           <h1>{greet}, {user.name?.split(' ')[0] ?? 'Admin'}</h1>
           <p className="dsh-hero-sub">{new Date().toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
         </div>
-        <div className="dsh-hero-stats">
-          <button onClick={go('/admin/production')} disabled={owner}><b>{loading ? '–' : o.in_production ?? 0}</b><span>In production</span></button>
-          <button onClick={() => nav('/admin/orders?status=pending')}><b>{loading ? '–' : o.pending ?? 0}</b><span>Pending</span></button>
-          <button onClick={() => nav('/admin/inventory')}><b>{loading ? '–' : data?.inventory?.low_stock_count ?? 0}</b><span>Low stock</span></button>
-        </div>
         <div className="dsh-hero-actions">
           <LiveStamp className="dsh-ghost" at={live.at} busy={live.busy} onRefresh={live.run} />
           {isManager && <button className="dsh-ghost" onClick={fetchAI} disabled={aiLoading}><NavIcon name="ai" size={14} color="currentColor" /> {aiLoading ? 'Analyzing…' : 'AI Summary'}</button>}
@@ -175,6 +172,7 @@ export default function AdminDashboard() {
       <div className="adm-dash-stack">
       <div className="adm-dash-grid">
         <div className="adm-dash-col">
+          {!loading && noTrend ? <p style={{ margin: '0 0 16px', fontSize: 12.5, color: 'var(--text-subtle)' }}>Orders Overview: not enough history yet to draw a trend.</p> : (
           <Panel title="Orders Overview" action={owner ? null : <PillTabs tabs={[{ key: 'orders', label: 'Orders' }, { key: 'revenue', label: 'Revenue' }]} value={chartTab} onChange={setChartTab} />} style={{ overflow: 'visible' }}>
             {loading ? <div className="adm-sk" style={{ height: 220 }} /> : !data ? <EmptyBlock>Unavailable.</EmptyBlock> : chartData.length < 2 ? <EmptyBlock>Not enough history yet to draw a trend.</EmptyBlock> : (
               <div style={{ width: '100%', minWidth: 0, minHeight: 260 }}>
@@ -191,6 +189,7 @@ export default function AdminDashboard() {
               </div>
             )}
           </Panel>
+          )}
 
           <Panel flush title="Recent Orders" action={<button className="adm-link-btn" onClick={() => nav('/admin/orders')}>View all →</button>}>
             {loading ? <SkeletonRows /> : !data ? <EmptyBlock>Unavailable.</EmptyBlock> : recent.length === 0 ? <EmptyBlock>No orders yet.</EmptyBlock> : (
