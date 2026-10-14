@@ -286,7 +286,7 @@ textarea.adm-input{padding:10px 14px;resize:vertical;min-height:64px}
 .set-pref{display:flex;align-items:center;gap:14px;padding:14px 0}
 .set-pref-ico{width:38px;height:38px;border-radius:11px;background:var(--teal-50);color:var(--teal);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .set-switch{position:relative;flex-shrink:0;width:52px;height:44px;border:none;background:transparent;cursor:pointer;padding:0}
-.set-switch::before{content:'';position:absolute;left:4px;top:9px;width:44px;height:26px;border-radius:99px;background:var(--border);transition:background .18s}
+.set-switch::before{content:'';position:absolute;left:4px;top:9px;width:44px;height:26px;border-radius:99px;background:var(--border-strong);transition:background .18s}
 .set-switch i{position:absolute;left:6px;top:11px;width:22px;height:22px;border-radius:50%;background:var(--bg-card);box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .18s}
 .set-switch.on::before{background:var(--teal)}.set-switch.on i{transform:translateX(18px)}
 .set-switch:focus-visible{outline:2px solid var(--teal-2);outline-offset:1px;border-radius:12px}.set-switch:disabled{opacity:.6;cursor:wait}

@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { FileSpreadsheet, FileText } from 'lucide-react';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
 import { NavIcon } from '../../components/ui';
 import { isOwner } from '../../utils/jobAccess';
@@ -81,6 +82,29 @@ export default function AdminInventory() {
   const isMobile = useIsMobile();
   const [cat, setCat] = useState('all');
   const [modal,     setModal]     = useState(null);
+  const [exporting, setExporting] = useState(null);
+  const [exportErr, setExportErr] = useState('');
+
+  // The backend matches search on name only and can't filter the '—' (no category) group,
+  // so the export can hold more rows than the page shows.
+  const exportStock = async (format) => {
+    setExporting(format); setExportErr('');
+    const params = { format };
+    if (search.trim()) params.search = search.trim();
+    if (cat !== 'all' && cat !== '—') params.category = cat;
+    try {
+      const res = await axios.get('/api/admin/inventory/export', { params, responseType: 'blob' });
+      const url = URL.createObjectURL(new Blob([res.data], { type: format === 'pdf' ? 'application/pdf' : 'text/csv' }));
+      const a = document.createElement('a');
+      a.href = url; a.download = `VFRB-Inventory-${new Date().toISOString().slice(0, 10)}.${format}`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      let msg = 'Export failed.';
+      try { msg = JSON.parse(await e.response?.data?.text())?.message ?? msg; } catch { /* not JSON */ }
+      setExportErr(msg);
+    } finally { setExporting(null); }
+  };
 
   const load = useCallback((force = false) => {
     if (!force) {
@@ -137,6 +161,8 @@ export default function AdminInventory() {
       )}
 
       <PageHeader title="Inventory" sub={`${totalMats} materials · ${lowStock.length} below reorder threshold`}>
+        <button className="adm-btn" style={{ minHeight:44 }} onClick={()=>exportStock('csv')} disabled={!!exporting}><FileSpreadsheet size={14} aria-hidden="true" /> {exporting==='csv' ? 'Exporting…' : 'Export CSV'}</button>
+        <button className="adm-btn" style={{ minHeight:44 }} onClick={()=>exportStock('pdf')} disabled={!!exporting}><FileText size={14} aria-hidden="true" /> {exporting==='pdf' ? 'Exporting…' : 'Export PDF'}</button>
         {!isOwner() && <>
           <button className="adm-btn" onClick={()=>nav('/admin/physical-count')}><NavIcon name="physicalCount" size={14} color="currentColor" /> Physical Count</button>
           <button className="adm-btn" onClick={()=>setModal('out')} style={{ color:'var(--teal)' }}><NavIcon name="stockOut" size={14} color="currentColor" /> Stock Out</button>
@@ -149,6 +175,8 @@ export default function AdminInventory() {
         { label:'Low Stock', value:lowStock.length, color: lowStock.length ? 'var(--warning-text)' : undefined, chip: lowStock.length ? 'Reorder' : null, chipTone:'warn' },
         { label:'Out of Stock', value:outCount, color: outCount ? 'var(--danger-text)' : undefined, chip: outCount ? 'Action' : null, chipTone:'down' },
       ]} />
+
+      {exportErr && <div style={{ marginBottom:14 }}><ErrorBlock msg={exportErr} /></div>}
 
       {loadError && !loading && <div style={{ marginBottom:14 }}><ErrorBlock msg="Couldn't load inventory — check your connection." onRetry={()=>load(true)} /></div>}
 

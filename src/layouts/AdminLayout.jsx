@@ -23,21 +23,24 @@ const T2 = 'var(--teal-2)';
 const MG = 'var(--purple)';
 
 const STAFF_NAV = [
-  { to:'/admin',              icon:LayoutDashboard, label:'Dashboard',    end:true, area:null        },
-  { to:'/admin/orders',       icon:ClipboardList,   label:'Orders',                area:null        },
-  { to:'/admin/customers',    icon:Contact,         label:'Clients',               area:null        },
-  { to:'/admin/inventory',    icon:Package,         label:'Inventory',             area:'inventory' },
-  { to:'/admin/messages',     icon:MessageSquare,   label:'Messages',              area:null        },
-  { to:'/admin/procurement',  icon:ShoppingCart,    label:'Procurement',           area:'inventory' },
-  { to:'/admin/delivery',     icon:Truck,           label:'Delivery',              area:null        },
-  { to:'/admin/materials',    icon:Layers,          label:'Materials',             area:'inventory' },
-  { to:'/admin/production',   icon:Factory,         label:'Production',            area:'production'},
-  { to:'/admin/output-log',   icon:FileText,        label:'Output Log',            area:'production'},
-  { to:'/admin/qc',           icon:ShieldCheck,     label:'QC Checklist',          area:'production'},
-  { to:'/admin/physical-count',icon:ScanLine,       label:'Physical Count',        area:'inventory' },
-  { to:'/admin/production-incidents',icon:AlertTriangle,label:'Incidents',         area:'production'},
-  { to:'/admin/transactions', icon:Wallet,          label:'Sales & Pay',           area:null        },
+  { to:'/admin',              icon:LayoutDashboard, label:'Dashboard',    end:true, area:null,         group:'Overview'   },
+  { to:'/admin/orders',       icon:ClipboardList,   label:'Orders',                area:null,         group:'Sales'      },
+  { to:'/admin/customers',    icon:Contact,         label:'Clients',               area:null,         group:'Sales'      },
+  { to:'/admin/inventory',    icon:Package,         label:'Inventory',             area:'inventory',  group:'Inventory'  },
+  { to:'/admin/messages',     icon:MessageSquare,   label:'Messages',              area:null,         group:'Sales'      },
+  { to:'/admin/procurement',  icon:ShoppingCart,    label:'Procurement',           area:'inventory',  group:'Inventory'  },
+  { to:'/admin/delivery',     icon:Truck,           label:'Delivery',              area:null,         group:'Sales'      },
+  { to:'/admin/materials',    icon:Layers,          label:'Materials',             area:'inventory',  group:'Inventory'  },
+  { to:'/admin/production',   icon:Factory,         label:'Production',            area:'production', group:'Production' },
+  { to:'/admin/output-log',   icon:FileText,        label:'Output Log',            area:'production', group:'Production' },
+  { to:'/admin/qc',           icon:ShieldCheck,     label:'QC Checklist',          area:'production', group:'Production' },
+  { to:'/admin/physical-count',icon:ScanLine,       label:'Physical Count',        area:'inventory',  group:'Inventory'  },
+  { to:'/admin/production-incidents',icon:AlertTriangle,label:'Incidents',         area:'production', group:'Production' },
+  { to:'/admin/transactions', icon:Wallet,          label:'Sales & Pay',           area:null,         group:'Sales'      },
 ];
+
+// Sidebar section order. Grouping happens at render time so the drawer keeps STAFF_NAV's order.
+const NAV_GROUPS = ['Overview', 'Sales', 'Inventory', 'Production', 'Admin'];
 
 function visibleForJobFunction(navArray, jobFunction) {
   const allowed = JOB_FUNCTION_AREAS[jobFunction] ?? JOB_FUNCTION_AREAS.general;
@@ -64,7 +67,7 @@ const MANAGER_EXTRA = [
 ];
 
 // Staff reach Settings read-only (the page itself gates editing to managers).
-const STAFF_SETTINGS = { to:'/admin/settings', icon:Settings, label:'Settings', area:null };
+const STAFF_SETTINGS = { to:'/admin/settings', icon:Settings, label:'Settings', area:null, group:'Admin' };
 
 const MOB_NAV = [
   { to:'/admin',           icon:LayoutDashboard, label:'Home',     end:true, area:null        },
@@ -379,6 +382,15 @@ export default function AdminLayout() {
           position: relative;
           margin: 1px 0;
         }
+        .adm-nav-group {
+          margin: 14px 12px 4px;
+          font-size: 10.5px;
+          font-weight: 700;
+          letter-spacing: .08em;
+          text-transform: uppercase;
+          color: rgba(255,255,255,.42);
+          white-space: nowrap;
+        }
         @media (pointer: coarse) { .adm-link { min-height: 44px; } .adm-bell { width: 44px !important; height: 44px !important; } .adm-profile-btn { min-height: 44px !important; } }
         .adm-link:hover {
           background: rgba(255,255,255,.06);
@@ -566,38 +578,32 @@ export default function AdminLayout() {
             padding: collapsed ? '8px 4px' : '8px 10px',
             scrollbarWidth:'thin', scrollbarColor:'var(--border) transparent' }}>
 
-            {visibleStaffNav.map(item => (
-              <NavLink key={item.to} to={item.to} end={item.end}
-                className={({ isActive }) => `adm-link${isActive ? ' active' : ''}`}
-                title={collapsed ? item.label : undefined}
-                style={collapsed ? { justifyContent:'center', padding:'10px 0' } : {}}>
-                <IconBox icon={item.icon} size={16} width={20}/>
-                {!collapsed && (
-                  <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>
-                    {item.label}
-                  </span>
-                )}
-              </NavLink>
-            ))}
-
-            {extraNav.length > 0 && (
-              <>
-                <div style={{ height:1, background:'rgba(255,255,255,.08)', margin:'8px 6px' }}/>
-                {extraNav.map(item => (
-                  <NavLink key={item.to} to={item.to}
-                    className={({ isActive }) => `adm-link${isActive ? ' active mgr' : ''}`}
-                    title={collapsed ? item.label : undefined}
-                    style={collapsed ? { justifyContent:'center', padding:'10px 0' } : {}}>
-                    <IconBox icon={item.icon} size={16} width={20}/>
-                    {!collapsed && (
-                      <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>
-                        {item.label}
-                      </span>
-                    )}
-                  </NavLink>
-                ))}
-              </>
-            )}
+            {NAV_GROUPS.map((g, gi) => {
+              const items = g === 'Admin'
+                ? [...visibleStaffNav.filter(i => i.group === g), ...extraNav.map(i => ({ ...i, mgr:true }))]
+                : visibleStaffNav.filter(i => i.group === g);
+              if (!items.length) return null;
+              return (
+                <div key={g} role="group" aria-label={g}>
+                  {collapsed
+                    ? gi > 0 && <div style={{ height:1, background:'rgba(255,255,255,.08)', margin:'8px 6px' }}/>
+                    : <p className="adm-nav-group" style={gi === 0 ? { marginTop:4 } : undefined}>{g}</p>}
+                  {items.map(item => (
+                    <NavLink key={item.to} to={item.to} end={item.end}
+                      className={({ isActive }) => `adm-link${isActive ? (item.mgr ? ' active mgr' : ' active') : ''}`}
+                      title={collapsed ? item.label : undefined}
+                      style={collapsed ? { justifyContent:'center', padding:'10px 0' } : {}}>
+                      <IconBox icon={item.icon} size={16} width={20}/>
+                      {!collapsed && (
+                        <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>
+                          {item.label}
+                        </span>
+                      )}
+                    </NavLink>
+                  ))}
+                </div>
+              );
+            })}
 
           </div>
 
