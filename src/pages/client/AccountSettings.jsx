@@ -1,6 +1,6 @@
 // src/pages/client/AccountSettings.jsx — settings hub: profile, photo & appearance, addresses, notifications, fabrics, billing, security.
 import { useState, useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import axios from 'axios';
 import { Card, Button, Field, NavIcon, ConfirmDialog } from '../../components/ui';
@@ -11,7 +11,7 @@ import HelpSection from './settings/HelpSection';
 import FeedbackSection from './settings/FeedbackSection';
 import LoadError from './settings/LoadError';
 import { Notice as Toast, useFlash, useRecords, fieldErrors, RecordRow, DefaultToggle, Skeletons } from './settings/RecordKit';
-import { phPhoneError, compactPhone, formatPhMobile, isPhMobile, smsStatusLine, smsLiveLine } from '../../utils/phPhone';
+import { phPhoneError, compactPhone, formatPhMobile, isPhMobile } from '../../utils/phPhone';
 import ProfilePhotoField from '../../components/ProfilePhotoField';
 import AppearanceField from '../../components/AppearanceField';
 import { readUser } from '../../utils/authRoute';
@@ -139,12 +139,10 @@ function NotificationsSection() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState(''); const [err, setErr] = useState('');
   const [failed, setFailed] = useState(false);
-  const [phone, setPhone] = useState(undefined); // the stored mobile number; undefined while unknown
 
   const load = () => {
     setFailed(false);
     axios.get('/api/settings/notifications').then(r => setPrefs(r.data)).catch(() => setFailed(true));
-    axios.get('/api/customer/profile').then(r => setPhone((r.data?.user ?? r.data)?.contact_number ?? null)).catch(() => setPhone(undefined));
   };
   useEffect(load, []);
 
@@ -163,19 +161,16 @@ function NotificationsSection() {
   if (failed) return <LoadError what="notification settings" onRetry={load}/>;
   if (!prefs) return <div className="acct-sk"/>;
 
-  // `off`: the channel cannot be turned on (VFRB's SMS switch is off); shown off and disabled whatever is stored. `note`: status line when live.
-  const Row = ({ k, label, live, off, note }) => {
-    const on = !off && !!prefs[k], locked = saving || !!off;
+  const Row = ({ k, label, live }) => {
+    const on = !!prefs[k];
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
         <div>
           <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{label}</p>
-          {off ? <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 0' }}>{off}</p>
-            : note ? <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 0' }}>{note}</p>
-            : !live && <p style={{ fontSize: 11, color: 'var(--warning)', margin: '2px 0 0' }}>Email goes to a test inbox for now. Your preference is saved for when real delivery is on.</p>}
+          {!live && <p style={{ fontSize: 11, color: 'var(--warning)', margin: '2px 0 0' }}>Email goes to a test inbox for now. Your preference is saved for when real delivery is on.</p>}
         </div>
-        <button role="switch" aria-checked={on} aria-label={`Toggle ${label}`} onClick={() => toggle(k)} disabled={locked}
-          style={{ width: 42, height: 24, borderRadius: 99, border: 'none', cursor: locked ? 'not-allowed' : 'pointer', opacity: off ? 0.5 : 1,
+        <button role="switch" aria-checked={on} aria-label={`Toggle ${label}`} onClick={() => toggle(k)} disabled={saving}
+          style={{ width: 42, height: 24, borderRadius: 99, border: 'none', cursor: saving ? 'not-allowed' : 'pointer',
             background: on ? 'var(--teal)' : 'var(--border)', position: 'relative', transition: 'background .18s', flexShrink: 0 }}>
           <span style={{ position: 'absolute', top: 3, left: on ? 21 : 3, width: 18, height: 18, borderRadius: '50%',
             background: 'var(--bg-card)', transition: 'left .18s', boxShadow: '0 1px 3px rgba(0,0,0,.2)' }}/>
@@ -187,10 +182,6 @@ function NotificationsSection() {
   return (
     <Card>
       <Row k="email_enabled" label="Email Notifications" live={prefs.email_provider_live}/>
-      <Row k="sms_enabled" label="SMS Notifications" live={prefs.sms_provider_live} note={prefs.sms_provider_live && <>{smsLiveLine(phone)}{' '}
-          <Link to="/settings?tab=profile" style={{ color: 'var(--teal)', fontWeight: 700 }}>{isPhMobile(phone) ? 'Change' : 'Add number'}</Link></>}
-        off={!prefs.sms_provider_live && <>{phone === undefined ? 'Text alerts are not active yet.' : smsStatusLine(phone)}
-          {isPhMobile(phone) && <> Number: <b>{formatPhMobile(phone)}</b>.</>} <Link to="/settings?tab=profile" style={{ color: 'var(--teal)', fontWeight: 700 }}>{isPhMobile(phone) ? 'Change' : 'Add number'}</Link></>}/>
       <Toast msg={msg} type="success"/><Toast msg={err} type="error"/>
     </Card>
   );

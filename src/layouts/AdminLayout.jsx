@@ -10,7 +10,7 @@ import { AppPageSkeleton } from '../components/PageSkeletons';
 import IconBox from '../components/ui/IconBox';
 import '../styles/admin.css';
 import logo from '../assets/company-logo.jpg';
-import { JOB_FUNCTION_AREAS } from '../utils/jobAccess';
+import { JOB_FUNCTION_AREAS, isOwner, ownerCanOpen } from '../utils/jobAccess';
 import {
   LayoutDashboard, ClipboardList, Package, MessageSquare, ShoppingCart,
   Truck, Layers, Factory, FileText, ShieldCheck, ScanLine, AlertTriangle,
@@ -146,8 +146,11 @@ export default function AdminLayout() {
 
   const SW         = collapsed ? 68 : 226;
   const isManager  = role === 'manager';
-  const roleLabel  = isManager ? 'Manager' : jobFn === 'general' ? 'Staff' : `${jobFn[0].toUpperCase()}${jobFn.slice(1)} staff`;
-  const visibleStaffNav = isManager ? STAFF_NAV : [...visibleForJobFunction(STAFF_NAV, jobFn), STAFF_SETTINGS];
+  const owner      = role === 'owner'; // read-only: only the pages OwnerReadOnly lets it GET
+  const roleLabel  = isManager ? 'Manager' : owner ? 'Owner · view only' : jobFn === 'general' ? 'Staff' : `${jobFn[0].toUpperCase()}${jobFn.slice(1)} staff`;
+  const visibleStaffNav = isManager ? STAFF_NAV : owner ? STAFF_NAV.filter(i => ownerCanOpen(i.to)) : [...visibleForJobFunction(STAFF_NAV, jobFn), STAFF_SETTINGS];
+  const extraNav   = isManager ? MANAGER_EXTRA : owner ? MANAGER_EXTRA.filter(i => ownerCanOpen(i.to)) : [];
+  const mobNav     = isManager ? MOB_NAV : owner ? MOB_NAV.filter(i => ownerCanOpen(i.to)) : visibleForJobFunction(MOB_NAV, jobFn);
     const navItems   = isManager ? [...STAFF_NAV, ...MANAGER_EXTRA] : visibleStaffNav;
 
   const [notifs,    setNotifs]    = useState([]);
@@ -174,6 +177,7 @@ export default function AdminLayout() {
   };
 
   useEffect(() => {
+    if (isOwner()) return; // the API refuses notifications to the owner
     fetchCount();
     const iv = setInterval(fetchCount, 60_000);
     return () => clearInterval(iv);
@@ -576,10 +580,10 @@ export default function AdminLayout() {
               </NavLink>
             ))}
 
-            {isManager && (
+            {extraNav.length > 0 && (
               <>
                 <div style={{ height:1, background:'rgba(255,255,255,.08)', margin:'8px 6px' }}/>
-                {MANAGER_EXTRA.map(item => (
+                {extraNav.map(item => (
                   <NavLink key={item.to} to={item.to}
                     className={({ isActive }) => `adm-link${isActive ? ' active mgr' : ''}`}
                     title={collapsed ? item.label : undefined}
@@ -634,7 +638,7 @@ export default function AdminLayout() {
             </span>
             <div style={{ flex:1 }}/>
 
-            <div ref={bellRef} style={{ position:'relative' }}>
+            {!owner && <div ref={bellRef} style={{ position:'relative' }}>
               <motion.button
                 className="adm-bell"
                 whileHover={{ scale:1.07 }}
@@ -759,7 +763,7 @@ export default function AdminLayout() {
                   </motion.div>
                 )}
               </AnimatePresence>
-            </div>
+            </div>}
 
             <div ref={profileRef} style={{ position:'relative' }}>
               <button className="adm-profile-btn" onClick={() => setProfileOpen(o => !o)}
@@ -844,10 +848,10 @@ export default function AdminLayout() {
                   ).map((item, i) => <DrawerTile key={item.to} item={item} i={i}/>)}
                 </div>
 
-                {isManager && (
+                {extraNav.length > 0 && (
                   <>
                     <div className="adm-drawer-grid" style={{ marginTop:10 }}>
-                      {MANAGER_EXTRA.map((item, i) => <DrawerTile key={item.to} item={item} i={i}/>)}
+                      {extraNav.map((item, i) => <DrawerTile key={item.to} item={item} i={i}/>)}
                     </div>
                   </>
                 )}
@@ -859,7 +863,7 @@ export default function AdminLayout() {
         </AnimatePresence>
 
         <nav className="adm-bnav" aria-label="Mobile navigation">
-          {(isManager ? MOB_NAV : visibleForJobFunction(MOB_NAV, jobFn)).map(item => {
+          {mobNav.map(item => {
             const active = item.end
               ? location.pathname === item.to
               : location.pathname.startsWith(item.to);

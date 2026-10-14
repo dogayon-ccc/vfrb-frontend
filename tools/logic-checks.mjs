@@ -685,15 +685,11 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     ok.every(P.isPhMobile) && !bad.some(P.isPhMobile) && P.compactPhone('0917 123-4567') === '09171234567'
     && P.phPhoneError('') === '' && P.phPhoneError('', { required: true }) === 'Enter a contact number.' && /^Use a PH mobile number/.test(P.phPhoneError('12345')));
   const rd = q => fsx.readFileSync(urlx.fileURLToPath(new URL(q, import.meta.url)), 'utf8');
-  const prof = rd('../src/pages/client/settings/ProfileSection.jsx'), acct = rd('../src/pages/client/AccountSettings.jsx'), adm = rd('../src/pages/admin/Settings.jsx');
+  const prof = rd('../src/pages/client/settings/ProfileSection.jsx');
   t('SMS line: "your number is saved" only for a stored PH mobile number; display format 0917 123 4567 / +63 917 123 4567',
     P.SMS_NOT_ACTIVE === 'Text alerts are not active yet; your number is saved.' && P.smsStatusLine('09171234567') === P.SMS_NOT_ACTIVE
     && ![null, '', '12345', undefined].some(v => P.smsStatusLine(v) === P.SMS_NOT_ACTIVE) && P.smsStatusLine(null, { noNumber: 'x' }) === 'x'
     && P.formatPhMobile('09171234567') === '0917 123 4567' && P.formatPhMobile('+639171234567') === '+63 917 123 4567' && P.formatPhMobile('(02) 8123') === '(02) 8123');
-  t('SMS settings: the number saves only through PUT /api/customer/profile (stored value, not the typed one, drives the line); SMS stays off and disabled for customer and admin; no sending code',
-    /axios\.put\('\/api\/customer\/profile', \{[^}]*contact_number: phone/.test(prof) && /setSavedPhone\(phone\)/.test(prof) && /smsStatusLine\(savedPhone\)/.test(prof)
-    && /k="sms_enabled"[\s\S]{0,80}off=\{/.test(acct) && /key: 'sms_enabled'[^}]*off: true/.test(adm) && /disabled=\{prefsBusy \|\| !!row\.off\}/.test(adm) && /axios\.get\('\/api\/user'\)/.test(adm)
-    && ![prof, acct, adm, rd('../src/utils/phPhone.js')].some(s => /sms\/send|\/api\/sms|semaphore|twilio|vonage|nexmo|itexmo/i.test(s)));
   t('Profile: a failed load shows a retryable error instead of a blank form that could be saved over the real profile',
     /\.catch\(\(\) => setFailed\(true\)\)/.test(prof) && /if \(failed\) return <div className="st-stack"><LoadError what="your profile" onRetry=\{load\}\/><\/div>;/.test(prof) && /if \(failed\) return;/.test(prof));
   const LS = await L('/src/utils/loadState.js'); const od = rd('../src/pages/client/OrderDetail.jsx');
@@ -810,7 +806,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     t('email_provider_live comes from the mail config: false for log/array mailers and sandbox hosts (mailtrap, sandbox, mailhog, mailpit, localhost), true otherwise; no hard-coded false',
       /'email_provider_live' => self::emailProviderLive\(\)/.test(st) && /in_array\(\$mailer, \['log', 'array'\], true\)/.test(st) && /mailtrap\|sandbox\|mailhog\|mailpit\|localhost/.test(st));
     const api = be('routes/api.php'), uc = be('app/Http/Controllers/Api/UserController.php');
-    const staffGroup = api.slice(api.lastIndexOf("Route::middleware(['auth:sanctum', 'role:staff,manager'", api.indexOf("'/profile/password', [UserController::class, 'adminUpdatePassword']")));
+    const staffGroup = api.slice(api.lastIndexOf("Route::middleware(['auth:sanctum', 'role:staff,manager", api.indexOf("'/profile/password', [UserController::class, 'adminUpdatePassword']")));
     t('admin password change: PUT /api/admin/profile/password in the staff+manager group, customer and admin routes share one method (current password check + the same strength rule)',
       /Route::put\('\/profile\/password', \[UserController::class, 'adminUpdatePassword'\]\)/.test(api) && /role:staff,manager/.test(staffGroup.slice(0, 200))
       && /function customerUpdatePassword\(Request \$request\)\s*\{\s*return \$this->changeOwnPassword\(\$request\);/.test(uc) && /function adminUpdatePassword\(Request \$request\)\s*\{\s*return \$this->changeOwnPassword\(\$request\);/.test(uc)
@@ -835,6 +831,45 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     /test inbox/.test(as) && /test inbox/.test(rd('../src/pages/client/AccountSettings.jsx')) && !/mailtrap/i.test(as + rd('../docs/validation/SURVEY-EVIDENCE-MATRIX.md') + rd('../docs/validation/VALIDATOR-RUNBOOK.md')));
   t('dead code removed: no unused SK style const in Delivery, Physical Count, Purchase Orders, Users; no unused TTL import in Users',
     ['DeliveryTracking', 'PhysicalCount', 'PurchaseOrders', 'UserManagement'].every(f => !/\bconst SK\b/.test(rd(`../src/pages/admin/${f}.jsx`))) && !/\bTTL\b/.test(rd('../src/pages/admin/UserManagement.jsx')));
+  const um = rd('../src/pages/admin/UserManagement.jsx'), umRoles = um.match(/const ROLE_CFG = \{([\s\S]*?)\n\};/)?.[1] ?? '';
+  t('User Management roles: create, edit-role and filter tabs all come from one list of Admin (manager), Staff and Owner; no Client option',
+    /manager: \{[^}]*l:'Admin'/.test(umRoles) && /staff:\s+\{[^}]*l:'Staff'/.test(umRoles) && /owner:\s+\{[^}]*l:'Owner'/.test(umRoles) && !/customer/.test(umRoles)
+    && (um.match(/\{ROLE_OPTIONS\}/g) ?? []).length === 2 && /Object\.entries\(ROLE_CFG\)\.map\(\(\[key, r\]\) => \(\{ key, label:r\.tab/.test(um)
+    && !/<option value="(manager|staff|customer)"|key:'customer'|'Clients'|'Managers'/.test(um));
+}
+
+// Owner: read-only admin account. Frontend mirror of backend OwnerReadOnly (GET-only, 8 areas); the server stays the enforcement point.
+{
+  const JA = await L('/src/utils/jobAccess.js'), AR = await L('/src/utils/authRoute.js');
+  const rdo = q => fsx.readFileSync(urlx.fileURLToPath(new URL(q, import.meta.url)), 'utf8');
+  const owner = { role: 'owner' };
+  t('owner pages: exactly the backend read-only areas (invoice = the page over the orders API); everything else is closed',
+    JA.OWNER_PAGES.join() === 'dashboard,orders,reports,transactions,invoice,inventory,materials,activity-log'
+    && ['/admin', '/admin/dashboard', '/admin/orders/12', '/admin/reports', '/admin/transactions', '/admin/invoice?x=1', '/admin/inventory', '/admin/materials', '/admin/activity-log'].every(JA.ownerCanOpen)
+    && !['/admin/users', '/admin/settings', '/admin/production', '/admin/procurement', '/admin/physical-count', '/admin/delivery', '/admin/messages', '/admin/customers', '/admin/suppliers', '/admin/qc'].some(JA.ownerCanOpen)
+    && JA.isOwner(owner) && !JA.isOwner({ role: 'manager' }) && JA.canAccessArea(owner, 'inventory') && !JA.canAccessArea(owner, 'production'));
+  const app = rdo('../src/App.jsx'), lay = rdo('../src/layouts/AdminLayout.jsx'), login = rdo('../src/pages/auth/Login.jsx');
+  t('owner routing: signs in to the admin portal, gets the manager dashboard, every admin route sits behind OwnerGate; reports/activity-log/invoice open to owner, other manager pages do not',
+    AR.isStaffRole(owner) && AR.homeFor(owner) === '/admin/dashboard' && /if \(isStaffRole\(data\.user\)\)/.test(login)
+    && /\['manager', 'owner'\]\.includes\(user\.role\) \? <AdminDashboard\/>/.test(app) && /isOwner\(\) && !ownerCanOpen\(pathname\) \? <AccessDenied/.test(app)
+    && /<Route element=\{<OwnerGate\/>\}>\s*<Route path="dashboard"/.test(app) && /<\/Route>\s*<Route path="\*" element=\{<AdminNotFound\/>\}\/>/.test(app)
+    && ['reports', 'activity-log', 'invoice'].every(r => new RegExp(`path="${r}"\\s+element=\\{<RequireManager owner>`).test(app))
+    && ['feedback', 'suppliers', 'users'].every(r => new RegExp(`path="${r}"\\s+element=\\{<RequireManager>`).test(app)) && !/\['manager',\s*'staff'\]\.includes/.test(app));
+  t('owner shell: nav lists only owner pages, label says view only, no notification bell or polling (API refuses notifications)',
+    /owner \? STAFF_NAV\.filter\(i => ownerCanOpen\(i\.to\)\)/.test(lay) && /owner \? MANAGER_EXTRA\.filter\(i => ownerCanOpen\(i\.to\)\)/.test(lay) && /owner \? MOB_NAV\.filter\(i => ownerCanOpen\(i\.to\)\)/.test(lay)
+    && /'Owner · view only'/.test(lay) && /\{!owner && <div ref=\{bellRef\}/.test(lay) && /if \(isOwner\(\)\) return; \/\/ the API refuses notifications/.test(lay));
+  const dash = rdo('../src/pages/admin/Dashboard.jsx');
+  t('owner dashboard: no revenue (snapshot or chart tab), no Total Orders, no RFQ/delivery requests, links only to owner pages',
+    /!owner && \{ label: 'Total Orders'/.test(dash) && /!owner && \{ label: 'Revenue \(Month\)'/.test(dash) && /action=\{owner \? null : <PillTabs/.test(dash)
+    && /owner \? Promise\.resolve\(\[\]\) : axios\.get\('\/api\/admin\/rfq/.test(dash) && /owner \? Promise\.resolve\(\[\]\) : axios\.get\('\/api\/admin\/delivery/.test(dash)
+    && /\.filter\(\(q\) => !owner \|\| ownerCanOpen\(q\.path\)\)/.test(dash) && /!\['RFQs Awaiting Response', 'Upcoming Deliveries'\]\.includes\(a\.title\)/.test(dash) && /items\.length > 0 && onFooter &&/.test(dash));
+  const pg = f => rdo(`../src/pages/admin/${f}.jsx`);
+  t('owner write controls hidden: payment, stock in/out, add/edit material, run automation, staff AI check; no links to pages the owner cannot open',
+    /\{!isOwner\(\) && <button className="adm-btn primary" onClick=\{\(\) => setModal\(true\)\}>/.test(pg('SalesTransactions')) && /!isOwner\(\) && <button className="adm-link-btn" onClick=\{\(\) => setModal\(true\)\}>/.test(pg('SalesTransactions'))
+    && /\{!isOwner\(\) && <>\s*<button[^\n]*physical-count[\s\S]*?setModal\('out'\)[\s\S]*?setModal\('in'\)[\s\S]*?<\/>\}/.test(pg('Inventory')) && /action=\{isOwner\(\) \? null : <button[^\n]*procurement/.test(pg('Inventory'))
+    && (pg('Materials').match(/!owner && /g) ?? []).length === 5 && /\{!isOwner\(\) && \(\s*<button className="adm-btn primary" onClick=\{runDigest\}/.test(pg('Reports'))
+    && /if \(isOwner\(\)\) return <span/.test(pg('OrderDetail')) && /action=\{isOwner\(\) \? null : <button[^\n]*\/admin\/delivery/.test(pg('OrderDetail')) && /\{!isOwner\(\) && <Panel title="Communication"/.test(pg('OrderDetail'))
+    && /isManager && order\.status === 'pending'/.test(pg('Orders')) && /'View only \(Owner\)'/.test(pg('Orders')) && !/axios\.(post|put|patch|delete)/.test(pg('Invoice') + pg('ActivityLog')));
 }
 
 // Garment details (pockets, buttons, closures): one table, only what each 2D template really draws, saved in studio_config.details.

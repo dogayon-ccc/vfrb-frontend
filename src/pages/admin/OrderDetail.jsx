@@ -8,7 +8,7 @@ import OrderDesignDetails, { ReferenceFile } from '../../components/admin/OrderD
 import OrderBilling from '../../components/OrderBilling';
 import { savedDesignName } from '../../utils/designName';
 import { NavIcon } from '../../components/ui';
-import { canAccessArea, readAdminUser } from '../../utils/jobAccess';
+import { canAccessArea, readAdminUser, isOwner } from '../../utils/jobAccess';
 import { Panel, StatusPill, Meter, EmptyBlock, Toast, useToast, useIsMobile } from '../../components/admin/AdminUI';
 
 function getIsManager() {
@@ -136,6 +136,7 @@ function StaffCheck({ rec, setToast, onSaved }) {
     } finally { setBusy(false); }
   };
   const v = rec.staff_feedback;
+  if (isOwner()) return <span style={{ color:'var(--text-subtle)' }}>{v === 'accept' ? 'Suits' : v === 'reject' ? 'Wrong pick' : '—'}</span>;
   return (
     <div className="adm-verdict" role="group" aria-label={`Staff check for ${rec.material_name ?? 'material'}`}>
       <button type="button" className={`adm-btn${v === 'accept' ? ' on ok' : ''}`} disabled={busy} aria-pressed={v === 'accept'}
@@ -368,7 +369,7 @@ export default function AdminOrderDetail() {
           </Panel>
 
           <Panel title="Delivery" style={{ order:6 }}
-            action={<button className="adm-link-btn" onClick={() => navigate('/admin/delivery')}>Delivery →</button>}>
+            action={isOwner() ? null : <button className="adm-link-btn" onClick={() => navigate('/admin/delivery')}>Delivery →</button>}>
             <div className="adm-od-fields">
               <Field label="Client Requested" value={fmtDay(order.target_delivery_date)}/>
               <Field label="Negotiated"       value={fmtDay(order.negotiated_delivery_date)}/>
@@ -376,11 +377,11 @@ export default function AdminOrderDetail() {
             </div>
           </Panel>
 
-          <Panel title="Communication" style={{ order:7 }}>
+          {!isOwner() && <Panel title="Communication" style={{ order:7 }}>
             <button className="adm-btn" onClick={() => navigate(`/admin/messages?order=${order.order_id}`)} style={{ width:'100%', justifyContent:'center' }}>
               <NavIcon name="messages" size={14} color="currentColor" /> Message customer about #{order.order_id}
             </button>
-          </Panel>
+          </Panel>}
         </div>
 
         <div className="adm-od-main">

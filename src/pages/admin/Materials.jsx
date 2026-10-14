@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { NavIcon } from '../../components/ui';
+import { isOwner } from '../../utils/jobAccess';
 import BottomSheet from '../../components/ui/BottomSheet';
 import MaterialCode from '../../components/admin/MaterialCode';
 import { PageHeader, Panel, StatusPill, SearchBox, ErrorBlock, SkeletonRows, useIsMobile } from '../../components/admin/AdminUI';
@@ -60,6 +61,7 @@ export default function AdminMaterials() {
   const [search,  setSearch]  = useState('');
   const [modal,   setModal]   = useState(null);
   const isMobile = useIsMobile();
+  const owner = isOwner(); // read-only owner: no add or edit
 
   const load = useCallback(() => {
     setLoading(true); setLoadErr(false);
@@ -80,7 +82,7 @@ export default function AdminMaterials() {
     <div className="adm-empty"><NavIcon name="materials" size={30} color="currentColor" />
       <div style={{ marginTop: 8, fontWeight: 700 }}>{search ? `No materials match “${search}”` : 'No materials yet'}</div>
       {search ? <button className="adm-link-btn" onClick={() => setSearch('')}>Clear search</button>
-        : <button className="adm-link-btn" onClick={() => setModal('add')}>Add the first material</button>}
+        : !owner && <button className="adm-link-btn" onClick={() => setModal('add')}>Add the first material</button>}
     </div>
   );
 
@@ -90,7 +92,7 @@ export default function AdminMaterials() {
       {modal && <MaterialModal item={modal === 'add' ? null : modal} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} isMobile={isMobile} />}
 
       <PageHeader title="Materials" sub={loading ? 'Master data' : `${mats.length} materials in master data${lowN ? ` · ${lowN} at or below reorder level` : ''}`}>
-        <button className="adm-btn primary" onClick={() => setModal('add')}><NavIcon name="add" size={14} color="currentColor" /> Add material</button>
+        {!owner && <button className="adm-btn primary" onClick={() => setModal('add')}><NavIcon name="add" size={14} color="currentColor" /> Add material</button>}
       </PageHeader>
       <div className="adm-toolbar"><SearchBox value={search} onChange={setSearch} placeholder="Search name, code or category…" label="Search materials" /></div>
       {loadErr && <div style={{ marginBottom: 14 }}><ErrorBlock msg="Could not load materials." onRetry={load} /></div>}
@@ -100,7 +102,7 @@ export default function AdminMaterials() {
           {loading ? <SkeletonRows rows={6} h={44} /> : loadErr ? null : filtered.length === 0 ? empty : (
             <div className="adm-tbl-scroll">
               <table className="adm-table">
-                <thead><tr><th>Material</th><th>Category</th><th>Unit</th><th>In stock</th><th className="adm-hide-t">Reorder at</th><th className="adm-hide-t">Unit cost</th><th style={{ textAlign: 'right' }}>Action</th></tr></thead>
+                <thead><tr><th>Material</th><th>Category</th><th>Unit</th><th>In stock</th><th className="adm-hide-t">Reorder at</th><th className="adm-hide-t">Unit cost</th>{!owner && <th style={{ textAlign: 'right' }}>Action</th>}</tr></thead>
                 <tbody>
                   {filtered.map((m) => (
                     <tr key={m.material_id}>
@@ -113,7 +115,7 @@ export default function AdminMaterials() {
                       </td>
                       <td className="adm-hide-t" style={{ color: 'var(--text-subtle)' }}>{m.reorder_threshold ?? 0}</td>
                       <td className="adm-hide-t" style={{ color: 'var(--text-subtle)' }}>{peso(m.unit_cost)}</td>
-                      <td style={{ textAlign: 'right' }}><button className="adm-btn" onClick={() => setModal(m)}><NavIcon name="edit" size={13} color="currentColor" /> Edit</button></td>
+                      {!owner && <td style={{ textAlign: 'right' }}><button className="adm-btn" onClick={() => setModal(m)}><NavIcon name="edit" size={13} color="currentColor" /> Edit</button></td>}
                     </tr>
                   ))}
                 </tbody>
@@ -138,7 +140,7 @@ export default function AdminMaterials() {
               <span>Reorder at {m.reorder_threshold ?? 0}</span>
               <span>{peso(m.unit_cost)}</span>
             </div>
-            <div className="adm-mfoot"><button className="adm-btn" onClick={() => setModal(m)}><NavIcon name="edit" size={13} color="currentColor" /> Edit {m.material_name}</button></div>
+            {!owner && <div className="adm-mfoot"><button className="adm-btn" onClick={() => setModal(m)}><NavIcon name="edit" size={13} color="currentColor" /> Edit {m.material_name}</button></div>}
           </div>
         ))}
       </div>

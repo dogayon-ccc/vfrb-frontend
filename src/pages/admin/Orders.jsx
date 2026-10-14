@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams }                       from 'react-router
 import axios                                                  from 'axios';
 import { cacheGet, cacheSet, cacheClear, TTL }               from '../../utils/cache';
 import { NavIcon }                                            from '../../components/ui/icons';
-import { canAccessArea }                                      from '../../utils/jobAccess';
+import { canAccessArea, isOwner }                             from '../../utils/jobAccess';
 import { PageHeader, StatGrid, PillTabs, ErrorBlock, Panel, StatusPill, SearchBox, Segments, Banner, Toast, useToast, useIsMobile, FilterSheet, FilterButton, SkeletonRows } from '../../components/admin/AdminUI';
 
 const STATUS_CFG = {
@@ -236,7 +236,7 @@ export default function AdminOrders() {
       {sheet && <FilterSheet title="Filter by status" options={tabs.map(t => ({ key:t.key, label:t.label, count:t.count }))}
         value={tab} onChange={setTab} onClose={() => setSheet(false)} isMobile={isMobile} />}
 
-      <PageHeader title="Orders" sub={`${orders.length} total · ${isManager ? 'View mode (Manager)' : 'Operational access (Staff)'}`}>
+      <PageHeader title="Orders" sub={`${orders.length} total · ${isManager ? 'View mode (Manager)' : isOwner(user) ? 'View only (Owner)' : 'Operational access (Staff)'}`}>
         <button className="adm-btn" onClick={() => { cacheClear('admin_orders_list'); load(true); }}>
           <NavIcon name="refresh" size={14} color="currentColor" /> Refresh
         </button>

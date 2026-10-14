@@ -5,6 +5,7 @@ import { ViewLink as Link } from '../../components/ViewLink';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { startSession } from '../../utils/session';
+import { isStaffRole } from '../../utils/authRoute';
 import AuthShell, { authInput } from '../../components/AuthShell';
 import { NavIcon } from '../../components/ui/icons';
 
@@ -37,7 +38,7 @@ export default function Login() {
     try {
       const { data } = await axios.post('/api/login', form);
       startSession(data.token, data.user);
-      if (data.user.role === 'manager' || data.user.role === 'staff') {
+      if (isStaffRole(data.user)) {
         navigate('/admin/dashboard');
         return;
       }
