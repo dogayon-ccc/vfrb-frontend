@@ -17,7 +17,8 @@ import axios from 'axios';
 import { NavIcon } from '../../components/ui/icons';
 import DesignStudioStyles from './design-studio/DesignStudioStyles';
 import { useGarmentCanvas, compositeFrontBack } from './design-studio/useGarmentCanvas';
-import { hasBackView, templateIdFor } from './design-studio/garmentAssets';
+import { hasBackView, templateIdFor, assetFor } from './design-studio/garmentAssets';
+import { getGarmentPaths } from './design-studio/garmentPaths';
 import { EXPORT_FACE_HEIGHT, designPng, designPdf, downloadBlobOrUrl, fitDraftPreview } from './design-studio/designExport';
 import { ENTRIES as GALLERY } from './design-studio/designGallery';
 import CanvasViewport from './design-studio/CanvasViewport';
@@ -41,7 +42,7 @@ import GarmentPicker from './design-studio/GarmentPicker';
 import { selectFamily } from './design-studio/selectGarment';
 import { has3DFor } from './design-studio/garmentCapabilities';
 import { describeDetails } from './design-studio/garmentDetails';
-import { DEFAULT_PIECE, otherRole, normalizeSet, withSet } from './design-studio/uniformSet';
+import { DEFAULT_PIECE, otherRole, normalizeSet, withSet, mirrorStyle, mirrorOverlay } from './design-studio/uniformSet';
 import PieceSelector from './design-studio/PieceSelector';
 
 // MAIN COMPONENT
@@ -166,7 +167,7 @@ export default function DesignStudio() {
   // writer on the same wrapper's style.transform made the zoom buttons fight it.
 
   // BUG 2 FIX: pass canvasEl (ref object), not canvasEl.current (null at render)
-  const { addLogo, addText, addShape, updateSelected, arrangeLayer, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
+  const { onAdded, addLogo, addText, addShape, updateSelected, arrangeLayer, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
           pushHistory, undo, redo, canUndo, canRedo, resizeCanvas, initFailed,
           layers, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
           setDrawMode, setBrushStyle, setSnapOptions, garmentRect, presetPos, textItems, editText } =
@@ -478,13 +479,23 @@ export default function DesignStudio() {
   }, [cfg.garment]);
   // "Upload my design": the file waits until a garment is chosen, then goes through the normal upload as artwork.
   const [pendingArt, setPendingArt] = useState(null);
-  const startUpload = useCallback((file) => { logoUpload.setKind('artwork'); setPendingArt(file); }, [logoUpload]);
+  const [artScope, setArtScope] = useState(null); // what the uploaded photo shows: 'top' | 'bottom' | 'set' | null (not said)
+  const startUpload = useCallback((file) => { logoUpload.setKind('artwork'); setArtScope(null); setPendingArt(file); }, [logoUpload]);
+  // A full-set photo: the picked piece becomes one half of a new set and the missing piece starts on its default garment.
+  const artSetRef = useRef(null);
+  artSetRef.current = () => {
+    const role = pieceOf(cfg.garment);
+    if (artScope !== 'set' || uset || !role) return;
+    const other = otherRole(role);
+    const o = applyGarment(cfg, DEFAULT_PIECE[other], { category: cfg.category });
+    setUset({ id: crypto.randomUUID(), active: role, pieces: { [role]: null, [other]: serializeDesign(o, { overlays: [], frontOverlays: [], backOverlays: [] }) } });
+  };
   // The file is cleared only when the timer fires: clearing it first re-ran this effect, whose cleanup cancelled the upload.
   const onLogoFileRef = useRef(onLogoFile);
   onLogoFileRef.current = onLogoFile;
   useEffect(() => {
     if (!cfg.garment || !pendingArt) return undefined;
-    const t = setTimeout(() => { setPendingArt(null); onLogoFileRef.current(pendingArt); }, 450); // after the garment base has drawn
+    const t = setTimeout(() => { artSetRef.current(); setPendingArt(null); onLogoFileRef.current(pendingArt); }, 450); // after the garment base has drawn
     return () => clearTimeout(t);
   }, [cfg.garment, pendingArt]);
 
@@ -516,8 +527,10 @@ export default function DesignStudio() {
     const { cfg: c, frontOverlays, backOverlays } = deserializeDesign(snap ?? { garment: DEFAULT_PIECE[role], category: cfg.category });
     setCfg(p => ({ ...p, ...c, inspirationId: c.inspirationId ?? null }));
     faceJSON.current = { front: frontOverlays, back: backOverlays };
-    if (face !== 'front') setFace('front');
-    setTimeout(() => loadCanvasJSON(faceJSON.current.front ?? []), 350);
+    // Already on the front: swap the overlays at once (the base redraw keeps them), so the previous piece's
+    // text and logos never sit on the new garment. A face change still waits for the front to draw.
+    const load = () => loadCanvasJSON(faceJSON.current.front ?? []);
+    if (face !== 'front') { setFace('front'); setTimeout(load, 350); } else load();
   }, [cfg.category, face, loadCanvasJSON]);
 
   const startSet = useCallback(() => {
@@ -536,7 +549,28 @@ export default function DesignStudio() {
   }, [uset, cfg.garment, pieceSnapshot, loadPiece]);
 
   // Keeps the piece on screen as a single design; the other piece is discarded.
-  const leaveSet = useCallback(() => setUset(null), []);
+  const leaveSet = useCallback(() => { setUset(null); setApplyBoth(false); }, []);
+
+  // "Apply to: Both": colour and pattern edits, and each logo or text added, also go onto the other piece's saved snapshot.
+  // The first change after a piece switch is that piece loading, not an edit, so it only arms the mirror.
+  const [applyBoth, setApplyBoth] = useState(false);
+  const mirrorKey = useRef(null);
+  useEffect(() => {
+    const key = `${uset?.id}|${uset?.active}|${cfg.garment}`;
+    if (mirrorKey.current !== key) { mirrorKey.current = key; return; }
+    if (!applyBoth || !uset) return;
+    const other = otherRole(uset.active), snap = uset.pieces[other];
+    if (!snap?.garment) return;
+    const zones = zonesFor(snap.garment, snap.sleeve ?? null, snap.fit ?? null);
+    setUset(u => (u ? { ...u, pieces: { ...u.pieces, [other]: mirrorStyle(snap, cfg, zones, !assetFor(snap.garment, snap.sleeve, 'front', snap.fit)) } } : u));
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- mirrors only the colour and pattern edits themselves
+  }, [cfg.colors, cfg.patterns, cfg.patternParams]);
+  onAdded.current = (obj, src) => {
+    if (!applyBoth || !uset) return;
+    const other = otherRole(uset.active), snap = uset.pieces[other];
+    if (!snap?.garment) return;
+    setUset(u => (u ? { ...u, pieces: { ...u.pieces, [other]: mirrorOverlay(u.pieces[other], obj, src, getGarmentPaths(snap.garment, snap.sleeve ?? 'Short', face), face) } } : u));
+  };
 
   // Uniform set preview: the other piece. 2D always draws both on one scale; 3D only while both pieces have their own model for
   // their sleeve and fit (each renders its own GLB with its own colours; no fused set model and no substitute).
@@ -551,7 +585,7 @@ export default function DesignStudio() {
   }, [uset, cfg.garment, cfg.sleeve, cfg.fit, cfg.inspirationId]);
 
   const pieceBar = cfg.garment && (
-    <PieceSelector cfg={cfg} uset={uset} onSwitch={switchPiece} onStart={startSet} onLeave={leaveSet}
+    <PieceSelector cfg={cfg} uset={uset} onSwitch={switchPiece} onStart={startSet} onLeave={leaveSet} applyBoth={applyBoth} onApplyBoth={setApplyBoth}
       canSet={!!setCompanion} showSet={showSet}
       onShowSet={v => { if (v && viewMode === '3d' && setCompanion?.can3D) setHas3DLoaded(true); setShowSet(v); }}/>
   );
@@ -766,10 +800,11 @@ export default function DesignStudio() {
             selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected} alignSelected={alignSelected} arrangeSelected={arrangeSelected} garmentRect={garmentRect}
             viewMode={viewMode} has3DLoaded={has3DLoaded} onLogoFile={onLogoFile}
             zoom={zoom} setZoom={setZoom} snapshot={snapshot} overlays={overlays}
-            blank={<GarmentPicker inline cfg={cfg} pieceRole={uset?.active ?? null} onPickPhoto={pickPhoto}
+            blank={<GarmentPicker inline cfg={cfg} pieceRole={uset?.active ?? (pendingArt && artScope ? (artScope === 'bottom' ? 'bottom' : 'top') : null)} onPickPhoto={pickPhoto}
               onPick3D={(d, f) => { keep3DRef.current = true; pickPhoto(d, f); setHas3DLoaded(true); setViewMode('3d'); }}
               onPickFamily={(fam, category, pick) => selectFamily(setCfg, fam, category, pick)}
-              onUpload={startUpload} pendingArt={pendingArt} onCancelArt={() => setPendingArt(null)}/>} setViewMode={setViewMode}
+              onUpload={startUpload} pendingArt={pendingArt} onCancelArt={() => setPendingArt(null)}
+              artScope={artScope} onArtScope={uset ? null : setArtScope}/>} setViewMode={setViewMode}
             pieceBar={pieceBar} setCompanion={setCompanion} showSet={showSet} setSnapOptions={setSnapOptions}/>
         </div>
 

@@ -76,6 +76,8 @@ export function compositeFrontBack(frontUrl, backUrl) {
 
 export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patterns, patternParams, onSelect, onZoneClick, fit, details) {
   const fc = useRef(null);
+  // Called with (overlay JSON, garment canvas size) after the customer adds a logo or text; the uniform set's "Apply to: Both" mirrors it.
+  const onAdded = useRef(null);
   const hoverEl = useRef(null);
   const fabricReady = useRef(false);
   const disposePending = useRef(null); // in-flight dispose() Promise, guards StrictMode double-mount
@@ -560,6 +562,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         canvas.renderAll();
         pushHistory();
         bumpLayers();
+        onAdded.current?.(plainObject(img, OVERLAY_PROPS), paths);
       }).catch(() => {});
     }).catch(() => {});
   }, [garment, sleeve, pushHistory, bumpLayers]);
@@ -587,6 +590,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       canvas.renderAll();
       pushHistory();
       bumpLayers();
+      onAdded.current?.(plainObject(t, OVERLAY_PROPS), paths);
     }).catch(() => {});
   }, [garment, sleeve, pushHistory, bumpLayers]);
 
@@ -1009,7 +1013,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   }, [findLayer, presetPos, pushHistory, bumpLayers]);
 
   return {
-    addLogo, addText, addShape, updateSelected, arrangeLayer, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
+    onAdded, addLogo, addText, addShape, updateSelected, arrangeLayer, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
     pushHistory, undo, redo, canUndo, canRedo, resizeCanvas,
     layers, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
     setDrawMode, setBrushStyle, initFailed,

@@ -112,7 +112,8 @@ export function similarFilters(p, pool, canEdit) {
   return tries.find(f => filterDesigns(f, pool).some(canEdit)) ?? tries[0];
 }
 
-function Photos({ head, onClose, pieceRole, onPickPhoto, onPick3D, extra }) {
+function Photos({ head, onClose, cfg, pieceRole, onPickPhoto, onPick3D, onPickFamily, extra }) {
+  const [derivedFam, setDerivedFam] = useState(null);
   const [filters, setFilters] = useState({});
   const [kind, setKind] = useState('editable');
   const [preview, setPreview] = useState(null);
@@ -135,6 +136,9 @@ function Photos({ head, onClose, pieceRole, onPickPhoto, onPick3D, extra }) {
   const active = FILTERS.filter(([k]) => filters[k]).length;
   const legend = <Legend labels={PHOTO_LABEL} icons={PHOTO_BADGE} present={Object.keys(PHOTO_BADGE).filter(k => shown.some(d => tierOf(d) === k))}/>;
   const back = () => { setPreview(null); setView3D('3d'); setRef3DFailed(false); setTryCol(false); setRefPart('top'); };
+  const famFitsRole = f => !pieceRole || pieceOf(f.id) === pieceRole;
+  const derived = DERIVED_FAMS.filter(f => !(pieceRole && roleOn) || famFitsRole(f));
+  if (derivedFam) return <>{head(null)}<FamilySteps fam={derivedFam} cfg={cfg} backLabel="Back to photos" onBack={() => setDerivedFam(null)} onOpen={pick => onPickFamily(derivedFam, homeOf(derivedFam.id, cfg.category), pick)}/></>;
 
   if (preview) {
     const offRole = preview.editable2D && !fitsRole(preview) ? ROLE_LABEL[pieceRole] : null;
@@ -235,37 +239,50 @@ function Photos({ head, onClose, pieceRole, onPickPhoto, onPick3D, extra }) {
         ))}
       </ul>
       {shown.length === 0 && <p className="ds-note">No photos match. Clear the search or filters.</p>}
+      {derived.length > 0 && kind !== 'reference' && (
+        <section className="ds-pick-sec" aria-label="Templates traced from reference photos">
+          <h3>Traced from reference photos</h3>
+          <p className="ds-note">{DERIVED_LABEL}: each template is traced from the 3D model of a VFRB reference photo, with one colour zone.</p>
+          <ul className="ds-pick-grid">{derived.map((f, i) => <FamilyCard key={f.id} fam={f} cfg={cfg} fitsRole={famFitsRole} pieceRole={pieceRole} onPick={setDerivedFam} i={i}/>)}</ul>
+        </section>
+      )}
       {onClose && <Foot><span className="ds-pick-count">{shown.length} shown</span><button type="button" className="ds-btn" onClick={onClose}>Keep current garment</button></Foot>}
     </>
   );
 }
 
-// A template card shows exactly what picking it opens: the real photo base, the model's own lighting for a derived template, or the sketch.
+// A template card shows exactly what picking it opens: the model's own lighting for a derived template, or the vector sketch.
+// Template cards only offer vector combinations (combosFor vectorOnly), so a photo base is never shown or opened from them.
 function TemplateImage({ fam, cfg, pick = {} }) {
   const r = applyGarment(cfg, fam.id, pick);
   const asset = assetFor(r.garment, r.sleeve, 'front', r.fit);
   const paths = BASE_PATHS[fam.id] ?? BASE_PATHS['Polo Shirt'];
-  if (asset) return <img src={asset.src} alt="" decoding="async" draggable={false}/>;
+  if (asset && !paths.shade) return <img src={asset.src} alt="" decoding="async" draggable={false}/>;
   if (paths.shade) return <><img src={paths.shade.front} alt="" decoding="async" draggable={false}/><span className="ds-sketch">From model</span></>;
   return <><GarmentThumb paths={paths} colors={cfg.colors} size={96}/><span className="ds-sketch">Sketch</span></>;
 }
 
 const FIT_LABEL = { male: 'Men', female: 'Women', unisex: 'Unisex' };
 // Every fit and style of a family that resolves to an editable template, once each, with its tier (reference combinations are left out).
-export function combosFor(fam) {
+// vectorOnly: template cards keep the vector templates; a real-photo base opens only from its photo under "Start from a reference".
+export function combosFor(fam, { vectorOnly = false } = {}) {
   const seen = new Map();
   for (const fit of fam.fits.length ? fam.fits : [null]) for (const sleeve of fam.styles.length ? fam.styles : [null]) {
     const r = resolveTarget(fam.id, sleeve, fit);
-    if (r && r.status !== 'reference' && !seen.has(`${r.fit}|${r.sleeve}`)) seen.set(`${r.fit}|${r.sleeve}`, { fit: r.fit, sleeve: r.sleeve, status: r.status });
+    if (r && r.status !== 'reference' && !(vectorOnly && r.photo) && !seen.has(`${r.fit}|${r.sleeve}`)) seen.set(`${r.fit}|${r.sleeve}`, { fit: r.fit, sleeve: r.sleeve, status: r.status });
   }
   return [...seen.values()];
 }
-const tierOfFamily = fam => combosFor(fam)[0]?.status ?? 'reference';
+const VECTOR = { vectorOnly: true };
+const tierOfFamily = fam => combosFor(fam, VECTOR)[0]?.status ?? 'reference';
 
 // All families once, each opened in the browsed category, or the customer's current one when it lists that family.
 const ALL = 'all';
 const homeOf = (famId, cur) => (CATALOG.find(c => c.id === cur && c.families.some(f => f.id === famId)) ?? CATALOG.find(c => c.families.some(f => f.id === famId))).id;
 const ALL_FAMILIES = [...new Map(CATALOG.flatMap(c => c.families).map(f => [f.id, f])).values()];
+const OWN_FAMILIES = ALL_FAMILIES.filter(f => !f.derived);
+// Templates traced from a reference photo's model: listed under "Start from a reference", never under "Start from scratch".
+const DERIVED_FAMS = ALL_FAMILIES.filter(f => f.derived && tierOfFamily(f) !== 'reference');
 
 function FamilyCard({ fam, cfg, fitsRole, pieceRole, onPick, i }) {
   const tier = tierOfFamily(fam);
@@ -274,7 +291,7 @@ function FamilyCard({ fam, cfg, fitsRole, pieceRole, onPick, i }) {
       <button type="button" className="ds-pick-card" aria-pressed={cfg.garment === fam.id} disabled={!fitsRole(fam)}
         title={fitsRole(fam) ? TIER_LABEL[tier].note : `Your set needs a ${ROLE_LABEL[pieceRole].toLowerCase()} here`}
         onClick={() => onPick(fam)} aria-label={`${fam.id}, ${PHOTO_LABEL[tier]}`}>
-        <span className="ds-pick-img"><TemplateImage fam={fam} cfg={cfg}/></span>
+        <span className="ds-pick-img"><TemplateImage fam={fam} cfg={cfg} pick={combosFor(fam, VECTOR)[0] ?? {}}/></span>
         <strong>{fam.id}</strong>
         <Badge icon={PHOTO_BADGE[tier]} label={PHOTO_LABEL[tier]}/>
       </button>
@@ -293,8 +310,8 @@ function Choice({ label, items, value, set, text }) {
 }
 
 // Step 2 of "Start from scratch": fit / cut, then style, offering only combinations that open an editable template. Back keeps the draft.
-function FamilySteps({ fam, cfg, onBack, onOpen }) {
-  const combos = combosFor(fam);
+function FamilySteps({ fam, cfg, onBack, onOpen, backLabel = 'Back to garments' }) {
+  const combos = combosFor(fam, VECTOR);
   const fits = [...new Set(combos.map(c => c.fit))];
   const [fit, setFit] = useState(combos.find(c => c.fit === cfg.fit)?.fit ?? fits[0]);
   const styles = combos.filter(c => c.fit === fit);
@@ -311,7 +328,7 @@ function FamilySteps({ fam, cfg, onBack, onOpen }) {
         {chosen && <p className="ds-pick-sum ds-pick-tier"><Badge icon={PHOTO_BADGE[chosen.status]} label={PHOTO_LABEL[chosen.status]}/>{PHOTO_LABEL[chosen.status]}: {TIER_LABEL[chosen.status].note}</p>}
       </div>
       <Foot>
-        <button type="button" className="ds-btn" onClick={onBack}>Back to garments</button>
+        <button type="button" className="ds-btn" onClick={onBack}>{backLabel}</button>
         <button type="button" className="ds-btn ds-btn--primary" disabled={!chosen} onClick={() => onOpen({ fit: chosen.fit, sleeve: chosen.sleeve })}>Open in Studio</button>
       </Foot>
     </>
@@ -323,9 +340,8 @@ function Templates({ head, onClose, cfg, pieceRole, onPickFamily, extra }) {
   const [roleOn, setRoleOn] = useState(true);
   const [fam, setFam] = useState(null);
   const fitsRole = f => !pieceRole || pieceOf(f.id) === pieceRole;
-  const inCat = c => (c === ALL ? ALL_FAMILIES : CATALOG.find(x => x.id === c).families).filter(f => tierOfFamily(f) !== 'reference' && (!(pieceRole && roleOn) || fitsRole(f)));
+  const inCat = c => (c === ALL ? ALL_FAMILIES : CATALOG.find(x => x.id === c).families).filter(f => !f.derived && tierOfFamily(f) !== 'reference' && (!(pieceRole && roleOn) || fitsRole(f)));
   const families = inCat(cat);
-  const own = families.filter(f => !f.derived), derived = families.filter(f => f.derived);
   const legend = <Legend labels={PHOTO_LABEL} icons={PHOTO_BADGE} present={Object.keys(PHOTO_BADGE).filter(k => families.some(f => tierOfFamily(f) === k))}/>;
   if (fam) return <>{head(null)}<FamilySteps fam={fam} cfg={cfg} onBack={() => setFam(null)} onOpen={pick => onPickFamily(fam, cat === ALL ? homeOf(fam.id, cfg.category) : cat, pick)}/></>;
   const card = (f, i) => <FamilyCard key={f.id} fam={f} cfg={cfg} fitsRole={fitsRole} pieceRole={pieceRole} onPick={setFam} i={i}/>;
@@ -334,7 +350,7 @@ function Templates({ head, onClose, cfg, pieceRole, onPickFamily, extra }) {
       {head(legend)}
       {extra}
       <div className="ds-chips" role="tablist" aria-label="Uniform category">
-        <RoleChip pieceRole={pieceRole} on={roleOn} setOn={setRoleOn} count={ALL_FAMILIES.filter(fitsRole).length} total={ALL_FAMILIES.length}/>
+        <RoleChip pieceRole={pieceRole} on={roleOn} setOn={setRoleOn} count={OWN_FAMILIES.filter(fitsRole).length} total={OWN_FAMILIES.length}/>
         {[{ id: ALL }, ...CATALOG].map(c => (
           <button key={c.id} type="button" role="tab" className="ds-chip" aria-selected={cat === c.id} aria-pressed={cat === c.id} onClick={() => setCat(c.id)}>
             {c.id === ALL ? 'All' : CAT_SHORT[c.id] ?? c.id} ({inCat(c.id).length})
@@ -342,25 +358,31 @@ function Templates({ head, onClose, cfg, pieceRole, onPickFamily, extra }) {
         ))}
       </div>
       <ul className="ds-pick-grid">
-        {own.map(card)}
+        {families.map(card)}
       </ul>
-      {derived.length > 0 && (
-        <section className="ds-pick-sec" aria-label="From reference">
-          <h3>From reference</h3>
-          <p className="ds-note">{DERIVED_LABEL}: each template is traced from the 3D model of a VFRB reference photo, with one colour zone.</p>
-          <ul className="ds-pick-grid">{derived.map(card)}</ul>
-        </section>
-      )}
       {onClose && <Foot><span className="ds-pick-count">{families.length} templates</span><button type="button" className="ds-btn" onClick={onClose}>Keep current garment</button></Foot>}
     </>
   );
 }
 
-export default function GarmentPicker({ tab = 'inspiration', inline = false, cfg, pieceRole = null, onPickPhoto, onPick3D, onPickFamily, onUpload, pendingArt, onCancelArt, onClose = null, extra = null }) {
+// What an uploaded photo shows, said by the customer (never guessed): one piece narrows the picker to that piece; a full set
+// opens the top with its bottom as one uniform set. Inside a set the picker already shows only the piece being designed.
+const ART_SCOPES = [['top', 'Top only'], ['bottom', 'Bottom only'], ['set', 'Full set (top + bottom)']];
+function ArtScope({ value, onChange }) {
+  return (
+    <div className="ds-pick-frow" role="radiogroup" aria-label="What does your photo show?">
+      <span>Your photo shows</span>
+      {ART_SCOPES.map(([v, l]) => <button key={v} type="button" role="radio" className="ds-chip" aria-checked={value === v} aria-pressed={value === v} onClick={() => onChange(value === v ? null : v)}>{l}</button>)}
+    </div>
+  );
+}
+
+export default function GarmentPicker({ tab = 'inspiration', inline = false, cfg, pieceRole = null, onPickPhoto, onPick3D, onPickFamily, onUpload, pendingArt, onCancelArt, artScope = null, onArtScope = null, onClose = null, extra = null }) {
   const [view, setView] = useState(tab);
   const title = pendingArt ? 'Now choose the garment for your design' : cfg.garment ? 'Change garment' : 'Start from a VFRB garment';
   const sub = pendingArt
-    ? <p>Your file <strong>{pendingArt.name}</strong> goes on the garment you pick. <button type="button" className="ds-pick-link" onClick={onCancelArt}><X size={14} aria-hidden="true"/>Cancel upload</button></p>
+    ? <><p>Your file <strong>{pendingArt.name}</strong> goes on the garment you pick{artScope === 'set' ? '; pick the top and its bottom is added as a set' : ''}. <button type="button" className="ds-pick-link" onClick={onCancelArt}><X size={14} aria-hidden="true"/>Cancel upload</button></p>
+        {onArtScope && <ArtScope value={artScope} onChange={onArtScope}/>}</>
     : <p>Real uniforms we have made, or a VFRB template.</p>;
   const head = legend => <Head title={title} sub={sub} onClose={onClose} view={view} setView={setView} legend={legend} onUpload={pendingArt ? null : onUpload}/>;
   // Compact header once the picker's scroll box (the inline stage or the modal) has scrolled. The gap between the two thresholds, with
@@ -377,7 +399,7 @@ export default function GarmentPicker({ tab = 'inspiration', inline = false, cfg
   return (
     <section ref={root} className="ds-pick" data-inline={inline || undefined} data-compact={compact || undefined} aria-labelledby="ds-pick-h">
       {view === 'inspiration'
-        ? <Photos head={head} onClose={onClose} pieceRole={pieceRole} onPickPhoto={onPickPhoto} onPick3D={onPick3D} extra={extra}/>
+        ? <Photos head={head} onClose={onClose} cfg={cfg} pieceRole={pieceRole} onPickPhoto={onPickPhoto} onPick3D={onPick3D} onPickFamily={onPickFamily} extra={extra}/>
         : <Templates head={head} onClose={onClose} cfg={cfg} pieceRole={pieceRole} onPickFamily={onPickFamily} extra={extra}/>}
     </section>
   );

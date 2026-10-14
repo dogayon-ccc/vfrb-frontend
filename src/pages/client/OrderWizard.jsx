@@ -10,7 +10,8 @@ import { useNavigate }                                   from 'react-router-dom'
 import { motion, AnimatePresence }                       from 'framer-motion';
 import axios                                             from 'axios';
 import MaterialsReveal                                   from './MaterialsReveal';
-import { orderQueue, setNote }                           from './design-studio/uniformSet'; // post-submit AI-materials reveal, see its own header for SCOPE-001
+import { orderQueue, setNote, ROLE_LABEL }               from './design-studio/uniformSet'; // post-submit AI-materials reveal, see its own header for SCOPE-001
+import { STD_SIZES, MIN_ORDER_QTY, orderQty, qtyShort } from '../../utils/orderQuantity';
 import { NavIcon }                                        from '../../components/ui/icons';
 import { zonesFor }                                       from './design-studio/dsShared';
 import useDialogFocus                                    from '../../hooks/useDialogFocus';
@@ -464,12 +465,12 @@ function StepDesign({ form, set, errors, studio, onClearStudio, onOpenStudio }) 
 // and "Sizing" steps into one, per the Design Summary / Quantity+Size / Delivery+Notes /
 // Review flow. Design fields (garment/collar/sleeve/pocket) stay in Step 1 only — this step
 // never re-asks for them.
-function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart }) {
+function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart, title = null, first = true }) {
   const complete = studioComplete(form.garment_type, form.collar_type, form.sleeve_type, form.client_design_notes, !!studio);
   const isCustom = form.sizing_type === 'custom';
-  const total = STD.reduce((a, sz) => a + (form.sizes?.[sz] || 0), 0);
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:18 }}>
+      {title && <h2 className="wz-piece-h">{title}</h2>}
 
       {studio && complete && (
         <div style={{ padding:'12px 14px', borderRadius:11,
@@ -492,40 +493,12 @@ function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart
           VFRB's real payment terms (full payment on delivery, no self-service), not
           something a customer picks here. Self-service orders are always Direct Client
           (80% DP / 20% on delivery) — order_type stays 'direct', no longer a UI choice. */}
-      <div style={{ padding:'12px 14px', borderRadius:11, background:'var(--bg-surface)', border:'1px solid var(--border)' }}>
+      {first && <div style={{ padding:'12px 14px', borderRadius:11, background:'var(--bg-surface)', border:'1px solid var(--border)' }}>
         <p style={{ fontSize:13, fontWeight:700, color:'var(--ink)', margin:0, fontFamily:FONT }}>Direct Client order</p>
         <p style={{ fontSize:11, color:'var(--text-subtle)', margin:'3px 0 0', fontFamily:FONT }}>
           80% downpayment at confirmation, 20% on delivery.
         </p>
-      </div>
-
-      {/* Quantity */}
-      <div>
-        <label style={lbl}>Total Quantity (pieces) <span style={{ color:'#ef4444' }}>*</span></label>
-        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <motion.button whileTap={{ scale:.9 }} type="button"
-            onClick={() => set('quantity_ordered', Math.max(100, (form.quantity_ordered||0) - 10))}
-            style={{ width:40, height:40, borderRadius:10, border:'1px solid var(--border)',
-              background:'var(--bg-surface)', fontSize:18, cursor:'pointer', flexShrink:0,
-              display:'flex', alignItems:'center', justifyContent:'center',
-              color:'var(--text-subtle)', fontWeight:700 }}>
-            −
-          </motion.button>
-          <input type="number" min={100} value={form.quantity_ordered||''}
-            onChange={e => set('quantity_ordered', Math.max(0, Number(e.target.value)||0))}
-            placeholder="Minimum 100 pcs" style={{ ...inp, textAlign:'center', fontWeight:700 }}
-            onFocus={fi} onBlur={fo}/>
-          <motion.button whileTap={{ scale:.9 }} type="button"
-            onClick={() => set('quantity_ordered', (form.quantity_ordered||0) + 10)}
-            style={{ width:40, height:40, borderRadius:10, border:'1px solid var(--border)',
-              background:'var(--bg-surface)', fontSize:18, cursor:'pointer', flexShrink:0,
-              display:'flex', alignItems:'center', justifyContent:'center',
-              color:'var(--text-subtle)', fontWeight:700 }}>
-            +
-          </motion.button>
-        </div>
-        {errMsg(errors.quantity_ordered)}
-      </div>
+      </div>}
 
       {/* Color — known from Studio, so shown read-only; asked only for manual orders */}
       {studio?.colors?.body ? (
@@ -598,45 +571,13 @@ function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart
               {STD.map(sz => (
                 <SteP key={sz} label={sz}
                   value={form.sizes?.[sz] || 0}
-                  remaining={form.quantity_ordered > 0 ? form.quantity_ordered - total : null}
                   onChange={v => set('sizes', { ...form.sizes, [sz]:v })}/>
               ))}
             </div>
             {errMsg(errors.sizes)}
           </div>
 
-          <AnimatePresence>
-            {total > 0 && (
-              <motion.div
-                initial={{ opacity:0, y:-6, height:0 }}
-                animate={{ opacity:1, y:0, height:'auto' }}
-                exit={{ opacity:0, height:0 }}
-                style={{ padding:'12px 16px', borderRadius:11,
-                  background:'#f0fdfa', border:'1px solid #99f6e4',
-                  display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                <span style={{ fontSize:12, color:'var(--ink)', fontFamily:FONT }}>
-                  Total pieces across all sizes
-                </span>
-                <span style={{ fontSize:18, fontWeight:800, color:T, fontFamily:FONT }}>
-                  {total} pcs
-                </span>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {total > 0 && form.quantity_ordered > 0 && total !== form.quantity_ordered && (
-            <div style={{ padding:'10px 14px', borderRadius:10,
-              background: total > form.quantity_ordered ? '#fef2f2' : '#fef3c7',
-              border: `1px solid ${total > form.quantity_ordered ? '#fecaca' : '#fde68a'}` }}>
-              <p style={{ fontSize:11, color: total > form.quantity_ordered ? '#991b1b' : '#92400e',
-                margin:0, fontFamily:FONT, fontWeight:600, display:'flex', alignItems:'flex-start', gap:5 }}>
-                <NavIcon name={total > form.quantity_ordered ? 'error' : 'warning'} size={13} color={total > form.quantity_ordered ? '#991b1b' : '#92400e'} style={{ flexShrink:0, marginTop:1 }}/>
-                Size total ({total} pcs) must exactly match
-                quantity ordered ({form.quantity_ordered} pcs) — {Math.abs(form.quantity_ordered - total)} pcs
-                {total > form.quantity_ordered ? ' over' : ' short'}. This blocks submission until it matches.
-              </p>
-            </div>
-          )}
+          <QtyMeter form={form}/>
         </>
       )}
 
@@ -675,8 +616,10 @@ function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart
             <label style={lbl}>Quantity (pieces) <span style={{ color:'#ef4444' }}>*</span></label>
             <input type="number" min={1} value={form.custom_qty||''}
               onChange={e => set('custom_qty', Number(e.target.value))}
-              placeholder="Total pieces" style={inp} onFocus={fi} onBlur={fo}/>
+              placeholder="Minimum 100 pcs" style={inp} onFocus={fi} onBlur={fo}/>
+            {errMsg(errors.custom_qty)}
           </div>
+          <QtyMeter form={form}/>
         </div>
       )}
     </div>
@@ -730,15 +673,12 @@ function StepDelivery({ form, set, errors }) {
 }
 
 // ── Step 2: Sizing — stepper buttons ─────────────────────────────────────────
-const STD = ['XS','S','M','L','XL','XXL','3XL'];
+const STD = STD_SIZES;
 
-function SteP({ label, value, onChange, remaining }) {
-  // remaining = pieces still addable across all sizes; null = no cap known yet (quantity not entered).
-  const atCap = remaining != null && remaining <= 0;
-  const max = remaining != null ? value + Math.max(0, remaining) : 99999;
+function SteP({ label, value, onChange }) {
   const commit = (raw) => {
     const n = parseInt(String(raw).replace(/\D/g, ''), 10);
-    onChange(Math.min(max, Number.isFinite(n) ? n : 0));
+    onChange(Math.min(99999, Number.isFinite(n) ? n : 0));
   };
   return (
     <motion.div className="wz-cell" whileHover={{ y:-1, boxShadow:'0 4px 12px rgba(0,0,0,.07)' }}
@@ -751,16 +691,30 @@ function SteP({ label, value, onChange, remaining }) {
           onClick={() => onChange(Math.max(0, value - 1))}>−</motion.button>
         <input className="wz-stp-i" type="text" inputMode="numeric" pattern="[0-9]*" aria-label={`${label} pieces`}
           value={value} data-on={value > 0} onFocus={e => e.target.select()} onChange={e => commit(e.target.value)}/>
-        <motion.button whileTap={{ scale: atCap ? 1 : .85 }} type="button" className="wz-stp-b" disabled={atCap} aria-label={`Add one ${label}`}
-          title={atCap ? 'Total quantity reached — reduce another size first' : undefined}
+        <motion.button whileTap={{ scale:.85 }} type="button" className="wz-stp-b" aria-label={`Add one ${label}`}
           onClick={() => onChange(value + 1)}>+</motion.button>
       </div>
     </motion.div>
   );
 }
 
-function StepReview({ form, studio, onEdit }) {
-  const tot = STD.reduce((a, sz) => a + (form.sizes?.[sz] || 0), 0);
+// Live order total: the sum of the size counts (or the custom piece count), against the 100-piece minimum.
+function QtyMeter({ form }) {
+  const total = orderQty(form), short = qtyShort(form);
+  return (
+    <div className="wz-qty" data-ok={!short} role="status" aria-live="polite">
+      <div className="wz-qty-row">
+        <span>Order total</span>
+        <strong>{total} pcs</strong>
+      </div>
+      <div className="wz-qty-bar" aria-hidden="true"><span style={{ width:`${Math.min(100, (total / MIN_ORDER_QTY) * 100)}%` }}/></div>
+      <p>{short ? `Minimum ${MIN_ORDER_QTY} pieces: ${short} more needed.` : `Meets the ${MIN_ORDER_QTY}-piece minimum.`}</p>
+    </div>
+  );
+}
+
+function StepReview({ form, studio, onEdit, title = null, last = true }) {
+  const tot = orderQty(form);
 
   // Local blob URL for the uploaded reference file — not yet stored server-side at review time.
   const [refFileBlobUrl, setRefFileBlobUrl] = useState(null);
@@ -794,7 +748,7 @@ function StepReview({ form, studio, onEdit }) {
     {
       t:'Order Configuration', go:1,
       rows:[
-        ['Quantity',    `${form.quantity_ordered || 0} pcs`],
+        ['Quantity',    `${tot} pcs`],
         ['Color',       form.color || '—'],
         ['Deadline',    form.deadline || 'Not specified'],
         ['PO Ref',      form.po_reference || 'None'],
@@ -820,10 +774,10 @@ function StepReview({ form, studio, onEdit }) {
     <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
 
       <div style={{ padding:'2px 2px 0' }}>
-        <p style={{ fontSize:11, fontWeight:700, color:T2, textTransform:'uppercase', letterSpacing:'.08em', margin:'0 0 4px', fontFamily:FONT }}>Confirm your order</p>
+        <p style={{ fontSize:11, fontWeight:700, color:T2, textTransform:'uppercase', letterSpacing:'.08em', margin:'0 0 4px', fontFamily:FONT }}>{title ?? 'Confirm your order'}</p>
         <p style={{ fontSize:20, fontWeight:800, color:'var(--ink)', margin:'0 0 8px', fontFamily:FONT, lineHeight:1.2, overflowWrap:'anywhere' }}>{garmentName}</p>
         <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
-          {[form.quantity_ordered && `${form.quantity_ordered} pcs`, form.color, form.sleeve_type, '80% DP · 20% on delivery'].filter(Boolean).map((tag,i) => (
+          {[tot && `${tot} pcs`, form.color, form.sleeve_type, '80% DP · 20% on delivery'].filter(Boolean).map((tag,i) => (
             <span key={i} style={{ fontSize:11, fontWeight:600, padding:'3px 10px', borderRadius:99, background:'var(--bg-surface)', color:'var(--text-muted)', border:'1px solid var(--border)', fontFamily:FONT }}>{tag}</span>
           ))}
         </div>
@@ -882,7 +836,7 @@ function StepReview({ form, studio, onEdit }) {
       ))}
 
       {/* AI note */}
-      <div style={{ padding:'14px 16px', borderRadius:12,
+      {last && <div style={{ padding:'14px 16px', borderRadius:12,
         background:'#f0fdfa', border:'1px solid #99f6e4' }}>
         <p style={{ color:'var(--ink)', fontSize:12, fontWeight:700,
           marginBottom:6, fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}>
@@ -893,7 +847,7 @@ function StepReview({ form, studio, onEdit }) {
           types of raw materials needed. You can review and accept the recommendation
           from the AI Materials page.
         </p>
-      </div>
+      </div>}
     </div>
   );
 }
@@ -915,32 +869,48 @@ function StepBar({ step }) {
   );
 }
 
-function WizSummary({ form, studio, step }) {
-  const cfg = studio ?? {};
-  const name = cfg.garmentType ?? cfg.garment ?? form.garment_type;
-  const total = STD.reduce((a, sz) => a + (form.sizes?.[sz] || 0), 0);
-  const rows = [
-    ['Garment', name],
-    ...(form.collar_type ? [['Collar', form.collar_type]] : []),
-    ...((form.sleeve_type || !studio) ? [['Sleeve', form.sleeve_type]] : []),
-    ['Quantity', form.quantity_ordered ? `${form.quantity_ordered} pcs` : null],
-    ['Sizes assigned', total ? `${total} pcs` : null],
-    ['Needed by', form.deadline],
-    ['PO / Ref', form.po_reference],
-    ...(form.design_ref_file ? [['Reference photo', form.design_ref_file.name]] : []), // e.g. one chosen in the Studio (Use as: Reference photo)
-  ];
+function WizSummary({ forms, studios, step }) {
+  const shared = forms[0];
+  const pieceRows = (form, studio) => {
+    const cfg = studio ?? {};
+    const total = orderQty(form);
+    return [
+      ['Garment', cfg.garmentType ?? cfg.garment ?? form.garment_type],
+      ...(form.collar_type ? [['Collar', form.collar_type]] : []),
+      ...((form.sleeve_type || !studio) ? [['Sleeve', form.sleeve_type]] : []),
+      ['Quantity', total ? `${total} pcs${total < MIN_ORDER_QTY ? ` (min ${MIN_ORDER_QTY})` : ''}` : null],
+      ...(form.design_ref_file ? [['Reference photo', form.design_ref_file.name]] : []), // e.g. one chosen in the Studio (Use as: Reference photo)
+    ];
+  };
+  const dl = rows => (
+    <dl>
+      {rows.map(([k, v]) => (
+        <div key={k}><dt>{k}</dt><dd key={String(v ?? '')} className="wz-flash" data-empty={!v}>{v || (step === 0 ? '-' : 'Not set')}</dd></div>
+      ))}
+    </dl>
+  );
+  const isSet = forms.length > 1;
   return (
     <aside className="cx-card wz-sum" aria-label="Order summary">
-      <div className="cx-card-h"><h2>Order Summary</h2></div>
+      <div className="cx-card-h"><h2>{isSet ? 'Uniform Set Summary' : 'Order Summary'}</h2></div>
       <div className="wz-sum-b">
-        {studio
-          ? <div style={{ marginBottom:14 }}><DesignPreview cfg={studio} previewUrl={studio.previewPng ?? null} height={190}/></div>
-          : <div className="wz-thumb" style={{ background:'var(--bg-surface)' }}><NavIcon name="garmentType" size={28} color="var(--text-faint)"/></div>}
-        <dl>
-          {rows.map(([k, v]) => (
-            <div key={k}><dt>{k}</dt><dd key={String(v ?? '')} className="wz-flash" data-empty={!v}>{v || (step === 0 ? '-' : 'Not set')}</dd></div>
-          ))}
-        </dl>
+        {forms.map((form, i) => {
+          const studio = studios[i];
+          return (
+            <div key={i} className="wz-sum-piece">
+              {isSet && <p className="wz-sum-role">{ROLE_LABEL[studio?.uniformSet?.role] ?? `Piece ${i + 1}`}</p>}
+              {studio
+                ? <div style={{ marginBottom:14 }}><DesignPreview cfg={studio} previewUrl={studio.previewPng ?? null} height={isSet ? 150 : 190}/></div>
+                : <div className="wz-thumb" style={{ background:'var(--bg-surface)' }}><NavIcon name="garmentType" size={28} color="var(--text-faint)"/></div>}
+              {dl(pieceRows(form, studio))}
+            </div>
+          );
+        })}
+        {dl([
+          ...(isSet ? [['Set total', `${forms.reduce((a, f) => a + orderQty(f), 0)} pcs`]] : []),
+          ['Needed by', shared.deadline],
+          ['PO / Ref', shared.po_reference],
+        ])}
       </div>
     </aside>
   );
@@ -1132,141 +1102,134 @@ function ConfettiBurst() {
 }
 
 // ── Form state ────────────────────────────────────────────────────────────────
+// One form per garment: a single design has one, a uniform set one per piece (top first). Delivery, PO and notes are
+// shared, so they are written to every form at once. Quantity is never typed: it is the size total (utils/orderQuantity).
 const INIT = {
   garment_type:'', collar_type:'', sleeve_type:'', pocket_type:'', client_design_notes:'',
-  design_ref_file:null, order_type:'direct', quantity_ordered:'', color:'',
+  design_ref_file:null, order_type:'direct', color:'',
   deadline:'', po_reference:'', special_notes:'', sizing_type:'standard',
   sizes:{}, measurements:{}, custom_qty:'',
 };
+const SHARED = ['order_type', 'deadline', 'po_reference', 'special_notes'];
+// Orders of a set already placed, so a retry or a refresh after a part-failed submit never places a piece twice.
+const PLACED_KEY = 'set_orders_placed';
+const readPlaced = (setId) => { try { return JSON.parse(sessionStorage.getItem(PLACED_KEY) || '{}')[setId] ?? {}; } catch { return {}; } };
+const writePlaced = (setId, placed) => { try { sessionStorage.setItem(PLACED_KEY, JSON.stringify({ [setId]: placed })); } catch { /* quota */ } };
+
+// Pre-fill fields from one design snapshot (a single design or one piece of a set), and whether Design Summary can be skipped.
+function prefillFrom(cfg) {
+  // Canonical fields (garment/sleeve/collar) with a legacy-alias fallback, matching StudioBanner's cfg.garmentType ?? cfg.garment.
+  const garmentName = cfg.garmentType ?? cfg.garment ?? '';
+  const collarRaw   = cfg.collarType  ?? cfg.collar  ?? '';
+  const sleeveRaw   = cfg.sleeveType  ?? cfg.sleeve  ?? '';
+  // Only pre-fill from a real mapped value — never default to the garment name.
+  const derivedCollar = COLLAR_MAP[collarRaw] ?? GARMENT_IMPLIED_COLLAR[garmentName] ?? null;
+  const derivedSleeve = SLEEVE_MAP[sleeveRaw] ?? null;
+  const notes = [
+    cfg.category  ? `${cfg.category} uniform.` : '',
+    garmentName   ? `${garmentName} style.` : '',
+    derivedCollar ? `${derivedCollar} collar.` : '',
+    derivedSleeve ? `${derivedSleeve}.` : '',
+    cfg.colors?.body ? `Primary color: ${hexToName(cfg.colors.body)}.` : '',
+  ].filter(Boolean).join(' ');
+  const fields = {
+    ...(garmentName && { garment_type: garmentName }),
+    ...(derivedCollar && { collar_type: derivedCollar }),
+    ...(derivedSleeve && { sleeve_type: derivedSleeve }),
+    ...(hexToName(cfg.colors?.body) && { color: hexToName(cfg.colors?.body) }),
+    client_design_notes: notes,
+  };
+  return { fields, complete: studioComplete(garmentName, derivedCollar, derivedSleeve, notes, true) };
+}
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function OrderWizard() {
   const nav = useNavigate();
 
-  const [step,   setStep]   = useState(0);
-  const [form,   setForm]   = useState(() => ({ ...INIT, design_ref_file: peekDesignRef() })); // a reference photo chosen in the Studio arrives here
-  const [errs,   setErrs]   = useState({});
-  const [busy,   setBusy]   = useState(false);
-  const [apiErr, setApiErr] = useState('');
-  const [studio, setStudio] = useState(null);
-  const [dir,    setDir]    = useState(1); // 1=forward, -1=back (for slide direction)
+  const [step,    setStep]    = useState(0);
+  const [forms,   setForms]   = useState(() => [{ ...INIT, design_ref_file: peekDesignRef() }]); // a reference photo chosen in the Studio arrives here
+  const [studios, setStudios] = useState([null]);
+  const [errs,    setErrs]    = useState([{}]);
+  const [busy,    setBusy]    = useState(false);
+  const [apiErr,  setApiErr]  = useState('');
+  const [dir,     setDir]     = useState(1); // 1=forward, -1=back (for slide direction)
   const [showSizeChart,  setShowSizeChart]  = useState(false);
   const [showConfetti,   setShowConfetti]   = useState(false);
   useEffect(() => {
     document.documentElement.dataset.wizard = '1';
     return () => { delete document.documentElement.dataset.wizard; };
   }, []);
-  // Once set, short-circuits the wizard for the blocking MaterialsReveal screen.
-  const [createdOrder,   setCreatedOrder]   = useState(null);
-  // Uniform set: one order per piece, submitted in turn; later pieces carry the earlier order ids.
-  const [setQueue, setSetQueue] = useState(null);
-  const [setIdx,   setSetIdx]   = useState(0);
-  const setOrderIds = useRef([]);
+  // Once set, short-circuits the wizard for the blocking MaterialsReveal screen, one created order at a time.
+  const [created,   setCreated]   = useState(null);
+  const [revealIdx, setRevealIdx] = useState(0);
   // Fingerprint of the design handed in from the Studio or My Designs: after the order is placed,
   // the account draft is retired only if it is still this same design.
   const handoffFp = useRef(null);
-  const moreInSet = !!setQueue && setIdx < setQueue.length - 1;
+  const form = forms[0], studio = studios[0];
+  const isSet = forms.length > 1;
+  const setId = studio?.uniformSet?.id ?? null;
+  const roleOf = i => studios[i]?.uniformSet?.role ?? null;
+  const pieceTitle = i => (isSet ? `${ROLE_LABEL[roleOf(i)] ?? `Piece ${i + 1}`}: ${forms[i].garment_type || 'Garment'}` : null);
 
-  // Pre-fill from one design snapshot: a single design, or one piece of a uniform set.
-  const applyStudio = (cfg) => {
-    try {
-      // Canonical fields (garment/sleeve/collar) with a legacy-alias fallback, matching the
-      // same cfg.garmentType ?? cfg.garment pattern StudioBanner already uses below (line ~117)
-      // — this mount effect was the one place in the file that only checked the legacy name,
-      // so a studio_config written with canonical-only fields (no serializeDesign aliases)
-      // would silently skip every pre-fill here while still rendering fine in the banner.
-      const garmentName = cfg.garmentType ?? cfg.garment ?? '';
-      const collarRaw   = cfg.collarType  ?? cfg.collar  ?? '';
-      const sleeveRaw   = cfg.sleeveType  ?? cfg.sleeve  ?? '';
-      setStudio(cfg);
-      // Only pre-fill from a real mapped value — never default to the garment name.
-      const derivedCollar =
-        COLLAR_MAP[collarRaw] ??
-        GARMENT_IMPLIED_COLLAR[garmentName] ??
-        null;
-      const derivedSleeve = SLEEVE_MAP[sleeveRaw] ?? null;
-      const notes = [
-          cfg.category  ? `${cfg.category} uniform.` : '',
-          garmentName   ? `${garmentName} style.` : '',
-          derivedCollar ? `${derivedCollar} collar.` : '',
-          derivedSleeve ? `${derivedSleeve}.` : '',
-          cfg.colors?.body ? `Primary color: ${hexToName(cfg.colors.body)}.` : '',
-        ].filter(Boolean).join(' ');
-      setForm(prev => ({
-        ...prev,
-        garment_type:        garmentName || prev.garment_type,
-        collar_type:         derivedCollar ?? prev.collar_type,
-        sleeve_type:         derivedSleeve  ?? prev.sleeve_type,
-        color:               hexToName(cfg.colors?.body)  || prev.color,
-        client_design_notes: prev.client_design_notes || notes,
-      }));
-      // Studio already supplied everything this garment needs — skip straight past the
-      // Design Summary step to order logistics (Quantity & Sizes).
-      if (studioComplete(garmentName, derivedCollar, derivedSleeve, notes, true)) setStep(1);
-    } catch { /* silent */ }
-  };
-
-  // Read studio_config from DesignStudio on mount
+  // Read studio_config from DesignStudio on mount: a set becomes one form per piece.
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem('studio_config');
       if (!raw) return;
       const parsed = JSON.parse(raw);
       handoffFp.current = draftFingerprint(parsed);
-      const q = orderQueue(parsed);
-      if (q) setSetQueue(q);
-      applyStudio(q ? q[0] : parsed);
+      const list = orderQueue(parsed) ?? [parsed];
+      const pre = list.map(prefillFrom);
+      setStudios(list);
+      setForms(prev => list.map((_, i) => ({ ...INIT, design_ref_file: i === 0 ? prev[0].design_ref_file : null, ...pre[i].fields })));
+      setErrs(list.map(() => ({})));
+      // Studio already supplied everything every piece needs — skip straight to order logistics (Quantity & Sizes).
+      if (pre.every(p => p.complete)) setStep(1);
     } catch { /* silent */ }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const clearStudio = () => {
-    setStudio(null);
+    setStudios([null]);
     clearStudioHandoff();
-    setForm(prev => ({ ...prev, garment_type:'', collar_type:'',
-      sleeve_type:'', client_design_notes:'', color:'' }));
+    setForms(f => [{ ...INIT, ...Object.fromEntries(SHARED.map(k => [k, f[0][k]])), design_ref_file: f[0].design_ref_file }]);
+    setErrs([{}]);
   };
 
-  const set = (k, v) => { setForm(f=>({...f,[k]:v})); setErrs(e=>({...e,[k]:''})); };
+  const setFor = (i) => (k, v) => {
+    setForms(fs => fs.map((f, n) => (n === i || SHARED.includes(k) ? { ...f, [k]: v } : f)));
+    setErrs(es => es.map((e, n) => (n === i ? { ...e, [k]: '' } : e)));
+  };
 
-  const validate = () => {
+  const validatePiece = (f, s) => {
     const e = {};
     // The artwork submitted with the order is the Studio design; a hand-edited garment type must not contradict it.
-    const designGarment = studio ? (studio.garmentType ?? studio.garment) : null;
-    if (designGarment && form.garment_type && designGarment !== form.garment_type) {
-      e.garment_type = `This order says "${form.garment_type}" but your design is a ${designGarment}. Use "Edit in Studio" or "Clear" to change the garment.`;
+    const designGarment = s ? (s.garmentType ?? s.garment) : null;
+    if (designGarment && f.garment_type && designGarment !== f.garment_type) {
+      e.garment_type = `This order says "${f.garment_type}" but your design is a ${designGarment}. Use "Edit in Studio" or "Clear" to change the garment.`;
     }
     if (step===0) {
-      if (!form.garment_type) {
-        e.garment_type = 'Required';
-      }
+      if (!f.garment_type) e.garment_type = 'Required';
       // DSA: O(1) hash map lookup — only validate collar/sleeve for tops
-      const spec = GARMENT_SPECS[form.garment_type] ?? { needsCollar:true, needsSleeve:true };
-      if (!studio && spec.needsCollar && !form.collar_type) e.collar_type = 'Required';
-      if (!studio && spec.needsSleeve && !form.sleeve_type) e.sleeve_type = 'Required';
-      const notes = form.client_design_notes?.trim() ?? '';
+      const spec = GARMENT_SPECS[f.garment_type] ?? { needsCollar:true, needsSleeve:true };
+      if (!s && spec.needsCollar && !f.collar_type) e.collar_type = 'Required';
+      if (!s && spec.needsSleeve && !f.sleeve_type) e.sleeve_type = 'Required';
+      const notes = f.client_design_notes?.trim() ?? '';
       if (!notes) e.client_design_notes = 'Please describe your design';
       else if (notes.length < 15) e.client_design_notes = 'Please give VFRB enough detail to work from (garment, color, key details) — a few words isn\'t enough to manufacture from';
     }
     if (step===1) {
       // order_type is fixed to 'direct' (INIT default) — no longer a customer choice, see StepQuantitySize.
-      if (!form.quantity_ordered || form.quantity_ordered < 100)
-                                             e.quantity_ordered    = 'VFRB accepts bulk orders only — minimum 100 pieces';
-      if (!studio?.colors?.body && !form.color?.trim()) e.color = 'Required';
-      // Size breakdown check merged in from the old separate Sizing step.
-      if (form.sizing_type==='standard') {
-        const sizeTotal = STD.reduce((a,sz)=>a+(form.sizes?.[sz]||0),0);
-        if (sizeTotal < 1) {
-          e.sizes = 'Enter at least 1 piece';
-        } else if (form.quantity_ordered && sizeTotal !== form.quantity_ordered) {
-          e.sizes = `Size breakdown (${sizeTotal} pcs) must exactly match quantity ordered (${form.quantity_ordered} pcs)`;
-        }
-      }
+      if (!s?.colors?.body && !f.color?.trim()) e.color = 'Required';
+      const short = qtyShort(f);
+      if (short) e[f.sizing_type === 'custom' ? 'custom_qty' : 'sizes'] = `VFRB accepts bulk orders only: minimum ${MIN_ORDER_QTY} pieces (${short} more needed)`;
     }
-    // step===2 is Delivery & Notes — deadline/PO/notes are all optional server-side, so
-    // there is nothing to require here; goNext() still runs validate() for consistency.
-    setErrs(e);
-    return !Object.keys(e).length;
+    // step===2 is Delivery & Notes — deadline/PO/notes are all optional server-side.
+    return e;
+  };
+  const validate = () => {
+    const all = forms.map((f, i) => validatePiece(f, studios[i]));
+    setErrs(all);
+    return all.every(e => !Object.keys(e).length);
   };
 
   const cardRef = useRef(null);
@@ -1283,121 +1246,121 @@ export default function OrderWizard() {
     if (!validate()) return;
     setDir(1);
     setStep(s => s + 1);
-    setErrs({});
+    setErrs(forms.map(() => ({})));
   };
   const goBack = () => {
     setDir(-1);
     setStep(s => s - 1);
-    setErrs({});
+    setErrs(forms.map(() => ({})));
   };
 
+  // One order. `linked` = order ids already placed for this set, named in the staff note and the saved config.
+  const postOrder = async (f, s, linked) => {
+    const fd = new FormData();
+    ['garment_type','collar_type','sleeve_type','pocket_type','client_design_notes',
+     'order_type','color'].forEach(k => fd.append(k, f[k]));
+    fd.append('quantity_ordered', orderQty(f));
+    if (f.deadline)         fd.append('deadline',         f.deadline);
+    if (f.po_reference)     fd.append('po_reference',     f.po_reference);
+    const uset = s?.uniformSet ? { ...s.uniformSet, ...(linked.length && { linkedOrderIds: linked }) } : null;
+    const setLine = uset ? setNote(uset) : '';
+    const notesOut = [setLine, f.special_notes].filter(Boolean).join('\n');
+    if (notesOut)           fd.append('special_notes',    notesOut);
+    // Backend reads this as 'design_ref_file' (OrderController::customerStore).
+    if (f.design_ref_file)  fd.append('design_ref_file', f.design_ref_file);
+    if (s) {
+      // previewPng is a base64 data URL; the backend stores it as a real
+      // file and strips it from studio_config, so send it as a Blob rather
+      // than letting a ~150-500KB string ride along inside the JSON column.
+      const { previewPng, ...studioRest } = s;
+      fd.append('studio_config', JSON.stringify(uset ? { ...studioRest, uniformSet: uset } : studioRest));
+      if (s.colors?.body) fd.append('studio_color', s.colors.body);
+      if (previewPng?.startsWith('data:image/png')) {
+        const blob = await (await fetch(previewPng)).blob();
+        fd.append('design_preview_file', blob, `design-${Date.now()}.png`);
+      }
+    }
+    fd.append('sizing_type', f.sizing_type);
+    // Backend expects a single JSON-string field, not bracket-notation sizes[XS]=...
+    if (f.sizing_type === 'standard') {
+      const sizePayload = {};
+      STD.forEach(sz => { if ((f.sizes?.[sz]||0) > 0) sizePayload[sz] = f.sizes[sz]; });
+      if (Object.keys(sizePayload).length) fd.append('sizes', JSON.stringify(sizePayload));
+    } else {
+      const measurementPayload = {};
+      Object.entries(f.measurements||{}).forEach(([k,v]) => { if (v) measurementPayload[k] = v; });
+      if (Object.keys(measurementPayload).length) fd.append('measurements', JSON.stringify(measurementPayload));
+      if (f.custom_qty) fd.append('custom_qty', f.custom_qty);
+    }
+    const r = await axios.post('/api/customer/orders', fd, { headers:{ 'Content-Type':'multipart/form-data' } });
+    return r.data.order ?? { order_id: r.data.order_id, garment_type: f.garment_type, quantity_ordered: orderQty(f) };
+  };
+
+  // Places every piece in turn (top first). A piece placed earlier, in this visit or before a refresh, is not placed again.
   const handleSubmit = async () => {
     if (!validate()) return;
     setBusy(true); setApiErr('');
+    const placed = setId ? readPlaced(setId) : {};
+    const done = [];
+    let i = 0;
     try {
-      const fd = new FormData();
-      ['garment_type','collar_type','sleeve_type','pocket_type','client_design_notes',
-       'order_type','color'].forEach(k => fd.append(k, form[k]));
-      if (form.quantity_ordered) fd.append('quantity_ordered', form.quantity_ordered);
-      if (form.deadline)         fd.append('deadline',         form.deadline);
-      if (form.po_reference)     fd.append('po_reference',     form.po_reference);
-      const setLine = studio?.uniformSet ? setNote(studio.uniformSet) : '';
-      const notesOut = [setLine, form.special_notes].filter(Boolean).join('\n');
-      if (notesOut)              fd.append('special_notes',    notesOut);
-      // Backend reads this as 'design_ref_file' (OrderController::customerStore).
-      if (form.design_ref_file)  fd.append('design_ref_file', form.design_ref_file);
-      if (studio) {
-        // previewPng is a base64 data URL; the backend stores it as a real
-        // file and strips it from studio_config, so send it as a Blob rather
-        // than letting a ~150-500KB string ride along inside the JSON column.
-        const { previewPng, ...studioRest } = studio;
-        fd.append('studio_config', JSON.stringify(studioRest));
-        if (studio.colors?.body) fd.append('studio_color', studio.colors.body);
-        if (previewPng?.startsWith('data:image/png')) {
-          const blob = await (await fetch(previewPng)).blob();
-          fd.append('design_preview_file', blob, `design-${Date.now()}.png`);
-        }
+      for (; i < forms.length; i++) {
+        const role = roleOf(i);
+        if (role && placed[role]) { done.push(placed[role]); continue; }
+        const order = await postOrder(forms[i], studios[i], done.map(o => o.order_id));
+        done.push(order);
+        if (setId) { placed[role] = { order_id: order.order_id, garment_type: order.garment_type, quantity_ordered: order.quantity_ordered }; writePlaced(setId, placed); }
       }
-      fd.append('sizing_type', form.sizing_type);
-      // Backend expects a single JSON-string field, not bracket-notation sizes[XS]=...
-      if (form.sizing_type === 'standard') {
-        const sizePayload = {};
-        STD.forEach(sz => {
-          if ((form.sizes?.[sz]||0) > 0) sizePayload[sz] = form.sizes[sz];
-        });
-        if (Object.keys(sizePayload).length) fd.append('sizes', JSON.stringify(sizePayload));
-      } else {
-        const measurementPayload = {};
-        Object.entries(form.measurements||{}).forEach(([k,v]) => {
-          if (v) measurementPayload[k] = v;
-        });
-        if (Object.keys(measurementPayload).length) fd.append('measurements', JSON.stringify(measurementPayload));
-        if (form.custom_qty) fd.append('custom_qty', form.custom_qty);
-      }
-
-      const r = await axios.post('/api/customer/orders', fd,
-        { headers:{ 'Content-Type':'multipart/form-data' } });
-
-      const newId = r.data.order?.order_id ?? r.data.order_id;
-      if (moreInSet) {
-        // Keep the remaining piece in the handoff so a refresh mid-set does not lose it.
-        setOrderIds.current = [...setOrderIds.current, newId];
-        const next = setQueue[setIdx + 1];
-        try { sessionStorage.setItem('studio_config', JSON.stringify({ ...next, uniformSet: { ...next.uniformSet, linkedOrderIds: setOrderIds.current } })); } catch { /* quota */ }
-      } else {
-        // The design now lives on the order (studio_config + preview), so retire the account draft, but only when it
-        // still holds this design: a draft changed elsewhere since the handoff is a different design and stays.
-        const fp = handoffFp.current;
-        if (fp) axios.get('/api/customer/drafts/latest')
-          .then(d => { if (draftFingerprint(d.data?.draft?.studio_config) === fp) return axios.delete('/api/customer/drafts/latest'); })
-          .catch(() => {});
-        clearStudioHandoff();
-      }
-
+      // The design now lives on the order (studio_config + preview), so retire the account draft, but only when it
+      // still holds this design: a draft changed elsewhere since the handoff is a different design and stays.
+      const fp = handoffFp.current;
+      if (fp) axios.get('/api/customer/drafts/latest')
+        .then(d => { if (draftFingerprint(d.data?.draft?.studio_config) === fp) return axios.delete('/api/customer/drafts/latest'); })
+        .catch(() => {});
+      clearStudioHandoff();
+      try { sessionStorage.removeItem(PLACED_KEY); } catch { /* storage blocked */ }
       // Confetti fires immediately; MaterialsReveal mounts once it finishes.
       setShowConfetti(true);
-      const created = r.data.order ?? {
-        order_id:         r.data.order_id,
-        garment_type:     form.garment_type,
-        quantity_ordered: form.quantity_ordered,
-      };
-      setTimeout(() => setCreatedOrder(created), 1400);
-
+      setTimeout(() => { setRevealIdx(0); setCreated(done); }, 1400);
     } catch(e) {
       // response.data.message is a generic validation string; .errors has per-field detail.
       const fieldErrors = e.response?.data?.errors;
       const firstDetail = fieldErrors ? Object.values(fieldErrors)[0]?.[0] : null;
-      setApiErr(
-        firstDetail
-          ?? e.response?.data?.message
-          ?? e.response?.data?.error
-          ?? 'Failed to submit. Try again.'
-      );
+      const msg = firstDetail ?? e.response?.data?.message ?? e.response?.data?.error ?? 'Failed to submit. Try again.';
+      setApiErr(done.length
+        ? `${ROLE_LABEL[roleOf(0)] ?? 'First piece'} placed as order #${done.map(o => o.order_id).join(', #')}. ${ROLE_LABEL[roleOf(i)] ?? 'Next piece'} failed: ${msg} Submit again to place it.`
+        : msg);
     } finally { setBusy(false); }
   };
 
+  const perPiece = (render) => (
+    <div style={{ display:'flex', flexDirection:'column', gap:28 }}>
+      {forms.map((f, i) => <div key={i} className={isSet ? 'wz-piece' : undefined}>{render(f, i)}</div>)}
+    </div>
+  );
   const COMPS = [
-    <StepDesign       key="d" form={form} set={set} errors={errs} studio={studio} onClearStudio={clearStudio} onOpenStudio={() => nav('/design-studio')}/>,
-    <StepQuantitySize key="q" form={form} set={set} errors={errs} studio={studio}
-      onEditDesign={() => { setDir(-1); setStep(0); }} onShowChart={() => setShowSizeChart(true)}/>,
-    <StepDelivery     key="v" form={form} set={set} errors={errs}/>,
-    <StepReview       key="r" form={form} studio={studio} onEdit={(n) => { setDir(-1); setStep(n); setErrs({}); }}/>,
+    perPiece((f, i) => <>
+      {isSet && <h2 className="wz-piece-h">{pieceTitle(i)}</h2>}
+      <StepDesign form={f} set={setFor(i)} errors={errs[i] ?? {}} studio={studios[i]} onClearStudio={clearStudio} onOpenStudio={() => nav('/design-studio')}/>
+    </>),
+    perPiece((f, i) => <StepQuantitySize form={f} set={setFor(i)} errors={errs[i] ?? {}} studio={studios[i]} title={pieceTitle(i)} first={i === 0}
+      onEditDesign={() => { setDir(-1); setStep(0); }} onShowChart={() => setShowSizeChart(true)}/>),
+    <StepDelivery     key="v" form={form} set={setFor(0)} errors={errs[0] ?? {}}/>,
+    perPiece((f, i) => <StepReview form={f} studio={studios[i]} title={isSet ? `${pieceTitle(i)} · order ${i + 1} of ${forms.length}` : null}
+      last={i === forms.length - 1} onEdit={(n) => { setDir(-1); setStep(n); setErrs(forms.map(() => ({}))); }}/>),
   ];
 
+  const createdOrder = created?.[revealIdx] ?? null;
   return (
     <>
-      {/* Blocking post-submit reveal — nothing below renders while createdOrder is set. */}
+      {/* Blocking post-submit reveal — nothing below renders while an order is being revealed. A set reveals each piece's order in turn. */}
       {createdOrder && (
         <MaterialsReveal
+          key={createdOrder.order_id}
           order={createdOrder}
           onDone={() => {
-            if (!moreInSet) { nav(`/orders/${createdOrder.order_id}`, { state: { justCreated: true } }); return; }
-            // Next piece of the set: same delivery details, its own garment, quantity and sizes.
-            const next = setQueue[setIdx + 1];
-            setSetIdx(setIdx + 1);
-            setCreatedOrder(null); setShowConfetti(false); setErrs({}); setDir(1); setStudio(null);
-            setForm(f => ({ ...INIT, order_type: f.order_type, deadline: f.deadline, po_reference: f.po_reference, special_notes: f.special_notes }));
-            applyStudio({ ...next, uniformSet: { ...next.uniformSet, linkedOrderIds: setOrderIds.current } });
+            if (revealIdx < created.length - 1) { setRevealIdx(revealIdx + 1); return; }
+            nav(`/orders/${created[0].order_id}`, { state: { justCreated: true } });
           }}
         />
       )}
@@ -1409,6 +1372,19 @@ export default function OrderWizard() {
         .wiz-size-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
         .wiz-2col      { grid-template-columns:1fr; }
         .wiz-step-card { padding:18px 16px; }
+        .wz-piece + .wz-piece { padding-top:24px; border-top:1px dashed var(--border); }
+        .wz-piece-h { margin:0; font-size:15px; font-weight:800; color:var(--ink); }
+        .wz-qty { padding:12px 16px; border-radius:11px; background:#fef3c7; border:1px solid #fde68a; }
+        .wz-qty[data-ok="true"] { background:#f0fdfa; border-color:#99f6e4; }
+        .wz-qty-row { display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:12px; color:var(--ink); }
+        .wz-qty-row strong { font-size:18px; font-weight:800; color:var(--teal); }
+        .wz-qty-bar { height:6px; margin:8px 0 6px; border-radius:99px; background:rgba(15,23,42,.08); overflow:hidden; }
+        .wz-qty-bar span { display:block; height:100%; background:#d97706; transition:width .2s; }
+        .wz-qty[data-ok="true"] .wz-qty-bar span { background:var(--teal); }
+        .wz-qty p { margin:0; font-size:11px; font-weight:600; color:#92400e; }
+        .wz-qty[data-ok="true"] p { color:var(--teal-700, #026a77); }
+        .wz-sum-piece + .wz-sum-piece, .wz-sum-piece + dl { margin-top:14px; padding-top:14px; border-top:1px solid var(--border); }
+        .wz-sum-role { margin:0 0 8px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.07em; color:var(--text-subtle); }
 
         @media (min-width:480px) {
           .wiz-size-grid { grid-template-columns:repeat(3,1fr); }
@@ -1434,16 +1410,15 @@ export default function OrderWizard() {
       <div className="cx-page wz-page" style={{ fontFamily:FONT }}>
         <div className="wz-head">
           <div>
-            <h1>Place an Order</h1>
+            <h1>{isSet ? 'Order a Uniform Set' : 'Place an Order'}</h1>
             <p>Step {step+1} of {STEPS.length} - {STEPS[step]}</p>
           </div>
         </div>
         <p className="sr-only" role="status" aria-live="polite">{`Step ${step + 1} of ${STEPS.length}: ${STEPS[step]}`}</p>
         <StepBar step={step}/>
-        {setQueue && (
+        {isSet && (
           <p className="wz-set" role="status" style={{ margin:'0 0 14px', padding:'10px 14px', borderRadius:12, background:'var(--teal-50, #e6f4f5)', border:'1px solid var(--border)', fontSize:13, color:'var(--ink)' }}>
-            Uniform set · part {setIdx + 1} of {setQueue.length}: <strong>{setQueue[setIdx].garment}</strong>
-            {moreInSet ? <> · next: {setQueue[setIdx + 1].garment}</> : setOrderIds.current.length ? <> · with order #{setOrderIds.current.join(', #')}</> : null}
+            Uniform set: <strong>{forms.map((f, i) => `${ROLE_LABEL[roleOf(i)]} ${f.garment_type}`).join(' + ')}</strong>. One submit places a linked order for each piece.
           </p>
         )}
         {(studio || form.garment_type) && (
@@ -1453,8 +1428,8 @@ export default function OrderWizard() {
               {studio?.previewPng ? <img src={studio.previewPng} alt=""/> : <NavIcon name="garmentType" size={20} color="#fff"/>}
             </div>
             <div style={{ minWidth:0, flex:1 }}>
-              <p className="wz-mini-n">{form.garment_type || 'Custom garment'}</p>
-              <p className="wz-mini-s">{[form.quantity_ordered && `${form.quantity_ordered} pcs`, form.color].filter(Boolean).join(' · ') || 'Quantity not set yet'}</p>
+              <p className="wz-mini-n">{forms.map(f => f.garment_type).filter(Boolean).join(' + ') || 'Custom garment'}</p>
+              <p className="wz-mini-s">{forms.map(f => orderQty(f)).some(Boolean) ? forms.map(f => `${orderQty(f)} pcs`).join(' + ') : 'Quantity not set yet'}</p>
             </div>
           </div>
         )}
@@ -1482,11 +1457,11 @@ export default function OrderWizard() {
               </button>
               <button className="cx-btn cx-btn-p wz-next" disabled={busy}
                 onClick={step === STEPS.length - 1 ? handleSubmit : goNext}>
-                {busy ? 'Submitting' : step === STEPS.length - 1 ? 'Submit Order' : `Next: ${STEPS[step+1]}`}
+                {busy ? 'Submitting' : step === STEPS.length - 1 ? (isSet ? `Submit ${forms.length} Orders` : 'Submit Order') : `Next: ${STEPS[step+1]}`}
               </button>
             </div>
           </div>
-          <div className="wz-side"><WizSummary form={form} studio={studio} step={step}/></div>
+          <div className="wz-side"><WizSummary forms={forms} studios={studios} step={step}/></div>
         </div>
       </div>
       </>

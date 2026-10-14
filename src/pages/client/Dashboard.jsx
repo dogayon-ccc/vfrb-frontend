@@ -48,8 +48,8 @@ function ActiveOrder({ order }) {
       onClick={() => nav(`/orders/${order.order_id}`)} className="cx-card"
       style={{ display: 'block', width: '100%', textAlign: 'left', padding: 16, cursor: 'pointer', font: 'inherit', color: 'inherit' }}
       aria-label={`Open order ${order.order_id}, ${orderTitle(order)}`}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-        <OrderThumb order={order} size={48} />
+      <div className="cx-ao-h" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+        <OrderThumb order={order} size={64} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ margin: 0, fontSize: 14, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {orderTitle(order)}
@@ -108,7 +108,7 @@ export default function CustomerDashboard() {
     if (o.status === 'fulfilled' && o.value) { const l = asList(o.value.data); setOrders(l); cacheSet('orders_list', l, TTL.ORDERS); }
     else if (o.status === 'rejected' && !co) setError(true);
     if (d.status === 'fulfilled' && d.value.data?.draft?.studio_config?.garment) setDraft(d.value.data.draft);
-    if (g.status === 'fulfilled' && Array.isArray(g.value.data)) setDesigns(g.value.data.filter(x => x.is_archived && x.config?.garment).slice(0, 4));
+    if (g.status === 'fulfilled' && Array.isArray(g.value.data)) setDesigns(g.value.data.filter(x => x.is_archived && x.config?.garment).slice(0, 3));
     setLoading(false);
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -116,7 +116,7 @@ export default function CustomerDashboard() {
   const sorted = useMemo(() => [...orders].sort((a, b) => new Date(b.created_at ?? 0) - new Date(a.created_at ?? 0)), [orders]);
   const active = sorted.filter(o => !['completed', 'cancelled'].includes(o.status));
   const shownActive = active.slice(0, 3);
-  const recent = sorted.filter(o => !shownActive.includes(o)).slice(0, 6);
+  const recent = sorted.filter(o => !shownActive.includes(o)).slice(0, 3);
   const total = stats?.total_orders ?? orders.length;
   const inProd = stats?.in_production ?? orders.filter(o => IN_PRODUCTION.includes(o.status)).length;
   const completed = stats?.completed_orders ?? orders.filter(o => o.status === 'completed').length;
@@ -199,7 +199,7 @@ export default function CustomerDashboard() {
           {/* Active orders with lifecycle stepper */}
           {(loading || active.length > 0) && (
             <section aria-label="Active orders">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <div className="cx-sec-h" style={{ marginBottom: 10 }}>
                 <h2 style={{ fontSize: 15, fontWeight: 800, margin: 0 }}>Active Orders{active.length > 0 && ` (${active.length})`}</h2>
                 <Link to="/orders" className="cx-link">View all →</Link>
               </div>
@@ -213,11 +213,11 @@ export default function CustomerDashboard() {
           {/* Recent designs — the customer's own saved designs and current draft */}
           {!loading && designs.length > 0 && (
             <section className="cx-card" aria-label="Recent designs">
-              <div className="cx-card-h"><h2>Recent Designs</h2><Link to="/my-designs" className="cx-link">My Designs →</Link></div>
+              <div className="cx-card-h"><h2>Recent Designs</h2><Link to="/my-designs" className="cx-link">View all →</Link></div>
               <div className="cx-rd">
                 {designs.map(d => (
                   <button key={d.id} type="button" className="cx-rd-item" onClick={() => { sessionStorage.setItem('studio_config', JSON.stringify(d.config)); nav('/design-studio'); }}>
-                    <span className="cx-thumb" style={{ width: 56, height: 64 }} aria-hidden="true"><DesignThumb compact src={d.photo_path} garment={d.garment} colors={d.config?.colors} name={savedDesignName(d.config) || d.label || humanize(d.garment)} /></span>
+                    <span className="cx-thumb cx-rd-thumb" aria-hidden="true"><DesignThumb compact src={d.photo_path} garment={d.garment} colors={d.config?.colors} name={savedDesignName(d.config) || d.label || humanize(d.garment)} /></span>
                     <strong>{savedDesignName(d.config) || d.label || humanize(d.garment)}</strong><em>Saved · reuse</em>
                   </button>
                 ))}
@@ -227,7 +227,7 @@ export default function CustomerDashboard() {
 
           {/* Recent orders */}
           {(loading || error || orders.length === 0 || recent.length > 0) && <section className="cx-card" aria-label="Earlier orders">
-            <div className="cx-card-h"><h2>{shownActive.length ? 'Earlier Orders' : 'Recent Orders'}</h2><Link to="/orders" className="cx-link">View all orders</Link></div>
+            <div className="cx-card-h"><h2>{shownActive.length ? 'Earlier Orders' : 'Recent Orders'}</h2><Link to="/orders" className="cx-link">View all →</Link></div>
             {loading ? (
               <div style={{ padding: 16, display: 'grid', gap: 12 }}>{[1, 2, 3].map(i => <Skeleton key={i} h={44} />)}</div>
             ) : error ? (
@@ -239,7 +239,7 @@ export default function CustomerDashboard() {
                 cta={{ label: 'Open Design Studio', onClick: () => nav('/design-studio') }} />
             ) : recent.map(o => (
               <button key={o.order_id} className="cx-row" onClick={() => nav(`/orders/${o.order_id}`)}>
-                <OrderThumb order={o} size={44} />
+                <OrderThumb order={o} size={60} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ margin: 0, fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{orderTitle(o)}</p>
                   <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-subtle)' }}>
@@ -253,7 +253,15 @@ export default function CustomerDashboard() {
         </div>
 
       </div>
-      <style>{`.cx-rd{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px;padding:12px 16px 16px}
+      <style>{`.cx-rd{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:12px 16px 16px}
+        .cx-rd-thumb{width:100%;max-width:120px;aspect-ratio:5/6;height:auto}
+        .cx-sec-h,.cx-dash-grid .cx-card-h{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px 12px;min-width:0}
+        .cx-sec-h h2,.cx-dash-grid .cx-card-h h2{min-width:0;overflow-wrap:anywhere}
+        .cx-dash-grid .cx-link{white-space:nowrap}
+        .cx-dash-grid .cx-row,.cx-ao-h{flex-wrap:wrap;min-width:0}
+        .cx-dash-grid .cx-row>div:not(.cx-thumb),.cx-ao-h>div:not(.cx-thumb){flex:1 1 140px;min-width:0}
+        .cx-dash-grid>div,.cx-dash-grid section>div:not(.cx-rd){grid-template-columns:minmax(0,1fr)}
+        .cx-dash-grid .cx-row>.cx-pill,.cx-ao-h>.cx-pill{flex-shrink:0;max-width:100%}
         .cx-rd-item{display:flex;flex-direction:column;align-items:center;gap:6px;min-height:44px;padding:10px 6px;border:1px solid var(--border);border-radius:12px;background:var(--bg-surface);cursor:pointer;font:inherit;color:inherit;text-align:center}
         .cx-rd-item:hover{border-color:var(--teal);background:var(--teal-50)}
         .cx-rd-item strong{font-size:12px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

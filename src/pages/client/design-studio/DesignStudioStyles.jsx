@@ -85,6 +85,17 @@ export default function DesignStudioStyles() {
         background:var(--bg-card);border-left:1px solid var(--border);box-shadow:var(--shadow-xs);
       }
       .ds-panel-body{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;}
+      .ds-panel-toggle{display:none;}
+      @media (min-width:1024px){
+        .ds-panel{position:relative;transition:width .2s ease;}
+        .ds-panel-toggle{display:flex;position:absolute;top:8px;right:8px;z-index:3;width:32px;height:32px;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:var(--r-md);background:var(--bg-card);color:var(--text-muted);cursor:pointer;}
+        .ds-panel-toggle:hover{color:var(--ink);border-color:var(--teal);}
+        .ds-panel:not([data-collapsed]) .ds-sections{padding-right:44px;}
+        .ds-panel[data-collapsed]{width:48px;}
+        .ds-panel[data-collapsed] > :not(.ds-panel-toggle){display:none;}
+        .ds-panel[data-collapsed] .ds-panel-toggle{right:7px;}
+      }
+      @media (min-width:1024px) and (prefers-reduced-motion:reduce){.ds-panel{transition:none;}}
       .ds-sheet-head{
         display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
         padding:14px 16px 12px;border-bottom:1px solid var(--border);
@@ -749,6 +760,11 @@ export default function DesignStudioStyles() {
       .ds-piece button:disabled{opacity:.45;cursor:not-allowed;}
       .ds-piece .ds-piece-leave{min-width:38px;padding:0;justify-content:center;font-size:18px;}
       @media (pointer:coarse){.ds-piece button{min-height:44px;}}
+      .ds-apply{display:inline-flex;align-items:center;gap:2px;margin-left:4px;padding-left:8px;border-left:1px solid var(--cx-line);font-size:12px;color:var(--cx-ink-2);}
+      .ds-apply > span{margin-right:4px;}
+      .ds-piece .ds-apply button{min-height:32px;padding:0 10px;font-size:12px;}
+      .ds-piece .ds-apply button[aria-checked=true]{background:var(--cx-thread-ring,var(--teal-50));color:var(--cx-ink);box-shadow:inset 0 0 0 1.5px var(--cx-thread);}
+      @media (pointer:coarse){.ds-piece .ds-apply button{min-height:44px;}}
 
       /* Plain colour swatches in the Studio (the kit's woven hatch hid the true colour) */
       .ds .cx-swatch-dot{background:var(--sw);}

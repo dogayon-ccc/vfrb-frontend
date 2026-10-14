@@ -49,3 +49,37 @@ export function orderQueue(snap) {
 // One line staff see on each order of the set.
 export const setNote = u => `Uniform set ${u.id.slice(0, 8)}: part ${u.part} of ${u.of} (${u.parts.map(p => `${p.role} ${p.garment}`).join(' + ')})`
   + (u.linkedOrderIds?.length ? `; with order #${u.linkedOrderIds.join(', #')}` : '') + '.';
+
+// The orders of one uniform set, top first: `order` and every other order of the same set id from `orders` (a customer order list,
+// where studio_config may still be a JSON string). A single-garment order returns just itself.
+export function setOrders(order, orders = []) {
+  const cfgOf = o => { const c = o?.studio_config; if (typeof c !== 'string') return c ?? null; try { return JSON.parse(c); } catch { return null; } };
+  const id = cfgOf(order)?.uniformSet?.id;
+  if (!id) return [order];
+  const byId = new Map([order, ...orders].filter(o => cfgOf(o)?.uniformSet?.id === id).map(o => [o.order_id, o]));
+  const rank = o => SET_ROLES.indexOf(cfgOf(o)?.uniformSet?.role);
+  return [...byId.values()].sort((a, b) => rank(a) - rank(b));
+}
+
+// "Apply to: Both": the edit made on the active piece is copied onto the other piece's saved snapshot.
+// Colours and patterns copy only into zones the other garment has (`zones`); `patternsOk` is false on a photo base (no patterns there).
+export function mirrorStyle(snap, cfg, zones, patternsOk) {
+  if (!snap) return snap;
+  const pick = (src = {}) => Object.fromEntries(Object.entries(src).filter(([z]) => zones.includes(z)));
+  const next = { ...snap, colors: { ...snap.colors, ...pick(cfg.colors) } };
+  if (patternsOk) {
+    next.patterns = { ...snap.patterns, ...pick(cfg.patterns) };
+    next.patternParams = { ...snap.patternParams, ...pick(cfg.patternParams) };
+  }
+  return next;
+}
+
+// A logo or text added with "Both": the same element on the other piece, at the same relative place on that garment, as a new layer.
+// src/dst are the garments' canvas sizes { w, h }; face is 'front' or 'back'.
+export function mirrorOverlay(snap, obj, src, dst, face = 'front') {
+  if (!snap || !obj || !(src?.w > 0) || !(src?.h > 0)) return snap;
+  const copy = { ...obj, left: ((obj.left ?? 0) / src.w) * dst.w, top: ((obj.top ?? 0) / src.h) * dst.h, __layerId: crypto.randomUUID() };
+  const key = face === 'back' ? 'backOverlays' : 'frontOverlays';
+  const list = [...(snap[key] ?? (face === 'back' ? [] : snap.overlays ?? [])), copy];
+  return face === 'back' ? { ...snap, backOverlays: list } : { ...snap, frontOverlays: list, overlays: list };
+}

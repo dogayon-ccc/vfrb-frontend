@@ -357,3 +357,7 @@ span.cx-swatch{cursor:default}
 .cx-lift{transition:transform var(--cx-dur-2) var(--cx-ease),box-shadow var(--cx-dur-2) var(--cx-ease)}
 .cx-lift:hover{transform:translateY(-2px);box-shadow:var(--cx-elev-1)}
 @media(prefers-reduced-motion:reduce){.cx-rise{animation:none}.cx-lift,.cx-swatch,.cx-swatch-dot{transition:none}.cx-lift:hover{transform:none}}
+/* Wizard: focus and scroll-into-view keep size cells and fields clear of the sticky Back/Next bar */
+html[data-wizard]{scroll-padding-bottom:112px}
+.wz-page .wz-cell,.wz-page input,.wz-page select,.wz-page textarea{scroll-margin-bottom:112px}
+.wiz-step-card{margin-bottom:8px}
