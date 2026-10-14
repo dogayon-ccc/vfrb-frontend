@@ -838,26 +838,31 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && !/<option value="(manager|staff|customer)"|key:'customer'|'Clients'|'Managers'/.test(um));
 }
 
-// Owner: read-only admin account. Frontend mirror of backend OwnerReadOnly (GET-only, 8 areas); the server stays the enforcement point.
+// Owner: read-only admin account. Frontend mirror of backend OwnerReadOnly (GET-only, 9 areas); the server stays the enforcement point.
 {
   const JA = await L('/src/utils/jobAccess.js'), AR = await L('/src/utils/authRoute.js');
   const rdo = q => fsx.readFileSync(urlx.fileURLToPath(new URL(q, import.meta.url)), 'utf8');
   const owner = { role: 'owner' };
   t('owner pages: exactly the backend read-only areas (invoice = the page over the orders API); everything else is closed',
-    JA.OWNER_PAGES.join() === 'dashboard,orders,reports,transactions,invoice,inventory,materials,activity-log'
-    && ['/admin', '/admin/dashboard', '/admin/orders/12', '/admin/reports', '/admin/transactions', '/admin/invoice?x=1', '/admin/inventory', '/admin/materials', '/admin/activity-log'].every(JA.ownerCanOpen)
+    JA.OWNER_PAGES.join() === 'dashboard,orders,reports,transactions,invoice,inventory,materials,activity-log,audit-logs'
+    && ['/admin', '/admin/dashboard', '/admin/orders/12', '/admin/reports', '/admin/transactions', '/admin/invoice?x=1', '/admin/inventory', '/admin/materials', '/admin/activity-log', '/admin/audit-logs'].every(JA.ownerCanOpen)
     && !['/admin/users', '/admin/settings', '/admin/production', '/admin/procurement', '/admin/physical-count', '/admin/delivery', '/admin/messages', '/admin/customers', '/admin/suppliers', '/admin/qc'].some(JA.ownerCanOpen)
     && JA.isOwner(owner) && !JA.isOwner({ role: 'manager' }) && JA.canAccessArea(owner, 'inventory') && !JA.canAccessArea(owner, 'production'));
   const app = rdo('../src/App.jsx'), lay = rdo('../src/layouts/AdminLayout.jsx'), login = rdo('../src/pages/auth/Login.jsx');
-  t('owner routing: signs in to the admin portal, gets the manager dashboard, every admin route sits behind OwnerGate; reports/activity-log/invoice open to owner, other manager pages do not',
+  t('owner routing: signs in to the admin portal, gets the manager dashboard, every admin route sits behind OwnerGate; reports/activity-log/audit-logs/invoice open to owner, other manager pages do not',
     AR.isStaffRole(owner) && AR.homeFor(owner) === '/admin/dashboard' && /if \(isStaffRole\(data\.user\)\)/.test(login)
     && /\['manager', 'owner'\]\.includes\(user\.role\) \? <AdminDashboard\/>/.test(app) && /isOwner\(\) && !ownerCanOpen\(pathname\) \? <AccessDenied/.test(app)
     && /<Route element=\{<OwnerGate\/>\}>\s*<Route path="dashboard"/.test(app) && /<\/Route>\s*<Route path="\*" element=\{<AdminNotFound\/>\}\/>/.test(app)
-    && ['reports', 'activity-log', 'invoice'].every(r => new RegExp(`path="${r}"\\s+element=\\{<RequireManager owner>`).test(app))
+    && ['reports', 'activity-log', 'audit-logs', 'invoice'].every(r => new RegExp(`path="${r}"\\s+element=\\{<RequireManager owner>`).test(app))
     && ['feedback', 'suppliers', 'users'].every(r => new RegExp(`path="${r}"\\s+element=\\{<RequireManager>`).test(app)) && !/\['manager',\s*'staff'\]\.includes/.test(app));
   t('owner shell: nav lists only owner pages, label says view only, no notification bell or polling (API refuses notifications)',
     /owner \? STAFF_NAV\.filter\(i => ownerCanOpen\(i\.to\)\)/.test(lay) && /owner \? MANAGER_EXTRA\.filter\(i => ownerCanOpen\(i\.to\)\)/.test(lay) && /owner \? MOB_NAV\.filter\(i => ownerCanOpen\(i\.to\)\)/.test(lay)
     && /'Owner · view only'/.test(lay) && /\{!owner && <div ref=\{bellRef\}/.test(lay) && /if \(isOwner\(\)\) return; \/\/ the API refuses notifications/.test(lay));
+  const audit = rdo('../src/pages/admin/AuditLog.jsx');
+  t('audit log: read-only GET /api/admin/audit-logs with action/date filters and pages; listed in the manager Admin group',
+    /axios\.get\('\/api\/admin\/audit-logs'/.test(audit) && !/axios\.(post|put|patch|delete)/.test(audit)
+    && ['params.action', 'params.date_from', 'params.date_to', 'page: target'].every(s => audit.includes(s))
+    && /\{ to:'\/admin\/audit-logs',\s+icon:ScrollText,\s+label:'Audit Log'/.test(lay));
   const dash = rdo('../src/pages/admin/Dashboard.jsx');
   t('owner dashboard: no revenue (snapshot or chart tab), no Total Orders, no RFQ/delivery requests, links only to owner pages',
     /!owner && \{ label: 'Total Orders'/.test(dash) && /!owner && \{ label: 'Revenue \(Month\)'/.test(dash) && /action=\{owner \? null : <PillTabs/.test(dash)

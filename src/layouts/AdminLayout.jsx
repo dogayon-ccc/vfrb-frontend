@@ -15,7 +15,7 @@ import {
   LayoutDashboard, ClipboardList, Package, MessageSquare, ShoppingCart,
   Truck, Layers, Factory, FileText, ShieldCheck, ScanLine, AlertTriangle,
   Wallet, BarChart3, Receipt, Building2, Users, MessageCircle, Settings,
-  LogOut, Bell, Trophy, Contact,
+  LogOut, Bell, Trophy, Contact, ScrollText,
 } from 'lucide-react';
 
 const T  = 'var(--teal)';
@@ -63,6 +63,7 @@ const MANAGER_EXTRA = [
   { to:'/admin/users',        icon:Users,       label:'Users'                },
   { to:'/admin/designs/showcase-queue', icon:Trophy, label:'Showcase'           },
   { to:'/admin/feedback',     icon:MessageCircle,label:'Feedback'            },
+  { to:'/admin/audit-logs',   icon:ScrollText,  label:'Audit Log'            },
   { to:'/admin/settings',     icon:Settings,    label:'Settings'             },
 ];
 
