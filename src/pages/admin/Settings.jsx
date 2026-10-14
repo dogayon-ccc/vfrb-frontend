@@ -6,7 +6,6 @@ import { checkUpload } from '../../utils/fileCheck';
 import { PageHeader, Panel, Banner, Toast, useToast, SkeletonRows, Meter } from '../../components/admin/AdminUI';
 import RecommendationGuidancePanel from '../../components/admin/RecommendationGuidancePanel';
 import { PASSWORD_RULE_TEXT, passwordOk, passwordLevel, levelLabel } from '../../utils/passwordRules';
-import { formatPhMobile, isPhMobile, smsStatusLine, smsLiveLine } from '../../utils/phPhone';
 import ProfilePhotoField from '../../components/ProfilePhotoField';
 import AppearanceField from '../../components/AppearanceField';
 import { readUser } from '../../utils/authRoute';
@@ -18,8 +17,6 @@ function getIsManager() {
 const NOTIFY = [
   { key: 'email_enabled', live: 'email_provider_live', label: 'Email notifications', icon: 'email', note: 'Order updates, AI recommendations ready, and account alerts.',
     warn: 'The mail server is a test inbox, so no real email is sent yet. Your preference is saved for when VFRB connects its mail provider.' },
-  { key: 'sms_enabled', live: 'sms_provider_live', label: 'SMS notifications', icon: 'phone', note: 'Text alerts for urgent order or delivery updates.',
-    warn: 'VFRB has not switched text alerts on yet — this reserves the setting.', sms: true },
 ];
 
 const Field = ({ label, id, children }) => (<div><label className="adm-field" htmlFor={id}>{label}</label>{children}</div>);
@@ -71,10 +68,9 @@ export default function Settings() {
   const [companyErr, setCompanyErr] = useState(false);
   const [companyBusy, setCompanyBusy] = useState(false);
   const [logoBusy, setLogoBusy] = useState(false);
-  const [prefs, setPrefs] = useState({ email_enabled: true, sms_enabled: false, email_provider_live: false, sms_provider_live: false });
+  const [prefs, setPrefs] = useState({ email_enabled: true, email_provider_live: false });
   const [prefsLoading, setPrefsLoading] = useState(true);
   const [prefsBusy, setPrefsBusy] = useState(false);
-  const [myPhone, setMyPhone] = useState(undefined); // this staff account's stored mobile number (read-only here)
   const [toast, setToast] = useToast();
   const [me, setMe] = useState(readUser);
   const fileRef = useRef(null);
@@ -88,7 +84,6 @@ export default function Settings() {
     loadCompany();
     axios.get('/api/settings/notifications').then((r) => setPrefs(r.data))
       .catch(() => setToast({ msg: 'Could not load notification preferences.', type: 'error' })).finally(() => setPrefsLoading(false));
-    axios.get('/api/user').then((r) => setMyPhone(r.data?.contact_number ?? null)).catch(() => setMyPhone(undefined));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -206,8 +201,8 @@ export default function Settings() {
           <div id="set-notify" className="set-anchor">
             <Panel title="Notification preferences">
               <p className="adm-sub" style={{ marginTop: -6 }}>Your own preferences — they apply only to your account.</p>
-              {prefsLoading ? <SkeletonRows rows={2} h={64} /> : NOTIFY.map((row, i) => {
-                const live = prefs[row.live]; const off = row.sms && !live; const on = !off && !!prefs[row.key];
+              {prefsLoading ? <SkeletonRows rows={1} h={64} /> : NOTIFY.map((row, i) => {
+                const live = prefs[row.live]; const on = !!prefs[row.key];
                 return (
                   <div key={row.key} className="set-pref" style={{ borderTop: i ? '1px solid var(--bg-surface)' : 'none' }}>
                     <span className="set-pref-ico"><NavIcon name={row.icon} size={18} color="currentColor" /></span>
@@ -217,16 +212,9 @@ export default function Settings() {
                         {!live && <span className="adm-pill" style={{ background: 'var(--warning-bg)', color: 'var(--warning-text)' }}>Not yet active</span>}
                       </div>
                       <p className="adm-sub" style={{ margin: '2px 0 0' }}>{row.note}</p>
-                      {row.sms && live ? (
-                        <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '3px 0 0' }}>{smsLiveLine(myPhone)}</p>
-                      ) : off ? (
-                        <p style={{ fontSize: 11, color: 'var(--warning-text)', margin: '3px 0 0' }}>
-                          {myPhone === undefined ? 'Text alerts are not active yet.' : smsStatusLine(myPhone, { noNumber: 'Text alerts are not active yet. No mobile number is on this account.' })}
-                          {isPhMobile(myPhone) && <> Number: <b>{formatPhMobile(myPhone)}</b>.</>}
-                        </p>
-                      ) : !live && <p style={{ fontSize: 11, color: 'var(--warning-text)', margin: '3px 0 0' }}>{row.warn}</p>}
+                      {!live && <p style={{ fontSize: 11, color: 'var(--warning-text)', margin: '3px 0 0' }}>{row.warn}</p>}
                     </div>
-                    <button role="switch" aria-checked={on} aria-label={row.label} className={`set-switch${on ? ' on' : ''}`} disabled={prefsBusy || off} onClick={() => togglePref(row.key)}><i /></button>
+                    <button role="switch" aria-checked={on} aria-label={row.label} className={`set-switch${on ? ' on' : ''}`} disabled={prefsBusy} onClick={() => togglePref(row.key)}><i /></button>
                   </div>
                 );
               })}

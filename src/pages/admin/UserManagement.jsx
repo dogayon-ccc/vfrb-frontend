@@ -13,11 +13,13 @@ const fi  = e => { e.target.style.borderColor=T; e.target.style.boxShadow=`0 0 0
 const fo  = e => { e.target.style.borderColor='var(--border)'; e.target.style.boxShadow='none'; };
 const lbl = { display:'block', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'var(--text-subtle)', marginBottom:7 };
 
+// Admin-portal roles only; customers are managed on the Clients page. DB role 'manager' is shown as "Admin".
 const ROLE_CFG = {
-  manager:  { c:'var(--teal)', bg:'var(--teal-50, #f0fdfa)', l:'Manager'  },
-  staff:    { c:'var(--info)', bg:'var(--info-bg)', l:'Staff'    },
-  customer: { c:'#8b5cf6', bg:'#f5f3ff', l:'Client' },
+  manager: { c:'var(--teal)', bg:'var(--teal-50, #f0fdfa)', l:'Admin', tab:'Admins' },
+  staff:   { c:'var(--info)', bg:'var(--info-bg)', l:'Staff', tab:'Staff' },
+  owner:   { c:'var(--warning-text)', bg:'var(--warning-bg)', l:'Owner', tab:'Owners' },
 };
+const ROLE_OPTIONS = Object.entries(ROLE_CFG).map(([v, r]) => <option key={v} value={v}>{r.l}</option>);
 
 const INIT = { name:'', email:'', password:'', password_confirmation:'', role:'staff', job_function:'general', contact_number:'' };
 
@@ -53,8 +55,7 @@ function CreateUserModal({ onClose, onDone, isMobile }) {
             <div>
               <label style={lbl}>Role</label>
               <select value={form.role} onChange={e=>set('role',e.target.value)} style={{ ...inp, cursor:'pointer' }}>
-                <option value="staff">Staff</option>
-                <option value="manager">Manager</option>
+                {ROLE_OPTIONS}
               </select>
             </div>
           </div>
@@ -71,7 +72,7 @@ function CreateUserModal({ onClose, onDone, isMobile }) {
                 Restricts which admin pages this account can open. Production and Inventory
                 restrictions are enforced by the server; Procurement and the read-only stock list
                 are hidden in the menu but not blocked server-side, and every staff account can
-                view Settings. Managers always have full access.</p>
+                view Settings. Admins always have full access.</p>
             </div>
           )}
           <div>
@@ -127,8 +128,7 @@ function EditUserModal({ user, onClose, onDone, isMobile }) {
           <div>
             <label style={lbl}>Role</label>
             <select value={role} onChange={e=>setRole(e.target.value)} style={{ ...inp, cursor:'pointer' }}>
-              <option value="staff">Staff</option>
-              <option value="manager">Manager</option>
+              {ROLE_OPTIONS}
             </select>
           </div>
           {role === 'staff' && (
@@ -264,7 +264,7 @@ export default function AdminUserManagement() {
         { label:'Total Accounts', value:users.length },
         { label:'Active', value:users.filter(u => u.is_active !== false).length, color:'var(--success-text)' },
         { label:'Inactive', value:users.filter(u => u.is_active === false).length, color: users.some(u => u.is_active === false) ? 'var(--danger-text)' : undefined },
-        { label:'Staff & Managers', value:(counts.staff ?? 0) + (counts.manager ?? 0), color:'var(--teal)' },
+        { label:'Admins & Staff', value:(counts.staff ?? 0) + (counts.manager ?? 0), color:'var(--teal)' },
       ]} />
 
       <div className="adm-toolbar">
@@ -272,9 +272,7 @@ export default function AdminUserManagement() {
       </div>
       <PillTabs value={roleF} onChange={setRoleF} tabs={[
         { key:'all', label:'All Users', count:users.length },
-        { key:'customer', label:'Clients', count:counts.customer ?? 0 },
-        { key:'staff', label:'Staff', count:counts.staff ?? 0 },
-        { key:'manager', label:'Managers', count:counts.manager ?? 0 },
+        ...Object.entries(ROLE_CFG).map(([key, r]) => ({ key, label:r.tab, count:counts[key] ?? 0 })),
       ]} />
 
       {loading ? <Panel flush><SkeletonRows rows={5} h={48} /></Panel>

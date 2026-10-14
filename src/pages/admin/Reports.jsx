@@ -6,6 +6,7 @@ import {
 import axios                            from 'axios';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
 import { NavIcon } from '../../components/ui/icons';
+import { isOwner } from '../../utils/jobAccess';
 import { PageHeader, StatGrid, PillTabs, Panel, Banner, ErrorBlock, SkeletonRows, Meter, OrderLink, useLivePoll, LiveStamp } from '../../components/admin/AdminUI';
 
 function downloadCSV(rows, filename) {
@@ -190,10 +191,12 @@ export default function AdminReports() {
           <button className="adm-btn" onClick={exportCsv} disabled={loading || !data || !buildCSV(data, csvTab)}><NavIcon name="download" size={14} color="currentColor" /> Export CSV</button>
           <button className="adm-btn adm-hide-t" onClick={() => window.print()}><NavIcon name="print" size={14} color="currentColor" /> Print</button>
           <LiveStamp at={live.at} busy={live.busy} onRefresh={live.run} />
-          <button className="adm-btn primary" onClick={runDigest} disabled={runningDigest}
-            title="Run the automated low-stock digest, auto-suggested RFQs, and deadline reminders now">
-            <NavIcon name={runningDigest ? 'loading' : 'ai'} size={14} color="currentColor" /> {runningDigest ? 'Running…' : 'Run automation'}
-          </button>
+          {!isOwner() && (
+            <button className="adm-btn primary" onClick={runDigest} disabled={runningDigest}
+              title="Run the automated low-stock digest, auto-suggested RFQs, and deadline reminders now">
+              <NavIcon name={runningDigest ? 'loading' : 'ai'} size={14} color="currentColor" /> {runningDigest ? 'Running…' : 'Run automation'}
+            </button>
+          )}
         </PageHeader>
         {digestMsg && <Banner tone="info" icon="info">{digestMsg}</Banner>}
         {loadErr && <div style={{ marginBottom: 14 }}><ErrorBlock msg="Could not load reports." onRetry={() => load(true)} /></div>}

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
 import { NavIcon } from '../../components/ui';
+import { isOwner } from '../../utils/jobAccess';
 import MaterialCode from '../../components/admin/MaterialCode';
 import BottomSheet from '../../components/ui/BottomSheet';
 import { PageHeader, StatGrid, PillTabs, TabPanel, ErrorBlock, Panel, StatusPill, SearchBox, Meter, Banner, SkeletonRows, useIsMobile } from '../../components/admin/AdminUI';
@@ -136,9 +137,11 @@ export default function AdminInventory() {
       )}
 
       <PageHeader title="Inventory" sub={`${totalMats} materials · ${lowStock.length} below reorder threshold`}>
-        <button className="adm-btn" onClick={()=>nav('/admin/physical-count')}><NavIcon name="physicalCount" size={14} color="currentColor" /> Physical Count</button>
-        <button className="adm-btn" onClick={()=>setModal('out')} style={{ color:'var(--teal)' }}><NavIcon name="stockOut" size={14} color="currentColor" /> Stock Out</button>
-        <button className="adm-btn primary" onClick={()=>setModal('in')}><NavIcon name="stockIn" size={14} color="currentColor" /> Stock In</button>
+        {!isOwner() && <>
+          <button className="adm-btn" onClick={()=>nav('/admin/physical-count')}><NavIcon name="physicalCount" size={14} color="currentColor" /> Physical Count</button>
+          <button className="adm-btn" onClick={()=>setModal('out')} style={{ color:'var(--teal)' }}><NavIcon name="stockOut" size={14} color="currentColor" /> Stock Out</button>
+          <button className="adm-btn primary" onClick={()=>setModal('in')}><NavIcon name="stockIn" size={14} color="currentColor" /> Stock In</button>
+        </>}
       </PageHeader>
 
       <StatGrid loading={loading} items={[
@@ -151,7 +154,7 @@ export default function AdminInventory() {
 
       {lowStock.length > 0 && (
         <Banner tone="warn" icon="warning"
-          action={<button className="adm-btn primary" onClick={()=>nav('/admin/procurement')}>Create PO →</button>}>
+          action={isOwner() ? null : <button className="adm-btn primary" onClick={()=>nav('/admin/procurement')}>Create PO →</button>}>
           {lowStock.length} material{lowStock.length!==1?'s':''} below reorder threshold — {lowStock.slice(0,3).map(m=>m.material_name).join(', ')}{lowStock.length > 3 ? ` and ${lowStock.length-3} more` : ''}
         </Banner>
       )}

@@ -1,9 +1,9 @@
 // src/App.jsx — route config. All admin + customer pages lazy-loaded; only
 
-import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Link, Outlet, useLocation } from 'react-router-dom';
 import { lazy, Suspense, useEffect } from 'react';
 import axios from 'axios';
-import { readUser, readAuth, isSignedIn, homeFor } from './utils/authRoute';
+import { readUser, readAuth, isSignedIn, isStaffRole, homeFor } from './utils/authRoute';
 import { installResponseGuards, watchCrossTabSession } from './utils/session';
 // iOS has no native install prompt (Android gets one from the manifest); this fills that gap.
 import PWAPrompt from 'react-ios-pwa-prompt';
@@ -53,11 +53,11 @@ import GoogleComplete   from './pages/auth/GoogleComplete';
 const AdminDashboard         = lazy(() => import('./pages/admin/Dashboard'));
 const StaffDashboard         = lazy(() => import('./pages/admin/StaffDashboard'));
 
-// Manager gets AdminDashboard.jsx; every other job_function gets the
-// role-specific StaffDashboard.jsx instead — same route, different home.
+// Manager and the read-only owner get AdminDashboard.jsx (owner without revenue or order totals);
+// every staff job_function gets the role-specific StaffDashboard.jsx — same route, different home.
 function DashboardHome() {
   const user = readUser();
-  return user.role === 'manager' ? <AdminDashboard/> : <StaffDashboard/>;
+  return ['manager', 'owner'].includes(user.role) ? <AdminDashboard/> : <StaffDashboard/>;
 }
 const AdminOrders            = lazy(() => import('./pages/admin/Orders'));
 const AdminInventory         = lazy(() => import('./pages/admin/Inventory'));
@@ -135,7 +135,7 @@ function RequireAuth({ children, role }) {
   if (!tok) {
     return <Navigate to={role === 'customer' ? '/login' : '/admin/login'} replace/>;
   }
-  if (role === 'admin' && !['manager','staff'].includes(user.role)) {
+  if (role === 'admin' && !isStaffRole(user)) {
     return <Navigate to="/admin/login" replace/>;
   }
   if (role === 'customer' && user.role !== 'customer') {
@@ -148,15 +148,21 @@ function RequireAuth({ children, role }) {
   return children;
 }
 
-import { canAccessArea, readAdminUser } from './utils/jobAccess';
+import { canAccessArea, readAdminUser, isOwner, ownerCanOpen } from './utils/jobAccess';
 import AccessDenied from './components/AccessDenied';
 function RequireArea({ area, children }) {
   return canAccessArea(readAdminUser(), area) ? children : <AccessDenied what={`The ${area} area`}/>;
 }
-function RequireManager({ children }) {
+// `owner`: the read-only owner may also view this manager page (the API still refuses its writes).
+function RequireManager({ owner = false, children }) {
   const user = readUser();
-  if (user.role !== 'manager') return <AccessDenied what="This page"/>;
+  if (user.role !== 'manager' && !(owner && isOwner(user))) return <AccessDenied what="This page"/>;
   return children;
+}
+// The owner sees only the pages the backend lets it read (OwnerReadOnly::AREAS); everything else is AccessDenied.
+function OwnerGate() {
+  const { pathname } = useLocation();
+  return isOwner() && !ownerCanOpen(pathname) ? <AccessDenied what="This page"/> : <Outlet/>;
 }
 
 // Unknown /admin/* path: say so inside the shell instead of an empty outlet.
@@ -177,14 +183,14 @@ function CustomerRootRoute() {
   const tok  = localStorage.getItem('vfrb_token');
   const user = readUser();
   if (tok && user.role === 'customer')                       return <Navigate to="/dashboard"        replace/>;
-  if (tok && ['manager','staff'].includes(user.role))        return <Navigate to="/admin/dashboard"   replace/>;
+  if (tok && isStaffRole(user))                              return <Navigate to="/admin/dashboard"   replace/>;
   return <Landing/>;
 }
 
 function AdminRootRoute() {
   const tok  = localStorage.getItem('vfrb_token');
   const user = readUser();
-  if (tok && ['manager','staff'].includes(user.role))        return <Navigate to="/admin/dashboard" replace/>;
+  if (tok && isStaffRole(user))                              return <Navigate to="/admin/dashboard" replace/>;
   // No landing page for admin/staff (Sept 3 2026) — straight to login.
   return <Navigate to="/admin/login" replace/>;
 }
@@ -259,6 +265,7 @@ export default function App() {
           <Route path="/admin/*" element={
             <RequireAuth role="admin"><ShellLoad><AdminLayout/></ShellLoad></RequireAuth>
           }>
+            <Route element={<OwnerGate/>}>
             <Route path="dashboard"   element={<DashboardHome/>}/>
 
             {/* Staff + Manager */}
@@ -291,13 +298,14 @@ export default function App() {
             <Route path="settings"  element={<AdminSettings/>}/>
 
             {/* Manager Only */}
-            <Route path="reports"   element={<RequireManager><AdminReports/></RequireManager>}/>
+            <Route path="reports"   element={<RequireManager owner><AdminReports/></RequireManager>}/>
             <Route path="feedback"  element={<RequireManager><AdminFeedback/></RequireManager>}/>
-            <Route path="activity-log" element={<RequireManager><AdminActivityLog/></RequireManager>}/>
-            <Route path="invoice"   element={<RequireManager><AdminInvoice/></RequireManager>}/>
+            <Route path="activity-log" element={<RequireManager owner><AdminActivityLog/></RequireManager>}/>
+            <Route path="invoice"   element={<RequireManager owner><AdminInvoice/></RequireManager>}/>
             <Route path="suppliers" element={<RequireManager><AdminSuppliers/></RequireManager>}/>
             <Route path="users"     element={<RequireManager><AdminUserManagement/></RequireManager>}/>
             <Route path="designs/showcase-queue" element={<RequireManager><AdminShowcaseQueue/></RequireManager>}/>
+            </Route>
             <Route path="*" element={<AdminNotFound/>}/>
           </Route>
 

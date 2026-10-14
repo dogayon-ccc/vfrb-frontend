@@ -7,6 +7,7 @@ import { TTL } from '../../utils/cache';
 import { useCachedResource } from '../../hooks/useCachedResource';
 import { NavIcon } from '../../components/ui/icons';
 import { navColor } from '../../utils/navColors';
+import { ownerCanOpen } from '../../utils/jobAccess';
 import logo from '../../assets/company-logo.jpg';
 import { StatGrid, PillTabs, Panel, StatusPill, SkeletonRows, EmptyBlock, ErrorBlock, useLivePoll, LiveStamp } from '../../components/admin/AdminUI';
 
@@ -40,9 +41,9 @@ const ListRow = ({ title, sub, right, rightColor, onClick }) => (
 function AttentionPanel({ title, color, items, loading, failed, empty, render, footer, onFooter }) {
   return (
     <Panel flush title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />{title}{!loading && items.length > 0 && <span className="adm-chip" style={{ background: color, color: '#fff' }}>{items.length}</span>}</span>}
-      action={!loading && items.length > 0 && <button className="adm-link-btn" onClick={onFooter}>{footer} →</button>}>
+      action={!loading && items.length > 0 && onFooter && <button className="adm-link-btn" onClick={onFooter}>{footer} →</button>}>
       {loading ? <SkeletonRows rows={2} h={32} /> : failed ? <EmptyBlock>Couldn't load this list.</EmptyBlock> : items.length === 0 ? <EmptyBlock>{empty}</EmptyBlock> : items.slice(0, 4).map(render)}
-      {!loading && items.length > 4 && <button className="dsh-more" onClick={onFooter}>+{items.length - 4} more</button>}
+      {!loading && items.length > 4 && onFooter && <button className="dsh-more" onClick={onFooter}>+{items.length - 4} more</button>}
     </Panel>
   );
 }
@@ -51,13 +52,17 @@ export default function AdminDashboard() {
   const nav = useNavigate();
   const user = (() => { try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}'); } catch { return {}; } })();
   const isManager = user.role === 'manager';
+  // Owner: read-only, no revenue or order totals, and links only to pages it may open (others would be AccessDenied).
+  const owner = user.role === 'owner';
+  const go = (path) => (!owner || ownerCanOpen(path) ? () => nav(path) : undefined);
   const [toast, setToast] = useState(null);
   const [chartTab, setChartTab] = useState('orders');
 
   const [data, dataLoading, loadDashboard] = useCachedResource('dashboard_stats', () => axios.get('/api/admin/dashboard').then((r) => r.data), TTL.DASHBOARD, { onError: () => setToast({ msg: 'Failed to load dashboard data.', type: 'error' }) });
   const [pendingRaw, poFetching, loadPending] = useCachedResource('dashboard_pending_orders', () => axios.get('/api/admin/orders?status=pending&per_page=5').then((r) => r.data?.data ?? []), TTL.ORDERS);
-  const [rfqRaw, rfqFetching, loadRfqs] = useCachedResource('dashboard_pending_rfqs', () => axios.get('/api/admin/rfq?status=sent&per_page=5').then((r) => r.data?.data ?? []), TTL.SUPPLIERS);
-  const [delivRaw, delivFetching, loadDeliv] = useCachedResource('dashboard_upcoming_deliveries', () => axios.get('/api/admin/delivery?per_page=20').then((r) => (r.data?.data ?? []).filter((d) => !['delivered', 'returned'].includes(d.delivery_status)).slice(0, 5)), TTL.ORDERS);
+  // The API refuses RFQs and deliveries to the owner, so those lists are not requested for it.
+  const [rfqRaw, rfqFetching, loadRfqs] = useCachedResource('dashboard_pending_rfqs', () => (owner ? Promise.resolve([]) : axios.get('/api/admin/rfq?status=sent&per_page=5').then((r) => r.data?.data ?? [])), TTL.SUPPLIERS);
+  const [delivRaw, delivFetching, loadDeliv] = useCachedResource('dashboard_upcoming_deliveries', () => (owner ? Promise.resolve([]) : axios.get('/api/admin/delivery?per_page=20').then((r) => (r.data?.data ?? []).filter((d) => !['delivered', 'returned'].includes(d.delivery_status)).slice(0, 5))), TTL.ORDERS);
 
   const [aiText, setAiText] = useState('');
   const [aiLoading, setAiLoad] = useState(false);
@@ -92,36 +97,38 @@ export default function AdminDashboard() {
   const greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
 
   const kpis = [
-    { label: 'Total Orders', value: o.total ?? 0, chip: o.new_this_week != null ? `+${o.new_this_week} this week` : null, chipTone: 'up', onClick: () => nav('/admin/orders') },
-    { label: 'In Production', value: o.in_production ?? 0, sub: `${o.confirmed ?? 0} confirmed · ${o.pending ?? 0} pending`, onClick: () => nav('/admin/production') },
+    !owner && { label: 'Total Orders', value: o.total ?? 0, chip: o.new_this_week != null ? `+${o.new_this_week} this week` : null, chipTone: 'up', onClick: () => nav('/admin/orders') },
+    { label: 'In Production', value: o.in_production ?? 0, sub: `${o.confirmed ?? 0} confirmed · ${o.pending ?? 0} pending`, onClick: go('/admin/production') },
     { label: 'Completed', value: o.completed ?? 0, onClick: () => nav('/admin/orders') },
     { label: 'Low Stock', value: data?.inventory?.low_stock_count ?? 0, chip: (data?.inventory?.low_stock_count ?? 0) > 0 ? 'Reorder' : null, chipTone: 'down', color: (data?.inventory?.low_stock_count ?? 0) > 0 ? 'var(--danger-text)' : undefined, onClick: () => nav('/admin/inventory') },
-  ];
+  ].filter(Boolean);
   const snapshot = [
-    { label: 'Revenue (Month)', value: peso(data?.revenue?.month ?? 0) },
+    !owner && { label: 'Revenue (Month)', value: peso(data?.revenue?.month ?? 0) },
     { label: 'Stock Health', value: `${data?.stock_health_pct ?? 0}%` },
-    { label: 'In Transit', value: data?.production?.delivering ?? 0, onClick: () => nav('/admin/delivery') },
-    { label: 'Pending Count', value: data?.unreconciled_counts ?? 0, sub: 'Physical count', onClick: () => nav('/admin/physical-count') },
-  ];
+    { label: 'In Transit', value: data?.production?.delivering ?? 0, onClick: go('/admin/delivery') },
+    { label: 'Pending Count', value: data?.unreconciled_counts ?? 0, sub: 'Physical count', onClick: go('/admin/physical-count') },
+  ].filter(Boolean);
   const quick = [
     { icon: 'orders', l: 'View Orders', path: '/admin/orders' }, { icon: 'inventory', l: 'Inventory', path: '/admin/inventory' },
     { icon: 'production', l: 'Production', path: '/admin/production' }, { icon: 'procurement', l: 'Purchase Orders', path: '/admin/procurement' },
     { icon: 'physicalCount', l: 'Physical Count', path: '/admin/physical-count' }, { icon: 'delivery', l: 'Delivery', path: '/admin/delivery' },
     ...(isManager ? [{ icon: 'reports', l: 'Reports', path: '/admin/reports' }, { icon: 'users', l: 'Users', path: '/admin/users' }] : []),
-  ];
+    ...(owner ? [{ icon: 'reports', l: 'Reports', path: '/admin/reports' }] : []),
+  ].filter((q) => !owner || ownerCanOpen(q.path));
 
+  // Owner: no RFQ or delivery lists (refused by the API) and no footer link to a page it cannot open.
   const attention = [
     { title: 'Orders Needing Action', color: T, items: pendingRaw ?? [], loading: poLoading, failed: pendingRaw == null, empty: 'No pending orders — all caught up', footer: 'All pending', onFooter: () => nav('/admin/orders?status=pending'),
       render: (x) => <ListRow key={x.order_id} onClick={() => nav(`/admin/orders/${x.order_id}`)} title={`#${x.order_id} · ${x.garment_type ?? '—'}`} sub={x.customer_name} right={fmtDate(x.created_at)} /> },
     { title: 'Materials Running Low', color: 'var(--danger-text)', items: low, loading, failed: !data, empty: 'No materials below reorder threshold', footer: 'Inventory', onFooter: () => nav('/admin/inventory'),
       render: (m) => <ListRow key={m.material_id} onClick={() => nav('/admin/inventory')} title={m.material_name} right={`${m.quantity_in_stock} ${m.unit}`} rightColor="var(--danger)" /> },
-    { title: 'Production Delays', color: 'var(--warning-text)', items: delayed, loading, failed: !data, empty: `No stages stalled ${delayDays}+ days`, footer: 'Production', onFooter: () => nav('/admin/production'),
+    { title: 'Production Delays', color: 'var(--warning-text)', items: delayed, loading, failed: !data, empty: `No stages stalled ${delayDays}+ days`, footer: 'Production', onFooter: go('/admin/production'),
       render: (x) => <ListRow key={x.order_id} onClick={() => nav(`/admin/orders/${x.order_id}`)} title={`Order #${x.order_id} — ${x.customer_name}`} sub={`${x.stage} · ${x.qty_completed}/${x.qty_target} pcs`} right={`${x.days_stalled}d stalled`} rightColor="var(--warning)" /> },
     { title: 'RFQs Awaiting Response', color: T, items: rfqRaw ?? [], loading: rfqLoading, failed: rfqRaw == null, empty: 'No RFQs waiting on a supplier', footer: 'Procurement', onFooter: () => nav('/admin/procurement'),
       render: (r) => <ListRow key={r.rfq_id} onClick={() => nav('/admin/procurement')} title={r.material_name} sub={`${r.qty_needed} ${r.unit}`} right={r.needed_by_date ? fmtDate(r.needed_by_date) : 'No deadline'} /> },
     { title: 'Upcoming Deliveries', color: T, items: delivRaw ?? [], loading: delivLoading, failed: delivRaw == null, empty: 'No deliveries in progress', footer: 'Delivery', onFooter: () => nav('/admin/delivery'),
       render: (d) => <ListRow key={d.tracking_id} onClick={() => nav('/admin/delivery')} title={`${d.customer_name ?? '—'} · ${d.garment_type ?? '—'}`} sub={d.delivery_status?.replace('_', ' ')} right={fmtDate(d.estimated_delivery_date)} /> },
-  ];
+  ].filter((a) => !owner || !['RFQs Awaiting Response', 'Upcoming Deliveries'].includes(a.title));
 
   return (
     <>
@@ -150,7 +157,7 @@ export default function AdminDashboard() {
           <p className="dsh-hero-sub">{new Date().toLocaleDateString('en-PH', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</p>
         </div>
         <div className="dsh-hero-stats">
-          <button onClick={() => nav('/admin/production')}><b>{loading ? '–' : o.in_production ?? 0}</b><span>In production</span></button>
+          <button onClick={go('/admin/production')} disabled={owner}><b>{loading ? '–' : o.in_production ?? 0}</b><span>In production</span></button>
           <button onClick={() => nav('/admin/orders?status=pending')}><b>{loading ? '–' : o.pending ?? 0}</b><span>Pending</span></button>
           <button onClick={() => nav('/admin/inventory')}><b>{loading ? '–' : data?.inventory?.low_stock_count ?? 0}</b><span>Low stock</span></button>
         </div>
@@ -168,7 +175,7 @@ export default function AdminDashboard() {
       <div className="adm-dash-stack">
       <div className="adm-dash-grid">
         <div className="adm-dash-col">
-          <Panel title="Orders Overview" action={<PillTabs tabs={[{ key: 'orders', label: 'Orders' }, { key: 'revenue', label: 'Revenue' }]} value={chartTab} onChange={setChartTab} />} style={{ overflow: 'visible' }}>
+          <Panel title="Orders Overview" action={owner ? null : <PillTabs tabs={[{ key: 'orders', label: 'Orders' }, { key: 'revenue', label: 'Revenue' }]} value={chartTab} onChange={setChartTab} />} style={{ overflow: 'visible' }}>
             {loading ? <div className="adm-sk" style={{ height: 220 }} /> : !data ? <EmptyBlock>Unavailable.</EmptyBlock> : chartData.length < 2 ? <EmptyBlock>Not enough history yet to draw a trend.</EmptyBlock> : (
               <div style={{ width: '100%', minWidth: 0, minHeight: 260 }}>
               <ResponsiveContainer width="100%" height={260}>
