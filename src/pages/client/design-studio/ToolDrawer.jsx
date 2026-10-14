@@ -58,6 +58,9 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, she
   const underneath = !noGarment && !more;
 
   const reduce = useReducedMotion();
+  // Desktop: the right panel folds to a thin rail so the canvas gets the width; remembered per browser.
+  const [collapsed, setCollapsedState] = useState(() => { try { return localStorage.getItem('ds_panel_collapsed') === '1'; } catch { return false; } });
+  const setCollapsed = v => { setCollapsedState(v); try { localStorage.setItem('ds_panel_collapsed', v ? '1' : '0'); } catch { /* storage blocked */ } };
   // Phone sheet grabber: tap toggles peek/half; swipe up grows one snap, swipe down shrinks one. Dragging moves the sheet via a ref (no render per move).
   const panelRef = useRef(null);
   const drag = useRef(null);
@@ -88,6 +91,7 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, she
   };
   const pick = id => {
     if (noGarment) return;
+    if (collapsed) setCollapsed(false);
     if (id === 'layers') return focusLayers();
     if (id === tool && sheetOpen && !more) return toPeek();
     setTool(id); setMore(false); setSheetOpen(true);
@@ -124,7 +128,11 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, she
         </button>
       </div>
 
-      <section className="ds-panel" ref={panelRef} aria-label={title}>
+      <section className="ds-panel" ref={panelRef} aria-label={title} data-collapsed={collapsed || undefined}>
+        <button type="button" className="ds-panel-toggle" aria-expanded={!collapsed} aria-label={collapsed ? 'Show the panel' : 'Hide the panel'}
+          title={collapsed ? 'Show the panel' : 'Hide the panel'} onClick={() => setCollapsed(!collapsed)}>
+          <NavIcon name={collapsed ? 'chevronLeft' : 'chevronRight'} size={18}/>
+        </button>
         <div className="ds-grab" role="button" tabIndex={0} aria-label={sheetOpen ? 'Shrink the panel' : 'Open the panel'}
           onPointerDown={onGrabDown} onPointerMove={onGrabMove} onPointerUp={onGrabUp} onPointerCancel={onGrabUp}
           onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (sheetOpen) toPeek(); else setSheetOpen(true); } }}>

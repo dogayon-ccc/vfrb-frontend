@@ -155,9 +155,6 @@ export default function CustomerLayout() {
             </div>
           )}
         </div>
-        <NavLink to="/messages" className="cx-icon-btn cx-bar-msg" aria-label="Messages">
-          <MessageSquare size={19} strokeWidth={1.9} aria-hidden="true" />
-        </NavLink>
         <NavLink to="/settings" className="cx-user" aria-label="Account settings">
           <span className="cx-av" aria-hidden="true">{me.avatar ? <img src={me.avatar} alt="" /> : initials}</span>
           <span className="cx-user-n" aria-hidden="true">{name}</span>

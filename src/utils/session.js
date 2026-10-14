@@ -36,6 +36,7 @@ export function signOut() {
 
 // Wipes leftovers from a session that ended without a clean logout (expired token, closed tab mid-draft).
 export function startSession(token, user) {
+  expired = false;
   sessionWipeAll();
   clearQueue();
   clearApiCache();
@@ -55,12 +56,17 @@ export function patchStoredUser(patch) {
 }
 
 const inflight = new Map();
+// Set by the first 401 of an expired session: that response sends the tab to the login page once, and every
+// later call is refused here instead of reaching the server and failing again while the page unloads.
+let expired = false;
+const isAuthCall = (cfg) => AUTH_CALLS.some((p) => (cfg?.url || '').includes(p));
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Identical in-flight GETs share one request, so pages that fetch the same list together do not trip the rate limit.
 function installGetDedupe() {
   const base = axios.getAdapter(axios.defaults.adapter);
   axios.defaults.adapter = (config) => {
+    if (expired && !isAuthCall(config)) return Promise.reject(new axios.CanceledError('Session expired', 'ERR_CANCELED', config));
     if ((config.method || 'get') !== 'get' || config.responseType === 'blob') return base(config);
     const key = `${localStorage.getItem(TOKEN)}|${axios.getUri(config)}`;
     if (!inflight.has(key)) {
@@ -89,14 +95,13 @@ export function installResponseGuards() {
       else if (status >= 400 && LEAK.test(String(error.response?.data?.message ?? ''))) {
         error.response.data = { ...error.response.data, message: STATUS_TEXT[status] ?? SERVER_ERROR };
       }
-      const isAuthCall = AUTH_CALLS.some((p) => (error.config?.url || '').includes(p));
       // Unverified client hit a client-only endpoint: send them to confirm their email.
       if (status === 403 && error.response?.data?.code === 'email_unverified' && window.location.pathname !== '/verify-email') {
         window.location.replace('/verify-email');
       }
-      if (status === 401 && localStorage.getItem(TOKEN) && !isAuthCall) {
+      if (status === 401 && !expired && localStorage.getItem(TOKEN) && !isAuthCall(error.config)) {
         clearSession();
-        if (!LOGGED_OUT_PAGES.includes(window.location.pathname)) window.location.replace('/login');
+        if (!LOGGED_OUT_PAGES.includes(window.location.pathname)) { expired = true; window.location.replace('/login'); }
       }
       return Promise.reject(error);
     },

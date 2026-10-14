@@ -27,6 +27,7 @@ import LoadError                             from './settings/LoadError';
 import { getStorageUrl, isImageFile }        from '../../utils/fileUrl';
 import { NavIcon }                           from '../../components/ui/icons';
 import { OrderThumb, Stepper, StatusPill, LIFECYCLE, lifecycleIndex, orderTitle, parseCfg, fmtDate } from '../../components/customer/kit';
+import { setOrders, ROLE_LABEL } from './design-studio/uniformSet';
 
 
 const T    = 'var(--teal)';
@@ -155,6 +156,59 @@ function StageDot({ stage, currentStatus, isMobile }) {
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
+// A uniform set's linked orders on one card: each piece with its own preview (2D, or 3D where the garment has a model),
+// production progress, and its own documents and messages. Siblings are found in the customer's order list by set id.
+const pctOf = st => { const i = STATUS_SEQ.indexOf(st); return i >= 0 ? Math.round((i / (STATUS_SEQ.length - 1)) * 100) : 0; };
+function UniformSetCard({ order, nav }) {
+  const setId = parseCfg(order)?.uniformSet?.id;
+  const [list, setList] = useState(null);
+  useEffect(() => {
+    if (!setId) return undefined;
+    let live = true;
+    axios.get('/api/customer/orders?per_page=100')
+      .then(r => { if (live) setList(r.data?.data ?? r.data ?? []); })
+      .catch(() => { if (live) setList([]); });
+    return () => { live = false; };
+  }, [setId]);
+  if (!setId) return null;
+  const pieces = setOrders(order, Array.isArray(list) ? list : []);
+  return (
+    <section className="od-card od-set" aria-label="Uniform set">
+      <div className="od-card-body">
+        <p className="od-section-title" style={{ fontFamily:FONT }}>Uniform set · {pieces.length} linked order{pieces.length > 1 ? 's' : ''}</p>
+        {list === null && <p className="od-set-note">Loading the other piece…</p>}
+        {list !== null && pieces.length < 2 && <p className="od-set-note">The other piece of this set was not found in your orders.</p>}
+        <div className="od-set-grid">
+          {pieces.map(o => {
+            const cfg = parseCfg(o), cur = String(o.order_id) === String(order.order_id), pct = pctOf(o.status);
+            return (
+              <article key={o.order_id} className="od-set-piece" data-current={cur || undefined}>
+                <header className="od-set-h">
+                  <div style={{ minWidth:0 }}>
+                    <p className="od-set-role">{ROLE_LABEL[cfg?.uniformSet?.role] ?? 'Piece'}{cur && ' · this order'}</p>
+                    <p className="od-set-name">#{o.order_id} · {humanize(o.garment_type) ?? 'Garment'}</p>
+                    <p className="od-set-sub">{o.quantity_ordered ?? 0} pcs{o.target_delivery_date ? ` · Due ${fmtDate(o.target_delivery_date)}` : ''}</p>
+                  </div>
+                  <StatusPill status={o.status}/>
+                </header>
+                <DesignPreview cfg={cfg && Object.keys(cfg).length ? cfg : null} height={220} previewUrl={o.design_preview_url ?? null}/>
+                <div className="od-set-prog" role="progressbar" aria-label={`Production progress, order ${o.order_id}`} aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+                  <span style={{ width:`${pct}%` }}/>
+                </div>
+                <p className="od-set-sub">{o.status === 'cancelled' ? 'Cancelled' : `${pct}% through production`}</p>
+                <div className="od-set-act">
+                  {!cur && <button type="button" className="cx-btn cx-btn-s" onClick={() => nav(`/orders/${o.order_id}`)}>Details &amp; documents</button>}
+                  <button type="button" className="cx-btn cx-btn-s" onClick={() => nav(`/messages?order=${o.order_id}`)}>Messages</button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function CustomerOrderDetail() {
   const { id }  = useParams();
   const nav     = useNavigate();
@@ -432,6 +486,20 @@ export default function CustomerOrderDetail() {
         .od-hero { margin-bottom:16px; }
         .od-hero .od-card-body { padding:16px; }
 
+        .od-set-grid { display:grid; grid-template-columns:minmax(0,1fr); gap:12px; }
+        .od-set-piece { min-width:0; display:flex; flex-direction:column; gap:10px; padding:12px; border:1px solid var(--border); border-radius:12px; background:var(--bg-surface); }
+        .od-set-piece[data-current] { border-color:var(--teal); box-shadow:0 0 0 1px var(--teal) inset; }
+        .od-set-h { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; }
+        .od-set-role { margin:0; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.07em; color:var(--text-subtle); }
+        .od-set-name { margin:2px 0 0; font-size:14px; font-weight:800; color:var(--ink); overflow-wrap:anywhere; }
+        .od-set-sub, .od-set-note { margin:0; font-size:12px; color:var(--text-subtle); }
+        .od-set-note { margin-bottom:10px; }
+        .od-set-prog { height:6px; border-radius:99px; background:rgba(15,23,42,.08); overflow:hidden; }
+        .od-set-prog span { display:block; height:100%; background:var(--teal); }
+        .od-set-act { display:flex; gap:8px; flex-wrap:wrap; }
+        .od-set-act .cx-btn { min-height:40px; flex:1 1 140px; }
+        @media (min-width:640px) { .od-set-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+
         .od-section-title { font-size:11px; font-weight:800; text-transform:uppercase;
           letter-spacing:.07em; color:#5f6f83; margin:0 0 14px; }
 
@@ -501,6 +569,8 @@ export default function CustomerOrderDetail() {
             </div>
           </div>
         )}
+
+        <UniformSetCard order={order} nav={nav}/>
 
         <div className="od-tabs" role="tablist" aria-label="Order sections" onKeyDown={onTabKey}>
           {TABS.map(([id, label]) => (
