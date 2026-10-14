@@ -75,6 +75,7 @@ const AdminUserManagement    = lazy(() => import('./pages/admin/UserManagement')
 const AdminShowcaseQueue     = lazy(() => import('./pages/admin/ShowcaseModerationQueue'));
 const AdminSettings          = lazy(() => import('./pages/admin/Settings'));
 const AdminActivityLog       = lazy(() => import('./pages/admin/ActivityLog'));
+const AdminAuditLog          = lazy(() => import('./pages/admin/AuditLog'));
 const AdminFeedback          = lazy(() => import('./pages/admin/Feedback')); // NEW Aug 27 2026
 const AdminInvoice           = lazy(() => import('./pages/admin/Invoice'));
 const AdminOrderDetail       = lazy(() => import('./pages/admin/OrderDetail'));
@@ -301,6 +302,7 @@ export default function App() {
             <Route path="reports"   element={<RequireManager owner><AdminReports/></RequireManager>}/>
             <Route path="feedback"  element={<RequireManager><AdminFeedback/></RequireManager>}/>
             <Route path="activity-log" element={<RequireManager owner><AdminActivityLog/></RequireManager>}/>
+            <Route path="audit-logs" element={<RequireManager owner><AdminAuditLog/></RequireManager>}/>
             <Route path="invoice"   element={<RequireManager owner><AdminInvoice/></RequireManager>}/>
             <Route path="suppliers" element={<RequireManager><AdminSuppliers/></RequireManager>}/>
             <Route path="users"     element={<RequireManager><AdminUserManagement/></RequireManager>}/>
