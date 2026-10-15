@@ -10,6 +10,7 @@ import { assetFor } from './garmentAssets';
 export const DETAIL_OPTIONS = [
   { id: 'patchPocket', label: 'Patch pocket', control: 'show', hint: 'Its colour is the Pocket zone in Colours' },
   { id: 'flapPockets', label: 'Flap pockets', control: 'show' },
+  { id: 'lowerPockets', label: 'Lower pockets', control: 'show' },
   { id: 'sidePockets', label: 'Side pockets', control: 'show' },
   { id: 'backPockets', label: 'Back pockets', control: 'show' },
   { id: 'buttons',     label: 'Buttons',      control: 'color' },

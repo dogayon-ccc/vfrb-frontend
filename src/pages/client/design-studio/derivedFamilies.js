@@ -62,8 +62,11 @@ export const NOT_PROMOTED = {
 };
 
 // Rows whose geometry has been generated and passed review (a batch not yet run is simply absent, never half-registered).
+// Derived bottoms are 2D only (2026-10-15): each is cut from a fused set at the top's hem (straight-cut waist, a lip of the top can remain), so
+// it is not a clean garment mesh. They stay off until a clean model of that cut exists; the 2D outline is unaffected.
+export const DERIVED_BOTTOM_NO_3D = 'cut from a fused set model at the hem, not a clean garment mesh; 3D stays off until a clean model exists';
 export const DERIVED_FAMILIES = ROWS.filter(([id]) => DERIVED_GEOMETRY[id] && !NOT_PROMOTED[DERIVED_GEOMETRY[id].ref]).map(([id, name, category, role, sleeve, fit, no3D = null]) => ({
-  id, name, category, role, sleeve, fit, no3D, geo: DERIVED_GEOMETRY[id], ref: DERIVED_GEOMETRY[id].ref,
+  id, name, category, role, sleeve, fit, no3D: no3D ?? (role === 'bottom' ? DERIVED_BOTTOM_NO_3D : null), geo: DERIVED_GEOMETRY[id], ref: DERIVED_GEOMETRY[id].ref,
 }));
 export const DERIVED_BY_NAME = Object.fromEntries(DERIVED_FAMILIES.map(d => [d.name, d]));
 export const isDerived = garment => !!DERIVED_BY_NAME[garment];

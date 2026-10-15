@@ -10,6 +10,7 @@
 // The body path uses only M/L/Q commands with x,y pairs: overlayDecals.bodyBounds reads its numbers pairwise.
 
 import { DERIVED_FAMILIES, derivedPaths } from './derivedFamilies';
+import { isCustom, kindOf, normalizeCustom, topOptions, bottomOptions, skirtOptions } from './customGarment';
 
 const f = n => Math.round(n * 10) / 10;
 const pt = (x, y) => `${f(x)},${f(y)}`;
@@ -59,7 +60,7 @@ function top(o) {
     w = 320, h = 380, neckW = 30, hpsY = 44, frontDrop = 22, backDrop = 6,
     sh = [88, 64], arm = [95, 128], hem = [97, 334], hemCurve = 4, waist = 0,
     sleeve = { angle: 40, len: 66, open: 56 }, collar = 'rib', pocket = null, placket = null, vents = false, coat = false,
-    lapel = 92, flaps = null,
+    lapel = 92, flaps = null, lowerPockets = null,
   } = o;
   const cx = w / 2;
   const L = (dx, y) => [cx - dx, y], R = (dx, y) => [cx + dx, y];
@@ -141,6 +142,12 @@ function top(o) {
   // Flap pockets (blazer): modelled flaps, drawn as lines, never a colourable zone.
   if (flaps) for (const s of [-1, 1]) frontDetails.push({ d: `M ${pt(cx + s * flaps.x0, flaps.y)} L ${pt(cx + s * (flaps.x0 + flaps.w), flaps.y)} L ${pt(cx + s * (flaps.x0 + flaps.w), flaps.y + 12)} L ${pt(cx + s * flaps.x0, flaps.y + 12)} Z`, kind: 'line', part: 'flapPockets' });
   if (pocket) frontDetails.push({ d: `M ${pt(pocket.x + 3, pocket.y + 6)} L ${pt(pocket.x + pocket.w - 3, pocket.y + 6)}`, kind: 'seam', over: true, part: 'patchPocket' });
+  // Two lower patch pockets (scrub tops): outline and topstitch, one detail the customer can hide. Not a colour zone.
+  if (lowerPockets) for (const s of [-1, 1]) {
+    const { x0, w: pw, y, h: ph } = lowerPockets, x = s < 0 ? cx - x0 - pw : cx + x0;
+    frontDetails.push({ d: roundRect(x, y, pw, ph, 3), kind: 'line', over: true, part: 'lowerPockets' },
+      { d: `M ${pt(x + 3, y + 6)} L ${pt(x + pw - 3, y + 6)}`, kind: 'seam', over: true, part: 'lowerPockets' });
+  }
 
   const shared = [
     { d: `M ${pt(...LH)} L ${pt(...L(sh[0], sh[1]))} M ${pt(...RH)} L ${pt(...R(sh[0], sh[1]))}`, kind: 'seam' },
@@ -193,7 +200,7 @@ export const SLEEVE_VARIANTS = {
 };
 
 // Bottoms: waistband, hips, crotch and legs as a flat front view.
-function trousers({ w = 250, h = 420, waist = 76, waistY = 28, band = 15, hip = 84, hipY = 132, crotchY = 176, hemY = 392, hemOut = 66, hemIn = 7, fly = true, crease = true, cuffs = false, drawstring = false }) {
+function trousers({ w = 250, h = 420, waist = 76, waistY = 28, band = 15, hip = 84, hipY = 132, crotchY = 176, hemY = 392, hemOut = 66, hemIn = 7, fly = true, crease = true, cuffs = false, drawstring = false, slantPockets = fly }) {
   const cx = w / 2, by = waistY + band;
   const body = `M ${pt(cx - waist, waistY)} L ${pt(cx + waist, waistY)} L ${pt(cx + waist + 2, by)} Q ${pt(cx + hip + 3, (by + hipY) / 2)} ${pt(cx + hip, hipY)} ` +
     `L ${pt(cx + hemOut, hemY)} L ${pt(cx + hemIn, hemY)} L ${pt(cx + 2, crotchY + 6)} Q ${pt(cx, crotchY - 4)} ${pt(cx - 2, crotchY + 6)} L ${pt(cx - hemIn, hemY)} ` +
@@ -209,9 +216,9 @@ function trousers({ w = 250, h = 420, waist = 76, waistY = 28, band = 15, hip = 
     { d: `M ${pt(cx, by)} L ${pt(cx, crotchY - 8)}`, kind: 'line', face: 'front', part: 'closure' },
     { d: `M ${pt(cx + 11, by)} L ${pt(cx + 11, crotchY - 26)} Q ${pt(cx + 11, crotchY - 12)} ${pt(cx + 1, crotchY - 8)}`, kind: 'seam', face: 'front', part: 'closure' },
     { d: dot(cx, waistY + band / 2, 2.4), kind: 'button', face: 'front', part: 'buttons' },
-    // slanted front pockets
-    { d: `M ${pt(cx - waist + 8, by)} Q ${pt(cx - waist + 14, by + 34)} ${pt(cx - hip + 2, by + 48)} M ${pt(cx + waist - 8, by)} Q ${pt(cx + waist - 14, by + 34)} ${pt(cx + hip - 2, by + 48)}`, kind: 'line', face: 'front', part: 'sidePockets' },
   );
+  // slanted front pockets
+  if (slantPockets) details.push({ d: `M ${pt(cx - waist + 8, by)} Q ${pt(cx - waist + 14, by + 34)} ${pt(cx - hip + 2, by + 48)} M ${pt(cx + waist - 8, by)} Q ${pt(cx + waist - 14, by + 34)} ${pt(cx + hip - 2, by + 48)}`, kind: 'line', face: 'front', part: 'sidePockets' });
   if (fly) details.push({ d: `M ${pt(cx - waist + 16, by + 26)} L ${pt(cx - 18, by + 26)} M ${pt(cx + 18, by + 26)} L ${pt(cx + waist - 16, by + 26)}`, kind: 'line', face: 'back', part: 'backPockets' });
   if (crease) details.push({ d: `M ${pt(cx - legMid - 2, hipY + 10)} L ${pt(cx - legMid, hemY - 10)} M ${pt(cx + legMid + 2, hipY + 10)} L ${pt(cx + legMid, hemY - 10)}`, kind: 'fold' });
   return { w, h, body, collar: null, sleeveL: null, sleeveR: null, pocket: null, details };
@@ -240,6 +247,7 @@ function pleatedSkirt({ w = 280, h = 240, waist = 58, waistY = 26, band = 18, he
 // Pencil skirt: curved waistband, a smooth hip curve that tapers back in to the hem, side darts (narrow Vs, front and back), a
 // centre-back zip and a lapped back vent. One body zone; everything else is a drawn detail.
 function skirt({ w = 260, h = 360, waist = 58, waistY = 30, band = 16, hip = 79, hipY = 128, hemY = 334, hemX = 66, hemCurve = 4 }) {
+  const vent = Math.min(56, Math.round((hemY - hipY) / 3)); // back vent height above the hem
   const cx = w / 2, by = waistY + band, dip = 3;
   const side = s => `${pt(cx + s * (waist + 3), by)} C ${pt(cx + s * (hip + 2), by + 28)} ${pt(cx + s * (hip + 2), hipY - 26)} ${pt(cx + s * hip, hipY)} ` +
     `C ${pt(cx + s * (hip - 1), hipY + 72)} ${pt(cx + s * (hemX + 3), hemY - 70)} ${pt(cx + s * hemX, hemY)}`;
@@ -247,7 +255,6 @@ function skirt({ w = 260, h = 360, waist = 58, waistY = 30, band = 16, hip = 79,
     `C ${pt(cx - hemX - 3, hemY - 70)} ${pt(cx - hip + 1, hipY + 72)} ${pt(cx - hip, hipY)} C ${pt(cx - hip - 2, hipY - 26)} ${pt(cx - hip - 2, by + 28)} ${pt(cx - waist - 3, by)} Z`;
   // Side darts: a narrow V from the waistband seam, a third of the way in from each side.
   const dart = (s, len) => { const x = cx + s * waist * 0.64; return `M ${pt(x - 3, by)} L ${pt(x + s * 2, by + len)} L ${pt(x + 3, by)}`; };
-  const vent = 56; // back vent height above the hem
   return {
     w, h, body, collar: null, sleeveL: null, sleeveR: null, pocket: null,
     details: [
@@ -298,7 +305,8 @@ export const BASE_PATHS = {
   'T-Shirt':     top({ collar: 'rib', frontDrop: 18 }),
   'V-Neck Shirt': top({ collar: 'v', frontDrop: 46, neckW: 28 }),
   'Mandarin Collar': top({ collar: 'mandarin', frontDrop: 14, neckW: 26, placket: { top: 58, bottom: 330, buttons: 6, width: 7 } }),
-  'Scrub Top':   top({ h: 390, collar: 'v', frontDrop: 52, neckW: 28, hem: [99, 344], sleeve: { angle: 38, len: 68, open: 60 }, pocket: { x: 86, y: 132, w: 44, h: 46 } }),
+  'Scrub Top':   top({ h: 390, collar: 'v', frontDrop: 52, neckW: 28, hem: [99, 344], sleeve: { angle: 38, len: 68, open: 60 }, pocket: { x: 86, y: 132, w: 44, h: 46 },
+                       lowerPockets: { x0: 34, w: 50, y: 246, h: 54 } }),
   'Button-Down': top({ h: 390, collar: 'point', frontDrop: 16, neckW: 26, hem: [96, 346], hemCurve: 9, placket: { top: 62, bottom: 342, buttons: 7, width: 7 }, pocket: { x: 92, y: 112, w: 32, h: 38 } }),
   'Lab Coat':    top({ w: 340, h: 440, collar: 'notch', neckW: 28, hpsY: 40, sh: [92, 62], arm: [98, 132], hem: [108, 420], hemCurve: 3, sleeve: { angle: 42, len: 70, open: 58 }, pocket: { x: 92, y: 262, w: 44, h: 52 }, coat: true }),
   'Lab Coverall': coverall(),
@@ -318,6 +326,8 @@ export const BASE_PATHS = {
   'Track Pants': { ...trousers({ h: 440, hemY: 408, hemOut: 58, hemIn: 7, fly: false, crease: false, cuffs: true, drawstring: true }),
     pocket: 'M 44,180 L 71,180 Q 75,180 75,184 L 75,226 Q 75,230 71,230 L 44,230 Q 40,230 40,226 L 40,184 Q 40,180 44,180 Z' },
   'Skirt':       skirt({}),
+  // Medical jogger: tapered legs, elastic cuffs and a drawstring waist, slant side pockets; no fly or crease.
+  'Jogger Scrub Pants': trousers({ h: 440, hemY: 408, hemOut: 52, hemIn: 10, fly: false, crease: false, cuffs: true, drawstring: true, slantPockets: true }),
   // Families derived from the reference models: one traced body outline each (derivedFamilies.js).
   ...Object.fromEntries(DERIVED_FAMILIES.map(d => [d.name, derivedPaths(d)])),
 };
@@ -331,12 +341,37 @@ export const BASE_PATHS = {
 // treats a missing garment exactly like an unrecognized one).
 export const EMPTY_PATHS = { w: 320, h: 380, body: null, collar: null, sleeveL: null, sleeveR: null, pocket: null, details: [] };
 
+// Build-your-own garments (customGarment.js): the current spec of each custom piece, set from the design state (cfg.custom) before
+// anything draws, so every getGarmentPaths caller sees the customer's shape without threading the spec through each one.
+const customSpecs = {};
+const customCache = new Map();
+export function setCustomSpec(garment, spec) {
+  if (isCustom(garment)) customSpecs[garment] = normalizeCustom(spec, garment);
+}
+function customBase(garment, raw = customSpecs[garment]) {
+  const spec = normalizeCustom(raw, garment), key = `${garment}|${JSON.stringify(spec)}`;
+  if (!customCache.has(key)) {
+    if (customCache.size > 64) customCache.clear();
+    const kind = kindOf(garment);
+    customCache.set(key, { ...(kind === 'top' ? top(topOptions(spec)) : kind === 'skirt' ? skirt(skirtOptions(spec)) : trousers(bottomOptions(spec))), custom: true });
+  }
+  return customCache.get(key);
+}
+
 export function getGarmentPaths(garment, sleeve = 'Short', face = 'front') {
   if (!garment) return EMPTY_PATHS;
-  const base = BASE_PATHS[garment] ?? BASE_PATHS['Polo Shirt'];
+  const base = isCustom(garment) ? customBase(garment) : BASE_PATHS[garment] ?? BASE_PATHS['Polo Shirt'];
   const variant = SLEEVE_VARIANTS[sleeve];
   const paths = variant ? variant(base) : base;
   const details = [...(paths.details ?? []), ...(paths.sleeveL ? paths.sleeveDetails ?? [] : [])].filter(d => !d.face || d.face === face);
   // Back view: same silhouette, no pocket; the collar is the band seen from behind where the template has one.
   return face === 'back' ? { ...paths, body: paths.back?.body ?? paths.body, collar: paths.back?.collar ?? null, pocket: null, details } : { ...paths, details };
+}
+
+// A custom garment drawn from a draft spec (the Build-your-own preview), without changing the registered design spec.
+export function customPaths(garment, spec, sleeve = 'Short', face = 'front') {
+  if (!isCustom(garment)) return getGarmentPaths(garment, sleeve, face);
+  const base = customBase(garment, spec), variant = SLEEVE_VARIANTS[sleeve], paths = variant ? variant(base) : base;
+  const details = [...(paths.details ?? []), ...(paths.sleeveL ? paths.sleeveDetails ?? [] : [])].filter(d => !d.face || d.face === face);
+  return { ...paths, details };
 }

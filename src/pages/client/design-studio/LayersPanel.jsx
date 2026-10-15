@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { NavIcon } from '../../../components/ui/icons';
 import { familyFor } from './garmentCatalog';
 
-const ICON = { logo: 'image', artwork: 'image', drawing: 'draw', shape: 'shapes', text: 'text' };
+const ICON = { logo: 'image', artwork: 'image', drawing: 'draw', shape: 'shapes', text: 'text', pocket: 'shapes' };
 const KIND = { logo: 'Logo', artwork: 'Artwork image', drawing: 'Drawing', shape: 'Shape', text: 'Text' };
 
 export default function LayersPanel({ layers, selectedId, garment, onSelect, onToggleVisibility, onToggleLock, onOpacity, onRename, onDelete, onReorder }) {

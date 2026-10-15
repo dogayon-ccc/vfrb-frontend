@@ -1,13 +1,14 @@
 import { Component, Suspense, lazy, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Minus, Plus, Moon, Sun, Maximize } from 'lucide-react';
+import { Minus, Plus, Moon, Sun, Scan, Maximize2, Minimize2 } from 'lucide-react';
 import { NavIcon } from '../../../components/ui/icons';
 import { familyFor, STATUS_3D_LABEL } from './garmentCatalog';
-import { get3DCapabilities, hemNote3D } from './garmentCapabilities';
+import { get3DCapabilities, hemNote3D, detailParts3D } from './garmentCapabilities';
 import { ENTRIES as GALLERY } from './designGallery';
 import { hasWebGL } from './webglSupport';
 import { hasBackView, assetFor } from './garmentAssets';
 import { isDerived } from './derivedFamilies';
+import { isCustom, CUSTOM_BADGE, CUSTOM_NO_3D } from './customGarment';
 import { photoMaxScale } from './studioView';
 import { panLimits, clampPan } from './snapGuides';
 import { readGuidePrefs } from './canvasGuides';
@@ -15,6 +16,19 @@ import { StageGrid, PinnedRulers, GuideLine, RULER_H, RULER_W } from './StageRul
 import SetView2D from './SetView2D';
 import FloatingToolbar from './FloatingToolbar';
 import GuidesMenu from './GuidesMenu';
+import { traceBox } from './traceGuide';
+
+// The tracing guide inside the artboard (canvas logical px, so it zooms and pans with the garment). Never a canvas object: exports,
+// thumbnails and saves render the Fabric canvas only. Under the garment by default (the canvas paints over it); over it while tracing.
+function TraceLayer({ trace, w, h }) {
+  const [nat, setNat] = useState(null);
+  useEffect(() => { setNat(null); }, [trace?.src]);
+  if (!trace || trace.hidden || !w || !h) return null;
+  const b = traceBox(trace, w, h, nat);
+  return <img className="ds-trace" src={trace.src} alt="" aria-hidden="true" draggable={false} data-over={trace.over ? '1' : undefined}
+    onLoad={e => setNat({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
+    style={{ left: b.left, top: b.top, width: b.width, height: b.height, opacity: trace.opacity / 100 }}/>;
+}
 
 // Guides are remembered per viewer in this browser; on a phone they start off (the screen is small and touch is coarse).
 const readGuides = () => {
@@ -101,7 +115,7 @@ class ThreeEB extends Component {
 export default function CanvasViewport({
   cfg, setCfg, canvasWrapRef, canvasEl, aiPulse, face, switchFace, initFailed,
   selObj, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, garmentRect = null, viewMode, has3DLoaded, onLogoFile, zoom, setZoom, snapshot, overlays,
-  blank = null, setViewMode, pieceBar = null, setCompanion = null, showSet = false, setSnapOptions = null,
+  blank = null, setViewMode, pieceBar = null, setCompanion = null, showSet = false, setSnapOptions = null, trace = null, clearSelection = null,
 }) {
   const paneRef = useRef(null);
   const [webglOk, setWebglOk] = useState(hasWebGL);
@@ -229,6 +243,7 @@ export default function CanvasViewport({
       fingers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (fingers.current.size === 2) { pinch.current = { d: dist(), z: zoomNow.current }; e.stopPropagation(); e.preventDefault(); return; }
     }
+    if (e.button === 0 && e.target === paneRef.current && !hand && !space) clearSelection?.(); // the empty stage, outside the artboard
     if (!canPan) return;
     if (e.button === 1 || (e.button === 0 && e.target === paneRef.current)) startPan(e); // stopPropagation keeps Fabric out of it
   };
@@ -240,6 +255,48 @@ export default function CanvasViewport({
   const onPaneUpCapture = (e) => { fingers.current.delete(e.pointerId); if (fingers.current.size < 2) pinch.current = null; };
   // Fit: back to the fitted size, centred (Ctrl+0 or the zoom readout).
   const fitView = useCallback(() => { setZoom(1); applyPan({ x: 0, y: 0 }); }, [setZoom, applyPan]);
+
+  // Fullscreen: the whole Studio (stage, its toolbars and the panel) through the browser Fullscreen API. Where that API is missing or
+  // the request is refused (iPhone Safari, an embedded view), an app-level expanded stage instead: the top bar and the sheet step aside
+  // and the canvas takes the screen. Leaving restores the zoom and pan the customer had; the design and selection are untouched.
+  const [full, setFull] = useState(null); // null | 'native' | 'app'
+  const before = useRef(null);
+  const studioRoot = useCallback(() => paneRef.current?.closest('.ds') ?? null, []);
+  const restoreView = useCallback(() => {
+    const b = before.current;
+    before.current = null;
+    if (!b) return;
+    setZoom(b.zoom);
+    // After the layout has settled at its old size (the fit is re-measured first), put the pan back.
+    requestAnimationFrame(() => requestAnimationFrame(() => applyPan(clampPan(b.pan, limits.current))));
+  }, [setZoom, applyPan]);
+  const toggleFull = useCallback(async () => {
+    if (full) {
+      if (full === 'native' && document.fullscreenElement) { await document.exitFullscreen?.().catch(() => {}); return; } // fullscreenchange restores
+      setFull(null); restoreView(); return;
+    }
+    before.current = { zoom, pan: panRef.current };
+    const el = studioRoot();
+    if (el?.requestFullscreen && document.fullscreenEnabled) {
+      try { await el.requestFullscreen({ navigationUI: 'hide' }); setFull('native'); return; } catch { /* refused: fall back below */ }
+    }
+    setFull('app');
+  }, [full, zoom, studioRoot, restoreView]);
+  useEffect(() => {
+    const on = () => { if (!document.fullscreenElement) setFull(f => { if (f === 'native') { restoreView(); return null; } return f; }); };
+    document.addEventListener('fullscreenchange', on);
+    return () => document.removeEventListener('fullscreenchange', on);
+  }, [restoreView]);
+  useEffect(() => {
+    const el = studioRoot();
+    if (!el) return undefined;
+    if (full) el.dataset.expanded = full; else delete el.dataset.expanded;
+    if (full !== 'app') return undefined;
+    const key = (e) => { if (e.key === 'Escape') { setFull(null); restoreView(); } };
+    window.addEventListener('keydown', key);
+    return () => window.removeEventListener('keydown', key);
+  }, [full, studioRoot, restoreView]);
+  useEffect(() => () => { delete studioRoot()?.dataset.expanded; }, [studioRoot]);
   useEffect(() => {
     if (!cfg.garment || !show2D) return undefined;
     const key = (e) => { if ((e.ctrlKey || e.metaKey) && (e.key === '0' || e.code === 'Digit0' || e.code === 'Numpad0')) { e.preventDefault(); fitView(); } };
@@ -276,7 +333,8 @@ export default function CanvasViewport({
   const gridOn = guides.grid && !!cfg.garment && show2D && !!view && !!garmentRect && !set2D;
   const stageOff = { dx: rulersOn ? RULER_W : 0, dy: rulersOn ? RULER_H : 0 };
 
-  const status = photo ? { label: 'Photo', title: 'A recoloured photo of the real garment' }
+  const status = isCustom(cfg.garment) ? { label: CUSTOM_BADGE, title: CUSTOM_NO_3D }
+    : photo ? { label: 'Photo', title: 'A recoloured photo of the real garment' }
     : isDerived(cfg.garment) ? { label: 'Derived', title: 'Outline and shading traced from the 3D model of a VFRB reference photo; pending VFRB confirmation' }
     : { label: 'Sketch', title: 'A flat VFRB template drawing; no photo base exists for this garment, sleeve and fit' };
 
@@ -290,8 +348,11 @@ export default function CanvasViewport({
       const label = status === 'none' ? null : approx ? `3D shows the generic ${cfg.garment} model, not the photo` : info?.label;
       const c3 = get3DCapabilities(cfg.garment, cfg.fit, cfg.sleeve);
       const hem = hemNote3D(c3);
-      return [label && { id: 'approx', text: label, warn: true }, hem && { id: 'hem', text: hem, warn: true }, overlays?.length > 0 && c3.supported && !(c3.logo && c3.text) && { id: 'decals', text: 'Logos and text are 2D only on this model' },
-        Object.keys(cfg.details ?? {}).length > 0 && { id: 'details', text: 'Pocket, button and closure changes are shown in 2D only' }];
+      const placed = [...(overlays?.front ?? []), ...(overlays?.back ?? [])];
+      return [label && { id: 'approx', text: label, warn: true }, hem && { id: 'hem', text: hem, warn: true },
+        placed.some(o => o?.__pocket) && { id: 'pockets', text: 'Pockets are shown in 2D only' },
+        placed.some(o => o && !o.__pocket) && c3.supported && !(c3.logo && c3.text) && { id: 'decals', text: 'Logos and text are 2D only on this model' },
+        Object.keys(cfg.details ?? {}).length > 0 && { id: 'details', text: detailParts3D(cfg.garment, cfg.sleeve, cfg.fit) ? 'Button and closure colours are shown in 2D only' : 'Pocket, button and closure changes are shown in 2D only' }];
     })() : []),
   ].filter(Boolean) : [];
 
@@ -360,6 +421,8 @@ export default function CanvasViewport({
               </div>
             ) : (
               <>
+                {/* Always mounted: Fabric moves the <canvas> into its own wrapper, so React must never insert a sibling before it later. */}
+                <div className="ds-trace-slot" aria-hidden="true">{cfg.garment && <TraceLayer trace={trace} w={canvasSize.w} h={canvasSize.h}/>}</div>
                 <canvas ref={canvasEl} style={{ display:'block' }}/>
                 {aiPulse && <div className="ai-pulse"/>}
                 {cfg.garment && <div className="ds-stage-floor" aria-hidden="true"/>}
@@ -390,7 +453,8 @@ export default function CanvasViewport({
                 </div>
               }>
                 <Scene3D cfg={cfg} overlayDataUrl={snapshot} overlays={overlays} onContextLost={on3DLost}
-                  companion={showSet && setCompanion?.can3D ? setCompanion.cfg : null} companionRole={setCompanion?.role ?? null}/>
+                  companion={showSet && setCompanion?.can3D ? setCompanion.cfg : null} companionRole={setCompanion?.role ?? null}
+                  companionOverlays={setCompanion?.overlays ?? null}/>
               </Suspense>
             </ThreeEB>
             {!cfg.garment && (
@@ -411,7 +475,7 @@ export default function CanvasViewport({
               <div className="ds-zoom" role="group" aria-label="Zoom">
                 <button type="button" aria-label="Zoom out" onClick={()=>setZoom(z=>Math.max(ZOOM_MIN, +(z-0.15).toFixed(2)))}><Minus size={16} aria-hidden="true"/></button>
                 <output className="ds-zoom-val" aria-label="Zoom level" title={photo ? 'Zoom level (a photo base never goes above its full resolution)' : 'Zoom level'}>{Math.round(scale*100)}%</output>
-                <button type="button" aria-label="Fit" title="Fit to the stage (Ctrl+0)" onClick={fitView}><Maximize size={15} aria-hidden="true"/></button>
+                <button type="button" aria-label="Fit to the stage" title="Fit to the stage (Ctrl+0)" onClick={fitView}><Scan size={15} aria-hidden="true"/></button>
                 <button type="button" aria-label="Zoom in" disabled={atCap} title={atCap ? 'Full photo resolution: zooming further would blur it' : undefined} onClick={()=>setZoom(z=>Math.min(ZOOM_MAX, +(z+0.15).toFixed(2)))}><Plus size={16} aria-hidden="true"/></button>
               </div>
               <div className="ds-face" role="group" aria-label="Garment side">
@@ -424,6 +488,10 @@ export default function CanvasViewport({
                 ))}
               </div>
             </>)}
+            <button type="button" className="ds-stage-btn ds-full-btn" aria-pressed={!!full} aria-label={full ? 'Exit full screen' : 'Full screen'}
+              title={full ? 'Exit full screen (Esc)' : 'Full screen: the design takes the whole screen'} onClick={toggleFull}>
+              {full ? <Minimize2 size={16} aria-hidden="true"/> : <Maximize2 size={16} aria-hidden="true"/>}
+            </button>
             {stageBtn}
           </div>
         </div>

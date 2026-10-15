@@ -14,12 +14,13 @@
 // female, only for families with a real multi-fit 3D model) -> STYLE (a sleeve length). A
 // family's fit/style options and 3D status are read once, here, from the real capability data
 // — never guessed, never invented for a garment that doesn't have it.
-import { photoFits, assetFor, templateIdFor } from './garmentAssets';
+import { photoFits, assetFor, templateIdFor, vectorFits } from './garmentAssets';
 import { glbSlotFor, slotLive } from './glbSlots';
 import { BASE_PATHS, getGarmentPaths } from './garmentPaths';
 import { get3DCapabilities, fitsFor, sleeves3DFor, has3DModel } from './garmentCapabilities';
 import { realTrimFor, colorsForGarment } from './colorRules';
 import { DERIVED_FAMILIES, DERIVED_BY_NAME } from './derivedFamilies';
+import { CUSTOM_GARMENTS, CUSTOM_TOP, CUSTOM_BOTTOM, CUSTOM_SKIRT, isCustom, normalizeCustom } from './customGarment';
 
 // Category -> its garments, in display order. Source: the VFRB interview's garment list
 // (unchanged from the previous CATS in dsShared.js — moved, not altered).
@@ -30,7 +31,7 @@ import { DERIVED_FAMILIES, DERIVED_BY_NAME } from './derivedFamilies';
 const BASE_CATEGORY_DEFS = [
   { id: 'School Uniform',      icon: 'school',      garments: ['Polo Shirt', 'Round Neck', 'Pants', 'Shorts', 'Skirt', 'Pleated Skirt'] },
   { id: 'Corporate',           icon: 'corporate',   garments: ['Polo Shirt', 'Button-Down', 'Blouse', 'Blazer', 'Collarless Blazer', 'Mandarin Collar', 'T-Shirt', 'Dress', 'Pants', 'Skirt'] },
-  { id: 'Medical / Scrubs',    icon: 'medical',     garments: ['Scrub Top', 'Lab Coat', 'Lab Coverall', 'Pants'] },
+  { id: 'Medical / Scrubs',    icon: 'medical',     garments: ['Scrub Top', 'Jogger Scrub Pants', 'Lab Coat', 'Lab Coverall', 'Pants'] },
   { id: 'Hospitality / Service', icon: 'hospitality', garments: ['Mandarin Collar', 'Button-Down', 'Polo Shirt', 'Blouse', 'Dress', 'Pants', 'Skirt'] },
   { id: 'Industrial / Work',   icon: 'industrial',  garments: ['Button-Down', 'Polo Shirt', 'T-Shirt', 'Lab Coverall', 'Pants', 'Shorts'] },
 ];
@@ -51,7 +52,9 @@ const SLEEVE_OPTS = {
   'Collarless Blazer': ['Long', 'Short'],
   'Blouse': ['Short'],
   'Dress': ['Short'],
-  'Pants': [], 'Shorts': [], 'Skirt': [], 'Pleated Skirt': [],
+  'Pants': [], 'Shorts': [], 'Skirt': [], 'Pleated Skirt': [], 'Jogger Scrub Pants': [],
+  // Build your own (customGarment.js): the top offers every sleeve the generator draws, including none.
+  [CUSTOM_TOP]: ['Short', 'Sleeveless', '3/4', 'Long'], [CUSTOM_BOTTOM]: [], [CUSTOM_SKIRT]: [],
   // A derived template is one traced outline: its sleeve is part of the shape, not a style choice.
   ...Object.fromEntries(DERIVED_FAMILIES.map(d => [d.name, []])),
 };
@@ -62,11 +65,13 @@ export const LEGACY_GARMENT = { 'School Polo': 'Polo Shirt', 'V-Neck Shirt': 'Sc
 // Every distinct garment name across all categories, in first-seen order (a name can appear in
 // more than one category — e.g. "Polo Shirt" is both School Uniform and Corporate — it's the
 // same family either way, not a duplicate to invent apart).
-const FAMILY_NAMES = [...new Set(CATEGORY_DEFS.flatMap(c => c.garments))];
+// Build-your-own garments are families too (sleeve, fit and pieces resolve the same way) but belong to no category: the picker offers them
+// as its own first card, never inside a category list.
+const FAMILY_NAMES = [...new Set([...CATEGORY_DEFS.flatMap(c => c.garments), ...CUSTOM_GARMENTS])];
 
 // One entry per family: everything real and verified about it, nothing guessed.
 const FAMILIES = Object.fromEntries(FAMILY_NAMES.map(name => {
-  const has2D = !!BASE_PATHS[name];
+  const has2D = !!BASE_PATHS[name] || isCustom(name);
   const cap = get3DCapabilities(name);
   const styles = SLEEVE_OPTS[name] ?? [];
   // supported: real GLB, matches this session's verified list (T-Shirt). partial: real GLB but
@@ -84,7 +89,8 @@ const FAMILIES = Object.fromEntries(FAMILY_NAMES.map(name => {
     id: name,
     displayName: name,
     has2D,
-    fits: cap.supported ? fitsFor(name) : photoFits(name),
+    // A fit with a registered vector template (Scrub Top unisex) is offered too: it is the sketch "Start from scratch" opens.
+    fits: [...new Set([...(cap.supported ? fitsFor(name) : photoFits(name)), ...vectorFits(name)])],
     styles,
     defaultStyle: styles[0] ?? null,
     sleeves3D: cap.supported ? sleeves3DFor(name) : [], // styles any 3D model of this family has (any fit); per-selection checks use sleeves3DFor(name, fit)
@@ -116,10 +122,37 @@ export const FAMILY_BY_NAME = FAMILIES;
 export const PIECE_OF = {
   'Polo Shirt': 'top', 'T-Shirt': 'top', 'Round Neck': 'top', 'Mandarin Collar': 'top', 'Button-Down': 'top', 'Scrub Top': 'top', 'Lab Coat': 'top',
   'Blouse': 'top', 'Blazer': 'top', 'Collarless Blazer': 'top',
-  'Pants': 'bottom', 'Shorts': 'bottom', 'Skirt': 'bottom', 'Pleated Skirt': 'bottom',
+  'Pants': 'bottom', 'Shorts': 'bottom', 'Skirt': 'bottom', 'Pleated Skirt': 'bottom', 'Jogger Scrub Pants': 'bottom',
+  [CUSTOM_TOP]: 'top', [CUSTOM_BOTTOM]: 'bottom', [CUSTOM_SKIRT]: 'bottom',
   ...Object.fromEntries(DERIVED_FAMILIES.filter(d => d.role).map(d => [d.name, d.role])),
 };
 export const pieceOf = garment => PIECE_OF[garment] ?? null;
+
+// Browse facets, derived from the same facts (never a second list to keep in step): what kind of piece a family is, and who its fits are
+// for. Gender is a filter and a recommendation, never a restriction: a family with a unisex sketch (or no fit at all) is for anyone.
+export const PIECE_FACETS = [['top', 'Tops'], ['bottom', 'Trousers & shorts'], ['skirt', 'Skirts'], ['onepiece', 'Dresses & one-piece']];
+export const GENDER_FACETS = [['female', "Women's"], ['male', "Men's"], ['unisex', 'Unisex']];
+export function pieceFacet(garment) {
+  const role = pieceOf(garment);
+  if (!role) return 'onepiece';
+  return role === 'bottom' && /skirt/i.test(garment) ? 'skirt' : role;
+}
+export function genderFacets(fam) {
+  const fits = fam?.fits ?? [];
+  const derivedFit = DERIVED_BY_NAME[fam?.id]?.fit;
+  const set = new Set(derivedFit ? [derivedFit] : fits.filter(f => f === 'male' || f === 'female'));
+  if (!derivedFit && (!fits.length || fits.includes('unisex') || fits.length === 1)) set.add('unisex');
+  return set;
+}
+// Families that complete a set with this garment (a top's bottoms, a bottom's tops), the browsed category's first. None for a one-piece.
+export function counterpartsFor(garment, category = null) {
+  const role = pieceOf(garment);
+  if (!role) return [];
+  const want = role === 'top' ? 'bottom' : 'top';
+  const all = [...new Map(CATALOG.flatMap(c => c.families).map(f => [f.id, f])).values()].filter(f => pieceOf(f.id) === want && f.has2D);
+  const home = new Set((CATALOG.find(c => c.id === category)?.families ?? []).map(f => f.id));
+  return [...all.filter(f => home.has(f.id)), ...all.filter(f => !home.has(f.id))];
+}
 
 export function familyFor(garment) {
   return FAMILIES[garment] ?? null;
@@ -167,6 +200,8 @@ export function applyGarment(cfg, garment, next = {}) {
     ...(photoBase ? { patterns: {}, patternParams: {} } : {}),
     // The gallery photo a design was opened from; any other garment drops it so a design never claims the wrong photo.
     inspirationId: next.inspirationId ?? (fam.id === cfg.garment ? cfg.inspirationId ?? null : null),
+    // Build-your-own shape: kept while the garment stays the same custom piece, clamped; any other garment carries none.
+    custom: isCustom(fam.id) ? normalizeCustom(next.custom ?? (fam.id === cfg.garment ? cfg.custom : null), fam.id) : null,
   };
 }
 

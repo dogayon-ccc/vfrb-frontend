@@ -93,7 +93,7 @@ export default function ShowcaseModerationQueue() {
             {designs.map((d, i) => (
               <div key={d.id} className="adm-mcard" style={{ '--i': Math.min(i, 8), marginBottom: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-                  <GarmentSilhouette garment={d.config?.garment} sleeve={d.config?.sleeve ?? 'Short'} fit={d.config?.fit} colors={d.config?.colors ?? {}} patterns={d.config?.patterns} patternParams={d.config?.patternParams} details={d.config?.details} width={72} height={86} />
+                  <GarmentSilhouette garment={d.config?.garment} sleeve={d.config?.sleeve ?? 'Short'} fit={d.config?.fit} custom={d.config?.custom} colors={d.config?.colors ?? {}} patterns={d.config?.patterns} patternParams={d.config?.patternParams} details={d.config?.details} width={72} height={86} />
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 800, textAlign: 'center', overflowWrap: 'anywhere' }}>{d.label}</div>
                 {d.garment && <div style={{ display: 'flex', justifyContent: 'center', marginTop: 6 }}><StatusPill status={tab === 'published' ? 'completed' : 'pending'} label={d.garment} /></div>}

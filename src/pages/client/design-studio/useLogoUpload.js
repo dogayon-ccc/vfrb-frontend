@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { processLogo } from '../../../lib/logoBackground';
 import { prepareUpload, referenceFile } from './uploadGuard';
 import { setDesignRef } from '../../../utils/studioHandoff';
+import { analyzeImageFile, sketchFromAnalysis } from './referenceSketch';
 
 const IDLE = { phase: 'idle' };
 
@@ -16,11 +17,13 @@ const toDataUrl = (file) => new Promise((resolve, reject) => {
   r.readAsDataURL(file);
 });
 
-export function useLogoUpload(addLogo) {
+// onTrace({ src, name }): show the image as the tracing underlay. onSketch({ garment, sleeve, custom }): open a build-your-own sketch.
+export function useLogoUpload(addLogo, { onTrace = null, onSketch = null } = {}) {
   const [mode, setMode] = useState('auto');            // auto | ai | off (logos)
   const [placement, setPlacement] = useState('left_chest');
   const [kind, setKind] = useState('logo');              // logo | artwork (a personal design or reference image)
   const [status, setStatus] = useState(IDLE);
+  const nextUseAs = useRef('artwork'); // the review's preselected choice (the picker's "Create a 2D garment from this photo" presets 'sketch')
   const busy = useRef(false);
   const urls = useRef([]);
   const keepUrl = (f) => { const u = URL.createObjectURL(f); urls.current.push(u); return u; };
@@ -41,7 +44,8 @@ export function useLogoUpload(addLogo) {
     const removed = res.status === 'removed';
     setStatus({ phase: 'review', prep, fileName: prep.original.name, before: prev?.before ?? keepUrl(prep.file),
       after: removed ? keepUrl(res.file) : null, cut: removed ? res.file : null, removeBg: removed, method,
-      note: res.message, canAi: !removed && method !== 'ai' && (res.code === 'NO_SOLID_BG' || res.code === 'OVER_REMOVED'), useAs: prev?.useAs ?? 'artwork' });
+      note: res.message, canAi: !removed && method !== 'ai' && (res.code === 'NO_SOLID_BG' || res.code === 'OVER_REMOVED'), useAs: prev?.useAs ?? nextUseAs.current });
+    nextUseAs.current = 'artwork';
   }, []);
 
   const run = useCallback(async (file, runMode = mode) => {
@@ -81,6 +85,20 @@ export function useLogoUpload(addLogo) {
     busy.current = true;
     const s = status;
     try {
+      if (s.useAs === 'trace') { // the original (never the cut-out): tracing follows the real photo
+        const src = await toDataUrl(s.prep.file);
+        onTrace?.({ src, name: s.fileName });
+        setStatus({ phase: 'trace', preview: s.before, fileName: s.fileName,
+          message: 'Shown under the garment as a tracing guide, locked and semi-transparent. It is never part of the design image, the export or the order.' });
+        return;
+      }
+      if (s.useAs === 'sketch') { // read the outline (the cut-out when there is one), then the customer confirms the type
+        setStatus({ phase: 'working', method: 'check', fileName: s.fileName, progress: null });
+        const analysis = await analyzeImageFile(s.cut ?? s.prep.file).catch(() => null);
+        const kind = analysis?.kind ?? 'top';
+        setStatus({ phase: 'sketch', analysis, kind, draft: sketchFromAnalysis(analysis, kind), traceSrc: await toDataUrl(s.prep.file), preview: s.before, fileName: s.fileName });
+        return;
+      }
       if (s.useAs === 'reference') {
         const ref = await referenceFile(s.prep); // the original when it is a JPG or PNG
         setDesignRef(ref);
@@ -92,7 +110,18 @@ export function useLogoUpload(addLogo) {
       await place(useCut ? s.cut : s.prep.file, { method: useCut ? s.method : 'none', fileName: s.fileName, changed: !!useCut,
         message: useCut ? 'Placed with the background removed. Canvas Undo removes it.' : 'Placed exactly as uploaded.' }, true);
     } finally { busy.current = false; }
-  }, [status, place]);
+  }, [status, place, onTrace]);
+
+  // Reference-to-2D step: correct the detected type (re-proposes the shape), refine it, then open it with the photo as a tracing guide.
+  const setSketchKind = useCallback((kind) => setStatus(s => (s.phase === 'sketch' ? { ...s, kind, draft: sketchFromAnalysis(s.analysis, kind) } : s)), []);
+  const setSketchDraft = useCallback((patch) => setStatus(s => (s.phase === 'sketch' ? { ...s, draft: { ...s.draft, ...patch } } : s)), []);
+  const createSketch = useCallback(() => {
+    if (status.phase !== 'sketch') return;
+    onSketch?.(status.draft);
+    onTrace?.({ src: status.traceSrc, name: status.fileName });
+    setStatus({ phase: 'trace', preview: status.preview, fileName: status.fileName,
+      message: 'Sketch created from your photo (2D only). The photo stays under it as a tracing guide and is never exported or sent with the design.' });
+  }, [status, onSketch, onTrace]);
 
   const addOriginal = useCallback(async () => {
     if (!status.file || busy.current) return;
@@ -109,5 +138,6 @@ export function useLogoUpload(addLogo) {
 
   const dismiss = useCallback(() => { setStatus(IDLE); }, []);
 
-  return { mode, setMode, kind, setKind, placement, setPlacement, status, upload: run, addOriginal, retry, dismiss, setRemoveBg, setUseAs, tryAi, confirm };
+  return { mode, setMode, kind, setKind, placement, setPlacement, status, upload: run, addOriginal, retry, dismiss, setRemoveBg, setUseAs, tryAi, confirm,
+    setSketchKind, setSketchDraft, createSketch, preferUseAs: (v) => { nextUseAs.current = v; }, canTrace: !!onTrace, canSketch: !!onSketch };
 }

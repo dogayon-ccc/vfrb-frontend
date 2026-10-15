@@ -2,6 +2,8 @@ import { NavIcon } from '../../../components/ui/icons';
 import { shapeLabel } from './overlayTools';
 import { TextStyleSection, ShapeStyleSection, ArrangeRow } from './StyleSections';
 import { metricsPct } from './canvasGuides';
+import { pocketLabel } from './pocketTools';
+import { SwatchGrid } from './SwatchGrid';
 
 // Real contextual inspector for the currently-selected Fabric object — shown
 // in place of the static Design Summary whenever something is selected.
@@ -18,6 +20,7 @@ export function isEditableSelection(o) {
 }
 
 function kindOf(o) {
+  if (o.__pocket) return pocketLabel(o.__pocket);
   if (o.__shape) return shapeLabel(o);
   if (o.__draw)  return 'Drawing';
   if (o.__artwork) return 'Artwork';
@@ -30,7 +33,7 @@ function kindOf(o) {
 const ALIGN = [['left', 'Left', 'Align left'], ['hcenter', 'Center', 'Center horizontally'], ['right', 'Right', 'Align right'],
   ['top', 'Top', 'Align top'], ['vcenter', 'Middle', 'Center vertically'], ['bottom', 'Bottom', 'Align bottom']];
 
-export function SelectionInspector({ selObj, updateSelected, deleteSelected, duplicateSelected, alignSelected, toggleSelectedLock, pushHistory, arrangeLayer, garmentRect = null }) {
+export function SelectionInspector({ selObj, updateSelected, deleteSelected, duplicateSelected, alignSelected, toggleSelectedLock, pushHistory, arrangeLayer, garmentRect = null, setPocketColor = null, mirrorSelected = null }) {
   // Metrics are % of the garment (origin = its top-left), the same system as the rulers; a multi-selection shows its group bounds.
   const active = selObj.canvas?.getActiveObject?.() ?? selObj, multi = active.type === 'activeselection';
   const m = metricsPct(active, garmentRect), g = garmentRect;
@@ -110,6 +113,14 @@ export function SelectionInspector({ selObj, updateSelected, deleteSelected, dup
         )}
       </section>
 
+      {!multi && selObj.__pocket && setPocketColor && (
+        <section className="ds-ins-sec">
+          <p className="ds-group-label">Pocket colour</p>
+          {locked ? <p className="ds-ins-note">Unlock to recolour.</p> : <SwatchGrid label="Pocket" current={(selObj.__pocketColor ?? '').toLowerCase()} onPick={hex => setPocketColor(hex)}/>}
+          <p className="ds-ins-note">Stitching switches to a light or dark thread to stay visible. Pockets are 2D only.</p>
+        </section>
+      )}
+
       {!multi && <section className="ds-ins-sec">
         <p className="ds-group-label">Appearance</p>
         {selObj.__shape && <ShapeStyleSection o={selObj} live={live} commit={commit} locked={locked}/>}
@@ -119,6 +130,11 @@ export function SelectionInspector({ selObj, updateSelected, deleteSelected, dup
       </section>}
 
       <div className="ds-ins-actions">
+        {mirrorSelected && !multi && (
+          <button type="button" className="ds-act" onClick={mirrorSelected} disabled={locked} title="Copy to the other side of the garment's centre line, flipped">
+            <NavIcon name="duplicate" size={16}/> Mirror L/R
+          </button>
+        )}
         {duplicateSelected && !multi && (
           <button type="button" className="ds-act" onClick={duplicateSelected} disabled={locked}>
             <NavIcon name="duplicate" size={16}/> Duplicate

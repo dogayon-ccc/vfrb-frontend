@@ -44,6 +44,7 @@ const bodyOnly = () => 'body';
 
 import { GLB_SLOTS, slotLive } from './glbSlots';
 import { DERIVED_FAMILIES, DERIVED_APPROVAL, DERIVED_SOURCE, DERIVED_LICENCE, isDerived } from './derivedFamilies';
+import { isCustom, CUSTOM_NO_3D } from './customGarment';
 
 const ALL_PATTERNS = ['hstripes', 'vstripes', 'diagonal', 'checker', 'polka', 'geometric'];
 
@@ -347,6 +348,62 @@ const AUTHORED_MODELS = [{
   },
 }];
 
+// VFRB-authored parametric garments (tools/glb-extract/build_authored_garments.py, 2026-10-15): garment-only, named parts with UVs, each
+// part painted from the same zone as the 2D sketch. A part with `detail` is a pocket the customer can hide in 2D (garmentDetails.js); the
+// 3D view hides it too. Pocket layers the customer adds with the Add pocket tool are 2D only (no model has pocket decals).
+const zoneIs = z => () => z;
+const AUTHORED_LICENCE = 'VFRB-authored procedural geometry (no third-party mesh, no scan, no generation credits)';
+const AUTHORED_TOP_PARTS = [
+  { node: 'body', colorKey: 'body', decals: true, zoneOf: zoneIs('body') },
+  { node: 'sleeve_l', colorKey: 'sleeve', decals: false, zoneOf: zoneIs('sleeve') },
+  { node: 'sleeve_r', colorKey: 'sleeve', decals: false, zoneOf: zoneIs('sleeve') },
+  { node: 'neck_band', colorKey: 'collar', decals: false, zoneOf: zoneIs('collar') },
+  { node: 'chest_pocket', colorKey: 'pocket', decals: false, zoneOf: zoneIs('pocket'), detail: 'patchPocket' },
+  { node: 'lower_pockets', colorKey: 'body', decals: false, zoneOf: zoneIs('body'), detail: 'lowerPockets' },
+];
+const authoredScrubTop = (sleeve, file) => ({
+  id: `scrub-top-vneck-authored-${sleeve === 'Short' ? 'short' : 'three-quarter'}`, match: /^scrub top$/i, exactSleeve: true, strictFit: true, label: '3D (approx.)',
+  approval: 'enabled 2026-10-15 for the Scrub Top sketch (unisex fit)', license: AUTHORED_LICENCE,
+  models: { unisex: file }, torso: { unisex: 0.52 }, transform: TOP_T, parts: AUTHORED_TOP_PARTS,
+  capabilities: {
+    regionMethod: 'vertex-mask', regionAccuracy: 'per part (body, sleeves, neck band and chest pocket are separate parts)',
+    zones: ['body', 'sleeve', 'collar', 'pocket'], patterns: { zones: ['body', 'sleeve', 'pocket'], ids: ALL_PATTERNS.filter(p => p !== 'geometric') },
+    sleeves: [sleeve], text: true, logo: true, frontBack: true, fit: ['unisex'],
+    limitations: ['authored V-neck scrub top, not a scan of a VFRB garment: shape and drape are approximate', 'chest and lower pockets follow the 2D show/hide; pocket layers you add are 2D only',
+      'logos and text are projected onto the body panel (not the sleeves)', 'no arbitrary fabric-texture upload'],
+  },
+});
+const BOTTOM_T = { rotation: [0, 0, 0], scale: 0.509, position: [0, -0.05, 0] };
+const authoredTrousers = (id, match, file, extra) => ({
+  id, match, label: '3D (approx.)', approval: 'enabled 2026-10-15', license: AUTHORED_LICENCE,
+  models: { unisex: file }, torso: { unisex: 0.445 }, transform: BOTTOM_T,
+  parts: [
+    { node: 'leg_l', colorKey: 'body', decals: false, zoneOf: zoneIs('body') },
+    { node: 'leg_r', colorKey: 'body', decals: false, zoneOf: zoneIs('body') },
+    { node: 'waistband', colorKey: 'body', decals: false, zoneOf: zoneIs('body') },
+    { node: 'side_pockets', colorKey: 'body', decals: false, zoneOf: zoneIs('body'), detail: 'sidePockets' },
+    ...extra,
+  ],
+  capabilities: {
+    regionMethod: 'vertex-mask', regionAccuracy: 'per part (legs, waistband and pockets are separate parts, all in the body colour)',
+    zones: ['body'], patterns: { zones: ['body'], ids: ALL_PATTERNS.filter(p => p !== 'geometric') }, sleeves: [],
+    text: false, logo: false, frontBack: false, fit: ['unisex'],
+    limitations: ['authored trousers, not a scan of a VFRB garment: shape and drape are approximate', 'one body colour', 'pockets follow the 2D show/hide; pocket layers you add are 2D only', 'no text or logos in 3D'],
+  },
+});
+const AUTHORED_GARMENTS = [
+  authoredScrubTop('Short', '/models/authored/scrub-top-vneck-short.glb'),
+  authoredScrubTop('3/4', '/models/authored/scrub-top-vneck-three-quarter.glb'),
+  authoredTrousers('pants-straight-authored', /^pants$/i, '/models/authored/pants-straight.glb', [
+    { node: 'fly', colorKey: 'body', decals: false, zoneOf: zoneIs('body') },
+    { node: 'back_pockets', colorKey: 'body', decals: false, zoneOf: zoneIs('body'), detail: 'backPockets' },
+  ]),
+  authoredTrousers('pants-jogger-authored', /^jogger scrub pants$/i, '/models/authored/pants-jogger.glb', [
+    { node: 'cuffs', colorKey: 'body', decals: false, zoneOf: zoneIs('body') },
+    { node: 'drawstring', colorKey: 'body', decals: false, zoneOf: zoneIs('body') },
+  ]),
+];
+
 // Pieces derived from the reference models (tools/glb-extract/derive_template.py, derivedFamilies.js): garment-only, recentred to height
 // 1.9 like the staged Meshy models, so tops share TOP_T and bottoms the Pants transform. Painted through the calibrated zone-mask path,
 // one body zone. torso = half the model's front width, because the derived 2D body is that model's full front outline (1:1 mapping).
@@ -365,7 +422,22 @@ const DERIVED_MODELS = DERIVED_FAMILIES.filter(d => !d.no3D).map(d => ({
   },
 }));
 
-export const SCANNED_GARMENTS = [...SCANNED_BASE, ...SCRUB_TOP, ...MANDARIN_TUNIC, ...ROUND_NECK, ...BIR_BLOUSE, ...UTILITY_LONG, ...CORPORATE_MODELS, ...MEDICAL_MODELS, ...MANDARIN_SHIRT_LONG, ...MORE_MODELS, ...AUTHORED_MODELS, ...DERIVED_MODELS];
+// Models switched off until a clean garment mesh replaces them (2026-10-15). Pants: a Meshy image-to-3D generation of the Dress Slacks
+// photo (one fused surface, belt loops and pockets baked in, no named parts or UVs). The entry stays above as the record of what was
+// served; it is never routed. The 2D Pants template is unaffected.
+export const GATED_3D = { pants: 'The trousers model is not a clean garment mesh (one fused generated surface with no separate parts), so 3D is off for trousers' };
+// Pants is served again by the authored trousers (AUTHORED_GARMENTS below), never by the gated Meshy file.
+const SCANNED_ALL = [...SCANNED_BASE, ...SCRUB_TOP, ...MANDARIN_TUNIC, ...ROUND_NECK, ...BIR_BLOUSE, ...UTILITY_LONG, ...CORPORATE_MODELS, ...MEDICAL_MODELS, ...MANDARIN_SHIRT_LONG, ...MORE_MODELS, ...AUTHORED_MODELS, ...AUTHORED_GARMENTS, ...DERIVED_MODELS];
+export const SCANNED_GARMENTS = SCANNED_ALL.filter(x => !GATED_3D[x.id]);
+// Why a garment has no 3D, when the reason is a decision rather than a missing file: a gated model or a derived bottom.
+export function no3DReason(garment) {
+  const name = String(garment ?? '');
+  if (SCANNED_GARMENTS.some(x => x.match.test(name))) return null; // another, clean model serves it (Pants: the authored trousers)
+  const gated = SCANNED_ALL.find(x => GATED_3D[x.id] && x.match.test(name));
+  if (gated) return GATED_3D[gated.id];
+  const d = DERIVED_FAMILIES.find(x => x.name === name && x.no3D);
+  return d ? `${d.name}: ${d.no3D}` : isCustom(name) ? CUSTOM_NO_3D : null;
+}
 
 // The 3D entry generated from a gallery photo (`sourcePhoto`), if any.
 export const modelFromPhoto = id => SCANNED_GARMENTS.find(x => x.sourcePhoto === id) ?? null;
@@ -374,7 +446,7 @@ export const modelFromPhoto = id => SCANNED_GARMENTS.find(x => x.sourcePhoto ===
 // (an explicit fit must be listed, so Button-Down unisex never lands on the women's BIR blouse). The family's general entry applies otherwise.
 // Studio 3D, the catalog and the capability contract all read this, so they cannot disagree.
 // Fit match for exact-sleeve models: no fit asked, or the model has that fit, or the model is unisex (serves male and female alike).
-const fitOk = (x, f) => !f || !x.exactSleeve || x.capabilities.fit.includes(f) || x.capabilities.fit.includes('unisex');
+const fitOk = (x, f) => !f || !x.exactSleeve || x.capabilities.fit.includes(f) || (x.capabilities.fit.includes('unisex') && !x.strictFit);
 // A model serves a sleeve only if it has that sleeve; garments without sleeve styles (bottoms) accept any.
 const sleeveOk = (x, s) => !s || !(x.capabilities.sleeves?.length) || x.capabilities.sleeves.includes(s);
 // The one model-routing rule (Studio 3D, capability labels, Order Wizard and Order Detail previews all call this).
@@ -387,12 +459,15 @@ const sleeveOk = (x, s) => !s || !(x.capabilities.sleeves?.length) || x.capabili
 export function scannedEntryFor(garment, sleeve, fit) {
   const name = String(garment ?? '').toLowerCase(), f = String(fit ?? '').toLowerCase();
   const cands = SCANNED_GARMENTS.filter(x => x.match.test(name));
-  const has = x => x.capabilities.fit.includes(f), uni = x => x.capabilities.fit.includes('unisex');
+  // strictFit: served only to its own listed fit (the authored scrub top is the unisex sketch's model, never a stand-in for another fit).
+  const has = x => x.capabilities.fit.includes(f), uni = x => x.capabilities.fit.includes('unisex') && !x.strictFit;
   const exact = pred => sleeve && cands.find(x => x.exactSleeve && x.capabilities.sleeves.includes(sleeve) && pred(x));
   const family = cands.filter(x => !x.exactSleeve && sleeveOk(x, sleeve));
   return (f ? exact(has) : null) || family.find(x => !f || has(x)) || exact(uni) || (!f ? exact(() => true) : null) || family[0]
     || (!sleeve && (cands.find(x => x.exactSleeve && (!f || has(x))) || cands.find(x => x.exactSleeve && uni(x)))) || null;
 }
+// True when this selection's 3D model draws the template's pockets as parts that follow the 2D show/hide (the authored models).
+export const detailParts3D = (garment, sleeve, fit) => (scannedEntryFor(garment, sleeve, fit)?.parts ?? []).some(p => p.detail);
 // True when this exact selection (garment + sleeve + fit) has a real 3D model.
 export const has3DModel = (garment, sleeve, fit) => !!scannedEntryFor(garment, sleeve, fit);
 // Gallery photos opened on a family template whose family model contradicts the photo, so 3D would show the wrong garment.
@@ -402,7 +477,8 @@ export const NO_FAMILY_3D = new Set(['blouse-tunic-roundneck-blue']);
 // 3D for a design (cfg or saved studio_config): its model, unless it was opened from a photo the family model would misrepresent.
 // inspirationId is dropped when the garment changes, so choosing T-Shirt directly keeps its 3D.
 // A derived family is that photo's own model, so the photo's family-model block does not apply to it.
-export const has3DFor = d => !!d && !(NO_FAMILY_3D.has(d.inspirationId) && !isDerived(d.garment)) && has3DModel(d.garment, d.sleeve, d.fit);
+// A build-your-own garment is a 2D sketch: no model exists for its shape, whatever its name might match.
+export const has3DFor = d => !!d && !isCustom(d.garment) && !(NO_FAMILY_3D.has(d.inspirationId) && !isDerived(d.garment)) && has3DModel(d.garment, d.sleeve, d.fit);
 // Sleeve styles that really have a 3D model for this garment at this fit (union over the entries that apply). The single source for every "sleeve is 2D only" label.
 export function sleeves3DFor(garment, fit) {
   const name = String(garment ?? '').toLowerCase(), f = String(fit ?? '').toLowerCase();

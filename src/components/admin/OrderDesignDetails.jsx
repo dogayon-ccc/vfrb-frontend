@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { ENTRIES } from '../../pages/client/design-studio/designGallery';
 import { describeDetails } from '../../pages/client/design-studio/garmentDetails';
 import { describePatterns } from '../../pages/client/design-studio/wovenPatterns';
+import { describePockets } from '../../pages/client/design-studio/pocketTools';
+import { describeCustom } from '../../pages/client/design-studio/customGarment';
 import { PATTERNS } from '../../pages/client/design-studio/dsShared';
 import { getStorageUrl, isImageFile } from '../../utils/fileUrl';
 import { NavIcon } from '../ui';
@@ -42,7 +44,8 @@ export function ReferenceFile({ path }) {
 export default function OrderDesignDetails({ order }) {
   const cfg = parseCfg(order.studio_config);
   const photo = cfg?.inspirationId ? ENTRIES.find((d) => d.id === cfg.inspirationId) : null;
-  const details = describeDetails(cfg?.details);
+  const details = [...describeCustom(cfg?.garment, cfg?.custom).map(l => `Custom sketch · ${l}`), ...describeDetails(cfg?.details),
+    ...describePockets({ front: cfg?.frontOverlays ?? cfg?.overlays, back: cfg?.backOverlays }).map(l => `Added pocket · ${l}`)];
   const patterns = describePatterns(cfg?.patterns, cfg?.patternParams, cfg?.colors, id => PATTERNS.find(p => p.id === id)?.label ?? id);
   const zones = Object.entries(cfg?.colors ?? {}).filter(([z, c]) => ZONE_LABEL[z] && typeof c === 'string' && c && (z !== 'pocket' || cfg.details?.patchPocket?.show !== false));
   return (

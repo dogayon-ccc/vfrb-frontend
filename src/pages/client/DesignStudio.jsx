@@ -18,7 +18,7 @@ import { NavIcon } from '../../components/ui/icons';
 import DesignStudioStyles from './design-studio/DesignStudioStyles';
 import { useGarmentCanvas, compositeFrontBack } from './design-studio/useGarmentCanvas';
 import { hasBackView, templateIdFor, assetFor } from './design-studio/garmentAssets';
-import { getGarmentPaths } from './design-studio/garmentPaths';
+import { getGarmentPaths, setCustomSpec } from './design-studio/garmentPaths';
 import { EXPORT_FACE_HEIGHT, designPng, designPdf, downloadBlobOrUrl, fitDraftPreview } from './design-studio/designExport';
 import { ENTRIES as GALLERY } from './design-studio/designGallery';
 import CanvasViewport from './design-studio/CanvasViewport';
@@ -42,6 +42,9 @@ import GarmentPicker from './design-studio/GarmentPicker';
 import { selectFamily } from './design-studio/selectGarment';
 import { has3DFor } from './design-studio/garmentCapabilities';
 import { describeDetails } from './design-studio/garmentDetails';
+import { describePockets } from './design-studio/pocketTools';
+import { describeCustom, isCustom, CUSTOM_TOP } from './design-studio/customGarment';
+import { readTrace, writeTrace, normalizeTrace } from './design-studio/traceGuide';
 import { DEFAULT_PIECE, otherRole, normalizeSet, withSet, mirrorStyle, mirrorOverlay } from './design-studio/uniformSet';
 import PieceSelector from './design-studio/PieceSelector';
 
@@ -166,11 +169,15 @@ export default function DesignStudio() {
   // Canvas scaling (fit-to-pane × zoom) is owned solely by CanvasViewport — a second
   // writer on the same wrapper's style.transform made the zoom buttons fight it.
 
+  // A build-your-own garment's shape (cfg.custom) is registered before anything reads its paths this render.
+  setCustomSpec(cfg.garment, cfg.custom);
+  const customKey = cfg.custom ? JSON.stringify(cfg.custom) : '';
+
   // BUG 2 FIX: pass canvasEl (ref object), not canvasEl.current (null at render)
-  const { onAdded, addLogo, addText, addShape, updateSelected, arrangeLayer, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
+  const { onAdded, addLogo, addText, addShape, addPocket, setPocketColor, mirrorSelected, updateSelected, arrangeLayer, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
           pushHistory, undo, redo, canUndo, canRedo, resizeCanvas, initFailed,
           layers, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
-          setDrawMode, setBrushStyle, setSnapOptions, garmentRect, presetPos, textItems, editText } =
+          setDrawMode, setBrushStyle, setSnapOptions, garmentRect, clearSelection, presetPos, textItems, editText } =
     useGarmentCanvas(
       canvasEl,
       cfg.garment,
@@ -187,7 +194,8 @@ export default function DesignStudio() {
       // A tapped pocket, button or closure detail ('detail:<part>') opens the Details panel on that part instead.
       (zone) => { if (zone.startsWith('detail:')) { setDetailFocus(zone.slice(7)); setTool('details'); } else { setActiveZone(zone); setTool('color'); } setSheetOpen(true); },
       cfg.fit,
-      cfg.details
+      cfg.details,
+      customKey
     );
 
   // Picking a placed item swaps the inspector to its controls at every width. On phones the
@@ -220,7 +228,12 @@ export default function DesignStudio() {
   }, [cfg.garment]);
   useEffect(() => { keep3DRef.current = false; }, [viewMode]);
 
-  const logoUpload = useLogoUpload(addLogo);
+  // Tracing guide (traceGuide.js): a DOM underlay for this tab only, never in the design, exports or the order.
+  const [trace, setTraceState] = useState(readTrace);
+  const setTrace = useCallback((v) => setTraceState(prev => { const next = normalizeTrace(typeof v === 'function' ? v(prev) : v); writeTrace(next); return next; }), []);
+  // "Create a 2D garment from reference": the confirmed sketch opens as a build-your-own garment (colours and overlays are kept).
+  const openSketch = useCallback((d) => setCfg(p => applyGarment(p, d.garment, { ...(d.sleeve ? { sleeve: d.sleeve } : {}), custom: d.custom })), []);
+  const logoUpload = useLogoUpload(addLogo, { onTrace: setTrace, onSketch: openSketch });
   // A file dropped on the canvas goes through the same pipeline as the panel, and
   // the panel opens so the customer can see progress, errors and the result.
   const onLogoFile = useCallback((file) => {
@@ -481,6 +494,8 @@ export default function DesignStudio() {
   const [pendingArt, setPendingArt] = useState(null);
   const [artScope, setArtScope] = useState(null); // what the uploaded photo shows: 'top' | 'bottom' | 'set' | null (not said)
   const startUpload = useCallback((file) => { logoUpload.setKind('artwork'); setArtScope(null); setPendingArt(file); }, [logoUpload]);
+  // From the picker: make a sketch from the waiting photo. A custom top opens at once so the upload can run; the review starts on "Create a 2D garment".
+  const sketchPending = useCallback(() => { logoUpload.preferUseAs('sketch'); setArtScope(null); openSketch({ garment: CUSTOM_TOP, sleeve: 'Short', custom: null }); }, [logoUpload, openSketch]);
   // A full-set photo: the picked piece becomes one half of a new set and the missing piece starts on its default garment.
   const artSetRef = useRef(null);
   artSetRef.current = () => {
@@ -541,6 +556,16 @@ export default function DesignStudio() {
     loadPiece(null, other);
   }, [cfg.garment, uset, pieceSnapshot, loadPiece]);
 
+  // "Pair with your top/bottom" (picker): the garment on the canvas becomes one piece of a new set and the picked family the other, in the
+  // same colours. Nothing already designed is lost; the new piece opens on the canvas.
+  const pairWith = useCallback((fam, category, pick = {}) => {
+    const role = pieceOf(cfg.garment), other = role && otherRole(role);
+    if (!role || uset || pieceOf(fam.id) !== other) return;
+    const piece = applyGarment({ ...cfg, inspirationId: null, details: {} }, fam.id, { ...(category ? { category } : {}), ...pick });
+    setUset({ id: crypto.randomUUID(), active: other, pieces: { [role]: pieceSnapshot(), [other]: null } });
+    loadPiece(serializeDesign(piece, { overlays: [], frontOverlays: [], backOverlays: [] }), other);
+  }, [cfg, uset, pieceSnapshot, loadPiece]);
+
   const switchPiece = useCallback((role) => {
     if (!uset || role === uset.active) return;
     const target = uset.pieces[role];
@@ -579,8 +604,9 @@ export default function DesignStudio() {
     if (!uset || pieceOf(cfg.garment) !== uset.active) return null;
     const snap = uset.pieces[otherRole(uset.active)];
     if (!snap?.garment) return null;
-    const other = deserializeDesign(snap).cfg;
-    return { cfg: other, role: otherRole(uset.active), can3D: has3DFor(cfg) && has3DFor(other) };
+    const { cfg: other, frontOverlays, backOverlays } = deserializeDesign(snap);
+    // The other piece's own logos, text and drawings ride along so the 3D set shows them on that piece (where its model takes decals).
+    return { cfg: other, overlays: { front: frontOverlays, back: backOverlays }, role: otherRole(uset.active), can3D: has3DFor(cfg) && has3DFor(other) };
   // eslint-disable-next-line react-hooks/exhaustive-deps -- has3DFor reads exactly these fields
   }, [uset, cfg.garment, cfg.sleeve, cfg.fit, cfg.inspirationId]);
 
@@ -702,7 +728,9 @@ export default function DesignStudio() {
         ['Category', cfg.category],
         ['Colours', zones.map(z => `${z}: ${cfg.colors[z] ?? '-'}`).join('  ')],
         ['Patterns', describePatterns(cfg.patterns, cfg.patternParams, cfg.colors, id => PATTERNS.find(p => p.id === id)?.label ?? id).join('  ') || 'Solid'],
+        ...(isCustom(cfg.garment) ? [['Custom sketch (2D only)', describeCustom(cfg.garment, cfg.custom).join('  ')]] : []),
         ['Details', describeDetails(cfg.details).join('  ') || 'As the template'],
+        ...(describePockets(faceJSON.current).length ? [['Added pockets (2D)', describePockets(faceJSON.current).join('  ')]] : []),
         ['Placed items', `Front ${counts.front}${faces.length > 1 ? `, back ${counts.back}` : ''}`],
         ['Views', faces.map(f => f.label).join(', ') + (faces.length === 1 ? ' (no back view for this garment)' : '')],
         ['Template', templateIdFor(cfg.garment, cfg.sleeve, cfg.fit) ?? 'Vector template'],
@@ -783,7 +811,7 @@ export default function DesignStudio() {
           <ToolDrawer tool={tool} setTool={setTool} sheetOpen={sheetOpen} setSheetOpen={setSheetOpen} sheetFull={sheetFull} setSheetFull={setSheetFull}
             summary={{ cfg, face, saved, saving, saveErr, draftSaved, saveDesign, orderThis, ordering, onOpenTool: (id) => { setTool(id); setSheetOpen(true); }, downloadImage, downloadPdf, exporting, clearGarment }} cfg={cfg} setCfg={setCfg}
             activeZone={zone} setActiveZone={setActiveZone} detailFocus={detailFocus}
-            addText={addText} addShape={addShape} updateSelected={updateSelected} arrangeLayer={arrangeLayer}
+            addText={addText} addShape={addShape} addPocket={addPocket} setPocketColor={setPocketColor} mirrorSelected={mirrorSelected} updateSelected={updateSelected} arrangeLayer={arrangeLayer}
             assetsTab={assetsTab} setAssetsTab={setAssetsTab} logoUpload={logoUpload}
             setShowInspo={openInspo} setShowShowcase={toggleShowcase} onChangeGarment={changeGarment}
             brushSize={brushSize} brushColor={brushColor} erasing={erasing} setErasing={setErasing} garmentRect={garmentRect}
@@ -792,7 +820,7 @@ export default function DesignStudio() {
             selectLayer={selectLayer} toggleLayerVisibility={toggleLayerVisibility}
             toggleLayerLock={toggleLayerLock} toggleSelectedLock={toggleSelectedLock} setLayerOpacity={setLayerOpacity}
             pushHistory={pushHistory}
-            renameLayer={renameLayer} deleteLayer={deleteLayer} reorderLayers={reorderLayers} pieceRole={uset?.active ?? null}/>
+            renameLayer={renameLayer} deleteLayer={deleteLayer} reorderLayers={reorderLayers} pieceRole={uset?.active ?? null} trace={trace} setTrace={setTrace}/>
 
           {/* ── CANVAS AREA ── */}
           <CanvasViewport cfg={cfg} setCfg={setCfg} canvasWrapRef={canvasWrapRef} canvasEl={canvasEl} initFailed={initFailed}
@@ -803,9 +831,9 @@ export default function DesignStudio() {
             blank={<GarmentPicker inline cfg={cfg} pieceRole={uset?.active ?? (pendingArt && artScope ? (artScope === 'bottom' ? 'bottom' : 'top') : null)} onPickPhoto={pickPhoto}
               onPick3D={(d, f) => { keep3DRef.current = true; pickPhoto(d, f); setHas3DLoaded(true); setViewMode('3d'); }}
               onPickFamily={(fam, category, pick) => selectFamily(setCfg, fam, category, pick)}
-              onUpload={startUpload} pendingArt={pendingArt} onCancelArt={() => setPendingArt(null)}
+              onUpload={startUpload} pendingArt={pendingArt} onCancelArt={() => setPendingArt(null)} onSketchArt={sketchPending}
               artScope={artScope} onArtScope={uset ? null : setArtScope}/>} setViewMode={setViewMode}
-            pieceBar={pieceBar} setCompanion={setCompanion} showSet={showSet} setSnapOptions={setSnapOptions}/>
+            pieceBar={pieceBar} setCompanion={setCompanion} showSet={showSet} setSnapOptions={setSnapOptions} trace={trace} clearSelection={clearSelection}/>
         </div>
 
         {/* ── FIRST-VISIT ONBOARDING OVERLAY ── */}
@@ -819,7 +847,7 @@ export default function DesignStudio() {
         )}
 
         {/* ── GARMENT PICKER MODAL (Inspo / Change garment) ── */}
-        <InspoGallery showInspo={showInspo} setShowInspo={toggleInspo} setCfg={setCfg} onPickPhoto={pickPhoto} tab={pickerTab} cfg={cfg} pieceRole={uset?.active ?? null}
+        <InspoGallery showInspo={showInspo} setShowInspo={toggleInspo} setCfg={setCfg} onPickPhoto={pickPhoto} onPairFamily={pairWith} tab={pickerTab} cfg={cfg} pieceRole={uset?.active ?? null}
           loadCanvasJSON={loadCanvasJSON} onOpen3D={() => { keep3DRef.current = true; setHas3DLoaded(true); setViewMode('3d'); }}/>
 
         {/* ── SHOWCASE GALLERY OVERLAY ── */}

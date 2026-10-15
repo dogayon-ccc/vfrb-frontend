@@ -55,7 +55,7 @@ export default function ShowcaseGallery({ showShowcase, setShowShowcase, setCfg 
             <div className="ds-show-grid">
               {designs.map(d => (
                 <button key={d.id} type="button" className="ds-show-tile" onClick={() => load(d)} aria-label={`Open ${d.label}, ${d.garment}`}>
-                  <GarmentSilhouette garment={d.config?.garment} sleeve={d.config?.sleeve ?? 'Short'} fit={d.config?.fit} colors={d.config?.colors ?? {}}
+                  <GarmentSilhouette garment={d.config?.garment} sleeve={d.config?.sleeve ?? 'Short'} fit={d.config?.fit} custom={d.config?.custom} colors={d.config?.colors ?? {}}
                     patterns={d.config?.patterns} patternParams={d.config?.patternParams} details={d.config?.details} width={64} height={78}/>
                   <span className="ds-show-label">{d.label}</span>
                   <span className="ds-show-g">{d.garment}</span>

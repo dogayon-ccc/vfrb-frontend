@@ -42,7 +42,7 @@ export default function DesignPreview({ cfg, previewUrl = null, referenceImageUr
         : previewUrl ? <img src={previewUrl} alt="Submitted design" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }}/>
         : design && fam ? (
           <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
-            {(hasBackView(design.garment, design.sleeve ?? 'Short', design.fit) ? ['front', 'back'] : ['front']).map(f => <GarmentSilhouette key={f} garment={design.garment} sleeve={design.sleeve ?? 'Short'} fit={design.fit} colors={design.colors} details={design.details} patterns={design.patterns} patternParams={design.patternParams} face={f} width={Math.round(height * 0.5)} height={Math.round(height * 0.62)}/>)}
+            {(hasBackView(design.garment, design.sleeve ?? 'Short', design.fit) ? ['front', 'back'] : ['front']).map(f => <GarmentSilhouette key={f} garment={design.garment} sleeve={design.sleeve ?? 'Short'} fit={design.fit} colors={design.colors} details={design.details} custom={design.custom} patterns={design.patterns} patternParams={design.patternParams} face={f} width={Math.round(height * 0.5)} height={Math.round(height * 0.62)}/>)}
           </div>
         ) : <p style={{ fontSize: 12, color: 'var(--text-faint)', margin: 0 }}>No design preview available</p>}
     </div>

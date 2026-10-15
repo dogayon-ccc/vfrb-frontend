@@ -5,8 +5,9 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { Copy, Trash2, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal,
   AlignHorizontalDistributeCenter, AlignVerticalDistributeCenter } from 'lucide-react';
 import { shapeLabel } from './overlayTools';
+import { pocketLabel } from './pocketTools';
 
-const kindLabel = o => (o.__artwork ? 'Artwork' : o.__logo ? 'Logo' : o.__shape ? shapeLabel(o) : o.__draw ? 'Drawing' : 'Text');
+const kindLabel = o => (o.__pocket ? pocketLabel(o.__pocket) : o.__artwork ? 'Artwork' : o.__logo ? 'Logo' : o.__shape ? shapeLabel(o) : o.__draw ? 'Drawing' : 'Text');
 const ALIGN = [['left', 'Align left edges', AlignStartVertical], ['hcenter', 'Align centres horizontally', AlignCenterVertical], ['right', 'Align right edges', AlignEndVertical],
   ['top', 'Align top edges', AlignStartHorizontal], ['vcenter', 'Align middles', AlignCenterHorizontal], ['bottom', 'Align bottom edges', AlignEndHorizontal]];
 const DISTRIBUTE = [['h', 'Distribute horizontally', AlignHorizontalDistributeCenter], ['v', 'Distribute vertically', AlignVerticalDistributeCenter]];
@@ -34,6 +35,7 @@ export default function FloatingToolbar({ selObj, at, duplicateSelected, deleteS
   const left = Math.max(8, Math.min(at.w - size.w - 8, at.x - size.w / 2));
   const top = above ? at.top - gap - size.h : Math.min(at.h - size.h - 8, at.bottom + 12);
   const label = multi ? `${n} selected` : kindLabel(selObj);
+  const locked = !multi && !!selObj.__locked; // a locked item keeps its place: no align, duplicate or delete until it is unlocked
   return (
     <motion.div ref={ref} className="ds-ftb" role="toolbar" aria-label={`${label} actions`} data-place={above ? 'above' : 'below'} onKeyDown={roving}
       style={{ left, top, visibility: size.w ? 'visible' : 'hidden' }}
@@ -45,11 +47,11 @@ export default function FloatingToolbar({ selObj, at, duplicateSelected, deleteS
           {ALIGN.map(([w, t, I]) => <button key={w} type="button" onClick={() => arrangeSelected('align', w)} aria-label={t} title={t}><I size={17} aria-hidden="true"/></button>)}
           {n >= 3 && DISTRIBUTE.map(([w, t, I]) => <button key={w} type="button" onClick={() => arrangeSelected('distribute', w)} aria-label={t} title={t}><I size={17} aria-hidden="true"/></button>)}
         </>) : (
-          <button type="button" onClick={() => alignSelected('hcenter')} aria-label="Centre on the garment centre line" title="Centre on the garment centre line"><AlignCenterVertical size={17} aria-hidden="true"/></button>
+          <button type="button" disabled={locked} onClick={() => alignSelected('hcenter')} aria-label="Centre on the garment centre line" title="Centre on the garment centre line"><AlignCenterVertical size={17} aria-hidden="true"/></button>
         )}
       </span>
-      {!multi && <button type="button" onClick={duplicateSelected} aria-label="Duplicate" title="Duplicate (Ctrl+D)"><Copy size={17} aria-hidden="true"/></button>}
-      <button type="button" className="ds-ftb-danger" onClick={deleteSelected} aria-label="Delete" title="Delete (Del)"><Trash2 size={17} aria-hidden="true"/></button>
+      {!multi && <button type="button" disabled={locked} onClick={duplicateSelected} aria-label="Duplicate" title="Duplicate (Ctrl+D)"><Copy size={17} aria-hidden="true"/></button>}
+      <button type="button" className="ds-ftb-danger" disabled={locked} onClick={deleteSelected} aria-label="Delete" title="Delete (Del)"><Trash2 size={17} aria-hidden="true"/></button>
     </motion.div>
   );
 }
