@@ -14,7 +14,8 @@ export async function renderDecals(objects) {
   const mod = await import('fabric');
   const fabric = mod.fabric ?? mod.default ?? mod;
   const live = await reviveOverlays(await fabric.util.enlivenObjects(objects));
-  return live.filter(o => o.visible !== false).map(o => {
+  // Pockets are 2D only: no model has pocket geometry, and a flat decal would read as a printed patch, not a pocket.
+  return live.filter(o => o.visible !== false && !o.__pocket).map(o => {
     const r = o.getBoundingRect();
     return { url: o.toDataURL({ multiplier: 3, enableRetinaScaling: false }), cx: r.left + r.width / 2, cy: r.top + r.height / 2, w: r.width, h: r.height };
   });

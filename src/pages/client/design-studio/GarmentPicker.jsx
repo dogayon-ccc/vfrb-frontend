@@ -1,17 +1,18 @@
 // The one garment picker: Inspiration (real VFRB photos with their honest status) and Templates (the catalog).
 // Used inline on the empty canvas and inside the picker modal ("Change garment"). Header and action footer stay in view while it scrolls.
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
-import { Upload, SlidersHorizontal, Eye, Square, CheckCircle2, Box, X } from 'lucide-react';
-import { BASE_PATHS } from './garmentPaths';
+import { Upload, SlidersHorizontal, Eye, Square, CheckCircle2, Box, X, PencilRuler } from 'lucide-react';
+import { BASE_PATHS, getGarmentPaths, customPaths } from './garmentPaths';
 import GarmentThumb from './GarmentThumb';
-import { CATALOG, pieceOf, applyGarment, resolveTarget } from './garmentCatalog';
+import { CATALOG, pieceOf, applyGarment, resolveTarget, PIECE_FACETS, GENDER_FACETS, pieceFacet, genderFacets, counterpartsFor } from './garmentCatalog';
 import { DERIVED_LABEL } from './derivedFamilies';
 import { CATEGORIES, PIECES, SLEEVES, GENDERS, ENTRIES, TIER_LABEL, filterDesigns, facetCounts } from './designGallery';
-import { assetFor } from './garmentAssets';
 import { hasWebGL } from './webglSupport';
 import { ROLE_LABEL } from './uniformSet';
 import { SwatchGrid } from './SwatchGrid';
 import { REF_SPLIT, PREVIEW_CAPTION, previewColors } from './referenceColour';
+import { CUSTOM_TOP, CUSTOM_BOTTOM, CUSTOM_SKIRT, CUSTOM_BADGE, DEFAULT_CUSTOM, kindOf } from './customGarment';
+import { CustomControls, CustomNote } from './BuildYourOwn';
 
 const ReferenceModel3D = lazy(() => import('./ReferenceModel3D'));
 const CAT_SHORT = { 'School Uniform': 'School', 'Medical / Scrubs': 'Medical', 'Hospitality / Service': 'Hospitality', 'Industrial / Work': 'Industrial' };
@@ -251,15 +252,13 @@ function Photos({ head, onClose, cfg, pieceRole, onPickPhoto, onPick3D, onPickFa
   );
 }
 
-// A template card shows exactly what picking it opens: the model's own lighting for a derived template, or the vector sketch.
-// Template cards only offer vector combinations (combosFor vectorOnly), so a photo base is never shown or opened from them.
+// A template card shows exactly what picking it opens: the model's own lighting for a derived template, or the vector sketch in the chosen
+// sleeve. Scratch is sketches only: a photo base is never drawn or opened from here (photos live under "Start from a reference").
 function TemplateImage({ fam, cfg, pick = {} }) {
   const r = applyGarment(cfg, fam.id, pick);
-  const asset = assetFor(r.garment, r.sleeve, 'front', r.fit);
-  const paths = BASE_PATHS[fam.id] ?? BASE_PATHS['Polo Shirt'];
-  if (asset && !paths.shade) return <img src={asset.src} alt="" decoding="async" draggable={false}/>;
-  if (paths.shade) return <><img src={paths.shade.front} alt="" decoding="async" draggable={false}/><span className="ds-sketch">From model</span></>;
-  return <><GarmentThumb paths={paths} colors={cfg.colors} size={96}/><span className="ds-sketch">Sketch</span></>;
+  const base = BASE_PATHS[fam.id] ?? BASE_PATHS['Polo Shirt'];
+  if (base.shade) return <><img src={base.shade.front} alt="" decoding="async" draggable={false}/><span className="ds-sketch">From model</span></>;
+  return <><GarmentThumb paths={getGarmentPaths(fam.id, r.sleeve ?? 'Short')} colors={cfg.colors} size={96}/><span className="ds-sketch">Sketch</span></>;
 }
 
 const FIT_LABEL = { male: 'Men', female: 'Women', unisex: 'Unisex' };
@@ -335,14 +334,83 @@ function FamilySteps({ fam, cfg, onBack, onOpen, backLabel = 'Back to garments' 
   );
 }
 
-function Templates({ head, onClose, cfg, pieceRole, onPickFamily, extra }) {
+// "Build your own": a top, trousers or a skirt shaped with a few clamped choices (customGarment.js). The preview is the same generator
+// the canvas draws with. A uniform set keeps the piece it needs (a top, or one of the two bottoms).
+const BYO_KINDS = [[CUSTOM_TOP, 'Top', 'top'], [CUSTOM_BOTTOM, 'Trousers', 'bottom'], [CUSTOM_SKIRT, 'Skirt', 'bottom']];
+function BuildYourOwnSteps({ cfg, pieceRole, onBack, onOpen }) {
+  const kinds = BYO_KINDS.filter(([, , role]) => !pieceRole || role === pieceRole);
+  const [garment, setGarment] = useState(kinds.find(([g]) => g === cfg.garment)?.[0] ?? kinds[0][0]);
+  const [specs, setSpecs] = useState(() => ({ [CUSTOM_TOP]: DEFAULT_CUSTOM.top, [CUSTOM_BOTTOM]: DEFAULT_CUSTOM.bottom, [CUSTOM_SKIRT]: DEFAULT_CUSTOM.skirt,
+    ...(kindOf(cfg.garment) && cfg.custom ? { [cfg.garment]: cfg.custom } : {}) }));
+  const [sleeve, setSleeve] = useState(cfg.garment === CUSTOM_TOP && cfg.sleeve ? cfg.sleeve : 'Short');
+  const top = garment === CUSTOM_TOP;
+  return (
+    <>
+      <div className="ds-pick-preview ds-pick-steps">
+        <span className="ds-pick-img"><GarmentThumb paths={customPaths(garment, specs[garment], top ? sleeve : null)} colors={cfg.colors} size={150}/><span className="ds-sketch">{CUSTOM_BADGE}</span></span>
+        <h3>Build your own</h3>
+        <div className="ds-pick-frow" role="radiogroup" aria-label="Garment">
+          <span>Garment</span>
+          {kinds.map(([g, label]) => <button key={g} type="button" role="radio" className="ds-chip" aria-checked={garment === g} aria-pressed={garment === g} onClick={() => setGarment(g)}>{label}</button>)}
+        </div>
+        <CustomControls garment={garment} spec={specs[garment]} sleeve={sleeve} onSleeve={setSleeve} onSpec={next => setSpecs(p => ({ ...p, [garment]: next }))}/>
+        <CustomNote/>
+      </div>
+      <Foot>
+        <button type="button" className="ds-btn" onClick={onBack}>Back to garments</button>
+        <button type="button" className="ds-btn ds-btn--primary" onClick={() => onOpen(garment, { custom: specs[garment], ...(top ? { sleeve } : {}) })}>Open in Studio</button>
+      </Foot>
+    </>
+  );
+}
+
+function BuildYourOwnCard({ onPick }) {
+  return (
+    <li style={{ '--i': 0 }}>
+      <button type="button" className="ds-pick-card ds-byo-card" onClick={onPick} aria-label={`Build your own: a top, trousers or skirt you shape yourself. ${CUSTOM_BADGE}, 2D only`}>
+        <span className="ds-pick-img"><PencilRuler size={40} strokeWidth={1.6} aria-hidden="true"/></span>
+        <strong>Build your own</strong>
+        <span className="ds-sketch">{CUSTOM_BADGE} · 2D only</span>
+      </button>
+    </li>
+  );
+}
+
+// "Complete the set": with a top on the canvas, its bottoms first (and a bottom's tops); picking one adds it as the set's other piece, so
+// the garment already designed is kept. A one-piece garment needs no partner, and the picker says so instead of offering one.
+function PairSection({ cfg, onPair, i0 = 0 }) {
+  const role = pieceOf(cfg.garment);
+  if (!role) return <p className="ds-note ds-pick-pairnote">{cfg.garment} is a one-piece garment: it needs no separate top or bottom. Pick any garment below to replace it.</p>;
+  const list = counterpartsFor(cfg.garment, cfg.category).filter(f => !f.derived && tierOfFamily(f) !== 'reference');
+  const want = role === 'top' ? 'bottom' : 'top';
+  return (
+    <section className="ds-pick-sec ds-pick-pair" aria-label={`Pair a ${ROLE_LABEL[want].toLowerCase()} with your ${cfg.garment}`}>
+      <h3>Pair with your {cfg.garment}</h3>
+      <p className="ds-note">Adds a {ROLE_LABEL[want].toLowerCase()} as the other piece of a uniform set, in your colours. Your {ROLE_LABEL[role].toLowerCase()} stays as it is.</p>
+      {list.length
+        ? <ul className="ds-pick-grid">{list.map((f, i) => <FamilyCard key={f.id} fam={f} cfg={cfg} fitsRole={() => true} pieceRole={null} onPick={onPair} i={i0 + i}/>)}</ul>
+        : <p className="ds-note">No {ROLE_LABEL[want].toLowerCase()} template matches yet. Choose another category, or build your own.</p>}
+    </section>
+  );
+}
+
+function Templates({ head, onClose, cfg, pieceRole, onPickFamily, onPairFamily = null, extra }) {
   const [cat, setCat] = useState(ALL);
   const [roleOn, setRoleOn] = useState(true);
   const [fam, setFam] = useState(null);
+  const [pairFam, setPairFam] = useState(null);
+  const [byo, setByo] = useState(false);
+  const [piece, setPiece] = useState(null);   // Tops | Trousers & shorts | Skirts | Dresses & one-piece
+  const [gender, setGender] = useState(null); // a recommendation filter: unisex sketches always stay listed
   const fitsRole = f => !pieceRole || pieceOf(f.id) === pieceRole;
-  const inCat = c => (c === ALL ? ALL_FAMILIES : CATALOG.find(x => x.id === c).families).filter(f => !f.derived && tierOfFamily(f) !== 'reference' && (!(pieceRole && roleOn) || fitsRole(f)));
+  const facetOk = f => (!piece || pieceFacet(f.id) === piece) && (!gender || genderFacets(f).has(gender) || genderFacets(f).has('unisex'));
+  const inCat = c => (c === ALL ? ALL_FAMILIES : CATALOG.find(x => x.id === c).families).filter(f => !f.derived && tierOfFamily(f) !== 'reference' && (!(pieceRole && roleOn) || fitsRole(f)) && facetOk(f));
   const families = inCat(cat);
+  const pairing = !!onPairFamily && !!cfg.garment && !pieceRole;
   const legend = <Legend labels={PHOTO_LABEL} icons={PHOTO_BADGE} present={Object.keys(PHOTO_BADGE).filter(k => families.some(f => tierOfFamily(f) === k))}/>;
+  if (byo) return <>{head(null)}<BuildYourOwnSteps cfg={cfg} pieceRole={pieceRole && roleOn ? pieceRole : null} onBack={() => setByo(false)}
+    onOpen={(garment, pick) => onPickFamily({ id: garment }, cfg.category, pick)}/></>;
+  if (pairFam) return <>{head(null)}<FamilySteps fam={pairFam} cfg={cfg} backLabel="Back to garments" onBack={() => setPairFam(null)} onOpen={pick => onPairFamily(pairFam, homeOf(pairFam.id, cfg.category), pick)}/></>;
   if (fam) return <>{head(null)}<FamilySteps fam={fam} cfg={cfg} onBack={() => setFam(null)} onOpen={pick => onPickFamily(fam, cat === ALL ? homeOf(fam.id, cfg.category) : cat, pick)}/></>;
   const card = (f, i) => <FamilyCard key={f.id} fam={f} cfg={cfg} fitsRole={fitsRole} pieceRole={pieceRole} onPick={setFam} i={i}/>;
   return (
@@ -357,9 +425,24 @@ function Templates({ head, onClose, cfg, pieceRole, onPickFamily, extra }) {
           </button>
         ))}
       </div>
+      <div className="ds-pick-facets">
+        <div className="ds-pick-frow" role="group" aria-label="Piece">
+          <span>Piece</span>
+          {PIECE_FACETS.map(([id, label]) => <button key={id} type="button" className="ds-chip" aria-pressed={piece === id} onClick={() => setPiece(p => (p === id ? null : id))}>{label}</button>)}
+        </div>
+        <div className="ds-pick-frow" role="group" aria-label="For">
+          <span>For</span>
+          {GENDER_FACETS.map(([id, label]) => <button key={id} type="button" className="ds-chip" aria-pressed={gender === id} onClick={() => setGender(g => (g === id ? null : id))}>{label}</button>)}
+          {gender && gender !== 'unisex' && <span className="ds-note">Unisex templates stay listed: any garment can be made in any size.</span>}
+        </div>
+      </div>
+      {pairing && <PairSection cfg={cfg} onPair={setPairFam}/>}
+      {pairing && <h3 className="ds-pick-subh">Or replace your garment</h3>}
       <ul className="ds-pick-grid">
-        {families.map(card)}
+        <BuildYourOwnCard onPick={() => setByo(true)}/>
+        {families.map((f, i) => card(f, i + 1))}
       </ul>
+      {families.length === 0 && <p className="ds-note">No template matches these filters. Clear a filter or pick another category.</p>}
       {onClose && <Foot><span className="ds-pick-count">{families.length} templates</span><button type="button" className="ds-btn" onClick={onClose}>Keep current garment</button></Foot>}
     </>
   );
@@ -377,12 +460,13 @@ function ArtScope({ value, onChange }) {
   );
 }
 
-export default function GarmentPicker({ tab = 'inspiration', inline = false, cfg, pieceRole = null, onPickPhoto, onPick3D, onPickFamily, onUpload, pendingArt, onCancelArt, artScope = null, onArtScope = null, onClose = null, extra = null }) {
+export default function GarmentPicker({ tab = 'inspiration', inline = false, cfg, pieceRole = null, onPickPhoto, onPick3D, onPickFamily, onPairFamily = null, onUpload, pendingArt, onCancelArt, onSketchArt = null, artScope = null, onArtScope = null, onClose = null, extra = null }) {
   const [view, setView] = useState(tab);
   const title = pendingArt ? 'Now choose the garment for your design' : cfg.garment ? 'Change garment' : 'Start from a VFRB garment';
   const sub = pendingArt
     ? <><p>Your file <strong>{pendingArt.name}</strong> goes on the garment you pick{artScope === 'set' ? '; pick the top and its bottom is added as a set' : ''}. <button type="button" className="ds-pick-link" onClick={onCancelArt}><X size={14} aria-hidden="true"/>Cancel upload</button></p>
-        {onArtScope && <ArtScope value={artScope} onChange={onArtScope}/>}</>
+        {onArtScope && <ArtScope value={artScope} onChange={onArtScope}/>}
+        {onSketchArt && <p><button type="button" className="ds-btn" onClick={onSketchArt}><PencilRuler size={15} aria-hidden="true"/>Create a 2D garment from this photo</button> <span className="ds-note">Reads the outline into an editable sketch you confirm (2D only).</span></p>}</>
     : <p>Real uniforms we have made, or a VFRB template.</p>;
   const head = legend => <Head title={title} sub={sub} onClose={onClose} view={view} setView={setView} legend={legend} onUpload={pendingArt ? null : onUpload}/>;
   // Compact header once the picker's scroll box (the inline stage or the modal) has scrolled. The gap between the two thresholds, with
@@ -400,7 +484,7 @@ export default function GarmentPicker({ tab = 'inspiration', inline = false, cfg
     <section ref={root} className="ds-pick" data-inline={inline || undefined} data-compact={compact || undefined} aria-labelledby="ds-pick-h">
       {view === 'inspiration'
         ? <Photos head={head} onClose={onClose} cfg={cfg} pieceRole={pieceRole} onPickPhoto={onPickPhoto} onPick3D={onPick3D} onPickFamily={onPickFamily} extra={extra}/>
-        : <Templates head={head} onClose={onClose} cfg={cfg} pieceRole={pieceRole} onPickFamily={onPickFamily} extra={extra}/>}
+        : <Templates head={head} onClose={onClose} cfg={cfg} pieceRole={pieceRole} onPickFamily={onPickFamily} onPairFamily={onPairFamily} extra={extra}/>}
     </section>
   );
 }

@@ -26,6 +26,8 @@ import { startColors } from './colorRules';
 import { assetFor, templateIdFor, templateKeyById } from './garmentAssets';
 import { photoFamilies } from './designGallery';
 import { normalizeDetails } from './garmentDetails';
+import { normalizeCustom } from './customGarment';
+import { setCustomSpec } from './garmentPaths';
 import { savedDesignName } from '../../../utils/designName';
 
 // A gallery photo id is kept only while the design is on a family that photo opens (reference, never geometry): designGallery.photoFamilies.
@@ -72,6 +74,7 @@ function withLegacyAliases(cfg) {
 // previewPng: optional data-URL, only ever set by orderThis().
 export function serializeDesign(cfg, overlaysBundle = {}, previewPng) {
   const { overlays = [], frontOverlays = [], backOverlays = [] } = overlaysBundle;
+  setCustomSpec(cfg.garment, cfg.custom);
   const fit = cfg.garment ? resolveFit(cfg.garment, cfg.fit) : (cfg.fit ?? DEFAULT_CFG.fit);
   const sleeve = resolveSleeve(cfg.garment, cfg.sleeve ?? DEFAULT_CFG.sleeve);
   const photoBase = !!assetFor(cfg.garment, sleeve, 'front', fit);
@@ -92,6 +95,9 @@ export function serializeDesign(cfg, overlaysBundle = {}, previewPng) {
   // Canonical template identity: photo-base id or registered vector-template id for (garment, sleeve, fit), else null.
   out.templateId = out.garment ? templateIdFor(out.garment, out.sleeve, out.fit) : null;
   out.inspirationId = inspirationFor(cfg.inspirationId, out.garment);
+  // Build-your-own shape (customGarment.js), clamped; only a custom garment carries one.
+  const custom = normalizeCustom(cfg.custom, out.garment);
+  if (custom) out.custom = custom;
   if (previewPng) out.previewPng = previewPng;
   return out;
 }
@@ -113,7 +119,7 @@ export function deserializeDesign(raw) {
 
   // A saved templateId wins over garment/sleeve/fit so a reload resolves the exact saved template; unknown ids are ignored.
   const tk = typeof sc.templateId === 'string' ? templateKeyById(sc.templateId) : null;
-  if (tk) sc = { ...sc, garment: tk.garment, sleeve: tk.sleeve, fit: tk.fit };
+  if (tk) sc = { ...sc, ...tk };
   const garment = LEGACY_GARMENT[sc.garment ?? sc.garmentType] ?? sc.garment ?? sc.garmentType ?? DEFAULT_CFG.garment;
   const cfg = {
     name:          sc.name ?? DEFAULT_CFG.name,
@@ -127,6 +133,8 @@ export function deserializeDesign(raw) {
     patterns:      { ...DEFAULT_CFG.patterns, ...(sc.patterns && typeof sc.patterns === 'object' ? sc.patterns : {}) },
     patternParams: { ...(sc.patternParams && typeof sc.patternParams === 'object' ? sc.patternParams : {}) },
   };
+  cfg.custom = normalizeCustom(sc.custom, cfg.garment);
+  setCustomSpec(cfg.garment, cfg.custom); // the shape must be known before its paths are read (details below, any preview)
   cfg.details = normalizeDetails(sc.details, cfg.garment, cfg.sleeve, cfg.fit);
   cfg.inspirationId = inspirationFor(sc.inspirationId, cfg.garment);
   if (assetFor(cfg.garment, cfg.sleeve, 'front', cfg.fit)) {

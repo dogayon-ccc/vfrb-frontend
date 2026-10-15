@@ -95,7 +95,7 @@ function Tile({ label, sub, thumb, onClick, editable, onRename, onDelete, showca
 }
 
 // The picker modal: the one GarmentPicker (past designs under its header), opened on Inspiration (empty canvas) or Templates (Change garment).
-export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanvasJSON, onOpen3D, onPickPhoto, tab = 'inspiration', cfg, pieceRole = null }) {
+export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanvasJSON, onOpen3D, onPickPhoto, onPairFamily = null, tab = 'inspiration', cfg, pieceRole = null }) {
   const [archived, setArchived] = useState([]);
 
   useEffect(() => {
@@ -119,6 +119,7 @@ export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanv
 
   const loadDesign3D = (d, filters) => { loadDesign(d, filters); onOpen3D?.(); };
   const loadFamily = (fam, category, pick) => { selectFamily(setCfg, fam, category, pick); setShowInspo(false); };
+  const pairFamily = onPairFamily && ((fam, category, pick) => { onPairFamily(fam, category, pick); setShowInspo(false); });
 
   const renameDesign = (id, newLabel) => {
     const prev = archived;
@@ -144,7 +145,7 @@ export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanv
           exit={{   opacity:0, y:-10, transition:{ duration:.15 } }}
           className="ds-modal" role="dialog" aria-labelledby="ds-pick-h" style={{ x:'-50%' }}>
           {/* The picker owns the sticky header (title, close) and action footer; past designs sit under its header. */}
-          <GarmentPicker key={tab} tab={tab} cfg={cfg} pieceRole={pieceRole} onPickPhoto={loadDesign} onPick3D={loadDesign3D} onPickFamily={loadFamily}
+          <GarmentPicker key={tab} tab={tab} cfg={cfg} pieceRole={pieceRole} onPickPhoto={loadDesign} onPick3D={loadDesign3D} onPickFamily={loadFamily} onPairFamily={pairFamily}
             onClose={() => setShowInspo(false)} extra={archived.length > 0 && (
               <div className="ds-pick-past">
                 <h3 className="ds-pick-sec">Your past designs</h3>

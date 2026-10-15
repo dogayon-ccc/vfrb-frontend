@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NavIcon } from '../../../components/ui/icons';
+import { describePockets } from './pocketTools';
+import { describeCustom } from './customGarment';
 
 const T = '#028090', T2 = '#02C39A';
 const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif`;
@@ -30,6 +32,8 @@ export default function SpecSheet({ order, onClose }) {
   const colors = cfg?.colors ?? {};
   const hasLogo = (cfg?.overlays ?? []).some(o => o.__logo) || (cfg?.hasLogo);
   const textLayers = (cfg?.overlays ?? []).filter(o => o.__text);
+  const pockets = describePockets({ front: cfg?.frontOverlays ?? cfg?.overlays, back: cfg?.backOverlays });
+  const shape = describeCustom(cfg?.garment, cfg?.custom);
 
   return (
     <AnimatePresence>
@@ -78,6 +82,8 @@ export default function SpecSheet({ order, onClose }) {
             <Row label="Collar">{order?.collar_type ?? '—'}</Row>
             <Row label="Sleeve">{order?.sleeve_type ?? '—'}</Row>
             <Row label="Pocket">{order?.pocket_type ?? '—'}</Row>
+            {shape.length > 0 && <Row label="Custom sketch (2D)">{shape.join(' · ')}</Row>}
+            {pockets.map((pk, i) => <Row key={pk + i} label={`Added pocket ${i + 1}`}>{pk}</Row>)}
             <Row label="Quantity">{order?.quantity_ordered ? `${order.quantity_ordered} pcs` : '—'}</Row>
 
             <p style={{ fontSize:10, fontWeight:700, color:'#94a3b8', textTransform:'uppercase',

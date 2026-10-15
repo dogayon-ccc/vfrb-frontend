@@ -154,7 +154,8 @@ function ScannedPart({ geometry, part, colors, patterns, patternParams, decals, 
   );
 }
 
-export default function ScannedGarmentMesh({ manifest, colors = {}, patterns, patternParams, fit, garment, sleeve, overlays }) {
+// details: the design's pocket/button/closure changes (garmentDetails.js); a part tagged with a `detail` the customer hid is not drawn.
+export default function ScannedGarmentMesh({ manifest, colors = {}, patterns, patternParams, fit, garment, sleeve, overlays, details = null }) {
   const key = String(fit ?? '').toLowerCase();
   const { nodes } = useGLTF(manifest.models[key] ?? Object.values(manifest.models)[0]);
   useEffect(() => () => Object.values(nodes).forEach(n => n.geometry?.dispose()), [nodes]); // useGLTF cache outlives the renderer; frees GL buffers that pin the dead context
@@ -164,7 +165,7 @@ export default function ScannedGarmentMesh({ manifest, colors = {}, patterns, pa
   const { rotation, scale, position } = manifest.transform;
   return (
     <group rotation={rotation} scale={scale} position={position}>
-      {manifest.parts.map(part => nodes[part.node]?.geometry && (
+      {manifest.parts.filter(part => !(part.detail && details?.[part.detail]?.show === false)).map(part => nodes[part.node]?.geometry && (
         <ScannedPart key={part.node} geometry={nodes[part.node].geometry} part={part} colors={colors} patterns={patterns} patternParams={patternParams} decals={decals} frame={frame} torso={torso} />
       ))}
     </group>

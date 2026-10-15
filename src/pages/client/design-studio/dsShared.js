@@ -126,8 +126,9 @@ export function zonesFor(garment, sleeve, fit) {
   // pocket, changing its color did nothing in 3D. Driven by the capability data instead of a
   // hardcoded garment name so it stays correct for any future garment in the same situation.
   const cap = get3DCapabilities(garment);
+  const own = get3DCapabilities(garment, fit, sleeve); // this exact selection's model: the Scrub Top sketch's authored model has a real pocket part
   // `pocket2D`: the model's pockets are modelled shapes, but the 2D pocket colour stays offered (tagged "2D only" in the Colors panel).
-  const hasPocket = !!p.pocket && (!cap.supported || (cap.zones ?? []).includes('pocket') || !!cap.pocket2D);
+  const hasPocket = !!p.pocket && (!cap.supported || (cap.zones ?? []).includes('pocket') || !!cap.pocket2D || (own.zones ?? []).includes('pocket'));
   const has = { body: true, collar: hasCollar, sleeve: !!(p.sleeveL || p.sleeveR), pocket: hasPocket, tipping: !!p.collar };
   return ZONE_KEYS.filter(z => has[z]);
 }

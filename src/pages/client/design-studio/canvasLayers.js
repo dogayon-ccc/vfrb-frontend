@@ -20,9 +20,12 @@ export function baseRect(o) {
   return { left: r.left + k.l * sx, top: r.top + k.t * sy, width: (k.r - k.l + 1) * sx, height: (k.b - k.t + 1) * sy };
 }
 
-// Union of the garment base objects' boxes (canvas px), or null before the base has drawn.
+// Union of the garment's own colour zones (canvas px), or null before the base has drawn. Only the zones count (body, collar, sleeves,
+// pocket, or a photo base): the drop shadow, edge shading and seams are decoration drawn past the cloth, and counting them put the rulers'
+// 0 and 100 % and the centre line on the shadow instead of the garment.
+export const isGarmentZone = o => !!o.__garmentBase && o.visible !== false && typeof o.__zoneKey === 'string' && !o.__zoneKey.startsWith('detail:');
 export function garmentBox(c) {
-  const rs = c.getObjects().filter(o => o.__garmentBase && o.visible !== false).map(baseRect);
+  const rs = c.getObjects().filter(isGarmentZone).map(baseRect);
   if (!rs.length) return null;
   const l = Math.min(...rs.map(r => r.left)), t = Math.min(...rs.map(r => r.top));
   return { left: l, top: t, width: Math.max(...rs.map(r => r.left + r.width)) - l, height: Math.max(...rs.map(r => r.top + r.height)) - t };

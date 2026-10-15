@@ -8,15 +8,27 @@ import { familyFor, resolveFit } from './garmentCatalog';
 import { sleeves3DFor } from './garmentCapabilities';
 import { ZONE_LABEL, zonesFor } from './dsShared';
 import { assetFor, photoZoneNote } from './garmentAssets';
+import { isCustom } from './customGarment';
+import { CustomControls, CustomNote } from './BuildYourOwn';
+import TraceControls from './TraceControls';
 
 // Properties of the chosen garment. Choosing or changing the garment happens in the one GarmentPicker (canvas or modal).
-export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, onChangeGarment }) {
+export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, onChangeGarment, trace = null, setTrace = null }) {
   const reduce  = useReducedMotion();
   const [openZone, setOpenZone] = useState(null);
   const family  = familyFor(cfg.garment);
   const sleeves = family?.styles ?? [];
   const photo   = cfg.garment ? assetFor(cfg.garment, cfg.sleeve, 'front', cfg.fit) : null;
-  const hasFit  = (family?.fits.length ?? 0) > 1 && (family.status3D !== 'none' || !!photo);
+  // A sketch (opened from scratch) only offers fits that keep it a sketch; a photo design only the fits that keep a photo. Photos stay
+  // in the reference workflow, so a Fit click can never swap a scratch sketch for a photograph.
+  const fits    = (family?.fits ?? []).filter(f => !!assetFor(cfg.garment, cfg.sleeve, 'front', f) === !!photo);
+  const hasFit  = fits.length > 1 && (family.status3D !== 'none' || !!photo);
+  const custom  = isCustom(cfg.garment);
+  // A sleeve change keeps a sketch a sketch: where that sleeve's current fit is a photo base, the sketch's own vector fit is used instead.
+  const pickSleeve = sv => setCfg(p => {
+    const toPhoto = !photo && !!assetFor(p.garment, sv, 'front', p.fit);
+    return { ...p, sleeve: sv, ...(toPhoto ? { fit: family.fits.find(f => !assetFor(p.garment, sv, 'front', f)) ?? p.fit } : {}) };
+  });
   const zones   = cfg.garment ? zonesFor(cfg.garment, cfg.sleeve, cfg.fit).filter(z => z !== 'body' && (z !== 'tipping' || cfg.colors.tipping)) : [];
   const body    = (cfg.colors.body ?? '').toLowerCase();
 
@@ -38,7 +50,7 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, onCh
             <section>
               <p className="ds-h3">Fit</p>
               <div className="ds-seg ds-seg--sm" role="radiogroup" aria-label="Garment fit">
-                {family.fits.map(id => [id, id[0].toUpperCase() + id.slice(1)]).map(([id, label]) => (
+                {fits.map(id => [id, id[0].toUpperCase() + id.slice(1)]).map(([id, label]) => (
                   <button key={id} type="button" role="radio" aria-checked={resolveFit(family.id, cfg.fit) === id}
                     onClick={() => setCfg(p => ({ ...p, fit: id }))}>{label}</button>
                 ))}
@@ -46,7 +58,18 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, onCh
             </section>
           )}
 
-          {(sleeves.length === 1 || (sleeves.length > 1 && !zones.includes('sleeve'))) && (
+          {trace && setTrace && <TraceControls trace={trace} setTrace={setTrace}/>}
+
+          {custom && (
+            <section>
+              <p className="ds-h3">Shape</p>
+              <CustomControls garment={cfg.garment} spec={cfg.custom} sleeve={cfg.sleeve}
+                onSpec={next => setCfg(p => ({ ...p, custom: next }))} onSleeve={sv => setCfg(p => ({ ...p, sleeve: sv }))}/>
+              <CustomNote/>
+            </section>
+          )}
+
+          {!custom && (sleeves.length === 1 || (sleeves.length > 1 && !zones.includes('sleeve'))) && (
             <section>
               <p className="ds-h3">Sleeve</p>
               {sleeves.length === 1
@@ -58,7 +81,7 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, onCh
                       return (
                         <button key={s} type="button" className="ds-chip" aria-pressed={cfg.sleeve === s}
                           title={only2D ? `${s} sleeve is 2D only — the 3D model has ${sleeves3DFor(family.id, cfg.fit).join(' / ').toLowerCase()} sleeves` : undefined}
-                          onClick={() => setCfg(p => ({ ...p, sleeve: s }))}>
+                          onClick={() => pickSleeve(s)}>
                           {s}{only2D && <span className="ds-chip-note"> · 2D</span>}
                         </button>
                       );
@@ -92,14 +115,14 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, onCh
                       <motion.div className="ds-acc-body" initial={reduce ? false : { height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
                         transition={{ duration: reduce ? 0 : 0.18 }}>
-                        {z === 'sleeve' && sleeves.length > 1 && (
+                        {z === 'sleeve' && sleeves.length > 1 && !custom && (
                           <div className="ds-chips" style={{ padding: '4px 14px 10px' }}>
                             {sleeves.map(sv => {
                               const only2D = family.status3D !== 'none' && !sleeves3DFor(family.id, cfg.fit).includes(sv);
                               return (
                                 <button key={sv} type="button" className="ds-chip" aria-pressed={cfg.sleeve === sv}
                                   title={only2D ? `${sv} sleeve is 2D only` : undefined}
-                                  onClick={() => setCfg(p => ({ ...p, sleeve: sv }))}>
+                                  onClick={() => pickSleeve(sv)}>
                                   {sv}{only2D && <span className="ds-chip-note"> · 2D</span>}
                                 </button>
                               );

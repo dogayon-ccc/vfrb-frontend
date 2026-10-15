@@ -1,5 +1,7 @@
 import { useEffect, useId, useState } from 'react';
-import { detailedPaths } from './garmentDetails';
+import { detailedPaths, applyDetails } from './garmentDetails';
+import { customPaths } from './garmentPaths';
+import { isCustom } from './customGarment';
 import { assetFor, tintedCanvas } from './garmentAssets';
 import { isWoven, wovenParams, wovenTileUrl, tileSize } from './wovenPatterns';
 
@@ -23,11 +25,12 @@ const DETAIL = {
   button: { fill: 'rgba(255,255,255,.9)', stroke: 'rgba(0,0,0,.35)', strokeWidth: 0.8 },
 };
 
-export default function GarmentSilhouette({ garment, sleeve = 'Short', colors = {}, width = 44, height = 52, face = 'front', fit, details, patterns, patternParams }) {
+// custom: a build-your-own shape (cfg.custom); passed explicitly so a list of saved designs never draws one design with another's shape.
+export default function GarmentSilhouette({ garment, sleeve = 'Short', colors = {}, width = 44, height = 52, face = 'front', fit, details, patterns, patternParams, custom = null }) {
   const uid = useId().replace(/:/g, '');
   const asset = assetFor(garment, sleeve, face, fit);
   if (asset) return <PhotoBase asset={asset} colors={colors} width={width} height={height}/>;
-  const p = detailedPaths(garment, sleeve, face, details);
+  const p = isCustom(garment) ? applyDetails(customPaths(garment, custom, sleeve, face), details) : detailedPaths(garment, sleeve, face, details);
 
   const zones = [
     { d: p.body,    fill: colors.body,                    z: 'body' },

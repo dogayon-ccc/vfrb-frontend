@@ -1,6 +1,10 @@
 import { useRef, useState } from 'react';
 import { NavIcon } from '../../../components/ui/icons';
 import { placementsFor } from './dsShared';
+import { REF_KINDS, REF_SKETCH_LABEL, REF_SKETCH_NOTE, REF_3D_NOTE } from './referenceSketch';
+import { CustomControls } from './BuildYourOwn';
+import { customPaths } from './garmentPaths';
+import GarmentThumb from './GarmentThumb';
 
 const KINDS = [
   { id: 'logo',    label: 'Logo',       hint: 'A logo or mark placed on the garment, with its background removed.' },
@@ -56,6 +60,13 @@ function StatusCard({ logo }) {
   // Artwork review: before/after, "Remove background" toggle (back to the original), and Use as artwork or reference photo.
   if (s.phase === 'review') {
     const art = s.useAs === 'artwork';
+    const USE_AS = [
+      ['artwork', 'Artwork on my garment', 'A movable image layer on the design', 'Add to garment', true],
+      ['trace', 'Trace over it', 'A locked, see-through guide under the garment; never exported or ordered', 'Use as tracing guide', logo.canTrace],
+      ['sketch', 'Create a 2D garment from it', 'Reads the garment outline and proposes an editable sketch you confirm', 'Read the outline', logo.canSketch],
+      ['reference', 'Attach to my order', 'Sent with your order as its reference image; not printed', 'Attach as reference', true],
+    ].filter(o => o[4]);
+    const action = USE_AS.find(o => o[0] === s.useAs)?.[3] ?? 'Add to garment';
     return (
       <div className="ds-status" data-phase="review" role="group" aria-label="Check your upload">
         <div className="ds-status-row"><strong>Check your upload</strong><span className="ds-note" style={{ marginLeft: 'auto' }}>{s.fileName}</span></div>
@@ -70,13 +81,51 @@ function StatusCard({ logo }) {
         {art && s.canAi && <button type="button" className="ds-btn" onClick={logo.tryAi}>Try AI background removal</button>}
         <fieldset className="ds-useas">
           <legend>Use as</legend>
-          <label><input type="radio" name="ds-useas" checked={art} onChange={() => logo.setUseAs('artwork')}/><span><b>Artwork on my garment</b><small>A movable image layer on the design</small></span></label>
-          <label><input type="radio" name="ds-useas" checked={!art} onChange={() => logo.setUseAs('reference')}/><span><b>Reference photo for VFRB</b><small>Sent with your order as its reference image; not printed</small></span></label>
+          {USE_AS.map(([id, title, sub]) => (
+            <label key={id}><input type="radio" name="ds-useas" checked={s.useAs === id} onChange={() => logo.setUseAs(id)}/><span><b>{title}</b><small>{sub}</small></span></label>
+          ))}
         </fieldset>
+        {s.useAs === 'sketch' && <p className="ds-note">{REF_3D_NOTE}</p>}
         <div className="ds-status-actions">
-          <button type="button" className="ds-btn ds-btn--primary" onClick={logo.confirm}>{art ? 'Add to garment' : 'Attach as reference'}</button>
+          <button type="button" className="ds-btn ds-btn--primary" onClick={logo.confirm}>{action}</button>
           <button type="button" className="ds-btn" onClick={dismiss}>Cancel</button>
         </div>
+      </div>
+    );
+  }
+  // Reference to 2D: the detected type (always confirmed by the customer), the proposed shape with the same controls as Build your own.
+  if (s.phase === 'sketch') {
+    const a = s.analysis, d = s.draft;
+    return (
+      <div className="ds-status" data-phase="review" role="group" aria-label="Create a sketch from your photo">
+        <div className="ds-status-row"><strong>{REF_SKETCH_LABEL}</strong><span className="ds-note" style={{ marginLeft: 'auto' }}>{s.fileName}</span></div>
+        <div className="ds-ba">
+          <figure><div className="ds-checker"><img src={s.preview} alt="Your photo"/></div><figcaption>Your photo</figcaption></figure>
+          <figure><div className="ds-checker"><GarmentThumb paths={customPaths(d.garment, d.custom, d.sleeve)} colors={{ body: '#cfd8dc', collar: '#b0bec5' }} size={110}/></div><figcaption>Proposed sketch</figcaption></figure>
+        </div>
+        <p className="ds-note">{a ? (a.sure ? 'The outline looks like a ' : 'Not sure: the outline might be a ') + (REF_KINDS.find(k => k[0] === a.kind)?.[1] ?? 'top').toLowerCase() + '. Confirm or correct it.'
+          : 'The garment outline could not be read from this photo (busy background or cropped garment). Pick the type and shape it by hand; the photo stays as a tracing guide.'}</p>
+        <div className="ds-pick-frow" role="radiogroup" aria-label="Garment type">
+          <span>This is a</span>
+          {REF_KINDS.map(([id, label]) => <button key={id} type="button" role="radio" className="ds-chip" aria-checked={s.kind === id} aria-pressed={s.kind === id} onClick={() => logo.setSketchKind(id)}>{label}</button>)}
+        </div>
+        {s.kind === 'dress' && <p className="ds-note">A dress is sketched as a full-length top; there is no separate dress shape yet.</p>}
+        <CustomControls garment={d.garment} spec={d.custom} sleeve={d.sleeve} onSpec={custom => logo.setSketchDraft({ custom })} onSleeve={sleeve => logo.setSketchDraft({ sleeve })}/>
+        <p className="ds-note">{REF_SKETCH_NOTE} {REF_3D_NOTE}</p>
+        <div className="ds-status-actions">
+          <button type="button" className="ds-btn ds-btn--primary" onClick={logo.createSketch}>Create sketch</button>
+          <button type="button" className="ds-btn" onClick={dismiss}>Cancel</button>
+        </div>
+      </div>
+    );
+  }
+  if (s.phase === 'trace') {
+    return (
+      <div className="ds-status" data-phase="done" role="status" aria-live="polite">
+        <div className="ds-status-row"><NavIcon name="success" size={16}/><strong>Tracing guide on</strong></div>
+        <div className="ds-checker"><img src={s.preview} alt="Tracing guide"/></div>
+        <p className="ds-note">{s.message} Adjust or remove it under Garment, Tracing guide.</p>
+        <button type="button" className="ds-link" onClick={dismiss}>Dismiss</button>
       </div>
     );
   }

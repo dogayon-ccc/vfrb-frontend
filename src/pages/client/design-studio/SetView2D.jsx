@@ -6,7 +6,7 @@ import { setLayout2D } from './setScale';
 
 const draw = (c, b, k) => (
   <div style={{ position: 'absolute', left: b.x * k, top: b.y * k, width: b.w * k, height: b.h * k }}>
-    <GarmentSilhouette garment={c.garment} sleeve={c.sleeve ?? 'Short'} fit={c.fit} colors={c.colors} details={c.details}
+    <GarmentSilhouette garment={c.garment} sleeve={c.sleeve ?? 'Short'} fit={c.fit} colors={c.colors} details={c.details} custom={c.custom}
       patterns={c.patterns} patternParams={c.patternParams} width={Math.round(b.w * k)} height={Math.round(b.h * k)}/>
   </div>
 );

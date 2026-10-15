@@ -8,7 +8,9 @@ import { assetFor, tintedCanvas } from './garmentAssets';
 import { snapTargets, computeSnap, snapThreshold, computeResizeSnap, movingEdges } from './snapGuides';
 import { placementTargets, readoutPct, alignDeltas, distributeDeltas, gridSpec, guideLines } from './canvasGuides';
 import { installStageLayers, drawPlacementGhosts, applyErase, garmentBox, plainObject } from './canvasLayers';
-import { reviveOverlays, restyleText, changesLayout, makeShape, shapeLabel, moveInStack, installTouchHandles } from './overlayTools';
+import { reviveOverlays, restyleText, changesLayout, makeShape, shapeLabel, moveInStack, installTouchHandles, makePocket, recolorPocket } from './overlayTools';
+import { pocketSpot, mirroredX, pocketLabel } from './pocketTools';
+import { pieceOf } from './garmentCatalog';
 import { wovenFill } from './wovenPatterns';
 import { loadFont, webFontFor, defaultWeight } from './studioFonts';
 
@@ -43,7 +45,7 @@ function zoneAt(canvas, e) {
     .find(o => o.containsPoint(scene) && !canvas.isTargetTransparent(o, vp.x, vp.y));
 }
 
-const OVERLAY_PROPS = ['__logo','__artwork','__text','__draw','__shape','__layerId','__layerName','__locked','__erase','__curve','__shapeKind','lockMovementX','lockMovementY','lockRotation','lockScalingX','lockScalingY','hasControls'];
+const OVERLAY_PROPS = ['__logo','__artwork','__text','__draw','__shape','__layerId','__layerName','__locked','__erase','__curve','__shapeKind','__pocket','__pocketPanels','__pocketColor','lockMovementX','lockMovementY','lockRotation','lockScalingX','lockScalingY','hasControls'];
 
 // Composites front+back PNGs side by side; falls back to one side if the other fails to load.
 const FRONT_BACK_GAP = 36;
@@ -74,7 +76,8 @@ export function compositeFrontBack(frontUrl, backUrl) {
   });
 }
 
-export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patterns, patternParams, onSelect, onZoneClick, fit, details) {
+// customKey: the build-your-own shape (cfg.custom) as a string, so a slider change redraws the base like a garment change does.
+export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patterns, patternParams, onSelect, onZoneClick, fit, details, customKey = '') {
   const fc = useRef(null);
   // Called with (overlay JSON, garment canvas size) after the customer adds a logo or text; the uniform set's "Apply to: Both" mirrors it.
   const onAdded = useRef(null);
@@ -352,6 +355,8 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         fc.current.renderAll();
         pushHistory();
         bumpLayers();
+        const L = latest.current; // a set's "Apply to: Both" copies the stroke onto the other piece too
+        onAdded.current?.(plainObject(path, OVERLAY_PROPS), getGarmentPaths(L.garment, L.sleeve));
       });
     }).catch(err => { console.error('[DesignStudio] fabric load error:', err); if (!cancelled) setInitFailed(true); });
 
@@ -473,7 +478,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       canvas.renderAll();
       publishGarment(canvas);
     }).catch(() => {});
-  }, [garment, sleeve, face, colors, patterns, patternParams, fit, details, ready, publishGarment]);
+  }, [garment, sleeve, face, colors, patterns, patternParams, fit, details, customKey, ready, publishGarment]);
 
   // History helpers — declared before addLogo/addText/deleteSelected, which depend on pushHistory
   const pushHistory = useCallback(() => {
@@ -613,8 +618,52 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       canvas.renderAll();
       pushHistory();
       bumpLayers();
+      onAdded.current?.(plainObject(shape, OVERLAY_PROPS), paths);
     }).catch(() => {});
   }, [garment, sleeve, pushHistory, bumpLayers]);
+
+  // Add pocket: a real layer (panels + stitching) in the pocket colour, at the preset's spot or where it was dropped. One undo step.
+  const addPocket = useCallback((kind, color, pos = null) => {
+    const canvas = fc.current;
+    if (!canvas) return;
+    const paths = getGarmentPaths(garment, sleeve), at = pos ?? pocketSpot(kind, paths, pieceOf(garment));
+    import('fabric').then((mod) => { const fabric = mod.fabric ?? mod.default ?? mod;
+      const pocket = makePocket(fabric, kind, { left: at.x, top: at.y, originX: 'center', originY: 'center', __layerId: crypto.randomUUID() }, color);
+      canvas.add(pocket);
+      canvas.setActiveObject(pocket);
+      canvas.renderAll();
+      pushHistory();
+      bumpLayers();
+      onAdded.current?.(plainObject(pocket, OVERLAY_PROPS), paths);
+    }).catch(() => {});
+  }, [garment, sleeve, pushHistory, bumpLayers]);
+
+  // Recolour the selected pocket (panels in the colour, stitching for contrast). One undo step when committed.
+  const setPocketColor = useCallback((color, commit = true) => {
+    const canvas = fc.current, obj = canvas?.getActiveObject();
+    if (!obj || obj.__locked || !recolorPocket(obj, color)) return;
+    canvas.renderAll();
+    if (commit) pushHistory();
+    bumpLayers();
+  }, [pushHistory, bumpLayers]);
+
+  // Mirror: a copy of the selected element on the other side of the garment's centre line, flipped. One undo step.
+  const mirrorSelected = useCallback(() => {
+    const canvas = fc.current, obj = canvas?.getActiveObject();
+    if (!canvas || !obj || obj.__garmentBase || obj.__hoverGlow || obj.type === 'activeselection') return;
+    const g = garmentBox(canvas), cx = g ? g.left + g.width / 2 : canvas.getWidth() / 2;
+    obj.clone(OVERLAY_PROPS).then(c => reviveOverlays([c])).then(([copy]) => {
+      const p = obj.getCenterPoint();
+      copy.set({ flipX: !obj.flipX, __layerId: crypto.randomUUID(), __layerName: obj.__layerName ? `${obj.__layerName} (mirrored)` : undefined });
+      copy.setPositionByOrigin({ x: mirroredX(p.x, cx), y: p.y }, 'center', 'center');
+      copy.setCoords();
+      canvas.add(copy);
+      canvas.setActiveObject(copy);
+      canvas.renderAll();
+      pushHistory();
+      bumpLayers();
+    }).catch(() => {});
+  }, [pushHistory, bumpLayers]);
 
   // Live-edits the selected object's own properties (fill, opacity) —
   // used by ShapesPanel's inspector. Refuses garment-base/hover objects,
@@ -891,10 +940,10 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     .filter(o => typeof o.toObject === 'function')
     .map(o => {
       if (!o.__layerId) o.__layerId = crypto.randomUUID(); // lazy-assign for legacy objects
-      const kind = o.__shape ? 'shape' : o.__draw ? 'drawing' : o.__artwork ? 'artwork' : (o.__logo ? 'logo' : 'text');
+      const kind = o.__pocket ? 'pocket' : o.__shape ? 'shape' : o.__draw ? 'drawing' : o.__artwork ? 'artwork' : (o.__logo ? 'logo' : 'text');
       return {
         id: o.__layerId, type: kind,
-        name: o.__layerName || (kind === 'drawing' ? 'Drawing' : kind === 'artwork' ? 'Artwork' : kind === 'logo' ? 'Logo'
+        name: o.__layerName || (kind === 'pocket' ? pocketLabel(o.__pocket) : kind === 'drawing' ? 'Drawing' : kind === 'artwork' ? 'Artwork' : kind === 'logo' ? 'Logo'
           : kind === 'shape' ? shapeLabel(o) : 'Text'),
         visible: o.visible !== false,
         locked: !!o.__locked,
@@ -983,6 +1032,14 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     if (commit) pushHistory();
   }, [findLayer, pushHistory, bumpLayers]);
 
+  // A tap on the empty stage (outside the artboard) ends the selection, like a tap on the empty canvas.
+  const clearSelection = useCallback(() => {
+    const c = fc.current;
+    if (!c?.getActiveObject()) return;
+    c.discardActiveObject();
+    c.requestRenderAll();
+  }, []);
+
   const setSnapOptions = useCallback((o) => { snapOpts.current = { ...snapOpts.current, ...o }; fc.current?.requestRenderAll(); }, []);
 
   // AI design edits: the same preset anchors addLogo uses, on this garment's real paths; null for an unknown preset.
@@ -1013,11 +1070,11 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   }, [findLayer, presetPos, pushHistory, bumpLayers]);
 
   return {
-    onAdded, addLogo, addText, addShape, updateSelected, arrangeLayer, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
+    onAdded, addLogo, addText, addShape, addPocket, setPocketColor, mirrorSelected, updateSelected, arrangeLayer, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
     pushHistory, undo, redo, canUndo, canRedo, resizeCanvas,
     layers, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
     setDrawMode, setBrushStyle, initFailed,
-    setSnapOptions, garmentRect,
+    setSnapOptions, garmentRect, clearSelection,
     presetPos, textItems, editText,
   };
 }

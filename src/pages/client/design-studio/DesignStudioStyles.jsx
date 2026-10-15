@@ -154,6 +154,21 @@ export default function DesignStudioStyles() {
       .ds-stage-text{color:var(--cx-stage-ink-2);font-size:13px;line-height:1.6;}
       .ds-bottombar .ds-stage-btn{width:40px;height:40px;border:0;border-left:1px solid var(--cx-line);border-radius:0 var(--cx-r-md) var(--cx-r-md) 0;box-shadow:none;background:transparent;}
       .ds-bottombar .ds-stage-btn:only-child{border-left:0;border-radius:var(--cx-r-md);}
+      .ds-bottombar .ds-full-btn{border-radius:0;}
+      .ds-bottombar .ds-stage-btn{flex-shrink:0;}
+      /* Narrow phones: zoom, Fit, Front/Back, full screen and the stage light all fit one row (no horizontal scroll), 36px+ targets */
+      @media (max-width:479px){
+        .ds-bottombar{gap:4px;padding:3px;}
+        .ds-zoom button,.ds-face button{min-width:36px;padding:0 6px;}
+        .ds-face{padding-left:4px;}
+        .ds-face button{min-width:50px;}
+        .ds-bottombar .ds-stage-btn{width:36px;}
+      }
+      /* Full screen (native) or the expanded stage (app-level fallback): the top bar steps aside so the canvas gains its height. */
+      .ds[data-expanded]{height:100dvh;}
+      .ds[data-expanded=app]{position:fixed;inset:0;z-index:var(--cx-z-modal);}
+      .ds[data-expanded] .ds-bar{display:none;}
+      .ds[data-expanded] .ds-draft{display:none;}
 
       /* The one garment picker (inline on the empty stage, or in the picker modal) */
       .ds-pick{display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;}
@@ -221,6 +236,25 @@ export default function DesignStudioStyles() {
       /* "Start from scratch" step 2 and the "From reference" group of derived templates. */
       .ds-pick-steps .ds-pick-img{width:min(220px,60vw);aspect-ratio:4/5;display:grid;place-items:center;position:relative;}
       .ds-pick-steps .ds-pick-frow{justify-content:center;}
+      /* Build your own: shape controls (picker step and Garment panel) */
+      .ds-pick-facets{display:flex;flex-direction:column;gap:2px;margin:4px 0 8px;}
+      .ds-pick-facets .ds-pick-frow{padding:4px 0;}
+      .ds-pick-pair{margin:4px 0 14px;padding:12px;border:1px solid var(--cx-line);border-radius:var(--cx-r-lg);background:var(--cx-paper-2);}
+      .ds-pick-pair h3,.ds-pick-subh{margin:0 0 4px;font-size:14px;font-weight:800;}
+      .ds-pick-subh{margin:6px 0 8px;}
+      .ds-pick-pairnote{margin:4px 0 12px;}
+      .ds-trace-slot{position:absolute;inset:0;pointer-events:none;}
+      .ds-trace{position:absolute;max-width:none;pointer-events:none;user-select:none;object-fit:contain;}
+      .ds-trace[data-over]{z-index:3;mix-blend-mode:multiply;}
+      .ds-trace-ctl{display:grid;gap:6px;}
+      .ds-byo{display:grid;gap:6px;width:100%;}
+      .ds-byo-range{padding:4px 14px;}
+      .ds-byo-range output{margin-left:4px;color:var(--cx-ink);font-variant-numeric:tabular-nums;}
+      .ds-byo-ends{display:flex;justify-content:space-between;font-weight:600;color:var(--cx-ink-3);}
+      .ds-byo-check{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 8px;font-size:13px;font-weight:600;cursor:pointer;}
+      .ds-byo-check input{width:18px;height:18px;accent-color:var(--teal);}
+      .ds-byo-note{margin:8px 14px 0;}
+      .ds-byo-card .ds-pick-img{color:var(--cx-thread-ink);background:var(--cx-paper-2);}
       .ds-pick-tier{display:inline-flex;align-items:center;gap:8px;text-align:left;}
       .ds-pick-tier .ds-pick-badge{position:static;flex:none;}
       .ds-pick-sec{width:100%;max-width:1040px;display:grid;gap:6px;margin-top:18px;padding-top:14px;border-top:1px dashed var(--cx-line);}
@@ -604,6 +638,10 @@ export default function DesignStudioStyles() {
       /* Inspector body takes its content height; Layers + History fill the rest above the sticky dock (no dead space) */
       .ds-panel-scroll{flex:1;min-height:0;display:flex;flex-direction:column;overflow-y:auto;overscroll-behavior:contain;}
       .ds-panel-scroll>.ds-panel-body,.ds-panel-scroll>.ds-more-grid{flex:0 0 auto;overflow:visible;}
+      /* Inside the panel's one scroller, inner panels never become scroll boxes of their own: an inner box that grows to its content
+         but keeps overflow:auto + overscroll-behavior:contain swallowed the wheel, so the inspector's lower controls (flip, order,
+         duplicate, delete) could not be scrolled to. */
+      .ds-panel-scroll .ds-sum,.ds-panel-scroll .ds-ins{overflow:visible;overscroll-behavior:auto;min-height:auto;}
       .ds-under{flex:0 0 auto;display:flex;flex-direction:column;border-top:1px solid var(--cx-line);}
       .ds-under:focus-visible{outline:2px solid var(--cx-thread-ink);outline-offset:-2px;}
       .ds-under .ds-lay{flex:0 0 auto;overflow:visible;}
@@ -676,6 +714,10 @@ export default function DesignStudioStyles() {
         .ds-ftb{padding:4px;}
         .ds-ftb-kind{display:none;}
         .ds-draft{padding-left:12px;font-size:12.5px;}
+        /* Expanded on a phone: the sheet hides (the tool bar stays to reopen tools), so the stage ends at the tool bar, never under it. */
+        .ds[data-expanded] .ds-panel{display:none;}
+        .ds[data-expanded]{--ds-pad-b:calc(var(--ds-nav-h) + var(--ds-inset));}
+        .ds[data-expanded] .ds-lane-bottom{display:flex;}
       }
       @media (prefers-reduced-motion:reduce){
         .ds-panel{transition:none!important;}
@@ -783,6 +825,10 @@ export default function DesignStudioStyles() {
       /* Details: pockets, buttons, closures (DetailsPanel.jsx) */
       .ds-det{display:flex;flex-direction:column;gap:10px;padding:10px 12px 16px;}
       .ds-det-note{margin:0;padding:8px 10px;border-radius:var(--cx-r-md);background:var(--cx-paper-2);font-size:12px;line-height:1.45;color:var(--cx-ink-2);}
+      .ds-det-add{display:flex;flex-direction:column;gap:8px;}
+      .ds-det-pockets{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:6px;}
+      .ds-det-pocket{flex-direction:column;gap:4px;min-height:58px;justify-content:center;color:var(--cx-thread-ink);}
+      .ds-det-pocket span{color:var(--cx-ink);font-size:12px;}
       .ds-det-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;}
       .ds-det-row{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:48px;padding:0 4px 0 12px;
         border:1px solid var(--cx-line);border-radius:var(--cx-r-md);background:var(--cx-card);}

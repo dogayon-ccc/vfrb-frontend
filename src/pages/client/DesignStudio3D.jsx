@@ -332,7 +332,7 @@ function GarmentMesh({ cfg, referenceTexture, overlays }) {
     const fit = cfg.fit ?? cfg.gender;
     return (
       <GarmentMeshErrorBoundary key={`${gt}-${fit}`} fallback={primitive}>
-        <ScannedGarmentMesh manifest={scanned} colors={colors} patterns={patternsFor3D(scanned, cfg.patterns, { photoBase: !!target?.photo })} patternParams={cfg.patternParams} fit={fit} garment={cfg.garment} sleeve={cfg.sleeve} overlays={overlays}/>
+        <ScannedGarmentMesh manifest={scanned} colors={colors} patterns={patternsFor3D(scanned, cfg.patterns, { photoBase: !!target?.photo })} patternParams={cfg.patternParams} fit={fit} garment={cfg.garment} sleeve={cfg.sleeve} overlays={overlays} details={cfg.details}/>
       </GarmentMeshErrorBoundary>
     );
   }
@@ -342,7 +342,7 @@ function GarmentMesh({ cfg, referenceTexture, overlays }) {
 // fused set model). After both have loaded, each piece is scaled so its model height matches its real length (setScale.js, the
 // same scale as the 2D set view; each model's own transform only frames it alone), the bottom's waist is tucked SET_OVERLAP under
 // the top's hem, and the pair is scaled to the height of one garment so the existing camera frames it.
-function SetStack({ top, bottom }) {
+function SetStack({ top, bottom, topOverlays = null, bottomOverlays = null }) {
   const group = useRef(), topRef = useRef(), botRef = useRef();
   const key = [top.garment, top.sleeve, top.fit, bottom.garment, bottom.sleeve, bottom.fit].join('|');
   useLayoutEffect(() => {
@@ -363,8 +363,8 @@ function SetStack({ top, bottom }) {
   }, [key]);
   return (
     <group ref={group}>
-      <group ref={topRef}><GarmentMesh cfg={top}/></group>
-      <group ref={botRef}><GarmentMesh cfg={bottom}/></group>
+      <group ref={topRef}><GarmentMesh cfg={top} overlays={topOverlays}/></group>
+      <group ref={botRef}><GarmentMesh cfg={bottom} overlays={bottomOverlays}/></group>
     </group>
   );
 }
@@ -422,7 +422,7 @@ function PauseWhenHidden() {
 // which half `cfg` is ('top' or 'bottom'). Overlays (logos, text) stay on the piece being edited.
 // Linear tone mapping keeps the chosen hue; ACES at these levels lifted every colour by 10-17 L* and washed out reds. The rig is shared.
 export { LIGHT } from './design-studio/lightRig';
-export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overlays = null, onContextLost = null, companion = null, companionRole = null }) {
+export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overlays = null, onContextLost = null, companion = null, companionRole = null, companionOverlays = null }) {
   // FIX (3D never showed logo/pattern/text): loads the live 2D canvas
   // snapshot (refreshed by DesignStudio.jsx each time "3D" is clicked) as
   // a texture for the body mesh. Falls back to flat color if there's no
@@ -466,7 +466,9 @@ export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overla
         <Float speed={1.4} rotationIntensity={0.12} floatIntensity={0.22}>
           <Suspense fallback={null}>
             <group ref={garmentRef}>{companion
-              ? (companionRole === 'top' ? <SetStack top={companion} bottom={cfg}/> : <SetStack top={cfg} bottom={companion}/>)
+              // Each piece carries its own overlays; a model without decal support simply shows none (its capability says so).
+              ? (companionRole === 'top' ? <SetStack top={companion} bottom={cfg} topOverlays={companionOverlays} bottomOverlays={overlays}/>
+                : <SetStack top={cfg} bottom={companion} topOverlays={overlays} bottomOverlays={companionOverlays}/>)
               : <GarmentMesh cfg={cfg} referenceTexture={referenceTexture} overlays={overlays}/>}</group>
             <FitOnLoad dep={`${cfg.garment}|${cfg.sleeve}|${cfg.fit}|${companion?.garment ?? ''}`} target={garmentRef} onFloor={setFloor}/>
           </Suspense>
