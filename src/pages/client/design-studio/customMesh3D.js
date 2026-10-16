@@ -71,12 +71,13 @@ function patch(x0, y0, w, h, side, surfZ, lift = 1.5) {
 }
 
 // Sleeve tube from a 2D sleeve path (A shoulder, B underarm, C underarm hem, D outer hem: garmentPaths.js contract).
-function sleeveTube(d, rows, from = 0, to = 1, grow = 1) {
+// The first ring is pulled in (shoulder) so the tube end does not stand proud of the shoulder line.
+function sleeveTube(d, rows, from = 0, to = 1, grow = 1, shoulder = 0.78) {
   const n = d.match(/-?\d+(\.\d+)?/g).map(Number), A = [n[0], n[1]], B = [n[2], n[3]], C = [n[4], n[5]], D = [n[6], n[7]];
   const top = [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2], hem = [(C[0] + D[0]) / 2, (C[1] + D[1]) / 2];
   const r0 = Math.hypot(A[0] - B[0], A[1] - B[1]) / 2, r1 = Math.hypot(C[0] - D[0], C[1] - D[1]) / 2;
   const at = t => [lerp(top[0], hem[0], t), lerp(top[1], hem[1], t)];
-  return tube(at(from), at(to), lerp(r0, r1, from) * grow, lerp(r0, r1, to) * grow, rows);
+  return tube(at(from), at(to), lerp(r0, r1, from) * grow * (from === 0 ? shoulder : 1), lerp(r0, r1, to) * grow, rows);
 }
 
 // Tops: body loft, neckline band, sleeves, cuffs (long sleeves), hem band and a chest pocket when the options have one.
@@ -110,9 +111,12 @@ function topParts(o, paths, sleeve) {
     const depth = collar === 'notch' ? 30 : 16, spread = collar === 'notch' ? 1.2 : 1.12;
     // Collar points (point collar) reach further down beside the front centre.
     const tip = a => (collar === 'point' ? 12 * Math.max(0, 1 - Math.abs(a - Math.PI / 2 - 0.42) / 0.3) + 12 * Math.max(0, 1 - Math.abs(a - Math.PI / 2 + 0.42) / 0.3) : 0);
+    // The fall lies on the body: each row sits on the body surface `depth` units below the stand, pushed just outside it.
+    const rowStep = (hem[1] - hpsY) / (ROWS - 1), out = collar === 'notch' ? 1.05 : 1.04;
     band.push(loft(5, SEG, (i, j) => {
-      const [x, y, z] = ring0(j), t = i / 4, a = ang(j), top = y - (stand ? standH : 0), s = lerp(1.04, spread, t);
-      return [cx + (x - cx) * s, lerp(top, y + depth + tip(a), t), z * s * 1.02];
+      const t = i / 4, a = ang(j), [x0, y0, z0] = ring0(j), top = y0 - (stand ? standH : 0);
+      const [x, y, z] = bodyAt(Math.min(ROWS - 1, (t * (depth + tip(a))) / rowStep), j), s = lerp(1.06, out * spread / 1.1, t);
+      return t === 0 ? [cx + (x0 - cx) * 1.06, top, z0 * 1.06] : [cx + (x - cx) * s, y, z * s];
     }));
   }
   // Hem band: 7 units up from the hem, a hair outside the body.
