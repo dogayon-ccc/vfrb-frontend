@@ -297,28 +297,6 @@ export function SelfPickModal({ order, onClose, onDone }) {
 
 
 // Catalog facts the server reads from the materials table (never from the AI): code, stock and colour fit. No quantity or price.
-const COLOUR_FIT = {
-  body: ['Matches your main colour', 'ok'], any: ['Made in any colour', 'ok'], near: ['Close to your colour: shade to confirm', 'warn'],
-  other: ['Different colour from your design', 'warn'],
-};
-const fitLabel = m => (m == null ? ['Colour not stated in the catalog', 'muted'] : COLOUR_FIT[m] ?? [`For your ${String(m).replace(/_pattern$/, ' pattern').replace(/_/g, ' ')} colour`, 'ok']);
-const TONE = { ok: ['var(--teal-light, #e6f4f1)', 'var(--teal, #0f766e)'], warn: ['#fff4e5', '#9a5b00'], muted: ['var(--bg-surface)', 'var(--text-muted)'] };
-function FactChip({ text, tone }) {
-  const [bg, fg] = TONE[tone] ?? TONE.muted;
-  return <span style={{ display:'inline-block', padding:'2px 8px', borderRadius:99, fontSize:10, fontWeight:700, background:bg, color:fg, fontFamily:FONT }}>{text}</span>;
-}
-function RecFacts({ rec }) {
-  if (!('in_stock' in rec) && !('colour_match' in rec) && !rec.material_code) return null;
-  const stock = rec.in_stock == null ? ['Stock not recorded', 'muted'] : rec.in_stock ? ['In stock', 'ok'] : ['Out of stock', 'warn'];
-  return (
-    <div style={{ display:'flex', flexWrap:'wrap', gap:6, margin:'0 0 10px' }} aria-label="Catalog facts">
-      {rec.material_code && <FactChip text={rec.material_code} tone="muted"/>}
-      <FactChip text={stock[0]} tone={stock[1]}/>
-      {'colour_match' in rec && /fabric|thread/i.test(rec.category ?? '') && <FactChip text={fitLabel(rec.colour_match)[0]} tone={fitLabel(rec.colour_match)[1]}/>}
-    </div>
-  );
-}
-
 // Merges the catalog facts (GET /orders/{id}/ai-recommendation, keyed by material name) into the order's recommendation rows.
 export async function withCatalogFacts(orderId, recArr) {
   if (!recArr?.length) return recArr ?? [];
@@ -327,12 +305,12 @@ export async function withCatalogFacts(orderId, recArr) {
     const facts = data?.recommendation?.materials_json ?? {};
     return recArr.map(r => {
       const f = facts[r.material_name];
-      return f ? { ...r, material_code: f.material_code ?? null, in_stock: f.in_stock ?? null, colour_match: f.colour_match ?? null } : r;
+      return f ? { ...r, material_code: f.material_code ?? null, in_stock: f.in_stock ?? null, colour_match: f.colour_match ?? null, image_url: f.image_url ?? null, description: f.description ?? null } : r;
     });
   } catch { return recArr; }
 }
 
-// SCOPE-001: material_name/category/ai_note plus catalog facts render here — never a quantity, estimate or price.
+// SCOPE-001: image, name, category and catalog description only — never a quantity, estimate or price.
 export function RecCard({ rec, index }) {
   const cat = CAT[rec.category] ?? CAT.Other;
   return (
@@ -340,52 +318,35 @@ export function RecCard({ rec, index }) {
       initial={{ opacity:0, y:12 }}
       animate={{ opacity:1, y:0 }}
       transition={{ delay: index * 0.06, duration:.25 }}
-      whileHover={{ y:-2 }}
-      className="cx-card"
-      style={{ padding:'18px 20px', borderLeft:`4px solid ${cat.color}` }}>
-
-      {/* Top row */}
-      <div style={{ display:'flex', justifyContent:'space-between',
-        alignItems:'flex-start', marginBottom:10 }}>
-        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-          <div style={{ width:38, height:38, borderRadius:10, flexShrink:0,
-            background:cat.bg, display:'flex', alignItems:'center',
-            justifyContent:'center' }}>
-            <NavIcon name={cat.icon} size={18} color={cat.color}/>
-          </div>
-          <div>
-            <p style={{ fontSize:14, fontWeight:800, color:'var(--ink)',
-              margin:0, fontFamily:FONT }}>
-              {rec.material_name}
-            </p>
-            <span style={{ display:'inline-block', marginTop:2, padding:'2px 8px',
-              borderRadius:99, fontSize:9, fontWeight:700,
-              background:cat.bg, color:cat.color, fontFamily:FONT }}>
-              <NavIcon name={cat.icon} size={9} color={cat.color}/> {rec.category}
-            </span>
-          </div>
-        </div>
-
-      </div>
-
-      <RecFacts rec={rec}/>
-
-      {/* AI explanation (the ai_note Gemini writes) */}
-      {rec.ai_note && (
-        <div style={{ padding:'10px 12px', borderRadius:10,
-          background:'var(--bg-surface)', border:'1px solid var(--border)' }}>
-          <div style={{ display:'flex', alignItems:'flex-start', gap:8 }}>
-            <span style={{ flexShrink:0, marginTop:1 }}><NavIcon name="ai" size={14} color="var(--text-muted)"/></span>
-            <p style={{ fontSize:12, color:'var(--text-muted)', lineHeight:1.65,
-              margin:0, fontFamily:FONT }}>
-              {rec.ai_note}
-            </p>
-          </div>
+      className="cx-card overflow-hidden">
+      {rec.image_url ? (
+        <img src={rec.image_url} alt={rec.material_name} loading="lazy" className="block w-full h-48 object-cover"/>
+      ) : (
+        <div className="w-full h-48 flex flex-col items-center justify-center gap-2" style={{ background:cat.bg }} aria-label="No image">
+          <NavIcon name={cat.icon} size={32} color={cat.color}/>
+          <span style={{ fontSize:11, fontWeight:700, color:cat.color, fontFamily:FONT }}>No image</span>
         </div>
       )}
+      <div style={{ padding:'14px 16px 16px' }}>
+        <p style={{ fontSize:15, fontWeight:800, color:'var(--ink)', margin:0, fontFamily:FONT }}>
+          {rec.material_name}
+        </p>
+        <span style={{ display:'inline-block', marginTop:4, padding:'2px 8px', borderRadius:99, fontSize:10, fontWeight:700,
+          background:cat.bg, color:cat.color, fontFamily:FONT }}>
+          {rec.category}
+        </span>
+        {rec.description && (
+          <p className="whitespace-pre-line" style={{ fontSize:13, color:'var(--text-muted)', lineHeight:1.65, margin:'10px 0 0', fontFamily:FONT }}>
+            {rec.description}
+          </p>
+        )}
+      </div>
     </motion.div>
   );
 }
+
+// Shown once above any list of RecCards.
+export const AI_OPTIONAL_LINE = 'Suggested by AI. Optional.';
 
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function AIMaterials() {
@@ -450,9 +411,9 @@ export default function AIMaterials() {
       const o        = refresh.data?.order ?? refresh.data;
       const recArr   = refresh.data?.recommendations ?? data.recommendations ?? [];
       setOrder(o);
-      // The fresh rows carry the catalog facts the recommend call returned (code, stock, colour fit).
+      // The fresh rows carry the catalog facts the recommend call returned (code, stock, colour fit, image, description).
       const facts = Object.fromEntries((data?.materials ?? []).map(m => [m.material_id, m]));
-      setRecs(recArr.map(r => facts[r.material_id] ? { ...r, material_code: facts[r.material_id].material_code, in_stock: facts[r.material_id].in_stock, colour_match: facts[r.material_id].colour_match } : r));
+      setRecs(recArr.map(r => { const f = facts[r.material_id]; return f ? { ...r, material_code: f.material_code, in_stock: f.in_stock, colour_match: f.colour_match, image_url: f.image_url ?? null, description: f.description ?? null } : r; }));
       setSource(data?.source ?? null);
       setAccepted(o?.ai_recommendation_status === 'accepted');
     } catch(e) {
@@ -709,6 +670,7 @@ export default function AIMaterials() {
                 )}
 
                 {/* Rec cards */}
+                <p style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', margin:'0 0 10px', fontFamily:FONT }}>{AI_OPTIONAL_LINE}</p>
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(min(100%,300px),1fr))', gap:14, marginBottom:20 }}>
                   {recs.map((r, i) => (
                     <RecCard key={r.rec_id ?? i} rec={r} index={i}/>

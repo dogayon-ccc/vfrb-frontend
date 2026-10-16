@@ -26,6 +26,7 @@ import { fetchFailed }                       from '../../utils/loadState';
 import LoadError                             from './settings/LoadError';
 import { getStorageUrl, isImageFile }        from '../../utils/fileUrl';
 import { NavIcon }                           from '../../components/ui/icons';
+import { RecCard, AI_OPTIONAL_LINE }        from './AIMaterials';
 import { OrderThumb, Stepper, StatusPill, LIFECYCLE, lifecycleIndex, orderTitle, parseCfg, fmtDate } from '../../components/customer/kit';
 import { setOrders, ROLE_LABEL } from './design-studio/uniformSet';
 
@@ -900,21 +901,13 @@ export default function CustomerOrderDetail() {
                     ? JSON.parse(aiRec.materials_json)
                     : aiRec.materials_json;
                   return (
-                    <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:14 }}>
-                      {Object.entries(mats).map(([mat, info]) => (
-                        <div key={mat} style={{
-                          display:'flex', alignItems:'center', padding:'8px 12px',
-                          background:'var(--bg-surface)', borderRadius:9,
-                          border:'1px solid var(--bg-surface)',
-                        }}>
-                          <span style={{
-                            fontSize:12, fontWeight:600, color:'var(--ink)',
-                            textTransform:'capitalize', fontFamily:FONT,
-                          }}>
-                            {mat}
-                          </span>
-                        </div>
-                      ))}
+                    <div style={{ marginBottom:14 }}>
+                      <p style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', margin:'0 0 10px', fontFamily:FONT }}>{AI_OPTIONAL_LINE}</p>
+                      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(min(100%,260px),1fr))', gap:12 }}>
+                        {Object.entries(mats).map(([mat, info], i) => (
+                          <RecCard key={mat} rec={{ ...info, material_name: mat }} index={i}/>
+                        ))}
+                      </div>
                     </div>
                   );
                 } catch { return null; }

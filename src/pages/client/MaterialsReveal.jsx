@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
-import { RecCard, AcceptModal, SelfPickModal, ConfettiBurst } from './AIMaterials';
+import { RecCard, AcceptModal, SelfPickModal, ConfettiBurst, AI_OPTIONAL_LINE } from './AIMaterials';
 import { NavIcon } from '../../components/ui/icons';
 
 const T = 'var(--teal)';
@@ -36,6 +36,8 @@ const CSS = `
 .mr-btn:focus-visible{outline:2.5px solid var(--teal);outline-offset:2px}
 .mr-ok{border:0;color:#fff;background:linear-gradient(135deg,#22c55e,#16a34a);box-shadow:0 6px 18px rgba(22,163,74,.3)}
 .mr-alt{border:1px solid var(--teal);color:var(--teal);background:#fff}
+.mr-opt{margin:0 0 10px;font:700 12px/1.4 ${FONT};color:var(--text-muted)}
+.mr-skip{border:none;background:none;color:var(--text-muted);text-decoration:underline}
 @keyframes mr-s{to{transform:rotate(360deg)}}
 @media(min-width:768px){
   .mr-wrap{padding:40px 24px 120px}
@@ -128,9 +130,12 @@ export default function MaterialsReveal({ order, onDone }) {
         )}
 
         {!generating && recs.length > 0 && (
+          <>
+          <p className="mr-opt">{AI_OPTIONAL_LINE}</p>
           <div className="mr-grid">
             {recs.map((r, i) => <RecCard key={i} rec={r} index={i}/>)}
           </div>
+          </>
         )}
       </div>
 
@@ -144,6 +149,9 @@ export default function MaterialsReveal({ order, onDone }) {
             )}
             <button onClick={() => setShowPicker(true)} className="mr-btn mr-alt">
               <NavIcon name="materials" size={16} color="var(--teal)"/> Choose my own materials
+            </button>
+            <button onClick={onDone} className="mr-btn mr-skip">
+              Skip for now, continue without materials
             </button>
           </div>
         </div>
