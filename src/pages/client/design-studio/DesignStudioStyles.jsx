@@ -722,6 +722,9 @@ export default function DesignStudioStyles() {
         .ds-guides-txt{display:none;}
         .ds-guides-btn{padding:0 10px;}
         .ds-piece button{padding:0 12px;}
+        /* With a 3D note in the lane the lane cannot scroll, so the set bar wraps its Apply-to group onto a second row (it was cut off at 375px). */
+        .ds-piece{flex-wrap:wrap;justify-content:center;max-width:100%;border-radius:22px;}
+        .ds-piece .ds-apply{margin-left:0;padding-left:0;border-left:0;}
         /* Half sheet (~30%): the active tool only. Save/Order (peek, full), Layers (full) and the zoom lane (pinch instead) step aside. */
         .ds[data-snap=half] :is(.ds-dock,.ds-under,.ds-lane-bottom){display:none;}
         .ds-sheet-head{min-height:0;}

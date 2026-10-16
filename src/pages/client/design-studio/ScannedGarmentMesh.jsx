@@ -50,8 +50,8 @@ export function partMaterial(color, part, map = null) {
     // Matte cloth: low specular and a sheen in the cloth's own colour, so dark and saturated colours are not veiled grey (calibrated in DesignStudio3D LIGHT).
     color, roughness: part.roughness ?? 0.88, metalness: 0, specularIntensity: 0.2,
     sheen: 0.4, sheenRoughness: 0.6, sheenColor: new THREE.Color(color),
-    // No UVs (zone-mask path) means no normal map.
-    map, normalMap: part.zoneOf ? null : (map ? tiledGrainNormal(map.image.width) : grainNormal()),
+    // No UVs (zone-mask path) means no normal map, except parametric parts (part.grain), whose lofts carry real UVs.
+    map, normalMap: part.zoneOf && !part.grain ? null : (map ? tiledGrainNormal(map.image.width) : grainNormal()),
     normalScale: new THREE.Vector2(0.35, 0.35), side: THREE.DoubleSide,
   });
   // UV path: the colour lives in the zone texture and the material is white, so the sheen takes the painted texel colour (same fix as
@@ -192,7 +192,7 @@ export function CustomGarmentMesh({ garment, spec, sleeve, colors = {}, patterns
   const metas = useMemo(() => built?.parts.map(p => {
     const fixedColor = p.detailColor ? details?.[p.detailColor]?.color ?? null : null;
     if (p.plain || fixedColor) return { node: p.name, colorKey: p.colorKey, decals: false, plain: p.plain, roughness: 0.35, fixedColor };
-    return { node: p.name, colorKey: p.colorKey, decals: p.decals, zoneOf: () => p.colorKey };
+    return { node: p.name, colorKey: p.colorKey, decals: p.decals, zoneOf: () => p.colorKey, grain: true };
   }) ?? [], [built, detailTint]); // eslint-disable-line react-hooks/exhaustive-deps
   const decals = useDecals(overlays);
   const frame = useMemo(() => bodyBounds(garment, sleeve), [garment, sleeve, key]); // eslint-disable-line react-hooks/exhaustive-deps

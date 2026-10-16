@@ -122,7 +122,8 @@ export function bottomOptions(spec) {
 export function tailoredOptions(spec, garment = PANTSUIT_TROUSERS) {
   const s = normalizeCustom(spec, garment), t = s.length / 100;
   const waistY = 28, crotchY = Math.round(lerp(162, 194, s.rise / 100)), hemY = Math.round(lerp(crotchY + 160, 400, t)), hemIn = 7;
-  return { h: hemY + 30, waistY, crotchY, hipY: Math.round(crotchY - 40), hip: PARAM_FAMILIES[garment]?.hip ?? 84, hemY, hemOut: Math.round(lerp(56, 74, s.width / 100)), hemIn, fly: true, crease: s.crease,
+  // waist 70 (Pants: 76): a tailored waist sits inside a jacket or top hem in a set, and gives a truer waist-to-hip shape.
+  return { h: hemY + 30, waistY, crotchY, hipY: Math.round(crotchY - 40), waist: 70, hip: PARAM_FAMILIES[garment]?.hip ?? 84, hemY, hemOut: Math.round(lerp(56, 74, s.width / 100)), hemIn, fly: true, crease: s.crease,
     slantPockets: true, beltLoops: s.beltLoops, turnUp: s.turnUp, welts: true, darts: true, tailored: true };
 }
 export function skirtOptions(spec) {
