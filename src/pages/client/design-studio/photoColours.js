@@ -1,12 +1,11 @@
 // Garment colour of each gallery photo, measured 2026-10-12: median of the garment's central pixels in public/gallery/<id>.webp
 // (white background excluded; sets: [top, bottom], split like REF_SPLIT). "Use as template" starts the design in these colours.
-// blouse-pleated-bib-white is white in the photo; its median reads grey from the pleat shading, so it starts as off-white.
 export const PHOTO_COLOURS = {
   'bir-blouse-trousers-blue': ['#2960C8', '#584A4F'], 'blazer-blouse-blue': ['#0FABEC'], 'blazer-blouse-blue-short': ['#222929'],
   'blazer-collarless-tan': ['#C8A177'], 'blazer-double-breasted-gray': ['#545659', '#1B1816'], 'blazer-open-front-black': ['#454847'],
   'blazer-pinstripe-navy': ['#323C5C', '#1A1918'], 'blazer-pinstripe-royal': ['#1738AA'], 'blazer-tweed-herringbone': ['#827F7B'],
   'blazer-white-notch': ['#BDB7AC'], 'blouse-asymmetric-blue': ['#90ABCC'], 'blouse-mandarin-yellow': ['#F1B642'],
-  'blouse-pleated-bib-white': ['#F2F0EC'], 'blouse-roundneck-fuchsia': ['#E62C69', '#1A1A18'], 'blouse-roundneck-mustard': ['#D3C051', '#733B1F'],
+  'blouse-roundneck-fuchsia': ['#E62C69', '#1A1A18'], 'blouse-roundneck-mustard': ['#D3C051', '#733B1F'],
   'blouse-scarf-cream': ['#DBD1C3'], 'blouse-tunic-roundneck-blue': ['#D7D1C7'], 'corporate-skirt': ['#1C1E1F'],
   'dress-bir-green-yellow-collar': ['#474739'], 'dress-butter-belted': ['#D7CAB9'], 'dress-sheath-denim-blue': ['#2B5A90'],
   'dress-shift-geometric': ['#3F443C'], 'dress-tunic-maternity-navy': ['#2B2F40'], 'jack-shirt-two-tone': ['#5D8FDB'], 'pants': ['#282828'],

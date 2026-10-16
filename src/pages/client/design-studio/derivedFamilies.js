@@ -72,26 +72,26 @@ export const DERIVED_BOTTOM_NO_3D = 'cut from a fused set model at the hem, not 
 const PLANE_CUT_BOTTOM = "bottom cut from a fused set at the top's hem: straight-cut open waist, not a garment-only mesh";
 const PLANE_CUT_TOP = 'top cut from a fused set by a plane at its hem: straight-cut open waist, not a garment-only mesh';
 export const REMOVED_DERIVED = {
-  'blazer-double-breasted-gray-bottom': ['Pants', PLANE_CUT_BOTTOM],
-  'blazer-pinstripe-navy-bottom': ['Pants', PLANE_CUT_BOTTOM],
-  'bir-blouse-trousers-blue-bottom': ['Pants', PLANE_CUT_BOTTOM],
+  'blazer-double-breasted-gray-bottom': ['Pantsuit Trousers', `${PLANE_CUT_BOTTOM}; opens the rebuilt Pantsuit Trousers`],
+  'blazer-pinstripe-navy-bottom': ['Pantsuit Trousers', `${PLANE_CUT_BOTTOM}; opens the rebuilt Pantsuit Trousers`],
+  'bir-blouse-trousers-blue-bottom': ['Pantsuit Trousers', `${PLANE_CUT_BOTTOM}; opens the rebuilt Pantsuit Trousers`],
   'blouse-roundneck-fuchsia-bottom': ['Pants', PLANE_CUT_BOTTOM],
-  'blouse-roundneck-mustard-bottom': ['Pants', PLANE_CUT_BOTTOM],
-  'pantsuit-notch-short-gray-bottom': ['Pants', PLANE_CUT_BOTTOM],
-  'peplum-set-navy-bottom': ['Skirt', PLANE_CUT_BOTTOM],
-  'polo-barong-brown-bottom': ['Pants', PLANE_CUT_BOTTOM],
+  'blouse-roundneck-mustard-bottom': ['Creased Trousers', `${PLANE_CUT_BOTTOM}; rebuilt as a parametric family (customGarment PARAM_FAMILIES)`],
+  'pantsuit-notch-short-gray-bottom': ['Pantsuit Trousers', `${PLANE_CUT_BOTTOM}; rebuilt as a parametric family (customGarment PARAM_FAMILIES)`],
+  'peplum-set-navy-bottom': ['Midi Pencil Skirt', `${PLANE_CUT_BOTTOM}; rebuilt as a parametric family (customGarment PARAM_FAMILIES)`],
+  'polo-barong-brown-bottom': ["Men's Slacks", `${PLANE_CUT_BOTTOM}; rebuilt as a parametric family (customGarment PARAM_FAMILIES)`],
   'scrub-set-housekeeping-bottom': ['Jogger Scrub Pants', 'derived bottom of a scrub set: replaced by the authored jogger'],
   'scrub-set-men-vneck-bottom': ['Jogger Scrub Pants', 'derived bottom of a scrub set: replaced by the authored jogger'],
   'scrub-set-women-vneck-bottom': ['Jogger Scrub Pants', 'derived bottom of a scrub set: replaced by the authored jogger'],
   'set-pinstripe-pants-bottom': ['Pants', PLANE_CUT_BOTTOM],
   'set-pinstripe-skirt-bottom': ['Skirt', PLANE_CUT_BOTTOM],
-  'shirt-two-tone-gpc-bottom': ['Pants', PLANE_CUT_BOTTOM],
+  'shirt-two-tone-gpc-bottom': ["Men's Slacks", `${PLANE_CUT_BOTTOM}; opens the rebuilt Men's Slacks`],
   'blazer-double-breasted-gray-top': ['Blazer', PLANE_CUT_TOP],
   'blazer-pinstripe-navy-top': ['Blazer', PLANE_CUT_TOP],
   'blouse-roundneck-mustard-top': ['Blouse', PLANE_CUT_TOP],
-  'pantsuit-notch-short-gray-top': ['Blazer', PLANE_CUT_TOP],
-  'peplum-set-navy-top': ['Blouse', PLANE_CUT_TOP],
-  'polo-barong-brown-top': ['Button-Down', PLANE_CUT_TOP],
+  'pantsuit-notch-short-gray-top': ['Short-Sleeve Notch Jacket', `${PLANE_CUT_TOP}; rebuilt as a parametric family (customGarment PARAM_FAMILIES)`],
+  'peplum-set-navy-top': ['Peplum Top', `${PLANE_CUT_TOP}; rebuilt as a parametric family (customGarment PARAM_FAMILIES)`],
+  'polo-barong-brown-top': ['Barong Shirt', `${PLANE_CUT_TOP}; rebuilt as a parametric family (customGarment PARAM_FAMILIES)`],
   'shirt-two-tone-gpc-top': ['Button-Down', PLANE_CUT_TOP],
   'set-pinstripe-pants-top': ['Blazer', PLANE_CUT_TOP],
   'set-pinstripe-skirt-top': ['Blazer', PLANE_CUT_TOP],
@@ -100,7 +100,8 @@ export const REMOVED_DERIVED = {
 };
 const ROW_BY_ID = Object.fromEntries(ROWS.map(row => [row[0], row]));
 // Family name of a removed piece -> its authored replacement (designSerialization LEGACY_GARMENT, uniformSet).
-export const REMOVED_GARMENT = Object.fromEntries(Object.entries(REMOVED_DERIVED).map(([id, [to]]) => [ROW_BY_ID[id][1], to]));
+// A piece rebuilt under its own name (Pantsuit Trousers) keeps that name: no remap.
+export const REMOVED_GARMENT = Object.fromEntries(Object.entries(REMOVED_DERIVED).map(([id, [to]]) => [ROW_BY_ID[id][1], to]).filter(([from, to]) => from !== to));
 // Reference photo -> the authored piece that replaces its removed top or bottom.
 const REPLACED = role => Object.fromEntries(Object.entries(REMOVED_DERIVED).filter(([id]) => ROW_BY_ID[id][3] === role || (role === 'top' && !id.endsWith('-bottom')))
   .map(([id, [to]]) => [id.replace(/-(top|bottom)$/, ''), to]));

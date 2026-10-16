@@ -444,6 +444,21 @@ const PARAMETRIC_MODELS = [
   parametric('custom-top-parametric', /^custom top$/i, ['Sleeveless', 'Short', '3/4', 'Long'], { rotation: [0, 0, 0], scale: 0.66, position: [0, -0.02, 0] }, ['body', 'sleeve', 'collar'], ['logos and text sit on the body only']),
   parametric('custom-bottom-parametric', /^custom bottom$/i, [], { rotation: [0, 0, 0], scale: 0.52, position: [0, -0.02, 0] }, ['body'], ['one body colour']),
   parametric('custom-skirt-parametric', /^custom skirt$/i, [], { rotation: [0, 0, 0], scale: 0.55, position: [0, -0.02, 0] }, ['body'], ['one body colour']),
+  // Rebuilt family (customGarment PARAM_FAMILIES): tailored trousers built from their own spec, never from the removed set-scan cut.
+  parametric('pantsuit-trousers-parametric', /^pantsuit trousers$/i, [], { rotation: [0, 0, 0], scale: 0.52, position: [0, -0.02, 0] }, ['body'],
+    ['one body colour (buttons and fly follow the Details colours)', 'the zip is concealed under the fly and not modelled', 'static shape: no cloth simulation'], ['female']),
+  parametric('midi-pencil-skirt-parametric', /^midi pencil skirt$/i, [], { rotation: [0, 0, 0], scale: 0.55, position: [0, -0.02, 0] }, ['body'],
+    ['one body colour', 'back vent and zip are not modelled', 'static shape: no cloth simulation'], ['female']),
+  parametric('short-sleeve-notch-jacket-parametric', /^short-sleeve notch jacket$/i, ['Short'], { rotation: [0, 0, 0], scale: 0.66, position: [0, -0.02, 0] },
+    ['body', 'sleeve', 'collar'], ['lapels are a fall collar: the open front above the top button is not modelled', 'static shape: no cloth simulation'], ['female']),
+  parametric('peplum-top-parametric', /^peplum top$/i, ['Short'], { rotation: [0, 0, 0], scale: 0.66, position: [0, -0.02, 0] },
+    ['body', 'sleeve', 'collar'], ['the peplum is a fixed flare, not a draped skirt', 'static shape: no cloth simulation'], ['female']),
+  parametric('barong-shirt-parametric', /^barong shirt$/i, ['Short', 'Long'], { rotation: [0, 0, 0], scale: 0.66, position: [0, -0.02, 0] },
+    ['body', 'sleeve', 'collar'], ['embroidery and sheer fabric are not modelled', 'static shape: no cloth simulation'], ['male']),
+  parametric('mens-slacks-parametric', /^men's slacks$/i, [], { rotation: [0, 0, 0], scale: 0.52, position: [0, -0.02, 0] }, ['body'],
+    ['one body colour (buttons and fly follow the Details colours)', 'the zip is concealed under the fly and not modelled', 'static shape: no cloth simulation'], ['male']),
+  parametric('creased-trousers-parametric', /^creased trousers$/i, [], { rotation: [0, 0, 0], scale: 0.52, position: [0, -0.02, 0] }, ['body'],
+    ['one body colour (buttons and fly follow the Details colours)', 'the zip is concealed under the fly and not modelled', 'static shape: no cloth simulation'], ['female']),
   // Button-Down vector template: point collar as its own part in the collar colour. Placed before the work-shirt scan so it serves the
   // family; the photo-matched exact-sleeve models (BIR blouse, utility shirt) still win for their own sleeve and fit.
   parametric('button-down-parametric', /^button-down$/i, ['Short'], { rotation: [0, 0, 0], scale: 0.66, position: [0, -0.02, 0] }, ['body', 'sleeve', 'collar', 'pocket'], ['placket buttons are 2D only'], ['unisex']),

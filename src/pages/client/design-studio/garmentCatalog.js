@@ -20,7 +20,7 @@ import { BASE_PATHS, getGarmentPaths } from './garmentPaths';
 import { get3DCapabilities, fitsFor, sleeves3DFor, has3DModel } from './garmentCapabilities';
 import { realTrimFor, colorsForGarment } from './colorRules';
 import { DERIVED_FAMILIES, DERIVED_BY_NAME, REMOVED_GARMENT } from './derivedFamilies';
-import { CUSTOM_GARMENTS, CUSTOM_TOP, CUSTOM_BOTTOM, CUSTOM_SKIRT, isCustom, normalizeCustom } from './customGarment';
+import { CUSTOM_GARMENTS, CUSTOM_TOP, CUSTOM_BOTTOM, CUSTOM_SKIRT, PARAM_FAMILIES, isParametric, normalizeCustom } from './customGarment';
 
 // Category -> its garments, in display order. Source: the VFRB interview's garment list
 // (unchanged from the previous CATS in dsShared.js — moved, not altered).
@@ -36,7 +36,9 @@ const BASE_CATEGORY_DEFS = [
   { id: 'Industrial / Work',   icon: 'industrial',  garments: ['Button-Down', 'Polo Shirt', 'T-Shirt', 'Lab Coverall', 'Pants', 'Shorts'] },
 ];
 // Derived families join their category after its own garments (the picker groups them under "From reference").
-const CATEGORY_DEFS = BASE_CATEGORY_DEFS.map(c => ({ ...c, garments: [...c.garments, ...DERIVED_FAMILIES.filter(d => d.category === c.id).map(d => d.name)] }));
+// Rebuilt parametric families (customGarment PARAM_FAMILIES) join their category the same way.
+const CATEGORY_DEFS = BASE_CATEGORY_DEFS.map(c => ({ ...c, garments: [...c.garments, ...Object.entries(PARAM_FAMILIES).filter(([, f]) => f.category === c.id).map(([name]) => name),
+  ...DERIVED_FAMILIES.filter(d => d.category === c.id).map(d => d.name)] }));
 
 // Sleeve styles VFRB really offers per garment. One row to edit if the client adds a style; every consumer reads FAMILIES.
 const SLEEVE_OPTS = {
@@ -57,6 +59,7 @@ const SLEEVE_OPTS = {
   [CUSTOM_TOP]: ['Short', 'Sleeveless', '3/4', 'Long'], [CUSTOM_BOTTOM]: [], [CUSTOM_SKIRT]: [],
   // A derived template is one traced outline: its sleeve is part of the shape, not a style choice.
   ...Object.fromEntries(DERIVED_FAMILIES.map(d => [d.name, []])),
+  ...Object.fromEntries(Object.entries(PARAM_FAMILIES).map(([name, f]) => [name, f.sleeves ?? []])),
 };
 
 // Garment names retired as duplicates: 'School Polo' was an exact copy of 'Polo Shirt'; 'V-Neck Shirt' duplicated 'Scrub Top'. Old saved designs still carry the name.
@@ -72,7 +75,7 @@ const FAMILY_NAMES = [...new Set([...CATEGORY_DEFS.flatMap(c => c.garments), ...
 
 // One entry per family: everything real and verified about it, nothing guessed.
 const FAMILIES = Object.fromEntries(FAMILY_NAMES.map(name => {
-  const has2D = !!BASE_PATHS[name] || isCustom(name);
+  const has2D = !!BASE_PATHS[name] || isParametric(name);
   const cap = get3DCapabilities(name);
   const styles = SLEEVE_OPTS[name] ?? [];
   // supported: real GLB, matches this session's verified list (T-Shirt). partial: real GLB but
@@ -126,6 +129,7 @@ export const PIECE_OF = {
   'Pants': 'bottom', 'Shorts': 'bottom', 'Skirt': 'bottom', 'Pleated Skirt': 'bottom', 'Jogger Scrub Pants': 'bottom',
   [CUSTOM_TOP]: 'top', [CUSTOM_BOTTOM]: 'bottom', [CUSTOM_SKIRT]: 'bottom',
   ...Object.fromEntries(DERIVED_FAMILIES.filter(d => d.role).map(d => [d.name, d.role])),
+  ...Object.fromEntries(Object.entries(PARAM_FAMILIES).map(([name, f]) => [name, f.role])),
 };
 export const pieceOf = garment => PIECE_OF[garment] ?? null;
 
@@ -140,7 +144,7 @@ export function pieceFacet(garment) {
 }
 export function genderFacets(fam) {
   const fits = fam?.fits ?? [];
-  const derivedFit = DERIVED_BY_NAME[fam?.id]?.fit;
+  const derivedFit = DERIVED_BY_NAME[fam?.id]?.fit ?? PARAM_FAMILIES[fam?.id]?.fit;
   const set = new Set(derivedFit ? [derivedFit] : fits.filter(f => f === 'male' || f === 'female'));
   if (!derivedFit && (!fits.length || fits.includes('unisex') || fits.length === 1)) set.add('unisex');
   return set;
@@ -201,8 +205,8 @@ export function applyGarment(cfg, garment, next = {}) {
     ...(photoBase ? { patterns: {}, patternParams: {} } : {}),
     // The gallery photo a design was opened from; any other garment drops it so a design never claims the wrong photo.
     inspirationId: next.inspirationId ?? (fam.id === cfg.garment ? cfg.inspirationId ?? null : null),
-    // Build-your-own shape: kept while the garment stays the same custom piece, clamped; any other garment carries none.
-    custom: isCustom(fam.id) ? normalizeCustom(next.custom ?? (fam.id === cfg.garment ? cfg.custom : null), fam.id) : null,
+    // Spec shape (build-your-own or a rebuilt family): kept while the garment stays the same, clamped; any other garment carries none.
+    custom: isParametric(fam.id) ? normalizeCustom(next.custom ?? (fam.id === cfg.garment ? cfg.custom : null), fam.id) : null,
   };
 }
 

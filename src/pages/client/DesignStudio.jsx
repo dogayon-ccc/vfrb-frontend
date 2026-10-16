@@ -43,7 +43,7 @@ import { selectFamily } from './design-studio/selectGarment';
 import { has3DFor } from './design-studio/garmentCapabilities';
 import { describeDetails } from './design-studio/garmentDetails';
 import { describePockets } from './design-studio/pocketTools';
-import { describeCustom, isCustom, CUSTOM_TOP } from './design-studio/customGarment';
+import { describeCustom, isCustom, isParametric, CUSTOM_TOP } from './design-studio/customGarment';
 import { readTrace, writeTrace, normalizeTrace } from './design-studio/traceGuide';
 import { DEFAULT_PIECE, otherRole, normalizeSet, withSet, mirrorStyle, mirrorOverlay } from './design-studio/uniformSet';
 import PieceSelector from './design-studio/PieceSelector';
@@ -728,7 +728,7 @@ export default function DesignStudio() {
         ['Category', cfg.category],
         ['Colours', zones.map(z => `${z}: ${cfg.colors[z] ?? '-'}`).join('  ')],
         ['Patterns', describePatterns(cfg.patterns, cfg.patternParams, cfg.colors, id => PATTERNS.find(p => p.id === id)?.label ?? id).join('  ') || 'Solid'],
-        ...(isCustom(cfg.garment) ? [['Custom sketch', describeCustom(cfg.garment, cfg.custom).join('  ')]] : []),
+        ...(isParametric(cfg.garment) ? [[isCustom(cfg.garment) ? 'Custom sketch' : 'Measurements', describeCustom(cfg.garment, cfg.custom).join('  ')]] : []),
         ['Details', describeDetails(cfg.details).join('  ') || 'As the template'],
         ...(describePockets(faceJSON.current).length ? [['Added pockets (2D)', describePockets(faceJSON.current).join('  ')]] : []),
         ['Placed items', `Front ${counts.front}${faces.length > 1 ? `, back ${counts.back}` : ''}`],

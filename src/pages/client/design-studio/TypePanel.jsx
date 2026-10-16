@@ -8,7 +8,7 @@ import { familyFor, resolveFit } from './garmentCatalog';
 import { sleeves3DFor } from './garmentCapabilities';
 import { ZONE_LABEL, zonesFor } from './dsShared';
 import { assetFor, photoZoneNote } from './garmentAssets';
-import { isCustom } from './customGarment';
+import { isCustom, isParametric } from './customGarment';
 import { CustomControls, CustomNote } from './BuildYourOwn';
 import TraceControls from './TraceControls';
 
@@ -23,7 +23,7 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, onCh
   // in the reference workflow, so a Fit click can never swap a scratch sketch for a photograph.
   const fits    = (family?.fits ?? []).filter(f => !!assetFor(cfg.garment, cfg.sleeve, 'front', f) === !!photo);
   const hasFit  = fits.length > 1 && (family.status3D !== 'none' || !!photo);
-  const custom  = isCustom(cfg.garment);
+  const custom  = isParametric(cfg.garment); // a spec-driven shape: build-your-own or a rebuilt family
   // A sleeve change keeps a sketch a sketch: where that sleeve's current fit is a photo base, the sketch's own vector fit is used instead.
   const pickSleeve = sv => setCfg(p => {
     const toPhoto = !photo && !!assetFor(p.garment, sv, 'front', p.fit);
@@ -65,7 +65,7 @@ export default function TypePanel({ cfg, setCfg, setActiveZone, onOpenTool, onCh
               <p className="ds-h3">Shape</p>
               <CustomControls garment={cfg.garment} spec={cfg.custom} sleeve={cfg.sleeve}
                 onSpec={next => setCfg(p => ({ ...p, custom: next }))} onSleeve={sv => setCfg(p => ({ ...p, sleeve: sv }))}/>
-              <CustomNote/>
+              {isCustom(cfg.garment) && <CustomNote/>}
             </section>
           )}
 

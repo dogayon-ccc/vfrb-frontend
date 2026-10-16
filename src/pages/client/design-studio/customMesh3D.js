@@ -5,7 +5,7 @@
 // Model space: 1 template unit = K, x right, y up, +z the front; the garment is centred on its body's vertical span. Every part has
 // positions, normals, UVs (u around, v along) and at most MAX_TRIS triangles. Logic-checked in tools/logic-checks.mjs.
 import * as THREE from 'three';
-import { kindOf, normalizeCustom, topOptions, bottomOptions, skirtOptions, CUSTOM_TOP } from './customGarment';
+import { kindOf, normalizeCustom, topOptionsFor, bottomOptions, skirtOptions, tailoredOptions } from './customGarment';
 import { customPaths, getGarmentPaths, BUTTON_DOWN_OPTIONS } from './garmentPaths';
 
 export const K = 0.005;          // model units per template unit (a 380-unit top is 1.9 tall, like the staged models)
@@ -125,12 +125,17 @@ function fallCollar(collar, bodyAtA, cx, standH, maxRow) {
 function topParts(o, paths, sleeve) {
   const w = o.w ?? 320, cx = w / 2, neckW = o.neckW ?? 30, hpsY = o.hpsY ?? 44, frontDrop = o.frontDrop ?? 22, backDrop = o.backDrop ?? 6;
   const sh = o.sh ?? [88, 64], arm = o.arm ?? [95, 128], hem = o.hem ?? [97, 334], waist = o.waist ?? 0, hemCurve = o.hemCurve ?? 4, collar = o.collar ?? 'rib';
-  const halfW = y => (y <= sh[1] ? lerp(neckW, sh[0], smooth((y - hpsY) / (sh[1] - hpsY)))
-    : y <= arm[1] ? lerp(sh[0], arm[0], (y - sh[1]) / (arm[1] - sh[1]))
+  const pep = o.peplum;
+  // Below the armhole: straight to the hem (with an optional waist), or in to the peplum waist seam and flaring out to the hem.
+  const lower = y => (pep
+    ? (y <= pep.y ? lerp(arm[0], pep.half, smooth((y - arm[1]) / (pep.y - arm[1]))) : lerp(pep.half, hem[0], 1 - (1 - clamp01((y - pep.y) / (hem[1] - pep.y))) ** 2))
     : (t => lerp(arm[0], hem[0], t) - waist * 4 * t * (1 - t))((y - arm[1]) / (hem[1] - arm[1])));
+  const halfW = y => (y <= sh[1] ? lerp(neckW, sh[0], smooth((y - hpsY) / (sh[1] - hpsY)))
+    : y <= arm[1] ? lerp(sh[0], arm[0], (y - sh[1]) / (arm[1] - sh[1])) : lower(y));
   // Depth ratio eases from 0.5 (chest) to 0.56 (waist) across the armhole line: a hard switch left a step that cut through the chest pocket.
   const halfD = y => halfW(y) * lerp(0.5, 0.56, smooth((y - arm[1] + 20) / 40));
-  const vee = collar === 'v';
+  // An open-front jacket (o.openFront): the neckline drops in a V to the lapel depth, so the notch collar's leaves lie along it as lapels.
+  const vee = collar === 'v' || (collar === 'notch' && !!o.openFront);
   // Neckline: the front drops to frontDrop (a point for V, a curve otherwise); the back keeps its small drop.
   const neckY = a => { const s = Math.sin(a), c = Math.abs(Math.cos(a));
     return hpsY + (s > 0 ? frontDrop * (vee ? Math.max(0, 1 - c / 0.9) : s * s) : backDrop * -s); };
@@ -158,11 +163,43 @@ function topParts(o, paths, sleeve) {
     out.sleeves = [sleeveTube(paths.sleeveL, 24, 0.12), sleeveTube(paths.sleeveR, 24, 0.12)]; // starts below the shoulder line; the body covers the armhole
     if (sleeve === 'Long') out.cuffs = [sleeveTube(paths.sleeveL, 3, 0.9, 1, 1.05), sleeveTube(paths.sleeveR, 3, 0.9, 1, 1.05)];
   }
+  const surfZ = (x, y) => halfD(y) * Math.sqrt(Math.max(0, 1 - ((x - cx) / halfW(y)) ** 2));
+  // The body's real depth at (x, y) on the front (side 1) or back (-1), including the taper into the neckline over the first rows
+  // (surfZ alone is the full chest depth and stands proud of the body near the neck).
+  const surfAt = (x, y, side = 1) => {
+    const a = side * Math.PI / 2, y0 = neckY(a), i = clamp01((y - y0) / (hemYAt(a) - y0)) * (ROWS - 1), k = smooth(i / 8);
+    const hw = lerp(neckW, halfW(y), k), hd = lerp(neckW * 0.62, halfD(y), k);
+    return hd * Math.sqrt(Math.max(0, 1 - ((x - cx) / hw) ** 2));
+  };
+  const on = (x, y, side, lift) => [x, y, side * (surfAt(x, y, side) + lift)];
+  const line = (x, y0, y1, side = 1, n = 16) => Array.from({ length: n }, (_, i) => on(x, lerp(y0, y1, i / (n - 1)), side, 0.5));
   if (o.pocket) {
-    const surfZ = (x, y) => halfD(y) * Math.sqrt(Math.max(0, 1 - ((x - cx) / halfW(y)) ** 2));
     out.pockets = [patch(o.pocket.x, o.pocket.y, o.pocket.w, o.pocket.h, 1, surfZ)];
     out.pocketDetail = 'patchPocket';
   }
+  // Closures, at the same places as the 2D top(): placket edges and buttons, or a coat front edge and buttons.
+  const buttons = [], edges = [];
+  if (o.closures3D && o.placket) {
+    const { top: py0 = hpsY + frontDrop, bottom: py1, buttons: n = 3, width = 8 } = o.placket, step = (py1 - py0 - 14) / Math.max(1, n - 1);
+    edges.push(pathTube(line(cx - width, py0, py1), 0.6, 6), pathTube(line(cx + width, py0, py1), 0.6, 6));
+    for (let i = 0; i < n; i++) { const y = py0 + 9 + i * step; buttons.push(button(cx, y, surfAt(cx, y) + 0.8, 2.6, 1)); }
+  }
+  if (o.closures3D && o.coat) {
+    const { buttons: n = 4, step = 58 } = o.coat === true ? {} : o.coat, lap = o.lapel ?? 92;
+    edges.push(pathTube(line(cx, hpsY + lap, hem[1] - 1), 0.9, 6));
+    for (let i = 0; i < n; i++) { const y = hpsY + lap + 12 + i * step; buttons.push(button(cx - 8, y, surfAt(cx - 8, y) + 0.9, 3, 1)); }
+  }
+  if (buttons.length) out.buttons = buttons;
+  if (edges.length) out.frontEdge = edges;
+  if (o.flaps) out.flaps = [-1, 1].flatMap(s => {
+    const x0 = s < 0 ? cx - o.flaps.x0 - o.flaps.w : cx + o.flaps.x0, x1 = x0 + o.flaps.w, y0 = o.flaps.y, y1 = y0 + 12;
+    const edge = [[x0, y0], [x1, y0], [x1, y1], [x0, y1], [x0, y0]].flatMap(([x, y], i, a) => (i ? Array.from({ length: 6 }, (_, k) => {
+      const [px, py] = a[i - 1], t = (k + 1) / 6; return on(lerp(px, x, t), lerp(py, y, t), 1, 1.6); }) : [on(x, y, 1, 1.6)]));
+    return [patch(x0, y0, o.flaps.w, 12, 1, surfZ, 1.4), pathTube(edge, 0.7, 6)];   // flap and its raised edge
+  });
+  if (o.backZip) out.backZip = [pathTube(line(cx, hpsY + backDrop + 2, o.backZip.bottom, -1), 0.7, 6)];
+  // Peplum waist seam: a fine ridge right round the body.
+  if (pep) out.seams = [pathTube(Array.from({ length: SEG + 1 }, (_, j) => { const a = ang(j); return [cx + halfW(pep.y) * 1.01 * Math.cos(a), pep.y, halfD(pep.y) * 1.01 * Math.sin(a)]; }), 0.6, 6)];
   return { raws: out, cx, span: [hpsY, hem[1] + 2 * hemCurve], frameHalf: Math.max(sh[0], arm[0], hem[0]) };
 }
 
@@ -188,6 +225,113 @@ function bottomParts(o) {
   return { raws: out, cx, span: [waistY, hemY], frameHalf: Math.max(hip, hemOut) };
 }
 
+// A round tube along a 3D polyline (template units): topstitching, fold edges, pocket openings. Rings sit square to the path.
+function pathTube(points, r, cols = 8) {
+  const n = points.length;
+  return loft(n, cols, (i, j) => {
+    const p = points[i], q = points[Math.min(n - 1, i + 1)], o = points[Math.max(0, i - 1)];
+    let t = [q[0] - o[0], q[1] - o[1], q[2] - o[2]];
+    const tl = Math.hypot(...t) || 1; t = t.map(c => c / tl);
+    // b1 = t x z (falls back to x when the path runs along z), b2 = b1 x t.
+    let b1 = [t[1], -t[0], 0]; const bl = Math.hypot(...b1);
+    b1 = bl < 1e-3 ? [1, 0, 0] : b1.map(c => c / bl);
+    const b2 = [b1[1] * t[2] - b1[2] * t[1], b1[2] * t[0] - b1[0] * t[2], b1[0] * t[1] - b1[1] * t[0]], a = (j / cols) * Math.PI * 2;
+    return [0, 1, 2].map(k => p[k] + r * (Math.cos(a) * b1[k] + Math.sin(a) * b2[k]));
+  });
+}
+
+// A button facing +z (side 1) or -z (side -1): a domed disc of radius r centred on (x, y, z), closed at the back.
+function button(x, y, z, r, side) {
+  const prof = [[0, 1.2], [0.7, 1.1], [1, 0.6], [1, 0], [0, 0]];
+  return loft(prof.length, 16, (i, j) => { const [k, h] = prof[i], a = (j / 16) * Math.PI * 2; return [x + r * k * Math.cos(a), y + r * k * Math.sin(a), z + side * h * r * 0.5]; });
+}
+
+// Tailored trousers (Pantsuit Trousers): one continuous body from the waistband to the hems. Above the crotch each leg is half the hip
+// ring plus a flat centre panel (the two halves meet at the centre seam, so the hip reads as one shape); below it each leg becomes its
+// own tube, blended over the crotch so the inseams part in a curve. The crease is a ridge down the front and back of each leg.
+// Fly, waistband button, belt loops, slant pocket openings, back welts with buttons, darts and the centre-back seam are their own parts.
+function tailoredParts(o) {
+  const w = 250, cx = w / 2, waist = 76, band = 15, waistY = o.waistY, by = waistY + band, hip = o.hip ?? 84, seat = 1.06;
+  const { hipY, crotchY, hemY, hemOut, hemIn } = o;
+  const halfW = y => (y <= hipY ? lerp(waist + 2, hip, smooth((y - by) / (hipY - by))) : hip);
+  const halfD = y => halfW(y) * 0.64;
+  // Leg outline below the hip, as the 2D trousers() draws it: outer edge hip -> hemOut, inseam 2 -> hemIn.
+  const outer = y => lerp(hip, hemOut, clamp01((y - hipY) / (hemY - hipY))), inner = y => lerp(2, hemIn, clamp01((y - crotchY) / (hemY - crotchY)));
+  const blend = y => smooth((y - (crotchY - 6)) / 46);
+  const ROWS = 62, COLS = 80, creaseOn = o.crease ? 1 : 0;
+  const wrap = d => Math.atan2(Math.sin(d), Math.cos(d));
+  // Point on leg s (+1 = viewer's right) at height y and angle a (0 = outward, PI/2 = front). The left leg is the right one turned half
+  // round (x and z mirrored), so both keep the same winding.
+  const legPoint = (s, y, a) => {
+    const u = Math.cos(a), v = Math.sin(a) * s;                                          // u outward, v front (+) / back (-)
+    const hw = halfW(Math.min(y, crotchY)), hd = halfD(Math.min(y, crotchY)), back = v < 0 ? seat : 1;
+    const dX = u >= 0 ? hw * u : 0, dZ = hd * v * back;                                  // hip half ring + flat centre panel
+    const c = (outer(y) + inner(y)) / 2, r = (outer(y) - inner(y)) / 2;
+    // Leg depth starts at the hip ring's depth over the leg's own centre (not the centre-front depth), so the thigh never stands proud of the hip.
+    const rz = lerp(hd * back * Math.sqrt(Math.max(0, 1 - (c / hw) ** 2)), r * 0.96, smooth((y - crotchY) / 170));
+    // Crease: a narrow ridge on the front and back centre of the leg, fading in below the hip and out just above the hem.
+    const fade = creaseOn * smooth((y - hipY - 6) / 30) * (1 - smooth((y - hemY + 14) / 10));
+    const front = s * Math.PI / 2, ridge = (target, h) => h * Math.exp(-((wrap(a - target) / 0.1) ** 2));
+    const t = blend(y);
+    // The ridge grows with the blend too, so it never pushes the front out past the hip where the legs part (a bump in side view).
+    const k = 1 + (t * fade * (ridge(front, 2.4) + ridge(-front, 1.6))) / Math.max(r, 1);
+    return [cx + s * lerp(dX, c + r * u * k, t), y, lerp(dZ, rz * v * k, t)];
+  };
+  const leg = s => loft(ROWS, COLS, (i, j) => legPoint(s, lerp(by, hemY, i / (ROWS - 1)), (j / COLS) * Math.PI * 2));
+  const out = { body: [leg(1), leg(-1)] };
+  // Body surface depth at (x, y) above the crotch (the hip ring), +1 front / -1 back.
+  const surfZ = (x, y, side = 1) => halfD(y) * (side < 0 ? seat : 1) * Math.sqrt(Math.max(0, 1 - ((x - cx) / halfW(y)) ** 2));
+  const on = (x, y, side, lift) => [x, y, side * (surfZ(x, y, side) + lift)];
+  const curve = (n, f) => Array.from({ length: n }, (_, i) => f(i / (n - 1)));
+  // Waistband: outside the body with a turned top edge (so it shows a thickness), the button at the front fastening.
+  const wbW = y => lerp(waist, waist + 2, (y - waistY) / band) * 1.03, wbD = y => wbW(y) * 0.66;
+  // Rows: outside up to the top edge, over it, a little way down the inside, then closed across the opening so the hollow never shows.
+  const WB = [[by, 1], [lerp(by, waistY, 1 / 3), 1], [lerp(by, waistY, 2 / 3), 1], [waistY, 1], [waistY + 1.2, 0.95], [waistY + 5, 0.94], [waistY + 5, 0]];
+  out.waistband = [loft(WB.length, SEG, (i, j) => {
+    const a = ang(j), [y, sc] = WB[i], back = Math.sin(a) < 0 ? seat : 1;
+    return [cx + wbW(y) * sc * Math.cos(a), y, wbD(y) * sc * back * Math.sin(a)];
+  })];
+  const wbZ = (x, y, side) => wbD(y) * (side < 0 ? seat : 1) * Math.sqrt(Math.max(0, 1 - ((x - cx) / wbW(y)) ** 2));
+  out.buttons = [button(cx, waistY + band / 2, wbZ(cx, waistY + band / 2, 1) + 0.6, 3.2, 1)];
+  // Belt loops: four on the front (where the 2D draws them), three on the back.
+  if (o.beltLoops) out.loops = [[-0.72, 1], [-0.28, 1], [0.28, 1], [0.72, 1], [-0.42, -1], [0, -1], [0.42, -1]].map(([k, side]) => {
+    const x = cx + waist * k;
+    return tube([x, waistY + 0.8], [x, by + 3], 2.2, 2.2, 4, 10, 0.4, side * (wbZ(x, waistY + band / 2, side) + 0.9));
+  });
+  // Fly: the folded fly edge at the centre front and the J-shaped topstitch on the wearer's left; the zip sits under the fly (not modelled).
+  const flyEnd = crotchY - 8;
+  out.fly = [
+    pathTube(curve(16, t => on(cx + 0.6, lerp(by + 0.5, flyEnd, t), 1, 0.7)), 1.0),
+    pathTube([...curve(14, t => on(cx + 11, lerp(by + 0.5, crotchY - 26, t), 1, 0.35)),
+      ...curve(9, t => { const a = (t * Math.PI) / 2; return on(cx + 1 + 10 * Math.cos(a), crotchY - 26 + 18 * Math.sin(a), 1, 0.35); }).slice(1)], 0.55),
+  ];
+  // Slant front pockets: a piped opening on the 2D line, from the waistband down to the side seam.
+  if (o.slantPockets) out.sidePockets = [-1, 1].map(s => pathTube(curve(18, t => {
+    const m = 1 - t, x = cx + s * (m * m * (waist - 8) + 2 * m * t * (waist - 14) + t * t * (hip - 2)), y = m * m * by + 2 * m * t * (by + 34) + t * t * (by + 48);
+    return on(x, y, 1, 0.6);
+  }), 1.1));
+  // Back: jetted welts (a raised lip) with a button below each, darts above them and the centre-back seam.
+  if (o.welts) {
+    out.backPockets = [];
+    for (const s of [-1, 1]) {
+      const x0 = s < 0 ? cx - waist + 18 : cx + 20, x1 = s < 0 ? cx - 20 : cx + waist - 18, xm = (x0 + x1) / 2;
+      out.backPockets.push(pathTube(curve(16, t => on(lerp(x0, x1, t), by + 27, -1, 0.9)), 1.8, 10));
+      out.buttons.push(button(xm, by + 36, -(surfZ(xm, by + 36, -1) + 0.5), 2.6, -1));
+    }
+  }
+  if (o.darts) out.seams = [
+    ...[-1, 1].map(s => pathTube(curve(10, t => on(cx + s * (waist / 2 - 2 + 3 * t), lerp(by, by + 20, t), -1, 0.15)), 0.5, 6)),
+    pathTube(curve(30, t => on(cx, lerp(by, crotchY - 4, t), -1, 0.1)), 0.55, 6),
+  ];
+  // Hem: the leg edge turned inside (or a turn-up band folded outside it).
+  const hemRows = o.turnUp ? [[hemY - 16, 1.0], [hemY - 16, 1.05], [hemY, 1.05], [hemY, 0.97]] : [[hemY - 7, 1.012], [hemY, 1.012], [hemY, 0.96], [hemY - 1, 0.96]];
+  out.hem = [1, -1].map(s => loft(hemRows.length, COLS, (i, j) => {
+    const [y, sc] = hemRows[i], p = legPoint(s, y, (j / COLS) * Math.PI * 2), c = cx + s * (outer(y) + inner(y)) / 2;
+    return [c + (p[0] - c) * sc, y, p[2] * sc];
+  }));
+  return { raws: out, cx, span: [waistY, hemY], frameHalf: Math.max(hip, hemOut) };
+}
+
 // Skirt: waistband, body flaring from the hip to the hem, hem band.
 function skirtParts(o) {
   const w = 260, cx = w / 2, waist = 58, waistY = 30, band = 16, by = waistY + band, hip = 79, { hipY, hemY, hemX } = o;
@@ -204,13 +348,18 @@ const PART_META = {
   body: { colorKey: 'body', decals: true }, sleeves: { colorKey: 'sleeve' }, cuffs: { colorKey: 'sleeve' }, collarBand: { colorKey: 'collar' },
   hem: { colorKey: 'body' }, pockets: { colorKey: 'pocket' }, waistband: { colorKey: 'body' }, legs: { colorKey: 'body' },
   drawstring: { colorKey: 'body' }, sidePockets: { colorKey: 'body', detail: 'sidePockets' }, backPockets: { colorKey: 'body', detail: 'backPockets' },
+  // Tailored trousers: buttons and the fly take the Details colours when set (garmentDetails buttons / closure), else the body colour.
+  buttons: { colorKey: 'body', detailColor: 'buttons', plain: true }, fly: { colorKey: 'body', detailColor: 'closure' },
+  loops: { colorKey: 'body' }, seams: { colorKey: 'body' },
+  // Tops: placket or coat front edge and the back zip follow the closure colour; flap pockets follow the Details show/hide.
+  frontEdge: { colorKey: 'body', detailColor: 'closure' }, backZip: { colorKey: 'body', detailColor: 'closure' }, flaps: { colorKey: 'body', detail: 'flapPockets' },
 };
 
 function assemble({ raws, cx, span, frameHalf }, pocketDetail) {
   const cy = (span[0] + span[1]) / 2;
   const parts = Object.entries(raws).filter(([name]) => name !== 'pocketDetail').map(([name, list]) => ({
     name, geometry: toGeometry(list, cx, cy), colorKey: PART_META[name].colorKey, decals: !!PART_META[name].decals,
-    detail: name === 'pockets' ? pocketDetail : PART_META[name].detail ?? null,
+    detail: name === 'pockets' ? pocketDetail : PART_META[name].detail ?? null, detailColor: PART_META[name].detailColor ?? null, plain: !!PART_META[name].plain,
   }));
   return { parts, torso: frameHalf * K };
 }
@@ -224,8 +373,9 @@ export function buildCustomParts(garment, spec, sleeve = 'Short') {
   const kind = kindOf(garment);
   if (!kind) return null;
   const s = normalizeCustom(spec, garment);
-  if (kind === 'top') { const r = topParts(topOptions(s), customPaths(CUSTOM_TOP, s, sleeve), sleeve); return assemble(r, r.raws.pocketDetail); }
+  if (kind === 'top') { const r = topParts(topOptionsFor(s, garment), customPaths(garment, s, sleeve), sleeve); return assemble(r, r.raws.pocketDetail); }
   if (kind === 'skirt') return assemble(skirtParts(skirtOptions(s)));
+  if (kind === 'tailored') return assemble(tailoredParts(tailoredOptions(s, garment)));
   return assemble(bottomParts(bottomOptions(s)));
 }
 
