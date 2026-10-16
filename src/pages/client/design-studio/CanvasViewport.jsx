@@ -8,7 +8,7 @@ import { ENTRIES as GALLERY } from './designGallery';
 import { hasWebGL } from './webglSupport';
 import { hasBackView, assetFor } from './garmentAssets';
 import { isDerived } from './derivedFamilies';
-import { isCustom, CUSTOM_BADGE, CUSTOM_NO_3D } from './customGarment';
+import { isCustom, CUSTOM_BADGE, CUSTOM_3D_NOTE } from './customGarment';
 import { photoMaxScale } from './studioView';
 import { panLimits, clampPan } from './snapGuides';
 import { readGuidePrefs } from './canvasGuides';
@@ -335,7 +335,7 @@ export default function CanvasViewport({
   const gridOn = guides.grid && !!cfg.garment && show2D && !!view && !!garmentRect && !set2D;
   const stageOff = { dx: rulersOn ? RULER_W : 0, dy: rulersOn ? RULER_H : 0 };
 
-  const status = isCustom(cfg.garment) ? { label: CUSTOM_BADGE, title: CUSTOM_NO_3D }
+  const status = isCustom(cfg.garment) ? { label: CUSTOM_BADGE, title: CUSTOM_3D_NOTE }
     : photo ? { label: 'Photo', title: 'A recoloured photo of the real garment' }
     : isDerived(cfg.garment) ? { label: 'Derived', title: 'Outline and shading traced from the 3D model of a VFRB reference photo; pending VFRB confirmation' }
     : { label: 'Sketch', title: 'A flat VFRB template drawing; no photo base exists for this garment, sleeve and fit' };

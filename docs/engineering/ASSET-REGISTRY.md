@@ -18,6 +18,10 @@ Files on disk: 246 · referenced paths: 198 · missing: 0 · unreferenced: 48 (u
 ## 3D garments
 | entry | status | models | limitations |
 | --- | --- | --- | --- |
+| custom-top-parametric | approximate-3d |  | parametric shape built from the 2D choices: simple lofts, approximate shape and drape; pocket layers you add are 2D only; logos and text sit on the body only |
+| custom-bottom-parametric | approximate-3d |  | parametric shape built from the 2D choices: simple lofts, approximate shape and drape; pocket layers you add are 2D only; one body colour |
+| custom-skirt-parametric | approximate-3d |  | parametric shape built from the 2D choices: simple lofts, approximate shape and drape; pocket layers you add are 2D only; one body colour |
+| button-down-parametric | approximate-3d |  | parametric shape built from the 2D choices: simple lofts, approximate shape and drape; pocket layers you add are 2D only; placket buttons are 2D only |
 | t-shirt | approximate-3d | male: /models/t-shirt-male.glb; female: /models/t-shirt-female.glb | — |
 | polo-shirt | approximate-3d | male: /models/Polo Shirt male.glb; female: /models/female polo shirt.glb | — |
 | work-shirt | approximate-3d | unisex: /models/processed/work-shirt-short-sleeve-capped.glb | short sleeve only; small scan-cut irregularities remain at the side and hem; front collar leaf points sit below the collar zone and take the body colour; no arbitrary fabric-texture upload |
@@ -53,7 +57,7 @@ Files on disk: 246 · referenced paths: 198 · missing: 0 · unreferenced: 48 (u
 | derived-jack-shirt-two-tone | approximate-3d | male: /models/vfrb-derived/jack-shirt-two-tone.glb | one body colour: lapels, collar, sleeves, buttons and pockets are modelled shapes, not separately colourable parts; no text or logos in 3D; derived from the reference model of the "jack-shirt-two-tone" gallery photo, pending VFRB confirmation; no arbitrary fabric-texture upload |
 
 ## 3D coverage by kind
-- Editable single-garment 3D models (Studio, Order Wizard, Order Detail): 36 files in 33 entries (table above).
+- Editable single-garment 3D models (Studio, Order Wizard, Order Detail): 36 files in 37 entries (table above).
 - Working read-only full-set previews (gallery "View the set in 3D"): 2 (set-pinstripe-pants, set-pinstripe-skirt).
 - Working read-only single-garment references (gallery "View in 3D"): 7 (blouse-mandarin-yellow, blouse-asymmetric-blue, blouse-tunic-roundneck-blue, blazer-open-front-black, dress-tunic-maternity-navy, jack-shirt-two-tone, dress-butter-belted).
 - Reference files with no viewer connection: none (every file in `/models/reference/` is mapped to its gallery photo).

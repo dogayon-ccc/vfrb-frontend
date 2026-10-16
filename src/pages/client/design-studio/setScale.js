@@ -6,7 +6,7 @@
 // a top's body length and a bottom's length. Within a role, base templates keep their drawn ratio to the role's reference
 // garment (they share one generator and unit); derived templates carry no length of their own, so they take the chart length
 // and are flagged approximate. Customers never see these numbers: the Studio shows only the drawing.
-import { getGarmentPaths } from './garmentPaths';
+import { customPaths } from './garmentPaths';
 import { assetFor } from './garmentAssets';
 import { pieceOf } from './garmentCatalog';
 import { isDerived } from './derivedFamilies';
@@ -17,27 +17,28 @@ const REF = { top: { garment: 'Polo Shirt', cm: () => chartLengthCm('tops') }, b
 
 const ys = d => (String(d ?? '').match(/-?\d+(\.\d+)?/g) ?? []).map(Number).filter((_, i) => i % 2 === 1);
 
-// The template's body outline: its vertical extent in template units. This is the garment's designed length.
-export function templateSpan(garment, sleeve) {
-  const p = getGarmentPaths(garment, sleeve ?? 'Short', 'front'), y = ys(p.body);
+// The template's body outline: its vertical extent in template units. This is the garment's designed length. custom: a build-your-own
+// piece's own spec (cfg.custom), so each piece of a set is measured with its own shape, not the one last registered.
+export function templateSpan(garment, sleeve, custom = null) {
+  const p = customPaths(garment, custom, sleeve ?? 'Short', 'front'), y = ys(p.body);
   return y.length ? { y0: Math.min(...y), y1: Math.max(...y), w: p.w, h: p.h } : null;
 }
 
 // What is actually drawn in the template canvas: a photo base is fitted to the whole canvas (so its fitted height says nothing
 // about length and is only used to place it), otherwise the body outline.
-export function drawnSpan(garment, sleeve, fit) {
-  const t = templateSpan(garment, sleeve), a = assetFor(garment, sleeve, 'front', fit);
+export function drawnSpan(garment, sleeve, fit, custom = null) {
+  const t = templateSpan(garment, sleeve, custom), a = assetFor(garment, sleeve, 'front', fit);
   if (!t || !a) return t;
   const s = Math.min(t.w / a.w, t.h / a.h), h = a.h * s, y0 = (t.h - h) / 2;
   return { y0, y1: y0 + h, w: t.w, h: t.h };
 }
 
 // Real length in cm (internal) for a set piece, and whether it is an approximation. null for a garment outside a set role.
-export function realLength(garment, sleeve) {
+export function realLength(garment, sleeve, custom = null) {
   const role = pieceOf(garment), ref = role && REF[role], refCm = ref?.cm();
   if (!refCm) return null;
   if (isDerived(garment)) return { cm: refCm, approx: true };
-  const own = templateSpan(garment, sleeve), base = templateSpan(ref.garment, 'Short');
+  const own = templateSpan(garment, sleeve, custom), base = templateSpan(ref.garment, 'Short');
   if (!own || !base) return { cm: refCm, approx: true };
   return { cm: refCm * (own.y1 - own.y0) / (base.y1 - base.y0), approx: false };
 }
@@ -45,7 +46,7 @@ export function realLength(garment, sleeve) {
 // 2D set layout in cm, top-left origin: each piece's template canvas box (draw GarmentSilhouette into it) and the visible extent.
 // The top is centred over the bottom; the bottom's waist sits SET_OVERLAP of the top's length above the top's hem.
 export function setLayout2D(top, bottom) {
-  const parts = [top, bottom].map(c => ({ cfg: c, span: drawnSpan(c.garment, c.sleeve, c.fit), len: realLength(c.garment, c.sleeve) }));
+  const parts = [top, bottom].map(c => ({ cfg: c, span: drawnSpan(c.garment, c.sleeve, c.fit, c.custom), len: realLength(c.garment, c.sleeve, c.custom) }));
   if (parts.some(p => !p.span || !p.len)) return null;
   const [t, b] = parts.map(p => ({ ...p, u: p.len.cm / (p.span.y1 - p.span.y0) })); // cm per template unit
   const width = Math.max(t.span.w * t.u, b.span.w * b.u), cx = width / 2;

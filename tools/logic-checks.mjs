@@ -57,13 +57,13 @@ t('resolveTarget polo: 2D+3D approx, never verified', (r => r.status === '2d-3d-
 t('resolveTarget Button-Down Long (unisex, default) keeps the vector template and gets the utility-shirt 3D model', (r => r.assetId === null && r.photo === false && r.glb === '/models/vfrb-staged/shirt-utility-beige-long.glb' && r.status === '2d-3d-approx' && r.fit === 'unisex')(G.resolveTarget('Button-Down', 'Long')));
 t('resolveTarget Button-Down Long + Female -> separate BIR photo template + its own GLB, approx', (r => r.assetId === 'button-down-bir-long' && r.fit === 'female' && r.glb === '/models/garments/button-down-bir-long.glb' && r.status === '2d-3d-approx')(G.resolveTarget('Button-Down', 'Long', 'female')));
 t('Button-Down offers Unisex and Female fits; unisex keeps the vector back view, female BIR is front-only', G.FAMILY_BY_NAME['Button-Down'].fits.join() === 'unisex,female' && A.hasBackView('Button-Down', 'Long', 'unisex') && !A.hasBackView('Button-Down', 'Long', 'female'));
-t('resolveTarget Button-Down Short keeps the capped work shirt GLB, no photo', (r => r.assetId === null && r.glb === '/models/processed/work-shirt-short-sleeve-capped.glb')(G.resolveTarget('Button-Down', 'Short')));
-t('Button-Down Short + Female: no photo base, capped work-shirt model (no fake women\'s photo)', (r => r.assetId === null && r.glb === '/models/processed/work-shirt-short-sleeve-capped.glb')(G.resolveTarget('Button-Down', 'Short', 'female')));
+t('resolveTarget Button-Down Short: parametric point-collar 3D (no file), no photo (2026-10-16)', (r => r.assetId === null && r.glb === null && r.status === '2d-3d-approx')(G.resolveTarget('Button-Down', 'Short')));
+t('Button-Down Short + Female: no photo base, the parametric model (no fake women\'s photo)', (r => r.assetId === null && r.glb === null && r.status === '2d-3d-approx')(G.resolveTarget('Button-Down', 'Short', 'female')));
 const Cp = await L('/src/pages/client/design-studio/garmentCapabilities.js');
 t('Pants has no generated 3D pattern without a 2D pattern selection', Object.keys(Cp.patternsFor3D(Cp.scannedEntryFor('Pants', null, null), {})).length === 0);
 t('Pants cannot receive unknown or 2D-only stale pattern state in 3D', Cp.patternsFor3D(Cp.scannedEntryFor('Pants', null, null), { body: 'stale-not-a-pattern' }).body === 'solid' && Cp.patternsFor3D(Cp.scannedEntryFor('Pants', null, null), { body: 'geometric' }).body === 'solid' && Sh.PATTERNS.some(p => p.id === 'geometric'));
 t('photo-backed GLB ignores stale pattern state even if the model could shade it', Object.values(Cp.patternsFor3D(Cp.scannedEntryFor('Pants', null, null), { body: 'hstripes' }, { photoBase: true })).every(v => v === 'solid'));
-t('3D selector: BIR entry only for Long + female; unisex Long -> utility shirt; Short -> work shirt; Mandarin Long -> none', Cp.scannedEntryFor('Button-Down', 'Long', 'female')?.id === 'button-down-bir-blouse' && Cp.scannedEntryFor('Button-Down', 'Long', 'unisex')?.id === 'button-down-utility-long' && Cp.scannedEntryFor('Button-Down', 'Short', 'unisex')?.id === 'work-shirt' && Cp.scannedEntryFor('Button-Down', 'Short', 'female')?.id === 'work-shirt' && Cp.scannedEntryFor('Mandarin Collar', 'Long', 'female') === null);
+t('3D selector: BIR entry only for Long + female; unisex Long -> utility shirt; Short -> parametric point collar; Mandarin Long -> none', Cp.scannedEntryFor('Button-Down', 'Long', 'female')?.id === 'button-down-bir-blouse' && Cp.scannedEntryFor('Button-Down', 'Long', 'unisex')?.id === 'button-down-utility-long' && Cp.scannedEntryFor('Button-Down', 'Short', 'unisex')?.id === 'button-down-parametric' && Cp.scannedEntryFor('Button-Down', 'Short', 'female')?.id === 'button-down-parametric' && Cp.scannedEntryFor('Mandarin Collar', 'Long', 'female') === null);
 t('sleeve 3D labels are per fit: Button-Down unisex and female both Short+Long', Cp.sleeves3DFor('Button-Down', 'unisex').join() === 'Short,Long' && Cp.sleeves3DFor('Button-Down', 'female').join() === 'Short,Long');
 t('explicit men/women never lands on the other gender photo', A.assetFor('Round Neck', 'Short', 'front', 'male') === null && A.assetFor('Scrub Top', 'Short', 'front', 'male')?.id === 'scrub-top-men-short');
 t('resolveTarget unknown -> null', G.resolveTarget('Garbage') === null);
@@ -102,7 +102,7 @@ t('studio fonts: weights snap to an existing cut', SF.nearestWeight(SF.WEB_FONTS
   t('hero serializes explicit vector templateId', sv.templateId === HID);
   t('hero templateKeyById resolves', JSON.stringify(A.templateKeyById(HID)) === JSON.stringify({ garment: 'Button-Down', sleeve: 'Short', fit: 'unisex' }));
   t('hero restores same garment/sleeve/fit', r.cfg.garment === 'Button-Down' && r.cfg.sleeve === 'Short' && r.cfg.fit === 'unisex');
-  t('hero resolveTarget carries templateId, capped work-shirt GLB, approx status', (x => x.templateId === HID && x.glb === '/models/processed/work-shirt-short-sleeve-capped.glb' && x.status === '2d-3d-approx' && !x.photo)(G.resolveTarget('Button-Down', 'Short', 'unisex')));
+  t('hero resolveTarget carries templateId, parametric 3D (no file), approx status', (x => x.templateId === HID && x.glb === null && x.status === '2d-3d-approx' && !x.photo)(G.resolveTarget('Button-Down', 'Short', 'unisex')));
   t('hero 3D zones are body/sleeve/collar/pocket, tipping is 2D only', Sh.zone3D('Button-Down', 'Short', 'unisex', 'pocket') === true && Sh.zone3D('Button-Down', 'Short', 'unisex', 'tipping') === false);
   t('hero is not verified', !G.FAMILY_BY_NAME['Button-Down'].verified3D);
   t('old record without templateId still loads by garment/sleeve/fit', (o => o.cfg.garment === 'Button-Down' && o.cfg.sleeve === 'Short')(S.deserializeDesign({ garment: 'Button-Down', sleeve: 'Short', fit: 'unisex', colors: {} })));
@@ -122,7 +122,7 @@ t('zonesFor honours fit: Button-Down Long unisex has collar/pocket, female BIR i
 { const HID = 'button-down-work-shirt-short', e = Cp.scannedEntryFor('Button-Down', 'Short', 'unisex');
   const hp = { body: 'hstripes', sleeve: 'checker', collar: 'geometric', pocket: 'polka', tipping: 'vstripes' };
   const p3 = Cp.patternsFor3D(e, hp);
-  t('hero 3D entry is the capped work-shirt GLB', e.id === 'work-shirt' && e.models.unisex === '/models/processed/work-shirt-short-sleeve-capped.glb');
+  t('hero 3D entry is the parametric point-collar Button-Down (separate collar part in the collar colour)', e.id === 'button-down-parametric' && e.parametric && e.capabilities.zones.includes('collar'));
   t('hero 3D paints body/sleeve patterns, pocket/collar/geometric stay solid', p3.body === 'hstripes' && p3.sleeve === 'checker' && p3.collar === 'solid' && p3.pocket === 'solid');
   t('a photo-base scan (no 3D patterns) paints every zone solid', Object.values(Cp.patternsFor3D(Cp.scannedEntryFor('Scrub Top', 'Short', 'female'), hp)).every(v => v === 'solid'));
   t('no 3D entry gives solid, never undefined', Object.values(Cp.patternsFor3D(null, { body: 'hstripes' })).every(v => v === 'solid'));
@@ -212,7 +212,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
       const t0 = D.openTarget(d, {}), cfg = { ...G.applyGarment(S.DEFAULT_CFG, t0.garment, { ...t0, inspirationId: d.id }), colors: { ...S.DEFAULT_CFG.colors, body: '#7a1f2b' } };
       const saved = JSON.parse(JSON.stringify(S.serializeDesign(cfg, {}))), back = S.deserializeDesign(saved).cfg, order = S.deserializeDesign(JSON.parse(JSON.stringify(S.serializeDesign(back, {})))).cfg;
       const r0 = G.resolveTarget(cfg.garment, cfg.sleeve, cfg.fit);
-      return [back, order].every(x => x.garment === cfg.garment && x.sleeve === cfg.sleeve && x.fit === cfg.fit && x.inspirationId === d.id && x.colors.body === '#7a1f2b' && G.resolveTarget(x.garment, x.sleeve, x.fit).templateId === r0.templateId && G.resolveTarget(x.garment, x.sleeve, x.fit).glb === r0.glb && Cp.has3DModel(x.garment, x.sleeve, x.fit) === !!r0.glb)
+      return [back, order].every(x => x.garment === cfg.garment && x.sleeve === cfg.sleeve && x.fit === cfg.fit && x.inspirationId === d.id && x.colors.body === '#7a1f2b' && G.resolveTarget(x.garment, x.sleeve, x.fit).templateId === r0.templateId && G.resolveTarget(x.garment, x.sleeve, x.fit).glb === r0.glb && Cp.has3DModel(x.garment, x.sleeve, x.fit) === (!!r0.glb || !!Cp.scannedEntryFor(x.garment, x.sleeve, x.fit)?.parametric))
         && saved.templateId === r0.templateId && saved.inspirationId === d.id && (!d.has3D || r0.glb === d.glb);
     };
     const broken = editable.filter(d => !trip(d)).map(d => d.id);
@@ -774,7 +774,10 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     const want = { ...b, ...(g === 'Pants' ? { model: 'pants-straight-authored', glb: '/models/authored/pants-straight.glb' } : {}),
       ...(g === 'Scrub Top' && fit === 'unisex' ? { templateId: sl === '3/4' ? 'scrub-top-sketch-three-quarter' : 'scrub-top-sketch-short', model: sl ? `scrub-top-vneck-authored-${sl === '3/4' ? 'three-quarter' : 'short'}` : b.model,
         glb: sl === '3/4' ? '/models/authored/scrub-top-vneck-three-quarter.glb' : '/models/authored/scrub-top-vneck-short.glb' } : {}),
-      ...(g === 'Mandarin Collar' && fit === 'male' && sl !== 'Long' ? { templateId: 'mandarin-shirt-short-male' } : {}) };
+      ...(g === 'Mandarin Collar' && fit === 'male' && sl !== 'Long' ? { templateId: 'mandarin-shirt-short-male' } : {}),
+      // 2026-10-16: the Button-Down family model is the parametric point collar; build-your-own garments gain parametric 3D.
+      ...(g === 'Button-Down' && b.model === 'work-shirt' ? { model: 'button-down-parametric', glb: null } : {}),
+      ...(/^Custom /.test(g) && CAP.scannedEntryFor(g, sl, fit)?.parametric ? { model: CAP.scannedEntryFor(g, sl, fit).id, glb: null, status: '2d-3d-approx' } : {}) };
     const r = CAT.resolveTarget(g, sl, fit); return GA.templateIdFor(g, CAT.resolveSleeve(g, sl), CAT.resolveFit(g, fit)) === want.templateId && (CAP.scannedEntryFor(g, sl, fit)?.id ?? null) === want.model && (r?.status ?? null) === want.status && (r?.glb ?? null) === want.glb; });
   const moved = GAL.ENTRIES.filter(d => JSON.stringify(GAL.openTarget(d)) !== JSON.stringify(base.gallery[d.id].target));
   t('every existing family still resolves to the same template, 3D model and status (136 family x style x fit cases vs the HEAD baseline); only reference photos with derived pieces open somewhere new, and they open their own derived family',
@@ -1173,9 +1176,9 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const back = S.deserializeDesign(JSON.parse(JSON.stringify(S.serializeDesign(top, {})))).cfg;
   t('build your own: values are clamped (unknown neckline/hem fall back, sliders 0-100, cuffs and drawstring only on joggers)',
     JSON.stringify(wild) === '{"neckline":"v","length":100,"fit":0,"hem":"straight"}' && jog.cuffs === false && jog.drawstring === false && jog.length === 40 && CG.normalizeCustom({}, 'Polo Shirt') === null);
-  t('build your own: the choices change the drawn sketch, survive Save -> Reload (cfg.custom, templateId custom-top, sleeve) and are 2D only with an explicit reason',
+  t('build your own: the choices change the drawn sketch, survive Save -> Reload (cfg.custom, templateId custom-top, sleeve) and get parametric 3D (approx.)',
     tall > short + 50 && !GP.customPaths(CG.CUSTOM_TOP, {}, 'Sleeveless').sleeveL && back.garment === CG.CUSTOM_TOP && back.sleeve === 'Sleeveless' && JSON.stringify(back.custom) === JSON.stringify(top.custom)
-    && S.serializeDesign(top).templateId === 'custom-top' && !Cp.has3DFor(top) && !Cp.has3DFor({ garment: CG.CUSTOM_BOTTOM }) && /2D only/.test(Cp.no3DReason(CG.CUSTOM_TOP)) && !G.CATALOG.some(c => c.families.some(f => CG.isCustom(f.id)))
+    && S.serializeDesign(top).templateId === 'custom-top' && Cp.has3DFor(top) && Cp.has3DFor({ garment: CG.CUSTOM_BOTTOM }) && Cp.no3DReason(CG.CUSTOM_TOP) === null && !G.CATALOG.some(c => c.families.some(f => CG.isCustom(f.id)))
     && CG.describeCustom(CG.CUSTOM_TOP, top.custom).some(l => /Mandarin/.test(l)));
   // Pockets: real layers, saved in overlays, on the spec sheet and admin view, never 3D decals.
   const pocketJson = [{ type: 'group', __pocket: 'flap', __pocketColor: '#c0392b', objects: [] }, { type: 'i-text', text: 'x', __text: true }];
@@ -1254,6 +1257,45 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && (u => u?.pieces.bottom?.garment === 'Pants' && u.pieces.top?.garment === 'Blazer')(USy.normalizeSet?.({ id: 'x', active: 'top', pieces: { top: { garment: 'Double-Breasted Blazer' }, bottom: { garment: 'Slim Suit Trousers' } } }) ?? { pieces: { top: { garment: 'Blazer' }, bottom: { garment: 'Pants' } } })
     && removedNames.every(n => !CATy.FAMILY_BY_NAME[n]));
   console.log('removed derived ids: ' + Object.keys(DFy.REMOVED_DERIVED).join(', '));
+}
+// 2026-10-16: parametric 3D for build-your-own garments and the Button-Down (customMesh3D.js, docs/engineering/ADR-custom-3d.md).
+{
+  const CM = await L('/src/pages/client/design-studio/customMesh3D.js'), CGz = await L('/src/pages/client/design-studio/customGarment.js');
+  const Cz = await L('/src/pages/client/design-studio/garmentCapabilities.js'), SSz = await L('/src/pages/client/design-studio/setScale.js');
+  const box = b => { const bb = b.parts.reduce((acc, p) => acc.union(p.geometry.boundingBox), b.parts[0].geometry.boundingBox.clone()); return { h: bb.max.y - bb.min.y, w: bb.max.x - bb.min.x }; };
+  const names = b => b.parts.map(p => p.name).sort().join();
+  const cases = [['Custom Top', { neckline: 'polo' }, 'Long'], ['Custom Top', { neckline: 'v' }, 'Sleeveless'], ['Custom Top', { neckline: 'point' }, '3/4'],
+    ['Custom Bottom', { style: 'jogger', cuffs: true, drawstring: true }, null], ['Custom Bottom', { style: 'straight' }, null], ['Custom Skirt', { length: 90 }, null], ['Button-Down', null, 'Short']];
+  const built = cases.map(([g, sp, sl]) => CM.buildCustomParts(g, sp, sl));
+  t('parametric 3D: every part has positions, normals, UVs and at most 20,000 triangles',
+    built.every(b => b.parts.every(p => ['position', 'normal', 'uv'].every(a => p.geometry.attributes[a]) && CM.triangleCount(p.geometry) <= CM.MAX_TRIS && CM.triangleCount(p.geometry) > 0)));
+  t('parametric 3D: named parts follow the choices (sleeves and cuffs only with sleeves; jogger cuffs and drawstring; straight trousers get pockets and a hem; skirt waistband and hem)',
+    names(built[0]) === 'body,collarBand,cuffs,hem,sleeves' && names(built[1]) === 'body,collarBand,hem' && names(built[3]) === 'body,cuffs,drawstring,legs,sidePockets,waistband'
+    && names(built[4]) === 'backPockets,body,hem,legs,sidePockets,waistband' && names(built[5]) === 'body,hem,waistband' && names(built[6]) === 'body,collarBand,hem,pockets,sleeves');
+  const len = (g, sp) => box(CM.buildCustomParts(g, sp, 'Short'));
+  t('parametric 3D: bounds follow the 2D length and fit (longer top, longer skirt and trousers are taller; a looser top is wider)',
+    len('Custom Top', { length: 100 }).h > len('Custom Top', { length: 0 }).h + 0.3 && len('Custom Skirt', { length: 100 }).h > len('Custom Skirt', { length: 0 }).h + 0.8
+    && len('Custom Bottom', { length: 100 }).h > len('Custom Bottom', { length: 0 }).h + 0.5 && len('Custom Top', { fit: 100 }).w > len('Custom Top', { fit: 0 }).w + 0.1);
+  const a1 = CM.buildCustomParts('Custom Top', { neckline: 'notch', hem: 'curved' }, 'Long'), a2 = CM.buildCustomParts('Custom Top', { neckline: 'notch', hem: 'curved' }, 'Long');
+  t('parametric 3D: deterministic (same spec, identical vertices) and memoised by spec key',
+    a1.parts.every((p, i) => p.geometry.attributes.position.array.every((v, k) => v === a2.parts[i].geometry.attributes.position.array[k]))
+    && CM.customMeshKey('Custom Top', { neckline: 'v', junk: 1 }, 'Short') === CM.customMeshKey('Custom Top', { neckline: 'v' }, 'Short'));
+  let disposed = 0; a1.parts.forEach(p => p.geometry.addEventListener('dispose', () => disposed++)); CM.disposeParts(a1);
+  t('parametric 3D: disposeParts frees every geometry; the mesh rebuild is throttled to 120 ms', disposed === a1.parts.length
+    && /useThrottledKey\(customMeshKey\(garment, spec, sleeve\), 120\)/.test(fsx.readFileSync(urlx.fileURLToPath(new URL('../src/pages/client/design-studio/ScannedGarmentMesh.jsx', import.meta.url)), 'utf8')));
+  t('3D enabled and labelled "3D (approx.)" for Custom Top, Bottom and Skirt; pocket parts follow the Details show/hide',
+    ['Custom Top', 'Custom Bottom', 'Custom Skirt'].every(g => Cz.has3DFor({ garment: g, sleeve: g === 'Custom Top' ? 'Long' : null }) && Cz.scannedEntryFor(g, g === 'Custom Top' ? 'Long' : null, null)?.label === '3D (approx.)')
+    && built[4].parts.find(p => p.name === 'backPockets').detail === 'backPockets' && built[6].parts.find(p => p.name === 'pockets').detail === 'patchPocket');
+  t('point collar: a Build-your-own neckline with the 2D point collar, and the Button-Down Short 3D comes from it with a separate collar part in the collar colour',
+    CGz.NECKLINES.some(([id]) => id === 'point') && CGz.topOptions({ neckline: 'point' }).collar === 'point' && built[6].parts.find(p => p.name === 'collarBand').colorKey === 'collar'
+    && Cz.scannedEntryFor('Button-Down', 'Short', 'unisex').id === 'button-down-parametric' && Cz.scannedEntryFor('Button-Down', 'Long', 'female').id === 'button-down-bir-blouse');
+  t('Scrub Top and Polo 3D unchanged (same model entries as before the parametric work)',
+    Cz.scannedEntryFor('Scrub Top', 'Short', 'unisex')?.id === 'scrub-top-vneck-authored-short' && !Cz.scannedEntryFor('Scrub Top', 'Short', 'female')?.parametric
+    && !Cz.scannedEntryFor('Polo Shirt', 'Short', 'male')?.parametric && !Cz.scannedEntryFor('Polo Shirt', 'Short', 'unisex')?.parametric);
+  const lt = l => SSz.realLength('Custom Top', 'Short', { length: l }).cm;
+  t('set scale: a custom piece is measured with its own spec (a longer custom top is longer in cm), so 2D and 3D keep the real top/bottom ratio',
+    lt(100) > lt(0) * 1.2 && SSz.realLength('Custom Bottom', null, { length: 0 }).cm < SSz.realLength('Custom Bottom', null, { length: 100 }).cm
+    && !!SSz.setLayout2D({ garment: 'Custom Top', sleeve: 'Short', custom: { length: 80 } }, { garment: 'Custom Bottom', sleeve: null, custom: { length: 60 } }));
 }
 console.log(out.join('\n')); const f = out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);

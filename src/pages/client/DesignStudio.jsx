@@ -728,7 +728,7 @@ export default function DesignStudio() {
         ['Category', cfg.category],
         ['Colours', zones.map(z => `${z}: ${cfg.colors[z] ?? '-'}`).join('  ')],
         ['Patterns', describePatterns(cfg.patterns, cfg.patternParams, cfg.colors, id => PATTERNS.find(p => p.id === id)?.label ?? id).join('  ') || 'Solid'],
-        ...(isCustom(cfg.garment) ? [['Custom sketch (2D only)', describeCustom(cfg.garment, cfg.custom).join('  ')]] : []),
+        ...(isCustom(cfg.garment) ? [['Custom sketch', describeCustom(cfg.garment, cfg.custom).join('  ')]] : []),
         ['Details', describeDetails(cfg.details).join('  ') || 'As the template'],
         ...(describePockets(faceJSON.current).length ? [['Added pockets (2D)', describePockets(faceJSON.current).join('  ')]] : []),
         ['Placed items', `Front ${counts.front}${faces.length > 1 ? `, back ${counts.back}` : ''}`],

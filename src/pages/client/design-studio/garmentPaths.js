@@ -304,6 +304,8 @@ function coverall() {
 
 const POLO = { collar: 'polo', frontDrop: 18, placket: { bottom: 128, buttons: 3 }, vents: true, pocket: { x: 92, y: 120, w: 34, h: 38 } };
 
+// Shared with the parametric 3D (customMesh3D.js), so the Button-Down's 2D sketch and 3D model come from the same numbers.
+export const BUTTON_DOWN_OPTIONS = { h: 390, collar: 'point', frontDrop: 16, neckW: 26, hem: [96, 346], hemCurve: 9, placket: { top: 62, bottom: 342, buttons: 7, width: 7 }, pocket: { x: 92, y: 112, w: 32, h: 38 } };
 export const BASE_PATHS = {
   'Polo Shirt':  top(POLO),
   'School Polo': top(POLO),
@@ -313,7 +315,7 @@ export const BASE_PATHS = {
   'Mandarin Collar': top({ collar: 'mandarin', frontDrop: 14, neckW: 26, placket: { top: 58, bottom: 330, buttons: 6, width: 7 } }),
   'Scrub Top':   top({ h: 390, collar: 'v', frontDrop: 52, neckW: 28, hem: [99, 344], sleeve: { angle: 38, len: 68, open: 60 }, pocket: { x: 86, y: 132, w: 44, h: 46 },
                        lowerPockets: { x0: 34, w: 50, y: 246, h: 54 } }),
-  'Button-Down': top({ h: 390, collar: 'point', frontDrop: 16, neckW: 26, hem: [96, 346], hemCurve: 9, placket: { top: 62, bottom: 342, buttons: 7, width: 7 }, pocket: { x: 92, y: 112, w: 32, h: 38 } }),
+  'Button-Down': top(BUTTON_DOWN_OPTIONS),
   'Lab Coat':    top({ w: 340, h: 440, collar: 'notch', neckW: 28, hpsY: 40, sh: [92, 62], arm: [98, 132], hem: [108, 420], hemCurve: 3, sleeve: { angle: 42, len: 70, open: 58 }, pocket: { x: 92, y: 262, w: 44, h: 52 }, coat: true }),
   'Lab Coverall': coverall(),
   // Corporate additions with real garment-only models (garmentCapabilities): notch-lapel blazer, notch-collar blouse, collared shirt-dress.

@@ -4,6 +4,7 @@ import { Decal, useGLTF } from '@react-three/drei';
 import { renderDecals, bodyBounds } from './overlayDecals';
 import { buildRegionTexture, DEFAULT_GARMENT_COLOR } from './regionTexture';
 import { ensureZoneMask, createZoneUniforms, setZoneUniforms, patchZoneMaterial } from './regionShader';
+import { buildCustomParts, customMeshKey, disposeParts } from './customMesh3D';
 
 let grain;
 // Fine deterministic fabric grain (blurred noise) as a shared normal map; periodic weaves alias into streaks.
@@ -167,6 +168,35 @@ export default function ScannedGarmentMesh({ manifest, colors = {}, patterns, pa
     <group rotation={rotation} scale={scale} position={position}>
       {manifest.parts.filter(part => !(part.detail && details?.[part.detail]?.show === false)).map(part => nodes[part.node]?.geometry && (
         <ScannedPart key={part.node} geometry={nodes[part.node].geometry} part={part} colors={colors} patterns={patterns} patternParams={patternParams} decals={decals} frame={frame} torso={torso} />
+      ))}
+    </group>
+  );
+}
+
+// Rebuilds wait until the spec has been still for `ms` (a slider drag fires many changes).
+function useThrottledKey(key, ms) {
+  const [k, setK] = useState(key);
+  useEffect(() => { if (k === key) return undefined; const t = setTimeout(() => setK(key), ms); return () => clearTimeout(t); }, [key, k, ms]);
+  return k;
+}
+
+// Build-your-own garments and the Button-Down template: parametric parts from the spec (customMesh3D.js), painted through the same
+// zone-mask material as the authored models. Throttled to 120 ms, memoised by spec, the previous geometry disposed on every rebuild.
+export function CustomGarmentMesh({ garment, spec, sleeve, colors = {}, patterns, patternParams, overlays, details = null, transform }) {
+  const key = useThrottledKey(customMeshKey(garment, spec, sleeve), 120);
+  const built = useMemo(() => buildCustomParts(garment, spec, sleeve), [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => disposeParts(built), [built]);
+  // Stable part descriptors per build, so materials are made once per rebuild, not on every render.
+  const metas = useMemo(() => built?.parts.map(p => ({ node: p.name, colorKey: p.colorKey, decals: p.decals, zoneOf: () => p.colorKey })) ?? [], [built]);
+  const decals = useDecals(overlays);
+  const frame = useMemo(() => bodyBounds(garment, sleeve), [garment, sleeve, key]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!built) return null;
+  const { rotation, scale, position } = transform;
+  return (
+    <group rotation={rotation} scale={scale} position={position}>
+      {built.parts.map((p, i) => !(p.detail && details?.[p.detail]?.show === false) && (
+        <ScannedPart key={`${key}|${p.name}`} geometry={p.geometry} part={metas[i]}
+          colors={colors} patterns={patterns} patternParams={patternParams} decals={decals} frame={frame} torso={built.torso}/>
       ))}
     </group>
   );
