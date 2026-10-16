@@ -254,6 +254,8 @@ export default function CanvasViewport({
   };
   const onPaneUpCapture = (e) => { fingers.current.delete(e.pointerId); if (fingers.current.size < 2) pinch.current = null; };
   // Fit: back to the fitted size, centred (Ctrl+0 or the zoom readout).
+  // Fit reads as pressed only while the design really sits at the fitted size and position.
+  const fitted = zoom === 1 && pan.x === 0 && pan.y === 0;
   const fitView = useCallback(() => { setZoom(1); applyPan({ x: 0, y: 0 }); }, [setZoom, applyPan]);
 
   // Fullscreen: the whole Studio (stage, its toolbars and the panel) through the browser Fullscreen API. Where that API is missing or
@@ -324,9 +326,9 @@ export default function CanvasViewport({
   };
 
   const stageBtn = (
-    <button type="button" className="ds-stage-btn" aria-pressed={dark} aria-label={dark ? 'Light stage' : 'Dark stage'}
-      title={dark ? 'Light stage' : 'Dark stage'} onClick={() => setDark(d => !d)}>
-      {dark ? <Sun size={17} aria-hidden="true"/> : <Moon size={17} aria-hidden="true"/>}
+    <button type="button" className="ds-stage-btn" aria-pressed={dark} aria-label="Dark stage"
+      title={dark ? 'Dark stage is on: switch back to the light stage' : 'Dark stage: see the design on a dark background'} onClick={() => setDark(d => !d)}>
+      {dark ? <Sun size={17} aria-hidden="true"/> : <Moon size={17} aria-hidden="true"/>}<span className="ds-stage-lbl" aria-hidden="true">{dark ? 'Light' : 'Dark'}</span>
     </button>
   );
 
@@ -475,7 +477,7 @@ export default function CanvasViewport({
               <div className="ds-zoom" role="group" aria-label="Zoom">
                 <button type="button" aria-label="Zoom out" onClick={()=>setZoom(z=>Math.max(ZOOM_MIN, +(z-0.15).toFixed(2)))}><Minus size={16} aria-hidden="true"/></button>
                 <output className="ds-zoom-val" aria-label="Zoom level" title={photo ? 'Zoom level (a photo base never goes above its full resolution)' : 'Zoom level'}>{Math.round(scale*100)}%</output>
-                <button type="button" aria-label="Fit to the stage" title="Fit to the stage (Ctrl+0)" onClick={fitView}><Scan size={15} aria-hidden="true"/></button>
+                <button type="button" aria-label="Fit to the stage" aria-pressed={fitted} title={fitted ? 'Fitted to the stage' : 'Fit to the stage (Ctrl+0)'} onClick={fitView}><Scan size={15} aria-hidden="true"/></button>
                 <button type="button" aria-label="Zoom in" disabled={atCap} title={atCap ? 'Full photo resolution: zooming further would blur it' : undefined} onClick={()=>setZoom(z=>Math.min(ZOOM_MAX, +(z+0.15).toFixed(2)))}><Plus size={16} aria-hidden="true"/></button>
               </div>
               <div className="ds-face" role="group" aria-label="Garment side">
@@ -490,7 +492,7 @@ export default function CanvasViewport({
             </>)}
             <button type="button" className="ds-stage-btn ds-full-btn" aria-pressed={!!full} aria-label={full ? 'Exit full screen' : 'Full screen'}
               title={full ? 'Exit full screen (Esc)' : 'Full screen: the design takes the whole screen'} onClick={toggleFull}>
-              {full ? <Minimize2 size={16} aria-hidden="true"/> : <Maximize2 size={16} aria-hidden="true"/>}
+              {full ? <Minimize2 size={16} aria-hidden="true"/> : <Maximize2 size={16} aria-hidden="true"/>}<span className="ds-stage-lbl" aria-hidden="true">{full ? 'Exit' : 'Full screen'}</span>
             </button>
             {stageBtn}
           </div>

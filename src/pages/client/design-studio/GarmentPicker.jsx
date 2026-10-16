@@ -97,7 +97,7 @@ export function previewSentence(p, offRole = null) {
   if (offRole) return `Your set needs a ${offRole.toLowerCase()} here, so this photo is inspiration only.`;
   if (!p.editable2D) return 'Inspiration only: VFRB has no editable template for this design.';
   if (p.pieces?.bottom) return `Opens the ${p.garmentFamily} and the ${p.pieces.bottom} as one uniform set, in the photo's colours.`;
-  if (p.pieces?.single) return `Opens the ${p.garmentFamily} template traced from this photo's 3D model, in the photo's colour.`;
+  if (p.pieces?.single && p.pieces.derived) return `Opens the ${p.garmentFamily} template traced from this photo's 3D model, in the photo's colour.`;
   if (p.exactBase) return `Opens this garment as an editable real-photo base (${p.garmentFamily}).`;
   return `Opens the closest ${p.garmentFamily} template${sleeveTxt(p)}; it is not an exact copy of the photo.`;
 }
@@ -105,7 +105,7 @@ export function previewChips(p, offRole = null) {
   const three = !p.editable2D || offRole ? (p.ref3D ? '3D reference only' : 'No 3D') : p.has3D ? '3D (approx.), one body colour'
     : p.familyApprox3D ? `3D is the generic ${p.garmentFamily} model` : '2D only';
   return [offRole ? TIER_LABEL.reference.label : TIER_LABEL[p.tier].label, CAT_LABEL[p.category], PIECE_LABEL[p.piece], GENDER_LABEL[p.gender], p.sleeve && `${p.sleeve} sleeve`, three,
-    p.pieces && !offRole && DERIVED_LABEL].filter(Boolean);
+    p.pieces?.derived && !offRole && DERIVED_LABEL].filter(Boolean);
 }
 // Filters for "See editable garments like this": the photo's category and piece, relaxed only when nothing editable matches.
 export function similarFilters(p, pool, canEdit) {
@@ -346,15 +346,20 @@ function BuildYourOwnSteps({ cfg, pieceRole, onBack, onOpen }) {
   const top = garment === CUSTOM_TOP;
   return (
     <>
-      <div className="ds-pick-preview ds-pick-steps">
-        <span className="ds-pick-img"><GarmentThumb paths={customPaths(garment, specs[garment], top ? sleeve : null)} colors={cfg.colors} size={150}/><span className="ds-sketch">{CUSTOM_BADGE}</span></span>
-        <h3>Build your own</h3>
-        <div className="ds-pick-frow" role="radiogroup" aria-label="Garment">
-          <span>Garment</span>
-          {kinds.map(([g, label]) => <button key={g} type="button" role="radio" className="ds-chip" aria-checked={garment === g} aria-pressed={garment === g} onClick={() => setGarment(g)}>{label}</button>)}
+      {/* Desktop: the live preview large on the left, the choices on the right; phones stack them. */}
+      <div className="ds-pick-preview ds-pick-steps ds-byo-steps">
+        <div className="ds-byo-stage">
+          <span className="ds-pick-img"><GarmentThumb paths={customPaths(garment, specs[garment], top ? sleeve : null)} colors={cfg.colors} size={300}/><span className="ds-sketch">{CUSTOM_BADGE}</span></span>
         </div>
-        <CustomControls garment={garment} spec={specs[garment]} sleeve={sleeve} onSleeve={setSleeve} onSpec={next => setSpecs(p => ({ ...p, [garment]: next }))}/>
-        <CustomNote/>
+        <div className="ds-byo-side">
+          <h3>Build your own</h3>
+          <div className="ds-pick-frow" role="radiogroup" aria-label="Garment">
+            <span>Garment</span>
+            {kinds.map(([g, label]) => <button key={g} type="button" role="radio" className="ds-chip" aria-checked={garment === g} aria-pressed={garment === g} onClick={() => setGarment(g)}>{label}</button>)}
+          </div>
+          <CustomControls garment={garment} spec={specs[garment]} sleeve={sleeve} onSleeve={setSleeve} onSpec={next => setSpecs(p => ({ ...p, [garment]: next }))}/>
+          <CustomNote/>
+        </div>
       </div>
       <Foot>
         <button type="button" className="ds-btn" onClick={onBack}>Back to garments</button>

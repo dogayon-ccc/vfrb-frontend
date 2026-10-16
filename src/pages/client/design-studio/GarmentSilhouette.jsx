@@ -4,6 +4,7 @@ import { customPaths } from './garmentPaths';
 import { isCustom } from './customGarment';
 import { assetFor, tintedCanvas } from './garmentAssets';
 import { isWoven, wovenParams, wovenTileUrl, tileSize } from './wovenPatterns';
+import { sketchInk } from './sketchLine';
 
 // Photo-based garments render the real recoloured photo (same compositor as the Studio canvas); everything else keeps the vector template.
 // Until the tint resolves, and during SSR, the untinted photo shows instead of a blank box.
@@ -18,9 +19,11 @@ function PhotoBase({ asset, colors, width, height }) {
   return <img src={url ?? asset.src} alt="" width={width} height={height} style={{ objectFit: 'contain', display: 'block' }} draggable={false}/>;
 }
 
-// Same look as the Studio canvas details (useGarmentCanvas DETAIL_STYLE); fine seams are dropped at thumbnail size.
+// Same look as the Studio canvas details (useGarmentCanvas DETAIL_STYLE). Seams and lines are always drawn in the sketch-line
+// ink (sketchLine.js), so collar, placket, pocket, hem, cuff and drawstring show even when every zone is one colour.
 const DETAIL = {
-  line:   { fill: 'none', stroke: 'rgba(0,0,0,.24)', strokeWidth: 1.2 },
+  seam:   { fill: 'none', strokeWidth: 1.2, strokeDasharray: '3 2.5' },
+  line:   { fill: 'none', strokeWidth: 1.4 },
   shade:  { fill: 'rgba(0,0,0,.32)', stroke: 'none' },
   button: { fill: 'rgba(255,255,255,.9)', stroke: 'rgba(0,0,0,.35)', strokeWidth: 0.8 },
 };
@@ -49,9 +52,10 @@ export default function GarmentSilhouette({ garment, sleeve = 'Short', colors = 
   }));
   const fillOf = (z, fill) => (woven[z] ? `url(#${woven[z].pid})` : fill ?? '#e2e8f0');
 
-  const lines = (p.details ?? []).filter(d => DETAIL[d.kind] && (width >= 80 || d.kind === 'shade'));
+  const ink = sketchInk(colors.body);
+  const lines = (p.details ?? []).filter(d => DETAIL[d.kind] && (width >= 80 || d.kind !== 'button'));
   // The customer's button or closure colour (garmentDetails.js) overrides the template ink.
-  const detail = (d, i) => <path key={`d${i}`} d={d.d} {...DETAIL[d.kind]} {...(d.style?.fill && { fill: d.style.fill })} {...(d.style?.stroke && { stroke: d.style.stroke, strokeWidth: d.style.strokeWidth })}/>;
+  const detail = (d, i) => <path key={`d${i}`} d={d.d} {...DETAIL[d.kind]} {...((d.kind === 'seam' || d.kind === 'line') && { stroke: ink })} {...(d.style?.fill && { fill: d.style.fill })} {...(d.style?.stroke && { stroke: d.style.stroke, strokeWidth: d.style.strokeWidth })}/>;
   return (
     <svg width={width} height={height} viewBox={`0 0 ${p.w} ${p.h}`} xmlns="http://www.w3.org/2000/svg">
       <defs>{Object.values(woven).filter(Boolean).map(w => (
@@ -62,7 +66,7 @@ export default function GarmentSilhouette({ garment, sleeve = 'Short', colors = 
         <path key={i} d={d} fill={fillOf(z, fill)} stroke="rgba(0,0,0,.14)" strokeWidth={1.5}/>)}
       {lines.filter(d => !d.over).map(detail)}
       {zones.slice(1).map(({ d, fill, z }, i) => d &&
-        <path key={i + 1} d={d} fill={fillOf(z, fill)} stroke="rgba(0,0,0,.14)" strokeWidth={1.5}/>)}
+        <path key={i + 1} d={d} fill={fillOf(z, fill)} stroke={sketchInk(fill ?? colors.body)} strokeWidth={1.5}/>)}
       {lines.filter(d => d.over).map(detail)}
       {/* Derived template: the reference model's own lighting multiplied over the fill, as on the Studio canvas. */}
       {p.shade?.[face] && <image href={p.shade[face]} x={0} y={0} width={p.w} height={p.h} preserveAspectRatio="none" style={{ mixBlendMode: 'multiply' }}/>}

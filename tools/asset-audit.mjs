@@ -10,6 +10,9 @@ const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace
 const DIRS = ['models', 'garments2d', 'gallery'];
 // Files on disk that nothing references on purpose. Anything else unreferenced fails the audit.
 export const UNREFERENCED_OK = {
+  // 2026-10-16: these photos lost a derived piece (derivedFamilies.js REMOVED_DERIVED), so their 3D reference viewer was removed too.
+  ...Object.fromEntries(['bir-blouse-trousers-blue', 'blazer-double-breasted-gray', 'blazer-pinstripe-navy', 'blouse-pleated-bib-white', 'blouse-roundneck-fuchsia', 'blouse-roundneck-mustard', 'blouse-scarf-cream', 'pantsuit-notch-short-gray', 'peplum-set-navy', 'polo-barong-brown', 'scrub-set-housekeeping', 'scrub-set-men-vneck', 'scrub-set-women-vneck', 'shirt-two-tone-gpc'].map(id => [`/models/reference/${id}.glb`,
+    'Read-only source of tools/glb-extract/derive_template.py; its 3D reference viewer was removed with the derived piece cut from it (derivedFamilies.js REMOVED_DERIVED). Kept as source, never rendered.'])),
   '/models/lab-coverall.glb': 'Listed in UNSUPPORTED_3D_MODELS (fused human figure, single mesh, no materials/UVs); kept as source, never rendered.',
   '/models/processed/work-shirt-short-sleeve.glb': 'Output of tools/glb-extract/build_processed.py and the input of cap_open_boundaries.py; the studio renders the capped copy.',
   '/models/processed/pants-trousers.glb': 'Superseded for Pants by /models/vfrb-staged/pants.glb (garment-only model of the gallery pants photo); kept as the output of tools/glb-extract/build_processed.py.',

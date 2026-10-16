@@ -1,7 +1,7 @@
 // Uniform set: one top and one bottom designed together, each keeping its own garment, colours, overlays and template.
 // The active piece stays the top-level design snapshot (every existing reader keeps working); the set rides along as
 // `uniformSet`. Ordering creates one linked order per piece (a single order holds one garment).
-import { pieceOf } from './garmentCatalog';
+import { pieceOf, LEGACY_GARMENT } from './garmentCatalog';
 
 export const SET_ROLES = ['top', 'bottom'];
 export const otherRole = r => (r === 'top' ? 'bottom' : 'top');
@@ -12,7 +12,8 @@ export const DEFAULT_PIECE = { top: 'Polo Shirt', bottom: 'Pants' };
 const clean = snap => {
   if (!snap || typeof snap !== 'object') return null;
   const { uniformSet, previewPng, ...rest } = snap; // eslint-disable-line no-unused-vars
-  return rest;
+  // A piece saved on a removed or renamed garment keeps its place in the set on the garment that replaced it.
+  return LEGACY_GARMENT[rest.garment] ? { ...rest, garment: LEGACY_GARMENT[rest.garment], templateId: undefined } : rest;
 };
 
 // A validated set, or null. A piece whose garment is not that role's garment is dropped, never moved.

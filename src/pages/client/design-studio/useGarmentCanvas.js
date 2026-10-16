@@ -13,6 +13,7 @@ import { pocketSpot, mirroredX, pocketLabel } from './pocketTools';
 import { pieceOf } from './garmentCatalog';
 import { wovenFill } from './wovenPatterns';
 import { loadFont, webFontFor, defaultWeight } from './studioFonts';
+import { sketchInk } from './sketchLine';
 
 // Template lines (garmentPaths `details`). Untagged ones are decorative: no __zoneKey, never clicked or hovered. A tagged part (pocket,
 // buttons, closure) is tappable as zone 'detail:<part>' and carries the customer's colour as `style` (garmentDetails.js).
@@ -26,9 +27,10 @@ const DETAIL_STYLE = {
 
 // Zones are drawn first at indices 0..n-1 (body at 0). Under-details go just above the body (below collar, sleeves and
 // pocket); over-details go above every zone. Returns the index after the last garment object.
-function insertDetails(fabric, canvas, details = [], zoneCount) {
+// Seams and lines take the sketch-line ink for the body colour (sketchLine.js), so they show even when every zone is one colour.
+function insertDetails(fabric, canvas, details = [], zoneCount, bodyFill) {
   const under = details.filter(d => !d.over), over = details.filter(d => d.over);
-  const make = d => new fabric.Path(d.d, { ...DETAIL_STYLE[d.kind], ...d.style, selectable: false, evented: !!d.part, objectCaching: false, __garmentBase: true, __detailKind: d.kind, __detailPart: d.part,
+  const make = d => new fabric.Path(d.d, { ...DETAIL_STYLE[d.kind], ...((d.kind === 'seam' || d.kind === 'line') && { stroke: sketchInk(bodyFill) }), ...d.style, selectable: false, evented: !!d.part, objectCaching: false, __garmentBase: true, __detailKind: d.kind, __detailPart: d.part,
     ...(d.part && { __zoneKey: `detail:${d.part}`, perPixelTargetFind: false }) });
   under.forEach((d, i) => canvas.insertAt(1 + i, make(d)));
   const start = zoneCount + under.length;
@@ -153,7 +155,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
           const isPocket = zoneKey === 'pocket';
           const zone = new fabric.Path(d, {
             fill,
-            stroke: isPocket ? 'rgba(0,0,0,.38)' : 'rgba(0,0,0,.14)',
+            stroke: zoneKey === 'body' ? 'rgba(0,0,0,.14)' : sketchInk(fill),
             strokeWidth: isPocket ? 1.5 : 1.5,
             strokeDashArray: isPocket ? [3, 2] : undefined,
             selectable:false, evented:true, __garmentBase:true, __zoneKey:zoneKey,
@@ -166,7 +168,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         draw(initPaths.sleeveL, colors.sleeve ?? colors.body,    'sleeve');
         draw(initPaths.sleeveR, colors.sleeve ?? colors.body,    'sleeve');
         draw(initPaths.pocket,  colors.pocket  ?? colors.collar, 'pocket');
-        insertDetails(fabric, c, initPaths.details, zi);
+        insertDetails(fabric, c, initPaths.details, zi, colors.body);
         addFabricShading(fabric, c, initPaths, face, zones, () => fc.current === c && redrawToken.current === 0);
         c.setWidth(initPaths.w);
         c.setHeight(initPaths.h);
@@ -416,7 +418,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         const patDef = PATTERNS.find(p => p.id === (patterns?.[zoneKey] ?? 'solid'));
         const zonePath = new fabric.Path(d, {
           fill,
-          stroke: zoneKey === 'pocket' ? 'rgba(0,0,0,.38)' : 'rgba(0,0,0,.14)',
+          stroke: zoneKey === 'body' ? 'rgba(0,0,0,.14)' : sketchInk(fill),
           strokeWidth: 1.5,
           strokeDashArray: zoneKey === 'pocket' ? [3, 2] : undefined,
           selectable:false, evented:true, __garmentBase:true, __zoneKey:zoneKey,
@@ -452,7 +454,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       makeZone(paths.sleeveL, colors.sleeve ?? colors.body,   'sleeve');
       makeZone(paths.sleeveR, colors.sleeve ?? colors.body,   'sleeve');
       makeZone(paths.pocket,  colors.pocket ?? colors.collar, 'pocket');
-      const baseEnd = insertDetails(fabric, canvas, paths.details, zi);
+      const baseEnd = insertDetails(fabric, canvas, paths.details, zi, colors.body);
 
       // Tipping: contrast trim traced along the collar edge (real garment
       // term — a colored stripe at the collar/cuff seam, standard on most

@@ -2,7 +2,7 @@ import { assetFor, assetById } from './garmentAssets';
 import { glbSlotFor, slotLive } from './glbSlots';
 import { applyGarment, resolveSleeve, FAMILY_BY_NAME } from './garmentCatalog';
 import { modelFromPhoto, has3DModel, NO_FAMILY_3D } from './garmentCapabilities';
-import { DERIVED_FAMILIES, DERIVED_BY_NAME, REUSED_TOPS, derivedPiecesFor } from './derivedFamilies';
+import { DERIVED_REFS, REFS_WITH_REMOVED, REUSED_TOPS, derivedPiecesFor } from './derivedFamilies';
 // Real VFRB inspiration gallery: photos only. Editable garment families live in garmentCatalog.js and are never listed here as designs. `glb` stays null until a garment-only GLB passes
 // docs/engineering/GLB-CAPABILITY-MATRIX.md; until then an entry is a photo reference and is never presented as editable 3D.
 // category/gender/sleeve are read from the photo, not confirmed by the client: verify before release.
@@ -62,8 +62,8 @@ const PHOTO_BASES = {
 // that photo base. This replaces the old closest-family targets of those photos (the tunic used to open the T-Shirt template).
 const BASES = {
   ...PHOTO_BASES,
-  ...Object.fromEntries([...new Set(DERIVED_FAMILIES.map(d => d.ref))].map(ref => [ref, derivedPiecesFor(ref)]).filter(([ref, p]) => p && !REUSED_TOPS[ref])
-    .map(([ref, p]) => { const top = p.single ?? p.top; return [ref, [DERIVED_BY_NAME[top].category, top, null, null]]; })),
+  ...Object.fromEntries(DERIVED_REFS.map(ref => [ref, derivedPiecesFor(ref)]).filter(([ref, p]) => p && !REUSED_TOPS[ref])
+    .map(([ref, p]) => [ref, [p.category, p.single ?? p.top, p.sleeve ?? null, null]])),
 };
 
 // Read-only 3D reference of the photographed garment or set: a garment-only Meshy model generated from this very photo
@@ -72,13 +72,16 @@ const BASES = {
 // Left out: dress-sheath-denim-blue (its file is a copy of blazer-pinstripe-navy), blazer-blouse-blue-short (the model is the blouse
 // alone), set-vest-blouse (mannequin hips fused in), corporate-skirt (back modelled as shorts), dress-shift-geometric (67.9 MB, print embossed).
 // Garment-only photos with no catalog slot of their own (open-front blazer, belted round-neck tunic, mandarin-V blouse) are references too.
-const REF_3D = new Set([
+const REF_3D_ALL = [
   'bir-blouse-trousers-blue', 'blazer-double-breasted-gray', 'blazer-pinstripe-navy', 'blouse-roundneck-fuchsia', 'blouse-roundneck-mustard',
   'pantsuit-notch-short-gray', 'peplum-set-navy', 'polo-barong-brown', 'shirt-two-tone-gpc', 'set-pinstripe-pants', 'set-pinstripe-skirt',
   'scrub-set-women-vneck', 'scrub-set-men-vneck', 'scrub-set-housekeeping',
   'blouse-asymmetric-blue', 'blouse-pleated-bib-white', 'blouse-scarf-cream', 'dress-butter-belted',
   'dress-tunic-maternity-navy', 'jack-shirt-two-tone', 'blazer-open-front-black', 'blouse-mandarin-yellow', 'blouse-tunic-roundneck-blue',
-]);
+];
+// A photo that lost a derived piece (derivedFamilies REMOVED_DERIVED) loses its 3D reference and "Try colours" too: the fused model it shows
+// is the mesh that was not clean enough to keep.
+const REF_3D = new Set(REF_3D_ALL.filter(id => !REFS_WITH_REMOVED.has(id)));
 
 // sleeve = sleeve of the top/dress piece (null when no sleeve). source = how the photo was shot; worn = model photo with the body removed; mannequin/hanger photos fuse the
 // mannequin or hanger into an image-to-3D result, flat-lay photos do not.

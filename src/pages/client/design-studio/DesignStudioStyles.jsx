@@ -14,6 +14,8 @@ export default function DesignStudioStyles() {
         --ds-sheet-full:min(80dvh,40rem);
         --ds-peek:78px;
         --ds-pad-b:0px;
+        --ds-sketch-line:rgba(15,23,42,.55);         /* seams over light fills; mirrored in sketchLine.js */
+        --ds-sketch-line-on-dark:rgba(255,255,255,.62); /* seams over dark fills */
         --text-2xs:11px;
         width:100%;height:100dvh;display:flex;flex-direction:column;overflow:hidden;
         background:var(--cx-paper);color:var(--cx-ink);font-family:var(--cx-sans);
@@ -136,6 +138,12 @@ export default function DesignStudioStyles() {
       .ds-zoom button:hover,.ds-face button:hover:not(:disabled){background:var(--cx-hover);}
       .ds-face button{min-width:64px;}
       .ds-face button[aria-pressed=true]{color:var(--cx-thread-ink);}
+      .ds-zoom button[aria-pressed=true]{background:var(--cx-hover);color:var(--cx-thread-ink);}
+      .ds-stage-lbl{display:none;}
+      @media (min-width:1024px){
+        .ds-bottombar .ds-stage-btn:has(.ds-stage-lbl){width:auto;padding:0 12px;display:inline-flex;gap:6px;font:700 12.5px var(--cx-sans);}
+        .ds-stage-lbl{display:inline;}
+      }
       .ds-face button:disabled{color:var(--cx-ink-3);opacity:.6;cursor:not-allowed;}
       .ds-face-pill{position:absolute;inset:0;z-index:-1;border-radius:var(--cx-r-md);background:var(--cx-thread-tint);box-shadow:inset 0 0 0 1.5px var(--cx-thread);}
       /* Floating contextual toolbar, anchored above the selection */
@@ -254,6 +262,16 @@ export default function DesignStudioStyles() {
       .ds-byo-check{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 8px;font-size:13px;font-weight:600;cursor:pointer;}
       .ds-byo-check input{width:18px;height:18px;accent-color:var(--teal);}
       .ds-byo-note{margin:8px 14px 0;}
+      .ds-byo-stage,.ds-byo-side{display:grid;justify-items:center;gap:8px;width:100%;min-width:0;}
+      .ds-byo-stage .ds-pick-img{width:min(260px,64vw);}
+      .ds-byo-stage .ds-pick-img svg{width:100%;height:auto;max-height:100%;}
+      @media (min-width:900px){
+        .ds-pick-preview.ds-byo-steps{max-width:1040px;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);align-items:start;gap:24px;text-align:left;}
+        .ds-byo-stage{position:sticky;top:0;}
+        .ds-byo-stage .ds-pick-img{width:min(440px,100%);}
+        .ds-byo-side{justify-items:stretch;}
+        .ds-byo-side .ds-pick-frow{justify-content:flex-start;}
+      }
       .ds-byo-card .ds-pick-img{color:var(--cx-thread-ink);background:var(--cx-paper-2);}
       .ds-pick-tier{display:inline-flex;align-items:center;gap:8px;text-align:left;}
       .ds-pick-tier .ds-pick-badge{position:static;flex:none;}
