@@ -44,7 +44,7 @@ const bodyOnly = () => 'body';
 
 import { GLB_SLOTS, slotLive } from './glbSlots';
 import { DERIVED_FAMILIES, DERIVED_APPROVAL, DERIVED_SOURCE, DERIVED_LICENCE, isDerived } from './derivedFamilies';
-import { isCustom, CUSTOM_NO_3D } from './customGarment';
+
 
 const ALL_PATTERNS = ['hstripes', 'vstripes', 'diagonal', 'checker', 'polka', 'geometric'];
 
@@ -427,7 +427,28 @@ const DERIVED_MODELS = DERIVED_FAMILIES.filter(d => !d.no3D).map(d => ({
 // served; it is never routed. The 2D Pants template is unaffected.
 export const GATED_3D = { pants: 'The trousers model is not a clean garment mesh (one fused generated surface with no separate parts), so 3D is off for trousers' };
 // Pants is served again by the authored trousers (AUTHORED_GARMENTS below), never by the gated Meshy file.
-const SCANNED_ALL = [...SCANNED_BASE, ...SCRUB_TOP, ...MANDARIN_TUNIC, ...ROUND_NECK, ...BIR_BLOUSE, ...UTILITY_LONG, ...CORPORATE_MODELS, ...MEDICAL_MODELS, ...MANDARIN_SHIRT_LONG, ...MORE_MODELS, ...AUTHORED_MODELS, ...AUTHORED_GARMENTS, ...DERIVED_MODELS];
+// Parametric 3D (customMesh3D.js, docs/engineering/ADR-custom-3d.md): built in the browser from the same options as the 2D sketch, so
+// `models` is empty and `parametric` routes DesignStudio3D to CustomGarmentMesh. Always "3D (approx.)", never verified.
+const PARAMETRIC_LICENCE = 'VFRB parametric geometry built at runtime from the 2D options (no mesh file, no scan, no generation credits)';
+const parametric = (id, match, sleeves, transform, zones, limitations, fit = ['unisex', 'male', 'female']) => ({
+  id, match, parametric: true, label: '3D (approx.)', approval: 'enabled 2026-10-16 (parametric approximation)', license: PARAMETRIC_LICENCE,
+  models: {}, torso: {}, transform, parts: [],
+  capabilities: {
+    regionMethod: 'vertex-mask', regionAccuracy: 'per part (each part is one colour zone)', zones,
+    patterns: { zones: zones.filter(z => z !== 'collar' && z !== 'pocket'), ids: ALL_PATTERNS.filter(p => p !== 'geometric') }, sleeves,
+    text: true, logo: true, frontBack: true, fit,
+    limitations: ['parametric shape built from the 2D choices: simple lofts, approximate shape and drape', 'pocket layers you add are 2D only', ...limitations],
+  },
+});
+const PARAMETRIC_MODELS = [
+  parametric('custom-top-parametric', /^custom top$/i, ['Sleeveless', 'Short', '3/4', 'Long'], { rotation: [0, 0, 0], scale: 0.66, position: [0, -0.02, 0] }, ['body', 'sleeve', 'collar'], ['logos and text sit on the body only']),
+  parametric('custom-bottom-parametric', /^custom bottom$/i, [], { rotation: [0, 0, 0], scale: 0.52, position: [0, -0.02, 0] }, ['body'], ['one body colour']),
+  parametric('custom-skirt-parametric', /^custom skirt$/i, [], { rotation: [0, 0, 0], scale: 0.55, position: [0, -0.02, 0] }, ['body'], ['one body colour']),
+  // Button-Down vector template: point collar as its own part in the collar colour. Placed before the work-shirt scan so it serves the
+  // family; the photo-matched exact-sleeve models (BIR blouse, utility shirt) still win for their own sleeve and fit.
+  parametric('button-down-parametric', /^button-down$/i, ['Short'], { rotation: [0, 0, 0], scale: 0.66, position: [0, -0.02, 0] }, ['body', 'sleeve', 'collar', 'pocket'], ['placket buttons are 2D only'], ['unisex']),
+];
+const SCANNED_ALL = [...PARAMETRIC_MODELS, ...SCANNED_BASE, ...SCRUB_TOP, ...MANDARIN_TUNIC, ...ROUND_NECK, ...BIR_BLOUSE, ...UTILITY_LONG, ...CORPORATE_MODELS, ...MEDICAL_MODELS, ...MANDARIN_SHIRT_LONG, ...MORE_MODELS, ...AUTHORED_MODELS, ...AUTHORED_GARMENTS, ...DERIVED_MODELS];
 export const SCANNED_GARMENTS = SCANNED_ALL.filter(x => !GATED_3D[x.id]);
 // Why a garment has no 3D, when the reason is a decision rather than a missing file: a gated model or a derived bottom.
 export function no3DReason(garment) {
@@ -436,7 +457,7 @@ export function no3DReason(garment) {
   const gated = SCANNED_ALL.find(x => GATED_3D[x.id] && x.match.test(name));
   if (gated) return GATED_3D[gated.id];
   const d = DERIVED_FAMILIES.find(x => x.name === name && x.no3D);
-  return d ? `${d.name}: ${d.no3D}` : isCustom(name) ? CUSTOM_NO_3D : null;
+  return d ? `${d.name}: ${d.no3D}` : null;
 }
 
 // The 3D entry generated from a gallery photo (`sourcePhoto`), if any.
@@ -477,8 +498,8 @@ export const NO_FAMILY_3D = new Set(['blouse-tunic-roundneck-blue']);
 // 3D for a design (cfg or saved studio_config): its model, unless it was opened from a photo the family model would misrepresent.
 // inspirationId is dropped when the garment changes, so choosing T-Shirt directly keeps its 3D.
 // A derived family is that photo's own model, so the photo's family-model block does not apply to it.
-// A build-your-own garment is a 2D sketch: no model exists for its shape, whatever its name might match.
-export const has3DFor = d => !!d && !isCustom(d.garment) && !(NO_FAMILY_3D.has(d.inspirationId) && !isDerived(d.garment)) && has3DModel(d.garment, d.sleeve, d.fit);
+// A build-your-own garment gets its parametric model (PARAMETRIC_MODELS).
+export const has3DFor = d => !!d && !(NO_FAMILY_3D.has(d.inspirationId) && !isDerived(d.garment)) && has3DModel(d.garment, d.sleeve, d.fit);
 // Sleeve styles that really have a 3D model for this garment at this fit (union over the entries that apply). The single source for every "sleeve is 2D only" label.
 export function sleeves3DFor(garment, fit) {
   const name = String(garment ?? '').toLowerCase(), f = String(fit ?? '').toLowerCase();
@@ -542,6 +563,6 @@ export function get3DCapabilities(garment, fit, sleeve) {
   if (!g) return { supported: false, model: null, reason: 'no real GLB for this garment; the preview is a generic primitive shape' };
   const key = String(fit ?? '').toLowerCase();
   const fits = g.capabilities.fit;
-  return { supported: true, model: g.models[key] ?? Object.values(g.models)[0], fitApplied: fits.includes(key) ? key : fits[0], customFabricTextures: false, ...g.capabilities };
+  return { supported: true, model: g.parametric ? null : g.models[key] ?? Object.values(g.models)[0], parametric: !!g.parametric, fitApplied: fits.includes(key) ? key : fits[0], customFabricTextures: false, ...g.capabilities };
 }
 

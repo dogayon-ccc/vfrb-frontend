@@ -372,10 +372,10 @@ function BuildYourOwnSteps({ cfg, pieceRole, onBack, onOpen }) {
 function BuildYourOwnCard({ onPick }) {
   return (
     <li style={{ '--i': 0 }}>
-      <button type="button" className="ds-pick-card ds-byo-card" onClick={onPick} aria-label={`Build your own: a top, trousers or skirt you shape yourself. ${CUSTOM_BADGE}, 2D only`}>
+      <button type="button" className="ds-pick-card ds-byo-card" onClick={onPick} aria-label={`Build your own: a top, trousers or skirt you shape yourself. ${CUSTOM_BADGE}, 3D (approx.)`}>
         <span className="ds-pick-img"><PencilRuler size={40} strokeWidth={1.6} aria-hidden="true"/></span>
         <strong>Build your own</strong>
-        <span className="ds-sketch">{CUSTOM_BADGE} · 2D only</span>
+        <span className="ds-sketch">{CUSTOM_BADGE} · 3D (approx.)</span>
       </button>
     </li>
   );

@@ -1,7 +1,7 @@
 // "Build your own" garments: a top, trousers or a skirt whose shape the customer sets with a few choices. The choices are saved in
 // studio_config as cfg.custom and fed to the same generators as the VFRB templates (garmentPaths.js top() / trousers() / skirt()).
 // Pure: every value is clamped here, so a saved or hand-edited config can never ask a generator for a shape it cannot draw.
-// These are 2D sketches only: no 3D model exists for a custom shape, so the Studio never offers 3D for them.
+// 3D is a parametric approximation built from the same choices (customMesh3D.js, docs/engineering/ADR-custom-3d.md), labelled "3D (approx.)".
 
 export const CUSTOM_TOP = 'Custom Top';
 export const CUSTOM_BOTTOM = 'Custom Bottom';
@@ -9,9 +9,9 @@ export const CUSTOM_SKIRT = 'Custom Skirt';
 export const CUSTOM_GARMENTS = [CUSTOM_TOP, CUSTOM_BOTTOM, CUSTOM_SKIRT];
 export const isCustom = garment => CUSTOM_GARMENTS.includes(garment);
 export const CUSTOM_BADGE = 'Custom sketch';
-export const CUSTOM_NO_3D = 'Custom sketch: 2D only. No 3D model exists for a shape you build yourself, so 3D is off.';
+export const CUSTOM_3D_NOTE = 'Custom sketch: 3D (approx.) is built from your choices; shape and drape are approximate.';
 
-export const NECKLINES = [['v', 'V-neck'], ['round', 'Round'], ['polo', 'Polo'], ['mandarin', 'Mandarin'], ['notch', 'Notch']];
+export const NECKLINES = [['v', 'V-neck'], ['round', 'Round'], ['polo', 'Polo'], ['point', 'Point collar'], ['mandarin', 'Mandarin'], ['notch', 'Notch']];
 export const CUSTOM_SLEEVES = [['Sleeveless', 'None'], ['Short', 'Short'], ['3/4', '3/4'], ['Long', 'Long']];
 export const HEMS = [['straight', 'Straight'], ['curved', 'Curved'], ['vents', 'Side vents']];
 export const BOTTOM_STYLES = [['straight', 'Straight'], ['jogger', 'Jogger']];
@@ -53,6 +53,7 @@ export function topOptions(spec) {
   const s = normalizeCustom(spec, CUSTOM_TOP), t = s.length / 100, f = s.fit / 100;
   const hemY = Math.round(lerp(280, 372, t)), half = Math.round(lerp(84, 110, f)), arm = Math.round(lerp(86, 104, f));
   const neck = { v: { collar: 'v', frontDrop: 46, neckW: 28 }, round: { collar: 'rib', frontDrop: 20 }, polo: { collar: 'polo', frontDrop: 18, placket: { bottom: 128, buttons: 3 } },
+    point: { collar: 'point', frontDrop: 16, neckW: 26, placket: { top: 62, bottom: hemY - 4, buttons: Math.max(4, Math.round((hemY - 70) / 44)), width: 7 } },
     mandarin: { collar: 'mandarin', frontDrop: 14, neckW: 26, placket: { top: 58, bottom: hemY - 6, buttons: Math.max(3, Math.round((hemY - 70) / 48)), width: 7 } },
     notch: { collar: 'notch', neckW: 26, hpsY: 40, lapel: 60, coat: { buttons: Math.max(2, Math.round((hemY - 120) / 60)), step: 52 } } }[s.neckline];
   return { h: hemY + 40, ...neck, sh: [Math.round(lerp(84, 94, f)), 64], arm: [arm, 128], hem: [half, hemY], hemCurve: s.hem === 'curved' ? 10 : 2, vents: s.hem === 'vents', waist: Math.round(lerp(10, 0, f)) };

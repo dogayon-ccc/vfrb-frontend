@@ -24,7 +24,7 @@ import { realLength, SET_OVERLAP } from './design-studio/setScale';
 import { LIGHT, KEY_POS, RIM_POS } from './design-studio/lightRig';
 import { scannedEntryFor, patternsFor3D } from './design-studio/garmentMeshManifest';
 import { DEFAULT_GARMENT_COLOR } from './design-studio/regionTexture';
-import ScannedGarmentMesh from './design-studio/ScannedGarmentMesh';
+import ScannedGarmentMesh, { CustomGarmentMesh } from './design-studio/ScannedGarmentMesh';
 import GarmentMeshErrorBoundary from './design-studio/GarmentMeshErrorBoundary';
 
 // Touch devices render at most 1.5x; retina laptops keep 2x.
@@ -328,6 +328,14 @@ function GarmentMesh({ cfg, referenceTexture, overlays }) {
     : isShorts ? <ShortsMesh colors={colors} referenceTexture={referenceTexture}/> : shirt;
   // No model for this exact selection: render nothing rather than a generic or different garment (the UI keeps the design in 2D).
   if (!scanned) return null;
+  if (scanned.parametric) {
+    return (
+      <GarmentMeshErrorBoundary key={`${gt}-parametric`} fallback={primitive}>
+        <CustomGarmentMesh garment={cfg.garment} spec={cfg.custom} sleeve={cfg.sleeve} transform={scanned.transform} colors={colors}
+          patterns={patternsFor3D(scanned, cfg.patterns, { photoBase: false })} patternParams={cfg.patternParams} overlays={overlays} details={cfg.details}/>
+      </GarmentMeshErrorBoundary>
+    );
+  }
   {
     const fit = cfg.fit ?? cfg.gender;
     return (
@@ -344,13 +352,15 @@ function GarmentMesh({ cfg, referenceTexture, overlays }) {
 // the top's hem, and the pair is scaled to the height of one garment so the existing camera frames it.
 function SetStack({ top, bottom, topOverlays = null, bottomOverlays = null }) {
   const group = useRef(), topRef = useRef(), botRef = useRef();
-  const key = [top.garment, top.sleeve, top.fit, bottom.garment, bottom.sleeve, bottom.fit].join('|');
+  const key = [top.garment, top.sleeve, top.fit, JSON.stringify(top.custom ?? null), bottom.garment, bottom.sleeve, bottom.fit, JSON.stringify(bottom.custom ?? null)].join('|');
   useLayoutEffect(() => {
+    // A parametric (build-your-own) piece rebuilds 120 ms after its spec changes, so the fit runs again once it has.
+    const fitSet = () => {
     const g = group.current, t = topRef.current, b = botRef.current;
     if (!g || !t || !b) return;
     g.scale.setScalar(1); g.position.set(0, 0, 0); t.scale.setScalar(1); b.scale.setScalar(1); b.position.set(0, 0, 0); g.updateMatrixWorld(true);
     const h0 = o => { const x = new THREE.Box3().setFromObject(o); return x.isEmpty() ? 0 : x.max.y - x.min.y; };
-    const lt = realLength(top.garment, top.sleeve)?.cm, lb = realLength(bottom.garment, bottom.sleeve)?.cm;
+    const lt = realLength(top.garment, top.sleeve, top.custom)?.cm, lb = realLength(bottom.garment, bottom.sleeve, bottom.custom)?.cm;
     const ht = h0(t), hb = h0(b);
     if (!ht || !hb) return;
     if (lt && lb) { const unit = ht / lt; b.scale.setScalar((lb * unit) / hb); g.updateMatrixWorld(true); } // one world unit per cm for both
@@ -360,6 +370,10 @@ function SetStack({ top, bottom, topOverlays = null, bottomOverlays = null }) {
     const all = new THREE.Box3().setFromObject(g), s = 1.25 / (all.max.y - all.min.y);
     g.scale.setScalar(s);
     g.position.y = -((all.max.y + all.min.y) / 2) * s - 0.05;
+    };
+    fitSet();
+    const later = setTimeout(fitSet, 200);
+    return () => clearTimeout(later);
   }, [key]);
   return (
     <group ref={group}>

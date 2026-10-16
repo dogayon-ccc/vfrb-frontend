@@ -1,6 +1,6 @@
 // Build-your-own controls: the shape choices for a custom top, trousers or skirt (customGarment.js). Used by the picker's first
 // Scratch card and by the Garment panel once the custom garment is open, so a saved design can be reopened and refined.
-import { kindOf, normalizeCustom, NECKLINES, CUSTOM_SLEEVES, HEMS, BOTTOM_STYLES, SLIDERS, CUSTOM_NO_3D } from './customGarment';
+import { kindOf, normalizeCustom, NECKLINES, CUSTOM_SLEEVES, HEMS, BOTTOM_STYLES, SLIDERS, CUSTOM_3D_NOTE } from './customGarment';
 
 function Seg({ label, items, value, onPick }) {
   return (
@@ -66,5 +66,5 @@ export function CustomControls({ garment, spec, sleeve, onSpec, onSleeve }) {
 
 // The 2D-only line every custom garment carries (picker, Garment panel). The line already names the custom sketch, so no badge here.
 export function CustomNote() {
-  return <p className="ds-note ds-byo-note">{CUSTOM_NO_3D}</p>;
+  return <p className="ds-note ds-byo-note">{CUSTOM_3D_NOTE}</p>;
 }

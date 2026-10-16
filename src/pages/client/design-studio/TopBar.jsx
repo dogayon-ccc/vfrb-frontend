@@ -2,10 +2,10 @@
 // "Change garment" and the empty canvas, so there is no Inspo button; Showcase appears only while it has designs, as a direct button (no menu).
 import { ArrowLeft, Undo2, Redo2, Sparkles } from 'lucide-react';
 import { has3DFor, NO_FAMILY_3D, standIn3D, no3DReason } from './garmentCapabilities';
-import { isCustom, CUSTOM_NO_3D } from './customGarment';
+import { isCustom, CUSTOM_3D_NOTE } from './customGarment';
 
 const view3DTitle = (cfg, no3D) => (no3D
-  ? (isCustom(cfg.garment) ? CUSTOM_NO_3D
+  ? (isCustom(cfg.garment) ? CUSTOM_3D_NOTE
     : no3DReason(cfg.garment) ? `${no3DReason(cfg.garment)}; 2D is the exact preview`
     : NO_FAMILY_3D.has(cfg.inspirationId) ? 'No 3D model matches the garment in this photo; 2D is the exact preview'
     : standIn3D(cfg.garment) ? `The only 3D model for ${cfg.garment} is a generic stand-in, not this garment, so 3D is off; 2D is the exact preview`
