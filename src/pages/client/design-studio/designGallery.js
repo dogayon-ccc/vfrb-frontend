@@ -76,7 +76,7 @@ const REF_3D_ALL = [
   'bir-blouse-trousers-blue', 'blazer-double-breasted-gray', 'blazer-pinstripe-navy', 'blouse-roundneck-fuchsia', 'blouse-roundneck-mustard',
   'pantsuit-notch-short-gray', 'peplum-set-navy', 'polo-barong-brown', 'shirt-two-tone-gpc', 'set-pinstripe-pants', 'set-pinstripe-skirt',
   'scrub-set-women-vneck', 'scrub-set-men-vneck', 'scrub-set-housekeeping',
-  'blouse-asymmetric-blue', 'blouse-pleated-bib-white', 'blouse-scarf-cream', 'dress-butter-belted',
+  'blouse-asymmetric-blue', 'blouse-scarf-cream', 'dress-butter-belted',
   'dress-tunic-maternity-navy', 'jack-shirt-two-tone', 'blazer-open-front-black', 'blouse-mandarin-yellow', 'blouse-tunic-roundneck-blue',
 ];
 // A photo that lost a derived piece (derivedFamilies REMOVED_DERIVED) loses its 3D reference and "Try colours" too: the fused model it shows
@@ -117,7 +117,6 @@ export const DESIGNS = [
   D('scrub-set-men-vneck',     'Scrub Suit, V-Neck (Men)',      'medical',     'male',   'set',   'Short', 'V-neck',        'flat-lay',  ['upper', 'lower']),
   D('scrub-set-housekeeping',  'Housekeeping Scrub Suit',       'hospitality', 'female', 'set',   'Short', 'Mandarin band', 'flat-lay',  ['upper', 'lower']),
   D('blouse-mandarin-yellow',  'Mandarin Collar Blouse',        'hospitality', 'female', 'upper', 'Short', 'Mandarin',      'mannequin'),
-  D('blouse-pleated-bib-white','Pleated Bib Blouse',            'school',      'female', 'upper', 'Short', 'Round scalloped', 'hanger'),
   D('blouse-scarf-cream',      'Blouse with Neck Scarf',        'corporate',   'female', 'upper', 'Short', 'Scarf',         'hanger'),
   D('blouse-asymmetric-blue',  'Asymmetric Collar Blouse',      'corporate',   'female', 'upper', 'Short', 'Asymmetric',    'hanger'),
   D('blouse-tunic-roundneck-blue', 'Round Neck Tunic Blouse',   'corporate',   'female', 'upper', 'Short', 'Round neck',    'mannequin'),

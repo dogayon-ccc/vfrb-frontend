@@ -1,4 +1,5 @@
 import { DERIVED_FAMILIES } from './derivedFamilies';
+import { PARAM_FAMILIES } from './customGarment';
 
 // Photo-based 2D bases, keyed garment > sleeve > face > fit. Anything not listed keeps the vector template.
 // `zones` lists the colour zones the photo supports. `gain` (default 1) compresses tone for dark sources so recolouring stays smooth.
@@ -70,10 +71,12 @@ export const vectorFits = garment => [...new Set(Object.values(VECTOR_TEMPLATES[
 // Families with no sleeve or fit choice (resolveSleeve/resolveFit return null) have one vector template each.
 export const SINGLE_TEMPLATES = { 'Pants': 'pants-trousers', 'Shorts': 'shorts-standard', 'Skirt': 'skirt-pencil', 'Pleated Skirt': 'skirt-pleated',
   'Jogger Scrub Pants': 'pants-jogger-scrub', 'Custom Bottom': 'custom-bottom', 'Custom Skirt': 'custom-skirt',
-  ...Object.fromEntries(DERIVED_FAMILIES.map(d => [d.name, `derived-${d.id}`])) };
+  ...Object.fromEntries(DERIVED_FAMILIES.map(d => [d.name, `derived-${d.id}`])),
+  ...Object.fromEntries(Object.entries(PARAM_FAMILIES).filter(([, f]) => !f.sleeves).map(([name, f]) => [name, f.templateId])) }; // sleeved tops: vectorTemplateId
 // Build-your-own top: one template id whatever its sleeve (the shape itself is saved in cfg.custom).
 const CUSTOM_TOP_ID = 'custom-top';
-export const vectorTemplateId = (garment, sleeve, fit) => (garment === 'Custom Top' ? CUSTOM_TOP_ID : null) ?? VECTOR_TEMPLATES[garment]?.[sleeve]?.[fit]?.id ?? (sleeve == null && fit == null ? SINGLE_TEMPLATES[garment] ?? null : null);
+// A rebuilt family (PARAM_FAMILIES) has one template id whatever its sleeve; the shape and sleeve are saved with the design.
+export const vectorTemplateId = (garment, sleeve, fit) => (garment === 'Custom Top' ? CUSTOM_TOP_ID : null) ?? PARAM_FAMILIES[garment]?.templateId ?? VECTOR_TEMPLATES[garment]?.[sleeve]?.[fit]?.id ?? (sleeve == null && fit == null ? SINGLE_TEMPLATES[garment] ?? null : null);
 // The canonical templateId for (garment, sleeve, fit): the photo base id, else the vector template id, else null.
 export const templateIdFor = (garment, sleeve, fit) => assetFor(garment, sleeve, 'front', fit)?.id ?? vectorTemplateId(garment, sleeve, fit);
 export const templateKeyById = id => {
@@ -81,6 +84,8 @@ export const templateKeyById = id => {
   for (const [garment, g] of Object.entries(VECTOR_TEMPLATES)) for (const [sleeve, sl] of Object.entries(g)) for (const [fit, a] of Object.entries(sl)) if (a.id === id) return { garment, sleeve, fit };
   for (const [garment, tid] of Object.entries(SINGLE_TEMPLATES)) if (tid === id) return { garment, sleeve: null, fit: null };
   if (id === CUSTOM_TOP_ID) return { garment: 'Custom Top' }; // sleeve and fit stay as saved
+  const fam = Object.entries(PARAM_FAMILIES).find(([, f]) => f.templateId === id);
+  if (fam) return { garment: fam[0] };
   return null;
 };
 // Only the front is photographed: a photo-based garment has no back view (the vector back would be a different garment).

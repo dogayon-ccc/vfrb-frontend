@@ -187,7 +187,13 @@ export function CustomGarmentMesh({ garment, spec, sleeve, colors = {}, patterns
   const built = useMemo(() => buildCustomParts(garment, spec, sleeve), [key]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => disposeParts(built), [built]);
   // Stable part descriptors per build, so materials are made once per rebuild, not on every render.
-  const metas = useMemo(() => built?.parts.map(p => ({ node: p.name, colorKey: p.colorKey, decals: p.decals, zoneOf: () => p.colorKey })) ?? [], [built]);
+  // A part with a Details colour (trouser buttons, fly) takes it when the customer set one; buttons are a plain, slightly glossy material.
+  const detailTint = JSON.stringify([details?.buttons?.color ?? null, details?.closure?.color ?? null]);
+  const metas = useMemo(() => built?.parts.map(p => {
+    const fixedColor = p.detailColor ? details?.[p.detailColor]?.color ?? null : null;
+    if (p.plain || fixedColor) return { node: p.name, colorKey: p.colorKey, decals: false, plain: p.plain, roughness: 0.35, fixedColor };
+    return { node: p.name, colorKey: p.colorKey, decals: p.decals, zoneOf: () => p.colorKey };
+  }) ?? [], [built, detailTint]); // eslint-disable-line react-hooks/exhaustive-deps
   const decals = useDecals(overlays);
   const frame = useMemo(() => bodyBounds(garment, sleeve), [garment, sleeve, key]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!built) return null;

@@ -5,6 +5,7 @@ import { motion, AnimatePresence }                  from 'framer-motion';
 import { NavIcon }                                  from '../../components/ui/icons';
 import axios                                        from 'axios';
 import { cacheGet, cacheSet, cacheClear, TTL }      from '../../utils/cache';
+import { asList }                                   from '../../utils/asList';
 
 const T    = 'var(--teal)';
 const T2   = '#02C39A';
@@ -295,7 +296,43 @@ export function SelfPickModal({ order, onClose, onDone }) {
 }
 
 
-// SCOPE-001: only material_name/category/ai_note render here — estimated_range never does.
+// Catalog facts the server reads from the materials table (never from the AI): code, stock and colour fit. No quantity or price.
+const COLOUR_FIT = {
+  body: ['Matches your main colour', 'ok'], any: ['Made in any colour', 'ok'], near: ['Close to your colour: shade to confirm', 'warn'],
+  other: ['Different colour from your design', 'warn'],
+};
+const fitLabel = m => (m == null ? ['Colour not stated in the catalog', 'muted'] : COLOUR_FIT[m] ?? [`For your ${String(m).replace(/_pattern$/, ' pattern').replace(/_/g, ' ')} colour`, 'ok']);
+const TONE = { ok: ['var(--teal-light, #e6f4f1)', 'var(--teal, #0f766e)'], warn: ['#fff4e5', '#9a5b00'], muted: ['var(--bg-surface)', 'var(--text-muted)'] };
+function FactChip({ text, tone }) {
+  const [bg, fg] = TONE[tone] ?? TONE.muted;
+  return <span style={{ display:'inline-block', padding:'2px 8px', borderRadius:99, fontSize:10, fontWeight:700, background:bg, color:fg, fontFamily:FONT }}>{text}</span>;
+}
+function RecFacts({ rec }) {
+  if (!('in_stock' in rec) && !('colour_match' in rec) && !rec.material_code) return null;
+  const stock = rec.in_stock == null ? ['Stock not recorded', 'muted'] : rec.in_stock ? ['In stock', 'ok'] : ['Out of stock', 'warn'];
+  return (
+    <div style={{ display:'flex', flexWrap:'wrap', gap:6, margin:'0 0 10px' }} aria-label="Catalog facts">
+      {rec.material_code && <FactChip text={rec.material_code} tone="muted"/>}
+      <FactChip text={stock[0]} tone={stock[1]}/>
+      {'colour_match' in rec && /fabric|thread/i.test(rec.category ?? '') && <FactChip text={fitLabel(rec.colour_match)[0]} tone={fitLabel(rec.colour_match)[1]}/>}
+    </div>
+  );
+}
+
+// Merges the catalog facts (GET /orders/{id}/ai-recommendation, keyed by material name) into the order's recommendation rows.
+export async function withCatalogFacts(orderId, recArr) {
+  if (!recArr?.length) return recArr ?? [];
+  try {
+    const { data } = await axios.get(`/api/customer/orders/${orderId}/ai-recommendation`);
+    const facts = data?.recommendation?.materials_json ?? {};
+    return recArr.map(r => {
+      const f = facts[r.material_name];
+      return f ? { ...r, material_code: f.material_code ?? null, in_stock: f.in_stock ?? null, colour_match: f.colour_match ?? null } : r;
+    });
+  } catch { return recArr; }
+}
+
+// SCOPE-001: material_name/category/ai_note plus catalog facts render here — never a quantity, estimate or price.
 export function RecCard({ rec, index }) {
   const cat = CAT[rec.category] ?? CAT.Other;
   return (
@@ -331,6 +368,8 @@ export function RecCard({ rec, index }) {
 
       </div>
 
+      <RecFacts rec={rec}/>
+
       {/* AI explanation (the ai_note Gemini writes) */}
       {rec.ai_note && (
         <div style={{ padding:'10px 12px', borderRadius:10,
@@ -356,6 +395,7 @@ export default function AIMaterials() {
   const [selId,       setSelId]       = useState(null);
   const [order,       setOrder]       = useState(null);
   const [recs,        setRecs]        = useState([]);
+  const [source,      setSource]      = useState(null); // 'ai' | 'cache' | 'catalog_default' from the last generation
   const [generating,  setGenerating]  = useState(false);
   const [loading,     setLoading]     = useState(true);
   const [loadingRecs, setLoadingRecs] = useState(false);
@@ -392,6 +432,7 @@ export default function AIMaterials() {
         setOrder(o);
         setRecs(recArr);
         setAccepted(o?.ai_recommendation_status === 'accepted');
+        withCatalogFacts(selId, recArr).then(setRecs);
       })
       .catch(() => setRecsError(true))
       .finally(() => setLoadingRecs(false));
@@ -409,7 +450,10 @@ export default function AIMaterials() {
       const o        = refresh.data?.order ?? refresh.data;
       const recArr   = refresh.data?.recommendations ?? data.recommendations ?? [];
       setOrder(o);
-      setRecs(recArr);
+      // The fresh rows carry the catalog facts the recommend call returned (code, stock, colour fit).
+      const facts = Object.fromEntries((data?.materials ?? []).map(m => [m.material_id, m]));
+      setRecs(recArr.map(r => facts[r.material_id] ? { ...r, material_code: facts[r.material_id].material_code, in_stock: facts[r.material_id].in_stock, colour_match: facts[r.material_id].colour_match } : r));
+      setSource(data?.source ?? null);
       setAccepted(o?.ai_recommendation_status === 'accepted');
     } catch(e) {
       alert(e.response?.data?.message ?? 'AI recommendations are unavailable right now. Please try again shortly.');
@@ -657,6 +701,12 @@ export default function AIMaterials() {
                     </motion.div>
                   )}
                 </AnimatePresence>
+
+                {source === 'catalog_default' && (
+                  <p role="status" style={{ fontSize:12, color:'#9a5b00', background:'#fff4e5', borderRadius:10, padding:'8px 12px', margin:'0 0 12px', fontFamily:FONT }}>
+                    AI suggestions are unavailable right now, so these are VFRB's standard approved materials for this design. Our team will confirm them.
+                  </p>
+                )}
 
                 {/* Rec cards */}
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(min(100%,300px),1fr))', gap:14, marginBottom:20 }}>

@@ -11,7 +11,9 @@ import { hasWebGL } from './webglSupport';
 import { ROLE_LABEL } from './uniformSet';
 import { SwatchGrid } from './SwatchGrid';
 import { REF_SPLIT, PREVIEW_CAPTION, previewColors } from './referenceColour';
-import { CUSTOM_TOP, CUSTOM_BOTTOM, CUSTOM_SKIRT, CUSTOM_BADGE, DEFAULT_CUSTOM, kindOf } from './customGarment';
+import { CUSTOM_TOP, CUSTOM_BOTTOM, CUSTOM_SKIRT, CUSTOM_BADGE, DEFAULT_CUSTOM, kindOf, isParamFamily } from './customGarment';
+// A rebuilt family's 3D is built from its measurements, not a model file: said plainly instead of the generic tier note.
+const PARAM_3D_NOTE = 'Editable in 2D; the 3D (approx.) is built from your measurements, a simple shape with no cloth simulation.';
 import { CustomControls, CustomNote } from './BuildYourOwn';
 
 const ReferenceModel3D = lazy(() => import('./ReferenceModel3D'));
@@ -324,7 +326,7 @@ function FamilySteps({ fam, cfg, onBack, onOpen, backLabel = 'Back to garments' 
         {fam.derived && <p className="ds-note">{DERIVED_LABEL}. One colour zone: the outline is traced from the reference model.</p>}
         <Choice label="Fit / cut" items={fits} value={fit} set={v => { setFit(v); setSleeve(combos.find(c => c.fit === v)?.sleeve ?? null); }} text={v => FIT_LABEL[v] ?? 'Standard'}/>
         <Choice label="Style" items={styles.map(c => c.sleeve)} value={chosen?.sleeve} set={setSleeve} text={v => `${v ?? 'Standard'} sleeve`}/>
-        {chosen && <p className="ds-pick-sum ds-pick-tier"><Badge icon={PHOTO_BADGE[chosen.status]} label={PHOTO_LABEL[chosen.status]}/>{PHOTO_LABEL[chosen.status]}: {TIER_LABEL[chosen.status].note}</p>}
+        {chosen && <p className="ds-pick-sum ds-pick-tier"><Badge icon={PHOTO_BADGE[chosen.status]} label={PHOTO_LABEL[chosen.status]}/>{PHOTO_LABEL[chosen.status]}: {isParamFamily(fam.id) && chosen.status === '2d-3d-approx' ? PARAM_3D_NOTE : TIER_LABEL[chosen.status].note}</p>}
       </div>
       <Foot>
         <button type="button" className="ds-btn" onClick={onBack}>{backLabel}</button>
