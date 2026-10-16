@@ -2,6 +2,7 @@
 // reviveOverlays(), the one step every load path runs (reload, undo/redo, 3D decals) so saved text gets its web font and arc back.
 import { ensureFonts, loadFont } from './studioFonts';
 import { pocketGeometry, pocketLabel, stitchFor } from './pocketTools';
+import { sketchInk } from './sketchLine';
 
 const fab = () => import('fabric').then(m => m.fabric ?? m.default ?? m);
 
@@ -88,18 +89,21 @@ export function makeShape(fabric, kind, common, color) {
 // ── Pockets ───────────────────────────────────────────────────────────────
 // A pocket is one group: its panels (filled in the pocket colour) first, then stitch and edge lines. __pocketPanels says how many children
 // are panels, so a recolour finds them after a save and reload (children keep no custom tags through Fabric's serialisation).
+// The panel outline and edge lines take the sketch-line ink for the pocket colour (sketchLine.js): an automatic contrast edge, so a
+// pocket in the body colour still reads as a pocket.
 export function makePocket(fabric, kind, common, color) {
-  const g = pocketGeometry(kind), stitch = stitchFor(color);
-  const panels = g.panels.map(d => new fabric.Path(d, { fill: color, stroke: 'rgba(0,0,0,.28)', strokeWidth: 1, strokeUniform: true, objectCaching: false }));
+  const g = pocketGeometry(kind), stitch = stitchFor(color), edge = sketchInk(color);
+  const panels = g.panels.map(d => new fabric.Path(d, { fill: color, stroke: edge, strokeWidth: 1.4, strokeUniform: true, objectCaching: false }));
   const stitches = g.stitches.map(d => new fabric.Path(d, { fill: '', stroke: stitch, strokeWidth: 1, strokeDashArray: [3, 2.2], strokeUniform: true, objectCaching: false }));
-  const lines = g.lines.map(d => new fabric.Path(d, { fill: '', stroke: 'rgba(0,0,0,.35)', strokeWidth: 1.1, strokeUniform: true, objectCaching: false }));
+  const lines = g.lines.map(d => new fabric.Path(d, { fill: '', stroke: edge, strokeWidth: 1.1, strokeUniform: true, objectCaching: false }));
   return new fabric.Group([...panels, ...stitches, ...lines], { ...common, __pocket: kind, __pocketPanels: panels.length, __pocketColor: color, __layerName: pocketLabel(kind) });
 }
 // New colour for a pocket's panels; its stitching follows for contrast. Returns false for anything that is not a pocket.
 export function recolorPocket(o, color) {
   if (!o?.__pocket || typeof o.getObjects !== 'function') return false;
   const kids = o.getObjects(), n = o.__pocketPanels ?? 1, stitch = stitchFor(color);
-  kids.forEach((k, i) => { if (i < n) k.set('fill', color); else if (k.strokeDashArray?.length) k.set('stroke', stitch); });
+  const edge = sketchInk(color);
+  kids.forEach((k, i) => { if (i < n) k.set({ fill: color, stroke: edge }); else k.set('stroke', k.strokeDashArray?.length ? stitch : edge); });
   o.__pocketColor = color;
   o.set('dirty', true);
   return true;

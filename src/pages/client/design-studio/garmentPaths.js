@@ -28,10 +28,14 @@ function buildSleeve(p, bow) {
 
 // One sleeve from its shoulder point A and armpit B. `angle` is degrees below horizontal, `len` the length of the
 // top edge, `open` the width of the hem opening. side = -1 for the viewer's left sleeve, +1 for the right.
-function sleeveGeom(A, B, side, { angle, len, open }) {
+// `bicep` (3/4 and long): the width across the arm at the shoulder. A steep sleeve hanging beside the body is narrower there than
+// at the hem (a bell), so the underarm point moves in until the sleeve is `bicep` wide and tapers to `open` at the cuff.
+function sleeveGeom(A, B, side, { angle, len, open, bicep = 0 }) {
   const a = angle * Math.PI / 180;
   const u = [side * Math.cos(a), Math.sin(a)];   // down the arm, away from the body
   const v = [-side * Math.sin(a), Math.cos(a)];  // across the hem, toward the underarm
+  const across = (B[0] - A[0]) * v[0] + (B[1] - A[1]) * v[1];
+  if (across < bicep) B = [A[0] + v[0] * bicep, A[1] + v[1] * bicep];
   const D = [A[0] + u[0] * len, A[1] + u[1] * len];
   const C = [D[0] + v[0] * open, D[1] + v[1] * open];
   const M = [(A[0] + D[0]) / 2 - v[0] * 5, (A[1] + D[1]) / 2 - v[1] * 5]; // top edge bows slightly outward
@@ -45,8 +49,8 @@ function sleeveGeom(A, B, side, { angle, len, open }) {
 
 const SLEEVE_SHAPES = {
   'Short': s => s,
-  '3/4':   s => ({ angle: s.angle + 28, len: s.len * 2.05, open: s.open * 0.8 }),
-  'Long':  s => ({ angle: Math.min(80, s.angle + 38), len: s.len * 3.15, open: s.open * 0.68 }),
+  '3/4':   s => ({ angle: s.angle + 28, len: s.len * 2.05, open: s.open * 0.54, bicep: s.open * 0.72 }),
+  'Long':  s => ({ angle: Math.min(74, s.angle + 34), len: s.len * 3.1, open: s.open * 0.42, bicep: s.open * 0.64 }),
 };
 
 const roundRect = (x, y, w, h, r = 3) =>
@@ -211,6 +215,8 @@ function trousers({ w = 250, h = 420, waist = 76, waistY = 28, band = 15, hip = 
     { d: [-0.72, -0.28, 0.28, 0.72].map(k => `M ${pt(cx + waist * k, waistY)} L ${pt(cx + waist * k, by + 2)}`).join(' '), kind: 'line' },
     { d: `M ${pt(cx - hemOut + 2, hemY - 7)} L ${pt(cx - hemIn - 1, hemY - 7)} M ${pt(cx + hemIn + 1, hemY - 7)} L ${pt(cx + hemOut - 2, hemY - 7)}`, kind: cuffs ? 'line' : 'seam' },
   ];
+  // Elastic cuffs: a 14px rib band at each hem, so a cuffed jogger reads differently from an open hem.
+  if (cuffs) details.push({ d: `M ${pt(cx - hemOut + 1, hemY - 14)} L ${pt(cx - hemIn - 1, hemY - 14)} M ${pt(cx + hemIn + 1, hemY - 14)} L ${pt(cx + hemOut - 1, hemY - 14)}`, kind: 'line' });
   if (drawstring) details.push({ d: `M ${pt(cx - 6, by - 4)} Q ${pt(cx - 10, by + 14)} ${pt(cx - 14, by + 22)} M ${pt(cx + 6, by - 4)} Q ${pt(cx + 10, by + 14)} ${pt(cx + 14, by + 22)}`, kind: 'line', face: 'front' });
   if (fly) details.push(
     { d: `M ${pt(cx, by)} L ${pt(cx, crotchY - 8)}`, kind: 'line', face: 'front', part: 'closure' },

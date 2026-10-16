@@ -7,6 +7,15 @@ import { POCKET_KINDS } from './pocketTools';
 import { detailParts3D } from './garmentCapabilities';
 import PocketIcon from './PocketIcon';
 
+// One note for the whole panel: added pocket layers and the template's own details.
+function detailsNote(templateDetails, parts3D) {
+  const layers = 'Each added pocket is a layer: drag, resize, mirror or recolour it once selected; it gets a contrast edge automatically.';
+  const where = !templateDetails ? 'Added pockets show in the 2D design, exports and the order, not in 3D.'
+    : parts3D ? 'Everything here shows in the 2D design, exports and the order. 3D shows or hides the template pockets with you; added pockets and button or zip colours are 2D only.'
+    : 'Everything here shows in the 2D design, exports and the order, not in 3D.';
+  return `${layers} ${where}`;
+}
+
 export default function DetailsPanel({ cfg, setCfg, focus, onColourPocket, onAddPocket }) {
   const options = detailsFor(cfg.garment, cfg.sleeve, cfg.fit);
   const details = cfg.details ?? {};
@@ -28,14 +37,16 @@ export default function DetailsPanel({ cfg, setCfg, focus, onColourPocket, onAdd
           </button>
         ))}
       </div>
-      <p className="ds-det-note">Each pocket is a layer with stitching: drag it, resize it, mirror it to the other side or change its colour once selected. Pockets show in the 2D design, exports and the order; the 3D preview does not show them.</p>
     </section>
   );
+
+  const note = cfg.garment && <p className="ds-det-note">{detailsNote(options.length > 0, detailParts3D(cfg.garment, cfg.sleeve, cfg.fit))}</p>;
 
   if (!options.length) {
     return (
       <div className="ds-det">
         {addPockets}
+        {note}
         <p className="ds-panel-prompt">This garment's template draws no pockets, buttons or closures of its own.</p>
       </div>
     );
@@ -43,9 +54,7 @@ export default function DetailsPanel({ cfg, setCfg, focus, onColourPocket, onAdd
   return (
     <div className="ds-det">
       {addPockets}
-      <p className="ds-det-note">{detailParts3D(cfg.garment, cfg.sleeve, cfg.fit)
-        ? 'Shown in the 2D design, exports and the order. The 3D preview shows or hides the pockets with you; button and zip colours are 2D only.'
-        : 'Shown in the 2D design, exports and the order. The 3D preview does not show them.'}</p>
+      {note}
       <ul className="ds-det-list">
         {options.map(o => {
           const v = details[o.id];

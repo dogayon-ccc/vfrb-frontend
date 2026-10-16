@@ -65,21 +65,72 @@ export const NOT_PROMOTED = {
 // Derived bottoms are 2D only (2026-10-15): each is cut from a fused set at the top's hem (straight-cut waist, a lip of the top can remain), so
 // it is not a clean garment mesh. They stay off until a clean model of that cut exists; the 2D outline is unaffected.
 export const DERIVED_BOTTOM_NO_3D = 'cut from a fused set model at the hem, not a clean garment mesh; 3D stays off until a clean model exists';
-export const DERIVED_FAMILIES = ROWS.filter(([id]) => DERIVED_GEOMETRY[id] && !NOT_PROMOTED[DERIVED_GEOMETRY[id].ref]).map(([id, name, category, role, sleeve, fit, no3D = null]) => ({
+
+// Removed 2026-10-16 (picker, catalog, gallery, 3D): pieces whose mesh is not a closed, garment-only shape. Each names the nearest
+// authored template (garmentPaths.js), which a saved design or gallery set using the removed piece opens instead, so nothing crashes.
+// Evidence: tools/glb-extract/derived-manifest.json (split method per set, opening_cover per piece).
+const PLANE_CUT_BOTTOM = "bottom cut from a fused set at the top's hem: straight-cut open waist, not a garment-only mesh";
+const PLANE_CUT_TOP = 'top cut from a fused set by a plane at its hem: straight-cut open waist, not a garment-only mesh';
+export const REMOVED_DERIVED = {
+  'blazer-double-breasted-gray-bottom': ['Pants', PLANE_CUT_BOTTOM],
+  'blazer-pinstripe-navy-bottom': ['Pants', PLANE_CUT_BOTTOM],
+  'bir-blouse-trousers-blue-bottom': ['Pants', PLANE_CUT_BOTTOM],
+  'blouse-roundneck-fuchsia-bottom': ['Pants', PLANE_CUT_BOTTOM],
+  'blouse-roundneck-mustard-bottom': ['Pants', PLANE_CUT_BOTTOM],
+  'pantsuit-notch-short-gray-bottom': ['Pants', PLANE_CUT_BOTTOM],
+  'peplum-set-navy-bottom': ['Skirt', PLANE_CUT_BOTTOM],
+  'polo-barong-brown-bottom': ['Pants', PLANE_CUT_BOTTOM],
+  'scrub-set-housekeeping-bottom': ['Jogger Scrub Pants', 'derived bottom of a scrub set: replaced by the authored jogger'],
+  'scrub-set-men-vneck-bottom': ['Jogger Scrub Pants', 'derived bottom of a scrub set: replaced by the authored jogger'],
+  'scrub-set-women-vneck-bottom': ['Jogger Scrub Pants', 'derived bottom of a scrub set: replaced by the authored jogger'],
+  'set-pinstripe-pants-bottom': ['Pants', PLANE_CUT_BOTTOM],
+  'set-pinstripe-skirt-bottom': ['Skirt', PLANE_CUT_BOTTOM],
+  'shirt-two-tone-gpc-bottom': ['Pants', PLANE_CUT_BOTTOM],
+  'blazer-double-breasted-gray-top': ['Blazer', PLANE_CUT_TOP],
+  'blazer-pinstripe-navy-top': ['Blazer', PLANE_CUT_TOP],
+  'blouse-roundneck-mustard-top': ['Blouse', PLANE_CUT_TOP],
+  'pantsuit-notch-short-gray-top': ['Blazer', PLANE_CUT_TOP],
+  'peplum-set-navy-top': ['Blouse', PLANE_CUT_TOP],
+  'polo-barong-brown-top': ['Button-Down', PLANE_CUT_TOP],
+  'shirt-two-tone-gpc-top': ['Button-Down', PLANE_CUT_TOP],
+  'set-pinstripe-pants-top': ['Blazer', PLANE_CUT_TOP],
+  'set-pinstripe-skirt-top': ['Blazer', PLANE_CUT_TOP],
+  'blouse-pleated-bib-white': ['Blouse', 'flattened hanger scan with the neck opening partly closed (opening_cover 0.138)'],
+  'blouse-scarf-cream': ['Blouse', 'neck opening half closed by the scarf geometry (opening_cover 0.5)'],
+};
+const ROW_BY_ID = Object.fromEntries(ROWS.map(row => [row[0], row]));
+// Family name of a removed piece -> its authored replacement (designSerialization LEGACY_GARMENT, uniformSet).
+export const REMOVED_GARMENT = Object.fromEntries(Object.entries(REMOVED_DERIVED).map(([id, [to]]) => [ROW_BY_ID[id][1], to]));
+// Reference photo -> the authored piece that replaces its removed top or bottom.
+const REPLACED = role => Object.fromEntries(Object.entries(REMOVED_DERIVED).filter(([id]) => ROW_BY_ID[id][3] === role || (role === 'top' && !id.endsWith('-bottom')))
+  .map(([id, [to]]) => [id.replace(/-(top|bottom)$/, ''), to]));
+const REPLACED_TOP = REPLACED('top'), REPLACED_BOTTOM = REPLACED('bottom');
+// Every reference photo with derived rows, kept or removed.
+export const DERIVED_REFS = [...new Set(ROWS.map(([id]) => id.replace(/-(top|bottom)$/, '')))];
+// Reference photos that lost a derived piece: their 3D reference viewer and "Try colours" go with it (designGallery REF_3D).
+export const REFS_WITH_REMOVED = new Set(Object.keys(REMOVED_DERIVED).map(id => id.replace(/-(top|bottom)$/, '')).filter(ref => !NOT_PROMOTED[ref]));
+
+export const DERIVED_FAMILIES = ROWS.filter(([id]) => DERIVED_GEOMETRY[id] && !NOT_PROMOTED[DERIVED_GEOMETRY[id].ref] && !REMOVED_DERIVED[id]).map(([id, name, category, role, sleeve, fit, no3D = null]) => ({
   id, name, category, role, sleeve, fit, no3D: no3D ?? (role === 'bottom' ? DERIVED_BOTTOM_NO_3D : null), geo: DERIVED_GEOMETRY[id], ref: DERIVED_GEOMETRY[id].ref,
 }));
 export const DERIVED_BY_NAME = Object.fromEntries(DERIVED_FAMILIES.map(d => [d.name, d]));
 export const isDerived = garment => !!DERIVED_BY_NAME[garment];
 
-// What "Use as template" opens for a reference photo: the single piece, or a set's top and bottom (top may be a reused family).
+// What "Use as template" opens for a reference photo: the single piece, or a set's top and bottom. A top may be a reused family, and a
+// removed piece is replaced by its authored template (REMOVED_DERIVED). derived = the piece that opens first is a derived template.
+// category is the photo's catalog category; sleeve (replaced tops only) is the sleeve as photographed. Sets that were never promoted (NOT_PROMOTED) stay reference-only.
 export function derivedPiecesFor(photoId) {
+  if (NOT_PROMOTED[photoId]) return null;
   const mine = DERIVED_FAMILIES.filter(d => d.ref === photoId);
-  if (!mine.length) return null;
+  const category = ROWS.find(([id]) => id === photoId || id.startsWith(`${photoId}-`))?.[2];
+  if (!category) return null;
   const single = mine.find(d => d.id === photoId);
-  if (single) return { single: single.name };
-  const top = mine.find(d => d.id === `${photoId}-top`)?.name ?? REUSED_TOPS[photoId] ?? null;
-  const bottom = mine.find(d => d.id === `${photoId}-bottom`)?.name ?? null;
-  return top && bottom ? { top, bottom } : null;
+  if (single) return { single: single.name, derived: true, category };
+  if (REPLACED_TOP[photoId] && !ROW_BY_ID[`${photoId}-top`]) return { single: REPLACED_TOP[photoId], derived: false, category, sleeve: ROW_BY_ID[photoId][4] };
+  const derivedTop = mine.find(d => d.id === `${photoId}-top`)?.name;
+  const top = derivedTop ?? REUSED_TOPS[photoId] ?? REPLACED_TOP[photoId] ?? null;
+  const bottom = mine.find(d => d.id === `${photoId}-bottom`)?.name ?? REPLACED_BOTTOM[photoId] ?? null;
+  return top && bottom ? { top, bottom, derived: !!derivedTop, category, ...(REPLACED_TOP[photoId] && { sleeve: ROW_BY_ID[`${photoId}-top`][4] }) } : null;
 }
 
 // 2D paths: one body zone; the back uses its own traced outline only where it differs from the front. `shade` = the model's lighting.

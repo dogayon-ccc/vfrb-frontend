@@ -19,7 +19,7 @@ import { glbSlotFor, slotLive } from './glbSlots';
 import { BASE_PATHS, getGarmentPaths } from './garmentPaths';
 import { get3DCapabilities, fitsFor, sleeves3DFor, has3DModel } from './garmentCapabilities';
 import { realTrimFor, colorsForGarment } from './colorRules';
-import { DERIVED_FAMILIES, DERIVED_BY_NAME } from './derivedFamilies';
+import { DERIVED_FAMILIES, DERIVED_BY_NAME, REMOVED_GARMENT } from './derivedFamilies';
 import { CUSTOM_GARMENTS, CUSTOM_TOP, CUSTOM_BOTTOM, CUSTOM_SKIRT, isCustom, normalizeCustom } from './customGarment';
 
 // Category -> its garments, in display order. Source: the VFRB interview's garment list
@@ -60,7 +60,8 @@ const SLEEVE_OPTS = {
 };
 
 // Garment names retired as duplicates: 'School Polo' was an exact copy of 'Polo Shirt'; 'V-Neck Shirt' duplicated 'Scrub Top'. Old saved designs still carry the name.
-export const LEGACY_GARMENT = { 'School Polo': 'Polo Shirt', 'V-Neck Shirt': 'Scrub Top' };
+// Removed derived pieces (derivedFamilies REMOVED_GARMENT) open their nearest authored template.
+export const LEGACY_GARMENT = { 'School Polo': 'Polo Shirt', 'V-Neck Shirt': 'Scrub Top', ...REMOVED_GARMENT };
 
 // Every distinct garment name across all categories, in first-seen order (a name can appear in
 // more than one category — e.g. "Polo Shirt" is both School Uniform and Corporate — it's the
