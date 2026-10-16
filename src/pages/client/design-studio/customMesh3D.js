@@ -27,7 +27,7 @@ function loft(rows, cols, at, closed = true) {
     const a = i * cw + j, b = a + 1, c = a + cw, d = c + 1;
     idx.push(a, c, b, b, c, d);
   }
-  return { pos, uv, idx };
+  return { pos, uv, idx, seam: closed ? { rows, cw } : null };
 }
 
 // Raw lofts -> one BufferGeometry in model space (template units * K, y flipped, centred on cy).
@@ -46,6 +46,18 @@ function toGeometry(raws, cx, cy) {
   g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
   g.setIndex(idx);
   g.computeVertexNormals();
+  // A closed loft repeats its first column at the end (so UVs run 0..1); those twin vertices get separate normals, which showed as a
+  // hard light/dark line down the side. Give each pair their average normal.
+  const nrm = g.attributes.normal;
+  let base = 0;
+  for (const r of raws) {
+    if (r.seam) for (let i = 0; i < r.seam.rows; i++) {
+      const a = base + i * r.seam.cw, b = a + r.seam.cw - 1;
+      const v = [0, 1, 2].map(k => nrm.array[a * 3 + k] + nrm.array[b * 3 + k]), l = Math.hypot(...v) || 1;
+      for (const at of [a, b]) nrm.setXYZ(at, v[0] / l, v[1] / l, v[2] / l);
+    }
+    base += r.pos.length / 3;
+  }
   g.computeBoundingBox();
   return g;
 }
@@ -70,15 +82,37 @@ function patch(x0, y0, w, h, side, surfZ, lift = 1.5) {
   }, false);
 }
 
+// The 2D sleeve is drawn flat-lay, sticking out; worn, it hangs lower. The 3D sleeve axis turns this far further toward straight down.
+const SLEEVE_DROOP = 0.35;
+function sleeveAxis(d) {
+  const n = d.match(/-?\d+(\.\d+)?/g).map(Number), A = [n[0], n[1]], B = [n[2], n[3]], C = [n[4], n[5]], D = [n[6], n[7]];
+  const top = [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2], h0 = [(C[0] + D[0]) / 2, (C[1] + D[1]) / 2];
+  const L = Math.hypot(h0[0] - top[0], h0[1] - top[1]), a = Math.atan2(h0[1] - top[1], h0[0] - top[0]);
+  const dA = Math.atan2(Math.sin(Math.PI / 2 - a), Math.cos(Math.PI / 2 - a)), a2 = a + Math.sign(dA) * Math.min(Math.abs(dA), SLEEVE_DROOP);
+  return { top, hem: [top[0] + L * Math.cos(a2), top[1] + L * Math.sin(a2)], r0: Math.hypot(A[0] - B[0], A[1] - B[1]) / 2, r1: Math.hypot(C[0] - D[0], C[1] - D[1]) / 2 };
+}
+
 // Sleeve tube from a 2D sleeve path (A shoulder, B underarm, C underarm hem, D outer hem: garmentPaths.js contract).
 // The first ring is pulled in (shoulder) so the tube end does not stand proud of the shoulder line.
+// Two raw lofts as one (the first keeps its UV-seam record).
+function merge(a, b) {
+  const o = a.pos.length / 3, pos = new Float32Array(a.pos.length + b.pos.length), uv = new Float32Array(a.uv.length + b.uv.length);
+  pos.set(a.pos); pos.set(b.pos, a.pos.length); uv.set(a.uv); uv.set(b.uv, a.uv.length);
+  return { pos, uv, idx: [...a.idx, ...b.idx.map(i => i + o)], seam: a.seam };
+}
+// A disc closing a tube's first ring, so the inside of a sleeve never shows where it meets the shoulder.
+function closeStart(t, cols = 32) {
+  const ring = j => [t.pos[j * 3], t.pos[j * 3 + 1], t.pos[j * 3 + 2]];
+  const c = [0, 1, 2].map(k => Array.from({ length: cols }, (_, j) => ring(j)[k]).reduce((x, y) => x + y, 0) / cols);
+  return merge(t, loft(2, cols, (i, j) => (i === 0 ? c : ring(j))));
+}
+
 function sleeveTube(d, rows, from = 0, to = 1, grow = 1, shoulder = 0.78) {
-  const n = d.match(/-?\d+(\.\d+)?/g).map(Number), A = [n[0], n[1]], B = [n[2], n[3]], C = [n[4], n[5]], D = [n[6], n[7]];
-  const top = [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2], hem = [(C[0] + D[0]) / 2, (C[1] + D[1]) / 2];
-  const r0 = Math.hypot(A[0] - B[0], A[1] - B[1]) / 2, r1 = Math.hypot(C[0] - D[0], C[1] - D[1]) / 2;
+  const { top, hem, r0, r1 } = sleeveAxis(d);
   const at = t => [lerp(top[0], hem[0], t), lerp(top[1], hem[1], t)];
   return tube(at(from), at(to), lerp(r0, r1, from) * grow * (to === 1 && from < 0.5 ? shoulder : 1), lerp(r0, r1, to) * grow, rows);
 }
+
 
 // Fall collar widths in template units measured down the body surface: `back` all round, rising to `point` at `at` radians either side
 // of the front centre, then a straight front edge back to the neck at the centre (the open V at the top button).
@@ -142,9 +176,12 @@ function topParts(o, paths, sleeve) {
   const hemYAt = a => hem[1] + hemCurve * 2 * Math.abs(Math.sin(a)) - (o.vents ? 16 * smooth((Math.abs(Math.cos(a)) - 0.92) / 0.08) : 0);
   const ROWS = 60;
   // Body surface at a (fractional) row i and angle a.
+  // Drape: low folds on the sides (zero at the front and back centre, where plackets, buttons and logos sit), from the armhole down.
+  const drape = (y, a) => 0.022 * smooth((y - arm[1]) / Math.max(1, hem[1] - arm[1])) * Math.min(1, Math.abs(Math.cos(a)) * 1.8)
+    * (0.6 * Math.sin(6 * a + 0.7) + 0.4 * Math.sin(11 * a + 2.1));
   const bodyAtA = (i, a) => {
-    const t = i / (ROWS - 1), y = lerp(neckY(a), hemYAt(a), t), k = smooth(i / 8);
-    const hw = lerp(neckW, halfW(y), k), hd = lerp(neckW * 0.62, halfD(y), k);
+    const t = i / (ROWS - 1), y = lerp(neckY(a), hemYAt(a), t), k = smooth(i / 8), f = 1 + drape(y, a);
+    const hw = lerp(neckW, halfW(y), k) * f, hd = lerp(neckW * 0.62, halfD(y), k) * f;
     return [cx + hw * Math.cos(a), y, hd * Math.sin(a)];
   };
   const bodyAt = (i, j) => bodyAtA(i, ang(j));
@@ -160,8 +197,11 @@ function topParts(o, paths, sleeve) {
   const hemBand = loft(3, SEG, (i, j) => { const [x, y, z] = bodyAt(ROWS - 1, j), t = i / 2; return [cx + (x - cx) * 1.012, y - 7 * t, z * 1.012]; });
   const out = { body: [body], collarBand: band, hem: [hemBand] };
   if (paths.sleeveL && paths.sleeveR) {
-    out.sleeves = [sleeveTube(paths.sleeveL, 24, 0.12), sleeveTube(paths.sleeveR, 24, 0.12)]; // starts below the shoulder line; the body covers the armhole
+    // Each sleeve starts a little inside the body along its own axis (from -0.1) and is closed there, so the joint is buried in the body.
+    out.sleeves = [closeStart(sleeveTube(paths.sleeveL, 24, -0.1)), closeStart(sleeveTube(paths.sleeveR, 24, -0.1))];
     if (sleeve === 'Long') out.cuffs = [sleeveTube(paths.sleeveL, 3, 0.9, 1, 1.05), sleeveTube(paths.sleeveR, 3, 0.9, 1, 1.05)];
+    // Short and 3/4 sleeves: a turned hem (a slightly wider band outside, a lip just inside) so the end has a thickness, not a bare pipe.
+    else out.sleeves.push(...[paths.sleeveL, paths.sleeveR].flatMap(d => [sleeveTube(d, 3, 0.93, 1, 1.025), sleeveTube(d, 2, 0.94, 1, 0.95)]));
   }
   const surfZ = (x, y) => halfD(y) * Math.sqrt(Math.max(0, 1 - ((x - cx) / halfW(y)) ** 2));
   // The body's real depth at (x, y) on the front (side 1) or back (-1), including the taper into the neckline over the first rows
@@ -251,10 +291,14 @@ function button(x, y, z, r, side) {
 // own tube, blended over the crotch so the inseams part in a curve. The crease is a ridge down the front and back of each leg.
 // Fly, waistband button, belt loops, slant pocket openings, back welts with buttons, darts and the centre-back seam are their own parts.
 function tailoredParts(o) {
-  const w = 250, cx = w / 2, waist = 76, band = 15, waistY = o.waistY, by = waistY + band, hip = o.hip ?? 84, seat = 1.06;
+  const w = 250, cx = w / 2, waist = o.waist ?? 76, band = 15, waistY = o.waistY, by = waistY + band, hip = o.hip ?? 84, seat = 1.06;
   const { hipY, crotchY, hemY, hemOut, hemIn } = o;
   const halfW = y => (y <= hipY ? lerp(waist + 2, hip, smooth((y - by) / (hipY - by))) : hip);
-  const halfD = y => halfW(y) * 0.64;
+  // Depth: slimmer at the waist (0.56, about a top's hem, so a top or jacket covers the waistband in a set) to 0.64 at the hip; the
+  // seat's extra fullness at the back also builds from the waistband down to the hip.
+  const hipT = y => smooth((y - by) / (hipY - by));
+  const halfD = y => halfW(y) * lerp(0.56, 0.64, hipT(y));
+  const seatAt = y => lerp(1, seat, hipT(y));
   // Leg outline below the hip, as the 2D trousers() draws it: outer edge hip -> hemOut, inseam 2 -> hemIn.
   const outer = y => lerp(hip, hemOut, clamp01((y - hipY) / (hemY - hipY))), inner = y => lerp(2, hemIn, clamp01((y - crotchY) / (hemY - crotchY)));
   const blend = y => smooth((y - (crotchY - 6)) / 46);
@@ -264,7 +308,7 @@ function tailoredParts(o) {
   // round (x and z mirrored), so both keep the same winding.
   const legPoint = (s, y, a) => {
     const u = Math.cos(a), v = Math.sin(a) * s;                                          // u outward, v front (+) / back (-)
-    const hw = halfW(Math.min(y, crotchY)), hd = halfD(Math.min(y, crotchY)), back = v < 0 ? seat : 1;
+    const hw = halfW(Math.min(y, crotchY)), hd = halfD(Math.min(y, crotchY)), back = v < 0 ? seatAt(Math.min(y, crotchY)) : 1;
     const dX = u >= 0 ? hw * u : 0, dZ = hd * v * back;                                  // hip half ring + flat centre panel
     const c = (outer(y) + inner(y)) / 2, r = (outer(y) - inner(y)) / 2;
     // Leg depth starts at the hip ring's depth over the leg's own centre (not the centre-front depth), so the thigh never stands proud of the hip.
@@ -274,24 +318,26 @@ function tailoredParts(o) {
     const front = s * Math.PI / 2, ridge = (target, h) => h * Math.exp(-((wrap(a - target) / 0.1) ** 2));
     const t = blend(y);
     // The ridge grows with the blend too, so it never pushes the front out past the hip where the legs part (a bump in side view).
-    const k = 1 + (t * fade * (ridge(front, 2.4) + ridge(-front, 1.6))) / Math.max(r, 1);
+    // Break: where the hem meets the shoe the front of the leg ripples softly over the last 40 units.
+    const brk = 0.018 * smooth((y - hemY + 40) / 30) * Math.max(0, v) * Math.sin((hemY - y) / 6);
+    const k = 1 + (t * fade * (ridge(front, 2.4) + ridge(-front, 1.6))) / Math.max(r, 1) + brk;
     return [cx + s * lerp(dX, c + r * u * k, t), y, lerp(dZ, rz * v * k, t)];
   };
   const leg = s => loft(ROWS, COLS, (i, j) => legPoint(s, lerp(by, hemY, i / (ROWS - 1)), (j / COLS) * Math.PI * 2));
   const out = { body: [leg(1), leg(-1)] };
   // Body surface depth at (x, y) above the crotch (the hip ring), +1 front / -1 back.
-  const surfZ = (x, y, side = 1) => halfD(y) * (side < 0 ? seat : 1) * Math.sqrt(Math.max(0, 1 - ((x - cx) / halfW(y)) ** 2));
+  const surfZ = (x, y, side = 1) => halfD(y) * (side < 0 ? seatAt(y) : 1) * Math.sqrt(Math.max(0, 1 - ((x - cx) / halfW(y)) ** 2));
   const on = (x, y, side, lift) => [x, y, side * (surfZ(x, y, side) + lift)];
   const curve = (n, f) => Array.from({ length: n }, (_, i) => f(i / (n - 1)));
   // Waistband: outside the body with a turned top edge (so it shows a thickness), the button at the front fastening.
-  const wbW = y => lerp(waist, waist + 2, (y - waistY) / band) * 1.03, wbD = y => wbW(y) * 0.66;
+  const wbW = y => lerp(waist, waist + 2, (y - waistY) / band) * 1.03, wbD = y => wbW(y) * 0.58;
   // Rows: outside up to the top edge, over it, a little way down the inside, then closed across the opening so the hollow never shows.
   const WB = [[by, 1], [lerp(by, waistY, 1 / 3), 1], [lerp(by, waistY, 2 / 3), 1], [waistY, 1], [waistY + 1.2, 0.95], [waistY + 5, 0.94], [waistY + 5, 0]];
   out.waistband = [loft(WB.length, SEG, (i, j) => {
-    const a = ang(j), [y, sc] = WB[i], back = Math.sin(a) < 0 ? seat : 1;
+    const a = ang(j), [y, sc] = WB[i], back = 1;
     return [cx + wbW(y) * sc * Math.cos(a), y, wbD(y) * sc * back * Math.sin(a)];
   })];
-  const wbZ = (x, y, side) => wbD(y) * (side < 0 ? seat : 1) * Math.sqrt(Math.max(0, 1 - ((x - cx) / wbW(y)) ** 2));
+  const wbZ = (x, y) => wbD(y) * Math.sqrt(Math.max(0, 1 - ((x - cx) / wbW(y)) ** 2));
   out.buttons = [button(cx, waistY + band / 2, wbZ(cx, waistY + band / 2, 1) + 0.6, 3.2, 1)];
   // Belt loops: four on the front (where the 2D draws them), three on the back.
   if (o.beltLoops) out.loops = [[-0.72, 1], [-0.28, 1], [0.28, 1], [0.72, 1], [-0.42, -1], [0, -1], [0.42, -1]].map(([k, side]) => {
@@ -307,7 +353,7 @@ function tailoredParts(o) {
   ];
   // Slant front pockets: a piped opening on the 2D line, from the waistband down to the side seam.
   if (o.slantPockets) out.sidePockets = [-1, 1].map(s => pathTube(curve(18, t => {
-    const m = 1 - t, x = cx + s * (m * m * (waist - 8) + 2 * m * t * (waist - 14) + t * t * (hip - 2)), y = m * m * by + 2 * m * t * (by + 34) + t * t * (by + 48);
+    const m = 1 - t, x = cx + s * (m * m * (waist - 8) + 2 * m * t * (waist - 14) + t * t * (hip - 9)), y = m * m * by + 2 * m * t * (by + 34) + t * t * (by + 46);
     return on(x, y, 1, 0.6);
   }), 1.1));
   // Back: jetted welts (a raised lip) with a button below each, darts above them and the centre-back seam.
