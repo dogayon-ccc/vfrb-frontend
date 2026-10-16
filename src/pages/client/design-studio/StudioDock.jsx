@@ -7,7 +7,9 @@ import { NO_FAMILY_3D } from './garmentCapabilities';
 export default function StudioDock({ cfg, saved, saving, saveErr, draftSaved, saveDesign, orderThis, ordering, downloadImage, downloadPdf, exporting, onNeedRoom, collapsed = false }) {
   const [exportOpen, setExportOpen] = useState(false);
   useEffect(() => { if (collapsed && window.matchMedia('(max-width: 1023px)').matches) setExportOpen(false); }, [collapsed]); // phone/tablet: the export row closes when the sheet collapses to peek
-  const st = NO_FAMILY_3D.has(cfg.inspirationId) ? null : STATUS_3D_LABEL[familyFor(cfg.garment)?.status3D];
+  // Plain "3D" only for a verified model (none today); an unverified model reads "3D (approx.)", as on the garment cards.
+  const fam = familyFor(cfg.garment);
+  const st = NO_FAMILY_3D.has(cfg.inspirationId) ? null : STATUS_3D_LABEL[fam?.status3D === 'supported' && !fam.verified3D ? 'partial' : fam?.status3D];
   // Account vs browser-only saves are never shown the same way: a failed account save that kept a browser copy says so.
   const state = saving ? 'Saving…' : saveErr ? (saveErr === 'local' ? 'On this device only — account save failed, retry' : 'Not saved — retry') : draftSaved ? 'Saved to your account' : saved ? 'Saved on this device' : null;
   const toggleExport = () => { setExportOpen(o => !o); onNeedRoom?.(); };

@@ -388,6 +388,10 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && /\.ds-tool-btn\[aria-disabled=true\]\{opacity:\.45;cursor:not-allowed;\}/.test(get('DesignStudioStyles.jsx')));
   t('Layers live in one section: the rail tile focuses it; no second Layers panel', !/layers:\s*\(\)\s*=>/.test(drawer) && /if \(id === 'layers'\) return focusLayers\(\)/.test(drawer) && (drawer.match(/<LayersPanel\b/g) ?? []).length === 1);
   t('each fact once: no category pill in the top bar; the dock carries category and 3D status; no "No garment yet" row', !/ds-bar-cat|cfg\.category/.test(get('TopBar.jsx')) && /ds-dock-sub/.test(get('StudioDock.jsx')) && !/No garment yet|Choose one/.test(get('StudioDock.jsx')));
+  const CATd = await L('/src/pages/client/design-studio/garmentCatalog.js');
+  t('dock 3D status matches the garment cards: an unverified "supported" model reads "3D (approx.)", plain "3D" only with a verification record',
+    /fam\?\.status3D === 'supported' && !fam\.verified3D \? 'partial' : fam\?\.status3D/.test(get('StudioDock.jsx'))
+    && ['Pants', 'Jogger Scrub Pants', 'Custom Skirt'].every(g => { const f = CATd.familyFor(g); return f && f.status3D !== 'none' && !f.verified3D; }));
 }
 // Studio visual quality: photo bases never above native resolution; a new design starts with one base colour.
 {
@@ -581,6 +585,8 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     /\.ds-lane-top:not\(\[data-notes\]\)\{flex-wrap:nowrap;\}/.test(css) && /\.ds-guides-txt\{display:none;\}/.test(css) && !/text-overflow:ellipsis/.test(css.match(/\.ds-ctx-chip\{[^}]*\}/)?.[0] ?? 'text-overflow:ellipsis')
     && /--ds-sheet-h:clamp\(12\.5rem,30dvh,17rem\)/.test(css) && /\.ds\[data-snap=half\] :is\(\.ds-dock,\.ds-under,\.ds-lane-bottom\)\{display:none;\}/.test(css)
     && /if \(collapsed && window\.matchMedia\('\(max-width: 1023px\)'\)\.matches\) setExportOpen\(false\)/.test(dock) && /collapsed=\{!sheetOpen\}/.test(src('../src/pages/client/design-studio/ToolDrawer.jsx')));
+  t('phone top lane wider than the screen (Guides + uniform set switch) scrolls from its start instead of centring past both edges: no Guides button off-screen',
+    /\.ds-lane-top:not\(\[data-notes\]\)\{justify-content:flex-start;overflow-x:auto;/.test(css) && /\.ds-lane-top:not\(\[data-notes\]\)>:first-child\{margin-left:auto;\}/.test(css) && /\.ds-lane-top:not\(\[data-notes\]\)>:last-child\{margin-right:auto;\}/.test(css));
   // Guides panel: rendered at the Studio root; a modal dialog up to 1023px; on desktop capped to the stage and scrolling inside.
   t('Guides panel is rendered at the Studio root (above rulers and sheet): modal dialog with backdrop, close button and Escape up to 1023px; desktop popover capped to the stage height with internal scroll',
     /createPortal\(/.test(gm) && /aria-modal="true"/.test(gm) && /className="ds-guides-scrim"/.test(gm) && /className="ds-guides-close"/.test(gm) && /e\.key === 'Escape'/.test(gm) && /max-width: 1023px/.test(gm)
@@ -816,7 +822,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     const adj = inv.slice(inv.indexOf('private function adjustStock'), inv.indexOf('private function notifyLowStock'));
     t('stock-out/wastage larger than the stock is refused inside the locked transaction (422 "Only X unit in stock; cannot remove Y."), with no clamp and no log row; cache and low-stock handling unchanged',
       /lockForUpdate\(\)->first\(\);\s*\/\/[^\n]*\n\s*if \(\$locked->quantity_in_stock \+ \$delta < 0\) \{\s*return \['short'/.test(adj) && !/max\(0,/.test(adj)
-      && /"Only \{\$fmt\(\$newStock\['short'\]\)\} \{\$material->unit\} in stock; cannot remove \{\$fmt\(\$qty\)\}\."/.test(adj) && /\], 422\);\s*\}\s*Cache::forget\('materials_list'\);/.test(adj)
+      && /"Only \{\$fmt\(\$newStock\['short'\]\)\} \{\$material->unit\} in stock; cannot remove \{\$fmt\(\$qty\)\}\."/.test(adj) && /\], 422\);\s*\}\s*(?:\/\/[^\n]*\n\s*if \(in_array\(\$type, \['adjustment', 'wastage'\], true\)\) \{\s*AuditLog::record\('inventory_adjusted', 'materials', \$id\);\s*\}\s*)?Cache::forget\('materials_list'\);/.test(adj)
       && adj.indexOf("return ['short'") < adj.indexOf("DB::table('inventory_logs')->insert") && /notifyLowStock\(/.test(adj));
     const ord = be('app/Http/Controllers/Api/OrderController.php');
     const upd = ord.slice(ord.indexOf('public function adminUpdate'), ord.indexOf('private function notifyManagers'));
@@ -1289,6 +1295,18 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('point collar: a Build-your-own neckline with the 2D point collar, and the Button-Down Short 3D comes from it with a separate collar part in the collar colour',
     CGz.NECKLINES.some(([id]) => id === 'point') && CGz.topOptions({ neckline: 'point' }).collar === 'point' && built[6].parts.find(p => p.name === 'collarBand').colorKey === 'collar'
     && Cz.scannedEntryFor('Button-Down', 'Short', 'unisex').id === 'button-down-parametric' && Cz.scannedEntryFor('Button-Down', 'Long', 'female').id === 'button-down-bir-blouse');
+  // The fall loft (7 rows x 97 columns, the last raw of collarBand): the old row-index placement threw 0.070-unit spikes between neighbours.
+  const fallEdge = b => {
+    const a = b.parts.find(p => p.name === 'collarBand').geometry.attributes.position.array, cols = 97, rows = 7, start = a.length / 3 - rows * cols;
+    const P = k => [a[k * 3], a[k * 3 + 1], a[k * 3 + 2]], d = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]);
+    const edge = Array.from({ length: cols }, (_, j) => P(start + (rows - 1) * cols + j)), centre = Array.from({ length: rows - 1 }, (_, r) => P(start + (r + 1) * cols + 24));
+    return { step: Math.max(...edge.slice(1).map((p, j) => d(p, edge[j]))), open: Math.max(...centre.map(p => d(p, centre[0]))) };
+  };
+  const falls = [built[6], built[0], CM.buildCustomParts('Custom Top', { neckline: 'notch' }, 'Long'), built[2]].map(fallEdge);
+  t('fall collars (Button-Down point, polo, notch, Build-your-own point) have a smooth outer edge (no neighbour step over 0.045) and close to the neck at the front centre (open V at the top button)',
+    falls.every(f => f.step < 0.045 && f.open < 1e-6));
+  t('top body depth eases across the armhole line (no hard 0.5/0.56 switch that cut through the chest pocket)',
+    !/y < arm\[1\] \? 0\.5 : 0\.56/.test(fsx.readFileSync(urlx.fileURLToPath(new URL('../src/pages/client/design-studio/customMesh3D.js', import.meta.url)), 'utf8')));
   t('Scrub Top and Polo 3D unchanged (same model entries as before the parametric work)',
     Cz.scannedEntryFor('Scrub Top', 'Short', 'unisex')?.id === 'scrub-top-vneck-authored-short' && !Cz.scannedEntryFor('Scrub Top', 'Short', 'female')?.parametric
     && !Cz.scannedEntryFor('Polo Shirt', 'Short', 'male')?.parametric && !Cz.scannedEntryFor('Polo Shirt', 'Short', 'unisex')?.parametric);

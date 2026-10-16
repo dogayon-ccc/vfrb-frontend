@@ -80,6 +80,47 @@ function sleeveTube(d, rows, from = 0, to = 1, grow = 1, shoulder = 0.78) {
   return tube(at(from), at(to), lerp(r0, r1, from) * grow * (to === 1 && from < 0.5 ? shoulder : 1), lerp(r0, r1, to) * grow, rows);
 }
 
+// Fall collar widths in template units measured down the body surface: `back` all round, rising to `point` at `at` radians either side
+// of the front centre, then a straight front edge back to the neck at the centre (the open V at the top button).
+const FALL = { point: { back: 15, point: 34, at: 0.42 }, polo: { back: 14, point: 22, at: 0.38 }, notch: { back: 26, point: 40, at: 0.55 } };
+const FALL_COLS = 96, FALL_ROWS = 7, FALL_GAP = 1.6;
+
+// The fall leaf: its top edge on the stand (or the neckline), then rows placed by arc length down the body, so a wider point never
+// jumps body rows; each row sits FALL_GAP off the surface along the body's own normal, so the leaf lies on the shoulders and chest.
+function fallCollar(collar, bodyAtA, cx, standH, maxRow) {
+  const f = FALL[collar], sub = (p, q) => [p[0] - q[0], p[1] - q[1], p[2] - q[2]];
+  const width = a => {
+    const d = Math.abs(Math.atan2(Math.sin(a - Math.PI / 2), Math.cos(a - Math.PI / 2)));   // 0 at the front centre, PI at the back
+    return d < f.at ? f.point * (d / f.at) : lerp(f.back, f.point, clamp01(1 - (d - f.at) / 0.7));   // straight edges: a crisp point
+  };
+  const normal = (i, a) => {
+    const p = bodyAtA(i, a), u = sub(bodyAtA(i + 0.05, a), p), v = sub(bodyAtA(i, a + 0.01), p);
+    let n = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+    if (n[0] * (p[0] - cx) + n[2] * p[2] < 0) n = n.map(c => -c);
+    const l = Math.hypot(...n) || 1;
+    return n.map(c => c / l);
+  };
+  // Row index at surface distance s below the neckline, walking the body in small steps.
+  const rowAt = (a, s) => {
+    let i = 0, p = bodyAtA(0, a), run = 0;
+    while (run < s && i < maxRow - 1) {
+      const q = bodyAtA(i + 0.05, a), step = Math.hypot(...sub(q, p));
+      if (run + step >= s) return i + 0.05 * ((s - run) / step);
+      run += step; i += 0.05; p = q;
+    }
+    return i;
+  };
+  return loft(FALL_ROWS, FALL_COLS, (r, j) => {
+    const a = (j / FALL_COLS) * Math.PI * 2;
+    if (r === 0) {   // over the top of the stand, a gap outside it
+      const [x, y, z] = bodyAtA(0, a), s = 1 + FALL_GAP / Math.hypot(x - cx, z);
+      return [cx + (x - cx) * s, y - standH - FALL_GAP * 0.5, z * s];
+    }
+    const i = rowAt(a, (width(a) * (r - 1)) / (FALL_ROWS - 2)), p = bodyAtA(i, a), n = normal(i, a);
+    return [p[0] + n[0] * FALL_GAP, p[1] + n[1] * FALL_GAP, p[2] + n[2] * FALL_GAP];
+  });
+}
+
 // Tops: body loft, neckline band, sleeves, cuffs (long sleeves), hem band and a chest pocket when the options have one.
 function topParts(o, paths, sleeve) {
   const w = o.w ?? 320, cx = w / 2, neckW = o.neckW ?? 30, hpsY = o.hpsY ?? 44, frontDrop = o.frontDrop ?? 22, backDrop = o.backDrop ?? 6;
@@ -87,38 +128,29 @@ function topParts(o, paths, sleeve) {
   const halfW = y => (y <= sh[1] ? lerp(neckW, sh[0], smooth((y - hpsY) / (sh[1] - hpsY)))
     : y <= arm[1] ? lerp(sh[0], arm[0], (y - sh[1]) / (arm[1] - sh[1]))
     : (t => lerp(arm[0], hem[0], t) - waist * 4 * t * (1 - t))((y - arm[1]) / (hem[1] - arm[1])));
-  const halfD = y => halfW(y) * (y < arm[1] ? 0.5 : 0.56);
+  // Depth ratio eases from 0.5 (chest) to 0.56 (waist) across the armhole line: a hard switch left a step that cut through the chest pocket.
+  const halfD = y => halfW(y) * lerp(0.5, 0.56, smooth((y - arm[1] + 20) / 40));
   const vee = collar === 'v';
   // Neckline: the front drops to frontDrop (a point for V, a curve otherwise); the back keeps its small drop.
   const neckY = a => { const s = Math.sin(a), c = Math.abs(Math.cos(a));
     return hpsY + (s > 0 ? frontDrop * (vee ? Math.max(0, 1 - c / 0.9) : s * s) : backDrop * -s); };
   const hemYAt = a => hem[1] + hemCurve * 2 * Math.abs(Math.sin(a)) - (o.vents ? 16 * smooth((Math.abs(Math.cos(a)) - 0.92) / 0.08) : 0);
   const ROWS = 60;
-  const bodyAt = (i, j) => {
-    const a = ang(j), t = i / (ROWS - 1), y = lerp(neckY(a), hemYAt(a), t), k = smooth(i / 8);
+  // Body surface at a (fractional) row i and angle a.
+  const bodyAtA = (i, a) => {
+    const t = i / (ROWS - 1), y = lerp(neckY(a), hemYAt(a), t), k = smooth(i / 8);
     const hw = lerp(neckW, halfW(y), k), hd = lerp(neckW * 0.62, halfD(y), k);
     return [cx + hw * Math.cos(a), y, hd * Math.sin(a)];
   };
+  const bodyAt = (i, j) => bodyAtA(i, ang(j));
   const body = loft(ROWS, SEG, bodyAt);
-  const ring0 = j => bodyAt(0, j);
   // Collar band: a rib along the opening, or a stand (polo, mandarin, point) with a fall collar for polo / point / notch.
   const band = [];
   const stand = ['polo', 'mandarin', 'point'].includes(collar), fall = ['polo', 'point', 'notch'].includes(collar);
   const standH = collar === 'mandarin' ? 13 : 9;
-  if (stand) band.push(loft(4, SEG, (i, j) => { const [x, y, z] = ring0(j), t = i / 3, s = 1 - 0.04 * t; return [cx + (x - cx) * s, y - standH * t, z * s]; }));
-  else band.push(loft(4, SEG, (i, j) => { const [x, y, z] = ring0(j), t = i / 3, s = 1.03; return [cx + (x - cx) * s, y + 7 * t, z * s]; }));
-  if (fall) {
-    const depth = collar === 'notch' ? 30 : 16, spread = collar === 'notch' ? 1.2 : 1.12;
-    // Collar points (point collar) reach further down beside the front centre.
-    const tip = a => (collar === 'point' ? 12 * Math.max(0, 1 - Math.abs(a - Math.PI / 2 - 0.42) / 0.3) + 12 * Math.max(0, 1 - Math.abs(a - Math.PI / 2 + 0.42) / 0.3) : 0);
-    // The fall lies on the body: each row sits on the body surface `depth` units below the stand, pushed just outside it.
-    const rowStep = (hem[1] - hpsY) / (ROWS - 1), out = collar === 'notch' ? 1.05 : 1.04;
-    band.push(loft(5, SEG, (i, j) => {
-      const t = i / 4, a = ang(j), [x0, y0, z0] = ring0(j), top = y0 - (stand ? standH : 0);
-      const [x, y, z] = bodyAt(Math.min(ROWS - 1, (t * (depth + tip(a))) / rowStep), j), s = lerp(1.06, out * spread / 1.1, t);
-      return t === 0 ? [cx + (x0 - cx) * 1.06, top, z0 * 1.06] : [cx + (x - cx) * s, y, z * s];
-    }));
-  }
+  if (stand) band.push(loft(4, SEG, (i, j) => { const [x, y, z] = bodyAt(0, j), t = i / 3, s = 1 - 0.04 * t; return [cx + (x - cx) * s, y - standH * t, z * s]; }));
+  else band.push(loft(4, SEG, (i, j) => { const [x, y, z] = bodyAt(0, j), t = i / 3, s = 1.03; return [cx + (x - cx) * s, y + 7 * t, z * s]; }));
+  if (fall) band.push(fallCollar(collar, bodyAtA, cx, stand ? standH : 0, ROWS));
   // Hem band: 7 units up from the hem, a hair outside the body.
   const hemBand = loft(3, SEG, (i, j) => { const [x, y, z] = bodyAt(ROWS - 1, j), t = i / 2; return [cx + (x - cx) * 1.012, y - 7 * t, z * 1.012]; });
   const out = { body: [body], collarBand: band, hem: [hemBand] };

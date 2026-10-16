@@ -714,6 +714,11 @@ export default function DesignStudioStyles() {
         /* Phones and tablets: the top lane is one row (icon Guides with its count, a truncating garment chip, a compact set switch) */
         .ds-lane-top:not([data-notes]){flex-wrap:nowrap;}
         .ds-lane-top>*{flex-shrink:0;}
+        /* A row wider than the phone (Guides + set switch) scrolls sideways from its start; auto margins centre it only when it fits, so Guides never sits off-screen */
+        .ds-lane-top:not([data-notes]){justify-content:flex-start;overflow-x:auto;scrollbar-width:none;}
+        .ds-lane-top:not([data-notes])::-webkit-scrollbar{display:none;}
+        .ds-lane-top:not([data-notes])>:first-child{margin-left:auto;}
+        .ds-lane-top:not([data-notes])>:last-child{margin-right:auto;}
         .ds-guides-txt{display:none;}
         .ds-guides-btn{padding:0 10px;}
         .ds-piece button{padding:0 12px;}
