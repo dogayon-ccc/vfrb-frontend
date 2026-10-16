@@ -77,7 +77,7 @@ function sleeveTube(d, rows, from = 0, to = 1, grow = 1, shoulder = 0.78) {
   const top = [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2], hem = [(C[0] + D[0]) / 2, (C[1] + D[1]) / 2];
   const r0 = Math.hypot(A[0] - B[0], A[1] - B[1]) / 2, r1 = Math.hypot(C[0] - D[0], C[1] - D[1]) / 2;
   const at = t => [lerp(top[0], hem[0], t), lerp(top[1], hem[1], t)];
-  return tube(at(from), at(to), lerp(r0, r1, from) * grow * (from === 0 ? shoulder : 1), lerp(r0, r1, to) * grow, rows);
+  return tube(at(from), at(to), lerp(r0, r1, from) * grow * (to === 1 && from < 0.5 ? shoulder : 1), lerp(r0, r1, to) * grow, rows);
 }
 
 // Tops: body loft, neckline band, sleeves, cuffs (long sleeves), hem band and a chest pocket when the options have one.
@@ -123,7 +123,7 @@ function topParts(o, paths, sleeve) {
   const hemBand = loft(3, SEG, (i, j) => { const [x, y, z] = bodyAt(ROWS - 1, j), t = i / 2; return [cx + (x - cx) * 1.012, y - 7 * t, z * 1.012]; });
   const out = { body: [body], collarBand: band, hem: [hemBand] };
   if (paths.sleeveL && paths.sleeveR) {
-    out.sleeves = [sleeveTube(paths.sleeveL, 24), sleeveTube(paths.sleeveR, 24)];
+    out.sleeves = [sleeveTube(paths.sleeveL, 24, 0.12), sleeveTube(paths.sleeveR, 24, 0.12)]; // starts below the shoulder line; the body covers the armhole
     if (sleeve === 'Long') out.cuffs = [sleeveTube(paths.sleeveL, 3, 0.9, 1, 1.05), sleeveTube(paths.sleeveR, 3, 0.9, 1, 1.05)];
   }
   if (o.pocket) {
