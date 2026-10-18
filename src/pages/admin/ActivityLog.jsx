@@ -156,17 +156,17 @@ export default function ActivityLog() {
       )}
 
       {!loading && lastPage > 1 && (
-        <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap:12, marginTop:16 }}>
+        <nav className="ui-pager" aria-label="Activity log pages">
           <button disabled={page <= 1} onClick={() => load(page - 1)}
             style={{ padding:'8px 14px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-card)', color: page<=1 ? 'var(--text-faint)' : 'var(--ink)', fontSize:13, fontWeight:600, cursor: page<=1 ? 'not-allowed' : 'pointer', fontFamily:'var(--font)' }}>
-            ← Prev
+            Previous
           </button>
           <span style={{ fontSize:13, color:'var(--text-subtle)' }}>Page {page} of {lastPage}</span>
           <button disabled={page >= lastPage} onClick={() => load(page + 1)}
             style={{ padding:'8px 14px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-card)', color: page>=lastPage ? 'var(--text-faint)' : 'var(--ink)', fontSize:13, fontWeight:600, cursor: page>=lastPage ? 'not-allowed' : 'pointer', fontFamily:'var(--font)' }}>
-            Next →
+            Next
           </button>
-        </div>
+        </nav>
       )}
 
       <style>{`@keyframes al-shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}`}</style>

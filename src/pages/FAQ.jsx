@@ -9,7 +9,7 @@ import { CONTACT as C } from '../components/site/config';
 
 const FAQS = [
   { q: 'How do I place an order?',
-    a: 'Sign in to your client account and create your design in the Design Studio. Save it, then continue to the Order Wizard to enter quantity, sizes, and delivery details, and submit your order.' },
+    a: 'Sign in to your customer account and create your design in the Design Studio. Save it, then continue to the Order Wizard to enter quantity, sizes, and delivery details, and submit your order.' },
   { q: 'Do I need to create a design before ordering?',
     a: 'Yes. Orders start from a saved design, so VFRB receives your exact garment configuration. The Order Wizard then collects quantity, sizes, and delivery details without asking you to re-enter the design.' },
   { q: 'How does AI Material Recommendation work?',
@@ -21,9 +21,9 @@ const FAQS = [
   { q: 'How will I know when my order moves to the next stage?',
     a: 'Your order status updates in My Orders as VFRB staff log progress on the floor. Check back anytime to see where it stands.' },
   { q: 'Can I message VFRB staff about my order?',
-    a: 'Yes. Use Messages in your client portal to reach VFRB staff directly about a specific order.' },
+    a: 'Yes. Use Messages in your customer portal to reach VFRB staff directly about a specific order.' },
   { q: 'I signed up with Google. Is my account different from an email account?',
-    a: 'No. Clients can self-register with either email or Google, and both create the same type of client account with the same access.' },
+    a: 'No. Customers can self-register with either email or Google, and both create the same type of customer account with the same access.' },
 ];
 
 function Item({ item, open, onToggle, onKey, btnRef, reduce }) {
@@ -70,7 +70,7 @@ export default function FAQ() {
         <div className="vs-wrap">
           <p className="vs-kicker">FAQ</p>
           <h1 className="vs-h1" style={{ maxWidth: '18ch' }}>Frequently asked questions</h1>
-          <p className="vs-lede">How designing, ordering, and tracking work in the VFRB client portal.</p>
+          <p className="vs-lede">How designing, ordering, and tracking work in the VFRB customer portal.</p>
         </div>
       </header>
 
@@ -81,7 +81,7 @@ export default function FAQ() {
             <p>For pricing, minimum order quantity, lead time, and payment terms, please contact VFRB directly.</p>
             <a className="vs-aside-link vs-link" href={C.phoneHref}>{C.phone}</a>
             <a className="vs-aside-link vs-link" href={`mailto:${C.email}`}>{C.email}</a>
-            <Btn to="/guide" variant="line">Read the client guide</Btn>
+            <Btn to="/guide" variant="line">Read the customer guide</Btn>
           </Reveal>
           <div className="vs-acc">
             {FAQS.map((item, i) => (

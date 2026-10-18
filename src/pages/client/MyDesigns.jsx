@@ -11,6 +11,7 @@
 // No new backend endpoint, table, or field is used — this page is a read surface over
 // data the Studio already writes.
 import { stashStudioConfig } from '../../utils/studioHandoff';
+import { setStudioLock } from '../../utils/studioLock';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -31,7 +32,7 @@ function DesignCard({ img, garment, colors, title, meta, badge, tone, primary, s
       <div style={{ padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
         <div style={{ minWidth: 0 }}>
           <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</h3>
-          <p style={{ margin: '3px 0 0', fontSize: 11, color: 'var(--text-subtle)' }}>{meta}</p>
+          <p style={{ margin: '3px 0 0', fontSize: 'var(--text-meta)', color: 'var(--text-subtle)' }}>{meta}</p>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 'auto' }}>
           {primary && <button className="cx-btn cx-btn-p" style={{ minHeight: 40, padding: '0 10px', width: '100%' }} onClick={primary.onClick} disabled={primary.disabled}>{primary.label}</button>}
@@ -72,16 +73,17 @@ export default function MyDesigns() {
   };
   useEffect(load, []);
 
-  const openStudioBlank = () => { sessionStorage.removeItem('studio_config'); nav('/design-studio'); };
-  const continueDraft = () => { sessionStorage.setItem('studio_config', JSON.stringify(draft.studio_config)); nav('/design-studio'); };
+  const openStudioBlank = () => { sessionStorage.removeItem('studio_config'); setStudioLock(null); nav('/design-studio'); };
+  const continueDraft = () => { sessionStorage.setItem('studio_config', JSON.stringify(draft.studio_config)); setStudioLock({ warn: true }); nav('/design-studio'); };
   const orderDraft = () => {
     const png = draft.preview_dataurl;
     const snap = png?.startsWith?.('data:image/png') ? { ...draft.studio_config, previewPng: png } : draft.studio_config;
     stashStudioConfig(snap, { fromDraft: true });
     nav('/order/create');
   };
-  const useTemplate = (d) => { sessionStorage.setItem('studio_config', JSON.stringify(d.config)); nav('/design-studio'); };
-  const orderAgain = (d) => { sessionStorage.setItem('studio_config', JSON.stringify(d.config)); nav('/design-studio'); };
+  const useTemplate = (d) => { sessionStorage.setItem('studio_config', JSON.stringify(d.config)); setStudioLock(null); nav('/design-studio'); };
+  // A design attached to an order opens read-only; the Studio offers "Duplicate to edit".
+  const orderAgain = (d) => { sessionStorage.setItem('studio_config', JSON.stringify(d.config)); setStudioLock({ final: true, orderId: d.order_id ?? null }); nav('/design-studio'); };
 
   const nDraft = draft ? 1 : 0, nOrdered = past.length, nInspo = tpl.length, total = nDraft + nOrdered;
   const hit = (...v) => !q.trim() || v.filter(Boolean).join(' ').toLowerCase().includes(q.trim().toLowerCase());
@@ -147,7 +149,7 @@ export default function MyDesigns() {
           {showPast && shownPast.map((d, i) => (
             <DesignCard key={d.id} i={i + 1} img={d.photo_path} garment={d.garment} colors={d.config?.colors}
               title={titleOf(d.config, d.label, d.garment || 'Design')} meta={[d.category, d.sleeve].filter(Boolean).join(' · ') || fmtDate(d.updated_at ?? d.created_at)}
-              badge="Ordered before" tone={ORDERED} primary={{ label: 'Reuse in Studio', onClick: () => orderAgain(d), disabled: !d.config?.garment }} />
+              badge="Ordered before" tone={ORDERED} primary={{ label: 'View in Studio', onClick: () => orderAgain(d), disabled: !d.config?.garment }} />
           ))}
           {shownTpl.map((d, i) => (
             <DesignCard key={`t${d.id}`} i={i} img={d.photo_path} garment={d.garment} colors={d.config?.colors}

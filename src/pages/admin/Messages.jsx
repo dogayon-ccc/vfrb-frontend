@@ -127,7 +127,7 @@ export default function AdminMessages() {
       <div className="msg-wrap">
         <aside className={`msg-list${mobileView !== 'list' ? ' off' : ''}`} aria-label="Conversations">
           <div className="msg-list-head">
-            <SearchBox value={search} onChange={setSearch} placeholder="Search order, client, message…" label="Search conversations" />
+            <SearchBox value={search} onChange={setSearch} placeholder="Search order, customer, message…" label="Search conversations" />
             <div className="msg-chips">
               <button aria-pressed={!unreadOnly} onClick={() => setUnreadOnly(false)}>All</button>
               <button aria-pressed={unreadOnly} onClick={() => setUnreadOnly(true)}>Unread{unreadTotal ? ` (${unreadTotal})` : ''}</button>
@@ -138,7 +138,7 @@ export default function AdminMessages() {
               : filtered.length === 0 ? (
                 <div className="adm-empty"><NavIcon name="chat" size={28} color="currentColor" />
                   <div style={{ marginTop: 8, fontWeight: 700 }}>{search || unreadOnly ? 'No conversations match' : 'No conversations yet'}</div>
-                  <div style={{ fontSize: 12, marginTop: 4 }}>{!search && !unreadOnly && 'Conversations appear once a client messages about an order.'}</div>
+                  <div style={{ fontSize: 12, marginTop: 4 }}>{!search && !unreadOnly && 'Conversations appear once a customer messages about an order.'}</div>
                   {(search || unreadOnly) && <button className="adm-link-btn" onClick={() => { setSearch(''); setUnreadOnly(false); }}>Clear filters</button>}
                 </div>
               ) : filtered.map((t) => {

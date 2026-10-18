@@ -74,7 +74,7 @@ export default function Login() {
 
       <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div>
-          <label htmlFor="login-email" style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Username or email</label>
+          <label htmlFor="login-email" style={{ display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Username or email</label>
           <input id="login-email" type="text" autoComplete="username" autoCapitalize="none" spellCheck={false} required aria-invalid={!!error} aria-describedby={error ? 'login-error' : undefined} value={form.login}
             onChange={e => { set('login', e.target.value); if (error) setError(''); }}
             onFocus={() => setFocused('email')} onBlur={() => setFocused('')}
@@ -82,7 +82,7 @@ export default function Login() {
         </div>
 
         <div>
-          <label htmlFor="login-password" style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6, display: 'block' }}>Password</label>
+          <label htmlFor="login-password" style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 6, display: 'block' }}>Password</label>
           <div style={{ position: 'relative' }}>
             <input id="login-password" type={showPw ? 'text' : 'password'} autoComplete="current-password" required aria-invalid={!!error} aria-describedby={error ? 'login-error' : undefined} value={form.password}
               onChange={e => { set('password', e.target.value); if (error) setError(''); }}
@@ -102,28 +102,28 @@ export default function Login() {
             </div>
           )}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
-            <Link to="/forgot-password" style={{ fontSize: 13, fontWeight: 600, color: T, textDecoration: 'none' }}>Forgot password?</Link>
+            <Link to="/forgot-password" style={{ fontSize: 14, fontWeight: 700, color: 'var(--teal-dark)', textDecoration: 'none' }}>Forgot password?</Link>
           </div>
         </div>
 
         <motion.button type="submit" disabled={loading} whileHover={{ scale: loading ? 1 : 1.01 }} whileTap={{ scale: .98 }}
-          style={{ width: '100%', height: 48, borderRadius: 12, border: 'none', fontWeight: 600, fontSize: 15,
+          style={{ width: '100%', height: 56, borderRadius: 14, border: 'none', fontWeight: 800, fontSize: 17,
             color: 'var(--text-on-accent)', cursor: loading ? 'not-allowed' : 'pointer', display: 'flex',
             alignItems: 'center', justifyContent: 'center', gap: 10,
-            background: loading ? 'rgba(2,128,144,.5)' : `linear-gradient(135deg, ${T}, var(--teal-dark))`,
-            boxShadow: loading ? 'none' : '0 4px 20px rgba(2,128,144,.3)' }}>
+            background: loading ? 'color-mix(in srgb, var(--teal) 55%, transparent)' : T,
+            boxShadow: loading ? 'none' : '0 10px 24px -8px color-mix(in srgb, var(--teal) 70%, transparent)' }}>
           {loading ? 'Signing in…' : 'Sign In'}
         </motion.button>
       </form>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0' }}>
         <div style={{ flex: 1, height: 1, background: 'var(--border)' }}/>
-        <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>or continue with</span>
+        <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>or continue with</span>
         <div style={{ flex: 1, height: 1, background: 'var(--border)' }}/>
       </div>
 
-      <button type="button" onClick={handleGoogle} style={{ width: '100%', minHeight: 48, padding: 13, borderRadius: 12, border: '1.5px solid var(--border)',
-        background: 'var(--bg-card)', color: 'var(--ink)', fontSize: 14, fontWeight: 500, cursor: 'pointer',
+      <button type="button" onClick={handleGoogle} style={{ width: '100%', minHeight: 54, padding: 13, borderRadius: 14, border: '1.5px solid var(--border-strong)',
+        background: 'var(--bg-card)', color: 'var(--ink)', fontSize: 16, fontWeight: 700, cursor: 'pointer',
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
         <svg width="18" height="18" viewBox="0 0 24 24">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -134,8 +134,8 @@ export default function Login() {
         Continue with Google
       </button>
 
-      <p style={{ textAlign: 'center', fontSize: 14, color: 'var(--text-muted)', marginTop: 28 }}>
-        No account? <Link to="/register" style={{ color: T, fontWeight: 600, textDecoration: 'none' }}>Register here →</Link>
+      <p style={{ textAlign: 'center', fontSize: 15, color: 'var(--text-muted)', marginTop: 28 }}>
+        No account? <Link to="/register" style={{ color: 'var(--teal-dark)', fontWeight: 800, textDecoration: 'none' }}>Register here →</Link>
       </p>
     </AuthShell>
   );

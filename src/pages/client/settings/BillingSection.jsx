@@ -110,9 +110,9 @@ export default function BillingSection() {
             {profiles.map(p => (
               <RecordRow key={p.billing_id} title={p.billing_name} isDefault={!!p.is_default} busy={busyId === p.billing_id}
                 onEdit={() => setEditing(p)} onDelete={() => setConfirmDelete(p)} onMakeDefault={() => makeDefault(p)}>
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 0', overflowWrap: 'anywhere', whiteSpace: 'pre-line' }}>{p.billing_address}</p>
+                <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '4px 0 0', overflowWrap: 'anywhere', whiteSpace: 'pre-line' }}>{p.billing_address}</p>
                 {(p.tin || p.billing_email) && (
-                  <p style={{ fontSize: 12, color: 'var(--text-subtle)', margin: '4px 0 0', overflowWrap: 'anywhere' }}>
+                  <p style={{ fontSize: 13, color: 'var(--text-subtle)', margin: '4px 0 0', overflowWrap: 'anywhere' }}>
                     {p.tin && `TIN ${p.tin}`}{p.tin && p.billing_email && ' · '}{p.billing_email}
                   </p>
                 )}

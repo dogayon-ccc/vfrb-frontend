@@ -5,6 +5,7 @@ import axios                                                  from 'axios';
 import { cacheGet, cacheSet, cacheClear, TTL }               from '../../utils/cache';
 import { NavIcon }                                            from '../../components/ui/icons';
 import { canAccessArea, isOwner }                             from '../../utils/jobAccess';
+import ProductionProgress                                     from '../../components/admin/ProductionProgress';
 import { PageHeader, StatGrid, PillTabs, ErrorBlock, Panel, StatusPill, SearchBox, Segments, Banner, Toast, useToast, useIsMobile, FilterSheet, FilterButton, SkeletonRows } from '../../components/admin/AdminUI';
 
 const STATUS_CFG = {
@@ -29,6 +30,8 @@ const ALL_TABS = [
 
 const PROD_STAGES = ['confirmed','pattern','segregation','cutting','sewing','qc','pressing','packing'];
 const isLive = (st) => !['completed','cancelled'].includes(st);
+// Orders with output to show: anything past confirmation (for_delivery included) that isn't closed.
+const inProduction = (st) => isLive(st) && !['pending','confirmed'].includes(st);
 const fmtDate = (d, y = false) => d ? new Date(d).toLocaleDateString('en-PH', { month:'short', day:'numeric', ...(y ? { year:'numeric' } : {}) }) : '—';
 
 function StageBar({ status }) {
@@ -37,7 +40,7 @@ function StageBar({ status }) {
   return (
     <div style={{ minWidth:96 }}>
       <Segments total={PROD_STAGES.length} index={idx < 0 ? 0 : idx} />
-      <div style={{ fontSize:10, color:'var(--text-faint)', marginTop:4 }}>
+      <div style={{ fontSize:13, color:'var(--text-faint)', marginTop:4 }}>
         {idx < 0 ? 'Awaiting confirmation' : `Stage ${idx + 1} of ${PROD_STAGES.length}`}
       </div>
     </div>
@@ -83,7 +86,7 @@ function OrderActions({ order, isManager, onConfirm, confirming, stop, hideView 
   );
 }
 
-function OrderRow({ order, isManager, onConfirm, confirming }) {
+function OrderRow({ order, isManager, onConfirm, confirming, summary }) {
   const navigate = useNavigate();
   const cfg = STATUS_CFG[order.status] ?? STATUS_CFG.pending;
   const swatch = getSwatchColor(order);
@@ -97,24 +100,25 @@ function OrderRow({ order, isManager, onConfirm, confirming }) {
           <span style={{ width:12, height:12, borderRadius:4, flexShrink:0, background: swatch ?? 'var(--bg-surface)', border:'1px solid rgba(0,0,0,.1)' }} />
           <div>
             <div style={{ fontWeight:800, color:'var(--teal)' }}>#{order.order_id}</div>
-            <div style={{ fontSize:11, color:'var(--text-faint)' }}>{fmtDate(order.created_at)}</div>
+            <div style={{ fontSize:13, color:'var(--text-faint)' }}>{fmtDate(order.created_at)}</div>
           </div>
         </div>
       </td>
       <td>
         <div style={{ fontWeight:600, maxWidth:180, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{order.customer_name ?? '—'}</div>
-        <div style={{ fontSize:11, color:'var(--text-subtle)' }}>{order.order_type === 'direct' ? 'Direct' : 'Institutional'}</div>
+        <div style={{ fontSize:13, color:'var(--text-subtle)' }}>{order.order_type === 'subcontract' ? "Arranged (Ma'am Ronnaxe)" : 'Direct'}</div>
       </td>
       <td>
         <div style={{ fontWeight:600 }}>{order.garment_type ?? order.design?.design_name ?? 'Custom'}</div>
-        <div style={{ fontSize:11, color:'var(--text-subtle)' }}>{order.quantity_ordered ?? 0} pcs{order.color ? ` · ${order.color}` : ''}</div>
+        <div style={{ fontSize:13, color:'var(--text-subtle)' }}>{order.quantity_ordered ?? 0} pcs{order.color ? ` · ${order.color}` : ''}</div>
       </td>
       <td>
         <StatusPill status={order.status} label={cfg.label} />
         <div className="adm-only-d" style={{ marginTop:8 }}><StageBar status={order.status} /></div>
-        <div className="adm-hide-d-t" style={{ fontSize:10, color:'var(--text-faint)', marginTop:4 }}>{due ? `Due ${fmtDate(due)}` : ''}</div>
+        <div className="adm-hide-d-t" style={{ fontSize:13, color:'var(--text-faint)', marginTop:4 }}>{due ? `Due ${fmtDate(due)}` : ''}</div>
       </td>
-      <td className="adm-hide-t" style={{ whiteSpace:'nowrap', color:'var(--text-subtle)', fontSize:12 }}>{fmtDate(due, true)}</td>
+      <td>{inProduction(order.status) ? <ProductionProgress compact summary={summary ?? null} /> : <span style={{ fontSize:13, color:'var(--text-faint)' }}>—</span>}</td>
+      <td className="adm-hide-t" style={{ whiteSpace:'nowrap', color:'var(--text-subtle)', fontSize:13 }}>{fmtDate(due, true)}</td>
       <td>
         <div className="adm-ra" style={{ display:'flex', gap:6, justifyContent:'flex-end' }}>
           <OrderActions order={order} isManager={isManager} onConfirm={onConfirm} confirming={confirming} stop />
@@ -124,7 +128,7 @@ function OrderRow({ order, isManager, onConfirm, confirming }) {
   );
 }
 
-function OrderCard({ order, isManager, onConfirm, confirming, index }) {
+function OrderCard({ order, isManager, onConfirm, confirming, index, summary }) {
   const navigate = useNavigate();
   const cfg = STATUS_CFG[order.status] ?? STATUS_CFG.pending;
   const swatch = getSwatchColor(order);
@@ -137,11 +141,12 @@ function OrderCard({ order, isManager, onConfirm, confirming, index }) {
         <StatusPill status={order.status} label={cfg.label} />
       </div>
       <div style={{ marginTop:8, fontSize:14, fontWeight:700, color:'var(--ink)' }}>{order.customer_name ?? '—'}</div>
-      <div style={{ fontSize:12, color:'var(--text-subtle)', marginTop:2 }}>
+      <div style={{ fontSize:13, color:'var(--text-subtle)', marginTop:2 }}>
         {order.garment_type ?? 'Custom'} · {order.quantity_ordered ?? 0} pcs{order.color ? ` · ${order.color}` : ''}
       </div>
-      {due && <div style={{ fontSize:11, color:'var(--text-faint)', marginTop:2 }}>Due {fmtDate(due, true)}</div>}
-      {isLive(order.status) && <div style={{ marginTop:10 }}><StageBar status={order.status} /></div>}
+      {due && <div style={{ fontSize:13, color:'var(--text-faint)', marginTop:2 }}>Due {fmtDate(due, true)}</div>}
+      {inProduction(order.status) ? <div style={{ marginTop:10 }}><ProductionProgress compact summary={summary ?? null} /></div>
+        : isLive(order.status) && <div style={{ marginTop:10 }}><StageBar status={order.status} /></div>}
       {((isLive(order.status) && !isManager && canTrack()) || (isManager && order.status === 'pending')) && (
         <div className="adm-mfoot">
           <OrderActions order={order} isManager={isManager} onConfirm={onConfirm} confirming={confirming} stop hideView />
@@ -188,6 +193,18 @@ export default function AdminOrders() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // One bulk request for the Production column instead of one per row.
+  const [summaries, setSummaries] = useState({});
+  const prodIds = useMemo(() => orders.filter(o => inProduction(o.status)).map(o => o.order_id).join(','), [orders]);
+  useEffect(() => {
+    if (!prodIds) { setSummaries({}); return undefined; }
+    let off = false;
+    axios.get('/api/admin/orders/production-summaries', { params: { ids: prodIds } })
+      .then(r => { if (!off) setSummaries(r.data?.data ?? {}); })
+      .catch(() => { if (!off) setSummaries({}); });
+    return () => { off = true; };
+  }, [prodIds]);
 
   const counts = useMemo(() =>
     orders.reduce((acc, o) => { acc[o.status] = (acc[o.status] ?? 0) + 1; return acc; }, {}),
@@ -263,7 +280,7 @@ export default function AdminOrders() {
       ]} />
 
       <div className="adm-toolbar">
-        <SearchBox value={search} onChange={setSearch} placeholder="Search order, client, garment, color…" label="Search orders" />
+        <SearchBox value={search} onChange={setSearch} placeholder="Search order, customer, garment, color…" label="Search orders" />
         <FilterButton label={`Status: ${tabLabel}`} onClick={() => setSheet(true)} />
       </div>
       <div className="adm-only-d"><PillTabs value={tab} onChange={setTab} tabs={tabs} /></div>
@@ -273,11 +290,11 @@ export default function AdminOrders() {
           <div className="adm-tbl-scroll">
             <table className="adm-table">
               <thead>
-                <tr><th>Order</th><th>Client</th><th>Garment</th><th>Status</th><th className="adm-hide-t">Deadline</th><th style={{ textAlign:'right' }}>Actions</th></tr>
+                <tr><th>Order</th><th>Customer</th><th>Garment</th><th>Status</th><th>Production</th><th className="adm-hide-t">Deadline</th><th style={{ textAlign:'right' }}>Actions</th></tr>
               </thead>
               <tbody key={tab} className="adm-tabpanel">
                 {loading ? null : filtered.map(o => (
-                  <OrderRow key={o.order_id} order={o} isManager={isManager} onConfirm={confirmOrder} confirming={confirming} />
+                  <OrderRow key={o.order_id} order={o} isManager={isManager} onConfirm={confirmOrder} confirming={confirming} summary={summaries[o.order_id]} />
                 ))}
               </tbody>
             </table>
@@ -291,7 +308,7 @@ export default function AdminOrders() {
             </div>
           )}
           {!loading && filtered.length > 0 && (
-            <div style={{ padding:'10px 18px', borderTop:'1px solid var(--bg-surface)', fontSize:11, color:'var(--text-faint)' }}>
+            <div style={{ padding:'10px 18px', borderTop:'1px solid var(--bg-surface)', fontSize:13, color:'var(--text-faint)' }}>
               Showing {filtered.length} of {orders.length} orders
             </div>
           )}
@@ -305,10 +322,10 @@ export default function AdminOrders() {
               <div style={{ marginTop:8, fontWeight:700 }}>{search ? `No results for “${search}”` : `No ${tab === 'all' ? '' : `${tab} `}orders`}</div>
             </div>
           ) : filtered.map((o, i) => (
-            <OrderCard key={o.order_id} order={o} index={i} isManager={isManager} onConfirm={confirmOrder} confirming={confirming} />
+            <OrderCard key={o.order_id} order={o} index={i} isManager={isManager} onConfirm={confirmOrder} confirming={confirming} summary={summaries[o.order_id]} />
           ))}
         {!loading && filtered.length > 0 && (
-          <p style={{ fontSize:11, color:'var(--text-faint)', textAlign:'center', margin:'4px 0 0' }}>{filtered.length} of {orders.length} orders</p>
+          <p style={{ fontSize:13, color:'var(--text-faint)', textAlign:'center', margin:'4px 0 0' }}>{filtered.length} of {orders.length} orders</p>
         )}
       </div>
     </>

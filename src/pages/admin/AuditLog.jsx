@@ -88,10 +88,10 @@ export default function AuditLog() {
       </Panel>
 
       {!loading && !error && lastPage > 1 && (
-        <nav aria-label="Audit log pages" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 16 }}>
-          <button className="adm-btn" style={{ minHeight: 44 }} disabled={page <= 1} onClick={() => load(page - 1)}>← Prev</button>
+        <nav className="ui-pager" aria-label="Audit log pages">
+          <button className="adm-btn" style={{ minHeight: 44 }} disabled={page <= 1} onClick={() => load(page - 1)}>Previous</button>
           <span style={{ fontSize: 13, color: 'var(--text-subtle)' }}>Page {page} of {lastPage}</span>
-          <button className="adm-btn" style={{ minHeight: 44 }} disabled={page >= lastPage} onClick={() => load(page + 1)}>Next →</button>
+          <button className="adm-btn" style={{ minHeight: 44 }} disabled={page >= lastPage} onClick={() => load(page + 1)}>Next</button>
         </nav>
       )}
     </>

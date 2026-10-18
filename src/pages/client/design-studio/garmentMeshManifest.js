@@ -1,4 +1,5 @@
 import { useGLTF } from '@react-three/drei';
+import { modelUrl } from '../../../lib/modelUrl';
 
 // GLTF-loading side effects on top of the pure capability data (garmentCapabilities.js). Kept as
 // a separate file so non-3D pages that read capability data through dsShared.js never pull
@@ -7,4 +8,4 @@ export { SCANNED_GARMENTS, UNSUPPORTED_3D_MODELS, PENDING_3D_MODELS, get3DCapabi
 
 import { SCANNED_GARMENTS } from './garmentCapabilities';
 
-SCANNED_GARMENTS.filter(g => g.preload).forEach(g => Object.values(g.models).forEach(useGLTF.preload));
+SCANNED_GARMENTS.filter(g => g.preload).forEach(g => Object.values(g.models).forEach(m => useGLTF.preload(modelUrl(m))));

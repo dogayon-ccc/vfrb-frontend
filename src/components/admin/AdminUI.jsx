@@ -1,58 +1,30 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { STATUS_TONE } from './statusTone';
 import { NavIcon } from '../ui/icons';
 import BottomSheet from '../ui/BottomSheet';
+import StatusChip from '../ui/StatusChip';
+import AlertBanner from '../ui/AlertBanner';
+import UiPageHeader from '../ui/PageHeader';
+import StatTile, { StatGrid as UiStatGrid } from '../ui/StatTile';
+import Card from '../ui/Card';
+import EmptyState from '../ui/EmptyState';
 
-export const PageHeader = ({ title, sub, children }) => (
-  <div className="adm-page-head adm-in">
-    <div><h1 className="adm-h1">{title}</h1>{sub && <p className="adm-sub">{sub}</p>}</div>
-    {children && <div className="adm-actions">{children}</div>}
-  </div>
+// Shared page header (ui/PageHeader); `sub` kept for existing admin pages.
+export const PageHeader = ({ title, sub, meta, back, children }) => (
+  <UiPageHeader className="adm-in" title={title} subtitle={sub} meta={meta} back={back} actions={children} />
 );
 
-const reduceMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-
-function useCountUp(target, ms = 700) {
-  const n = typeof target === 'number' ? target : null;
-  const [v, setV] = useState(n);
-  useEffect(() => {
-    if (n == null || reduceMotion() || n === 0) { setV(n); return undefined; }
-    let raf; const t0 = performance.now();
-    const step = (t) => {
-      const k = Math.min(1, (t - t0) / ms);
-      setV(Math.round(n * (1 - (1 - k) ** 3)));
-      if (k < 1) raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [n, ms]);
-  return n == null ? target : v;
-}
-
-const StatValue = ({ value, color }) => {
-  const shown = useCountUp(value);
-  return <div className="adm-stat-val" style={color ? { color } : undefined}>{shown}</div>;
-};
-
+// Admin KPI row on the shared stat tiles; numbers ease in once on load.
 export const StatGrid = ({ items, loading }) => (
-  <div className="adm-stats">
-    {items.map((s, i) => {
-      const Tag = s.onClick ? 'button' : 'div';
-      return (
-        <Tag key={s.label} className="adm-stat adm-in" style={{ animationDelay: `${i * 45}ms` }} onClick={s.onClick}>
-          <div className="adm-stat-top">
-            <span className="adm-stat-label">{s.label}</span>
-            {s.chip != null && <span className={`adm-chip ${s.chipTone ?? ''}`}>{s.chip}</span>}
-          </div>
-          {loading ? <div className="adm-sk" style={{ height: 26, width: '50%', marginTop: 8 }} />
-            : <StatValue value={s.value} color={s.color} />}
-          {s.sub && <div className="adm-stat-sub">{s.sub}</div>}
-        </Tag>
-      );
-    })}
-  </div>
+  <UiStatGrid>
+    {items.map((s, i) => (
+      <StatTile key={s.label} className="adm-in" style={{ animationDelay: `${i * 45}ms` }}
+        label={s.label} value={s.value} sub={s.sub} chip={s.chip} chipTone={s.chipTone}
+        icon={s.icon} tone={s.tone} to={s.to} onClick={s.onClick} loading={loading} countUp
+        valueStyle={s.color ? { color: s.color } : undefined} />
+    ))}
+  </UiStatGrid>
 );
 
 export const PillTabs = ({ tabs, value, onChange }) => {
@@ -93,19 +65,16 @@ export const RecordedBy = ({ name, at, label = 'by' }) => (
   <span className="adm-recby">{label && `${label} `}<b>{name || 'Unknown user'}</b>{at && <> · <time dateTime={new Date(at).toISOString()}>{fmtWhen(at)}</time></>}</span>
 );
 
-export const Panel = ({ title, action, children, flush, style }) => (
-  <section className="adm-panel adm-in" style={style}>
-    {(title || action) && (
-      <div className="adm-panel-head"><h2 className="adm-panel-title">{title}</h2>{action}</div>
-    )}
-    <div className={flush ? undefined : 'adm-panel-body'}>{children}</div>
-  </section>
+// Shared card (ui/Card). tone 'attention' marks a panel that needs a decision.
+export const Panel = ({ title, subtitle, action, children, flush, tone, style }) => (
+  <Card className="adm-panel adm-in" title={title} subtitle={subtitle} action={action} tone={tone}
+    padding={flush ? 'none' : 'md'} style={style}>
+    {children}
+  </Card>
 );
 
-export const StatusPill = ({ status, label }) => {
-  const t = STATUS_TONE[String(status).toLowerCase()] ?? STATUS_TONE.default;
-  return <span className="adm-pill" style={{ background: t.bg, color: t.fg }}>{label ?? String(status).replace(/_/g, ' ')}</span>;
-};
+// Delegates to the shared U1 chip (label + icon + group colour).
+export const StatusPill = ({ status, label, group }) => <StatusChip status={status} label={label} group={group} />;
 
 export const SkeletonRows = ({ rows = 4, h = 38 }) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 14 }}>
@@ -113,10 +82,14 @@ export const SkeletonRows = ({ rows = 4, h = 38 }) => (
   </div>
 );
 
-export const EmptyBlock = ({ children }) => <div className="adm-empty">{children}</div>;
+// Shared empty state (ui/EmptyState); pass title/icon/action for the full version, or just text.
+export const EmptyBlock = ({ title, icon, action, children }) => (
+  <EmptyState compact title={title} icon={icon} action={action}>{children}</EmptyState>
+);
 
 export const ErrorBlock = ({ msg = 'Could not load data.', onRetry }) => (
-  <div className="adm-err"><span>{msg}</span>{onRetry && <button className="adm-btn" onClick={onRetry}>Retry</button>}</div>
+  <AlertBanner tone="error" title={msg} style={{ marginBottom: 0 }}
+    action={onRetry && <button className="adm-btn" onClick={onRetry}>Retry</button>} />
 );
 
 export const useIsMobile = (bp = 767) => {
@@ -156,10 +129,9 @@ export const Segments = ({ total, index }) => (
   </div>
 );
 
-export const Banner = ({ tone = 'info', icon, children, action }) => (
-  <div className={`adm-banner ${tone}`} role={tone === 'warn' ? 'alert' : 'note'}>
-    {icon && <NavIcon name={icon} size={16} color="currentColor" />}<span>{children}</span>{action}
-  </div>
+// Delegates to the shared U1 banner; 'warn' maps to 'warning'.
+export const Banner = ({ tone = 'info', title, children, action }) => (
+  <AlertBanner tone={tone === 'warn' ? 'warning' : tone} title={title ?? children} action={action}>{title ? children : null}</AlertBanner>
 );
 
 export const Toast = ({ toast }) => (
@@ -232,3 +204,11 @@ export const LiveStamp = ({ at, busy, onRefresh, className = 'adm-btn' }) => (
     <NavIcon name="refresh" size={14} color="currentColor" />
   </button>
 );
+
+// Foundation primitives, re-exported so admin pages keep one import line.
+export { default as DataTable } from '../ui/DataTable';
+export { default as AttentionStrip } from '../ui/AttentionStrip';
+export { default as Stepper } from '../ui/Stepper';
+export { default as StatTile } from '../ui/StatTile';
+export { default as Card } from '../ui/Card';
+export { default as EmptyState } from '../ui/EmptyState';

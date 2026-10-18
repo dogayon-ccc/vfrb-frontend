@@ -42,7 +42,7 @@ export default function Badge({ tone = 'neutral', icon, children }) {
       display: 'inline-flex', alignItems: 'center', gap: 5,
       padding: '3px 9px', borderRadius: 999,
       background: t.bg, color: t.fg,
-      fontSize: 11, fontWeight: 700,
+      fontSize: 'var(--text-meta)', fontWeight: 700,
     }}>
       {icon && <NavIcon name={icon} size={12} color={t.fg} />}
       {children}

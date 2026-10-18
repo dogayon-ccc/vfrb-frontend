@@ -17,7 +17,7 @@ function Templates({ onInspo, onShowcase }) {
       </button>
       <button type="button" className="ds-card" onClick={onShowcase}>
         <NavIcon name="image" size={20}/>
-        <span><strong>Community showcase</strong><small>Approved designs from other clients to start from.</small></span>
+        <span><strong>Community showcase</strong><small>Approved designs from other customers to start from.</small></span>
       </button>
     </div>
   );

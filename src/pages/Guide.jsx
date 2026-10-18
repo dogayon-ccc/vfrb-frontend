@@ -25,12 +25,12 @@ const STEPS = [
 
 export default function Guide() {
   return (
-    <SitePage title="Client Guide">
+    <SitePage title="Customer Guide">
       <header className="vs-pagehead">
         <div className="vs-wrap">
-          <p className="vs-kicker">Client guide</p>
+          <p className="vs-kicker">Customer guide</p>
           <h1 className="vs-h1" style={{ maxWidth: '20ch' }}>How ordering works, start to finish</h1>
-          <p className="vs-lede">The order flow used in the VFRB Enterprise client portal, as it works today.</p>
+          <p className="vs-lede">The order flow used in the VFRB Enterprise customer portal, as it works today.</p>
         </div>
       </header>
 

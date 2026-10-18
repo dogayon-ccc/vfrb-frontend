@@ -26,12 +26,12 @@ export default function SiteFooter() {
             <h2>Company</h2>
             <ul>{NAV.map(n => <li key={n.to}><Link to={n.to}>{n.label}</Link></li>)}</ul>
           </nav>
-          <nav aria-label="Clients">
-            <h2>Clients</h2>
+          <nav aria-label="Customers">
+            <h2>Customers</h2>
             <ul>
               <li><Link to="/register">Create an account</Link></li>
               <li><Link to="/login">Log in</Link></li>
-              <li><Link to="/guide">Client guide</Link></li>
+              <li><Link to="/guide">Customer guide</Link></li>
               <li><Link to="/faq">FAQ</Link></li>
             </ul>
           </nav>

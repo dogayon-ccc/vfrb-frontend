@@ -4,6 +4,7 @@ import axios from 'axios';
 import { cacheGet, cacheSet, cacheClear } from '../../utils/cache';
 import { NavIcon } from '../../components/ui/icons';
 import { PageHeader, Panel, StatusPill, Meter, Toast, useToast, SkeletonRows, ErrorBlock } from '../../components/admin/AdminUI';
+import ProductionProgress from '../../components/admin/ProductionProgress';
 
 const STAGES = [
   { key: 'pattern', label: 'Pattern', icon: 'pattern', desc: 'Pattern preparation and layout' },
@@ -122,6 +123,7 @@ export default function ProductionTracking() {
       </PageHeader>
 
       {loadErr && !loading && <ErrorBlock msg="Could not load this order." onRetry={() => loadAll(true)} />}
+      {!loading && !loadErr && !isCancelled && <ProductionProgress key={`${orderId}-${tracking.map((t) => t.qty_completed).join('.')}`} orderId={orderId} />}
       {loading ? <SkeletonRows rows={4} h={90} /> : !loadErr && (
         <div className="adm-detail">
           <div className="adm-stack">
@@ -148,8 +150,13 @@ export default function ProductionTracking() {
               </Callout>
             )}
             {status === 'pattern' && (
+              <Callout tone="info" icon="info" title="Record material consumption">
+                Enter each material's consumption from the marker in the Daily Output Log before Pattern can advance. Nothing leaves stock yet.
+              </Callout>
+            )}
+            {status === 'cutting' && (
               <Callout tone="warn" icon="warning" title="Materials will be deducted from inventory">
-                Advancing past Pattern deducts the confirmed materials from stock. Enter actual usage and make sure stock is sufficient first.
+                Completing Cutting deducts the consumption recorded at Pattern from stock. Make sure stock is sufficient first. Sewing does not deduct again.
               </Callout>
             )}
             {status === 'packing' && (
@@ -162,7 +169,7 @@ export default function ProductionTracking() {
               <Panel title="Current stage" action={<button className="adm-btn" onClick={() => navigate(`/admin/output-log?order_id=${orderId}`)}><NavIcon name="add" size={13} color="currentColor" /> Log output</button>}>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
                   <span className="adm-step-dot" style={{ background: 'var(--teal-50)', borderColor: 'var(--teal-2)', color: 'var(--teal)' }}><NavIcon name={cur.icon} size={18} color="currentColor" /></span>
-                  <div><div style={{ fontSize: 16, fontWeight: 800 }}>{cur.label}</div><div style={{ fontSize: 12, color: 'var(--text-subtle)' }}>{cur.desc}</div></div>
+                  <div><div style={{ fontSize: 16, fontWeight: 800 }}>{cur.label}</div><div style={{ fontSize: 13, color: 'var(--text-subtle)' }}>{cur.desc}</div></div>
                 </div>
                 <SizeBreakdown logs={prodLogs} stage={status} />
               </Panel>
@@ -201,7 +208,7 @@ export default function ProductionTracking() {
           <div className="adm-stack">
             <Panel title="Order summary">
               <dl className="adm-kv">
-                <dt>Client</dt><dd>{order?.customer_name ?? '—'}</dd>
+                <dt>Customer</dt><dd>{order?.customer_name ?? '—'}</dd>
                 <dt>Garment</dt><dd>{order?.garment_type ?? 'Custom'}</dd>
                 <dt>Quantity</dt><dd>{order?.quantity_ordered ?? 0} pcs</dd>
                 <dt>Color</dt><dd>{order?.color ?? '—'}</dd>
@@ -221,7 +228,7 @@ export default function ProductionTracking() {
                       <div key={t.stage} className="adm-od-stage">
                         <div className="adm-od-stage-top">
                           <span style={{ fontWeight: 700, textTransform: 'capitalize', color: t.stage === status ? 'var(--teal)' : 'var(--ink)' }}>{t.stage === 'qc' ? 'QC' : t.stage}</span>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: complete ? 'var(--success-text)' : 'var(--text-subtle)' }}>{done} / {target} pcs</span>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: complete ? 'var(--success-text)' : 'var(--text-subtle)' }}>{done} / {target} pcs</span>
                         </div>
                         <Meter pct={target > 0 ? (done / target) * 100 : 0} tone={complete ? 'ok' : undefined} />
                       </div>

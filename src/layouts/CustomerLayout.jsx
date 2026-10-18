@@ -13,7 +13,7 @@ import { signOut, USER_CHANGE_EVENT } from '../utils/session';
 import logo from '../assets/company-logo.jpg';
 import { useAppearance } from '../hooks/useAppearance';
 import '../styles/customer-shell.css';
-import { LayoutDashboard, ClipboardList, MessageSquare, Settings, Palette, LogOut, Shirt, MoreHorizontal, Bell, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, MessageSquare, Settings, Palette, LogOut, Shirt, MoreHorizontal, Bell, PanelLeftClose, PanelLeftOpen, Megaphone } from 'lucide-react';
 
 const NAV = [
   { to:'/dashboard',  icon:LayoutDashboard, label:'Dashboard',  short:'Home',    end:true  },
@@ -34,8 +34,8 @@ export default function CustomerLayout() {
   const location = useLocation();
   const still = useReducedMotion();
   const section = location.pathname.startsWith('/order/create') ? 'New Order'
-    : (NAV.find(n => location.pathname.startsWith(n.to))?.label ?? 'Client Portal');
-  const [name, setName] = useState('Client');
+    : (NAV.find(n => location.pathname.startsWith(n.to))?.label ?? 'Customer Portal');
+  const [name, setName] = useState('Customer');
   const [unread, setUnread] = useState(0);
   const [moreOpen, setMoreOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
@@ -64,7 +64,7 @@ export default function CustomerLayout() {
     window.addEventListener(USER_CHANGE_EVENT, onUser);
     return () => window.removeEventListener(USER_CHANGE_EVENT, onUser);
   }, []);
-  useEffect(() => { setName(readUser().name || 'Client'); setMoreOpen(false); setBellOpen(false); }, [location.pathname]);
+  useEffect(() => { setName(readUser().name || 'Customer'); setMoreOpen(false); setBellOpen(false); }, [location.pathname]);
 
   // Visibility-aware, non-overlapping poll — no request stacking when the tab is hidden or the server is slow.
   useVisiblePoll(async () => {
@@ -192,7 +192,7 @@ export default function CustomerLayout() {
       <main className="cm-main">
         <div className="cm-content" data-fab={fab || undefined}>
           <AnimatePresence mode="wait" initial={false}>
-            <motion.div key={location.pathname}
+            <motion.div key={location.pathname} className="vfrb-page"
               initial={still ? false : { opacity:0, y:8 }}
               animate={{ opacity:1, y:0 }}
               exit={still ? { opacity:1 } : { opacity:0, transition:{ duration:.12, ease:[.4, 0, 1, 1] } }}
@@ -219,7 +219,7 @@ export default function CustomerLayout() {
               transition={{ duration: still ? 0 : .3, ease:[.22, 1, .36, 1] }}>
               <h2>More</h2>
               <NavLink to="/settings" end className="cx-rail-link" onClick={() => setMoreOpen(false)}><Settings size={20} strokeWidth={1.9} aria-hidden="true" /><span>Settings</span></NavLink>
-              <NavLink to="/settings?tab=feedback" className="cx-rail-link" onClick={() => setMoreOpen(false)}><MessageSquare size={20} strokeWidth={1.9} aria-hidden="true" /><span>Send feedback</span></NavLink>
+              <NavLink to="/settings?tab=feedback" className="cx-rail-link" onClick={() => setMoreOpen(false)}><Megaphone size={20} strokeWidth={1.9} aria-hidden="true" /><span>Send feedback</span></NavLink>
               <div className="cx-rail-sep" />
               <button type="button" className="cx-rail-link cx-rail-out" onClick={logout}><LogOut size={20} strokeWidth={1.9} aria-hidden="true" /><span>Sign out</span></button>
             </motion.div>

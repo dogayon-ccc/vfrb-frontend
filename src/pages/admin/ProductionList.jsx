@@ -22,7 +22,7 @@ function Progress({ status }) {
   return (
     <div style={{ minWidth: 110 }}>
       <Segments total={STAGE_ORDER.length} index={idx} />
-      <div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 4 }}>Stage {idx + 1} of {STAGE_ORDER.length}</div>
+      <div style={{ fontSize: 13, color: 'var(--text-faint)', marginTop: 4 }}>Stage {idx + 1} of {STAGE_ORDER.length}</div>
     </div>
   );
 }
@@ -30,7 +30,7 @@ function Progress({ status }) {
 const Spec = ({ o }) => (
   <>
     <div style={{ fontWeight: 600 }}>{o.garment_type ?? 'Custom garment'}</div>
-    <div style={{ fontSize: 11, color: 'var(--text-subtle)' }}>{o.quantity_ordered ?? 0} pcs{o.color ? ` · ${o.color}` : ''}</div>
+    <div style={{ fontSize: 13, color: 'var(--text-subtle)' }}>{o.quantity_ordered ?? 0} pcs{o.color ? ` · ${o.color}` : ''}</div>
   </>
 );
 
@@ -79,7 +79,7 @@ export default function ProductionList() {
   return (
     <>
       {sheet && <FilterSheet title="Filter by stage" options={options} value={stage} onChange={setStage} onClose={() => setSheet(false)} isMobile={isMobile} />}
-      <PageHeader title="Production Tracking" sub={`${orders.length} orders on the floor · ${pieces.toLocaleString()} pcs`}>
+      <PageHeader title="Production Orders" sub={`${orders.length} production orders on the floor · ${pieces.toLocaleString()} pcs`}>
         <button className="adm-btn" onClick={() => nav('/admin/output-log')}><NavIcon name="outputLog" size={14} color="currentColor" /> Output Log</button>
         <button className="adm-btn" onClick={() => load(true)}><NavIcon name="refresh" size={14} color="currentColor" /> Refresh</button>
       </PageHeader>
@@ -112,7 +112,7 @@ export default function ProductionList() {
       </Panel>
 
       <div className="adm-toolbar">
-        <SearchBox value={search} onChange={setSearch} placeholder="Search order, client, garment, color…" label="Search production orders" />
+        <SearchBox value={search} onChange={setSearch} placeholder="Search order, customer, garment, color…" label="Search production orders" />
         <FilterButton label={`Stage: ${stageLabel}`} onClick={() => setSheet(true)} />
       </div>
 
@@ -120,7 +120,7 @@ export default function ProductionList() {
         <Panel flush>
           <div className="adm-tbl-scroll">
             <table className="adm-table">
-              <thead><tr><th>Order</th><th>Client</th><th>Garment</th><th>Stage</th><th className="adm-hide-t">Deadline</th><th style={{ textAlign: 'right' }}>Actions</th></tr></thead>
+              <thead><tr><th>Order</th><th>Customer</th><th>Garment</th><th>Stage</th><th className="adm-hide-t">Deadline</th><th style={{ textAlign: 'right' }}>Actions</th></tr></thead>
               <tbody>
                 {!loading && filtered.map((o) => (
                   <tr key={o.order_id} className="adm-row" tabIndex={0} onClick={() => go(o)} onKeyDown={(e) => e.key === 'Enter' && go(o)}>
@@ -129,10 +129,10 @@ export default function ProductionList() {
                     <td><Spec o={o} /></td>
                     <td>
                       <StatusPill status={o.status} label={LABEL[o.status]} />
-                      {qcHold(o) && <span className="adm-pill" style={{ marginLeft: 6, background: 'var(--danger-bg)', color: 'var(--danger-text)' }}>QC hold</span>}
+                      {qcHold(o) && <span style={{ marginLeft: 6 }}><StatusPill status="flagged" label="QC hold" /></span>}
                       <div style={{ marginTop: 8 }}><Progress status={o.status} /></div>
                     </td>
-                    <td className="adm-hide-t" style={{ whiteSpace: 'nowrap', fontSize: 12, color: isOverdue(o) ? 'var(--danger-text)' : 'var(--text-subtle)', fontWeight: isOverdue(o) ? 700 : 400 }}>{fmtDate(dueOf(o))}</td>
+                    <td className="adm-hide-t" style={{ whiteSpace: 'nowrap', fontSize: 13, color: isOverdue(o) ? 'var(--danger-text)' : 'var(--text-subtle)', fontWeight: isOverdue(o) ? 700 : 400 }}>{fmtDate(dueOf(o))}</td>
                     <td><div className="adm-ra" style={{ display: 'flex', justifyContent: 'flex-end' }}>
                       <button className="adm-btn primary" onClick={(e) => { e.stopPropagation(); go(o); }}><NavIcon name="production" size={13} color="currentColor" /> Track</button>
                     </div></td>
@@ -161,9 +161,9 @@ export default function ProductionList() {
                   <StatusPill status={o.status} label={LABEL[o.status]} />
                 </div>
                 <div style={{ marginTop: 8 }}><Spec o={o} /></div>
-                {o.customer_name && <div style={{ fontSize: 12, color: 'var(--text-subtle)', marginTop: 2 }}>{o.customer_name}</div>}
+                {o.customer_name && <div style={{ fontSize: 13, color: 'var(--text-subtle)', marginTop: 2 }}>{o.customer_name}</div>}
                 <div style={{ marginTop: 10 }}><Progress status={o.status} /></div>
-                {qcHold(o) && <div className="adm-inline-warn"><NavIcon name="warning" size={13} color="currentColor" /> QC hold — complete the QC checklist to advance</div>}
+                {qcHold(o) && <div style={{ marginTop: 10 }}><Banner tone="warn" title="QC hold">Complete the QC checklist to advance.</Banner></div>}
                 <div className="adm-mfoot"><button className="adm-btn primary" onClick={(e) => { e.stopPropagation(); go(o); }}>Track order #{o.order_id}</button></div>
               </div>
             ))}

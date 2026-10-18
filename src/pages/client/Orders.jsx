@@ -29,18 +29,18 @@ function MobileCard({ o, onOpen }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <OrderThumb order={o} size={52} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'var(--text-faint)' }}>ORDER #{o.order_id}</p>
+          <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--text-faint)' }}>ORDER #{o.order_id}</p>
           <p style={{ margin: '2px 0 4px', fontSize: 14, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{orderTitle(o)}</p>
-          <p style={{ margin: 0, fontSize: 11, color: 'var(--text-subtle)' }}>
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--text-subtle)' }}>
             {o.quantity_ordered ?? 0} pcs{o.target_delivery_date ? ` · Due ${fmtDate(o.target_delivery_date, { month: 'short', day: 'numeric' })}` : ''}
           </p>
         </div>
         <StatusPill status={o.status} />
       </div>
       {!done && <div style={{ marginTop: 14 }}><Stepper steps={LIFECYCLE} current={lifecycleIndex(o.status)} /></div>}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, fontSize: 11, color: 'var(--text-faint)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, fontSize: 13, color: 'var(--text-faint)' }}>
         <span>{fmtDate(o.created_at)}</span>
-        <span style={{ color: 'var(--teal)', fontWeight: 700 }}>View details →</span>
+        <span style={{ color: 'var(--teal)', fontWeight: 700 }}>View details</span>
       </div>
     </motion.button>
   );
@@ -122,7 +122,7 @@ export default function CustomerOrders() {
         <EmptyState illustration="order"
           headline={search ? `No results for "${search}"` : blank ? "You haven't placed an order yet" : 'No orders in this filter'}
           sub={blank ? 'Design your uniform and place your first order.' : 'Try a different filter or clear your search.'}
-          cta={blank ? { label: 'Start Designing →', onClick: () => nav('/design-studio') } : { label: 'Clear filters', onClick: () => { setSearch(''); setGroup('all'); } }} />
+          cta={blank ? { label: 'Start a design', onClick: () => nav('/design-studio') } : { label: 'Clear filters', onClick: () => { setSearch(''); setGroup('all'); } }} />
       ) : (
         <>
           {/* Desktop / tablet-landscape: table */}
@@ -136,13 +136,13 @@ export default function CustomerOrders() {
                     aria-label={`View order ${o.order_id}`}>
                     <td><div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><OrderThumb order={o} size={40} />
                       <div style={{ minWidth: 0 }}><b style={{ fontSize: 13 }}>#{o.order_id}</b>
-                        <div style={{ fontSize: 12, color: 'var(--text-subtle)', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{orderTitle(o)}</div></div></div></td>
+                        <div style={{ fontSize: 13, color: 'var(--text-subtle)', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{orderTitle(o)}</div></div></div></td>
                     <td>{humanize(o.garment_type) ?? '—'}</td>
                     <td>{o.quantity_ordered ?? 0} pcs</td>
                     <td>{fmtDate(o.created_at, { month: 'short', day: 'numeric', year: 'numeric' })}</td>
                     <td>{fmtDate(o.target_delivery_date, { month: 'short', day: 'numeric' })}</td>
                     <td><StatusPill status={o.status} /></td>
-                    <td style={{ color: 'var(--teal)', fontWeight: 700, fontSize: 12 }}>View →</td>
+                    <td style={{ color: 'var(--teal)', fontWeight: 700, fontSize: 13 }}>View</td>
                   </tr>
                 ))}
               </tbody>

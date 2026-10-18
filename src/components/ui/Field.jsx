@@ -55,7 +55,7 @@ export default function Field({
     <div>
       {label && (
         <label htmlFor={fieldId} style={{
-          display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
+          display: 'block', fontSize: 'var(--text-meta)', fontWeight: 700, textTransform: 'uppercase',
           letterSpacing: '.07em', color: 'var(--text-muted)', marginBottom: 7,
         }}>
           {label}
@@ -84,7 +84,7 @@ export default function Field({
         </Tag>
       )}
       {(error || hint) && (
-        <p id={noteId} style={{ fontSize: 11, color: error ? 'var(--danger-text)' : 'var(--text-subtle)', margin: '5px 0 0' }}>
+        <p id={noteId} style={{ fontSize: 'var(--text-meta)', color: error ? 'var(--danger-text)' : 'var(--text-subtle)', margin: '5px 0 0' }}>
           {error || hint}
         </p>
       )}

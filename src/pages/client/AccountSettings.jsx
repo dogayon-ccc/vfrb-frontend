@@ -117,8 +117,8 @@ function ShippingSection() {
           {addrs.map(a => (
             <RecordRow key={a.shipping_id} title={a.label} isDefault={!!a.is_default} busy={busyId === a.shipping_id}
               onEdit={() => setEditing(a)} onDelete={() => setConfirmDelete(a)} onMakeDefault={() => makeDefault(a)}>
-              <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 0' }}>{a.recipient_name} · {formatPhMobile(a.contact_number) || a.contact_number}</p>
-              <p style={{ fontSize: 12, color: 'var(--text-subtle)', margin: '2px 0 0', overflowWrap: 'anywhere' }}>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '4px 0 0' }}>{a.recipient_name} · {formatPhMobile(a.contact_number) || a.contact_number}</p>
+              <p style={{ fontSize: 13, color: 'var(--text-subtle)', margin: '2px 0 0', overflowWrap: 'anywhere' }}>
                 {[a.address_line, a.city, a.province].filter(Boolean).join(', ')}{a.postal_code ? ` ${a.postal_code}` : ''}
               </p>
             </RecordRow>
@@ -167,7 +167,7 @@ function NotificationsSection() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
         <div>
           <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{label}</p>
-          {!live && <p style={{ fontSize: 11, color: 'var(--warning)', margin: '2px 0 0' }}>Email goes to a test inbox for now. Your preference is saved for when real delivery is on.</p>}
+          {!live && <p style={{ fontSize: 13, color: 'var(--warning)', margin: '2px 0 0' }}>Email goes to a test inbox for now. Your preference is saved for when real delivery is on.</p>}
         </div>
         <button role="switch" aria-checked={on} aria-label={`Toggle ${label}`} onClick={() => toggle(k)} disabled={saving}
           style={{ width: 42, height: 24, borderRadius: 99, border: 'none', cursor: saving ? 'not-allowed' : 'pointer',
@@ -275,7 +275,7 @@ function FabricsSection() {
               background: 'var(--bg-card)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
               <div style={{ minWidth: 0 }}>
                 <p style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)', margin: 0 }}>{p.material?.material_name ?? 'Fabric'}</p>
-                {p.notes && <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '3px 0 0' }}>{p.notes}</p>}
+                {p.notes && <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '3px 0 0' }}>{p.notes}</p>}
               </div>
               <button onClick={() => setConfirmDelete(p)} aria-label={`Remove ${p.material?.material_name ?? 'fabric'}`}
                 style={{ border: '1px solid var(--border)', background: 'var(--bg-card)', borderRadius: 9, padding: 8,
@@ -350,7 +350,7 @@ export default function AccountSettings() {
             </span>
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ display: 'block', fontSize: 14, fontWeight: 700 }}>{x.label}</span>
-              <span style={{ display: 'block', fontSize: 11, color: 'var(--text-subtle)', marginTop: 1 }}>{x.hint}</span>
+              <span style={{ display: 'block', fontSize: 13, color: 'var(--text-subtle)', marginTop: 1 }}>{x.hint}</span>
             </span>
             <span aria-hidden="true" style={{ color: 'var(--text-faint)', fontSize: 18 }}>›</span>
           </button>
@@ -394,8 +394,8 @@ export default function AccountSettings() {
             {me.avatar ? <img src={me.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}/> : (me.name ?? '?').charAt(0).toUpperCase()}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ margin: 0, fontSize: 16, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{me.name ?? 'Client'}</p>
-            <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-subtle)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{me.email ?? ''}</p>
+            <p style={{ margin: 0, fontSize: 16, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{me.name ?? 'Customer'}</p>
+            <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--text-subtle)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{me.email ?? ''}</p>
           </div>
           {!wide && <button className="cx-btn cx-btn-s" style={{ minHeight: 44 }} onClick={() => setSec('profile')}>Edit Profile</button>}
         </div>

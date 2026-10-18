@@ -66,7 +66,7 @@ function CreateUserModal({ onClose, onDone, isMobile }) {
                 <option value="general">General (sees all operational pages — default)</option>
                 <option value="production">Production (Production, Output Log, QC Checklist, Incidents)</option>
                 <option value="inventory">Inventory (Inventory, Materials, Physical Count, Procurement)</option>
-                <option value="sales">Sales (Orders, Clients, Messages, Delivery, Sales & Pay — no Production or Inventory pages)</option>
+                <option value="sales">Sales (Orders, Customers, Messages, Delivery, Sales & Pay — no Production or Inventory pages)</option>
               </select>
               <p style={{ fontSize:10.5, color:'var(--text-faint)', margin:'4px 0 0' }}>
                 Restricts which admin pages this account can open. Production and Inventory

@@ -40,7 +40,7 @@ export default function ShowcaseGallery({ showShowcase, setShowShowcase, setCfg 
           <div className="ds-show-head">
             <div>
               <p id="ds-show-h" className="ds-show-title"><Sparkles size={14} aria-hidden="true" /> Showcase</p>
-              <p className="ds-show-sub">Designs other clients chose to share, approved by VFRB. Opening one changes the garment, colours and patterns; your own logos and text stay.</p>
+              <p className="ds-show-sub">Designs other customers chose to share, approved by VFRB. Opening one changes the garment, colours and patterns; your own logos and text stay.</p>
             </div>
             <button type="button" className="ds-show-x" aria-label="Close showcase" onClick={() => setShowShowcase(false)}><X size={16} aria-hidden="true" /></button>
           </div>

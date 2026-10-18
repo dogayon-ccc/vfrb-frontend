@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
@@ -6,9 +6,12 @@ import axios from 'axios';
 import { TTL } from '../../utils/cache';
 import { useCachedResource } from '../../hooks/useCachedResource';
 import { NavIcon } from '../../components/ui/icons';
-import { navColor } from '../../utils/navColors';
+import AlertBanner from '../../components/ui/AlertBanner';
 import { ownerCanOpen } from '../../utils/jobAccess';
 import logo from '../../assets/company-logo.jpg';
+import ProductionProgress from '../../components/admin/ProductionProgress';
+// 3D chart loads on demand so the dashboard paints first.
+const StageTowers3D = lazy(() => import('../../components/admin/StageTowers3D'));
 import { StatGrid, PillTabs, Panel, StatusPill, SkeletonRows, EmptyBlock, ErrorBlock, useLivePoll, LiveStamp } from '../../components/admin/AdminUI';
 
 const T = 'var(--teal)', T2 = 'var(--teal-2)';
@@ -31,17 +34,17 @@ function Toast({ msg, type, onDone }) {
 const ListRow = ({ title, sub, right, rightColor, onClick }) => (
   <div onClick={onClick} className="adm-dash-row">
     <div style={{ minWidth: 0 }}>
-      <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</p>
-      {sub && <p style={{ fontSize: 10, color: 'var(--text-faint)', margin: '2px 0 0', textTransform: 'capitalize' }}>{sub}</p>}
+      <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</p>
+      {sub && <p style={{ fontSize: 13, color: 'var(--text-faint)', margin: '2px 0 0', textTransform: 'capitalize' }}>{sub}</p>}
     </div>
-    <p style={{ fontSize: 11, fontWeight: 700, color: rightColor ?? 'var(--text-faint)', margin: 0, flexShrink: 0 }}>{right}</p>
+    <p style={{ fontSize: 13, fontWeight: 700, color: rightColor ?? 'var(--text-faint)', margin: 0, flexShrink: 0 }}>{right}</p>
   </div>
 );
 
 function AttentionPanel({ title, color, items, loading, failed, empty, render, footer, onFooter }) {
   return (
-    <Panel flush title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />{title}{!loading && items.length > 0 && <span className="adm-chip" style={{ background: color, color: '#fff' }}>{items.length}</span>}</span>}
-      action={!loading && items.length > 0 && onFooter && <button className="adm-link-btn" onClick={onFooter}>{footer} →</button>}>
+    <Panel flush title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />{title}{!loading && items.length > 0 && <span className="adm-chip" style={{ background: color, color: '#fff' }}>{items.length}</span>}</span>}
+      action={!loading && items.length > 0 && onFooter && <button className="adm-link-btn" style={{ whiteSpace: 'nowrap', flexShrink: 0 }} onClick={onFooter}>{footer} →</button>}>
       {loading ? <SkeletonRows rows={2} h={32} /> : failed ? <EmptyBlock>Couldn't load this list.</EmptyBlock> : items.length === 0 ? <EmptyBlock>{empty}</EmptyBlock> : items.slice(0, 4).map(render)}
       {!loading && items.length > 4 && onFooter && <button className="dsh-more" onClick={onFooter}>+{items.length - 4} more</button>}
     </Panel>
@@ -64,6 +67,8 @@ export default function AdminDashboard() {
   const [rfqRaw, rfqFetching, loadRfqs] = useCachedResource('dashboard_pending_rfqs', () => (owner ? Promise.resolve([]) : axios.get('/api/admin/rfq?status=sent&per_page=5').then((r) => r.data?.data ?? [])), TTL.SUPPLIERS);
   const [delivRaw, delivFetching, loadDeliv] = useCachedResource('dashboard_upcoming_deliveries', () => (owner ? Promise.resolve([]) : axios.get('/api/admin/delivery?per_page=20').then((r) => (r.data?.data ?? []).filter((d) => !['delivered', 'returned'].includes(d.delivery_status)).slice(0, 5))), TTL.ORDERS);
 
+  // No ids = every order in production, each with its per-stage completed/total.
+  const [prodRaw, prodFetching, loadProd] = useCachedResource('dashboard_production_summaries', () => axios.get('/api/admin/orders/production-summaries').then((r) => Object.values(r.data?.data ?? {})), TTL.ORDERS);
   const [aiText, setAiText] = useState('');
   const [aiLoading, setAiLoad] = useState(false);
   const fetchAI = useCallback(async () => {
@@ -79,7 +84,7 @@ export default function AdminDashboard() {
   const poLoading = poFetching && !pendingRaw;
   const rfqLoading = rfqFetching && !rfqRaw;
   const delivLoading = delivFetching && !delivRaw;
-  const live = useLivePoll(() => Promise.all([loadDashboard(), loadPending(), loadRfqs(), loadDeliv()]), data);
+  const live = useLivePoll(() => Promise.all([loadDashboard(), loadPending(), loadRfqs(), loadDeliv(), loadProd()]), data);
 
   const o = data?.orders ?? {};
   const low = data?.inventory?.low_stock_materials ?? [];
@@ -107,7 +112,7 @@ export default function AdminDashboard() {
   const snapshot = [
     !owner && { label: 'Revenue (Month)', value: peso(data?.revenue?.month ?? 0) },
     { label: 'Stock Health', value: `${data?.stock_health_pct ?? 0}%` },
-    { label: 'In Transit', value: data?.production?.delivering ?? 0, onClick: go('/admin/delivery') },
+    { label: 'Awaiting Delivery', value: data?.production?.delivering ?? 0, onClick: go('/admin/delivery') },
     { label: 'Pending Count', value: data?.unreconciled_counts ?? 0, sub: 'Physical count', onClick: go('/admin/physical-count') },
   ].filter(Boolean);
   const quick = [
@@ -136,14 +141,13 @@ export default function AdminDashboard() {
     <>
       <style>{`
         @keyframes sk{0%{background-position:-400px 0}100%{background-position:400px 0}}
-        .adm-dash-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:stretch;margin-bottom:16px}
-        .adm-dash-col>:last-child{flex:1}
+        .adm-dash-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start;margin-bottom:16px}
         .adm-dash-col{display:flex;flex-direction:column;gap:16px;min-width:0}
         .adm-dash-row{padding:10px 18px;border-bottom:1px solid var(--bg-surface);display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer;transition:background .12s}
         .adm-dash-row:hover{background:var(--bg)}.adm-dash-row:last-child{border-bottom:none}
         .adm-attn-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;align-items:start}
         .adm-quick{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-        .adm-quick button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;min-height:76px;border-radius:12px;border:1px solid var(--border);background:var(--bg-card);font-size:11px;font-weight:700;color:var(--ink);cursor:pointer;transition:transform .12s,box-shadow .15s}
+        .adm-quick button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px;min-height:76px;border-radius:12px;border:1px solid var(--border);background:var(--bg-card);font-size:13px;font-weight:700;color:var(--ink);cursor:pointer;transition:transform .12s,box-shadow .15s}
         .adm-quick button:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}.adm-quick button:active{transform:scale(.96)}
         .adm-recent-cards{display:none}
         @media(max-width:1023px){.adm-dash-grid{grid-template-columns:1fr}}
@@ -169,10 +173,27 @@ export default function AdminDashboard() {
 
       <StatGrid items={kpis} loading={loading} />
 
+      <Panel title="Orders in production" action={<span className="adm-chip">{prodRaw ? prodRaw.length : '…'}</span>} style={{ marginBottom: 16 }}>
+        {prodFetching && !prodRaw ? <div className="adm-sk" style={{ height: 110 }} />
+          : prodRaw == null ? <EmptyBlock>Production progress is unavailable.</EmptyBlock>
+          : prodRaw.length === 0 ? <EmptyBlock>No orders in production right now.</EmptyBlock>
+          : <div className="adm-2col">{prodRaw.map((s) => (
+            <div key={s.order_id} style={{ cursor: 'pointer' }} onClick={() => nav(`/admin/orders/${s.order_id}`)}>
+              <ProductionProgress summary={s} title={`Order #${s.order_id}`} />
+            </div>
+          ))}</div>}
+      </Panel>
+
+      <Panel title="Production floor · live 3D" action={<span className="adm-chip">drag to look around</span>} style={{ marginBottom: 16 }}>
+        {loading ? <div className="adm-sk" style={{ height: 300 }} />
+          : stageTotal === 0 ? <EmptyBlock>No orders in production stages.</EmptyBlock>
+          : <Suspense fallback={<div className="adm-sk" style={{ height: 300 }} />}><StageTowers3D data={stageData} height={320} /></Suspense>}
+      </Panel>
+
       <div className="adm-dash-stack">
       <div className="adm-dash-grid">
         <div className="adm-dash-col">
-          {!loading && noTrend ? <p style={{ margin: '0 0 16px', fontSize: 12.5, color: 'var(--text-subtle)' }}>Orders Overview: not enough history yet to draw a trend.</p> : (
+          {!loading && noTrend ? <p style={{ margin: '0 0 16px', fontSize: 13.5, color: 'var(--text-subtle)' }}>Orders Overview: not enough history yet to draw a trend.</p> : (
           <Panel title="Orders Overview" action={owner ? null : <PillTabs tabs={[{ key: 'orders', label: 'Orders' }, { key: 'revenue', label: 'Revenue' }]} value={chartTab} onChange={setChartTab} />} style={{ overflow: 'visible' }}>
             {loading ? <div className="adm-sk" style={{ height: 220 }} /> : !data ? <EmptyBlock>Unavailable.</EmptyBlock> : chartData.length < 2 ? <EmptyBlock>Not enough history yet to draw a trend.</EmptyBlock> : (
               <div style={{ width: '100%', minWidth: 0, minHeight: 260 }}>
@@ -180,10 +201,10 @@ export default function AdminDashboard() {
                 <AreaChart data={chartData} margin={{ left: -12, right: 6, top: 6 }}>
                   <defs><linearGradient id="admTrend" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#028090" stopOpacity={0.28} /><stop offset="100%" stopColor="#028090" stopOpacity={0} /></linearGradient></defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                  <XAxis dataKey="m" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} width={48} tickFormatter={(v) => (chartTab === 'revenue' && v >= 1000 ? `${Math.round(v / 1000)}k` : v)} />
-                  <Tooltip formatter={(v) => (chartTab === 'revenue' ? peso(v) : v)} contentStyle={{ borderRadius: 10, border: '1px solid #e2e8f0', fontSize: 12 }} />
-                  <Area type="monotone" dataKey="v" stroke="#028090" strokeWidth={2.5} fill="url(#admTrend)" dot={{ r: 3, fill: '#028090' }} isAnimationActive={!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches} animationDuration={300} />
+                  <XAxis dataKey="m" tick={{ fontSize: 13, fill: '#5a6676' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 13, fill: '#5a6676' }} axisLine={false} tickLine={false} width={48} tickFormatter={(v) => (chartTab === 'revenue' && v >= 1000 ? `${Math.round(v / 1000)}k` : v)} />
+                  <Tooltip formatter={(v) => (chartTab === 'revenue' ? peso(v) : v)} contentStyle={{ borderRadius: 10, border: '1px solid #e2e8f0', fontSize: 13 }} />
+                  <Area type="monotone" dataKey="v" stroke="#028090" strokeWidth={3} fill="url(#admTrend)" dot={{ r: 4, fill: '#028090', stroke: '#fff', strokeWidth: 2 }} activeDot={{ r: 7 }} isAnimationActive={!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches} animationDuration={1100} animationEasing="ease-out" />
                 </AreaChart>
               </ResponsiveContainer>
               </div>
@@ -222,33 +243,33 @@ export default function AdminDashboard() {
               <>
                 <div style={{ position: 'relative', height: 170, minHeight: 170, minWidth: 0 }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <PieChart><Pie data={stageData} dataKey="value" innerRadius={52} outerRadius={76} paddingAngle={2} stroke="none" isAnimationActive={!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches} animationDuration={300}>
+                    <PieChart><Pie data={stageData} dataKey="value" innerRadius={52} outerRadius={76} paddingAngle={2} stroke="none" isAnimationActive={!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches} animationDuration={900} animationEasing="ease-out">
                       {stageData.map((s) => <Cell key={s.name} fill={s.color} />)}</Pie></PieChart>
                   </ResponsiveContainer>
                   <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
                     <span style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)' }}>{stageTotal}</span>
-                    <span style={{ fontSize: 10, color: 'var(--text-subtle)' }}>in production</span>
+                    <span style={{ fontSize: 13, color: 'var(--text-subtle)' }}>in production</span>
                   </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px', marginTop: 10 }}>
-                  {stageData.map((s) => <span key={s.name} style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: s.color }} />{s.name} <b style={{ marginLeft: 'auto', color: 'var(--ink)' }}>{s.value}</b></span>)}
+                  {stageData.map((s) => <span key={s.name} style={{ fontSize: 13, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: s.color }} />{s.name} <b style={{ marginLeft: 'auto', color: 'var(--ink)' }}>{s.value}</b></span>)}
                 </div>
-                {(data?.production?.delayed_count ?? 0) > 0 && <p style={{ fontSize: 11, color: 'var(--warning-text)', margin: '12px 0 0' }}>{data.production.delayed_count} stalled {delayDays}+ days</p>}
+                {(data?.production?.delayed_count ?? 0) > 0 && <div style={{ marginTop: 12 }}><AlertBanner tone="warning" title={`${data.production.delayed_count} stalled ${delayDays}+ days`} style={{ marginBottom: 0 }} /></div>}
               </>
             )}
           </Panel>
 
           <Panel title="Quick Actions">
-            <div className="adm-quick">{quick.map((q) => { const { fg, bg } = navColor(q.path); return (
+            <div className="adm-quick">{quick.map((q) => (
               <button key={q.path} onClick={() => nav(q.path)}>
-                <span style={{ width: 34, height: 34, borderRadius: 10, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><NavIcon name={q.icon} size={17} color={fg} /></span>{q.l}
-              </button>); })}</div>
+                <span style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--teal-50)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><NavIcon name={q.icon} size={17} color="var(--teal)" /></span>{q.l}
+              </button>))}</div>
           </Panel>
 
           <Panel title="Recent Order Mix" action={<span className="adm-chip">last {recent.length}</span>}>
             {loading ? <div className="adm-sk" style={{ height: 90 }} /> : !data ? <EmptyBlock>Unavailable.</EmptyBlock> : mix.length === 0 ? <EmptyBlock>No orders yet.</EmptyBlock> : mix.map(([name, n]) => (
               <div key={name} style={{ marginBottom: 10 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}><span style={{ color: 'var(--ink)', fontWeight: 600 }}>{name}</span><span style={{ color: 'var(--text-subtle)' }}>{Math.round((n / recent.length) * 100)}%</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}><span style={{ color: 'var(--ink)', fontWeight: 600 }}>{name}</span><span style={{ color: 'var(--text-subtle)' }}>{Math.round((n / recent.length) * 100)}%</span></div>
                 <div style={{ height: 6, borderRadius: 99, background: 'var(--bg-surface)' }}><div style={{ height: '100%', width: `${(n / recent.length) * 100}%`, borderRadius: 99, background: `linear-gradient(90deg,${T},${T2})`, transition: 'width .3s' }} /></div>
               </div>))}
           </Panel>
@@ -266,7 +287,7 @@ export default function AdminDashboard() {
       {isManager && (aiText || aiLoading) && (
         <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}
           style={{ background: 'var(--purple-50)', border: '1px solid var(--purple-100)', borderLeft: '4px solid var(--purple)', borderRadius: 14, padding: '16px 20px', marginBottom: 22 }}>
-          <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--purple)', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '.08em' }}>Gemini AI Insight · Manager only</p>
+          <p style={{ fontSize: 13, fontWeight: 800, color: 'var(--purple)', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '.08em' }}>Gemini AI Insight · Manager only</p>
           {aiLoading ? <SkeletonRows rows={3} h={10} /> : <p style={{ fontSize: 13, color: '#4c1d95', lineHeight: 1.8, margin: 0 }}>{aiText}</p>}
         </motion.div>
       )}

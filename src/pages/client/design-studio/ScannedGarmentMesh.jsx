@@ -5,6 +5,7 @@ import { renderDecals, bodyBounds } from './overlayDecals';
 import { buildRegionTexture, DEFAULT_GARMENT_COLOR } from './regionTexture';
 import { ensureZoneMask, createZoneUniforms, setZoneUniforms, patchZoneMaterial } from './regionShader';
 import { buildCustomParts, customMeshKey, disposeParts } from './customMesh3D';
+import { modelUrl } from '../../../lib/modelUrl';
 
 let grain;
 // Fine deterministic fabric grain (blurred noise) as a shared normal map; periodic weaves alias into streaks.
@@ -158,7 +159,7 @@ function ScannedPart({ geometry, part, colors, patterns, patternParams, decals, 
 // details: the design's pocket/button/closure changes (garmentDetails.js); a part tagged with a `detail` the customer hid is not drawn.
 export default function ScannedGarmentMesh({ manifest, colors = {}, patterns, patternParams, fit, garment, sleeve, overlays, details = null }) {
   const key = String(fit ?? '').toLowerCase();
-  const { nodes } = useGLTF(manifest.models[key] ?? Object.values(manifest.models)[0]);
+  const { nodes } = useGLTF(modelUrl(manifest.models[key] ?? Object.values(manifest.models)[0]));
   useEffect(() => () => Object.values(nodes).forEach(n => n.geometry?.dispose()), [nodes]); // useGLTF cache outlives the renderer; frees GL buffers that pin the dead context
   const decals = useDecals(overlays);
   const frame = useMemo(() => bodyBounds(garment, sleeve), [garment, sleeve]);

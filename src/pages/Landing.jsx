@@ -38,7 +38,7 @@ export default function Landing() {
               </div>
               <p className="vs-hero__digital">
                 <b>Online ordering</b>
-                <span>Design your uniform in the VFRB Design Studio, place a bulk order, and follow it through every production stage from your client account.</span>
+                <span>Design your uniform in the VFRB Design Studio, place a bulk order, and follow it through every production stage from your customer account.</span>
               </p>
             </div>
             <div className="vs-hero__media">
@@ -114,7 +114,7 @@ export default function Landing() {
       <section className="vs-sec vs-dark" aria-labelledby="proc">
         <div className="vs-wrap">
           <Head kicker="How a uniform is made" id="proc" title="Seven stages, from pattern to packing."
-            lede="Every order follows the same production line. Clients with an account can see which stage their order is on." />
+            lede="Every order follows the same production line. Customers with an account can see which stage their order is on." />
           <Reveal>
             <ol className="vs-proc" aria-label="The seven production stages">
               {STAGES.map(([t, d]) => <li key={t}><h3>{t}</h3><p>{d}</p></li>)}
@@ -146,7 +146,7 @@ export default function Landing() {
             <p className="vs-body">
               Registered clients build a uniform in the VFRB Design Studio, save it, place a bulk order, then track every stage in their portal.
             </p>
-            <div className="vs-btns"><Btn to="/register">Create an account</Btn><Btn to="/guide" variant="line">Read the client guide</Btn></div>
+            <div className="vs-btns"><Btn to="/register">Create an account</Btn><Btn to="/guide" variant="line">Read the customer guide</Btn></div>
           </Reveal>
           <Reveal delay={0.06}>
             <ol className="vs-flow">

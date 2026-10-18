@@ -13,7 +13,7 @@ export function Notice({ msg, type }) {
       {msg && (
         <motion.div initial={{ opacity: 0, y: -8, height: 0 }} animate={{ opacity: 1, y: 0, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
           role={err ? 'alert' : 'status'} aria-live="polite"
-          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 14px', borderRadius: 'var(--r-md)', fontSize: 12, fontWeight: 700, marginTop: 12,
+          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 14px', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 700, marginTop: 12,
             background: err ? 'var(--danger-bg)' : 'var(--success-bg)', border: `1px solid ${err ? 'var(--danger-border)' : 'var(--success-border)'}`,
             color: err ? 'var(--danger-text)' : 'var(--success-text)' }}>
           {err ? <CircleAlert size={14} aria-hidden="true" /> : <CircleCheck size={14} aria-hidden="true" />}
@@ -73,7 +73,7 @@ export function RecordRow({ title, isDefault, children, onEdit, onDelete, onMake
           gap:12px;justify-content:space-between;flex-wrap:wrap;transition:border-color .18s,box-shadow .18s}
         .rk-row:hover{border-color:var(--teal);box-shadow:var(--shadow-sm)}
         .rk-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 12px;border-radius:9px;
-          border:1px solid var(--border);background:var(--bg-card);color:var(--text-muted);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer}
+          border:1px solid var(--border);background:var(--bg-card);color:var(--text-muted);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer}
         .rk-btn:hover{border-color:var(--teal);color:var(--teal-dark)}
         .rk-ico{min-width:44px;padding:0}
         .rk-del{color:var(--danger-text)}

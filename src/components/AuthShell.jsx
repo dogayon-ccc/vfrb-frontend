@@ -9,7 +9,7 @@ const FONT = "ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif";
 
 // 16px stops iOS Safari from zooming the page on focus.
 export const authInput = (focusedKey, current, error) => ({
-  width: '100%', padding: '13px 16px', minHeight: 48, borderRadius: 12, fontSize: 16,
+  width: '100%', padding: '14px 16px', minHeight: 54, borderRadius: 14, fontSize: 16,
   color: 'var(--ink)', background: '#fff', outline: 'none', boxSizing: 'border-box',
   fontFamily: FONT, transition: 'border-color .18s, box-shadow .18s',
   border: `1.5px solid ${error ? 'var(--danger)' : focusedKey === current ? 'var(--teal)' : 'var(--border)'}`,

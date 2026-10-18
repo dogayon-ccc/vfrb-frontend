@@ -5,13 +5,16 @@ import { NavIcon } from '../../components/ui';
 import BottomSheet from '../../components/ui/BottomSheet';
 import { PageHeader, StatGrid, PillTabs, Panel, StatusPill, SearchBox, ErrorBlock, SkeletonRows, FilterSheet, FilterButton, useIsMobile, OrderLink } from '../../components/admin/AdminUI';
 
+// Status is automatic: ready once packing is done, partial once some pieces are delivered. The only manual step is Mark delivered.
+// `tone` reuses an existing StatusPill colour.
 const DEL_CFG = {
-  preparing:  { l:'Preparing',  c:'var(--warning)', bg:'var(--warning-bg)' },
-  dispatched: { l:'Dispatched', c:'var(--info)',     bg:'var(--info-bg)'    },
-  in_transit: { l:'In Transit', c:'var(--purple)',   bg:'var(--purple-50)'  },
-  delivered:  { l:'Delivered',  c:'var(--success)',  bg:'var(--success-bg)' },
-  returned:   { l:'Returned',   c:'var(--danger)',   bg:'var(--danger-bg)'  },
+  ready:     { l:'Ready for delivery',  c:'var(--warning)', tone:'preparing'  },
+  partial:   { l:'Partially delivered', c:'var(--purple)',  tone:'in_transit' },
+  delivered: { l:'Delivered',           c:'var(--success)', tone:'delivered'  },
+  returned:  { l:'Returned',            c:'var(--danger)',  tone:'returned'   },
 };
+const autoStatus = (d) => (['delivered', 'returned'].includes(d.delivery_status) ? d.delivery_status : Number(d.delivered_qty) > 0 ? 'partial' : 'ready');
+const AutoPill = ({ d }) => { const k = autoStatus(d); return <StatusPill status={DEL_CFG[k].tone} label={k === 'partial' ? `${DEL_CFG[k].l} · ${d.delivered_qty}/${d.quantity_ordered ?? '—'}` : DEL_CFG[k].l} />; };
 
 const METHODS = ['cash','gcash','ewallet','bank_transfer'];
 const TERMS   = ['full_payment','down_payment','net_30'];
@@ -28,6 +31,21 @@ function MarkDeliveredModal({ delivery, onClose, onDone, isMobile }) {
   const [err,   setErr]   = useState('');
   const [warn,  setWarn]  = useState('');
   const [marked, setMarked] = useState(false);
+  // Packed pieces not yet delivered; the server caps delivered_qty at this too.
+  const [ready, setReady] = useState(null);
+  const [qty,   setQty]   = useState('');
+  useEffect(() => {
+    let off = false;
+    axios.get(`/api/admin/orders/${delivery.order_id}/production-summary`)
+      .then((r) => { if (off) return; const n = Number(r.data?.ready_for_delivery) || 0; setReady(n); setQty(String(n)); })
+      .catch(() => { if (!off) setReady(false); });
+    return () => { off = true; };
+  }, [delivery.order_id]);
+  const qtyNum = Number(qty);
+  const qtyBad = ready !== false && (!Number.isInteger(qtyNum) || qtyNum < 1 || (ready != null && qtyNum > ready));
+  const ordered = Number(delivery.quantity_ordered) || 0;
+  const already = Number(delivery.delivered_qty) || 0;
+  const isPartial = ordered > 0 && already + qtyNum < ordered;
 
   const [recordPayment, setRecordPayment] = useState(true);
   const [amountPaid,    setAmountPaid]    = useState('');
@@ -38,7 +56,7 @@ function MarkDeliveredModal({ delivery, onClose, onDone, isMobile }) {
   const submit = async () => {
     setBusy(true); setErr(''); setWarn('');
     try {
-      await axios.patch(`/api/admin/delivery/${delivery.tracking_id}/delivered`, { notes, ...(needsAddress ? { delivery_address: address.trim() } : {}) });
+      await axios.patch(`/api/admin/delivery/${delivery.tracking_id}/delivered`, { notes, ...(ready !== false && qty ? { delivered_qty: qtyNum } : {}), ...(needsAddress ? { delivery_address: address.trim() } : {}) });
     } catch (e) {
       setErr(e.response?.data?.message ?? 'Failed to mark delivered.');
       setBusy(false);
@@ -62,6 +80,13 @@ function MarkDeliveredModal({ delivery, onClose, onDone, isMobile }) {
   return (
     <BottomSheet title={`Mark order #${delivery.order_id} delivered`} onClose={marked ? onDone : onClose} isMobile={isMobile} maxWidth={480}>
       <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+        <label><span className="adm-field">Pieces delivered now</span>
+          <input className="adm-input" type="number" inputMode="numeric" min={1} max={ready || undefined} value={qty} onChange={e=>setQty(e.target.value)} disabled={marked || ready === null || ready === false} aria-describedby="dlv-qty-hint" />
+          <span id="dlv-qty-hint" style={{ display:'block', fontSize:12, marginTop:4, color: qtyBad ? 'var(--danger-text)' : 'var(--text-subtle)' }}>
+            {ready === null ? 'Checking packed pieces…' : ready === false ? 'Packed count unavailable — the full remaining quantity will be delivered.'
+              : `${ready} packed and ready · ${already} of ${ordered} delivered so far${!qtyBad && isPartial ? ' · this is a partial delivery' : ''}`}
+          </span>
+        </label>
         {needsAddress && (
           <label><span className="adm-field">Delivery address (required)</span>
             <textarea className="adm-input" rows={2} value={address} onChange={e=>setAddress(e.target.value)} disabled={marked} required
@@ -110,48 +135,9 @@ function MarkDeliveredModal({ delivery, onClose, onDone, isMobile }) {
           {marked ? <button className="adm-btn primary" onClick={onDone}>Close</button> : (
             <>
               <button className="adm-btn" onClick={onClose}>Cancel</button>
-              <button className="adm-btn success" onClick={submit} disabled={busy || (needsAddress && !address.trim())}><NavIcon name="success" size={14} color="currentColor" /> {busy ? 'Saving…' : 'Confirm delivery'}</button>
+              <button className="adm-btn success" onClick={submit} disabled={busy || ready === null || qtyBad || (needsAddress && !address.trim())}><NavIcon name="success" size={14} color="currentColor" /> {busy ? 'Saving…' : isPartial && ready !== false ? `Deliver ${qtyNum} piece${qtyNum === 1 ? '' : 's'}` : 'Confirm delivery'}</button>
             </>
           )}
-        </div>
-      </div>
-    </BottomSheet>
-  );
-}
-
-function UpdateStatusModal({ delivery, onClose, onDone, isMobile }) {
-  const [status, setStatus] = useState(delivery.delivery_status ?? 'preparing');
-  const [notes,  setNotes]  = useState('');
-  const [busy,   setBusy]   = useState(false);
-  const [err,    setErr]    = useState('');
-
-  const submit = async () => {
-    setBusy(true); setErr('');
-    try {
-      await axios.patch(`/api/admin/delivery/${delivery.tracking_id}/status`, { delivery_status: status, notes });
-      onDone();
-    } catch (e) { setErr(e.response?.data?.message ?? 'Could not update the status.'); }
-    finally { setBusy(false); }
-  };
-
-  return (
-    <BottomSheet title={`Delivery status · order #${delivery.order_id}`} onClose={onClose} isMobile={isMobile} maxWidth={420}>
-      <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-        <div className="adm-sheet-list" role="radiogroup" aria-label="Delivery status" style={{ margin:'-8px -8px 0' }}>
-          {Object.entries(DEL_CFG).map(([k, cfg]) => (
-            <button key={k} type="button" role="radio" aria-checked={status === k} className={status === k ? 'on' : ''} onClick={() => setStatus(k)}>
-              <span style={{ display:'inline-flex', alignItems:'center', gap:8 }}><i style={{ width:10, height:10, borderRadius:'50%', background:cfg.c }} />{cfg.l}</span>
-              {status === k && <NavIcon name="success" size={14} color="currentColor" />}
-            </button>
-          ))}
-        </div>
-        <label><span className="adm-field">Notes (optional)</span>
-          <textarea className="adm-input" rows={2} value={notes} onChange={e=>setNotes(e.target.value)} />
-        </label>
-        {err && <ErrorBlock msg={err} />}
-        <div className="adm-sheet-foot">
-          <button className="adm-btn" onClick={onClose}>Cancel</button>
-          <button className="adm-btn primary" onClick={submit} disabled={busy}>{busy ? 'Saving…' : 'Update status'}</button>
         </div>
       </div>
     </BottomSheet>
@@ -163,11 +149,10 @@ const schedOf = (d) => d.estimated_delivery_date ?? d.expected_delivery_date;
 
 function DeliveryActions({ d, onModal, stop }) {
   const click = (fn) => (e) => { if (stop) e.stopPropagation(); fn(); };
-  if (d.delivery_status === 'delivered') return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--success-text)', fontWeight: 700 }}><NavIcon name="success" size={13} color="currentColor" /> Done</span>;
+  if (['delivered', 'returned'].includes(d.delivery_status)) return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--success-text)', fontWeight: 700 }}><NavIcon name="success" size={13} color="currentColor" /> Done</span>;
   return (
     <>
-      <button className="adm-btn" onClick={click(() => onModal({ type: 'status', delivery: d }))}>Update status</button>
-      <button className="adm-btn success" onClick={click(() => onModal({ type: 'delivered', delivery: d }))}><NavIcon name="success" size={13} color="currentColor" /> Delivered</button>
+      <button className="adm-btn success" onClick={click(() => onModal({ type: 'delivered', delivery: d }))}><NavIcon name="success" size={13} color="currentColor" /> Mark delivered</button>
     </>
   );
 }
@@ -196,22 +181,21 @@ export default function AdminDeliveryTracking() {
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  const counts = useMemo(() => deliveries.reduce((a, d) => { const s = d.delivery_status ?? 'preparing'; a[s] = (a[s] ?? 0) + 1; return a; }, {}), [deliveries]);
+  const counts = useMemo(() => deliveries.reduce((a, d) => { const s = autoStatus(d); a[s] = (a[s] ?? 0) + 1; return a; }, {}), [deliveries]);
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    return deliveries.filter((d) => (filter === 'all' || (d.delivery_status ?? 'preparing') === filter)
+    return deliveries.filter((d) => (filter === 'all' || autoStatus(d) === filter)
       && (!q || String(d.order_id).includes(q) || String(d.tracking_id).includes(q)
         || d.customer_name?.toLowerCase().includes(q) || (d.delivery_address ?? d.customer_address ?? '').toLowerCase().includes(q)));
   }, [deliveries, filter, search]);
 
   const tabs = [{ key: 'all', label: 'All', count: deliveries.length }, ...Object.entries(DEL_CFG).map(([k, c]) => ({ key: k, label: c.l, count: counts[k] ?? 0 }))];
-  const active = (counts.preparing ?? 0) + (counts.dispatched ?? 0) + (counts.in_transit ?? 0);
+  const active = (counts.ready ?? 0) + (counts.partial ?? 0);
   const clearFilters = () => { setSearch(''); setFilter('all'); };
 
   return (
     <>
       {modal?.type === 'delivered' && <MarkDeliveredModal isMobile={isMobile} delivery={modal.delivery} onClose={() => setModal(null)} onDone={() => { setModal(null); load(true); }} />}
-      {modal?.type === 'status' && <UpdateStatusModal isMobile={isMobile} delivery={modal.delivery} onClose={() => setModal(null)} onDone={() => { setModal(null); load(true); }} />}
       {sheet && <FilterSheet title="Filter by status" options={tabs} value={filter} onChange={setFilter} onClose={() => setSheet(false)} isMobile={isMobile} />}
 
       <PageHeader title="Delivery Tracking" sub={`${deliveries.length} deliveries · ${active} active`}>
@@ -224,7 +208,7 @@ export default function AdminDeliveryTracking() {
       }))} />
 
       <div className="adm-toolbar">
-        <SearchBox value={search} onChange={setSearch} placeholder="Search order, tracking #, client, address…" label="Search deliveries" />
+        <SearchBox value={search} onChange={setSearch} placeholder="Search order, tracking #, customer, address…" label="Search deliveries" />
         <FilterButton label={`Status: ${tabs.find((t) => t.key === filter)?.label}`} onClick={() => setSheet(true)} />
       </div>
       <div className="adm-only-d"><PillTabs value={filter} onChange={setFilter} tabs={tabs} /></div>
@@ -233,10 +217,10 @@ export default function AdminDeliveryTracking() {
         <Panel flush>
           <div className="adm-tbl-scroll">
             <table className="adm-table">
-              <thead><tr><th>Tracking</th><th>Order</th><th>Client</th><th>Scheduled</th><th className="adm-hide-t">Address</th><th>Status</th><th style={{ textAlign: 'right' }}>Actions</th></tr></thead>
+              <thead><tr><th>Tracking</th><th>Order</th><th>Customer</th><th>Scheduled</th><th className="adm-hide-t">Address</th><th>Status</th><th style={{ textAlign: 'right' }}>Actions</th></tr></thead>
               <tbody>
                 {!loading && filtered.map((d, i) => {
-                  const ds = d.delivery_status ?? 'preparing';
+                  const ds = autoStatus(d);
                   return (
                     <tr key={d.tracking_id ?? i}>
                       <td style={{ fontWeight: 800, color: 'var(--teal)' }}>#{d.tracking_id}</td>
@@ -245,7 +229,7 @@ export default function AdminDeliveryTracking() {
                       <td style={{ whiteSpace: 'nowrap', fontSize: 12, color: 'var(--text-subtle)' }}>{fmtDate(schedOf(d))}</td>
                       <td className="adm-hide-t" style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12, color: 'var(--text-subtle)' }} title={d.delivery_address ?? d.customer_address ?? ''}>{d.delivery_address ?? d.customer_address ?? '—'}</td>
                       <td>
-                        <StatusPill status={ds} label={DEL_CFG[ds]?.l} />
+                        <AutoPill d={d} />
                         {d.actual_delivery_date && <div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 4 }}>on {fmtDate(d.actual_delivery_date, false)}</div>}
                       </td>
                       <td><div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}><DeliveryActions d={d} onModal={setModal} /></div></td>
@@ -270,15 +254,15 @@ export default function AdminDeliveryTracking() {
         {loading ? <SkeletonRows rows={3} h={140} /> : loadErr ? null : filtered.length === 0 ? (
           <div className="adm-empty"><NavIcon name="delivery" size={30} color="currentColor" /><div style={{ marginTop: 8, fontWeight: 700 }}>No deliveries found</div></div>
         ) : filtered.map((d, i) => {
-          const ds = d.delivery_status ?? 'preparing';
+          const ds = autoStatus(d);
           return (
             <div key={d.tracking_id ?? i} className="adm-mcard accent" style={{ '--i': Math.min(i, 8), '--acc': DEL_CFG[ds]?.c ?? 'var(--teal)' }}>
-              <div className="adm-mrow"><b style={{ color: 'var(--teal)' }}><OrderLink id={d.order_id} prefix="Order #"/></b><StatusPill status={ds} label={DEL_CFG[ds]?.l} /></div>
+              <div className="adm-mrow"><b style={{ color: 'var(--teal)' }}><OrderLink id={d.order_id} prefix="Order #"/></b><AutoPill d={d} /></div>
               <div style={{ marginTop: 6, fontWeight: 700 }}>{d.customer_name ?? '—'}</div>
               <div style={{ fontSize: 12, color: 'var(--text-subtle)' }}>Tracking #{d.tracking_id} · scheduled {fmtDate(schedOf(d))}</div>
               {(d.delivery_address ?? d.customer_address) && <div style={{ fontSize: 12, color: 'var(--text-subtle)', marginTop: 4, display: 'flex', gap: 5 }}><NavIcon name="location" size={13} color="currentColor" style={{ flexShrink: 0, marginTop: 2 }} />{d.delivery_address ?? d.customer_address}</div>}
               {d.actual_delivery_date && <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 4 }}>Delivered {fmtDate(d.actual_delivery_date)}</div>}
-              {ds !== 'delivered' && <div className="adm-mfoot"><DeliveryActions d={d} onModal={setModal} /></div>}
+              {!['delivered', 'returned'].includes(ds) && <div className="adm-mfoot"><DeliveryActions d={d} onModal={setModal} /></div>}
             </div>
           );
         })}

@@ -1,0 +1,196 @@
+/* src/styles/refresh.css — VFRB UI/UX refresh.
+   Presentation only: no markup, route, hook or API is touched by this file.
+   Import it LAST in main.jsx (after premium.css). Delete the import to undo the whole refresh.
+
+   Direction: "atelier ledger". Bigger type, a serif voice for page titles, solid teal actions,
+   one loud amber for anything that needs a decision, and cards that use the width instead of floating in it. */
+
+/* ─── 1. Tokens: larger type, one rounder radius, taller shell ───────────── */
+:root {
+  --text-meta:   13px;   /* was 12: the floor for captions */
+  --text-label:  14px;
+  --text-table:  15px;
+  --text-body:   16px;
+  --text-lead:   18px;
+  --text-title:  21px;
+  --text-page:   36px;
+  --text-figure: 40px;
+
+  --radius:      14px;
+  --sidebar-w:   264px;
+  --topbar-h:    72px;
+  --shell-pad:   clamp(16px, 2.4vw, 36px);
+
+  --color-page:    #f6f3ec;
+  --color-surface: #efeae2;
+  --color-rail:      #0a3a42;
+  --color-rail-deep: #062a30;
+
+  --shadow-1: 0 1px 2px rgb(40 30 16 / .06), 0 2px 6px rgb(40 30 16 / .04);
+  --shadow-2: 0 4px 10px rgb(40 30 16 / .08), 0 22px 44px -16px rgb(40 30 16 / .3);
+}
+
+body { font-size: var(--text-body); }
+
+/* ─── 2. Page titles get the brand serif ─────────────────────────────────── */
+.adm-h1, .cx-head h1, .cx-page h1 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -.01em;
+  line-height: 1.06;
+}
+.adm-h1 { font-size: clamp(30px, 3.2vw, var(--text-page)); }
+.adm-sub, .cx-head p { font-size: var(--text-lead); line-height: 1.5; color: var(--text-muted); }
+.adm-page-head { margin-bottom: var(--space-8); }
+
+/* ─── 3. Admin: buttons, inputs, panels ──────────────────────────────────── */
+.adm-btn {
+  min-height: 44px; padding: 0 18px; font-size: 15px; font-weight: 800;
+  border: 1.5px solid var(--border-strong); border-radius: var(--radius);
+  transition: transform var(--dur-1) var(--ease-out), box-shadow var(--dur-2), background var(--dur-1), border-color var(--dur-1);
+}
+.adm-btn:hover:not(:disabled) { border-color: var(--teal); box-shadow: var(--shadow-1); }
+.adm-btn:active:not(:disabled) { transform: scale(.97); }
+.adm-btn.primary {
+  background: var(--teal); border-color: var(--teal); color: var(--on-teal);
+  box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--teal) 75%, transparent);
+}
+.adm-btn.primary:hover:not(:disabled) { background: var(--teal-dark); border-color: var(--teal-dark); }
+.adm-btn:disabled { opacity: .55; cursor: not-allowed; }
+.adm-link-btn { font-size: 15px; font-weight: 800; }
+
+.adm-input, .adm-search, .adm-field input, .adm-field select, .adm-field textarea {
+  min-height: 48px; font-size: 16px; border: 1.5px solid var(--border-strong); border-radius: var(--radius); background: var(--bg-card);
+}
+.adm-input:focus, .adm-search:focus { border-color: var(--teal); box-shadow: 0 0 0 4px color-mix(in srgb, var(--teal) 20%, transparent); outline: none; }
+.adm-field, .adm-kv dt { font-size: 14px; font-weight: 700; }
+
+.adm-panel { border-radius: 18px; border-color: var(--border); }
+.adm-panel-head { padding: 18px 26px; }
+.adm-panel-title { font-size: var(--text-title); }
+.adm-panel-body { padding: 22px 26px; }
+
+.adm-tabs { padding: 5px; border: 1px solid var(--border); background: var(--bg-card); border-radius: 16px; }
+.adm-tab { min-height: 44px; padding: 0 18px; font-size: 15px; font-weight: 700; border-radius: 12px; }
+.adm-tab.on { color: #fff; }
+.adm-tab-ind { background: var(--teal); box-shadow: none; }
+.adm-tab.on .n { opacity: .85; }
+
+.adm-pill, .cx-pill { font-size: 13.5px; font-weight: 800; padding: 5px 13px; }
+.adm-chip { font-size: 13.5px; padding: 3px 10px; }
+
+/* Tables: readable rows, visible head, strong hover */
+.adm-panel table, .adm-tbl-scroll table, .cx-tbl { font-size: var(--text-table); }
+.adm-panel th, .adm-tbl-scroll th, .cx-tbl th {
+  padding: 13px 20px; font-size: 12.5px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--text-muted); background: var(--bg-surface); text-align: left;
+}
+.adm-panel td, .adm-tbl-scroll td, .cx-tbl td { padding: 16px 20px; border-top: 1px solid var(--border); }
+.adm-row { transition: background var(--dur-1), box-shadow var(--dur-1); cursor: pointer; }
+.adm-row:hover, .adm-row:focus-visible { background: var(--teal-50); box-shadow: inset 5px 0 0 var(--teal); outline: none; }
+
+/* Attention: amber that cannot be missed */
+.adm-callout, .adm-banner, .adm-inline-warn {
+  border-width: 2px; border-radius: 16px; padding: 16px 20px; font-size: 15.5px;
+}
+.adm-callout b, .adm-banner b { display: block; font-size: 17px; margin-bottom: 2px; }
+
+.adm-empty { padding: 44px 20px; font-size: 16px; }
+
+/* Cards that are links lift instead of just sitting there */
+.adm-mcard, .adm-card-lift { border-radius: 18px; transition: transform var(--dur-2) var(--ease-out), box-shadow var(--dur-2); }
+.adm-mcard:hover, .adm-card-lift:hover { transform: translateY(-3px); box-shadow: var(--shadow-2); }
+.adm-pipe-step b { font-size: 28px; font-weight: 900; }
+.adm-pipe-step.on { background: var(--teal); color: #fff; box-shadow: 0 12px 26px -12px var(--teal); }
+
+/* ─── 4. Client portal: same voice, bigger targets ───────────────────────── */
+.cx-card { border-radius: 20px; }
+.cx-card-h { padding: 18px 24px; }
+.cx-card-h h2 { font-size: var(--text-title); font-weight: 800; }
+.cx-kpi { padding: 20px 22px; border-radius: 18px; position: relative; overflow: hidden; }
+.cx-kpi::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--teal); }
+.cx-kpi b { font-family: var(--font-display); font-weight: 400; font-size: 44px; line-height: 1; margin-bottom: 4px; }
+.cx-kpi span { font-size: 15px; font-weight: 700; }
+.cx-kpi-i { width: 46px; height: 46px; }
+.cx-btn { min-height: 48px; padding: 0 22px; font-size: 16px; font-weight: 800; border-radius: var(--radius); }
+.cx-btn-p { box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--teal) 80%, transparent); }
+.cx-brand b { font-size: 26px; }
+.cx-brand img { width: 44px; height: 44px; border-radius: 12px; }
+.cx-crumb b { font-size: 16px; }
+.cx-crumb span { font-size: 13px; }
+.cx-rail-link { min-height: 50px; padding: 0 16px; font-size: 16px; font-weight: 700; border-radius: 14px; gap: 14px; }
+.cx-rail-link svg { width: 22px; height: 22px; }
+.cx-rail-link[aria-current=page] { box-shadow: var(--shadow-1), 0 0 0 1px var(--border); }
+.cx-rail-link[aria-current=page]::before { left: -16px; top: 12px; bottom: 12px; width: 5px; border-radius: 0 5px 5px 0; background: var(--teal); }
+.cx-rail-studio { min-height: 56px; background: var(--teal); color: #fff; font-weight: 800; box-shadow: 0 12px 24px -12px var(--teal); }
+.cx-rail-studio:hover { background: var(--teal-dark); color: #fff; }
+.cx-rail-studio svg { color: #fff; }
+.cx-nav { height: calc(72px + env(safe-area-inset-bottom, 0px)); }
+.cx-nav-item { font-size: 13px; }
+.cx-nav-ico { width: 60px; height: 32px; }
+.cx-av { width: 40px; height: 40px; font-size: 14px; }
+.cx-user-n { font-size: 15px; }
+
+/* ─── 5. Sign-in and register: larger fields, bolder headline ───────────── */
+.au-art { border-radius: 0 40px 40px 0; }
+.au-h { font-size: clamp(34px, 7vw, 46px); }
+.au-steps b { font-size: 17px; }
+.au-steps span { font-size: 15px; }
+.au-since { font-size: 14px; }
+.au-main { padding-block: 40px 56px; }
+.au-card { border-radius: 28px; padding: 32px 26px; }
+.au-title { font-size: clamp(36px, 6vw, 46px); }
+.au-sub { font-size: 16px; }
+.au-card label { font-size: 14px !important; font-weight: 700 !important; }
+.au-card input { font-size: 16px; }
+.au-card button[type='submit'] { height: 56px !important; font-size: 17px !important; font-weight: 800 !important; border-radius: 14px !important; }
+@media (min-width: 600px) { .au-card { padding: 44px 44px 36px; } }
+@media (min-width: 960px) {
+  .au-art { border-radius: 0 40px 40px 0; }
+  .au-h { font-size: clamp(48px, 4.6vw, 68px); }
+  .au-art-in { padding: 56px clamp(36px, 5vw, 72px) 48px; justify-content: space-between; }
+}
+
+/* ─── 6. Focus is always visible ─────────────────────────────────────────── */
+:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
+
+/* ─── 7. Phones: keep targets at 48px and drop the dead margins ─────────── */
+@media (max-width: 767px) {
+  .adm-h1 { font-size: 30px; }
+  .adm-btn { min-height: 48px; }
+  .adm-panel-head, .adm-panel-body { padding-inline: 18px; }
+  .cx-kpi b { font-size: 36px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adm-btn, .adm-mcard, .adm-card-lift, .adm-row, .cx-card, .cx-kpi { transition: none; transform: none !important; }
+}
+
+/* ─── 8. Motion: quick, springy page and card entrances (≤ 220ms each) ───── */
+@keyframes rfPage { from { opacity: 0; transform: translateY(14px) scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes rfPop  { 0% { opacity: 0; transform: translateY(18px) scale(.94); } 60% { opacity: 1; transform: translateY(-3px) scale(1.01); } 100% { opacity: 1; transform: none; } }
+@keyframes rfGlow { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--teal-2) 55%, transparent); } 50% { box-shadow: 0 0 0 7px transparent; } }
+
+.adm-page, .vfrb-page { animation: rfPage 180ms var(--ease-out) both; }
+.adm-page > *, .cm-content .cx-page > * { animation: rfPop 320ms cubic-bezier(.34, 1.4, .64, 1) both; }
+.adm-page > *:nth-child(2), .cm-content .cx-page > *:nth-child(2) { animation-delay: 40ms; }
+.adm-page > *:nth-child(3), .cm-content .cx-page > *:nth-child(3) { animation-delay: 80ms; }
+.adm-page > *:nth-child(4), .cm-content .cx-page > *:nth-child(4) { animation-delay: 120ms; }
+.adm-page > *:nth-child(n+5), .cm-content .cx-page > *:nth-child(n+5) { animation-delay: 160ms; }
+
+.ui-stat { transition: transform var(--dur-2) var(--ease-out), box-shadow var(--dur-2); }
+.ui-stat:hover { transform: translateY(-4px); box-shadow: var(--shadow-2); }
+.adm-live-dot { animation: rfGlow 1.8s ease-in-out infinite; }
+
+/* ─── 9. Top-bar page jump, sidebar polish ───────────────────────────────── */
+.adm-link:active { transform: scale(.97); }
+
+@media (prefers-reduced-motion: reduce) {
+  .adm-page, .vfrb-page, .adm-page > *, .cm-content .cx-page > *, .adm-live-dot { animation: none !important; }
+  .ui-stat:hover { transform: none; }
+}
+
+/* Dashboard hero: actions sit in one row and wrap, instead of a tall stack */
+.dsh-hero-actions { display: flex; flex-direction: row !important; min-width: 0 !important; flex-wrap: wrap; gap: 10px; justify-content: flex-end; align-items: center; }
+.dsh-hero-actions > * { min-height: 46px; }
+.dsh-hero-txt h1 { font-family: var(--font-display); font-weight: 400 !important; letter-spacing: 0; font-size: clamp(28px, 3vw, 38px); }

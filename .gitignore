@@ -31,3 +31,5 @@ __pycache__/
 CLAUDE.md
 # QA audit screenshots and reports (public repo)
 docs/qa/
+.vercel
+.env*

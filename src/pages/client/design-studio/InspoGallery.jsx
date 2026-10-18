@@ -95,7 +95,7 @@ function Tile({ label, sub, thumb, onClick, editable, onRename, onDelete, showca
 }
 
 // The picker modal: the one GarmentPicker (past designs under its header), opened on Inspiration (empty canvas) or Templates (Change garment).
-export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanvasJSON, onOpen3D, onPickPhoto, onPairFamily = null, tab = 'inspiration', cfg, pieceRole = null }) {
+export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanvasJSON, onOpen3D, onPickPhoto, onPairFamily = null, tab = 'inspiration', cfg, pieceRole = null, onLoadArchived = null }) {
   const [archived, setArchived] = useState([]);
 
   useEffect(() => {
@@ -111,6 +111,7 @@ export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanv
     if (Array.isArray(cfg.overlays) && cfg.overlays.length > 0) {
       setTimeout(() => loadCanvasJSON(cfg.overlays), 200);
     }
+    onLoadArchived?.(design); // a past design belongs to its order: the Studio opens it read-only
     setShowInspo(false);
   };
 

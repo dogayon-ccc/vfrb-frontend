@@ -1,44 +1,50 @@
 // Shared customer-portal building blocks (status, thumbnails, KPI, chips, steppers, states, swatches, toast).
 import { useEffect, useState, useCallback, useId } from 'react';
-import { Link } from 'react-router-dom';
-import { Inbox, AlertTriangle, RotateCw } from 'lucide-react';
-import { NavIcon } from '../ui/icons';
+import { RotateCw } from 'lucide-react';
+import UiPageHeader from '../ui/PageHeader';
+import StatTile from '../ui/StatTile';
+import UiStepper from '../ui/Stepper';
+import UiEmptyState from '../ui/EmptyState';
+import StatusChip from '../ui/StatusChip';
 import { MiniPreview } from '../../pages/client/design-studio/InspoGallery';
+import { BASE_PATHS } from '../../pages/client/design-studio/garmentPaths';
 import { savedDesignName } from '../../utils/designName';
 import { humanize } from '../../utils/humanize';
 
-// Real orders.status enum → label/colors (same values used across customer pages).
+// Derived set garments (e.g. Midi Pencil Skirt) have no silhouette of their own; use the base Skirt, not the Polo fallback.
+const thumbGarment = (g) => (BASE_PATHS[g] || !/skirt/i.test(g ?? '') ? g : 'Skirt');
+
+// Real orders.status enum → customer label + icon. Colour comes from StatusChip's group tokens.
 export const STATUS = {
-  pending:     { label: 'Pending',     color: '#b45309', bg: '#fef3c7', icon: 'pending' },
-  confirmed:   { label: 'Confirmed',   color: '#1d4ed8', bg: '#dbeafe', icon: 'success' },
-  pattern:     { label: 'Pattern',     color: '#6d28d9', bg: '#ede9fe', icon: 'pattern' },
-  segregation: { label: 'Segregation', color: '#6d28d9', bg: '#f5f3ff', icon: 'segregation' },
-  cutting:     { label: 'Cutting',     color: '#4338ca', bg: '#e0e7ff', icon: 'cutting' },
-  sewing:      { label: 'Sewing',      color: '#0e7490', bg: '#cffafe', icon: 'garmentType' },
-  qc:          { label: 'QC',          color: '#c2410c', bg: '#ffedd5', icon: 'qc' },
-  pressing:    { label: 'Pressing',    color: '#be185d', bg: '#fce7f3', icon: 'pressing' },
-  packing:     { label: 'Packing',     color: '#be185d', bg: '#fdf2f8', icon: 'package' },
-  completed:   { label: 'Completed',   color: '#15803d', bg: '#dcfce7', icon: 'success' },
-  cancelled:   { label: 'Cancelled',   color: '#b91c1c', bg: '#fee2e2', icon: 'error' },
+  pending:     { label: 'Pending',     icon: 'pending' },
+  confirmed:   { label: 'Confirmed',   icon: 'success' },
+  // Production stages are VFRB's call: the customer sees "Confirmed" until the order is completed.
+  pattern:     { label: 'Confirmed', icon: 'success' },
+  segregation: { label: 'Confirmed', icon: 'success' },
+  cutting:     { label: 'Confirmed', icon: 'success' },
+  sewing:      { label: 'Confirmed', icon: 'success' },
+  qc:          { label: 'Confirmed', icon: 'success' },
+  pressing:    { label: 'Confirmed', icon: 'success' },
+  packing:     { label: 'Confirmed', icon: 'success' },
+  completed:   { label: 'Completed',   icon: 'success' },
+  cancelled:   { label: 'Cancelled',   icon: 'error' },
 };
 export const IN_PRODUCTION = ['pattern', 'segregation', 'cutting', 'sewing', 'qc', 'pressing', 'packing'];
 
 // Filter groups shown as chips (each maps onto real statuses only).
 export const GROUPS = [
   { id: 'all', label: 'All', test: () => true },
-  { id: 'pending', label: 'Pending', test: s => s === 'pending' || s === 'confirmed' },
-  { id: 'prod', label: 'In Production', test: s => IN_PRODUCTION.includes(s) },
+  { id: 'pending', label: 'Pending', test: s => s === 'pending' },
+  { id: 'prod', label: 'Confirmed', test: s => s === 'confirmed' || IN_PRODUCTION.includes(s) },
   { id: 'done', label: 'Completed', test: s => s === 'completed' },
   { id: 'cancelled', label: 'Cancelled', test: s => s === 'cancelled' },
 ];
 
 // Customer-facing 5-step lifecycle derived from the real status (no new data).
-export const LIFECYCLE = ['Submitted', 'Confirmed', 'Production', 'Finishing', 'Completed'];
+export const LIFECYCLE = ['Submitted', 'Confirmed', 'Completed'];
 export function lifecycleIndex(status) {
-  if (status === 'completed') return 4;
-  if (['qc', 'pressing', 'packing'].includes(status)) return 3;
-  if (['pattern', 'segregation', 'cutting', 'sewing'].includes(status)) return 2;
-  if (status === 'confirmed') return 1;
+  if (status === 'completed') return 2;
+  if (status === 'confirmed' || IN_PRODUCTION.includes(status)) return 1;
   return 0;
 }
 
@@ -62,12 +68,9 @@ export function reltime(ts) {
 }
 
 export function StatusPill({ status }) {
+  // Shared U1 chip: customer-facing label, group colour + icon.
   const c = STATUS[status] ?? STATUS.pending;
-  return (
-    <span className="cx-pill" style={{ background: c.bg, color: c.color }}>
-      <NavIcon name={c.icon} size={11} color={c.color} strokeWidth={2.5} /> {c.label}
-    </span>
-  );
+  return <StatusChip status={STATUS[status] ? status : 'pending'} label={c.label} />;
 }
 
 // Garment thumbnail from the order's real studio_config; swatch fallback from order.color.
@@ -78,7 +81,7 @@ export function OrderThumb({ order, size = 52 }) {
     <div className="cx-thumb" style={{ width: size, height: size }} aria-hidden="true">
       {cfg.garment ? (
         <div style={{ transform: `scale(${scale * 0.9})`, transformOrigin: 'center', lineHeight: 0 }}>
-          <MiniPreview garment={cfg.garment} colors={cfg.colors ?? {}} />
+          <MiniPreview garment={thumbGarment(cfg.garment)} colors={cfg.colors ?? {}} />
         </div>
       ) : (
         <div style={{ width: '55%', height: '55%', borderRadius: 8,
@@ -103,35 +106,23 @@ export function DesignThumb({ src, garment, colors, name, compact = false, scale
       {usable && <img key={src} src={src} alt="" loading="lazy" decoding="async" onLoad={() => setLoaded(src)} onError={() => setFailed(src)}/>}
       {kind === 'loading' && <span className="cx-dthumb-wait" aria-hidden="true"/>}
       {kind === 'fallback' && <>
-        <span className="cx-dthumb-sil" style={{ transform: `scale(${scale})` }} aria-hidden="true"><MiniPreview garment={garment} colors={colors ?? {}}/></span>
+        <span className="cx-dthumb-sil" style={{ transform: `scale(${scale})` }} aria-hidden="true"><MiniPreview garment={thumbGarment(garment)} colors={colors ?? {}}/></span>
         {!compact && <span className="cx-dthumb-note" aria-hidden="true">{src ? 'Preview unavailable' : 'Colours only'}</span>}
       </>}
     </div>
   );
 }
 
-export function PageHeader({ title, subtitle, children }) {
-  return (
-    <div className="cx-head">
-      <div><h1>{title}</h1>{subtitle && <p>{subtitle}</p>}</div>
-      {children && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{children}</div>}
-    </div>
-  );
+// Shared page header (ui/PageHeader).
+export function PageHeader({ title, subtitle, meta, back, children }) {
+  return <UiPageHeader title={title} subtitle={subtitle} meta={meta} back={back} actions={children} />;
 }
 
-export function Kpi({ icon, value, label, color, to, loading }) {
-  const body = (
-    <>
-      <div className="cx-kpi-i" style={{ background: `${color}18`, color }}>
-        <NavIcon name={icon} size={18} strokeWidth={2} />
-      </div>
-      <div style={{ minWidth: 0 }}>
-        {loading ? <div className="cx-sk" style={{ width: 36, height: 22, marginBottom: 4 }} /> : <b>{value}</b>}
-        <span>{label}</span>
-      </div>
-    </>
-  );
-  return to ? <Link to={to} className="cx-kpi">{body}</Link> : <div className="cx-kpi">{body}</div>;
+// KPI on the shared stat tile. Tone follows what the figure means (pending = amber attention);
+// a caller's per-page `color` prop is ignored so the palette stays semantic.
+const KPI_TONE = { pending: 'attention', success: 'success', settings: 'info', error: 'danger' };
+export function Kpi({ icon, value, label, to, loading, tone }) {
+  return <StatTile icon={icon} value={value} label={label} to={to} loading={loading} tone={tone ?? KPI_TONE[icon] ?? 'default'} />;
 }
 
 export function Chips({ items, value, onChange, label }) {
@@ -146,22 +137,9 @@ export function Chips({ items, value, onChange, label }) {
   );
 }
 
-export function Stepper({ steps, current }) {
-  const idx = Math.min(Math.max(current, 0), steps.length - 1);
-  return (
-    <>
-      <div className="cx-stepper" role="list" aria-label="Order progress">
-        {steps.map((s, i) => (
-          <div key={s} role="listitem" className="cx-step"
-            data-s={i < current ? 'done' : i === current ? 'now' : 'todo'}
-            aria-current={i === current ? 'step' : undefined}>
-            <i>{i < current ? '✓' : i + 1}</i><span>{s}</span>
-          </div>
-        ))}
-      </div>
-      <p className="cx-step-cap" aria-hidden="true">Step {idx + 1} of {steps.length} · <strong>{steps[idx]}</strong></p>
-    </>
-  );
+// Order progress on the shared stepper (ui/Stepper).
+export function Stepper({ steps, current, blocked, label = 'Order progress' }) {
+  return <UiStepper steps={steps} current={current} blocked={blocked} label={label} />;
 }
 
 export function Skeleton({ h = 16, w = '100%', circle = false, style }) {
@@ -179,27 +157,18 @@ export function Section({ title, subtitle, action, children, className = '' }) {
   );
 }
 
-// Nothing to show yet: say what is missing and offer the next step.
-export function EmptyState({ icon: Icon = Inbox, title, children, action }) {
-  return (
-    <div className="cx-state">
-      <span className="cx-state-i" aria-hidden="true"><Icon size={22} strokeWidth={1.8} /></span>
-      <h3>{title}</h3>
-      {children && <p>{children}</p>}
-      {action && <div className="cx-state-a">{action}</div>}
-    </div>
-  );
+// Nothing to show yet: say what is missing and offer the next step (ui/EmptyState).
+export function EmptyState({ icon, title, children, action }) {
+  return <UiEmptyState boxed icon={icon} title={title} action={action}>{children}</UiEmptyState>;
 }
 
 // Load failure with a retry; announced to assistive tech.
 export function ErrorState({ title = 'This didn’t load', children = 'Check your connection, then try again.', onRetry, retrying = false }) {
   return (
-    <div className="cx-state" data-tone="error" role="alert">
-      <span className="cx-state-i" aria-hidden="true"><AlertTriangle size={22} strokeWidth={1.8} /></span>
-      <h3>{title}</h3>
-      <p>{children}</p>
-      {onRetry && <div className="cx-state-a"><button type="button" className="cx-btn cx-btn-s" onClick={onRetry} disabled={retrying}><RotateCw size={15} strokeWidth={2} aria-hidden="true" />{retrying ? 'Trying again…' : 'Try again'}</button></div>}
-    </div>
+    <UiEmptyState boxed tone="error" title={title}
+      action={onRetry && <button type="button" className="cx-btn cx-btn-s" onClick={onRetry} disabled={retrying}><RotateCw size={15} strokeWidth={2} aria-hidden="true" />{retrying ? 'Trying again…' : 'Try again'}</button>}>
+      {children}
+    </UiEmptyState>
   );
 }
 

@@ -15,6 +15,8 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { NavIcon } from '../../components/ui/icons';
+import { ConfirmDialog } from '../../components/ui';
+import { readStudioLock, setStudioLock } from '../../utils/studioLock';
 import DesignStudioStyles from './design-studio/DesignStudioStyles';
 import { useGarmentCanvas, compositeFrontBack } from './design-studio/useGarmentCanvas';
 import { hasBackView, templateIdFor, assetFor } from './design-studio/garmentAssets';
@@ -77,6 +79,13 @@ export default function DesignStudio() {
   const [uset, setUset] = useState(() => {
     try { return normalizeSet(JSON.parse(sessionStorage.getItem('studio_config') || 'null')?.uniformSet); } catch { return null; }
   });
+  // Saved-design lock (utils/studioLock.js): `final` = attached to an order, read-only until duplicated;
+  // `warn` = saved but not ordered, the first edit asks for confirmation.
+  const [lock, setLock] = useState(readStudioLock);
+  const [warnAsk, setWarnAsk] = useState(false);
+  const locked = !!lock?.final;
+  const lockRef = useRef(lock);
+  lockRef.current = lock;
 
   const [selObj,     setSelObj]     = useState(null);
   const [activeZone, setActiveZone] = useState('body');
@@ -295,6 +304,8 @@ export default function DesignStudio() {
   useEffect(() => {
     const handler = (e) => {
       const mod = e.ctrlKey || e.metaKey;
+      if (lockRef.current?.final) return;
+      if (lockRef.current?.warn && mod && /^[zy]$/i.test(e.key)) { e.preventDefault(); setWarnAsk(true); return; }
       if (mod && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
       if (mod && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redo(); return; }
       const t = e.target;
@@ -464,6 +475,7 @@ export default function DesignStudio() {
     const toLoad = faceJSON.current[face] ?? [];
     if (toLoad.length > 0) setTimeout(() => loadCanvasJSON(toLoad), 350);
     setPendingDraft(null);
+    setLock({ warn: true });
     setToast('Design restored from your last session');
     setTimeout(() => setToast(null), 3000);
   }, [pendingDraft, loadCanvasJSON, face]);
@@ -634,7 +646,7 @@ export default function DesignStudio() {
   // Skipped when the account already holds exactly this design (e.g. right after a manual Save).
   useEffect(() => {
     clearTimeout(autoSaveTimer.current);
-    if (!cfg.garment) return; // nothing to persist yet
+    if (!cfg.garment || locked) return; // nothing to persist yet; a final design is never written back
     autoSaveTimer.current = setTimeout(() => {
       const snap = snapshotDesign();
       if (draftFingerprint(snap) === lastSavedFp.current) return;
@@ -643,11 +655,11 @@ export default function DesignStudio() {
       persistDraft(snap).catch(() => {}); // silently ignore network errors
     }, 30_000);
     return () => clearTimeout(autoSaveTimer.current);
-  }, [cfg, snapshotDesign, persistDraft]);
+  }, [cfg, locked, snapshotDesign, persistDraft]);
 
   // ── Manual save: sessionStorage + DB ─────────────────────────────────────
   const saveDesign = useCallback(async () => {
-    if (!cfg.garment || saving) return;
+    if (!cfg.garment || saving || locked) return;
     setSaving(true); setSaveErr(false);
     const snap = snapshotDesign();
     let local = false;
@@ -666,7 +678,7 @@ export default function DesignStudio() {
       setSaveErr(local ? 'local' : 'none'); // 'local': the browser copy exists, only the account save failed
       flashError(local ? 'Saved in this browser only: your account could not store the design. Try Save again.' : 'Could not save your design. Check your connection and try again.');
     } finally { setSaving(false); }
-  }, [cfg, saving, snapshotDesign, persistDraft, flashError]);
+  }, [cfg, saving, locked, snapshotDesign, persistDraft, flashError]);
 
   // Order This → pass design to OrderWizard
   // Export files: each face is rendered at EXPORT_FACE_HEIGHT after it has fully drawn (exportFace), then the
@@ -744,7 +756,7 @@ export default function DesignStudio() {
   }, [captureExportFaces, cfg, exporting, flashError]);
 
   const orderThis = useCallback(async () => {
-    if (!cfg.garment || ordering) return;
+    if (!cfg.garment || ordering || locked) return;
     setOrdering(true); // instant feedback — see the state declaration above
     try {
       // exportFrontBack() captures both faces' PNGs and, as a side effect, leaves
@@ -765,9 +777,19 @@ export default function DesignStudio() {
       setOrdering(false);
       flashError('Could not prepare your design for ordering. Try removing very large logos, then retry.');
     }
-  }, [cfg, ordering, snapshotDesign, exportFrontBack, persistDraft, nav, flashError]);
+  }, [cfg, ordering, locked, snapshotDesign, exportFrontBack, persistDraft, nav, flashError]);
 
   const clearGarment = useCallback(() => setCfg(p => ({ ...p, garment: null })), []);
+
+  // "Duplicate to edit": the ordered design stays as it is; edits, saves and orders from here are a new copy.
+  const duplicateToEdit = useCallback(() => {
+    setLock(null); setStudioLock(null);
+    setToast('Editing a copy. The ordered design stays unchanged.');
+    setTimeout(() => setToast(null), 3000);
+  }, []);
+  const confirmEdit = useCallback(() => { setLock(null); setStudioLock(null); setWarnAsk(false); }, []);
+  // Saved, not ordered: the first press, click or tap inside the editor asks before anything changes.
+  const gateEdit = lock?.warn ? (e) => { e.preventDefault(); e.stopPropagation(); if (e.type !== 'keydown' || e.key === 'Enter' || e.key === ' ') setWarnAsk(true); } : undefined;
 
   // Optimistic UI for "Order This": exportFrontBack() below can take ~0.5-1s
   // (per-face canvas swap + capture, see its own comments), during which the
@@ -785,8 +807,8 @@ export default function DesignStudio() {
       <div className="ds" data-sheet={sheetOpen ? 'open' : 'closed'} data-snap={sheetOpen ? (sheetFull ? 'full' : 'half') : cfg.garment ? 'peek' : 'none'} data-first={!cfg.garment || undefined} style={{ position:'relative' }}>
 
         {/* ── TOP BAR ── */}
-        <TopBar nav={nav} cfg={cfg} setCfg={setCfg} undo={undo} redo={redo}
-          canUndo={canUndo} canRedo={canRedo}
+        <TopBar nav={nav} cfg={cfg} setCfg={locked ? () => {} : setCfg} undo={lock?.warn ? () => setWarnAsk(true) : undo} redo={lock?.warn ? () => setWarnAsk(true) : redo}
+          canUndo={canUndo && !locked} canRedo={canRedo && !locked}
           viewMode={viewMode} setViewMode={setViewMode} setHas3DLoaded={setHas3DLoaded}
           showShowcase={showShowcase} setShowShowcase={toggleShowcase} showcaseCount={showcaseCount}/>
 
@@ -795,8 +817,18 @@ export default function DesignStudio() {
           <DraftStrip draft={pendingDraft} hasWork={!!cfg.name?.trim() || layers.length > 0} onRestore={restoreDraft} onDismiss={dismissDraft}/>
         )}
 
+        {/* ── FINAL DESIGN ── read-only until the customer duplicates it */}
+        {locked && (
+          <div role="status" style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', padding:'8px 16px', background:'var(--teal-50, #f0fdfa)', borderBottom:'1px solid var(--border)', fontSize:13, color:'var(--ink)' }}>
+            <NavIcon name="warning" size={15}/>
+            <strong style={{ flex:'1 1 200px' }}>{lock.orderId ? `This design is final for order #${lock.orderId}` : 'This design is final for its order'}</strong>
+            <button type="button" className="ds-btn ds-btn--primary" onClick={duplicateToEdit}>Duplicate to edit</button>
+          </div>
+        )}
+
         {/* ── BODY ── */}
-        <div className="ds-body">
+        <div className="ds-body" inert={locked ? '' : undefined} aria-disabled={locked || undefined}
+          onPointerDownCapture={gateEdit} onMouseDownCapture={gateEdit} onClickCapture={gateEdit} onKeyDownCapture={gateEdit}>
           <AnimatePresence>
             {toast && (
               <motion.div key="toast" className="ds-toast" role="status"
@@ -848,7 +880,12 @@ export default function DesignStudio() {
 
         {/* ── GARMENT PICKER MODAL (Inspo / Change garment) ── */}
         <InspoGallery showInspo={showInspo} setShowInspo={toggleInspo} setCfg={setCfg} onPickPhoto={pickPhoto} onPairFamily={pairWith} tab={pickerTab} cfg={cfg} pieceRole={uset?.active ?? null}
-          loadCanvasJSON={loadCanvasJSON} onOpen3D={() => { keep3DRef.current = true; setHas3DLoaded(true); setViewMode('3d'); }}/>
+          loadCanvasJSON={loadCanvasJSON} onOpen3D={() => { keep3DRef.current = true; setHas3DLoaded(true); setViewMode('3d'); }}
+          onLoadArchived={d => setLock({ final: true, orderId: d.order_id ?? null })}/>
+
+        <ConfirmDialog open={warnAsk} title="Edit this saved design?"
+          body="Changes replace your saved design when it saves. Continue to edit it?"
+          confirmLabel="Edit design" onCancel={() => setWarnAsk(false)} onConfirm={confirmEdit}/>
 
         {/* ── SHOWCASE GALLERY OVERLAY ── */}
         <ShowcaseGallery showShowcase={showShowcase} setShowShowcase={toggleShowcase} setCfg={setCfg}/>

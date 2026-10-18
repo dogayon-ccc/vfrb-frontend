@@ -41,7 +41,7 @@ export default function TopBar({ nav, cfg, setCfg, undo, redo, canUndo, canRedo,
       </div>
 
       {showcaseCount > 0 && (
-        <button type="button" className="ds-bar-btn ds-bar-text" aria-pressed={showShowcase} aria-label="Showcase" title="Designs other clients chose to share" onClick={() => setShowShowcase(p => !p)}>
+        <button type="button" className="ds-bar-btn ds-bar-text" aria-pressed={showShowcase} aria-label="Showcase" title="Designs other customers chose to share" onClick={() => setShowShowcase(p => !p)}>
           <Sparkles size={16} strokeWidth={2} aria-hidden="true" /><span>Showcase</span>
         </button>
       )}

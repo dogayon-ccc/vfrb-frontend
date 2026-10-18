@@ -239,7 +239,7 @@ export default function AdminInvoice() {
                   </p>
                 )}
                 <p style={{ color:'var(--text-subtle)', fontSize:12, marginTop:4 }}>
-                  Type: {order.order_type === 'direct' ? 'Direct Client' : 'Institutional / OTG'}
+                  Type: {order.order_type === 'direct' ? 'Direct Customer' : 'Institutional / OTG'}
                 </p>
               </div>
               <div style={{ background:'var(--bg)', borderRadius:'var(--r-lg)', padding:'16px' }}>
@@ -317,7 +317,7 @@ export default function AdminInvoice() {
                             {rec.material?.unit ?? '—'}
                           </td>
                           <td style={{ padding:'9px 12px', color:'var(--ink)', fontSize:13,
-                            fontWeight:600 }}>{rec.actual_qty_issued != null ? rec.actual_qty_issued : 'Not yet issued'}</td>
+                            fontWeight:600 }}>{rec.actual_qty_issued != null ? `${rec.actual_qty_issued}${rec.issued_at ? '' : ' (not yet issued)'}` : 'Not yet recorded'}</td>
                           <td style={{ padding:'9px 12px', color:'var(--ink)', fontSize:12 }}>
                             {inStock > 0 ? inStock : '—'}
                           </td>

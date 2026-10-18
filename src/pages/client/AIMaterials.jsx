@@ -12,7 +12,7 @@ const T2   = '#02C39A';
 const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif`;
 
 const SK = {
-  borderRadius:8, background:'linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%)',
+  borderRadius:8, background:'linear-gradient(90deg,var(--bg-surface) 25%,var(--bg-surface-2) 50%,var(--bg-surface) 75%)',
   backgroundSize:'400px', animation:'sk 1.4s infinite',
 };
 
@@ -30,13 +30,13 @@ export const CAT = {
 const STATUS_C = {
   pending:     { color:'#f59e0b', label:'Pending',     icon:'pending'     },
   confirmed:   { color:'#3b82f6', label:'Confirmed',   icon:'success'     },
-  pattern:     { color:'#8b5cf6', label:'Pattern',     icon:'pattern'     },
-  segregation: { color:'#a78bfa', label:'Sorting',     icon:'segregation' },
-  cutting:     { color:'#6366f1', label:'Cutting',     icon:'cutting'     },
-  sewing:      { color:'#06b6d4', label:'Sewing',      icon:'garmentType' },
-  qc:          { color:'#f97316', label:'QC',          icon:'qc'          },
-  pressing:    { color:'#ec4899', label:'Pressing',    icon:'pressing'    },
-  packing:     { color:'#f472b6', label:'Packing',     icon:'package'     },
+  pattern:     { color:'var(--info-text)', label:'In production', icon:'settings'     },
+  segregation: { color:'var(--info-text)', label:'In production', icon:'settings' },
+  cutting:     { color:'var(--info-text)', label:'In production', icon:'settings'     },
+  sewing:      { color:'var(--info-text)', label:'In production', icon:'settings' },
+  qc:          { color:'var(--info-text)', label:'In production', icon:'settings'          },
+  pressing:    { color:'var(--info-text)', label:'In production', icon:'settings'    },
+  packing:     { color:'var(--info-text)', label:'In production', icon:'settings'     },
   completed:   { color:'#22c55e', label:'Completed',   icon:'success'     },
   cancelled:   { color:'#ef4444', label:'Cancelled',   icon:'error'       },
 };
@@ -87,18 +87,18 @@ export function AcceptModal({ order, recs, onClose, onDone }) {
           alignItems:'center', justifyContent:'center', padding:16 }}>
         <motion.div initial={{ opacity:0, scale:.94, y:16 }}
           animate={{ opacity:1, scale:1, y:0 }} exit={{ opacity:0, scale:.94 }}
-          style={{ background:'#fff', borderRadius:20, width:'min(480px,100%)',
+          style={{ background:'var(--bg-card)', borderRadius:20, width:'min(480px,100%)',
             maxHeight:'85vh', display:'flex', flexDirection:'column',
             overflow:'hidden', boxShadow:'0 32px 80px rgba(0,0,0,.22)' }}>
 
           {/* Header */}
-          <div style={{ padding:'20px 24px', background:'#f0fdfa',
+          <div style={{ padding:'20px 24px', background:'var(--teal-50)',
             borderBottom:'1px solid #99f6e4', flexShrink:0 }}>
             <h3 style={{ fontSize:16, fontWeight:800, color:'var(--ink)',
               margin:0, fontFamily:FONT }}>
               <NavIcon name="success" size={16} color="var(--ink)" style={{ verticalAlign:"-3px", marginRight:6 }}/>Confirm Material Acceptance
             </h3>
-            <p style={{ fontSize:12, color:'var(--text-subtle)', margin:'4px 0 0', fontFamily:FONT }}>
+            <p style={{ fontSize:13, color:'var(--text-subtle)', margin:'4px 0 0', fontFamily:FONT }}>
               Order #{order.order_id} · {order.garment_type} · {order.quantity_ordered} pcs
             </p>
           </div>
@@ -107,7 +107,7 @@ export function AcceptModal({ order, recs, onClose, onDone }) {
           <div style={{ padding:'20px 24px', overflowY:'auto', flex:1 }}>
             <div style={{ background:'var(--bg-surface)', borderRadius:12, padding:14,
               marginBottom:16, border:'1px solid var(--border)' }}>
-              <p style={{ fontSize:11, fontWeight:700, color:'var(--text-subtle)',
+              <p style={{ fontSize:13, fontWeight:700, color:'var(--text-subtle)',
                 textTransform:'uppercase', letterSpacing:'.07em',
                 marginBottom:10, fontFamily:FONT }}>
                 Materials you are accepting
@@ -121,11 +121,11 @@ export function AcceptModal({ order, recs, onClose, onDone }) {
                     <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                       <span style={{ display:'flex' }}><NavIcon name={cat.icon} size={16} color={cat.color}/></span>
                       <div>
-                        <p style={{ fontSize:12, fontWeight:600, color:'var(--ink)',
+                        <p style={{ fontSize:13, fontWeight:600, color:'var(--ink)',
                           margin:0, fontFamily:FONT }}>
                           {r.material_name}
                         </p>
-                        <p style={{ fontSize:10, color:'var(--text-subtle)', margin:0, fontFamily:FONT }}>
+                        <p style={{ fontSize:13, color:'var(--text-subtle)', margin:0, fontFamily:FONT }}>
                           {r.category}
                         </p>
                       </div>
@@ -135,7 +135,7 @@ export function AcceptModal({ order, recs, onClose, onDone }) {
               })}
             </div>
 
-            <label style={{ display:'block', fontSize:11, fontWeight:700,
+            <label style={{ display:'block', fontSize:13, fontWeight:700,
               textTransform:'uppercase', letterSpacing:'.07em', color:'var(--text-subtle)',
               marginBottom:7, fontFamily:FONT }}>
               Notes for Staff (optional)
@@ -143,12 +143,12 @@ export function AcceptModal({ order, recs, onClose, onDone }) {
             <textarea value={notes} onChange={e=>setNotes(e.target.value)} rows={3}
               placeholder="e.g. Please use cotton blend, prefer navy blue thread…"
               style={{ width:'100%', padding:'10px 14px', borderRadius:10,
-                border:'1px solid var(--border)', background:'#fff', color:'var(--ink)',
+                border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)',
                 fontSize:13, outline:'none', resize:'none',
                 fontFamily:FONT, boxSizing:'border-box' }}
               onFocus={e=>{e.target.style.borderColor=T;e.target.style.boxShadow=`0 0 0 3px rgba(2,128,144,.1)`;}}
               onBlur={e=>{e.target.style.borderColor='var(--border)';e.target.style.boxShadow='none';}}/>
-            {err && <p style={{ color:'#ef4444', fontSize:12, marginTop:8, fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}><NavIcon name="warning" size={12} color="#ef4444"/> {err}</p>}
+            {err && <p style={{ color:'#ef4444', fontSize:13, marginTop:8, fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}><NavIcon name="warning" size={12} color="#ef4444"/> {err}</p>}
           </div>
 
           {/* Footer */}
@@ -157,7 +157,7 @@ export function AcceptModal({ order, recs, onClose, onDone }) {
             <motion.button whileHover={{ scale:1.02 }} whileTap={{ scale:.97 }}
               onClick={onClose}
               style={{ padding:'9px 18px', borderRadius:10, border:'1px solid var(--border)',
-                background:'#fff', color:'var(--ink)', fontSize:13, fontWeight:600,
+                background:'var(--bg-card)', color:'var(--ink)', fontSize:13, fontWeight:600,
                 cursor:'pointer', fontFamily:FONT }}>
               Cancel
             </motion.button>
@@ -228,15 +228,15 @@ export function SelfPickModal({ order, onClose, onDone }) {
           alignItems:'center', justifyContent:'center', padding:16 }}>
         <motion.div initial={{ opacity:0, scale:.94, y:16 }}
           animate={{ opacity:1, scale:1, y:0 }} exit={{ opacity:0, scale:.94 }}
-          style={{ background:'#fff', borderRadius:20, width:'min(520px,100%)',
+          style={{ background:'var(--bg-card)', borderRadius:20, width:'min(520px,100%)',
             maxHeight:'85vh', display:'flex', flexDirection:'column',
             overflow:'hidden', boxShadow:'0 32px 80px rgba(0,0,0,.22)' }}>
 
-          <div style={{ padding:'20px 24px', background:'#f0fdfa', borderBottom:'1px solid #99f6e4', flexShrink:0 }}>
+          <div style={{ padding:'20px 24px', background:'var(--teal-50)', borderBottom:'1px solid #99f6e4', flexShrink:0 }}>
             <h3 style={{ fontSize:16, fontWeight:800, color:'var(--ink)', margin:0, fontFamily:FONT }}>
               <NavIcon name="materials" size={16} color="var(--ink)" style={{ verticalAlign:"-3px", marginRight:6 }}/>Choose Your Own Materials
             </h3>
-            <p style={{ fontSize:12, color:'var(--text-subtle)', margin:'4px 0 0', fontFamily:FONT }}>
+            <p style={{ fontSize:13, color:'var(--text-subtle)', margin:'4px 0 0', fontFamily:FONT }}>
               Order #{order.order_id} — skip the AI recommendation and pick from VFRB's catalog yourself
             </p>
           </div>
@@ -249,7 +249,7 @@ export function SelfPickModal({ order, onClose, onDone }) {
                 const cfg = CAT[cat] ?? CAT.Other;
                 return (
                   <div key={cat} style={{ marginBottom:16 }}>
-                    <p style={{ fontSize:11, fontWeight:700, color:cfg.color,
+                    <p style={{ fontSize:13, fontWeight:700, color:cfg.color,
                       textTransform:'uppercase', letterSpacing:'.07em',
                       marginBottom:8, fontFamily:FONT }}>
                       <NavIcon name={cfg.icon} size={11} color={cfg.color}/> {cat}
@@ -271,20 +271,20 @@ export function SelfPickModal({ order, onClose, onDone }) {
             <textarea value={notes} onChange={e=>setNotes(e.target.value)}
               placeholder="Optional note for VFRB staff about your selection…" rows={2}
               style={{ width:'100%', marginTop:6, padding:'10px 12px', borderRadius:10,
-                border:'1px solid var(--border)', fontSize:12, fontFamily:FONT, resize:'none', boxSizing:'border-box' }}/>
+                border:'1px solid var(--border)', fontSize:13, fontFamily:FONT, resize:'none', boxSizing:'border-box' }}/>
 
-            {err && <p style={{ color:'#ef4444', fontSize:12, marginTop:8, display:'flex', alignItems:'center', gap:5 }}><NavIcon name="warning" size={12} color="#ef4444"/> {err}</p>}
+            {err && <p style={{ color:'#ef4444', fontSize:13, marginTop:8, display:'flex', alignItems:'center', gap:5 }}><NavIcon name="warning" size={12} color="#ef4444"/> {err}</p>}
           </div>
 
           <div style={{ padding:'16px 24px', borderTop:'1px solid var(--border)',
             display:'flex', gap:10, justifyContent:'flex-end', background:'var(--bg-surface)', flexShrink:0 }}>
             <button onClick={onClose} style={{ padding:'10px 18px', borderRadius:10,
-              border:'1px solid var(--border)', background:'#fff', color:'var(--ink)',
-              fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:FONT }}>Cancel</button>
+              border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)',
+              fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:FONT }}>Cancel</button>
             <button onClick={submit} disabled={busy || loading}
               style={{ padding:'10px 22px', borderRadius:10, border:'none',
                 background: busy ? 'var(--text-faint)' : `linear-gradient(135deg,${T},${T2})`,
-                color:'#fff', fontSize:12, fontWeight:700,
+                color:'#fff', fontSize:13, fontWeight:700,
                 cursor: busy ? 'not-allowed' : 'pointer', fontFamily:FONT }}>
               {busy ? '⏳…' : `Send Selection (${picked.size})`}
             </button>
@@ -318,20 +318,20 @@ export function RecCard({ rec, index }) {
       initial={{ opacity:0, y:12 }}
       animate={{ opacity:1, y:0 }}
       transition={{ delay: index * 0.06, duration:.25 }}
-      className="cx-card overflow-hidden">
+      className="vfrb-card flush overflow-hidden">
       {rec.image_url ? (
         <img src={rec.image_url} alt={rec.material_name} loading="lazy" className="block w-full h-48 object-cover"/>
       ) : (
         <div className="w-full h-48 flex flex-col items-center justify-center gap-2" style={{ background:cat.bg }} aria-label="No image">
           <NavIcon name={cat.icon} size={32} color={cat.color}/>
-          <span style={{ fontSize:11, fontWeight:700, color:cat.color, fontFamily:FONT }}>No image</span>
+          <span style={{ fontSize:13, fontWeight:700, color:cat.color, fontFamily:FONT }}>No image</span>
         </div>
       )}
-      <div style={{ padding:'14px 16px 16px' }}>
-        <p style={{ fontSize:15, fontWeight:800, color:'var(--ink)', margin:0, fontFamily:FONT }}>
+      <div style={{ padding:'var(--sp-4) var(--sp-4) var(--sp-6)' }}>
+        <p style={{ fontSize:17, fontWeight:800, color:'var(--ink)', margin:0, fontFamily:FONT }}>
           {rec.material_name}
         </p>
-        <span style={{ display:'inline-block', marginTop:4, padding:'2px 8px', borderRadius:99, fontSize:10, fontWeight:700,
+        <span style={{ display:'inline-block', marginTop:4, padding:'2px 8px', borderRadius:99, fontSize:13, fontWeight:700,
           background:cat.bg, color:cat.color, fontFamily:FONT }}>
           {rec.category}
         </span>
@@ -491,7 +491,7 @@ export default function AIMaterials() {
                 margin:'0 0 4px', fontFamily:FONT }}>
                 How AI Recommendation Works
               </p>
-              <p style={{ fontSize:12, color:'var(--text-muted)', lineHeight:1.65,
+              <p style={{ fontSize:13, color:'var(--text-muted)', lineHeight:1.65,
                 margin:0, fontFamily:FONT }}>
                 Gemini Flash reads your garment type, fit, colors, and design details
                 to recommend the types of raw materials your order will need.
@@ -507,14 +507,14 @@ export default function AIMaterials() {
         {loading ? (
           <div style={{ ...SK, height:48, borderRadius:12, marginBottom:20 }}/>
         ) : ordersError ? (
-          <div role="alert" style={{ background:'#fef2f2', border:'1px solid #fecaca', borderRadius:14,
+          <div role="alert" style={{ background:'var(--danger-bg)', border:'1px solid var(--danger-border)', borderRadius:14,
             padding:'20px 24px', textAlign:'center', fontFamily:FONT }}>
-            <p style={{ margin:'0 0 12px', fontSize:13, color:'#b91c1c' }}>Couldn't load your orders. Check your connection and try again.</p>
-            <button onClick={loadOrders} style={{ minHeight:44, padding:'0 20px', borderRadius:12, border:'1px solid #fecaca',
-              background:'#fff', color:'#b91c1c', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:FONT }}>Retry</button>
+            <p style={{ margin:'0 0 12px', fontSize:13, color:'var(--danger-text)' }}>Couldn't load your orders. Check your connection and try again.</p>
+            <button onClick={loadOrders} style={{ minHeight:44, padding:'0 20px', borderRadius:12, border:'1px solid var(--danger-border)',
+              background:'var(--bg-card)', color:'var(--danger-text)', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:FONT }}>Retry</button>
           </div>
         ) : orders.length === 0 ? (
-          <div style={{ background:'#fff', border:'1px solid var(--border)',
+          <div style={{ background:'var(--bg-card)', border:'1px solid var(--border)',
             borderRadius:16, padding:'48px 24px', textAlign:'center',
             boxShadow:'0 1px 3px rgba(0,0,0,.05)' }}>
             <div style={{ display:"flex", justifyContent:"center", marginBottom:14, opacity:.3 }}><NavIcon name="ai" size={40}/></div>
@@ -541,7 +541,7 @@ export default function AIMaterials() {
               marginBottom:20, flexWrap:'wrap' }}>
               <select value={selId ?? ''} onChange={e => setSelId(Number(e.target.value))}
                 style={{ flex:1, minWidth:200, padding:'11px 14px', borderRadius:11,
-                  border:'1px solid var(--border)', background:'#fff', color:'var(--ink)',
+                  border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)',
                   fontSize:13, outline:'none', fontFamily:FONT, cursor:'pointer' }}
                 onFocus={e=>{e.target.style.borderColor=T;e.target.style.boxShadow=`0 0 0 3px rgba(2,128,144,.1)`;}}
                 onBlur={e=>{e.target.style.borderColor='var(--border)';e.target.style.boxShadow='none';}}>
@@ -555,7 +555,7 @@ export default function AIMaterials() {
               {/* Status pill */}
               {selectedOrder && (
                 <span style={{ padding:'6px 14px', borderRadius:99,
-                  fontSize:11, fontWeight:700,
+                  fontSize:13, fontWeight:700,
                   background:`${sc.color}18`, color:sc.color,
                   border:`1px solid ${sc.color}30`, flexShrink:0, fontFamily:FONT }}>
                   <NavIcon name={sc.icon} size={11} color={sc.color}/> {sc.label}
@@ -593,14 +593,14 @@ export default function AIMaterials() {
                     : 'Get AI Material Recommendation'
                 )}
               </motion.button>
-              <p style={{ fontSize:11, color:'var(--text-faint)', textAlign:'center',
+              <p style={{ fontSize:13, color:'var(--text-faint)', textAlign:'center',
                 marginTop:6, fontFamily:FONT }}>
                 Powered by Google Gemini Flash · Results cached per order
               </p>
-              <p style={{ fontSize:12, textAlign:'center', marginTop:10, fontFamily:FONT }}>
+              <p style={{ fontSize:13, textAlign:'center', marginTop:10, fontFamily:FONT }}>
                 <button type="button" onClick={()=>setShowPicker(true)}
                   style={{ background:'none', border:'none', color:T, fontWeight:700,
-                    fontSize:12, cursor:'pointer', textDecoration:'underline', fontFamily:FONT }}>
+                    fontSize:13, cursor:'pointer', textDecoration:'underline', fontFamily:FONT }}>
                   Or choose your own materials instead →
                 </button>
               </p>
@@ -610,7 +610,7 @@ export default function AIMaterials() {
             {loadingRecs ? (
               <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
                 {[1,2,3].map(i => (
-                  <div key={i} style={{ background:'#fff', border:'1px solid var(--border)',
+                  <div key={i} style={{ background:'var(--bg-card)', border:'1px solid var(--border)',
                     borderRadius:14, padding:'18px 20px' }}>
                     <div style={{ display:'flex', gap:10, marginBottom:12 }}>
                       <div style={{ ...SK, width:38, height:38, borderRadius:10, flexShrink:0 }}/>
@@ -624,11 +624,11 @@ export default function AIMaterials() {
                 ))}
               </div>
             ) : recsError ? (
-              <div role="alert" style={{ background:'#fef2f2', border:'1px solid #fecaca', borderRadius:14,
+              <div role="alert" style={{ background:'var(--danger-bg)', border:'1px solid var(--danger-border)', borderRadius:14,
             padding:'20px 24px', textAlign:'center', fontFamily:FONT }}>
-            <p style={{ margin:'0 0 12px', fontSize:13, color:'#b91c1c' }}>Couldn't load recommendations for this order.</p>
-            <button onClick={loadDetail} style={{ minHeight:44, padding:'0 20px', borderRadius:12, border:'1px solid #fecaca',
-              background:'#fff', color:'#b91c1c', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:FONT }}>Retry</button>
+            <p style={{ margin:'0 0 12px', fontSize:13, color:'var(--danger-text)' }}>Couldn't load recommendations for this order.</p>
+            <button onClick={loadDetail} style={{ minHeight:44, padding:'0 20px', borderRadius:12, border:'1px solid var(--danger-border)',
+              background:'var(--bg-card)', color:'var(--danger-text)', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:FONT }}>Retry</button>
           </div>
             ) : hasRecs ? (
               <>
@@ -651,11 +651,11 @@ export default function AIMaterials() {
                         <NavIcon name="success" size={18} color="#22c55e"/>
                       </div>
                       <div>
-                        <p style={{ fontSize:13, fontWeight:800, color:'#166534',
+                        <p style={{ fontSize:13, fontWeight:800, color:'var(--success-text)',
                           margin:0, fontFamily:FONT }}>
                           Materials Accepted — VFRB Staff Notified
                         </p>
-                        <p style={{ fontSize:11, color:'#15803d', margin:'3px 0 0', fontFamily:FONT }}>
+                        <p style={{ fontSize:13, color:'var(--success-text)', margin:'3px 0 0', fontFamily:FONT }}>
                           Staff will prepare these materials for your production order.
                         </p>
                       </div>
@@ -664,13 +664,13 @@ export default function AIMaterials() {
                 </AnimatePresence>
 
                 {source === 'catalog_default' && (
-                  <p role="status" style={{ fontSize:12, color:'#9a5b00', background:'#fff4e5', borderRadius:10, padding:'8px 12px', margin:'0 0 12px', fontFamily:FONT }}>
+                  <p role="status" style={{ fontSize:13, color:'var(--warning-text)', background:'var(--warning-bg)', borderRadius:10, padding:'8px 12px', margin:'0 0 12px', fontFamily:FONT }}>
                     AI suggestions are unavailable right now, so these are VFRB's standard approved materials for this design. Our team will confirm them.
                   </p>
                 )}
 
                 {/* Rec cards */}
-                <p style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', margin:'0 0 10px', fontFamily:FONT }}>{AI_OPTIONAL_LINE}</p>
+                <p style={{ fontSize:13, fontWeight:700, color:'var(--text-muted)', margin:'0 0 10px', fontFamily:FONT }}>{AI_OPTIONAL_LINE}</p>
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(min(100%,300px),1fr))', gap:14, marginBottom:20 }}>
                   {recs.map((r, i) => (
                     <RecCard key={r.rec_id ?? i} rec={r} index={i}/>
@@ -687,7 +687,7 @@ export default function AIMaterials() {
                       marginBottom:6, fontFamily:FONT }}>
                       Happy with these recommendations?
                     </p>
-                    <p style={{ fontSize:12, color:'var(--text-subtle)', marginBottom:18,
+                    <p style={{ fontSize:13, color:'var(--text-subtle)', marginBottom:18,
                       maxWidth:400, margin:'0 auto 18px', lineHeight:1.6, fontFamily:FONT }}>
                       Accepting notifies VFRB production staff to prepare exactly
                       these materials for your order. You can add a note.
@@ -707,7 +707,7 @@ export default function AIMaterials() {
               </>
             ) : !generating && (
               <motion.div initial={{ opacity:0, scale:.98 }} animate={{ opacity:1, scale:1 }}
-                style={{ background:'#fff', border:'1px dashed #e2e8f0',
+                style={{ background:'var(--bg-card)', border:'1px dashed var(--border)',
                   borderRadius:16, padding:'48px 24px', textAlign:'center' }}>
                 <div style={{ display:"flex", justifyContent:"center", marginBottom:14, opacity:.3 }}><NavIcon name="ai" size={40}/></div>
                 <h3 style={{ fontSize:15, fontWeight:700, color:'var(--ink)',

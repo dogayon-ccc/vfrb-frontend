@@ -1,82 +1,106 @@
-/* src/main.css — VFRB Enterprise, Tailwind v4 CSS-first config */
+/* src/main.css — VFRB foundation: Tailwind v4 + the one token set.
+   Every raw colour, size, radius and shadow in the app is defined here once.
+   theme.css maps the older names (--bg, --ink, --r-lg, --shadow-sm …) onto these,
+   so existing pages pick the system up without edits. Components use var(--…) only. */
 @import "tailwindcss" source(none);
 @source "../index.html";
 @source "./";
 
-/* ── VFRB Design Tokens (Tailwind v4 @theme block) ──────────────────────────
-   These are consumed by Tailwind utility classes: bg-teal, text-muted, etc.
-   Runtime CSS variables live in theme.css under :root {}.
-   Both must stay in sync — any new color added to theme.css :root should
-   also be added here if it needs a Tailwind utility class.
-   ─────────────────────────────────────────────────────────────────────────── */
-@theme {
-  /* Brand colors */
-  --color-teal:         #027a8b;
-  --color-teal-light:   #02C39A;
-  --color-teal-dark:    #016070;
-  --color-teal-darker:  #014f5a;
-  --color-teal-50:      #f0fdfa;
-  --color-teal-100:     #ccfbf1;
-  --color-teal-200:     #99f6e4;
-
-  /* Manager accent */
-  --color-purple:       #7c3aed;
-  --color-purple-dark:  #6d28d9;
-  --color-purple-50:    #f5f3ff;
-  --color-purple-100:   #ede9fe;
-
-  /* Neutral */
-  --color-surface:      #f1f5f9;
+@theme static {
+  /* ── Surfaces: unbleached cotton page, white card ── */
+  --color-page:         #f7f4ef;
+  --color-surface:      #efeae2;   /* inset rows, table heads, inputs at rest */
+  --color-surface-2:    #e6dfd3;   /* pressed, deeper inset */
   --color-card:         #ffffff;
-  --color-border:       #e2e8f0;
-  --color-text:         #0f172a;
-  --color-muted:        #475569;
-  --color-faint:        #5f6f83;
-  --color-ink:          #0f172a;
+  --color-card-hover:   #fcfaf6;
+  --color-line:         #e4ddd1;   /* hairlines, card borders */
+  --color-line-strong:  #cbc0ae;   /* field borders at rest, seams */
 
-  /* Semantic */
-  --color-success:      #22c55e;
-  --color-warning:      #f59e0b;
-  --color-danger:       #ef4444;
-  --color-info:         #3b82f6;
+  /* ── Ink: one warm-neutral ramp, every step >= 4.5:1 on page and card ── */
+  --color-ink:          #17222b;
+  --color-ink-2:        #3e4a55;   /* secondary text */
+  --color-ink-3:        #55606b;   /* meta, captions */
+  --color-ink-disabled: #a8a196;
 
-  /* Font — system stack, offline-safe, NO CDN */
-  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
-               'Helvetica Neue', Arial, sans-serif;
+  /* ── Primary: VFRB seal teal (the accent picker re-points --teal at runtime) ── */
+  --color-brand-teal:      #027a8b;
+  --color-brand-teal-2:    #02c39a;
+  --color-brand-teal-dark: #016070;
+  --color-brand-teal-deep: #014f5a;
+  --color-brand-teal-50:   #eef8f8;
+  --color-brand-teal-100:  #cdeeee;
+  --color-primary:         var(--teal);
+  --color-primary-ink:     var(--teal-dark);
+  --color-primary-tint:    var(--teal-50);
+  --color-on-primary:      var(--on-teal);
 
-  /* Elevation — FIGMA-VERIFIED (customer-ui-spec.md §1.2 frequency-ranked
-     scale). Additive only: no existing box-shadow is renamed or removed,
-     so nothing currently improvising its own inline shadow breaks.
-     Per ADR-1 Option A — shadows only, --color-card unchanged. */
-  --shadow-xs: 0 1px 4px rgba(0,0,0,0.04);        /* resting card */
-  --shadow-sm: 0 1px 6px rgba(0,0,0,0.06);        /* default elevated card */
-  --shadow-md: 0 2px 12px rgba(0,0,0,0.08);       /* hover/pressed, modals */
-  --shadow-lg: 0 4px 20px rgba(2,128,144,0.30);   /* primary CTA buttons */
-  --shadow-xl: 0 4px 24px rgba(2,195,154,0.35);   /* floating: FAB, dropdowns */
+  /* ── Attention: the one amber. Tailor's chalk — marks what needs a decision. ── */
+  --color-attention:      #f0a020;   /* seam, dot, meter fill */
+  --color-attention-ink:  #8a4706;   /* text on tint (5.9:1) */
+  --color-attention-tint: #fff4dc;
+  --color-attention-line: #f1cf8a;
 
-  /* Border radius */
-  --radius-xs:   4px;
-  --radius-sm:   6px;
-  --radius-md:   10px;
-  --radius-lg:   14px;
-  --radius-xl:   18px;
-  --radius-2xl:  24px;
+  /* ── Semantic status: ink on tint, never colour alone (StatusChip adds icon + label) ── */
+  --color-success:      #1f9d55;  --color-success-ink: #14532d;  --color-success-tint: #e2f5e8;  --color-success-line: #a9dcb9;
+  --color-danger:       #d33a3a;  --color-danger-ink:  #8f1717;  --color-danger-tint:  #fde7e5;  --color-danger-line:  #f2b3ae;
+  --color-info:         #2f6fdb;  --color-info-ink:    #1e3a8a;  --color-info-tint:    #e4edfc;  --color-info-line:    #b3cbf3;
+  --color-ready:        #0f8f80;  --color-ready-ink:   #0f544e;  --color-ready-tint:   #d9f4ef;  --color-ready-line:   #9adccf;
+  --color-neutral-ink:  #3e4a55;  --color-neutral-tint:#efeae2;  --color-neutral-line: #ddd5c7;
 
-  /* Layout widths */
-  --sidebar-w:          224px;    /* Full expanded sidebar */
-  --sidebar-collapsed:   68px;    /* Icon-only collapsed   */
-  --sidebar-tablet:     128px;    /* iPad Pro partial      */
-  --topbar-h:            54px;    /* Sticky topbar         */
-  --taskbar-h:           64px;    /* Mobile bottom nav     */
-  --content-max:       1800px;    /* 4K centering cap      */
+  /* Manager role accent (sidebar + avatar only) */
+  --color-manager:      #6d3fd6;
+  --color-manager-tint: #f2eefc;
+  --color-manager-ink:  #4c2a9e;
+
+  /* Admin sidebar: deep dyed-teal cloth */
+  --color-rail:         #0b3a41;
+  --color-rail-deep:    #072226;
+  --color-on-rail:      #ffffff;
+
+  /* ── Type: system stack (offline). 15 body / 14 table / 12 meta floor ── */
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-display: 'DM Serif Display', Georgia, 'Times New Roman', serif;
+  --text-meta:   12px;
+  --text-label:  13px;
+  --text-table:  14px;
+  --text-body:   15px;
+  --text-lead:   17px;
+  --text-title:  20px;
+  --text-page:   26px;
+  --text-figure: 30px;
+
+  /* ── Space: one 4px scale (Tailwind p-1 = 4px … p-12 = 48px) ── */
+  --spacing: 4px;
+  --space-1: 4px;  --space-2: 8px;   --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px;  --space-8: 32px; --space-10: 40px; --space-12: 48px;
+
+  /* ── Shape: one radius. Pills stay round; hairline details use --radius-tick ── */
+  --radius: 12px;
+  --radius-tick: 4px;
+  --radius-pill: 9999px;
+
+  /* ── Elevation: two shadows only ── */
+  --shadow-1: 0 1px 2px rgb(40 30 16 / .06), 0 1px 1px rgb(40 30 16 / .04);           /* resting card */
+  --shadow-2: 0 2px 6px rgb(40 30 16 / .08), 0 18px 40px -14px rgb(40 30 16 / .28);   /* raised: popover, sheet, hover */
+
+  /* ── Shell ── */
+  --sidebar-w:          240px;
+  --sidebar-collapsed:   72px;
+  --topbar-h:            60px;
+  --taskbar-h:           64px;
+  --shell-pad:          clamp(16px, 2.2vw, 32px);
+  --grid-min:           260px;   /* auto-fit card grid column floor */
+  --grid-min-stat:      180px;
+
+  /* ── Motion ── */
+  --ease-out-soft: cubic-bezier(.22, 1, .36, 1);
+  --dur-1: 120ms;
+  --dur-2: 220ms;
+  --dur-3: 360ms;
 }
 
 
-/* ── Global reset ────────────────────────────────────────────────────────────
-   Box-sizing and zero-out handled here.
-   Font-family, background, color owned by theme.css html,body,#root rule.
-   ─────────────────────────────────────────────────────────────────────────── */
-
+/* ── Global reset ── */
 *,
 *::before,
 *::after {
@@ -93,195 +117,21 @@ html {
 
 body {
   font-family: var(--font-sans);
-  background-color: var(--color-surface);
-  color: var(--color-text);
-  line-height: 1.5;
+  background-color: var(--bg);
+  color: var(--ink);
+  font-size: var(--text-body);
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 
-/* ── Shell layout ────────────────────────────────────────────────────────────
-   .vfrb-shell  — the root flex container (full viewport)
-   .vfrb-sidebar — fixed left panel, transitions on collapse
-   .vfrb-main   — flex:1, fills all space after sidebar
-   .vfrb-topbar — sticky topbar inside .vfrb-main
-   .vfrb-content — page content area
-   ─────────────────────────────────────────────────────────────────────────── */
-
-.vfrb-shell {
-  display: flex;
-  min-height: 100vh;
-  background: var(--color-surface);
-}
-
-/* Sidebar — fixed position, width transitions on collapse */
-.vfrb-sidebar {
-  position: fixed;
-  top: 0; left: 0; bottom: 0;
-  z-index: 100;
-  background: var(--color-card);
-  border-right: 1px solid var(--color-border);
-  display: none;
-  flex-direction: column;
-  overflow: hidden;
-  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.05);
-  transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: width;
-}
-
-/*
-  Main content: KEY LAYOUT RULE
-  flex:1 + min-width:0 fills all remaining space after the sidebar.
-  margin-left matches sidebar width set via inline style in AdminLayout/CustomerLayout.
-  NEVER use width:calc(100vw - Npx) — creates gap on widescreen.
-*/
-.vfrb-main {
-  flex: 1;
-  min-width: 0;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--color-surface);
-  transition: margin-left 0.22s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: margin-left;
-}
-
-/* Sticky topbar */
-.vfrb-topbar {
-  height: 52px;
-  flex-shrink: 0;
-  background: var(--color-card);
-  border-bottom: 1px solid var(--color-border);
-  display: flex;
-  align-items: center;
-  padding: 0 14px;
-  gap: 12px;
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-}
-
-/* Page content */
-.vfrb-content {
-  flex: 1;
-  width: 100%;
-  min-width: 0;
-  padding: 14px 14px 84px;
-}
-
-
-/* ── Sidebar nav links ────────────────────────────────────────────────────── */
-
-.vfrb-nav-link {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
-  border-radius: 10px;
-  text-decoration: none;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--color-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  position: relative;
-  margin: 1px 0;
-  transition: background 0.13s ease, color 0.13s ease;
-  cursor: pointer;
-  font-family: var(--font-sans);
-}
-.vfrb-nav-link:hover {
-  background: rgba(2, 128, 144, 0.06);
-  color: var(--color-teal);
-}
-.vfrb-nav-link.active {
-  background: rgba(2, 128, 144, 0.10);
-  color: var(--color-teal);
-  font-weight: 700;
-}
-.vfrb-nav-link.active::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 20%; bottom: 20%;
-  width: 3px;
-  border-radius: 0 2px 2px 0;
-  background: var(--color-teal);
-}
-
-/* Section labels inside sidebar */
-.vfrb-nav-section {
-  font-size: 9px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.10em;
-  color: var(--color-faint);
-  padding: 14px 12px 5px;
-  font-family: var(--font-sans);
-}
-
-
-/* ── Mobile bottom taskbar ───────────────────────────────────────────────── */
-
-.vfrb-taskbar {
-  display: flex;
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  z-index: 200;
-  background: var(--color-card);
-  border-top: 1px solid var(--color-border);
-  box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.08);
-  justify-content: space-around;
-  align-items: stretch;
-  padding: 5px 0;
-  /* Safe area inset — iPhone notch support */
-  padding-bottom: max(5px, env(safe-area-inset-bottom, 5px));
-}
-
-.vfrb-taskbar-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  flex: 1;
-  padding: 4px 6px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-family: var(--font-sans);
-  font-size: 9px;
-  font-weight: 600;
-  color: var(--color-faint);
-  text-decoration: none;
-  border-radius: 10px;
-  transition: background 0.12s ease, color 0.12s ease;
-  min-width: 0;
-  min-height: 44px; /* Touch target */
-}
-.vfrb-taskbar-btn:hover  { background: rgba(2, 128, 144, 0.05); }
-.vfrb-taskbar-btn.active { color: var(--color-teal); }
-.vfrb-taskbar-btn.studio { color: var(--color-teal); }
-.vfrb-taskbar-icon       { font-size: 22px; line-height: 1; display: block; }
-
-
-/* ── GPU compositing for animated shell elements ─────────────────────────── */
-
-.vfrb-sidebar,
-.vfrb-main,
-.vfrb-taskbar {
-  transform: translateZ(0);
-  backface-visibility: hidden;
-}
-
-
-/* ── Shared utility classes ──────────────────────────────────────────────── */
+/* ── Shared utility classes ── */
 
 /* Skeleton shimmer */
 .sk {
-  border-radius: 6px;
-  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  border-radius: var(--radius-tick);
+  background: linear-gradient(90deg, var(--bg-surface) 25%, var(--border) 50%, var(--bg-surface) 75%);
   background-size: 400px 100%;
   animation: sk 1.4s ease-in infinite;
 }
@@ -291,103 +141,44 @@ body {
 }
 
 /* Page fade-in */
-.fade-in { animation: fadeIn 0.22s ease-out both; }
+.fade-in { animation: fadeIn var(--dur-2) ease-out both; }
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Spinner */
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* Card utilities */
-.card {
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-.card-header {
-  padding: 12px 16px;
-  background: #f8fafc;
-  border-bottom: 1px solid var(--color-border);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-}
 
-
-/* ── Scrollbar ───────────────────────────────────────────────────────────── */
-
-::-webkit-scrollbar       { width: 4px; height: 4px; }
+/* ── Scrollbar ── */
+::-webkit-scrollbar       { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: var(--color-faint); }
+::-webkit-scrollbar-thumb { background: var(--border-hover); border-radius: var(--radius-pill); }
+::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
 
 
-/* ── Focus visible ───────────────────────────────────────────────────────── */
-
+/* ── Focus visible ── */
 :focus-visible {
-  outline: 2px solid var(--color-teal);
+  outline: 2px solid var(--teal);
   outline-offset: 2px;
 }
 
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   RESPONSIVE LAYOUT RULES (mobile-first — base rules above are the phone layout)
-   5 breakpoints — each with a UNIQUE layout per the master plan.
-
-   These rules control the SHELL (sidebar + main + taskbar).
-   Content grids (grid-2, grid-3, stat-row) are overridden in theme.css.
-   ═══════════════════════════════════════════════════════════════════════════ */
-
-/* ── Mobile ≤ 767px (base, above) — sidebar hidden, bottom taskbar shown ── */
-/* margin-left is set inline by the consuming layout (desktop sidebar width) —
-   CSS can only zero it out for mobile, not author it mobile-first. */
-@media (max-width: 767px) {
-  .vfrb-main { margin-left: 0 !important; }
-}
+/* ── Breakpoint visibility helpers (mobile-first) ── */
 .desk-only { display: none !important; }
 .tab-only  { display: none !important; }
 .mob-only  { display: revert; }
-
-/* ── Tablet 768–1023px ──────────────────────────────────────────────────── */
 @media (min-width: 768px) {
-  .vfrb-sidebar { display: flex !important; }
-  .vfrb-taskbar { display: none !important; }
-  .vfrb-content { padding: 18px 18px 60px; }
-
   .mob-only  { display: none  !important; }
   .tab-only  { display: revert !important; }
-  .desk-only { display: none  !important; }
 }
-
-/* ── iPad Pro 1024–1279px ───────────────────────────────────────────────── */
-@media (min-width: 1024px) and (max-width: 1279px) {
-  .vfrb-content { padding: 20px 20px 60px; }
-
+@media (min-width: 1024px) {
   .tab-only  { display: none   !important; }
   .desk-only { display: revert !important; }
 }
 
-/* ── Desktop 1280–2559px ────────────────────────────────────────────────── */
-@media (min-width: 1280px) {
-  .tab-only  { display: none   !important; }
-  .desk-only { display: revert !important; }
-}
 
-/* ── 4K ≥ 2560px ────────────────────────────────────────────────────────── */
-@media (min-width: 2560px) {
-  .vfrb-topbar {
-    height: 60px;
-    padding: 0 32px;
-  }
-  .vfrb-content {
-    padding: 28px 32px 80px;
-  }
-}
-
-
-/* ── Reduced motion ──────────────────────────────────────────────────────── */
-
+/* ── Reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration:        0.01ms !important;

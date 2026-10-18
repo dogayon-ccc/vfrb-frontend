@@ -9,6 +9,7 @@ import './styles/modals.css';   // Modal, overlay, shared utility classes
 import './styles/customer.css'; // Customer portal kit
 import './styles/responsive.css'; // Breakpoint overrides
 import './styles/premium.css';    // Client portal premium layer (scoped to .cm-shell)
+import './styles/refresh.css';    // UI refresh: type scale, serif titles, solid actions (delete this line to undo)
 import App from './App.jsx';
 import { isChunkLoadError } from './components/PageErrorBoundary';
 

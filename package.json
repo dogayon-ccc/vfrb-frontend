@@ -31,6 +31,8 @@
     "@types/react": "^18.0.28",
     "@types/react-dom": "^18.0.11",
     "@vitejs/plugin-react": "^6.0.1",
+    "cloudinary": "^2.11.0",
+    "dotenv": "^18.0.8",
     "esbuild": "^0.27.7",
     "serve": "^14.2.6",
     "tailwindcss": "^4.2.2",

@@ -21,16 +21,20 @@ function StockModal({ type, materials, onClose, onDone, isMobile }) {
   const [matId, setMatId] = useState('');
   const [qty,   setQty]   = useState('');
   const [note,  setNote]  = useState('');
+  const [issuedTo, setIssuedTo] = useState('');
   const [busy,  setBusy]  = useState(false);
   const [err,   setErr]   = useState('');
   const isIn = type === 'in';
+  const sel = materials.find(m => String(m.material_id) === String(matId));
 
   const submit = async () => {
     if (!matId || !qty || Number(qty) <= 0) { setErr('Material and quantity required.'); return; }
+    if (!isIn && !issuedTo.trim()) { setErr('Enter who received the materials (department or employee).'); return; }
     setBusy(true); setErr('');
     try {
       await axios.post(`/api/admin/inventory/stock-${type}`, {
         material_id: matId, quantity: Number(qty), reason: note,
+        ...(isIn ? {} : { issued_to: issuedTo.trim() }),
       });
       onDone();
     } catch(e) { setErr(e.response?.data?.message ?? 'Failed.'); }
@@ -38,7 +42,7 @@ function StockModal({ type, materials, onClose, onDone, isMobile }) {
   };
 
   return (
-    <BottomSheet title={isIn ? 'Stock In — record goods receipt' : 'Stock Out — issue to production'} onClose={onClose} isMobile={isMobile} maxWidth={440}>
+    <BottomSheet title={isIn ? 'Stock In — record goods receipt' : 'Stock Out — issue materials'} onClose={onClose} isMobile={isMobile} maxWidth={440}>
       <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
         <div>
           <label className="adm-field">Material *</label>
@@ -53,11 +57,25 @@ function StockModal({ type, materials, onClose, onDone, isMobile }) {
           <label className="adm-field">Quantity *</label>
           <input className="adm-input" type="number" inputMode="decimal" min={0.01} step={0.01} value={qty}
             onChange={e=>setQty(e.target.value)} placeholder="0.00" />
+          {sel && (
+            <div style={{ fontSize:12, color:'var(--text-subtle)', marginTop:6 }}>
+              {sel.quantity_in_stock} {sel.unit} in stock
+              {!isIn && Number(qty) > 0 && ` · ${Math.max(0, Number(sel.quantity_in_stock) - Number(qty)).toFixed(2)} ${sel.unit} remaining after issue`}
+            </div>
+          )}
         </div>
+        {!isIn && (
+          <div>
+            <label className="adm-field" htmlFor="stock-issued-to">Issued to *</label>
+            <input id="stock-issued-to" className="adm-input" value={issuedTo} maxLength={120} onChange={e=>setIssuedTo(e.target.value)}
+              placeholder="e.g. Cutting dept. — Juan D." />
+            <div style={{ fontSize:12, color:'var(--text-subtle)', marginTop:6 }}>Department or employee who received the materials. Kept in the transaction log for accountability.</div>
+          </div>
+        )}
         <div>
           <label className="adm-field">Reason / Notes</label>
           <input className="adm-input" value={note} onChange={e=>setNote(e.target.value)}
-            placeholder={isIn ? 'e.g. Delivery from OTG Company' : 'e.g. Issued for Order #45'} />
+            placeholder={isIn ? 'e.g. Delivery from OTG Company' : 'e.g. For Order #45'} />
         </div>
         {err && <ErrorBlock msg={err} />}
         <div className="adm-sheet-foot">

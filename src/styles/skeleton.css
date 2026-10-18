@@ -42,11 +42,11 @@
 @media (max-width: 767px) { .skx-studio-body { grid-template-columns: 1fr; } .skx-studio-rail, .skx-studio-side { display: none; } }
 
 /* brand loading screen */
-.ldr { position: fixed; inset: 0; z-index: 10000; display: grid; place-content: center; justify-items: center; gap: 18px; background: #f7f6f1; animation: ldr-in 160ms ease both; }
-.ldr-out { animation: ldr-fade 150ms ease forwards; }
+.ldr { position: fixed; inset: 0; z-index: 10000; display: grid; place-content: center; justify-items: center; gap: 18px; background: #f7f6f1; animation: ldr-in 80ms ease both; }
+.ldr-out { animation: ldr-fade 100ms ease forwards; }
 .ldr-mark { position: relative; width: 96px; height: 96px; display: grid; place-items: center; }
 .ldr-mark img { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; box-shadow: 0 6px 20px rgba(10, 32, 41, 0.12); }
-.ldr-ring { position: absolute; inset: 0; border-radius: 50%; border: 3px solid rgba(2, 128, 144, 0.15); border-top-color: #028090; border-right-color: #02c39a; animation: ldr-spin 0.8s linear infinite; }
+.ldr-ring { position: absolute; inset: 0; border-radius: 50%; border: 3px solid rgba(2, 128, 144, 0.15); border-top-color: #028090; border-right-color: #02c39a; animation: ldr-spin 0.55s linear infinite; }
 .ldr p { margin: 0; font: 600 14px/1 ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; letter-spacing: 0.04em; color: #3b4a56; }
 @keyframes ldr-spin { to { transform: rotate(360deg); } }
 @keyframes ldr-in { from { opacity: 0; } }

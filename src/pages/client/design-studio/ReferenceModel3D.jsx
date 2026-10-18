@@ -9,6 +9,7 @@ import { ensureZoneMask, createZoneUniforms, setZoneUniforms, patchZoneMaterial 
 import { partMaterial } from './ScannedGarmentMesh';
 import { refZoneOf } from './referenceColour';
 import { LIGHT, KEY_POS, RIM_POS } from './lightRig';
+import { modelUrl } from '../../../lib/modelUrl';
 
 const DPR = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches ? [1, 1.5] : [1, 2];
 
@@ -22,7 +23,7 @@ class Boundary extends Component {
 // `colors` null = the neutral shape preview; otherwise a colour preview through the Studio's calibrated zone-mask material (one body
 // colour, or Top/Bottom for a set split at `split`). Colour changes only update uniforms; nothing recompiles.
 function Model({ url, onReady, colors = null, split = null }) {
-  const { scene } = useGLTF(url);
+  const { scene } = useGLTF(modelUrl(url));
   const { object, neutral } = useMemo(() => {
     const copy = scene.clone(true);
     const material = new THREE.MeshStandardMaterial({ color: '#aab6c6', roughness: 0.9, metalness: 0, side: THREE.DoubleSide });
@@ -49,7 +50,7 @@ function Model({ url, onReady, colors = null, split = null }) {
   useEffect(() => () => { zone.material.dispose(); neutral.dispose(); }, [zone, neutral]);
   useEffect(() => { onReady?.(); }, [object, onReady]);
   // The reference files are 1-7 MB each; drop them from the loader cache when the preview closes.
-  useEffect(() => () => useGLTF.clear(url), [url]);
+  useEffect(() => () => useGLTF.clear(modelUrl(url)), [url]);
   return <Bounds fit clip observe margin={1.15}><Center><primitive object={object}/></Center></Bounds>;
 }
 

@@ -47,7 +47,7 @@ function ActionRow({ design, onDone, published }) {
       <label><span className="adm-field">{mode === 'approve' ? 'Showcase label *' : 'Reason (optional)'}</span>
         <input className="adm-input" autoFocus maxLength={mode === 'approve' ? 80 : 255} value={text} onChange={(e) => setText(e.target.value)} placeholder={mode === 'approve' ? 'e.g. Nursing scrubs set' : 'Shown to the customer'} />
       </label>
-      {mode === 'approve' && <p className="adm-sub" style={{ margin: '6px 0 0' }}>Every client sees this label. Describe the garment; never use a person's, school's or company's name.</p>}
+      {mode === 'approve' && <p className="adm-sub" style={{ margin: '6px 0 0' }}>Every customer sees this label. Describe the garment; never use a person's, school's or company's name.</p>}
       {err && <div style={{ marginTop: 8 }}><ErrorBlock msg={err} /></div>}
       <div className="adm-mfoot">
         <button className="adm-btn" onClick={() => { setMode(null); setText(''); setErr(''); }} disabled={busy}>Cancel</button>
@@ -82,7 +82,7 @@ export default function ShowcaseModerationQueue() {
         <button className="adm-btn" onClick={load}><NavIcon name="refresh" size={14} color="currentColor" /> Refresh</button>
       </PageHeader>
       <PillTabs value={tab} onChange={setTab} tabs={[{ key: 'pending', label: 'Pending review' }, { key: 'published', label: 'Published' }]} />
-      <p className="adm-sub" style={{ margin: '0 0 12px' }}>The preview is exactly what clients see: garment, colours, patterns and details. Names, logos, printed text and order details are never published.</p>
+      <p className="adm-sub" style={{ margin: '0 0 12px' }}>The preview is exactly what customers see: garment, colours, patterns and details. Names, logos, printed text and order details are never published.</p>
       {loadErr && <div style={{ marginBottom: 14 }}><ErrorBlock msg="Could not load the showcase queue." onRetry={load} /></div>}
 
       {loading ? <div className="adm-cards-grid">{[1, 2, 3].map((i) => <Panel key={i} flush><SkeletonRows rows={3} h={18} /></Panel>)}</div>

@@ -88,7 +88,7 @@ export default function Settings() {
   }, []);
 
   const setField = (k, v) => setCompany((c) => ({ ...c, [k]: v }));
-  const dirty = saved && ['company_name', 'address', 'contact_number', 'contact_email'].some((k) => (company[k] ?? '') !== (saved[k] ?? ''));
+  const dirty = saved && ['company_name', 'address', 'contact_number', 'contact_email'].some((k) => String(company[k] ?? '').trim() !== String(saved[k] ?? '').trim());
 
   const saveCompany = async () => {
     setCompanyBusy(true);
@@ -127,7 +127,7 @@ export default function Settings() {
   };
 
   const ro = !isManager;
-  const bind = (k) => ({ id: `set-${k}`, className: 'adm-input', value: company[k] ?? '', disabled: ro, onChange: (e) => setField(k, e.target.value) });
+  const bind = (k) => ({ id: `set-${k}`, className: 'adm-input', value: company[k] ?? '', disabled: ro, autoComplete: 'off', onChange: (e) => setField(k, e.target.value) });
 
   return (
     <>
@@ -212,7 +212,7 @@ export default function Settings() {
                         {!live && <span className="adm-pill" style={{ background: 'var(--warning-bg)', color: 'var(--warning-text)' }}>Not yet active</span>}
                       </div>
                       <p className="adm-sub" style={{ margin: '2px 0 0' }}>{row.note}</p>
-                      {!live && <p style={{ fontSize: 11, color: 'var(--warning-text)', margin: '3px 0 0' }}>{row.warn}</p>}
+                      {!live && <p style={{ fontSize: 'var(--text-meta)', color: 'var(--warning-text)', margin: '3px 0 0' }}>{row.warn}</p>}
                     </div>
                     <button role="switch" aria-checked={on} aria-label={row.label} className={`set-switch${on ? ' on' : ''}`} disabled={prefsBusy} onClick={() => togglePref(row.key)}><i /></button>
                   </div>

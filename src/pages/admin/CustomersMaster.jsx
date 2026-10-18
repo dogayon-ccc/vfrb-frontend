@@ -34,7 +34,7 @@ function DetailDrawer({ c, onClose }) {
   useDialogFocus(boxRef, { onClose });
   return (
     <div className="adm-drawer" onClick={onClose}>
-      <aside ref={boxRef} className="adm-drawer-panel" role="dialog" aria-modal="true" aria-label={`Client ${c.name}`} onClick={(e) => e.stopPropagation()}>
+      <aside ref={boxRef} className="adm-drawer-panel" role="dialog" aria-modal="true" aria-label={`Customer ${c.name}`} onClick={(e) => e.stopPropagation()}>
         <div className="adm-drawer-head">
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', minWidth: 0 }}>
             <Avatar name={c.name} size={42} />
@@ -43,7 +43,7 @@ function DetailDrawer({ c, onClose }) {
               <div style={{ marginTop: 3 }}><TypePill type={c.client_type} /></div>
             </div>
           </div>
-          <button className="adm-btn" onClick={onClose} aria-label="Close client details"><NavIcon name="close" size={15} color="currentColor" /></button>
+          <button className="adm-btn" onClick={onClose} aria-label="Close customer details"><NavIcon name="close" size={15} color="currentColor" /></button>
         </div>
         <div className="adm-drawer-body">
           <div className="adm-stack">
@@ -63,12 +63,12 @@ function DetailDrawer({ c, onClose }) {
               <dl className="adm-kv">
                 <dt>Organization</dt><dd>{dash(c.organization_name)}</dd>
                 <dt>TIN / Reg. no.</dt><dd>{dash(c.business_registration_number)}</dd>
-                <dt>Client type</dt><dd>{c.client_type ? TYPES[c.client_type] : '—'}</dd>
+                <dt>Customer type</dt><dd>{c.client_type ? TYPES[c.client_type] : '—'}</dd>
                 <dt>Email</dt><dd>{c.email_verified_at ? `Verified ${fmt(c.email_verified_at)}` : 'Not verified'}</dd>
                 <dt>Joined</dt><dd>{fmt(c.created_at)}</dd>
               </dl>
             </Panel>
-            <p className="adm-sub">Read-only master data. Clients update their own profile from the customer portal.</p>
+            <p className="adm-sub">Read-only master data. Customers update their own profile from the customer portal.</p>
           </div>
         </div>
       </aside>
@@ -113,31 +113,31 @@ export default function CustomersMaster() {
   const clear = () => { setSearch(''); setQ(''); setType('all'); setPage(1); };
 
   const pager = meta.last_page > 1 && (
-    <div className="cm-pager">
-      <span>Page {meta.current_page} of {meta.last_page} · {meta.total} clients</span>
+    <nav className="cm-pager" aria-label="Client pages">
+      <span>Page {meta.current_page} of {meta.last_page}, {meta.total} clients</span>
       <div>
-        <button className="adm-btn" disabled={page <= 1 || loading} onClick={() => setPage((p) => p - 1)}><NavIcon name="back" size={14} color="currentColor" /> Prev</button>
+        <button className="adm-btn" disabled={page <= 1 || loading} onClick={() => setPage((p) => p - 1)}><NavIcon name="back" size={14} color="currentColor" /> Previous</button>
         <button className="adm-btn" disabled={page >= meta.last_page || loading} onClick={() => setPage((p) => p + 1)}>Next <NavIcon name="chevronRight" size={14} color="currentColor" /></button>
       </div>
-    </div>
+    </nav>
   );
 
   return (
     <>
       {sel && <DetailDrawer c={sel} onClose={() => setSel(null)} />}
-      {sheet && <FilterSheet title="Filter by client type" options={tabs} value={type} onChange={setT} onClose={() => setSheet(false)} isMobile={isMobile} />}
-      <PageHeader title="Client Master Data" sub={`${summary?.total ?? '…'} registered clients · read-only`}>
+      {sheet && <FilterSheet title="Filter by customer type" options={tabs} value={type} onChange={setT} onClose={() => setSheet(false)} isMobile={isMobile} />}
+      <PageHeader title="Customer Master Data" sub={`${summary?.total ?? '…'} registered customers · read-only`}>
         <button className="adm-btn" onClick={load}><NavIcon name="refresh" size={14} color="currentColor" /> Refresh</button>
       </PageHeader>
-      {loadErr && <div style={{ marginBottom: 14 }}><ErrorBlock msg="Could not load clients." onRetry={load} /></div>}
+      {loadErr && <div style={{ marginBottom: 14 }}><ErrorBlock msg="Could not load customers." onRetry={load} /></div>}
 
       <StatGrid loading={!summary && loading} items={[
-        { label: 'All clients', value: summary?.total ?? 0, color: 'var(--teal)', onClick: () => setT('all') },
+        { label: 'All customers', value: summary?.total ?? 0, color: 'var(--teal)', onClick: () => setT('all') },
         ...Object.entries(TYPES).map(([k, l]) => ({ label: l, value: summary?.[k] ?? 0, onClick: () => setT(type === k ? 'all' : k) })),
       ]} />
 
       <div className="adm-toolbar">
-        <SearchBox value={search} onChange={setSearch} placeholder="Search name, email, organization, phone…" label="Search clients" />
+        <SearchBox value={search} onChange={setSearch} placeholder="Search name, email, organization, phone…" label="Search customers" />
         <FilterButton label={`Type: ${tabs.find((t) => t.key === type)?.label}`} onClick={() => setSheet(true)} />
       </div>
       <div className="adm-only-d"><PillTabs value={type} onChange={setT} tabs={tabs} /></div>
@@ -146,7 +146,7 @@ export default function CustomersMaster() {
         <Panel flush>
           <div className="adm-tbl-scroll">
             <table className="adm-table">
-              <thead><tr><th>Client</th><th>Organization</th><th>Type</th><th>Contact</th><th className="adm-hide-t">Address</th><th>Orders</th><th className="adm-hide-t">Last order</th><th className="adm-hide-t">Joined</th></tr></thead>
+              <thead><tr><th>Customer</th><th>Organization</th><th>Type</th><th>Contact</th><th className="adm-hide-t">Address</th><th>Orders</th><th className="adm-hide-t">Last order</th><th className="adm-hide-t">Joined</th></tr></thead>
               <tbody>
                 {!loading && rows.map((c) => (
                   <tr key={c.user_id} className="adm-row" tabIndex={0} onClick={() => setSel(c)} onKeyDown={(e) => e.key === 'Enter' && setSel(c)}>
@@ -166,7 +166,7 @@ export default function CustomersMaster() {
           {loading && <SkeletonRows rows={6} h={52} />}
           {!loading && !loadErr && rows.length === 0 && (
             <div className="adm-empty"><NavIcon name="users" size={30} color="currentColor" />
-              <div style={{ marginTop: 8, fontWeight: 700 }}>{filtered ? 'No clients match your filters' : 'No registered clients yet'}</div>
+              <div style={{ marginTop: 8, fontWeight: 700 }}>{filtered ? 'No customers match your filters' : 'No registered customers yet'}</div>
               {filtered && <button className="adm-link-btn" onClick={clear}>Clear filters</button>}
             </div>
           )}
@@ -176,7 +176,7 @@ export default function CustomersMaster() {
 
       <div className="adm-only-m adm-stagger" key={`${type}-${q}-${page}`}>
         {loading ? <SkeletonRows rows={3} h={120} /> : rows.length === 0 ? (
-          <div className="adm-empty"><NavIcon name="users" size={30} color="currentColor" /><div style={{ marginTop: 8, fontWeight: 700 }}>{filtered ? 'No clients match' : 'No registered clients yet'}</div>
+          <div className="adm-empty"><NavIcon name="users" size={30} color="currentColor" /><div style={{ marginTop: 8, fontWeight: 700 }}>{filtered ? 'No customers match' : 'No registered customers yet'}</div>
             {filtered && <button className="adm-link-btn" onClick={clear}>Clear filters</button>}</div>
         ) : rows.map((c, i) => (
           <div key={c.user_id} className="adm-mcard" style={{ '--i': Math.min(i, 8) }} onClick={() => setSel(c)}>

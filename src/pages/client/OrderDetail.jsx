@@ -56,14 +56,14 @@ const STATUS_SEQ = [
 // Icon names match Dashboard.jsx/Orders.jsx's S config — same convention across pages.
 const S = {
   pending:     { color:'#f59e0b', bg:'#fef3c7', label:'Pending',     icon:'pending'     },
-  confirmed:   { color:'#3b82f6', bg:'#dbeafe', label:'Confirmed',   icon:'success'     },
-  pattern:     { color:'#8b5cf6', bg:'#ede9fe', label:'Pattern',     icon:'pattern'     },
-  segregation: { color:'#a78bfa', bg:'#f5f3ff', label:'Segregation', icon:'segregation' },
-  cutting:     { color:'#6366f1', bg:'#e0e7ff', label:'Cutting',     icon:'cutting'     },
-  sewing:      { color:'#06b6d4', bg:'#cffafe', label:'Sewing',      icon:'garmentType' },
-  qc:          { color:'#f97316', bg:'#ffedd5', label:'QC',          icon:'qc'          },
-  pressing:    { color:'#ec4899', bg:'#fce7f3', label:'Pressing',    icon:'pressing'    },
-  packing:     { color:'#f472b6', bg:'#fdf2f8', label:'Packing',     icon:'package'     },
+  confirmed:   { color:'var(--info-text)', bg:'var(--info-bg)', label:'Confirmed', icon:'success'     },
+  pattern:     { color:'var(--info-text)', bg:'var(--info-bg)', label:'Confirmed', icon:'success' },
+  segregation: { color:'var(--info-text)', bg:'var(--info-bg)', label:'Confirmed', icon:'success' },
+  cutting:     { color:'var(--info-text)', bg:'var(--info-bg)', label:'Confirmed', icon:'success' },
+  sewing:      { color:'var(--info-text)', bg:'var(--info-bg)', label:'Confirmed', icon:'success' },
+  qc:          { color:'var(--info-text)', bg:'var(--info-bg)', label:'Confirmed', icon:'success' },
+  pressing:    { color:'var(--info-text)', bg:'var(--info-bg)', label:'Confirmed', icon:'success' },
+  packing:     { color:'var(--info-text)', bg:'var(--info-bg)', label:'Confirmed', icon:'success' },
   completed:   { color:'#15803d', bg:'#dcfce7', label:'Completed',   icon:'success'     },
   cancelled:   { color:'#ef4444', bg:'#fee2e2', label:'Cancelled',   icon:'error'       },
 };
@@ -147,7 +147,7 @@ function StageDot({ stage, currentStatus, isMobile }) {
           {stage.label}
         </p>
         {active && isMobile && (
-          <p style={{ fontSize:10, color:T, margin:'2px 0 0', fontFamily:FONT }}>
+          <p style={{ fontSize:13, color:T, margin:'2px 0 0', fontFamily:FONT }}>
             In progress
           </p>
         )}
@@ -159,7 +159,6 @@ function StageDot({ stage, currentStatus, isMobile }) {
 // ── Main component ────────────────────────────────────────────────────────────
 // A uniform set's linked orders on one card: each piece with its own preview (2D, or 3D where the garment has a model),
 // production progress, and its own documents and messages. Siblings are found in the customer's order list by set id.
-const pctOf = st => { const i = STATUS_SEQ.indexOf(st); return i >= 0 ? Math.round((i / (STATUS_SEQ.length - 1)) * 100) : 0; };
 function UniformSetCard({ order, nav }) {
   const setId = parseCfg(order)?.uniformSet?.id;
   const [list, setList] = useState(null);
@@ -181,7 +180,7 @@ function UniformSetCard({ order, nav }) {
         {list !== null && pieces.length < 2 && <p className="od-set-note">The other piece of this set was not found in your orders.</p>}
         <div className="od-set-grid">
           {pieces.map(o => {
-            const cfg = parseCfg(o), cur = String(o.order_id) === String(order.order_id), pct = pctOf(o.status);
+            const cfg = parseCfg(o), cur = String(o.order_id) === String(order.order_id);
             return (
               <article key={o.order_id} className="od-set-piece" data-current={cur || undefined}>
                 <header className="od-set-h">
@@ -193,10 +192,6 @@ function UniformSetCard({ order, nav }) {
                   <StatusPill status={o.status}/>
                 </header>
                 <DesignPreview cfg={cfg && Object.keys(cfg).length ? cfg : null} height={220} previewUrl={o.design_preview_url ?? null}/>
-                <div className="od-set-prog" role="progressbar" aria-label={`Production progress, order ${o.order_id}`} aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
-                  <span style={{ width:`${pct}%` }}/>
-                </div>
-                <p className="od-set-sub">{o.status === 'cancelled' ? 'Cancelled' : `${pct}% through production`}</p>
                 <div className="od-set-act">
                   {!cur && <button type="button" className="cx-btn cx-btn-s" onClick={() => nav(`/orders/${o.order_id}`)}>Details &amp; documents</button>}
                   <button type="button" className="cx-btn cx-btn-s" onClick={() => nav(`/messages?order=${o.order_id}`)}>Messages</button>
@@ -205,6 +200,76 @@ function UniformSetCard({ order, nav }) {
             );
           })}
         </div>
+      </div>
+    </section>
+  );
+}
+
+const peso = v => `₱${Number(v ?? 0).toLocaleString('en-PH', { minimumFractionDigits:2, maximumFractionDigits:2 })}`;
+// Reasons VFRB or the customer gave, as the backend posts them to the order's message thread.
+const REASON_RE = /^(Order cancelled by VFRB|Proposal declined)\. Reason: /;
+
+// VFRB's proposal (promised date, total, note) with the customer's reply: accept, message or decline with a reason.
+function ProposalCard({ order, orderId, onDone, showToast }) {
+  const [mode, setMode] = useState(null); // 'message' | 'decline'
+  const [text, setText] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err,  setErr]  = useState('');
+  const ps = order.proposal_status;
+  if (!ps) return null;
+  const open = ps === 'pending' && order.status === 'pending';
+
+  const send = async (path, body, okMsg) => {
+    setBusy(true); setErr('');
+    try {
+      const r = await axios.post(`/api/customer/orders/${orderId}/${path}`, body);
+      showToast(r.data?.message ?? okMsg);
+      setMode(null); setText('');
+      await onDone();
+    } catch (e) {
+      const fe = e.response?.data?.errors;
+      setErr((fe && Object.values(fe)[0]?.[0]) ?? e.response?.data?.message ?? 'Action failed. Please retry.');
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <section className="od-card od-prop" aria-label="VFRB proposal">
+      <div className="od-card-body">
+        <div className="od-prop-h">
+          <p className="od-section-title" style={{ margin:0 }}>VFRB proposal</p>
+          <span className="od-prop-st" data-s={ps}>{ps === 'pending' ? 'Waiting for your reply' : ps === 'accepted' ? 'Accepted' : 'Declined'}</span>
+        </div>
+        <dl className="od-prop-grid">
+          <div><dt>Delivery date</dt><dd>{order.promised_date ? fmtDate(order.promised_date) : '—'}</dd></div>
+          <div><dt>Total</dt><dd>{order.agreed_total != null ? peso(order.agreed_total) : '—'}</dd></div>
+        </dl>
+        {order.proposal_note && <p className="od-prop-note"><strong>Note from Admin:</strong> {order.proposal_note}</p>}
+        {ps === 'declined' && <p className="od-prop-note">You declined this proposal. VFRB will review your reason and may send a new one.</p>}
+
+        {open && !mode && (
+          <div className="od-prop-act">
+            <button type="button" className="cx-btn cx-btn-p" disabled={busy} onClick={() => send('accept', {}, 'Proposal accepted.')}>Accept</button>
+            <button type="button" className="cx-btn cx-btn-s" disabled={busy} onClick={() => { setMode('message'); setErr(''); }}>Message</button>
+            <button type="button" className="cx-btn cx-btn-s od-prop-dec" disabled={busy} onClick={() => { setMode('decline'); setErr(''); }}>Decline</button>
+          </div>
+        )}
+        {open && mode && (
+          <div className="od-prop-form">
+            <label htmlFor="od-prop-text">{mode === 'decline' ? 'Why are you declining? (required)' : 'Message to VFRB'}</label>
+            <textarea id="od-prop-text" rows={3} value={text} onChange={e => setText(e.target.value)}
+              placeholder={mode === 'decline' ? 'e.g. The date is too late for our event' : 'Ask about the date, fabric or total'}/>
+            <div className="od-prop-act">
+              <button type="button" className={`cx-btn ${mode === 'decline' ? 'cx-btn-s od-prop-dec' : 'cx-btn-p'}`} disabled={busy || !text.trim()}
+                onClick={() => mode === 'decline'
+                  ? send('decline', { reason: text.trim() }, 'Proposal declined.')
+                  : send('message', { body: text.trim() }, 'Message sent.')}>
+                {busy ? 'Sending' : mode === 'decline' ? 'Decline proposal' : 'Send message'}
+              </button>
+              <button type="button" className="cx-btn cx-btn-s" disabled={busy} onClick={() => { setMode(null); setText(''); setErr(''); }}>Back</button>
+            </div>
+          </div>
+        )}
+        {err && <p className="od-prop-err" role="alert">{err}</p>}
       </div>
     </section>
   );
@@ -224,6 +289,7 @@ export default function CustomerOrderDetail() {
   const [aiAction, setAiAction] = useState(null);
   const [toast,    setToast]    = useState(null);
   const [dlBusy,   setDlBusy]   = useState(false);
+  const [reasons,  setReasons]  = useState([]);
 
   // Responsive — CSS-driven (.od-h1, .od-pipeline-h/v), no resize listener needed.
   const CACHE_KEY = `order_detail_${orderId}`;
@@ -339,6 +405,17 @@ export default function CustomerOrderDetail() {
     },
   ];
 
+  const needReasons = !!order && (order.status === 'cancelled' || order.proposal_status === 'declined');
+  useEffect(() => {
+    if (!needReasons) { setReasons([]); return; }
+    let live = true;
+    axios.get(`/api/customer/messages/${orderId}`).then(r => {
+      const list = r.data?.messages ?? r.data?.data ?? r.data ?? [];
+      if (live) setReasons((Array.isArray(list) ? list : []).filter(m => REASON_RE.test(m.body ?? '')));
+    }).catch(() => {});
+    return () => { live = false; };
+  }, [needReasons, orderId, order?.status, order?.proposal_status]);
+
   const [tab, setTab] = useState('overview');
   useEffect(() => {
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -447,7 +524,7 @@ export default function CustomerOrderDetail() {
   const pane = (id, extra = '') => ({ className: `od-card od-pane ${extra}`.trim(), 'data-pane': id, 'data-on': tab === id });
   const matShown = (!['ready','accepted','rejected'].includes(order.ai_recommendation_status) && !['completed','cancelled'].includes(order.status))
     || (!!aiRec && ['ready','accepted','rejected'].includes(order.ai_recommendation_status));
-  const TABS = [['overview','Overview'], ['progress','Progress'], ['materials','Materials'], ['messages','Messages']];
+  const TABS = [['overview','Overview'], ['progress','Delivery'], ['materials','Materials'], ['messages','Messages']];
   const onTabKey = (e) => {
     const i = TABS.findIndex(([id]) => id === tab);
     const n = e.key === 'ArrowRight' ? i + 1 : e.key === 'ArrowLeft' ? i - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? TABS.length - 1 : null;
@@ -491,9 +568,9 @@ export default function CustomerOrderDetail() {
         .od-set-piece { min-width:0; display:flex; flex-direction:column; gap:10px; padding:12px; border:1px solid var(--border); border-radius:12px; background:var(--bg-surface); }
         .od-set-piece[data-current] { border-color:var(--teal); box-shadow:0 0 0 1px var(--teal) inset; }
         .od-set-h { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; }
-        .od-set-role { margin:0; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.07em; color:var(--text-subtle); }
+        .od-set-role { margin:0; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.07em; color:var(--text-subtle); }
         .od-set-name { margin:2px 0 0; font-size:14px; font-weight:800; color:var(--ink); overflow-wrap:anywhere; }
-        .od-set-sub, .od-set-note { margin:0; font-size:12px; color:var(--text-subtle); }
+        .od-set-sub, .od-set-note { margin:0; font-size:13px; color:var(--text-subtle); }
         .od-set-note { margin-bottom:10px; }
         .od-set-prog { height:6px; border-radius:99px; background:rgba(15,23,42,.08); overflow:hidden; }
         .od-set-prog span { display:block; height:100%; background:var(--teal); }
@@ -501,7 +578,26 @@ export default function CustomerOrderDetail() {
         .od-set-act .cx-btn { min-height:40px; flex:1 1 140px; }
         @media (min-width:640px) { .od-set-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 
-        .od-section-title { font-size:11px; font-weight:800; text-transform:uppercase;
+        .od-prop { border-color:var(--teal); }
+        .od-prop-h { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+        .od-prop-st { font-size:13px; font-weight:700; padding:3px 10px; border-radius:99px; background:#fef3c7; color:#92400e; }
+        .od-prop-st[data-s="accepted"] { background:#dcfce7; color:#166534; }
+        .od-prop-st[data-s="declined"] { background:#fee2e2; color:#991b1b; }
+        .od-prop-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:0 0 10px; }
+        .od-prop-grid dt { font-size:13px; color:var(--text-subtle); }
+        .od-prop-grid dd { margin:2px 0 0; font-size:16px; font-weight:800; color:var(--ink); }
+        .od-prop-note { margin:0 0 10px; font-size:13px; color:var(--ink); line-height:1.5; overflow-wrap:anywhere; white-space:pre-wrap; }
+        .od-prop-act { display:flex; gap:8px; flex-wrap:wrap; }
+        .od-prop-act .cx-btn { min-height:44px; flex:1 1 110px; }
+        .od-prop-dec { color:#b91c1c; border-color:#fecaca; }
+        .od-prop-form { display:flex; flex-direction:column; gap:8px; }
+        .od-prop-form label { font-size:13px; font-weight:700; color:var(--ink); }
+        .od-prop-form textarea { width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border); font:inherit; font-size:13px; resize:vertical; }
+        .od-prop-err { margin:8px 0 0; font-size:13px; color:#b91c1c; }
+        .od-reasons { margin:0 0 14px; padding:12px 14px; border-radius:12px; background:#fef2f2; border:1px solid #fecaca; }
+        .od-reasons p { margin:0; font-size:13px; color:#7f1d1d; overflow-wrap:anywhere; }
+        .od-reasons p + p { margin-top:6px; }
+        .od-section-title { font-size:13px; font-weight:800; text-transform:uppercase;
           letter-spacing:.07em; color:#5f6f83; margin:0 0 14px; }
 
         @media (min-width:640px) {
@@ -529,7 +625,7 @@ export default function CustomerOrderDetail() {
               background: toast.type === 'error' ? '#ef4444'
                         : toast.type === 'info'  ? '#3b82f6'
                         :                           T2,
-              color:'#fff', fontWeight:700, fontSize:12,
+              color:'#fff', fontWeight:700, fontSize:13,
               boxShadow:'0 6px 20px rgba(0,0,0,.15)',
             }}
           >
@@ -560,7 +656,7 @@ export default function CustomerOrderDetail() {
                 <OrderThumb order={order} size={64}/>
                 <div style={{ flex:1, minWidth:0 }}>
                   <p title={orderTitle(order)} style={{ margin:0, fontSize:15, fontWeight:800, color:'var(--ink)', overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflowWrap:'anywhere' }}>{orderTitle(order)}</p>
-                  <p style={{ margin:'3px 0 0', fontSize:12, color:'var(--text-subtle)' }}>
+                  <p style={{ margin:'3px 0 0', fontSize:13, color:'var(--text-subtle)' }}>
                     {garmentLine}{order.target_delivery_date ? ` · Due ${fmtDate(order.target_delivery_date)}` : ''}
                   </p>
                 </div>
@@ -568,6 +664,15 @@ export default function CustomerOrderDetail() {
               </div>
               <Stepper steps={LIFECYCLE} current={lifecycleIndex(status)}/>
             </div>
+          </div>
+        )}
+
+        <ProposalCard order={order} orderId={orderId} showToast={showToast}
+          onDone={() => { cacheClear(CACHE_KEY, 'orders_list'); return load(true); }}/>
+
+        {reasons.length > 0 && status !== 'cancelled' && (
+          <div className="od-reasons" role="note">
+            {reasons.map(m => <p key={m.message_id ?? m.body}>{m.body}</p>)}
           </div>
         )}
 
@@ -602,7 +707,7 @@ export default function CustomerOrderDetail() {
               <DesignPreview cfg={order.studio_config} height={340}
                 previewUrl={order.design_preview_url ?? null}
                 referenceImageUrl={!order.studio_config ? getStorageUrl(order.client_design_ref_file) : null}/>
-              <p style={{ fontSize:12, color:'var(--text-subtle)', fontFamily:FONT, margin:'10px 0 0' }}>
+              <p style={{ fontSize:13, color:'var(--text-subtle)', fontFamily:FONT, margin:'10px 0 0' }}>
                 {order.design_preview_url
                   ? 'This is the artwork submitted with your order. VFRB staff work from this file, so check it matches what you expect before production starts.'
                   : 'Preview built from your submitted design.'}
@@ -631,7 +736,7 @@ export default function CustomerOrderDetail() {
                   padding:'10px 12px', border:'1px solid var(--bg-surface)',
                 }}>
                   <p style={{
-                    fontSize:9, fontWeight:700, color:'var(--text-faint)',
+                    fontSize:13, fontWeight:700, color:'var(--text-faint)',
                     textTransform:'uppercase', letterSpacing:'.07em',
                     margin:'0 0 4px', fontFamily:FONT,
                   }}>
@@ -657,113 +762,6 @@ export default function CustomerOrderDetail() {
           </div>
         </div>
 
-        <div {...pane('progress')}><div className="od-card-body" style={{ paddingBottom:0 }}>
-        {/* ── Overall progress bar ──────────────────────────────────────── */}
-        <div style={{ marginBottom:20 }}>
-          <div style={{
-            display:'flex', justifyContent:'space-between', marginBottom:7,
-          }}>
-            <span style={{ fontSize:12, fontWeight:700, color:'var(--ink)', fontFamily:FONT }}>
-              Production Progress
-            </span>
-            <span style={{ fontSize:12, fontWeight:800, color:T, fontFamily:FONT }}>
-              {pct}%
-            </span>
-          </div>
-          <div style={{ height:8, background:'var(--border)', borderRadius:99, overflow:'hidden' }}>
-            <motion.div
-              initial={{ width:0 }}
-              animate={{ width:`${pct}%` }}
-              transition={{ duration:.9, ease:'easeOut' }}
-              style={{
-                height:'100%', borderRadius:99,
-                background:`linear-gradient(90deg,${T},${T2})`,
-              }}
-            />
-          </div>
-        </div>
-
-</div>
-</div>
-        {/* ── DESKTOP: horizontal 7-stage pipeline ──────────────────────── */}
-        <div {...pane('progress')}>
-          <div className="od-card-body od-pipeline-h" style={{
-            gap:0, position:'relative', alignItems:'flex-start',
-          }}>
-            {/* Connector line */}
-            <div style={{
-              position:'absolute', top:22, left:'5%', right:'5%',
-              height:2, background:'var(--border)', zIndex:0,
-            }}>
-              <motion.div
-                initial={{ width:0 }}
-                animate={{ width:`${connPct}%` }}
-                transition={{ duration:.9, ease:'easeOut' }}
-                style={{
-                  height:'100%',
-                  background:`linear-gradient(90deg,${T},${T2})`,
-                }}
-              />
-            </div>
-            {STAGES.map(stage => (
-              <div key={stage.key} style={{ flex:1, zIndex:1, position:'relative' }}>
-                <StageDot stage={stage} currentStatus={status} isMobile={false}/>
-              </div>
-            ))}
-          </div>
-
-          {/* Active stage strip */}
-          {isInProd && (
-            <div style={{
-              borderTop:'1px solid var(--bg-surface)', padding:'10px 20px',
-              background:'#f0fdfa',
-              display:'flex', alignItems:'center', gap:8,
-            }}>
-              <div style={{
-                width:8, height:8, borderRadius:'50%',
-                background:T2, flexShrink:0,
-                animation:'pulse 1.6s ease-in-out infinite',
-              }}/>
-              <p style={{ fontSize:12, fontWeight:600, color:T, margin:0, fontFamily:FONT }}>
-                Currently: <strong>
-                  {STAGES.find(s => s.key === status)?.label ?? status}
-                </strong> — Your order is in active production.
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* ── MOBILE: vertical pipeline ─────────────────────────────────── */}
-        <div {...pane('progress')}>
-          <div className="od-card-body od-pipeline-v" style={{
-            gap:0, position:'relative',
-          }}>
-            {/* Vertical connector */}
-            <div style={{
-              position:'absolute', top:'5%', bottom:'5%', left:17,
-              width:2, background:'var(--border)', zIndex:0,
-            }}>
-              <motion.div
-                initial={{ height:0 }}
-                animate={{ height:`${connPct}%` }}
-                transition={{ duration:.9, ease:'easeOut' }}
-                style={{
-                  width:'100%',
-                  background:`linear-gradient(180deg,${T},${T2})`,
-                }}
-              />
-            </div>
-            {STAGES.map((stage, i) => (
-              <div key={stage.key}
-                style={{
-                  zIndex:1, position:'relative',
-                  paddingBottom: i < STAGES.length - 1 ? 18 : 0,
-                }}>
-                <StageDot stage={stage} currentStatus={status} isMobile/>
-              </div>
-            ))}
-          </div>
-        </div>
 
 
         {/* Requires the backend's storage symlink (php artisan storage:link) to resolve. */}
@@ -777,7 +775,7 @@ export default function CustomerOrderDetail() {
                 <a href={getStorageUrl(order.client_design_ref_file)} target="_blank" rel="noopener noreferrer"
                   style={{ display:'block', borderRadius:10, overflow:'hidden',
                     border:'1px solid var(--border)', maxWidth:280, textDecoration:'none' }}>
-                  <img src={getStorageUrl(order.client_design_ref_file)} alt="Client reference"
+                  <img src={getStorageUrl(order.client_design_ref_file)} alt="Customer reference"
                     style={{ width:'100%', display:'block' }}
                     onError={e => { e.target.style.display='none'; }}/>
                 </a>
@@ -854,13 +852,13 @@ export default function CustomerOrderDetail() {
                   <p className="od-section-title" style={{ margin:'0 0 2px', fontFamily:FONT }}>
                     AI Material Recommendation
                   </p>
-                  <p style={{ fontSize:11, color:'var(--text-subtle)', margin:0, fontFamily:FONT }}>
+                  <p style={{ fontSize:13, color:'var(--text-subtle)', margin:0, fontFamily:FONT }}>
                     Based on VFRB production standards
                   </p>
                 </div>
                 {order.ai_recommendation_status === 'accepted' && (
                   <span style={{
-                    padding:'3px 10px', borderRadius:99, fontSize:10,
+                    padding:'3px 10px', borderRadius:99, fontSize:13,
                     fontWeight:700, flexShrink:0,
                     background:'#dcfce7', color:'#16a34a',
                   }}>
@@ -869,7 +867,7 @@ export default function CustomerOrderDetail() {
                 )}
                 {order.ai_recommendation_status === 'rejected' && (
                   <span style={{
-                    padding:'3px 10px', borderRadius:99, fontSize:10,
+                    padding:'3px 10px', borderRadius:99, fontSize:13,
                     fontWeight:700, flexShrink:0,
                     background:'#fee2e2', color:'#dc2626',
                   }}>
@@ -882,12 +880,12 @@ export default function CustomerOrderDetail() {
                 <div style={{ padding:'10px 12px', borderRadius:9, background:'var(--bg-surface)',
                   border:'1px solid var(--border)', marginBottom:14, display:'flex',
                   alignItems:'center', justifyContent:'space-between', gap:10 }}>
-                  <span style={{ fontSize:11, color:'var(--text-subtle)', fontFamily:FONT }}>
+                  <span style={{ fontSize:13, color:'var(--text-subtle)', fontFamily:FONT }}>
                     VFRB staff has been notified. Want to pick materials yourself instead?
                   </span>
                   <button onClick={() => nav('/ai-materials')}
                     style={{ padding:'6px 12px', borderRadius:8, border:'1px solid var(--border)',
-                      background:'#fff', color:'var(--ink)', fontSize:11, fontWeight:700,
+                      background:'#fff', color:'var(--ink)', fontSize:13, fontWeight:700,
                       cursor:'pointer', fontFamily:FONT, whiteSpace:'nowrap', flexShrink:0 }}>
                     ✋ Choose Myself
                   </button>
@@ -902,7 +900,7 @@ export default function CustomerOrderDetail() {
                     : aiRec.materials_json;
                   return (
                     <div style={{ marginBottom:14 }}>
-                      <p style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', margin:'0 0 10px', fontFamily:FONT }}>{AI_OPTIONAL_LINE}</p>
+                      <p style={{ fontSize:13, fontWeight:700, color:'var(--text-muted)', margin:'0 0 10px', fontFamily:FONT }}>{AI_OPTIONAL_LINE}</p>
                       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(min(100%,260px),1fr))', gap:12 }}>
                         {Object.entries(mats).map(([mat, info], i) => (
                           <RecCard key={mat} rec={{ ...info, material_name: mat }} index={i}/>
@@ -916,7 +914,7 @@ export default function CustomerOrderDetail() {
               {/* Narrative notes */}
               {aiRec.notes && (
                 <p style={{
-                  fontSize:12, color:'var(--text-subtle)', lineHeight:1.7,
+                  fontSize:13, color:'var(--text-subtle)', lineHeight:1.7,
                   margin:'0 0 14px', fontFamily:FONT,
                 }}>
                   {aiRec.notes}
@@ -934,7 +932,7 @@ export default function CustomerOrderDetail() {
                       flex:1, padding:'10px', borderRadius:10, border:'none',
                       background: aiAction ? 'var(--text-faint)'
                         : `linear-gradient(135deg,${T},${T2})`,
-                      color:'#fff', fontSize:12, fontWeight:700,
+                      color:'#fff', fontSize:13, fontWeight:700,
                       cursor: aiAction ? 'not-allowed' : 'pointer',
                       fontFamily:FONT, minHeight:44,
                     }}
@@ -948,7 +946,7 @@ export default function CustomerOrderDetail() {
                     style={{
                       flex:1, padding:'10px', borderRadius:10,
                       border:'1px solid #fecaca', background:'#fff',
-                      color:'#dc2626', fontSize:12, fontWeight:700,
+                      color:'#dc2626', fontSize:13, fontWeight:700,
                       cursor: aiAction ? 'not-allowed' : 'pointer',
                       fontFamily:FONT, minHeight:44,
                     }}
@@ -980,7 +978,7 @@ export default function CustomerOrderDetail() {
                     }}>
                       <span style={{
                         padding:'4px 12px', borderRadius:99,
-                        fontSize:11, fontWeight:700,
+                        fontSize:13, fontWeight:700,
                         background:`${dcfg.color}15`, color:dcfg.color,
                         border:`1px solid ${dcfg.color}25`,
                       }}>
@@ -989,7 +987,7 @@ export default function CustomerOrderDetail() {
                     </div>
 
                     {![delivery.delivery_method, delivery.courier_name, delivery.tracking_number, delivery.delivery_address, delivery.estimated_delivery_date].some(Boolean) && (
-                      <p style={{ margin:0, fontSize:12, color:'var(--text-subtle)', fontFamily:FONT }}>
+                      <p style={{ margin:0, fontSize:13, color:'var(--text-subtle)', fontFamily:FONT }}>
                         VFRB staff haven't added delivery details yet.
                       </p>
                     )}
@@ -1013,12 +1011,12 @@ export default function CustomerOrderDetail() {
                           borderRadius:8, border:'1px solid var(--bg-surface)',
                         }}>
                           <span style={{
-                            fontSize:11, fontWeight:700, color:'var(--text-faint)',
+                            fontSize:13, fontWeight:700, color:'var(--text-faint)',
                             minWidth:90, flexShrink:0, fontFamily:FONT,
                           }}>
                             {row.l}
                           </span>
-                          <span style={{ fontSize:12, color:'var(--ink)', fontFamily:FONT }}>
+                          <span style={{ fontSize:13, color:'var(--ink)', fontFamily:FONT }}>
                             {row.v}
                           </span>
                         </div>
@@ -1046,7 +1044,7 @@ export default function CustomerOrderDetail() {
                 style={{
                   padding:'5px 12px', borderRadius:8,
                   border:'1px solid rgba(2,128,144,.2)', background:'rgba(2,128,144,.04)',
-                  color:T, fontSize:11, fontWeight:700,
+                  color:T, fontSize:13, fontWeight:700,
                   cursor:'pointer', fontFamily:FONT,
                 }}
               >
@@ -1056,7 +1054,7 @@ export default function CustomerOrderDetail() {
 
             {messages.length === 0 ? (
               <p style={{
-                fontSize:12, color:'var(--text-faint)', textAlign:'center',
+                fontSize:13, color:'var(--text-faint)', textAlign:'center',
                 padding:'12px 0', fontFamily:FONT,
               }}>
                 No messages yet — chat with VFRB staff
@@ -1080,13 +1078,13 @@ export default function CustomerOrderDetail() {
                       }}>
                         {/* body column — order_messages schema */}
                         <p style={{
-                          fontSize:12, color:'var(--ink)', margin:0,
+                          fontSize:13, color:'var(--ink)', margin:0,
                           lineHeight:1.5, fontFamily:FONT,
                         }}>
                           {msg.body}
                         </p>
                         <p style={{
-                          fontSize:9, color:'var(--text-faint)',
+                          fontSize:13, color:'var(--text-faint)',
                           margin:'4px 0 0', textAlign:'right', fontFamily:FONT,
                         }}>
                           {msg.created_at
@@ -1101,7 +1099,7 @@ export default function CustomerOrderDetail() {
                 })}
                 {messages.length > 3 && (
                   <p style={{
-                    fontSize:11, color:'var(--text-faint)', textAlign:'center',
+                    fontSize:13, color:'var(--text-faint)', textAlign:'center',
                     margin:0, fontFamily:FONT,
                   }}>
                     +{messages.length - 3} more →
@@ -1127,7 +1125,7 @@ export default function CustomerOrderDetail() {
             <p style={{ fontSize:15, fontWeight:800, color:'#166534', margin:0, fontFamily:FONT }}>
               Order Completed!
             </p>
-            <p style={{ fontSize:12, color:'#15803d', margin:'6px 0 0', fontFamily:FONT }}>
+            <p style={{ fontSize:13, color:'#15803d', margin:'6px 0 0', fontFamily:FONT }}>
               Your order is ready. Final 20% payment is due on delivery.
             </p>
           </motion.div>
@@ -1142,6 +1140,12 @@ export default function CustomerOrderDetail() {
             <p style={{ fontSize:14, fontWeight:700, color:'#991b1b', margin:0, fontFamily:FONT }}>
               Order Cancelled
             </p>
+            {reasons.length > 0
+              ? reasons.map(m => (
+                  <p key={m.message_id ?? m.body} style={{ fontSize:13, color:'#7f1d1d', margin:'8px 0 0', fontFamily:FONT, overflowWrap:'anywhere' }}>
+                    <strong>{m.body.startsWith('Proposal') ? 'You declined:' : 'Reason from Admin:'}</strong> {m.body.replace(REASON_RE, '')}
+                  </p>))
+              : <p style={{ fontSize:13, color:'#991b1b', margin:'6px 0 0', fontFamily:FONT }}>No reason was recorded. Message VFRB for details.</p>}
           </div>
         )}
 

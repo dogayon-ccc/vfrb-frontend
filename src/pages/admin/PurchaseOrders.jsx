@@ -569,7 +569,7 @@ function ConfirmColorModal({ po, onClose, onDone }) {
           <div>
             <label style={lbl}>Manager Confirmation Notes *</label>
             <textarea value={notes} onChange={e=>setNotes(e.target.value)}
-              placeholder="Why is this color acceptable? (e.g. client approved off-shade)…"
+              placeholder="Why is this color acceptable? (e.g. customer approved off-shade)…"
               rows={3} style={{ ...inp, resize:'none' }} onFocus={fi} onBlur={fo}/>
           </div>
           {err && <p style={{ color:'var(--danger-text)',fontSize:12,fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}><NavIcon name="warning" size={13} color="currentColor"/>{err}</p>}

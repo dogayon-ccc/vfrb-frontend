@@ -42,7 +42,7 @@ function Confetti() {
 function ActiveOrder({ order }) {
   const nav = useNavigate();
   const idx = lifecycleIndex(order.status);
-  const qty = Number(order.quantity_ordered ?? 0), done = Number(order.qty_completed ?? 0);
+  const qty = Number(order.quantity_ordered ?? 0);
   return (
     <motion.button layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -2 }}
       onClick={() => nav(`/orders/${order.order_id}`)} className="cx-card"
@@ -61,11 +61,6 @@ function ActiveOrder({ order }) {
         <StatusPill status={order.status} />
       </div>
       <Stepper steps={LIFECYCLE} current={idx} />
-      {qty > 0 && done > 0 && (
-        <p style={{ margin: '12px 0 0', fontSize: 11, color: 'var(--text-subtle)', fontWeight: 600 }}>
-          {done} / {qty} pcs completed
-        </p>
-      )}
     </motion.button>
   );
 }
@@ -117,9 +112,10 @@ export default function CustomerDashboard() {
   const active = sorted.filter(o => !['completed', 'cancelled'].includes(o.status));
   const shownActive = active.slice(0, 3);
   const recent = sorted.filter(o => !shownActive.includes(o)).slice(0, 3);
-  const total = stats?.total_orders ?? orders.length;
-  const inProd = stats?.in_production ?? orders.filter(o => IN_PRODUCTION.includes(o.status)).length;
-  const completed = stats?.completed_orders ?? orders.filter(o => o.status === 'completed').length;
+  // All tiles count the same list with disjoint statuses (backend in_production also counted confirmed).
+  const total = orders.length;
+  const inProd = orders.filter(o => o.status === 'confirmed' || IN_PRODUCTION.includes(o.status)).length;
+  const completed = orders.filter(o => o.status === 'completed').length;
   const pending = orders.filter(o => o.status === 'pending' || o.status === 'confirmed').length;
   // Same title as My Designs: the customer's design name, else the draft label, else the garment.
   const draftTitle = draft ? savedDesignName(draft.studio_config) || draft.label || humanize(draft.studio_config.garment) : '';
@@ -147,128 +143,127 @@ export default function CustomerDashboard() {
             </button>
             {draft && <button className="cx-btn cx-hero-ghost" onClick={() => nav('/my-designs')}>My designs</button>}
           </div>
-          <p className="cx-hero-proof">Family-owned since 2000 · Bayanan, Muntinlupa City</p>
+          <p className="cx-hero-proof">Family-owned since 2000, Bayanan, Muntinlupa City</p>
         </div>
       </motion.section>
 
-      {loading || total > 0 ? (
-        <div className="cx-kpis" style={{ marginBottom: 18 }}>
-          <Kpi icon="orders" value={total} label="Total Orders" color="#028090" to="/orders" loading={loading} />
-          <Kpi icon="settings" value={inProd} label="In Production" color="#6366f1" to="/orders" loading={loading} />
-          <Kpi icon="success" value={completed} label="Completed" color="#16a34a" to="/orders" loading={loading} />
-          <Kpi icon="pending" value={pending} label="Pending" color="#d97706" to="/orders" loading={loading} />
-        </div>
-      ) : (
-        <ol className="cx-how" aria-label="How ordering works">
-          {[['01', 'Design', 'Build your uniform visually in the Studio.'], ['02', 'Order', 'Bulk quantities, sizes and delivery in four steps.'], ['03', 'Track', 'Follow production and message VFRB staff.']].map(([n, t, d]) => (
-            <li key={n}><span aria-hidden="true">{n}</span><div><strong>{t}</strong><p>{d}</p></div></li>
-          ))}
-        </ol>
+      {!loading && total > 0 && (
+        <p className="cx-summary">
+          <Link to="/orders">{total} order{total === 1 ? '' : 's'}</Link>: {completed} completed, {inProd} confirmed, {pending} pending
+        </p>
       )}
 
       <div className="cx-dash-grid">
-        <div style={{ display: 'grid', gap: 18, minWidth: 0, alignContent: 'start' }}>
-          {!loading && !draft && (() => {
-            const step = draft ? ['Your design is waiting', `${draft.label || humanize(draft.studio_config.garment)} is saved but not ordered yet.`, 'Continue design', openStudio]
-              : inProd ? ['Your order is in production', 'Track each stage from the order page.', 'View orders', () => nav('/orders')]
-              : pending ? ['VFRB is reviewing your order', 'Questions or changes? Message staff while it is pending.', 'Open messages', () => nav('/messages')]
-              : total ? ['Need more uniforms?', 'Start from a saved design or begin a new one.', 'My designs', () => nav('/my-designs')]
-              : ['Start with a garment', 'Pick a garment, set colors and add your logo. Quantity and sizes come after.', 'Open Design Studio', openStudio];
-            return (
-              <section className="cx-card" aria-label="Next step" style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap' }}>
-                <div style={{ minWidth: 0, flex: '1 1 220px' }}>
-                  <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: 'var(--teal-dark)', textTransform: 'uppercase', letterSpacing: '.04em' }}>Next step</p>
-                  <p style={{ margin: '2px 0 0', fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>{step[0]}</p>
-                  <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--text-muted)' }}>{step[1]}</p>
-                </div>
-                <button className="cx-btn cx-btn-p" onClick={step[3]}>{step[2]}</button>
-              </section>
-            );
-          })()}
-          {!loading && draft && (
-            <section className="cx-card cx-cont" aria-label="Continue your design">
-              <div className="cx-thumb" style={{ width: 56, height: 64, flexShrink: 0 }}><DesignThumb compact src={draft.preview_dataurl} garment={draft.studio_config.garment} colors={draft.studio_config.colors} name={draftTitle} /></div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '.06em' }}>Continue where you left off</p>
-                <p style={{ margin: '3px 0 0', fontWeight: 800, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{draftTitle}</p>
-                <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-subtle)' }}>Draft · edited {reltime(draft.updated_at)}</p>
+        {loading ? <div className="cx-card cx-stagecard"><Skeleton h={200} /></div> : (() => {
+          const body = draft?.studio_config?.colors?.body;
+          const tint = /^#[0-9a-f]{3,8}$/i.test(body ?? '') ? `color-mix(in srgb, ${body} 16%, var(--bg-card))` : 'var(--bg-surface)';
+          return draft ? (
+            <section className="cx-card cx-stagecard" aria-labelledby="cont-h">
+              <div className="cx-stage" style={{ background: tint }}>
+                <DesignThumb src={draft.preview_dataurl} garment={draft.studio_config.garment} colors={draft.studio_config.colors} name={draftTitle} scale={1.8} />
               </div>
-              <button className="cx-btn cx-btn-p" onClick={openStudio}>Continue</button>
-            </section>
-          )}
-          {/* Active orders with lifecycle stepper */}
-          {(loading || active.length > 0) && (
-            <section aria-label="Active orders">
-              <div className="cx-sec-h" style={{ marginBottom: 10 }}>
-                <h2 style={{ fontSize: 15, fontWeight: 800, margin: 0 }}>Active Orders{active.length > 0 && ` (${active.length})`}</h2>
-                <Link to="/orders" className="cx-link">View all →</Link>
-              </div>
-              <div style={{ display: 'grid', gap: 12 }}>
-                {loading ? [1, 2].map(i => <div key={i} className="cx-card" style={{ padding: 16 }}><Skeleton h={48} /><Skeleton h={28} style={{ marginTop: 14 }} /></div>)
-                  : shownActive.map(o => <ActiveOrder key={o.order_id} order={o} />)}
+              <div className="cx-stage-body">
+                <h2 id="cont-h">{draftTitle}</h2>
+                <p>Draft, last edited {reltime(draft.updated_at)}</p>
+                <button className="cx-btn cx-btn-p" onClick={openStudio}>Continue design</button>
               </div>
             </section>
-          )}
+          ) : (
+            <section className="cx-card cx-stagecard" aria-labelledby="cont-h">
+              <div className="cx-stage" style={{ background: tint }}><NavIcon name="designStudio" size={48} color="var(--teal)" /></div>
+              <div className="cx-stage-body">
+                <h2 id="cont-h">Start a design</h2>
+                <p>Pick a garment, set colours and add your logo. Quantity and sizes come after.</p>
+                <button className="cx-btn cx-btn-p" onClick={openStudio}>Open the Studio</button>
+              </div>
+            </section>
+          );
+        })()}
 
-          {/* Recent designs — the customer's own saved designs and current draft */}
-          {!loading && designs.length > 0 && (
-            <section className="cx-card" aria-label="Recent designs">
-              <div className="cx-card-h"><h2>Recent Designs</h2><Link to="/my-designs" className="cx-link">View all →</Link></div>
-              <div className="cx-rd">
-                {designs.map(d => (
-                  <button key={d.id} type="button" className="cx-rd-item" onClick={() => { sessionStorage.setItem('studio_config', JSON.stringify(d.config)); nav('/design-studio'); }}>
-                    <span className="cx-thumb cx-rd-thumb" aria-hidden="true"><DesignThumb compact src={d.photo_path} garment={d.garment} colors={d.config?.colors} name={savedDesignName(d.config) || d.label || humanize(d.garment)} /></span>
-                    <strong>{savedDesignName(d.config) || d.label || humanize(d.garment)}</strong><em>Saved · reuse</em>
+        {(loading || active.length > 0) && (
+          <section aria-labelledby="ao-h">
+            <div className="cx-sec-h">
+              <h2 id="ao-h">Active orders{active.length > 0 && ` (${active.length})`}</h2>
+              <Link to="/orders" className="cx-link">View all</Link>
+            </div>
+            <div style={{ display: 'grid', gap: 12 }}>
+              {loading ? [1, 2].map(i => <div key={i} className="cx-card" style={{ padding: 16 }}><Skeleton h={48} /><Skeleton h={28} style={{ marginTop: 14 }} /></div>)
+                : shownActive.map(o => <ActiveOrder key={o.order_id} order={o} />)}
+            </div>
+          </section>
+        )}
+
+        {!loading && designs.length > 0 && (
+          <section aria-labelledby="rd-h">
+            <div className="cx-sec-h"><h2 id="rd-h">Recent designs</h2><Link to="/my-designs" className="cx-link">View all</Link></div>
+            <div className="cx-rd">
+              {designs.map(d => {
+                const name = savedDesignName(d.config) || d.label || humanize(d.garment);
+                return (
+                  <button key={d.id} type="button" className="cx-rd-item" aria-label={`Open ${name} in the Studio`}
+                    onClick={() => { sessionStorage.setItem('studio_config', JSON.stringify(d.config)); nav('/design-studio'); }}>
+                    <span className="cx-rd-thumb"><DesignThumb src={d.photo_path} garment={d.garment} colors={d.config?.colors} name={name} scale={1.5} /></span>
+                    <strong>{name}</strong><em>Saved design</em>
                   </button>
-                ))}
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {(loading || error || orders.length === 0 || recent.length > 0) && <section className="cx-card" aria-labelledby="eo-h">
+          <div className="cx-card-h"><h2 id="eo-h">{shownActive.length ? 'Earlier orders' : 'Recent orders'}</h2><Link to="/orders" className="cx-link">View all</Link></div>
+          {loading ? (
+            <div style={{ padding: 16, display: 'grid', gap: 12 }}>{[1, 2, 3].map(i => <Skeleton key={i} h={44} />)}</div>
+          ) : error ? (
+            <EmptyState illustration="error" compact headline="Couldn't load your orders"
+              sub="Check your connection and try again." cta={{ label: 'Retry', onClick: () => { setLoading(true); load(true); } }} />
+          ) : recent.length === 0 ? (
+            <EmptyState illustration="order" compact headline="No orders yet"
+              sub="Design your first uniform. The AI suggests materials once it is saved."
+              cta={{ label: 'Start a design', onClick: () => nav('/design-studio') }} />
+          ) : recent.map(o => (
+            <button key={o.order_id} className="cx-row" onClick={() => nav(`/orders/${o.order_id}`)}>
+              <OrderThumb order={o} size={60} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{orderTitle(o)}</p>
+                <p style={{ margin: '2px 0 0', fontSize: 'var(--text-meta)', color: 'var(--text-subtle)' }}>
+                  Order #{o.order_id}, {o.quantity_ordered ?? 0} pcs, {fmtDate(o.created_at, { month: 'short', day: 'numeric', year: 'numeric' })}
+                </p>
               </div>
-            </section>
-          )}
-
-          {/* Recent orders */}
-          {(loading || error || orders.length === 0 || recent.length > 0) && <section className="cx-card" aria-label="Earlier orders">
-            <div className="cx-card-h"><h2>{shownActive.length ? 'Earlier Orders' : 'Recent Orders'}</h2><Link to="/orders" className="cx-link">View all →</Link></div>
-            {loading ? (
-              <div style={{ padding: 16, display: 'grid', gap: 12 }}>{[1, 2, 3].map(i => <Skeleton key={i} h={44} />)}</div>
-            ) : error ? (
-              <EmptyState illustration="error" compact headline="Couldn't load your orders"
-                sub="Check your connection and try again." cta={{ label: 'Retry', onClick: () => { setLoading(true); load(true); } }} />
-            ) : recent.length === 0 ? (
-              <EmptyState illustration="order" compact headline="No orders yet"
-                sub="Design your first uniform — AI will suggest the materials."
-                cta={{ label: 'Open Design Studio', onClick: () => nav('/design-studio') }} />
-            ) : recent.map(o => (
-              <button key={o.order_id} className="cx-row" onClick={() => nav(`/orders/${o.order_id}`)}>
-                <OrderThumb order={o} size={60} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ margin: 0, fontSize: 13, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{orderTitle(o)}</p>
-                  <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text-subtle)' }}>
-                    #{o.order_id} · {o.quantity_ordered ?? 0} pcs · {fmtDate(o.created_at, { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </p>
-                </div>
-                <StatusPill status={o.status} />
-              </button>
-            ))}
-          </section>}
-        </div>
-
+              <StatusPill status={o.status} />
+            </button>
+          ))}
+        </section>}
       </div>
-      <style>{`.cx-rd{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:12px 16px 16px}
-        .cx-rd-thumb{width:100%;max-width:120px;aspect-ratio:5/6;height:auto}
-        .cx-sec-h,.cx-dash-grid .cx-card-h{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px 12px;min-width:0}
-        .cx-sec-h h2,.cx-dash-grid .cx-card-h h2{min-width:0;overflow-wrap:anywhere}
-        .cx-dash-grid .cx-link{white-space:nowrap}
-        .cx-dash-grid .cx-row,.cx-ao-h{flex-wrap:wrap;min-width:0}
+      <style>{`.cx-dash-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:24px}
+        .cx-hero-eyebrow{text-transform:none!important;letter-spacing:0!important}
+        .cx-summary{margin:0 0 20px;font-size:15px;color:var(--text-muted)}
+        .cx-summary a{color:var(--ink);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+        .cx-stagecard{display:grid;grid-template-columns:minmax(0,1fr);overflow:hidden;padding:0}
+        .cx-stage{display:grid;place-items:center;min-height:220px;padding:24px}
+        .cx-stage .cx-dthumb{width:min(220px,70%);aspect-ratio:5/6;height:auto}
+        .cx-stage-body{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:6px;padding:20px 22px}
+        .cx-stage-body h2{margin:0;font-size:clamp(20px,2.4vw,26px);font-weight:800;color:var(--ink);overflow-wrap:anywhere}
+        .cx-stage-body p{margin:0 0 10px;color:var(--text-muted);font-size:14px;max-width:46ch}
+        .cx-stage-body .cx-btn{min-height:44px}
+        .cx-sec-h,.cx-dash-grid .cx-card-h{display:flex;justify-content:space-between;align-items:center;gap:4px 12px;min-width:0;margin-bottom:12px}
+        .cx-dash-grid .cx-card-h{margin-bottom:0}
+        .cx-sec-h h2,.cx-dash-grid .cx-card-h h2{margin:0;font-size:17px;font-weight:800;min-width:0;overflow-wrap:anywhere}
+        .cx-dash-grid .cx-link{white-space:nowrap;min-height:44px;display:inline-flex;align-items:center}
+        .cx-dash-grid .cx-row,.cx-ao-h{flex-wrap:wrap;min-width:0;min-height:44px}
         .cx-dash-grid .cx-row>div:not(.cx-thumb),.cx-ao-h>div:not(.cx-thumb){flex:1 1 140px;min-width:0}
-        .cx-dash-grid>div,.cx-dash-grid section>div:not(.cx-rd){grid-template-columns:minmax(0,1fr)}
         .cx-dash-grid .cx-row>.cx-pill,.cx-ao-h>.cx-pill{flex-shrink:0;max-width:100%}
-        .cx-rd-item{display:flex;flex-direction:column;align-items:center;gap:6px;min-height:44px;padding:10px 6px;border:1px solid var(--border);border-radius:12px;background:var(--bg-surface);cursor:pointer;font:inherit;color:inherit;text-align:center}
-        .cx-rd-item:hover{border-color:var(--teal);background:var(--teal-50)}
-        .cx-rd-item strong{font-size:12px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        .cx-rd-item em{font-style:normal;font-size:10px;color:var(--text-subtle)}
-        .cx-cont{display:flex;align-items:center;gap:14px;padding:14px 16px}
-        @media(max-width:420px){.cx-cont{flex-wrap:wrap}.cx-cont .cx-btn{width:100%}}
-        .cx-dash-grid{display:grid;grid-template-columns:1fr;gap:18px}`}</style>
+        .cx-rd{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px}
+        .cx-rd-item{display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:0 0 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-card);cursor:pointer;font:inherit;color:inherit;text-align:left;overflow:hidden}
+        .cx-rd-thumb{display:grid;place-items:center;height:180px;background:var(--bg-surface)}
+        .cx-rd-thumb .cx-dthumb{height:100%;width:100%}
+        .cx-rd-item strong{padding:0 12px;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .cx-rd-item em{padding:0 12px;font-style:normal;font-size:var(--text-meta);color:var(--text-subtle)}
+        .cx-rd-item:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+        @media(min-width:768px){.cx-stagecard{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}.cx-stage{min-height:300px}}
+        @media(max-width:767px){.cx-rd{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.cx-rd-thumb{height:160px}.cx-stage-body .cx-btn{width:100%;justify-content:center}}
+        @media(prefers-reduced-motion:no-preference){.cx-rd-item{transition:transform var(--dur-2,200ms) var(--ease-out-soft,ease),box-shadow var(--dur-2,200ms)}.cx-rd-item:hover,.cx-rd-item:focus-visible{transform:translateY(-2px);box-shadow:var(--shadow-2)}}`}</style>
     </div>
   );
 }

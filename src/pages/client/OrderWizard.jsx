@@ -30,11 +30,11 @@ const inp = {
 const fi = e => { e.target.style.borderColor=T; e.target.style.boxShadow=`0 0 0 3px rgba(2,128,144,.1)`; };
 const fo = e => { e.target.style.borderColor='var(--border)'; e.target.style.boxShadow='none'; };
 const lbl = {
-  display:'block', fontSize:11, fontWeight:700, textTransform:'uppercase',
+  display:'block', fontSize:13, fontWeight:700, textTransform:'uppercase',
   letterSpacing:'.07em', color:'var(--text-subtle)', marginBottom:7, fontFamily:FONT,
 };
 const errMsg = (msg) => msg
-  ? <p style={{ color:'#ef4444', fontSize:11, marginTop:5, fontFamily:FONT, display:'flex', alignItems:'center', gap:4 }}><NavIcon name="warning" size={11} color="#ef4444"/> {msg}</p>
+  ? <p style={{ color:'#ef4444', fontSize:13, marginTop:5, fontFamily:FONT, display:'flex', alignItems:'center', gap:4 }}><NavIcon name="warning" size={11} color="#ef4444"/> {msg}</p>
   : null;
 
 const COLLAR_MAP = { 'V-Neck':'V-Neck', 'Polo Collar':'Polo Collar', 'Round Neck':'Round Neck', 'Mandarin':'Mandarin Collar' };
@@ -180,14 +180,14 @@ function StudioBanner({ cfg, onClear, onEdit }) {
       )}
 
       <div style={{ flex:1, minWidth:140 }}>
-        <span style={{ fontSize:11, fontWeight:700, padding:'2px 9px', borderRadius:100,
+        <span style={{ fontSize:13, fontWeight:700, padding:'2px 9px', borderRadius:100,
           background:'rgba(2,195,154,.15)', color:T, fontFamily:FONT, display:'inline-flex', alignItems:'center', gap:4 }}>
           <NavIcon name="designStudio" size={11} color={T}/> {cfg.name || 'Designed in Studio'}
         </span>
-        <p style={{ color:'var(--ink)', fontSize:12, fontWeight:600, margin:'5px 0 1px', fontFamily:FONT }}>
+        <p style={{ color:'var(--ink)', fontSize:13, fontWeight:600, margin:'5px 0 1px', fontFamily:FONT }}>
           {[garmentName, collarDisplay, sleeveDisplay].filter(Boolean).join(' · ')}
         </p>
-        <p style={{ color:'var(--text-subtle)', fontSize:11, margin:0, fontFamily:FONT }}>
+        <p style={{ color:'var(--text-subtle)', fontSize:13, margin:0, fontFamily:FONT }}>
           {[cfg.category, 'Carried over from your Studio design'].filter(Boolean).join(' · ')}
         </p>
       </div>
@@ -195,14 +195,14 @@ function StudioBanner({ cfg, onClear, onEdit }) {
       <div style={{ display:'flex', gap:7 }}>
         <motion.button whileTap={{ scale:.95 }}
           onClick={onEdit}
-          style={{ padding:'7px 12px', minHeight:40, borderRadius:9, cursor:'pointer', fontSize:11,
+          style={{ padding:'7px 12px', minHeight:40, borderRadius:9, cursor:'pointer', fontSize:13,
             fontWeight:600, background:'rgba(2,195,154,.10)',
             border:'1px solid rgba(2,195,154,.3)', color:T,
             fontFamily:FONT, transition:'background .13s' }}>
           Edit in Studio
         </motion.button>
         <motion.button whileTap={{ scale:.95 }} onClick={onClear}
-          style={{ padding:'7px 12px', borderRadius:9, cursor:'pointer', fontSize:11,
+          style={{ padding:'7px 12px', borderRadius:9, cursor:'pointer', fontSize:13,
             fontWeight:500, background:'var(--bg-surface)', border:'1px solid var(--border)',
             color:'var(--text-subtle)', fontFamily:FONT }}>
           Clear
@@ -231,7 +231,7 @@ function StudioRefNote({ file, onRemove }) {
       {url && <img src={url} alt="" width={56} height={56} style={{ objectFit:'cover', borderRadius:8, flexShrink:0, background:'var(--bg-surface)' }}/>}
       <div style={{ flex:1, minWidth:0 }}>
         <p style={{ margin:0, fontSize:13, fontWeight:700, color:'var(--ink)', fontFamily:FONT }}>Reference photo for VFRB</p>
-        <p style={{ margin:'2px 0 0', fontSize:12, color:'var(--text-subtle)', fontFamily:FONT, overflowWrap:'anywhere' }}>{file.name} · from the Design Studio, sent as this order's reference image</p>
+        <p style={{ margin:'2px 0 0', fontSize:13, color:'var(--text-subtle)', fontFamily:FONT, overflowWrap:'anywhere' }}>{file.name} · from the Design Studio, sent as this order's reference image</p>
       </div>
       <button type="button" onClick={onRemove} style={{ minHeight:44, padding:'0 12px', borderRadius:10, border:'1px solid var(--border)', background:'#fff', color:'var(--ink)', fontWeight:600, cursor:'pointer', fontFamily:FONT }}>Remove</button>
     </div>
@@ -285,7 +285,7 @@ function StepDesign({ form, set, errors, studio, onClearStudio, onOpenStudio }) 
             <p style={{ color:T, fontSize:14, fontWeight:800, marginBottom:4, fontFamily:FONT }}>
               Design Your Uniform First →
             </p>
-            <p style={{ color:'var(--text-muted)', fontSize:12, lineHeight:1.5, fontFamily:FONT }}>
+            <p style={{ color:'var(--text-muted)', fontSize:13, lineHeight:1.5, fontFamily:FONT }}>
               Use the interactive Design Studio to pick garment type, collar, sleeves,
               and colors. Choices carry over automatically.
             </p>
@@ -297,7 +297,7 @@ function StepDesign({ form, set, errors, studio, onClearStudio, onOpenStudio }) 
       <Adv on={!!studio} open={!form.garment_type || !!errors.garment_type}>
       <div style={{ display:'flex', alignItems:'center', gap:10 }}>
         <div style={{ flex:1, height:1, background:'var(--border)' }}/>
-        <span style={{ color:'var(--text-faint)', fontSize:11, whiteSpace:'nowrap', fontFamily:FONT }}>
+        <span style={{ color:'var(--text-faint)', fontSize:13, whiteSpace:'nowrap', fontFamily:FONT }}>
           {studio ? 'or edit details below' : 'or fill manually'}
         </span>
         <div style={{ flex:1, height:1, background:'var(--border)' }}/>
@@ -305,9 +305,9 @@ function StepDesign({ form, set, errors, studio, onClearStudio, onOpenStudio }) 
 
       <div style={{ padding:'12px 14px', borderRadius:12, background:'#f0fdfa',
         border:'1px solid #99f6e4' }}>
-        <p style={{ color:'var(--ink)', fontSize:12, fontWeight:600,
+        <p style={{ color:'var(--ink)', fontSize:13, fontWeight:600,
           marginBottom:3, fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}><NavIcon name="tip" size={13} color="var(--ink)"/>How it works</p>
-        <p style={{ color:'var(--text-muted)', fontSize:11, lineHeight:1.6, fontFamily:FONT }}>
+        <p style={{ color:'var(--text-muted)', fontSize:13, lineHeight:1.6, fontFamily:FONT }}>
           VFRB Enterprise manufactures custom garments based on your specifications.
           Describe your design and our AI will recommend the raw materials needed for your order.
         </p>
@@ -336,10 +336,10 @@ function StepDesign({ form, set, errors, studio, onClearStudio, onOpenStudio }) 
       {isBottom && (
         <div style={{ padding:'12px 14px', borderRadius:10,
           background:'#f0fdfa', border:'1px solid #99f6e4' }}>
-          <p style={{ fontSize:12, fontWeight:700, color:T, margin:'0 0 4px', fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}>
+          <p style={{ fontSize:13, fontWeight:700, color:T, margin:'0 0 4px', fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}>
             <NavIcon name="pattern" size={13} color={T}/> Bottom Garment Selected
           </p>
-          <p style={{ fontSize:11, color:'var(--text-muted)', lineHeight:1.6, fontFamily:FONT }}>
+          <p style={{ fontSize:13, color:'var(--text-muted)', lineHeight:1.6, fontFamily:FONT }}>
             {form.garment_type} does not require collar or sleeve type.
             Our team will apply VFRB standard waist measurements.
             Use the Design Description below to specify elastic waist, drawstring, zipper, pocket details, etc.
@@ -359,7 +359,7 @@ function StepDesign({ form, set, errors, studio, onClearStudio, onOpenStudio }) 
             </select>
             {errMsg(errors.collar_type)}
             {studio && !form.collar_type && (
-              <p style={{ color:'var(--text-faint)', fontSize:10, margin:'3px 0 0', fontFamily:FONT }}>
+              <p style={{ color:'var(--text-faint)', fontSize:13, margin:'3px 0 0', fontFamily:FONT }}>
                 Optional — leave blank if not needed
               </p>
             )}
@@ -373,7 +373,7 @@ function StepDesign({ form, set, errors, studio, onClearStudio, onOpenStudio }) 
             </select>
             {errMsg(errors.sleeve_type)}
             {studio && !form.sleeve_type && (
-              <p style={{ color:'var(--text-faint)', fontSize:10, margin:'3px 0 0', fontFamily:FONT }}>
+              <p style={{ color:'var(--text-faint)', fontSize:13, margin:'3px 0 0', fontFamily:FONT }}>
                 Optional — leave blank if not needed
               </p>
             )}
@@ -392,7 +392,7 @@ function StepDesign({ form, set, errors, studio, onClearStudio, onOpenStudio }) 
           </select>
           {errMsg(errors.collar_type)}
           {studio && !form.collar_type && (
-            <p style={{ color:'var(--text-faint)', fontSize:10, margin:'3px 0 0', fontFamily:FONT }}>
+            <p style={{ color:'var(--text-faint)', fontSize:13, margin:'3px 0 0', fontFamily:FONT }}>
               Optional — leave blank if not needed
             </p>
           )}
@@ -444,18 +444,18 @@ function StepDesign({ form, set, errors, studio, onClearStudio, onOpenStudio }) 
           {form.design_ref_file
             ? (<><p style={{ color:T, fontSize:13, fontWeight:600, fontFamily:FONT }}>
                 ✓ {form.design_ref_file.name}</p>
-               <p style={{ color:'var(--text-subtle)', fontSize:11, marginTop:4, fontFamily:FONT }}>
+               <p style={{ color:'var(--text-subtle)', fontSize:13, marginTop:4, fontFamily:FONT }}>
                 Click to change</p></>)
             : (<><div style={{ display:'flex', justifyContent:'center', marginBottom:6 }}><NavIcon name="attachment" size={24} color="var(--text-faint)"/></div>
                <p style={{ color:'var(--text-subtle)', fontSize:13, fontFamily:FONT }}>
                 Click to upload reference image or PDF</p>
-               <p style={{ color:'var(--text-faint)', fontSize:11, marginTop:4, fontFamily:FONT }}>
+               <p style={{ color:'var(--text-faint)', fontSize:13, marginTop:4, fontFamily:FONT }}>
                 JPG, PNG, PDF — max 5 MB</p></>)
           }
         </motion.div>
         <input ref={fileRef} type="file" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" aria-label="Reference image or PDF" aria-describedby={refErr ? 'ref-file-err' : undefined} style={{ display:'none' }}
           onChange={pickRef}/>
-        {refErr && <p id="ref-file-err" role="alert" style={{ color:'var(--danger)', fontSize:12, marginTop:6, fontFamily:FONT }}>{refErr}</p>}
+        {refErr && <p id="ref-file-err" role="alert" style={{ color:'var(--danger)', fontSize:13, marginTop:6, fontFamily:FONT }}>{refErr}</p>}
       </div>
     </div>
   );
@@ -472,18 +472,23 @@ function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart
     <div style={{ display:'flex', flexDirection:'column', gap:18 }}>
       {title && <h2 className="wz-piece-h">{title}</h2>}
 
+      {first && <div className="wz-min" role="note">
+        <strong>Minimum order: {MIN_ORDER_QTY} pieces.</strong> You can't submit below {MIN_ORDER_QTY}.
+      </div>}
+      {first && <p className="wz-lead">Orders take at least 7 days. VFRB confirms your delivery date after review.</p>}
+
       {studio && complete && (
         <div style={{ padding:'12px 14px', borderRadius:11,
           background:'rgba(2,195,154,.08)', border:'1px solid rgba(2,195,154,.25)',
           display:'flex', alignItems:'center', gap:10 }}>
           <NavIcon name="designStudio" size={16} color={T}/>
-          <p style={{ flex:1, fontSize:12, color:'var(--ink)', fontFamily:FONT, lineHeight:1.5 }}>
+          <p style={{ flex:1, fontSize:13, color:'var(--ink)', fontFamily:FONT, lineHeight:1.5 }}>
             <strong>Designed in Studio — {form.garment_type}{form.sleeve_type ? ` · ${form.sleeve_type}` : ''}.</strong>{' '}
             Your Studio configuration carried over — nothing to configure again here.
           </p>
           <button type="button" onClick={onEditDesign}
             style={{ flexShrink:0, padding:'6px 10px', borderRadius:8, border:'1px solid rgba(2,128,144,.3)',
-              background:'#fff', color:T, fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:FONT }}>
+              background:'#fff', color:T, fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:FONT }}>
             Edit design
           </button>
         </div>
@@ -494,8 +499,8 @@ function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart
           something a customer picks here. Self-service orders are always Direct Client
           (80% DP / 20% on delivery) — order_type stays 'direct', no longer a UI choice. */}
       {first && <div style={{ padding:'12px 14px', borderRadius:11, background:'var(--bg-surface)', border:'1px solid var(--border)' }}>
-        <p style={{ fontSize:13, fontWeight:700, color:'var(--ink)', margin:0, fontFamily:FONT }}>Direct Client order</p>
-        <p style={{ fontSize:11, color:'var(--text-subtle)', margin:'3px 0 0', fontFamily:FONT }}>
+        <p style={{ fontSize:13, fontWeight:700, color:'var(--ink)', margin:0, fontFamily:FONT }}>Direct Customer order</p>
+        <p style={{ fontSize:13, color:'var(--text-subtle)', margin:'3px 0 0', fontFamily:FONT }}>
           80% downpayment at confirmation, 20% on delivery.
         </p>
       </div>}
@@ -504,7 +509,7 @@ function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart
       {studio?.colors?.body ? (
         <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', borderRadius:11, background:'var(--bg-surface)', border:'1px solid var(--border)' }}>
           <span style={{ width:22, height:22, borderRadius:6, background:studio.colors.body, border:'1px solid rgba(0,0,0,.12)', flexShrink:0 }}/>
-          <p style={{ margin:0, fontSize:12, color:'var(--text-subtle)', fontFamily:FONT }}>Color from your design: <strong style={{ color:'var(--ink)' }}>{form.color || studio.colors.body}</strong></p>
+          <p style={{ margin:0, fontSize:13, color:'var(--text-subtle)', fontFamily:FONT }}>Color from your design: <strong style={{ color:'var(--ink)' }}>{form.color || studio.colors.body}</strong></p>
         </div>
       ) : (
         <div>
@@ -514,6 +519,8 @@ function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart
           {errMsg(errors.color)}
         </div>
       )}
+
+      <InlineSizeChart/>
 
       {/* Size breakdown — merged in from the old separate Sizing step */}
       <div style={{ display:'flex', justifyContent:'space-between',
@@ -526,7 +533,7 @@ function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart
           whileHover={{ scale:1.03 }} whileTap={{ scale:.96 }}
           type="button" onClick={onShowChart}
           style={{ padding:'6px 14px', borderRadius:9, border:`1px solid ${T}30`,
-            background:'#f0fdfa', color:'#026a77', fontSize:11, fontWeight:700,
+            background:'#f0fdfa', color:'#026a77', fontSize:13, fontWeight:700,
             cursor:'pointer', fontFamily:FONT, display:'flex',
             alignItems:'center', gap:5 }}>
           <NavIcon name="pattern" size={13} color={T} style={{ verticalAlign:'-2px', marginRight:4 }}/>Size Chart
@@ -549,7 +556,7 @@ function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart
                 outline:`2px solid ${form.sizing_type===o.v ? T+'55' : 'var(--border)'}`,
                 transition:'all .15s' }}>
               <div style={{ display:'flex', justifyContent:'center', marginBottom:6 }}><NavIcon name={o.ic} size={20} color={form.sizing_method===o.v ? T : 'var(--text-faint)'}/></div>
-              <p style={{ fontSize:12, fontWeight:700, margin:0, fontFamily:FONT,
+              <p style={{ fontSize:13, fontWeight:700, margin:0, fontFamily:FONT,
                 color: form.sizing_type===o.v ? T : 'var(--ink)' }}>
                 {o.l}
               </p>
@@ -585,11 +592,11 @@ function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart
         <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
           <div style={{ padding:'12px 14px', borderRadius:10,
             background:'#fffbeb', border:'1px solid #fde68a' }}>
-            <p style={{ color:'#92400e', fontSize:12, fontWeight:600,
+            <p style={{ color:'#92400e', fontSize:13, fontWeight:600,
               marginBottom:3, fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}>
               <NavIcon name="warning" size={13} color="#92400e"/> Custom Measurements
             </p>
-            <p style={{ color:'#92400e', fontSize:11, marginTop:4,
+            <p style={{ color:'#92400e', fontSize:13, marginTop:4,
               lineHeight:1.5, fontFamily:FONT }}>
               Custom measurements will be reviewed by VFRB production staff
               who will confirm the final sizing specifications.
@@ -628,16 +635,35 @@ function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart
 
 // Step 3: Delivery + PO/Reference + Notes — split out of the old merged "Configure" step so
 // order logistics (quantity/sizing) and delivery/paperwork are two distinct, focused steps.
+// Earliest delivery date a customer can pick: one week from today (backend: vfrb.min_promised_days).
+const MIN_LEAD_DAYS = 7;
+const minDeadline = () => {
+  const d = new Date(); d.setDate(d.getDate() + MIN_LEAD_DAYS);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
 function StepDelivery({ form, set, errors }) {
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:18 }}>
+      <p className="wz-lead">Choose when you need the order. The earliest date is one week from today.</p>
+
+      <div>
+        <label style={lbl} htmlFor="wz-deadline">Delivery date <span style={{ color:'#ef4444' }}>*</span></label>
+        <input id="wz-deadline" type="date" min={minDeadline()} value={form.deadline||''}
+          onChange={e => set('deadline', e.target.value)}
+          style={inp} onFocus={fi} onBlur={fo}/>
+        {errMsg(errors.deadline)}
+      </div>
+
       <div className="st-2col">
         <div>
-          <label style={lbl}>Desired Delivery Date</label>
-          <input type="date" value={form.deadline||''}
-            min={new Date(Date.now()+7*864e5).toISOString().split('T')[0]}
-            onChange={e => set('deadline', e.target.value)}
-            style={inp} onFocus={fi} onBlur={fo}/>
+          <label style={lbl}>Fabric Type <span style={{ color:'#ef4444' }}>*</span></label>
+          <select value={form.fabric_type||''} onChange={e => set('fabric_type', e.target.value)}
+            style={inp} onFocus={fi} onBlur={fo}>
+            <option value="">Select fabric</option>
+            {FABRIC_TYPES.map(f => <option key={f} value={f}>{f}</option>)}
+          </select>
+          {errMsg(errors.fabric_type)}
         </div>
 
         <div>
@@ -655,6 +681,16 @@ function StepDelivery({ form, set, errors }) {
       </div>
 
       <div>
+        <label style={lbl}>Delivery Address <span style={{ color:'#ef4444' }}>*</span></label>
+        <textarea value={form.delivery_address||''} rows={3}
+          onChange={e => set('delivery_address', e.target.value)}
+          placeholder="Street, barangay, city, province"
+          style={{ ...inp, resize:'vertical', minHeight:70 }}
+          onFocus={fi} onBlur={fo}/>
+        {errMsg(errors.delivery_address)}
+      </div>
+
+      <div>
         <label style={lbl}>
           Additional Notes{' '}
           <span style={{ color:'var(--text-faint)', fontWeight:400, textTransform:'none', letterSpacing:0 }}>
@@ -668,6 +704,24 @@ function StepDelivery({ form, set, errors }) {
           onFocus={fi} onBlur={fo}/>
         {errMsg(errors.special_notes)}
       </div>
+    </div>
+  );
+}
+
+const FABRIC_TYPES = ['Cotton', 'Sublimation / Dry-fit', 'TC', 'Not sure'];
+
+// Size, chest, length, shoulder straight from the tops chart in utils/sizeChart.js.
+function InlineSizeChart() {
+  const c = PH_SIZE_CHART.tops;
+  const cols = ['Size', 'Chest', 'Body Length', 'Shoulder'].map(h => c.headers.indexOf(h));
+  return (
+    <div className="wz-chart">
+      <table>
+        <caption>Size chart ({c.unit})</caption>
+        <thead><tr><th>Size</th><th>Chest</th><th>Length</th><th>Shoulder</th></tr></thead>
+        <tbody>{c.rows.map(r => <tr key={r[0]}>{cols.map(i => <td key={i}>{r[i]}</td>)}</tr>)}</tbody>
+      </table>
+      <p>Measurements vary by garment; check the chart.</p>
     </div>
   );
 }
@@ -750,7 +804,9 @@ function StepReview({ form, studio, onEdit, title = null, last = true }) {
       rows:[
         ['Quantity',    `${tot} pcs`],
         ['Color',       form.color || '—'],
-        ['Deadline',    form.deadline || 'Not specified'],
+        ['Fabric',      form.fabric_type || '—'],
+        ['Deliver to',  form.delivery_address || '—'],
+        ['Delivery date', form.deadline || '—'],
         ['PO Ref',      form.po_reference || 'None'],
       ],
     },
@@ -774,11 +830,11 @@ function StepReview({ form, studio, onEdit, title = null, last = true }) {
     <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
 
       <div style={{ padding:'2px 2px 0' }}>
-        <p style={{ fontSize:11, fontWeight:700, color:T2, textTransform:'uppercase', letterSpacing:'.08em', margin:'0 0 4px', fontFamily:FONT }}>{title ?? 'Confirm your order'}</p>
+        <p style={{ fontSize:13, fontWeight:700, color:T2, textTransform:'uppercase', letterSpacing:'.08em', margin:'0 0 4px', fontFamily:FONT }}>{title ?? 'Confirm your order'}</p>
         <p style={{ fontSize:20, fontWeight:800, color:'var(--ink)', margin:'0 0 8px', fontFamily:FONT, lineHeight:1.2, overflowWrap:'anywhere' }}>{garmentName}</p>
         <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
           {[tot && `${tot} pcs`, form.color, form.sleeve_type, '80% DP · 20% on delivery'].filter(Boolean).map((tag,i) => (
-            <span key={i} style={{ fontSize:11, fontWeight:600, padding:'3px 10px', borderRadius:99, background:'var(--bg-surface)', color:'var(--text-muted)', border:'1px solid var(--border)', fontFamily:FONT }}>{tag}</span>
+            <span key={i} style={{ fontSize:13, fontWeight:600, padding:'3px 10px', borderRadius:99, background:'var(--bg-surface)', color:'var(--text-muted)', border:'1px solid var(--border)', fontFamily:FONT }}>{tag}</span>
           ))}
         </div>
       </div>
@@ -790,7 +846,7 @@ function StepReview({ form, studio, onEdit, title = null, last = true }) {
             overflow:'hidden', boxShadow:'0 1px 3px rgba(0,0,0,.05)' }}>
           <div style={{ padding:'11px 16px', background:'var(--bg-surface)',
             borderBottom:'1px solid var(--border)' }}>
-            <p style={{ fontSize:10, fontWeight:700, color:'var(--text-subtle)',
+            <p style={{ fontSize:13, fontWeight:700, color:'var(--text-subtle)',
               textTransform:'uppercase', letterSpacing:'.07em',
               margin:0, fontFamily:FONT }}>
               Design Preview
@@ -814,7 +870,7 @@ function StepReview({ form, studio, onEdit, title = null, last = true }) {
             border:'1px solid var(--border)', overflow:'hidden' }}>
           <div style={{ padding:'4px 8px 4px 16px', background:'var(--bg-surface)', display:'flex',
             alignItems:'center', justifyContent:'space-between', gap:8, borderBottom:'1px solid var(--border)' }}>
-            <p style={{ fontSize:10, fontWeight:700, color:'var(--text-subtle)',
+            <p style={{ fontSize:13, fontWeight:700, color:'var(--text-subtle)',
               textTransform:'uppercase', letterSpacing:'.07em',
               margin:0, fontFamily:FONT }}>
               {sec.t}
@@ -824,8 +880,8 @@ function StepReview({ form, studio, onEdit, title = null, last = true }) {
           {sec.rows.map(([l, v]) => (
             <div key={l} style={{ display:'flex', justifyContent:'space-between',
               padding:'9px 16px', borderBottom:'1px solid var(--bg-surface)' }}>
-              <span style={{ fontSize:12, color:'var(--text-subtle)', fontFamily:FONT }}>{l}</span>
-              <span style={{ fontSize:12, fontWeight:600, color:'var(--ink)',
+              <span style={{ fontSize:13, color:'var(--text-subtle)', fontFamily:FONT }}>{l}</span>
+              <span style={{ fontSize:13, fontWeight:600, color:'var(--ink)',
                 maxWidth:'60%', textAlign:'right', wordBreak:'break-word',
                 fontFamily:FONT }}>
                 {v}
@@ -838,11 +894,11 @@ function StepReview({ form, studio, onEdit, title = null, last = true }) {
       {/* AI note */}
       {last && <div style={{ padding:'14px 16px', borderRadius:12,
         background:'#f0fdfa', border:'1px solid #99f6e4' }}>
-        <p style={{ color:'var(--ink)', fontSize:12, fontWeight:700,
+        <p style={{ color:'var(--ink)', fontSize:13, fontWeight:700,
           marginBottom:6, fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}>
           <NavIcon name="ai" size={13} color="var(--ink)"/> AI Material Recommendation (Auto)
         </p>
-        <p style={{ color:'var(--text-muted)', fontSize:11, lineHeight:1.6, margin:0, fontFamily:FONT }}>
+        <p style={{ color:'var(--text-muted)', fontSize:13, lineHeight:1.6, margin:0, fontFamily:FONT }}>
           After submitting, our AI will analyze your order and recommend the
           types of raw materials needed. You can review and accept the recommendation
           from the AI Materials page.
@@ -908,7 +964,8 @@ function WizSummary({ forms, studios, step }) {
         })}
         {dl([
           ...(isSet ? [['Set total', `${forms.reduce((a, f) => a + orderQty(f), 0)} pcs`]] : []),
-          ['Needed by', shared.deadline],
+          ['Fabric', shared.fabric_type],
+          ['Deliver to', shared.delivery_address],
           ['PO / Ref', shared.po_reference],
         ])}
       </div>
@@ -958,7 +1015,7 @@ function SizeChartModal({ onClose }) {
           <div>
             <p style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)',
               margin: 0, fontFamily: FONT, display:'flex', alignItems:'center', gap:6 }}><NavIcon name="pattern" size={15} color="var(--ink)"/>General Sizing Guide</p>
-            <p style={{ fontSize: 12, color: 'var(--text-subtle)', margin: '2px 0 0',
+            <p style={{ fontSize: 13, color: 'var(--text-subtle)', margin: '2px 0 0',
               fontFamily: FONT }}>
               Generic reference only, in cm. This is not VFRB's pattern standard; VFRB confirms final measurements with you.
             </p>
@@ -983,7 +1040,7 @@ function SizeChartModal({ onClose }) {
             <button key={t.k} onClick={() => setChartTab(t.k)}
               style={{
                 padding: '7px 16px', borderRadius: '8px 8px 0 0',
-                border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700,
+                border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700,
                 fontFamily: FONT, transition: 'all .13s',
                 background: chartTab === t.k ? '#fff' : 'transparent',
                 color:      chartTab === t.k ? T      : 'var(--text-subtle)',
@@ -997,21 +1054,21 @@ function SizeChartModal({ onClose }) {
 
         {/* Table */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 20px' }}>
-          <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-subtle)',
+          <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-subtle)',
             margin: '0 0 12px', fontFamily: FONT }}>
             {chart.label}
           </p>
           <div style={{ overflowX: 'auto' }}>
             <table style={{
               width: '100%', borderCollapse: 'collapse',
-              fontSize: 12, fontFamily: FONT,
+              fontSize: 13, fontFamily: FONT,
             }}>
               <thead>
                 <tr style={{ background: T }}>
                   {chart.headers.map(h => (
                     <th key={h} style={{
                       padding: '9px 14px', textAlign: 'left',
-                      color: '#fff', fontWeight: 700, fontSize: 11,
+                      color: '#fff', fontWeight: 700, fontSize: 13,
                       whiteSpace: 'nowrap',
                     }}>{h}</th>
                   ))}
@@ -1037,7 +1094,7 @@ function SizeChartModal({ onClose }) {
           </div>
 
           <p style={{
-            fontSize: 10, color: 'var(--text-faint)', margin: '14px 0 0',
+            fontSize: 13, color: 'var(--text-faint)', margin: '14px 0 0',
             lineHeight: 1.6, fontFamily: FONT,
           }}>
             ℹ️ These are guide measurements. Final garment dimensions are confirmed
@@ -1107,10 +1164,10 @@ function ConfettiBurst() {
 const INIT = {
   garment_type:'', collar_type:'', sleeve_type:'', pocket_type:'', client_design_notes:'',
   design_ref_file:null, order_type:'direct', color:'',
-  deadline:'', po_reference:'', special_notes:'', sizing_type:'standard',
+  fabric_type:'', delivery_address:'', po_reference:'', special_notes:'', deadline:'', sizing_type:'standard',
   sizes:{}, measurements:{}, custom_qty:'',
 };
-const SHARED = ['order_type', 'deadline', 'po_reference', 'special_notes'];
+const SHARED = ['order_type', 'fabric_type', 'delivery_address', 'po_reference', 'special_notes', 'deadline'];
 // Orders of a set already placed, so a retry or a refresh after a part-failed submit never places a piece twice.
 const PLACED_KEY = 'set_orders_placed';
 const readPlaced = (setId) => { try { return JSON.parse(sessionStorage.getItem(PLACED_KEY) || '{}')[setId] ?? {}; } catch { return {}; } };
@@ -1223,7 +1280,12 @@ export default function OrderWizard() {
       const short = qtyShort(f);
       if (short) e[f.sizing_type === 'custom' ? 'custom_qty' : 'sizes'] = `VFRB accepts bulk orders only: minimum ${MIN_ORDER_QTY} pieces (${short} more needed)`;
     }
-    // step===2 is Delivery & Notes — deadline/PO/notes are all optional server-side.
+    if (step===2) {
+      if (!f.fabric_type) e.fabric_type = 'Choose a fabric type';
+      if (!f.delivery_address?.trim()) e.delivery_address = 'Required';
+      if (!f.deadline) e.deadline = 'Choose a delivery date';
+      else if (f.deadline < minDeadline()) e.deadline = `The earliest date is ${minDeadline()} (one week from today)`;
+    }
     return e;
   };
   const validate = () => {
@@ -1260,7 +1322,9 @@ export default function OrderWizard() {
     ['garment_type','collar_type','sleeve_type','pocket_type','client_design_notes',
      'order_type','color'].forEach(k => fd.append(k, f[k]));
     fd.append('quantity_ordered', orderQty(f));
-    if (f.deadline)         fd.append('deadline',         f.deadline);
+    fd.append('fabric_type',      f.fabric_type);
+    fd.append('delivery_address', f.delivery_address.trim());
+    fd.append('deadline',         f.deadline);
     if (f.po_reference)     fd.append('po_reference',     f.po_reference);
     const uset = s?.uniformSet ? { ...s.uniformSet, ...(linked.length && { linkedOrderIds: linked }) } : null;
     const setLine = uset ? setNote(uset) : '';
@@ -1350,6 +1414,7 @@ export default function OrderWizard() {
       last={i === forms.length - 1} onEdit={(n) => { setDir(-1); setStep(n); setErrs(forms.map(() => ({}))); }}/>),
   ];
 
+  const belowMin = forms.some(f => qtyShort(f));
   const createdOrder = created?.[revealIdx] ?? null;
   return (
     <>
@@ -1376,15 +1441,24 @@ export default function OrderWizard() {
         .wz-piece-h { margin:0; font-size:15px; font-weight:800; color:var(--ink); }
         .wz-qty { padding:12px 16px; border-radius:11px; background:#fef3c7; border:1px solid #fde68a; }
         .wz-qty[data-ok="true"] { background:#f0fdfa; border-color:#99f6e4; }
-        .wz-qty-row { display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:12px; color:var(--ink); }
+        .wz-qty-row { display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:13px; color:var(--ink); }
         .wz-qty-row strong { font-size:18px; font-weight:800; color:var(--teal); }
         .wz-qty-bar { height:6px; margin:8px 0 6px; border-radius:99px; background:rgba(15,23,42,.08); overflow:hidden; }
         .wz-qty-bar span { display:block; height:100%; background:#d97706; transition:width .2s; }
         .wz-qty[data-ok="true"] .wz-qty-bar span { background:var(--teal); }
-        .wz-qty p { margin:0; font-size:11px; font-weight:600; color:#92400e; }
+        .wz-qty p { margin:0; font-size:13px; font-weight:600; color:#92400e; }
         .wz-qty[data-ok="true"] p { color:var(--teal-700, #026a77); }
         .wz-sum-piece + .wz-sum-piece, .wz-sum-piece + dl { margin-top:14px; padding-top:14px; border-top:1px solid var(--border); }
-        .wz-sum-role { margin:0 0 8px; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.07em; color:var(--text-subtle); }
+        .wz-min { padding:12px 14px; border-radius:11px; background:#fef3c7; border:2px solid #d97706; color:#78350f; font-size:13px; }
+        .wz-min strong { font-weight:800; }
+        .wz-lead { margin:0; font-size:13px; color:var(--text-muted); }
+        .wz-chart { border:1px solid var(--border); border-radius:11px; overflow-x:auto; background:#fff; }
+        .wz-chart table { width:100%; border-collapse:collapse; font-size:13px; }
+        .wz-chart caption { text-align:left; padding:10px 12px 4px; font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text-subtle); }
+        .wz-chart th, .wz-chart td { padding:6px 12px; text-align:left; border-top:1px solid var(--border); }
+        .wz-chart th { font-weight:700; color:var(--ink); }
+        .wz-chart p { margin:0; padding:8px 12px; font-size:13px; color:var(--text-muted); border-top:1px solid var(--border); }
+        .wz-sum-role { margin:0 0 8px; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.07em; color:var(--text-subtle); }
 
         @media (min-width:480px) {
           .wiz-size-grid { grid-template-columns:repeat(3,1fr); }
@@ -1423,7 +1497,7 @@ export default function OrderWizard() {
         )}
         {(studio || form.garment_type) && (
           <div className="wz-mini" aria-label="Order snapshot">
-            <style>{`.wz-mini{display:none;align-items:center;gap:12px;padding:10px 12px;margin-bottom:14px;border:1px solid var(--border);border-radius:14px;background:#fff}.wz-mini-t{width:48px;height:48px;border-radius:10px;display:grid;place-items:center;overflow:hidden;flex-shrink:0}.wz-mini-t img{width:100%;height:100%;object-fit:contain}.wz-mini-n{margin:0;font-size:14px;font-weight:800;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wz-mini-s{margin:2px 0 0;font-size:12px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}@media(max-width:639px){.wz-mini{display:flex}}`}</style>
+            <style>{`.wz-mini{display:none;align-items:center;gap:12px;padding:10px 12px;margin-bottom:14px;border:1px solid var(--border);border-radius:14px;background:#fff}.wz-mini-t{width:48px;height:48px;border-radius:10px;display:grid;place-items:center;overflow:hidden;flex-shrink:0}.wz-mini-t img{width:100%;height:100%;object-fit:contain}.wz-mini-n{margin:0;font-size:14px;font-weight:800;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wz-mini-s{margin:2px 0 0;font-size:13px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}@media(max-width:639px){.wz-mini{display:flex}}`}</style>
             <div className="wz-mini-t" style={{ background: studio?.previewPng ? 'var(--bg-surface)' : (studio?.colors?.body ?? 'var(--bg-surface)') }}>
               {studio?.previewPng ? <img src={studio.previewPng} alt=""/> : <NavIcon name="garmentType" size={20} color="#fff"/>}
             </div>
@@ -1455,7 +1529,7 @@ export default function OrderWizard() {
               <button className="cx-btn cx-btn-s" onClick={step > 0 ? goBack : () => nav(-1)}>
                 {step > 0 ? 'Back' : 'Cancel'}
               </button>
-              <button className="cx-btn cx-btn-p wz-next" disabled={busy}
+              <button className="cx-btn cx-btn-p wz-next" disabled={busy || (step === STEPS.length - 1 && belowMin)}
                 onClick={step === STEPS.length - 1 ? handleSubmit : goNext}>
                 {busy ? 'Submitting' : step === STEPS.length - 1 ? (isSet ? `Submit ${forms.length} Orders` : 'Submit Order') : `Next: ${STEPS[step+1]}`}
               </button>

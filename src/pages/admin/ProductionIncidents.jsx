@@ -14,7 +14,7 @@ const inp = {
   fontSize: 13, outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font)',
 };
 const lbl = {
-  display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
+  display: 'block', fontSize: 'var(--text-meta)', fontWeight: 700, textTransform: 'uppercase',
   letterSpacing: '.07em', color: 'var(--text-subtle)', marginBottom: 7, fontFamily: 'var(--font)',
 };
 const fi = e => { e.target.style.borderColor = 'var(--teal)'; e.target.style.boxShadow = '0 0 0 3px rgba(2,128,144,.1)'; };
@@ -168,7 +168,7 @@ export default function ProductionIncidents() {
         <p style={{ color: 'var(--text-subtle)', fontSize: 13 }}>Loading…</p>
       ) : items.length === 0 ? (
         <Card>
-          <div style={{ textAlign: 'center', padding: '32px 20px' }}>
+          <div className="adm-empty">
             <NavIcon name="success" size={36} color="var(--text-faint)" style={{ marginBottom: 8 }} />
             <p style={{ fontSize: 14, color: 'var(--text-faint)' }}>No incidents reported. Shop floor running clean.</p>
           </div>

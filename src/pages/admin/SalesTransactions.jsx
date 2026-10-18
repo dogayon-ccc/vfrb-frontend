@@ -79,7 +79,7 @@ function RecordModal({ onClose, onDone, isMobile, isManager }) {
   const refLabel = form.payment_method === 'gcash' ? 'GCash ref #' : form.payment_method === 'bank_transfer' ? 'Bank ref #' : 'OR number';
   return (
     <BottomSheet title="Record payment" onClose={onClose} isMobile={isMobile} maxWidth={520}>
-      <p style={{ fontSize: 12, color: 'var(--text-subtle)', margin: '-8px 0 14px' }}>No payment gateway — record what the client paid.</p>
+      <p style={{ fontSize: 12, color: 'var(--text-subtle)', margin: '-8px 0 14px' }}>No payment gateway — record what the customer paid.</p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <label><span className="adm-field">Order *</span>
           <select className="adm-input" value={form.order_id} onChange={(e) => set('order_id', e.target.value)} disabled={!orders}>
@@ -223,14 +223,14 @@ export default function AdminSalesTransactions() {
         { label: 'Payments', value: txns.length },
       ]} />
 
-      <div className="adm-toolbar"><SearchBox value={search} onChange={setSearch} placeholder="Search order #, client or OR / ref number…" label="Search payments" /></div>
+      <div className="adm-toolbar"><SearchBox value={search} onChange={setSearch} placeholder="Search order #, customer or OR / ref number…" label="Search payments" /></div>
 
       <div className="adm-only-d">
         <Panel flush>
           {loading ? <SkeletonRows rows={5} h={44} /> : loadErr ? null : filtered.length === 0 ? empty : (
             <div className="adm-tbl-scroll">
               <table className="adm-table">
-                <thead><tr><th>Txn</th><th>Order</th><th>Client</th><th>Paid</th><th>Balance</th><th>Method</th><th className="adm-hide-t">OR / Ref</th><th>Recorded</th></tr></thead>
+                <thead><tr><th>Txn</th><th>Order</th><th>Customer</th><th>Paid</th><th>Balance</th><th>Method</th><th className="adm-hide-t">OR / Ref</th><th>Recorded</th></tr></thead>
                 <tbody>
                   {filtered.map((t, i) => (
                     <tr key={t.transaction_id ?? i}>

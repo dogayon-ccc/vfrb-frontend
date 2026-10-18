@@ -48,8 +48,8 @@ export default function FeedbackSection() {
         </div>
         <Field as="textarea" label="Message" value={message} maxLength={MAX} rows={5}
           onChange={e => setMessage(e.target.value)} placeholder="Tell us what happened or what would help."/>
-        <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '-8px 0 0', textAlign: 'right' }}>{message.length}/{MAX}</p>
-        {err && <p role="alert" style={{ fontSize: 12, fontWeight: 700, color: 'var(--danger)', margin: 0 }}>{err}</p>}
+        <p style={{ fontSize: 13, color: 'var(--text-faint)', margin: '-8px 0 0', textAlign: 'right' }}>{message.length}/{MAX}</p>
+        {err && <p role="alert" style={{ fontSize: 13, fontWeight: 700, color: 'var(--danger)', margin: 0 }}>{err}</p>}
         <Button variant="primary" fullWidth loading={busy} onClick={submit}>{err && !busy ? 'Retry' : busy ? 'Sending…' : 'Send Feedback'}</Button>
       </div>
     </Card>

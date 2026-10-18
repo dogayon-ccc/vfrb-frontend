@@ -14,9 +14,9 @@ const CSS = `
 .mr{position:fixed;inset:0;z-index:300;overflow-y:auto;font-family:${FONT};color:var(--ink);
   background:radial-gradient(900px 420px at 85% -10%,rgba(2,195,154,.16),transparent 62%),radial-gradient(800px 420px at -5% 15%,rgba(2,128,144,.12),transparent 60%),radial-gradient(rgba(15,23,42,.06) 1px,transparent 1px) 0 0/22px 22px,#f8fafc}
 .mr-wrap{max-width:none;margin:0 auto;padding:24px 16px calc(120px + env(safe-area-inset-bottom,0px))}
-.mr-steps{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:22px;font-size:11px;font-weight:700;color:var(--text-subtle)}
+.mr-steps{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:22px;font-size:13px;font-weight:700;color:var(--text-subtle)}
 .mr-steps span{display:flex;align-items:center;gap:6px}
-.mr-steps i{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:11px;background:var(--border);color:var(--text-subtle)}
+.mr-steps i{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:13px;background:var(--border);color:var(--text-subtle)}
 .mr-steps .on i{background:var(--teal);color:#fff;box-shadow:0 0 0 4px var(--teal-50)}
 .mr-steps .on{color:var(--teal)}
 .mr-steps .done i{background:var(--teal);color:#fff}
@@ -25,7 +25,7 @@ const CSS = `
 .mr-badge{width:64px;height:64px;margin:0 auto 14px;border-radius:20px;display:grid;place-items:center;background:linear-gradient(135deg,var(--teal),var(--teal-2));box-shadow:0 14px 34px rgba(2,128,144,.32)}
 .mr-title{font-size:clamp(20px,3vw,28px);font-weight:800;letter-spacing:-.015em;margin:0}
 .mr-sub{font-size:13px;color:var(--text-muted);margin:8px auto 0;max-width:52ch;line-height:1.65}
-.mr-note{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:var(--teal-50);border:1px solid rgba(2,195,154,.25);font-size:12px;color:var(--text-muted);line-height:1.6;margin-bottom:18px}
+.mr-note{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:var(--teal-50);border:1px solid rgba(2,195,154,.25);font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:18px}
 .mr-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
 .mr-load{display:grid;place-items:center;gap:12px;padding:56px 0;color:var(--text-subtle);font-size:13px}
 .mr-spin{width:34px;height:34px;border:3px solid var(--teal);border-top-color:transparent;border-radius:50%;animation:mr-s .8s linear infinite}
