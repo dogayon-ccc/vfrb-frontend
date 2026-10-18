@@ -48,7 +48,7 @@ export const PHASES = [
 export const ORDER_STEPS = [
   ['Create your design', 'Create and save your design in the Design Studio, then continue to the Order Wizard.'],
   ['Review the materials', 'The system recommends the categories of raw materials your order needs. Accept it to notify VFRB staff.'],
-  ['Follow production', 'Your order moves through the 7 production stages, updated by VFRB staff.'],
+  ['Track your order', 'See when VFRB confirms your order, and follow it through to delivery.'],
   ['Message the team', 'Use Messages in your portal to reach VFRB staff about a specific order.'],
 ];
 

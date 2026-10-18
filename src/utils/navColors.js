@@ -14,7 +14,6 @@ const NAV_COLORS = {
   '/admin/materials':             { bg: '#fef9c3', fg: '#a16207' },
   '/admin/output-log':            { bg: '#ffe4e6', fg: '#be123c' },
   '/admin/qc':                    { bg: '#d1fae5', fg: '#047857' },
-  '/admin/production-incidents':  { bg: '#fee2e2', fg: '#dc2626' },
   '/admin/transactions':          { bg: '#e0e7ff', fg: '#3730a3' },
   '/admin/invoice':               { bg: '#f3e8ff', fg: '#7e22ce' },
   '/admin/suppliers':             { bg: '#dcfce7', fg: '#166534' },

@@ -14,13 +14,13 @@ const STEPS = [
     desc: 'Gemini AI looks at your garment type, quantity, and specs and recommends the categories of raw materials your order will need: fabric, trims, thread, accessories. You can review this on the AI Materials page before your order is finalized.' },
   { title: 'Accept and notify VFRB staff',
     desc: 'Once you\u2019re happy with the recommendation, accept it. This notifies the VFRB production team to prepare the exact materials for your order.' },
-  { title: 'Your order enters production',
-    desc: 'Your order moves through VFRB\u2019s 7-stage production line: Pattern, Segregation, Cutting, Sewing, QC, Pressing, Packing. Each stage only advances once the required quantity for that stage is complete.',
+  { title: 'VFRB confirms your order',
+    desc: 'VFRB reviews your order and the deadline you asked for, then accepts or declines it. Your status changes from Pending to Confirmed when it is accepted.',
     link: ['/inside-vfrb', 'See the production floor'] },
   { title: 'Track progress anytime',
-    desc: 'Open My Orders to see exactly which stage your order is on, with no need to call or visit to ask. Use Messages in your portal to reach VFRB staff about a specific order.' },
+    desc: 'Open My Orders to see whether your order is Pending, Confirmed or Completed, with no need to call or visit to ask. Use Messages in your portal to reach VFRB staff about a specific order.' },
   { title: 'Payment and delivery',
-    desc: 'Payment terms follow your order type, and VFRB staff will confirm the exact terms that apply to your order. Once production and payment are complete, your order is scheduled for delivery.' },
+    desc: 'Payment terms follow your order type, and VFRB staff will confirm the exact terms that apply to your order. Once your order is complete and payment is settled, delivery is scheduled.' },
 ];
 
 export default function Guide() {

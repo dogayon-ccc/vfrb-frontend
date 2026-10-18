@@ -1,0 +1,71 @@
+/* Enterprise layer. Selectors carry .adm-shell so they beat the component stylesheets that load after this file. */
+.adm-shell, .adm-shell .adm-main, .adm-shell .adm-content, .adm-shell .adm-page { min-width: 0; max-width: 100%; }
+.adm-shell .adm-main { overflow-x: clip; }
+.adm-shell .adm-content { padding-bottom: calc(var(--shell-pad) + 24px); }
+.adm-shell .adm-panel-head { flex-wrap: wrap; row-gap: 6px; }
+.adm-shell .adm-panel-head > :first-child { flex: 1 1 0; min-width: 0; }
+.adm-shell .adm-panel-head > :last-child:not(:first-child) { flex: 0 0 auto; margin-left: auto; }
+.adm-shell .adm-panel-title { text-wrap: balance; line-height: 1.25; }
+.adm-shell .adm-dash-attn .adm-attn-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); }
+.adm-shell .adm-dash-attn .adm-panel-title, .adm-shell .adm-dash-attn .adm-panel-head > :first-child { font-size: 17px; }
+.adm-shell .adm-dash-attn .adm-link-btn { font-size: 14px; }
+.adm-shell .recharts-wrapper, .adm-shell .recharts-surface, .adm-shell .recharts-wrapper:focus, .adm-shell .recharts-surface:focus { outline: none !important; }
+.adm-shell .recharts-wrapper:focus-visible { outline: 2px solid color-mix(in srgb, var(--teal) 45%, transparent) !important; outline-offset: 2px; border-radius: 10px; }
+.adm-shell .adm-sb > div[style*="overflow-y"] {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+          mask-image: linear-gradient(to bottom, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+}
+.adm-shell .adm-nav-group { font-size: 13px; letter-spacing: .02em; text-transform: none; font-weight: 700; color: color-mix(in srgb, var(--color-on-rail) 55%, transparent); margin: 22px 12px 6px; }
+.adm-shell .adm-link { transition: background var(--dur-1, .12s), color var(--dur-1, .12s); }
+.adm-shell .adm-link.active { background: color-mix(in srgb, var(--color-on-rail) 12%, transparent); }
+.adm-shell .adm-topbar { gap: 12px; box-shadow: 0 1px 0 var(--border); }
+.adm-shell .adm-crumb { flex: 0 1 auto; overflow: hidden; }
+.adm-shell .adm-crumb-t, .adm-shell .adm-crumb-d { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.adm-shell .adm-jump { width: clamp(220px, 32vw, 420px); }
+.adm-shell .adm-jump input { text-overflow: ellipsis; }
+.adm-shell .adm-jump input:-webkit-autofill { -webkit-box-shadow: 0 0 0 40px var(--bg-card) inset; -webkit-text-fill-color: var(--ink); }
+.adm-shell .adm-panel { box-shadow: none; border-color: var(--border); }
+.adm-shell .adm-panel:has(.adm-card-lift), .adm-shell .adm-card-lift { box-shadow: var(--shadow-1); }
+.adm-shell .adm-card-lift:hover { box-shadow: var(--shadow-2); }
+.adm-shell .adm-panel-body, .adm-shell .adm-panel > div:has(> table) { overflow-x: auto; }
+.adm-shell table { font-variant-numeric: tabular-nums; }
+.adm-shell thead th {
+  position: sticky; top: 0; z-index: 1; background: var(--bg-surface);
+  font-size: 12.5px; font-weight: 800; letter-spacing: .04em; color: var(--text-muted);
+  border-bottom: 1px solid var(--border-strong);
+}
+.adm-shell tbody tr { transition: background .12s; }
+.adm-shell tbody tr:hover { background: color-mix(in srgb, var(--teal) 5%, transparent); }
+.adm-shell tbody td { border-bottom: 1px solid var(--border); }
+.adm-shell tbody tr:last-child td { border-bottom: 0; }
+.adm-shell .adm-tabs { background: color-mix(in srgb, var(--ink) 6%, transparent); }
+.adm-shell [class*="stat"] b, .adm-shell [class*="kpi"] b { font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.adm-shell :is(a, button, input, select, textarea, [tabindex]):focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+@media (max-width: 767px) {.adm-shell .adm-content { padding: 16px 16px 96px; }
+.adm-shell .adm-page-head { flex-direction: column; align-items: stretch; gap: 12px; }
+.adm-shell .adm-panel-head > :last-child:not(:first-child) { margin-left: 0; }
+.adm-shell :is(.adm-btn, .adm-tab, .adm-link-btn) { min-height: 44px; }
+.adm-shell table { min-width: 560px; }
+}
+@media (prefers-reduced-motion: reduce) {.adm-shell * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+@media print {.adm-shell .adm-sb, .adm-shell .adm-topbar, .adm-shell .adm-bnav, .adm-shell .adm-more-drawer, .adm-shell .adm-notif-panel, .adm-shell .adm-desk-only, .adm-shell .adm-mob-only, .adm-shell .adm-btn, .adm-shell .adm-link-btn, .adm-shell .adm-tabs, .adm-shell button { display: none !important; }html, body, .adm-shell, .adm-shell .adm-main, .adm-shell .adm-content { background: #fff !important; color: #000 !important; margin: 0 !important; padding: 0 !important; }
+.adm-shell .adm-panel, .adm-shell .adm-card-lift { box-shadow: none !important; border: 1px solid #000 !important; break-inside: avoid; background: #fff !important; }
+.adm-shell * { color: #000 !important; text-shadow: none !important; }
+.adm-shell thead th { position: static; background: #fff !important; border-bottom: 2px solid #000 !important; }
+.adm-shell tbody td { border-bottom: 1px solid #999 !important; }
+.adm-shell table { min-width: 0; }
+.adm-shell .recharts-wrapper { break-inside: avoid; }
+}.adm-shell .adm-sb > div[style*="overflow-y"] { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--color-on-rail) 28%, transparent) transparent; padding-bottom: 8px; }
+.adm-shell .adm-sb ::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+.adm-shell .adm-sb ::-webkit-scrollbar { width: 6px; }
+.adm-shell .adm-sb ::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--color-on-rail) 28%, transparent); border-radius: 3px; }
+@media (min-width: 768px) {
+  .adm-shell .adm-sb-head { min-height: 68px; }
+  .adm-shell .adm-nav-group { margin: 14px 12px 4px; }
+  .adm-shell .adm-link { min-height: 40px; }
+  .adm-shell .adm-sb-toggle { min-height: 38px; }
+}
+@media (min-width: 768px) and (max-height: 900px) {
+  .adm-shell .adm-link { min-height: 36px; font-size: 14.5px; }
+  .adm-shell .adm-nav-group { margin-top: 10px; }
+}

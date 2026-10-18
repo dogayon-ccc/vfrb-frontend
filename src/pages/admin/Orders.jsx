@@ -86,6 +86,22 @@ function OrderActions({ order, isManager, onConfirm, confirming, stop, hideView 
   );
 }
 
+
+// Clients set their own due date and VFRB works to it, so flag orders that are late or close.
+const dueFlag = (due, status) => {
+  if (!due || ['completed', 'cancelled'].includes(status)) return null;
+  const d = new Date(due); if (Number.isNaN(d.getTime())) return null;
+  const t = new Date(); t.setHours(0, 0, 0, 0); d.setHours(0, 0, 0, 0);
+  const days = Math.round((d - t) / 86400000);
+  if (days < 0) return { text: `Overdue ${-days}d`, bg: 'var(--danger-bg)', fg: 'var(--danger-text)' };
+  if (days <= 3) return { text: days === 0 ? 'Due today' : `Due in ${days}d`, bg: 'var(--warning-bg)', fg: 'var(--warning-text)' };
+  return null;
+};
+const DueChip = ({ due, status }) => {
+  const f = dueFlag(due, status);
+  return f ? <span style={{ display: 'inline-block', marginTop: 4, padding: '2px 9px', borderRadius: 99, fontSize: 12.5, fontWeight: 800, background: f.bg, color: f.fg }}>{f.text}</span> : null;
+};
+
 function OrderRow({ order, isManager, onConfirm, confirming, summary }) {
   const navigate = useNavigate();
   const cfg = STATUS_CFG[order.status] ?? STATUS_CFG.pending;
@@ -118,7 +134,7 @@ function OrderRow({ order, isManager, onConfirm, confirming, summary }) {
         <div className="adm-hide-d-t" style={{ fontSize:13, color:'var(--text-faint)', marginTop:4 }}>{due ? `Due ${fmtDate(due)}` : ''}</div>
       </td>
       <td>{inProduction(order.status) ? <ProductionProgress compact summary={summary ?? null} /> : <span style={{ fontSize:13, color:'var(--text-faint)' }}>—</span>}</td>
-      <td className="adm-hide-t" style={{ whiteSpace:'nowrap', color:'var(--text-subtle)', fontSize:13 }}>{fmtDate(due, true)}</td>
+      <td className="adm-hide-t" style={{ whiteSpace:'nowrap', color:'var(--text-subtle)', fontSize:13 }}>{fmtDate(due, true)}<div><DueChip due={due} status={order.status} /></div></td>
       <td>
         <div className="adm-ra" style={{ display:'flex', gap:6, justifyContent:'flex-end' }}>
           <OrderActions order={order} isManager={isManager} onConfirm={onConfirm} confirming={confirming} stop />
@@ -144,7 +160,7 @@ function OrderCard({ order, isManager, onConfirm, confirming, index, summary }) 
       <div style={{ fontSize:13, color:'var(--text-subtle)', marginTop:2 }}>
         {order.garment_type ?? 'Custom'} · {order.quantity_ordered ?? 0} pcs{order.color ? ` · ${order.color}` : ''}
       </div>
-      {due && <div style={{ fontSize:13, color:'var(--text-faint)', marginTop:2 }}>Due {fmtDate(due, true)}</div>}
+      {due && <div style={{ fontSize:13, color:'var(--text-faint)', marginTop:2 }}>Due {fmtDate(due, true)} <DueChip due={due} status={order.status} /></div>}
       {inProduction(order.status) ? <div style={{ marginTop:10 }}><ProductionProgress compact summary={summary ?? null} /></div>
         : isLive(order.status) && <div style={{ marginTop:10 }}><StageBar status={order.status} /></div>}
       {((isLive(order.status) && !isManager && canTrack()) || (isManager && order.status === 'pending')) && (

@@ -84,7 +84,6 @@ const AdminProductionList    = lazy(() => import('./pages/admin/ProductionList')
 const AdminPhysicalCount     = lazy(() => import('./pages/admin/PhysicalCount'));
 const AdminDailyOutputLog    = lazy(() => import('./pages/admin/DailyOutputLog'));
 const AdminQCChecklist       = lazy(() => import('./pages/admin/QCChecklist'));
-const AdminProductionIncidents = lazy(() => import('./pages/admin/ProductionIncidents')); // NEW Aug 25 2026
 
 // ── Customer Pages — all lazy ─────────────────────────────────────────────────
 const CustomerDashboard   = lazy(() => import('./pages/client/Dashboard'));
@@ -287,10 +286,6 @@ export default function App() {
             <Route path="physical-count" element={<RequireArea area="inventory"><AdminPhysicalCount/></RequireArea>}/>
             <Route path="output-log"     element={<RequireArea area="production"><AdminDailyOutputLog/></RequireArea>}/>
             <Route path="qc"             element={<RequireArea area="production"><AdminQCChecklist/></RequireArea>}/>
-            {/* NEW Aug 25 2026 — machine breakdown / cutting damage reporting,
-                interview-grounded. Staff+Manager tier, same as QC/Physical
-                Count — NOT wrapped in RequireManager. */}
-            <Route path="production-incidents" element={<RequireArea area="production"><AdminProductionIncidents/></RequireArea>}/>
 
             {/* Settings: staff view-only, manager can edit — gated INSIDE
                 the component (see Settings.jsx), NOT wrapped in

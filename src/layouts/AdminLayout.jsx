@@ -16,7 +16,7 @@ import {
   LayoutDashboard, ClipboardList, Package, MessageSquare, ShoppingCart,
   Truck, Layers, Factory, FileText, ShieldCheck, ScanLine, AlertTriangle,
   Wallet, BarChart3, Receipt, Building2, Users, MessageCircle, Settings,
-  LogOut, Bell, Trophy, Contact, ScrollText, PanelLeftOpen, PanelLeftClose, MoreHorizontal, Search,
+  LogOut, Bell, Trophy, Contact, ScrollText, PanelLeftOpen, PanelLeftClose, MoreHorizontal, Search, Menu,
 } from 'lucide-react';
 
 const T  = 'var(--teal)';
@@ -36,7 +36,6 @@ const STAFF_NAV = [
   { to:'/admin/output-log',   icon:FileText,        label:'Output Log',            area:'production', group:'Production' },
   { to:'/admin/qc',           icon:ShieldCheck,     label:'QC Checklist',          area:'production', group:'Production' },
   { to:'/admin/physical-count',icon:ScanLine,       label:'Physical Count',        area:'inventory',  group:'Inventory'  },
-  { to:'/admin/production-incidents',icon:AlertTriangle,label:'Incidents',         area:'production', group:'Production' },
   { to:'/admin/transactions', icon:Wallet,          label:'Sales & Pay',           area:null,         group:'Sales'      },
 ];
 
@@ -328,7 +327,9 @@ export default function AdminLayout() {
           display: flex;
           align-items: center;
           gap: 10px;
-          min-height: 76px;
+          height: var(--topbar-h);
+          min-height: var(--topbar-h);
+          box-sizing: border-box;
           position: relative;
           overflow: hidden;
           background: color-mix(in srgb,var(--color-on-rail) 3%,transparent);
@@ -419,6 +420,14 @@ export default function AdminLayout() {
           background: color-mix(in srgb,var(--color-manager) 55%,var(--color-on-rail));
         }
 
+        .adm-burger {
+          width: 48px; height: 48px; flex-shrink: 0; display: grid; place-items: center;
+          border: 1px solid var(--border); border-radius: 14px; background: var(--bg-card);
+          color: var(--ink); cursor: pointer; transition: background .15s, border-color .15s, transform .15s;
+        }
+        .adm-burger:hover { background: var(--teal-50); border-color: var(--teal); color: var(--teal); }
+        .adm-burger:active { transform: scale(.94); }
+        .adm-burger:focus-visible { outline: 2px solid var(--teal-2); outline-offset: 2px; }
         .adm-sb-toggle {
           display: flex; align-items: center; justify-content: center; gap: 8px;
           min-height: 44px; min-width: 44px; padding: 0 12px; flex-shrink: 0;
@@ -669,6 +678,11 @@ export default function AdminLayout() {
 
           <div className="adm-topbar">
 
+            <button type="button" className="adm-burger adm-desk-only" onClick={toggle}
+              aria-label={collapsed ? 'Open sidebar' : 'Close sidebar'} aria-expanded={!collapsed}>
+              <Menu size={22} strokeWidth={2.2} aria-hidden="true"/>
+            </button>
+
             <img src={logo} alt="VFRB" className="adm-mob-only"
               style={{ width:30, height:30, borderRadius:8, objectFit:'cover',
                 border:'1.5px solid var(--border)', flexShrink:0 }}/>
@@ -693,7 +707,7 @@ export default function AdminLayout() {
 
             <div className="adm-jump adm-desk-only">
               <Search size={18} strokeWidth={2} aria-hidden="true"/>
-              <input type="search" value={jumpQ} placeholder="Jump to a page…" aria-label="Jump to a page"
+              <input type="search" name="jump-page" autoComplete="off" data-lpignore="true" data-1p-ignore value={jumpQ} placeholder="Jump to a page…" aria-label="Jump to a page"
                 onChange={e => { setJumpQ(e.target.value); setJumpOpen(true); }}
                 onFocus={() => setJumpOpen(true)} onBlur={() => setTimeout(() => setJumpOpen(false), 120)}
                 onKeyDown={e => {

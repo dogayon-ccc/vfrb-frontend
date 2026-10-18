@@ -115,14 +115,6 @@ export default function AdminDashboard() {
     { label: 'Awaiting Delivery', value: data?.production?.delivering ?? 0, onClick: go('/admin/delivery') },
     { label: 'Pending Count', value: data?.unreconciled_counts ?? 0, sub: 'Physical count', onClick: go('/admin/physical-count') },
   ].filter(Boolean);
-  const quick = [
-    { icon: 'orders', l: 'View Orders', path: '/admin/orders' }, { icon: 'inventory', l: 'Inventory', path: '/admin/inventory' },
-    { icon: 'production', l: 'Production', path: '/admin/production' }, { icon: 'procurement', l: 'Purchase Orders', path: '/admin/procurement' },
-    { icon: 'physicalCount', l: 'Physical Count', path: '/admin/physical-count' }, { icon: 'delivery', l: 'Delivery', path: '/admin/delivery' },
-    ...(isManager ? [{ icon: 'reports', l: 'Reports', path: '/admin/reports' }, { icon: 'users', l: 'Users', path: '/admin/users' }] : []),
-    ...(owner ? [{ icon: 'reports', l: 'Reports', path: '/admin/reports' }] : []),
-  ].filter((q) => !owner || ownerCanOpen(q.path));
-
   // Owner: no RFQ or delivery lists (refused by the API) and no footer link to a page it cannot open.
   const attention = [
     { title: 'Orders Needing Action', color: T, items: pendingRaw ?? [], loading: poLoading, failed: pendingRaw == null, empty: 'No pending orders — all caught up', footer: 'All pending', onFooter: () => nav('/admin/orders?status=pending'),
@@ -257,13 +249,6 @@ export default function AdminDashboard() {
                 {(data?.production?.delayed_count ?? 0) > 0 && <div style={{ marginTop: 12 }}><AlertBanner tone="warning" title={`${data.production.delayed_count} stalled ${delayDays}+ days`} style={{ marginBottom: 0 }} /></div>}
               </>
             )}
-          </Panel>
-
-          <Panel title="Quick Actions">
-            <div className="adm-quick">{quick.map((q) => (
-              <button key={q.path} onClick={() => nav(q.path)}>
-                <span style={{ width: 34, height: 34, borderRadius: 10, background: 'var(--teal-50)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><NavIcon name={q.icon} size={17} color="var(--teal)" /></span>{q.l}
-              </button>))}</div>
           </Panel>
 
           <Panel title="Recent Order Mix" action={<span className="adm-chip">last {recent.length}</span>}>

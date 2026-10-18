@@ -16,12 +16,14 @@ const lbl = { display:'block', fontSize:11, fontWeight:700, textTransform:'upper
 // Admin-portal roles only; customers are managed on the Clients page. DB role 'manager' is shown as "Admin".
 const ROLE_CFG = {
   manager: { c:'var(--teal)', bg:'var(--teal-50, #f0fdfa)', l:'Admin', tab:'Admins' },
-  staff:   { c:'var(--info)', bg:'var(--info-bg)', l:'Staff', tab:'Staff' },
+  // Staff accounts are no longer created: the portal is Admin (full access) and Owner (view only).
+  // Any old staff account still lists below as Staff so it can be reviewed or promoted.
+  staff:   { c:'var(--info)', bg:'var(--info-bg)', l:'Staff (old)', tab:'Staff (old)', legacy:true },
   owner:   { c:'var(--warning-text)', bg:'var(--warning-bg)', l:'Owner', tab:'Owners' },
 };
-const ROLE_OPTIONS = Object.entries(ROLE_CFG).map(([v, r]) => <option key={v} value={v}>{r.l}</option>);
+const ROLE_OPTIONS = Object.entries(ROLE_CFG).filter(([v]) => v !== 'staff').map(([v, r]) => <option key={v} value={v}>{r.l}</option>);
 
-const INIT = { name:'', email:'', password:'', password_confirmation:'', role:'staff', job_function:'general', contact_number:'' };
+const INIT = { name:'', email:'', password:'', password_confirmation:'', role:'manager', job_function:'general', contact_number:'' };
 
 function CreateUserModal({ onClose, onDone, isMobile }) {
   const [form, setForm] = useState({ ...INIT });
@@ -50,7 +52,7 @@ function CreateUserModal({ onClose, onDone, isMobile }) {
           <div className="um-modal-grid2">
             <div>
               <label style={lbl}>Full Name *</label>
-              <input value={form.name} onChange={e=>set('name',e.target.value)} placeholder="e.g. VFRB Staff 2" style={inp} onFocus={fi} onBlur={fo}/>
+              <input value={form.name} onChange={e=>set('name',e.target.value)} placeholder="e.g. Roxanne" style={inp} onFocus={fi} onBlur={fo}/>
             </div>
             <div>
               <label style={lbl}>Role</label>
@@ -59,12 +61,12 @@ function CreateUserModal({ onClose, onDone, isMobile }) {
               </select>
             </div>
           </div>
-          {form.role === 'staff' && (
+          {false && form.role === 'staff' && (
             <div>
               <label style={lbl}>Job Function</label>
               <select value={form.job_function} onChange={e=>set('job_function',e.target.value)} style={{ ...inp, cursor:'pointer' }}>
                 <option value="general">General (sees all operational pages — default)</option>
-                <option value="production">Production (Production, Output Log, QC Checklist, Incidents)</option>
+                <option value="production">Production (Production, Output Log, QC Checklist)</option>
                 <option value="inventory">Inventory (Inventory, Materials, Physical Count, Procurement)</option>
                 <option value="sales">Sales (Orders, Customers, Messages, Delivery, Sales & Pay — no Production or Inventory pages)</option>
               </select>
@@ -128,7 +130,7 @@ function EditUserModal({ user, onClose, onDone, isMobile }) {
           <div>
             <label style={lbl}>Role</label>
             <select value={role} onChange={e=>setRole(e.target.value)} style={{ ...inp, cursor:'pointer' }}>
-              {ROLE_OPTIONS}
+              {Object.entries(ROLE_CFG).filter(([v]) => v !== 'staff' || user.role === 'staff').map(([v, r]) => <option key={v} value={v}>{r.l}</option>)}
             </select>
           </div>
           {role === 'staff' && (
@@ -264,7 +266,7 @@ export default function AdminUserManagement() {
         { label:'Total Accounts', value:users.length },
         { label:'Active', value:users.filter(u => u.is_active !== false).length, color:'var(--success-text)' },
         { label:'Inactive', value:users.filter(u => u.is_active === false).length, color: users.some(u => u.is_active === false) ? 'var(--danger-text)' : undefined },
-        { label:'Admins & Staff', value:(counts.staff ?? 0) + (counts.manager ?? 0), color:'var(--teal)' },
+        { label:'Admins', value:(counts.manager ?? 0), color:'var(--teal)' },
       ]} />
 
       <div className="adm-toolbar">
@@ -272,7 +274,7 @@ export default function AdminUserManagement() {
       </div>
       <PillTabs value={roleF} onChange={setRoleF} tabs={[
         { key:'all', label:'All Users', count:users.length },
-        ...Object.entries(ROLE_CFG).map(([key, r]) => ({ key, label:r.tab, count:counts[key] ?? 0 })),
+        ...Object.entries(ROLE_CFG).filter(([key, r]) => !r.legacy || (counts[key] ?? 0) > 0).map(([key, r]) => ({ key, label:r.tab, count:counts[key] ?? 0 })),
       ]} />
 
       {loading ? <Panel flush><SkeletonRows rows={5} h={48} /></Panel>

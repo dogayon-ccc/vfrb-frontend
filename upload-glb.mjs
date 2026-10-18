@@ -17,7 +17,8 @@ if (!cloud_name || !api_key || !api_secret) {
 
 cloudinary.config({ cloud_name, api_key, api_secret, secure: true });
 
-const ROOT = 'public/models';
+const ROOT = process.argv[2] || 'public/models';
+const FOLDER = process.argv[3] || 'models';
 const files = fs
   .readdirSync(ROOT, { recursive: true })
   .filter((f) => f.toLowerCase().endsWith('.glb'))
@@ -31,7 +32,7 @@ for (const [i, rel] of files.entries()) {
   try {
     await cloudinary.uploader.upload(path.join(ROOT, rel), {
       resource_type: 'raw',
-      public_id: `models/${rel.replace(/ /g, '-')}`,
+      public_id: `${FOLDER}/${rel.replace(/ /g, "-")}`,
       overwrite: true,
       unique_filename: false,
       use_filename: false,
@@ -46,4 +47,4 @@ for (const [i, rel] of files.entries()) {
 
 console.log(`\nDone. ${ok} uploaded, ${failed.length} failed.`);
 if (failed.length) console.log('Failed files:', failed);
-console.log(`\nYour VITE_MODEL_BASE_URL is:\nhttps://res.cloudinary.com/${cloud_name}/raw/upload/models`);
+console.log(`\nYour VITE_MODEL_BASE_URL is:\nhttps://res.cloudinary.com/${cloud_name}/raw/upload/${FOLDER}`);
