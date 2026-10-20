@@ -25,7 +25,7 @@ export function FieldError({ id, msg }) {
 const STEPS = [
   { t: 'Design', d: 'Build your uniform visually in the Studio' },
   { t: 'Order', d: 'Bulk quantities, sizes and delivery in four steps' },
-  { t: 'Track', d: 'Follow production and message VFRB staff' },
+  { t: 'Track', d: 'See your order status and message VFRB staff' },
 ];
 
 export default function AuthShell({ title, subtitle, maxWidth = 400, children }) {

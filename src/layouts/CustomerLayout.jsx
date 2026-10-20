@@ -110,6 +110,7 @@ export default function CustomerLayout() {
 
   return (
     <div className="cm-shell" data-rail={collapsed ? 'slim' : 'full'}>
+      <a href="#cm-main" className="skip-link" onClick={e => { e.preventDefault(); document.getElementById('cm-main')?.focus(); }}>Skip to content</a>
       <header className="cx-bar" data-hidden={barHidden}>
         <Link to="/dashboard" className="cx-brand" aria-label="VFRB Enterprise, back to dashboard">
           <img src={logo} alt="" />
@@ -189,7 +190,7 @@ export default function CustomerLayout() {
         </div>
       </aside>
 
-      <main className="cm-main">
+      <main id="cm-main" tabIndex={-1} className="cm-main">
         <div className="cm-content" data-fab={fab || undefined}>
           <AnimatePresence mode="wait" initial={false}>
             <motion.div key={location.pathname} className="vfrb-page"

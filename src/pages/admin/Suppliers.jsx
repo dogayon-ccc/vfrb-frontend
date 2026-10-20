@@ -117,7 +117,7 @@ export default function AdminSuppliers() {
               <div style={{ display:'flex', gap:12, alignItems:'center' }}>
                 <Avatar name={s.supplier_name} size={42} />
                 <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:15, fontWeight:800, color:'var(--ink)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{s.supplier_name}</div>
+                  <div title={s.supplier_name} style={{ fontSize:15, fontWeight:800, color:'var(--ink)', lineHeight:1.25, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{s.supplier_name}</div>
                   {s.contact_person && <div style={{ fontSize:12, color:'var(--text-subtle)', marginTop:2 }}>{s.contact_person}</div>}
                 </div>
                 <span className="adm-icon-btn" aria-hidden="true"><NavIcon name="edit" size={14} color="currentColor" /></span>
@@ -128,7 +128,9 @@ export default function AdminSuppliers() {
               </div>
               {(s.payment_terms_with_supplier || s.materials_supplied) && (
                 <div style={{ marginTop:12, paddingTop:12, borderTop:'1px solid var(--bg-surface)' }}>
-                  {s.payment_terms_with_supplier && <span className="adm-chip" style={{ background:'var(--teal-50)', color:'var(--teal-dark)' }}>{s.payment_terms_with_supplier}</span>}
+                  {s.payment_terms_with_supplier && (s.payment_terms_with_supplier === 'not_specified'
+                    ? <span className="adm-chip">Terms not set</span>
+                    : <span className="adm-chip" style={{ background:'var(--teal-50)', color:'var(--teal-dark)' }}>{s.payment_terms_with_supplier}</span>)}
                   {s.materials_supplied && <p style={{ fontSize:12, color:'var(--text-subtle)', margin:'8px 0 0', lineHeight:1.5, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{s.materials_supplied}</p>}
                 </div>
               )}

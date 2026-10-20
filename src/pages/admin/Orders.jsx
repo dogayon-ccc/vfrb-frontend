@@ -122,7 +122,7 @@ function OrderRow({ order, isManager, onConfirm, confirming, summary }) {
       </td>
       <td>
         <div style={{ fontWeight:600, maxWidth:180, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{order.customer_name ?? '—'}</div>
-        <div style={{ fontSize:13, color:'var(--text-subtle)' }}>{order.order_type === 'subcontract' ? "Arranged (Ma'am Ronnaxe)" : 'Direct'}</div>
+        <div style={{ fontSize:13, color:'var(--text-subtle)' }}>{order.order_type === 'subcontract' ? 'Subcontract' : 'Direct'}</div>
       </td>
       <td>
         <div style={{ fontWeight:600 }}>{order.garment_type ?? order.design?.design_name ?? 'Custom'}</div>

@@ -19,6 +19,9 @@ import {
   LogOut, Bell, Trophy, Contact, ScrollText, PanelLeftOpen, PanelLeftClose, MoreHorizontal, Search, Menu,
 } from 'lucide-react';
 
+const NOTIF_LABELS = { order: 'New order', message: 'New message', payment: 'Payment', stock: 'Stock alert', delivery: 'Delivery', feedback: 'Feedback', incident: 'Incident', rfq: 'Purchase request' };
+const notifTitle = (n) => n.title || NOTIF_LABELS[n.type] || (n.type ? String(n.type).replace(/[_-]+/g, ' ').replace(/^./, c => c.toUpperCase()) : 'Notification');
+
 const T  = 'var(--teal)';
 const T2 = 'var(--teal-2)';
 const MG = 'var(--purple)';
@@ -36,6 +39,7 @@ const STAFF_NAV = [
   { to:'/admin/output-log',   icon:FileText,        label:'Output Log',            area:'production', group:'Production' },
   { to:'/admin/qc',           icon:ShieldCheck,     label:'QC Checklist',          area:'production', group:'Production' },
   { to:'/admin/physical-count',icon:ScanLine,       label:'Physical Count',        area:'inventory',  group:'Inventory'  },
+  { to:'/admin/production-incidents',icon:AlertTriangle,label:'Incidents',         area:'production', group:'Production' },
   { to:'/admin/transactions', icon:Wallet,          label:'Sales & Pay',           area:null,         group:'Sales'      },
 ];
 
@@ -108,7 +112,7 @@ function NotifRow({ n, onRead }) {
           margin:'0 0 2px', lineHeight:1.4,
           overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap',
         }}>
-          {n.title ?? n.type ?? 'Notification'}
+          {notifTitle(n)}
         </p>
         <p style={{
           fontSize:13.5, color:'var(--text-subtle)', margin:0, lineHeight:1.5,
@@ -400,14 +404,12 @@ export default function AdminLayout() {
           color: var(--color-on-rail);
         }
         .adm-link.active {
-          background: color-mix(in srgb,var(--color-on-rail) 13%,transparent);
+          background: color-mix(in srgb,var(--teal-2) 20%,transparent);
+          box-shadow: inset 0 0 0 1px color-mix(in srgb,var(--teal-2) 38%,transparent);
           color: var(--color-on-rail);
           font-weight: 800;
         }
-        .adm-link.active.mgr {
-          background: linear-gradient(135deg, color-mix(in srgb,var(--color-manager) 34%,transparent), color-mix(in srgb,var(--color-manager) 16%,transparent));
-          color: var(--color-on-rail);
-        }
+        .adm-link.active.mgr { background: color-mix(in srgb,var(--teal-2) 20%,transparent); color: var(--color-on-rail); }
         .adm-link.active::before {
           content: '';
           position: absolute;
@@ -416,9 +418,14 @@ export default function AdminLayout() {
           border-radius: 0 4px 4px 0;
           background: var(--teal-2);
         }
-        .adm-link.active.mgr::before {
-          background: color-mix(in srgb,var(--color-manager) 55%,var(--color-on-rail));
-        }
+        .adm-link.active.mgr::before { background: var(--teal-2); }
+
+        .adm-nav-scroll::-webkit-scrollbar { width: 6px; }
+        .adm-nav-scroll::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+        .adm-nav-scroll::-webkit-scrollbar-track { background: transparent; }
+        .adm-nav-scroll::-webkit-scrollbar-thumb { background: color-mix(in srgb,var(--color-on-rail) 22%,transparent); border-radius: 6px; }
+        .adm-nav-scroll::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb,var(--color-on-rail) 38%,transparent); }
+        @supports not selector(::-webkit-scrollbar) { .adm-nav-scroll { scrollbar-width: thin; scrollbar-color: color-mix(in srgb,var(--color-on-rail) 30%,transparent) transparent; } }
 
         .adm-burger {
           width: 48px; height: 48px; flex-shrink: 0; display: grid; place-items: center;
@@ -597,11 +604,12 @@ export default function AdminLayout() {
       `}</style>
 
       <div className="adm-shell">
+        <a href="#adm-main" className="skip-link" onClick={e => { e.preventDefault(); document.getElementById('adm-main')?.focus(); }}>Skip to content</a>
 
         <aside className="adm-sb" style={{ width:SW }}>
 
           <div className="adm-sb-head"
-            style={{ padding: collapsed ? '16px 10px' : '16px 18px' }}>
+            style={{ padding: collapsed ? '0 10px' : '0 18px' }}>
             <img src={logo} alt="VFRB"
               style={{ width:44, height:44, borderRadius:12, objectFit:'cover',
                 border:'2px solid color-mix(in srgb,var(--color-on-rail) 20%,transparent)', flexShrink:0, position:'relative', zIndex:1 }}/>
@@ -620,9 +628,8 @@ export default function AdminLayout() {
             )}
           </div>
 
-          <div style={{ flex:1, overflowY:'auto', overflowX:'hidden',
-            padding: collapsed ? '8px 4px' : '8px 10px',
-            scrollbarWidth:'thin', scrollbarColor:'var(--border) transparent' }}>
+          <div className="adm-nav-scroll" style={{ flex:1, overflowY:'auto', overflowX:'hidden',
+            padding: collapsed ? '8px 4px 16px' : '8px 10px 16px' }}>
 
             {NAV_GROUPS.map((g, gi) => {
               const items = g === 'Admin'
@@ -673,7 +680,7 @@ export default function AdminLayout() {
 
         </aside>
 
-        <main className="adm-main"
+        <main id="adm-main" tabIndex={-1} className="adm-main"
           style={{ marginLeft: SW, transition:'margin-left .22s cubic-bezier(.4,0,.2,1)' }}>
 
           <div className="adm-topbar">
@@ -707,7 +714,7 @@ export default function AdminLayout() {
 
             <div className="adm-jump adm-desk-only">
               <Search size={18} strokeWidth={2} aria-hidden="true"/>
-              <input type="search" name="jump-page" autoComplete="off" data-lpignore="true" data-1p-ignore value={jumpQ} placeholder="Jump to a page…" aria-label="Jump to a page"
+              <input type="search" value={jumpQ} placeholder="Jump to a page…" aria-label="Jump to a page"
                 onChange={e => { setJumpQ(e.target.value); setJumpOpen(true); }}
                 onFocus={() => setJumpOpen(true)} onBlur={() => setTimeout(() => setJumpOpen(false), 120)}
                 onKeyDown={e => {

@@ -216,27 +216,31 @@ tr.adm-row > td { vertical-align: middle; }
   .ui-stat-grid:has(> .ui-stat:nth-child(-n+4):last-child) { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 }
 
+/* ── v4: root-cause fixes from the Oct 18 review ───────────────────────── */
 
-/* Remove the tiny native up/down arrow buttons on scrollbars (seen in the sidebar); keep a slim thumb. */
-::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
-.adm-sb ::-webkit-scrollbar { width: 6px; }
-.adm-sb ::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--color-on-rail) 28%, transparent); border-radius: 3px; }
+/* Headings inside dark panels inherit the panel's text colour (theme.css sets every h1-h3 to ink) */
+:is(.vs-dark, .vs-banner, .vs-journey, .vs-pagehead, .au-art, .dsh-hero) :where(h1, h2, h3) { color: inherit; }
 
-/* Settings: use the full width. Section list on the left, cards in two columns, wide ones span both. */
-.adm-shell .set-layout { grid-template-columns: 240px minmax(0, 1fr); gap: 28px; }
-.adm-shell .set-nav a { font-size: 15.5px; min-height: 46px; padding: 0 16px; gap: 12px; }
-.adm-shell .set-nav a:hover { background: var(--teal-50); }
-@media (min-width: 1200px) {
-  .adm-shell .set-layout > .adm-stack { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
-  .adm-shell .set-layout > .adm-stack > * { min-width: 0; margin: 0; }
-  .adm-shell .set-layout > .adm-stack > #set-company, .adm-shell .set-layout > .adm-stack > #set-users { grid-column: 1 / -1; }
+/* Card headers wrap instead of overlapping on narrow screens */
+.ui-card-head { flex-wrap: wrap; row-gap: var(--space-2); }
+.ui-card-head > div:first-child { flex: 1 1 180px; min-width: 0; }
+
+/* Settings: use the full width, sticky nav clears the top bar, room under intro text */
+.set-nav { top: calc(var(--topbar-h) + var(--space-4)); }
+.set-anchor { scroll-margin-top: calc(var(--topbar-h) + var(--space-4)); }
+.set-layout .ui-card-body > p:not(:last-child) { margin-bottom: var(--space-4); }
+@media (min-width: 1024px) { .set-layout { grid-template-columns: 220px minmax(0, 1fr); } }
+@media (min-width: 1280px) {
+  .set-layout .adm-stack { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); align-items: start; }
 }
-.adm-shell .set-layout .adm-input, .adm-shell .set-layout input, .adm-shell .set-layout textarea, .adm-shell .set-layout select { min-height: 48px; font-size: 15.5px; }
-.adm-shell .set-layout label, .adm-shell .set-layout .adm-label { font-size: 13px; }
-.adm-shell .set-logo-box { width: 88px; height: 88px; }
 
-/* Sidebar and top bar share one rhythm: same header height, same hairline, nav rows centred. */
-.adm-shell .adm-sb-head, .adm-shell .adm-topbar { height: var(--topbar-h); min-height: var(--topbar-h); box-sizing: border-box; border-bottom-width: 1px; }
-.adm-sb nav, .adm-sb > div[style*="overflow-y"] { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--color-on-rail) 30%, transparent) transparent; }
-.adm-shell .adm-link { min-height: 46px; border-radius: 12px; }
-.adm-sb { transition: width .22s cubic-bezier(.4, 0, .2, 1); }
+/* Stage pipeline on phones: the last tile can scroll clear of the edge fade */
+@media (max-width: 767px) {
+  .adm-pipe { padding-right: 28px; scroll-snap-type: x proximity; -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent); mask-image: linear-gradient(90deg, #000 88%, transparent); }
+  .adm-pipe-step { scroll-snap-align: start; }
+}
+
+/* Skip link for keyboard users (admin and client shells) */
+.skip-link { position: fixed; left: 12px; top: -64px; z-index: 1000; padding: 10px 16px; border-radius: var(--radius); background: var(--ink); color: var(--bg-card); font-weight: 700; text-decoration: none; transition: top var(--dur-1) var(--ease-out-soft); }
+.skip-link:focus { top: 12px; }
+main:focus { outline: none; }

@@ -178,7 +178,7 @@ export default function AdminInventory() {
           onDone={()=>{ setModal(null); cacheClear('inventory_full'); load(true); }}/>
       )}
 
-      <PageHeader title="Inventory" sub={`${totalMats} materials · ${lowStock.length} below reorder threshold`}>
+      <PageHeader title="Inventory" sub={loading ? 'Loading materials…' : `${totalMats} materials · ${lowStock.length} below reorder threshold`}>
         <button className="adm-btn" style={{ minHeight:44 }} onClick={()=>exportStock('csv')} disabled={!!exporting}><FileSpreadsheet size={14} aria-hidden="true" /> {exporting==='csv' ? 'Exporting…' : 'Export CSV'}</button>
         <button className="adm-btn" style={{ minHeight:44 }} onClick={()=>exportStock('pdf')} disabled={!!exporting}><FileText size={14} aria-hidden="true" /> {exporting==='pdf' ? 'Exporting…' : 'Export PDF'}</button>
         {!isOwner() && <>

@@ -118,7 +118,7 @@ function ProposalPanel({ order, onUpdated }) {
   const [msg,   setMsg]   = useState(null); // { ok, text }
   const [thread, setThread] = useState(null);
   const [reply,  setReply]  = useState('');
-  // Subcontract = arranged by Ma'am Ronnaxe: full payment. Direct/bulk: 80% down, 20% on delivery.
+  // Subcontract: no down payment, paid after delivery. Direct/bulk: 80% down, 20% on delivery.
   const fullPay = order.order_type === 'subcontract';
 
   useEffect(() => {
@@ -139,7 +139,7 @@ function ProposalPanel({ order, onUpdated }) {
 
   useEffect(() => {
     if (order.agreed_total != null && !order.down_payment_received_at)
-      setDp((Math.round(Number(order.agreed_total) * (fullPay ? 100 : 80)) / 100).toFixed(2));
+      setDp((Math.round(Number(order.agreed_total) * 80) / 100).toFixed(2));
   }, [order.agreed_total, order.order_type]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const run = async (key, fn, okText) => {
@@ -214,15 +214,17 @@ function ProposalPanel({ order, onUpdated }) {
           <select id="adm-src" value={fullPay ? 'subcontract' : 'direct'} disabled={!!busy || dpDone || dpBlocked}
             onChange={e => setSource(e.target.value)} style={{ ...inpStyle, marginBottom:6 }}>
             <option value="direct">Direct customer: 80% down, 20% on delivery</option>
-            <option value="subcontract">Arranged by Ma'am Ronnaxe: full payment</option>
+            <option value="subcontract">Subcontract: no down payment, paid after delivery</option>
           </select>
           <p className="adm-prop-hint" style={{ marginBottom:12 }}>
             {order.agreed_total == null ? 'Send a proposal with the total first.'
-              : fullPay ? `Full payment: ${peso(order.agreed_total)}.`
+              : fullPay ? 'No down payment. Invoice per delivery; payment after delivery.'
               : `At least ${peso(Math.round(Number(order.agreed_total) * 80) / 100)} now, the rest on delivery.`}
           </p>
-          <p style={{ ...lblStyle, marginBottom:8 }}>{fullPay ? 'Full payment' : 'Down payment'}</p>
-          {dpDone ? (
+          <p style={{ ...lblStyle, marginBottom:8 }}>{fullPay ? 'Payment' : 'Down payment'}</p>
+          {fullPay ? (
+            <p className="adm-prop-hint">Production can start without a down payment. Record the payment against the invoice after delivery.</p>
+          ) : dpDone ? (
             <p className="adm-prop-hint" style={{ color:'var(--success-text)', fontWeight:700 }}>
               Received {peso(order.down_payment_amount)} on {fmtDay(order.down_payment_received_at)}.
             </p>
@@ -296,7 +298,7 @@ const jump = (sel) => document.querySelector(sel)?.scrollIntoView({ behavior: 's
 function NextAction({ order }) {
   if (order.status === 'cancelled') return null;
   const ps = order.proposal_status;
-  const dpDone = !!order.down_payment_received_at;
+  const dpDone = !!order.down_payment_received_at || order.order_type === 'subcontract';
   const early = order.status === 'pending';
   const confirmedOnly = order.status === 'confirmed';
   const finished = order.status === 'completed';
