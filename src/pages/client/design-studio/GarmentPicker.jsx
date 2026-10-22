@@ -10,10 +10,9 @@ import { CATEGORIES, PIECES, SLEEVES, GENDERS, ENTRIES, TIER_LABEL, filterDesign
 import { hasWebGL } from './webglSupport';
 import { ROLE_LABEL } from './uniformSet';
 import { SwatchGrid } from './SwatchGrid';
+import GarmentCarousel from './GarmentCarousel';
 import { REF_SPLIT, PREVIEW_CAPTION, previewColors } from './referenceColour';
-import { CUSTOM_TOP, CUSTOM_BOTTOM, CUSTOM_SKIRT, CUSTOM_BADGE, DEFAULT_CUSTOM, kindOf, isParamFamily } from './customGarment';
-// A rebuilt family's 3D is built from its measurements, not a model file: said plainly instead of the generic tier note.
-const PARAM_3D_NOTE = 'Editable in 2D; the 3D (approx.) is built from your measurements, a simple shape with no cloth simulation.';
+import { CUSTOM_TOP, CUSTOM_BOTTOM, CUSTOM_SKIRT, CUSTOM_BADGE, DEFAULT_CUSTOM, kindOf } from './customGarment';
 import { CustomControls, CustomNote } from './BuildYourOwn';
 
 const ReferenceModel3D = lazy(() => import('./ReferenceModel3D'));
@@ -326,7 +325,7 @@ function FamilySteps({ fam, cfg, onBack, onOpen, backLabel = 'Back to garments' 
         {fam.derived && <p className="ds-note">{DERIVED_LABEL}. One colour zone: the outline is traced from the reference model.</p>}
         <Choice label="Fit / cut" items={fits} value={fit} set={v => { setFit(v); setSleeve(combos.find(c => c.fit === v)?.sleeve ?? null); }} text={v => FIT_LABEL[v] ?? 'Standard'}/>
         <Choice label="Style" items={styles.map(c => c.sleeve)} value={chosen?.sleeve} set={setSleeve} text={v => `${v ?? 'Standard'} sleeve`}/>
-        {chosen && <p className="ds-pick-sum ds-pick-tier"><Badge icon={PHOTO_BADGE[chosen.status]} label={PHOTO_LABEL[chosen.status]}/>{PHOTO_LABEL[chosen.status]}: {isParamFamily(fam.id) && chosen.status === '2d-3d-approx' ? PARAM_3D_NOTE : TIER_LABEL[chosen.status].note}</p>}
+        {chosen && <p className="ds-pick-sum ds-pick-tier"><Badge icon={PHOTO_BADGE[chosen.status]} label={PHOTO_LABEL[chosen.status]}/>{PHOTO_LABEL[chosen.status]}: {TIER_LABEL[chosen.status].note}</p>}
       </div>
       <Foot>
         <button type="button" className="ds-btn" onClick={onBack}>{backLabel}</button>
@@ -374,10 +373,10 @@ function BuildYourOwnSteps({ cfg, pieceRole, onBack, onOpen }) {
 function BuildYourOwnCard({ onPick }) {
   return (
     <li style={{ '--i': 0 }}>
-      <button type="button" className="ds-pick-card ds-byo-card" onClick={onPick} aria-label={`Build your own: a top, trousers or skirt you shape yourself. ${CUSTOM_BADGE}, 3D (approx.)`}>
+      <button type="button" className="ds-pick-card ds-byo-card" onClick={onPick} aria-label={`Build your own: a top, trousers or skirt you shape yourself. ${CUSTOM_BADGE}, 2D only`}>
         <span className="ds-pick-img"><PencilRuler size={40} strokeWidth={1.6} aria-hidden="true"/></span>
         <strong>Build your own</strong>
-        <span className="ds-sketch">{CUSTOM_BADGE} · 3D (approx.)</span>
+        <span className="ds-sketch">{CUSTOM_BADGE} · 2D only</span>
       </button>
     </li>
   );
@@ -409,6 +408,11 @@ function Templates({ head, onClose, cfg, pieceRole, onPickFamily, onPairFamily =
   const [byo, setByo] = useState(false);
   const [piece, setPiece] = useState(null);   // Tops | Trousers & shorts | Skirts | Dresses & one-piece
   const [gender, setGender] = useState(null); // a recommendation filter: unisex sketches always stay listed
+  const [view, setView] = useState('grid');
+  const [carIdx, setCarIdx] = useState(0);
+  const [colour, setColour] = useState(null); // carousel body colour: previewed here, written to cfg.colors only on open
+  const pcfg = colour ? { ...cfg, colors: { ...cfg.colors, body: colour } } : cfg;
+  const withColour = pick => (colour ? { ...pick, bodyColor: colour } : pick);
   const fitsRole = f => !pieceRole || pieceOf(f.id) === pieceRole;
   const facetOk = f => (!piece || pieceFacet(f.id) === piece) && (!gender || genderFacets(f).has(gender) || genderFacets(f).has('unisex'));
   const inCat = c => (c === ALL ? ALL_FAMILIES : CATALOG.find(x => x.id === c).families).filter(f => !f.derived && tierOfFamily(f) !== 'reference' && (!(pieceRole && roleOn) || fitsRole(f)) && facetOk(f));
@@ -418,7 +422,7 @@ function Templates({ head, onClose, cfg, pieceRole, onPickFamily, onPairFamily =
   if (byo) return <>{head(null)}<BuildYourOwnSteps cfg={cfg} pieceRole={pieceRole && roleOn ? pieceRole : null} onBack={() => setByo(false)}
     onOpen={(garment, pick) => onPickFamily({ id: garment }, cfg.category, pick)}/></>;
   if (pairFam) return <>{head(null)}<FamilySteps fam={pairFam} cfg={cfg} backLabel="Back to garments" onBack={() => setPairFam(null)} onOpen={pick => onPairFamily(pairFam, homeOf(pairFam.id, cfg.category), pick)}/></>;
-  if (fam) return <>{head(null)}<FamilySteps fam={fam} cfg={cfg} onBack={() => setFam(null)} onOpen={pick => onPickFamily(fam, cat === ALL ? homeOf(fam.id, cfg.category) : cat, pick)}/></>;
+  if (fam) return <>{head(null)}<FamilySteps fam={fam} cfg={pcfg} onBack={() => setFam(null)} onOpen={pick => onPickFamily(fam, cat === ALL ? homeOf(fam.id, cfg.category) : cat, withColour(pick))}/></>;
   const card = (f, i) => <FamilyCard key={f.id} fam={f} cfg={cfg} fitsRole={fitsRole} pieceRole={pieceRole} onPick={setFam} i={i}/>;
   return (
     <>
@@ -445,10 +449,20 @@ function Templates({ head, onClose, cfg, pieceRole, onPickFamily, onPairFamily =
       </div>
       {pairing && <PairSection cfg={cfg} onPair={setPairFam}/>}
       {pairing && <h3 className="ds-pick-subh">Or replace your garment</h3>}
-      <ul className="ds-pick-grid">
-        <BuildYourOwnCard onPick={() => setByo(true)}/>
-        {families.map((f, i) => card(f, i + 1))}
-      </ul>
+      <div className="ds-seg ds-seg--sm ds-pick-viewsw" role="radiogroup" aria-label="Browse as">
+        {[['grid', 'Grid'], ['carousel', 'Carousel']].map(([v, l]) => <button key={v} type="button" role="radio" aria-checked={view === v} onClick={() => setView(v)}>{l}</button>)}
+      </div>
+      {view === 'carousel' && families.length > 0 ? (
+        <GarmentCarousel families={families} index={carIdx} setIndex={setCarIdx} colour={colour} setColour={setColour}
+          renderImage={f => <TemplateImage fam={f} cfg={pcfg} pick={combosFor(f, VECTOR)[0] ?? {}}/>}
+          renderBadge={f => <span className="ds-car-tier"><Badge icon={PHOTO_BADGE[tierOfFamily(f)]} label={PHOTO_LABEL[tierOfFamily(f)]}/><span aria-hidden="true">{PHOTO_LABEL[tierOfFamily(f)]}</span></span>}
+          isDisabled={f => !fitsRole(f)} onChoose={setFam}/>
+      ) : (
+        <ul className="ds-pick-grid">
+          <BuildYourOwnCard onPick={() => setByo(true)}/>
+          {families.map((f, i) => card(f, i + 1))}
+        </ul>
+      )}
       {families.length === 0 && <p className="ds-note">No template matches these filters. Clear a filter or pick another category.</p>}
       {onClose && <Foot><span className="ds-pick-count">{families.length} templates</span><button type="button" className="ds-btn" onClick={onClose}>Keep current garment</button></Foot>}
     </>

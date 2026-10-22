@@ -6,6 +6,7 @@
 // therefore the whole DesignStudio.jsx bundle). Same pattern as DrawPanel.jsx:
 // presentational only, all real canvas work stays in useGarmentCanvas.js.
 import { T, T2, secLabel, SHAPES } from './dsShared';
+import { SHAPE_PATHS } from './overlayTools';
 
 const COLORS = [
   { hex:'#02C39A', label:'Accent teal'  },
@@ -35,6 +36,7 @@ function ShapeGlyph({ kind }) {
       {kind === 'star' && <polygon points={star} {...p}/>}
       {kind === 'roundrect' && <rect x="3" y="5" width="18" height="14" rx="5" {...p}/>}
       {kind === 'polygon' && <polygon points={hexagon} {...p}/>}
+      {SHAPE_PATHS[kind] && <path d={SHAPE_PATHS[kind]} {...p} strokeLinejoin="round"/>}
       {kind === 'arrow' && <polygon points="2,9 14,9 14,4 22,12 14,20 14,15 2,15" {...p} strokeLinejoin="round"/>}
     </svg>
   );
@@ -68,7 +70,7 @@ export default function ShapesPanel({ selObj, onAdd, onUpdate }) {
                   aria-label={c.label} title={c.label}
                   style={{
                     height:26, borderRadius:6, cursor:'pointer', background:c.hex,
-                    border: (selObj[colorProp] || '').toLowerCase() === c.hex.toLowerCase()
+                    border: String(selObj[colorProp] ?? '').toLowerCase() === c.hex.toLowerCase()
                       ? `2px solid ${T}` : '1px solid rgba(15,23,42,.12)',
                   }}/>
               ))}

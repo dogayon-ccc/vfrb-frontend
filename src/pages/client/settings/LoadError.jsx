@@ -1,13 +1,9 @@
-import { Button } from '../../../components/ui';
-import { NavIcon } from '../../../components/ui/icons';
+import { Button, EmptyState } from '../../../components/ui';
 
 export default function LoadError({ what, onRetry }) {
   return (
-    <div role="alert" className="cx-card" style={{ padding: 22, textAlign: 'center' }}>
-      <span aria-hidden="true" style={{ color: 'var(--danger)', display: 'inline-flex' }}><NavIcon name="error" size={22}/></span>
-      <p style={{ fontWeight: 800, fontSize: 14, margin: '8px 0 4px', color: 'var(--ink)' }}>Unable to load {what}</p>
-      <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 14px' }}>Check your connection and try again.</p>
-      <Button variant="primary" onClick={onRetry}>Retry</Button>
-    </div>
+    <EmptyState boxed compact tone="error" title={`Unable to load ${what}`} action={<Button variant="primary" onClick={onRetry}>Retry</Button>}>
+      Check your connection and try again.
+    </EmptyState>
   );
 }

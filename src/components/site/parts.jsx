@@ -1,3 +1,5 @@
+import { useId, useRef, useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ViewLink as Link } from '../ViewLink';
 import Reveal from '../landing/Reveal';
 import Photo from '../landing/Photo';
@@ -80,7 +82,7 @@ export function Journey({ current }) {
           </Link>
         </Reveal>
         <div className="vs-btns">
-          <Btn to="/register" variant="mint">Design your uniform</Btn>
+          <Btn to="/login" variant="mint">Design your uniform</Btn>
         </div>
         <nav className="vs-rail" aria-label="Site journey">
           {JOURNEY.map((j, k) => k === i
@@ -89,5 +91,53 @@ export function Journey({ current }) {
         </nav>
       </div>
     </section>
+  );
+}
+
+function AccItem({ item, open, onToggle, onKey, btnRef, reduce }) {
+  const id = useId();
+  return (
+    <div className="vs-acc__item">
+      <h3 className="vs-acc__q">
+        <button type="button" ref={btnRef} className="vs-acc__btn" id={`${id}-b`} aria-expanded={open} aria-controls={`${id}-p`}
+          onClick={onToggle} onKeyDown={onKey}>
+          <span>{item.q}</span><span className="vs-acc__icon" aria-hidden="true" />
+        </button>
+      </h3>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div key="p" id={`${id}-p`} role="region" aria-labelledby={`${id}-b`} className="vs-acc__panel"
+            initial={reduce ? false : { height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+            exit={reduce ? { opacity: 0 } : { height: 0, opacity: 0 }}
+            transition={{ duration: reduce ? 0 : 0.24, ease: [0.2, 0.7, 0.2, 1] }} style={{ overflow: 'hidden' }}>
+            <p>{item.a}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// One-open-at-a-time Q&A list with arrow/Home/End keys between questions. items: [{ q, a }].
+export function Accordion({ items, defaultOpen = 0 }) {
+  const [openIdx, setOpenIdx] = useState(defaultOpen);
+  const refs = useRef([]);
+  const reduce = useReducedMotion();
+  const onKey = (i) => (e) => {
+    const last = items.length - 1;
+    const to = e.key === 'ArrowDown' ? (i === last ? 0 : i + 1) : e.key === 'ArrowUp' ? (i === 0 ? last : i - 1)
+      : e.key === 'Home' ? 0 : e.key === 'End' ? last : null;
+    if (to === null) return;
+    e.preventDefault();
+    refs.current[to]?.focus();
+  };
+  return (
+    <div className="vs-acc">
+      {items.map((item, i) => (
+        <AccItem key={item.q} item={item} open={openIdx === i} reduce={reduce}
+          btnRef={(el) => { refs.current[i] = el; }} onKey={onKey(i)}
+          onToggle={() => setOpenIdx(openIdx === i ? -1 : i)} />
+      ))}
+    </div>
   );
 }

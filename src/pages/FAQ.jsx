@@ -1,67 +1,26 @@
-// Public FAQ. Only workflow answers that match the live system; business-policy answers
-// (pricing, minimum order, lead time, payment, cancellation) are NOT invented here, visitors are sent to VFRB contact details.
-import { useId, useRef, useState } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+// Public FAQ. Workflow answers match the live portal; ordering facts come from ORDER_FAQS so Home and FAQ never drift.
 import SitePage from '../components/site/SitePage';
-import { Btn } from '../components/site/parts';
+import { Btn, TextLink, Accordion } from '../components/site/parts';
 import Reveal from '../components/landing/Reveal';
-import { CONTACT as C } from '../components/site/config';
+import { ORDER_FAQS } from '../components/site/content';
 
 const FAQS = [
   { q: 'How do I place an order?',
     a: 'Sign in to your customer account and create your design in the Design Studio. Save it, then continue to the Order Wizard to enter quantity, sizes, and delivery details, and submit your order.' },
   { q: 'Do I need to create a design before ordering?',
     a: 'Yes. Orders start from a saved design, so VFRB receives your exact garment configuration. The Order Wizard then collects quantity, sizes, and delivery details without asking you to re-enter the design.' },
+  ...ORDER_FAQS,
   { q: 'How does AI Material Recommendation work?',
     a: 'After you submit your order specs, Gemini AI reviews the garment type, quantity, and details, then recommends the categories of raw materials the order is expected to need, such as fabric, collar lining, buttons, thread, and labels. You review this on the AI Materials page and accept it, which notifies VFRB staff to prepare materials. Exact quantities for every material are confirmed by the VFRB production team.' },
   { q: 'How do I track my order\u2019s status?',
     a: 'Open My Orders and select your order. You\u2019ll see whether it is Pending, Confirmed, Completed or Cancelled. Once VFRB schedules delivery, the delivery date and tracking appear on the same page.' },
-  { q: 'Who sets the deadline for my order?',
-    a: 'You do. Enter the date you need your uniforms by in the Order Wizard. VFRB reviews your order and the date you asked for, then accepts or declines it.' },
   { q: 'Can I message VFRB staff about my order?',
     a: 'Yes. Use Messages in your customer portal to reach VFRB staff directly about a specific order.' },
-  { q: 'I signed up with Google. Is my account different from an email account?',
-    a: 'No. Customers can self-register with either email or Google, and both create the same type of customer account with the same access.' },
+  { q: 'How do I get a customer account?',
+    a: 'VFRB creates customer accounts for you. Once yours is set up, sign in with your email and password, or with Google if it uses the same email.' },
 ];
 
-function Item({ item, open, onToggle, onKey, btnRef, reduce }) {
-  const id = useId();
-  return (
-    <div className="vs-acc__item">
-      <h3 className="vs-acc__q">
-        <button type="button" ref={btnRef} className="vs-acc__btn" id={`${id}-b`} aria-expanded={open} aria-controls={`${id}-p`}
-          onClick={onToggle} onKeyDown={onKey}>
-          <span>{item.q}</span><span className="vs-acc__icon" aria-hidden="true" />
-        </button>
-      </h3>
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.div key="p" id={`${id}-p`} role="region" aria-labelledby={`${id}-b`} className="vs-acc__panel"
-            initial={reduce ? false : { height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
-            exit={reduce ? { opacity: 0 } : { height: 0, opacity: 0 }}
-            transition={{ duration: reduce ? 0 : 0.24, ease: [0.2, 0.7, 0.2, 1] }} style={{ overflow: 'hidden' }}>
-            <p>{item.a}</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-}
-
 export default function FAQ() {
-  const [openIdx, setOpenIdx] = useState(0);
-  const refs = useRef([]);
-  const reduce = useReducedMotion();
-
-  const onKey = (i) => (e) => {
-    const last = FAQS.length - 1;
-    const to = e.key === 'ArrowDown' ? (i === last ? 0 : i + 1) : e.key === 'ArrowUp' ? (i === 0 ? last : i - 1)
-      : e.key === 'Home' ? 0 : e.key === 'End' ? last : null;
-    if (to === null) return;
-    e.preventDefault();
-    refs.current[to]?.focus();
-  };
-
   return (
     <SitePage title="FAQ">
       <header className="vs-pagehead">
@@ -76,18 +35,11 @@ export default function FAQ() {
         <div className="vs-wrap vs-faqgrid">
           <Reveal className="vs-faqaside">
             <h2>Need something else?</h2>
-            <p>For pricing, minimum order quantity, lead time, and payment terms, please contact VFRB directly.</p>
-            <a className="vs-aside-link vs-link" href={C.phoneHref}>{C.phone}</a>
-            <a className="vs-aside-link vs-link" href={`mailto:${C.email}`}>{C.email}</a>
+            <p>VFRB prices each order individually. For anything not covered here, contact VFRB.</p>
+            <TextLink to="/about#contact">Contact details</TextLink>
             <Btn to="/guide" variant="line">Read the customer guide</Btn>
           </Reveal>
-          <div className="vs-acc">
-            {FAQS.map((item, i) => (
-              <Item key={item.q} item={item} open={openIdx === i} reduce={reduce}
-                btnRef={(el) => { refs.current[i] = el; }} onKey={onKey(i)}
-                onToggle={() => setOpenIdx(openIdx === i ? -1 : i)} />
-            ))}
-          </div>
+          <Accordion items={FAQS} />
         </div>
       </section>
     </SitePage>

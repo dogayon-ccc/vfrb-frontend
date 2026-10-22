@@ -1,15 +1,11 @@
 // src/pages/PrivacyPolicy.jsx — VFRB Enterprise Privacy Policy, grounded in the real schema/controllers.
-import { motion } from 'framer-motion';
-import MarketingNav from '../components/MarketingNav';
-import Footer from '../components/Footer';
-
-const T = { teal: 'var(--teal)', accent: 'var(--teal-2)', dark: 'var(--bg-surface)' };
+import LegalPage from '../components/site/LegalPage';
 
 const SECTIONS = [
   {
     title: '1. What information we collect',
-    body: `When you create an account, we collect your name, email address,
-    and password (stored as a one-way hash — VFRB never sees or stores your
+    body: `When VFRB creates your customer account, we store your name,
+    email address, and password (stored as a one-way hash — VFRB never sees or stores your
     actual password). Depending on your account type, you may also provide
     a contact number, organization name, address, and client type
     (individual, corporate, school, or medical).
@@ -22,7 +18,10 @@ const SECTIONS = [
     with your order.
 
     If you sign in with Google, we receive your name, email, and Google
-    account ID from Google — nothing else from your Google account.`,
+    account ID from Google — nothing else from your Google account.
+
+    Messages you send VFRB staff through the portal, and the invoices and
+    payment records for your orders, are also stored with your account.`,
   },
   {
     title: '2. How we use your information',
@@ -45,19 +44,20 @@ const SECTIONS = [
   },
   {
     title: '4. Data storage and security',
-    body: `Your data is stored in a secured MySQL database. Passwords
+    body: `Your data is stored in a secured PostgreSQL database hosted on
+    Supabase. Passwords
     are hashed using industry-standard one-way hashing (bcrypt) — never
     stored in plain text or reversible form. Account access is protected
-    by token-based authentication, and administrative accounts (staff and
-    manager) can only be created by an existing VFRB manager — there is
-    no public staff registration.`,
+    by token-based authentication. Customer and staff accounts are
+    created only by VFRB — there is no public registration, and staff
+    accounts can only be created by an Administrator (Manager).`,
   },
   {
     title: '5. Your rights',
     body: `You may review and update your profile information at any
     time from your account's Profile page. To request deletion of your
     account or personal data, contact VFRB Enterprise directly using the
-    contact details on our homepage.`,
+    contact details on our About page.`,
   },
   {
     title: '6. Changes to this policy',
@@ -66,44 +66,6 @@ const SECTIONS = [
   },
 ];
 
-// Source strings are hard-wrapped; join single newlines, keep blank-line paragraph breaks.
-const paras = (b) => b.split(/\n\s*\n/).map(x => x.replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean);
-
 export default function PrivacyPolicy() {
-  return (
-    <div style={{ fontFamily: 'var(--font)', background: T.dark, color: 'var(--ink)', minHeight: '100vh' }}>
-      <style>{`
-        *,*::before,*::after{box-sizing:border-box;} body{margin:0;background:${T.dark};}
-        .pp-wrap { padding:48px 18px 32px; }
-        @media (min-width:640px) { .pp-wrap { padding:64px 24px 40px; } }
-      `}</style>
-
-      <MarketingNav/>
-
-      <div className="pp-wrap" style={{ maxWidth: 680, margin: '0 auto' }}>
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-          <p style={{ color: T.accent, fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
-            Legal
-          </p>
-          <h1 style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontSize: 'clamp(28px,4vw,42px)', margin: '0 0 8px' }}>
-            Privacy Policy
-          </h1>
-          <p style={{ color: 'rgba(15,23,42,0.5)', fontSize: 13, margin: '0 0 40px' }}>
-            Last updated: August 28, 2026
-          </p>
-
-          {SECTIONS.map((s, i) => (
-            <div key={i} style={{ marginBottom: 32 }}>
-              <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 10 }}>{s.title}</h2>
-              {paras(s.body).map((t, i) => (
-                <p key={i} style={{ color: 'rgba(15,23,42,0.75)', fontSize: 15, lineHeight: 1.75, margin: i ? '12px 0 0' : 0 }}>{t}</p>
-              ))}
-            </div>
-          ))}
-        </motion.div>
-      </div>
-
-      <Footer light/>
-    </div>
-  );
+  return <LegalPage title="Privacy Policy" updated="October 21, 2026" sections={SECTIONS} />;
 }

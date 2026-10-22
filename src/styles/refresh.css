@@ -172,11 +172,11 @@ body { font-size: var(--text-body); }
 @keyframes rfGlow { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--teal-2) 55%, transparent); } 50% { box-shadow: 0 0 0 7px transparent; } }
 
 .adm-page, .vfrb-page { animation: rfPage 180ms var(--ease-out) both; }
-.adm-page > *, .cm-content .cx-page > * { animation: rfPop 320ms cubic-bezier(.34, 1.4, .64, 1) both; }
-.adm-page > *:nth-child(2), .cm-content .cx-page > *:nth-child(2) { animation-delay: 40ms; }
-.adm-page > *:nth-child(3), .cm-content .cx-page > *:nth-child(3) { animation-delay: 80ms; }
-.adm-page > *:nth-child(4), .cm-content .cx-page > *:nth-child(4) { animation-delay: 120ms; }
-.adm-page > *:nth-child(n+5), .cm-content .cx-page > *:nth-child(n+5) { animation-delay: 160ms; }
+.adm-page > *, .cm-content .cx-page > * { animation: rfPop 240ms cubic-bezier(.34, 1.4, .64, 1) both; }
+.adm-page > *:nth-child(2), .cm-content .cx-page > *:nth-child(2) { animation-delay: 30ms; }
+.adm-page > *:nth-child(3), .cm-content .cx-page > *:nth-child(3) { animation-delay: 60ms; }
+.adm-page > *:nth-child(4), .cm-content .cx-page > *:nth-child(4) { animation-delay: 90ms; }
+.adm-page > *:nth-child(n+5), .cm-content .cx-page > *:nth-child(n+5) { animation-delay: 120ms; }
 
 .ui-stat { transition: transform var(--dur-2) var(--ease-out), box-shadow var(--dur-2); }
 .ui-stat:hover { transform: translateY(-4px); box-shadow: var(--shadow-2); }
@@ -225,14 +225,8 @@ tr.adm-row > td { vertical-align: middle; }
 .ui-card-head { flex-wrap: wrap; row-gap: var(--space-2); }
 .ui-card-head > div:first-child { flex: 1 1 180px; min-width: 0; }
 
-/* Settings: use the full width, sticky nav clears the top bar, room under intro text */
-.set-nav { top: calc(var(--topbar-h) + var(--space-4)); }
-.set-anchor { scroll-margin-top: calc(var(--topbar-h) + var(--space-4)); }
+/* Settings: room under intro text (layout lives in admin.css) */
 .set-layout .ui-card-body > p:not(:last-child) { margin-bottom: var(--space-4); }
-@media (min-width: 1024px) { .set-layout { grid-template-columns: 220px minmax(0, 1fr); } }
-@media (min-width: 1280px) {
-  .set-layout .adm-stack { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); align-items: start; }
-}
 
 /* Stage pipeline on phones: the last tile can scroll clear of the edge fade */
 @media (max-width: 767px) {

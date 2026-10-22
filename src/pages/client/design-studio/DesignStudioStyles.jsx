@@ -12,7 +12,7 @@ export default function DesignStudioStyles() {
         --ds-inset:env(safe-area-inset-bottom,0px);
         --ds-sheet-h:clamp(12.5rem,30dvh,17rem); /* phone half sheet: ~30% so the garment keeps over half the screen */
         --ds-sheet-full:min(80dvh,40rem);
-        --ds-peek:78px;
+        --ds-peek:110px; /* 44px drag handle + the dock row */
         --ds-pad-b:0px;
         --ds-sketch-line:rgba(15,23,42,.55);         /* seams over light fills; mirrored in sketchLine.js */
         --ds-sketch-line-on-dark:rgba(255,255,255,.62); /* seams over dark fills */
@@ -25,7 +25,7 @@ export default function DesignStudioStyles() {
       /* Top bar: one row at every width; undo/redo and the single 2D/3D toggle never fold away */
       .ds-bar{height:calc(56px + env(safe-area-inset-top,0px));flex-shrink:0;display:flex;align-items:center;gap:8px;padding:env(safe-area-inset-top,0px) max(12px,env(safe-area-inset-right,0px)) 0 max(12px,env(safe-area-inset-left,0px));
         background:var(--cx-card);border-bottom:1px solid var(--cx-line);z-index:var(--cx-z-bar);}
-      .ds-bar-btn{min-width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 10px;flex-shrink:0;
+      .ds-bar-btn{min-width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 10px;flex-shrink:0;
         border:1px solid transparent;border-radius:var(--cx-r-md);background:transparent;color:var(--cx-ink-2);font:600 13px/1 var(--cx-sans);cursor:pointer;
         transition:background var(--cx-dur-1),color var(--cx-dur-1);}
       .ds-bar-btn:hover:not(:disabled){background:var(--cx-hover);color:var(--cx-ink);}
@@ -33,14 +33,19 @@ export default function DesignStudioStyles() {
       .ds-bar-btn[aria-pressed=true],.ds-bar-btn[aria-expanded=true]{background:var(--cx-thread-tint);color:var(--cx-thread-ink);}
       .ds-bar-back{border-color:var(--cx-line);}
       .ds-bar-title{font:400 19px/1 var(--cx-serif);color:var(--cx-ink);white-space:nowrap;flex-shrink:0;}
-      .ds-bar-name{width:180px;min-width:0;height:40px;padding:0 12px;border:1px solid var(--cx-line);border-radius:var(--cx-r-md);background:var(--cx-paper);
+      .ds-bar-name{width:180px;min-width:0;height:44px;padding:0 12px;border:1px solid var(--cx-line);border-radius:var(--cx-r-md);background:var(--cx-paper);
         color:var(--cx-ink);font:600 13px var(--cx-sans);outline:none;flex-shrink:1;}
       .ds-bar-name:focus-visible{border-color:var(--cx-thread);box-shadow:0 0 0 3px var(--cx-thread-ring);}
       .ds-bar-name::placeholder{color:var(--cx-ink-3);}
       .ds-bar-sp{flex:1;}
+      .ds-bar-save{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 6px;font-size:var(--text-2xs);font-weight:700;color:var(--text-subtle);white-space:nowrap;}
+      .ds-bar-save-dot{width:8px;height:8px;border-radius:50%;background:currentColor;}
+      .ds-bar-save[data-tone="ok"]{color:var(--cx-thread-ink);}
+      .ds-bar-save[data-tone="err"]{color:var(--danger-text);}
+      @media (max-width:599px){.ds-bar-save-txt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);}}
       .ds-bar-group{display:flex;gap:2px;flex-shrink:0;}
       .ds-bar-view{display:flex;flex-shrink:0;gap:2px;padding:3px;border-radius:var(--cx-r-md);background:var(--cx-paper-2);}
-      .ds-bar-view button{min-width:44px;height:34px;border:0;border-radius:calc(var(--cx-r-md) - 3px);background:transparent;color:var(--cx-ink-2);
+      .ds-bar-view button{min-width:44px;height:44px;border:0;border-radius:calc(var(--cx-r-md) - 3px);background:transparent;color:var(--cx-ink-2);
         font:700 12px var(--cx-sans);cursor:pointer;transition:background var(--cx-dur-1),color var(--cx-dur-1);}
       .ds-bar-view button[aria-checked=true]{background:var(--cx-card);color:var(--cx-thread-ink);box-shadow:var(--cx-elev-0);}
       .ds-bar-view button:disabled{opacity:.55;cursor:not-allowed;}
@@ -90,9 +95,9 @@ export default function DesignStudioStyles() {
       .ds-panel-toggle{display:none;}
       @media (min-width:1024px){
         .ds-panel{position:relative;transition:width .2s ease;}
-        .ds-panel-toggle{display:flex;position:absolute;top:8px;right:8px;z-index:3;width:32px;height:32px;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:var(--r-md);background:var(--bg-card);color:var(--text-muted);cursor:pointer;}
+        .ds-panel-toggle{display:flex;position:absolute;top:8px;right:8px;z-index:3;width:44px;height:44px;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:var(--r-md);background:var(--bg-card);color:var(--text-muted);cursor:pointer;}
         .ds-panel-toggle:hover{color:var(--ink);border-color:var(--teal);}
-        .ds-panel:not([data-collapsed]) .ds-sections{padding-right:44px;}
+        .ds-panel:not([data-collapsed]) .ds-sections{padding-right:56px;}
         .ds-panel[data-collapsed]{width:48px;}
         .ds-panel[data-collapsed] > :not(.ds-panel-toggle){display:none;}
         .ds-panel[data-collapsed] .ds-panel-toggle{right:7px;}
@@ -171,7 +176,9 @@ export default function DesignStudioStyles() {
         .ds-face{padding-left:4px;}
         .ds-face button{min-width:50px;}
         .ds-bottombar .ds-stage-btn{width:36px;}
+        .ds-bottombar .ds-zoom-val{display:none;} /* 44px targets leave no room for the % readout at 390px; Fit still shows the state */
       }
+      .ds-bottombar:not(:has(.ds-zoom)) .ds-stage-btn{min-width:44px;height:44px;} /* 3D bar (no zoom/face groups) has room for full 44px targets */
       /* Full screen (native) or the expanded stage (app-level fallback): the top bar steps aside so the canvas gains its height. */
       .ds[data-expanded]{height:100dvh;}
       .ds[data-expanded=app]{position:fixed;inset:0;z-index:var(--cx-z-modal);}
@@ -218,6 +225,28 @@ export default function DesignStudioStyles() {
       .ds-pick-key{display:inline-flex;align-items:center;gap:5px;}
       .ds-pick-key-ic{width:20px;height:20px;display:grid;place-items:center;border-radius:50%;background:var(--cx-card);color:var(--cx-ink);box-shadow:var(--cx-elev-1);}
       .ds-pick-grid{list-style:none;width:100%;max-width:1040px;display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:12px;}
+      .ds-pick-viewsw{align-self:flex-start;margin-bottom:8px;}
+      .ds-car{width:100%;max-width:720px;display:flex;flex-direction:column;align-items:center;gap:12px;}
+      .ds-car-stage{width:100%;display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;gap:8px;}
+      .ds-car-nav{width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:50%;background:var(--bg-surface);color:var(--ink);cursor:pointer;}
+      .ds-car-nav:disabled{opacity:.35;cursor:default;}
+      .ds-car-hero{margin:0;display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0;}
+      .ds-car-hero .ds-pick-img{width:min(100%,280px);aspect-ratio:1;position:relative;display:flex;align-items:center;justify-content:center;border-radius:var(--r-lg);background:var(--bg-card);animation:cx-rise var(--cx-dur-3) var(--cx-ease) both;}
+      .ds-car-hero .ds-pick-img img,.ds-car-hero .ds-pick-img svg{max-width:85%;max-height:85%;}
+      .ds-car-hero figcaption{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;text-align:center;}
+      .ds-car-hero .ds-pick-badge{position:static;flex:none;}
+      .ds-car-tier{display:inline-flex;align-items:center;gap:6px;font-size:var(--text-xs);color:var(--text-muted);}
+      .ds-car-pos{font-size:var(--text-xs);color:var(--text-subtle);}
+      .ds-car-colour{width:100%;display:flex;flex-direction:column;gap:6px;font-size:var(--text-xs);font-weight:600;color:var(--text-muted);}
+      .ds-car-strip{list-style:none;margin:0;padding:4px 2px;width:100%;display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;overscroll-behavior-x:contain;}
+      .ds-car-strip li{flex:none;scroll-snap-align:center;}
+      .ds-car-thumb{width:64px;height:64px;padding:0;border:2px solid var(--border);border-radius:var(--r-md);background:var(--bg-card);cursor:pointer;overflow:hidden;}
+      .ds-car-thumb[aria-pressed="true"]{border-color:var(--teal);}
+      .ds-car-thumb .ds-pick-img{width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
+      .ds-car-thumb .ds-pick-img img,.ds-car-thumb .ds-pick-img svg{max-width:90%;max-height:90%;}
+      .ds-car-thumb .ds-sketch{display:none;}
+      .ds-car-go{min-height:44px;width:min(100%,320px);}
+      @media (prefers-reduced-motion: reduce){.ds-car-hero .ds-pick-img{animation:none;}}
       .ds-pick-grid li{animation:cx-rise var(--cx-dur-3) var(--cx-ease) both;animation-delay:calc(var(--i,0) * var(--cx-stagger));}
       .ds-pick-card{position:relative;width:100%;height:100%;display:flex;flex-direction:column;gap:6px;padding:8px 8px 10px;border:1px solid var(--cx-line);border-radius:var(--cx-r-lg);
         background:var(--cx-card);color:var(--cx-ink);text-align:left;cursor:pointer;box-shadow:var(--cx-elev-0);
@@ -382,10 +411,6 @@ export default function DesignStudioStyles() {
       .ds-jump button em{font-style:normal;font-weight:600;color:var(--text-muted);}
       .ds-act--primary{background:var(--teal);border-color:var(--teal);color:var(--text-on-accent);}
 
-      .ds-hints{
-        height:28px;flex-shrink:0;display:flex;align-items:center;gap:12px;justify-content:center;overflow:hidden;
-        background:var(--bg-surface);border-top:1px solid var(--border);
-      }
       .ai-pulse{
         position:absolute;inset:0;pointer-events:none;z-index:var(--cx-z-stage);border-radius:var(--r-lg);
         background:color-mix(in srgb,var(--teal) 8%,transparent);border:2px solid color-mix(in srgb,var(--teal) 40%,transparent);
@@ -409,7 +434,7 @@ export default function DesignStudioStyles() {
       .ds-seg button[aria-selected="true"],.ds-seg button[aria-checked="true"]{background:var(--bg-card);color:var(--teal-dark);box-shadow:0 1px 3px rgba(15,23,42,.12);}
       .ds-chips{display:flex;flex-wrap:wrap;gap:6px;}
       .ds-chip{
-        min-height:32px;padding:0 12px;border:1px solid var(--border);border-radius:99px;background:var(--bg-card);
+        min-height:44px;padding:0 14px;border:1px solid var(--border);border-radius:99px;background:var(--bg-card);
         color:var(--text-muted);font-size:var(--text-xs);font-weight:600;cursor:pointer;transition:all .14s;
       }
       .ds-chip:hover{border-color:var(--teal);color:var(--ink);}
@@ -698,7 +723,7 @@ export default function DesignStudioStyles() {
         .ds[data-snap=none] .ds-panel{transform:translateY(calc(100% + var(--ds-nav-h)));visibility:hidden;}
         .ds[data-snap=half] .ds-panel{height:var(--ds-sheet-h);}
         .ds[data-snap=full] .ds-panel{height:var(--ds-sheet-full);}
-        .ds-grab{order:0;display:flex;justify-content:center;align-items:center;height:12px;flex-shrink:0;cursor:grab;touch-action:none;}
+        .ds-grab{order:0;display:flex;justify-content:center;align-items:center;height:44px;flex-shrink:0;cursor:grab;touch-action:none;}
         .ds-grab span{width:38px;height:4px;border-radius:var(--cx-r-pill);background:var(--cx-line-strong);}
         .ds-dock{order:1;padding:0 12px 10px;gap:6px;border-top:0;box-shadow:none;}
         .ds-dock-state:not([data-tone]){display:none;}
@@ -708,7 +733,6 @@ export default function DesignStudioStyles() {
         .ds-sheet-close{display:flex;}
         .ds-sheet-title p{display:none;}
         .ds-assets-body{padding:12px 14px 16px;}
-        .ds-hints{display:none;}
         .ds-toast{bottom:calc(var(--ds-pad-b) + 16px);}
         .ds-lane{padding:8px 8px 0;}
         /* Phones and tablets: the top lane is one row (icon Guides with its count, a truncating garment chip, a compact set switch) */
@@ -725,6 +749,10 @@ export default function DesignStudioStyles() {
         /* With a 3D note in the lane the lane cannot scroll, so the set bar wraps its Apply-to group onto a second row (it was cut off at 375px). */
         .ds-piece{flex-wrap:wrap;justify-content:center;max-width:100%;border-radius:22px;}
         .ds-piece .ds-apply{margin-left:0;padding-left:0;border-left:0;}
+        /* The set bar shrinks to the lane beside Guides; its Apply-to row is labelled so it never reads as a second piece picker. */
+        .ds-lane-top>.ds-set-wrap{flex-shrink:1;min-width:0;}
+        .ds-piece .ds-apply{flex-basis:100%;justify-content:center;}
+        .ds-piece .ds-apply .ds-wide-only{display:inline;}
         /* Half sheet (~30%): the active tool only. Save/Order (peek, full), Layers (full) and the zoom lane (pinch instead) step aside. */
         .ds[data-snap=half] :is(.ds-dock,.ds-under,.ds-lane-bottom){display:none;}
         .ds-sheet-head{min-height:0;}
@@ -771,12 +799,13 @@ export default function DesignStudioStyles() {
       .ds-lay-row[data-over]{outline:2px solid var(--teal);}
       .ds-lay-row[data-hidden] .ds-lay-pick{opacity:.45;}
       .ds-lay-main{display:flex;align-items:center;gap:2px;padding:2px 4px 2px 2px;}
-      .ds-lay-pick{flex:1;min-width:0;min-height:40px;display:flex;align-items:center;gap:8px;padding:0 6px;border:0;background:none;cursor:pointer;text-align:left;color:var(--ink);}
+      .ds-lay-grip{width:28px;height:44px;flex:none;display:flex;align-items:center;justify-content:center;color:var(--text-subtle);cursor:grab;touch-action:none;}
+      .ds-lay-pick{flex:1;min-width:0;min-height:44px;display:flex;align-items:center;gap:8px;padding:0 6px;border:0;background:none;cursor:pointer;text-align:left;color:var(--ink);}
       .ds-lay-type{width:26px;height:26px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:6px;background:var(--bg-card);color:var(--text-muted);}
       .ds-lay-name{flex:1;min-width:0;display:flex;flex-direction:column;font-size:var(--text-xs);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
       .ds-lay-name em{font-style:normal;font-size:13px;font-weight:600;color:var(--text-subtle);}
       .ds-lay-edit{flex:1;min-width:0;height:32px;padding:0 8px;border:1px solid var(--teal);border-radius:6px;font-size:var(--text-xs);}
-      .ds-lay-btn{width:34px;height:34px;flex:none;display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:8px;background:none;color:var(--text-muted);cursor:pointer;}
+      .ds-lay-btn{width:44px;height:44px;flex:none;display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:8px;background:none;color:var(--text-muted);cursor:pointer;}
       .ds-lay-btn:hover:not(:disabled){background:var(--bg-card);color:var(--ink);}
       .ds-lay-btn[aria-pressed="true"]{color:var(--teal-dark);background:var(--teal-50);}
       .ds-lay-btn:disabled{opacity:.35;cursor:not-allowed;}
@@ -852,6 +881,8 @@ export default function DesignStudioStyles() {
       .ds-det{display:flex;flex-direction:column;gap:10px;padding:10px 12px 16px;}
       .ds-det-note{margin:0;padding:8px 10px;border-radius:var(--cx-r-md);background:var(--cx-paper-2);font-size:13px;line-height:1.45;color:var(--cx-ink-2);}
       .ds-det-add{display:flex;flex-direction:column;gap:8px;}
+      .ds-det-chart{display:flex;flex-direction:column;gap:8px;margin-top:12px;border:1px solid var(--cx-line);border-radius:var(--cx-r-md,10px);}
+      .ds-det-chart .size-chart{border:0;border-top:1px solid var(--cx-line);border-radius:0;}
       .ds-det-pockets{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:6px;}
       .ds-det-pocket{flex-direction:column;gap:4px;min-height:58px;justify-content:center;color:var(--cx-thread-ink);}
       .ds-det-pocket span{color:var(--cx-ink);font-size:13px;}
@@ -897,6 +928,14 @@ export default function DesignStudioStyles() {
       ::-webkit-scrollbar{width:3px;}
       ::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:2px;}
     
+      /* 44px touch targets for every Studio control (VFRB rule). Decorative icons, badges and rulers are left as they are. */
+      .ds :is(.ds-zoom button,.ds-face button,.ds-ftb button,.ds-stage-btn,.ds-pick-tabs button,.ds-byo-check,.ds-zone,.ds-tp-change .ds-btn,
+        .ds-link-danger,.ds-seg button,.ds-btn,.ds-tp-catchip,.ds-guides-btn,.ds-pan-btn,.ds-guides-row select,.ds-lay-pick,.ds-lay-edit,
+        .ds-ins-field input,.ds-ins-field select,.ds-ins-align .ds-act,.ds-piece button,.ds-piece .ds-apply button,.ds-sections button){min-height:44px;}
+      .ds :is(.ds-zoom button,.ds-face button,.ds-ftb button,.ds-stage-btn){min-width:44px;}
+      .ds :is(.ds-ftb button,.ds-stage-btn){width:44px;height:44px;}
+      .ds .ds-tp-mini{width:44px;height:44px;}
+      .ds .ds-tp-sw{width:44px;height:44px;}
 `}</style>
   );
 }

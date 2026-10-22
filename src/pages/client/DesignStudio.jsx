@@ -17,6 +17,7 @@ import axios from 'axios';
 import { NavIcon } from '../../components/ui/icons';
 import { ConfirmDialog } from '../../components/ui';
 import { readStudioLock, setStudioLock } from '../../utils/studioLock';
+import { duplicateDesign, reorderDesign, lockFor } from '../../utils/designActions';
 import DesignStudioStyles from './design-studio/DesignStudioStyles';
 import { useGarmentCanvas, compositeFrontBack } from './design-studio/useGarmentCanvas';
 import { hasBackView, templateIdFor, assetFor } from './design-studio/garmentAssets';
@@ -28,13 +29,13 @@ import TopBar from './design-studio/TopBar';
 import ToolDrawer from './design-studio/ToolDrawer';
 import { isEditableSelection } from './design-studio/RightInfoPanel';
 import { useLogoUpload } from './design-studio/useLogoUpload';
-import OnboardingOverlay from './design-studio/OnboardingOverlay';
 import InspoGallery from './design-studio/InspoGallery';
 import ShowcaseGallery from './design-studio/ShowcaseGallery';
 import { T2, INIT_CFG, FONTS, PATTERNS, zonesFor } from './design-studio/dsShared';
 import { templateFacts, checkEdit, applyStateEdits } from './design-studio/designEdits';
 import { describePatterns } from './design-studio/wovenPatterns';
 import { deserializeDesign, serializeDesign, draftLabel } from './design-studio/designSerialization';
+import { saveStatus } from './design-studio/saveStatus';
 import { applyGarment, pieceOf } from './design-studio/garmentCatalog';
 import { openTarget } from './design-studio/designGallery';
 import { withPhotoColour } from './design-studio/photoColours';
@@ -79,11 +80,12 @@ export default function DesignStudio() {
   const [uset, setUset] = useState(() => {
     try { return normalizeSet(JSON.parse(sessionStorage.getItem('studio_config') || 'null')?.uniformSet); } catch { return null; }
   });
-  // Saved-design lock (utils/studioLock.js): `final` = attached to an order, read-only until duplicated;
-  // `warn` = saved but not ordered, the first edit asks for confirmation.
+  // Saved-design lock (utils/studioLock.js): `final` = on a confirmed order, read-only until duplicated; `colorOnly` = a copy,
+  // colours only; `warn` = the first edit asks for confirmation. `designId` = saves go to that design row.
   const [lock, setLock] = useState(readStudioLock);
   const [warnAsk, setWarnAsk] = useState(false);
   const locked = !!lock?.final;
+  const colorOnly = !!lock?.colorOnly;
   const lockRef = useRef(lock);
   lockRef.current = lock;
 
@@ -150,29 +152,7 @@ export default function DesignStudio() {
   const [ordering, setOrdering] = useState(false); // optimistic "Order This" in-flight state
   const autoSaveTimer = useRef(null);
 
-  // ── Task U: first-visit onboarding overlay ────────────────────────────────
-  // localStorage key 'studio_visited' — set once on dismiss, never shown again.
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [onboardStep,    setOnboardStep]    = useState(0);   // 0-3 (4 steps total)
-
-  // ── Task U: show onboarding on first visit ───────────────────────────────
-  // Runs once on mount. Deferred 600ms so the canvas and garment SVG have time
-  // to render first — the tooltip arrows point at real UI elements.
-  useEffect(() => {
-    try {
-      if (!localStorage.getItem('studio_visited')) {
-        const t = setTimeout(() => setShowOnboarding(true), 600);
-        return () => clearTimeout(t);
-      }
-    } catch { /* localStorage blocked (private mode) — skip silently */ }
-  }, []);
-
-  // dismissOnboarding/nextOnboardStep moved below useGarmentCanvas — dismissOnboarding
-  // depends on resizeCanvas, which doesn't exist until the hook is destructured.
-  // Referencing it here in a useCallback deps array (evaluated immediately,
-  // unlike the callback body) would throw "Cannot access 'resizeCanvas' before
-  // initialization" — the same TDZ failure this file already fixed once for
-  // undo/redo below.
+  // First run: the empty canvas's picker (reference / scratch / upload) is the whole flow; there is no separate tour.
 
   // ── Keyboard shortcuts: Ctrl+Z undo, Ctrl+Y / Ctrl+Shift+Z redo ──────────
   // Canvas scaling (fit-to-pane × zoom) is owned solely by CanvasViewport — a second
@@ -184,9 +164,9 @@ export default function DesignStudio() {
 
   // BUG 2 FIX: pass canvasEl (ref object), not canvasEl.current (null at render)
   const { onAdded, addLogo, addText, addShape, addPocket, setPocketColor, mirrorSelected, updateSelected, arrangeLayer, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
-          pushHistory, undo, redo, canUndo, canRedo, resizeCanvas, initFailed,
+          pushHistory, undo, redo, canUndo, canRedo, editTick, initFailed,
           layers, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
-          setDrawMode, setBrushStyle, setSnapOptions, garmentRect, clearSelection, presetPos, textItems, editText } =
+          setDrawMode, setBrushStyle, setSnapOptions, garmentRect, clearSelection, setOverlaysFrozen, presetPos, textItems, editText } =
     useGarmentCanvas(
       canvasEl,
       cfg.garment,
@@ -204,7 +184,9 @@ export default function DesignStudio() {
       (zone) => { if (zone.startsWith('detail:')) { setDetailFocus(zone.slice(7)); setTool('details'); } else { setActiveZone(zone); setTool('color'); } setSheetOpen(true); },
       cfg.fit,
       cfg.details,
-      customKey
+      customKey,
+      // Undo/redo of a colour, pattern or detail step puts that look back on the same garment.
+      (look) => setCfg(p => ({ ...p, colors: look.colors, patterns: look.patterns, patternParams: look.patternParams, details: look.details }))
     );
 
   // Picking a placed item swaps the inspector to its controls at every width. On phones the
@@ -246,6 +228,7 @@ export default function DesignStudio() {
   // A file dropped on the canvas goes through the same pipeline as the panel, and
   // the panel opens so the customer can see progress, errors and the result.
   const onLogoFile = useCallback((file) => {
+    if (lockRef.current?.colorOnly) return; // a colour-only copy takes no new logos, including dropped files
     setTool('assets'); setAssetsTab('logo'); setSheetOpen(true);
     logoUpload.upload(file);
   }, [logoUpload]);
@@ -282,21 +265,6 @@ export default function DesignStudio() {
   const changeBrushSize = (size) => { setBrushSize(size); setBrushStyle(size, undefined); };
   const changeBrushColor = (color) => { setBrushColorState(color); setBrushStyle(undefined, color); };
 
-  // Must stay after the useGarmentCanvas() destructuring above (resizeCanvas TDZ).
-  const dismissOnboarding = useCallback(() => {
-    setShowOnboarding(false);
-    setOnboardStep(0);
-    try { localStorage.setItem('studio_visited', '1'); } catch {}
-    setTimeout(() => resizeCanvas(), 120);
-  }, [resizeCanvas]);
-
-  const nextOnboardStep = useCallback(() => {
-    setOnboardStep(s => {
-      if (s >= 3) { dismissOnboarding(); return 0; }
-      return s + 1;
-    });
-  }, [dismissOnboarding]);
-
   // ── Keyboard shortcuts: Ctrl+Z undo, Ctrl+Y redo ────────────────────────
   // MUST be after useGarmentCanvas destructuring — undo/redo are declared there.
   // Moving it before caused "Cannot access 'undo' before initialization" (TDZ crash).
@@ -305,12 +273,15 @@ export default function DesignStudio() {
     const handler = (e) => {
       const mod = e.ctrlKey || e.metaKey;
       if (lockRef.current?.final) return;
-      if (lockRef.current?.warn && mod && /^[zy]$/i.test(e.key)) { e.preventDefault(); setWarnAsk(true); return; }
-      if (mod && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
-      if (mod && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) { e.preventDefault(); redo(); return; }
       const t = e.target;
-      if (t?.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t?.tagName ?? '')) return;
-      if (!selObj || selObj.__garmentBase || selObj.isEditing) return;
+      // A text field (or Fabric's hidden textarea while editing canvas text) keeps its own Ctrl+Z; checkboxes and sliders do not.
+      const typing = t?.isContentEditable || t?.tagName === 'TEXTAREA' || (t?.tagName === 'INPUT' && /^(text|search|email|number|tel|url|password)$/.test(t.type));
+      if (typing) return;
+      const field = t?.tagName === 'INPUT' || t?.tagName === 'SELECT';
+      if (lockRef.current?.warn && mod && /^[zy]$/i.test(e.key)) { e.preventDefault(); setWarnAsk(true); return; }
+      if (mod && e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
+      if (mod && (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey))) { e.preventDefault(); redo(); return; }
+      if (field || !selObj || selObj.__garmentBase || selObj.isEditing) return;
       if (mod && e.key.toLowerCase() === 'd') { e.preventDefault(); duplicateSelected(); return; }
       // Ctrl+] / Ctrl+[ forward / backward, with Shift to the front / back; Ctrl+Shift+L lock; Ctrl+Shift+H hide.
       const z = { BracketRight: e.shiftKey ? 'front' : 'forward', BracketLeft: e.shiftKey ? 'back' : 'backward' }[e.code];
@@ -333,7 +304,7 @@ export default function DesignStudio() {
     faceJSON.current[face] = getCanvasJSON() ?? [];
     setFace(newFace);
     setTimeout(() => {
-      loadCanvasJSON(faceJSON.current[newFace] ?? []);
+      loadCanvasJSON(faceJSON.current[newFace] ?? [], { side: { from: face, to: newFace } });
     }, 80);
   }, [face, getCanvasJSON, loadCanvasJSON]);
 
@@ -634,6 +605,12 @@ export default function DesignStudio() {
   const lastSavedFp = useRef(null);
   const persistDraft = useCallback(async (snap) => {
     const { previewPng, ...studio_config } = snap; // eslint-disable-line no-unused-vars
+    const own = lockRef.current?.designId;
+    if (own && !lockRef.current.final) { // an opened saved design or copy saves to its own row; the account draft is left alone
+      await axios.put(`/api/customer/designs/${own}`, { custom_builder_config: studio_config, design_name: studio_config.name?.trim()?.slice(0, 100) || undefined });
+      lastSavedFp.current = draftFingerprint(studio_config);
+      return;
+    }
     await axios.post('/api/customer/drafts', {
       studio_config,
       preview_dataurl: await fitDraftPreview(exportPNG()),
@@ -642,20 +619,34 @@ export default function DesignStudio() {
     lastSavedFp.current = draftFingerprint(studio_config);
   }, [cfg, exportPNG]);
 
-  // ── Auto-save debounce — fires 30s after last cfg change ─────────────────
-  // Skipped when the account already holds exactly this design (e.g. right after a manual Save).
+  // ── Auto-save debounce — fires 30s after the last design or overlay change ──
+  // Skipped when the account already holds exactly this design (e.g. right after a manual Save). autoState feeds the save status.
+  const [autoState, setAutoState] = useState(null);
+  const baseFp = useRef(null); // the design as it opened, so merely opening one never reads "Unsaved"
+  const saveFns = useRef(null);
+  saveFns.current = { snapshotDesign, persistDraft };
   useEffect(() => {
     clearTimeout(autoSaveTimer.current);
-    if (!cfg.garment || locked) return; // nothing to persist yet; a final design is never written back
-    autoSaveTimer.current = setTimeout(() => {
-      const snap = snapshotDesign();
-      if (draftFingerprint(snap) === lastSavedFp.current) return;
+    if (!cfg.garment || locked) { baseFp.current = null; setAutoState(null); return undefined; } // a final design is never written back
+    const dirtyCheck = setTimeout(() => {
+      const fp = draftFingerprint(saveFns.current.snapshotDesign());
+      if (baseFp.current === null && lastSavedFp.current === null) baseFp.current = fp;
+      setAutoState(s => (s === 'saving' ? s : fp === (lastSavedFp.current ?? baseFp.current) ? (lastSavedFp.current ? 'saved' : null) : 'dirty'));
+    }, 400);
+    autoSaveTimer.current = setTimeout(async () => {
+      const { snapshotDesign: snapNow, persistDraft: persist } = saveFns.current;
+      const snap = snapNow();
+      if (draftFingerprint(snap) === (lastSavedFp.current ?? baseFp.current)) return;
       // A reload restores the browser copy before the account draft, so an existing copy must not stay older than the autosave.
-      try { if (sessionStorage.getItem('studio_config')) sessionStorage.setItem('studio_config', JSON.stringify(snap)); } catch { /* quota: the account draft still saves */ }
-      persistDraft(snap).catch(() => {}); // silently ignore network errors
+      let local = false;
+      try { if (sessionStorage.getItem('studio_config')) { sessionStorage.setItem('studio_config', JSON.stringify(snap)); setStudioLock(lockRef.current); local = true; } } catch { /* quota: the account draft still saves */ }
+      setAutoState('saving');
+      try { await persist(snap); setSaveErr(false); setAutoState('saved'); }
+      catch { setSaveErr(local ? 'local' : 'none'); setAutoState('dirty'); } // shown as a retry state, never silently dropped
     }, 30_000);
-    return () => clearTimeout(autoSaveTimer.current);
-  }, [cfg, locked, snapshotDesign, persistDraft]);
+    return () => { clearTimeout(dirtyCheck); clearTimeout(autoSaveTimer.current); };
+  }, [cfg, locked, editTick]);
+  const status = saveStatus({ saving, saveErr, auto: autoState, draftSaved, saved });
 
   // ── Manual save: sessionStorage + DB ─────────────────────────────────────
   const saveDesign = useCallback(async () => {
@@ -665,12 +656,14 @@ export default function DesignStudio() {
     let local = false;
     try {
       sessionStorage.setItem('studio_config', JSON.stringify(snap));
+      setStudioLock(lockRef.current); // the lock is tied to the stored config, so it follows the save
       local = true;
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch { /* quota: large logos; the cloud draft below still runs */ }
     try {
       await persistDraft(snap);
+      setAutoState('saved');
       setDraftSaved(true);
       setTimeout(() => setDraftSaved(false), 2500);
     } catch {
@@ -781,15 +774,34 @@ export default function DesignStudio() {
 
   const clearGarment = useCallback(() => setCfg(p => ({ ...p, garment: null })), []);
 
-  // "Duplicate to edit": the ordered design stays as it is; edits, saves and orders from here are a new copy.
-  const duplicateToEdit = useCallback(() => {
-    setLock(null); setStudioLock(null);
-    setToast('Editing a copy. The ordered design stays unchanged.');
-    setTimeout(() => setToast(null), 3000);
+  // "Duplicate to edit": the account gets a copy (POST /copy) and the Studio switches to it, colours only; the ordered design stays as it is.
+  const [copying, setCopying] = useState(false);
+  const duplicateToEdit = useCallback(async () => {
+    const id = lockRef.current?.designId;
+    if (!id || copying) { if (!id) flashError('Open this design from My Designs to duplicate it.'); return; }
+    setCopying(true);
+    try {
+      const copy = await duplicateDesign({ id, config: snapshotDesign(), label: cfg.name });
+      const next = lockFor(copy);
+      try { sessionStorage.setItem('studio_config', JSON.stringify(copy.config)); } catch { /* quota: the copy is on the account */ }
+      setLock(next); setStudioLock(next);
+      setCfg(p => ({ ...p, name: copy.config?.name ?? p.name }));
+      lastSavedFp.current = draftFingerprint(copy.config);
+      setToast('Copy saved to My Designs. You can change its colours.');
+      setTimeout(() => setToast(null), 3000);
+    } catch { flashError('Could not make a copy. Check your connection and try again.'); }
+    finally { setCopying(false); }
+  }, [copying, cfg.name, snapshotDesign, flashError]);
+  const reorderThis = useCallback(() => {
+    if (!reorderDesign({ config: snapshotDesign() }, nav)) flashError('Could not start the order in this browser. Try again.');
+  }, [snapshotDesign, nav, flashError]);
+  useEffect(() => { setOverlaysFrozen(colorOnly); }, [colorOnly, setOverlaysFrozen]);
+  const confirmEdit = useCallback(() => {
+    const keep = lockRef.current?.designId ? { designId: lockRef.current.designId } : null;
+    setLock(keep); setStudioLock(keep); setWarnAsk(false);
   }, []);
-  const confirmEdit = useCallback(() => { setLock(null); setStudioLock(null); setWarnAsk(false); }, []);
-  // Saved, not ordered: the first press, click or tap inside the editor asks before anything changes.
-  const gateEdit = lock?.warn ? (e) => { e.preventDefault(); e.stopPropagation(); if (e.type !== 'keydown' || e.key === 'Enter' || e.key === ' ') setWarnAsk(true); } : undefined;
+  // Saved, not ordered: the first press, click or tap inside the editor asks before anything changes. View-only controls ([data-view-only]) pass.
+  const gateEdit = lock?.warn ? (e) => { if (e.target.closest?.('[data-view-only]')) return; e.preventDefault(); e.stopPropagation(); if (e.type !== 'keydown' || e.key === 'Enter' || e.key === ' ') setWarnAsk(true); } : undefined;
 
   // Optimistic UI for "Order This": exportFrontBack() below can take ~0.5-1s
   // (per-face canvas swap + capture, see its own comments), during which the
@@ -808,9 +820,9 @@ export default function DesignStudio() {
 
         {/* ── TOP BAR ── */}
         <TopBar nav={nav} cfg={cfg} setCfg={locked ? () => {} : setCfg} undo={lock?.warn ? () => setWarnAsk(true) : undo} redo={lock?.warn ? () => setWarnAsk(true) : redo}
-          canUndo={canUndo && !locked} canRedo={canRedo && !locked}
+          canUndo={canUndo && !locked} canRedo={canRedo && !locked} status={locked ? null : status}
           viewMode={viewMode} setViewMode={setViewMode} setHas3DLoaded={setHas3DLoaded}
-          showShowcase={showShowcase} setShowShowcase={toggleShowcase} showcaseCount={showcaseCount}/>
+          showShowcase={showShowcase} setShowShowcase={toggleShowcase} showcaseCount={locked || colorOnly ? 0 : showcaseCount}/>
 
         {/* ── DRAFT OFFER ── in the page flow under the bar, so it can never cover menus or stage controls */}
         {pendingDraft && !cfg.garment && layers.length === 0 && (
@@ -822,7 +834,15 @@ export default function DesignStudio() {
           <div role="status" style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', padding:'8px 16px', background:'var(--teal-50, #f0fdfa)', borderBottom:'1px solid var(--border)', fontSize:13, color:'var(--ink)' }}>
             <NavIcon name="warning" size={15}/>
             <strong style={{ flex:'1 1 200px' }}>{lock.orderId ? `This design is final for order #${lock.orderId}` : 'This design is final for its order'}</strong>
-            <button type="button" className="ds-btn ds-btn--primary" onClick={duplicateToEdit}>Duplicate to edit</button>
+            <button type="button" className="ds-btn" onClick={reorderThis}>Reorder</button>
+            <button type="button" className="ds-btn ds-btn--primary" onClick={duplicateToEdit} disabled={copying} aria-busy={copying}>{copying ? 'Copying…' : 'Duplicate to edit'}</button>
+          </div>
+        )}
+        {/* ── COLOUR-ONLY COPY ── */}
+        {colorOnly && (
+          <div role="status" style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 16px', background:'var(--amber-50, #fffbeb)', borderBottom:'1px solid var(--border)', fontSize:13, color:'var(--ink)' }}>
+            <NavIcon name="warning" size={15}/>
+            <span><strong>Colour changes only on this copy.</strong> Garment, text, logos, shapes, drawing and AI are off. Saves go to the copy in My Designs.</span>
           </div>
         )}
 
@@ -840,15 +860,15 @@ export default function DesignStudio() {
           </AnimatePresence>
 
           {/* ── TOOL STRIP + PANEL DRAWER ── */}
-          <ToolDrawer tool={tool} setTool={setTool} sheetOpen={sheetOpen} setSheetOpen={setSheetOpen} sheetFull={sheetFull} setSheetFull={setSheetFull}
-            summary={{ cfg, face, saved, saving, saveErr, draftSaved, saveDesign, orderThis, ordering, onOpenTool: (id) => { setTool(id); setSheetOpen(true); }, downloadImage, downloadPdf, exporting, clearGarment }} cfg={cfg} setCfg={setCfg}
+          <ToolDrawer onlyTools={colorOnly ? ['color'] : null} tool={tool} setTool={setTool} sheetOpen={sheetOpen} setSheetOpen={setSheetOpen} sheetFull={sheetFull} setSheetFull={setSheetFull}
+            summary={{ cfg, face, saved, saving, saveErr, draftSaved, status, saveDesign, orderThis, ordering, onOpenTool: (id) => { setTool(id); setSheetOpen(true); }, downloadImage, downloadPdf, exporting, clearGarment }} cfg={cfg} setCfg={setCfg}
             activeZone={zone} setActiveZone={setActiveZone} detailFocus={detailFocus}
             addText={addText} addShape={addShape} addPocket={addPocket} setPocketColor={setPocketColor} mirrorSelected={mirrorSelected} updateSelected={updateSelected} arrangeLayer={arrangeLayer}
             assetsTab={assetsTab} setAssetsTab={setAssetsTab} logoUpload={logoUpload}
             setShowInspo={openInspo} setShowShowcase={toggleShowcase} onChangeGarment={changeGarment}
             brushSize={brushSize} brushColor={brushColor} erasing={erasing} setErasing={setErasing} garmentRect={garmentRect}
             changeBrushSize={changeBrushSize} changeBrushColor={changeBrushColor}
-            ai={{ preview: previewAI, undo: undoAI, keep: keepAI, previewing: !!aiPreview, editedSince: aiEditedSince, view3D: viewAI3D, has3D: has3DFor(cfg) }} textItems={textItems} layers={layers} selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected} alignSelected={alignSelected}
+            ai={{ preview: previewAI, undo: undoAI, keep: keepAI, previewing: !!aiPreview, editedSince: aiEditedSince, view3D: viewAI3D, has3D: has3DFor(cfg) }} textItems={textItems} layers={layers} selObj={selObj} alignSelected={alignSelected}
             selectLayer={selectLayer} toggleLayerVisibility={toggleLayerVisibility}
             toggleLayerLock={toggleLayerLock} toggleSelectedLock={toggleSelectedLock} setLayerOpacity={setLayerOpacity}
             pushHistory={pushHistory}
@@ -858,19 +878,15 @@ export default function DesignStudio() {
           <CanvasViewport cfg={cfg} setCfg={setCfg} canvasWrapRef={canvasWrapRef} canvasEl={canvasEl} initFailed={initFailed}
             aiPulse={aiPulse} face={face} switchFace={switchFace}
             selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected} alignSelected={alignSelected} arrangeSelected={arrangeSelected} garmentRect={garmentRect}
-            viewMode={viewMode} has3DLoaded={has3DLoaded} onLogoFile={onLogoFile}
+            viewMode={viewMode} has3DLoaded={has3DLoaded} onLogoFile={onLogoFile} onPickZone={setActiveZone}
             zoom={zoom} setZoom={setZoom} snapshot={snapshot} overlays={overlays}
             blank={<GarmentPicker inline cfg={cfg} pieceRole={uset?.active ?? (pendingArt && artScope ? (artScope === 'bottom' ? 'bottom' : 'top') : null)} onPickPhoto={pickPhoto}
               onPick3D={(d, f) => { keep3DRef.current = true; pickPhoto(d, f); setHas3DLoaded(true); setViewMode('3d'); }}
               onPickFamily={(fam, category, pick) => selectFamily(setCfg, fam, category, pick)}
               onUpload={startUpload} pendingArt={pendingArt} onCancelArt={() => setPendingArt(null)} onSketchArt={sketchPending}
               artScope={artScope} onArtScope={uset ? null : setArtScope}/>} setViewMode={setViewMode}
-            pieceBar={pieceBar} setCompanion={setCompanion} showSet={showSet} setSnapOptions={setSnapOptions} trace={trace} clearSelection={clearSelection}/>
+            pieceBar={colorOnly ? null : pieceBar} setCompanion={setCompanion} showSet={showSet} setSnapOptions={setSnapOptions} trace={trace} clearSelection={clearSelection}/>
         </div>
-
-        {/* ── FIRST-VISIT ONBOARDING OVERLAY ── */}
-        <OnboardingOverlay showOnboarding={showOnboarding} onboardStep={onboardStep}
-          nextOnboardStep={nextOnboardStep} dismissOnboarding={dismissOnboarding}/>
 
         {/* Click-away scrim behind whichever gallery is open (z-index sits under the galleries' 100). */}
         {(showInspo || showShowcase) && (
@@ -881,7 +897,7 @@ export default function DesignStudio() {
         {/* ── GARMENT PICKER MODAL (Inspo / Change garment) ── */}
         <InspoGallery showInspo={showInspo} setShowInspo={toggleInspo} setCfg={setCfg} onPickPhoto={pickPhoto} onPairFamily={pairWith} tab={pickerTab} cfg={cfg} pieceRole={uset?.active ?? null}
           loadCanvasJSON={loadCanvasJSON} onOpen3D={() => { keep3DRef.current = true; setHas3DLoaded(true); setViewMode('3d'); }}
-          onLoadArchived={d => setLock({ final: true, orderId: d.order_id ?? null })}/>
+          onLoadArchived={d => setLock(lockFor(d))}/>
 
         <ConfirmDialog open={warnAsk} title="Edit this saved design?"
           body="Changes replace your saved design when it saves. Continue to edit it?"

@@ -8,18 +8,35 @@ import PageErrorBoundary from '../components/PageErrorBoundary';
 import { useAppearance } from '../hooks/useAppearance';
 import { AppPageSkeleton } from '../components/PageSkeletons';
 import IconBox from '../components/ui/IconBox';
+import NavBadge from '../components/ui/NavBadge';
+import { useUnreadMessages } from '../hooks/useUnreadMessages';
 import AlertBanner from '../components/ui/AlertBanner';
+import ThreadPull from '../components/ui/ThreadPull';
+import useDialogFocus from '../hooks/useDialogFocus';
+import { prefetchPath } from '../utils/adminResources';
+import { readAdminUser, ownerCanOpen } from '../utils/jobAccess';
+import AccessDenied from '../components/AccessDenied';
+
+// Start loading a page's data the moment the pointer, keyboard or finger shows intent on its link.
+const intent = (to) => ({ onPointerEnter: () => prefetchPath(to), onFocus: () => prefetchPath(to), onTouchStart: () => prefetchPath(to) });
 import '../styles/admin.css';
 import logo from '../assets/company-logo.jpg';
-import { JOB_FUNCTION_AREAS, isOwner, ownerCanOpen } from '../utils/jobAccess';
 import {
   LayoutDashboard, ClipboardList, Package, MessageSquare, ShoppingCart,
-  Truck, Layers, Factory, FileText, ShieldCheck, ScanLine, AlertTriangle,
+  Truck, Layers, Factory, FileText, ShieldCheck, ScanLine,
   Wallet, BarChart3, Receipt, Building2, Users, MessageCircle, Settings,
-  LogOut, Bell, Trophy, Contact, ScrollText, PanelLeftOpen, PanelLeftClose, MoreHorizontal, Search, Menu,
+  LogOut, Bell, Trophy, Contact, ScrollText, MoreHorizontal, Search, PanelLeftClose, PanelLeftOpen,
 } from 'lucide-react';
 
-const NOTIF_LABELS = { order: 'New order', message: 'New message', payment: 'Payment', stock: 'Stock alert', delivery: 'Delivery', feedback: 'Feedback', incident: 'Incident', rfq: 'Purchase request' };
+const RAIL_KEY = 'vfrb_admin_rail';
+// Stored choice wins; otherwise tablets start icon-only so content keeps its width.
+const initialCollapsed = () => {
+  try { const v = localStorage.getItem(RAIL_KEY); if (v) return v === 'collapsed'; } catch { /* storage blocked */ }
+  return typeof window !== 'undefined' && window.innerWidth < 1100;
+};
+const isTypingTarget = (el) => el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
+
+const NOTIF_LABELS = { order: 'New order', message: 'New message', payment: 'Payment', stock: 'Stock alert', delivery: 'Delivery', feedback: 'Feedback', rfq: 'Purchase request' };
 const notifTitle = (n) => n.title || NOTIF_LABELS[n.type] || (n.type ? String(n.type).replace(/[_-]+/g, ' ').replace(/^./, c => c.toUpperCase()) : 'Notification');
 
 const T  = 'var(--teal)';
@@ -39,22 +56,18 @@ const STAFF_NAV = [
   { to:'/admin/output-log',   icon:FileText,        label:'Output Log',            area:'production', group:'Production' },
   { to:'/admin/qc',           icon:ShieldCheck,     label:'QC Checklist',          area:'production', group:'Production' },
   { to:'/admin/physical-count',icon:ScanLine,       label:'Physical Count',        area:'inventory',  group:'Inventory'  },
-  { to:'/admin/production-incidents',icon:AlertTriangle,label:'Incidents',         area:'production', group:'Production' },
   { to:'/admin/transactions', icon:Wallet,          label:'Sales & Pay',           area:null,         group:'Sales'      },
 ];
 
 // Sidebar section order. Grouping happens at render time so the drawer keeps STAFF_NAV's order.
 const NAV_GROUPS = ['Overview', 'Sales', 'Inventory', 'Production', 'Admin'];
 
-function visibleForJobFunction(navArray, jobFunction) {
-  const allowed = JOB_FUNCTION_AREAS[jobFunction] ?? JOB_FUNCTION_AREAS.general;
-  return navArray.filter(item => item.area === null || allowed.includes(item.area));
-}
-
-function DrawerTile({ item }) {
+function DrawerTile({ item, badge = 0 }) {
   return (
-    <NavLink to={item.to} className={({ isActive }) => `adm-drawer-tile${isActive ? ' active' : ''}`}>
-      <IconBox icon={item.icon} size={18} width={40} style={{ height:40, borderRadius:'var(--radius)', background:'var(--teal-50)', color:'var(--teal)' }}/>
+    <NavLink to={item.to} {...intent(item.to)} className={({ isActive }) => `adm-drawer-tile${isActive ? ' active' : ''}`} aria-label={badge ? `${item.label}, ${badge} new` : undefined}>
+      <IconBox icon={item.icon} size={18} width={40} style={{ height:40, borderRadius:'var(--radius)', background:'var(--teal-50)', color:'var(--teal)' }}>
+        <NavBadge n={badge} corner/>
+      </IconBox>
       <span>{item.label}</span>
     </NavLink>
   );
@@ -64,15 +77,12 @@ const MANAGER_EXTRA = [
   { to:'/admin/reports',      icon:BarChart3,   label:'Reports'              },
   { to:'/admin/invoice',      icon:Receipt,     label:'Invoice'              },
   { to:'/admin/suppliers',    icon:Building2,   label:'Suppliers'            },
-  { to:'/admin/users',        icon:Users,       label:'Users'                },
+  { to:'/admin/users',        icon:Users,       label:'User Management'      },
   { to:'/admin/designs/showcase-queue', icon:Trophy, label:'Showcase'           },
   { to:'/admin/feedback',     icon:MessageCircle,label:'Feedback'            },
   { to:'/admin/audit-logs',   icon:ScrollText,  label:'Audit Log'            },
   { to:'/admin/settings',     icon:Settings,    label:'Settings'             },
 ];
-
-// Staff reach Settings read-only (the page itself gates editing to managers).
-const STAFF_SETTINGS = { to:'/admin/settings', icon:Settings, label:'Settings', area:null, group:'Admin' };
 
 const MOB_NAV = [
   { to:'/admin',           icon:LayoutDashboard, label:'Home',     end:true, area:null        },
@@ -132,35 +142,29 @@ function NotifRow({ n, onRead }) {
 export default function AdminLayout() {
   const navigate   = useNavigate();
   const location   = useLocation();
-  const [role,      setRole]      = useState('staff');
+  const [role,      setRole]      = useState(() => readAdminUser().role || 'manager');
   const [name,      setName]      = useState('');
   const [avatar,    setAvatar]    = useState(null);
-  const [jobFn,     setJobFn]     = useState('general');
-  const [collapsed, setCollapsed] = useState(() => {
-    try {
-      const stored = localStorage.getItem('vfrb_adm_sb');
-      if (stored !== null) return JSON.parse(stored);
-    } catch { }
-    if (typeof window !== 'undefined' &&
-        window.innerWidth >= 768 && window.innerWidth <= 1023) {
-      return true;
-    }
-    return false;
-  });
+  // Desktop rail: always visible, full or icon-only.
+  const [collapsed, setCollapsed] = useState(initialCollapsed);
+  const [tip, setTip] = useState(null);
   const [moreOpen,  setMoreOpen]  = useState(false);
   const [jumpQ,     setJumpQ]     = useState('');
   const [jumpOpen,  setJumpOpen]  = useState(false);
+  const [jumpIdx,   setJumpIdx]   = useState(0);
+  const jumpRef = useRef(null);
   const [userId] = useState(() => { try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}').user_id; } catch { return null; } });
   useAppearance(userId);
 
-  const SW         = collapsed ? 'var(--sidebar-collapsed)' : 'var(--sidebar-w)';
-  const isManager  = role === 'manager';
-  const owner      = role === 'owner'; // read-only: only the pages OwnerReadOnly lets it GET
-  const roleLabel  = isManager ? 'Admin' : owner ? 'Owner · view only' : jobFn === 'general' ? 'Staff' : `${jobFn[0].toUpperCase()}${jobFn.slice(1)} staff`;
-  const visibleStaffNav = isManager ? STAFF_NAV : owner ? STAFF_NAV.filter(i => ownerCanOpen(i.to)) : [...visibleForJobFunction(STAFF_NAV, jobFn), STAFF_SETTINGS];
-  const extraNav   = isManager ? MANAGER_EXTRA : owner ? MANAGER_EXTRA.filter(i => ownerCanOpen(i.to)) : [];
-  const mobNav     = isManager ? MOB_NAV : owner ? MOB_NAV.filter(i => ownerCanOpen(i.to)) : visibleForJobFunction(MOB_NAV, jobFn);
-    const navItems   = isManager ? [...STAFF_NAV, ...MANAGER_EXTRA] : visibleStaffNav;
+  const owner     = role === 'owner'; // read-only: only the pages OwnerReadOnly lets it GET
+  const isManager  = !owner;
+  const roleLabel  = owner ? 'Owner · view only' : 'Administrator (Manager)';
+  const visibleStaffNav = owner ? STAFF_NAV.filter(i => ownerCanOpen(i.to)) : STAFF_NAV;
+  const extraNav   = owner ? MANAGER_EXTRA.filter(i => ownerCanOpen(i.to)) : MANAGER_EXTRA;
+  const mobNav     = owner ? MOB_NAV.filter(i => ownerCanOpen(i.to)) : MOB_NAV;
+  // Owner has no /admin/messages access, so no badge poll.
+  const msgUnread  = useUnreadMessages('/api/admin/messages/unread-count', !owner);
+  const badgeFor   = (to) => (to === '/admin/messages' ? msgUnread : 0);
 
   const [notifs,    setNotifs]    = useState([]);
   const [unread,    setUnread]    = useState(0);
@@ -186,7 +190,7 @@ export default function AdminLayout() {
   };
 
   useEffect(() => {
-    if (isOwner()) return; // the API refuses notifications to the owner
+    if (owner) return; // the API refuses notifications to the owner
     fetchCount();
     const iv = setInterval(fetchCount, 60_000);
     return () => clearInterval(iv);
@@ -208,10 +212,9 @@ export default function AdminLayout() {
 
   useEffect(() => {
     const u = JSON.parse(localStorage.getItem('vfrb_user') || '{}');
-    setRole(u.role || 'staff');
-    setName(u.name || 'Staff');
+    setRole(u.role || 'manager');
+    setName(u.name || 'Administrator');
     setAvatar(u.avatar || null);
-    setJobFn(u.job_function || 'general');
   }, [location.pathname]);
 
   // A new profile photo from Settings shows in the header at once.
@@ -224,13 +227,10 @@ export default function AdminLayout() {
   useEffect(() => { setMoreOpen(false); }, [location.pathname]);
 
   const moreBtnRef = useRef(null);
+  const moreRef = useRef(null);
+  // Explicit return: Safari does not focus a tapped button, so the hook's saved element can be <body>.
   const closeMore = () => { setMoreOpen(false); moreBtnRef.current?.focus(); };
-  useEffect(() => {
-    if (!moreOpen) return;
-    const onKey = (e) => { if (e.key === 'Escape') closeMore(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [moreOpen]);
+  useDialogFocus(moreRef, { active: moreOpen, onClose: closeMore, initial: '.adm-drawer-tile.active' });
 
   const openBell = () => { setBellOpen(b => !b); if (!bellOpen) fetchNotifs(); };
 
@@ -260,9 +260,30 @@ export default function AdminLayout() {
     return () => window.removeEventListener('online', flush);
   }, []);
 
-  const toggle = () => setCollapsed(c => {
-    const n = !c; localStorage.setItem('vfrb_adm_sb', JSON.stringify(n)); return n;
+  const toggleRail = () => setCollapsed(c => {
+    try { localStorage.setItem(RAIL_KEY, c ? 'expanded' : 'collapsed'); } catch { /* storage blocked */ }
+    return !c;
   });
+  useEffect(() => { if (!collapsed) setTip(null); }, [collapsed]);
+  // Tooltip lives outside the rail so its scroll box cannot clip it.
+  const showTip = (label) => (e) => {
+    if (!collapsed) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    setTip({ label, top: r.top + r.height / 2, left: r.right + 10 });
+  };
+  const tipProps = (label) => ({ onPointerEnter: showTip(label), onFocus: showTip(label), onPointerLeave: () => setTip(null), onBlur: () => setTip(null) });
+
+  // "/" focuses the command bar unless the user is already typing.
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey || isTypingTarget(e.target)) return;
+      if (!jumpRef.current || jumpRef.current.offsetParent === null) return;
+      e.preventDefault();
+      jumpRef.current.focus();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
 
   const logout = () => { signOut(); navigate('/login', { replace: true }); };
 
@@ -282,7 +303,8 @@ export default function AdminLayout() {
   const titleNav  = [...visibleStaffNav, ...extraNav].sort((a, b) => b.to.length - a.to.length);
   // Page-jump box in the top bar: filters the same nav entries the sidebar shows.
   const jumpHits  = jumpQ.trim() ? [...visibleStaffNav, ...extraNav].filter(i => i.label.toLowerCase().includes(jumpQ.trim().toLowerCase())).slice(0, 6) : [];
-  const jumpGo    = (to) => { setJumpQ(''); setJumpOpen(false); navigate(to); };
+  const jumpGo    = (to) => { setJumpQ(''); setJumpOpen(false); setJumpIdx(0); jumpRef.current?.blur(); navigate(to); };
+  const roleChip  = owner ? 'Owner · view only' : 'Administrator';
   const pageTitle = location.pathname === '/admin/dashboard'
     ? 'Dashboard'
     : (titleNav.find(i => (i.end ? location.pathname === i.to : location.pathname.startsWith(i.to)))?.label ?? 'Workspace');
@@ -310,34 +332,50 @@ export default function AdminLayout() {
           min-height: 100vh;
           background: var(--bg);
           position: relative;
+          --adm-rail: 252px;
+          --rail-line: color-mix(in srgb,var(--color-on-rail) 9%,transparent);
+          --rail-glow: color-mix(in srgb,var(--teal-2) 55%,transparent);
         }
+        .adm-shell.rail-min { --adm-rail: 76px; }
 
         .adm-sb {
-          position: fixed;
-          top:0; left:0; bottom:0;
-          z-index: 200;
+          position: sticky; top: 0; align-self: flex-start;
+          height: 100vh; height: 100dvh;
+          width: var(--adm-rail); flex-shrink: 0;
+          z-index: 300;
           background: linear-gradient(180deg, var(--color-rail) 0%, var(--color-rail-deep) 100%);
-          border-right: 1px solid var(--color-rail-deep);
-          border-radius: 0;
+          border-right: 1px solid var(--rail-line);
           display: flex;
           flex-direction: column;
-          box-shadow: var(--shadow-1);
           overflow: hidden;
-          transition: width .22s cubic-bezier(.4,0,.2,1);
+          transition: width .22s cubic-bezier(.2,.8,.2,1);
         }
+        .adm-top-logo { width: 36px; height: 36px; border-radius: 10px; object-fit: cover; border: 1.5px solid var(--border); flex-shrink: 0; }
 
         .adm-sb-head {
           flex-shrink: 0;
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 12px;
           height: var(--topbar-h);
-          min-height: var(--topbar-h);
-          box-sizing: border-box;
-          position: relative;
-          overflow: hidden;
-          background: color-mix(in srgb,var(--color-on-rail) 3%,transparent);
-          border-bottom: 1px solid color-mix(in srgb,var(--color-on-rail) 8%,transparent);
+          padding: 0 18px;
+          border-bottom: 1px solid var(--rail-line);
+        }
+        .adm-sb-logo { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; flex-shrink: 0;
+          border: 1.5px solid color-mix(in srgb,var(--color-on-rail) 18%,transparent); }
+        .adm-sb-brand { min-width: 0; flex: 1; }
+        .adm-sb-brand b, .adm-sb-brand small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .adm-sb-brand b { font-size: 14px; font-weight: 800; letter-spacing: .08em; color: var(--color-on-rail); }
+        .adm-sb-brand small { font-size: 12px; font-weight: 600; color: var(--teal-2); margin-top: 2px; }
+        .rail-min .adm-sb-brand, .rail-min .adm-link-label, .rail-min .adm-sb-user-txt, .rail-min .adm-rail-toggle-label {
+          position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+        }
+
+        .adm-tip {
+          position: fixed; z-index: 500; transform: translateY(-50%); pointer-events: none;
+          padding: 6px 10px; border-radius: 8px; white-space: nowrap;
+          background: var(--color-rail-deep); color: var(--color-on-rail); font: 700 13px var(--font-sans);
+          box-shadow: 0 6px 18px rgb(7 34 38 / .3); border: 1px solid var(--rail-line);
         }
 
         .adm-main {
@@ -378,47 +416,58 @@ export default function AdminLayout() {
           gap: 10px;
           padding: 0 12px;
           min-height: 44px;
-          border-radius: 12px;
+          border-radius: 10px;
           text-decoration: none;
-          font-size: 15px;
-          font-weight: 600;
-          color: color-mix(in srgb,var(--color-on-rail) 78%,transparent);
+          font-size: 14.5px;
+          font-weight: 650;
+          color: color-mix(in srgb,var(--color-on-rail) 74%,transparent);
           white-space: nowrap;
-          overflow: hidden;
-          transition: background .13s, color .13s, transform .1s;
+          transition: background .15s, color .15s, box-shadow .15s;
           position: relative;
-          margin: 1px 0;
+          margin: 2px 0;
         }
+        .adm-link-label { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; }
         .adm-nav-group {
-          margin: 20px 12px 6px;
-          font-size: 12.5px;
+          margin: 18px 12px 6px;
+          font-size: 11.5px;
           font-weight: 800;
-          letter-spacing: .12em;
+          letter-spacing: .14em;
           text-transform: uppercase;
-          color: color-mix(in srgb,var(--teal-2) 55%,var(--color-on-rail) 30%);
+          color: color-mix(in srgb,var(--color-on-rail) 48%,transparent);
           white-space: nowrap;
         }
+        .rail-min .adm-nav-group { font-size: 0; height: 1px; margin: 12px 14px 8px; background: var(--rail-line); }
         @media (pointer: coarse) { .adm-link { min-height: 44px; } .adm-bell { width: 44px !important; height: 44px !important; } .adm-profile-btn { min-height: 44px !important; } }
         .adm-link:hover {
-          background: color-mix(in srgb,var(--color-on-rail) 6%,transparent);
+          background: color-mix(in srgb,var(--color-on-rail) 7%,transparent);
           color: var(--color-on-rail);
         }
         .adm-link.active {
-          background: color-mix(in srgb,var(--teal-2) 20%,transparent);
-          box-shadow: inset 0 0 0 1px color-mix(in srgb,var(--teal-2) 38%,transparent);
+          background: linear-gradient(90deg, color-mix(in srgb,var(--teal-2) 22%,transparent), color-mix(in srgb,var(--teal-2) 6%,transparent));
+          box-shadow: inset 0 0 0 1px color-mix(in srgb,var(--teal-2) 30%,transparent), 0 8px 22px -12px var(--rail-glow);
           color: var(--color-on-rail);
           font-weight: 800;
         }
-        .adm-link.active.mgr { background: color-mix(in srgb,var(--teal-2) 20%,transparent); color: var(--color-on-rail); }
         .adm-link.active::before {
           content: '';
           position: absolute;
-          left:0; top:20%; bottom:20%;
-          width: 4px;
-          border-radius: 0 4px 4px 0;
+          left:0; top:22%; bottom:22%;
+          width: 3px;
+          border-radius: 0 3px 3px 0;
           background: var(--teal-2);
+          box-shadow: 0 0 10px 1px var(--rail-glow);
         }
-        .adm-link.active.mgr::before { background: var(--teal-2); }
+        .adm-link.active .nav-ico-wrap { color: var(--teal-2); filter: drop-shadow(0 0 6px var(--rail-glow)); }
+        .rail-min .adm-link { justify-content: center; padding: 0; gap: 0; }
+
+        .adm-rail-toggle {
+          display: flex; align-items: center; gap: 12px; width: calc(100% - 24px); min-height: 44px; margin: 0 12px 6px; padding: 0 12px;
+          border: 0; border-radius: 10px; background: transparent; cursor: pointer;
+          color: color-mix(in srgb,var(--color-on-rail) 64%,transparent); font: 650 14px var(--font-sans); white-space: nowrap;
+        }
+        .adm-rail-toggle:hover { background: color-mix(in srgb,var(--color-on-rail) 7%,transparent); color: var(--color-on-rail); }
+        .adm-rail-toggle:focus-visible { outline: 2px solid var(--teal-2); outline-offset: 2px; }
+        .rail-min .adm-rail-toggle { justify-content: center; padding: 0; gap: 0; }
 
         .adm-nav-scroll::-webkit-scrollbar { width: 6px; }
         .adm-nav-scroll::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
@@ -427,30 +476,15 @@ export default function AdminLayout() {
         .adm-nav-scroll::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb,var(--color-on-rail) 38%,transparent); }
         @supports not selector(::-webkit-scrollbar) { .adm-nav-scroll { scrollbar-width: thin; scrollbar-color: color-mix(in srgb,var(--color-on-rail) 30%,transparent) transparent; } }
 
-        .adm-burger {
-          width: 48px; height: 48px; flex-shrink: 0; display: grid; place-items: center;
-          border: 1px solid var(--border); border-radius: 14px; background: var(--bg-card);
-          color: var(--ink); cursor: pointer; transition: background .15s, border-color .15s, transform .15s;
-        }
-        .adm-burger:hover { background: var(--teal-50); border-color: var(--teal); color: var(--teal); }
-        .adm-burger:active { transform: scale(.94); }
-        .adm-burger:focus-visible { outline: 2px solid var(--teal-2); outline-offset: 2px; }
-        .adm-sb-toggle {
-          display: flex; align-items: center; justify-content: center; gap: 8px;
-          min-height: 44px; min-width: 44px; padding: 0 12px; flex-shrink: 0;
-          border-radius: var(--radius); border: 1px solid color-mix(in srgb,var(--color-on-rail) 12%,transparent);
-          background: color-mix(in srgb,var(--color-on-rail) 5%,transparent);
-          color: color-mix(in srgb,var(--color-on-rail) 78%,transparent);
-          font: 600 13px/1 var(--font-sans); cursor: pointer;
-          transition: background var(--dur-1), color var(--dur-1);
-        }
-        .adm-sb-toggle:hover { background: color-mix(in srgb,var(--color-on-rail) 10%,transparent); color: var(--color-on-rail); }
-        .adm-sb-toggle:focus-visible, .adm-link:focus-visible { outline: 2px solid var(--teal-2); outline-offset: 2px; }
+        .adm-link:focus-visible { outline: 2px solid var(--teal-2); outline-offset: 2px; }
 
         .adm-sb-user {
-          display: flex; align-items: center; gap: 12px; margin: 8px 10px 0; padding: 12px;
-          border-radius: 16px; background: color-mix(in srgb,var(--color-on-rail) 8%,transparent);
+          display: flex; align-items: center; gap: 12px; margin: 0 12px 12px; padding: 10px;
+          border-radius: 12px; background: color-mix(in srgb,var(--color-on-rail) 6%,transparent);
+          border: 1px solid var(--rail-line);
         }
+        .adm-sb-user-txt { min-width: 0; }
+        .rail-min .adm-sb-user { justify-content: center; padding: 8px 0; background: transparent; border-color: transparent; }
         .adm-sb-user-av {
           width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%; overflow: hidden;
           display: grid; place-items: center; font-size: 14px; font-weight: 800; color: #fff;
@@ -459,8 +493,24 @@ export default function AdminLayout() {
         .adm-sb-user small { display: block; font-size: 13px; color: color-mix(in srgb,var(--color-on-rail) 70%,transparent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .adm-jump { position: relative; width: min(360px, 30vw); flex-shrink: 0; }
         .adm-jump > svg { position: absolute; left: 14px; top: 15px; color: var(--text-subtle); pointer-events: none; }
+        .adm-jump kbd {
+          position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none;
+          min-width: 24px; height: 24px; display: grid; place-items: center; border-radius: 6px;
+          border: 1px solid var(--border-strong); background: var(--bg); color: var(--text-subtle);
+          font: 700 13px ui-monospace, monospace; transition: opacity .12s;
+        }
+        .adm-jump input:focus ~ kbd, .adm-jump input:not(:placeholder-shown) ~ kbd { opacity: 0; }
+        .adm-jump-list button.on { background: var(--teal-50); color: var(--teal-dark); }
+        .adm-role-chip {
+          display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 0 12px; flex-shrink: 0;
+          border-radius: var(--radius-pill); font: 800 12.5px var(--font-sans); letter-spacing: .02em; white-space: nowrap;
+          background: var(--color-manager-tint); color: var(--color-manager-ink);
+          border: 1px solid color-mix(in srgb,var(--color-manager) 25%,transparent);
+        }
+        .adm-role-chip::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+        .adm-role-chip.owner { background: var(--color-neutral-tint); color: var(--color-neutral-ink); border-color: var(--color-neutral-line); }
         .adm-jump input {
-          width: 100%; height: 48px; padding: 0 16px 0 42px; border-radius: 14px;
+          width: 100%; height: 48px; padding: 0 44px 0 42px; border-radius: 14px;
           border: 1.5px solid var(--border-strong); background: var(--bg-card);
           color: var(--ink); font: 500 15px var(--font-sans); outline: none; transition: border-color .15s, box-shadow .15s;
         }
@@ -519,19 +569,19 @@ export default function AdminLayout() {
           text-decoration: none;
           flex: 1 1 0;
           min-width: 0;
-          max-width: 76px;
+          max-width: 88px;
           border-radius: 14px;
           transition: transform .12s;
           position: relative;
         }
         .adm-bnav-btn:active { transform: scale(.9); }
         .adm-bnav-icon  { font-size: 23px; line-height:1; transition: transform .15s; }
-        .adm-bnav-label { font-size: 13px; font-weight: 700; color: var(--text-faint); letter-spacing:0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .adm-bnav-label { font-size: 12px; font-weight: 700; color: var(--text-faint); letter-spacing:-.01em; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .adm-bnav-btn.mob-active {
           background: var(--teal-50);
         }
         .adm-bnav-btn.mob-active .adm-bnav-icon  { transform: scale(1.14); }
-        .adm-bnav-btn.mob-active .adm-bnav-label { color: ${T}; font-weight:800; }
+        .adm-bnav-btn.mob-active .adm-bnav-label { color: ${T}; }
 
         .adm-more-drawer {
           position: fixed;
@@ -559,11 +609,14 @@ export default function AdminLayout() {
         .adm-drawer-tile {
           display: flex; flex-direction: column; align-items: center; gap: 6px;
           padding: 10px 4px; border-radius: 12px; text-decoration: none;
-          color: var(--ink); font-size: 13.5px; font-weight: 700; text-align: center;
-          border: 1px solid var(--border); background: var(--bg-card);
-          font-family: var(--font-sans);
+          color: var(--ink); font-size: 14px; font-weight: 800; line-height: 1.25; text-align: center;
+          border: 1px solid var(--border); background: var(--bg-card); min-height: 88px;
+          font-family: var(--font-sans); overflow-wrap: anywhere; transition: border-color .15s, background .15s;
         }
+        .adm-drawer-tile:hover { border-color: var(--border-strong); }
+        .adm-drawer-tile:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
         .adm-drawer-tile.active { border-color: ${T}; background: var(--teal-50); }
+        @media (prefers-reduced-motion: reduce) { .adm-drawer-tile { transition: none; } }
         .adm-drawer-signout {
           width: 100%; margin-top: 18px; padding: 12px;
           border-radius: 12px; border: 1px solid var(--danger);
@@ -594,6 +647,7 @@ export default function AdminLayout() {
           .adm-mob-only     { display: none !important; }
           .adm-more-drawer  { display: none !important; }
         }
+        @media (min-width: 768px) and (max-width: 1099px) { .adm-profile-name, .adm-crumb-d { display: none; } }
 
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: var(--border-hover); border-radius: 2px; }
@@ -603,96 +657,75 @@ export default function AdminLayout() {
         }
       `}</style>
 
-      <div className="adm-shell">
+      <div className={`adm-shell${collapsed ? ' rail-min' : ''}`}>
         <a href="#adm-main" className="skip-link" onClick={e => { e.preventDefault(); document.getElementById('adm-main')?.focus(); }}>Skip to content</a>
 
-        <aside className="adm-sb" style={{ width:SW }}>
+        <aside id="adm-sidebar" className="adm-sb" aria-label="Main menu">
 
-          <div className="adm-sb-head"
-            style={{ padding: collapsed ? '0 10px' : '0 18px' }}>
-            <img src={logo} alt="VFRB"
-              style={{ width:44, height:44, borderRadius:12, objectFit:'cover',
-                border:'2px solid color-mix(in srgb,var(--color-on-rail) 20%,transparent)', flexShrink:0, position:'relative', zIndex:1 }}/>
-            {!collapsed && (
-              <div style={{ overflow:'hidden', flex:1, minWidth:0, position:'relative', zIndex:1 }}>
-                <p style={{ fontSize:16, fontWeight:800, color:'var(--color-on-rail)',
-                  letterSpacing:'.06em', overflow:'hidden',
-                  textOverflow:'ellipsis', whiteSpace:'nowrap', margin:0 }}>
-                  VFRB ENTERPRISE
-                </p>
-                <p style={{ fontSize:13, color:T2, fontWeight:600, letterSpacing:'.01em', margin:'2px 0 0',
-                  overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                  {isManager ? 'Admin workspace' : owner ? 'Owner view' : 'Staff workspace'}
-                </p>
-              </div>
-            )}
+          <div className="adm-sb-head">
+            <img src={logo} alt="VFRB" className="adm-sb-logo"/>
+            <div className="adm-sb-brand">
+              <b>VFRB ENTERPRISE</b>
+              <small>Custom Uniforms</small>
+            </div>
           </div>
 
-          <div className="adm-nav-scroll" style={{ flex:1, overflowY:'auto', overflowX:'hidden',
-            padding: collapsed ? '8px 4px 16px' : '8px 10px 16px' }}>
+          <nav className="adm-nav-scroll" aria-label="Admin pages" style={{ flex:1, overflowY:'auto', overflowX:'hidden',
+            padding:'8px 12px 16px' }} onScroll={() => setTip(null)}>
 
             {NAV_GROUPS.map((g, gi) => {
               const items = g === 'Admin'
-                ? [...visibleStaffNav.filter(i => i.group === g), ...extraNav.map(i => ({ ...i, mgr:true }))]
+                ? [...visibleStaffNav.filter(i => i.group === g), ...extraNav]
                 : visibleStaffNav.filter(i => i.group === g);
               if (!items.length) return null;
               return (
                 <div key={g} role="group" aria-label={g}>
-                  {collapsed
-                    ? gi > 0 && <div style={{ height:1, background:'color-mix(in srgb,var(--color-on-rail) 8%,transparent)', margin:'8px 6px' }}/>
-                    : <p className="adm-nav-group" style={gi === 0 ? { marginTop:4 } : undefined}>{g}</p>}
-                  {items.map(item => (
-                    <NavLink key={item.to} to={item.to} end={item.end}
-                      className={({ isActive }) => `adm-link${isActive ? (item.mgr ? ' active mgr' : ' active') : ''}`}
-                      title={collapsed ? item.label : undefined}
-                      style={collapsed ? { justifyContent:'center', padding:'10px 0' } : {}}>
-                      <IconBox icon={item.icon} size={16} width={20}/>
-                      {!collapsed && (
-                        <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>
-                          {item.label}
+                  <p className="adm-nav-group" aria-hidden="true" style={gi === 0 ? { marginTop:4 } : undefined}>{g}</p>
+                  {items.map(item => {
+                    const badge = badgeFor(item.to);
+                    return (
+                      <NavLink key={item.to} to={item.to} end={item.end} {...intent(item.to)} {...tipProps(item.label)}
+                        aria-label={badge ? `${item.label}, ${badge} new` : undefined}
+                        className={({ isActive }) => `adm-link${isActive || (item.to === '/admin' && location.pathname === '/admin/dashboard') ? ' active' : ''}`}>
+                        <span className="nav-ico-wrap">
+                          <IconBox icon={item.icon} size={18} width={20}/>
+                          {collapsed && <NavBadge n={badge} corner/>}
                         </span>
-                      )}
-                    </NavLink>
-                  ))}
+                        <span className="adm-link-label">{item.label}</span>
+                        {!collapsed && <NavBadge n={badge}/>}
+                      </NavLink>
+                    );
+                  })}
                 </div>
               );
             })}
 
-          </div>
+          </nav>
 
-          <div className="adm-sb-user" style={collapsed ? { justifyContent:'center', margin:'8px 8px 0', padding:8 } : undefined}>
+          <button type="button" className="adm-rail-toggle" onClick={toggleRail} {...tipProps('Expand menu')}
+            aria-expanded={!collapsed} aria-controls="adm-sidebar" aria-label={collapsed ? 'Expand menu' : 'Collapse menu'}>
+            {collapsed ? <PanelLeftOpen size={20} strokeWidth={2} aria-hidden="true"/> : <PanelLeftClose size={20} strokeWidth={2} aria-hidden="true"/>}
+            <span className="adm-rail-toggle-label" aria-hidden="true">Collapse</span>
+          </button>
+
+          <div className="adm-sb-user" {...tipProps(`${name} · ${roleLabel}`)}>
             <div className="adm-sb-user-av" style={{ background: isManager ? 'var(--purple)' : 'var(--teal)' }}>
               {avatar ? <img src={avatar} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : initials}
             </div>
-            {!collapsed && (
-              <div style={{ minWidth:0 }}>
-                <b>{name}</b>
-                <small>{roleLabel}</small>
-              </div>
-            )}
+            <div className="adm-sb-user-txt">
+              <b>{name}</b>
+              <small>{roleLabel}</small>
+            </div>
           </div>
 
-          <button onClick={toggle} className="adm-sb-toggle" aria-expanded={!collapsed}
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={collapsed ? 'Expand sidebar' : undefined}
-            style={{ margin: collapsed ? '6px auto 10px' : '6px 10px 10px' }}>
-            {collapsed ? <PanelLeftOpen size={18} strokeWidth={1.9} aria-hidden="true"/> : <><PanelLeftClose size={18} strokeWidth={1.9} aria-hidden="true"/><span>Collapse</span></>}
-          </button>
-
         </aside>
+        {collapsed && tip && <div className="adm-tip adm-desk-only" role="presentation" style={{ top: tip.top, left: tip.left }}>{tip.label}</div>}
 
-        <main id="adm-main" tabIndex={-1} className="adm-main"
-          style={{ marginLeft: SW, transition:'margin-left .22s cubic-bezier(.4,0,.2,1)' }}>
+        <main id="adm-main" tabIndex={-1} className="adm-main">
 
           <div className="adm-topbar">
 
-            <button type="button" className="adm-burger adm-desk-only" onClick={toggle}
-              aria-label={collapsed ? 'Open sidebar' : 'Close sidebar'} aria-expanded={!collapsed}>
-              <Menu size={22} strokeWidth={2.2} aria-hidden="true"/>
-            </button>
-
-            <img src={logo} alt="VFRB" className="adm-mob-only"
-              style={{ width:30, height:30, borderRadius:8, objectFit:'cover',
-                border:'1.5px solid var(--border)', flexShrink:0 }}/>
+            <img src={logo} alt="VFRB" className="adm-top-logo adm-mob-only"/>
             <div className="adm-mob-only" style={{ flex:1, minWidth:0 }}>
               <p style={{ fontSize:12, fontWeight:800, color:'var(--ink)',
                 letterSpacing:'.04em', margin:0, lineHeight:1.2,
@@ -704,7 +737,7 @@ export default function AdminLayout() {
             </div>
 
             <div className="adm-desk-only adm-crumb">
-              <p className="adm-crumb-t">{isManager ? 'Admin' : owner ? 'Owner' : 'Staff'} / <b>{pageTitle}</b></p>
+              <p className="adm-crumb-t">{owner ? 'Owner' : 'Administrator'} / <b>{pageTitle}</b></p>
               <p className="adm-crumb-d">
                 {new Date().toLocaleDateString('en-PH',{
                   weekday:'long', month:'long', day:'numeric', year:'numeric' })}
@@ -714,18 +747,24 @@ export default function AdminLayout() {
 
             <div className="adm-jump adm-desk-only">
               <Search size={18} strokeWidth={2} aria-hidden="true"/>
-              <input type="search" value={jumpQ} placeholder="Jump to a page…" aria-label="Jump to a page"
-                onChange={e => { setJumpQ(e.target.value); setJumpOpen(true); }}
+              <input ref={jumpRef} type="search" value={jumpQ} placeholder="Jump to a page…" aria-label="Jump to a page (press / to focus)"
+                role="combobox" aria-expanded={jumpOpen && jumpHits.length > 0} aria-controls="adm-jump-list" aria-autocomplete="list"
+                aria-activedescendant={jumpOpen && jumpHits[jumpIdx] ? `adm-jump-${jumpIdx}` : undefined}
+                onChange={e => { setJumpQ(e.target.value); setJumpOpen(true); setJumpIdx(0); }}
                 onFocus={() => setJumpOpen(true)} onBlur={() => setTimeout(() => setJumpOpen(false), 120)}
                 onKeyDown={e => {
-                  if (e.key === 'Enter' && jumpHits[0]) jumpGo(jumpHits[0].to);
-                  if (e.key === 'Escape') { setJumpQ(''); setJumpOpen(false); }
+                  if (e.key === 'ArrowDown' && jumpHits.length) { e.preventDefault(); setJumpIdx(i => (i + 1) % jumpHits.length); }
+                  if (e.key === 'ArrowUp' && jumpHits.length) { e.preventDefault(); setJumpIdx(i => (i - 1 + jumpHits.length) % jumpHits.length); }
+                  if (e.key === 'Enter' && jumpHits[jumpIdx]) jumpGo(jumpHits[jumpIdx].to);
+                  if (e.key === 'Escape') { setJumpQ(''); setJumpOpen(false); e.currentTarget.blur(); }
                 }}/>
+              <kbd aria-hidden="true">/</kbd>
               {jumpOpen && jumpHits.length > 0 && (
-                <ul className="adm-jump-list" role="listbox" aria-label="Pages">
-                  {jumpHits.map(i => (
-                    <li key={i.to} role="option" aria-selected="false">
-                      <button type="button" onMouseDown={e => { e.preventDefault(); jumpGo(i.to); }}>
+                <ul className="adm-jump-list" id="adm-jump-list" role="listbox" aria-label="Pages">
+                  {jumpHits.map((i, n) => (
+                    <li key={i.to} id={`adm-jump-${n}`} role="option" aria-selected={n === jumpIdx}>
+                      <button type="button" tabIndex={-1} className={n === jumpIdx ? 'on' : undefined}
+                        onMouseEnter={() => setJumpIdx(n)} onMouseDown={e => { e.preventDefault(); jumpGo(i.to); }}>
                         <i.icon size={18} strokeWidth={1.9} aria-hidden="true"/>{i.label}
                       </button>
                     </li>
@@ -733,6 +772,9 @@ export default function AdminLayout() {
                 </ul>
               )}
             </div>
+
+            <span className={`adm-role-chip adm-desk-only${owner ? ' owner' : ''}`}>{roleChip}</span>
+            {owner && <span className="adm-role-chip owner adm-mob-only" aria-label="Owner, view only">Owner</span>}
 
             {!owner && <div ref={bellRef} style={{ position:'relative' }}>
               <motion.button
@@ -874,7 +916,7 @@ export default function AdminLayout() {
                   overflow:'hidden' }}>
                   {avatar ? <img src={avatar} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : initials}
                 </div>
-                <span className="adm-desk-only"
+                <span className="adm-desk-only adm-profile-name"
                   style={{ fontSize:15, fontWeight:700, color:'var(--ink)',
                     whiteSpace:'nowrap' }}>
                   {name}
@@ -915,7 +957,7 @@ export default function AdminLayout() {
               </AlertBanner>
             )}
             <PageErrorBoundary resetKey={location.pathname}>
-              <div key={location.pathname} className="adm-page vfrb-page"><Suspense fallback={<AppPageSkeleton/>}><Outlet/></Suspense></div>
+              <div key={location.pathname} className="adm-page vfrb-page thread-page"><Suspense fallback={<AppPageSkeleton/>}>{owner && !ownerCanOpen(location.pathname) ? <AccessDenied what="This page"/> : <Outlet/>}</Suspense><ThreadPull/></div>
             </PageErrorBoundary>
           </div>
         </main>
@@ -924,16 +966,16 @@ export default function AdminLayout() {
           {moreOpen && (
             <>
               <motion.div
-                initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
+                initial={{ opacity:0 }} animate={{ opacity:1, transition:{ duration:.2, ease:'easeOut' } }}
+                exit={{ opacity:0, pointerEvents:'none', transition:{ duration:.15, ease:'easeIn' } }}
                 onClick={closeMore}
                 style={{ position:'fixed', inset:0, background:'color-mix(in srgb,var(--color-rail-deep) 40%,transparent)',
                   zIndex:280, backdropFilter:'blur(2px)' }}/>
               <motion.div
-                className="adm-more-drawer"
+                className="adm-more-drawer" ref={moreRef} id="adm-more" role="dialog" aria-modal="true" aria-label="More pages"
                 initial={{ y:80, opacity:0 }}
-                animate={{ y:0, opacity:1 }}
-                exit={{ y:80, opacity:0 }}
-                transition={{ type:'spring', stiffness:340, damping:30 }}>
+                animate={{ y:0, opacity:1, transition:{ duration:.24, ease:[.22, 1, .36, 1] } }}
+                exit={{ y:80, opacity:0, pointerEvents:'none', transition:{ duration:.16, ease:'easeIn' } }}>
 
                 {NAV_GROUPS.map(g => {
                   const inBar = mobNav.map(i => i.to);
@@ -946,7 +988,7 @@ export default function AdminLayout() {
                     <div key={g} role="group" aria-label={g}>
                       <p className="adm-drawer-sec">{g}</p>
                       <div className="adm-drawer-grid">
-                        {items.map(item => <DrawerTile key={item.to} item={item}/>)}
+                        {items.map(item => <DrawerTile key={item.to} item={item} badge={badgeFor(item.to)}/>)}
                       </div>
                     </div>
                   );
@@ -964,7 +1006,7 @@ export default function AdminLayout() {
               ? location.pathname === item.to
               : location.pathname.startsWith(item.to);
             return (
-              <NavLink key={item.to} to={item.to} end={item.end}
+              <NavLink key={item.to} to={item.to} end={item.end} {...intent(item.to)}
                 className={`adm-bnav-btn${active ? ' mob-active' : ''}`}>
                 <span className="adm-bnav-icon"
                   style={{ filter: active ? 'none' : 'grayscale(.4) opacity(.65)' }}>
@@ -976,13 +1018,13 @@ export default function AdminLayout() {
           })}
 
           <button className="adm-bnav-btn" ref={moreBtnRef}
-            onClick={() => setMoreOpen(o => !o)} aria-expanded={moreOpen}
+            onClick={() => setMoreOpen(o => !o)} aria-expanded={moreOpen} aria-controls="adm-more" aria-haspopup="dialog"
             style={{ border:'none', cursor:'pointer', background:'transparent',
               fontFamily:'inherit' }}>
             <span className="adm-bnav-icon"
               style={{ color: moreOpen ? T : undefined,
                 filter: moreOpen ? 'none' : 'grayscale(.4) opacity(.65)' }}>
-              <MoreHorizontal size={22} strokeWidth={2} aria-hidden="true"/>
+              <span className="nav-ico-wrap"><MoreHorizontal size={22} strokeWidth={2} aria-hidden="true"/><NavBadge n={msgUnread} corner/></span>
             </span>
             <span className="adm-bnav-label"
               style={{ color: moreOpen ? T : undefined }}>

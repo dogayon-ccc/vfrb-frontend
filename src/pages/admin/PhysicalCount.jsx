@@ -6,6 +6,7 @@ import { cacheGet, cacheSet, cacheClear, TTL }              from '../../utils/ca
 import { NavIcon }                                           from '../../components/ui/icons';
 import { escapeHtml }                                        from '../../utils/escapeHtml';
 import BottomSheet                                           from '../../components/ui/BottomSheet';
+import { isAdmin } from '../../utils/jobAccess';
 import { PageHeader, StatGrid, PillTabs, Panel, StatusPill, Banner, SkeletonRows, ErrorBlock } from '../../components/admin/AdminUI';
 
 const T    = 'var(--teal)';
@@ -21,7 +22,7 @@ const fo   = e => { e.target.style.borderColor='var(--border)'; e.target.style.b
 const lbl  = { display:'block', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'var(--text-subtle)', marginBottom:7, fontFamily:FONT };
 const card = { background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:14, boxShadow:'0 1px 3px rgba(0,0,0,.05)' };
 
-const readIsManager = () => { try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}').role === 'manager'; } catch { return false; } };
+const readIsManager = () => isAdmin();
 
 function Toast({ msg, type, onDone }) {
   useEffect(() => { const t = setTimeout(onDone, 3000); return () => clearTimeout(t); }, [onDone]);
@@ -334,13 +335,14 @@ export default function AdminPhysicalCount() {
     setLoading(true); setLoadErr(false);
 
     const cachedMats = cacheGet('materials_list');
-    const matProm = cachedMats
+    // Weekly counts cover VFRB-owned stock; client-supplied material balances per order instead.
+    const matProm = (cachedMats
       ? Promise.resolve({ data: cachedMats })
       : axios.get('/api/admin/materials?per_page=200').then(r => {
           const list = r.data?.data ?? r.data ?? [];
           cacheSet('materials_list', list, TTL.MATERIALS);
           return { data: list };
-        });
+        })).then(r => ({ data: r.data.filter(m => m.ownership !== 'client') }));
 
     Promise.allSettled([
       axios.get('/api/admin/physical-counts'),
@@ -464,7 +466,7 @@ export default function AdminPhysicalCount() {
       <StatGrid loading={loading} items={[
         { label: 'Flagged variances', value: summary.flagged_variances ?? 0, color: summary.flagged_variances ? 'var(--warning-text)' : undefined, sub: 'Over 5% variance', onClick: () => setFilterR('flagged') },
         { label: 'Needs reconciliation', value: summary.unreconciled_counts ?? 0, color: 'var(--info)', sub: 'Manager review', onClick: () => setFilterR('pending') },
-        { label: 'Overdue counts', value: overdue.length, color: overdue.length ? 'var(--danger-text)' : undefined, sub: 'Not counted in 30+ days' },
+        { label: 'Due this week', value: overdue.length, color: overdue.length ? 'var(--danger-text)' : undefined, sub: summary.count_week_start ? 'Weekly count · every Monday' : 'Not counted in 30+ days' },
         { label: 'Last count', value: summary.last_count_date ?? '—', sub: 'Most recent' },
       ]} />
 
@@ -521,7 +523,7 @@ export default function AdminPhysicalCount() {
       </div>
 
       {overdue.length > 0 && (
-        <Panel title={`${overdue.length} materials not counted in 30+ days`} style={{ marginTop: 16 }} flush>
+        <Panel title={summary.count_week_start ? `${overdue.length} materials not counted since Monday` : `${overdue.length} materials not counted in 30+ days`} style={{ marginTop: 16 }} flush>
           <div className="pc-overdue adm-stagger">
             {overdue.map((m, i) => (
               <button key={m.material_id} style={{ '--i': Math.min(i, 12) }} onClick={() => openLog(m.material_id)} aria-label={`Log count for ${m.material_name}`}>

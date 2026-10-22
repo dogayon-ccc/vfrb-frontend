@@ -1,11 +1,12 @@
 // src/components/OrderBilling.jsx
 // Invoice + payment receipts for one order, shared by customer and admin Order Detail.
-//   mode="customer": GET /api/customer/orders/{id}/billing, PDF downloads only.
-//   mode="admin":    GET /api/admin/orders/{id}/billing; managers can also issue, mark paid and void.
+//   mode="customer": GET /api/customer/orders/{id}/billing; status, numbers and dates only, plus amount-free PDFs.
+//   mode="admin":    GET /api/admin/orders/{id}/billing; amounts, full PDFs, and managers can issue, mark paid and void.
 // Every amount shown comes from the server (orders.agreed_total, the issued invoice, recorded receipts);
 // nothing is computed here. A 404 renders nothing and is never retried.
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { getOnce } from '../utils/requestOnce';
 import { NavIcon } from './ui';
 
 const peso = (n) => (n == null || n === '' ? '—'
@@ -68,7 +69,10 @@ export default function OrderBilling({ orderId, mode = 'customer', isManager = f
   const load = useCallback(async (signal) => {
     setState('loading');
     try {
-      const r = await axios.get(`/api/${scope}/orders/${orderId}/billing`, { signal });
+      const url = `/api/${scope}/orders/${orderId}/billing`;
+      // Customer view is read-only, so it can reuse the request the order page already started.
+      const r = scope === 'customer' ? await getOnce(url) : await axios.get(url, { signal });
+      if (signal?.aborted) return;
       setData(r.data);
       setState('ready');
     } catch (e) {
@@ -143,12 +147,13 @@ export default function OrderBilling({ orderId, mode = 'customer', isManager = f
   const invTitle = labels.invoice_title || 'Billing Invoice';
   const rctTitle = labels.receipt_title || 'Payment Acknowledgement';
   const [statusText, statusCls] = STATUS[invoice?.status] ?? [];
+  const admin = scope === 'admin';
 
   return (
     <>
       <style>{CSS}</style>
       <div className="ob">
-        {total != null && (
+        {admin && total != null && (
           <div className="ob-stats">
             <div className="ob-stat"><span>Total</span><strong>{peso(total)}</strong></div>
             <div className="ob-stat"><span>Paid</span><strong>{peso(paid)}</strong></div>
@@ -190,10 +195,10 @@ export default function OrderBilling({ orderId, mode = 'customer', isManager = f
               {receipts.map((r) => (
                 <li key={r.receipt_id} className="ob-item">
                   <div>
-                    <p className="ob-title" style={{ fontSize: 13 }}>{r.receipt_number} · {peso(r.amount)}</p>
+                    <p className="ob-title" style={{ fontSize: 13 }}>{r.receipt_number}{admin && ` · ${peso(r.amount)}`}</p>
                     <p className="ob-sub">
                       {day(r.paid_at)} · {METHOD_LABEL[r.payment_method] ?? r.payment_method}
-                      {r.reference_no ? ` · Ref ${r.reference_no}` : ''} · Balance after {peso(r.balance_after)}
+                      {r.reference_no ? ` · Ref ${r.reference_no}` : ''}{admin && ` · Balance after ${peso(r.balance_after)}`}
                     </p>
                   </div>
                   <button type="button" className="ob-btn" disabled={busy === `receipt-${r.receipt_id}`}

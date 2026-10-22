@@ -7,14 +7,15 @@ import DesignPreview from '../../components/DesignPreview';
 import OrderDesignDetails, { ReferenceFile } from '../../components/admin/OrderDesignDetails';
 import OrderBilling from '../../components/OrderBilling';
 import ProductionProgress from '../../components/admin/ProductionProgress';
+import ClientMaterialsPanel from '../../components/admin/ClientMaterialsPanel';
 import { savedDesignName } from '../../utils/designName';
 import { NavIcon, StatusChip, AlertBanner } from '../../components/ui';
-import { canAccessArea, readAdminUser, isOwner } from '../../utils/jobAccess';
+import { canAccessArea, readAdminUser, isAdmin } from '../../utils/jobAccess';
 import { Panel, StatusPill, Meter, EmptyBlock, Toast, useToast, useIsMobile } from '../../components/admin/AdminUI';
 
 function getIsManager() {
   try {
-    return (JSON.parse(localStorage.getItem('vfrb_user') || '{}').role) === 'manager';
+    return isAdmin();
   } catch { return false; }
 }
 
@@ -280,7 +281,7 @@ function StaffCheck({ rec, setToast, onSaved }) {
     } finally { setBusy(false); }
   };
   const v = rec.staff_feedback;
-  if (isOwner()) return <span style={{ color:'var(--text-subtle)' }}>{v === 'accept' ? 'Suits' : v === 'reject' ? 'Wrong pick' : '—'}</span>;
+  if (!getIsManager()) return <span style={{ color:'var(--text-subtle)' }}>{v === 'accept' ? 'Suits' : v === 'reject' ? 'Wrong pick' : '—'}</span>;
   return (
     <div className="adm-verdict" role="group" aria-label={`Staff check for ${rec.material_name ?? 'material'}`}>
       <button type="button" className={`adm-btn${v === 'accept' ? ' on ok' : ''}`} disabled={busy} aria-pressed={v === 'accept'}
@@ -296,6 +297,7 @@ const jump = (sel) => document.querySelector(sel)?.scrollIntoView({ behavior: 's
 
 // One clear "what do I do now" card for the manager: proposal, customer reply, down payment, production.
 function NextAction({ order }) {
+  const navigate = useNavigate();
   if (order.status === 'cancelled') return null;
   const ps = order.proposal_status;
   const dpDone = !!order.down_payment_received_at || order.order_type === 'subcontract';
@@ -311,8 +313,11 @@ function NextAction({ order }) {
       : 'Set the promised date (at least 7 days out) and the total, add a note, then send your proposal.',
     'Waiting for the customer to accept or decline. You can message them from here.',
     'The customer accepted. Record the down payment so production can start.',
-    finished ? 'Order complete.' : 'Production is open. Staff log output in the Output Log.',
+    finished ? 'Order complete.'
+      : confirmedOnly ? 'Down payment is in. Begin the Pattern stage in Production so staff can log output.'
+      : 'Production is open. Staff log output in the Output Log.',
   ][active];
+  const needsStart = active === 3 && confirmedOnly;
   return (
     <section className="adm-next" aria-label="Next action">
       <ol className="adm-next-steps">
@@ -331,6 +336,7 @@ function NextAction({ order }) {
         </div>
         {active === 0 && <button className="adm-btn primary" onClick={() => jump('#adm-prop-date')}>Open proposal form</button>}
         {active === 2 && <button className="adm-btn primary" onClick={() => jump('.adm-prop-dp')}>Record down payment</button>}
+        {needsStart && <button className="adm-btn primary" onClick={() => navigate(`/admin/production/${order.order_id}`)}>Open Production</button>}
       </div>
     </section>
   );
@@ -376,17 +382,17 @@ export default function AdminOrderDetail() {
     return () => { cancelled = true; };
   }, [id, attempt]);
 
-  const handleDownloadPdf = async () => {
+  const handleDownloadPdf = async (kind = 'invoice-pdf', name = `VFRB-Order-${order?.order_id}.pdf`) => {
     if (!order) return;
-    setDownloadingPdf(true);
+    setDownloadingPdf(kind);
     try {
-      const res = await axios.get(`/api/admin/orders/${order.order_id}/invoice-pdf`, {
+      const res = await axios.get(`/api/admin/orders/${order.order_id}/${kind}`, {
         responseType: 'blob',
       });
       const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
       const link = document.createElement('a');
       link.href = url;
-      link.download = `VFRB-Order-${order.order_id}.pdf`;
+      link.download = name;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -469,9 +475,15 @@ export default function AdminOrderDetail() {
               </button>
             )}
             {isManager && (
-              <button className="adm-btn" onClick={handleDownloadPdf} disabled={downloadingPdf}>
+              <button className="adm-btn" onClick={() => handleDownloadPdf()} disabled={!!downloadingPdf}>
                 <NavIcon name="download" size={14} color="currentColor" />
-                {downloadingPdf ? 'Generating…' : 'Order Summary (PDF)'}
+                {downloadingPdf === 'invoice-pdf' ? 'Generating…' : 'Order Summary (PDF)'}
+              </button>
+            )}
+            {isManager && hasStudioConfig && (
+              <button className="adm-btn" onClick={() => handleDownloadPdf('spec-sheet', `VFRB-Spec-Sheet-ORD-${order.order_id}.pdf`)} disabled={!!downloadingPdf}>
+                <NavIcon name="download" size={14} color="currentColor" />
+                {downloadingPdf === 'spec-sheet' ? 'Generating…' : 'Download spec sheet'}
               </button>
             )}
           </div>
@@ -555,7 +567,7 @@ export default function AdminOrderDetail() {
           </Panel>
 
           <Panel title="Delivery" style={{ order:6 }}
-            action={isOwner() ? null : <button className="adm-link-btn" onClick={() => navigate('/admin/delivery')}>Delivery →</button>}>
+            action={isManager ? <button className="adm-link-btn" onClick={() => navigate('/admin/delivery')}>Delivery →</button> : null}>
             <div className="adm-od-fields">
               <Field label="Customer Requested" value={fmtDay(order.target_delivery_date)}/>
               <Field label="Negotiated"       value={fmtDay(order.negotiated_delivery_date)}/>
@@ -563,7 +575,7 @@ export default function AdminOrderDetail() {
             </div>
           </Panel>
 
-          {!isOwner() && <Panel title="Communication" style={{ order:7 }}>
+          {isManager && <Panel title="Communication" style={{ order:7 }}>
             <button className="adm-btn" onClick={() => navigate(`/admin/messages?order=${order.order_id}`)} style={{ width:'100%', justifyContent:'center' }}>
               <NavIcon name="messages" size={14} color="currentColor" /> Message customer about #{order.order_id}
             </button>
@@ -577,7 +589,7 @@ export default function AdminOrderDetail() {
                 {savedDesignName(order.studio_config) && (
                   <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)', textAlign:'center', overflowWrap:'anywhere' }}>{savedDesignName(order.studio_config)}</div>
                 )}
-                <DesignPreview cfg={order.studio_config} height={isMobile ? 260 : 360} previewUrl={order.design_preview_url ?? null}/>
+                <DesignPreview cfg={order.studio_config} height={isMobile ? 260 : 360} previewUrl={order.design_preview_url ?? null} snapshot={order.design_3d_snapshot_url ?? null}/>
                 {order.design_preview_url && (
                   <a href={order.design_preview_url} target="_blank" rel="noopener noreferrer"
                     style={{ display:'flex', alignItems:'center', gap:5, fontSize:13, fontWeight:600,
@@ -600,6 +612,9 @@ export default function AdminOrderDetail() {
             <OrderDesignDetails order={order} />
           </Panel>
 
+          <ClientMaterialsPanel order={order} style={{ order:8 }} setToast={setToast}
+            canWrite={isManager} canMessage={isManager} />
+
           <Panel title="Material Recommendations" flush style={{ order:8 }}>
             {recs.length === 0 ? (
               <EmptyBlock>No material recommendations recorded yet.</EmptyBlock>
@@ -616,7 +631,9 @@ export default function AdminOrderDetail() {
                         <td>{rec.actual_qty_issued != null
                           ? <>{rec.actual_qty_issued} {rec.unit ?? rec.material?.unit ?? ''} <span style={{ color:'var(--text-subtle)', fontSize:12 }}>· {rec.issued_at ? 'issued at Cutting' : 'recorded, deducts at Cutting'}</span></>
                           : <span style={{ color:'var(--text-faint)' }}>Not yet recorded</span>}</td>
-                        <td style={{ color:'var(--text-subtle)' }}>{rec.material?.quantity_in_stock ?? '—'} {rec.material?.unit ?? ''}</td>
+                        <td style={{ color:'var(--text-subtle)' }}>{rec.material?.ownership === 'client'
+                          ? 'Client-supplied'
+                          : <>{rec.material?.quantity_in_stock ?? '—'} {rec.material?.unit ?? ''}</>}</td>
                       </tr>
                     ))}
                   </tbody>

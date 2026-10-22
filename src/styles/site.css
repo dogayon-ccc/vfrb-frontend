@@ -33,7 +33,7 @@
 .vs-dark :focus-visible { outline-color: var(--vs-mint); }
 
 .vs-page { background: var(--vs-paper); min-height: 100vh; overflow-x: clip; }
-.vs-wrap { width: 100%; max-width: none; margin-inline: auto; padding-inline: clamp(16px, 4vw, 40px); }
+.vs-wrap { width: 100%; max-width: 1320px; margin-inline: auto; padding-inline: clamp(16px, 4vw, 40px); }
 .vs-sec { padding-block: var(--vs-pad); }
 .vs-sec--tight { padding-block: clamp(32px, 4vw, 56px); }
 .vs-sec--flush { padding-top: 0; }
@@ -99,8 +99,6 @@
 .vs-nav a[aria-current='page'] { color: var(--vs-ink); font-weight: 700; }
 .vs-header__cta { display: none; align-items: center; gap: 10px; }
 .vs-header__cta .vs-btn { min-height: 44px; padding: 0 18px; }
-.vs-login { font-size: 15px; font-weight: 600; text-decoration: none; padding: 0 8px; min-height: 44px; display: inline-flex; align-items: center; color: var(--vs-ink-2); }
-.vs-login:hover { color: var(--vs-teal-deep); text-decoration: underline; text-underline-offset: 5px; }
 .vs-burger { width: 46px; height: 46px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
   background: transparent; border: 1.5px solid var(--vs-line); border-radius: 8px; cursor: pointer; color: var(--vs-ink); }
 .vs-burger span { display: block; width: 20px; height: 2px; background: currentColor; transition: transform var(--vs-t) var(--vs-ease), opacity var(--vs-t-fast); }
@@ -419,7 +417,7 @@ button.vs-member:hover { transform: translateY(-3px); box-shadow: 0 14px 28px rg
 .vs-brand { flex: none; white-space: nowrap; }
 .vs-brand small { display: none; }
 .vs-nav { gap: 2px; margin-inline: auto; }
-.vs-nav a, .vs-login, .vs-header__cta .vs-btn { white-space: nowrap; }
+.vs-nav a, .vs-header__cta .vs-btn { white-space: nowrap; }
 .vs-header__bar { gap: 16px; }
 @media (min-width: 480px) { .vs-brand small { display: block; } }
 @media (min-width: 1080px) and (max-width: 1279px) { .vs-brand small { display: none; } .vs-nav a { padding: 0 10px; font-size: 14.5px; } }
@@ -580,6 +578,9 @@ button.vs-member:hover { transform: translateY(-3px); box-shadow: 0 14px 28px rg
 .vs-serve li:nth-child(3) { background: var(--vs-teal-soft); }
 .vs-serve li:nth-child(4) { background: #fff; }
 .vs-head .vs-serve { margin: 6px 0 0; }
+.vs-types { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.vs-types li { display: flex; align-items: center; min-height: 72px; padding: 16px 18px; background: var(--vs-card); border: 1px solid var(--vs-line); border-top: 3px solid var(--vs-mint); border-radius: var(--vs-r); font-weight: 700; font-size: 16px; overflow-wrap: anywhere; }
+@media (min-width: 900px) { .vs-types { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; } }
 
 /* soft color blocks instead of flat bands */
 .vs-tint { background: var(--vs-mint-soft); }
@@ -641,7 +642,24 @@ button.vs-member:hover { transform: translateY(-3px); box-shadow: 0 14px 28px rg
   .vs-filters { -webkit-mask-image: linear-gradient(to right, #000 88%, transparent); mask-image: linear-gradient(to right, #000 88%, transparent); padding-right: 24px; }
 }
 
-/* wide screens: let the content column use the canvas */
+/* desktop: anchors clear the sticky header; short intro columns stay in view beside long lists */
+.vs [id] { scroll-margin-top: calc(var(--vs-header) + 24px); }
+.vs-pagehead .vs-h1 { max-width: 20ch; }
+@media (min-width: 900px) {
+  .vs-split--sticky { align-items: start; }
+  .vs-split--sticky > :first-child, .vs-faqgrid > .vs-stack { position: sticky; top: calc(var(--vs-header) + 32px); }
+  .vs-flow h3 { font-size: 18px; }
+  .vs-flow p { font-size: 16px; }
+}
+@media (min-width: 1080px) {
+  .vs-head:has(> .vs-lede) { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: end; column-gap: 64px; }
+}
+
+/* legal prose */
+.vs-prose { display: grid; gap: clamp(28px, 3vw, 40px); max-width: 72ch; }
+.vs-prose h2 { font-family: var(--vs-display); font-weight: 400; font-size: clamp(22px, 2.4vw, 28px); line-height: 1.2; margin-bottom: 10px; }
+.vs-prose p { font-size: 16px; line-height: 1.75; color: var(--vs-ink-2); text-wrap: pretty; }
+.vs-prose p + p { margin-top: 12px; }
 
 /* button feedback */
 .vs-btn { transition: transform var(--vs-t-fast) var(--vs-ease), box-shadow var(--vs-t) ease, background-color var(--vs-t-fast); }

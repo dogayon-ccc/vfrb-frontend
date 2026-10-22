@@ -4,7 +4,10 @@
 import { FlipHorizontal2, FlipVertical2, BringToFront, ArrowUp, ArrowDown, SendToBack } from 'lucide-react';
 import { FONTS, LEGACY_FONTS } from './dsShared';
 import { webFontFor, nearestWeight, numericWeight } from './studioFonts';
-import { clampCurve } from './overlayTools';
+import { clampCurve, gradientSpec, readGradient, readAdjust, adjustFilters, CLIP_KINDS, clipFor } from './overlayTools';
+
+// Fabric is already loaded once a selection exists; this resolves from the module cache.
+const withFabric = fn => import('fabric').then(m => fn(m.fabric ?? m.default ?? m));
 
 const HEX = /^#[0-9a-f]{6}$/i;
 const hexOr = (c, d) => (HEX.test(c ?? '') ? c : d);
@@ -31,6 +34,37 @@ function Seg({ label, items, value, onPick, disabled }) {
           onClick={() => onPick(id)}>{text}</button>
       ))}
     </div>
+  );
+}
+
+// Solid or two-colour gradient fill, for shapes and text. Solid returns to the gradient's first colour.
+function FillSection({ o, live, commit, locked, fallback }) {
+  const g = readGradient(o.fill), from = g?.from ?? hexOr(o.fill, fallback);
+  const paint = (f, t, d) => withFabric(fabric => live({ fill: new fabric.Gradient(gradientSpec(f, t, d)) }));
+  return (
+    <>
+      <Seg label="Fill style" value={g ? g.dir : 'solid'} disabled={locked}
+        onPick={k => (k === 'solid' ? (live({ fill: from }), commit()) : paint(from, g?.to ?? '#ffffff', k).then(commit))}
+        items={[['solid', 'Solid'], ['v', 'Gradient ↓', 'Vertical gradient'], ['h', 'Gradient →', 'Horizontal gradient']]}/>
+      {g && <Colour label="Gradient end" value={hexOr(g.to, '#ffffff')} disabled={locked} onLive={c => paint(g.from, c, g.dir)} onCommit={commit}/>}
+    </>
+  );
+}
+
+// Logos and artwork: brightness, contrast, greyscale and a crop shape. Fabric filters and clipPath, so they save and reach 3D.
+export function ImageStyleSection({ o, live, commit, locked }) {
+  const a = readAdjust(o), clip = o.__clip ?? 'none';
+  const adjust = next => withFabric(fabric => { o.set({ filters: adjustFilters(fabric, { ...a, ...next }) }); o.applyFilters(); live({}); });
+  return (
+    <>
+      <Range label={`Brightness ${a.b}`} value={a.b} min={-100} max={100} disabled={locked} onLive={b => adjust({ b })} onCommit={commit}/>
+      <Range label={`Contrast ${a.c}`} value={a.c} min={-100} max={100} disabled={locked} onLive={c => adjust({ c })} onCommit={commit}/>
+      <Seg label="Colour mode" value={a.grey ? 'grey' : 'colour'} disabled={locked} onPick={k => adjust({ grey: k === 'grey' }).then(commit)}
+        items={[['colour', 'Colour'], ['grey', 'Greyscale']]}/>
+      <p className="ds-group-label" style={{ marginTop: 12 }}>Crop shape</p>
+      <Seg label="Crop shape" value={clip} disabled={locked}
+        onPick={k => withFabric(fabric => { live({ clipPath: clipFor(fabric, k, o.width, o.height), __clip: k }); commit(); })} items={CLIP_KINDS}/>
+    </>
   );
 }
 
@@ -78,6 +112,8 @@ export function TextStyleSection({ o, set, live, commit, locked }) {
         onLive={v => live({ __curve: v })} onCommit={commit}/>
       {curve !== 0 && <p className="ds-ins-note">Curved text is edited in the Content box above.</p>}
 
+      <FillSection o={o} live={live} commit={commit} locked={locked} fallback="#000000"/>
+
       <p className="ds-group-label" style={{ marginTop: 12 }}>Outline &amp; shadow</p>
       <Range label={`Outline ${outline ? `${outline}px` : 'off'}`} value={outline} min={0} max={8} step={0.5} disabled={locked}
         onLive={v => live({ strokeWidth: v, stroke: v ? hexOr(o.stroke, '#000000') : null, paintFirst: 'stroke', strokeLineJoin: 'round' })} onCommit={commit}/>
@@ -93,7 +129,9 @@ export function ShapeStyleSection({ o, live, commit, locked }) {
   const stroke = o.strokeWidth ?? 0;
   return (
     <>
-      {!isLine && <Colour label="Fill" value={hexOr(o.fill, '#02c39a')} disabled={locked} onLive={c => live({ fill: c })} onCommit={commit}/>}
+      {!isLine && <Colour label={readGradient(o.fill) ? 'Gradient start' : 'Fill'} value={readGradient(o.fill)?.from ?? hexOr(o.fill, '#02c39a')} disabled={locked}
+        onLive={c => { const g = readGradient(o.fill); g ? withFabric(f => live({ fill: new f.Gradient(gradientSpec(c, g.to, g.dir)) })) : live({ fill: c }); }} onCommit={commit}/>}
+      {!isLine && <FillSection o={o} live={live} commit={commit} locked={locked} fallback="#02c39a"/>}
       <Colour label={isLine ? 'Colour' : 'Border colour'} value={hexOr(o.stroke, '#000000')} disabled={locked}
         onLive={c => live({ stroke: c, ...(!isLine && !stroke && { strokeWidth: 2 }) })} onCommit={commit}/>
       <Range label={`${isLine ? 'Thickness' : 'Border'} ${stroke ? `${stroke}px` : 'none'}`} value={stroke} min={isLine ? 1 : 0} max={isLine ? 24 : 12} step={0.5}

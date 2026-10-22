@@ -2,8 +2,9 @@
 // The one status chip (U1). Every status renders as label + icon + colour,
 // never colour alone. Five groups: pending (amber), in production (blue),
 // ready (teal), delivered/done (green), problem/cancelled (red).
+// kind="stock" maps stock levels (admin only) onto ok/low/out. Exported as StatusBadge too.
 // Styles: .status-chip in styles/theme.css.
-import { Clock, Cog, PackageCheck, CheckCircle2, AlertOctagon, Circle } from 'lucide-react';
+import { Clock, Cog, PackageCheck, CheckCircle2, AlertOctagon, Circle, AlertTriangle, PackageX } from 'lucide-react';
 
 const GROUP = {
   pending:  { cls: 'pending',  Icon: Clock },
@@ -12,6 +13,13 @@ const GROUP = {
   done:     { cls: 'done',     Icon: CheckCircle2 },
   problem:  { cls: 'problem',  Icon: AlertOctagon },
   neutral:  { cls: '',         Icon: Circle },
+  'stock-ok':  { cls: 'stock-ok',  Icon: PackageCheck },
+  'stock-low': { cls: 'stock-low', Icon: AlertTriangle },
+  'stock-out': { cls: 'stock-out', Icon: PackageX },
+};
+
+const STOCK_GROUP = {
+  ok: 'stock-ok', in_stock: 'stock-ok', low: 'stock-low', low_stock: 'stock-low', out: 'stock-out', out_of_stock: 'stock-out',
 };
 
 const STATUS_GROUP = {
@@ -32,8 +40,9 @@ export const statusGroup = (status) => STATUS_GROUP[String(status ?? '').toLower
 
 const prettify = (s) => String(s ?? '').replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
 
-export default function StatusChip({ status, label, group, size = 14, className = '' }) {
-  const g = GROUP[group ?? statusGroup(status)] ?? GROUP.neutral;
+export default function StatusChip({ status, label, group, kind, size = 14, className = '' }) {
+  const key = String(status ?? '').toLowerCase();
+  const g = GROUP[group ?? (kind === 'stock' ? STOCK_GROUP[key] : statusGroup(status))] ?? GROUP.neutral;
   const { Icon } = g;
   return (
     <span className={`status-chip ${g.cls} ${className}`.trim()}>

@@ -94,3 +94,8 @@ export function panLimits({ w, h, scale, viewW, viewH, margin = PAN_MARGIN }) {
   return { x: over(w, viewW), y: over(h, viewH) };
 }
 export const clampPan = (p, lim) => ({ x: Math.max(-lim.x, Math.min(lim.x, p.x)) || 0, y: Math.max(-lim.y, Math.min(lim.y, p.y)) || 0 });
+// Rotation snap: within `tol` degrees of a multiple of `step` the angle locks to it (0..359).
+export function snapAngle(angle, step = 15, tol = 3) {
+  const a = ((angle % 360) + 360) % 360, n = Math.round(a / step) * step;
+  return Math.abs(a - n) <= tol ? n % 360 : a;
+}

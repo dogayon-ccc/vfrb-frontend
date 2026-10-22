@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { NavIcon } from '../../components/ui/icons';
 import { PageHeader, StatusPill, SearchBox, SkeletonRows, ErrorBlock } from '../../components/admin/AdminUI';
+import { announceMessagesRead } from '../../hooks/useUnreadMessages';
+import { useKeyboardInset } from '../../hooks/useKeyboardInset';
 
 const timeOf = (m) => m.sent_at ?? m.created_at;
 const ago = (d) => {
@@ -38,8 +40,9 @@ export default function AdminMessages() {
   const [sending, setSending] = useState(false);
   const [search, setSearch] = useState('');
   const [unreadOnly, setUnreadOnly] = useState(false);
-  const msgEnd = useRef(null);
+  const feedRef = useRef(null);
   const meId = JSON.parse(localStorage.getItem('vfrb_user') || '{}')?.user_id;
+  useKeyboardInset();
 
   const loadThreads = useCallback(async () => {
     try {
@@ -58,7 +61,11 @@ export default function AdminMessages() {
     } catch { setMsgErr(true); }
   }, [selId]);
 
-  useEffect(() => { loadThreads(); }, [loadThreads]);
+  useEffect(() => {
+    loadThreads();
+    const iv = setInterval(loadThreads, 60000);
+    return () => clearInterval(iv);
+  }, [loadThreads]);
 
   // Deep link from Order Detail (?order=ID): threads only exist once someone has
   // messaged, so for an order with no thread yet, build the header from the real order.
@@ -77,11 +84,13 @@ export default function AdminMessages() {
     () => (draftThread && !threads.some((t) => (t.order_id ?? t.id) === draftThread.order_id) ? [draftThread, ...threads] : threads),
     [threads, draftThread]);
   useEffect(() => {
-    setMsgs([]); loadMsgs();
+    setMsgs([]); loadMsgs().then(() => selId && announceMessagesRead());
     const iv = setInterval(loadMsgs, 60000);
     return () => clearInterval(iv);
-  }, [loadMsgs]);
-  useEffect(() => { msgEnd.current?.scrollIntoView({ block: 'end' }); }, [msgs]);
+  }, [loadMsgs]); // eslint-disable-line react-hooks/exhaustive-deps
+  const scrollToNewest = () => { const el = feedRef.current; if (el) el.scrollTop = el.scrollHeight; };
+  // Scroll only the feed; scrollIntoView also moved the page.
+  useEffect(scrollToNewest, [msgs.length, selId]);
 
   const send = async () => {
     const body = newMsg.trim();
@@ -174,7 +183,7 @@ export default function AdminMessages() {
             ) : <span style={{ fontWeight: 700, color: 'var(--text-subtle)' }}>Select a conversation</span>}
           </header>
 
-          <div className="msg-feed" aria-live="polite">
+          <div className="msg-feed" ref={feedRef} aria-live="polite">
             {!selId ? (
               <div className="adm-empty" style={{ margin: 'auto' }}><NavIcon name="chat" size={34} color="currentColor" /><div style={{ marginTop: 8 }}>Choose a conversation from the list</div></div>
             ) : msgErr && msgs.length === 0 ? (
@@ -192,13 +201,13 @@ export default function AdminMessages() {
                 </div>
               </div>
             ))}
-            <div ref={msgEnd} />
           </div>
 
           {sendErr && <div className="msg-senderr" role="alert"><NavIcon name="warning" size={14} color="currentColor" /> Message not sent — your text was restored. Try again.</div>}
           <div className="msg-compose">
             <textarea rows={1} value={newMsg} disabled={!selId} aria-label="Reply to customer"
               onChange={(e) => { setNewMsg(e.target.value); setSendErr(false); }}
+              onFocus={() => setTimeout(scrollToNewest, 300)}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
               placeholder={selId ? 'Reply to customer… (Enter to send, Shift+Enter for new line)' : 'Select a conversation'} />
             <button className="adm-btn primary" onClick={send} disabled={sending || !newMsg.trim() || !selId} aria-label="Send message">

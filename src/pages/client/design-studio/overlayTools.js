@@ -60,7 +60,14 @@ export async function reviveOverlays(objs) {
 // ── Shapes ────────────────────────────────────────────────────────────────
 // __shapeKind tells polygons apart (star, polygon, arrow all have Fabric type 'polygon') and rect from rounded rect.
 export const SHAPE_KIND_LABEL = { rect: 'Rectangle', roundrect: 'Rounded rectangle', circle: 'Circle', ellipse: 'Ellipse', triangle: 'Triangle',
-  star: 'Star', polygon: 'Hexagon', line: 'Line', arrow: 'Arrow' };
+  star: 'Star', polygon: 'Hexagon', line: 'Line', arrow: 'Arrow', heart: 'Heart', badge: 'Badge', bubble: 'Speech bubble', ribbon: 'Ribbon' };
+// Path shapes in a 24-unit box: the panel draws them as glyphs, the canvas scales them up.
+export const SHAPE_PATHS = {
+  heart: 'M12 21C12 21 3 15 3 8.8C3 5.6 5.5 3.5 8.2 3.5C10 3.5 11.3 4.5 12 5.8C12.7 4.5 14 3.5 15.8 3.5C18.5 3.5 21 5.6 21 8.8C21 15 12 21 12 21Z',
+  badge: 'M12 2L20 5V11C20 16.5 16.4 20.4 12 22C7.6 20.4 4 16.5 4 11V5Z',
+  bubble: 'M4 4H20Q22 4 22 6V15Q22 17 20 17H10L5 21V17H4Q2 17 2 15V6Q2 4 4 4Z',
+  ribbon: 'M1 8H6V6H18V8H23L20 12L23 16H18V18H6V16H1L4 12Z',
+};
 const TYPE_LABEL = { rect: 'Rectangle', circle: 'Circle', triangle: 'Triangle', ellipse: 'Ellipse', line: 'Line', polygon: 'Star' };
 export const shapeLabel = o => SHAPE_KIND_LABEL[o?.__shapeKind] ?? TYPE_LABEL[o?.type] ?? 'Shape';
 
@@ -73,6 +80,7 @@ const ARROW = [[0, 14], [56, 14], [56, 0], [84, 24], [56, 48], [56, 34], [0, 34]
 // common: position, colour, tags. Stroke stays the same width when the shape is resized (strokeUniform).
 export function makeShape(fabric, kind, common, color) {
   const c = { ...common, strokeUniform: true, __shapeKind: kind, __layerName: SHAPE_KIND_LABEL[kind] ?? 'Shape' };
+  if (SHAPE_PATHS[kind]) return new fabric.Path(SHAPE_PATHS[kind], { ...c, scaleX: 2.8, scaleY: 2.8 });
   switch (kind) {
     case 'circle':    return new fabric.Circle({ ...c, radius: 32 });
     case 'ellipse':   return new fabric.Ellipse({ ...c, rx: 38, ry: 24 });
@@ -84,6 +92,33 @@ export function makeShape(fabric, kind, common, color) {
     case 'roundrect': return new fabric.Rect({ ...c, width: 72, height: 56, rx: 12, ry: 12 });
     default:          return new fabric.Rect({ ...c, width: 64, height: 64 });
   }
+}
+
+// Two-colour linear fill in the element's own box (percentage units), so it follows resize, flip and rotation.
+export const gradientSpec = (from, to, dir = 'v') => ({ type: 'linear', gradientUnits: 'percentage',
+  coords: dir === 'h' ? { x1: 0, y1: 0, x2: 1, y2: 0 } : { x1: 0, y1: 0, x2: 0, y2: 1 },
+  colorStops: [{ offset: 0, color: from }, { offset: 1, color: to }] });
+export const readGradient = fill => (fill?.colorStops?.length >= 2
+  ? { from: fill.colorStops[0].color, to: fill.colorStops[fill.colorStops.length - 1].color, dir: fill.coords?.x2 > 0 ? 'h' : 'v' } : null);
+
+// Image adjustments as Fabric filters: saved in the design JSON and re-applied on load. b and c run -100..100.
+export const readAdjust = o => {
+  const f = o?.filters ?? [], get = t => f.find(x => x?.type === t);
+  return { b: Math.round((get('Brightness')?.brightness ?? 0) * 100), c: Math.round((get('Contrast')?.contrast ?? 0) * 100), grey: !!get('Grayscale') };
+};
+export function adjustFilters(fabric, { b = 0, c = 0, grey = false }) {
+  const F = fabric.filters;
+  return [b && new F.Brightness({ brightness: b / 100 }), c && new F.Contrast({ contrast: c / 100 }), grey && new F.Grayscale()].filter(Boolean);
+}
+
+// Crop an image to a shape: a clipPath centred on the element, saved with it. __clip names the shape for the panel.
+export const CLIP_KINDS = [['none', 'None'], ['circle', 'Circle'], ['rounded', 'Rounded'], ['heart', 'Heart']];
+export function clipFor(fabric, kind, w, h) {
+  const s = Math.min(w, h), at = { originX: 'center', originY: 'center', left: 0, top: 0 };
+  if (kind === 'circle') return new fabric.Circle({ ...at, radius: s / 2 });
+  if (kind === 'rounded') return new fabric.Rect({ ...at, width: w, height: h, rx: s / 6, ry: s / 6 });
+  if (kind === 'heart') return new fabric.Path(SHAPE_PATHS.heart, { ...at, scaleX: s / 18, scaleY: s / 18 });
+  return undefined;
 }
 
 // ── Pockets ───────────────────────────────────────────────────────────────

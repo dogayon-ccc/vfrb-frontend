@@ -131,26 +131,17 @@ export default function AdminInvoice() {
 
       <div style={{ background:'var(--bg-card)', borderRadius:'var(--r-lg)', border:'1px solid var(--border)',
         padding:'20px', marginBottom:24, boxShadow:'var(--shadow-xs)' }}>
-        <p style={{ fontSize:12, fontWeight:700, color:'var(--text-subtle)', textTransform:'uppercase',
-          letterSpacing:'.07em', marginBottom:10 }}>Order ID</p>
+        <label htmlFor="inv-order-id" className="adm-field" style={{ display:'block', marginBottom:10 }}>Order ID</label>
         <div style={{ display:'flex', flexWrap:'wrap', gap:10 }}>
-          <input type="number" value={orderId} onChange={e => setOrderId(e.target.value)}
+          <input id="inv-order-id" className="adm-input" type="number" inputMode="numeric" value={orderId} onChange={e => setOrderId(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && fetchOrder()}
             placeholder="Enter order ID (e.g. 42)"
-            style={{ flex:'1 1 160px', minWidth:0, padding:'10px 14px', borderRadius:'var(--r-md)', border:'1px solid var(--border)',
-              background:'var(--bg)', color:'var(--ink)', fontSize:13, outline:'none',
-              fontFamily:'var(--font)' }}
-            onFocus={e => { e.target.style.borderColor='var(--teal)'; e.target.style.boxShadow='0 0 0 3px rgba(2,128,144,0.1)'; }}
-            onBlur={e => { e.target.style.borderColor='var(--border)'; e.target.style.boxShadow='none'; }}/>
-          <motion.button whileHover={{ scale:1.02 }} whileTap={{ scale:.97 }}
-            onClick={fetchOrder} disabled={loading}
-            style={{ display:'flex', alignItems:'center', justifyContent:'center', flex:'1 0 auto', gap:6, padding:'10px 24px', borderRadius:'var(--r-md)', border:'none', whiteSpace:'nowrap',
-              background:'linear-gradient(135deg,var(--teal),var(--teal-2))',
-              color:'#fff', fontSize:13, fontWeight:700, cursor: loading ? 'not-allowed' : 'pointer',
-              fontFamily:'var(--font)', opacity: loading ? .7 : 1 }}>
-            <NavIcon name={loading ? 'loading' : 'search'} size={14} color="#fff" style={loading ? { animation:'inv-spin .8s linear infinite' } : undefined} />
+            style={{ flex:'1 1 160px', minWidth:0, width:'auto' }}/>
+          <button className="adm-btn primary" onClick={fetchOrder} disabled={loading}
+            style={{ flex:'1 0 auto', justifyContent:'center' }}>
+            <NavIcon name={loading ? 'loading' : 'search'} size={14} color="currentColor" style={loading ? { animation:'inv-spin .8s linear infinite' } : undefined} />
             {loading ? 'Loading…' : 'Load Order'}
-          </motion.button>
+          </button>
         </div>
         {error && (
           <p style={{ display:'flex', alignItems:'center', gap:6, color:'var(--danger-text)', fontSize:12, marginTop:10, fontWeight:600 }}>
@@ -252,8 +243,8 @@ export default function AdminInvoice() {
                   ['Garment',   order.design?.design_name ?? order.garment_type ?? '—'],
                   ['Color',     order.color ?? '—'],
                   ['Quantity',  `${order.quantity_ordered ?? 0} pcs`],
-                  ['Deadline',  (order.negotiated_delivery_date || order.target_delivery_date)
-                    ? new Date(order.negotiated_delivery_date || order.target_delivery_date).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})
+                  ['Deadline',  (order.promised_date || order.negotiated_delivery_date || order.target_delivery_date)
+                    ? new Date(order.promised_date || order.negotiated_delivery_date || order.target_delivery_date).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})
                     : 'N/A'],
                   ['PO Ref',    order.po_reference ?? 'N/A'],
                 ].map(([label, val]) => (
@@ -297,7 +288,7 @@ export default function AdminInvoice() {
                 <div className="inv-bom-wrap"><table>
                   <thead>
                     <tr style={{ background:'var(--bg)' }}>
-                      {['Material','Unit','Actual Used','In Stock','Status'].map(h => (
+                      {['Material','Unit','Actual Used'].map(h => (
                         <th key={h} style={{ padding:'8px 12px', textAlign:'left',
                           fontSize:10, fontWeight:700, color:'var(--text-subtle)',
                           textTransform:'uppercase', letterSpacing:'.05em',
@@ -307,8 +298,6 @@ export default function AdminInvoice() {
                   </thead>
                   <tbody>
                     {recs.map((rec, i) => {
-                      const inStock = rec.material?.quantity_in_stock ?? 0;
-                      const hasStock = inStock > 0;
                       return (
                         <tr key={i} style={{ borderBottom:'1px solid var(--bg-surface)' }}>
                           <td style={{ padding:'9px 12px', color:'var(--ink)', fontSize:13,
@@ -318,18 +307,6 @@ export default function AdminInvoice() {
                           </td>
                           <td style={{ padding:'9px 12px', color:'var(--ink)', fontSize:13,
                             fontWeight:600 }}>{rec.actual_qty_issued != null ? `${rec.actual_qty_issued}${rec.issued_at ? '' : ' (not yet issued)'}` : 'Not yet recorded'}</td>
-                          <td style={{ padding:'9px 12px', color:'var(--ink)', fontSize:12 }}>
-                            {inStock > 0 ? inStock : '—'}
-                          </td>
-                          <td style={{ padding:'9px 12px' }}>
-                            <span style={{ display:'inline-flex', alignItems:'center', gap:4, padding:'3px 10px', borderRadius:'var(--r-full)', fontSize:10,
-                              fontWeight:700,
-                              background: hasStock ? 'var(--success-bg)' : 'var(--warning-bg)',
-                              color: hasStock ? 'var(--success-text)' : 'var(--warning-text)' }}>
-                              <NavIcon name={hasStock ? 'success' : 'warning'} size={10} color={hasStock ? 'var(--success)' : 'var(--warning)'} />
-                              {hasStock ? 'In Stock' : 'Check Stock'}
-                            </span>
-                          </td>
                         </tr>
                       );
                     })}

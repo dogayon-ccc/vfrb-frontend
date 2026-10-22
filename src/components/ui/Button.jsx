@@ -38,59 +38,27 @@
 import { motion } from 'framer-motion';
 import { NavIcon } from './icons';
 
-const VARIANTS = {
-  primary: {
-    base: 'linear-gradient(135deg, var(--teal), var(--teal-2))',
-    color: 'var(--on-teal)', border: 'none', shadow: 'var(--shadow-teal)',
-  },
-  secondary: {
-    base: 'var(--bg-card)', color: 'var(--ink)',
-    border: '1px solid var(--border)', shadow: 'none',
-  },
-  ghost: {
-    base: 'transparent', color: 'var(--teal)', border: 'none', shadow: 'none',
-  },
-  danger: {
-    base: '#b91c1c', color: '#fff', border: 'none',
-    shadow: '0 4px 14px rgba(185,28,28,.22)',
-  },
-};
-
-const SIZES = {
-  sm: { padding: '7px 12px', fontSize: 12, minHeight: 36 },
-  md: { padding: '11px 16px', fontSize: 13, minHeight: 44 },
-  lg: { padding: '13px 20px', fontSize: 14, minHeight: 48 },
-};
-
+// Look lives in .ui-btn[data-v][data-size] (styles/theme.css) so a shell can theme it; `style` still overrides.
 export default function Button({
   children, variant = 'secondary', size = 'md', icon, iconRight,
   loading = false, disabled = false, fullWidth = false,
-  onClick, type = 'button', style,
+  onClick, type = 'button', style, className = '', ...rest
 }) {
-  const v = VARIANTS[variant] ?? VARIANTS.secondary;
-  const s = SIZES[size] ?? SIZES.md;
   const isDisabled = disabled || loading;
-
   return (
     <motion.button
-      className="ui-btn"
+      {...rest}
+      className={`ui-btn ${className}`.trim()}
+      data-v={variant}
+      data-size={size}
+      data-full={fullWidth || undefined}
       type={type}
       onClick={onClick}
       disabled={isDisabled}
+      aria-busy={loading || undefined}
       whileHover={isDisabled ? {} : { scale: 1.01 }}
       whileTap={isDisabled ? {} : { scale: 0.97 }}
-      style={{
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-        width: fullWidth ? '100%' : 'auto',
-        padding: s.padding, fontSize: s.fontSize, minHeight: s.minHeight,
-        borderRadius: 'var(--r-md)', fontWeight: 700,
-        background: isDisabled && variant === 'primary' ? 'var(--border-strong)' : v.base,
-        color: v.color, border: v.border,
-        boxShadow: isDisabled ? 'none' : v.shadow,
-        cursor: isDisabled ? 'not-allowed' : 'pointer',
-        transition: 'filter .15s',
-        ...style,
-      }}>
+      style={style}>
       {loading
         ? <NavIcon name="undo" size={14} style={{ animation: 'spin .8s linear infinite' }} />
         : icon && <NavIcon name={icon} size={14} />}

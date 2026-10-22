@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { NavIcon } from '../../components/ui/icons';
 import { checkUpload } from '../../utils/fileCheck';
@@ -10,10 +10,6 @@ import ProfilePhotoField from '../../components/ProfilePhotoField';
 import AppearanceField from '../../components/AppearanceField';
 import { readUser } from '../../utils/authRoute';
 
-function getIsManager() {
-  try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}').role === 'manager'; } catch { return false; }
-}
-
 const NOTIFY = [
   { key: 'email_enabled', live: 'email_provider_live', label: 'Email notifications', icon: 'email', note: 'Order updates, AI recommendations ready, and account alerts.',
     warn: 'The mail server is a test inbox, so no real email is sent yet. Your preference is saved for when VFRB connects its mail provider.' },
@@ -22,7 +18,7 @@ const NOTIFY = [
 const Field = ({ label, id, children }) => (<div><label className="adm-field" htmlFor={id}>{label}</label>{children}</div>);
 
 const BLANK_PW = { current_password: '', password: '', password_confirmation: '' };
-// The signed-in staff member's or manager's own password (PUT /api/admin/profile/password; same rules as customers).
+// The signed-in admin's own password (PUT /api/admin/profile/password; same rules as customers).
 function PasswordPanel({ setToast }) {
   const [pw, setPw] = useState(BLANK_PW);
   const [busy, setBusy] = useState(false);
@@ -39,29 +35,29 @@ function PasswordPanel({ setToast }) {
     finally { setBusy(false); }
   };
   return (
-    <Panel title="Password">
-      <p className="adm-sub" style={{ marginTop: -6 }}>Change the password you sign in with. {PASSWORD_RULE_TEXT}</p>
+    <Panel title="Password" subtitle={`Change the password you sign in with. ${PASSWORD_RULE_TEXT}`}
+      action={<button className="adm-btn primary" onClick={save} disabled={busy}>{busy ? 'Changing…' : 'Change password'}</button>}>
       <div className="set-form">
-        <Field label="Current password" id="pw-current"><input id="pw-current" className="adm-input" type="password" autoComplete="current-password" value={pw.current_password} onChange={set('current_password')} /></Field>
-        <Field label="New password" id="pw-new"><input id="pw-new" className="adm-input" type="password" autoComplete="new-password" value={pw.password} onChange={set('password')} aria-describedby="pw-strength" /></Field>
+        <div className="set-grid">
+          <Field label="Current password" id="pw-current"><input id="pw-current" className="adm-input" type="password" autoComplete="current-password" value={pw.current_password} onChange={set('current_password')} /></Field>
+        </div>
+        <div className="set-grid">
+          <Field label="New password" id="pw-new"><input id="pw-new" className="adm-input" type="password" autoComplete="new-password" value={pw.password} onChange={set('password')} aria-describedby="pw-strength" /></Field>
+          <Field label="Confirm new password" id="pw-confirm"><input id="pw-confirm" className="adm-input" type="password" autoComplete="new-password" value={pw.password_confirmation} onChange={set('password_confirmation')} /></Field>
+        </div>
         {pw.password && (
           <div id="pw-strength" aria-live="polite" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ flex: 1 }}><Meter pct={level * 25} tone={level >= 4 ? 'ok' : undefined} label="Password strength" /></div>
             <span className="adm-sub" style={{ margin: 0, minWidth: 48 }}>{levelLabel(level)}</span>
           </div>
         )}
-        <Field label="Confirm new password" id="pw-confirm"><input id="pw-confirm" className="adm-input" type="password" autoComplete="new-password" value={pw.password_confirmation} onChange={set('password_confirmation')} /></Field>
         {err && <p role="alert" style={{ margin: 0, fontSize: 13, color: 'var(--danger-text)' }}>{err}</p>}
-      </div>
-      <div className="adm-actionbar" style={{ marginTop: 18 }}>
-        <button className="adm-btn primary" onClick={save} disabled={busy}>{busy ? 'Changing…' : 'Change password'}</button>
       </div>
     </Panel>
   );
 }
 
 export default function Settings() {
-  const isManager = getIsManager();
   const [company, setCompany] = useState({ company_name: '', logo_url: null, address: '', contact_number: '', contact_email: '' });
   const [saved, setSaved] = useState(null);
   const [companyLoading, setCompanyLoading] = useState(true);
@@ -126,115 +122,145 @@ export default function Settings() {
     finally { setPrefsBusy(false); }
   };
 
-  const ro = !isManager;
-  const bind = (k) => ({ id: `set-${k}`, className: 'adm-input', value: company[k] ?? '', disabled: ro, autoComplete: 'off', onChange: (e) => setField(k, e.target.value) });
+  const bind = (k) => ({ id: `set-${k}`, className: 'adm-input', value: company[k] ?? '', autoComplete: 'off', onChange: (e) => setField(k, e.target.value) });
+  // Saved value is empty: say so, so an example placeholder is never mistaken for real data.
+  const unset = (k) => !String(saved?.[k] ?? '').trim() && !String(company[k] ?? '').trim()
+    ? <span className="set-unset">{k === 'address' ? 'Not set yet: invoices and receipts print the old default address.' : 'Not set yet: left off invoices and receipts.'}</span> : null;
+
+  const sections = [
+    ['company', 'settings', 'Company'], ['profile', 'profile', 'Your profile'], ['notify', 'notifications', 'Notifications'],
+    ['password', 'lock', 'Password'], ['ai', 'ai', 'AI guidance'], ['users', 'users', 'User Management'],
+  ];
+  // One section at a time; ?tab= keeps it linkable and Back-able.
+  const [params, setParams] = useSearchParams();
+  const tab = sections.some(([k]) => k === params.get('tab')) ? params.get('tab') : 'company';
+  const pick = (k) => setParams(k === 'company' ? {} : { tab: k });
+  const onTabKey = (e) => {
+    const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    const n = sections[(sections.findIndex(([k]) => k === tab) + step + sections.length) % sections.length][0];
+    pick(n); document.getElementById(`set-tab-${n}`)?.focus();
+  };
+  // Fade only the edge that has more tabs past it, so no label is ever hidden at the end of the strip.
+  const navRef = useRef(null);
+  const [fade, setFade] = useState('none');
+  const measure = useCallback(() => {
+    const el = navRef.current;
+    if (!el) return;
+    const left = el.scrollLeft > 2, right = el.scrollLeft + el.clientWidth < el.scrollWidth - 2;
+    setFade(left && right ? 'both' : left ? 'left' : right ? 'right' : 'none');
+  }, []);
+  useEffect(() => {
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [measure]);
+  useEffect(() => {
+    document.getElementById(`set-tab-${tab}`)?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'auto' });
+  }, [tab]);
+
+  const saveActions = dirty && (
+    <div className="set-save">
+      <span className="set-tag warn">Unsaved changes</span>
+      <button className="adm-btn" onClick={() => setCompany(saved)} disabled={companyBusy}>Discard</button>
+      <button className="adm-btn primary" onClick={saveCompany} disabled={companyBusy}>{companyBusy ? 'Saving…' : 'Save changes'}</button>
+    </div>
+  );
 
   return (
-    <>
+    <div className="set-wrap">
       <Toast toast={toast} />
-      <PageHeader title="System Settings" sub={isManager ? 'Company identity, your notification preferences, and user management.' : 'View only — a manager can edit company settings.'} />
-      {ro && <Banner tone="info" icon="lock">You have view access. Company info and the logo can only be changed by a manager.</Banner>}
+      <PageHeader title="Settings" sub="Company identity, your account and system preferences." />
 
       <div className="set-layout">
-        <nav className="set-nav" aria-label="Settings sections">
-          <a href="#set-company"><NavIcon name="settings" size={15} color="currentColor" /> Company</a>
-          <a href="#set-profile"><NavIcon name="profile" size={15} color="currentColor" /> Your profile</a>
-          <a href="#set-notify"><NavIcon name="notifications" size={15} color="currentColor" /> Notifications</a>
-          <a href="#set-password"><NavIcon name="lock" size={15} color="currentColor" /> Password</a>
-          {isManager && <a href="#set-ai"><NavIcon name="ai" size={15} color="currentColor" /> AI guidance</a>}
-          {isManager && <a href="#set-users"><NavIcon name="users" size={15} color="currentColor" /> Users</a>}
+        <nav ref={navRef} className="set-nav" data-fade={fade} onScroll={measure} role="tablist" aria-label="Settings sections" onKeyDown={onTabKey}>
+          {sections.map(([k, icon, label]) => (
+            <button key={k} id={`set-tab-${k}`} type="button" role="tab" aria-selected={tab === k} aria-controls="set-panel" tabIndex={tab === k ? 0 : -1}
+              className={tab === k ? 'on' : undefined} onClick={() => pick(k)}>
+              <NavIcon name={icon} size={16} color="currentColor" /> {label}
+            </button>
+          ))}
         </nav>
 
-        <div className="adm-stack">
-          <div id="set-company" className="set-anchor">
-            <Panel title="Company info & branding" action={dirty && isManager ? <span className="adm-pill" style={{ background: 'var(--warning-bg)', color: 'var(--warning-text)' }}>Unsaved changes</span> : null}>
-              <p className="adm-sub" style={{ marginTop: -6 }}>VFRB Enterprise's identity, shown across the admin and customer portals.</p>
+        <div className="set-main" id="set-panel" role="tabpanel" aria-labelledby={`set-tab-${tab}`}>
+          {tab === 'company' && (
+            <Panel title="Company info & branding" subtitle="VFRB Enterprise's identity, shown across the admin and customer portals." action={saveActions || null}>
               {companyLoading ? <SkeletonRows rows={4} h={40} /> : companyErr ? (
                 <Banner tone="warn" icon="warning" action={<button className="adm-btn" onClick={loadCompany}>Retry</button>}>Could not load company settings.</Banner>
               ) : (
-                <>
+                <div className="set-company">
                   <div className="set-logo">
                     <div className="set-logo-box">
                       {company.logo_url ? <img src={company.logo_url} alt="Company logo" /> : <span>No logo</span>}
                     </div>
                     <div>
                       <div className="adm-field">Logo</div>
-                      {isManager ? (
-                        <>
-                          <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => uploadLogo(e.target.files?.[0])} />
-                          <button className="adm-btn" onClick={() => fileRef.current?.click()} disabled={logoBusy}>
-                            <NavIcon name={logoBusy ? 'loading' : 'upload'} size={14} color="currentColor" /> {logoBusy ? 'Uploading…' : 'Change logo'}
-                          </button>
-                          <p className="adm-sub" style={{ margin: '6px 0 0' }}>PNG, JPG or WebP · max 2 MB</p>
-                        </>
-                      ) : <p className="adm-sub" style={{ margin: 0 }}>Only a manager can change the logo.</p>}
+                      <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => uploadLogo(e.target.files?.[0])} />
+                      <button className="adm-btn" onClick={() => fileRef.current?.click()} disabled={logoBusy}>
+                        <NavIcon name={logoBusy ? 'loading' : 'upload'} size={14} color="currentColor" /> {logoBusy ? 'Uploading…' : company.logo_url ? 'Change logo' : 'Upload logo'}
+                      </button>
+                      <p className="adm-sub" style={{ margin: '6px 0 0' }}>PNG, JPG or WebP · max 2 MB</p>
                     </div>
                   </div>
                   <div className="set-form">
-                    <Field label="Company name" id="set-company_name"><input {...bind('company_name')} /></Field>
-                    <Field label="Address" id="set-address"><input {...bind('address')} placeholder="31 San Guillermo St., Bayanan, Muntinlupa City" /></Field>
-                    <div className="adm-grid-2">
-                      <Field label="Contact number" id="set-contact_number"><input {...bind('contact_number')} inputMode="tel" placeholder="09XXXXXXXXX" /></Field>
-                      <Field label="Contact email" id="set-contact_email"><input {...bind('contact_email')} type="email" placeholder="hello@vfrbenterprise.com" /></Field>
+                    <div className="set-grid">
+                      <Field label="Company name" id="set-company_name"><input {...bind('company_name')} /></Field>
+                      <Field label="Address" id="set-address"><input {...bind('address')} placeholder="e.g. 31 San Guillermo St., Bayanan, Muntinlupa City" />{unset('address')}</Field>
+                    </div>
+                    <div className="set-grid">
+                      <Field label="Contact number" id="set-contact_number"><input {...bind('contact_number')} inputMode="tel" placeholder="e.g. 0917 123 4567" />{unset('contact_number')}</Field>
+                      <Field label="Contact email" id="set-contact_email"><input {...bind('contact_email')} type="email" placeholder="e.g. hello@vfrbenterprise.com" />{unset('contact_email')}</Field>
                     </div>
                   </div>
-                  {isManager && (
-                    <div className="adm-actionbar" style={{ marginTop: 18 }}>
-                      <button className="adm-btn primary" onClick={saveCompany} disabled={companyBusy || !dirty}>{companyBusy ? 'Saving…' : 'Save changes'}</button>
-                      {dirty && <button className="adm-btn" onClick={() => setCompany(saved)} disabled={companyBusy}>Discard</button>}
-                    </div>
-                  )}
-                </>
+                </div>
               )}
             </Panel>
-          </div>
+          )}
+          {tab === 'company' && saveActions && <div className="set-save-sticky">{saveActions}</div>}
 
-          <div id="set-profile" className="set-anchor">
-            <Panel title="Your profile">
-              <p className="adm-sub" style={{ marginTop: -6 }}>Your photo, display mode and accent colour. They apply only to your account.</p>
+          {tab === 'profile' && (
+            <Panel title="Your profile" subtitle="Your photo, display mode and accent colour. They apply only to your account.">
               <ProfilePhotoField avatar={me.avatar} name={me.name} onChange={(avatar) => setMe((u) => ({ ...u, avatar }))} />
-              <div style={{ borderTop: '1px solid var(--bg-surface)', margin: '16px 0' }} />
+              <div className="set-divider" />
               <AppearanceField userId={me.user_id} />
             </Panel>
-          </div>
+          )}
 
-          <div id="set-notify" className="set-anchor">
-            <Panel title="Notification preferences">
-              <p className="adm-sub" style={{ marginTop: -6 }}>Your own preferences — they apply only to your account.</p>
+          {tab === 'notify' && (
+            <Panel title="Notifications" subtitle="How the system reaches you. Applies only to your account.">
               {prefsLoading ? <SkeletonRows rows={1} h={64} /> : NOTIFY.map((row, i) => {
                 const live = prefs[row.live]; const on = !!prefs[row.key];
                 return (
-                  <div key={row.key} className="set-pref" style={{ borderTop: i ? '1px solid var(--bg-surface)' : 'none' }}>
+                  <div key={row.key} className="set-pref" style={{ borderTop: i ? '1px solid var(--border)' : 'none' }}>
                     <span className="set-pref-ico"><NavIcon name={row.icon} size={18} color="currentColor" /></span>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                        <b style={{ fontSize: 13 }}>{row.label}</b>
-                        {!live && <span className="adm-pill" style={{ background: 'var(--warning-bg)', color: 'var(--warning-text)' }}>Not yet active</span>}
+                      <div className="set-pref-head">
+                        <b>{row.label}</b>
+                        {!live && <span className="set-tag warn">Not yet active</span>}
                       </div>
                       <p className="adm-sub" style={{ margin: '2px 0 0' }}>{row.note}</p>
-                      {!live && <p style={{ fontSize: 'var(--text-meta)', color: 'var(--warning-text)', margin: '3px 0 0' }}>{row.warn}</p>}
+                      {!live && <p className="set-pref-warn">{row.warn}</p>}
                     </div>
                     <button role="switch" aria-checked={on} aria-label={row.label} className={`set-switch${on ? ' on' : ''}`} disabled={prefsBusy} onClick={() => togglePref(row.key)}><i /></button>
                   </div>
                 );
               })}
             </Panel>
-          </div>
+          )}
 
-          <div id="set-password" className="set-anchor"><PasswordPanel setToast={setToast} /></div>
+          {tab === 'password' && <PasswordPanel setToast={setToast} />}
 
-          {isManager && <div id="set-ai" className="set-anchor"><RecommendationGuidancePanel setToast={setToast} /></div>}
+          {tab === 'ai' && <RecommendationGuidancePanel setToast={setToast} />}
 
-          {isManager && (
-            <div id="set-users" className="set-anchor">
-              <Panel title="User management">
-                <p className="adm-sub" style={{ marginTop: -6 }}>Create and manage staff and manager accounts.</p>
-                <Link to="/admin/users" className="adm-btn" style={{ textDecoration: 'none' }}><NavIcon name="users" size={14} color="currentColor" /> Open user management</Link>
-              </Panel>
-            </div>
+          {tab === 'users' && (
+            <Panel title="User Management" subtitle="Create customer accounts and manage Administrator and Owner access.">
+              <p className="adm-sub" style={{ marginBottom: 16 }}>Customers cannot sign up themselves. Every customer, Administrator and Owner account is created in User Management.</p>
+              <Link to="/admin/users" className="adm-btn primary" style={{ textDecoration: 'none' }}><NavIcon name="users" size={14} color="currentColor" /> Open User Management</Link>
+            </Panel>
           )}
         </div>
       </div>
-    </>
+    </div>
   );
 }

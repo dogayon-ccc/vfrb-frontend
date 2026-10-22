@@ -1,13 +1,4 @@
-// Mirrors backend User::JOB_FUNCTION_AREAS / JobFunctionMiddleware (jobfn:inventory, jobfn:production).
-// UI mirror only — the server is the enforcement point; this keeps a restricted account
-// from landing on pages whose API calls it would be refused.
-export const JOB_FUNCTION_AREAS = {
-  general:    ['inventory', 'production'],
-  inventory:  ['inventory'],
-  production: ['production'],
-  sales:      [],
-};
-
+// Admin portal access. UI mirror only; the server is the enforcement point.
 export function readAdminUser() {
   try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}'); } catch { return {}; }
 }
@@ -17,10 +8,10 @@ export function readAdminUser() {
 export const OWNER_PAGES = ['dashboard', 'orders', 'reports', 'transactions', 'invoice', 'inventory', 'materials', 'activity-log', 'audit-logs'];
 export const isOwner = (user = readAdminUser()) => user?.role === 'owner';
 export const ownerCanOpen = (path) => OWNER_PAGES.includes(String(path).replace(/^\/admin\/?/, '').split(/[/?#]/)[0] || 'dashboard');
+// Only the Administrator (Manager) writes; the Owner reads.
+export const isAdmin = (user = readAdminUser()) => user?.role === 'manager';
 
 export function canAccessArea(user, area) {
-  if (!area) return true;
-  if (user?.role === 'manager') return true;
-  if (isOwner(user)) return area === 'inventory';
-  return (JOB_FUNCTION_AREAS[user?.job_function ?? 'general'] ?? JOB_FUNCTION_AREAS.general).includes(area);
+  if (!area || isAdmin(user)) return true;
+  return isOwner(user) && area === 'inventory';
 }

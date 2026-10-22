@@ -103,10 +103,10 @@ export const useIsMobile = (bp = 767) => {
   return m;
 };
 
-export const SearchBox = ({ value, onChange, placeholder, label }) => (
+export const SearchBox = ({ value, onChange, placeholder, label, inputRef }) => (
   <div className="adm-search-wrap">
     <NavIcon name="search" size={15} color="currentColor" />
-    <input type="search" className="adm-search" value={value} onChange={(e) => onChange(e.target.value)}
+    <input ref={inputRef} type="search" className="adm-search" value={value} onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder} aria-label={label ?? placeholder} />
   </div>
 );
@@ -117,11 +117,7 @@ export const Avatar = ({ name, size = 34, tone }) => (
   </span>
 );
 
-export const Meter = ({ pct, tone, label = 'Progress' }) => (
-  <div className={`adm-meter ${tone ?? ''}`} role="progressbar" aria-label={label} aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
-    <i style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} />
-  </div>
-);
+export { default as Meter } from '../ui/Meter';
 
 export const Segments = ({ total, index }) => (
   <div className="adm-segs" aria-hidden="true">

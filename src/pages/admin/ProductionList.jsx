@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { cacheGet, cacheSet } from '../../utils/cache';
 import { NavIcon } from '../../components/ui/icons';
+import { DataTable, EmptyState } from '../../components/ui';
+import useListKeys from '../../hooks/useListKeys';
+import ProductionProgress, { useProductionSummaries } from '../../components/admin/ProductionProgress';
 import {
-  PageHeader, StatGrid, Panel, StatusPill, SearchBox, Segments, Banner, ErrorBlock, SkeletonRows,
-  FilterSheet, FilterButton, useIsMobile,
+  PageHeader, Panel, StatusPill, SearchBox, Banner, ErrorBlock, FilterSheet, FilterButton, useIsMobile,
 } from '../../components/admin/AdminUI';
 
 const STAGE_ORDER = ['pattern', 'segregation', 'cutting', 'sewing', 'qc', 'pressing', 'packing'];
@@ -17,30 +19,16 @@ const qcHold = (o) => o.status === 'qc' && !!Number(o.qc_required) && !o.qc_pass
 const dueOf = (o) => o.target_delivery_date ?? o.deadline;
 const isOverdue = (o) => { const d = dueOf(o); return d && new Date(d) < new Date(new Date().toDateString()); };
 
-function Progress({ status }) {
-  const idx = STAGE_ORDER.indexOf(status);
-  return (
-    <div style={{ minWidth: 110 }}>
-      <Segments total={STAGE_ORDER.length} index={idx} />
-      <div style={{ fontSize: 13, color: 'var(--text-faint)', marginTop: 4 }}>Stage {idx + 1} of {STAGE_ORDER.length}</div>
-    </div>
-  );
-}
-
-const Spec = ({ o }) => (
-  <>
-    <div style={{ fontWeight: 600 }}>{o.garment_type ?? 'Custom garment'}</div>
-    <div style={{ fontSize: 13, color: 'var(--text-subtle)' }}>{o.quantity_ordered ?? 0} pcs{o.color ? ` · ${o.color}` : ''}</div>
-  </>
-);
-
 export default function ProductionList() {
   const nav = useNavigate();
   const isMobile = useIsMobile();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const [stage, setStage] = useState('all');
+  const [params, setParams] = useSearchParams();
+  // The stage filter lives in the URL so the dashboard stage board can link straight to it.
+  const stage = STAGE_ORDER.includes(params.get('stage')) ? params.get('stage') : 'all';
+  const setStage = useCallback((k) => setParams(k === 'all' ? {} : { stage: k }, { replace: true }), [setParams]);
   const [search, setSearch] = useState('');
   const [sheet, setSheet] = useState(false);
 
@@ -59,6 +47,7 @@ export default function ProductionList() {
   }, []);
   useEffect(() => { load(); }, [load]);
 
+  const summaries = useProductionSummaries(useMemo(() => orders.map((o) => o.order_id), [orders]));
   const counts = useMemo(() => orders.reduce((a, o) => { a[o.status] = (a[o.status] ?? 0) + 1; return a; }, {}), [orders]);
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -69,17 +58,19 @@ export default function ProductionList() {
       .sort((a, b) => STAGE_ORDER.indexOf(a.status) - STAGE_ORDER.indexOf(b.status));
   }, [orders, stage, search]);
 
+  const go = (o) => nav(`/admin/production/${o.order_id}`);
+  const keys = useListKeys({ count: filtered.length, onOpen: (i) => filtered[i] && go(filtered[i]) });
   const holds = orders.filter(qcHold).length;
   const overdue = orders.filter(isOverdue).length;
   const pieces = orders.reduce((s, o) => s + (Number(o.quantity_ordered) || 0), 0);
   const options = [{ key: 'all', label: 'All stages', count: orders.length }, ...STAGE_ORDER.map((k) => ({ key: k, label: LABEL[k], count: counts[k] ?? 0 }))];
   const stageLabel = options.find((o) => o.key === stage)?.label;
-  const go = (o) => nav(`/admin/production/${o.order_id}`);
 
   return (
     <>
       {sheet && <FilterSheet title="Filter by stage" options={options} value={stage} onChange={setStage} onClose={() => setSheet(false)} isMobile={isMobile} />}
-      <PageHeader title="Production Orders" sub={`${orders.length} production orders on the floor · ${pieces.toLocaleString()} pcs`}>
+      <PageHeader title="Production"
+        sub={loading ? 'Loading…' : `${orders.length} orders · ${pieces.toLocaleString()} pcs · ${holds} on QC hold · ${overdue} past deadline`}>
         <button className="adm-btn" onClick={() => nav('/admin/output-log')}><NavIcon name="outputLog" size={14} color="currentColor" /> Output Log</button>
         <button className="adm-btn" onClick={() => load(true)}><NavIcon name="refresh" size={14} color="currentColor" /> Refresh</button>
       </PageHeader>
@@ -91,17 +82,10 @@ export default function ProductionList() {
       )}
       {loadError && <div style={{ marginBottom: 14 }}><ErrorBlock msg="Couldn't load production orders — check your connection." onRetry={() => load(true)} /></div>}
 
-      <StatGrid loading={loading} items={[
-        { label: 'In production', value: orders.length, color: 'var(--teal)', onClick: () => setStage('all') },
-        { label: 'Pieces', value: pieces.toLocaleString() },
-        { label: 'QC hold', value: holds, color: holds ? 'var(--danger-text)' : undefined, onClick: () => setStage('qc') },
-        { label: 'Past deadline', value: overdue, color: overdue ? 'var(--warning-text)' : undefined },
-      ]} />
-
       <Panel title="Stage pipeline" style={{ marginBottom: 16 }}>
-        <div className="adm-pipe" role="tablist" aria-label="Filter by production stage">
+        <div className="adm-pipe" role="group" aria-label="Filter by production stage">
           {STAGE_ORDER.map((k, i) => (
-            <button key={k} role="tab" aria-selected={stage === k} className={`adm-pipe-step${stage === k ? ' on' : ''}${counts[k] ? '' : ' empty'}`}
+            <button key={k} aria-pressed={stage === k} className={`adm-pipe-step${stage === k ? ' on' : ''}${counts[k] ? '' : ' empty'}`}
               onClick={() => setStage(stage === k ? 'all' : k)} style={{ '--i': i }}>
               <NavIcon name={ICON[k]} size={16} color="currentColor" />
               <b>{loading ? '–' : counts[k] ?? 0}</b>
@@ -111,63 +95,33 @@ export default function ProductionList() {
         </div>
       </Panel>
 
-      <div className="adm-toolbar">
-        <SearchBox value={search} onChange={setSearch} placeholder="Search order, customer, garment, color…" label="Search production orders" />
-        <FilterButton label={`Stage: ${stageLabel}`} onClick={() => setSheet(true)} />
-      </div>
-
-      <div className="adm-only-d">
-        <Panel flush>
-          <div className="adm-tbl-scroll">
-            <table className="adm-table">
-              <thead><tr><th>Order</th><th>Customer</th><th>Garment</th><th>Stage</th><th className="adm-hide-t">Deadline</th><th style={{ textAlign: 'right' }}>Actions</th></tr></thead>
-              <tbody>
-                {!loading && filtered.map((o) => (
-                  <tr key={o.order_id} className="adm-row" tabIndex={0} onClick={() => go(o)} onKeyDown={(e) => e.key === 'Enter' && go(o)}>
-                    <td><div style={{ fontWeight: 800, color: 'var(--teal)' }}>#{o.order_id}</div></td>
-                    <td style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.customer_name ?? '—'}</td>
-                    <td><Spec o={o} /></td>
-                    <td>
-                      <StatusPill status={o.status} label={LABEL[o.status]} />
-                      {qcHold(o) && <span style={{ marginLeft: 6 }}><StatusPill status="flagged" label="QC hold" /></span>}
-                      <div style={{ marginTop: 8 }}><Progress status={o.status} /></div>
-                    </td>
-                    <td className="adm-hide-t" style={{ whiteSpace: 'nowrap', fontSize: 13, color: isOverdue(o) ? 'var(--danger-text)' : 'var(--text-subtle)', fontWeight: isOverdue(o) ? 700 : 400 }}>{fmtDate(dueOf(o))}</td>
-                    <td><div className="adm-ra" style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                      <button className="adm-btn primary" onClick={(e) => { e.stopPropagation(); go(o); }}><NavIcon name="production" size={13} color="currentColor" /> Track</button>
-                    </div></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {loading && <SkeletonRows rows={6} h={52} />}
-          {!loading && !loadError && filtered.length === 0 && (
-            <div className="adm-empty"><NavIcon name="production" size={30} color="currentColor" />
-              <div style={{ marginTop: 8, fontWeight: 700 }}>{search ? `No results for “${search}”` : 'No orders in production right now'}</div>
-              {(search || stage !== 'all') && <button className="adm-link-btn" onClick={() => { setSearch(''); setStage('all'); }}>Clear filters</button>}
-            </div>
-          )}
-        </Panel>
-      </div>
-
-      <div className="adm-only-m adm-stagger" key={`${stage}-${search}`}>
-        {loading ? <SkeletonRows rows={3} h={150} />
-          : loadError ? null : filtered.length === 0 ? <div className="adm-empty">{search ? `No results for “${search}”` : 'No orders in production right now'}</div>
-            : filtered.map((o, i) => (
-              <div key={o.order_id} className="adm-mcard accent" style={{ '--i': Math.min(i, 8), '--acc': qcHold(o) ? 'var(--danger)' : 'var(--teal)' }} onClick={() => go(o)}>
-                <div className="adm-mrow">
-                  <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--teal)' }}>#{o.order_id}</span>
-                  <StatusPill status={o.status} label={LABEL[o.status]} />
-                </div>
-                <div style={{ marginTop: 8 }}><Spec o={o} /></div>
-                {o.customer_name && <div style={{ fontSize: 13, color: 'var(--text-subtle)', marginTop: 2 }}>{o.customer_name}</div>}
-                <div style={{ marginTop: 10 }}><Progress status={o.status} /></div>
-                {qcHold(o) && <div style={{ marginTop: 10 }}><Banner tone="warn" title="QC hold">Complete the QC checklist to advance.</Banner></div>}
-                <div className="adm-mfoot"><button className="adm-btn primary" onClick={(e) => { e.stopPropagation(); go(o); }}>Track order #{o.order_id}</button></div>
-              </div>
-            ))}
-      </div>
+      <DataTable label="Production orders" dense mobileCards loading={loading} rows={6}
+        isEmpty={!loadError && filtered.length === 0}
+        toolbar={<>
+          <SearchBox inputRef={keys.searchRef} value={search} onChange={setSearch} placeholder="Search order, customer, garment, color…" label="Search production orders" />
+          <FilterButton label={`Stage: ${stageLabel}`} onClick={() => setSheet(true)} />
+        </>}
+        empty={<EmptyState title={search ? `No results for “${search}”` : 'No orders in production right now'}
+          action={(search || stage !== 'all') && <button className="adm-link-btn" onClick={() => { setSearch(''); setStage('all'); }}>Clear filters</button>} />}
+        footer={<span>{filtered.length} of {orders.length} orders · Enter opens tracking</span>}>
+        <thead><tr><th>Order</th><th>Customer</th><th>Garment</th><th className="num">Pcs</th><th>Stage</th><th>Current stage output</th><th>Deadline</th></tr></thead>
+        <tbody ref={keys.listRef}>
+          {filtered.map((o, i) => (
+            <tr key={o.order_id} {...keys.rowProps(i)} aria-label={`Order ${o.order_id}, ${LABEL[o.status]}`}>
+              <td data-label="Order"><b style={{ color: 'var(--teal)' }}>#{o.order_id}</b></td>
+              <td data-label="Customer" style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.customer_name ?? '—'}</td>
+              <td data-label="Garment">{o.garment_type ?? 'Custom garment'}{o.color ? <span style={{ color: 'var(--text-subtle)' }}> · {o.color}</span> : null}</td>
+              <td data-label="Pcs" className="num">{o.quantity_ordered ?? 0}</td>
+              <td data-label="Stage">
+                <StatusPill status={o.status} label={LABEL[o.status]} />
+                {qcHold(o) && <span style={{ marginLeft: 6 }}><StatusPill status="flagged" label="QC hold" /></span>}
+              </td>
+              <td data-label="Output"><ProductionProgress compact summary={summaries[o.order_id] ?? null} /></td>
+              <td data-label="Deadline" style={{ whiteSpace: 'nowrap', fontSize: 13, color: isOverdue(o) ? 'var(--danger-text)' : 'var(--text-subtle)', fontWeight: isOverdue(o) ? 700 : 400 }}>{fmtDate(dueOf(o))}</td>
+            </tr>
+          ))}
+        </tbody>
+      </DataTable>
     </>
   );
 }

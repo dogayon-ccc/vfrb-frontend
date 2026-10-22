@@ -1,51 +1,26 @@
-
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate, useSearchParams }                       from 'react-router-dom';
+import { Link, useNavigate, useSearchParams }                 from 'react-router-dom';
 import axios                                                  from 'axios';
-import { cacheGet, cacheSet, cacheClear, TTL }               from '../../utils/cache';
+import { cacheGet, cacheClear }                              from '../../utils/cache';
+import { fetchResource }                                     from '../../utils/adminResources';
 import { NavIcon }                                            from '../../components/ui/icons';
-import { canAccessArea, isOwner }                             from '../../utils/jobAccess';
-import ProductionProgress                                     from '../../components/admin/ProductionProgress';
-import { PageHeader, StatGrid, PillTabs, ErrorBlock, Panel, StatusPill, SearchBox, Segments, Banner, Toast, useToast, useIsMobile, FilterSheet, FilterButton, SkeletonRows } from '../../components/admin/AdminUI';
+import { canAccessArea, isOwner, isAdmin }                    from '../../utils/jobAccess';
+import ProductionProgress, { useProductionSummaries }        from '../../components/admin/ProductionProgress';
+import { DataTable, Drawer, EmptyState }                      from '../../components/ui';
+import useListKeys                                            from '../../hooks/useListKeys';
+import { PageHeader, PillTabs, ErrorBlock, StatusPill, SearchBox, Banner, Toast, useToast, useIsMobile, FilterSheet, FilterButton } from '../../components/admin/AdminUI';
 
-const STATUS_CFG = {
-  pending:     { color:'var(--status-pending)',     bg:'var(--warning-bg)', label:'Pending',     icon:'pending',     seq:0  },
-  confirmed:   { color:'var(--status-confirmed)',   bg:'var(--info-bg)',    label:'Confirmed',   icon:'success',     seq:1  },
-  pattern:     { color:'var(--status-pattern)',     bg:'var(--purple-50)',  label:'Pattern',     icon:'pattern',     seq:2  },
-  segregation: { color:'var(--status-segregation)', bg:'var(--purple-50)',  label:'Segregation', icon:'segregation', seq:3  },
-  cutting:     { color:'var(--status-cutting)',     bg:'var(--info-bg)',    label:'Cutting',     icon:'cutting',     seq:4  },
-  sewing:      { color:'var(--status-sewing)',      bg:'var(--teal-50)',    label:'Sewing',      icon:'garmentType', seq:5  },
-  qc:          { color:'var(--status-qc)',          bg:'var(--warning-bg)', label:'QC',          icon:'qc',          seq:6  },
-  pressing:    { color:'var(--status-pressing)',    bg:'var(--purple-50)',  label:'Pressing',    icon:'pressing',    seq:7  },
-  packing:     { color:'var(--status-packing)',     bg:'var(--success-bg)',label:'Packing',     icon:'package',     seq:8  },
-  completed:   { color:'var(--status-completed)',   bg:'var(--success-bg)',label:'Completed',   icon:'success',     seq:9  },
-  cancelled:   { color:'var(--status-cancelled)', bg:'var(--danger-bg)', label:'Cancelled',   icon:'close',  seq:-1 },
+const LABEL = {
+  pending:'Pending', confirmed:'Confirmed', pattern:'Pattern', segregation:'Segregation', cutting:'Cutting', sewing:'Sewing',
+  qc:'QC', pressing:'Pressing', packing:'Packing', completed:'Completed', cancelled:'Cancelled',
 };
+const ALL_TABS = ['all', ...Object.keys(LABEL)];
 
-const ALL_TABS = [
-  'all','pending','confirmed',
-  'pattern','segregation','cutting','sewing','qc','pressing','packing',
-  'completed','cancelled',
-];
-
-const PROD_STAGES = ['confirmed','pattern','segregation','cutting','sewing','qc','pressing','packing'];
 const isLive = (st) => !['completed','cancelled'].includes(st);
 // Orders with output to show: anything past confirmation (for_delivery included) that isn't closed.
 const inProduction = (st) => isLive(st) && !['pending','confirmed'].includes(st);
 const fmtDate = (d, y = false) => d ? new Date(d).toLocaleDateString('en-PH', { month:'short', day:'numeric', ...(y ? { year:'numeric' } : {}) }) : '—';
-
-function StageBar({ status }) {
-  if (!isLive(status)) return null;
-  const idx = status === 'pending' ? -1 : PROD_STAGES.indexOf(status);
-  return (
-    <div style={{ minWidth:96 }}>
-      <Segments total={PROD_STAGES.length} index={idx < 0 ? 0 : idx} />
-      <div style={{ fontSize:13, color:'var(--text-faint)', marginTop:4 }}>
-        {idx < 0 ? 'Awaiting confirmation' : `Stage ${idx + 1} of ${PROD_STAGES.length}`}
-      </div>
-    </div>
-  );
-}
+const dueOf = (o) => o.target_delivery_date ?? o.deadline;
 
 function getSwatchColor(order) {
   try {
@@ -60,33 +35,6 @@ function getSwatchColor(order) {
 // Staff track an order's production only if their job function includes the production area (else the route is AccessDenied).
 const canTrack = () => canAccessArea(JSON.parse(localStorage.getItem('vfrb_user') || '{}'), 'production');
 
-function OrderActions({ order, isManager, onConfirm, confirming, stop, hideView }) {
-  const navigate = useNavigate();
-  const live = isLive(order.status) && canTrack();
-  const click = (fn) => (e) => { if (stop) e.stopPropagation(); fn(); };
-  return (
-    <>
-      {live && !isManager && (
-        <button className="adm-btn primary" onClick={click(() => navigate(`/admin/production/${order.order_id}`))}>
-          <NavIcon name="production" size={13} color="currentColor" /> Track
-        </button>
-      )}
-      {!hideView && (
-        <button className="adm-btn" onClick={click(() => navigate(`/admin/orders/${order.order_id}`))}>
-          <NavIcon name="show" size={13} color="currentColor" /> View
-        </button>
-      )}
-      {isManager && order.status === 'pending' && (
-        <button className="adm-btn success" disabled={confirming === order.order_id}
-          onClick={click(() => onConfirm(order.order_id))}>
-          {confirming === order.order_id ? '…' : <><NavIcon name="success" size={13} color="currentColor" /> Confirm</>}
-        </button>
-      )}
-    </>
-  );
-}
-
-
 // Clients set their own due date and VFRB works to it, so flag orders that are late or close.
 const dueFlag = (due, status) => {
   if (!due || ['completed', 'cancelled'].includes(status)) return null;
@@ -99,76 +47,47 @@ const dueFlag = (due, status) => {
 };
 const DueChip = ({ due, status }) => {
   const f = dueFlag(due, status);
-  return f ? <span style={{ display: 'inline-block', marginTop: 4, padding: '2px 9px', borderRadius: 99, fontSize: 12.5, fontWeight: 800, background: f.bg, color: f.fg }}>{f.text}</span> : null;
+  return f ? <span style={{ display: 'inline-block', marginLeft: 6, padding: '1px 8px', borderRadius: 99, fontSize: 12, fontWeight: 800, background: f.bg, color: f.fg }}>{f.text}</span> : null;
 };
 
-function OrderRow({ order, isManager, onConfirm, confirming, summary }) {
+function OrderDrawer({ order, summary, isManager, onConfirm, confirming, onClose, onPrev, onNext }) {
   const navigate = useNavigate();
-  const cfg = STATUS_CFG[order.status] ?? STATUS_CFG.pending;
-  const swatch = getSwatchColor(order);
-  const due = order.target_delivery_date ?? order.deadline;
-  const open = () => navigate(`/admin/orders/${order.order_id}`);
+  const due = dueOf(order);
+  const track = isLive(order.status) && canTrack();
   return (
-    <tr className="adm-row" tabIndex={0} onClick={open}
-      onKeyDown={(e) => { if (e.key === 'Enter') open(); }}>
-      <td>
-        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-          <span style={{ width:12, height:12, borderRadius:4, flexShrink:0, background: swatch ?? 'var(--bg-surface)', border:'1px solid rgba(0,0,0,.1)' }} />
-          <div>
-            <div style={{ fontWeight:800, color:'var(--teal)' }}>#{order.order_id}</div>
-            <div style={{ fontSize:13, color:'var(--text-faint)' }}>{fmtDate(order.created_at)}</div>
-          </div>
-        </div>
-      </td>
-      <td>
-        <div style={{ fontWeight:600, maxWidth:180, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{order.customer_name ?? '—'}</div>
-        <div style={{ fontSize:13, color:'var(--text-subtle)' }}>{order.order_type === 'subcontract' ? 'Subcontract' : 'Direct'}</div>
-      </td>
-      <td>
-        <div style={{ fontWeight:600 }}>{order.garment_type ?? order.design?.design_name ?? 'Custom'}</div>
-        <div style={{ fontSize:13, color:'var(--text-subtle)' }}>{order.quantity_ordered ?? 0} pcs{order.color ? ` · ${order.color}` : ''}</div>
-      </td>
-      <td>
-        <StatusPill status={order.status} label={cfg.label} />
-        <div className="adm-only-d" style={{ marginTop:8 }}><StageBar status={order.status} /></div>
-        <div className="adm-hide-d-t" style={{ fontSize:13, color:'var(--text-faint)', marginTop:4 }}>{due ? `Due ${fmtDate(due)}` : ''}</div>
-      </td>
-      <td>{inProduction(order.status) ? <ProductionProgress compact summary={summary ?? null} /> : <span style={{ fontSize:13, color:'var(--text-faint)' }}>—</span>}</td>
-      <td className="adm-hide-t" style={{ whiteSpace:'nowrap', color:'var(--text-subtle)', fontSize:13 }}>{fmtDate(due, true)}<div><DueChip due={due} status={order.status} /></div></td>
-      <td>
-        <div className="adm-ra" style={{ display:'flex', gap:6, justifyContent:'flex-end' }}>
-          <OrderActions order={order} isManager={isManager} onConfirm={onConfirm} confirming={confirming} stop />
-        </div>
-      </td>
-    </tr>
-  );
-}
-
-function OrderCard({ order, isManager, onConfirm, confirming, index, summary }) {
-  const navigate = useNavigate();
-  const cfg = STATUS_CFG[order.status] ?? STATUS_CFG.pending;
-  const swatch = getSwatchColor(order);
-  const due = order.target_delivery_date ?? order.deadline;
-  return (
-    <div className="adm-mcard accent" style={{ '--i': Math.min(index, 8), '--acc': swatch ?? 'var(--teal)' }}
-      onClick={() => navigate(`/admin/orders/${order.order_id}`)}>
-      <div className="adm-mrow">
-        <span style={{ fontSize:14, fontWeight:800, color:'var(--teal)' }}>#{order.order_id}</span>
-        <StatusPill status={order.status} label={cfg.label} />
-      </div>
-      <div style={{ marginTop:8, fontSize:14, fontWeight:700, color:'var(--ink)' }}>{order.customer_name ?? '—'}</div>
-      <div style={{ fontSize:13, color:'var(--text-subtle)', marginTop:2 }}>
-        {order.garment_type ?? 'Custom'} · {order.quantity_ordered ?? 0} pcs{order.color ? ` · ${order.color}` : ''}
-      </div>
-      {due && <div style={{ fontSize:13, color:'var(--text-faint)', marginTop:2 }}>Due {fmtDate(due, true)} <DueChip due={due} status={order.status} /></div>}
-      {inProduction(order.status) ? <div style={{ marginTop:10 }}><ProductionProgress compact summary={summary ?? null} /></div>
-        : isLive(order.status) && <div style={{ marginTop:10 }}><StageBar status={order.status} /></div>}
-      {((isLive(order.status) && !isManager && canTrack()) || (isManager && order.status === 'pending')) && (
-        <div className="adm-mfoot">
-          <OrderActions order={order} isManager={isManager} onConfirm={onConfirm} confirming={confirming} stop hideView />
+    <Drawer title={`Order #${order.order_id}`} subtitle={`${order.customer_name ?? '—'} · placed ${fmtDate(order.created_at, true)}`}
+      onClose={onClose} onPrev={onPrev} onNext={onNext}
+      footer={<>
+        <Link className="adm-btn" to={`/admin/orders/${order.order_id}`} style={{ minHeight: 44 }}><NavIcon name="show" size={14} color="currentColor" /> Full page</Link>
+        {track && (
+          <button className="adm-btn" style={{ minHeight: 44 }} onClick={() => navigate(`/admin/production/${order.order_id}`)}>
+            <NavIcon name="production" size={14} color="currentColor" /> Track
+          </button>
+        )}
+        {isManager && order.status === 'pending' && (
+          <button className="adm-btn primary" style={{ minHeight: 44 }} disabled={confirming === order.order_id} onClick={() => onConfirm(order.order_id)}>
+            {confirming === order.order_id ? 'Confirming…' : <><NavIcon name="success" size={14} color="currentColor" /> Confirm order</>}
+          </button>
+        )}
+      </>}>
+      <div style={{ marginBottom: 14 }}><StatusPill status={order.status} label={LABEL[order.status]} /><DueChip due={due} status={order.status} /></div>
+      <dl className="adm-kv" style={{ marginBottom: 16 }}>
+        <dt>Type</dt><dd>{order.order_type === 'subcontract' ? 'Subcontract' : 'Direct'}</dd>
+        <dt>Garment</dt><dd>{order.garment_type ?? order.design?.design_name ?? 'Custom'}</dd>
+        <dt>Quantity</dt><dd>{order.quantity_ordered ?? 0} pcs</dd>
+        <dt>Color</dt><dd>{order.color ?? '—'}</dd>
+        <dt>Due</dt><dd>{fmtDate(due, true)}</dd>
+      </dl>
+      {order.client_design_notes && (
+        <div style={{ marginBottom: 16 }}>
+          <div className="adm-field">Customer notes</div>
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)', whiteSpace: 'pre-wrap' }}>{order.client_design_notes}</p>
         </div>
       )}
-    </div>
+      {inProduction(order.status)
+        ? <ProductionProgress summary={summary ?? undefined} orderId={order.order_id} />
+        : <p style={{ margin: 0, fontSize: 13, color: 'var(--text-subtle)' }}>{order.status === 'pending' ? 'Not confirmed yet. Production starts after confirmation.' : order.status === 'confirmed' ? 'Confirmed. Pattern stage starts next.' : 'Production closed.'}</p>}
+    </Drawer>
   );
 }
 
@@ -185,10 +104,11 @@ export default function AdminOrders() {
   const [toast,      setToast]      = useToast();
   const [loadErr,    setLoadErr]    = useState(false);
   const [sheet,      setSheet]      = useState(false);
+  const [openId,     setOpenId]     = useState(null);
   const isMobile = useIsMobile();
 
   const user      = JSON.parse(localStorage.getItem('vfrb_user') || '{}');
-  const isManager = user.role === 'manager';
+  const isManager = isAdmin(user);
 
   const load = useCallback((force = false) => {
     if (!force) {
@@ -196,31 +116,16 @@ export default function AdminOrders() {
       if (cached?.list) { setOrders(cached.list); setServerTotal(cached.total); setLoading(false); return; }
     }
     setLoading(true); setLoadErr(false);
-    // Backend paginates (default 20, max 100). Ask for the max so counts aren't silently capped at 20.
-    axios.get('/api/admin/orders', { params: { per_page: 100 } })
-      .then(r => {
-        const list = r.data?.data ?? r.data ?? [];
-        const total = r.data?.total ?? list.length;
-        setOrders(list); setServerTotal(total);
-        cacheSet('admin_orders_list', { list, total }, TTL.ORDERS);
-      })
+    fetchResource('orders')
+      .then(({ list, total }) => { setOrders(list); setServerTotal(total); })
       .catch(() => setLoadErr(true))
       .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
-  // One bulk request for the Production column instead of one per row.
-  const [summaries, setSummaries] = useState({});
-  const prodIds = useMemo(() => orders.filter(o => inProduction(o.status)).map(o => o.order_id).join(','), [orders]);
-  useEffect(() => {
-    if (!prodIds) { setSummaries({}); return undefined; }
-    let off = false;
-    axios.get('/api/admin/orders/production-summaries', { params: { ids: prodIds } })
-      .then(r => { if (!off) setSummaries(r.data?.data ?? {}); })
-      .catch(() => { if (!off) setSummaries({}); });
-    return () => { off = true; };
-  }, [prodIds]);
+  const prodIds = useMemo(() => orders.filter(o => inProduction(o.status)).map(o => o.order_id), [orders]);
+  const summaries = useProductionSummaries(prodIds);
 
   const counts = useMemo(() =>
     orders.reduce((acc, o) => { acc[o.status] = (acc[o.status] ?? 0) + 1; return acc; }, {}),
@@ -239,6 +144,14 @@ export default function AdminOrders() {
       return matchTab && matchQ;
     }),
   [orders, tab, search]);
+
+  const openIdx = filtered.findIndex(o => o.order_id === openId);
+  const keys = useListKeys({ count: filtered.length, onOpen: (i) => setOpenId(filtered[i]?.order_id ?? null) });
+  const step = (d) => {
+    const n = openIdx + d;
+    if (n < 0 || n >= filtered.length) return;
+    setOpenId(filtered[n].order_id); keys.setActive(n);
+  };
 
   const confirmOrder = useCallback(async (orderId) => {
     const prev = orders;
@@ -259,27 +172,27 @@ export default function AdminOrders() {
     }
   }, [orders, setToast]);
 
-  const tabs = ALL_TABS.map(k => ({ key:k, label: k === 'all' ? 'All' : (STATUS_CFG[k]?.label ?? k), count: k === 'all' ? orders.length : (counts[k] ?? 0) }));
-  const activeCount = orders.filter(o => isLive(o.status)).length;
+  const tabs = ALL_TABS.map(k => ({ key:k, label: k === 'all' ? 'All' : LABEL[k], count: k === 'all' ? orders.length : (counts[k] ?? 0) }));
   const tabLabel = tabs.find(t => t.key === tab)?.label ?? 'All';
+  const open = openIdx >= 0 ? filtered[openIdx] : null;
+  const role = isOwner(user) ? 'Owner' : 'Administrator (Manager)';
 
   return (
     <>
       <Toast toast={toast} />
       {sheet && <FilterSheet title="Filter by status" options={tabs.map(t => ({ key:t.key, label:t.label, count:t.count }))}
         value={tab} onChange={setTab} onClose={() => setSheet(false)} isMobile={isMobile} />}
+      {open && (
+        <OrderDrawer order={open} summary={summaries[open.order_id]} isManager={isManager} onConfirm={confirmOrder} confirming={confirming}
+          onClose={() => setOpenId(null)} onPrev={openIdx > 0 ? () => step(-1) : undefined} onNext={openIdx < filtered.length - 1 ? () => step(1) : undefined} />
+      )}
 
-      <PageHeader title="Orders" sub={`${orders.length} total · ${isManager ? 'View mode (Manager)' : isOwner(user) ? 'View only (Owner)' : 'Operational access (Staff)'}`}>
+      <PageHeader title="Orders" sub={`${orders.length} total · ${orders.filter(o => isLive(o.status)).length} open · ${role}`}>
         <button className="adm-btn" onClick={() => { cacheClear('admin_orders_list'); load(true); }}>
           <NavIcon name="refresh" size={14} color="currentColor" /> Refresh
         </button>
       </PageHeader>
 
-      {isManager && (
-        <Banner tone="info" icon="manager">
-          Manager view — confirm pending orders here. Staff advance stages by logging output; you can override a stage from Production tracking.
-        </Banner>
-      )}
       {loadErr && <div style={{ marginBottom:14 }}><ErrorBlock msg="Could not load orders." onRetry={() => load(true)} /></div>}
       {!loading && serverTotal != null && serverTotal > orders.length && (
         <Banner tone="warn" icon="warning">
@@ -287,63 +200,45 @@ export default function AdminOrders() {
         </Banner>
       )}
 
-      <StatGrid loading={loading} items={[
-        { label:'Total',     value:orders.length },
-        { label:'Active',    value:activeCount, color:'var(--teal)', onClick:() => setTab('all') },
-        { label:'Pending',   value:counts.pending ?? 0, color:'var(--warning-text)', onClick:() => setTab('pending') },
-        { label:'Completed', value:counts.completed ?? 0, color:'var(--success-text)', onClick:() => setTab('completed') },
-        { label:'Cancelled', value:counts.cancelled ?? 0, color:'var(--danger-text)', onClick:() => setTab('cancelled') },
-      ]} />
-
-      <div className="adm-toolbar">
-        <SearchBox value={search} onChange={setSearch} placeholder="Search order, customer, garment, color…" label="Search orders" />
-        <FilterButton label={`Status: ${tabLabel}`} onClick={() => setSheet(true)} />
-      </div>
       <div className="adm-only-d"><PillTabs value={tab} onChange={setTab} tabs={tabs} /></div>
 
-      <div className="adm-only-d">
-        <Panel flush>
-          <div className="adm-tbl-scroll">
-            <table className="adm-table">
-              <thead>
-                <tr><th>Order</th><th>Customer</th><th>Garment</th><th>Status</th><th>Production</th><th className="adm-hide-t">Deadline</th><th style={{ textAlign:'right' }}>Actions</th></tr>
-              </thead>
-              <tbody key={tab} className="adm-tabpanel">
-                {loading ? null : filtered.map(o => (
-                  <OrderRow key={o.order_id} order={o} isManager={isManager} onConfirm={confirmOrder} confirming={confirming} summary={summaries[o.order_id]} />
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {loading && <SkeletonRows rows={6} h={44} />}
-          {!loading && !loadErr && filtered.length === 0 && (
-            <div className="adm-empty">
-              <NavIcon name="orders" size={30} color="currentColor" />
-              <div style={{ marginTop:8, fontWeight:700 }}>{search ? `No results for “${search}”` : `No ${tab === 'all' ? '' : `${tab} `}orders`}</div>
-              {(search || tab !== 'all') && <button className="adm-link-btn" onClick={() => { setSearch(''); setTab('all'); }}>Clear filters</button>}
-            </div>
-          )}
-          {!loading && filtered.length > 0 && (
-            <div style={{ padding:'10px 18px', borderTop:'1px solid var(--bg-surface)', fontSize:13, color:'var(--text-faint)' }}>
-              Showing {filtered.length} of {orders.length} orders
-            </div>
-          )}
-        </Panel>
-      </div>
-
-      <div className="adm-only-m adm-stagger" key={`${tab}-${search}`}>
-        {loading ? <SkeletonRows rows={4} h={150} />
-          : loadErr ? null : filtered.length === 0 ? (
-            <div className="adm-empty"><NavIcon name="orders" size={30} color="currentColor" />
-              <div style={{ marginTop:8, fontWeight:700 }}>{search ? `No results for “${search}”` : `No ${tab === 'all' ? '' : `${tab} `}orders`}</div>
-            </div>
-          ) : filtered.map((o, i) => (
-            <OrderCard key={o.order_id} order={o} index={i} isManager={isManager} onConfirm={confirmOrder} confirming={confirming} summary={summaries[o.order_id]} />
-          ))}
-        {!loading && filtered.length > 0 && (
-          <p style={{ fontSize:13, color:'var(--text-faint)', textAlign:'center', margin:'4px 0 0' }}>{filtered.length} of {orders.length} orders</p>
-        )}
-      </div>
+      <DataTable label="Orders" dense mobileCards loading={loading} rows={8}
+        isEmpty={!loadErr && filtered.length === 0}
+        toolbar={<>
+          <SearchBox inputRef={keys.searchRef} value={search} onChange={setSearch} placeholder="Search order, customer, garment, color…" label="Search orders" />
+          <div className="adm-only-m"><FilterButton label={`Status: ${tabLabel}`} onClick={() => setSheet(true)} /></div>
+          <span className="ui-keyhint adm-only-d" aria-hidden="true"><span><kbd className="ui-kbd">/</kbd> search</span><span><kbd className="ui-kbd">j</kbd><kbd className="ui-kbd">k</kbd> move</span><span><kbd className="ui-kbd">Enter</kbd> open</span></span>
+        </>}
+        empty={<EmptyState title={search ? `No results for “${search}”` : `No ${tab === 'all' ? '' : `${LABEL[tab].toLowerCase()} `}orders`}
+          action={(search || tab !== 'all') && <button className="adm-link-btn" onClick={() => { setSearch(''); setTab('all'); }}>Clear filters</button>} />}
+        footer={<span>Showing {filtered.length} of {orders.length} orders</span>}>
+        <thead>
+          <tr><th>Order</th><th>Customer</th><th>Garment</th><th className="num">Pcs</th><th>Status</th><th>Production</th><th>Due</th></tr>
+        </thead>
+        <tbody ref={keys.listRef}>
+          {filtered.map((o, i) => {
+            const swatch = getSwatchColor(o);
+            const due = dueOf(o);
+            return (
+              <tr key={o.order_id} {...keys.rowProps(i)} aria-label={`Order ${o.order_id}, ${o.customer_name ?? ''}, ${LABEL[o.status] ?? o.status}`}>
+                <td data-label="Order">
+                  <span style={{ display:'inline-flex', alignItems:'center', gap:8 }}>
+                    <span style={{ width:10, height:10, borderRadius:3, flexShrink:0, background: swatch ?? 'var(--bg-surface)', border:'1px solid rgba(0,0,0,.1)' }} aria-hidden="true" />
+                    <b style={{ color:'var(--teal)' }}>#{o.order_id}</b>
+                    <span style={{ fontSize:12, color:'var(--text-faint)' }}>{fmtDate(o.created_at)}</span>
+                  </span>
+                </td>
+                <td data-label="Customer"><div style={{ fontWeight:600, maxWidth:200, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{o.customer_name ?? '—'}</div></td>
+                <td data-label="Garment">{o.garment_type ?? o.design?.design_name ?? 'Custom'}{o.color ? <span style={{ color:'var(--text-subtle)' }}> · {o.color}</span> : null}</td>
+                <td data-label="Pcs" className="num">{o.quantity_ordered ?? 0}</td>
+                <td data-label="Status"><StatusPill status={o.status} label={LABEL[o.status]} /></td>
+                <td data-label="Production">{inProduction(o.status) ? <ProductionProgress compact summary={summaries[o.order_id] ?? null} /> : <span style={{ fontSize:13, color:'var(--text-faint)' }}>—</span>}</td>
+                <td data-label="Due" style={{ whiteSpace:'nowrap', fontSize:13, color:'var(--text-subtle)' }}>{fmtDate(due)}<DueChip due={due} status={o.status} /></td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </DataTable>
     </>
   );
 }

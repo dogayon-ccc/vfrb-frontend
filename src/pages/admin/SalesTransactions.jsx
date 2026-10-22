@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { cacheGet, cacheSet, cacheClear } from '../../utils/cache';
 import { NavIcon } from '../../components/ui';
-import { isOwner } from '../../utils/jobAccess';
+import { isAdmin } from '../../utils/jobAccess';
 import BottomSheet from '../../components/ui/BottomSheet';
 import { PageHeader, StatGrid, Panel, SearchBox, Banner, ErrorBlock, SkeletonRows, OrderLink, useIsMobile, RecordedBy } from '../../components/admin/AdminUI';
 
@@ -26,8 +26,7 @@ const Method = ({ m }) => {
 };
 // The order total is a manager decision (the API rejects amount_total from staff), so only managers see or set it.
 function getIsManager() {
-  try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}').role === 'manager'; }
-  catch { return false; }
+  return isAdmin();
 }
 const Balance = ({ t }) => (Number(t.balance_due) > 0
   ? <span style={{ fontWeight: 700, color: 'var(--warning-text)' }}>{fmt(t.balance_due)}</span>
@@ -202,7 +201,7 @@ export default function AdminSalesTransactions() {
     <div className="adm-empty"><NavIcon name="salesPay" size={30} color="currentColor" />
       <div style={{ marginTop: 8, fontWeight: 700 }}>{search ? `No payments match “${search}”` : 'No payments recorded yet'}</div>
       {search ? <button className="adm-link-btn" onClick={() => setSearch('')}>Clear search</button>
-        : !isOwner() && <button className="adm-link-btn" onClick={() => setModal(true)}>Record the first payment</button>}
+        : isManager && <button className="adm-link-btn" onClick={() => setModal(true)}>Record the first payment</button>}
     </div>
   );
 
@@ -212,7 +211,7 @@ export default function AdminSalesTransactions() {
 
       <PageHeader title="Sales & Payments" sub="Manual recording · Cash, GCash, e-wallet or bank transfer · no payment gateway">
         <button className="adm-btn" onClick={() => load(true)}><NavIcon name="refresh" size={14} color="currentColor" /> Refresh</button>
-        {!isOwner() && <button className="adm-btn primary" onClick={() => setModal(true)}><NavIcon name="add" size={14} color="currentColor" /> Record payment</button>}
+        {isManager && <button className="adm-btn primary" onClick={() => setModal(true)}><NavIcon name="add" size={14} color="currentColor" /> Record payment</button>}
       </PageHeader>
       {loadErr && <div style={{ marginBottom: 14 }}><ErrorBlock msg="Could not load payments." onRetry={() => load(true)} /></div>}
       {!loading && total > txns.length && <Banner tone="warn" icon="warning">Showing the latest {txns.length} of {total} payments — the totals below cover only these.</Banner>}

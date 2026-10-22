@@ -9,7 +9,6 @@ html[data-cx] ::-webkit-scrollbar-thumb{background:var(--cx-line-strong);border-
 
 /* Frame: one column on phones; rail + content on tablet/desktop */
 .cm-shell{--cx-rail-w:var(--cx-rail);min-height:100dvh;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr;background:var(--cx-paper);color:var(--cx-ink)}
-.cm-shell[data-rail=slim]{--cx-rail-w:var(--cx-rail-sm)}
 .cm-main{grid-column:1/-1;min-width:0;display:flex;flex-direction:column}
 .cm-content{flex:1;width:100%;min-width:0;padding:16px max(16px,env(safe-area-inset-right)) calc(var(--cx-nav-h) + 24px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left))}
 .cm-content[data-fab]{padding-bottom:calc(var(--cx-nav-h) + 86px + env(safe-area-inset-bottom,0px))}
@@ -60,13 +59,13 @@ html[data-cx] ::-webkit-scrollbar-thumb{background:var(--cx-line-strong);border-
 .cx-rail-link[aria-current=page]{background:var(--cx-card);color:var(--cx-ink);font-weight:700;box-shadow:var(--cx-elev-0)}
 .cx-rail-link[aria-current=page] svg,.cx-rail-studio svg{color:var(--cx-thread)}
 .cx-rail-link[aria-current=page]::before{content:"";position:absolute;left:-8px;top:10px;bottom:10px;width:2px;background:repeating-linear-gradient(to bottom,var(--cx-thread) 0 4px,transparent 4px 7px)}
-.cx-rail-link span{flex:1;overflow:hidden;text-overflow:ellipsis}
+/* Only the label stretches; the icon (and its badge) keeps its own width so labels sit next to their icons. */
+.cx-rail-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.cx-rail-link .nav-ico-wrap{flex:none}
 .cx-rail-sep{height:0;margin:10px 4px;border-top:1px dashed var(--cx-line-strong)}
 .cx-rail-foot{display:flex;flex-direction:column;gap:2px;padding:10px 12px 14px}
 .cx-rail-out{color:var(--danger-text)}
 .cx-rail-out svg{color:currentColor}
-.cm-shell[data-rail=slim] .cx-rail-link{justify-content:center;padding:0}
-.cm-shell[data-rail=slim] .cx-rail-link::before{left:-6px}
 
 /* Bottom nav (phone): the only fixed navigation */
 .cx-nav{position:fixed;left:0;right:0;bottom:0;z-index:300;display:flex;align-items:stretch;height:calc(var(--cx-nav-h) + env(safe-area-inset-bottom,0px));padding:0 max(4px,env(safe-area-inset-right)) env(safe-area-inset-bottom,0px) max(4px,env(safe-area-inset-left));background:var(--cx-bar-glass);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border-top:1px solid var(--cx-line)}
@@ -79,6 +78,8 @@ html[data-cx] ::-webkit-scrollbar-thumb{background:var(--cx-line-strong);border-
 /* Studio shortcut (phone, main tabs) */
 .cm-studio-fab{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:calc(var(--cx-nav-h) + 14px + env(safe-area-inset-bottom,0px));z-index:310;width:56px;height:56px;display:grid;place-items:center;border:0;border-radius:50%;background:var(--cx-thread);color:var(--cx-on-thread);cursor:pointer;box-shadow:0 0 0 4px var(--cx-paper),var(--cx-elev-2);transition:transform var(--cx-dur-1) var(--cx-ease)}
 .cm-studio-fab:active{transform:scale(.94)}
+.cm-studio-fab{transition:transform var(--cx-dur-2) var(--cx-ease),opacity var(--cx-dur-2) var(--cx-ease)}
+.cm-studio-fab[data-hidden=true]{transform:translateY(calc(100% + 32px));opacity:0;pointer-events:none}
 
 /* More sheet (phone) */
 .cx-scrim{position:fixed;inset:0;z-index:280;background:var(--cx-scrim)}
@@ -107,12 +108,19 @@ html[data-cx] ::-webkit-scrollbar-thumb{background:var(--cx-line-strong);border-
   .cx-user-n{display:block}
   .cx-rail{grid-column:1;grid-row:2;position:sticky;top:var(--cx-bar-h);height:calc(100dvh - var(--cx-bar-h));display:flex;flex-direction:column;overflow:hidden auto;scrollbar-width:thin;background:repeating-linear-gradient(to bottom,var(--cx-line-strong) 0 6px,transparent 6px 11px) right top/1px 100% no-repeat var(--cx-paper-2)}
   .cx-rail nav{flex:1;display:flex;flex-direction:column;gap:2px;padding:16px 12px 8px 16px}
-  .cm-shell[data-rail=slim] .cx-rail nav{padding-inline:12px}
   .cm-main{grid-column:2;grid-row:2}
   .cm-content{padding:var(--shell-pad) var(--shell-pad) 48px}
   .cx-nav,.cm-studio-fab,.cx-sheet,.cx-scrim{display:none}
 }
-@media(min-width:768px) and (max-width:1023px){.cx-crumb span{display:none}}
+/* Tablet: slim icon rail, no toggle. Labels stay in the DOM for screen readers; title gives a tooltip. */
+@media(min-width:768px) and (max-width:1023px){
+  .cx-crumb span{display:none}
+  .cm-shell{--cx-rail-w:var(--cx-rail-sm)}
+  .cx-rail nav{padding-inline:12px}
+  .cx-rail-link{justify-content:center;padding:0}
+  .cx-rail-link::before{left:-6px}
+  .cx-rail-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+}
 
 @media(prefers-reduced-motion:reduce){
   .cm-shell,.cx-bar,.cx-rail-link,.cx-rail-link svg,.cx-nav-ico,.cx-icon-btn,.cx-user,.cm-studio-fab{transition:none}

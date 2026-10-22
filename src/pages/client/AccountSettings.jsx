@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import axios from 'axios';
-import { Card, Button, Field, NavIcon, ConfirmDialog } from '../../components/ui';
+import { Card, Button, Field, NavIcon, ConfirmDialog, PageHeader, Skeleton } from '../../components/ui';
 import EmptyState from '../../components/EmptyState';
 import { ProfileSection, PasswordSection } from './settings/ProfileSection';
 import BillingSection from './settings/BillingSection';
@@ -159,7 +159,7 @@ function NotificationsSection() {
   };
 
   if (failed) return <LoadError what="notification settings" onRetry={load}/>;
-  if (!prefs) return <div className="acct-sk"/>;
+  if (!prefs) return <Skeleton variant="block" height={68} label="Loading" />;
 
   const Row = ({ k, label, live }) => {
     const on = !!prefs[k];
@@ -169,11 +169,14 @@ function NotificationsSection() {
           <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{label}</p>
           {!live && <p style={{ fontSize: 13, color: 'var(--warning)', margin: '2px 0 0' }}>Email goes to a test inbox for now. Your preference is saved for when real delivery is on.</p>}
         </div>
+        {/* 44px tap area around the 42x24 track. */}
         <button role="switch" aria-checked={on} aria-label={`Toggle ${label}`} onClick={() => toggle(k)} disabled={saving}
-          style={{ width: 42, height: 24, borderRadius: 99, border: 'none', cursor: saving ? 'not-allowed' : 'pointer',
-            background: on ? 'var(--teal)' : 'var(--border-strong)', position: 'relative', transition: 'background .18s', flexShrink: 0 }}>
-          <span style={{ position: 'absolute', top: 3, left: on ? 21 : 3, width: 18, height: 18, borderRadius: '50%',
-            background: 'var(--bg-card)', transition: 'left .18s', boxShadow: '0 1px 3px rgba(0,0,0,.2)' }}/>
+          style={{ width: 54, height: 44, padding: '10px 6px', border: 'none', background: 'none', cursor: saving ? 'not-allowed' : 'pointer', flexShrink: 0 }}>
+          <span style={{ display: 'block', position: 'relative', width: 42, height: 24, borderRadius: 99,
+            background: on ? 'var(--teal)' : 'var(--border-strong)', transition: 'background .18s' }}>
+            <span style={{ position: 'absolute', top: 3, left: on ? 21 : 3, width: 18, height: 18, borderRadius: '50%',
+              background: 'var(--bg-card)', transition: 'left .18s', boxShadow: '0 1px 3px rgba(0,0,0,.2)' }}/>
+          </span>
         </button>
       </div>
     );
@@ -262,7 +265,7 @@ function FabricsSection() {
       )}
 
       {loading ? (
-        <div className="acct-sk"/>
+        <Skeleton variant="block" height={68} label="Loading" />
       ) : failed ? (
         <LoadError what="fabric preferences" onRetry={load}/>
       ) : prefs.length === 0 && !picking ? (
@@ -299,7 +302,7 @@ const SECTIONS = [
   { id: 'appearance',    label: 'Photo & Appearance',   hint: 'Profile photo, mode and accent colour', icon: 'camera' },
   { id: 'notifications', label: 'Notifications',        hint: 'Choose what you get notified about', icon: 'notifications' },
   { id: 'fabrics',       label: 'Preferred Fabrics',    hint: 'Fabrics staff should know about', icon: 'package' },
-  { id: 'billing',       label: 'Billing Profiles',     hint: 'Invoice recipient details', icon: 'invoice' },
+  { id: 'billing',       label: 'Invoice details',      hint: 'Billing name, company, billing address', icon: 'invoice' },
   { id: 'password',      label: 'Password & Security',  hint: 'Change or recover your password', icon: 'lock' },
   { id: 'help',          label: 'Help & Support',       hint: 'Guides and contact', icon: 'info' },
   { id: 'feedback',      label: 'Feedback',             hint: 'Report a bug or suggest an idea', icon: 'chat' },
@@ -338,33 +341,26 @@ export default function AccountSettings() {
   const Panel = PANELS[active];
 
   const list = (
-    <nav aria-label="Account settings sections" className="cx-card" style={{ overflow: 'hidden' }}>
+    <Card as="nav" aria-label="Account settings sections" padding="none">
       {SECTIONS.map(x => {
         const on = wide && active === x.id;
         return (
-          <button key={x.id} className="cx-row" onClick={() => open(x)} aria-current={on ? 'page' : undefined}
-            style={{ background: on ? 'var(--teal-50)' : undefined, minHeight: 60, borderLeft: on ? '3px solid var(--teal)' : '3px solid transparent' }}>
-            <span style={{ width: 36, height: 36, borderRadius: 10, display: 'grid', placeItems: 'center', flexShrink: 0,
-              background: on ? 'var(--teal)' : 'var(--bg-surface)', color: on ? '#fff' : 'var(--teal)' }}>
-              <NavIcon name={x.icon} size={16} />
-            </span>
-            <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ display: 'block', fontSize: 14, fontWeight: 700 }}>{x.label}</span>
-              <span style={{ display: 'block', fontSize: 13, color: 'var(--text-subtle)', marginTop: 1 }}>{x.hint}</span>
-            </span>
-            <span aria-hidden="true" style={{ color: 'var(--text-faint)', fontSize: 18 }}>›</span>
+          <button key={x.id} type="button" className="st-nav" data-on={on || undefined} onClick={() => open(x)} aria-current={on ? 'page' : undefined}>
+            <span className="st-nav-ico"><NavIcon name={x.icon} size={16} /></span>
+            <span className="st-nav-txt"><b>{x.label}</b><small>{x.hint}</small></span>
+            <NavIcon name="chevronRight" size={16} color="var(--text-faint)" />
           </button>
         );
       })}
-    </nav>
+    </Card>
   );
 
   const panel = current && (
     <motion.section key={active} initial={{ opacity: 0, y: reduce ? 0 : 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : .18 }}
       aria-labelledby="acct-panel-h">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-        {!wide && <button className="cx-btn cx-btn-s" style={{ minHeight: 40, padding: '0 12px' }} onClick={() => setSec(null)} aria-label="Back to settings list">←</button>}
-        <h2 id="acct-panel-h" style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>{current.label}</h2>
+      <div className="st-panel-h">
+        {!wide && <Button icon="back" onClick={() => setSec(null)} aria-label="Back to settings list" />}
+        <h2 id="acct-panel-h">{current.label}</h2>
       </div>
       <Panel/>
     </motion.section>
@@ -372,33 +368,14 @@ export default function AccountSettings() {
 
   return (
     <div className="cx-page">
-      <style>{`
-        .acct-field-row { display:grid; grid-template-columns:1fr; gap:12px; }
-        .acct-sk { border-radius:12px; height:68px; background:linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%); background-size:400px; animation:acct-sk 1.4s infinite; }
-        @keyframes acct-sk { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
-        .vfrb-row-card { transition: border-color .18s, box-shadow .18s; }
-        .vfrb-row-card:hover { border-color: var(--teal); box-shadow: 0 2px 10px rgba(2,128,144,.08); }
-        .acct-split { display:grid; grid-template-columns:1fr; gap:18px; }
-        @media (min-width:640px) { .acct-field-row { grid-template-columns:1fr 1fr; } }
-        @media (min-width:900px) { .acct-split { grid-template-columns:320px minmax(0,1fr); align-items:start; } }
-      `}</style>
+      {(wide || !sec) && <PageHeader title="Account Settings" subtitle="Your profile, delivery, notifications and preferences." />}
 
       {(wide || !sec) && (
-        <div className="cx-head"><div><h1>Account Settings</h1><p>Your profile, delivery, notifications and preferences.</p></div></div>
-      )}
-
-      {(wide || !sec) && (
-        <div className="cx-card" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 18px', marginBottom: 16 }}>
-          <div aria-hidden="true" style={{ width: 54, height: 54, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center', overflow: 'hidden',
-            background: 'linear-gradient(135deg,var(--teal),var(--teal-2))', color: 'var(--on-teal)', fontSize: 22, fontWeight: 800 }}>
-            {me.avatar ? <img src={me.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}/> : (me.name ?? '?').charAt(0).toUpperCase()}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ margin: 0, fontSize: 16, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{me.name ?? 'Customer'}</p>
-            <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--text-subtle)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{me.email ?? ''}</p>
-          </div>
-          {!wide && <button className="cx-btn cx-btn-s" style={{ minHeight: 44 }} onClick={() => setSec('profile')}>Edit Profile</button>}
-        </div>
+        <Card as="div" className="st-me" bodyClassName="st-me-in">
+          <span className="st-av" aria-hidden="true">{me.avatar ? <img src={me.avatar} alt="" /> : (me.name ?? '?').charAt(0).toUpperCase()}</span>
+          <span className="st-me-txt"><b>{me.name ?? 'Customer'}</b><small>{me.email ?? ''}</small></span>
+          {!wide && <Button onClick={() => setSec('profile')}>Edit profile</Button>}
+        </Card>
       )}
 
       {wide ? (

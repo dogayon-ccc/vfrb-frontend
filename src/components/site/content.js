@@ -1,11 +1,15 @@
 // Single source of truth for every public-site fact and repeated list. Pages import from here; never restate these inline.
 import { P } from '../../pages/landing/photos';
+import { MIN_ORDER_QTY, STD_SIZES } from '../../utils/orderQuantity';
 
 export const SERVE = ['Local offices', 'Corporate clients', 'Schools', 'Institutional organizations'];
 export const SERVE_LINE = 'Local offices, corporate clients, schools and institutional organizations';
 
 export const SERVICES = ['Custom tailoring', 'Garment manufacturing', 'Computerized embroidery', 'Silk screen printing', 'Full sublimation'];
 export const PRODUCTS = ['Company uniforms', 'Polo shirts', 'Campaign shirts', 'Caps', 'Jackets', 'Patches'];
+
+// Mirrors CATEGORIES in design-studio/designGallery.js; restated so the eager landing bundle doesn't pull in the Studio.
+export const UNIFORM_TYPES = ['School', 'Corporate / Business', 'Medical / Healthcare', 'Hospitality / Service', 'Industrial / Work', 'Uniform Dress'];
 
 export const PLACES = [
   ['Bayanan, Muntinlupa City', 'Company address'],
@@ -42,6 +46,18 @@ export const PHASES = [
     stages: [['QC', 'Finished pieces are checked against the measurements for their size. Pieces that fail go back for alteration.'],
              ['Pressing', 'The finishing team presses the garments.'],
              ['Packing', 'Pieces are counted per size and color, then packed and labeled by division for delivery.']] },
+];
+
+// Ordering facts as the backend enforces them (OrderController: min 100 pieces; direct orders 80% down). Home and FAQ share these.
+export const ORDER_FAQS = [
+  { q: 'What is the minimum order?',
+    a: `VFRB takes bulk orders only: at least ${MIN_ORDER_QTY} pieces per order. The Order Wizard won't submit an order below ${MIN_ORDER_QTY}.` },
+  { q: 'How does payment work?',
+    a: 'VFRB sends you the price for your order. Once you accept it, an 80% downpayment is due, and production starts after it is received. The remaining 20% is paid on delivery. Your invoice and receipts appear in your customer account.' },
+  { q: 'How long does an order take?',
+    a: 'You set the date you need your uniforms by in the Order Wizard. VFRB reviews your order and that date, then accepts or declines it.' },
+  { q: 'Which sizes can I order?',
+    a: `Standard sizes ${STD_SIZES[0]} to ${STD_SIZES[STD_SIZES.length - 1]}, or custom measurements in centimetres (chest, waist, hip, length and sleeve). VFRB production staff review custom measurements with you.` },
 ];
 
 // Mirrors the Client Guide (pages/Guide.jsx). Update both together.

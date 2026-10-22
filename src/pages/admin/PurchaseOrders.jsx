@@ -6,9 +6,9 @@ import { Link }                              from 'react-router-dom';
 import { cacheGet, cacheSet, cacheClear } from '../../utils/cache';
 import { NavIcon }                             from '../../components/ui/icons';
 import { escapeHtml }                          from '../../utils/escapeHtml';
+import { isAdmin } from '../../utils/jobAccess';
 import { PageHeader, StatGrid, PillTabs, Panel, StatusPill, SearchBox, Banner, Toast, useToast, ErrorBlock, SkeletonRows, FilterSheet, FilterButton, useIsMobile } from '../../components/admin/AdminUI';
 
-const readRole = () => { try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}').role; } catch { return null; } };
 const T    = 'var(--teal)';
 const T2   = 'var(--teal-2)';
 const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif`;
@@ -283,7 +283,7 @@ function LogResponseModal({ rfq, suppliers, onClose, onDone }) {
             </select>
             {suppliers.length === 0 && (
               <p style={{ fontSize:12, color:'var(--warning-text)', margin:'6px 0 0' }}>
-                No suppliers on file yet. {readRole() === 'manager' ? <Link to="/admin/suppliers">Add one in Suppliers</Link> : 'Ask a manager to add the supplier first.'}
+                No suppliers on file yet. {isAdmin() ? <Link to="/admin/suppliers">Add one in Suppliers</Link> : 'Ask a manager to add the supplier first.'}
               </p>
             )}
           </div>
@@ -652,7 +652,7 @@ export default function AdminPurchaseOrders() {
   const isMobile = useIsMobile();
 
   const user = (() => { try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}'); } catch { return {}; } })();
-  const isManager = user.role === 'manager';
+  const isManager = isAdmin(user);
   const showToast = (msg, type = 'success') => setToast({ msg, type });
 
   const load = useCallback((force = false) => {

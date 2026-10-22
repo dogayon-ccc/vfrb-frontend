@@ -18,17 +18,6 @@ Files on disk: 245 · referenced paths: 197 · missing: 0 · unreferenced: 48 (u
 ## 3D garments
 | entry | status | models | limitations |
 | --- | --- | --- | --- |
-| custom-top-parametric | approximate-3d |  | parametric shape built from the 2D choices: simple lofts, approximate shape and drape; pocket layers you add are 2D only; logos and text sit on the body only |
-| custom-bottom-parametric | approximate-3d |  | parametric shape built from the 2D choices: simple lofts, approximate shape and drape; pocket layers you add are 2D only; one body colour |
-| custom-skirt-parametric | approximate-3d |  | parametric shape built from the 2D choices: simple lofts, approximate shape and drape; pocket layers you add are 2D only; one body colour |
-| pantsuit-trousers-parametric | approximate-3d |  | parametric shape built from the 2D choices: simple lofts, approximate shape and drape; pocket layers you add are 2D only; one body colour (buttons and fly follow the Details colours); the zip is concealed under the fly and not modelled; static shape: no cloth simulation |
-| midi-pencil-skirt-parametric | approximate-3d |  | parametric shape built from the 2D choices: simple lofts, approximate shape and drape; pocket layers you add are 2D only; one body colour; back vent and zip are not modelled; static shape: no cloth simulation |
-| short-sleeve-notch-jacket-parametric | approximate-3d |  | parametric shape built from the 2D choices: simple lofts, approximate shape and drape; pocket layers you add are 2D only; lapels are a fall collar: the open front above the top button is not modelled; static shape: no cloth simulation |
-| peplum-top-parametric | approximate-3d |  | parametric shape built from the 2D choices: simple lofts, approximate shape and drape; pocket layers you add are 2D only; the peplum is a fixed flare, not a draped skirt; static shape: no cloth simulation |
-| barong-shirt-parametric | approximate-3d |  | parametric shape built from the 2D choices: simple lofts, approximate shape and drape; pocket layers you add are 2D only; embroidery and sheer fabric are not modelled; static shape: no cloth simulation |
-| mens-slacks-parametric | approximate-3d |  | parametric shape built from the 2D choices: simple lofts, approximate shape and drape; pocket layers you add are 2D only; one body colour (buttons and fly follow the Details colours); the zip is concealed under the fly and not modelled; static shape: no cloth simulation |
-| creased-trousers-parametric | approximate-3d |  | parametric shape built from the 2D choices: simple lofts, approximate shape and drape; pocket layers you add are 2D only; one body colour (buttons and fly follow the Details colours); the zip is concealed under the fly and not modelled; static shape: no cloth simulation |
-| button-down-parametric | approximate-3d |  | parametric shape built from the 2D choices: simple lofts, approximate shape and drape; pocket layers you add are 2D only; placket buttons are 2D only |
 | t-shirt | approximate-3d | male: /models/t-shirt-male.glb; female: /models/t-shirt-female.glb | — |
 | polo-shirt | approximate-3d | male: /models/Polo Shirt male.glb; female: /models/female polo shirt.glb | — |
 | work-shirt | approximate-3d | unisex: /models/processed/work-shirt-short-sleeve-capped.glb | short sleeve only; small scan-cut irregularities remain at the side and hem; front collar leaf points sit below the collar zone and take the body colour; no arbitrary fabric-texture upload |
@@ -64,16 +53,16 @@ Files on disk: 245 · referenced paths: 197 · missing: 0 · unreferenced: 48 (u
 | derived-jack-shirt-two-tone | approximate-3d | male: /models/vfrb-derived/jack-shirt-two-tone.glb | one body colour: lapels, collar, sleeves, buttons and pockets are modelled shapes, not separately colourable parts; no text or logos in 3D; derived from the reference model of the "jack-shirt-two-tone" gallery photo, pending VFRB confirmation; no arbitrary fabric-texture upload |
 
 ## 3D coverage by kind
-- Editable single-garment 3D models (Studio, Order Wizard, Order Detail): 36 files in 44 entries (table above).
+- Editable single-garment 3D models (Studio, Order Wizard, Order Detail): 36 files in 33 entries (table above).
 - Working read-only full-set previews (gallery "View the set in 3D"): 2 (set-pinstripe-pants, set-pinstripe-skirt).
 - Working read-only single-garment references (gallery "View in 3D"): 7 (blouse-mandarin-yellow, blouse-asymmetric-blue, blouse-tunic-roundneck-blue, blazer-open-front-black, dress-tunic-maternity-navy, jack-shirt-two-tone, dress-butter-belted).
 - Reference files with no viewer connection: none (every file in `/models/reference/` is mapped to its gallery photo).
 
 ### Gallery photos by 3D kind
 - Photo-matched single-garment GLB (editable, the model was made from that photo or its exact cut): 23.
-- Family-level approximation, labelled (editable 2D; the Studio 3D is the family model, not the photo): 10 (blouse-scarf-cream, pantsuit-notch-short-gray, polo-barong-brown, blazer-double-breasted-gray, blazer-pinstripe-navy, blouse-roundneck-mustard, shirt-two-tone-gpc, peplum-set-navy, pants, corporate-skirt).
+- Family-level approximation, labelled (editable 2D; the Studio 3D is the family model, not the photo): 7 (blouse-scarf-cream, blazer-double-breasted-gray, blazer-pinstripe-navy, blouse-roundneck-mustard, shirt-two-tone-gpc, pants, corporate-skirt).
 - Editable 2D, family model withheld because it is a different garment (Studio 3D off for designs from this photo): 1 (blouse-tunic-roundneck-blue).
-- Editable 2D without a compatible GLB: 0.
+- Editable 2D without a compatible GLB: 3.
 - Read-only full-set previews: 2 (5 of them also open their cut garment for editing).
 - Reference-only photos (no editor): 6 (2 with a read-only 3D viewer, 4 photo only).
 - Duplicates and rejected staging sources: see `GLB-STAGING-AUDIT.md` (dress-sheath-denim-blue duplicate; corporate-skirt, dress-shift-geometric, women-pinstripe-vest-blouse rejected).

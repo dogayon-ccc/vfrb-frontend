@@ -28,7 +28,7 @@ export default function GoogleComplete() {
       // Minimal shape check — this payload arrives via a URL parameter, so
       // nothing guarantees it came from our own redirect. Reject anything
       // that doesn't look like a real account before it becomes session state.
-      const validRoles = ['customer', 'staff', 'manager'];
+      const validRoles = ['customer']; // Google sign-in is for existing customer accounts only
       if (!user || typeof user !== 'object' || !user.user_id || !validRoles.includes(user.role)) {
         setError('Could not complete sign-in. Please try again.');
         return;

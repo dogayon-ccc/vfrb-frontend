@@ -138,7 +138,7 @@ export function AcceptModal({ order, recs, onClose, onDone }) {
             <label style={{ display:'block', fontSize:13, fontWeight:700,
               textTransform:'uppercase', letterSpacing:'.07em', color:'var(--text-subtle)',
               marginBottom:7, fontFamily:FONT }}>
-              Notes for Staff (optional)
+              Notes for the VFRB team (optional)
             </label>
             <textarea value={notes} onChange={e=>setNotes(e.target.value)} rows={3}
               placeholder="e.g. Please use cotton blend, prefer navy blue thread…"
@@ -168,7 +168,7 @@ export function AcceptModal({ order, recs, onClose, onDone }) {
                 color:'#fff', fontSize:13, fontWeight:700,
                 cursor:busy?'not-allowed':'pointer', fontFamily:FONT,
                 boxShadow:busy?'none':'0 4px 14px rgba(34,197,94,.3)' }}>
-              {busy ? 'Confirming…' : 'Accept & Notify Staff'}
+              {busy ? 'Confirming…' : 'Accept & Notify VFRB Team'}
             </motion.button>
           </div>
         </motion.div>
@@ -331,12 +331,23 @@ export function RecCard({ rec, index }) {
         <p style={{ fontSize:17, fontWeight:800, color:'var(--ink)', margin:0, fontFamily:FONT }}>
           {rec.material_name}
         </p>
-        <span style={{ display:'inline-block', marginTop:4, padding:'2px 8px', borderRadius:99, fontSize:13, fontWeight:700,
-          background:cat.bg, color:cat.color, fontFamily:FONT }}>
-          {rec.category}
-        </span>
+        <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:4 }}>
+          {rec.category && (
+            <span style={{ padding:'2px 8px', borderRadius:99, fontSize:13, fontWeight:700, background:cat.bg, color:cat.color, fontFamily:FONT }}>
+              {rec.category}
+            </span>
+          )}
+          {/* Catalog colour fit from the server: a neighbouring colour family, offered but not exact. */}
+          {rec.colour_match === 'near' && (
+            <span title="Close to your colour, not an exact match" style={{ padding:'2px 8px', borderRadius:99, fontSize:13, fontWeight:700,
+              background:'var(--warning-bg, #fef3c7)', color:'var(--warning-text, #92400e)', fontFamily:FONT }}>
+              Near match
+            </span>
+          )}
+        </div>
         {rec.description && (
-          <p className="whitespace-pre-line" style={{ fontSize:13, color:'var(--text-muted)', lineHeight:1.65, margin:'10px 0 0', fontFamily:FONT }}>
+          <p className="whitespace-pre-line" style={{ fontSize:13, color:'var(--text-muted)', lineHeight:1.65, margin:'10px 0 0', fontFamily:FONT,
+            display:'-webkit-box', WebkitLineClamp:3, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
             {rec.description}
           </p>
         )}
@@ -540,7 +551,7 @@ export default function AIMaterials() {
             <div style={{ display:'flex', gap:12, alignItems:'center',
               marginBottom:20, flexWrap:'wrap' }}>
               <select value={selId ?? ''} onChange={e => setSelId(Number(e.target.value))}
-                style={{ flex:1, minWidth:200, padding:'11px 14px', borderRadius:11,
+                style={{ flex:1, minWidth:200, minHeight:44, padding:'11px 14px', borderRadius:11,
                   border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)',
                   fontSize:13, outline:'none', fontFamily:FONT, cursor:'pointer' }}
                 onFocus={e=>{e.target.style.borderColor=T;e.target.style.boxShadow=`0 0 0 3px rgba(2,128,144,.1)`;}}
@@ -599,7 +610,7 @@ export default function AIMaterials() {
               </p>
               <p style={{ fontSize:13, textAlign:'center', marginTop:10, fontFamily:FONT }}>
                 <button type="button" onClick={()=>setShowPicker(true)}
-                  style={{ background:'none', border:'none', color:T, fontWeight:700,
+                  style={{ display:'inline-flex', alignItems:'center', minHeight:44, padding:'0 12px', background:'none', border:'none', color:T, fontWeight:700,
                     fontSize:13, cursor:'pointer', textDecoration:'underline', fontFamily:FONT }}>
                   Or choose your own materials instead →
                 </button>
@@ -653,10 +664,10 @@ export default function AIMaterials() {
                       <div>
                         <p style={{ fontSize:13, fontWeight:800, color:'var(--success-text)',
                           margin:0, fontFamily:FONT }}>
-                          Materials Accepted — VFRB Staff Notified
+                          Materials Accepted — VFRB Team Notified
                         </p>
                         <p style={{ fontSize:13, color:'var(--success-text)', margin:'3px 0 0', fontFamily:FONT }}>
-                          Staff will prepare these materials for your production order.
+                          The VFRB team will prepare these materials for your production order.
                         </p>
                       </div>
                     </motion.div>
@@ -700,7 +711,7 @@ export default function AIMaterials() {
                         background:'linear-gradient(135deg,#22c55e,#16a34a)',
                         color:'#fff', fontSize:14, fontWeight:700, cursor:'pointer',
                         fontFamily:FONT, boxShadow:'0 6px 20px rgba(34,197,94,.3)' }}>
-                      Accept & Notify Staff
+                      Accept & Notify VFRB Team
                     </motion.button>
                   </motion.div>
                 )}

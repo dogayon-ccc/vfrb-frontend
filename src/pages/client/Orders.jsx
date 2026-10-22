@@ -1,16 +1,14 @@
-// src/pages/client/Orders.jsx — Orders list (wireframe: filter chips, table on desktop, cards on mobile)
-import { humanize } from '../../utils/humanize';
+// src/pages/client/Orders.jsx — Orders list: search, sort, status chips, visual order cards with the 5-step strip
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { asList } from '../../utils/asList';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
-import { NavIcon } from '../../components/ui/icons';
 import EmptyState from '../../components/EmptyState';
+import { Card, Button, PageHeader, Stepper, Skeleton } from '../../components/ui';
 import {
-  PageHeader, Chips, StatusPill, OrderThumb, Skeleton, Stepper, LIFECYCLE, lifecycleIndex,
-  GROUPS, orderTitle, fmtDate,
+  Chips, StatusPill, OrderThumb, LIFECYCLE, lifecycleIndex, GROUPS, orderTitle, fmtDate,
 } from '../../components/customer/kit';
 
 const SORTS = [
@@ -19,30 +17,23 @@ const SORTS = [
   { id: 'due', label: 'Due date' },
 ];
 
-function MobileCard({ o, onOpen }) {
+function OrderCard({ o, onOpen }) {
   const done = o.status === 'completed' || o.status === 'cancelled';
   return (
-    <motion.button layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-      whileTap={{ scale: .99 }} onClick={onOpen} className="cx-card"
-      aria-label={`View order ${o.order_id}, ${orderTitle(o)}`}
-      style={{ width: '100%', textAlign: 'left', padding: 14, cursor: 'pointer', font: 'inherit', color: 'inherit', display: 'block' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <OrderThumb order={o} size={52} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--text-faint)' }}>ORDER #{o.order_id}</p>
-          <p style={{ margin: '2px 0 4px', fontSize: 14, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{orderTitle(o)}</p>
-          <p style={{ margin: 0, fontSize: 13, color: 'var(--text-subtle)' }}>
-            {o.quantity_ordered ?? 0} pcs{o.target_delivery_date ? ` · Due ${fmtDate(o.target_delivery_date, { month: 'short', day: 'numeric' })}` : ''}
-          </p>
-        </div>
+    <Card as={motion.button} type="button" layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+      interactive padding="none" onClick={onOpen} className="ox-card" aria-label={`View order ${o.order_id}, ${orderTitle(o)}`}>
+      <div className="ox-top">
+        <span className="ox-thumb"><OrderThumb order={o} size={64} /></span>
+        <span className="ox-txt">
+          <small>Order #{o.order_id}</small>
+          <strong>{orderTitle(o)}</strong>
+          <span>{o.quantity_ordered ?? 0} pcs{o.target_delivery_date ? ` · Due ${fmtDate(o.target_delivery_date, { month: 'short', day: 'numeric' })}` : ''}</span>
+        </span>
         <StatusPill status={o.status} />
       </div>
-      {!done && <div style={{ marginTop: 14 }}><Stepper steps={LIFECYCLE} current={lifecycleIndex(o.status)} /></div>}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, fontSize: 13, color: 'var(--text-faint)' }}>
-        <span>{fmtDate(o.created_at)}</span>
-        <span style={{ color: 'var(--teal)', fontWeight: 700 }}>View details</span>
-      </div>
-    </motion.button>
+      {!done && <div className="ox-steps"><Stepper steps={LIFECYCLE} current={lifecycleIndex(o.status)} label={`Order ${o.order_id} progress`} /></div>}
+      <div className="ox-foot"><span>Ordered {fmtDate(o.created_at)}</span><b>View details</b></div>
+    </Card>
   );
 }
 
@@ -91,12 +82,12 @@ export default function CustomerOrders() {
     <div className="cx-page">
       <PageHeader title="My Orders"
         subtitle={loading ? 'Loading your orders…' : orders.length ? `${orders.length} order${orders.length !== 1 ? 's' : ''} total` : 'No orders yet'}>
-        <button className="cx-btn cx-btn-p" onClick={() => nav('/order/create')}><NavIcon name="add" size={14} color="#fff" /> New Order</button>
+        <Button variant="primary" icon="add" onClick={() => nav('/order/create')}>New order</Button>
       </PageHeader>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
-        <div className="cx-ord-tools">
-          <div style={{ position: 'relative', flex: 1 }}>
+      <div className="ox-tools">
+        <div className="ox-search-row">
+          <div className="ox-search">
             <label htmlFor="ord-q" className="sr-only">Search orders</label>
             <input id="ord-q" type="search" value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search by order ID, garment, color…" className="cx-in" />
@@ -110,9 +101,8 @@ export default function CustomerOrders() {
       </div>
 
       {loading ? (
-        <div style={{ display: 'grid', gap: 12 }}>
-          {[1, 2, 3].map(i => <div key={i} className="cx-card" style={{ padding: 14, display: 'flex', gap: 12 }}>
-            <Skeleton h={52} w={52} /><div style={{ flex: 1 }}><Skeleton h={12} w="35%" /><Skeleton h={16} w="65%" style={{ marginTop: 8 }} /></div></div>)}
+        <div className="ox-grid">
+          {[1, 2, 3].map(i => <Card key={i} padding="sm"><Skeleton variant="text" count={3} label="Loading orders" /></Card>)}
         </div>
       ) : error ? (
         <EmptyState illustration="error" headline="Couldn't load your orders"
@@ -124,44 +114,10 @@ export default function CustomerOrders() {
           sub={blank ? 'Design your uniform and place your first order.' : 'Try a different filter or clear your search.'}
           cta={blank ? { label: 'Start a design', onClick: () => nav('/design-studio') } : { label: 'Clear filters', onClick: () => { setSearch(''); setGroup('all'); } }} />
       ) : (
-        <>
-          {/* Desktop / tablet-landscape: table */}
-          <div className="cx-card cx-only-d" style={{ overflow: 'hidden' }}>
-            <table className="cx-tbl">
-              <thead><tr><th>Order</th><th>Garment</th><th>Qty</th><th>Ordered</th><th>Due</th><th>Status</th><th aria-label="Open" /></tr></thead>
-              <tbody>
-                {list.map(o => (
-                  <tr key={o.order_id} tabIndex={0} onClick={() => nav(`/orders/${o.order_id}`)}
-                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); nav(`/orders/${o.order_id}`); } }}
-                    aria-label={`View order ${o.order_id}`}>
-                    <td><div style={{ display: 'flex', alignItems: 'center', gap: 12 }}><OrderThumb order={o} size={40} />
-                      <div style={{ minWidth: 0 }}><b style={{ fontSize: 13 }}>#{o.order_id}</b>
-                        <div style={{ fontSize: 13, color: 'var(--text-subtle)', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{orderTitle(o)}</div></div></div></td>
-                    <td>{humanize(o.garment_type) ?? '—'}</td>
-                    <td>{o.quantity_ordered ?? 0} pcs</td>
-                    <td>{fmtDate(o.created_at, { month: 'short', day: 'numeric', year: 'numeric' })}</td>
-                    <td>{fmtDate(o.target_delivery_date, { month: 'short', day: 'numeric' })}</td>
-                    <td><StatusPill status={o.status} /></td>
-                    <td style={{ color: 'var(--teal)', fontWeight: 700, fontSize: 13 }}>View</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {/* Mobile / tablet-portrait: cards */}
-          <div className="cx-only-m">
-            <AnimatePresence mode="popLayout">
-              <div className="cx-ord-cards">{list.map(o => <MobileCard key={o.order_id} o={o} onOpen={() => nav(`/orders/${o.order_id}`)} />)}</div>
-            </AnimatePresence>
-          </div>
-        </>
+        <AnimatePresence mode="popLayout">
+          <div className="ox-grid">{list.map(o => <OrderCard key={o.order_id} o={o} onOpen={() => nav(`/orders/${o.order_id}`)} />)}</div>
+        </AnimatePresence>
       )}
-      <style>{`
-        .cx-ord-tools{display:flex;gap:10px;flex-direction:column}
-        @media(min-width:560px){.cx-ord-tools{flex-direction:row}}
-        .cx-ord-cards{display:grid;gap:12px;grid-template-columns:1fr}
-        @media(min-width:640px){.cx-ord-cards{grid-template-columns:1fr 1fr}}
-      `}</style>
     </div>
   );
 }

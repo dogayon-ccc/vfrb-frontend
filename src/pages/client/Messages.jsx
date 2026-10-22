@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { asList } from '../../utils/asList';
 import { useVisiblePoll } from '../../hooks/useVisiblePoll';
+import { announceMessagesRead } from '../../hooks/useUnreadMessages';
+import { useKeyboardInset } from '../../hooks/useKeyboardInset';
 import EmptyState from '../../components/EmptyState';
 import { PageHeader, StatusPill, OrderThumb, Skeleton } from '../../components/customer/kit';
 import { NavIcon } from '../../components/ui/icons';
@@ -23,6 +25,12 @@ const dayLabel = (d) => {
 };
 const timeOf = (m) => (m.created_at || m.sent_at)
   ? new Date(m.created_at ?? m.sent_at).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' }) : '';
+const listTime = (d) => {
+  if (!d) return '';
+  const label = dayLabel(d);
+  return label === 'Today' ? timeOf({ sent_at: d }) : label === 'Yesterday' ? label
+    : new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' });
+};
 
 function Avatar({ size = 28, mb = 0 }) {
   return (
@@ -32,21 +40,24 @@ function Avatar({ size = 28, mb = 0 }) {
   );
 }
 
-function ThreadRow({ order, active, onClick }) {
-  const last = order._lastMsg;
+function ThreadRow({ order, meta, active, onClick }) {
+  const unread = Number(meta?.unread_count) || 0;
   return (
     <button onClick={onClick} aria-current={active ? 'true' : undefined} className="cx-row"
-      style={{ borderRadius: 12, borderBottom: 0, background: active ? 'var(--teal-50)' : 'transparent', padding: '10px 12px' }}>
+      style={{ borderRadius: 12, borderBottom: 0, background: active ? 'var(--teal-50)' : 'transparent', padding: '10px 12px', minHeight: 44 }}>
       <OrderThumb order={order} size={44} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
           <p style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             Order #{order.order_id}
           </p>
-          {last && <span style={{ fontSize: 11, color: 'var(--text-subtle)', flexShrink: 0 }}>{timeOf(last)}</span>}
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+            {meta?.last_message_at && <span style={{ fontSize: 11, color: unread ? 'var(--teal)' : 'var(--text-subtle)', fontWeight: unread ? 700 : 400 }}>{listTime(meta.last_message_at)}</span>}
+            {unread > 0 && <><span aria-hidden="true" style={{ width: 9, height: 9, borderRadius: '50%', background: 'var(--teal)' }}/><span className="sr-only">{unread} unread</span></>}
+          </span>
         </div>
-        <p style={{ fontSize: 12, color: 'var(--text-subtle)', margin: '2px 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {last?.body ?? title(order)}
+        <p style={{ fontSize: 12, color: unread ? 'var(--ink)' : 'var(--text-subtle)', fontWeight: unread ? 700 : 400, margin: '2px 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {meta?.last_body || title(order)}
         </p>
         <StatusPill status={order.status} />
       </div>
@@ -97,7 +108,8 @@ const Loading = () => (
 const NoMessagesYet = () => (
   <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8 }}>
     <NavIcon name="messages" size={30} color="var(--text-faint)" />
-    <p style={{ color: 'var(--text-subtle)', fontSize: 13, fontFamily: FONT }}>No messages yet. Say hello to VFRB staff below.</p>
+    <p style={{ color: 'var(--ink)', fontSize: 14, fontWeight: 700, fontFamily: FONT, margin: 0, textAlign: 'center' }}>Ask VFRB about your order before you submit</p>
+    <p style={{ color: 'var(--text-subtle)', fontSize: 13, fontFamily: FONT, margin: 0, textAlign: 'center' }}>Type your question below. VFRB staff will reply here.</p>
   </div>
 );
 
@@ -116,8 +128,17 @@ export default function CustomerMessages() {
   const [threadError, setThreadError] = useState(false);
   const [q, setQ] = useState('');
   const [mobileView, setMobileView] = useState('list'); // list | thread — mobile-only nav, matches Figma's separate screens
+  const [meta, setMeta] = useState({}); // order_id → { unread_count, last_body, last_message_at }
   const logRef = useRef(null);
   const meId = JSON.parse(localStorage.getItem('vfrb_user') || '{}')?.user_id;
+  useKeyboardInset();
+
+  const loadMeta = useCallback(async () => {
+    const r = await axios.get('/api/customer/messages?per_page=100');
+    setMeta(Object.fromEntries(asList(r.data).map(t => [t.order_id, t])));
+  }, []);
+  useVisiblePoll(loadMeta, 30_000);
+  const clearUnread = (id) => setMeta(p => (p[id]?.unread_count ? { ...p, [id]: { ...p[id], unread_count: 0 } } : p));
 
   const loadOrders = useCallback(() => {
     setLoading(true);
@@ -146,6 +167,8 @@ export default function CustomerMessages() {
       const next = r.data?.messages ?? r.data ?? [];
       setMsgs(prev => (prev.length === next.length && prev.at(-1)?.message_id === next.at(-1)?.message_id) ? prev : next);
       setThreadError(false);
+      // Opening the thread marks staff replies read server-side.
+      if (initial) { clearUnread(id); announceMessagesRead(); }
     }).catch(() => { if (selRef.current === id && initial) setThreadError(true); })
       .finally(() => { if (selRef.current === id) setThreadLoading(false); });
   }, [selId]);
@@ -159,6 +182,8 @@ export default function CustomerMessages() {
     const r = await axios.get(`/api/customer/messages/${selId}`);
     if (selRef.current !== selId) return;
     const next = r.data?.messages ?? r.data ?? [];
+    // New replies arrived and this fetch just marked them read.
+    if (msgs.length && msgs.at(-1)?.message_id !== next.at(-1)?.message_id) announceMessagesRead();
     setMsgs(prev => (prev.length === next.length && prev.at(-1)?.message_id === next.at(-1)?.message_id) ? prev : next);
     setThreadError(false);
   }, 30_000, [selId]);
@@ -178,7 +203,7 @@ export default function CustomerMessages() {
     setNewMsg(''); setSending(true); setSendError(false);
     try {
       await axios.post('/api/customer/messages', { order_id: selId, body });
-      loadMsgs(false);
+      loadMsgs(false); loadMeta().catch(() => {});
     } catch {
       setMsgs(p => p.filter(m => m.message_id !== optimistic.message_id));
       setNewMsg(body);
@@ -188,7 +213,10 @@ export default function CustomerMessages() {
   };
 
   const selOrder = orders.find(o => o.order_id === selId);
-  const shown = orders.filter(o => !q.trim() || String(o.order_id).includes(q.trim()) || title(o).toLowerCase().includes(q.trim().toLowerCase()));
+  // Threads with the newest message first; orders with no messages keep their order below.
+  const lastAt = (o) => (meta[o.order_id]?.last_message_at ? new Date(meta[o.order_id].last_message_at).getTime() : 0);
+  const shown = orders.filter(o => !q.trim() || String(o.order_id).includes(q.trim()) || title(o).toLowerCase().includes(q.trim().toLowerCase()))
+    .sort((a, b) => lastAt(b) - lastAt(a));
 
   const renderItems = (() => {
     const items = []; let lastDay = null;
@@ -214,7 +242,12 @@ export default function CustomerMessages() {
         .cust-msg-list { flex: 1; min-height: 0; }
         .cust-msg-list.hide-mobile, .cust-msg-chat.hide-mobile { display: none; }
         .cust-msg-back { display: flex; }
-        @media (max-width: 767px) { .cust-msg-wrap.in-thread { height: calc(100dvh - var(--topbar-h,54px) - var(--taskbar-h,64px) - 40px); } .cust-msg-page-thread .cust-msg-head { display: none; } }
+        @media (max-width: 767px) {
+          /* Keyboard open: it covers the bottom nav, so take off whichever is taller. */
+          .cust-msg-wrap.in-thread { height: calc(100dvh - var(--topbar-h,54px) - max(var(--taskbar-h,64px), var(--kb-inset,0px)) - 40px); }
+          html[data-kb] .cust-msg-wrap.in-thread { min-height: 0; }
+          .cust-msg-page-thread .cust-msg-head { display: none; }
+        }
         .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
           clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
         @media (prefers-reduced-motion: reduce) {
@@ -237,13 +270,13 @@ export default function CustomerMessages() {
           <div style={{ padding: '4px 4px 8px' }}>
             <label htmlFor="msg-q" className="sr-only">Search conversations</label>
             <input id="msg-q" type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search conversations…"
-              style={{ width: '100%', minHeight: 40, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-surface)', fontSize: 13, outline: 'none', fontFamily: FONT }}/>
+              style={{ width: '100%', minHeight: 44, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-surface)', fontSize: 13, outline: 'none', fontFamily: FONT }}/>
           </div>
           {loading && [1, 2, 3].map(i => <div key={i} style={{ display: 'flex', gap: 12, padding: 12 }}><Skeleton h={44} w={44}/><div style={{ flex: 1 }}><Skeleton h={12} w="50%"/><Skeleton h={10} w="80%" style={{ marginTop: 8 }}/></div></div>)}
           {!loading && !ordersError && orders.length > 0 && shown.length === 0 && (
             <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-faint)', padding: 20 }}>No conversations match "{q}".</p>
           )}
-          {shown.map(o => <ThreadRow key={o.order_id} order={o} active={o.order_id === selId} onClick={() => openThread(o.order_id)}/>)}
+          {shown.map(o => <ThreadRow key={o.order_id} order={o} meta={meta[o.order_id]} active={o.order_id === selId} onClick={() => openThread(o.order_id)}/>)}
           {!loading && ordersError && (
             <EmptyState illustration="error" compact
               headline="Couldn't load your orders"
@@ -267,7 +300,7 @@ export default function CustomerMessages() {
               </p>
               {selOrder && <div style={{ marginTop: 4 }}><StatusPill status={selOrder.status}/></div>}
             </div>
-            {selOrder && <button className="cx-btn cx-btn-s" style={{ minHeight: 36, padding: '0 12px', fontSize: 12 }} onClick={() => nav(`/orders/${selId}`)}>View order</button>}
+            {selOrder && <button className="cx-btn cx-btn-s" style={{ minHeight: 44, padding: '0 12px', fontSize: 12 }} onClick={() => nav(`/orders/${selId}`)}>View order</button>}
           </div>
 
           <div ref={logRef} role="log" aria-live="polite" aria-label="Message thread" style={{ flex: 1, overflowY: 'auto', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -316,6 +349,7 @@ export default function CustomerMessages() {
             <label htmlFor="msg-input" className="sr-only">Message</label>
             <input id="msg-input" value={newMsg} onChange={e => setNewMsg(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), send())}
+              onFocus={() => setTimeout(() => { const el = logRef.current; if (el) el.scrollTop = el.scrollHeight; }, 300)}
               placeholder={selId ? 'Message VFRB staff…' : 'Select a conversation'} disabled={!selId}
               style={{ flex: 1, padding: '10px 16px', borderRadius: 12, border: '1px solid var(--border)', background: selId ? 'var(--bg-card)' : 'var(--bg-surface)',
                 color: 'var(--ink)', fontSize: 13, outline: 'none', fontFamily: FONT, minHeight: 44 }}/>

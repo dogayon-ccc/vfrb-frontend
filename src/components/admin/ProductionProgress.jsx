@@ -42,7 +42,8 @@ export function progressStages(s) {
 // The stage the order is on: its status, or Delivered once packing is finished.
 const currentKey = (s) => (s?.status === 'for_delivery' ? 'delivered' : s?.status === 'completed' ? null : s?.status);
 
-export function useProductionSummary(orderId, summary) {
+// version: bump it to refetch after a write.
+export function useProductionSummary(orderId, summary, version = 0) {
   const [data, setData] = useState(summary ?? null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
@@ -54,8 +55,23 @@ export function useProductionSummary(orderId, summary) {
       .then((r) => { if (!off) setData(r.data); })
       .catch(() => { if (!off) setFailed(true); });
     return () => { off = true; };
-  }, [orderId, summary]);
+  }, [orderId, summary, version]);
   return [data, failed];
+}
+
+// One bulk request for many rows, keyed by order_id. ids: array of order ids.
+export function useProductionSummaries(ids) {
+  const key = ids.join(',');
+  const [map, setMap] = useState({});
+  useEffect(() => {
+    if (!key) { setMap({}); return undefined; }
+    let off = false;
+    axios.get('/api/admin/orders/production-summaries', { params: { ids: key } })
+      .then((r) => { if (!off) setMap(r.data?.data ?? {}); })
+      .catch(() => { if (!off) setMap({}); });
+    return () => { off = true; };
+  }, [key]);
+  return map;
 }
 
 export default function ProductionProgress({ orderId, summary, compact = false, title = 'Production progress' }) {

@@ -21,10 +21,10 @@ import { resolveTarget } from './design-studio/garmentCatalog';
 import { OrbitControls, ContactShadows, Float, Bounds, useBounds } from '@react-three/drei';
 import * as THREE from 'three';
 import { realLength, SET_OVERLAP } from './design-studio/setScale';
-import { LIGHT, KEY_POS, RIM_POS } from './design-studio/lightRig';
+import { LIGHT_PRESETS } from './design-studio/lightRig';
 import { scannedEntryFor, patternsFor3D } from './design-studio/garmentMeshManifest';
 import { DEFAULT_GARMENT_COLOR } from './design-studio/regionTexture';
-import ScannedGarmentMesh, { CustomGarmentMesh } from './design-studio/ScannedGarmentMesh';
+import ScannedGarmentMesh from './design-studio/ScannedGarmentMesh';
 import GarmentMeshErrorBoundary from './design-studio/GarmentMeshErrorBoundary';
 
 // Touch devices render at most 1.5x; retina laptops keep 2x.
@@ -301,7 +301,7 @@ function SkirtMesh({ colors, referenceTexture }) {
 }
 
 // ── Garment selector — picks the right mesh ───────────────────────────────────
-function GarmentMesh({ cfg, referenceTexture, overlays }) {
+function GarmentMesh({ cfg, referenceTexture, overlays, exploded = false, onPickZone = null }) {
   const gt = (cfg.garmentType ?? cfg.garment ?? '').toLowerCase();
   if (!gt) return null; // nothing chosen yet: render no garment instead of a generic shirt
   const colors = cfg.colors ?? {};
@@ -328,19 +328,12 @@ function GarmentMesh({ cfg, referenceTexture, overlays }) {
     : isShorts ? <ShortsMesh colors={colors} referenceTexture={referenceTexture}/> : shirt;
   // No model for this exact selection: render nothing rather than a generic or different garment (the UI keeps the design in 2D).
   if (!scanned) return null;
-  if (scanned.parametric) {
-    return (
-      <GarmentMeshErrorBoundary key={`${gt}-parametric`} fallback={primitive}>
-        <CustomGarmentMesh garment={cfg.garment} spec={cfg.custom} sleeve={cfg.sleeve} transform={scanned.transform} colors={colors}
-          patterns={patternsFor3D(scanned, cfg.patterns, { photoBase: false })} patternParams={cfg.patternParams} overlays={overlays} details={cfg.details}/>
-      </GarmentMeshErrorBoundary>
-    );
-  }
   {
     const fit = cfg.fit ?? cfg.gender;
     return (
       <GarmentMeshErrorBoundary key={`${gt}-${fit}`} fallback={primitive}>
-        <ScannedGarmentMesh manifest={scanned} colors={colors} patterns={patternsFor3D(scanned, cfg.patterns, { photoBase: !!target?.photo })} patternParams={cfg.patternParams} fit={fit} garment={cfg.garment} sleeve={cfg.sleeve} overlays={overlays} details={cfg.details}/>
+        <ScannedGarmentMesh manifest={scanned} colors={colors} patterns={patternsFor3D(scanned, cfg.patterns, { photoBase: !!target?.photo })} patternParams={cfg.patternParams} fit={fit} garment={cfg.garment} sleeve={cfg.sleeve} overlays={overlays} details={cfg.details}
+          exploded={exploded} onPickZone={onPickZone}/>
       </GarmentMeshErrorBoundary>
     );
   }
@@ -354,7 +347,6 @@ function SetStack({ top, bottom, topOverlays = null, bottomOverlays = null }) {
   const group = useRef(), topRef = useRef(), botRef = useRef();
   const key = [top.garment, top.sleeve, top.fit, JSON.stringify(top.custom ?? null), bottom.garment, bottom.sleeve, bottom.fit, JSON.stringify(bottom.custom ?? null)].join('|');
   useLayoutEffect(() => {
-    // A parametric (build-your-own) piece rebuilds 120 ms after its spec changes, so the fit runs again once it has.
     const fitSet = () => {
     const g = group.current, t = topRef.current, b = botRef.current;
     if (!g || !t || !b) return;
@@ -431,12 +423,26 @@ function PauseWhenHidden() {
   return null;
 }
 
+// Hands the parent a one-shot PNG capture of the current view (renders a fresh frame first, so no preserveDrawingBuffer cost).
+function Capture({ target }) {
+  const { gl, scene, camera } = useThree();
+  useEffect(() => {
+    if (!target) return undefined;
+    target.current = () => { gl.render(scene, camera); return gl.domElement.toDataURL('image/png'); };
+    return () => { target.current = null; };
+  }, [target, gl, scene, camera]);
+  return null;
+}
+
 // ── Full scene ─────────────────────────────────────────────────────────────────
 // `companion` (optional): the other piece of a uniform set, shown with this one when both have their own model. `companionRole` says
 // which half `cfg` is ('top' or 'bottom'). Overlays (logos, text) stay on the piece being edited.
 // Linear tone mapping keeps the chosen hue; ACES at these levels lifted every colour by 10-17 L* and washed out reds. The rig is shared.
 export { LIGHT } from './design-studio/lightRig';
-export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overlays = null, onContextLost = null, companion = null, companionRole = null, companionOverlays = null }) {
+// exploded / onPickZone / lighting: set by CanvasViewport only for explodable models (explodableFor); others get the defaults.
+const CALM = !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overlays = null, onContextLost = null, companion = null, companionRole = null, companionOverlays = null,
+  exploded = false, onPickZone = null, lighting = 'studio', turntable = null, captureRef = null }) {
   // FIX (3D never showed logo/pattern/text): loads the live 2D canvas
   // snapshot (refreshed by DesignStudio.jsx each time "3D" is clicked) as
   // a texture for the body mesh. Falls back to flat color if there's no
@@ -445,6 +451,11 @@ export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overla
   const referenceTexture = useOverlayTexture(overlayDataUrl);
   const garmentRef = useRef(null);
   const [floor, setFloor] = useState({ y: -1.55, w: 2.5 });
+  // Auto-rotate stops for good once the customer drags (damping keeps the inertia) and never runs under reduced motion.
+  const [ownSpin, setSpin] = useState(!CALM);
+  // `turntable` (bool) makes spinning a parent-controlled toggle; null keeps the stop-on-drag default.
+  const spin = turntable ?? ownSpin;
+  const L = LIGHT_PRESETS[lighting] ?? LIGHT_PRESETS.studio;
 
   return (
     <Canvas
@@ -455,11 +466,12 @@ export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overla
 
       <PauseWhenHidden/>
       <ContextWatch onLost={onContextLost}/>
+      <Capture target={captureRef}/>
 
       {/* Local lights only (no HDRI, no network), calibrated so a front-facing panel receives ~1x its colour (measured dE, see logic checks): fill + key, rim from behind for the edge */}
-      <hemisphereLight intensity={LIGHT.fill}/>
-      <directionalLight position={KEY_POS} intensity={LIGHT.key}/>
-      <directionalLight position={RIM_POS} intensity={LIGHT.rim}/>
+      <hemisphereLight intensity={L.fill}/>
+      <directionalLight position={L.keyPos} intensity={L.key}/>
+      <directionalLight position={L.rimPos} intensity={L.rim}/>
 
       {/* BUG FIX (3D doesn't render): ScannedGarmentMesh calls useGLTF(), which
           suspends on first load. react-three-fiber's <Canvas> renders its own
@@ -477,13 +489,13 @@ export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overla
           the brief GLB-parse window after that. */}
       {/* Margin 1.5: the framed garment spans ~65% of the stage height */}
       <Bounds margin={1.5} maxDuration={0.3}>
-        <Float speed={1.4} rotationIntensity={0.12} floatIntensity={0.22}>
+        <Float speed={CALM ? 0 : 1.4} rotationIntensity={CALM ? 0 : 0.12} floatIntensity={CALM ? 0 : 0.22}>
           <Suspense fallback={null}>
             <group ref={garmentRef}>{companion
               // Each piece carries its own overlays; a model without decal support simply shows none (its capability says so).
               ? (companionRole === 'top' ? <SetStack top={companion} bottom={cfg} topOverlays={companionOverlays} bottomOverlays={overlays}/>
                 : <SetStack top={cfg} bottom={companion} topOverlays={overlays} bottomOverlays={companionOverlays}/>)
-              : <GarmentMesh cfg={cfg} referenceTexture={referenceTexture} overlays={overlays}/>}</group>
+              : <GarmentMesh cfg={cfg} referenceTexture={referenceTexture} overlays={overlays} exploded={exploded} onPickZone={onPickZone}/>}</group>
             <FitOnLoad dep={`${cfg.garment}|${cfg.sleeve}|${cfg.fit}|${companion?.garment ?? ''}`} target={garmentRef} onFloor={setFloor}/>
           </Suspense>
         </Float>
@@ -502,7 +514,7 @@ export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overla
         makeDefault
         enablePan={false}
         enableDamping dampingFactor={0.08}
-        autoRotate autoRotateSpeed={1.6}
+        autoRotate={spin && !exploded} autoRotateSpeed={1.6} onStart={() => setSpin(false)}
         minPolarAngle={Math.PI / 5}
         maxPolarAngle={Math.PI * 0.75}
         minDistance={1.2} maxDistance={8}

@@ -1,6 +1,6 @@
 import { NavIcon } from '../../../components/ui/icons';
 import { shapeLabel } from './overlayTools';
-import { TextStyleSection, ShapeStyleSection, ArrangeRow } from './StyleSections';
+import { TextStyleSection, ShapeStyleSection, ImageStyleSection, ArrangeRow } from './StyleSections';
 import { metricsPct } from './canvasGuides';
 import { pocketLabel } from './pocketTools';
 import { SwatchGrid } from './SwatchGrid';
@@ -8,7 +8,7 @@ import { SwatchGrid } from './SwatchGrid';
 // Real contextual inspector for the currently-selected Fabric object — shown
 // in place of the static Design Summary whenever something is selected.
 // Fabric stays the source of truth: every control reads straight off selObj
-// and writes back through the existing updateSelected()/deleteSelected(),
+// and writes back through the existing updateSelected(),
 // same mutate-in-place pattern ShapesPanel.jsx already uses (the ambient
 // re-render that makes the sliders track live comes from updateSelected's
 // own pushHistory(), not a duplicate state store).
@@ -33,7 +33,7 @@ function kindOf(o) {
 const ALIGN = [['left', 'Left', 'Align left'], ['hcenter', 'Center', 'Center horizontally'], ['right', 'Right', 'Align right'],
   ['top', 'Top', 'Align top'], ['vcenter', 'Middle', 'Center vertically'], ['bottom', 'Bottom', 'Align bottom']];
 
-export function SelectionInspector({ selObj, updateSelected, deleteSelected, duplicateSelected, alignSelected, toggleSelectedLock, pushHistory, arrangeLayer, garmentRect = null, setPocketColor = null, mirrorSelected = null }) {
+export function SelectionInspector({ selObj, updateSelected, alignSelected, toggleSelectedLock, pushHistory, arrangeLayer, garmentRect = null, setPocketColor = null, mirrorSelected = null }) {
   // Metrics are % of the garment (origin = its top-left), the same system as the rulers; a multi-selection shows its group bounds.
   const active = selObj.canvas?.getActiveObject?.() ?? selObj, multi = active.type === 'activeselection';
   const m = metricsPct(active, garmentRect), g = garmentRect;
@@ -124,27 +124,21 @@ export function SelectionInspector({ selObj, updateSelected, deleteSelected, dup
       {!multi && <section className="ds-ins-sec">
         <p className="ds-group-label">Appearance</p>
         {selObj.__shape && <ShapeStyleSection o={selObj} live={live} commit={commit} locked={locked}/>}
+        {selObj.type === 'image' && <ImageStyleSection o={selObj} live={live} commit={commit} locked={locked}/>}
         {range(`Opacity ${Math.round((selObj.opacity ?? 1) * 100)}%`, Math.round((selObj.opacity ?? 1) * 100), 10, 100,
           v => live({ opacity: v / 100 }), false)}
         <ArrangeRow o={selObj} set={updateSelected} arrangeLayer={arrangeLayer} locked={locked}/>
       </section>}
 
-      <div className="ds-ins-actions">
-        {mirrorSelected && !multi && (
+      {/* Duplicate and Delete live on the floating toolbar above the selection only (Ctrl+D, Del). */}
+      {mirrorSelected && !multi && (
+        <div className="ds-ins-actions">
           <button type="button" className="ds-act" onClick={mirrorSelected} disabled={locked} title="Copy to the other side of the garment's centre line, flipped">
             <NavIcon name="duplicate" size={16}/> Mirror L/R
           </button>
-        )}
-        {duplicateSelected && !multi && (
-          <button type="button" className="ds-act" onClick={duplicateSelected} disabled={locked}>
-            <NavIcon name="duplicate" size={16}/> Duplicate
-          </button>
-        )}
-        <button type="button" className="ds-act ds-act--danger" onClick={deleteSelected} disabled={locked}>
-          <NavIcon name="delete" size={16}/> Delete
-        </button>
-      </div>
-      <p className="ds-ins-note">Tap empty canvas to deselect.</p>
+        </div>
+      )}
+      <p className="ds-ins-note">Duplicate and delete from the toolbar above the selection. Tap empty canvas to deselect.</p>
     </div>
   );
 }

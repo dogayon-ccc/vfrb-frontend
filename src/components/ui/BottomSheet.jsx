@@ -29,8 +29,12 @@
 //   </BottomSheet>
 // ─────────────────────────────────────────────────────────────────────────
 import { useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import useDialogFocus from '../../hooks/useDialogFocus';
+
+// Portalled to the portal shell: an animated (transformed) ancestor would otherwise trap position:fixed off-screen.
+const portalTarget = () => document.querySelector('.adm-shell, .cm-shell') ?? document.body;
 
 export default function BottomSheet({
   title, onClose, children, isMobile, maxHeight = '85vh', maxWidth = 480,
@@ -39,7 +43,7 @@ export default function BottomSheet({
   const ref = useRef(null);
   useDialogFocus(ref, { onClose });
   const dur = reduce ? 0 : 0.22;
-  return (
+  return createPortal(
     <motion.div
       onClick={onClose}
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: dur }}
@@ -81,7 +85,7 @@ export default function BottomSheet({
           <h3 style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>{title}</h3>
           <button onClick={onClose} aria-label="Close"
             style={{
-              width: isMobile ? 36 : 28, height: isMobile ? 36 : 28, borderRadius: '50%', border: 'none',
+              width: 44, height: 44, borderRadius: '50%', border: 'none',
               background: 'var(--bg-surface)', color: 'var(--text-muted)',
               fontSize: 14, cursor: 'pointer', flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -91,6 +95,7 @@ export default function BottomSheet({
           {children}
         </div>
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    portalTarget(),
   );
 }

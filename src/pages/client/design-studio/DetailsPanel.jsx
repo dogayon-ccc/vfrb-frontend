@@ -6,6 +6,8 @@ import { SwatchGrid, CustomColor, colourName } from './SwatchGrid';
 import { POCKET_KINDS } from './pocketTools';
 import { detailParts3D } from './garmentCapabilities';
 import PocketIcon from './PocketIcon';
+import { pieceOf } from './garmentCatalog';
+import SizeChartTable from '../../../components/SizeChartTable';
 
 // One note for the whole panel: added pocket layers and the template's own details.
 function detailsNote(templateDetails, parts3D) {
@@ -40,6 +42,17 @@ export default function DetailsPanel({ cfg, setCfg, focus, onColourPocket, onAdd
     </section>
   );
 
+  // Size chart on demand, so sizes can be checked without leaving the Studio for the Order Wizard.
+  const [chartOpen, setChartOpen] = useState(false);
+  const sizeChart = cfg.garment && (
+    <section className="ds-det-chart" aria-label="Size chart">
+      <button type="button" className="ds-det-head" aria-expanded={chartOpen} aria-controls="ds-det-chart" onClick={() => setChartOpen(o => !o)}>
+        <span className="ds-det-name">Size chart</span><span className="ds-det-val">{chartOpen ? 'Hide' : 'Show'}</span>
+      </button>
+      {chartOpen && <div id="ds-det-chart"><SizeChartTable kind={pieceOf(cfg.garment) === 'bottom' ? 'bottoms' : 'tops'} note="Sizes and quantities are chosen when you order."/></div>}
+    </section>
+  );
+
   const note = cfg.garment && <p className="ds-det-note">{detailsNote(options.length > 0, detailParts3D(cfg.garment, cfg.sleeve, cfg.fit))}</p>;
 
   if (!options.length) {
@@ -48,6 +61,7 @@ export default function DetailsPanel({ cfg, setCfg, focus, onColourPocket, onAdd
         {addPockets}
         {note}
         <p className="ds-panel-prompt">This garment's template draws no pockets, buttons or closures of its own.</p>
+        {sizeChart}
       </div>
     );
   }
@@ -93,6 +107,7 @@ export default function DetailsPanel({ cfg, setCfg, focus, onColourPocket, onAdd
           );
         })}
       </ul>
+      {sizeChart}
     </div>
   );
 }

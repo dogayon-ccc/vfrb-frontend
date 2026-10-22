@@ -29,7 +29,6 @@ export default function SiteFooter() {
           <nav aria-label="Customers">
             <h2>Customers</h2>
             <ul>
-              <li><Link to="/register">Create an account</Link></li>
               <li><Link to="/login">Log in</Link></li>
               <li><Link to="/guide">Customer guide</Link></li>
               <li><Link to="/faq">FAQ</Link></li>

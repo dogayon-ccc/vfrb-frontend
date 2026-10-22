@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
-import { Card, Button, Field, Badge, NavIcon } from '../../../components/ui';
-import { Skeleton, useToast, fmtDate } from '../../../components/customer/kit';
+import { Card, Button, Field, Badge, NavIcon, Skeleton } from '../../../components/ui';
+import { useToast, fmtDate } from '../../../components/customer/kit';
 import { phPhoneError, compactPhone } from '../../../utils/phPhone';
 import LoadError from './LoadError';
 import { PASSWORD_RULE_TEXT, passwordOk, passwordLevel, levelLabel } from '../../../utils/passwordRules';
@@ -52,7 +52,7 @@ export function ProfileSection() {
     <div className="st-stack">
       <Card title="Account Information">
         {loading ? (
-          <div className="st-stack">{[1, 2, 3, 4].map(i => <Skeleton key={i} h={44} />)}</div>
+          <Skeleton variant="block" count={4} height={44} gap={14} label="Loading profile" />
         ) : (
           <div className="st-stack">
             <div className="st-2col">

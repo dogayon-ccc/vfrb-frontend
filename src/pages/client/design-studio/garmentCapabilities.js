@@ -353,13 +353,14 @@ const AUTHORED_MODELS = [{
 // 3D view hides it too. Pocket layers the customer adds with the Add pocket tool are 2D only (no model has pocket decals).
 const zoneIs = z => () => z;
 const AUTHORED_LICENCE = 'VFRB-authored procedural geometry (no third-party mesh, no scan, no generation credits)';
+// `explode`: model-space offset for the exploded view (sleeve_l is at -x, the front faces +z); the body stays put.
 const AUTHORED_TOP_PARTS = [
   { node: 'body', colorKey: 'body', decals: true, zoneOf: zoneIs('body') },
-  { node: 'sleeve_l', colorKey: 'sleeve', decals: false, zoneOf: zoneIs('sleeve') },
-  { node: 'sleeve_r', colorKey: 'sleeve', decals: false, zoneOf: zoneIs('sleeve') },
-  { node: 'neck_band', colorKey: 'collar', decals: false, zoneOf: zoneIs('collar') },
-  { node: 'chest_pocket', colorKey: 'pocket', decals: false, zoneOf: zoneIs('pocket'), detail: 'patchPocket' },
-  { node: 'lower_pockets', colorKey: 'body', decals: false, zoneOf: zoneIs('body'), detail: 'lowerPockets' },
+  { node: 'sleeve_l', colorKey: 'sleeve', decals: false, zoneOf: zoneIs('sleeve'), explode: [-0.45, 0, 0] },
+  { node: 'sleeve_r', colorKey: 'sleeve', decals: false, zoneOf: zoneIs('sleeve'), explode: [0.45, 0, 0] },
+  { node: 'neck_band', colorKey: 'collar', decals: false, zoneOf: zoneIs('collar'), explode: [0, 0.35, 0] },
+  { node: 'chest_pocket', colorKey: 'pocket', decals: false, zoneOf: zoneIs('pocket'), detail: 'patchPocket', explode: [0, 0, 0.3] },
+  { node: 'lower_pockets', colorKey: 'body', decals: false, zoneOf: zoneIs('body'), detail: 'lowerPockets', explode: [0, 0, 0.3] },
 ];
 const authoredScrubTop = (sleeve, file) => ({
   id: `scrub-top-vneck-authored-${sleeve === 'Short' ? 'short' : 'three-quarter'}`, match: /^scrub top$/i, exactSleeve: true, strictFit: true, label: '3D (approx.)',
@@ -427,43 +428,7 @@ const DERIVED_MODELS = DERIVED_FAMILIES.filter(d => !d.no3D).map(d => ({
 // served; it is never routed. The 2D Pants template is unaffected.
 export const GATED_3D = { pants: 'The trousers model is not a clean garment mesh (one fused generated surface with no separate parts), so 3D is off for trousers' };
 // Pants is served again by the authored trousers (AUTHORED_GARMENTS below), never by the gated Meshy file.
-// Parametric 3D (customMesh3D.js, docs/engineering/ADR-custom-3d.md): built in the browser from the same options as the 2D sketch, so
-// `models` is empty and `parametric` routes DesignStudio3D to CustomGarmentMesh. Always "3D (approx.)", never verified.
-const PARAMETRIC_LICENCE = 'VFRB parametric geometry built at runtime from the 2D options (no mesh file, no scan, no generation credits)';
-const parametric = (id, match, sleeves, transform, zones, limitations, fit = ['unisex', 'male', 'female']) => ({
-  id, match, parametric: true, label: '3D (approx.)', approval: 'enabled 2026-10-16 (parametric approximation)', license: PARAMETRIC_LICENCE,
-  models: {}, torso: {}, transform, parts: [],
-  capabilities: {
-    regionMethod: 'vertex-mask', regionAccuracy: 'per part (each part is one colour zone)', zones,
-    patterns: { zones: zones.filter(z => z !== 'collar' && z !== 'pocket'), ids: ALL_PATTERNS.filter(p => p !== 'geometric') }, sleeves,
-    text: true, logo: true, frontBack: true, fit,
-    limitations: ['parametric shape built from the 2D choices: simple lofts, approximate shape and drape', 'pocket layers you add are 2D only', ...limitations],
-  },
-});
-const PARAMETRIC_MODELS = [
-  parametric('custom-top-parametric', /^custom top$/i, ['Sleeveless', 'Short', '3/4', 'Long'], { rotation: [0, 0, 0], scale: 0.66, position: [0, -0.02, 0] }, ['body', 'sleeve', 'collar'], ['logos and text sit on the body only']),
-  parametric('custom-bottom-parametric', /^custom bottom$/i, [], { rotation: [0, 0, 0], scale: 0.52, position: [0, -0.02, 0] }, ['body'], ['one body colour']),
-  parametric('custom-skirt-parametric', /^custom skirt$/i, [], { rotation: [0, 0, 0], scale: 0.55, position: [0, -0.02, 0] }, ['body'], ['one body colour']),
-  // Rebuilt family (customGarment PARAM_FAMILIES): tailored trousers built from their own spec, never from the removed set-scan cut.
-  parametric('pantsuit-trousers-parametric', /^pantsuit trousers$/i, [], { rotation: [0, 0, 0], scale: 0.52, position: [0, -0.02, 0] }, ['body'],
-    ['one body colour (buttons and fly follow the Details colours)', 'the zip is concealed under the fly and not modelled', 'static shape: no cloth simulation'], ['female']),
-  parametric('midi-pencil-skirt-parametric', /^midi pencil skirt$/i, [], { rotation: [0, 0, 0], scale: 0.55, position: [0, -0.02, 0] }, ['body'],
-    ['one body colour', 'back vent and zip are not modelled', 'static shape: no cloth simulation'], ['female']),
-  parametric('short-sleeve-notch-jacket-parametric', /^short-sleeve notch jacket$/i, ['Short'], { rotation: [0, 0, 0], scale: 0.66, position: [0, -0.02, 0] },
-    ['body', 'sleeve', 'collar'], ['lapels are a fall collar: the open front above the top button is not modelled', 'static shape: no cloth simulation'], ['female']),
-  parametric('peplum-top-parametric', /^peplum top$/i, ['Short'], { rotation: [0, 0, 0], scale: 0.66, position: [0, -0.02, 0] },
-    ['body', 'sleeve', 'collar'], ['the peplum is a fixed flare, not a draped skirt', 'static shape: no cloth simulation'], ['female']),
-  parametric('barong-shirt-parametric', /^barong shirt$/i, ['Short', 'Long'], { rotation: [0, 0, 0], scale: 0.66, position: [0, -0.02, 0] },
-    ['body', 'sleeve', 'collar'], ['embroidery and sheer fabric are not modelled', 'static shape: no cloth simulation'], ['male']),
-  parametric('mens-slacks-parametric', /^men's slacks$/i, [], { rotation: [0, 0, 0], scale: 0.52, position: [0, -0.02, 0] }, ['body'],
-    ['one body colour (buttons and fly follow the Details colours)', 'the zip is concealed under the fly and not modelled', 'static shape: no cloth simulation'], ['male']),
-  parametric('creased-trousers-parametric', /^creased trousers$/i, [], { rotation: [0, 0, 0], scale: 0.52, position: [0, -0.02, 0] }, ['body'],
-    ['one body colour (buttons and fly follow the Details colours)', 'the zip is concealed under the fly and not modelled', 'static shape: no cloth simulation'], ['female']),
-  // Button-Down vector template: point collar as its own part in the collar colour. Placed before the work-shirt scan so it serves the
-  // family; the photo-matched exact-sleeve models (BIR blouse, utility shirt) still win for their own sleeve and fit.
-  parametric('button-down-parametric', /^button-down$/i, ['Short'], { rotation: [0, 0, 0], scale: 0.66, position: [0, -0.02, 0] }, ['body', 'sleeve', 'collar', 'pocket'], ['placket buttons are 2D only'], ['unisex']),
-];
-const SCANNED_ALL = [...PARAMETRIC_MODELS, ...SCANNED_BASE, ...SCRUB_TOP, ...MANDARIN_TUNIC, ...ROUND_NECK, ...BIR_BLOUSE, ...UTILITY_LONG, ...CORPORATE_MODELS, ...MEDICAL_MODELS, ...MANDARIN_SHIRT_LONG, ...MORE_MODELS, ...AUTHORED_MODELS, ...AUTHORED_GARMENTS, ...DERIVED_MODELS];
+const SCANNED_ALL = [...SCANNED_BASE, ...SCRUB_TOP, ...MANDARIN_TUNIC, ...ROUND_NECK, ...BIR_BLOUSE, ...UTILITY_LONG, ...CORPORATE_MODELS, ...MEDICAL_MODELS, ...MANDARIN_SHIRT_LONG, ...MORE_MODELS, ...AUTHORED_MODELS, ...AUTHORED_GARMENTS, ...DERIVED_MODELS];
 export const SCANNED_GARMENTS = SCANNED_ALL.filter(x => !GATED_3D[x.id]);
 // Why a garment has no 3D, when the reason is a decision rather than a missing file: a gated model or a derived bottom.
 export function no3DReason(garment) {
@@ -513,8 +478,9 @@ export const NO_FAMILY_3D = new Set(['blouse-tunic-roundneck-blue']);
 // 3D for a design (cfg or saved studio_config): its model, unless it was opened from a photo the family model would misrepresent.
 // inspirationId is dropped when the garment changes, so choosing T-Shirt directly keeps its 3D.
 // A derived family is that photo's own model, so the photo's family-model block does not apply to it.
-// A build-your-own garment gets its parametric model (PARAMETRIC_MODELS).
 export const has3DFor = d => !!d && !(NO_FAMILY_3D.has(d.inspirationId) && !isDerived(d.garment)) && has3DModel(d.garment, d.sleeve, d.fit);
+// Exploded view, part picking and lighting presets: only models whose collar, sleeves and pocket are separate named parts (the authored scrub tops).
+export const explodableFor = d => has3DFor(d) && !!scannedEntryFor(d.garment, d.sleeve, d.fit)?.parts?.some(p => p.explode);
 // Sleeve styles that really have a 3D model for this garment at this fit (union over the entries that apply). The single source for every "sleeve is 2D only" label.
 export function sleeves3DFor(garment, fit) {
   const name = String(garment ?? '').toLowerCase(), f = String(fit ?? '').toLowerCase();
@@ -578,6 +544,6 @@ export function get3DCapabilities(garment, fit, sleeve) {
   if (!g) return { supported: false, model: null, reason: 'no real GLB for this garment; the preview is a generic primitive shape' };
   const key = String(fit ?? '').toLowerCase();
   const fits = g.capabilities.fit;
-  return { supported: true, model: g.parametric ? null : g.models[key] ?? Object.values(g.models)[0], parametric: !!g.parametric, fitApplied: fits.includes(key) ? key : fits[0], customFabricTextures: false, ...g.capabilities };
+  return { supported: true, model: g.models[key] ?? Object.values(g.models)[0], fitApplied: fits.includes(key) ? key : fits[0], customFabricTextures: false, ...g.capabilities };
 }
 

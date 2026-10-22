@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { SwatchChip } from '../../../components/customer/kit';
 import { PH_SWATCHES } from './dsShared';
 
-const same = (a, b) => (a ?? '').toLowerCase() === (b ?? '').toLowerCase();
+const same = (a, b) => String(a ?? '').toLowerCase() === String(b ?? '').toLowerCase();
 // The swatch name of a colour, or "Custom" for any other hex.
 export const colourName = hex => PH_SWATCHES.find(s => same(s.hex, hex))?.name ?? (hex ? 'Custom' : 'Not set');
 

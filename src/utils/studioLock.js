@@ -1,5 +1,6 @@
-// How the Studio opens a saved design: { final: true, orderId } (attached to an order, read-only) or { warn: true }
-// (saved, not ordered: confirm before the first edit). The lock is tied to the exact studio_config it was set for,
+// How the Studio opens a saved design: { final: true, orderId } (on a confirmed order, read-only), { colorOnly: true } (a copy:
+// colours only) or { warn: true } (confirm before the first edit). `designId` = saves go to that design row, not the account draft.
+// The lock is tied to the exact studio_config it was set for,
 // so any other way into the Studio (new design, Order Wizard, a template) is never locked by a stale entry.
 const KEY = 'studio_lock';
 

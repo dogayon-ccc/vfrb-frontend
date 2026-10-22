@@ -1,6 +1,6 @@
 // src/pages/client/OrderDetail.jsx
-// Customer Order Detail — 7-stage pipeline, AI material recommendation
-// (accept/reject), delivery tracking, message preview.
+// Customer Order Detail — summary + status left, materials + messages right (one column on phones),
+// AI material recommendation (accept/reject), delivery tracking, message preview.
 //
 // SCHEMA (locked — never deviate):
 //   orders.order_id, status, garment_type, quantity_ordered, color,
@@ -22,137 +22,42 @@ import { useParams, useNavigate }            from 'react-router-dom';
 import { motion, AnimatePresence }           from 'framer-motion';
 import axios                                 from 'axios';
 import { cacheGet, cacheSet, cacheClear }    from '../../utils/cache';
+import { getOnce }                           from '../../utils/requestOnce';
 import { fetchFailed }                       from '../../utils/loadState';
 import LoadError                             from './settings/LoadError';
 import { getStorageUrl, isImageFile }        from '../../utils/fileUrl';
 import { NavIcon }                           from '../../components/ui/icons';
+import { announceMessagesRead }              from '../../hooks/useUnreadMessages';
 import { RecCard, AI_OPTIONAL_LINE }        from './AIMaterials';
-import { OrderThumb, Stepper, StatusPill, LIFECYCLE, lifecycleIndex, orderTitle, parseCfg, fmtDate } from '../../components/customer/kit';
+import { OrderThumb, StatusPill, LIFECYCLE, lifecycleIndex, orderTitle, parseCfg, fmtDate } from '../../components/customer/kit';
+import { Card, Button, Badge, PageHeader, Stepper, Skeleton, StatusChip, AlertBanner, EmptyState } from '../../components/ui';
 import { setOrders, ROLE_LABEL } from './design-studio/uniformSet';
 
 
-const T    = 'var(--teal)';
-const T2   = '#02C39A';
 const PAYMENT_LABEL = { full:'Full payment', full_payment:'Full payment', down:'Down payment', down_payment:'Down payment', net_30:'Net 30 days', net_60:'Net 60 days', not_specified:'Confirmed by VFRB' };
-const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif`;
 
-// ── 7-stage production sequence ───────────────────────────────────────────────
-const STAGES = [
-  { key:'pattern',     label:'Pattern',     icon:'pattern'     },
-  { key:'segregation', label:'Segregation', icon:'segregation' },
-  { key:'cutting',     label:'Cutting',     icon:'cutting'     },
-  { key:'sewing',      label:'Sewing',      icon:'garmentType' },
-  { key:'qc',          label:'QC',          icon:'qc'          },
-  { key:'pressing',    label:'Pressing',    icon:'pressing'    },
-  { key:'packing',     label:'Packing',     icon:'package'     },
-];
+// delivery_status → customer label; StatusChip supplies colour and icon.
+const DELIVERY_LABEL = { preparing:'Preparing', dispatched:'Dispatched', in_transit:'In transit', delivered:'Delivered', returned:'Returned' };
 
-const STATUS_SEQ = [
-  'pending','confirmed',
-  'pattern','segregation','cutting','sewing','qc','pressing','packing',
-  'completed',
-];
-
-// Icon names match Dashboard.jsx/Orders.jsx's S config — same convention across pages.
-const S = {
-  pending:     { color:'#f59e0b', bg:'#fef3c7', label:'Pending',     icon:'pending'     },
-  confirmed:   { color:'var(--info-text)', bg:'var(--info-bg)', label:'Confirmed', icon:'success'     },
-  pattern:     { color:'var(--info-text)', bg:'var(--info-bg)', label:'Confirmed', icon:'success' },
-  segregation: { color:'var(--info-text)', bg:'var(--info-bg)', label:'Confirmed', icon:'success' },
-  cutting:     { color:'var(--info-text)', bg:'var(--info-bg)', label:'Confirmed', icon:'success' },
-  sewing:      { color:'var(--info-text)', bg:'var(--info-bg)', label:'Confirmed', icon:'success' },
-  qc:          { color:'var(--info-text)', bg:'var(--info-bg)', label:'Confirmed', icon:'success' },
-  pressing:    { color:'var(--info-text)', bg:'var(--info-bg)', label:'Confirmed', icon:'success' },
-  packing:     { color:'var(--info-text)', bg:'var(--info-bg)', label:'Confirmed', icon:'success' },
-  completed:   { color:'#15803d', bg:'#dcfce7', label:'Completed',   icon:'success'     },
-  cancelled:   { color:'#ef4444', bg:'#fee2e2', label:'Cancelled',   icon:'error'       },
+// Side requests that load and fail on their own; a 403/404 just means "nothing yet".
+const SECTIONS = {
+  delivery:  { url: id => `/api/customer/delivery/${id}`, pick: d => d?.delivery ?? d ?? null },
+  messages:  { url: id => `/api/customer/messages/${id}?per_page=3`, pick: d => { const l = d?.messages ?? d?.data ?? d; return Array.isArray(l) ? l : []; } },
+  materials: { url: id => `/api/customer/orders/${id}/ai-recommendation`, pick: d => d?.recommendation ?? d ?? null },
 };
+const SECTION_TITLE = { delivery: 'Delivery tracking', messages: 'Messages', materials: 'Material recommendation' };
 
-const DELIVERY_CFG = {
-  preparing:  { label:'Preparing',  color:'#f59e0b', icon:'package'  },
-  dispatched: { label:'Dispatched', color:'#3b82f6', icon:'delivery' },
-  in_transit: { label:'In Transit', color:'#8b5cf6', icon:'delivery' },
-  delivered:  { label:'Delivered',  color:'#15803d', icon:'success'  },
-  returned:   { label:'Returned',   color:'#ef4444', icon:'undo'     },
-};
-
-// Skeleton style
-const SK = {
-  borderRadius: 6,
-  background: 'linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%)',
-  backgroundSize: '400px',
-  animation: 'sk 1.4s infinite',
-};
-
-// ── Parse studio colors — O(1) ────────────────────────────────────────────────
-function StageDot({ stage, currentStatus, isMobile }) {
-  const sIdx   = STATUS_SEQ.indexOf(stage.key);
-  const curIdx = STATUS_SEQ.indexOf(currentStatus);
-  const done   = sIdx <  curIdx;
-  const active = stage.key === currentStatus;
-  const sz     = isMobile ? 34 : 44;
-
+// Placeholder card for one section while it loads or after it failed.
+function SectionState({ id, state, onRetry, style }) {
   return (
-    <div style={{
-      display:'flex',
-      flexDirection: isMobile ? 'row' : 'column',
-      alignItems:'center',
-      gap: isMobile ? 10 : 6,
-      flex: isMobile ? 'none' : 1,
-    }}>
-      <motion.div
-        initial={false}
-        animate={{
-          boxShadow: active ? `0 0 0 4px rgba(2,128,144,.18)` : 'none',
-        }}
-        style={{
-          width:sz, height:sz, borderRadius:'50%', flexShrink:0,
-          display:'flex', alignItems:'center', justifyContent:'center',
-          fontSize: isMobile ? 14 : 18,
-          background: done   ? '#dcfce7'
-                    : active ? `linear-gradient(135deg,${T},${T2})`
-                    :           '#f1f5f9',
-          border: done   ? '2px solid #22c55e'
-                : active ? 'none'
-                :           '2px solid #e2e8f0',
-          color: done ? '#22c55e' : active ? '#fff' : '#94a3b8',
-          position:'relative',
-          transition:'all .3s',
-        }}
-      >
-        {done ? '✓' : <NavIcon name={stage.icon} size={isMobile ? 14 : 18} color={active ? '#fff' : '#94a3b8'}/>}
-
-        {/* Active pulse ring */}
-        {active && (
-          <motion.div
-            animate={{ scale:[1,1.55,1], opacity:[0.4,0,0.4] }}
-            transition={{ duration:1.8, repeat:Infinity }}
-            style={{
-              position:'absolute', inset:-4, borderRadius:'50%',
-              border:`2px solid ${T2}`, pointerEvents:'none',
-            }}
-          />
-        )}
-      </motion.div>
-
-      {/* Label */}
-      <div style={{ textAlign: isMobile ? 'left' : 'center', minWidth:0 }}>
-        <p style={{
-          fontSize: isMobile ? 12 : 9,
-          fontWeight: active ? 800 : done ? 600 : 400,
-          color: done ? '#15803d' : active ? T : '#5f6f83',
-          margin:0, fontFamily:FONT,
-          whiteSpace: isMobile ? 'nowrap' : 'normal',
-        }}>
-          {stage.label}
-        </p>
-        {active && isMobile && (
-          <p style={{ fontSize:13, color:T, margin:'2px 0 0', fontFamily:FONT }}>
-            In progress
-          </p>
-        )}
-      </div>
-    </div>
+    <Card className="od-card" style={style} title={SECTION_TITLE[id]} aria-busy={state === 'loading' || undefined}>
+      {state === 'loading' ? <Skeleton count={3} height={14} label={`Loading ${SECTION_TITLE[id].toLowerCase()}`}/> : (
+        <div role="alert" className="od-note-row">
+          <span>Couldn't load this section. Check your connection.</span>
+          <Button onClick={onRetry}>Retry</Button>
+        </div>
+      )}
+    </Card>
   );
 }
 
@@ -165,7 +70,7 @@ function UniformSetCard({ order, nav }) {
   useEffect(() => {
     if (!setId) return undefined;
     let live = true;
-    axios.get('/api/customer/orders?per_page=100')
+    getOnce('/api/customer/orders?per_page=100', 30_000)
       .then(r => { if (live) setList(r.data?.data ?? r.data ?? []); })
       .catch(() => { if (live) setList([]); });
     return () => { live = false; };
@@ -173,9 +78,7 @@ function UniformSetCard({ order, nav }) {
   if (!setId) return null;
   const pieces = setOrders(order, Array.isArray(list) ? list : []);
   return (
-    <section className="od-card od-set" aria-label="Uniform set">
-      <div className="od-card-body">
-        <p className="od-section-title" style={{ fontFamily:FONT }}>Uniform set · {pieces.length} linked order{pieces.length > 1 ? 's' : ''}</p>
+    <Card className="od-card od-set" title={`Uniform set · ${pieces.length} linked order${pieces.length > 1 ? 's' : ''}`}>
         {list === null && <p className="od-set-note">Loading the other piece…</p>}
         {list !== null && pieces.length < 2 && <p className="od-set-note">The other piece of this set was not found in your orders.</p>}
         <div className="od-set-grid">
@@ -184,7 +87,7 @@ function UniformSetCard({ order, nav }) {
             return (
               <article key={o.order_id} className="od-set-piece" data-current={cur || undefined}>
                 <header className="od-set-h">
-                  <div style={{ minWidth:0 }}>
+                  <div className="od-min">
                     <p className="od-set-role">{ROLE_LABEL[cfg?.uniformSet?.role] ?? 'Piece'}{cur && ' · this order'}</p>
                     <p className="od-set-name">#{o.order_id} · {humanize(o.garment_type) ?? 'Garment'}</p>
                     <p className="od-set-sub">{o.quantity_ordered ?? 0} pcs{o.target_delivery_date ? ` · Due ${fmtDate(o.target_delivery_date)}` : ''}</p>
@@ -193,30 +96,35 @@ function UniformSetCard({ order, nav }) {
                 </header>
                 <DesignPreview cfg={cfg && Object.keys(cfg).length ? cfg : null} height={220} previewUrl={o.design_preview_url ?? null}/>
                 <div className="od-set-act">
-                  {!cur && <button type="button" className="cx-btn cx-btn-s" onClick={() => nav(`/orders/${o.order_id}`)}>Details &amp; documents</button>}
-                  <button type="button" className="cx-btn cx-btn-s" onClick={() => nav(`/messages?order=${o.order_id}`)}>Messages</button>
+                  {!cur && <Button onClick={() => nav(`/orders/${o.order_id}`)}>Details &amp; documents</Button>}
+                  <Button onClick={() => nav(`/messages?order=${o.order_id}`)}>Messages</Button>
                 </div>
               </article>
             );
           })}
         </div>
-      </div>
-    </section>
+    </Card>
   );
 }
 
-const peso = v => `₱${Number(v ?? 0).toLocaleString('en-PH', { minimumFractionDigits:2, maximumFractionDigits:2 })}`;
 // Reasons VFRB or the customer gave, as the backend posts them to the order's message thread.
 const REASON_RE = /^(Order cancelled by VFRB|Proposal declined)\. Reason: /;
 
-// VFRB's proposal (promised date, total, note) with the customer's reply: accept, message or decline with a reason.
+// VFRB's proposal (promised date, note) with the customer's reply: accept, message or decline with a reason. Prices are agreed off-platform.
 function ProposalCard({ order, orderId, onDone, showToast }) {
   const [mode, setMode] = useState(null); // 'message' | 'decline'
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [err,  setErr]  = useState('');
   const ps = order.proposal_status;
-  if (!ps) return null;
+  if (!ps) return order.status !== 'pending' ? null : (
+    <Card className="od-card od-prop" title="VFRB proposal" action={<Badge tone="warning">Waiting for VFRB proposal</Badge>}>
+        <p className="od-prop-note">
+          VFRB is reviewing your order and will propose a delivery date.
+          {order.target_delivery_date ? ` Your preferred date: ${fmtDate(order.target_delivery_date)}.` : ''}
+        </p>
+    </Card>
+  );
   const open = ps === 'pending' && order.status === 'pending';
 
   const send = async (path, body, okMsg) => {
@@ -233,24 +141,19 @@ function ProposalCard({ order, orderId, onDone, showToast }) {
   };
 
   return (
-    <section className="od-card od-prop" aria-label="VFRB proposal">
-      <div className="od-card-body">
-        <div className="od-prop-h">
-          <p className="od-section-title" style={{ margin:0 }}>VFRB proposal</p>
-          <span className="od-prop-st" data-s={ps}>{ps === 'pending' ? 'Waiting for your reply' : ps === 'accepted' ? 'Accepted' : 'Declined'}</span>
-        </div>
+    <Card className="od-card od-prop" title="VFRB proposal"
+      action={<Badge tone={ps === 'pending' ? 'warning' : ps === 'accepted' ? 'success' : 'danger'}>{ps === 'pending' ? 'Waiting for your reply' : ps === 'accepted' ? 'Accepted' : 'Declined'}</Badge>}>
         <dl className="od-prop-grid">
           <div><dt>Delivery date</dt><dd>{order.promised_date ? fmtDate(order.promised_date) : '—'}</dd></div>
-          <div><dt>Total</dt><dd>{order.agreed_total != null ? peso(order.agreed_total) : '—'}</dd></div>
         </dl>
         {order.proposal_note && <p className="od-prop-note"><strong>Note from Admin:</strong> {order.proposal_note}</p>}
         {ps === 'declined' && <p className="od-prop-note">You declined this proposal. VFRB will review your reason and may send a new one.</p>}
 
         {open && !mode && (
           <div className="od-prop-act">
-            <button type="button" className="cx-btn cx-btn-p" disabled={busy} onClick={() => send('accept', {}, 'Proposal accepted.')}>Accept</button>
-            <button type="button" className="cx-btn cx-btn-s" disabled={busy} onClick={() => { setMode('message'); setErr(''); }}>Message</button>
-            <button type="button" className="cx-btn cx-btn-s od-prop-dec" disabled={busy} onClick={() => { setMode('decline'); setErr(''); }}>Decline</button>
+            <Button variant="primary" disabled={busy} onClick={() => send('accept', {}, 'Proposal accepted.')}>Accept</Button>
+            <Button disabled={busy} onClick={() => { setMode('message'); setErr(''); }}>Message</Button>
+            <Button className="is-danger" disabled={busy} onClick={() => { setMode('decline'); setErr(''); }}>Decline</Button>
           </div>
         )}
         {open && mode && (
@@ -259,19 +162,18 @@ function ProposalCard({ order, orderId, onDone, showToast }) {
             <textarea id="od-prop-text" rows={3} value={text} onChange={e => setText(e.target.value)}
               placeholder={mode === 'decline' ? 'e.g. The date is too late for our event' : 'Ask about the date, fabric or total'}/>
             <div className="od-prop-act">
-              <button type="button" className={`cx-btn ${mode === 'decline' ? 'cx-btn-s od-prop-dec' : 'cx-btn-p'}`} disabled={busy || !text.trim()}
+              <Button variant={mode === 'decline' ? 'secondary' : 'primary'} className={mode === 'decline' ? 'is-danger' : ''} disabled={busy || !text.trim()}
                 onClick={() => mode === 'decline'
                   ? send('decline', { reason: text.trim() }, 'Proposal declined.')
                   : send('message', { body: text.trim() }, 'Message sent.')}>
                 {busy ? 'Sending' : mode === 'decline' ? 'Decline proposal' : 'Send message'}
-              </button>
-              <button type="button" className="cx-btn cx-btn-s" disabled={busy} onClick={() => { setMode(null); setText(''); setErr(''); }}>Back</button>
+              </Button>
+              <Button disabled={busy} onClick={() => { setMode(null); setText(''); setErr(''); }}>Back</Button>
             </div>
           </div>
         )}
         {err && <p className="od-prop-err" role="alert">{err}</p>}
-      </div>
-    </section>
+    </Card>
   );
 }
 
@@ -290,8 +192,8 @@ export default function CustomerOrderDetail() {
   const [toast,    setToast]    = useState(null);
   const [dlBusy,   setDlBusy]   = useState(false);
   const [reasons,  setReasons]  = useState([]);
+  const [secState, setSecState] = useState({}); // section id → 'loading' | 'error'
 
-  // Responsive — CSS-driven (.od-h1, .od-pipeline-h/v), no resize listener needed.
   const CACHE_KEY = `order_detail_${orderId}`;
 
   const showToast = (msg, type = 'success') => {
@@ -301,14 +203,18 @@ export default function CustomerOrderDetail() {
 
   // Fetches into a Blob first rather than pointing <a download> straight at
   // the URL — the preview lives on Cloudinary once that disk is configured,
-  // and a cross-origin href makes the browser navigate instead of download.
-  const downloadDesign = useCallback(async (url, filename) => {
+  // and a cross-origin href makes the browser navigate instead of download. `api` routes through axios for the auth header.
+  const downloadDesign = useCallback(async (url, filename, api = false) => {
     if (!url) return;
-    setDlBusy(true);
+    setDlBusy(filename);
     try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(res.status);
-      const blob = await res.blob();
+      let blob;
+      if (api) blob = (await axios.get(url, { responseType: 'blob' })).data;
+      else {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(res.status);
+        blob = await res.blob();
+      }
       const objUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = objUrl;
@@ -318,13 +224,14 @@ export default function CustomerOrderDetail() {
       document.body.removeChild(a);
       URL.revokeObjectURL(objUrl);
     } catch {
-      showToast('Could not download the design. Try opening it in a new tab.', 'error');
+      showToast(api ? 'Could not generate the spec sheet. Please try again.' : 'Could not download the design. Try opening it in a new tab.', 'error');
     } finally {
       setDlBusy(false);
     }
   }, []);
 
-  // ── Load: 4 concurrent requests via Promise.allSettled ────────────────────
+  // ── Load: one wave. The page shows as soon as the order arrives; delivery, messages and AI fill in
+  // (skeletons meanwhile), and billing starts now so OrderBilling reuses it instead of a second round trip.
   const load = useCallback(async (force = false) => {
     if (!orderId) return;
     if (!force) {
@@ -339,26 +246,38 @@ export default function CustomerOrderDetail() {
       }
     }
     setLoading(true);
+    getOnce(`/api/customer/orders/${orderId}/billing`).catch(() => {});
     try {
-      const [o, d, m, a] = await Promise.allSettled([
-        axios.get(`/api/customer/orders/${orderId}`),
-        axios.get(`/api/customer/delivery/${orderId}`),
-        axios.get(`/api/customer/messages/${orderId}?per_page=3`),
-        axios.get(`/api/customer/orders/${orderId}/ai-recommendation`),
+      const orderReq = axios.get(`/api/customer/orders/${orderId}`);
+      const rest = Promise.allSettled([
+        axios.get(SECTIONS.delivery.url(orderId)),
+        axios.get(SECTIONS.messages.url(orderId)),
+        axios.get(SECTIONS.materials.url(orderId)),
       ]);
-      const orderData = o.status === 'fulfilled' ? (o.value.data?.order   ?? o.value.data)   : null;
-      const delivData = d.status === 'fulfilled' ? (d.value.data?.delivery ?? d.value.data)  : null;
-      const msgsData  = m.status === 'fulfilled' ? (m.value.data?.messages ?? m.value.data?.data ?? m.value.data ?? []) : [];
-      const aiData    = a.status === 'fulfilled' ? (a.value.data?.recommendation ?? a.value.data) : null;
-
+      const [o] = await Promise.allSettled([orderReq]);
+      const orderData = o.status === 'fulfilled' ? (o.value.data?.order ?? o.value.data) : null;
       const failed = fetchFailed(o);
       setLoadErr(failed);
       setOrder(orderData);
+      if (!failed) {
+        setSecState({ delivery: 'loading', messages: 'loading', materials: 'loading' });
+        setLoading(false);
+      }
+
+      const [d, m, a] = await rest;
+      const delivData = d.status === 'fulfilled' ? SECTIONS.delivery.pick(d.value.data)  : null;
+      const msgsData  = m.status === 'fulfilled' ? SECTIONS.messages.pick(m.value.data)  : [];
+      const aiData    = a.status === 'fulfilled' ? SECTIONS.materials.pick(a.value.data) : null;
+      // The thread fetch marks staff replies read, so the nav badge refreshes.
+      if (m.status === 'fulfilled') announceMessagesRead();
+
+      const secErr = { delivery: fetchFailed(d), messages: fetchFailed(m), materials: fetchFailed(a) };
+      setSecState(Object.fromEntries(Object.entries(secErr).filter(([, e]) => e).map(([k]) => [k, 'error'])));
       setDelivery(delivData);
-      setMessages(Array.isArray(msgsData) ? msgsData : []);
+      setMessages(msgsData);
       setAiRec(aiData);
       // A failed load is not cached: a retry must ask the server again instead of replaying the failure for 30s.
-      if (!failed) cacheSet(CACHE_KEY, {
+      if (!failed && !Object.values(secErr).some(Boolean)) cacheSet(CACHE_KEY, {
         order: orderData, delivery: delivData,
         messages: msgsData, aiRec: aiData,
       }, 30_000);
@@ -369,22 +288,32 @@ export default function CustomerOrderDetail() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Retries one failed section without reloading the whole page.
+  const SET = { delivery: setDelivery, messages: setMessages, materials: setAiRec };
+  const retrySection = async (key) => {
+    setSecState(s => ({ ...s, [key]: 'loading' }));
+    try {
+      const r = await axios.get(SECTIONS[key].url(orderId));
+      SET[key](SECTIONS[key].pick(r.data));
+      if (key === 'messages') announceMessagesRead();
+      setSecState(s => { const { [key]: _, ...rest } = s; return rest; });
+    } catch (e) {
+      const missing = [403, 404].includes(e.response?.status);
+      if (missing) SET[key](key === 'messages' ? [] : null);
+      setSecState(s => { const { [key]: _, ...rest } = s; return missing ? rest : { ...rest, [key]: 'error' }; });
+    }
+    cacheClear(CACHE_KEY);
+  };
+
   // ── Derived state — all O(1) ───────────────────────────────────────────────
   const status    = order?.status ?? 'pending';
   // Summary title is the saved design name (orderTitle); the line under it keeps the garment when the name replaced it.
   const savedName = savedDesignName(order?.studio_config);
   const garmentLine = [savedName && humanize(order?.garment_type), parseCfg(order).category, `${order?.quantity_ordered ?? 0} pcs`].filter(Boolean).join(' · ');
-  const curIdx    = STATUS_SEQ.indexOf(status);            // O(10) = O(1)
-  const stageIdx  = STAGES.findIndex(s => s.key === status); // O(7) = O(1)
-  const pct       = curIdx >= 0
-    ? Math.round((curIdx / (STATUS_SEQ.length - 1)) * 100)
-    : 0;
-  const isInProd  = STAGES.some(s => s.key === status);
-
-  // Pipeline connector fill — only STAGES portion
-  const connPct = stageIdx >= 0
-    ? Math.round((stageIdx / (STAGES.length - 1)) * 100)
-    : 0;
+  // The promised date counts only once the customer accepted it; before that target_delivery_date is just their preference.
+  const agreedDate = order?.proposal_status === 'accepted' ? (order.promised_date ?? null) : null;
+  const dueLine = agreedDate ? ` · Due ${fmtDate(agreedDate)}`
+    : order?.target_delivery_date ? ` · Preferred ${fmtDate(order.target_delivery_date)}` : '';
 
   const specs = [
     { label:'Garment Type', value: humanize(order?.garment_type) ?? '—'              },
@@ -397,8 +326,8 @@ export default function CustomerOrderDetail() {
     { label:'Order Type',   value: humanize(order?.order_type) ?? '—'                 },
     { label:'Payment',      value: PAYMENT_LABEL[order?.payment_terms] ?? '—' },
     { label:'PO Reference', value: order?.po_reference ?? 'N/A'             },
-    { label:'Delivery',     value: order?.target_delivery_date
-        ? new Date(order.target_delivery_date).toLocaleDateString('en-PH',{
+    { label: agreedDate ? 'Delivery' : 'Preferred date', value: (agreedDate ?? order?.target_delivery_date)
+        ? new Date(agreedDate ?? order.target_delivery_date).toLocaleDateString('en-PH',{
             year:'numeric', month:'long', day:'numeric',
           })
         : '—'
@@ -412,15 +341,11 @@ export default function CustomerOrderDetail() {
     axios.get(`/api/customer/messages/${orderId}`).then(r => {
       const list = r.data?.messages ?? r.data?.data ?? r.data ?? [];
       if (live) setReasons((Array.isArray(list) ? list : []).filter(m => REASON_RE.test(m.body ?? '')));
+      announceMessagesRead();
     }).catch(() => {});
     return () => { live = false; };
   }, [needReasons, orderId, order?.status, order?.proposal_status]);
 
-  const [tab, setTab] = useState('overview');
-  useEffect(() => {
-    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    document.getElementById(`od-tab-${tab}`)?.scrollIntoView({ inline:'center', block:'nearest', behavior: reduce ? 'auto' : 'smooth' });
-  }, [tab]);
   const [aiBusy, setAiBusy] = useState(false);
   const [aiMsg,  setAiMsg]  = useState('');
   const retryAI = useCallback(async () => {
@@ -447,7 +372,7 @@ export default function CustomerOrderDetail() {
     try {
       if (action === 'accept') {
         await axios.post(`/api/customer/orders/${orderId}/accept-materials`);
-        showToast('AI recommendation accepted! Staff have been notified.');
+        showToast('AI recommendation accepted! The VFRB team has been notified.');
       } else {
         await axios.post(`/api/customer/orders/${orderId}/reject-materials`);
         showToast('Recommendation declined.', 'info');
@@ -472,704 +397,284 @@ export default function CustomerOrderDetail() {
 
   // ── Loading skeleton ──────────────────────────────────────────────────────
   if (loading) return (
-    <>
-      <style>{`@keyframes sk{0%{background-position:-400px 0}100%{background-position:400px 0}}`}</style>
-      <div className="cx-page">
-        <div style={{ ...SK, height:22, width:'50%', marginBottom:10 }}/>
-        <div style={{ ...SK, height:10, width:'35%', marginBottom:24 }}/>
-        <div style={{ ...SK, height:7, marginBottom:20 }}/>
-        <div style={{ display:'flex', gap:8, marginBottom:24 }}>
-          {Array(7).fill(0).map((_,i) => (
-            <div key={i} style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
-              <div style={{ ...SK, width:'100%', maxWidth:44, aspectRatio:'1', borderRadius:'50%' }}/>
-              <div style={{ ...SK, height:8, width:'100%', maxWidth:40 }}/>
-            </div>
-          ))}
-        </div>
-        {[120,90,80].map((h,i) => (
-          <div key={i} style={{ ...SK, height:h, marginBottom:14, borderRadius:14 }}/>
-        ))}
+    <div className="cx-page" aria-busy="true" aria-label="Loading order">
+      <Skeleton count={2} height={20} label="Loading order" className="od-sk-head" />
+      <div className="od-sk">
+        <div className="od-sk-col"><Skeleton variant="block" height={150} /><Skeleton variant="block" height={110} /><Skeleton variant="block" height={90} /></div>
+        <div className="od-sk-col"><Skeleton variant="block" height={220} /><Skeleton variant="block" height={120} /></div>
       </div>
-    </>
+    </div>
   );
 
   // ── Could not load (network/server): retryable, never shown as "not found" ──
   if (loadErr) return (
-    <div style={{ padding:'40px 16px', maxWidth:420, margin:'0 auto' }}>
+    <div className="od-gone">
       <LoadError what="this order" onRetry={() => load(true)}/>
-      <div style={{ textAlign:'center', marginTop:12 }}>
-        <button onClick={() => nav('/orders')} className="cx-btn cx-btn-s" style={{ minHeight:44 }}>← Back to Orders</button>
-      </div>
+      <Button icon="back" onClick={() => nav('/orders')}>Back to My Orders</Button>
     </div>
   );
 
   // ── Not found ─────────────────────────────────────────────────────────────
   if (!order) return (
-    <div style={{ textAlign:'center', padding:'60px 20px' }}>
-      <p style={{ fontSize:36, margin:'0 0 12px', opacity:.2 }}>🔍</p>
-      <p style={{ fontSize:15, fontWeight:700, color:'#475569', fontFamily:FONT }}>
-        Order not found
-      </p>
-      <button onClick={() => nav('/orders')} style={{
-        marginTop:16, padding:'10px 22px', minHeight:44, borderRadius:10, border:'none',
-        background:T, color:'#fff', fontSize:13, fontWeight:700,
-        cursor:'pointer', fontFamily:FONT,
-      }}>
-        ← Back to Orders
-      </button>
+    <div className="od-gone">
+      <EmptyState boxed title="Order not found" action={<Button icon="back" onClick={() => nav('/orders')}>Back to My Orders</Button>}>
+        It may have been removed, or the link is wrong.
+      </EmptyState>
     </div>
   );
 
-  const cfg = S[status] ?? S.pending;
-  const pane = (id, extra = '') => ({ className: `od-card od-pane ${extra}`.trim(), 'data-pane': id, 'data-on': tab === id });
-  const matShown = (!['ready','accepted','rejected'].includes(order.ai_recommendation_status) && !['completed','cancelled'].includes(order.status))
-    || (!!aiRec && ['ready','accepted','rejected'].includes(order.ai_recommendation_status));
-  const TABS = [['overview','Overview'], ['progress','Delivery'], ['materials','Materials'], ['messages','Messages']];
-  const onTabKey = (e) => {
-    const i = TABS.findIndex(([id]) => id === tab);
-    const n = e.key === 'ArrowRight' ? i + 1 : e.key === 'ArrowLeft' ? i - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? TABS.length - 1 : null;
-    if (n == null) return;
-    e.preventDefault();
-    const next = TABS[(n + TABS.length) % TABS.length][0];
-    setTab(next);
-    document.getElementById(`od-tab-${next}`)?.focus();
-  };
+  // `order` sets the phone stacking (status → delivery → materials → messages → details → billing); desktop keeps each column's order.
+  const card = (n, extra = '') => ({ className: `od-card ${extra}`.trim(), style: { order: n } });
+  const recDone = ['ready','accepted','rejected'].includes(order.ai_recommendation_status);
+  const pngName = `VFRB-ORD-${order.order_id}-design.png`, specName = `VFRB-ORD-${order.order_id}-spec-sheet.pdf`;
 
   return (
     <>
-      <style>{`
-        @keyframes sk  { 0%   { background-position:-400px 0 } 100%{ background-position:400px 0 } }
-        @keyframes pulse { 0%,100%{ opacity:1 } 50%{ opacity:.3 } }
-
-        .od-toast { bottom:calc(var(--taskbar-h,64px) + 14px + env(safe-area-inset-bottom,0px)); }
-        @media (min-width:768px) { .od-toast { bottom:24px; } }
-        .od-wrap { margin:0 auto; padding-bottom:40px; }
-        .od-head { display:flex; flex-direction:column; gap:14px; margin-bottom:16px; align-items:flex-start; width:100%; }
-        .od-title { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; width:100%; }
-        .od-title h1 { font-size:clamp(20px,3vw,26px); font-weight:800; margin:0 0 4px; color:var(--ink); }
-        .od-title p { font-size:13px; color:var(--text-subtle); margin:0; text-transform:capitalize; }
-        .od-cols { display:grid; grid-template-columns:minmax(0,1fr); gap:0 16px; align-items:start; }
-        .od-main, .od-side { min-width:0; }
-        @media (min-width:1024px) { .od-cols { grid-template-columns:minmax(0,1.55fr) minmax(320px,1fr); } }
-
-        .od-spec-grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
-
-        /* Mobile-first: vertical pipeline is the default, horizontal takes over on tablet+. */
-        .od-pipeline-h { display:none; }
-        .od-pipeline-v { display:flex; flex-direction:column; }
-
-        .od-card { background:var(--bg-card); border:1px solid var(--border); border-radius:12px;
-          box-shadow:var(--shadow-xs); margin-bottom:14px; overflow:hidden; }
-        .od-card-body { padding:14px 16px; }
-        .od-hero { margin-bottom:16px; }
-        .od-hero .od-card-body { padding:16px; }
-
-        .od-set-grid { display:grid; grid-template-columns:minmax(0,1fr); gap:12px; }
-        .od-set-piece { min-width:0; display:flex; flex-direction:column; gap:10px; padding:12px; border:1px solid var(--border); border-radius:12px; background:var(--bg-surface); }
-        .od-set-piece[data-current] { border-color:var(--teal); box-shadow:0 0 0 1px var(--teal) inset; }
-        .od-set-h { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; }
-        .od-set-role { margin:0; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.07em; color:var(--text-subtle); }
-        .od-set-name { margin:2px 0 0; font-size:14px; font-weight:800; color:var(--ink); overflow-wrap:anywhere; }
-        .od-set-sub, .od-set-note { margin:0; font-size:13px; color:var(--text-subtle); }
-        .od-set-note { margin-bottom:10px; }
-        .od-set-prog { height:6px; border-radius:99px; background:rgba(15,23,42,.08); overflow:hidden; }
-        .od-set-prog span { display:block; height:100%; background:var(--teal); }
-        .od-set-act { display:flex; gap:8px; flex-wrap:wrap; }
-        .od-set-act .cx-btn { min-height:40px; flex:1 1 140px; }
-        @media (min-width:640px) { .od-set-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-
-        .od-prop { border-color:var(--teal); }
-        .od-prop-h { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
-        .od-prop-st { font-size:13px; font-weight:700; padding:3px 10px; border-radius:99px; background:#fef3c7; color:#92400e; }
-        .od-prop-st[data-s="accepted"] { background:#dcfce7; color:#166534; }
-        .od-prop-st[data-s="declined"] { background:#fee2e2; color:#991b1b; }
-        .od-prop-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:0 0 10px; }
-        .od-prop-grid dt { font-size:13px; color:var(--text-subtle); }
-        .od-prop-grid dd { margin:2px 0 0; font-size:16px; font-weight:800; color:var(--ink); }
-        .od-prop-note { margin:0 0 10px; font-size:13px; color:var(--ink); line-height:1.5; overflow-wrap:anywhere; white-space:pre-wrap; }
-        .od-prop-act { display:flex; gap:8px; flex-wrap:wrap; }
-        .od-prop-act .cx-btn { min-height:44px; flex:1 1 110px; }
-        .od-prop-dec { color:#b91c1c; border-color:#fecaca; }
-        .od-prop-form { display:flex; flex-direction:column; gap:8px; }
-        .od-prop-form label { font-size:13px; font-weight:700; color:var(--ink); }
-        .od-prop-form textarea { width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border); font:inherit; font-size:13px; resize:vertical; }
-        .od-prop-err { margin:8px 0 0; font-size:13px; color:#b91c1c; }
-        .od-reasons { margin:0 0 14px; padding:12px 14px; border-radius:12px; background:#fef2f2; border:1px solid #fecaca; }
-        .od-reasons p { margin:0; font-size:13px; color:#7f1d1d; overflow-wrap:anywhere; }
-        .od-reasons p + p { margin-top:6px; }
-        .od-section-title { font-size:13px; font-weight:800; text-transform:uppercase;
-          letter-spacing:.07em; color:#5f6f83; margin:0 0 14px; }
-
-        @media (min-width:640px) {
-          .od-spec-grid { grid-template-columns: repeat(auto-fill, minmax(160px,1fr)); }
-        }
-        @media (min-width:768px) {
-          .od-card { border-radius:16px; }
-          .od-card-body { padding:18px 20px; }
-          .od-pipeline-h { display:flex; }
-          .od-pipeline-v { display:none; }
-        }
-      `}</style>
-
-      {/* ── Toast ── */}
       <AnimatePresence>
         {toast && (
-          <motion.div className="od-toast"
-            initial={{ opacity:0, y:20 }}
-            animate={{ opacity:1, y:0  }}
-            exit={{    opacity:0, y:10  }}
-            style={{
-              position:'fixed', left:16, right:16, maxWidth:340,
-              margin:'0 auto', zIndex:9999,
-              padding:'11px 18px', borderRadius:11, fontFamily:FONT,
-              background: toast.type === 'error' ? '#ef4444'
-                        : toast.type === 'info'  ? '#3b82f6'
-                        :                           T2,
-              color:'#fff', fontWeight:700, fontSize:13,
-              boxShadow:'0 6px 20px rgba(0,0,0,.15)',
-            }}
-          >
+          <motion.div className="od-toast" data-type={toast.type} role="status" aria-live="polite"
+            initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:10 }}>
             {toast.msg}
           </motion.div>
         )}
       </AnimatePresence>
 
       <div className="od-wrap">
+        <PageHeader back={{ to: '/orders', label: 'My Orders' }} title={`Order #${orderId}`}
+          subtitle={[humanize(order.garment_type) ?? 'Custom Order', order.quantity_ordered && `${order.quantity_ordered} pcs`, order.color].filter(Boolean).join(' · ')}
+          actions={<StatusPill status={status}/>} className="od-head"/>
 
-        <div className="od-head">
-          <button className="cx-btn cx-btn-s" style={{ minHeight:40 }} onClick={() => nav('/orders')}>
-            <NavIcon name="back" size={16}/> My Orders
-          </button>
-          <div className="od-title">
-            <div style={{ minWidth:0 }}>
-              <h1>Order #{orderId}</h1>
-              <p>{[humanize(order.garment_type) ?? 'Custom Order', order.quantity_ordered && `${order.quantity_ordered} pcs`, order.color].filter(Boolean).join(' · ')}</p>
-            </div>
-            <StatusPill status={status}/>
-          </div>
-        </div>
+        <div className="od-cols"><div className="od-main">
         {/* ── Lifecycle summary (customer-facing 5 steps derived from real status) ── */}
         {status !== 'cancelled' && (
-          <div className="od-card">
-            <div className="od-card-body" style={{ display:'flex', flexDirection:'column', gap:16 }}>
-              <div style={{ display:'flex', alignItems:'center', gap:14 }}>
-                <OrderThumb order={order} size={64}/>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <p title={orderTitle(order)} style={{ margin:0, fontSize:15, fontWeight:800, color:'var(--ink)', overflow:'hidden', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflowWrap:'anywhere' }}>{orderTitle(order)}</p>
-                  <p style={{ margin:'3px 0 0', fontSize:13, color:'var(--text-subtle)' }}>
-                    {garmentLine}{order.target_delivery_date ? ` · Due ${fmtDate(order.target_delivery_date)}` : ''}
-                  </p>
+          <Card {...card(1)}>
+            <div className="od-sum">
+              <div className="od-sum-h">
+                <span className="od-sum-thumb"><OrderThumb order={order} size={64}/></span>
+                <div className="od-sum-txt">
+                  <p className="od-sum-t" title={orderTitle(order)}>{orderTitle(order)}</p>
+                  <p className="od-sum-m">{garmentLine}{dueLine}</p>
                 </div>
-                <button className="cx-btn cx-btn-s" style={{ minHeight:40 }} onClick={() => nav(`/messages?order=${orderId}`)}>Messages</button>
+                <Button icon="chat" onClick={() => nav(`/messages?order=${orderId}`)}>Messages</Button>
               </div>
-              <Stepper steps={LIFECYCLE} current={lifecycleIndex(status)}/>
+              <Stepper steps={LIFECYCLE} current={lifecycleIndex(status)} label="Order progress"/>
             </div>
-          </div>
+          </Card>
         )}
 
-        <ProposalCard order={order} orderId={orderId} showToast={showToast}
-          onDone={() => { cacheClear(CACHE_KEY, 'orders_list'); return load(true); }}/>
+        {/* ── Completed / Cancelled banners ─────────────────────────────── */}
+        {status === 'completed' && (
+          <AlertBanner tone="success" title="Order completed" style={{ order:2 }}>
+            Your order is ready. Final 20% payment is due on delivery.
+          </AlertBanner>
+        )}
+
+        {status === 'cancelled' && (
+          <AlertBanner tone="error" title="Order cancelled" style={{ order:2 }}>
+            {reasons.length > 0
+              ? reasons.map(m => (
+                  <span key={m.message_id ?? m.body} className="od-reason">
+                    <strong>{m.body.startsWith('Proposal') ? 'You declined:' : 'Reason from Admin:'}</strong> {m.body.replace(REASON_RE, '')}
+                  </span>))
+              : 'No reason was recorded. Message VFRB for details.'}
+          </AlertBanner>
+        )}
+
+        <div style={{ order:3 }}>
+          <ProposalCard order={order} orderId={orderId} showToast={showToast}
+            onDone={() => { cacheClear(CACHE_KEY, 'orders_list'); return load(true); }}/>
+        </div>
 
         {reasons.length > 0 && status !== 'cancelled' && (
-          <div className="od-reasons" role="note">
+          <div className="od-reasons" role="note" style={{ order:4 }}>
             {reasons.map(m => <p key={m.message_id ?? m.body}>{m.body}</p>)}
           </div>
         )}
 
-        <UniformSetCard order={order} nav={nav}/>
-
-        <div className="od-tabs" role="tablist" aria-label="Order sections" onKeyDown={onTabKey}>
-          {TABS.map(([id, label]) => (
-            <button key={id} id={`od-tab-${id}`} role="tab" type="button" aria-selected={tab === id} tabIndex={tab === id ? 0 : -1}
-              className="od-tab" onClick={() => setTab(id)}>
-              {label}
-              {tab === id && <motion.span layoutId="od-tab-ind" className="od-tab-ind" transition={{ type:'spring', stiffness:500, damping:38 }}/>}
-            </button>
-          ))}
-        </div>
+        {/* ── Delivery tracking ─────────────────────────────────────────── */}
+        {secState.delivery ? <SectionState id="delivery" state={secState.delivery} onRetry={() => retrySection('delivery')} style={{ order:5 }}/> : delivery && (() => {
+          // delivery_status column — NOT .status (locked schema rule)
+          const ds = delivery.delivery_status;
+          const label = ds ? (DELIVERY_LABEL[ds] ?? humanize(ds)) : 'Not scheduled yet';
+          const rows = [
+            { l:'Method',        v: delivery.delivery_method },
+            { l:'Courier',       v: delivery.courier_name },
+            { l:'Tracking #',    v: delivery.tracking_number },
+            { l:'Address',       v: delivery.delivery_address },
+            { l:'Est. Delivery', v: delivery.estimated_delivery_date ? fmtDate(delivery.estimated_delivery_date, { year:'numeric', month:'long', day:'numeric' }) : null },
+          ].filter(r => r.v);
+          return (
+            <Card {...card(5)} title="Delivery tracking" action={<StatusChip status={ds ?? 'pending'} label={label}/>}>
+              {rows.length === 0
+                ? <p className="od-muted">VFRB staff haven't added delivery details yet.</p>
+                : <dl className="od-kv">{rows.map(r => <div key={r.l}><dt>{r.l}</dt><dd>{r.v}</dd></div>)}</dl>}
+            </Card>
+          );
+        })()}
 
         {(order.studio_config || order.design_preview_url || (order.client_design_ref_file && isImageFile(order.client_design_ref_file))) && (
-          <section {...pane('overview', 'od-hero')} aria-label="Design preview">
-            <div className="od-card-body">
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap', marginBottom:12 }}>
-                <div style={{ minWidth:0 }}>
-                  <p className="od-section-title" style={{ fontFamily:FONT, margin:0 }}>Your Design</p>
-                  {/* Cancelled orders have no summary card above, so the design's title is shown here instead. */}
-                  {status === 'cancelled' && <p style={{ margin:'4px 0 0', fontSize:15, fontWeight:800, color:'var(--ink)', overflowWrap:'anywhere' }}>{orderTitle(order)}</p>}
-                </div>
+          <Card {...card(20, 'od-hero')} title="Your design"
+            subtitle={status === 'cancelled' ? orderTitle(order) : undefined}
+            action={(order.design_preview_url || order.studio_config) && (
+              <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
                 {order.design_preview_url && (
-                  <button className="cx-btn cx-btn-s" style={{ minHeight:40 }} disabled={dlBusy} aria-busy={dlBusy}
-                    onClick={() => downloadDesign(order.design_preview_url, `VFRB-ORD-${order.order_id}-design.png`)}>
-                    <NavIcon name="download" size={13}/>{dlBusy ? 'Preparing…' : 'Download PNG'}
-                  </button>
+                  <Button icon="download" loading={dlBusy === pngName} disabled={!!dlBusy}
+                    onClick={() => downloadDesign(order.design_preview_url, pngName)}>
+                    {dlBusy === pngName ? 'Preparing…' : 'Download PNG'}
+                  </Button>
+                )}
+                {order.studio_config && (
+                  <Button icon="download" loading={dlBusy === specName} disabled={!!dlBusy}
+                    onClick={() => downloadDesign(`/api/customer/orders/${order.order_id}/spec-sheet`, specName, true)}>
+                    {dlBusy === specName ? 'Preparing…' : 'Download spec sheet'}
+                  </Button>
                 )}
               </div>
+            )}>
+            <div className="od-stage">
               <DesignPreview cfg={order.studio_config} height={340}
-                previewUrl={order.design_preview_url ?? null}
+                previewUrl={order.design_preview_url ?? null} snapshot={order.design_3d_snapshot_url ?? null}
                 referenceImageUrl={!order.studio_config ? getStorageUrl(order.client_design_ref_file) : null}/>
-              <p style={{ fontSize:13, color:'var(--text-subtle)', fontFamily:FONT, margin:'10px 0 0' }}>
-                {order.design_preview_url
-                  ? 'This is the artwork submitted with your order. VFRB staff work from this file, so check it matches what you expect before production starts.'
-                  : 'Preview built from your submitted design.'}
-              </p>
             </div>
-          </section>
-        )}
-
-        <div className="od-cols"><div className="od-main">
-        {order.client_design_notes && (
-          <div {...pane('overview')}><div className="od-card-body">
-            <p className="od-section-title" style={{ fontFamily:FONT }}>Design Notes</p>
-            <p style={{ fontSize:13, color:'var(--ink)', margin:0, lineHeight:1.6, fontFamily:FONT, whiteSpace:'pre-wrap', overflowWrap:'anywhere' }}>{order.client_design_notes}</p>
-          </div></div>
-        )}
-        {/* ── Order specs grid ──────────────────────────────────────────── */}
-        <div {...pane('overview')}>
-          <div className="od-card-body">
-            <p className="od-section-title" style={{ fontFamily:FONT }}>
-              Order Specifications
+            <p className="od-muted od-gap">
+              {order.design_preview_url
+                ? 'This is the artwork submitted with your order. VFRB staff work from this file, so check it matches what you expect before production starts.'
+                : 'Preview built from your submitted design.'}
             </p>
-            <div className="od-spec-grid">
-              {specs.filter(s => s.value && s.value !== '—').map(spec => (
-                <div key={spec.label} style={{
-                  background:'var(--bg-surface)', borderRadius:10,
-                  padding:'10px 12px', border:'1px solid var(--bg-surface)',
-                }}>
-                  <p style={{
-                    fontSize:13, fontWeight:700, color:'var(--text-faint)',
-                    textTransform:'uppercase', letterSpacing:'.07em',
-                    margin:'0 0 4px', fontFamily:FONT,
-                  }}>
-                    {spec.label}
-                  </p>
-                  <p style={{
-                    fontSize:13, fontWeight:600, color:'var(--ink)',
-                    margin:0, fontFamily:FONT, textTransform:'capitalize',
-                  }}>
-                    {spec.label === 'Color' && /^#[0-9a-f]{3,6}$/i.test(spec.value) ? (
-                      <span style={{ display:'flex', alignItems:'center', gap:6 }}>
-                        <span style={{
-                          width:14, height:14, borderRadius:3, flexShrink:0,
-                          background:spec.value, border:'1px solid rgba(0,0,0,.1)',
-                        }}/>
-                        {spec.value}
-                      </span>
-                    ) : spec.value}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+          </Card>
+        )}
 
+        {order.client_design_notes && (
+          <Card {...card(21)} title="Design notes">
+            <p className="od-pre">{order.client_design_notes}</p>
+          </Card>
+        )}
 
+        {/* ── Order specs grid ──────────────────────────────────────────── */}
+        <Card {...card(22)} title="Order specifications">
+          <dl className="od-spec-grid">
+            {specs.filter(s => s.value && s.value !== '—').map(spec => (
+              <div key={spec.label} className="od-spec">
+                <dt>{spec.label}</dt>
+                <dd>
+                  {spec.label === 'Color' && /^#[0-9a-f]{3,6}$/i.test(spec.value)
+                    ? <span className="od-swatch"><i style={{ background:spec.value }} aria-hidden="true"/>{spec.value}</span>
+                    : spec.value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </Card>
 
         {/* Requires the backend's storage symlink (php artisan storage:link) to resolve. */}
         {order.client_design_ref_file && (
-          <div {...pane('overview')}>
-            <div className="od-card-body">
-              <p className="od-section-title" style={{ fontFamily:FONT }}>
-                Reference File
-              </p>
-              {isImageFile(order.client_design_ref_file) ? (
-                <a href={getStorageUrl(order.client_design_ref_file)} target="_blank" rel="noopener noreferrer"
-                  style={{ display:'block', borderRadius:10, overflow:'hidden',
-                    border:'1px solid var(--border)', maxWidth:280, textDecoration:'none' }}>
-                  <img src={getStorageUrl(order.client_design_ref_file)} alt="Customer reference"
-                    style={{ width:'100%', display:'block' }}
-                    onError={e => { e.target.style.display='none'; }}/>
-                </a>
-              ) : (
-                <a href={getStorageUrl(order.client_design_ref_file)} target="_blank" rel="noopener noreferrer"
-                  style={{ display:'inline-flex', alignItems:'center', gap:8,
-                    padding:'10px 16px', borderRadius:10, background:'#f0fdfa',
-                    border:'1px solid #99f6e4', color:'var(--teal)', fontSize:13,
-                    fontWeight:700, fontFamily:FONT, textDecoration:'none' }}>
-                  <NavIcon name="attachment" size={13} color="var(--teal)"/> View Reference PDF
-                </a>
-              )}
-            </div>
-          </div>
+          <Card {...card(23)} title="Reference file">
+            {isImageFile(order.client_design_ref_file) ? (
+              <a href={getStorageUrl(order.client_design_ref_file)} target="_blank" rel="noopener noreferrer" className="od-ref-img">
+                <img src={getStorageUrl(order.client_design_ref_file)} alt="Customer reference"
+                  onError={e => { e.target.style.display='none'; }}/>
+              </a>
+            ) : (
+              <a href={getStorageUrl(order.client_design_ref_file)} target="_blank" rel="noopener noreferrer" className="ui-btn od-ref-pdf" data-v="secondary" data-size="md">
+                <NavIcon name="attachment" size={14}/> View reference PDF
+              </a>
+            )}
+          </Card>
         )}
 
-        </div><div className="od-side">
+        <div style={{ order:24 }}><UniformSetCard order={order} nav={nav}/></div>
+
         {/* Billing reads its own endpoint, so it mounts only once the order itself has loaded. */}
-        <div {...pane('overview')}><div className="od-card-body">
-          <p className="od-section-title" style={{ fontFamily:FONT }}>Billing</p>
+        <Card {...card(30, 'od-billing')} title="Billing">
           <OrderBilling orderId={order.order_id ?? orderId} mode="customer" />
-        </div></div>
-        {!matShown && (
-          <div {...pane('materials', 'od-empty')}><div className="od-card-body">
-            <p className="od-section-title" style={{ fontFamily:FONT }}>Materials</p>
-            <p style={{ fontSize:13, color:'var(--text-muted)', margin:0, lineHeight:1.6 }}>No material recommendation for this order.</p>
-          </div></div>
-        )}
-        {!delivery && (
-          <div {...pane('progress', 'od-empty')}><div className="od-card-body">
-            <p className="od-section-title" style={{ fontFamily:FONT }}>Delivery</p>
-            <p style={{ fontSize:13, color:'var(--text-muted)', margin:0, lineHeight:1.6 }}>Delivery is not scheduled yet. You will see tracking here once VFRB sets it up.</p>
-          </div></div>
-        )}
+        </Card>
+        </div><div className="od-side">
         {/* ── AI Recommendation card ────────────────────────────────────── */}
-        {order && !['ready','accepted','rejected'].includes(order.ai_recommendation_status) && !['completed','cancelled'].includes(order.status) && (
-          <div {...pane('materials')}><div className="od-card-body">
-            <p className="od-section-title" style={{ fontFamily:FONT }}>Material recommendation</p>
-            <p style={{ fontSize:13, color:'var(--text-muted)', lineHeight:1.6, margin:'0 0 12px', fontFamily:FONT }}>
+        {order && !recDone && !['completed','cancelled'].includes(order.status) && (
+          <Card {...card(10)} title="Material recommendation">
+            <p className="od-muted od-lead">
               {order.ai_recommendation_status === 'generating'
                 ? 'Your recommendation is being prepared. Check again in a moment.'
                 : order.ai_recommendation_status === 'failed'
                 ? 'The recommendation could not be generated. Try again, or choose the material types yourself.'
                 : 'No material types have been recommended for this order yet.'}
             </p>
-            {aiMsg && <p role="alert" style={{ fontSize:13, color:'#b91c1c', margin:'0 0 12px', fontFamily:FONT }}>{aiMsg}</p>}
-            <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-              <button className="cx-btn cx-btn-p" style={{ minHeight:44 }} disabled={aiBusy} aria-busy={aiBusy}
+            {aiMsg && <p role="alert" className="od-err">{aiMsg}</p>}
+            <div className="od-acts">
+              <Button variant="primary" loading={aiBusy}
                 onClick={order.ai_recommendation_status === 'generating' ? () => load(true) : retryAI}>
                 {aiBusy ? 'Working…' : order.ai_recommendation_status === 'generating' ? 'Check again' : 'Get recommendation'}
-              </button>
-              <button className="cx-btn cx-btn-s" style={{ minHeight:44 }} onClick={() => nav('/ai-materials')}>Choose materials myself</button>
+              </Button>
+              <Button onClick={() => nav('/ai-materials')}>Choose materials myself</Button>
             </div>
-          </div></div>
+          </Card>
         )}
 
-        {aiRec && ['ready','accepted','rejected'].includes(order.ai_recommendation_status) && (
-          <motion.div
-            initial={{ opacity:0, y:10 }}
-            animate={{ opacity:1, y:0 }}
-            {...pane('materials')}
-          >
-            <div className="od-card-body">
-              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:14 }}>
-                <div style={{
-                  width:28, height:28, borderRadius:'50%', flexShrink:0,
-                  background:'var(--teal-dark)',
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                  fontSize:14,
-                }}>
-                  <NavIcon name="ai" size={14} color="#fff"/>
-                </div>
-                <div style={{ flex:1 }}>
-                  <p className="od-section-title" style={{ margin:'0 0 2px', fontFamily:FONT }}>
-                    AI Material Recommendation
-                  </p>
-                  <p style={{ fontSize:13, color:'var(--text-subtle)', margin:0, fontFamily:FONT }}>
-                    Based on VFRB production standards
-                  </p>
-                </div>
-                {order.ai_recommendation_status === 'accepted' && (
-                  <span style={{
-                    padding:'3px 10px', borderRadius:99, fontSize:13,
-                    fontWeight:700, flexShrink:0,
-                    background:'#dcfce7', color:'#16a34a',
-                  }}>
-                    ✓ Accepted
-                  </span>
-                )}
-                {order.ai_recommendation_status === 'rejected' && (
-                  <span style={{
-                    padding:'3px 10px', borderRadius:99, fontSize:13,
-                    fontWeight:700, flexShrink:0,
-                    background:'#fee2e2', color:'#dc2626',
-                  }}>
-                    Declined
-                  </span>
-                )}
+        {recDone && secState.materials && <SectionState id="materials" state={secState.materials} onRetry={() => retrySection('materials')} style={{ order:10 }}/>}
+        {aiRec && recDone && !secState.materials && (
+          <Card as={motion.section} initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} {...card(10)}
+            title="AI material recommendation" subtitle="Based on VFRB production standards"
+            action={order.ai_recommendation_status === 'accepted' ? <Badge tone="success" icon="success">Accepted</Badge>
+              : order.ai_recommendation_status === 'rejected' ? <Badge tone="danger">Declined</Badge> : null}>
+            {order.ai_recommendation_status === 'rejected' && (
+              <div className="od-note-row">
+                <span>VFRB staff has been notified. Want to pick materials yourself instead?</span>
+                <Button onClick={() => nav('/ai-materials')}>Choose myself</Button>
               </div>
+            )}
 
-              {order.ai_recommendation_status === 'rejected' && (
-                <div style={{ padding:'10px 12px', borderRadius:9, background:'var(--bg-surface)',
-                  border:'1px solid var(--border)', marginBottom:14, display:'flex',
-                  alignItems:'center', justifyContent:'space-between', gap:10 }}>
-                  <span style={{ fontSize:13, color:'var(--text-subtle)', fontFamily:FONT }}>
-                    VFRB staff has been notified. Want to pick materials yourself instead?
-                  </span>
-                  <button onClick={() => nav('/ai-materials')}
-                    style={{ padding:'6px 12px', borderRadius:8, border:'1px solid var(--border)',
-                      background:'#fff', color:'var(--ink)', fontSize:13, fontWeight:700,
-                      cursor:'pointer', fontFamily:FONT, whiteSpace:'nowrap', flexShrink:0 }}>
-                    ✋ Choose Myself
-                  </button>
-                </div>
-              )}
-
-              {/* Materials breakdown */}
-              {aiRec.materials_json && (() => {
-                try {
-                  const mats = typeof aiRec.materials_json === 'string'
-                    ? JSON.parse(aiRec.materials_json)
-                    : aiRec.materials_json;
-                  return (
-                    <div style={{ marginBottom:14 }}>
-                      <p style={{ fontSize:13, fontWeight:700, color:'var(--text-muted)', margin:'0 0 10px', fontFamily:FONT }}>{AI_OPTIONAL_LINE}</p>
-                      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(min(100%,260px),1fr))', gap:12 }}>
-                        {Object.entries(mats).map(([mat, info], i) => (
-                          <RecCard key={mat} rec={{ ...info, material_name: mat }} index={i}/>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                } catch { return null; }
-              })()}
-
-              {/* Narrative notes */}
-              {aiRec.notes && (
-                <p style={{
-                  fontSize:13, color:'var(--text-subtle)', lineHeight:1.7,
-                  margin:'0 0 14px', fontFamily:FONT,
-                }}>
-                  {aiRec.notes}
-                </p>
-              )}
-
-              {/* Accept / Reject — only when status is 'ready' */}
-              {order.ai_recommendation_status === 'ready' && (
-                <div style={{ display:'flex', gap:8 }}>
-                  <motion.button
-                    whileTap={{ scale:.97 }}
-                    onClick={() => handleAI('accept')}
-                    disabled={!!aiAction}
-                    style={{
-                      flex:1, padding:'10px', borderRadius:10, border:'none',
-                      background: aiAction ? 'var(--text-faint)'
-                        : `linear-gradient(135deg,${T},${T2})`,
-                      color:'#fff', fontSize:13, fontWeight:700,
-                      cursor: aiAction ? 'not-allowed' : 'pointer',
-                      fontFamily:FONT, minHeight:44,
-                    }}
-                  >
-                    {aiAction === 'accept' ? '…' : '✓ Accept Recommendation'}
-                  </motion.button>
-                  <motion.button
-                    whileTap={{ scale:.97 }}
-                    onClick={() => handleAI('reject')}
-                    disabled={!!aiAction}
-                    style={{
-                      flex:1, padding:'10px', borderRadius:10,
-                      border:'1px solid #fecaca', background:'#fff',
-                      color:'#dc2626', fontSize:13, fontWeight:700,
-                      cursor: aiAction ? 'not-allowed' : 'pointer',
-                      fontFamily:FONT, minHeight:44,
-                    }}
-                  >
-                    {aiAction === 'reject' ? '…' : 'Decline'}
-                  </motion.button>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
-
-        {/* ── Delivery tracking ─────────────────────────────────────────── */}
-        {delivery && (
-          <div {...pane('progress')}>
-            <div className="od-card-body">
-              <p className="od-section-title" style={{ fontFamily:FONT }}>
-                Delivery Tracking
-              </p>
-              {(() => {
-                // delivery_status column — NOT .status (locked schema rule)
-                const ds   = delivery.delivery_status;
-                const dcfg = ds ? (DELIVERY_CFG[ds] ?? { label:ds, color:'#64748b', icon:'package' }) : { label:'Not scheduled yet', color:'#64748b', icon:'package' };
+            {/* Materials breakdown */}
+            {aiRec.materials_json && (() => {
+              try {
+                const mats = typeof aiRec.materials_json === 'string' ? JSON.parse(aiRec.materials_json) : aiRec.materials_json;
                 return (
-                  <div>
-                    <div style={{
-                      display:'flex', justifyContent:'space-between',
-                      alignItems:'center', marginBottom:12,
-                    }}>
-                      <span style={{
-                        padding:'4px 12px', borderRadius:99,
-                        fontSize:13, fontWeight:700,
-                        background:`${dcfg.color}15`, color:dcfg.color,
-                        border:`1px solid ${dcfg.color}25`,
-                      }}>
-                        <NavIcon name={dcfg.icon} size={11} color={dcfg.color}/> {dcfg.label}
-                      </span>
-                    </div>
-
-                    {![delivery.delivery_method, delivery.courier_name, delivery.tracking_number, delivery.delivery_address, delivery.estimated_delivery_date].some(Boolean) && (
-                      <p style={{ margin:0, fontSize:13, color:'var(--text-subtle)', fontFamily:FONT }}>
-                        VFRB staff haven't added delivery details yet.
-                      </p>
-                    )}
-                    <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                      {[
-                        { l:'Method',        v: delivery.delivery_method      },
-                        { l:'Courier',       v: delivery.courier_name         },
-                        { l:'Tracking #',    v: delivery.tracking_number      },
-                        { l:'Address',       v: delivery.delivery_address     },
-                        { l:'Est. Delivery', v: delivery.estimated_delivery_date
-                            ? new Date(delivery.estimated_delivery_date)
-                                .toLocaleDateString('en-PH',{
-                                  year:'numeric', month:'long', day:'numeric',
-                                })
-                            : null
-                        },
-                      ].filter(r => r.v).map(row => (
-                        <div key={row.l} style={{
-                          display:'flex', gap:10,
-                          padding:'7px 10px', background:'var(--bg-surface)',
-                          borderRadius:8, border:'1px solid var(--bg-surface)',
-                        }}>
-                          <span style={{
-                            fontSize:13, fontWeight:700, color:'var(--text-faint)',
-                            minWidth:90, flexShrink:0, fontFamily:FONT,
-                          }}>
-                            {row.l}
-                          </span>
-                          <span style={{ fontSize:13, color:'var(--ink)', fontFamily:FONT }}>
-                            {row.v}
-                          </span>
-                        </div>
-                      ))}
+                  <div className="od-gap-b">
+                    <p className="od-label">{AI_OPTIONAL_LINE}</p>
+                    <div className="od-rec-grid">
+                      {Object.entries(mats).map(([mat, info], i) => <RecCard key={mat} rec={{ ...info, material_name: mat }} index={i}/>)}
                     </div>
                   </div>
                 );
-              })()}
-            </div>
-          </div>
+              } catch { return null; }
+            })()}
+
+            {aiRec.notes && <p className="od-muted od-gap-b">{aiRec.notes}</p>}
+
+            {/* Accept / Reject — only when status is 'ready' */}
+            {order.ai_recommendation_status === 'ready' && (
+              <div className="od-acts">
+                <Button variant="primary" icon="success" disabled={!!aiAction} loading={aiAction === 'accept'} onClick={() => handleAI('accept')}>Accept recommendation</Button>
+                <Button className="is-danger" disabled={!!aiAction} loading={aiAction === 'reject'} onClick={() => handleAI('reject')}>Decline</Button>
+              </div>
+            )}
+          </Card>
         )}
 
         {/* ── Messages preview ──────────────────────────────────────────── */}
-        <div {...pane('messages')}>
-          <div className="od-card-body">
-            <div style={{
-              display:'flex', justifyContent:'space-between',
-              alignItems:'center', marginBottom:14,
-            }}>
-              <p className="od-section-title" style={{ margin:0, fontFamily:FONT }}>
-                Messages
-              </p>
-              <button
-                onClick={() => nav(`/messages?order=${orderId}`)}
-                style={{
-                  padding:'5px 12px', borderRadius:8,
-                  border:'1px solid rgba(2,128,144,.2)', background:'rgba(2,128,144,.04)',
-                  color:T, fontSize:13, fontWeight:700,
-                  cursor:'pointer', fontFamily:FONT,
-                }}
-              >
-                Open Chat →
-              </button>
+        {secState.messages ? <SectionState id="messages" state={secState.messages} onRetry={() => retrySection('messages')} style={{ order:11 }}/> : messages.length > 0 && (
+          <Card {...card(11)} title="Messages" action={<Button size="sm" iconRight="chevronRight" onClick={() => nav(`/messages?order=${orderId}`)}>Open chat</Button>}>
+            <div className="od-msgs">
+              {messages.slice(-3).map(msg => {
+                const at = msg.sent_at ?? msg.created_at;
+                return (
+                  <div key={msg.message_id} className="od-msg" data-me={msg.sender_id === meId || undefined}>
+                    {/* body column — order_messages schema */}
+                    <p>{msg.body}</p>
+                    <time>{at ? new Date(at).toLocaleTimeString('en-PH', { hour:'2-digit', minute:'2-digit' }) : ''}</time>
+                  </div>
+                );
+              })}
+              {messages.length > 3 && <p className="od-muted od-center">+{messages.length - 3} earlier</p>}
             </div>
-
-            {messages.length === 0 ? (
-              <p style={{
-                fontSize:13, color:'var(--text-faint)', textAlign:'center',
-                padding:'12px 0', fontFamily:FONT,
-              }}>
-                No messages yet — chat with VFRB staff
-              </p>
-            ) : (
-              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                {messages.slice(0, 3).map(msg => {
-                  const isMe = msg.sender_id === meId;
-                  return (
-                    <div key={msg.message_id} style={{
-                      display:'flex',
-                      justifyContent: isMe ? 'flex-end' : 'flex-start',
-                    }}>
-                      <div style={{
-                        maxWidth:'72%', padding:'8px 12px',
-                        borderRadius: isMe
-                          ? '12px 2px 12px 12px'
-                          : '2px 12px 12px 12px',
-                        background: isMe ? 'rgba(2,128,144,.09)' : 'var(--bg-surface)',
-                        border:`1px solid ${isMe ? 'rgba(2,128,144,.16)' : 'var(--border)'}`,
-                      }}>
-                        {/* body column — order_messages schema */}
-                        <p style={{
-                          fontSize:13, color:'var(--ink)', margin:0,
-                          lineHeight:1.5, fontFamily:FONT,
-                        }}>
-                          {msg.body}
-                        </p>
-                        <p style={{
-                          fontSize:13, color:'var(--text-faint)',
-                          margin:'4px 0 0', textAlign:'right', fontFamily:FONT,
-                        }}>
-                          {msg.created_at
-                            ? new Date(msg.created_at).toLocaleTimeString('en-PH',{
-                                hour:'2-digit', minute:'2-digit',
-                              })
-                            : ''}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-                {messages.length > 3 && (
-                  <p style={{
-                    fontSize:13, color:'var(--text-faint)', textAlign:'center',
-                    margin:0, fontFamily:FONT,
-                  }}>
-                    +{messages.length - 3} more →
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
+          </Card>
+        )}
 
         </div></div>
-        {/* ── Completed / Cancelled banners ─────────────────────────────── */}
-        {status === 'completed' && (
-          <motion.div
-            initial={{ opacity:0, scale:.97 }}
-            animate={{ opacity:1, scale:1 }}
-            style={{
-              padding:'20px', borderRadius:16, textAlign:'center',
-              background:'#f0fdf4', border:'1px solid #bbf7d0', marginBottom:14,
-            }}
-          >
-            <p style={{ fontSize:32, margin:'0 0 8px' }}>🎉</p>
-            <p style={{ fontSize:15, fontWeight:800, color:'#166534', margin:0, fontFamily:FONT }}>
-              Order Completed!
-            </p>
-            <p style={{ fontSize:13, color:'#15803d', margin:'6px 0 0', fontFamily:FONT }}>
-              Your order is ready. Final 20% payment is due on delivery.
-            </p>
-          </motion.div>
-        )}
-
-        {status === 'cancelled' && (
-          <div style={{
-            padding:'16px', borderRadius:14, textAlign:'center',
-            background:'#fef2f2', border:'1px solid #fecaca', marginBottom:14,
-          }}>
-            <p style={{ fontSize:28, margin:'0 0 8px' }}>✕</p>
-            <p style={{ fontSize:14, fontWeight:700, color:'#991b1b', margin:0, fontFamily:FONT }}>
-              Order Cancelled
-            </p>
-            {reasons.length > 0
-              ? reasons.map(m => (
-                  <p key={m.message_id ?? m.body} style={{ fontSize:13, color:'#7f1d1d', margin:'8px 0 0', fontFamily:FONT, overflowWrap:'anywhere' }}>
-                    <strong>{m.body.startsWith('Proposal') ? 'You declined:' : 'Reason from Admin:'}</strong> {m.body.replace(REASON_RE, '')}
-                  </p>))
-              : <p style={{ fontSize:13, color:'#991b1b', margin:'6px 0 0', fontFamily:FONT }}>No reason was recorded. Message VFRB for details.</p>}
-          </div>
-        )}
-
         {/* ── Bottom action row ─────────────────────────────────────────── */}
-        <div style={{ display:'flex', gap:10, flexWrap:'wrap', marginTop:6 }}>
-          <button onClick={() => nav(`/messages?order=${orderId}`)} style={{
-            flex:1, padding:'12px', borderRadius:12, minHeight:44,
-            border:'1px solid rgba(2,128,144,.2)', background:'rgba(2,128,144,.04)',
-            color:T, fontSize:13, fontWeight:700,
-            cursor:'pointer', fontFamily:FONT,
-            display:'inline-flex', alignItems:'center', justifyContent:'center', gap:8,
-          }}>
-            <NavIcon name="chat" size={14} color={T}/>Message Staff
-          </button>
-          <button onClick={() => nav('/orders')} style={{
-            flex:1, padding:'12px', borderRadius:12, minHeight:44,
-            border:'1px solid var(--border)', background:'var(--bg-surface)',
-            color:'var(--text-subtle)', fontSize:13, fontWeight:600,
-            cursor:'pointer', fontFamily:FONT,
-          }}>
-            ← All Orders
-          </button>
+        <div className="od-acts od-bottom">
+          <Button icon="chat" onClick={() => nav(`/messages?order=${orderId}`)}>Message VFRB team</Button>
+          <Button variant="ghost" icon="back" onClick={() => nav('/orders')}>All orders</Button>
         </div>
-
       </div>
     </>
   );

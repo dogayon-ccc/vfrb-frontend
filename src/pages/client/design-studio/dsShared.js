@@ -232,6 +232,10 @@ export const SHAPES = [
   { id:'roundrect',label:'Rounded',   kind:'roundrect'},
   { id:'polygon',  label:'Hexagon',   kind:'polygon'  },
   { id:'arrow',    label:'Arrow',     kind:'arrow'    },
+  { id:'heart',    label:'Heart',     kind:'heart'    },
+  { id:'badge',    label:'Badge',     kind:'badge'    },
+  { id:'bubble',   label:'Speech',    kind:'bubble'   },
+  { id:'ribbon',   label:'Ribbon',    kind:'ribbon'   },
 ];
 
 

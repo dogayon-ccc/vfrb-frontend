@@ -26,7 +26,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import {
   LayoutGrid, ClipboardList, Boxes, MessageSquare, ShoppingCart, Truck,
-  Layers, Factory, FileText, ShieldCheck, Hash, AlertTriangle, Wallet,
+  Layers, Factory, FileText, ShieldCheck, Hash, Wallet,
   BarChart3, Receipt, Store, Users, Settings, Package, MessageCircle,
   User, Palette, ImagePlus, Type, Sparkles, Ruler, ClipboardCheck,
   CheckCircle2, XCircle, AlertCircle, Info, Eye, EyeOff, Lock, Trash2,
@@ -83,7 +83,6 @@ const ICON_MAP = {
   qcFinish:         Sparkles,
   qcFastener:       CircleDot,
   physicalCount:    ScanLine,
-  incidents:        AlertTriangle,
   salesPay:         Wallet,
   reports:          BarChart3,
   invoice:          Receipt,

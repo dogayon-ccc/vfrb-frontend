@@ -1,10 +1,11 @@
 // Run: node tools/asset-audit.mjs [--write]
-// Cross-checks every asset the studio registries and source reference against the files in public/models, public/garments2d
-// and public/gallery. Reports missing references, unreferenced files and duplicate ids. --write regenerates
+// Cross-checks every asset the studio registries and source reference against the files in public/models (or their Cloudinary
+// copies, see modelFiles.mjs), public/garments2d and public/gallery. Reports missing references, unreferenced files and duplicate ids. --write regenerates
 // docs/engineering/ASSET-REGISTRY.md from the same data (the registries stay the source of truth; the doc is a checked snapshot).
 import fs from 'node:fs';
 import path from 'node:path';
 import { createServer } from 'vite';
+import { fetchModels, studioModelPaths, modelFile } from './modelFiles.mjs';
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1')), '..');
 const DIRS = ['models', 'garments2d', 'gallery'];
@@ -27,6 +28,9 @@ const GS = await L('/src/pages/client/design-studio/glbSlots.js');
 const C = await L('/src/pages/client/design-studio/garmentCapabilities.js');
 const D = await L('/src/pages/client/design-studio/designGallery.js');
 await v.close();
+// GLBs are on Cloudinary now: a model counts as present when public/ or the downloaded cache holds it (tools/modelFiles.mjs).
+await fetchModels(studioModelPaths({ GS, C, D }));
+const exists = p => fs.existsSync(modelFile(path.join(ROOT, 'public', decodeURI(p))));
 
 const refs = new Map(); // asset path -> Set of "who references it"
 const add = (p, who) => { if (!p) return; p = decodeURI(p); (refs.get(p) ?? refs.set(p, new Set()).get(p)).add(who); };
@@ -42,7 +46,7 @@ for (const [garment, bySleeve] of Object.entries(A.ASSET_2D))
       }
 
 for (const e of C.PENDING_3D_MODELS ?? []) for (const m of Object.values(e.models)) add(m, `pending candidate ${e.id} (${e.approval ?? 'pending'}, not served)`);
-for (const s of Object.values(GS.GLB_SLOTS)) if (GS.slotLive(s) || fs.existsSync(path.join(ROOT, 'public', s.file))) add(s.file, `GLB slot ${s.id} (${s.state})`);
+for (const s of Object.values(GS.GLB_SLOTS)) if (GS.slotLive(s) || exists(s.file)) add(s.file, `GLB slot ${s.id} (${s.state})`);
 for (const e of C.SCANNED_GARMENTS) for (const m of Object.values(e.models)) add(m, `3D entry ${e.id}`);
 for (const m of C.UNSUPPORTED_3D_MODELS ?? []) if (m?.path) add(m.path, `unsupported model (${m.reason ?? 'rejected'})`);
 for (const d of D.ENTRIES) { add(d.image, `gallery photo ${d.id}`); if (d.ref3D) add(d.ref3D.file, `gallery 3D reference ${d.id}`); }
@@ -56,7 +60,7 @@ for (const file of walk(path.join(ROOT, 'src')).filter(f => /\.(jsx?|css)$/.test
 
 const onDisk = DIRS.flatMap(d => fs.existsSync(path.join(ROOT, 'public', d)) ? walk(path.join(ROOT, 'public', d)) : [])
   .map(f => '/' + path.relative(path.join(ROOT, 'public'), f).replace(/\\/g, '/')).sort();
-const missing = [...refs.keys()].filter(p => !fs.existsSync(path.join(ROOT, 'public', p))).sort();
+const missing = [...refs.keys()].filter(p => !exists(p)).sort();
 const unreferenced = onDisk.filter(p => !refs.has(p));
 // PNG masters copied by tools/vfrb-asset-import are kept unresized as the authoritative source; each must have its gallery preview.
 const MASTER = '/garments2d/source/';

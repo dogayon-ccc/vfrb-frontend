@@ -8,6 +8,10 @@ import { startSession } from '../../utils/session';
 import { isStaffRole } from '../../utils/authRoute';
 import AuthShell, { authInput } from '../../components/AuthShell';
 import { NavIcon } from '../../components/ui/icons';
+import { CONTACT } from '../../components/site/config';
+
+// 44px tap height without breaking the sentence's line flow.
+const CONTACT_LINK = { display: 'inline-flex', alignItems: 'center', minHeight: 44, fontWeight: 700, color: 'var(--teal-dark)' };
 
 const T = 'var(--teal)';
 
@@ -135,7 +139,9 @@ export default function Login() {
       </button>
 
       <p style={{ textAlign: 'center', fontSize: 15, color: 'var(--text-muted)', marginTop: 28 }}>
-        No account? <Link to="/register" style={{ color: 'var(--teal-dark)', fontWeight: 800, textDecoration: 'none' }}>Register here →</Link>
+        No account yet? VFRB creates customer accounts.{' '}
+        <a href={CONTACT.facebook} target="_blank" rel="noopener noreferrer" style={CONTACT_LINK}>Message us on Facebook</a>
+        {' '}or call <a href={CONTACT.phoneHref} style={{ ...CONTACT_LINK, whiteSpace: 'nowrap' }}>{CONTACT.phone}</a> and we will set one up for you.
       </p>
     </AuthShell>
   );

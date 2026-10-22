@@ -56,8 +56,7 @@ export default function SiteHeader() {
           {NAV.map(n => <NavLink key={n.to} to={n.to}>{n.label}</NavLink>)}
         </nav>
         <div className="vs-header__cta">
-          <Link to="/login" className="vs-login">Log in</Link>
-          <Btn to="/register">Design your uniform</Btn>
+          <Btn to="/login">Design your uniform</Btn>
         </div>
         <button ref={burger} type="button" className="vs-burger" aria-expanded={open} aria-controls="vs-sheet"
           aria-label={open ? 'Close menu' : 'Open menu'} onClick={() => setOpen(o => !o)}>
@@ -67,8 +66,7 @@ export default function SiteHeader() {
       <nav id="vs-sheet" className={`vs-sheet${open ? ' is-open' : ''}`} aria-label="Mobile" aria-hidden={!open}>
         {NAV.map(n => <NavLink key={n.to} to={n.to} className="vs-sheet__link">{n.label}<span aria-hidden="true">›</span></NavLink>)}
         <div className="vs-sheet__cta">
-          <Btn to="/register">Design your uniform</Btn>
-          <Btn to="/login" variant="line">Log in</Btn>
+          <Btn to="/login">Design your uniform</Btn>
         </div>
       </nav>
     </header>

@@ -110,11 +110,11 @@ export default function PatternPanel({ cfg, setCfg, activeZone }) {
 
       <p style={secLabel}>Active Zone: <span style={{ color:'var(--cx-thread-ink)' }}>{ZONE_LABEL[activeZone]}</span></p>
 
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6 }}>
+      <div role="group" aria-label={`Pattern for ${ZONE_LABEL[activeZone]}`} style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6 }}>
         {PATTERNS.map(pat => {
           const sel = zonePattern === pat.id;
           return (
-            <motion.button key={pat.id}
+            <motion.button key={pat.id} type="button" aria-pressed={sel}
               onClick={() => setPattern(pat.id)}
               disabled={!!photoBase}
               whileHover={{ scale:1.04 }} whileTap={{ scale:0.96 }}

@@ -1,7 +1,7 @@
 // "Build your own" garments: a top, trousers or a skirt whose shape the customer sets with a few choices. The choices are saved in
 // studio_config as cfg.custom and fed to the same generators as the VFRB templates (garmentPaths.js top() / trousers() / skirt()).
 // Pure: every value is clamped here, so a saved or hand-edited config can never ask a generator for a shape it cannot draw.
-// 3D is a parametric approximation built from the same choices (customMesh3D.js, docs/engineering/ADR-custom-3d.md), labelled "3D (approx.)".
+// 2D only: no 3D model is built from a spec (build-your-own or a rebuilt family).
 
 export const CUSTOM_TOP = 'Custom Top';
 export const CUSTOM_BOTTOM = 'Custom Bottom';
@@ -47,7 +47,7 @@ export const isParamFamily = garment => !!PARAM_FAMILIES[garment];
 // Any garment whose shape comes from a spec (build-your-own or a rebuilt family).
 export const isParametric = garment => isCustom(garment) || isParamFamily(garment);
 export const CUSTOM_BADGE = 'Custom sketch';
-export const CUSTOM_3D_NOTE = 'Custom sketch: 3D (approx.) is built from your choices; shape and drape are approximate.';
+export const CUSTOM_3D_NOTE = 'Custom sketch: 2D only. No 3D model is built for a shape you design.';
 
 export const NECKLINES = [['v', 'V-neck'], ['round', 'Round'], ['polo', 'Polo'], ['point', 'Point collar'], ['mandarin', 'Mandarin'], ['notch', 'Notch']];
 export const CUSTOM_SLEEVES = [['Sleeveless', 'None'], ['Short', 'Short'], ['3/4', '3/4'], ['Long', 'Long']];
@@ -109,7 +109,7 @@ export function topOptions(spec) {
 // Top options for any top: build-your-own, or a family with its own construction added (PARAM_FAMILIES opts).
 export function topOptionsFor(spec, garment = CUSTOM_TOP) {
   const s = normalizeCustom(spec, garment), o = topOptions(s), fam = PARAM_FAMILIES[garment];
-  return fam?.opts ? { ...o, ...fam.opts(o, s), closures3D: true } : o; // closures3D: buttons and edges also in 3D (rebuilt families only)
+  return fam?.opts ? { ...o, ...fam.opts(o, s) } : o;
 }
 export function bottomOptions(spec) {
   const s = normalizeCustom(spec, CUSTOM_BOTTOM), jogger = s.style === 'jogger', t = s.length / 100;

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { CircleCheck, CircleAlert, Pencil, Star, Trash2 } from 'lucide-react';
-import { Badge } from '../../../components/ui';
+import { Badge, Skeleton } from '../../../components/ui';
 
 // Inline status line; success clears itself, errors stay until the next action.
 export function Notice({ msg, type }) {
@@ -93,5 +93,5 @@ export const DefaultToggle = ({ checked, onChange, children }) => (
 );
 
 export const Skeletons = ({ n = 2 }) => (
-  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }} aria-busy="true">{Array.from({ length: n }, (_, i) => <div key={i} className="acct-sk" />)}</div>
+  <Skeleton variant="block" count={n} height={68} gap={12} label="Loading" />
 );

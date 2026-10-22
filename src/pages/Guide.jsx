@@ -1,5 +1,4 @@
-// Public client guide. Describes the order workflow that is live in the portal today; update together with
-// ORDER_STEPS (components/site/content.js) and the FAQ whenever the real workflow changes.
+// Public client guide; update with ORDER_STEPS and ORDER_FAQS (components/site/content.js) when the workflow changes.
 import SitePage from '../components/site/SitePage';
 import Photo from '../components/landing/Photo';
 import Reveal from '../components/landing/Reveal';
@@ -9,7 +8,7 @@ import { P } from './landing/photos';
 const STEPS = [
   { title: 'Create your design',
     desc: 'Start from an inspiration design or a blank garment in the Design Studio. Set the collar, sleeve, color, pockets, and logo, front and back, then save your design. When it\u2019s ready, continue to the Order Wizard to enter quantity, sizes, and delivery, then submit.',
-    link: ['/register', 'Create an account'] },
+    link: ['/login', 'Sign in'] },
   { title: 'AI reviews your materials',
     desc: 'Gemini AI looks at your garment type, quantity, and specs and recommends the categories of raw materials your order will need: fabric, trims, thread, accessories. You can review this on the AI Materials page before your order is finalized.' },
   { title: 'Accept and notify VFRB staff',
@@ -20,7 +19,7 @@ const STEPS = [
   { title: 'Track progress anytime',
     desc: 'Open My Orders to see whether your order is Pending, Confirmed or Completed, with no need to call or visit to ask. Use Messages in your portal to reach VFRB staff about a specific order.' },
   { title: 'Payment and delivery',
-    desc: 'Payment terms follow your order type, and VFRB staff will confirm the exact terms that apply to your order. Once your order is complete and payment is settled, delivery is scheduled.' },
+    desc: 'VFRB sends you the price for your order. Once you accept it, an 80% downpayment is due, and production starts after it is received. The remaining 20% is paid on delivery. Your invoice and receipts appear in your customer account.' },
 ];
 
 export default function Guide() {
@@ -61,9 +60,8 @@ export default function Guide() {
       </section>
 
       <CtaBand photo={P.sewing2} pos="center" title="Ready to start your design?"
-        lede="Create an account, open the Design Studio, and send your first brief to VFRB.">
-        <Btn to="/register" variant="mint">Create an account</Btn>
-        <Btn to="/login" variant="ghost-light">Log in</Btn>
+        lede="Sign in with the account VFRB set up for you, open the Design Studio, and send your first brief.">
+        <Btn to="/login" variant="mint">Log in</Btn>
       </CtaBand>
     </SitePage>
   );

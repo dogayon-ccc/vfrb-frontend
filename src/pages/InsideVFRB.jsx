@@ -39,9 +39,9 @@ export default function InsideVFRB() {
           <Head kicker="The people" id="people" title="A floor run by a family and its team." />
           <Reveal className="vs-team-grid">
             <Photo photo={P.sewing2} className="vs-wide" ratio="16 / 8" caption="Sewing team working by the window" />
-            <Photo photo={P.workers} ratio="4 / 3" pos="center 30%" caption="The production team" />
+            <Photo photo={P.sewing3} ratio="4 / 3" caption="Sewing machine stations" />
             <Photo photo={P.embroidery} ratio="4 / 3" caption="Embroidery machines" />
-            <Photo photo={P.sewing1} ratio="4 / 3" caption="Preparing garments" />
+            <Photo photo={P.printing} ratio="4 / 3" pos="35% center" caption="Silk screen printing" />
           </Reveal>
         </div>
       </section>

@@ -1,6 +1,6 @@
 // src/App.jsx — route config. All admin + customer pages lazy-loaded; only
 
-import { BrowserRouter, Routes, Route, Navigate, Link, Outlet, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import { lazy, Suspense, useEffect } from 'react';
 import axios from 'axios';
 import { readUser, readAuth, isSignedIn, isStaffRole, homeFor } from './utils/authRoute';
@@ -45,19 +45,15 @@ import AuthSkeleton, { useAuthReady } from './components/AuthSkeleton';
 import { AppShellSkeleton, SiteSkeleton, StudioSkeleton } from './components/PageSkeletons';
 import RouteLoadingScreen from './components/LoadingScreen';
 import { areaOf } from './utils/routeArea';
-import CustomerRegister from './pages/auth/Register';
 import VerifyEmail      from './pages/auth/VerifyEmail';
 import GoogleComplete   from './pages/auth/GoogleComplete';
 
 // ── Admin Pages — all lazy ────────────────────────────────────────────────────
 const AdminDashboard         = lazy(() => import('./pages/admin/Dashboard'));
-const StaffDashboard         = lazy(() => import('./pages/admin/StaffDashboard'));
 
-// Manager and the read-only owner get AdminDashboard.jsx (owner without revenue or order totals);
-// every staff job_function gets the role-specific StaffDashboard.jsx — same route, different home.
+// Manager and Owner share the full admin dashboard.
 function DashboardHome() {
-  const user = readUser();
-  return ['manager', 'owner'].includes(user.role) ? <AdminDashboard/> : <StaffDashboard/>;
+  return <AdminDashboard/>;
 }
 const AdminOrders            = lazy(() => import('./pages/admin/Orders'));
 const AdminInventory         = lazy(() => import('./pages/admin/Inventory'));
@@ -148,21 +144,15 @@ function RequireAuth({ children, role }) {
   return children;
 }
 
-import { canAccessArea, readAdminUser, isOwner, ownerCanOpen } from './utils/jobAccess';
+import { canAccessArea, readAdminUser, isAdmin, isOwner, ownerCanOpen } from './utils/jobAccess';
 import AccessDenied from './components/AccessDenied';
 function RequireArea({ area, children }) {
   return canAccessArea(readAdminUser(), area) ? children : <AccessDenied what={`The ${area} area`}/>;
 }
-// `owner`: the read-only owner may also view this manager page (the API still refuses its writes).
-function RequireManager({ owner = false, children }) {
-  const user = readUser();
-  if (user.role !== 'manager' && !(owner && isOwner(user))) return <AccessDenied what="This page"/>;
-  return children;
-}
-// The owner sees only the pages the backend lets it read (OwnerReadOnly::AREAS); everything else is AccessDenied.
-function OwnerGate() {
+function RequireManager({ children }) {
   const { pathname } = useLocation();
-  return isOwner() && !ownerCanOpen(pathname) ? <AccessDenied what="This page"/> : <Outlet/>;
+  const user = readUser();
+  return isAdmin(user) || (isOwner(user) && ownerCanOpen(pathname)) ? children : <AccessDenied what="This page"/>;
 }
 
 // Unknown /admin/* path: say so inside the shell instead of an empty outlet.
@@ -239,7 +229,8 @@ export default function App() {
 
           {/* ── CUSTOMER AUTH ─────────────────────────────────────────────── */}
           <Route path="/login"           element={<GuestOnly><AuthGate><CustomerLogin/></AuthGate></GuestOnly>}/>
-          <Route path="/register"        element={<GuestOnly><AuthGate><CustomerRegister/></AuthGate></GuestOnly>}/>
+          {/* Self-registration is closed: VFRB creates customer accounts. */}
+          <Route path="/register"        element={<Navigate to="/login" replace/>}/>
           <Route path="/forgot-password" element={<AuthGate><ForgotPassword/></AuthGate>}/>
           <Route path="/reset-password"  element={<AuthGate><ResetPassword/></AuthGate>}/>
           <Route path="/verify-email"    element={<AuthGate><VerifyEmail/></AuthGate>}/>
@@ -265,10 +256,9 @@ export default function App() {
           <Route path="/admin/*" element={
             <RequireAuth role="admin"><ShellLoad><AdminLayout/></ShellLoad></RequireAuth>
           }>
-            <Route element={<OwnerGate/>}>
             <Route path="dashboard"   element={<DashboardHome/>}/>
 
-            {/* Staff + Manager */}
+            {/* Manager + Owner */}
             <Route path="orders"      element={<AdminOrders/>}/>
             <Route path="orders/:id"  element={<AdminOrderDetail/>}/>
             <Route path="customers"   element={<AdminCustomers/>}/>
@@ -287,22 +277,17 @@ export default function App() {
             <Route path="output-log"     element={<RequireArea area="production"><AdminDailyOutputLog/></RequireArea>}/>
             <Route path="qc"             element={<RequireArea area="production"><AdminQCChecklist/></RequireArea>}/>
 
-            {/* Settings: staff view-only, manager can edit — gated INSIDE
-                the component (see Settings.jsx), NOT wrapped in
-                RequireManager, since staff must still be able to reach
-                this page. (Fixed Aug 21 2026 — was incorrectly wrapped.) */}
             <Route path="settings"  element={<AdminSettings/>}/>
 
             {/* Manager Only */}
-            <Route path="reports"   element={<RequireManager owner><AdminReports/></RequireManager>}/>
+            <Route path="reports"   element={<RequireManager><AdminReports/></RequireManager>}/>
             <Route path="feedback"  element={<RequireManager><AdminFeedback/></RequireManager>}/>
-            <Route path="activity-log" element={<RequireManager owner><AdminActivityLog/></RequireManager>}/>
-            <Route path="audit-logs" element={<RequireManager owner><AdminAuditLog/></RequireManager>}/>
-            <Route path="invoice"   element={<RequireManager owner><AdminInvoice/></RequireManager>}/>
+            <Route path="activity-log" element={<RequireManager><AdminActivityLog/></RequireManager>}/>
+            <Route path="audit-logs" element={<RequireManager><AdminAuditLog/></RequireManager>}/>
+            <Route path="invoice"   element={<RequireManager><AdminInvoice/></RequireManager>}/>
             <Route path="suppliers" element={<RequireManager><AdminSuppliers/></RequireManager>}/>
             <Route path="users"     element={<RequireManager><AdminUserManagement/></RequireManager>}/>
             <Route path="designs/showcase-queue" element={<RequireManager><AdminShowcaseQueue/></RequireManager>}/>
-            </Route>
             <Route path="*" element={<AdminNotFound/>}/>
           </Route>
 

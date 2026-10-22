@@ -13,7 +13,7 @@ const view3DTitle = (cfg, no3D) => (no3D
   : '3D is an approximate spatial preview; use 2D for exact colours and placement');
 
 export default function TopBar({ nav, cfg, setCfg, undo, redo, canUndo, canRedo, viewMode, setViewMode, setHas3DLoaded,
-  showShowcase, setShowShowcase, showcaseCount = 0 }) {
+  showShowcase, setShowShowcase, showcaseCount = 0, status = null }) {
   const no3D = !has3DFor(cfg);
   const pickView = (m) => { if (m === '3d') setHas3DLoaded(true); setViewMode(m); };
 
@@ -27,6 +27,7 @@ export default function TopBar({ nav, cfg, setCfg, undo, redo, canUndo, canRedo,
       <input className="ds-bar-name" value={cfg.name ?? ''} maxLength={80} placeholder="Untitled design" aria-label="Design name"
         onChange={e => setCfg(p => ({ ...p, name: e.target.value.slice(0, 80) }))} />
       <div className="ds-bar-sp" />
+      {status && <span className="ds-bar-save" role="status" aria-live="polite" data-tone={status.tone} title={status.long}><span className="ds-bar-save-dot" aria-hidden="true"/><span className="ds-bar-save-txt">{status.short}</span></span>}
 
       <div className="ds-bar-group" role="group" aria-label="History">
         <button type="button" className="ds-bar-btn" onClick={undo} disabled={!canUndo} aria-label="Undo" title="Undo (Ctrl+Z)"><Undo2 size={18} strokeWidth={2} aria-hidden="true" /></button>

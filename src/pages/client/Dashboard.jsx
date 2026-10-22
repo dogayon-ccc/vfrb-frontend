@@ -6,13 +6,13 @@ import { motion } from 'framer-motion';
 import axios from 'axios';
 import { asList } from '../../utils/asList';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
-import { NavIcon } from '../../components/ui/icons';
-import EmptyState from '../../components/EmptyState';
+import { Card, Button, Stepper, Skeleton, EmptyState, AlertBanner } from '../../components/ui';
 import { savedDesignName } from '../../utils/designName';
+import { openDesign, reorderDesign, duplicateDesign } from '../../utils/designActions';
 import heroPhoto from '../../assets/brand/uniforms.jpg';
 import {
-  Kpi, StatusPill, OrderThumb, DesignThumb, Skeleton, Stepper, LIFECYCLE, lifecycleIndex,
-  orderTitle, fmtDate, reltime, parseCfg, IN_PRODUCTION,
+  StatusPill, OrderThumb, DesignThumb, LIFECYCLE, lifecycleIndex, nextStep,
+  orderTitle, fmtDate, reltime, IN_PRODUCTION,
 } from '../../components/customer/kit';
 
 function greeting(name) {
@@ -39,31 +39,21 @@ function Confetti() {
   );
 }
 
-function ActiveOrder({ order }) {
+// Compact row for an order: thumbnail, name, meta line, status chip.
+function OrderRow({ order, meta }) {
   const nav = useNavigate();
-  const idx = lifecycleIndex(order.status);
-  const qty = Number(order.quantity_ordered ?? 0);
   return (
-    <motion.button layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -2 }}
-      onClick={() => nav(`/orders/${order.order_id}`)} className="cx-card"
-      style={{ display: 'block', width: '100%', textAlign: 'left', padding: 16, cursor: 'pointer', font: 'inherit', color: 'inherit' }}
+    <button type="button" className="dx-row" onClick={() => nav(`/orders/${order.order_id}`)}
       aria-label={`Open order ${order.order_id}, ${orderTitle(order)}`}>
-      <div className="cx-ao-h" style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-        <OrderThumb order={order} size={64} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ margin: 0, fontSize: 14, fontWeight: 800, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {orderTitle(order)}
-          </p>
-          <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-subtle)' }}>
-            Order #{order.order_id} · {qty} pcs{order.target_delivery_date ? <span style={{ whiteSpace: 'nowrap' }}> · Due {fmtDate(order.target_delivery_date, { month: 'short', day: 'numeric' })}</span> : ''}
-          </p>
-        </div>
-        <StatusPill status={order.status} />
-      </div>
-      <Stepper steps={LIFECYCLE} current={idx} />
-    </motion.button>
+      <OrderThumb order={order} size={56} />
+      <span className="dx-row-txt"><strong>{orderTitle(order)}</strong><small>{meta}</small></span>
+      <StatusPill status={order.status} />
+    </button>
   );
 }
+
+const shortDate = (d) => fmtDate(d, { month: 'short', day: 'numeric' });
+const openStatus = (o) => o && !['completed', 'cancelled'].includes(o.status);
 
 export default function CustomerDashboard() {
   const nav = useNavigate();
@@ -74,6 +64,12 @@ export default function CustomerDashboard() {
   const [draft, setDraft] = useState(null);
   const openStudio = () => { try { if (draft?.studio_config) sessionStorage.setItem('studio_config', JSON.stringify(draft.studio_config)); else sessionStorage.removeItem('studio_config'); } catch { /* private mode */ } nav('/design-studio'); };
   const [designs, setDesigns] = useState([]);
+  const [copying, setCopying] = useState(null);
+  const [designErr, setDesignErr] = useState('');
+  const duplicate = async (d) => {
+    setCopying(d.id); setDesignErr('');
+    try { openDesign(await duplicateDesign(d), nav); } catch { setDesignErr('Could not make a copy. Check your connection and try again.'); setCopying(null); }
+  };
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [confetti, setConfetti] = useState(false);
@@ -110,160 +106,121 @@ export default function CustomerDashboard() {
 
   const sorted = useMemo(() => [...orders].sort((a, b) => new Date(b.created_at ?? 0) - new Date(a.created_at ?? 0)), [orders]);
   const active = sorted.filter(o => !['completed', 'cancelled'].includes(o.status));
-  const shownActive = active.slice(0, 3);
-  const recent = sorted.filter(o => !shownActive.includes(o)).slice(0, 3);
   // All tiles count the same list with disjoint statuses (backend in_production also counted confirmed).
   const total = orders.length;
-  const inProd = orders.filter(o => o.status === 'confirmed' || IN_PRODUCTION.includes(o.status)).length;
+  const inProd = orders.filter(o => IN_PRODUCTION.includes(o.status)).length;
+  const confirmed = orders.filter(o => o.status === 'confirmed').length;
   const completed = orders.filter(o => o.status === 'completed').length;
-  const pending = orders.filter(o => o.status === 'pending' || o.status === 'confirmed').length;
+  const pending = orders.filter(o => o.status === 'pending').length;
   // Same title as My Designs: the customer's design name, else the draft label, else the garment.
   const draftTitle = draft ? savedDesignName(draft.studio_config) || draft.label || humanize(draft.studio_config.garment) : '';
 
+  const featured = active[0] ?? sorted[0] ?? null;
+  const moreActive = active.slice(1, 3);
+  const recent = sorted.filter(o => o !== featured && !moreActive.includes(o)).slice(0, 3);
+  const next = nextStep(featured);
+  const body = draft?.studio_config?.colors?.body;
+  const tint = /^#[0-9a-f]{3,8}$/i.test(body ?? '') ? { '--dx-tint': `color-mix(in srgb, ${body} 22%, var(--cx-stage))` } : undefined;
+
   return (
-    <div className="cx-page">
+    <div className="cx-page dx">
       {confetti && <Confetti />}
+      {confetti && <AlertBanner tone="success" title="Order placed!" style={{ marginBottom: 16 }}>VFRB staff will review and confirm it shortly.</AlertBanner>}
 
-      {confetti && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} role="status"
-          style={{ marginBottom: 16, padding: '14px 18px', borderRadius: 14, background: 'var(--teal-50)', border: '1px solid var(--teal-100)', color: 'var(--teal-dark)', fontWeight: 700, fontSize: 14 }}>
-          Order placed! VFRB staff will review and confirm it shortly.
-        </motion.div>
-      )}
-
-      <motion.section initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="cx-hero" aria-labelledby="dash-h1">
-        <img src={heroPhoto} alt="" className="cx-hero-img" width="1600" height="720" fetchpriority="high" />
-        <div className="cx-hero-body">
-          <p className="cx-hero-eyebrow">{greeting(user.name)}</p>
-          <h1 id="dash-h1">Uniforms made for your people.</h1>
-          <p className="cx-hero-sub">Design in the Studio, order in bulk, and follow production through to delivery.</p>
-          <div className="cx-hero-actions">
-            <button className="cx-btn cx-hero-cta" onClick={openStudio}>
-              <NavIcon name="designStudio" size={15} /> {draft ? 'Continue design' : 'Start designing'}
-            </button>
-            {draft && <button className="cx-btn cx-hero-ghost" onClick={() => nav('/my-designs')}>My designs</button>}
+      <motion.section initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="dx-hero" aria-labelledby="dash-h1">
+        <div className="dx-hero-txt">
+          {/* The greeting is the page title; the design name is the display line under it. */}
+          <h1 id="dash-h1" className="dx-eyebrow">{greeting(user.name)}</h1>
+          <h2 className="dx-title">{loading ? 'Your design studio' : draft ? draftTitle : 'Design your team’s uniform'}</h2>
+          <p className="dx-hero-sub">{draft
+            ? `Draft, last edited ${reltime(draft.updated_at)}. Pick up where you left off, then order in bulk.`
+            : 'Pick a garment, set the colours and add your logo. Quantity and sizes come after.'}</p>
+          <div className="dx-hero-acts">
+            <Button variant="primary" size="lg" icon="designStudio" onClick={openStudio}>{draft ? 'Continue design' : 'Start designing'}</Button>
+            <Button size="lg" onClick={() => nav('/my-designs')}>My designs</Button>
           </div>
-          <p className="cx-hero-proof">Family-owned since 2000, Bayanan, Muntinlupa City</p>
+          <p className="dx-proof">Family-owned since 2000, Bayanan, Muntinlupa City</p>
+        </div>
+        <div className="dx-stage" style={tint}>
+          {loading ? <Skeleton variant="block" height="100%" label="Loading your design" className="dx-stage-sk" />
+            : draft ? <DesignThumb src={draft.preview_dataurl} garment={draft.studio_config.garment} colors={draft.studio_config.colors} name={draftTitle} scale={1.8} />
+            : <img src={heroPhoto} alt="" className="dx-stage-photo" width="1600" height="720" fetchpriority="high" />}
         </div>
       </motion.section>
 
       {!loading && total > 0 && (
-        <p className="cx-summary">
-          <Link to="/orders">{total} order{total === 1 ? '' : 's'}</Link>: {completed} completed, {inProd} confirmed, {pending} pending
+        <p className="dx-summary">
+          <Link to="/orders">{total} order{total === 1 ? '' : 's'}</Link>: {completed} completed, {inProd} in production, {confirmed} confirmed, {pending} pending
         </p>
       )}
 
-      <div className="cx-dash-grid">
-        {loading ? <div className="cx-card cx-stagecard"><Skeleton h={200} /></div> : (() => {
-          const body = draft?.studio_config?.colors?.body;
-          const tint = /^#[0-9a-f]{3,8}$/i.test(body ?? '') ? `color-mix(in srgb, ${body} 16%, var(--bg-card))` : 'var(--bg-surface)';
-          return draft ? (
-            <section className="cx-card cx-stagecard" aria-labelledby="cont-h">
-              <div className="cx-stage" style={{ background: tint }}>
-                <DesignThumb src={draft.preview_dataurl} garment={draft.studio_config.garment} colors={draft.studio_config.colors} name={draftTitle} scale={1.8} />
+      <div className="dx-status">
+        <Card title={loading || openStatus(featured) ? 'Order status' : featured ? 'Latest order' : 'How ordering works'}
+          action={<Link to="/orders" className="cx-link">All orders</Link>}>
+          {loading ? <Skeleton count={3} height={16} label="Loading orders" />
+            : error ? (
+              <EmptyState compact tone="error" title="Couldn’t load your orders"
+                action={<Button onClick={() => { setLoading(true); load(true); }}>Try again</Button>}>Check your connection and try again.</EmptyState>
+            ) : (
+              <div className="dx-strip">
+                {featured && <OrderRow order={featured} meta={`Order #${featured.order_id} · ${Number(featured.quantity_ordered ?? 0)} pcs${featured.target_delivery_date ? ` · Due ${shortDate(featured.target_delivery_date)}` : ''}`} />}
+                {featured?.status !== 'cancelled' && (
+                  <Stepper steps={LIFECYCLE} label={featured ? `Order ${featured.order_id} progress` : 'Order steps'}
+                    current={featured ? lifecycleIndex(featured.status) : 0} />
+                )}
               </div>
-              <div className="cx-stage-body">
-                <h2 id="cont-h">{draftTitle}</h2>
-                <p>Draft, last edited {reltime(draft.updated_at)}</p>
-                <button className="cx-btn cx-btn-p" onClick={openStudio}>Continue design</button>
-              </div>
-            </section>
-          ) : (
-            <section className="cx-card cx-stagecard" aria-labelledby="cont-h">
-              <div className="cx-stage" style={{ background: tint }}><NavIcon name="designStudio" size={48} color="var(--teal)" /></div>
-              <div className="cx-stage-body">
-                <h2 id="cont-h">Start a design</h2>
-                <p>Pick a garment, set colours and add your logo. Quantity and sizes come after.</p>
-                <button className="cx-btn cx-btn-p" onClick={openStudio}>Open the Studio</button>
-              </div>
-            </section>
-          );
-        })()}
-
-        {(loading || active.length > 0) && (
-          <section aria-labelledby="ao-h">
-            <div className="cx-sec-h">
-              <h2 id="ao-h">Active orders{active.length > 0 && ` (${active.length})`}</h2>
-              <Link to="/orders" className="cx-link">View all</Link>
-            </div>
-            <div style={{ display: 'grid', gap: 12 }}>
-              {loading ? [1, 2].map(i => <div key={i} className="cx-card" style={{ padding: 16 }}><Skeleton h={48} /><Skeleton h={28} style={{ marginTop: 14 }} /></div>)
-                : shownActive.map(o => <ActiveOrder key={o.order_id} order={o} />)}
-            </div>
-          </section>
-        )}
-
-        {!loading && designs.length > 0 && (
-          <section aria-labelledby="rd-h">
-            <div className="cx-sec-h"><h2 id="rd-h">Recent designs</h2><Link to="/my-designs" className="cx-link">View all</Link></div>
-            <div className="cx-rd">
-              {designs.map(d => {
-                const name = savedDesignName(d.config) || d.label || humanize(d.garment);
-                return (
-                  <button key={d.id} type="button" className="cx-rd-item" aria-label={`Open ${name} in the Studio`}
-                    onClick={() => { sessionStorage.setItem('studio_config', JSON.stringify(d.config)); nav('/design-studio'); }}>
-                    <span className="cx-rd-thumb"><DesignThumb src={d.photo_path} garment={d.garment} colors={d.config?.colors} name={name} scale={1.5} /></span>
-                    <strong>{name}</strong><em>Saved design</em>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
-        {(loading || error || orders.length === 0 || recent.length > 0) && <section className="cx-card" aria-labelledby="eo-h">
-          <div className="cx-card-h"><h2 id="eo-h">{shownActive.length ? 'Earlier orders' : 'Recent orders'}</h2><Link to="/orders" className="cx-link">View all</Link></div>
-          {loading ? (
-            <div style={{ padding: 16, display: 'grid', gap: 12 }}>{[1, 2, 3].map(i => <Skeleton key={i} h={44} />)}</div>
-          ) : error ? (
-            <EmptyState illustration="error" compact headline="Couldn't load your orders"
-              sub="Check your connection and try again." cta={{ label: 'Retry', onClick: () => { setLoading(true); load(true); } }} />
-          ) : recent.length === 0 ? (
-            <EmptyState illustration="order" compact headline="No orders yet"
-              sub="Design your first uniform. The AI suggests materials once it is saved."
-              cta={{ label: 'Start a design', onClick: () => nav('/design-studio') }} />
-          ) : recent.map(o => (
-            <button key={o.order_id} className="cx-row" onClick={() => nav(`/orders/${o.order_id}`)}>
-              <OrderThumb order={o} size={60} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ margin: 0, fontSize: 14, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{orderTitle(o)}</p>
-                <p style={{ margin: '2px 0 0', fontSize: 'var(--text-meta)', color: 'var(--text-subtle)' }}>
-                  Order #{o.order_id}, {o.quantity_ordered ?? 0} pcs, {fmtDate(o.created_at, { month: 'short', day: 'numeric', year: 'numeric' })}
-                </p>
-              </div>
-              <StatusPill status={o.status} />
-            </button>
-          ))}
-        </section>}
+            )}
+        </Card>
+        <Card tone="subtle" className="dx-next" title="What happens next">
+          {loading ? <Skeleton count={2} label="Loading" /> : (
+            <>
+              <p className="dx-next-t">{next.title}</p>
+              <p className="dx-next-b">{next.body}</p>
+              {featured
+                ? <Button onClick={() => nav(`/orders/${featured.order_id}`)}>Open order #{featured.order_id}</Button>
+                : <Button variant="primary" onClick={openStudio}>Open the Studio</Button>}
+            </>
+          )}
+        </Card>
       </div>
-      <style>{`.cx-dash-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:24px}
-        .cx-hero-eyebrow{text-transform:none!important;letter-spacing:0!important}
-        .cx-summary{margin:0 0 20px;font-size:15px;color:var(--text-muted)}
-        .cx-summary a{color:var(--ink);font-weight:700;text-decoration:underline;text-underline-offset:3px}
-        .cx-stagecard{display:grid;grid-template-columns:minmax(0,1fr);overflow:hidden;padding:0}
-        .cx-stage{display:grid;place-items:center;min-height:220px;padding:24px}
-        .cx-stage .cx-dthumb{width:min(220px,70%);aspect-ratio:5/6;height:auto}
-        .cx-stage-body{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:6px;padding:20px 22px}
-        .cx-stage-body h2{margin:0;font-size:clamp(20px,2.4vw,26px);font-weight:800;color:var(--ink);overflow-wrap:anywhere}
-        .cx-stage-body p{margin:0 0 10px;color:var(--text-muted);font-size:14px;max-width:46ch}
-        .cx-stage-body .cx-btn{min-height:44px}
-        .cx-sec-h,.cx-dash-grid .cx-card-h{display:flex;justify-content:space-between;align-items:center;gap:4px 12px;min-width:0;margin-bottom:12px}
-        .cx-dash-grid .cx-card-h{margin-bottom:0}
-        .cx-sec-h h2,.cx-dash-grid .cx-card-h h2{margin:0;font-size:17px;font-weight:800;min-width:0;overflow-wrap:anywhere}
-        .cx-dash-grid .cx-link{white-space:nowrap;min-height:44px;display:inline-flex;align-items:center}
-        .cx-dash-grid .cx-row,.cx-ao-h{flex-wrap:wrap;min-width:0;min-height:44px}
-        .cx-dash-grid .cx-row>div:not(.cx-thumb),.cx-ao-h>div:not(.cx-thumb){flex:1 1 140px;min-width:0}
-        .cx-dash-grid .cx-row>.cx-pill,.cx-ao-h>.cx-pill{flex-shrink:0;max-width:100%}
-        .cx-rd{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px}
-        .cx-rd-item{display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:0 0 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-card);cursor:pointer;font:inherit;color:inherit;text-align:left;overflow:hidden}
-        .cx-rd-thumb{display:grid;place-items:center;height:180px;background:var(--bg-surface)}
-        .cx-rd-thumb .cx-dthumb{height:100%;width:100%}
-        .cx-rd-item strong{padding:0 12px;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        .cx-rd-item em{padding:0 12px;font-style:normal;font-size:var(--text-meta);color:var(--text-subtle)}
-        .cx-rd-item:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
-        @media(min-width:768px){.cx-stagecard{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}.cx-stage{min-height:300px}}
-        @media(max-width:767px){.cx-rd{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.cx-rd-thumb{height:160px}.cx-stage-body .cx-btn{width:100%;justify-content:center}}
-        @media(prefers-reduced-motion:no-preference){.cx-rd-item{transition:transform var(--dur-2,200ms) var(--ease-out-soft,ease),box-shadow var(--dur-2,200ms)}.cx-rd-item:hover,.cx-rd-item:focus-visible{transform:translateY(-2px);box-shadow:var(--shadow-2)}}`}</style>
+
+      {!loading && moreActive.length > 0 && (
+        <Card title={`Also in progress (${moreActive.length})`} padding="none" className="dx-sec">
+          {moreActive.map(o => <OrderRow key={o.order_id} order={o} meta={`Order #${o.order_id} · ${Number(o.quantity_ordered ?? 0)} pcs`} />)}
+        </Card>
+      )}
+
+      {!loading && designs.length > 0 && (
+        <section className="dx-sec" aria-labelledby="rd-h">
+          <div className="cx-sec-h"><h2 id="rd-h">Recent designs</h2><Link to="/my-designs" className="cx-link">View all</Link></div>
+          <div className="dx-rd">
+            {designs.map(d => {
+              const name = savedDesignName(d.config) || d.label || humanize(d.garment);
+              return (
+                <div key={d.id} className="dx-rd-item">
+                  <button type="button" className="dx-rd-open" aria-label={`${d.locked ? 'View' : 'Open'} ${name} in the Studio`} onClick={() => openDesign(d, nav)}>
+                    <span className="dx-rd-thumb"><DesignThumb src={d.is_copy ? null : d.photo_path} garment={d.garment} colors={d.config?.colors} name={name} scale={1.5} /></span>
+                    <strong>{name}</strong><em>{d.locked ? 'Ordered · view only' : d.is_copy ? 'Copy · colors only' : 'Saved design'}</em>
+                  </button>
+                  {d.locked && (
+                    <div className="dx-rd-acts">
+                      <Button variant="primary" fullWidth disabled={!!copying} onClick={() => duplicate(d)}>{copying === d.id ? 'Copying…' : 'Duplicate to edit'}</Button>
+                      <Button fullWidth onClick={() => reorderDesign(d, nav)}>Reorder</Button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {designErr && <p role="alert" className="dx-err">{designErr}</p>}
+        </section>
+      )}
+
+      {!loading && !error && recent.length > 0 && (
+        <Card title="Earlier orders" padding="none" className="dx-sec" action={<Link to="/orders" className="cx-link">View all</Link>}>
+          {recent.map(o => <OrderRow key={o.order_id} order={o} meta={`Order #${o.order_id} · ${o.quantity_ordered ?? 0} pcs · ${fmtDate(o.created_at)}`} />)}
+        </Card>
+      )}
     </div>
   );
 }

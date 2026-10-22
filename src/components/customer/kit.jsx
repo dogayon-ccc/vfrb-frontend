@@ -5,6 +5,7 @@ import UiPageHeader from '../ui/PageHeader';
 import StatTile from '../ui/StatTile';
 import UiStepper from '../ui/Stepper';
 import UiEmptyState from '../ui/EmptyState';
+import UiSkeleton from '../ui/Skeleton';
 import StatusChip from '../ui/StatusChip';
 import { MiniPreview } from '../../pages/client/design-studio/InspoGallery';
 import { BASE_PATHS } from '../../pages/client/design-studio/garmentPaths';
@@ -18,34 +19,49 @@ const thumbGarment = (g) => (BASE_PATHS[g] || !/skirt/i.test(g ?? '') ? g : 'Ski
 export const STATUS = {
   pending:     { label: 'Pending',     icon: 'pending' },
   confirmed:   { label: 'Confirmed',   icon: 'success' },
-  // Production stages are VFRB's call: the customer sees "Confirmed" until the order is completed.
-  pattern:     { label: 'Confirmed', icon: 'success' },
-  segregation: { label: 'Confirmed', icon: 'success' },
-  cutting:     { label: 'Confirmed', icon: 'success' },
-  sewing:      { label: 'Confirmed', icon: 'success' },
-  qc:          { label: 'Confirmed', icon: 'success' },
-  pressing:    { label: 'Confirmed', icon: 'success' },
-  packing:     { label: 'Confirmed', icon: 'success' },
+  // All 7 production stages collapse to one customer label; stage names never reach the customer.
+  in_production: { label: 'In production', icon: 'success' },
+  pattern:     { label: 'In production', icon: 'success' },
+  segregation: { label: 'In production', icon: 'success' },
+  cutting:     { label: 'In production', icon: 'success' },
+  sewing:      { label: 'In production', icon: 'success' },
+  qc:          { label: 'In production', icon: 'success' },
+  pressing:    { label: 'In production', icon: 'success' },
+  packing:     { label: 'In production', icon: 'success' },
   completed:   { label: 'Completed',   icon: 'success' },
   cancelled:   { label: 'Cancelled',   icon: 'error' },
 };
-export const IN_PRODUCTION = ['pattern', 'segregation', 'cutting', 'sewing', 'qc', 'pressing', 'packing'];
+export const IN_PRODUCTION = ['in_production', 'pattern', 'segregation', 'cutting', 'sewing', 'qc', 'pressing', 'packing'];
 
 // Filter groups shown as chips (each maps onto real statuses only).
 export const GROUPS = [
   { id: 'all', label: 'All', test: () => true },
   { id: 'pending', label: 'Pending', test: s => s === 'pending' },
-  { id: 'prod', label: 'Confirmed', test: s => s === 'confirmed' || IN_PRODUCTION.includes(s) },
+  { id: 'confirmed', label: 'Confirmed', test: s => s === 'confirmed' },
+  { id: 'prod', label: 'In production', test: s => IN_PRODUCTION.includes(s) },
   { id: 'done', label: 'Completed', test: s => s === 'completed' },
   { id: 'cancelled', label: 'Cancelled', test: s => s === 'cancelled' },
 ];
 
-// Customer-facing 5-step lifecycle derived from the real status (no new data).
-export const LIFECYCLE = ['Submitted', 'Confirmed', 'Completed'];
+// Customer-facing 5-step lifecycle derived from the real status (no new data). An order always has its design.
+export const LIFECYCLE = ['Designed', 'Submitted', 'Confirmed', 'In production', 'Completed'];
 export function lifecycleIndex(status) {
-  if (status === 'completed') return 2;
-  if (status === 'confirmed' || IN_PRODUCTION.includes(status)) return 1;
-  return 0;
+  if (status === 'completed') return LIFECYCLE.length; // every step done
+  if (IN_PRODUCTION.includes(status)) return 3;
+  if (status === 'confirmed') return 2;
+  return 1;
+}
+
+// "What happens next" copy for an order, from its real status and proposal state only.
+export function nextStep(order) {
+  const s = order?.status;
+  if (!order) return { title: 'Design, then order', body: 'Save a design in the Studio, then add quantity and sizes to place an order. VFRB reviews every order before production.' };
+  if (s === 'cancelled') return { title: 'This order was cancelled', body: 'Open the order to see the reason, or message VFRB if you have questions.' };
+  if (s === 'completed') return { title: 'Your order is complete', body: 'Delivery details are on the order page. You can reorder the same design from My Designs.' };
+  if (IN_PRODUCTION.includes(s)) return { title: 'Your uniforms are being made', body: 'Nothing is needed from you right now. This page updates when the order is complete.' };
+  if (s === 'confirmed') return { title: 'Your order is confirmed', body: 'Production begins once VFRB receives the down payment. This page shows Completed when your uniforms are done.' };
+  if (order.proposal_status === 'pending') return { title: 'VFRB is waiting for your reply', body: 'Open the order to review the proposed delivery date, then accept or send a message.' };
+  return { title: 'VFRB is reviewing your order', body: 'Staff check your design, sizes and quantity, then propose a delivery date for you to accept.' };
 }
 
 export const fmtDate = (d, o = { month: 'short', day: 'numeric', year: 'numeric' }) =>
@@ -142,8 +158,9 @@ export function Stepper({ steps, current, blocked, label = 'Order progress' }) {
   return <UiStepper steps={steps} current={current} blocked={blocked} label={label} />;
 }
 
+// Older call shape (h/w/circle) on the shared ui/Skeleton.
 export function Skeleton({ h = 16, w = '100%', circle = false, style }) {
-  return <div className="cx-sk" aria-hidden="true" style={{ height: h, width: circle ? h : w, ...(circle && { borderRadius: '50%' }), ...style }} />;
+  return <UiSkeleton variant={circle ? 'circle' : 'block'} height={h} width={circle ? h : w} style={style} />;
 }
 
 // Titled page section; the heading labels the region.
@@ -179,31 +196,6 @@ export function SwatchChip({ color, name, selected = false, onSelect, size = 'md
   return onSelect
     ? <button type="button" className="cx-swatch" data-size={size} aria-pressed={selected} onClick={onSelect} disabled={disabled} title={dot ? name : undefined}>{body}</button>
     : <span className="cx-swatch" data-size={size} title={dot ? name : undefined}>{body}</span>;
-}
-
-// The 7 real production stages, in shop-floor order.
-export const STAGES = ['pattern', 'segregation', 'cutting', 'sewing', 'qc', 'pressing', 'packing'];
-const stageCaption = (status, cur) => status === 'completed' ? 'All 7 stages done'
-  : status === 'cancelled' ? 'Order cancelled'
-  : cur >= 0 ? <><strong>{STATUS[STAGES[cur]].label}</strong>, stage {cur + 1} of {STAGES.length}</> : 'Production has not started yet';
-
-// Measuring-tape stepper over the production stages; data in (order status), no fetching.
-export function StageTape({ status, compact = false, label = 'Production stages' }) {
-  const cur = STAGES.indexOf(status);
-  const done = status === 'completed' ? STAGES.length : Math.max(cur, 0);
-  return (
-    <div className={`cx-tape${compact ? ' cx-tape--sm' : ''}`}>
-      <ol aria-label={label}>
-        {STAGES.map((s, i) => (
-          <li key={s} data-stage={s} data-s={i < done ? 'done' : i === cur ? 'now' : 'todo'} aria-current={i === cur ? 'step' : undefined}>
-            <span className="cx-tape-seg" aria-hidden="true"><b>{i + 1}</b></span>
-            <span className="cx-tape-lbl">{STATUS[s].label}</span>
-          </li>
-        ))}
-      </ol>
-      <p className="cx-tape-cap" aria-hidden="true">{stageCaption(status, cur)}</p>
-    </div>
-  );
 }
 
 // Staggered entrance for list items: spread onto an element; CSS disables it under reduced motion.

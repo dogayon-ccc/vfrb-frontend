@@ -1,9 +1,5 @@
 // src/pages/TermsOfService.jsx — Terms of Service, grounded in the Ma'am Fe interview + locked system rules.
-import { motion } from 'framer-motion';
-import MarketingNav from '../components/MarketingNav';
-import Footer from '../components/Footer';
-
-const T = { teal: 'var(--teal)', accent: 'var(--teal-2)', dark: 'var(--bg-surface)' };
+import LegalPage from '../components/site/LegalPage';
 
 const SECTIONS = [
   {
@@ -54,9 +50,9 @@ const SECTIONS = [
     title: '7. Account responsibilities',
     body: `You are responsible for providing accurate order
     specifications and contact information, and for keeping your account
-    password confidential. VFRB staff and manager accounts are created
-    only by an existing VFRB manager — there is no public registration
-    path for staff accounts.`,
+    password confidential. VFRB staff accounts are created only by an
+    Administrator (Manager) — there is no public registration path for
+    staff accounts.`,
   },
   {
     title: '8. Changes to these terms',
@@ -65,44 +61,6 @@ const SECTIONS = [
   },
 ];
 
-// Source strings are hard-wrapped; join single newlines, keep blank-line paragraph breaks.
-const paras = (b) => b.split(/\n\s*\n/).map(x => x.replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean);
-
 export default function TermsOfService() {
-  return (
-    <div style={{ fontFamily: 'var(--font)', background: T.dark, color: 'var(--ink)', minHeight: '100vh' }}>
-      <style>{`
-        *,*::before,*::after{box-sizing:border-box;} body{margin:0;background:${T.dark};}
-        .tos-wrap { padding:48px 18px 32px; }
-        @media (min-width:640px) { .tos-wrap { padding:64px 24px 40px; } }
-      `}</style>
-
-      <MarketingNav/>
-
-      <div className="tos-wrap" style={{ maxWidth: 680, margin: '0 auto' }}>
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-          <p style={{ color: T.accent, fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>
-            Legal
-          </p>
-          <h1 style={{ fontFamily: 'Georgia, "Times New Roman", serif', fontSize: 'clamp(28px,4vw,42px)', margin: '0 0 8px' }}>
-            Terms of Service
-          </h1>
-          <p style={{ color: 'rgba(15,23,42,0.5)', fontSize: 13, margin: '0 0 40px' }}>
-            Last updated: August 28, 2026
-          </p>
-
-          {SECTIONS.map((s, i) => (
-            <div key={i} style={{ marginBottom: 32 }}>
-              <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 10 }}>{s.title}</h2>
-              {paras(s.body).map((t, i) => (
-                <p key={i} style={{ color: 'rgba(15,23,42,0.75)', fontSize: 15, lineHeight: 1.75, margin: i ? '12px 0 0' : 0 }}>{t}</p>
-              ))}
-            </div>
-          ))}
-        </motion.div>
-      </div>
-
-      <Footer light/>
-    </div>
-  );
+  return <LegalPage title="Terms of Service" updated="October 21, 2026" sections={SECTIONS} />;
 }

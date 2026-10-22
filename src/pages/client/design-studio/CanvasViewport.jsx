@@ -1,9 +1,11 @@
 import { Component, Suspense, lazy, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Minus, Plus, Moon, Sun, Scan, Maximize2, Minimize2 } from 'lucide-react';
+import { Minus, Plus, Moon, Sun, Scan, Maximize2, Minimize2, Expand, Shrink, Lightbulb, RotateCw } from 'lucide-react';
 import { NavIcon } from '../../../components/ui/icons';
 import { familyFor, STATUS_3D_LABEL } from './garmentCatalog';
-import { get3DCapabilities, hemNote3D, detailParts3D } from './garmentCapabilities';
+import { get3DCapabilities, hemNote3D, detailParts3D, explodableFor } from './garmentCapabilities';
+import { LIGHT_PRESETS } from './lightRig';
+import { ZONE_LABEL } from './dsShared';
 import { ENTRIES as GALLERY } from './designGallery';
 import { hasWebGL } from './webglSupport';
 import { hasBackView, assetFor } from './garmentAssets';
@@ -115,12 +117,23 @@ class ThreeEB extends Component {
 export default function CanvasViewport({
   cfg, setCfg, canvasWrapRef, canvasEl, aiPulse, face, switchFace, initFailed,
   selObj, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, garmentRect = null, viewMode, has3DLoaded, onLogoFile, zoom, setZoom, snapshot, overlays,
-  blank = null, setViewMode, pieceBar = null, setCompanion = null, showSet = false, setSnapOptions = null, trace = null, clearSelection = null,
+  blank = null, setViewMode, pieceBar = null, setCompanion = null, showSet = false, setSnapOptions = null, trace = null, clearSelection = null, onPickZone = null,
 }) {
   const paneRef = useRef(null);
   const [webglOk, setWebglOk] = useState(hasWebGL);
   const show3D = has3DLoaded && webglOk;
-  const on3DLost = () => { setWebglOk(false); setViewMode?.('2d'); };
+  // WebGL lost mid-session: back to 2D with a short notice, so the switch is never silent.
+  const [lostNote, setLostNote] = useState(false);
+  const on3DLost = () => { setWebglOk(false); setViewMode?.('2d'); setLostNote(true); };
+  useEffect(() => { if (!lostNote) return undefined; const t = setTimeout(() => setLostNote(false), 8000); return () => clearTimeout(t); }, [lostNote]);
+  // Exploded view, part picking and lighting presets: single explodable models only (not the 3D set view).
+  const canExplode = explodableFor(cfg) && !(showSet && setCompanion?.can3D);
+  const [explode, setExplode] = useState(false);
+  const [lighting, setLighting] = useState('studio');
+  const [spin, setSpin] = useState(() => !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+  const [picked, setPicked] = useState(null);
+  const pickZone = useCallback(z => { setPicked(z); onPickZone?.(z); }, [onPickZone]);
+  useEffect(() => { setExplode(false); setPicked(null); }, [cfg.garment, cfg.sleeve, cfg.fit]);
   const fit = useFit(paneRef, canvasWrapRef);
   const at = useSelectionAnchor(selObj, canvasEl, paneRef);
   // The artboard's real logical size, read from the Fabric canvas (photo bases and templates differ), not assumed.
@@ -343,6 +356,7 @@ export default function CanvasViewport({
   // 3D honesty notes, said in the top lane (never over the model).
   const notes3D = viewMode === '3d' ? [
     !webglOk && { id: 'nogl', text: '3D preview is not available on this device. Showing the 2D design.' },
+    show3D && canExplode && picked && { id: 'zone', text: `Selected in the editor: ${ZONE_LABEL[picked] ?? picked}` },
     ...(show3D && cfg.garment ? (() => {
       const status = familyFor(cfg.garment)?.status3D;
       const info = status && status !== 'supported' ? STATUS_3D_LABEL[status] : null;
@@ -356,7 +370,7 @@ export default function CanvasViewport({
         placed.some(o => o && !o.__pocket) && c3.supported && !(c3.logo && c3.text) && { id: 'decals', text: 'Logos and text are 2D only on this model' },
         Object.keys(cfg.details ?? {}).length > 0 && { id: 'details', text: detailParts3D(cfg.garment, cfg.sleeve, cfg.fit) ? 'Button and closure colours are shown in 2D only' : 'Pocket, button and closure changes are shown in 2D only' }];
     })() : []),
-  ].filter(Boolean) : [];
+  ].filter(Boolean) : lostNote ? [{ id: 'gllost', text: '3D stopped working on this device. Showing the 2D design.', warn: true }] : [];
 
   return (
     <div className="ds-cv" data-stage={dark ? 'dark' : undefined} data-rulers={rulersOn ? '1' : undefined} data-first={!cfg.garment ? '1' : undefined}
@@ -455,6 +469,7 @@ export default function CanvasViewport({
                 </div>
               }>
                 <Scene3D cfg={cfg} overlayDataUrl={snapshot} overlays={overlays} onContextLost={on3DLost}
+                  exploded={canExplode && explode} lighting={canExplode ? lighting : 'studio'} onPickZone={canExplode ? pickZone : null} turntable={spin}
                   companion={showSet && setCompanion?.can3D ? setCompanion.cfg : null} companionRole={setCompanion?.role ?? null}
                   companionOverlays={setCompanion?.overlays ?? null}/>
               </Suspense>
@@ -471,8 +486,8 @@ export default function CanvasViewport({
       {/* Bottom lane: zoom and Front/Back (2D) or the rotate hint (3D), plus the stage light; none while the first-run picker is up */}
       {cfg.garment && (
         <div className="ds-lane ds-lane-bottom">
-          {!show2D && <p className="ds-stage-hint"><NavIcon name="cursor" size={11}/> Drag to rotate, pinch or scroll to zoom</p>}
-          <div className="ds-bottombar" role="group" aria-label="Stage controls">
+          {!show2D && <p className="ds-stage-hint"><NavIcon name="cursor" size={11}/> {canExplode ? 'Drag to rotate, tap a part to select it' : 'Drag to rotate, pinch or scroll to zoom'}</p>}
+          <div className="ds-bottombar" role="group" aria-label="Stage controls" data-view-only>
             {show2D && (<>
               <div className="ds-zoom" role="group" aria-label="Zoom">
                 <button type="button" aria-label="Zoom out" onClick={()=>setZoom(z=>Math.max(ZOOM_MIN, +(z-0.15).toFixed(2)))}><Minus size={16} aria-hidden="true"/></button>
@@ -489,6 +504,22 @@ export default function CanvasViewport({
                   </button>
                 ))}
               </div>
+            </>)}
+            {!show2D && (
+              <button type="button" className="ds-stage-btn ds-full-btn" aria-pressed={spin} aria-label={spin ? 'Stop turntable' : 'Turntable: rotate the garment slowly'}
+                title={spin ? 'Stop turntable' : 'Turntable: rotate the garment slowly'} onClick={() => setSpin(x => !x)}>
+                <RotateCw size={16} aria-hidden="true"/><span className="ds-stage-lbl" aria-hidden="true">{spin ? 'Stop' : 'Turntable'}</span>
+              </button>
+            )}
+            {!show2D && canExplode && (<>
+              <button type="button" className="ds-stage-btn ds-full-btn" aria-pressed={explode} aria-label={explode ? 'Put the parts back together' : 'Exploded view: pull the collar, sleeves and pockets apart'}
+                title={explode ? 'Put the parts back together' : 'Exploded view: pull the collar, sleeves and pockets apart'} onClick={() => setExplode(x => !x)}>
+                {explode ? <Shrink size={16} aria-hidden="true"/> : <Expand size={16} aria-hidden="true"/>}<span className="ds-stage-lbl" aria-hidden="true">{explode ? 'Assemble' : 'Explode'}</span>
+              </button>
+              <button type="button" className="ds-stage-btn ds-full-btn" aria-label={`Lighting: ${LIGHT_PRESETS[lighting].label}. Switch to ${LIGHT_PRESETS[lighting === 'studio' ? 'daylight' : 'studio'].label}`}
+                title="Switch the 3D lighting (colours stay calibrated in both)" onClick={() => setLighting(l => (l === 'studio' ? 'daylight' : 'studio'))}>
+                <Lightbulb size={16} aria-hidden="true"/><span className="ds-stage-lbl" aria-hidden="true">{LIGHT_PRESETS[lighting].label}</span>
+              </button>
             </>)}
             <button type="button" className="ds-stage-btn ds-full-btn" aria-pressed={!!full} aria-label={full ? 'Exit full screen' : 'Full screen'}
               title={full ? 'Exit full screen (Esc)' : 'Full screen: the design takes the whole screen'} onClick={toggleFull}>

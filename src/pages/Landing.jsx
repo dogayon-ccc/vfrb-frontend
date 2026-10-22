@@ -1,23 +1,20 @@
-import { Link } from 'react-router-dom';
 import Photo from '../components/landing/Photo';
 import Reveal from '../components/landing/Reveal';
 import SitePage from '../components/site/SitePage';
-import { Btn, Head, TextLink, CtaBand } from '../components/site/parts';
-import { EMBROIDERY, ORDER_STEPS, PEOPLE, PHASES, PLACES, SERVE, SERVE_LINE } from '../components/site/content';
-import { P } from './landing/photos';
+import { Btn, Head, TextLink, Accordion } from '../components/site/parts';
+import { PRODUCTS, UNIFORM_TYPES, ORDER_FAQS } from '../components/site/content';
+import { MIN_ORDER_QTY } from '../utils/orderQuantity';
+import { P, GALLERY } from './landing/photos';
 
-const FACTS = [['Since 2000', 'Family-owned garment industry'], ...PLACES, ['Offices, schools, institutions', 'Who we make uniforms for']];
-
-const STAGES = PHASES.flatMap(ph => ph.stages);
-
-const SERVICES = [
-  { to: '/what-we-do#uniforms', photo: P.uniforms, pos: '30% center', title: 'Company uniforms',
-    text: 'Custom tailoring and garment manufacturing for polo shirts, campaign shirts, caps and jackets.' },
-  { to: '/what-we-do#embroidery', photo: P.embroidery, pos: 'center', title: 'Computerized embroidery',
-    text: 'Logos, emblems and patches stitched by computerized embroidery machines.' },
-  { to: '/what-we-do#printing', photo: P.printing, pos: '35% center', title: 'Printing and sublimation',
-    text: 'Silk screen printing and full sublimation for shirts, polos and jerseys.' },
+const STEPS = [
+  ['Design', 'Create and save your uniform in the VFRB Design Studio.'],
+  ['Order in bulk', `Open the Order Wizard from your saved design. Enter sizes, quantity (minimum ${MIN_ORDER_QTY} pieces) and the date you need it by.`],
+  ['VFRB confirms and produces', 'VFRB reviews your order and date, then confirms it. Your uniforms move through the production floor, from pattern to packing.'],
+  ['Delivery and invoice', 'Your uniforms are delivered, and the invoice and payment receipts are kept in your customer account.'],
 ];
+
+const WORK = [P.embroidery, P.sublimationTee, P.printing, P.sublimationPolo, P.tees, P.sewing3, P.packed, P.ecobag]
+  .map(photo => GALLERY.find(g => g.photo === photo));
 
 export default function Landing() {
   return (
@@ -32,150 +29,68 @@ export default function Landing() {
                 VFRB Enterprise, also known as Tailor Centre VFRB Manila, is a medium-scale, family-owned garment
                 industry specialized in corporate and company uniforms.
               </p>
-              <div className="vs-btns">
-                <Btn to="/register">Design your uniform</Btn>
-                <Btn to="/gallery" variant="line">See the work</Btn>
-              </div>
-              <p className="vs-hero__digital">
-                <b>Online ordering</b>
-                <span>Design your uniform in the VFRB Design Studio, place a bulk order, and follow it through every production stage from your customer account.</span>
-              </p>
+              <div className="vs-btns"><Btn to="/login">Design your uniform</Btn></div>
             </div>
             <div className="vs-hero__media">
               <div className="vs-sticker" aria-hidden="true"><span>Since</span><b>2000</b></div>
-              <Photo photo={P.sewing4} instant hover={false} pos="18% center" className="vs-hero__main" ratio="auto" />
-              <Photo photo={P.uniforms} instant hover={false} pos="28% center" className="vs-hero__inset" ratio="4 / 3" />
+              <Photo photo={P.sewing4} instant hover={false} pos="18% center" className="vs-hero__main" ratio="auto" sizes="(min-width: 900px) 50vw, 100vw" />
+              <Photo photo={P.uniforms} instant hover={false} pos="28% center" className="vs-hero__inset" ratio="4 / 3" sizes="(min-width: 900px) 23vw, 46vw" />
             </div>
           </div>
-          <ul className="vs-facts">
-            {FACTS.map(([b, s]) => <li key={b}><b>{b}</b><span>{s}</span></li>)}
-          </ul>
         </div>
       </section>
 
-      <section className="vs-sec vs-sec--flush" aria-labelledby="svc">
-        <div className="vs-wrap">
-          <Head kicker="What we do" id="svc" title="Tailoring, embroidery and printing under one company." lede={`Made for ${SERVE_LINE.toLowerCase()}.`} />
-          <ul className="vs-serve" aria-label="Who VFRB makes uniforms for">
-            {SERVE.map(x => <li key={x}>{x}</li>)}
-          </ul>
-          <Reveal className="vs-svc">
-            {SERVICES.map(s => (
-              <Link key={s.title} to={s.to}>
-                <Photo photo={s.photo} pos={s.pos} ratio="auto" style={{ minHeight: 200 }} />
-                <div className="vs-svc__body">
-                  <h3 className="vs-h3">{s.title}</h3>
-                  <p>{s.text}</p>
-                  <span className="vs-svc__go">Read more</span>
-                </div>
-              </Link>
-            ))}
-          </Reveal>
-        </div>
-      </section>
-
-      <section className="vs-sec vs-dark" aria-labelledby="emb">
-        <div className="vs-wrap vs-split vs-split--wide-media">
-          <Reveal>
-            <Photo photo={P.embroidery} ratio="4 / 3" pos="center" hover={false} caption="Computerized embroidery machines at VFRB" />
-          </Reveal>
-          <Reveal className="vs-stack" delay={0.08}>
-            <p className="vs-kicker">Computerized embroidery</p>
-            <h2 className="vs-h2" id="emb">Your logo, stitched on every piece.</h2>
-            <p className="vs-lede">
-              From digitizing to the final stitch, for corporate branding, apparel and fashion, and personalization.
-            </p>
-            <ol className="vs-steps">
-              {EMBROIDERY.steps.map(([t, d]) => <li key={t}><h3>{t}</h3><p>{d}</p></li>)}
-            </ol>
-            <TextLink to="/what-we-do#embroidery">See the embroidery details</TextLink>
-          </Reveal>
-        </div>
-      </section>
-
-      <section className="vs-sec" aria-labelledby="inside">
-        <div className="vs-wrap vs-split">
+      <section className="vs-sec vs-tint" aria-labelledby="how">
+        <div className="vs-wrap vs-split vs-split--sticky">
           <Reveal className="vs-stack">
-            <p className="vs-kicker">Inside VFRB</p>
-            <h2 className="vs-h2" id="inside">Real people, real machines, one production floor.</h2>
-            <p className="vs-body">
-              Every order moves through pattern, cutting, sewing, quality checks, pressing and packing. Take a look at the floor where it happens.
-            </p>
-            <TextLink to="/inside-vfrb">Tour the production floor</TextLink>
+            <p className="vs-kicker">How it works</p>
+            <h2 className="vs-h2" id="how">From your design to your door, in four steps.</h2>
+            <TextLink to="/guide">Read the customer guide</TextLink>
           </Reveal>
-          <Reveal className="vs-mosaic" delay={0.06}>
-            <Photo photo={P.workers} pos="center 30%" ratio="auto" caption="The VFRB production team" />
-            <Photo photo={P.sewing1} ratio="4 / 3" />
-            <Photo photo={P.sewing3} ratio="4 / 3" />
-          </Reveal>
-        </div>
-      </section>
-
-      <section className="vs-sec vs-dark" aria-labelledby="proc">
-        <div className="vs-wrap">
-          <Head kicker="How a uniform is made" id="proc" title="Seven stages, from pattern to packing."
-            lede="Every order follows the same production line. Customers with an account can see which stage their order is on." />
-          <Reveal>
-            <ol className="vs-proc" aria-label="The seven production stages">
-              {STAGES.map(([t, d]) => <li key={t}><h3>{t}</h3><p>{d}</p></li>)}
+          <Reveal delay={0.06}>
+            <ol className="vs-flow">
+              {STEPS.map(([t, d], i) => <li key={t}><em>{i + 1}</em><h3>{t}</h3><p>{d}</p></li>)}
             </ol>
-            <p className="vs-proc__rule">An order only moves to the next stage once the required quantity for the current stage is finished.</p>
           </Reveal>
-          <div style={{ marginTop: 20 }}><TextLink to="/inside-vfrb">See the production floor</TextLink></div>
         </div>
       </section>
 
-      <section className="vs-sec vs-tint" aria-labelledby="samples">
+      <section className="vs-sec" aria-labelledby="work">
         <div className="vs-wrap">
-          <Head kicker="Gallery" id="samples" title="Finished pieces, packed for delivery." />
+          <Head kicker="Our work" id="work" title="Made on our own floor, packed for delivery." />
           <Reveal className="vs-strip">
-            <Photo photo={P.tees} pos="center" caption="Screen-printed shirts" ratio="3 / 4" />
-            <Photo photo={P.sublimationPolo} pos="30% center" caption="Full sublimation polo" ratio="3 / 4" />
-            <Photo photo={P.uniforms} pos="30% center" caption="Embroidered emblems" ratio="3 / 4" />
-            <Photo photo={P.packed} pos="center" caption="Packed and labeled" ratio="3 / 4" />
+            {WORK.map(g => <Photo key={g.caption} photo={g.photo} pos={g.pos} caption={g.caption} ratio="3 / 4" sizes="(min-width: 900px) 25vw, 50vw" />)}
           </Reveal>
           <div style={{ marginTop: 20 }}><TextLink to="/gallery">Open the full gallery</TextLink></div>
         </div>
       </section>
 
-      <section className="vs-sec" aria-labelledby="order">
-        <div className="vs-wrap vs-split">
+      <section className="vs-sec vs-tint" aria-labelledby="types">
+        <div className="vs-wrap">
+          <Head kicker="Uniform types" id="types" title="Uniforms for every kind of team." />
+          <Reveal as="ul" className="vs-types">
+            {UNIFORM_TYPES.map(t => <li key={t}>{t}</li>)}
+          </Reveal>
+          <ul className="vs-serve" style={{ marginTop: 20 }} aria-label="Garments VFRB makes">
+            {PRODUCTS.map(x => <li key={x}>{x}</li>)}
+          </ul>
+        </div>
+      </section>
+
+      <section className="vs-sec" aria-labelledby="faq">
+        <div className="vs-wrap vs-faqgrid">
           <Reveal className="vs-stack">
-            <p className="vs-kicker">Order online</p>
-            <h2 className="vs-h2" id="order">Design it first, then follow it through production.</h2>
-            <p className="vs-body">
-              Registered clients build a uniform in the VFRB Design Studio, save it, place a bulk order, then track every stage in their portal.
-            </p>
-            <div className="vs-btns"><Btn to="/register">Create an account</Btn><Btn to="/guide" variant="line">Read the customer guide</Btn></div>
+            <p className="vs-kicker">FAQ</p>
+            <h2 className="vs-h2" id="faq">Before you order</h2>
+            <p className="vs-body">Not answered here? See the full FAQ or contact VFRB.</p>
+            <div className="vs-btns">
+              <TextLink to="/faq">More questions</TextLink>
+              <TextLink to="/about#contact">Contact VFRB</TextLink>
+            </div>
           </Reveal>
-          <Reveal delay={0.06}>
-            <ol className="vs-flow">
-              {ORDER_STEPS.map(([t, d], i) => <li key={t}><em>{i + 1}</em><h3>{t}</h3><p>{d}</p></li>)}
-            </ol>
-          </Reveal>
+          <Accordion items={ORDER_FAQS} />
         </div>
       </section>
-
-      <section className="vs-sec vs-tint" aria-labelledby="fam">
-        <div className="vs-wrap vs-split">
-          <Reveal className="vs-portrait-pair">
-            {PEOPLE.map(o => <div key={o.name}><Photo photo={o.photo} pos="center 25%" /><b>{o.name}</b><span>{o.role}</span></div>)}
-          </Reveal>
-          <Reveal className="vs-stack" delay={0.06}>
-            <p className="vs-kicker">VFRB Family</p>
-            <h2 className="vs-h2" id="fam">Family-run, from the first stitch to the last delivery.</h2>
-            <p className="vs-body">VFRB Enterprise is a sole proprietorship led by Fe Tiama Boitizon. Meet the family and the team behind the company.</p>
-            <TextLink to="/our-team">Meet the VFRB Family</TextLink>
-          </Reveal>
-        </div>
-      </section>
-
-      <CtaBand photo={P.sewing2} pos="center" title="Ready to put your name on a uniform?"
-        lede="Create an account and design your uniform, look through the finished work, or learn more about the family behind VFRB.">
-        <Btn to="/register" variant="mint">Start designing</Btn>
-        <Btn to="/gallery" variant="ghost-light">Explore the gallery</Btn>
-        <Btn to="/about" variant="ghost-light">About VFRB</Btn>
-      </CtaBand>
     </SitePage>
   );
 }

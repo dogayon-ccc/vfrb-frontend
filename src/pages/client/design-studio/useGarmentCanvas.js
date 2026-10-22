@@ -5,7 +5,7 @@ import { getGarmentPaths } from './garmentPaths';
 import { detailedPaths } from './garmentDetails';
 import { addFabricShading } from './fabricShading';
 import { assetFor, tintedCanvas } from './garmentAssets';
-import { snapTargets, computeSnap, snapThreshold, computeResizeSnap, movingEdges } from './snapGuides';
+import { snapTargets, computeSnap, snapThreshold, computeResizeSnap, movingEdges, snapAngle } from './snapGuides';
 import { placementTargets, readoutPct, alignDeltas, distributeDeltas, gridSpec, guideLines } from './canvasGuides';
 import { installStageLayers, drawPlacementGhosts, applyErase, garmentBox, plainObject } from './canvasLayers';
 import { reviveOverlays, restyleText, changesLayout, makeShape, shapeLabel, moveInStack, installTouchHandles, makePocket, recolorPocket } from './overlayTools';
@@ -14,6 +14,7 @@ import { pieceOf } from './garmentCatalog';
 import { wovenFill } from './wovenPatterns';
 import { loadFont, webFontFor, defaultWeight } from './studioFonts';
 import { sketchInk } from './sketchLine';
+import { emptyHistory, entry, pushStep, stepHistory, canStep, switchSide, lookOf, sameLook, syncLook, lookToApply } from './editHistory';
 
 // Template lines (garmentPaths `details`). Untagged ones are decorative: no __zoneKey, never clicked or hovered. A tagged part (pocket,
 // buttons, closure) is tappable as zone 'detail:<part>' and carries the customer's colour as `style` (garmentDetails.js).
@@ -47,7 +48,13 @@ function zoneAt(canvas, e) {
     .find(o => o.containsPoint(scene) && !canvas.isTargetTransparent(o, vp.x, vp.y));
 }
 
-const OVERLAY_PROPS = ['__logo','__artwork','__text','__draw','__shape','__layerId','__layerName','__locked','__erase','__curve','__shapeKind','__pocket','__pocketPanels','__pocketColor','lockMovementX','lockMovementY','lockRotation','lockScalingX','lockScalingY','hasControls'];
+const OVERLAY_PROPS = ['__logo','__artwork','__text','__draw','__shape','__layerId','__layerName','__locked','__erase','__curve','__shapeKind','__clip','__pocket','__pocketPanels','__pocketColor','lockMovementX','lockMovementY','lockRotation','lockScalingX','lockScalingY','hasControls'];
+// The customer's overlays as saved JSON, in canvas coordinates (plainObject decomposes active-selection members). One serialiser
+// for history, saves and exports.
+const overlayJSON = canvas => canvas.getObjects()
+  .filter(o => !o.__garmentBase && !o.__hoverGlow)
+  .filter(o => typeof o.toObject === 'function')
+  .map(o => plainObject(o, OVERLAY_PROPS));
 
 // Composites front+back PNGs side by side; falls back to one side if the other fails to load.
 const FRONT_BACK_GAP = 36;
@@ -79,7 +86,7 @@ export function compositeFrontBack(frontUrl, backUrl) {
 }
 
 // customKey: the build-your-own shape (cfg.custom) as a string, so a slider change redraws the base like a garment change does.
-export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patterns, patternParams, onSelect, onZoneClick, fit, details, customKey = '') {
+export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patterns, patternParams, onSelect, onZoneClick, fit, details, customKey = '', onRestoreLook = null) {
   const fc = useRef(null);
   // Called with (overlay JSON, garment canvas size) after the customer adds a logo or text; the uniform set's "Apply to: Both" mirrors it.
   const onAdded = useRef(null);
@@ -87,11 +94,17 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   const fabricReady = useRef(false);
   const disposePending = useRef(null); // in-flight dispose() Promise, guards StrictMode double-mount
 
-  // Starts at an empty baseline so the first action can be undone; a design or face load restarts it (resetHistory).
-  const historyStack = useRef([[]]);
-  const historyIdx = useRef(0);
+  // Starts at an empty baseline so the first action can be undone; a design load restarts it (resetHistory), a side switch parks it.
+  const history = useRef(emptyHistory());
+  const parkedHistory = useRef({}); // the other side's history while it is not on the canvas
+  // The garment's look rides in every entry, so colour and pattern changes undo with the overlays.
+  const liveLook = useRef(null);
+  liveLook.current = lookOf({ garment, sleeve, fit, customKey, colors, patterns, patternParams, details });
+  const restoreLook = useRef(onRestoreLook);
+  const awaitLook = useRef(null); // a look undo/redo applied that has not rendered yet
+  restoreLook.current = onRestoreLook;
   const historyLock = useRef(false);
-  const [, setHistoryTick] = useState(0); // refs don't trigger re-render; this forces one
+  const [editTick, setHistoryTick] = useState(0); // refs don't trigger re-render; this forces one (and tells autosave an edit happened)
 
   const [, setLayersTick] = useState(0);
   const bumpLayers = useCallback(() => setLayersTick(t => t + 1), []);
@@ -114,6 +127,13 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   // interaction layer only, never added as objects, so they cannot be saved, exported or put in history.
   const snapOpts = useRef({ snap: true, gridPct: 10, rulerGuides: [], scale: 1, showGrid: false, centre: false, smart: true }); // scale: on-screen px per canvas px (zoom x fit)
   const dragGuides = useRef({ targets: null, guides: [], readout: null, ghosts: null });
+  // Colour-only copies: placed items can't be picked, moved or edited; garment zones still take clicks.
+  const frozen = useRef(false);
+  const freezeObj = useCallback((o) => {
+    if (!frozen.current || !o || o.__garmentBase || o.__hoverGlow || o.__frozenFrom) return;
+    o.__frozenFrom = { selectable: o.selectable, evented: o.evented };
+    o.set({ selectable: false, evented: false });
+  }, []);
 
   // Init once on mount. useLayoutEffect (not useEffect) so cleanup runs
   // before React's own DOM removal — avoids a removeChild race with
@@ -132,7 +152,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         width: paths.w, height: paths.h,
         backgroundColor: 'transparent',
         preserveObjectStacking: true,
-        selection: true,
+        selection: !frozen.current,
       });
       fabricReady.current = true;
       setReady(true);
@@ -283,6 +303,12 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         dragGuides.current.targets ??= targetsFor(c, obj);
         track(obj, 'scale', applyResizeSnap(obj, tr, dragGuides.current.targets));
       });
+      fc.current.on('object:rotating', (e) => {
+        const obj = e.target;
+        if (!fc.current || !isOverlay(obj)) return;
+        if (snapOpts.current.snap) { const n = snapAngle(obj.angle ?? 0); if (n !== obj.angle) { obj.rotate(n); obj.setCoords(); } }
+        track(obj, 'rotate', []);
+      });
       fc.current.on('after:render', () => {
         const c = fc.current, g = dragGuides.current.guides, ro = dragGuides.current.readout, gh = dragGuides.current.ghosts;
         if (!c || (!g.length && !ro && !gh?.length) || c.isDrawingMode || !c.contextTop) return;
@@ -340,6 +366,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       fc.current.on('selection:created', e => onSelect(e.selected?.[0] ?? null));
       fc.current.on('selection:updated', e => onSelect(e.selected?.[0] ?? null));
       fc.current.on('selection:cleared',  () => onSelect(null));
+      fc.current.on('object:added', e => freezeObj(e.target));
 
       // Freeform stroke → tag + track as a layer, same as addLogo/addText below
       fc.current.on('path:created', (e) => {
@@ -487,30 +514,46 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     if (historyLock.current) return;
     const canvas = fc.current;
     if (!canvas) return;
-    const snapshot = canvas.getObjects()
-      .filter(o => !o.__garmentBase && !o.__hoverGlow)
-      .filter(o => typeof o.toObject === 'function')
-      .map(o => plainObject(o, OVERLAY_PROPS));
-    historyStack.current = historyStack.current.slice(0, historyIdx.current + 1);
-    historyStack.current.push(snapshot);
-    if (historyStack.current.length > 40) historyStack.current.shift();
-    historyIdx.current = historyStack.current.length - 1;
+    const snapshot = overlayJSON(canvas);
+    // A colour change still waiting on its debounce becomes its own step first, so it never merges into this one.
+    const h = history.current.stack.length ? syncLook(history.current, liveLook.current) : history.current;
+    history.current = pushStep(h, entry(snapshot, liveLook.current));
     setHistoryTick(t => t + 1);
   }, []);
 
-  // The loaded overlays become the new baseline: undo never steps back into the previous design or the other face.
+  // Colour, pattern and detail changes: one undo step per burst (a slider drag is one step, not one per frame).
+  const flushLook = useCallback(() => {
+    if (historyLock.current) return;
+    if (awaitLook.current && !sameLook(awaitLook.current, liveLook.current)) return; // a quick second Ctrl+Z must not record the old colours
+    awaitLook.current = null;
+    const next = syncLook(history.current, liveLook.current);
+    if (next !== history.current) { history.current = next; setHistoryTick(t => t + 1); }
+  }, []);
+  const lookSig = JSON.stringify(liveLook.current);
+  useEffect(() => {
+    awaitLook.current = null; // rendered: the live look is now whatever was applied
+    const t = setTimeout(flushLook, 400);
+    return () => clearTimeout(t);
+  }, [lookSig, flushLook]);
+
+  // The loaded overlays become the new baseline: undo never steps back into the previous design, and neither side keeps an old history.
   const resetHistory = useCallback(() => {
-    historyStack.current = [];
-    historyIdx.current = -1;
+    history.current = { stack: [], idx: -1 };
+    parkedHistory.current = {};
     pushHistory();
   }, [pushHistory]);
 
-  const restoreSnapshot = useCallback((snapshot, setIdx) => {
-    setIdx();
+  const restoreSnapshot = useCallback((target, next) => {
+    history.current = next;
     setHistoryTick(t => t + 1);
-    historyLock.current = true;
+    const look = lookToApply(target, liveLook.current);
+    if (look && restoreLook.current) { awaitLook.current = look; restoreLook.current(look); }
     const canvas = fc.current;
-    if (!canvas) { historyLock.current = false; return; }
+    const snapshot = target?.o ?? [];
+    if (!canvas) return;
+    // A colour-only step leaves the overlays alone (no rebuild, no flicker, the selection stays).
+    if (JSON.stringify(overlayJSON(canvas)) === JSON.stringify(snapshot)) return;
+    historyLock.current = true;
     // Undo/redo rebuilds every overlay; keep the same element selected (by layer id) so editing continues.
     const activeId = canvas.getActiveObject()?.__layerId ?? null;
     canvas.getObjects().filter(o => !o.__garmentBase && !o.__hoverGlow).forEach(o => canvas.remove(o));
@@ -531,18 +574,16 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     }).catch(() => { historyLock.current = false; });
   }, [bumpLayers]);
 
-  const undo = useCallback(() => {
-    if (historyIdx.current <= 0) return;
-    restoreSnapshot(historyStack.current[historyIdx.current - 1], () => { historyIdx.current -= 1; });
-  }, [restoreSnapshot]);
+  const step = useCallback((dir) => {
+    flushLook(); // a colour picked a moment ago is undone first, not skipped
+    const s = stepHistory(history.current, dir);
+    if (s) restoreSnapshot(s.snapshot, s.history);
+  }, [restoreSnapshot, flushLook]);
+  const undo = useCallback(() => step(-1), [step]);
+  const redo = useCallback(() => step(1), [step]);
 
-  const redo = useCallback(() => {
-    if (historyIdx.current >= historyStack.current.length - 1) return;
-    restoreSnapshot(historyStack.current[historyIdx.current + 1], () => { historyIdx.current += 1; });
-  }, [restoreSnapshot]);
-
-  const canUndo = historyIdx.current > 0;
-  const canRedo = historyIdx.current < historyStack.current.length - 1;
+  const canUndo = canStep(history.current, -1);
+  const canRedo = canStep(history.current, 1);
 
   // pos: optional {x,y} in canvas-logical space, supplied when the logo was
   // dragged onto the canvas from the panel (see dragPlace.js) instead of
@@ -841,7 +882,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         canvas.isDrawingMode = true;
       } else {
         canvas.isDrawingMode = false;
-        canvas.selection = true;
+        canvas.selection = !frozen.current;
       }
       canvas.renderAll();
     }).catch(() => {});
@@ -854,12 +895,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     if (color != null) canvas.freeDrawingBrush.color = color;
   }, []);
 
-  const exportOverlays = useCallback(() =>
-    fc.current?.getObjects()
-      .filter(o => !o.__garmentBase && !o.__hoverGlow)
-      .filter(o => typeof o.toObject === 'function')
-      .map(o => plainObject(o, OVERLAY_PROPS)) ?? []
-  , []);
+  const exportOverlays = useCallback(() => (fc.current ? overlayJSON(fc.current) : []), []);
 
   // opaqueBg: hex color to temporarily paint behind the export, or null to
   // keep transparent (Download Image button). The 2D canvas is always
@@ -892,16 +928,21 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   const getCanvasJSON = useCallback(() => {
     const canvas = fc.current;
     if (!canvas) return [];
-    return canvas.getObjects()
-      .filter(o => !o.__garmentBase && !o.__hoverGlow)
-      .filter(o => typeof o.toObject === 'function')
-      .map(o => plainObject(o, OVERLAY_PROPS));
+    return overlayJSON(canvas);
   }, []);
 
   // keepHistory: the export's temporary face swap, which must not cost the customer their undo history.
-  const loadCanvasJSON = useCallback((objects, { keepHistory = false } = {}) => {
+  // side { from, to }: the customer switching garment sides; each side resumes its own history.
+  const loadCanvasJSON = useCallback((objects, { keepHistory = false, side = null } = {}) => {
     const canvas = fc.current;
     if (!canvas || !Array.isArray(objects)) return;
+    if (side) {
+      const s = switchSide(parkedHistory.current, side.from, history.current, side.to, entry(objects, liveLook.current));
+      parkedHistory.current = s.parked;
+      history.current = syncLook(s.history, liveLook.current); // colours changed on the other side are one step here too
+      setHistoryTick(t => t + 1);
+      keepHistory = true;
+    }
     const token = ++overlayLoad.current;
     const clear = () => canvas.getObjects().filter(o => !o.__garmentBase && !o.__hoverGlow).forEach(o => canvas.remove(o));
     import('fabric').then((mod) => { const fabric = mod.fabric ?? mod.default ?? mod;
@@ -1035,6 +1076,16 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   }, [findLayer, pushHistory, bumpLayers]);
 
   // A tap on the empty stage (outside the artboard) ends the selection, like a tap on the empty canvas.
+  const setOverlaysFrozen = useCallback((on) => {
+    frozen.current = on;
+    const c = fc.current;
+    if (!c) return;
+    c.selection = !on;
+    c.discardActiveObject();
+    c.getObjects().forEach(o => { if (on) freezeObj(o); else if (o.__frozenFrom) { o.set(o.__frozenFrom); delete o.__frozenFrom; } });
+    c.requestRenderAll();
+  }, [freezeObj]);
+
   const clearSelection = useCallback(() => {
     const c = fc.current;
     if (!c?.getActiveObject()) return;
@@ -1073,10 +1124,10 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
 
   return {
     onAdded, addLogo, addText, addShape, addPocket, setPocketColor, mirrorSelected, updateSelected, arrangeLayer, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
-    pushHistory, undo, redo, canUndo, canRedo, resizeCanvas,
+    pushHistory, undo, redo, canUndo, canRedo, editTick, resizeCanvas,
     layers, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
     setDrawMode, setBrushStyle, initFailed,
-    setSnapOptions, garmentRect, clearSelection,
+    setSnapOptions, garmentRect, clearSelection, setOverlaysFrozen,
     presetPos, textItems, editText,
   };
 }

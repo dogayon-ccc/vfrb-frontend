@@ -18,11 +18,14 @@ import { assetFor } from './garmentAssets';
 
 // Panel/sheet: tool content, then the one Layers section, then the sticky dock. Phone sheet snaps to peek (dock only), half (the active
 // tool only, ~30% of the screen) or full. On desktop the uniform's sections (Garment, Colors, Details, Pattern, Layers) are tabs here.
-export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, sheetFull, setSheetFull, summary, ...p }) {
+// `onlyTools`: the tools a restricted design may use (a colour-only copy passes ['color']); everything else is hidden.
+export default function ToolDrawer({ tool: pickedTool, setTool, sheetOpen, setSheetOpen, sheetFull, setSheetFull, summary, onlyTools = null, ...p }) {
   const [more, setMore] = useState(false);
   const hasSelection = isEditableSelection(p.selObj);
+  const allowed = t => !onlyTools || onlyTools.includes(t.id);
+  const tool = onlyTools && !onlyTools.includes(pickedTool) ? onlyTools[0] : pickedTool;
   // The Selection tile exists only while something is selected.
-  const tools = TOOLS.filter(t => t.id !== 'selected' || hasSelection);
+  const tools = TOOLS.filter(t => (t.id !== 'selected' || hasSelection) && allowed(t));
   const active = TOOLS.find(t => t.id === tool);
   const noGarment = !p.cfg.garment;
   const title = more ? 'More tools' : noGarment ? 'Design tools' : active.label;
@@ -44,7 +47,7 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, she
     selected: () => (
       <div className="ds-sum">
         {hasSelection
-          ? <SelectionInspector selObj={p.selObj} updateSelected={p.updateSelected} deleteSelected={p.deleteSelected} duplicateSelected={p.duplicateSelected} alignSelected={p.alignSelected}
+          ? <SelectionInspector selObj={p.selObj} updateSelected={p.updateSelected} alignSelected={p.alignSelected}
               toggleSelectedLock={p.toggleSelectedLock} pushHistory={p.pushHistory} garmentRect={p.garmentRect} arrangeLayer={p.arrangeLayer}
               setPocketColor={p.setPocketColor} mirrorSelected={p.mirrorSelected}/>
           : <p className="ds-sum-sub" style={{ padding:'24px 4px', textAlign:'center' }}>Tap a placed logo, text or shape on the canvas to edit it.</p>}
@@ -56,7 +59,7 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, she
       onToggleVisibility={p.toggleLayerVisibility} onToggleLock={p.toggleLayerLock} onOpacity={p.setLayerOpacity}
       onRename={p.renameLayer} onDelete={p.deleteLayer} onReorder={p.reorderLayers}/>
   );
-  const underneath = !noGarment && !more;
+  const underneath = !noGarment && !more && !onlyTools;
 
   const reduce = useReducedMotion();
   // Desktop: the right panel folds to a thin rail so the canvas gets the width; remembered per browser.
@@ -87,7 +90,7 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, she
   };
   // Layers live in one place: the tile brings that section into view instead of opening a second copy.
   const focusLayers = () => {
-    setMore(false); setSheetOpen(true);
+    setMore(false); setSheetOpen(true); setSheetFull(true); // the half sheet hides Layers
     setTimeout(() => { underRef.current?.scrollIntoView({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' }); underRef.current?.focus({ preventScroll: true }); }, 60);
   };
   const pick = id => {
@@ -122,11 +125,11 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, she
             <span>{t.label}</span>
           </button>
         ))}
-        <button type="button" className="ds-tool-btn ds-more-btn" aria-expanded={sheetOpen && more} aria-disabled={noGarment || undefined}
+        {!onlyTools && <button type="button" className="ds-tool-btn ds-more-btn" aria-expanded={sheetOpen && more} aria-disabled={noGarment || undefined}
           title={noGarment ? 'Choose a garment first' : undefined} onClick={() => !noGarment && toggleMore()}>
           <NavIcon name="chevronUp" size={18}/>
           <span>More</span>
-        </button>
+        </button>}
       </div>
 
       <section className="ds-panel" ref={panelRef} aria-label={title} data-collapsed={collapsed || undefined}>
@@ -142,7 +145,7 @@ export default function ToolDrawer({ tool, setTool, sheetOpen, setSheetOpen, she
         {/* Desktop: the uniform's sections as tabs (phones reach them from the bottom bar and More). */}
         {!noGarment && (
           <nav className="ds-sections" aria-label="Uniform sections">
-            {TOOLS.filter(t => t.section).map(t => (
+            {TOOLS.filter(t => t.section && allowed(t)).map(t => (
               <button key={t.id} type="button" aria-current={t.id === tool && !more ? 'true' : undefined}
                 onClick={() => (t.id === 'layers' ? focusLayers() : (setTool(t.id), setMore(false), setSheetOpen(true)))}>{t.label}</button>
             ))}

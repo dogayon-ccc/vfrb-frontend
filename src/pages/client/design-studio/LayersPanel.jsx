@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { NavIcon } from '../../../components/ui/icons';
 import { familyFor } from './garmentCatalog';
 
@@ -10,6 +10,7 @@ export default function LayersPanel({ layers, selectedId, garment, onSelect, onT
   const [overId, setOverId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editVal, setEditVal] = useState('');
+  const grip = useRef(null);
 
   const commitRename = () => {
     if (editingId && editVal.trim()) onRename(editingId, editVal.trim());
@@ -28,6 +29,12 @@ export default function LayersPanel({ layers, selectedId, garment, onSelect, onT
     onReorder(next);
   };
 
+  // Pointer drag from the grip: HTML5 drag never fires on touch screens, so the grip reorders with any pointer.
+  const overAt = (e) => e.currentTarget.ownerDocument.elementFromPoint(e.clientX, e.clientY)?.closest('[data-layer-id]')?.dataset.layerId ?? null;
+  const gripDown = (e, id) => { e.currentTarget.setPointerCapture(e.pointerId); grip.current = id; setDragId(id); };
+  const gripMove = (e) => { if (grip.current) setOverId(overAt(e)); };
+  const gripUp = (e) => { if (!grip.current) return; grip.current = null; const t = overAt(e); t ? handleDrop(t) : (setDragId(null), setOverId(null)); };
+
   const move = (id, dir) => {
     const ids = layers.map(l => l.id);
     const i = ids.indexOf(id);
@@ -42,12 +49,12 @@ export default function LayersPanel({ layers, selectedId, garment, onSelect, onT
       {layers.length === 0 ? (
         <p className="ds-lay-empty">Layers: nothing on this side yet. Text, logos and shapes you add appear here.</p>
       ) : (<>
-        <p className="ds-lay-count">Layers on this side · {layers.length}</p>
+        <p className="ds-lay-count">Layers on this side Â· {layers.length}</p>
         <ul className="ds-lay-list" aria-label="Layers, front-most first">
           {layers.map((layer, i) => {
             const sel = layer.id === selectedId;
             return (
-              <li key={layer.id} className="ds-lay-row" data-sel={sel || undefined} data-hidden={!layer.visible || undefined}
+              <li key={layer.id} data-layer-id={layer.id} className="ds-lay-row" data-sel={sel || undefined} data-hidden={!layer.visible || undefined}
                 data-locked={layer.locked || undefined} data-over={(overId === layer.id && dragId && dragId !== layer.id) || undefined}
                 style={{ opacity: dragId === layer.id ? .4 : undefined }}
                 draggable={editingId !== layer.id}
@@ -57,10 +64,14 @@ export default function LayersPanel({ layers, selectedId, garment, onSelect, onT
                 onDrop={e => { e.preventDefault(); handleDrop(layer.id); }}
                 onDragEnd={() => { setDragId(null); setOverId(null); }}>
                 <div className="ds-lay-main">
+                  <span className="ds-lay-grip" aria-hidden="true" title="Drag to reorder"
+                    onPointerDown={e => gripDown(e, layer.id)} onPointerMove={gripMove} onPointerUp={gripUp} onPointerCancel={() => { grip.current = null; setDragId(null); setOverId(null); }}>
+                    <NavIcon name="dragHandle" size={14}/>
+                  </span>
                   <button type="button" className="ds-lay-pick" aria-pressed={sel} onClick={() => onSelect(layer.id)}>
                     <span className="ds-lay-type" aria-hidden="true"><NavIcon name={ICON[layer.type] ?? 'text'} size={14}/></span>
                     {editingId === layer.id ? null : (
-                      <span className="ds-lay-name" title={`${layer.name} — double-click to rename`}
+                      <span className="ds-lay-name" title={`${layer.name} â€” double-click to rename`}
                         onDoubleClick={e => { e.stopPropagation(); setEditingId(layer.id); setEditVal(layer.name); }}>
                         {layer.name}<em>{KIND[layer.type]}</em>
                       </span>

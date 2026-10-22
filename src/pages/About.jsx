@@ -48,20 +48,21 @@ export default function About() {
         </div>
       </section>
 
-      <section className="vs-sec" aria-labelledby="visit">
+      <section className="vs-sec" id="contact" aria-labelledby="contact-title">
         <div className="vs-wrap">
-          <Head kicker="Contact" id="visit" title="Visit or reach VFRB." />
+          <Head kicker="Contact" id="contact-title" title="Visit or reach VFRB." />
           <Reveal className="vs-split">
             <dl className="vs-dl">
               <div><dt>Address</dt><dd>{C.address[0]}, {C.address[1]}</dd></div>
+              <div><dt>Second location</dt><dd>{C.other}</dd></div>
               <div><dt>Phone</dt><dd><a href={C.phoneHref}>{C.phone}</a></dd></div>
               <div><dt>Email</dt><dd><a href={`mailto:${C.email}`}>{C.email}</a></dd></div>
               <div><dt>Facebook</dt><dd><a href={C.facebook} target="_blank" rel="noopener noreferrer">Tailor Centre VFRB Manila</a></dd></div>
             </dl>
             <div className="vs-stack">
-              <p className="vs-body">Ready to order? Create an account and design your uniform, or message us directly.</p>
+              <p className="vs-body">Ready to order? Sign in to design your uniform, or message us directly.</p>
               <div className="vs-btns">
-                <Btn to="/register">Design your uniform</Btn>
+                <Btn to="/login">Design your uniform</Btn>
                 <Btn href={C.map} variant="line" target="_blank" rel="noopener noreferrer">Open in Google Maps</Btn>
               </div>
               <TextLink to="/what-we-do">See what we make</TextLink>

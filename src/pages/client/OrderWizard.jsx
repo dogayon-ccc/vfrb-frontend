@@ -5,6 +5,7 @@ import { clearStudioHandoff, draftFingerprint, peekDesignRef } from '../../utils
 import { checkUpload } from '../../utils/fileCheck';
 import { useState, useEffect, useRef } from 'react';
 import DesignPreview from '../../components/DesignPreview';
+import SizeChartTable from '../../components/SizeChartTable';
 import { PH_SIZE_CHART } from '../../utils/sizeChart';
 import { useNavigate }                                   from 'react-router-dom';
 import { motion, AnimatePresence }                       from 'framer-motion';
@@ -23,7 +24,7 @@ const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif
 
 // ── Shared style helpers ──────────────────────────────────────────────────────
 const inp = {
-  width:'100%', padding:'10px 14px', borderRadius:10, background:'#fff',
+  width:'100%', minHeight:44, padding:'10px 14px', borderRadius:10, background:'#fff',
   border:'1px solid var(--border)', color:'var(--ink)', fontSize:13, outline:'none',
   fontFamily:FONT, transition:'border .15s,box-shadow .15s', boxSizing:'border-box',
 };
@@ -520,7 +521,7 @@ function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart
         </div>
       )}
 
-      <InlineSizeChart/>
+      <SizeChartTable/>
 
       {/* Size breakdown — merged in from the old separate Sizing step */}
       <div style={{ display:'flex', justifyContent:'space-between',
@@ -645,10 +646,10 @@ const minDeadline = () => {
 function StepDelivery({ form, set, errors }) {
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:18 }}>
-      <p className="wz-lead">Choose when you need the order. The earliest date is one week from today.</p>
+      <p className="wz-lead">Tell us when you would like the order. VFRB reviews it and proposes the delivery date.</p>
 
       <div>
-        <label style={lbl} htmlFor="wz-deadline">Delivery date <span style={{ color:'#ef4444' }}>*</span></label>
+        <label style={lbl} htmlFor="wz-deadline">Preferred date (optional, VFRB will confirm)</label>
         <input id="wz-deadline" type="date" min={minDeadline()} value={form.deadline||''}
           onChange={e => set('deadline', e.target.value)}
           style={inp} onFocus={fi} onBlur={fo}/>
@@ -710,22 +711,6 @@ function StepDelivery({ form, set, errors }) {
 
 const FABRIC_TYPES = ['Cotton', 'Sublimation / Dry-fit', 'TC', 'Not sure'];
 
-// Size, chest, length, shoulder straight from the tops chart in utils/sizeChart.js.
-function InlineSizeChart() {
-  const c = PH_SIZE_CHART.tops;
-  const cols = ['Size', 'Chest', 'Body Length', 'Shoulder'].map(h => c.headers.indexOf(h));
-  return (
-    <div className="wz-chart">
-      <table>
-        <caption>Size chart ({c.unit})</caption>
-        <thead><tr><th>Size</th><th>Chest</th><th>Length</th><th>Shoulder</th></tr></thead>
-        <tbody>{c.rows.map(r => <tr key={r[0]}>{cols.map(i => <td key={i}>{r[i]}</td>)}</tr>)}</tbody>
-      </table>
-      <p>Measurements vary by garment; check the chart.</p>
-    </div>
-  );
-}
-
 // ── Step 2: Sizing — stepper buttons ─────────────────────────────────────────
 const STD = STD_SIZES;
 
@@ -767,7 +752,7 @@ function QtyMeter({ form }) {
   );
 }
 
-function StepReview({ form, studio, onEdit, title = null, last = true }) {
+function StepReview({ form, set, studio, onEdit, title = null, last = true }) {
   const tot = orderQty(form);
 
   // Local blob URL for the uploaded reference file — not yet stored server-side at review time.
@@ -806,7 +791,7 @@ function StepReview({ form, studio, onEdit, title = null, last = true }) {
         ['Color',       form.color || '—'],
         ['Fabric',      form.fabric_type || '—'],
         ['Deliver to',  form.delivery_address || '—'],
-        ['Delivery date', form.deadline || '—'],
+        ['Preferred date', form.deadline || 'VFRB will propose'],
         ['PO Ref',      form.po_reference || 'None'],
       ],
     },
@@ -855,6 +840,7 @@ function StepReview({ form, studio, onEdit, title = null, last = true }) {
           <div style={{ padding:'16px' }}>
             <DesignPreview cfg={studio} height={300}
               previewUrl={studio?.previewPng ?? null}
+              onSnapshot={studio ? png => set('design_3d_snapshot', png) : null} snapshot={form.design_3d_snapshot ?? null}
               referenceImageUrl={!studio && form.design_ref_file?.type?.startsWith('image/') ? refFileBlobUrl : null}/>
           </div>
         </motion.div>
@@ -1283,8 +1269,7 @@ export default function OrderWizard() {
     if (step===2) {
       if (!f.fabric_type) e.fabric_type = 'Choose a fabric type';
       if (!f.delivery_address?.trim()) e.delivery_address = 'Required';
-      if (!f.deadline) e.deadline = 'Choose a delivery date';
-      else if (f.deadline < minDeadline()) e.deadline = `The earliest date is ${minDeadline()} (one week from today)`;
+      if (f.deadline && f.deadline < minDeadline()) e.deadline = `The earliest date is ${minDeadline()} (one week from today)`;
     }
     return e;
   };
@@ -1324,7 +1309,7 @@ export default function OrderWizard() {
     fd.append('quantity_ordered', orderQty(f));
     fd.append('fabric_type',      f.fabric_type);
     fd.append('delivery_address', f.delivery_address.trim());
-    fd.append('deadline',         f.deadline);
+    if (f.deadline)         fd.append('preferred_date',   f.deadline);
     if (f.po_reference)     fd.append('po_reference',     f.po_reference);
     const uset = s?.uniformSet ? { ...s.uniformSet, ...(linked.length && { linkedOrderIds: linked }) } : null;
     const setLine = uset ? setNote(uset) : '';
@@ -1342,6 +1327,11 @@ export default function OrderWizard() {
       if (previewPng?.startsWith('data:image/png')) {
         const blob = await (await fetch(previewPng)).blob();
         fd.append('design_preview_file', blob, `design-${Date.now()}.png`);
+      }
+      // Optional customer-taken 3D (approx.) view; the 2D design stays what VFRB produces from.
+      if (f.design_3d_snapshot?.startsWith('data:image/png')) {
+        const blob = await (await fetch(f.design_3d_snapshot)).blob();
+        fd.append('design_3d_snapshot_file', blob, `design-3d-${Date.now()}.png`);
       }
     }
     fd.append('sizing_type', f.sizing_type);
@@ -1410,7 +1400,7 @@ export default function OrderWizard() {
     perPiece((f, i) => <StepQuantitySize form={f} set={setFor(i)} errors={errs[i] ?? {}} studio={studios[i]} title={pieceTitle(i)} first={i === 0}
       onEditDesign={() => { setDir(-1); setStep(0); }} onShowChart={() => setShowSizeChart(true)}/>),
     <StepDelivery     key="v" form={form} set={setFor(0)} errors={errs[0] ?? {}}/>,
-    perPiece((f, i) => <StepReview form={f} studio={studios[i]} title={isSet ? `${pieceTitle(i)} · order ${i + 1} of ${forms.length}` : null}
+    perPiece((f, i) => <StepReview form={f} set={setFor(i)} studio={studios[i]} title={isSet ? `${pieceTitle(i)} · order ${i + 1} of ${forms.length}` : null}
       last={i === forms.length - 1} onEdit={(n) => { setDir(-1); setStep(n); setErrs(forms.map(() => ({}))); }}/>),
   ];
 
@@ -1452,12 +1442,6 @@ export default function OrderWizard() {
         .wz-min { padding:12px 14px; border-radius:11px; background:#fef3c7; border:2px solid #d97706; color:#78350f; font-size:13px; }
         .wz-min strong { font-weight:800; }
         .wz-lead { margin:0; font-size:13px; color:var(--text-muted); }
-        .wz-chart { border:1px solid var(--border); border-radius:11px; overflow-x:auto; background:#fff; }
-        .wz-chart table { width:100%; border-collapse:collapse; font-size:13px; }
-        .wz-chart caption { text-align:left; padding:10px 12px 4px; font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text-subtle); }
-        .wz-chart th, .wz-chart td { padding:6px 12px; text-align:left; border-top:1px solid var(--border); }
-        .wz-chart th { font-weight:700; color:var(--ink); }
-        .wz-chart p { margin:0; padding:8px 12px; font-size:13px; color:var(--text-muted); border-top:1px solid var(--border); }
         .wz-sum-role { margin:0 0 8px; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.07em; color:var(--text-subtle); }
 
         @media (min-width:480px) {

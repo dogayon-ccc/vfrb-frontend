@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { useFrame } from '@react-three/fiber';
 import { Decal, useGLTF } from '@react-three/drei';
 import { renderDecals, bodyBounds } from './overlayDecals';
 import { buildRegionTexture, DEFAULT_GARMENT_COLOR } from './regionTexture';
 import { ensureZoneMask, createZoneUniforms, setZoneUniforms, patchZoneMaterial } from './regionShader';
-import { buildCustomParts, customMeshKey, disposeParts } from './customMesh3D';
 import { modelUrl } from '../../../lib/modelUrl';
 
 let grain;
@@ -51,8 +51,8 @@ export function partMaterial(color, part, map = null) {
     // Matte cloth: low specular and a sheen in the cloth's own colour, so dark and saturated colours are not veiled grey (calibrated in DesignStudio3D LIGHT).
     color, roughness: part.roughness ?? 0.88, metalness: 0, specularIntensity: 0.2,
     sheen: 0.4, sheenRoughness: 0.6, sheenColor: new THREE.Color(color),
-    // No UVs (zone-mask path) means no normal map, except parametric parts (part.grain), whose lofts carry real UVs.
-    map, normalMap: part.zoneOf && !part.grain ? null : (map ? tiledGrainNormal(map.image.width) : grainNormal()),
+    // No UVs (zone-mask path) means no normal map.
+    map, normalMap: part.zoneOf ? null : (map ? tiledGrainNormal(map.image.width) : grainNormal()),
     normalScale: new THREE.Vector2(0.35, 0.35), side: THREE.DoubleSide,
   });
   // UV path: the colour lives in the zone texture and the material is white, so the sheen takes the painted texel colour (same fix as
@@ -106,6 +106,7 @@ function placeDecals(geometry, decals, frame, torso) {
 }
 
 const TEX_SIZE = window.matchMedia('(pointer: coarse)').matches ? 1024 : 2048;
+const CALM = !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 // Colour-picker drags fire many changes; the 2048px zone texture is only rebuilt once the value settles.
 function useDebounced(value, ms) {
@@ -141,7 +142,7 @@ function useZoneMaterial(geometry, part, colors, patterns, patternParams, pxToMo
   return state?.material ?? null;
 }
 
-function ScannedPart({ geometry, part, colors, patterns, patternParams, decals, frame, torso }) {
+function ScannedPart({ geometry, part, colors, patterns, patternParams, decals, frame, torso, exploded = false, onPick = null }) {
   const color = part.fixedColor ?? colors[part.colorKey] ?? colors[part.fallbackKey] ?? DEFAULT_GARMENT_COLOR;
   const pxToModel = (2 * torso) / (frame.x1 - frame.x0);
   const zoneMap = useRegionTexture(geometry, part, colors, patterns, patternParams, pxToModel);
@@ -149,15 +150,30 @@ function ScannedPart({ geometry, part, colors, patterns, patternParams, decals, 
   const material = useMemo(() => zoneMaterial ?? partMaterial(zoneMap ? '#ffffff' : color, part, zoneMap), [zoneMaterial, color, part, zoneMap]);
   useEffect(() => () => { if (!zoneMaterial) material.dispose(); }, [material, zoneMaterial]);
   const placed = useMemo(() => (part.decals ? placeDecals(geometry, decals, frame, torso) : []), [geometry, decals, frame, torso, part]);
+  // Exploded view: the part eases along its `explode` offset (~0.4 s) and back; reduced motion jumps straight there.
+  const ref = useRef(null);
+  const target = useMemo(() => new THREE.Vector3(), []);
+  useFrame((_, dt) => {
+    if (!ref.current || !part.explode) return;
+    target.fromArray(exploded ? part.explode : [0, 0, 0]);
+    ref.current.position.lerp(target, CALM ? 1 : 1 - Math.exp(-dt * 10));
+  });
+  // Click (not a rotate drag) selects this part's zone in the 2D editor.
+  const pick = onPick && part.colorKey ? e => { if (e.delta > 6) return; e.stopPropagation(); onPick(part.colorKey); } : undefined;
+  const hover = on => e => { e.stopPropagation(); document.body.style.cursor = on ? 'pointer' : ''; };
+  useEffect(() => () => { document.body.style.cursor = ''; }, []);
   return (
-    <mesh geometry={geometry} material={material}>
-      {placed.map((p, i) => <Decal key={p.key} position={p.position} rotation={p.rotation} scale={p.scale} map={p.tex} roughness={0.75} depthWrite={false} renderOrder={i + 1} polygonOffsetFactor={-10 - i} />)}
-    </mesh>
+    <group ref={ref}>
+      <mesh geometry={geometry} material={material} onClick={pick} onPointerOver={pick && hover(true)} onPointerOut={pick && hover(false)}>
+        {placed.map((p, i) => <Decal key={p.key} position={p.position} rotation={p.rotation} scale={p.scale} map={p.tex} roughness={0.75} depthWrite={false} renderOrder={i + 1} polygonOffsetFactor={-10 - i} />)}
+      </mesh>
+    </group>
   );
 }
 
 // details: the design's pocket/button/closure changes (garmentDetails.js); a part tagged with a `detail` the customer hid is not drawn.
-export default function ScannedGarmentMesh({ manifest, colors = {}, patterns, patternParams, fit, garment, sleeve, overlays, details = null }) {
+// exploded / onPickZone: only passed for models with named, separable parts (explodableFor).
+export default function ScannedGarmentMesh({ manifest, colors = {}, patterns, patternParams, fit, garment, sleeve, overlays, details = null, exploded = false, onPickZone = null }) {
   const key = String(fit ?? '').toLowerCase();
   const { nodes } = useGLTF(modelUrl(manifest.models[key] ?? Object.values(manifest.models)[0]));
   useEffect(() => () => Object.values(nodes).forEach(n => n.geometry?.dispose()), [nodes]); // useGLTF cache outlives the renderer; frees GL buffers that pin the dead context
@@ -168,42 +184,8 @@ export default function ScannedGarmentMesh({ manifest, colors = {}, patterns, pa
   return (
     <group rotation={rotation} scale={scale} position={position}>
       {manifest.parts.filter(part => !(part.detail && details?.[part.detail]?.show === false)).map(part => nodes[part.node]?.geometry && (
-        <ScannedPart key={part.node} geometry={nodes[part.node].geometry} part={part} colors={colors} patterns={patterns} patternParams={patternParams} decals={decals} frame={frame} torso={torso} />
-      ))}
-    </group>
-  );
-}
-
-// Rebuilds wait until the spec has been still for `ms` (a slider drag fires many changes).
-function useThrottledKey(key, ms) {
-  const [k, setK] = useState(key);
-  useEffect(() => { if (k === key) return undefined; const t = setTimeout(() => setK(key), ms); return () => clearTimeout(t); }, [key, k, ms]);
-  return k;
-}
-
-// Build-your-own garments and the Button-Down template: parametric parts from the spec (customMesh3D.js), painted through the same
-// zone-mask material as the authored models. Throttled to 120 ms, memoised by spec, the previous geometry disposed on every rebuild.
-export function CustomGarmentMesh({ garment, spec, sleeve, colors = {}, patterns, patternParams, overlays, details = null, transform }) {
-  const key = useThrottledKey(customMeshKey(garment, spec, sleeve), 120);
-  const built = useMemo(() => buildCustomParts(garment, spec, sleeve), [key]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => () => disposeParts(built), [built]);
-  // Stable part descriptors per build, so materials are made once per rebuild, not on every render.
-  // A part with a Details colour (trouser buttons, fly) takes it when the customer set one; buttons are a plain, slightly glossy material.
-  const detailTint = JSON.stringify([details?.buttons?.color ?? null, details?.closure?.color ?? null]);
-  const metas = useMemo(() => built?.parts.map(p => {
-    const fixedColor = p.detailColor ? details?.[p.detailColor]?.color ?? null : null;
-    if (p.plain || fixedColor) return { node: p.name, colorKey: p.colorKey, decals: false, plain: p.plain, roughness: 0.35, fixedColor };
-    return { node: p.name, colorKey: p.colorKey, decals: p.decals, zoneOf: () => p.colorKey, grain: true };
-  }) ?? [], [built, detailTint]); // eslint-disable-line react-hooks/exhaustive-deps
-  const decals = useDecals(overlays);
-  const frame = useMemo(() => bodyBounds(garment, sleeve), [garment, sleeve, key]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (!built) return null;
-  const { rotation, scale, position } = transform;
-  return (
-    <group rotation={rotation} scale={scale} position={position}>
-      {built.parts.map((p, i) => !(p.detail && details?.[p.detail]?.show === false) && (
-        <ScannedPart key={`${key}|${p.name}`} geometry={p.geometry} part={metas[i]}
-          colors={colors} patterns={patterns} patternParams={patternParams} decals={decals} frame={frame} torso={built.torso}/>
+        <ScannedPart key={part.node} geometry={nodes[part.node].geometry} part={part} colors={colors} patterns={patterns} patternParams={patternParams} decals={decals} frame={frame} torso={torso}
+          exploded={exploded} onPick={onPickZone} />
       ))}
     </group>
   );

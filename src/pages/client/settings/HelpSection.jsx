@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { NavIcon } from '../../../components/ui/icons';
+import { Card } from '../../../components/ui';
 
 const CONTACT = [
   { icon: 'phone', label: 'Phone', value: '0921 791 6259', href: 'tel:09217916259' },
@@ -27,27 +28,25 @@ export default function HelpSection() {
   return (
     <div>
       <div className="hs-grid">
-        <section className="cx-card hs-hero" aria-labelledby="hs-order-h">
+        <Card className="hs-hero-card" bodyClassName="hs-hero" aria-labelledby="hs-order-h">
           <span className="hs-ico hs-ico-lg"><NavIcon name="messages" size={22} /></span>
           <div>
             <h2 id="hs-order-h">Question about an order?</h2>
             <p>Messages go straight to the VFRB staff handling that order, with your design and status attached.</p>
           </div>
-          <Link to="/messages" className="cx-btn cx-btn-p">Open Messages</Link>
-        </section>
+          <Link to="/messages" className="ui-btn" data-v="primary" data-size="md">Open Messages</Link>
+        </Card>
 
-        <section className="cx-card" aria-labelledby="hs-contact-h">
-          <div className="cx-card-h"><h2 id="hs-contact-h">Contact VFRB Enterprise</h2></div>
+        <Card title="Contact VFRB Enterprise" padding="none">
           {CONTACT.map(c => (
             <Row key={c.label} icon={c.icon} label={c.value} hint={c.label} href={c.href}
               {...(c.href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})} />
           ))}
-        </section>
+        </Card>
 
-        <section className="cx-card" aria-labelledby="hs-guides-h">
-          <div className="cx-card-h"><h2 id="hs-guides-h">Guides and policies</h2></div>
+        <Card title="Guides and policies" padding="none">
           {GUIDES.map(g => <Row key={g.to} as={Link} to={g.to} icon={g.icon} label={g.label} hint={g.hint} />)}
-        </section>
+        </Card>
       </div>
     </div>
   );

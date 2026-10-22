@@ -1,6 +1,6 @@
 // ── Philippine Standard Garment Size Chart ────────────────────────────────────
 // Source: common institutional uniform sizing used by PH school/hospital suppliers.
-// Measurements in centimeters. Shown as a modal from StepQuantitySize; the Studio reads size M lengths for set proportions (never shown there).
+// Measurements in centimeters. Shown in the Order Wizard (modal and inline table) and the Studio Details panel; the Studio also reads size M lengths for set proportions.
 export const PH_SIZE_CHART = {
   tops: {
     label: 'Tops (Polo, Scrubs, Blouses)',

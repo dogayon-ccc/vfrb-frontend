@@ -4,26 +4,26 @@ import { Save, Check, ChevronRight, MoreHorizontal, Image as ImageIcon, FileText
 import { familyFor, STATUS_3D_LABEL } from './garmentCatalog';
 import { NO_FAMILY_3D } from './garmentCapabilities';
 
-export default function StudioDock({ cfg, saved, saving, saveErr, draftSaved, saveDesign, orderThis, ordering, downloadImage, downloadPdf, exporting, onNeedRoom, collapsed = false }) {
+export default function StudioDock({ cfg, saved, saving, saveErr, draftSaved, status = null, saveDesign, orderThis, ordering, downloadImage, downloadPdf, exporting, onNeedRoom, collapsed = false }) {
   const [exportOpen, setExportOpen] = useState(false);
   useEffect(() => { if (collapsed && window.matchMedia('(max-width: 1023px)').matches) setExportOpen(false); }, [collapsed]); // phone/tablet: the export row closes when the sheet collapses to peek
   // Plain "3D" only for a verified model (none today); an unverified model reads "3D (approx.)", as on the garment cards.
   const fam = familyFor(cfg.garment);
   const st = NO_FAMILY_3D.has(cfg.inspirationId) ? null : STATUS_3D_LABEL[fam?.status3D === 'supported' && !fam.verified3D ? 'partial' : fam?.status3D];
   // Account vs browser-only saves are never shown the same way: a failed account save that kept a browser copy says so.
-  const state = saving ? 'Saving…' : saveErr ? (saveErr === 'local' ? 'On this device only — account save failed, retry' : 'Not saved — retry') : draftSaved ? 'Saved to your account' : saved ? 'Saved on this device' : null;
+  const state = status?.long ?? null;
   const toggleExport = () => { setExportOpen(o => !o); onNeedRoom?.(); };
 
   return (
     <footer className="ds-dock" aria-label="Save and order">
       {/* Category and 3D status live here only; the garment name is the canvas chip, the design name the top bar */}
       {cfg.garment && <p className="ds-dock-sub">{[cfg.category, st?.label].filter(Boolean).join(' · ')}</p>}
-      <p className="ds-dock-state" role="status" aria-live="polite" data-tone={saveErr ? 'err' : state ? 'ok' : undefined}>{state ?? ' '}</p>
+      <p className="ds-dock-state" role="status" aria-live="polite" data-tone={status ? (status.tone === 'err' ? 'err' : status.tone === 'ok' ? 'ok' : 'idle') : undefined}>{state ?? ' '}</p>
       <div className="ds-dock-actions">
         <button type="button" className="ds-act" onClick={saveDesign} disabled={!cfg.garment || saving} aria-busy={!!saving}>
           {saving ? <span className="ds-spin"/> : saved || draftSaved ? <Check size={16} aria-hidden="true"/> : <Save size={16} aria-hidden="true"/>} {saving ? 'Saving' : 'Save'}
         </button>
-        <button type="button" className="ds-act ds-act--primary" onClick={orderThis}
+        <button type="button" className="ds-act ds-act--primary" onClick={orderThis} data-view-only
           disabled={!cfg.garment || ordering} aria-busy={!!ordering}
           title={cfg.garment ? undefined : 'Pick a garment first'}>
           {ordering

@@ -50,7 +50,7 @@ export default function Team() {
           </Reveal>
           <Reveal className="vs-stack" delay={0.06}>
             <p className="vs-body">Questions about an order or a visit? Contact details are on the About page.</p>
-            <TextLink to="/about#visit">Contact VFRB</TextLink>
+            <TextLink to="/about#contact">Contact VFRB</TextLink>
           </Reveal>
         </div>
       </section>

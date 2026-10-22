@@ -12,8 +12,12 @@ import FeedbackWidget from '../components/FeedbackWidget';
 import { signOut, USER_CHANGE_EVENT } from '../utils/session';
 import logo from '../assets/company-logo.jpg';
 import { useAppearance } from '../hooks/useAppearance';
+import { useUnreadMessages } from '../hooks/useUnreadMessages';
+import NavBadge from '../components/ui/NavBadge';
+import { Button } from '../components/ui';
+import ThreadPull from '../components/ui/ThreadPull';
 import '../styles/customer-shell.css';
-import { LayoutDashboard, ClipboardList, MessageSquare, Settings, Palette, LogOut, Shirt, MoreHorizontal, Bell, PanelLeftClose, PanelLeftOpen, Megaphone } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, MessageSquare, Settings, Palette, LogOut, Shirt, MoreHorizontal, Bell, Megaphone } from 'lucide-react';
 
 const NAV = [
   { to:'/dashboard',  icon:LayoutDashboard, label:'Dashboard',  short:'Home',    end:true  },
@@ -42,14 +46,11 @@ export default function CustomerLayout() {
   const [notifs, setNotifs] = useState(null);
   const [notifsErr, setNotifsErr] = useState(false);
   const bellRef = useRef(null);
-  const [collapsed, setCollapsed] = useState(() => {
-    // A saved manual toggle always wins; tablets default to the slim rail.
-    try { const s = localStorage.getItem('vfrb_cust_sb'); if (s !== null) return JSON.parse(s); } catch { /* width default */ }
-    return typeof window !== 'undefined' && window.innerWidth >= 768 && window.innerWidth <= 1023;
-  });
   const [me, setMe] = useState(readUser);
   useAppearance(me.user_id);
   const barHidden = useHideOnScroll(location.pathname);
+  const msgUnread = useUnreadMessages('/api/customer/messages/unread-count');
+  const badgeFor = (to) => (to === '/messages' ? msgUnread : 0);
 
   // Customer tokens and base styles apply only while this shell is mounted (portals included).
   useLayoutEffect(() => {
@@ -101,7 +102,6 @@ export default function CustomerLayout() {
     try { await axios.post('/api/customer/notifications/read-all'); } catch { loadNotifs(); }
   };
 
-  const toggle = () => setCollapsed(c => { const n = !c; localStorage.setItem('vfrb_cust_sb', JSON.stringify(n)); return n; });
   const logout = () => { signOut(); navigate('/login', { replace: true }); };
   const openStudio = () => navigate('/design-studio');
   const initials = name ? name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase() : 'C';
@@ -109,12 +109,12 @@ export default function CustomerLayout() {
   const fab = FAB_ROUTES.includes(location.pathname);
 
   return (
-    <div className="cm-shell" data-rail={collapsed ? 'slim' : 'full'}>
+    <div className="cm-shell">
       <a href="#cm-main" className="skip-link" onClick={e => { e.preventDefault(); document.getElementById('cm-main')?.focus(); }}>Skip to content</a>
       <header className="cx-bar" data-hidden={barHidden}>
         <Link to="/dashboard" className="cx-brand" aria-label="VFRB Enterprise, back to dashboard">
           <img src={logo} alt="" />
-          <span><b>VFRB</b><small>Client portal</small></span>
+          <span><b>VFRB</b><small>Customer portal</small></span>
         </Link>
         <div className="cx-crumb">
           <b>{section}</b>
@@ -136,7 +136,7 @@ export default function CustomerLayout() {
               <div className="cx-bell-list" aria-busy={notifs === null && !notifsErr}>
                 {notifsErr && !notifs?.length ? (
                   <div className="cx-bell-empty" role="alert">Unable to load notifications.
-                    <button type="button" className="cx-btn cx-btn-s" onClick={loadNotifs}>Retry</button></div>
+                    <Button size="sm" onClick={loadNotifs}>Retry</Button></div>
                 ) : notifs === null ? (
                   <p className="cx-bell-empty">Loading…</p>
                 ) : notifs.length === 0 ? (
@@ -162,30 +162,26 @@ export default function CustomerLayout() {
         </NavLink>
       </header>
 
+      {/* Full rail on desktop; tablet shows icons only (labels stay for screen readers, title gives a tooltip). */}
       <aside className="cx-rail" aria-label="Main navigation">
         <nav>
           {NAV.map(item => (
-            <NavLink key={item.to} to={item.to} end={item.end} className="cx-rail-link"
-              title={collapsed ? item.label : undefined} aria-label={collapsed ? item.label : undefined}>
-              <item.icon size={18} strokeWidth={1.9} aria-hidden="true" />
-              {!collapsed && <span>{item.label}</span>}
+            <NavLink key={item.to} to={item.to} end={item.end} className="cx-rail-link" title={item.label}>
+              <span className="nav-ico-wrap">
+                <item.icon size={18} strokeWidth={1.9} aria-hidden="true" />
+                <NavBadge n={badgeFor(item.to)} corner />
+              </span>
+              <span className="cx-rail-label">{item.label}</span>
             </NavLink>
           ))}
           <div className="cx-rail-sep" />
-          <button type="button" className="cx-rail-link cx-rail-studio" onClick={openStudio}
-            title={collapsed ? 'Design Studio' : undefined} aria-label={collapsed ? 'Design Studio' : undefined}>
-            <Palette size={18} strokeWidth={1.9} aria-hidden="true" />{!collapsed && <span>Design Studio</span>}
+          <button type="button" className="cx-rail-link cx-rail-studio" onClick={openStudio} title="Design Studio">
+            <Palette size={18} strokeWidth={1.9} aria-hidden="true" /><span className="cx-rail-label">Design Studio</span>
           </button>
         </nav>
         <div className="cx-rail-foot">
-          <button type="button" className="cx-rail-link" onClick={toggle} aria-expanded={!collapsed}
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={collapsed ? 'Expand sidebar' : undefined}>
-            {collapsed ? <PanelLeftOpen size={18} strokeWidth={1.9} aria-hidden="true" /> : <PanelLeftClose size={18} strokeWidth={1.9} aria-hidden="true" />}
-            {!collapsed && <span>Collapse</span>}
-          </button>
-          <button type="button" className="cx-rail-link cx-rail-out" onClick={logout}
-            title={collapsed ? 'Sign out' : undefined} aria-label={collapsed ? 'Sign out' : undefined}>
-            <LogOut size={18} strokeWidth={1.9} aria-hidden="true" />{!collapsed && <span>Sign out</span>}
+          <button type="button" className="cx-rail-link cx-rail-out" onClick={logout} title="Sign out">
+            <LogOut size={18} strokeWidth={1.9} aria-hidden="true" /><span className="cx-rail-label">Sign out</span>
           </button>
         </div>
       </aside>
@@ -193,22 +189,24 @@ export default function CustomerLayout() {
       <main id="cm-main" tabIndex={-1} className="cm-main">
         <div className="cm-content" data-fab={fab || undefined}>
           <AnimatePresence mode="wait" initial={false}>
-            <motion.div key={location.pathname} className="vfrb-page"
-              initial={still ? false : { opacity:0, y:8 }}
-              animate={{ opacity:1, y:0 }}
-              exit={still ? { opacity:1 } : { opacity:0, transition:{ duration:.12, ease:[.4, 0, 1, 1] } }}
-              transition={{ duration: still ? 0 : .2, ease:[.22, 1, .36, 1] }}>
+            {/* Entrance is the CSS thread-pull; framer only handles the quick exit fade. */}
+            <motion.div key={location.pathname} className="vfrb-page thread-page"
+              initial={false}
+              animate={{ opacity:1 }}
+              exit={still ? { opacity:1 } : { opacity:0, transition:{ duration:.1, ease:[.4, 0, 1, 1] } }}>
               {/* Keyed on pathname, so a page crash resets with navigation and never takes the shell down. */}
               <PageErrorBoundary resetKey={location.pathname}>
                 <Suspense fallback={<AppPageSkeleton/>}><Outlet/></Suspense>
               </PageErrorBoundary>
+              <ThreadPull/>
             </motion.div>
           </AnimatePresence>
           <FeedbackWidget/>
         </div>
       </main>
 
-      {fab && <button type="button" className="cm-studio-fab" onClick={openStudio} aria-label="Design Studio"><Palette size={24} strokeWidth={2} aria-hidden="true" /></button>}
+      {/* Tucks away while scrolling down (same signal as the header), so it never sits on a card's buttons mid-scroll. */}
+      {fab && <button type="button" className="cm-studio-fab" data-hidden={barHidden} onClick={openStudio} aria-label="Design Studio"><Palette size={24} strokeWidth={2} aria-hidden="true" /></button>}
 
       <AnimatePresence>
         {moreOpen && (
@@ -231,7 +229,7 @@ export default function CustomerLayout() {
       <nav className="cx-nav" aria-label="Mobile navigation">
         {MOB_NAV.map(item => (
           <NavLink key={item.to} to={item.to} end={item.end} className="cx-nav-item">
-            <span className="cx-nav-ico"><item.icon size={21} strokeWidth={1.9} aria-hidden="true" /></span>
+            <span className="cx-nav-ico"><span className="nav-ico-wrap"><item.icon size={21} strokeWidth={1.9} aria-hidden="true" /><NavBadge n={badgeFor(item.to)} corner /></span></span>
             {item.short}
           </NavLink>
         ))}

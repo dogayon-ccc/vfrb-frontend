@@ -227,7 +227,7 @@ function trousers({ w = 250, h = 420, waist = 76, waistY = 28, band = 15, hip = 
     { d: `M ${pt(cx - hemOut + 2, hemY - 7)} L ${pt(cx - hemIn - 1, hemY - 7)} M ${pt(cx + hemIn + 1, hemY - 7)} L ${pt(cx + hemOut - 2, hemY - 7)}`, kind: cuffs ? 'line' : 'seam' },
   ];
   const loops = ks => ks.map(k => `M ${pt(cx + waist * k, waistY)} L ${pt(cx + waist * k, by + 2)}`).join(' ');
-  // Tailored trousers (welts) place their back loops at the sides and centre back, as the 3D model does (customMesh3D tailoredParts).
+  // Tailored trousers (welts) place their back loops at the sides and centre back.
   if (beltLoops && welts) details.push({ d: loops([-0.72, -0.28, 0.28, 0.72]), kind: 'line', face: 'front' }, { d: loops([-0.42, 0, 0.42]), kind: 'line', face: 'back' });
   else if (beltLoops) details.push({ d: loops([-0.72, -0.28, 0.28, 0.72]), kind: 'line' });
   // Turn-ups: a 9px folded band above the hem line.
@@ -332,7 +332,7 @@ function coverall() {
 
 const POLO = { collar: 'polo', frontDrop: 18, placket: { bottom: 128, buttons: 3 }, vents: true, pocket: { x: 92, y: 120, w: 34, h: 38 } };
 
-// Shared with the parametric 3D (customMesh3D.js), so the Button-Down's 2D sketch and 3D model come from the same numbers.
+// The Button-Down sketch options.
 export const BUTTON_DOWN_OPTIONS = { h: 390, collar: 'point', frontDrop: 16, neckW: 26, hem: [96, 346], hemCurve: 9, placket: { top: 62, bottom: 342, buttons: 7, width: 7 }, pocket: { x: 92, y: 112, w: 32, h: 38 } };
 export const BASE_PATHS = {
   'Polo Shirt':  top(POLO),

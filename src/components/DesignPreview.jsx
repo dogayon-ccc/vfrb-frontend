@@ -1,4 +1,4 @@
-import { Component, Suspense, lazy, useMemo, useState } from 'react';
+import { Component, Suspense, lazy, useMemo, useRef, useState } from 'react';
 import GarmentSilhouette from '../pages/client/design-studio/GarmentSilhouette';
 import { familyFor, STATUS_3D_LABEL } from '../pages/client/design-studio/garmentCatalog';
 import { has3DModel, has3DFor } from '../pages/client/design-studio/garmentCapabilities';
@@ -16,19 +16,27 @@ class Boundary extends Component {
 }
 
 const box = h => ({ height: h, background: 'var(--bg-surface)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' });
-const tab = on => ({ padding: '4px 12px', borderRadius: 99, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700, background: on ? 'var(--teal, #028090)' : 'rgba(15,23,42,.07)', color: on ? '#fff' : 'rgba(15,23,42,.65)' });
+const calm = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+const tab = on => ({ minHeight: 44, padding: '0 16px', borderRadius: 99, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, background: on ? 'var(--teal, #028090)' : 'var(--bg-surface-2, rgba(15,23,42,.07))', color: on ? '#fff' : 'var(--text-muted, rgba(15,23,42,.65))' });
 
 // The one preview used by Order Wizard, client Order Detail and admin Order Detail.
 // Default is always 2D (reference photo, submitted artwork PNG, or the template silhouette). 3D is offered only for a family with a real GLB
-// and only when WebGL works; any 3D failure drops back to 2D instead of breaking the page.
-export default function DesignPreview({ cfg, previewUrl = null, referenceImageUrl = null, height = 240 }) {
+// and only when WebGL works; any 3D failure (load error or a lost context) drops back to 2D instead of breaking the page.
+// onSnapshot(pngDataUrl): when given, the 3D view offers "Save 3D snapshot"; `snapshot` is the one already taken.
+export default function DesignPreview({ cfg, previewUrl = null, referenceImageUrl = null, height = 240, onSnapshot = null, snapshot = null }) {
   const [view, setView] = useState('2d');
-  const design = useMemo(() => {
-    try { const r = cfg?.garment ? deserializeDesign(cfg) : null; return r?.cfg ?? r; } catch { return null; }
+  const [lost, setLost] = useState(false);
+  const [spin, setSpin] = useState(() => !calm());
+  const capture = useRef(null);
+  const parsed = useMemo(() => {
+    try { return cfg?.garment ? deserializeDesign(cfg) : null; } catch { return null; }
   }, [cfg]);
+  const design = parsed?.cfg ?? null;
+  // Logos and text ride to 3D as decals, front and back, the same shape the Studio passes.
+  const overlays = useMemo(() => (parsed ? { front: parsed.frontOverlays, back: parsed.backOverlays } : null), [parsed]);
   const garment = design?.garment ?? cfg?.garmentType ?? null;
   const fam = familyFor(garment);
-  const can3D = !!(design && fam && has3DFor(design) && hasWebGL());
+  const can3D = !!(design && fam && has3DFor(design) && hasWebGL()) && !lost;
   // Opened from a photo whose family model is a different garment (NO_FAMILY_3D): the model exists but is withheld.
   const withheld = !!(design && fam && !can3D && has3DModel(design.garment, design.sleeve, design.fit));
   const approx = fam?.status3D === 'partial';
@@ -56,16 +64,31 @@ export default function DesignPreview({ cfg, previewUrl = null, referenceImageUr
           <button type="button" style={tab(view === '3d')} aria-pressed={view === '3d'} onClick={() => setView('3d')}>{approx ? '3D (approx.)' : '3D'}</button>
         </div>
       )}
+      {lost && <p className="ds-note" style={{ marginTop: 0 }}>3D stopped (graphics context lost). Showing 2D.</p>}
       {view === '3d' && can3D ? (
         <Boundary resetKey={view} fallback={<>{flat}<p className="ds-note" style={{ marginTop: 6 }}>3D could not load. Showing 2D.</p></>}>
           <div style={{ ...box(height), background: 'var(--bg-surface)' }}>
             <Suspense fallback={<p style={{ fontSize: 12, color: 'var(--text-faint)' }}>Loading 3D…</p>}>
-              <div style={{ width: '100%', height: '100%' }}><Scene3D cfg={design}/></div>
+              <div style={{ width: '100%', height: '100%' }}><Scene3D cfg={design} overlays={overlays} turntable={spin} captureRef={capture} onContextLost={() => setLost(true)}/></div>
             </Suspense>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8, alignItems: 'center' }}>
+            <button type="button" style={tab(spin)} aria-pressed={spin} onClick={() => setSpin(x => !x)}>{spin ? 'Stop turntable' : 'Turntable'}</button>
+            {onSnapshot && (
+              <button type="button" style={tab(false)} onClick={() => { const png = capture.current?.(); if (png?.startsWith('data:image/png')) onSnapshot(png); }}>
+                {snapshot ? 'Retake 3D snapshot' : 'Save 3D snapshot'}
+              </button>
+            )}
+            {snapshot && <img src={snapshot} alt="Saved 3D snapshot" style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 8, background: 'var(--bg-surface-2, rgba(15,23,42,.07))' }}/>}
           </div>
           {note && <p style={{ fontSize: 11, color: '#b45309', margin: '6px 0 0' }}>{note}</p>}
         </Boundary>
       ) : <>{flat}{no3DNote && <p className="ds-note" style={{ marginTop: 6 }}>{no3DNote}</p>}</>}
+      {snapshot && !onSnapshot && (
+        <a href={snapshot} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minHeight: 44, marginTop: 8, fontSize: 13, fontWeight: 600, color: 'var(--teal, #028090)' }}>
+          <img src={snapshot} alt="" style={{ width: 40, height: 40, objectFit: 'contain', borderRadius: 6, background: 'var(--bg-surface)' }}/>3D snapshot (approx.)
+        </a>
+      )}
     </div>
   );
 }
