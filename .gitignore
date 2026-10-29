@@ -33,3 +33,6 @@ CLAUDE.md
 docs/qa/
 .vercel
 .env*
+
+# flat-from-glb intermediate masks
+tools/out/

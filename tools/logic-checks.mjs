@@ -21,6 +21,8 @@ const base = { category: 'School Uniform', garment: 'Polo Shirt', sleeve: 'Short
   const u = H.stepHistory(h, -1), r = u && H.stepHistory(u.history, 1);
   t('history: undo then redo returns the same snapshots; nothing past either end', u.snapshot.join() === 'a' && r.snapshot.join() === 'a,b' && H.stepHistory(H.emptyHistory(), -1) === null && H.stepHistory(h, 1) === null);
   t('history: a new step after an undo drops the redo branch; the stack is capped', (x => x.stack.length === 3 && !H.canStep(x, 1))(H.pushStep(u.history, ['c'])) && Array.from({ length: 60 }).reduce(x => H.pushStep(x, []), H.emptyHistory()).stack.length === H.HISTORY_LIMIT);
+  const fm = H.pushStep(h, ['x']), fd = H.pushStep(H.pushStep(H.pushStep(fm, ['x', 'y']), ['x', 'y', 'z']), ['x', 'y', 'z', 'w']), fo = H.foldSince(fd, fm);
+  t('history: an applied AI preview folds into exactly one undo step back to the mark', fo.stack.length === fm.stack.length + 1 && H.stepHistory(fo, -1).snapshot === fm.stack[fm.idx] && fo.stack[fo.idx].join() === 'x,y,z,w' && H.foldSince(fm, fm) === fm && H.foldSince(fd, H.emptyHistory()) === fd);
   const f = H.switchSide({}, 'front', h, 'back', ['logo']), b = H.switchSide(f.parked, 'back', H.pushStep(f.history, ['logo', 'text']), 'front', []);
   t('history: switching sides parks one history and resumes the other (front keeps its undo, back starts at what loaded)', f.history.stack.length === 1 && f.history.stack[0].join() === 'logo' && b.history === h && H.canStep(b.history, -1) && b.parked.back.stack.length === 2 && !('front' in b.parked));
   const lk = (g, body, pat = 'solid') => H.lookOf({ garment: g, sleeve: 'Short', fit: null, colors: { body }, patterns: { body: pat } });
@@ -30,16 +32,16 @@ const base = { category: 'School Uniform', garment: 'Polo Shirt', sleeve: 'Short
   t('history: colour and pattern changes are undo steps, and undo paints the previous look back', lh.stack.length === 3 && H.sameLook(H.lookToApply(lu.snapshot, lh.stack[2].look), lk('Polo Shirt', '#ff0000')) && H.syncLook(lh, lk('Polo Shirt', '#ff0000', 'hstripes')) === lh);
   const rekey = H.syncLook(lh, lk('Scrub Top', '#00ff00'));
   t('history: a garment change re-keys the entry (no step), and undo never paints one garment’s colours onto another', rekey.stack.length === 3 && rekey.stack[2].look.k.startsWith('Scrub Top') && H.lookToApply(lh.stack[1], rekey.stack[2].look) === null);
-  t('save status: only an account save reads "Saved"; a browser-only copy, failures and unsaved edits each read differently',
+  t('save status: only an account save reads "Saved"; a browser-only copy, failures and unsaved edits each read differently; there is always a state (never blank)',
     SS({ auto: 'saved' }).short === 'Saved' && SS({ saved: true }).short === 'This device' && SS({ saveErr: 'local', auto: 'saved' }).tone === 'err' && SS({ saveErr: 'none' }).short === 'Not saved'
-    && SS({ auto: 'dirty' }).short === 'Unsaved' && SS({ auto: 'saving' }).tone === 'busy' && SS({ saving: true, saveErr: 'none' }).tone === 'busy' && SS({}) === null);
+    && SS({ auto: 'dirty' }).short === 'Unsaved' && SS({ auto: 'saving' }).tone === 'busy' && SS({ saving: true, saveErr: 'none' }).tone === 'busy' && SS({}).short === 'Unsaved');
 }
 t('pants null sleeve/fit', (c => c.sleeve === null && c.fit === null)(G.applyGarment(base, 'Pants')));
 t('Pants 2D has no photo base; a selected valid pattern is supported by its vector design', !A.assetFor('Pants', null, 'front') && Sh.pattern3D('Pants', null, null, 'body', 'hstripes') === true);
 t('switching to a pattern-free photo base clears saved pattern and slider state', (c => Object.keys(c.patterns).length === 0 && Object.keys(c.patternParams).length === 0 && !!A.assetFor(c.garment, c.sleeve, 'front', c.fit))(G.applyGarment({ ...base, patterns: { body: 'hstripes' }, patternParams: { body: { width: 6, spacing: 8 } } }, 'Scrub Top')));
 t('photo-base stale patterns are removed on Save and Reload', (() => { const photo = G.applyGarment(base, 'Scrub Top'); const raw = S.serializeDesign({ ...photo, patterns: { body: 'hstripes' }, patternParams: { body: { width: 6 } } }); const loaded = S.deserializeDesign(JSON.parse(JSON.stringify(raw))); return raw.patterns.body === 'solid' && loaded.cfg.patterns.body === 'solid' && Object.keys(loaded.cfg.patternParams).length === 0; })());
 t('Pants pattern and color survive Save -> Reload -> Order Wizard snapshot', (() => { const cfg = { ...G.applyGarment(base, 'Pants'), colors: { body: '#274c77' }, patterns: { body: 'hstripes' }, patternParams: { body: { width: 6, spacing: 8 } } }; const saved = S.serializeDesign(cfg, {}); const loaded = S.deserializeDesign(JSON.parse(JSON.stringify(saved))); const order = S.serializeDesign(loaded.cfg ?? loaded, {}); return loaded.cfg.garment === 'Pants' && loaded.cfg.colors.body === '#274c77' && loaded.cfg.patterns.body === 'hstripes' && loaded.cfg.patternParams.body.width === 6 && order.patterns.body === 'hstripes'; })());
-t('polo forced Short', G.applyGarment({ ...base, sleeve: 'Long' }, 'Polo Shirt').sleeve === 'Short');
+t('polo keeps Short and Long (Long is 2D only); a sleeve it does not offer falls back to Short', G.applyGarment({ ...base, sleeve: 'Long' }, 'Polo Shirt').sleeve === 'Long' && G.applyGarment({ ...base, sleeve: '3/4' }, 'Polo Shirt').sleeve === 'Short');
 const E0 = id => D.ENTRIES.find(d => d.id === id);
 t('gallery = 39 photos only (19 original; Pleated Bib Blouse retired 2026-10-16 + 15 worn cutouts + 5 v3 product photos)', D.ENTRIES.length === 39 && D.ENTRIES.every(d => d.kind === 'photo') && D.ENTRIES.filter(d => d.source === 'worn').length === 15 && D.ENTRIES.filter(d => d.source === 'product').length === 5);
 t('no template names as entries', !D.ENTRIES.some(d => ['Polo Shirt', 'Pants', 'Shorts', 'Skirt', 'Round Neck', 'Button-Down'].includes(d.name)));
@@ -64,7 +66,7 @@ t('mandarin fits: female (tunic and BIR photo bases) and male (polka-dot shirt m
 t('housekeeping photo opens Mandarin Collar Short', (g => g?.garment === 'Mandarin Collar' && g.sleeve === 'Short')(D.openTarget(D.ENTRIES.find(d => d.id === 'scrub-set-housekeeping'), {})));
 const E = id => D.ENTRIES.find(d => d.id === id);
 t('housekeeping photo lands on the housekeeping asset', (g => A.assetFor(g.garment, g.sleeve, 'front', g.fit)?.id === 'mandarin-tunic-housekeeping')(D.openTarget(E('scrub-set-housekeeping'), {})));
-t('yellow mandarin blouse opens its own derived Mandarin Blouse (never the housekeeping tunic base)', (o => o?.garment === 'Mandarin Blouse' && !A.assetFor(o.garment, o.sleeve, 'front', o.fit))(D.openTarget(E('blouse-mandarin-yellow'), {})) && E('blouse-mandarin-yellow').tier === '2d-3d-approx');
+t('yellow mandarin blouse opens its own traced Mandarin Blouse (Reference) (never the housekeeping tunic base)', (o => o?.garment === 'Mandarin Blouse (Reference)' && !A.assetFor(o.garment, o.sleeve, 'front', o.fit))(D.openTarget(E('blouse-mandarin-yellow'), {})) && E('blouse-mandarin-yellow').tier === '2d-3d-approx');
 t('polka-dot mandarin shirt opens Mandarin Collar / Long / male (vector template, its own model), never the female BIR blouse base', (o => o?.garment === 'Mandarin Collar' && o.sleeve === 'Long' && o.fit === 'male')(D.openTarget(E('shirt-mandarin-polkadot'), {})) && E('shirt-mandarin-polkadot').tier === '2d-3d-approx' && E('shirt-mandarin-polkadot').glb === '/models/vfrb-staged/shirt-mandarin-long-male.glb' && !E('shirt-mandarin-polkadot').exactBase);
 t('women scrub photo -> women asset', (g => A.assetFor(g.garment, g.sleeve, 'front', g.fit)?.id === 'scrub-top-women-short')(D.openTarget(E('scrub-set-women-vneck'), {})));
 t('men scrub photo -> men asset', (g => g.fit === 'male' && A.assetFor(g.garment, g.sleeve, 'front', g.fit)?.id === 'scrub-top-men-short')(D.openTarget(E('scrub-set-men-vneck'), {})));
@@ -174,6 +176,17 @@ t('switching garment drops the photo id; a mismatched or unknown photo id is nev
   t('a piece in the wrong role is dropped, a one-piece set is not orderable', U.normalizeSet({ id: 'x', active: 'top', pieces: { top: bot, bottom: top } }).pieces.top === null && U.orderQueue(U.withSet(bot, { id: 'x', active: 'bottom', pieces: { top: null, bottom: null } })) === null && U.normalizeSet({ id: 1, active: 'top' }) === null);
   t('set survives Save -> Reload (deserialize ignores it, normalize restores it)', (() => { const raw = JSON.parse(JSON.stringify(snap)); const d = S.deserializeDesign(raw); const set = U.normalizeSet(raw.uniformSet); return d.cfg.garment === 'Pants' && set.active === 'bottom' && set.pieces.top.garment === 'Polo Shirt'; })());
   t('set orders group by set id, top first, string or parsed studio_config, single order stays alone', (() => { const a = { order_id: 7, studio_config: JSON.stringify({ uniformSet: { id: 's9', role: 'bottom' } }) }, b = { order_id: 6, studio_config: { uniformSet: { id: 's9', role: 'top' } } }, c = { order_id: 5, studio_config: '{"uniformSet":{"id":"zz","role":"top"}}' }, d = { order_id: 4, studio_config: null }; const g = U.setOrders(a, [d, c, b, a]); return g.map(o => o.order_id).join() === '6,7' && U.setOrders(d, [a, b]).length === 1 && U.setOrders(c, [{ order_id: 3, studio_config: 'bad{' }]).length === 1; })());
+  { const W = await L('/src/pages/client/order-wizard/orderForm.js'), day = new Date(2026, 9, 26);
+    const base = { ...W.INIT, garment_type: 'Polo Shirt', color: 'Navy', fabric_type: 'Cotton', delivery_address: 'Quezon City', client_design_notes: 'Navy polo with a left chest logo' };
+    const one = W.orderFields({ ...base, sizes: { M: 60, L: 40 } }, null);
+    t('wizard: a single-piece order posts the size total as quantity and drops empty fields', one.quantity_ordered === 100 && one.sizes === '{"M":60,"L":40}' && one.order_type === 'direct' && !('studio_config' in one) && !('preferred_date' in one) && !('measurements' in one));
+    const cu = W.orderFields({ ...base, sizing_type: 'custom', custom_qty: '120', measurements: { chest: '40', waist: '' } }, null);
+    t('wizard: custom measurements use the backend column keys, in inches, and say so to VFRB', cu.measurements === '{"chest":40}' && cu.custom_qty === 120 && cu.quantity_ordered === 120 && /in inches/.test(cu.special_notes) && !('sizes' in cu));
+    t('wizard: an upload-only order needs a file, a garment and a description; a Studio design needs nothing re-entered', Object.keys(W.validateStep(0, { ...W.INIT }, null)).join() === 'garment_type,design_ref_file,client_design_notes' && !Object.keys(W.validateStep(0, { ...base, design_ref_file: {} }, null)).length && !Object.keys(W.validateStep(0, { ...W.INIT }, { garment: 'Polo Shirt' })).length);
+    t('wizard: the preferred date is optional but never under a week out; a Studio colour skips the colour field', !W.validateStep(2, base, null, day).deadline && W.validateStep(2, { ...base, deadline: '2026-10-30' }, null, day).deadline && !W.validateStep(2, { ...base, deadline: '2026-11-02' }, null, day).deadline && !W.validateStep(1, { ...W.INIT, sizes: { M: 100 } }, { colors: { body: '#000' } }).color);
+    const pf = W.prefillFrom({ garment: 'Polo Shirt', sleeve: 'Short', colors: { body: '#1B2A4A' }, category: 'School Uniform' });
+    t('wizard: a Studio design prefills garment, implied collar, sleeve, colour and a description that clears the 15-character rule', pf.garment_type === 'Polo Shirt' && pf.collar_type === 'Polo Collar' && pf.sleeve_type === 'Short Sleeve' && pf.color === 'Navy Blue' && pf.client_design_notes.length >= 15);
+    t('wizard: bottoms are told apart by set role first, then by name', W.garmentKind('Pants') === 'bottoms' && W.garmentKind('Polo Shirt') === 'tops' && W.garmentKind('Shorts', 'top') === 'tops' && W.garmentKind('Blouse', 'bottom') === 'bottoms'); }
   { const Q = await L('/src/utils/orderQuantity.js');
     t('order quantity = size total (custom: piece count); minimum 100 shown as pieces still needed', Q.orderQty({ sizing_type: 'standard', sizes: { S: 40, M: '35', XL: 0 } }) === 75 && Q.qtyShort({ sizes: { S: 40, M: 35 } }) === 25 && Q.qtyShort({ sizes: { M: 100 } }) === 0 && Q.orderQty({ sizing_type: 'custom', custom_qty: '120', sizes: { M: 5 } }) === 120 && Q.qtyShort({}) === 100); }
   t('Apply to Both: colours and patterns copy only into zones the other garment has, no patterns onto a photo base', (() => { const snap = { garment: 'Pants', colors: { body: '#111111', waistband: '#222222' }, patterns: {}, patternParams: {} }; const cfg = { colors: { body: '#aa0000', collar: '#00aa00' }, patterns: { body: 'hstripes', collar: 'dots' }, patternParams: { body: { width: 6 } } }; const m = U.mirrorStyle(snap, cfg, ['body', 'waistband'], true), p = U.mirrorStyle(snap, cfg, ['body'], false); return m.colors.body === '#aa0000' && m.colors.waistband === '#222222' && !('collar' in m.colors) && m.patterns.body === 'hstripes' && !('collar' in m.patterns) && m.patternParams.body.width === 6 && p.colors.body === '#aa0000' && Object.keys(p.patterns).length === 0 && snap.colors.body === '#111111'; })());
@@ -373,7 +386,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const literals = files.flatMap(f => [...fsx.readFileSync(f, 'utf8').matchAll(/z-?[iI]ndex\s*:\s*'?(\d+)/g)].filter(m => +m[1] >= 10).map(m => `${f.split(/[\\/]/).pop()}:${m[1]}`));
   t('Studio overlays use the z-index tokens: no literal z-index of 10 or more in Studio files', literals.length === 0);
   const styles = src('../src/pages/client/design-studio/DesignStudioStyles.jsx');
-  t('Studio bar, draft strip, sheet and toast sit on their token levels', [/\.ds-bar\{[^}]*z-index:var\(--cx-z-bar\)/, /\.ds-draft\{[^}]*z-index:var\(--cx-z-banner\)/, /\.ds-panel\{position:fixed[^}]*z-index:var\(--cx-z-sheet\)/, /\.ds-toast\{[^}]*z-index:var\(--cx-z-popover\)/].every(r => r.test(styles)));
+  t('Studio bar, draft strip and toast sit on their token levels; the phone bottom nav is in the page flow', [/\.ds-bar\{[^}]*z-index:var\(--cx-z-bar\)/, /\.ds-draft\{[^}]*z-index:var\(--cx-z-banner\)/, /\.ds-bnav\{display:grid;flex:none;/, /\.ds-toast\{[^}]*z-index:var\(--cx-z-popover\)/].every(r => r.test(styles)));
   const studio = files.map(f => [f.split(/[\\/]/).pop(), fsx.readFileSync(f, 'utf8')]);
   const toggles = studio.filter(([, s]) => /\[\s*'2d'\s*,\s*'3d'\s*\]\.map/.test(s)).map(([n]) => n);
   t('exactly one 2D/3D toggle (TopBar); the inspector has no duplicate Preview toggle', toggles.length === 1 && toggles[0] === 'TopBar.jsx' && !/Preview mode/.test(src('../src/pages/client/design-studio/TypePanel.jsx')));
@@ -399,14 +412,23 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const undoUi = all.filter(([f, s]) => f !== 'TopBar.jsx' && /Undo2|Redo2|aria-label="(Undo|Redo)"|onClick=\{(history\.)?(undo|redo)\}/.test(s)).map(([f]) => f);
   t('undo/redo controls exist only in the top bar', undoUi.length === 0 && /aria-label="Undo"/.test(get('TopBar.jsx')) && /aria-label="Redo"/.test(get('TopBar.jsx')));
   const drawer = get('ToolDrawer.jsx');
-  t('rail tools are disabled (aria-disabled, "Choose a garment first") and inert until a garment exists',
-    /const noGarment = !p\.cfg\.garment/.test(drawer) && /aria-disabled=\{noGarment \|\| undefined\}/.test(drawer) && /title=\{noGarment \? 'Choose a garment first'/.test(drawer) && /const pick = id => \{\s*if \(noGarment\) return;/.test(drawer)
-    && /\.ds-tool-btn\[aria-disabled=true\]\{opacity:\.45;cursor:not-allowed;\}/.test(get('DesignStudioStyles.jsx')));
-  t('Layers live in one section: the rail tile focuses it; no second Layers panel', !/layers:\s*\(\)\s*=>/.test(drawer) && /if \(id === 'layers'\) return focusLayers\(\)/.test(drawer) && (drawer.match(/<LayersPanel\b/g) ?? []).length === 1);
-  t('each fact once: no category pill in the top bar; the dock carries category and 3D status; no "No garment yet" row', !/ds-bar-cat|cfg\.category/.test(get('TopBar.jsx')) && /ds-dock-sub/.test(get('StudioDock.jsx')) && !/No garment yet|Choose one/.test(get('StudioDock.jsx')));
+  t('tabs and the Pieces rail appear only once a garment exists (the panel says to choose one first)',
+    /const noGarment = !p\.cfg\.garment/.test(drawer) && /\{!noGarment && \(\s*<nav className="ds-tabs"/.test(drawer) && /Choose a garment on the canvas to start designing\./.test(drawer)
+    && /if \(!cfg\.garment\) return null;/.test(get('PiecesRail.jsx')));
+  const SH = await L('/src/pages/client/design-studio/dsShared.js');
+  t('six labelled tabs on desktop (Garment, Colour, Details, Logo, Layers, Ask AI): every tool belongs to exactly one tab, Layers is a real tab, Draw sits in Logo & text; phones and tablets: Garment, Colours, Logo, Layers, More (Details, Ask AI, View, Save a copy)',
+    SH.TABS.map(t => t.label).join('|') === 'Garment|Colours|Details|Logo & text|Layers|Ask AI'
+    && SH.TOOLS.filter(t => t.id !== 'selected').every(t => SH.TABS.filter(x => x.tools.includes(t.id)).length === 1)
+    && SH.tabOf('draw').id === 'logotext' && SH.tabOf('pattern').id === 'color' && /layers:\s*\(\)\s*=>/.test(drawer) && (drawer.match(/<LayersPanel\b/g) ?? []).length === 1
+    && !/sr-only|toggleMore/.test(drawer) && /<span>\{SHORT\[t\.id\] \?\? t\.label\}<\/span>/.test(drawer)
+    && /const NAV = \['type', 'color', 'logotext', 'layers'\];/.test(drawer) && /className="ds-more"/.test(drawer) && /<span>More<\/span>/.test(drawer));
+  const bar = get('TopBar.jsx'), dsx = fsx.readFileSync(urlx.fileURLToPath(new URL('../src/pages/client/DesignStudio.jsx', import.meta.url)), 'utf8');
+  t('top bar holds the one primary action: Review & order (Review on phones), Reorder when final; Save, export and the save state live there; no dock, no inline lock banner',
+    /'Review & order'/.test(bar) && /className="ds-bar-primary" onClick=\{onReorder\}/.test(bar) && /onClick=\{saveDesign\}/.test(bar) && /Export PDF spec sheet/.test(bar)
+    && !/<StudioDock/.test(get('ToolDrawer.jsx')) && !/FINAL DESIGN/.test(dsx) && /<PiecesRail /.test(dsx) && !/ds-bar-cat|cfg\.category/.test(bar));
   const CATd = await L('/src/pages/client/design-studio/garmentCatalog.js');
   t('dock 3D status matches the garment cards: an unverified "supported" model reads "3D (approx.)", plain "3D" only with a verification record',
-    /fam\?\.status3D === 'supported' && !fam\.verified3D \? 'partial' : fam\?\.status3D/.test(get('StudioDock.jsx'))
+    /\{label3D\(cfg\)\}/.test(get('TopBar.jsx')) && !/Approx\. 3D</.test(get('TopBar.jsx'))
     && ['Pants', 'Jogger Scrub Pants', 'Custom Skirt'].every(g => { const f = CATd.familyFor(g); return f && f.status3D !== 'none' && !f.verified3D; }));
 }
 // Studio visual quality: photo bases never above native resolution; a new design starts with one base colour.
@@ -418,7 +440,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   // On-screen size of the photo = native x in-canvas scale x viewport scale; at the cap that is exactly native or less, for every base.
   t('every photo base is capped at 1:1 on screen (in-canvas scale x max viewport scale <= 1)', bases.length >= 6 && bases.every(({ a, art }) => V.inCanvasScale(a, art) * V.photoMaxScale(a, art) <= 1 + 1e-9) && V.photoMaxScale(null, { w: 320, h: 380 }) === Infinity);
   const cv = fsx.readFileSync(urlx.fileURLToPath(new URL('../src/pages/client/design-studio/CanvasViewport.jsx', import.meta.url)), 'utf8');
-  t('the viewport applies the photo cap to fit x zoom and disables zoom-in at it', /const cap = photoMaxScale\(photo, canvasSize\)/.test(cv) && /const base = Math\.min\(fit, cap\)/.test(cv) && /const scale = Math\.min\(zoom \* base, cap\)/.test(cv) && /aria-label="Zoom in" disabled=\{atCap\}/.test(cv));
+  t('the viewport applies the photo cap to fit x zoom and disables zoom-in at it', /const cap = photoMaxScale\(photo, canvasSize\)/.test(cv) && /const base = Math\.min\(fit, cap\)/.test(cv) && /const scale = Math\.min\(zoom \* base, cap\)/.test(cv) && /ctrl\('Zoom in'[^]*?disabled: atCap/.test(cv));
   // Runtime anti-aliasing of the cut-out edge: alpha only ever drops, transparent stays transparent, the interior stays opaque.
   const w = 6, h = 6, px = new Uint8ClampedArray(w * h * 4);
   for (let y = 1; y < 5; y++) for (let x = 1; x < 5; x++) px[(y * w + x) * 4 + 3] = 255;
@@ -431,6 +453,8 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const S2 = await L('/src/pages/client/design-studio/designSerialization.js');
   const one = c => ['collar', 'sleeve', 'pocket'].every(z => c[z] === c.body);
   t('a new design starts with one base colour on every zone', one(S2.DEFAULT_CFG.colors) && one(C.startColors('#800000')) && one(S2.deserializeDesign(null).cfg.colors));
+  const pickNew = (pick) => { let st = { ...S2.DEFAULT_CFG, colors: { ...C.startColors('#1B2A4A'), sleeve: '#CC0000', collar: '#CC0000' } }; SG.selectFamily(fn => { st = fn(st); }, G2.familyFor('Polo Shirt'), null, pick); return st.colors; };
+  t('picking the first garment starts single-colour (body colour on every zone, carousel colour included), never the previous sleeves', one(pickNew()) && pickNew().body === '#1B2A4A' && one(pickNew({ bodyColor: '#274C77' })) && pickNew({ bodyColor: '#274C77' }).sleeve === '#274C77');
   const fresh = { ...S2.DEFAULT_CFG, colors: { ...S2.DEFAULT_CFG.colors } };
   const polo = G2.applyGarment(fresh, 'Polo Shirt');
   const tunic = G2.applyGarment(fresh, 'Mandarin Collar', { sleeve: 'Short', fit: 'female' });
@@ -439,6 +463,9 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     one(polo.colors) && !!realTrim && tunic.colors.collar === realTrim && one(G2.applyGarment(tunic, 'Polo Shirt').colors) && C.realTrimFor('Polo Shirt', 'Short', 'male') === null);
   const moved = C.withBody({ body: '#111111', collar: '#111111', sleeve: '#111111', pocket: '#ffffff' }, '#800000');
   t('a new base colour moves the zones that follow it, not a zone coloured on purpose', moved.collar === '#800000' && moved.sleeve === '#800000' && moved.pocket === '#ffffff');
+  const PCo = await L('/src/pages/client/design-studio/photoColours.js');
+  const fromPhoto = PCo.withPhotoColour(C.startColors('#1B2A4A'), 'polo-red-claremont'), trimmed = PCo.withPhotoColour(C.startColors('#1B2A4A', '#ffffff'), 'polo-red-claremont');
+  t('"Use as template": the photo colour reaches the pocket and a following collar; a real trim stays', fromPhoto.pocket === '#AD0C2C' && fromPhoto.collar === '#AD0C2C' && fromPhoto.sleeve === '#AD0C2C' && trimmed.collar === '#ffffff' && trimmed.pocket === '#AD0C2C');
 }
 // Stage lanes, picker, phone first run, 3D honesty and 3D colour calibration.
 {
@@ -446,14 +473,14 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const cv = src('../src/pages/client/design-studio/CanvasViewport.jsx'), css = src('../src/pages/client/design-studio/DesignStudioStyles.jsx');
   // Lane contract: chip, set bar, guides and 3D notes are in the top lane; zoom, Front/Back and the stage light in the bottom lane; the panes sit in the fit area between.
   const at = k => cv.indexOf(k), top = at('className="ds-lane ds-lane-top"'), fit = at('className="ds-stage-fit"'), bot = at('className="ds-lane ds-lane-bottom"');
-  const inTop = ['<GuidesMenu ', 'className="ds-ctx-chip"', 'className="ds-set-wrap"', 'className="ds-stage-note"'].every(k => at(k) > top && at(k) < fit);
+  const inTop = ['<GuidesMenu ', 'className="ds-stage-note"'].every(k => at(k) > top && at(k) < fit) && !/\{stageBtn\}|className="ds-ctx-chip"/.test(cv);
   const inFit = [...cv.matchAll(/className="ds-pane"/g)].every(m => m.index > fit && m.index < bot);
-  const inBot = ['className="ds-bottombar"', 'className="ds-stage-hint"', 'aria-label="Zoom"'].every(k => at(k) > bot) && at('{stageBtn}') > bot;
+  const inBot = ['className="ds-ctrlbar"', 'className="ds-stage-hint"', "ctrl('Zoom out'"].every(k => at(k) > bot);
   const rule = sel => (css.match(new RegExp(sel.replace(/[.[\]()]/g, '\\$&') + '\\{([^}]*)\\}')) ?? [])[1] ?? '';
-  const noOverlay = ['.ds-ctx-chip', '.ds-bottombar', '.ds-stage-note', '.ds-set-wrap', '.ds-stage-hint', '.ds-guides'].every(sel => !/position:absolute/.test(rule(sel)));
-  t('stage lane contract: top lane (chip, set bar, guides, 3D notes) and bottom lane (zoom, Front/Back, stage light) are outside the fit area that holds the garment panes; none of them is absolutely positioned over it',
+  const noOverlay = ['.ds-ctx-chip', '.ds-ctrlbar', '.ds-stage-note', '.ds-stage-hint', '.ds-guides'].every(sel => !/position:absolute/.test(rule(sel)));
+  t('stage lane contract: top lane (chip, guides, stage light, 3D notes) and bottom lane (stage bar, zoom level and hints) are outside the fit area that holds the garment panes; none of them is absolutely positioned over it',
     top > 0 && top < fit && fit < bot && inTop && inFit && inBot && noOverlay && /\.ds-stage-fit\{position:relative;flex:1;min-height:0;\}/.test(css) && /\.ds-pane\{position:absolute;inset:0;\}/.test(css) && /\.ds-cv\{[^}]*flex-direction:column/.test(css));
-  t('the garment is fitted into the area between the lanes (fit measures the pane, and the pane fills only that area)', /const byH = \(pane\.clientHeight \* STAGE_FILL/.test(cv) && cv.indexOf('ref={paneRef}') > fit && cv.indexOf('ref={paneRef}') < bot);
+  t('the garment is fitted to ~72% of the visible stage, never past the area between the lanes (fit is capped by the pane, and the pane fills only that area)', /STAGE_FILL = 0\.72/.test(cv) && /const byH = Math\.min\(stageH \* STAGE_FILL \/ share, pane\.clientHeight\)/.test(cv) && cv.indexOf('ref={paneRef}') > fit && cv.indexOf('ref={paneRef}') < bot);
   // Picker: sticky header (title + close) and sticky action footer; every card carries its badge and the key lists each badge shown.
   const gp = src('../src/pages/client/design-studio/GarmentPicker.jsx');
   t('picker header (title, close, tabs, badge key) and action footer stick to the scroll box; the close lives in the header, never over a card',
@@ -464,8 +491,8 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('top bar has no Inspo button and no overflow menu; Showcase is a direct button shown only with designs', !/<span>Inspo<|label: 'Inspo'|role="menu"|aria-haspopup/.test(tb) && /showcaseCount > 0 &&/.test(tb));
   // Phone first run: no sheet, no Save/Order, no stage light until a garment exists.
   const ds = src('../src/pages/client/DesignStudio.jsx');
-  t('phone first run hides the sheet and tool bar (the picker gets the full height) and the stage lanes (stage light) until a garment exists',
-    /data-first=\{!cfg\.garment \|\| undefined\}/.test(ds) && /\.ds\[data-first\] :is\(\.ds-strip,\.ds-panel\)\{display:none;\}/.test(css) && /\.ds\[data-first\]\{--ds-pad-b:0px;\}/.test(css)
+  t('phone first run hides the tabs and panel (the picker gets the full height) and the stage lanes (stage light) until a garment exists',
+    /data-first=\{!cfg\.garment \|\| undefined\}/.test(ds) && /\.ds\[data-first\] \.ds-panel\{display:none;\}/.test(css) && /\.ds\[data-first\] \.ds-cv\{flex:1;height:auto;\}/.test(css)
     && /\{cfg\.garment && \(\s*<div className="ds-lane ds-lane-bottom">/.test(cv) && !/inset:0 0 64px/.test(css));
   // Picker honesty: one sentence + chips; inspiration-only photos get a real path to existing editable garments, never an invented template.
   const P = await L('/src/pages/client/design-studio/GarmentPicker.jsx');
@@ -477,8 +504,8 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     refs.concat(D.ENTRIES.filter(d => d.editable2D)).every(d => (P.previewSentence(d).match(/[.!?](\s|$)/g) ?? []).length === 1 && P.previewChips(d).length >= 3) && /className="ds-pick-media" data-view=\{view3D\}/.test(gp) && /useState\('3d'\)/.test(gp) && !/Show 3D reference/.test(gp));
   // The phone "Editable (4)": a uniform set with the bottom active limits the photos to bottoms; the limit is now a visible, removable chip.
   const bottoms = D.ENTRIES.filter(d => d.base && G.pieceOf(d.base[1]) === 'bottom');
-  t('a uniform set limits the picker to its active piece (bottom = 4 editable photos of 40) and says so with a removable chip; templates default to All',
-    bottoms.length === 4 && bottoms.every(d => d.editable2D) && /<RoleChip /.test(gp) && /Remove filter:/.test(gp) && /useState\(ALL\)/.test(gp));
+  t('a uniform set limits the picker to its active piece (bottom = 4 editable photos of 40) and says so with a removable chip; templates default to All (or a landing tile\'s real category)',
+    bottoms.length === 4 && bottoms.every(d => d.editable2D) && /<RoleChip /.test(gp) && /Remove filter:/.test(gp) && /useState\(startCat \?\? ALL\)/.test(gp));
   // 3D honesty: a generic stand-in model is never served.
   const Cp2 = await L('/src/pages/client/design-studio/garmentCapabilities.js');
   const standInFiles = Cp2.STAND_IN_3D_MODELS.flatMap(x => Object.values(x.models));
@@ -498,13 +525,13 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     ex('Scrub Top', 'Short', 'unisex') && ex('Scrub Top', '3/4', 'unisex') && !ex('Scrub Top', 'Short', 'female') && !ex('Polo Shirt', 'Short', 'female') && !ex('Pants', null, 'unisex')
     && Object.values(LP).every(p => Math.abs(p.fill + p.key * p.keyPos[2] / Math.hypot(...p.keyPos) - 1) < 0.05) && LP.studio.fill === Lt.fill
     && /autoRotate=\{spin && !exploded\}/.test(s3) && /useState\(!CALM\)/.test(s3) && /CALM \? 1 :/.test(sg) && /e\.delta > 6/.test(sg)
-    && /const canExplode = explodableFor\(cfg\) && !\(showSet && setCompanion\?\.can3D\)/.test(cv3) && /onPickZone=\{canExplode \? pickZone : null\}/.test(cv3));
+    && /const canExplode = explodableFor\(cfg\);/.test(cv3) && /onPickZone=\{canExplode \? pickZone : null\}/.test(cv3));
   // The saved-design edit gate lets view-only stage controls (zoom, Fit, Front/Back, Explode, Lighting, Full screen, stage light) through.
   t('WebGL lost mid-session: the stage returns to 2D with a timed notice (the 3D lane keeps its own "not available" note)',
     /const on3DLost = \(\) => \{ setWebglOk\(false\); setViewMode\?\.\('2d'\); setLostNote\(true\); \};/.test(cv3) && /setTimeout\(\(\) => setLostNote\(false\), 8000\)/.test(cv3)
     && /: lostNote \? \[\{ id: 'gllost', text: '3D stopped working on this device\. Showing the 2D design\.', warn: true \}\] : \[\];/.test(cv3));
   t('saved-design edit gate: the stage controls bar is view-only and the gate skips [data-view-only] targets',
-    /className="ds-bottombar" role="group" aria-label="Stage controls" data-view-only>/.test(cv3) && /gateEdit = lock\?\.warn \? \(e\) => \{ if \(e\.target\.closest\?\.\('\[data-view-only\]'\)\) return;/.test(src('../src/pages/client/DesignStudio.jsx')));
+    /className="ds-ctrlbar" role="toolbar" aria-label="Stage controls" data-view-only>/.test(cv3) && /gateEdit = lock\?\.warn \? \(e\) => \{ if \(e\.target\.closest\?\.\('\[data-view-only\]'\)\) return;/.test(src('../src/pages/client/DesignStudio.jsx')));
 }
 // Canvas, grid, guides, alignment, navigation and eraser.
 {
@@ -559,7 +586,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     (hook.match(/plainObject\(o, OVERLAY_PROPS\)/g) ?? []).length === 1 && /const overlayJSON = canvas =>/.test(hook) && (hook.match(/overlayJSON\(/g) ?? []).length === 4 && !/o\.toObject\(OVERLAY_PROPS\)/.test(hook) && /export function plainObject/.test(layers) && /translateToGivenOrigin/.test(layers));
   // 8. Navigation: Fit (Ctrl+0), Space-drag pan, pinch zoom on touch, existing pan limits kept.
   t('navigation: Fit button and Ctrl+0, Space-drag pan kept, two-finger pinch zoom clamped to the zoom range, pan limits re-applied; a zone opens its colours on a tap, not on the first finger of a pinch',
-    /aria-label="Fit( to the stage)?"/.test(cv) && /e\.key === '0'/.test(cv) && /e\.code === 'Space'/.test(cv) && /setZoom\(clampZoom\(pinch\.current\.z \* dist\(\)/.test(cv) && /limits\.current = panLimits\(/.test(cv) && /clampPan\(/.test(cv)
+    /ctrl\('Fit', <Scan/.test(cv) && /e\.key === '0'/.test(cv) && /e\.code === 'Space'/.test(cv) && /setZoom\(clampZoom\(pinch\.current\.z \* dist\(\)/.test(cv) && /limits\.current = panLimits\(/.test(cv) && /clampPan\(/.test(cv)
     && /\.ds-pane\[data-garment\]\{touch-action:none;\}/.test(css) && /fc\.current\.on\('mouse:up', \(opt\) => \{\s*const t = tap; tap = null;/.test(hook));
   // 9. Eraser: customer strokes and uploaded art only, one undo step, holes move with the layer.
   const pts = CG.samplePath([['M', 0, 0], ['L', 10, 0], ['Q', 15, 0, 20, 0]], 2);
@@ -609,14 +636,18 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && /metricsPct\(active, garmentRect\)/.test(ins) && /`\$\{m\?\.n \?\? 2\} elements`/.test(ins) && /'X %'/.test(ins) && !/\b(cm|mm|inch|px)\b/.test(ins.match(/Position &amp; size[^<]*/)?.[0] ?? '') && /readoutPct\(ro\.obj, garmentBox\(c\)\)/.test(src('../src/pages/client/design-studio/useGarmentCanvas.js')));
   t('old guide prefs migrate: px sizes 10/20/40 become 5/10/20 % once (v2), and stay put after',
     CG.readGuidePrefs({ grid: true, size: 40 }).size === 20 && CG.readGuidePrefs({ size: 10 }).size === 5 && CG.readGuidePrefs({ v: 2, size: 5 }).size === 5 && CG.guideDefaults().v === 2);
-  // Phone stage space: one-row top lane, compact set switch, half sheet gives the tool body the room, export row closes on collapse.
-  const dock = src('../src/pages/client/design-studio/StudioDock.jsx');
-  t('phone/tablet stage space: one-row top lane (icon Guides with count, Top/Bottom/Set selector, one status badge that never truncates), ~30% half sheet with the active tool only, export row closes when the sheet collapses',
-    /\.ds-lane-top:not\(\[data-notes\]\)\{flex-wrap:nowrap;\}/.test(css) && /\.ds-guides-txt\{display:none;\}/.test(css) && !/text-overflow:ellipsis/.test(css.match(/\.ds-ctx-chip\{[^}]*\}/)?.[0] ?? 'text-overflow:ellipsis')
-    && /--ds-sheet-h:clamp\(12\.5rem,30dvh,17rem\)/.test(css) && /\.ds\[data-snap=half\] :is\(\.ds-dock,\.ds-under,\.ds-lane-bottom\)\{display:none;\}/.test(css)
-    && /if \(collapsed && window\.matchMedia\('\(max-width: 1023px\)'\)\.matches\) setExportOpen\(false\)/.test(dock) && /collapsed=\{!sheetOpen\}/.test(src('../src/pages/client/design-studio/ToolDrawer.jsx')));
+  // Phone/tablet layout: one fixed column (piece tabs for a set, stage, a sheet of <= 40% that folds to a handle, bottom nav); a stage bar of <= 5 labelled controls.
+  const cvx = src('../src/pages/client/design-studio/CanvasViewport.jsx'), tdx = src('../src/pages/client/design-studio/ToolDrawer.jsx');
+  const bar2D = cvx.slice(cvx.indexOf('{show2D ? (<>'), cvx.indexOf('</>) : (<>')), bar3D = cvx.slice(cvx.indexOf('</>) : (<>'), cvx.indexOf("ctrl(full ? 'Exit full screen'"));
+  t('phone/tablet layout: the stage fills the column, a sheet of at most 40% of the screen folds to a handle, five-item bottom nav; no snap states; stage bar of at most five labelled controls with hints outside it',
+    /\.ds-lane-top:not\(\[data-notes\]\)\{flex-wrap:nowrap;/.test(css) && !/text-overflow:ellipsis/.test(css.match(/\.ds-ctx-chip\{[^}]*\}/)?.[0] ?? 'text-overflow:ellipsis')
+    && /\.ds-cv\{flex:1 1 auto;min-height:0;\}/.test(css) && /\.ds-sheet\{display:flex;flex-direction:column;min-height:0;max-height:40dvh;/.test(css)
+    && /\.ds-sheet\[data-folded\]>:not\(\.ds-sheet-handle\)\{display:none;\}/.test(css) && /\.ds-bnav\{display:grid;flex:none;grid-template-columns:repeat\(5,/.test(css)
+    && !/data-snap|ds-grab|sheetOpen/.test(css + tdx)
+    && (bar2D.match(/ctrl\('/g) ?? []).length + 1 <= 5 && (bar3D.match(/ctrl\(/g) ?? []).length + 1 <= 5 && /className="ds-stage-hint"/.test(cvx) && !/ds-stage-hint[^]*?<\/div>\s*<\/div>\s*\)\}\s*$/.test('')
+    && !/<span className="sr-only">/.test(cvx));
   t('phone top lane wider than the screen (Guides + uniform set switch) scrolls from its start instead of centring past both edges: no Guides button off-screen',
-    /\.ds-lane-top:not\(\[data-notes\]\)\{justify-content:flex-start;overflow-x:auto;/.test(css) && /\.ds-lane-top:not\(\[data-notes\]\)>:first-child\{margin-left:auto;\}/.test(css) && /\.ds-lane-top:not\(\[data-notes\]\)>:last-child\{margin-right:auto;\}/.test(css));
+    /\.ds-lane-top:not\(\[data-notes\]\)\{[^}]*justify-content:flex-start;overflow-x:auto;/.test(css) && /\.ds-lane-top:not\(\[data-notes\]\)>:first-child\{margin-left:auto;\}/.test(css) && /\.ds-lane-top:not\(\[data-notes\]\)>:last-child\{margin-right:auto;\}/.test(css));
   // Guides panel: rendered at the Studio root; a modal dialog up to 1023px; on desktop capped to the stage and scrolling inside.
   t('Guides panel is rendered at the Studio root (above rulers and sheet): modal dialog with backdrop, close button and Escape up to 1023px; desktop popover capped to the stage height with internal scroll',
     /createPortal\(/.test(gm) && /aria-modal="true"/.test(gm) && /className="ds-guides-scrim"/.test(gm) && /className="ds-guides-close"/.test(gm) && /e\.key === 'Escape'/.test(gm) && /max-width: 1023px/.test(gm)
@@ -627,7 +658,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
 {
   const src = q => fsx.readFileSync(urlx.fileURLToPath(new URL(q, import.meta.url)), 'utf8');
   const UG = await L('/src/pages/client/design-studio/uploadGuard.js');
-  const ug = src('../src/pages/client/design-studio/uploadGuard.js'), up = src('../src/pages/client/design-studio/useLogoUpload.js'), wiz = src('../src/pages/client/OrderWizard.jsx');
+  const ug = src('../src/pages/client/design-studio/uploadGuard.js'), up = src('../src/pages/client/design-studio/useLogoUpload.js'), wiz = ['OrderWizard.jsx', 'order-wizard/WizardSteps.jsx', 'order-wizard/OrderSummary.jsx'].map(f => src(`../src/pages/client/${f}`)).join(' ');
   const B = a => Uint8Array.from(a);
   t('uploads are typed by their bytes (PNG, JPG, WEBP, SVG with prolog/comments/doctype); text, PDF or HTML named .png is rejected',
     UG.sniffBytes(B([0x89, 0x50, 0x4e, 0x47])) === 'png' && UG.sniffBytes(B([0xff, 0xd8, 0xff, 0xe0])) === 'jpg' && UG.sniffBytes(B([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50])) === 'webp'
@@ -642,11 +673,30 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     /processLogo\(prep\.file, \{ mode: method/.test(up) && /removeBg: removed/.test(up) && /phase: 'review'/.test(up) && /const tryAi = /.test(up) && /s\.removeBg && s\.cut/.test(up)
     && /import\('\.\/bgRemove'\)/.test(src('../src/lib/logoBackground.js')) && /Remove background/.test(src('../src/pages/client/design-studio/LogoAssets.jsx')));
   t('"Use as: artwork | reference photo": both accepted; a reference rides the order\'s existing design_ref_file field (no new field), within the server\'s JPG/PNG 5 MB rule',
-    /useAs === 'reference'/.test(up) && /setDesignRef\(ref\)/.test(up) && /design_ref_file: peekDesignRef\(\)/.test(wiz) && /fd\.append\('design_ref_file', f\.design_ref_file\)/.test(wiz)
-    && /maxBytes: 5 \* 1048576/.test(wiz) && /prep\.kind === 'jpg' \|\| prep\.kind === 'png'\) return prep\.original/.test(ug) && /\['Reference photo', form\.design_ref_file\.name\]/.test(wiz)
+    /useAs === 'reference'/.test(up) && /attachReference\(ref\)/.test(up) && /setDesignRef\(file\)/.test(up) && /const ref = peekDesignRef\(\)[\s\S]*design_ref_file: ref/.test(wiz) && /fd\.append\('design_ref_file', f\.design_ref_file\)/.test(wiz)
+    && /checkUpload\(f, rules\)/.test(wiz) && /prep\.kind === 'jpg' \|\| prep\.kind === 'png'\) return prep\.original/.test(ug) && /\['Reference', form\.design_ref_file\?\.name\]/.test(wiz)
     && /'studio_design_ref'/.test(src('../src/utils/studioHandoff.js')));
   t('first-run "Upload my design" is no longer cancelled by its own effect (the file is cleared only when its timer fires)',
     /setTimeout\(\(\) => \{ (artSetRef\.current\(\); )?setPendingArt\(null\); onLogoFileRef\.current\(pendingArt\); \}, 450\)/.test(src('../src/pages/client/DesignStudio.jsx')));
+  // Reference upload (server rule) and logo upload (zone, size cap, lazy background removal).
+  const FC = await L('/src/utils/fileCheck.js'), UR = await L('/src/utils/uploadRules.js');
+  const la = src('../src/pages/client/design-studio/LogoAssets.jsx'), rip = src('../src/pages/client/design-studio/RightInfoPanel.jsx');
+  const fakeFile = (bytes, name) => ({ name, size: bytes.length, slice: () => ({ arrayBuffer: async () => Uint8Array.from(bytes).buffer }) });
+  const refR = UR.toPickerRules(UR.REFERENCE_FALLBACK);
+  const exe = await FC.checkUpload(fakeFile([0x4d, 0x5a, 0x90, 0, 3, 0, 0, 0, 4, 0, 0, 0], 'logo.png'), refR);
+  const exeAsLogo = UG.sniffBytes(B([0x4d, 0x5a, 0x90, 0]), 'MZ');
+  t('executables are rejected by content whatever their name: a Windows .exe renamed logo.png fails the reference check and the logo/artwork sniff; a real PDF passes as a reference',
+    /whatever its name says/.test(exe) && exeAsLogo === null && await FC.checkUpload(fakeFile([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0, 0, 0, 0, 0, 0], 'brief.pdf'), refR) === '');
+  const php = fsx.readFileSync('C:/laragon/www/vfrb-capstone/app/Support/UploadRules.php', 'utf8');
+  t('reference types come from the server rule (App\\Support\\UploadRules, served at /api/customer/upload-rules); the fallback mirrors it; jpeg folds into jpg',
+    JSON.stringify(refR.kinds) === '["jpg","png","pdf"]' && refR.maxBytes === 5120 * 1024 && refR.label === 'JPG, PNG or PDF, up to 5 MB'
+    && /REFERENCE_MIMES = \['jpg', 'jpeg', 'png', 'pdf'\]/.test(php) && /REFERENCE_MAX_KB = 5120/.test(php)
+    && /\/api\/customer\/upload-rules/.test(src('../src/utils/uploadRules.js')) && /accept=\{rules\.accept\}/.test(wiz) && /refRules\.accept/.test(la));
+  t('Studio reference: its own kind, preview (image) or file tile (PDF), Remove and Replace; never placed on the garment',
+    /id: 'reference'/.test(la) && /function ReferenceCard/.test(la) && /onRemove=\{logo\.removeReference\}/.test(la) && /if \(kind === 'reference'\)[\s\S]*?attachReference\(file\);[\s\S]*?return;/.test(up));
+  t('logo upload: background removal fetched only when used; placed images capped in size so a save fits; a placed logo can be moved to a zone',
+    !/^import .*logoBackground/m.test(up) && /import\('\.\.\/\.\.\/\.\.\/lib\/logoBackground'\)/.test(up) && /fitForCanvas\(file, art \? 'artwork' : 'logo'\)/.test(up)
+    && UG.fitScale(4000, 2000, 1024) === 0.256 && UG.fitScale(500, 300, 1024) === 1 && /Move to zone/.test(rip) && /presetPos\(z\.id\)/.test(rip));
   // Reference and full-set 3D in the picker preview.
   const r3 = src('../src/pages/client/design-studio/ReferenceModel3D.jsx'), gp2 = src('../src/pages/client/design-studio/GarmentPicker.jsx');
   t('every gallery photo with a 3D reference (9, 2 of them full sets) shows it by default: one lazy Canvas, DPR capped, skeleton while loading, photo fallback, context released on close; label kept',
@@ -799,7 +849,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && Object.keys(RC.REF_SPLIT).every(r => { const pc = DF.derivedPiecesFor(r); return DF.NOT_PROMOTED[r] ? !pc : pc && CAT.pieceOf(pc.top) === 'top' && CAT.pieceOf(pc.bottom) === 'bottom'; }));
   t('one data table: every derived family is unique by name, in a constitution category (no Sports/PE), matched by exactly one capability entry (its own), labelled pending VFRB confirmation',
     new Set(DF.DERIVED_FAMILIES.map(d => d.name)).size === DF.DERIVED_FAMILIES.length && DF.DERIVED_FAMILIES.length === 7 && DF.DERIVED_FAMILIES.every(d => !DF.NOT_PROMOTED[d.ref])
-    && DF.DERIVED_FAMILIES.every(d => CAT.CATALOG.some(c => c.id === d.category && c.families.some(f => f.id === d.name)) && !/sport|pe\b/i.test(d.category))
+    && DF.DERIVED_FAMILIES.every(d => (DF.SUPERSEDED_DERIVED.has(d.id) ? !CAT.CATALOG.some(c => c.families.some(f => f.id === d.name)) && !!CAT.FAMILY_BY_NAME[d.name] : CAT.CATALOG.some(c => c.id === d.category && c.families.some(f => f.id === d.name))) && !/sport|pe\b/i.test(d.category))
     && DF.DERIVED_FAMILIES.every(d => { const m = CAP.SCANNED_GARMENTS.filter(x => x.match.test(d.name)); return d.no3D ? m.length === 0 : m.length === 1 && m[0].id === `derived-${d.id}` && m[0].approval === DF.DERIVED_APPROVAL && m[0].license === 'unknown (not recorded)'; })
     && DF.DERIVED_LABEL === 'Derived from reference, pending VFRB confirmation');
   t('derived 2D templates are real closed paths with one body zone (no collar, sleeve or pocket zone), a traced back only where it differs, and the shade layer',
@@ -924,7 +974,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('audit log: read-only GET /api/admin/audit-logs with action/date filters and pages; listed in the manager Admin group',
     /axios\.get\('\/api\/admin\/audit-logs'/.test(audit) && !/axios\.(post|put|patch|delete)/.test(audit)
     && ['params.action', 'params.date_from', 'params.date_to', 'page: target'].every(s => audit.includes(s))
-    && /\{ to:'\/admin\/audit-logs',\s+icon:ScrollText,\s+label:'Audit Log'/.test(lay));
+    && /\{ to:'\/admin\/audit-logs',\s+icon:ScrollText,\s+label:'Audit Log'/.test(rdo('../src/layouts/adminNav.js')));
   const dash = rdo('../src/pages/admin/Dashboard.jsx');
   t('owner dashboard: no revenue (snapshot or chart tab), no Total Orders, no RFQ/delivery requests, links only to owner pages',
     /!owner && \{ label: 'Total Orders'/.test(dash) && /!owner && \{ label: 'Revenue \(Month\)'/.test(dash) && /action=\{owner \? null : <PillTabs/.test(dash)
@@ -1096,7 +1146,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const svc = be('app/Services/ProductionStageService.php'), prod = be('app/Http/Controllers/Api/ProductionController.php'), qcc = be('app/Http/Controllers/Api/QCChecklistController.php'), act = be('app/Http/Controllers/Api/ActivityLogController.php');
   if (svc) {
     t('QC gate (backend): one rule for output logging and the manager override, latest checklist must have passed',
-      /public static function qcBlocked\(object \$order\): bool/.test(svc) && /return !\(\$latest && \$latest->passed\);/.test(svc) && /self::qcBlocked\(\$order\)/.test(svc)
+      /public static function qcBlocked\(object \$order\): bool/.test(svc) && /return ! ?\(\$latest && \$latest->passed\);/.test(svc) && /self::qcBlocked\(\$order\)/.test(svc)
       && /ProductionStageService::qcBlocked\(\$order\)/.test(prod) && !/function checkQCGate/.test(svc + prod));
     t('QC (backend): a passing checklist releases a held QC order once every QC piece is logged; history endpoint is read-only',
       /releaseQcHold\(\$orderId\)/.test(qcc) && /incompleteStages\(\$orderId, 'qc', true\)/.test(svc) && /public function index\(Request \$request\)/.test(qcc));
@@ -1132,10 +1182,11 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const lay = SS.setLayout2D({ garment: 'Polo Shirt', sleeve: 'Short' }, { garment: 'Pants' });
   t('2D set layout: one px-per-cm for both pieces, bottom waist tucked 10% of the top\'s length under its hem, pieces centred',
     !!lay && Math.abs((lay.extent.y1 - lay.extent.y0) - (70 + 100 - 7)) < 0.5 && Math.abs((lay.top.x + lay.top.w / 2) - (lay.bottom.x + lay.bottom.w / 2)) < 1e-9 && !lay.approx);
-  t('3D set: SetStack scales each piece to its real length (setScale) and tucks by the same SET_OVERLAP; 2D set view and rulers-off wired',
-    /realLength\(top\.garment/.test(src('src/pages/client/DesignStudio3D.jsx')) && /SET_OVERLAP - bb\.max\.y/.test(src('src/pages/client/DesignStudio3D.jsx'))
-    && /<SetView2D /.test(src('src/pages/client/design-studio/CanvasViewport.jsx')) && /!!garmentRect && !set2D/.test(src('src/pages/client/design-studio/CanvasViewport.jsx'))
-    && /companion=\{showSet && setCompanion\?\.can3D/.test(src('src/pages/client/design-studio/CanvasViewport.jsx')));
+  const cvp = src('src/pages/client/design-studio/CanvasViewport.jsx'), psel = src('src/pages/client/design-studio/PiecesRail.jsx');
+  t('set view is 2D only: 3D shows one piece at a time (no companion model), rulers step aside for the 2D set, the Set button is hidden in 3D, and a single garment shows only "Add a matching ..."',
+    /<SetView2D /.test(cvp) && /!!garmentRect && !set2D/.test(cvp) && /const set2D = showSet && !!setCompanion && viewMode !== '3d';/.test(cvp)
+    && !/companion=/.test(cvp) && !/needs a 3D model for both pieces/.test(cvp)
+    && /\{uset && setView && \(/.test(psel) && /if \(readOnly \|\| !role\) return null;/.test(psel) && /\{!uset && \(/.test(psel) && /Add a matching \{ROLE_LABEL\[/.test(psel));
   const fams = Object.values(CT.FAMILY_BY_NAME);
   t('details: a control exists only where the 2D template draws that part; photo bases and derived templates get none',
     fams.every(f => GD.detailsFor(f.id, f.styles[0] ?? 'Short').every(o => ['front', 'back'].some(face => { const p = GP.getGarmentPaths(f.id, f.styles[0] ?? 'Short', face); return o.id === 'patchPocket' ? !!p.pocket : p.details.some(d => d.part === o.id); })))
@@ -1148,9 +1199,9 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const DE = await L('/src/pages/client/design-studio/designEdits.js'), CT = await L('/src/pages/client/design-studio/garmentCatalog.js');
   const src = f => fsx.readFileSync(f, 'utf8'), BE = process.env.VFRB_BACKEND ?? 'C:/laragon/www/vfrb-capstone';
   const base = { garment: null, sleeve: null, fit: null, colors: { body: '#FFFFFF', collar: '#FFFFFF' }, patterns: {}, patternParams: {} };
-  const a = DE.briefToStart({ garmentType: 'Top', collarType: 'Polo Collar', sleeveType: 'Long Sleeve', category: 'School Uniform', colors: { body: '#1b2a4a', accent: '#ffffff' }, pattern: 'h-stripe', textContent: 'SMITH' }, base);
+  const a = DE.briefToStart({ garmentType: 'Top', collarType: 'Polo Collar', sleeveType: '3/4 Sleeve', category: 'School Uniform', colors: { body: '#1b2a4a', accent: '#ffffff' }, pattern: 'h-stripe', textContent: 'SMITH' }, base);
   t('AI from scratch: a brief maps to one real catalog template by fixed rules, an unoffered sleeve is corrected and said, ops are checked',
-    a.cfg.garment === 'Polo Shirt' && !!CT.FAMILY_BY_NAME[a.cfg.garment] && a.cfg.sleeve === 'Short' && a.notes.some(n => /Long Sleeve is not offered/.test(n))
+    a.cfg.garment === 'Polo Shirt' && !!CT.FAMILY_BY_NAME[a.cfg.garment] && a.cfg.sleeve === 'Short' && a.notes.some(n => /3\/4 Sleeve is not offered/.test(n))
     && a.ops.every(op => DE.checkEdit(op, DE.templateFacts(a.cfg), []) === '') && a.ops.some(op => op.op === 'add_text' && op.placement === 'left_chest'));
   const b = DE.briefToStart({ garmentType: 'Bottom', colors: { body: '#333333', accent: '#ff0000' }, textContent: '' }, base);
   t('AI from scratch: a bottom starts on Pants; an accent with no collar zone is reported, never forced onto another zone',
@@ -1163,9 +1214,14 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && DE.checkEdit({ op: 'move_text', target: 'gone', placement: 'left_chest' }, DE.templateFacts({ garment: 'Polo Shirt', sleeve: 'Short' }), []) === 'text no longer on the design'
     && DE.checkEdit({ op: 'resize_everything' }, {}, []) === 'unknown operation');
   const ds = src('src/pages/client/DesignStudio.jsx'), chat = src('src/pages/client/AIDesignChat.jsx'), drawer = src('src/pages/client/design-studio/ToolDrawer.jsx');
-  t('B5 preview and undo: preview re-checks every op against the template it lands on and snapshots design + overlays; undo restores both as one undoable step',
-    /checkEdit\(op, facts, ids\)/.test(ds) && /setAiPreview\(\{ cfg, canvas: getCanvasJSON\(\), result \}\)/.test(ds) && /setCfg\(aiPreview\.cfg\)/.test(ds)
-    && /loadCanvasJSON\(aiPreview\.canvas, \{ keepHistory: true \}\)/.test(ds) && /setTimeout\(pushHistory/.test(ds));
+  const FU = (await L('/src/components/site/content.js')).FIND_UNIFORM;
+  t('landing "Find your uniform": five tiles, each a real garmentCatalog category with garments; the picker ignores unknown ids',
+    FU.length === 5 && FU.every(([, c]) => G.CATALOG.find(x => x.id === c)?.families.length > 0)
+    && /CATALOG\.some\(x => x\.id === c\) \? c : null/.test(src('src/pages/client/design-studio/GarmentPicker.jsx')));
+  t('B5 preview: re-checks every op, snapshots design + overlays + history; Apply folds it into one undo step, Cancel restores all three and leaves no step',
+    /checkEdit\(op, facts, ids\)/.test(ds) && /setAiPreview\(\{ cfg, canvas: getCanvasJSON\(\), result, mark: markHistory\(\) \}\)/.test(ds) && /setCfg\(aiPreview\.cfg\)/.test(ds)
+    && /loadCanvasJSON\(aiPreview\.canvas, \{ keepHistory: true \}\)/.test(ds) && /settleHistory\(aiPreview\.mark, false\)/.test(ds) && /settleHistory\(aiPreview\?\.mark, true\)/.test(ds)
+    && /> Apply<\/button>/.test(chat) && /Couldn't suggest edits right now\. You can still edit by hand\./.test(chat));
   t('B5 3D: the preview is the one DesignState, so 3D shows it; "See it in 3D" only when a model exists, otherwise it says so',
     /view3D: viewAI3D, has3D: has3DFor\(cfg\)/.test(ds) && /No 3D model for this garment; the 2D design is the preview\./.test(chat));
   t('AI scope: one Studio AI panel of strict B5 operations; no free chat, no sizing, quantity, yardage or price prompts',
@@ -1266,7 +1322,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     /export const isGarmentZone = o => !!o\.__garmentBase && o\.visible !== false && typeof o\.__zoneKey === 'string'/.test(rd('../src/pages/client/design-studio/canvasLayers.js')) && /filter\(isGarmentZone\)/.test(rd('../src/pages/client/design-studio/canvasLayers.js')));
   const cv2 = rd('../src/pages/client/design-studio/CanvasViewport.jsx');
   t('full screen: the Fullscreen API on the Studio root with an app-level expanded fallback, the view restored on exit, a labelled toggle; Fit has its own icon',
-    /el\.requestFullscreen\(\{ navigationUI: 'hide' \}\)/.test(cv2) && /setFull\('app'\)/.test(cv2) && /restoreView/.test(cv2) && /aria-label=\{full \? 'Exit full screen' : 'Full screen'\}/.test(cv2) && /<Scan size/.test(cv2));
+    /el\.requestFullscreen\(\{ navigationUI: 'hide' \}\)/.test(cv2) && /setFull\('app'\)/.test(cv2) && /restoreView/.test(cv2) && /ctrl\(full \? 'Exit full screen' : 'Full screen'/.test(cv2) && /<Scan size/.test(cv2));
   // 3D: derived bottoms and the gated Meshy pants are 2D only; Pants, Jogger Scrub Pants and the Scrub Top sketch use the authored meshes.
   t("3D gating: no derived bottom remains (removed 2026-10-16); Straight Slacks has no model of its own and reopens the rebuilt Men's Slacks; Men's Slacks is rebuilt (parametric 2D, keeps its name, no 3D); the Meshy pants file is never routed",
     DFx.DERIVED_FAMILIES.every(d => d.role !== 'bottom') && !Cp.has3DModel('Straight Slacks', null, null) && DFx.REMOVED_GARMENT['Straight Slacks'] === "Men's Slacks"
@@ -1303,13 +1359,13 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('details panel shows one note; the custom note no longer repeats the "Custom sketch" badge',
     (srcy('../src/pages/client/design-studio/DetailsPanel.jsx').match(/className="ds-det-note"/g) ?? []).length === 1 && !/ds-sketch/.test(srcy('../src/pages/client/design-studio/BuildYourOwn.jsx')));
   t('stage bar: Fit is pressed only while fitted; full screen, stage light, turntable, exploded view and 3D lighting carry visible labels',
-    /aria-pressed=\{fitted\}/.test(srcy('../src/pages/client/design-studio/CanvasViewport.jsx')) && (srcy('../src/pages/client/design-studio/CanvasViewport.jsx').match(/ds-stage-lbl/g) ?? []).length === 5);
+    /'aria-pressed': fitted/.test(srcy('../src/pages/client/design-studio/CanvasViewport.jsx')) && ['Turntable', 'Explode', 'LIGHT_PRESETS[lighting].label', 'Full screen'].every(k => srcy('../src/pages/client/design-studio/CanvasViewport.jsx').includes(k)) && /<b>Dark stage<\/b>/.test(srcy('../src/pages/client/design-studio/GuidesMenu.jsx')) && !/ds-stage-lbl/.test(srcy('../src/pages/client/design-studio/CanvasViewport.jsx')));
   {
     const dp = srcy('../src/components/DesignPreview.jsx'), s3d = srcy('../src/pages/client/DesignStudio3D.jsx'), wz = srcy('../src/pages/client/OrderWizard.jsx');
     t('order 3D preview: logos/text ride as decals, turntable is off under reduced motion, a lost context drops to 2D, the snapshot is a PNG upload',
       /overlays=\{overlays\} turntable=\{spin\} captureRef=\{capture\} onContextLost=/.test(dp) && /useState\(\(\) => !calm\(\)\)/.test(dp) && /&& !lost;/.test(dp)
       && /const spin = turntable \?\? ownSpin;/.test(s3d) && /gl\.render\(scene, camera\); return gl\.domElement\.toDataURL\('image\/png'\)/.test(s3d)
-      && /fd\.append\('design_3d_snapshot_file', blob/.test(wz));
+      && /fd\.append\('design_3d_snapshot_file', await dataUrlBlob\(f\.design_3d_snapshot\)/.test(wz));
   }
   const removedNames = Object.keys(DFy.REMOVED_GARMENT);
   t('a saved design on a removed derived garment opens its nearest authored template, never crashes; a uniform set keeps the piece in its role',
@@ -1392,5 +1448,108 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   }).map(([id]) => id);
   t('7 gallery sets open their top and the rebuilt bottom, and Save -> Reopen -> Order (uniform set queue) keeps garment, measurements, colours, gallery id, template and model for both pieces', bad.length === 0, JSON.stringify(why));
 }
-console.log(out.join('\n')); const f = out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
+{ // Administrator (Station): hidden manager-only controls; Settings opens on the Password section only
+  const JA = await L('/src/utils/jobAccess.js'), rd = q => fsx.readFileSync(urlx.fileURLToPath(new URL(q, import.meta.url)), 'utf8');
+  const st = { role: 'staff', assigned_stage: 'cutting' }, inv = rd('../src/pages/admin/Inventory.jsx'), od = rd('../src/pages/admin/OrderDetail.jsx'), se = rd('../src/pages/admin/Settings.jsx'), lay = rd('../src/layouts/AdminLayout.jsx');
+  t('station: Inventory hides Export CSV/PDF and the Transaction log tab; Order detail hides Client materials',
+    /\{!isStation\(\) && <>\s*<button[^\n]*exportStock\('csv'\)[\s\S]*?Export PDF'\}<\/button>\s*<\/>\}/.test(inv) && /isStation\(\) \? \[\] : \[\{ key:'logs'/.test(inv) && /tab==='logs' && !isStation\(\)/.test(inv) && /\{!isStation\(\) && <ClientMaterialsPanel/.test(od));
+  t('station: can open /admin/settings for the Password section only (no settings fetches); manager and owner unchanged',
+    JA.canOpen('/admin/settings', st) && JA.STATION_SETTINGS.join() === 'password' && /filter\(\(\[k\]\) => !station \|\| STATION_SETTINGS\.includes\(k\)\)/.test(se) && /if \(station\) return;\s*loadCompany/.test(se)
+    && JA.canOpen('/admin/settings', { role: 'manager' }) && !JA.canOpen('/admin/settings', { role: 'owner' }) && !JA.canOpen('/admin/materials', st));
+  t('station: sidebar footer role label wraps in full', JA.roleLabel(st) === 'Administrator (Station) · Cutting' && /\.adm-sb-user small \{[^}]*overflow-wrap: anywhere[^}]*\}/.test(lay) && !/\.adm-sb-user small \{[^}]*ellipsis/.test(lay));
+}
+{ // Login "Request access": the honeypot is off-screen and unfocusable, and the POST carries only the five form fields
+  const RA = await L('/src/pages/auth/RequestAccess.jsx'), src = fsx.readFileSync(urlx.fileURLToPath(new URL('../src/pages/auth/RequestAccess.jsx', import.meta.url)), 'utf8');
+  const hp = src.match(/<div style=\{HONEYPOT_STYLE\} aria-hidden="true">[\s\S]*?<\/div>/)?.[0] ?? '', s = RA.HONEYPOT_STYLE;
+  t('request access: the "website" honeypot sits off-screen in an aria-hidden wrapper with tabIndex -1',
+    s.position === 'absolute' && parseInt(s.left, 10) <= -1000 && s.width === 1 && s.overflow === 'hidden' && /name="website" tabIndex=\{-1\}/.test(hp));
+  const cfg = RA.accessRequestConfig({ name: ' Ana ', organization: '', email: 'a@b.ph ', mobile: '', website: '', password: 'x', token: 'y' });
+  t('request access: the submit sends no credentials (no cookies, no token, fresh axios instance) and only name/organization/email/mobile/website',
+    cfg.withCredentials === false && !cfg.headers && cfg.url === '/api/request-access' && Object.keys(cfg.data).join() === 'name,organization,email,mobile,website'
+    && cfg.data.name === 'Ana' && /axios\.create\(\)\.request\(accessRequestConfig\(form\)\)/.test(src) && !/axios\.(post|request)\(/.test(src));
+}
+{ // Flats from GLB (tools/flat-from-glb.mjs): every authored Scrub Top part has a same-id zone path in its front or back SVG flat
+  for (const [sleeve, id] of [['Short', 'scrub-top-vneck-short'], ['3/4', 'scrub-top-vneck-three-quarter']]) {
+    const entry = Cp.scannedEntryFor('Scrub Top', sleeve, 'unisex'), nodes = (entry?.parts ?? []).map(p => p.node);
+    const svg = f => fsx.readFileSync(urlx.fileURLToPath(new URL(`../src/assets/flats/${id}/${f}.svg`, import.meta.url)), 'utf8');
+    const ids = new Set(['front', 'back'].flatMap(f => [...svg(f).matchAll(/<path id="([^"]+)"/g)].map(m => m[1])));
+    t(`flats: ${id} front/back SVG zones match every 3D part (${nodes.join(', ')})`,
+      entry?.models?.unisex?.endsWith(`/${id}.glb`) && nodes.length > 0 && nodes.every(n => ids.has(n)) && [...ids].every(n => nodes.includes(n)));
+  }
+}
+{ // Studio flats: the unisex Scrub Top draws the GLB flat fitted to the top() body box; an older saved design keeps its colours and pockets
+  const GP = await L('/src/pages/client/design-studio/garmentPaths.js'), GD = await L('/src/pages/client/design-studio/garmentDetails.js');
+  const OD = await L('/src/pages/client/design-studio/overlayDecals.js'), T = GP.BASE_PATHS['Scrub Top'];
+  const corners = d => (n => (xs => (ys => [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)])(n.filter((_, i) => i % 2)))(n.filter((_, i) => i % 2 === 0)))(d.match(/-?\d+(\.\d+)?/g).map(Number));
+  let shift = 0;
+  for (const sl of ['Short', '3/4']) for (const face of ['front', 'back']) {
+    const p = GP.getGarmentPaths('Scrub Top', sl, face), a = corners(p.body), b = corners(face === 'back' ? T.back?.body ?? T.body : T.body);
+    shift = Math.max(shift, ...a.map((v, i) => Math.abs(v - b[i])));
+    t(`flats: Scrub Top ${sl} ${face} uses the flat with every zone (pocket front only), stitches dashed`, !!p.flat && !!(p.body && p.collar && p.sleeveL && p.sleeveR)
+      && !!p.pocket === (face === 'front') && p.details.some(d => d.kind === 'seam') && p.details.some(d => d.part === 'lowerPockets') === (face === 'front'));
+  }
+  t(`flats: body box equals the top() template, so a logo at any body corner moves ${shift}px (max 0.1)`, shift <= 0.1);
+  t('flats: other garments, other sleeves and the canvas size are unchanged', !GP.getGarmentPaths('Scrub Top', 'Long').flat && !GP.getGarmentPaths('Polo Shirt', 'Short').flat
+    && GP.getGarmentPaths('Scrub Top', 'Short').w === T.w && GP.getGarmentPaths('Scrub Top', 'Short').h === T.h && OD.bodyBounds('Scrub Top', 'Short').y1 === corners(T.body)[3]);
+  const colors = { body: '#112233', collar: '#aabbcc', sleeve: '#445566', pocket: '#778899' };
+  const old = S.deserializeDesign({ garment: 'Scrub Top', category: 'Medical', sleeve: 'Short', fit: 'unisex', colors, details: { lowerPockets: { show: false } } }).cfg;
+  const shown = GD.detailedPaths('Scrub Top', 'Short', 'front', old.details);
+  t('flats: a Scrub Top saved before the flats opens with the same zone colours and its hidden lower pockets stay hidden',
+    Object.entries(colors).every(([k, v]) => old.colors[k] === v) && !!shown.flat && !shown.details.some(d => d.part === 'lowerPockets') && !!shown.pocket
+    && GD.detailsFor('Scrub Top', 'Short', 'unisex').map(o => o.id).join() === 'patchPocket,lowerPockets');
+  console.log(`flats: body h/w ${['Short', '3/4'].map(sl => `${sl} flat ${GP.getGarmentPaths('Scrub Top', sl).flatRatio}`).join(', ')}, template ${(c => ((c[3] - c[2]) / (c[1] - c[0])).toFixed(2))(corners(T.body))}`);
+}
+{ // Size chart to generator settings, the 12 program garments, their 3D labels and zone parity (docs/FLATS.md)
+  const GP = await L('/src/pages/client/design-studio/garmentPaths.js'), CG = await L('/src/pages/client/design-studio/customGarment.js');
+  const CAT = await L('/src/pages/client/design-studio/garmentCatalog.js'), CP = await L('/src/pages/client/design-studio/garmentCapabilities.js');
+  const ZONES = ['body', 'collar', 'sleeveL', 'sleeveR', 'pocket'], keys = p => ZONES.filter(z => p[z]).join();
+  const nums = d => d.match(/-?\d+(\.\d+)?/g).map(Number), span = (d, o) => (v => Math.max(...v) - Math.min(...v))(nums(d).filter((_, i) => i % 2 === o));
+  const SL = ['Short', '3/4', 'Long', 'Sleeveless'], FACES = ['front', 'back'];
+  t('size chart: size M (and an unknown size) redraws every template exactly as before, so saved designs keep their shapes and zones',
+    Object.keys(GP.BASE_PATHS).every(g => SL.every(s => FACES.every(f => [{ size: 'M' }, { size: '??' }].every(z => JSON.stringify(GP.getGarmentPaths(g, s, f, z)) === JSON.stringify(GP.getGarmentPaths(g, s, f)))))));
+  const grows = (g, s) => (p => p.every((x, i) => !i || (span(x.body, 0) > span(p[i - 1].body, 0) && span(x.body, 1) > span(p[i - 1].body, 1))))(['XS', 'M', '3XL'].map(size => GP.getGarmentPaths(g, s, 'front', { size })));
+  t('size chart: XS < M < 3XL in body width and length for tops, trousers and skirts; ratios come from the chart (3XL body length 78/70)',
+    [['Polo Shirt', 'Short'], ['Lab Coat', 'Long'], ['Barong Shirt', 'Long'], ['Pants', null], ["Men's Slacks", null], ['Skirt', null]].every(([g, s]) => grows(g, s ?? 'Short'))
+    && Math.abs(CG.sizeRatios('tops', '3XL')['Body Length'] - 78 / 70) < 1e-9 && Math.abs(CG.sizeRatios('bottoms', 'XS').Rise - 1) < 1e-9);
+  const shW = (g, fit) => -nums(GP.getGarmentPaths(g, 'Short', 'front', { size: 'M', fit }).sleeveL)[0]; // left shoulder point: further left = wider
+  t("size chart: the women's cut narrows an unshaped top; an already-shaped Blouse keeps its own cut", shW('Polo Shirt', 'female') < shW('Polo Shirt', 'male') && shW('Blouse', 'female') === shW('Blouse', 'male'));
+  t('size chart: every sized drawing stays inside its canvas', ['XS', '3XL'].every(size => [['Polo Shirt', 'Long'], ['Scrub Top', '3/4'], ['Lab Coat', 'Long'], ['Pantsuit Trousers', 'Short']].every(([g, s]) => {
+    const p = GP.getGarmentPaths(g, s, 'front', { size }), n = ZONES.filter(z => p[z]).flatMap(z => nums(p[z]));
+    return n.every((v, i) => v >= 0 && v <= (i % 2 ? p.h : p.w));
+  })));
+  const TARGETS = [['Scrub Top', 'Short'], ['Scrub Top', '3/4'], ['Jogger Scrub Pants', null], ['Polo Shirt', 'Short'], ['Polo Shirt', 'Long'], ['Lab Coat', 'Long'], ['Mandarin Blouse', 'Short'],
+    ['Round Neck', 'Long'], ['Barong Shirt', 'Short'], ['Barong Shirt', 'Long'], ["Men's Slacks", null], ['Pantsuit Trousers', null]];
+  const opened = TARGETS.map(([g, s]) => ({ g, s, c: G.applyGarment({ ...base, fit: null }, g, s ? { sleeve: s } : {}) }));
+  t('program garments: all 12 open an editable 2D template with named zones, on the asked sleeve, each family once',
+    opened.every(({ g, s, c }) => c.garment === g && c.sleeve === s && CAT.familyFor(g)?.has2D && Sh.zonesFor(g, s, c.fit).includes('body') && !!GP.getGarmentPaths(g, s ?? 'Short').body)
+    && new Set(Object.keys(CAT.FAMILY_BY_NAME).map(n => n.toLowerCase())).size === Object.keys(CAT.FAMILY_BY_NAME).length);
+  t('program garments: the 3D label is has3DFor\'s answer; Polo Long and Round Neck Long have no model and say "3D not available"',
+    opened.every(({ c }) => CAT.label3D(c) === (CP.has3DFor(c) ? '3D (approx.)' : '3D not available'))
+    && ['Polo Shirt', 'Round Neck'].every(g => ['male', 'female'].every(fit => CAT.label3D({ garment: g, sleeve: 'Long', fit }) === '3D not available'))
+    && CAT.label3D({ garment: 'Polo Shirt', sleeve: 'Short', fit: 'male' }) === '3D (approx.)');
+  console.log(`program garments: ${opened.map(({ g, s, c }) => `${g}${s ? ' ' + s : ''} = ${CAT.label3D(c)}`).join('; ')}`);
+  const SP = (await L('/src/pages/client/design-studio/SizeProportions.jsx')).default, sp = (garment, sizes) => renderToString(React.createElement(SP, { studio: { garment, sleeve: 'Long', fit: 'male', colors: {} }, sizes }));
+  t('Order Wizard size row: one drawing per ordered size in chart order, on one shared frame; none for a traced template or no sizes; no cm anywhere',
+    (h => (h.match(/<svg/g) ?? []).length === 2 && h.indexOf('>XS<') < h.indexOf('>3XL<') && new Set(h.match(/viewBox="[^"]+"/g).map(v => v.split(' ').slice(2).join())).size === 1 && !/\bcm\b|\d+–\d+/.test(h))(sp('Polo Shirt', { '3XL': 10, XS: 5, M: 0 }))
+    && sp('Mandarin Blouse (Reference)', { M: 5 }) === '' && sp('Polo Shirt', {}) === '' && GP.sizable("Men's Slacks") && GP.sizable('Mandarin Blouse') && !GP.sizable('Mandarin Blouse (Reference)'));
+  // M5: Mandarin Blouse is parametric (size chart, own zones, no model); the traced outline stays for saved designs and its photo only.
+  const mb = G.applyGarment({ ...base, fit: null }, 'Mandarin Blouse', { sleeve: 'Long' }), mbp = GP.getGarmentPaths('Mandarin Blouse', 'Long');
+  t('M5 Mandarin Blouse: parametric top with body, collar and both sleeves; Short and Long; one picker entry; "3D not available" from has3DFor',
+    ['body', 'collar', 'sleeveL', 'sleeveR'].every(z => !!mbp[z]) && mb.sleeve === 'Long' && CAT.FAMILY_BY_NAME['Mandarin Blouse'].styles.join() === 'Short,Long'
+    && G.CATALOG.flatMap(c => c.families.map(f => f.id)).filter(n => /^Mandarin Blouse/.test(n)).every(n => n === 'Mandarin Blouse')
+    && !CP.has3DFor(mb) && CAT.label3D(mb) === '3D not available' && S.serializeDesign({ ...mb, overlays: [] }).templateId === 'mandarin-blouse'
+    && S.deserializeDesign(S.serializeDesign({ ...mb, overlays: [] })).cfg.garment === 'Mandarin Blouse');
+  const oldMb = S.deserializeDesign({ garment: 'Mandarin Blouse', templateId: 'derived-blouse-mandarin-yellow', colors: { body: '#c9a227' } }).cfg;
+  t('M5 old traced Mandarin Blouse design: its saved templateId reopens the traced outline with the same colour and 3D status; the photo still opens it',
+    oldMb.garment === 'Mandarin Blouse (Reference)' && oldMb.colors.body === '#c9a227' && Sh.zonesFor(oldMb.garment, oldMb.sleeve, oldMb.fit).join() === 'body'
+    && CP.has3DFor(oldMb) && CAT.label3D(oldMb) === '3D (approx.)'
+    && D.openTarget(D.ENTRIES.find(d => d.id === 'blouse-mandarin-yellow'), {})?.garment === 'Mandarin Blouse (Reference)');
+  // Tier 1 (GLB flats) keep the part-name parity check above; Tier 2 (generator templates) must keep the generator's zone keys at every size.
+  const tier2 = opened.filter(({ g, s }) => !GP.getGarmentPaths(g, s ?? 'Short').flat);
+  t(`zone parity: ${tier2.length} Tier 2 garments draw the generator's zone keys, unchanged by size and fit`, tier2.length === 10 && tier2.every(({ g, s }) => {
+    const sl = s ?? 'Short', gen = CG.isParametric(g) ? GP.customPaths(g, null, sl) : (GP.SLEEVE_VARIANTS[sl] ?? (b => b))(GP.BASE_PATHS[g]);
+    return [null, { size: 'XS' }, { size: '3XL', fit: 'female' }].every(z => keys(GP.getGarmentPaths(g, sl, 'front', z)) === keys(gen));
+  }));
+}
+console.log(out.join('\n')); const f =out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);

@@ -1,0 +1,52 @@
+<!doctype html><html><head><meta charset="utf-8"><title>flat from GLB</title></head>
+<body><script type="module">
+// Dev-only, driven by tools/flat-from-glb.mjs: orthographic front/back renders with one flat label colour per mesh part.
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+
+const LONG = 1024, PAD = 8;
+const PALETTE = ['#ffffff', '#3a6ea5', '#e07a5f', '#81b29a', '#f2cc8f', '#9b5de5', '#2a9d8f', '#e63946', '#577590'];
+const post = (url, body) => fetch(url, { method: 'POST', body: JSON.stringify(body) });
+const renderer = new THREE.WebGLRenderer({ antialias: false });
+renderer.setPixelRatio(1);
+
+const b64 = bytes => { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000)); return btoa(s); };
+
+function maskPng(labels, W, H) {
+  const c = Object.assign(document.createElement('canvas'), { width: W, height: H }), ctx = c.getContext('2d'), img = ctx.createImageData(W, H);
+  labels.forEach((l, i) => { const n = parseInt((PALETTE[l] ?? '#000000').slice(1), 16); img.data.set([n >> 16, (n >> 8) & 255, n & 255, 255], i * 4); });
+  ctx.putImageData(img, 0, 0);
+  return c.toDataURL('image/png');
+}
+
+// Label n is drawn as red = n/255 into a linear render target, so the read-back byte is the part index (0 = background).
+function render(scene, box, W, H, scale, face) {
+  const c = box.getCenter(new THREE.Vector3()), hw = W / 2 / scale, hh = H / 2 / scale, depth = box.max.z - box.min.z + 2;
+  const cam = new THREE.OrthographicCamera(-hw, hw, hh, -hh, 0.01, depth + 2);
+  cam.position.set(c.x, c.y, face === 'front' ? box.max.z + 1 : box.min.z - 1); cam.lookAt(c.x, c.y, c.z);
+  const rt = new THREE.WebGLRenderTarget(W, H);
+  renderer.setRenderTarget(rt); renderer.setClearColor(0x000000, 1); renderer.render(scene, cam); renderer.setRenderTarget(null);
+  const px = new Uint8Array(W * H * 4); renderer.readRenderTargetPixels(rt, 0, 0, W, H, px); rt.dispose();
+  const labels = new Uint8Array(W * H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) labels[y * W + x] = px[((H - 1 - y) * W + x) * 4]; // GL rows are bottom-up
+  return labels;
+}
+
+async function flats(id) {
+  const { scene } = await new GLTFLoader().loadAsync(`/__flats/glb/${id}.glb`);
+  const parts = [];
+  scene.traverse(o => { if (o.isMesh) { parts.push(o.name); o.material = new THREE.MeshBasicMaterial({ color: new THREE.Color().setRGB(parts.length / 255, 0, 0), side: THREE.DoubleSide }); } });
+  scene.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(scene), size = box.getSize(new THREE.Vector3());
+  const scale = (LONG - 2 * PAD) / Math.max(size.x, size.y), W = Math.round(size.x * scale) + 2 * PAD, H = Math.round(size.y * scale) + 2 * PAD;
+  for (const face of ['front', 'back']) {
+    const labels = render(scene, box, W, H, scale, face);
+    await post('/__flats/result', { id, face, W, H, parts, labels: b64(labels), png: maskPng(labels, W, H) });
+  }
+}
+
+try {
+  for (const id of await (await fetch('/__flats/jobs')).json()) await flats(id);
+  await post('/__flats/done', {});
+} catch (e) { await post('/__flats/done', { error: String(e?.stack ?? e) }); }
+</script></body></html>
