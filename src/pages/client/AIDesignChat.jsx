@@ -1,17 +1,20 @@
 // Studio AI design assistant (approved scope: strict B5 design operations only; no Q&A, prices, quantities, sizing or BOM).
 // With a garment: POST /api/ai/design-edits returns operations validated against THIS template. From scratch (no garment yet):
 // POST /api/ai/describe-design returns a brief that designEdits.briefToStart maps to one real template plus the same operations.
-// Nothing is applied until Preview; the Studio re-checks every operation, applies them to the one DesignState (2D and 3D), and
-// Undo restores the exact design from before. Every refusal, skip and failure is shown as it happened.
+// Nothing is applied until Preview; the Studio re-checks every operation, applies them to the one DesignState (2D and 3D).
+// Apply keeps it as one undo step; Cancel restores the exact design from before. Every refusal, skip and failure is shown.
 import { useState } from 'react';
 import axios from 'axios';
-import { Wand2, Eye, Undo2, Check, Box, Loader2, CircleAlert, Info } from 'lucide-react';
+import { Wand2, Eye, Undo2, Check, Box, Loader2, CircleAlert, Info, X } from 'lucide-react';
 import { ZONE_LABEL, LOGO_PRESETS } from './design-studio/dsShared';
 import { templateFacts, describeEdit, briefToStart } from './design-studio/designEdits';
 
 const zoneLabel = (z) => ZONE_LABEL[z] ?? z;
 const placementLabel = (id) => LOGO_PRESETS.find((p) => p.id === id)?.label ?? id;
-const errText = (e, fallback) => (e.response?.status === 429 ? 'Too many AI requests. Wait a minute and try again.' : e.response?.data?.message ?? fallback);
+const OFFLINE = "Couldn't suggest edits right now. You can still edit by hand.";
+const errText = (e, fallback) => (e.response?.status === 429 ? 'Too many AI requests. Wait a minute and try again.'
+  : !e.response || e.response.status >= 500 ? OFFLINE : e.response.data?.message ?? fallback);
+const EXAMPLES = ['white collar', 'name on the back', 'stripes on the sleeves'];
 
 export default function AIDesignChat({ cfg, textItems, ai }) {
   const [input, setInput] = useState('');
@@ -77,21 +80,24 @@ export default function AIDesignChat({ cfg, textItems, ai }) {
                     <span>Not applied ({t.skipped.length}): {t.skipped.map((s) => s.why).join('; ')}</span></div>
                 )}
                 {!t.done && (t.plan.ops.length > 0 || t.plan.start) && (
-                  <button type="button" className="aic-btn primary" onClick={() => preview(t)} disabled={ai.previewing}>
-                    <Eye size={14} aria-hidden="true" /> Preview on the garment</button>
+                  <div className="aic-row">
+                    <button type="button" className="aic-btn primary" onClick={() => preview(t)} disabled={ai.previewing}>
+                      <Eye size={14} aria-hidden="true" /> Preview on the garment</button>
+                    <button type="button" className="aic-btn" onClick={() => patch(t.id, { done: 'none' })}><X size={14} aria-hidden="true" /> Cancel</button>
+                  </div>
                 )}
                 {t.done === 'preview' && (
                   <div className="aic-row">
-                    <button type="button" className="aic-btn primary" onClick={() => finish(t, true)}><Check size={14} aria-hidden="true" /> Keep</button>
-                    <button type="button" className="aic-btn" onClick={() => finish(t, false)}><Undo2 size={14} aria-hidden="true" /> Undo</button>
+                    <button type="button" className="aic-btn primary" onClick={() => finish(t, true)}><Check size={14} aria-hidden="true" /> Apply</button>
+                    <button type="button" className="aic-btn" onClick={() => finish(t, false)}><Undo2 size={14} aria-hidden="true" /> Cancel</button>
                     {ai.has3D
                       ? <button type="button" className="aic-btn" onClick={ai.view3D}><Box size={14} aria-hidden="true" /> See it in 3D</button>
                       : <span className="aic-sub">No 3D model for this garment; the 2D design is the preview.</span>}
                   </div>
                 )}
-                {t.done === 'preview' && ai.editedSince && <p className="aic-msg" data-tone="warn"><CircleAlert size={14} aria-hidden="true" />Undo also removes changes you made after the preview.</p>}
-                {t.done === 'kept' && <p className="aic-sub">Kept in your design.</p>}
-                {t.done === 'undone' && <p className="aic-sub">Undone. Your design is back to how it was.</p>}
+                {t.done === 'preview' && ai.editedSince && <p className="aic-msg" data-tone="warn"><CircleAlert size={14} aria-hidden="true" />Cancel also removes changes you made after the preview.</p>}
+                {t.done === 'kept' && <p className="aic-sub">Applied as one step. Undo takes it back.</p>}
+                {t.done === 'undone' && <p className="aic-sub">Cancelled. Your design is back to how it was.</p>}
                 {t.done === 'none' && <p className="aic-sub">Nothing was applied.</p>}
               </div>
             )}
@@ -103,7 +109,12 @@ export default function AIDesignChat({ cfg, textItems, ai }) {
       <textarea id="aic-input" className="aic-input" rows={2} maxLength={500} value={input} disabled={busy || ai.previewing}
         placeholder={scratch ? 'e.g. navy school polo with a white collar and SMITH on the chest' : 'e.g. white collar, add SMITH on the back'}
         onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }} />
-      {ai.previewing && <p className="aic-sub">Keep or undo the preview before asking for another change.</p>}
+      {!scratch && (
+        <div className="aic-row" role="group" aria-label="Example requests">
+          {EXAMPLES.map((x) => <button key={x} type="button" className="aic-chip" disabled={busy || ai.previewing} onClick={() => setInput(x)}>{x}</button>)}
+        </div>
+      )}
+      {ai.previewing && <p className="aic-sub">Apply or cancel the preview before asking for another change.</p>}
       <button type="button" className="aic-btn primary" onClick={send} disabled={busy || ai.previewing || !input.trim()}>
         {busy ? <><Loader2 size={14} className="aic-spin" aria-hidden="true" /> Thinking…</> : <><Wand2 size={14} aria-hidden="true" /> {scratch ? 'Start my design' : 'Suggest edits'}</>}
       </button>
@@ -128,7 +139,10 @@ export default function AIDesignChat({ cfg, textItems, ai }) {
         .aic-input:focus-visible,.aic-btn:focus-visible{outline:2px solid var(--cx-thread-ink);outline-offset:2px}
         .aic-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:0 12px;border-radius:var(--cx-r-sm);border:1px solid var(--cx-line-strong);background:var(--cx-card);color:var(--cx-ink);font-size:12px;font-weight:700;cursor:pointer}
         .aic-btn.primary{background:var(--cx-thread);border-color:var(--cx-thread);color:var(--cx-on-thread)}
-        .aic-btn:disabled{opacity:.55;cursor:not-allowed}
+        .aic-btn:disabled,.aic-btn.primary:disabled{background:var(--cx-paper-2);border:1px dashed var(--cx-line-strong);color:var(--cx-ink-3);cursor:not-allowed}
+        .aic-chip{min-height:44px;padding:0 12px;border-radius:999px;border:1px solid var(--cx-line-strong);background:var(--cx-card);color:var(--cx-ink);font:inherit;font-size:12px;cursor:pointer}
+        .aic-chip:focus-visible{outline:2px solid var(--cx-thread-ink);outline-offset:2px}
+        .aic-chip:disabled{color:var(--cx-ink-3);cursor:not-allowed}
         .aic-spin{animation:dspin .7s linear infinite}
         @media (prefers-reduced-motion: reduce){.aic-spin{animation:none}}
       `}</style>

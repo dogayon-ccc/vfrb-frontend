@@ -23,9 +23,9 @@ export function FieldError({ id, msg }) {
 }
 
 const STEPS = [
-  { t: 'Design', d: 'Build your uniform visually in the Studio' },
-  { t: 'Order', d: 'Bulk quantities, sizes and delivery in four steps' },
-  { t: 'Track', d: 'See your order status and message VFRB staff' },
+  'Design your uniform in the Studio',
+  'Place a bulk order and review your delivery date',
+  'Follow your order and message the VFRB team',
 ];
 
 export default function AuthShell({ title, subtitle, maxWidth = 400, children }) {
@@ -40,7 +40,7 @@ export default function AuthShell({ title, subtitle, maxWidth = 400, children })
         <div className="au-art-in">
           <h2 className="au-h">Custom uniforms, made smarter.</h2>
           <ol className="au-steps">
-            {STEPS.map(s => <li key={s.t}><b>{s.t}</b><span>{s.d}</span></li>)}
+            {STEPS.map(s => <li key={s}><b>{s}</b></li>)}
           </ol>
           <p className="au-since">Family-owned since 2000 · Bayanan, Muntinlupa City</p>
         </div>

@@ -2,6 +2,7 @@
 // studio_config as cfg.custom and fed to the same generators as the VFRB templates (garmentPaths.js top() / trousers() / skirt()).
 // Pure: every value is clamped here, so a saved or hand-edited config can never ask a generator for a shape it cannot draw.
 // 2D only: no 3D model is built from a spec (build-your-own or a rebuilt family).
+import { PH_SIZE_CHART } from '../../../utils/sizeChart';
 
 export const CUSTOM_TOP = 'Custom Top';
 export const CUSTOM_BOTTOM = 'Custom Bottom';
@@ -42,6 +43,9 @@ export const PARAM_FAMILIES = {
   'Barong Shirt': { kind: 'top', category: 'Corporate', role: 'top', fit: 'male', ref: 'polo-barong-brown', templateId: 'barong-shirt',
     sleeves: ['Short', 'Long'], fixed: { neckline: 'point', hem: 'vents' }, defaults: { neckline: 'point', length: 70, fit: 50, hem: 'vents' },
     opts: () => ({ placket: { top: 62, bottom: 186, buttons: 4, width: 7 } }) },
+  // Mandarin band collar on a full placket, drawn from the size chart; replaces the traced outline for new designs (derivedFamilies SUPERSEDED_DERIVED).
+  'Mandarin Blouse': { kind: 'top', category: 'Hospitality / Service', role: 'top', fit: 'female', ref: 'blouse-mandarin-yellow', templateId: 'mandarin-blouse',
+    sleeves: ['Short', 'Long'], fixed: { neckline: 'mandarin' }, defaults: { neckline: 'mandarin', length: 40, fit: 40, hem: 'curved' } },
 };
 export const isParamFamily = garment => !!PARAM_FAMILIES[garment];
 // Any garment whose shape comes from a spec (build-your-own or a rebuilt family).
@@ -95,6 +99,45 @@ export function normalizeCustom(raw, garment) {
 }
 
 function lerp(a, b, t) { return a + (b - a) * t; }
+
+// Size chart to generator settings. Every template is drawn at size M, so each measure is a ratio to M; size M with no fit returns
+// the settings unchanged. Proportions only: no cm value is drawn or shown.
+const mid = v => { const [a, b = a] = String(v).split('–').map(Number); return (a + b) / 2; };
+function chartRow(kind, size) {
+  const { headers, rows } = PH_SIZE_CHART[kind], r = rows.find(x => x[0] === size) ?? rows.find(x => x[0] === 'M');
+  return Object.fromEntries(headers.slice(1).map((h, i) => [h, mid(r[i + 1])]));
+}
+export function sizeRatios(kind, size = 'M') {
+  const r = chartRow(kind, size), m = chartRow(kind, 'M');
+  const out = Object.fromEntries(Object.keys(r).map(k => [k, r[k] / m[k]]));
+  return kind === 'bottoms' ? { ...out, Rise: (r.Length - r.Inseam) / (m.Length - m.Inseam) } : out;
+}
+// Women's cut on an unshaped top: shoulders 4% in and a shaped waist. A template already shaped (Blouse, Dress) keeps its own.
+const FEMALE_SHOULDER = 0.96, FEMALE_WAIST = 8;
+// Tops: body length from the high point of the shoulder, shoulder and chest half-widths, sleeve length. The canvas widens with the
+// chest and everything stays centred on it, so pocket x (the one absolute x) moves with the centre.
+export function sizeTop(g, { size = 'M', fit = null } = {}) {
+  const r = sizeRatios('tops', size), cut = fit === 'female' && g.waist < FEMALE_WAIST, k = r['Body Length'] - 1;
+  const y = v => v + (v - g.hpsY) * k, w = g.w * Math.max(1, r.Chest), cx = g.w / 2, ncx = w / 2;
+  return {
+    w, h: g.h + (g.hem[1] - g.hpsY) * k, waist: cut ? FEMALE_WAIST : g.waist,
+    sh: [g.sh[0] * r.Shoulder * (cut ? FEMALE_SHOULDER : 1), g.sh[1]], arm: [g.arm[0] * r.Chest, g.arm[1]], hem: [g.hem[0] * r.Chest, y(g.hem[1])],
+    sleeve: { ...g.sleeve, len: g.sleeve.len * r.Sleeve },
+    pocket: g.pocket && { ...g.pocket, x: ncx - (cx - g.pocket.x - g.pocket.w / 2) * r.Chest - g.pocket.w / 2, y: y(g.pocket.y) },
+    placket: g.placket && { ...g.placket, bottom: y(g.placket.bottom) },
+    lowerPockets: g.lowerPockets && { ...g.lowerPockets, y: y(g.lowerPockets.y) },
+  };
+}
+// Trousers: rise (waist to crotch) and inseam set the lengths, waist and hip the widths; the leg opening follows the hip.
+export function sizeBottom(g, { size = 'M' } = {}) {
+  const r = sizeRatios('bottoms', size), y = v => g.waistY + (v - g.waistY) * r.Rise, crotchY = y(g.crotchY);
+  const hemY = crotchY + (g.hemY - g.crotchY) * r.Inseam;
+  return { w: g.w * Math.max(1, r.Hip), h: g.h + hemY - g.hemY, waist: g.waist * r.Waist, hip: g.hip * r.Hip, hipY: y(g.hipY), crotchY, hemY, hemOut: g.hemOut * r.Hip };
+}
+export function sizeSkirt(g, { size = 'M' } = {}) {
+  const r = sizeRatios('bottoms', size), hemY = g.waistY + (g.hemY - g.waistY) * r.Length;
+  return { w: g.w * Math.max(1, r.Hip), h: g.h + hemY - g.hemY, waist: g.waist * r.Waist, hip: g.hip * r.Hip, hipY: g.waistY + (g.hipY - g.waistY) * r.Rise, hemY, hemX: g.hemX * r.Hip };
+}
 
 // Generator options for each kind. Numbers are the template units of garmentPaths.js (a 320 x 380 top, a 250-wide bottom).
 export function topOptions(spec) {

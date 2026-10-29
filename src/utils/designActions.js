@@ -4,9 +4,10 @@ import { setStudioLock } from './studioLock';
 import { stashStudioConfig } from './studioHandoff';
 import { savedDesignName } from './designName';
 
-// The backend's `locked` decides: locked opens read-only, a copy opens colour-only, any other own design edits its own row.
+// The backend's `locked` decides: locked opens read-only, a copy opens colour-only, any other own design edits its own row
+// (asking first only when it came from an order).
 export const lockFor = d => (d.locked ? { final: true, orderId: d.order_id ?? null, designId: d.id }
-  : d.is_copy ? { colorOnly: true, designId: d.id } : { warn: true, designId: d.id });
+  : d.is_copy ? { colorOnly: true, designId: d.id } : d.order_id ? { warn: true, designId: d.id } : { designId: d.id });
 
 export function openDesign(d, nav) {
   try { sessionStorage.setItem('studio_config', JSON.stringify(d.config)); } catch { return false; }

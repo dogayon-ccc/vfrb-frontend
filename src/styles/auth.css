@@ -24,10 +24,9 @@
 .au-art-in { display: grid; gap: 22px; width: 100%; padding: 56px 20px 22px; }
 .au-h { margin: 0; max-width: 14ch; font: 400 clamp(28px, 7vw, 40px)/1.06 var(--au-display); text-wrap: balance; }
 .au-steps { display: none; margin: 0; padding: 0; list-style: none; counter-reset: au; }
-.au-steps li { counter-increment: au; display: grid; grid-template-columns: 44px 1fr; gap: 0 12px; padding: 14px 0; border-top: 1px solid rgba(255, 255, 255, 0.24); }
-.au-steps li::before { content: counter(au, decimal-leading-zero); grid-row: span 2; font: 400 26px/1 var(--au-display); color: var(--au-mint); }
+.au-steps li { counter-increment: au; display: grid; align-items: center; grid-template-columns: 44px 1fr; gap: 0 12px; padding: 14px 0; border-top: 1px solid rgba(255, 255, 255, 0.24); }
+.au-steps li::before { content: counter(au, decimal-leading-zero); font: 400 26px/1 var(--au-display); color: var(--au-mint); }
 .au-steps b { font-size: 15px; }
-.au-steps span { font-size: 14px; line-height: 1.5; color: #c9dce1; }
 .au-since { display: none; margin: 0; font-size: 13px; letter-spacing: 0.04em; color: #b4cbd2; }
 
 .au-main { display: grid; place-items: center; padding: 28px 16px 44px; }

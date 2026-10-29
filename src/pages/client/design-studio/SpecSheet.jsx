@@ -76,8 +76,8 @@ export default function SpecSheet({ order, onClose }) {
               </div>
             </div>
 
-            <p style={{ fontSize:10, fontWeight:700, color:'#94a3b8', textTransform:'uppercase',
-              letterSpacing:'.07em', margin:'0 0 6px' }}>Garment</p>
+            <p style={{ fontSize:10, fontWeight:700, color:'#94a3b8',
+              margin:'0 0 6px' }}>Garment</p>
             <Row label="Type">{order?.garment_type ?? '—'}</Row>
             <Row label="Collar">{order?.collar_type ?? '—'}</Row>
             <Row label="Sleeve">{order?.sleeve_type ?? '—'}</Row>
@@ -86,8 +86,8 @@ export default function SpecSheet({ order, onClose }) {
             {pockets.map((pk, i) => <Row key={pk + i} label={`Added pocket ${i + 1}`}>{pk}</Row>)}
             <Row label="Quantity">{order?.quantity_ordered ? `${order.quantity_ordered} pcs` : '—'}</Row>
 
-            <p style={{ fontSize:10, fontWeight:700, color:'#94a3b8', textTransform:'uppercase',
-              letterSpacing:'.07em', margin:'16px 0 6px' }}>Colors</p>
+            <p style={{ fontSize:10, fontWeight:700, color:'#94a3b8',
+              margin:'16px 0 6px' }}>Colors</p>
             {Object.keys(ZONE_LABEL).map(z => colors[z] && (
               <Row key={z} label={ZONE_LABEL[z]}>
                 <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
@@ -101,8 +101,8 @@ export default function SpecSheet({ order, onClose }) {
 
             {(hasLogo || textLayers.length > 0) && (
               <>
-                <p style={{ fontSize:10, fontWeight:700, color:'#94a3b8', textTransform:'uppercase',
-                  letterSpacing:'.07em', margin:'16px 0 6px' }}>Branding</p>
+                <p style={{ fontSize:10, fontWeight:700, color:'#94a3b8',
+                  margin:'16px 0 6px' }}>Branding</p>
                 {hasLogo && <Row label="Logo">Placed on garment — see design preview</Row>}
                 {textLayers.map((t, i) => (
                   <Row key={i} label={`Text ${i+1}`}>{t.text ?? '—'}</Row>
@@ -110,12 +110,11 @@ export default function SpecSheet({ order, onClose }) {
               </>
             )}
 
-            <p style={{ fontSize:10, fontWeight:700, color:'#94a3b8', textTransform:'uppercase',
-              letterSpacing:'.07em', margin:'16px 0 6px' }}>Production</p>
-            <Row label="PO Reference">{order?.po_reference ?? 'N/A'}</Row>
-            <Row label="Order Type">{order?.order_type ?? '—'}</Row>
-            <Row label="Payment Terms">{order?.payment_terms ?? '—'}</Row>
-            <Row label="Target Delivery">
+            <p style={{ fontSize:10, fontWeight:700, color:'#94a3b8',
+              margin:'16px 0 6px' }}>Production</p>
+            <Row label="PO reference">{order?.po_reference ?? 'N/A'}</Row>
+            <Row label="Order type">{order?.order_type ?? '—'}</Row>
+            <Row label="Target delivery">
               {order?.target_delivery_date
                 ? new Date(order.target_delivery_date).toLocaleDateString('en-PH', { year:'numeric', month:'long', day:'numeric' })
                 : '—'}

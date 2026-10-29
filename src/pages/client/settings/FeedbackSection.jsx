@@ -35,7 +35,7 @@ export default function FeedbackSection() {
   );
 
   return (
-    <Card title="Send Feedback">
+    <Card title="Send feedback">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div role="radiogroup" aria-label="Feedback category" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {CATS.map(([v, l]) => (

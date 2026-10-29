@@ -6,6 +6,8 @@ import { NavIcon }                                  from '../../components/ui/ic
 import axios                                        from 'axios';
 import { cacheGet, cacheSet, cacheClear, TTL }      from '../../utils/cache';
 import { asList }                                   from '../../utils/asList';
+import { materialColour }                           from '../../utils/materialColour';
+import { garmentLabel } from '../../utils/designName';
 
 const T    = 'var(--teal)';
 const T2   = '#02C39A';
@@ -22,6 +24,8 @@ export const CAT = {
   Thread:       { icon:'materials', color:'#8b5cf6', bg:'#ede9fe' },
   Elastic:      { icon:'materials', color:'#f97316', bg:'#ffedd5' },
   Accessories:  { icon:'package',   color:'var(--text-subtle)', bg:'#f1f5f9' },
+  Trim:         { icon:'materials', color:'#06b6d4', bg:'#cffafe' },
+  Label:        { icon:'package',   color:'#0d9488', bg:'#ccfbf1' },
   Trims:        { icon:'materials', color:'#06b6d4', bg:'#cffafe' },
   Lining:       { icon:'materials', color:'#f59e0b', bg:'#fef3c7' },
   Other:        { icon:'package',   color:'var(--text-faint)', bg:'var(--bg-surface)' },
@@ -99,7 +103,7 @@ export function AcceptModal({ order, recs, onClose, onDone }) {
               <NavIcon name="success" size={16} color="var(--ink)" style={{ verticalAlign:"-3px", marginRight:6 }}/>Confirm Material Acceptance
             </h3>
             <p style={{ fontSize:13, color:'var(--text-subtle)', margin:'4px 0 0', fontFamily:FONT }}>
-              Order #{order.order_id} · {order.garment_type} · {order.quantity_ordered} pcs
+              Order #{order.order_id} · {garmentLabel(order.garment_type)} · {order.quantity_ordered} pcs
             </p>
           </div>
 
@@ -108,7 +112,6 @@ export function AcceptModal({ order, recs, onClose, onDone }) {
             <div style={{ background:'var(--bg-surface)', borderRadius:12, padding:14,
               marginBottom:16, border:'1px solid var(--border)' }}>
               <p style={{ fontSize:13, fontWeight:700, color:'var(--text-subtle)',
-                textTransform:'uppercase', letterSpacing:'.07em',
                 marginBottom:10, fontFamily:FONT }}>
                 Materials you are accepting
               </p>
@@ -136,7 +139,7 @@ export function AcceptModal({ order, recs, onClose, onDone }) {
             </div>
 
             <label style={{ display:'block', fontSize:13, fontWeight:700,
-              textTransform:'uppercase', letterSpacing:'.07em', color:'var(--text-subtle)',
+ color:'var(--text-subtle)',
               marginBottom:7, fontFamily:FONT }}>
               Notes for the VFRB team (optional)
             </label>
@@ -250,7 +253,6 @@ export function SelfPickModal({ order, onClose, onDone }) {
                 return (
                   <div key={cat} style={{ marginBottom:16 }}>
                     <p style={{ fontSize:13, fontWeight:700, color:cfg.color,
-                      textTransform:'uppercase', letterSpacing:'.07em',
                       marginBottom:8, fontFamily:FONT }}>
                       <NavIcon name={cfg.icon} size={11} color={cfg.color}/> {cat}
                     </p>
@@ -269,7 +271,7 @@ export function SelfPickModal({ order, onClose, onDone }) {
             )}
 
             <textarea value={notes} onChange={e=>setNotes(e.target.value)}
-              placeholder="Optional note for VFRB staff about your selection…" rows={2}
+              placeholder="Optional note for the VFRB team about your selection…" rows={2}
               style={{ width:'100%', marginTop:6, padding:'10px 12px', borderRadius:10,
                 border:'1px solid var(--border)', fontSize:13, fontFamily:FONT, resize:'none', boxSizing:'border-box' }}/>
 
@@ -310,49 +312,86 @@ export async function withCatalogFacts(orderId, recArr) {
   } catch { return recArr; }
 }
 
-// SCOPE-001: image, name, category and catalog description only — never a quantity, estimate or price.
-export function RecCard({ rec, index }) {
-  const cat = CAT[rec.category] ?? CAT.Other;
+// Only our Cloudinary account or the app's own /storage uploads; seeded /material-images/ are third-party stock.
+const OWN_CLOUD = (import.meta.env.VITE_MODEL_BASE_URL || '').match(/^https:\/\/res\.cloudinary\.com\/[^/]+\//)?.[0];
+const isOwnImage = (url) => {
+  if (!url) return false;
+  if (OWN_CLOUD && url.startsWith(OWN_CLOUD)) return true;
+  try { const u = new URL(url, window.location.origin); return u.pathname.startsWith('/storage/'); } catch { return false; }
+};
+// Display-only: drops internal codes like "(MAT-FAB-014)".
+export const stripCodes = (s) => s?.replace(/\s*\(?\bMAT-[A-Z]{3}-\d{3}\b\)?/g, '').trim();
+
+const TILE_H = 128;
+const typeChip = { position:'absolute', left:10, bottom:10, padding:'3px 9px', borderRadius:99, fontSize:13, fontWeight:700,
+  background:'rgb(255 255 255 / .92)', color:'#1f2937', fontFamily:FONT };
+const weave = (hex) => `repeating-linear-gradient(0deg, rgb(255 255 255 / .09) 0 2px, transparent 2px 4px),
+  repeating-linear-gradient(90deg, rgb(0 0 0 / .11) 0 2px, transparent 2px 4px), ${hex}`;
+
+// Fabric as a woven colour swatch; a name without a colour word gets the neutral paper tile.
+function SwatchTile({ hex, label }) {
   return (
-    <motion.div
-      initial={{ opacity:0, y:12 }}
-      animate={{ opacity:1, y:0 }}
-      transition={{ delay: index * 0.06, duration:.25 }}
-      className="vfrb-card flush overflow-hidden">
-      {rec.image_url ? (
-        <img src={rec.image_url} alt={rec.material_name} loading="lazy" className="block w-full h-48 object-cover"/>
-      ) : (
-        <div className="w-full h-48 flex flex-col items-center justify-center gap-2" style={{ background:cat.bg }} aria-label="No image">
+    <div aria-hidden="true" style={{ position:'relative', height:TILE_H, background: weave(hex ?? 'var(--bg-surface-2, #e5e7eb)') }}>
+      <span style={typeChip}>{label}</span>
+    </div>
+  );
+}
+
+// Thread as a spool wound in the thread colour.
+function SpoolGlyph({ hex, label }) {
+  const c = hex ?? '#9ca3af';
+  return (
+    <div aria-hidden="true" style={{ position:'relative', height:TILE_H, display:'grid', placeItems:'center', background:'var(--bg-surface)' }}>
+      <svg width="64" height="88" viewBox="0 0 64 88">
+        <rect x="6" y="4" width="52" height="10" rx="3" fill="#c9a77c"/>
+        <rect x="6" y="74" width="52" height="10" rx="3" fill="#c9a77c"/>
+        <rect x="12" y="14" width="40" height="60" fill={c}/>
+        {[22, 30, 38, 46, 54, 62].map(y => <line key={y} x1="12" x2="52" y1={y} y2={y + 2} stroke="rgb(0 0 0 / .16)" strokeWidth="1.5"/>)}
+        <path d="M52 40 C60 44 58 56 62 62" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round"/>
+      </svg>
+      <span style={typeChip}>{label}</span>
+    </div>
+  );
+}
+
+// SCOPE-001: swatch, name, type and one catalog description line only — never a quantity, estimate, price or internal code.
+export function RecCard({ rec }) {
+  const cat = CAT[rec.category] ?? CAT.Other;
+  const name = stripCodes(rec.material_name);
+  const desc = stripCodes(rec.description)?.replace(/\s+/g, ' ');
+  const label = rec.category || 'Material';
+  const kind = /thread/i.test(rec.category ?? '') ? 'spool' : /fabric|lining/i.test(rec.category ?? '') ? 'swatch' : null;
+  return (
+    <div className="vfrb-card flush overflow-hidden">
+      {isOwnImage(rec.image_url) ? (
+        <img src={rec.image_url} alt={name} loading="lazy" className="block w-full object-cover" style={{ height:TILE_H }}/>
+      ) : kind === 'swatch' ? <SwatchTile hex={materialColour(rec.material_name)} label={label}/>
+        : kind === 'spool' ? <SpoolGlyph hex={materialColour(rec.material_name)} label={label}/>
+        : (
+        <div className="w-full flex items-center justify-center" style={{ position:'relative', height:TILE_H, background:cat.bg }} aria-hidden="true">
           <NavIcon name={cat.icon} size={32} color={cat.color}/>
-          <span style={{ fontSize:13, fontWeight:700, color:cat.color, fontFamily:FONT }}>No image</span>
+          <span style={typeChip}>{label}</span>
         </div>
       )}
-      <div style={{ padding:'var(--sp-4) var(--sp-4) var(--sp-6)' }}>
-        <p style={{ fontSize:17, fontWeight:800, color:'var(--ink)', margin:0, fontFamily:FONT }}>
-          {rec.material_name}
+      <div style={{ padding:'var(--sp-4)' }}>
+        <p style={{ fontSize:17, fontWeight:800, color:'var(--ink)', margin:0, fontFamily:FONT, overflowWrap:'anywhere' }}>
+          {name}
         </p>
-        <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:4 }}>
-          {rec.category && (
-            <span style={{ padding:'2px 8px', borderRadius:99, fontSize:13, fontWeight:700, background:cat.bg, color:cat.color, fontFamily:FONT }}>
-              {rec.category}
-            </span>
-          )}
-          {/* Catalog colour fit from the server: a neighbouring colour family, offered but not exact. */}
-          {rec.colour_match === 'near' && (
-            <span title="Close to your colour, not an exact match" style={{ padding:'2px 8px', borderRadius:99, fontSize:13, fontWeight:700,
-              background:'var(--warning-bg, #fef3c7)', color:'var(--warning-text, #92400e)', fontFamily:FONT }}>
-              Near match
-            </span>
-          )}
-        </div>
-        {rec.description && (
-          <p className="whitespace-pre-line" style={{ fontSize:13, color:'var(--text-muted)', lineHeight:1.65, margin:'10px 0 0', fontFamily:FONT,
-            display:'-webkit-box', WebkitLineClamp:3, WebkitBoxOrient:'vertical', overflow:'hidden' }}>
-            {rec.description}
+        {/* Catalog colour fit from the server: a neighbouring colour family, offered but not exact. */}
+        {rec.colour_match === 'near' && (
+          <span title="Close to your colour, not an exact match" style={{ display:'inline-block', marginTop:6, padding:'2px 8px', borderRadius:99, fontSize:13, fontWeight:700,
+            background:'var(--warning-bg, #fef3c7)', color:'var(--warning-text, #92400e)', fontFamily:FONT }}>
+            Near match
+          </span>
+        )}
+        {desc && (
+          <p title={desc} style={{ fontSize:13, color:'var(--text-muted)', lineHeight:1.5, margin:'6px 0 0', fontFamily:FONT,
+            whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+            {desc}
           </p>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -508,7 +547,7 @@ export default function AIMaterials() {
                 to recommend the types of raw materials your order will need.
                 Exact quantities are determined by VFRB's production team — the AI provides
                 general guidance on material categories and descriptions.
-                When you accept, VFRB staff are notified to prepare your materials.
+                When you accept, the VFRB team is notified to prepare your materials.
               </p>
             </div>
           </div>
@@ -542,7 +581,7 @@ export default function AIMaterials() {
                 background:`linear-gradient(135deg,${T},${T2})`,
                 color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer',
                 fontFamily:FONT, boxShadow:`0 4px 14px rgba(2,128,144,.3)` }}>
-              <NavIcon name="designStudio" size={14} color="#fff" style={{ verticalAlign:"-2px", marginRight:6 }}/>Start a New Order →
+              <NavIcon name="designStudio" size={14} color="#fff" style={{ verticalAlign:"-2px", marginRight:6 }}/>Start a new order
             </motion.button>
           </div>
         ) : (
@@ -612,7 +651,7 @@ export default function AIMaterials() {
                 <button type="button" onClick={()=>setShowPicker(true)}
                   style={{ display:'inline-flex', alignItems:'center', minHeight:44, padding:'0 12px', background:'none', border:'none', color:T, fontWeight:700,
                     fontSize:13, cursor:'pointer', textDecoration:'underline', fontFamily:FONT }}>
-                  Or choose your own materials instead →
+                  Or choose your own materials instead
                 </button>
               </p>
             </div>
@@ -684,7 +723,7 @@ export default function AIMaterials() {
                 <p style={{ fontSize:13, fontWeight:700, color:'var(--text-muted)', margin:'0 0 10px', fontFamily:FONT }}>{AI_OPTIONAL_LINE}</p>
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(min(100%,300px),1fr))', gap:14, marginBottom:20 }}>
                   {recs.map((r, i) => (
-                    <RecCard key={r.rec_id ?? i} rec={r} index={i}/>
+                    <RecCard key={r.rec_id ?? i} rec={r}/>
                   ))}
                 </div>
 
@@ -700,7 +739,7 @@ export default function AIMaterials() {
                     </p>
                     <p style={{ fontSize:13, color:'var(--text-subtle)', marginBottom:18,
                       maxWidth:400, margin:'0 auto 18px', lineHeight:1.6, fontFamily:FONT }}>
-                      Accepting notifies VFRB production staff to prepare exactly
+                      Accepting notifies the VFRB team to prepare exactly
                       these materials for your order. You can add a note.
                     </p>
                     <motion.button

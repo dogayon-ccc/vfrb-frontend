@@ -125,7 +125,7 @@ export default function CustomerLayout() {
           <button type="button" className="cx-icon-btn" onClick={toggleBell} aria-label={bellLabel}
             aria-expanded={bellOpen} aria-controls="cx-bell-panel">
             <Bell size={19} strokeWidth={1.9} aria-hidden="true" />
-            {unread > 0 && <b className="cx-bell-n" aria-hidden="true">{unread > 99 ? '99+' : unread}</b>}
+            {unread > 0 && <b className="cx-bell-n" aria-hidden="true">{unread > 9 ? '9+' : unread}</b>}
           </button>
           {bellOpen && (
             <div className="cx-bell-panel" id="cx-bell-panel" role="region" aria-label="Notifications">

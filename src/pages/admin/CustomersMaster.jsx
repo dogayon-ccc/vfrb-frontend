@@ -2,9 +2,11 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { NavIcon } from '../../components/ui/icons';
 import useDialogFocus from '../../hooks/useDialogFocus';
+import { isAdmin } from '../../utils/jobAccess';
+import { CreateUserModal } from './UserManagement';
 import {
   PageHeader, StatGrid, PillTabs, Panel, SearchBox, Avatar, ErrorBlock, SkeletonRows,
-  FilterSheet, FilterButton, useIsMobile,
+  FilterSheet, FilterButton, Toast, useToast, useIsMobile,
 } from '../../components/admin/AdminUI';
 
 const TYPES = { individual: 'Individual', corporate: 'Corporate', school: 'School', medical: 'Medical', government: 'Government', organization: 'Organization' };
@@ -62,7 +64,7 @@ function DetailDrawer({ c, onClose }) {
             <Panel title="Organization & account">
               <dl className="adm-kv">
                 <dt>Organization</dt><dd>{dash(c.organization_name)}</dd>
-                <dt>TIN / Reg. no.</dt><dd>{dash(c.business_registration_number)}</dd>
+                <dt>TIN / reg. no.</dt><dd>{dash(c.business_registration_number)}</dd>
                 <dt>Customer type</dt><dd>{c.client_type ? TYPES[c.client_type] : '—'}</dd>
                 <dt>Email</dt><dd>{c.email_verified_at ? `Verified ${fmt(c.email_verified_at)}` : 'Not verified'}</dd>
                 <dt>Joined</dt><dd>{fmt(c.created_at)}</dd>
@@ -72,6 +74,61 @@ function DetailDrawer({ c, onClose }) {
           </div>
         </div>
       </aside>
+    </div>
+  );
+}
+
+// Public access requests; a request leaves this list once its customer account is created and verified.
+function AccessRequests({ onCreate }) {
+  const [rows, setRows] = useState(null);
+  const [err, setErr] = useState(false);
+  const load = useCallback(() => {
+    setErr(false);
+    axios.get('/api/admin/customer-contacts', { params: { requested: 1, per_page: 100 } })
+      .then((r) => setRows(r.data?.data ?? [])).catch(() => setErr(true));
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <Panel title="Requests" subtitle="People who asked for a customer account from the sign-in page." flush>
+        {err ? <div style={{ padding: 14 }}><ErrorBlock msg="Could not load access requests." onRetry={load} /></div>
+          : !rows ? <SkeletonRows rows={2} h={52} />
+          : rows.length === 0 ? <p className="adm-sub" style={{ padding: '14px 18px', margin: 0 }}>No pending access requests.</p>
+          : <>
+            <div className="adm-only-d adm-tbl-scroll">
+              <table className="adm-table">
+                <thead><tr><th>Name</th><th>Organization</th><th>Email</th><th>Mobile</th><th>Requested</th><th><span className="sr-only">Action</span></th></tr></thead>
+                <tbody>{rows.map((r) => (
+                  <tr key={r.contact_id}>
+                    <td style={{ fontWeight: 700 }}>{r.name}</td>
+                    <td>{dash(r.organization_name)}</td>
+                    <td style={{ fontSize: 12 }}>{r.email}</td>
+                    <td style={{ whiteSpace: 'nowrap', fontSize: 12 }}>{dash(r.mobile)}</td>
+                    <td style={{ whiteSpace: 'nowrap', fontSize: 12, color: 'var(--text-subtle)' }}>{fmt(r.created_at)}</td>
+                    <td><button className="adm-btn" onClick={() => onCreate(r)}><NavIcon name="add" size={13} color="currentColor" /> Create account</button></td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+            <div className="adm-only-m" style={{ padding: 12 }}>
+              {rows.map((r) => (
+                <div key={r.contact_id} className="adm-mcard">
+                  <div style={{ fontWeight: 700, overflowWrap: 'anywhere' }}>{r.name}</div>
+                  <div className="cm-lines">
+                    <span><NavIcon name="users" size={13} color="currentColor" /> {dash(r.organization_name)}</span>
+                    <span><NavIcon name="email" size={13} color="currentColor" /> {r.email}</span>
+                    <span><NavIcon name="phone" size={13} color="currentColor" /> {dash(r.mobile)}</span>
+                  </div>
+                  <div className="adm-mfoot" style={{ justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{fmt(r.created_at)}</span>
+                    <button className="adm-btn" onClick={() => onCreate(r)}><NavIcon name="add" size={13} color="currentColor" /> Create account</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>}
+      </Panel>
     </div>
   );
 }
@@ -89,6 +146,8 @@ export default function CustomersMaster() {
   const [page, setPage] = useState(1);
   const [sheet, setSheet] = useState(false);
   const [sel, setSel] = useState(null);
+  const [creating, setCreating] = useState(null);
+  const [toast, setToast] = useToast();
   const seq = useRef(0);
 
   useEffect(() => { const t = setTimeout(() => { setQ(search.trim()); setPage(1); }, 300); return () => clearTimeout(t); }, [search]);
@@ -125,15 +184,20 @@ export default function CustomersMaster() {
   return (
     <>
       {sel && <DetailDrawer c={sel} onClose={() => setSel(null)} />}
+      {creating && <CreateUserModal isMobile={isMobile} adminRoles={[]} initial={{ name: creating.name, email: creating.email, organization_name: creating.organization_name ?? '', contact_number: creating.mobile ?? '' }}
+        onClose={() => setCreating(null)} onDone={(msg) => { setCreating(null); setToast({ msg, type: 'success' }); load(); }} />}
+      <Toast toast={toast} />
       {sheet && <FilterSheet title="Filter by customer type" options={tabs} value={type} onChange={setT} onClose={() => setSheet(false)} isMobile={isMobile} />}
       <PageHeader title="Customer Master Data" sub={`${summary?.total ?? '…'} registered customers · read-only`}>
         <button className="adm-btn" onClick={load}><NavIcon name="refresh" size={14} color="currentColor" /> Refresh</button>
       </PageHeader>
       {loadErr && <div style={{ marginBottom: 14 }}><ErrorBlock msg="Could not load customers." onRetry={load} /></div>}
+      {isAdmin() && <AccessRequests onCreate={setCreating} />}
 
       <StatGrid loading={!summary && loading} items={[
         { label: 'All customers', value: summary?.total ?? 0, color: 'var(--teal)', onClick: () => setT('all') },
         ...Object.entries(TYPES).map(([k, l]) => ({ label: l, value: summary?.[k] ?? 0, onClick: () => setT(type === k ? 'all' : k) })),
+        { label: 'Untyped', value: summary?.untyped ?? 0 },
       ]} />
 
       <div className="adm-toolbar">

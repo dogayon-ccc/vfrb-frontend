@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 1024" width="880" height="1024" data-source="/models/authored/scrub-top-vneck-short.glb" data-face="back">
+  <path id="body" fill="#3a6ea5" fill-rule="evenodd" d="M360 21.5L427.5 39L452.5 39L523.5 22L554.5 35L679.5 68L691.5 74L697 81.5L698 114.5L639 198.5L674 263.5L715 355.5L708 536.5L707 700.5L717.5 1016L162 1015.5L173 700.5L172 536.5L165 355.5L207 261.5L241 198.5L182 114.5L183 81.5L188.5 74L200.5 68L325.5 35Z"/>
+  <path id="sleeve_l" fill="#81b29a" fill-rule="evenodd" d="M707 102.5L751.5 139L825.5 212L872 248.5L768.5 390L714 354.5L674 263.5L639 198.5Z"/>
+  <path id="sleeve_r" fill="#81b29a" fill-rule="evenodd" d="M172 102.5L241 198.5L207 261.5L166 354.5L111.5 390L8 248.5L54.5 212L128.5 139Z"/>
+  <path id="neck_band" fill="#e07a5f" fill-rule="evenodd" d="M359 8.5L386.5 11L426.5 23L447.5 24L493.5 11L520.5 8L533.5 18L536 23.5L532.5 27L518.5 22L452.5 39L427.5 39L360.5 21L346.5 27L344 20.5Z"/>
+</svg>

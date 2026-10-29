@@ -50,20 +50,20 @@ export function ProfileSection() {
 
   return (
     <div className="st-stack">
-      <Card title="Account Information">
+      <Card>
         {loading ? (
           <Skeleton variant="block" count={4} height={44} gap={14} label="Loading profile" />
         ) : (
           <div className="st-stack">
             <div className="st-2col">
-              <Field label="Full Name" value={form.name ?? ''} onChange={e => set('name', e.target.value)} placeholder="Your full name" />
-              <Field label="Email Address" value={form.email ?? ''} disabled />
-              <Field label="Mobile Number" value={form.contact_number ?? ''} onChange={e => set('contact_number', e.target.value)} placeholder="09XXXXXXXXX" inputMode="tel" autoComplete="tel"
+              <Field label="Full name" value={form.name ?? ''} onChange={e => set('name', e.target.value)} placeholder="Your full name" />
+              <Field label="Email address" value={form.email ?? ''} disabled />
+              <Field label="Mobile number" value={form.contact_number ?? ''} onChange={e => set('contact_number', e.target.value)} placeholder="09XXXXXXXXX" inputMode="tel" autoComplete="tel"
                 error={phoneErr || undefined} aria-invalid={!!phoneErr} />
             </div>
-            <Field label="Organization / School Name" value={form.organization_name ?? ''} onChange={e => set('organization_name', e.target.value)} placeholder="e.g. Southville International School" />
+            <Field label="Organization or school name" value={form.organization_name ?? ''} onChange={e => set('organization_name', e.target.value)} placeholder="e.g. Southville International School" />
             <Field label="Address" value={form.address ?? ''} onChange={e => set('address', e.target.value)} placeholder="City, Province" />
-            <Button variant="primary" fullWidth icon="save" loading={saving} onClick={save}>{saving ? 'Saving' : 'Save Profile'}</Button>
+            <Button variant="primary" className="st-save" icon="save" loading={saving} onClick={save}>{saving ? 'Saving…' : 'Save changes'}</Button>
           </div>
         )}
       </Card>
@@ -115,32 +115,32 @@ export function PasswordSection() {
   const level = passwordLevel(pw.password);
   return (
     <div className="st-stack">
-      <Card title="Change Password">
+      <Card title="Change password">
         <div className="st-stack">
-          <PwField label="Current Password" value={pw.current_password} onChange={on('current_password')} placeholder="Enter current password" />
-          <PwField label="New Password" value={pw.password} onChange={on('password')} placeholder="8+ chars, Aa, number, symbol" />
-          <PwField label="Confirm New Password" value={pw.password_confirmation} onChange={on('password_confirmation')} placeholder="Repeat new password" />
+          <PwField label="Current password" value={pw.current_password} onChange={on('current_password')} placeholder="Enter current password" />
+          <PwField label="New password" value={pw.password} onChange={on('password')} placeholder="8+ chars, Aa, number, symbol" />
+          <PwField label="Confirm new password" value={pw.password_confirmation} onChange={on('password_confirmation')} placeholder="Repeat new password" />
           {pw.password && (
             <div className="st-meter" aria-live="polite">
               {[1, 2, 3, 4].map(i => <i key={i} data-on={i <= level} data-l={level} />)}
               <span>{levelLabel(level)}</span>
             </div>
           )}
-          <Button variant="primary" fullWidth icon="lock" loading={saving} onClick={save}>{saving ? 'Changing' : 'Change Password'}</Button>
+          <Button variant="primary" className="st-save" icon="lock" loading={saving} onClick={save}>{saving ? 'Changing…' : 'Change password'}</Button>
         </div>
       </Card>
       <Card tone="subtle" padding="sm">
         <p className="st-privt" style={{ margin: 0 }}>Can't remember your current password? <Link to="/forgot-password" state={{ from: '/settings?tab=password' }} style={{ color: 'var(--teal)', fontWeight: 700 }}>Reset it by email</Link>.</p>
       </Card>
-      <Card title="Google Sign-In">
+      <Card title="Google sign-in">
         <p className="st-privt" style={{ margin: 0 }}>You can sign in with Google on the login page using the same email as this account. Connection status will appear here once VFRB enables account linking.</p>
       </Card>
-      <Card title="Close Account">
-        <p className="st-privt" style={{ margin: '0 0 12px' }}>To close your account or remove your data, message VFRB staff.</p>
+      <Card title="Close account">
+        <p className="st-privt" style={{ margin: '0 0 12px' }}>To close your account or remove your data, message the VFRB team.</p>
         <Link to="/messages" className="cx-btn cx-btn-s" style={{ minHeight: 44, display: 'inline-flex', alignItems: 'center' }}>Message VFRB</Link>
       </Card>
       <Card tone="subtle" padding="sm">
-        <p className="st-priv"><NavIcon name="lock" size={13} /> Data Privacy (RA 10173)</p>
+        <p className="st-priv"><NavIcon name="lock" size={13} /> Data privacy (RA 10173)</p>
         <p className="st-privt">Your information is used only to process your orders and communicate with VFRB Enterprise. Passwords are encrypted, and your data is never shared with third parties.</p>
       </Card>
       {toast}

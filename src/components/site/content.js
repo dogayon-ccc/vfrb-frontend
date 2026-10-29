@@ -10,6 +10,8 @@ export const PRODUCTS = ['Company uniforms', 'Polo shirts', 'Campaign shirts', '
 
 // Mirrors CATEGORIES in design-studio/designGallery.js; restated so the eager landing bundle doesn't pull in the Studio.
 export const UNIFORM_TYPES = ['School', 'Corporate / Business', 'Medical / Healthcare', 'Hospitality / Service', 'Industrial / Work', 'Uniform Dress'];
+// Landing "Find your uniform" tiles: [label, garmentCatalog CATEGORY id]. tools/logic-checks.mjs keeps each id real.
+export const FIND_UNIFORM = [['School', 'School Uniform'], ['Hospital', 'Medical / Scrubs'], ['Corporate', 'Corporate'], ['Hospitality', 'Hospitality / Service'], ['Industrial', 'Industrial / Work']];
 
 export const PLACES = [
   ['Bayanan, Muntinlupa City', 'Company address'],
@@ -57,15 +59,15 @@ export const ORDER_FAQS = [
   { q: 'How long does an order take?',
     a: 'You set the date you need your uniforms by in the Order Wizard. VFRB reviews your order and that date, then accepts or declines it.' },
   { q: 'Which sizes can I order?',
-    a: `Standard sizes ${STD_SIZES[0]} to ${STD_SIZES[STD_SIZES.length - 1]}, or custom measurements in centimetres (chest, waist, hip, length and sleeve). VFRB production staff review custom measurements with you.` },
+    a: `Standard sizes ${STD_SIZES[0]} to ${STD_SIZES[STD_SIZES.length - 1]}, or custom measurements in centimetres (chest, waist, hip, length and sleeve). The VFRB team reviews custom measurements with you.` },
 ];
 
 // Mirrors the Client Guide (pages/Guide.jsx). Update both together.
 export const ORDER_STEPS = [
   ['Create your design', 'Create and save your design in the Design Studio, then continue to the Order Wizard.'],
-  ['Review the materials', 'The system recommends the categories of raw materials your order needs. Accept it to notify VFRB staff.'],
+  ['Review the materials', 'The system recommends the categories of raw materials your order needs. Accept it to notify the VFRB team.'],
   ['Track your order', 'See when VFRB confirms your order, and follow it through to delivery.'],
-  ['Message the team', 'Use Messages in your portal to reach VFRB staff about a specific order.'],
+  ['Message the team', 'Use Messages in your portal to reach the VFRB team about a specific order.'],
 ];
 
 // The public journey, in reading order. Drives the "next page" band and the progress rail.

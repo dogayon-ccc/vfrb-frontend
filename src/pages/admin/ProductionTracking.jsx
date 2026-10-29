@@ -13,7 +13,7 @@ const STAGES = [
   { key: 'segregation', label: 'Segregation', icon: 'segregation', desc: 'Size segregation of cut pieces' },
   { key: 'cutting', label: 'Cutting', icon: 'cutting', desc: 'Fabric cutting by pattern' },
   { key: 'sewing', label: 'Sewing', icon: 'garmentType', desc: 'Assembly and inline QC (80% standard)' },
-  { key: 'qc', label: 'QC Check', icon: 'qc', desc: 'Final quality control inspection' },
+  { key: 'qc', label: 'QC check', icon: 'qc', desc: 'Final quality control inspection' },
   { key: 'pressing', label: 'Pressing', icon: 'pressing', desc: 'Garment pressing and finishing' },
   { key: 'packing', label: 'Packing', icon: 'package', desc: 'Pack and prepare for delivery' },
 ];

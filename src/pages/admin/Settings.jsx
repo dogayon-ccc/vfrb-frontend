@@ -9,6 +9,7 @@ import { PASSWORD_RULE_TEXT, passwordOk, passwordLevel, levelLabel } from '../..
 import ProfilePhotoField from '../../components/ProfilePhotoField';
 import AppearanceField from '../../components/AppearanceField';
 import { readUser } from '../../utils/authRoute';
+import { isStation, STATION_SETTINGS } from '../../utils/jobAccess';
 
 const NOTIFY = [
   { key: 'email_enabled', live: 'email_provider_live', label: 'Email notifications', icon: 'email', note: 'Order updates, AI recommendations ready, and account alerts.',
@@ -70,6 +71,7 @@ export default function Settings() {
   const [toast, setToast] = useToast();
   const [me, setMe] = useState(readUser);
   const fileRef = useRef(null);
+  const station = isStation();
 
   const loadCompany = () => {
     setCompanyLoading(true); setCompanyErr(false);
@@ -77,6 +79,7 @@ export default function Settings() {
       .catch(() => setCompanyErr(true)).finally(() => setCompanyLoading(false));
   };
   useEffect(() => {
+    if (station) return;
     loadCompany();
     axios.get('/api/settings/notifications').then((r) => setPrefs(r.data))
       .catch(() => setToast({ msg: 'Could not load notification preferences.', type: 'error' })).finally(() => setPrefsLoading(false));
@@ -130,10 +133,10 @@ export default function Settings() {
   const sections = [
     ['company', 'settings', 'Company'], ['profile', 'profile', 'Your profile'], ['notify', 'notifications', 'Notifications'],
     ['password', 'lock', 'Password'], ['ai', 'ai', 'AI guidance'], ['users', 'users', 'User Management'],
-  ];
+  ].filter(([k]) => !station || STATION_SETTINGS.includes(k));
   // One section at a time; ?tab= keeps it linkable and Back-able.
   const [params, setParams] = useSearchParams();
-  const tab = sections.some(([k]) => k === params.get('tab')) ? params.get('tab') : 'company';
+  const tab = sections.some(([k]) => k === params.get('tab')) ? params.get('tab') : sections[0][0];
   const pick = (k) => setParams(k === 'company' ? {} : { tab: k });
   const onTabKey = (e) => {
     const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key];
@@ -171,7 +174,7 @@ export default function Settings() {
   return (
     <div className="set-wrap">
       <Toast toast={toast} />
-      <PageHeader title="Settings" sub="Company identity, your account and system preferences." />
+      <PageHeader title="Settings" sub={station ? 'Change the password you sign in with.' : 'Company identity, your account and system preferences.'} />
 
       <div className="set-layout">
         <nav ref={navRef} className="set-nav" data-fade={fade} onScroll={measure} role="tablist" aria-label="Settings sections" onKeyDown={onTabKey}>

@@ -1,10 +1,10 @@
 // src/components/ui/ActionMenu.jsx
 // "⋯" overflow menu: a 44px icon button that opens a small list of actions.
-// items: [{ label, onClick, disabled?, tone?: 'danger' }]. Esc / outside click close; arrow keys move; focus returns to the button.
+// items: [{ label, onClick, disabled?, tone?: 'danger' }]. drop: 'up' (default) or 'down' for menus near the top of the screen. Esc / outside click close; arrow keys move; focus returns to the button.
 import { useEffect, useId, useRef, useState } from 'react';
 import { MoreHorizontal } from 'lucide-react';
 
-export default function ActionMenu({ items, label = 'More actions', align = 'right', className = '' }) {
+export default function ActionMenu({ items, label = 'More actions', align = 'right', drop = 'up', className = '' }) {
   const [open, setOpen] = useState(false);
   const wrap = useRef(null);
   const btn = useRef(null);
@@ -38,7 +38,7 @@ export default function ActionMenu({ items, label = 'More actions', align = 'rig
         <MoreHorizontal size={20} strokeWidth={2} aria-hidden="true" />
       </button>
       {open && (
-        <div id={id} role="menu" aria-label={label} className={`ui-menu-list ${align === 'left' ? 'left' : ''}`.trim()}>
+        <div id={id} role="menu" aria-label={label} className={`ui-menu-list ${align === 'left' ? 'left' : ''} ${drop === 'down' ? 'down' : ''}`.replace(/\s+/g, ' ').trim()}>
           {list.map((it) => (
             <button key={it.label} type="button" role="menuitem" disabled={it.disabled} className={it.tone === 'danger' ? 'danger' : undefined}
               onClick={() => { close(false); it.onClick(); }}>

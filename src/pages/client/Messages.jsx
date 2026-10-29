@@ -94,7 +94,7 @@ function Bubble({ msg, isMe, showTime, isOptimistic }) {
 const DaySep = ({ label }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0' }}>
     <div style={{ flex: 1, height: 1, background: '#f1f5f9' }}/>
-    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-subtle)', textTransform: 'uppercase', letterSpacing: '.08em', fontFamily: FONT, whiteSpace: 'nowrap' }}>{label}</span>
+    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-subtle)', fontFamily: FONT, whiteSpace: 'nowrap' }}>{label}</span>
     <div style={{ flex: 1, height: 1, background: '#f1f5f9' }}/>
   </div>
 );
@@ -109,7 +109,7 @@ const NoMessagesYet = () => (
   <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8 }}>
     <NavIcon name="messages" size={30} color="var(--text-faint)" />
     <p style={{ color: 'var(--ink)', fontSize: 14, fontWeight: 700, fontFamily: FONT, margin: 0, textAlign: 'center' }}>Ask VFRB about your order before you submit</p>
-    <p style={{ color: 'var(--text-subtle)', fontSize: 13, fontFamily: FONT, margin: 0, textAlign: 'center' }}>Type your question below. VFRB staff will reply here.</p>
+    <p style={{ color: 'var(--text-subtle)', fontSize: 13, fontFamily: FONT, margin: 0, textAlign: 'center' }}>Type your question below. The VFRB team will reply here.</p>
   </div>
 );
 
@@ -263,7 +263,7 @@ export default function CustomerMessages() {
         }
       `}</style>
 
-      <div className="cust-msg-head"><PageHeader title="Messages" subtitle="Chat with VFRB staff about your orders"/></div>
+      <div className="cust-msg-head"><PageHeader title="Messages" subtitle="Chat with the VFRB team about your orders"/></div>
 
       <div className={`cust-msg-wrap ${mobileView === 'thread' ? 'in-thread' : ''}`}>
         <div className={`cust-msg-list ${mobileView !== 'list' ? 'hide-mobile' : ''}`}>
@@ -286,7 +286,7 @@ export default function CustomerMessages() {
           {!loading && !ordersError && orders.length === 0 && (
             <EmptyState illustration="message-locked" compact
               headline="No orders yet"
-              sub="You'll be able to message VFRB staff once you place your first order."
+              sub="You'll be able to message the VFRB team once you place your first order."
               cta={{ label: 'Place your first order', onClick: () => nav('/order/create') }}/>
           )}
         </div>
@@ -314,9 +314,9 @@ export default function CustomerMessages() {
                   // No CTA here — the list pane already has one; a second identical button
                   // right next to it is the exact redundancy pattern flagged on Dashboard.
                   ? <EmptyState illustration="select-thread" headline="Nothing to show yet"
-                      sub="Place your first order to start a conversation with VFRB staff." maxWidth={320}/>
+                      sub="Place your first order to start a conversation with the VFRB team." maxWidth={320}/>
                   : <EmptyState illustration="select-thread" headline="Select a conversation"
-                      sub="Choose an order from the list to see your messages with VFRB staff." maxWidth={320}/>}
+                      sub="Choose an order from the list to see your messages with the VFRB team." maxWidth={320}/>}
               </div>
             ) : threadLoading ? (
               <div aria-busy="true" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -350,7 +350,7 @@ export default function CustomerMessages() {
             <input id="msg-input" value={newMsg} onChange={e => setNewMsg(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), send())}
               onFocus={() => setTimeout(() => { const el = logRef.current; if (el) el.scrollTop = el.scrollHeight; }, 300)}
-              placeholder={selId ? 'Message VFRB staff…' : 'Select a conversation'} disabled={!selId}
+              placeholder={selId ? 'Message the VFRB team…' : 'Select a conversation'} disabled={!selId}
               style={{ flex: 1, padding: '10px 16px', borderRadius: 12, border: '1px solid var(--border)', background: selId ? 'var(--bg-card)' : 'var(--bg-surface)',
                 color: 'var(--ink)', fontSize: 13, outline: 'none', fontFamily: FONT, minHeight: 44 }}/>
             <motion.button whileTap={{ scale: .95 }} onClick={send} disabled={sending || !newMsg.trim() || !selId}

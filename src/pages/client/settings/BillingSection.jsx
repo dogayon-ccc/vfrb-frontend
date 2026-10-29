@@ -60,7 +60,7 @@ function ProfileForm({ initial, onCancel, onSaved }) {
         <Notice msg={err} type="error"/>
         <div style={{ display: 'flex', gap: 10 }}>
           <Button variant="ghost" fullWidth onClick={onCancel}>Cancel</Button>
-          <Button type="submit" variant="primary" fullWidth icon="save" loading={saving}>{saving ? 'Saving…' : 'Save details'}</Button>
+          <Button type="submit" variant="primary" className="st-save" icon="save" loading={saving}>{saving ? 'Saving…' : 'Save changes'}</Button>
         </div>
       </form>
     </Card>

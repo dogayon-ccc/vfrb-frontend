@@ -17,11 +17,11 @@
 // calls needed in this file.
 //
 // Usage:
-//   <Field label="Contact Number" value={form.contact_number}
+//   <Field label="Contact number" value={form.contact_number}
 //     onChange={e => set('contact_number', e.target.value)}
 //     placeholder="09XXXXXXXXX"/>
 //
-//   <Field as="select" label="Client Type" value={form.client_type}
+//   <Field as="select" label="Client type" value={form.client_type}
 //     onChange={e => set('client_type', e.target.value)}>
 //     {CLIENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
 //   </Field>
@@ -55,8 +55,7 @@ export default function Field({
     <div>
       {label && (
         <label htmlFor={fieldId} style={{
-          display: 'block', fontSize: 'var(--text-meta)', fontWeight: 700, textTransform: 'uppercase',
-          letterSpacing: '.07em', color: 'var(--text-muted)', marginBottom: 7,
+          display: 'block', fontSize: 'var(--text-meta)', fontWeight: 700, color: 'var(--text-muted)', marginBottom: 7,
         }}>
           {label}
         </label>

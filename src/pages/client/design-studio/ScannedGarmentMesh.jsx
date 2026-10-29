@@ -143,7 +143,7 @@ function useZoneMaterial(geometry, part, colors, patterns, patternParams, pxToMo
 }
 
 function ScannedPart({ geometry, part, colors, patterns, patternParams, decals, frame, torso, exploded = false, onPick = null }) {
-  const color = part.fixedColor ?? colors[part.colorKey] ?? colors[part.fallbackKey] ?? DEFAULT_GARMENT_COLOR;
+  const color = part.fixedColor ?? colors[part.colorKey] ?? colors[part.fallbackKey] ?? colors.body ?? DEFAULT_GARMENT_COLOR;
   const pxToModel = (2 * torso) / (frame.x1 - frame.x0);
   const zoneMap = useRegionTexture(geometry, part, colors, patterns, patternParams, pxToModel);
   const zoneMaterial = useZoneMaterial(geometry, part, colors, patterns, patternParams, pxToModel);

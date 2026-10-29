@@ -14,11 +14,12 @@ import GarmentCarousel from './GarmentCarousel';
 import { REF_SPLIT, PREVIEW_CAPTION, previewColors } from './referenceColour';
 import { CUSTOM_TOP, CUSTOM_BOTTOM, CUSTOM_SKIRT, CUSTOM_BADGE, DEFAULT_CUSTOM, kindOf } from './customGarment';
 import { CustomControls, CustomNote } from './BuildYourOwn';
+import { peekStudioCategory, clearStudioCategory } from '../../../utils/studioIntent';
+import { garmentLabel } from '../../../utils/designName';
 
 const ReferenceModel3D = lazy(() => import('./ReferenceModel3D'));
 const CAT_SHORT = { 'School Uniform': 'School', 'Medical / Scrubs': 'Medical', 'Hospitality / Service': 'Hospitality', 'Industrial / Work': 'Industrial' };
 
-// Every card carries its status badge; the key in the header names each badge shown.
 const PHOTO_BADGE = { reference: Eye, 'editable-2d': Square, '2d-3d-approx': Box, '2d-3d': CheckCircle2 };
 const PHOTO_LABEL = Object.fromEntries(Object.entries(TIER_LABEL).map(([k, t]) => [k, t.label]));
 
@@ -186,7 +187,7 @@ function Photos({ head, onClose, cfg, pieceRole, onPickPhoto, onPick3D, onPickFa
             </div>
           ) : <img src={preview.image} alt={preview.label}/>}
           {ref3DFailed && <p className="ds-note">The 3D reference could not load; the photo is the reference.</p>}
-          <h3>{preview.label}</h3>
+          <h3>{garmentLabel(preview.label)}</h3>
           <p className="ds-pick-sum">{previewSentence(preview, offRole)}</p>
           <ul className="ds-pick-status" aria-label="Status">{previewChips(preview, offRole).map(c => <li key={c}>{c}</li>)}</ul>
         </div>
@@ -234,7 +235,7 @@ function Photos({ head, onClose, cfg, pieceRole, onPickPhoto, onPick3D, onPickFa
           <li key={d.id} style={{ '--i': Math.min(i, 8) }}>
             <button type="button" className="ds-pick-card" onClick={() => setPreview(d)} title={TIER_LABEL[tierOf(d)].note} aria-label={`${d.label}, ${PHOTO_LABEL[tierOf(d)]}`}>
               <span className="ds-pick-img"><img src={d.thumb} alt="" loading="lazy" decoding="async"/></span>
-              <strong>{d.label}</strong>
+              <strong>{garmentLabel(d.label)}</strong>
               <Badge icon={PHOTO_BADGE[tierOf(d)]} label={PHOTO_LABEL[tierOf(d)]}/>
             </button>
           </li>
@@ -292,7 +293,7 @@ function FamilyCard({ fam, cfg, fitsRole, pieceRole, onPick, i }) {
         title={fitsRole(fam) ? TIER_LABEL[tier].note : `Your set needs a ${ROLE_LABEL[pieceRole].toLowerCase()} here`}
         onClick={() => onPick(fam)} aria-label={`${fam.id}, ${PHOTO_LABEL[tier]}`}>
         <span className="ds-pick-img"><TemplateImage fam={fam} cfg={cfg} pick={combosFor(fam, VECTOR)[0] ?? {}}/></span>
-        <strong>{fam.id}</strong>
+        <strong>{garmentLabel(fam.id)}</strong>
         <Badge icon={PHOTO_BADGE[tier]} label={PHOTO_LABEL[tier]}/>
       </button>
     </li>
@@ -321,7 +322,7 @@ function FamilySteps({ fam, cfg, onBack, onOpen, backLabel = 'Back to garments' 
     <>
       <div className="ds-pick-preview ds-pick-steps">
         <span className="ds-pick-img"><TemplateImage fam={fam} cfg={cfg} pick={{ fit: chosen?.fit, sleeve: chosen?.sleeve }}/></span>
-        <h3>{fam.id}</h3>
+        <h3>{garmentLabel(fam.id)}</h3>
         {fam.derived && <p className="ds-note">{DERIVED_LABEL}. One colour zone: the outline is traced from the reference model.</p>}
         <Choice label="Fit / cut" items={fits} value={fit} set={v => { setFit(v); setSleeve(combos.find(c => c.fit === v)?.sleeve ?? null); }} text={v => FIT_LABEL[v] ?? 'Standard'}/>
         <Choice label="Style" items={styles.map(c => c.sleeve)} value={chosen?.sleeve} set={setSleeve} text={v => `${v ?? 'Standard'} sleeve`}/>
@@ -386,12 +387,12 @@ function BuildYourOwnCard({ onPick }) {
 // the garment already designed is kept. A one-piece garment needs no partner, and the picker says so instead of offering one.
 function PairSection({ cfg, onPair, i0 = 0 }) {
   const role = pieceOf(cfg.garment);
-  if (!role) return <p className="ds-note ds-pick-pairnote">{cfg.garment} is a one-piece garment: it needs no separate top or bottom. Pick any garment below to replace it.</p>;
+  if (!role) return <p className="ds-note ds-pick-pairnote">{garmentLabel(cfg.garment)} is a one-piece garment: it needs no separate top or bottom. Pick any garment below to replace it.</p>;
   const list = counterpartsFor(cfg.garment, cfg.category).filter(f => !f.derived && tierOfFamily(f) !== 'reference');
   const want = role === 'top' ? 'bottom' : 'top';
   return (
-    <section className="ds-pick-sec ds-pick-pair" aria-label={`Pair a ${ROLE_LABEL[want].toLowerCase()} with your ${cfg.garment}`}>
-      <h3>Pair with your {cfg.garment}</h3>
+    <section className="ds-pick-sec ds-pick-pair" aria-label={`Pair a ${ROLE_LABEL[want].toLowerCase()} with your ${garmentLabel(cfg.garment)}`}>
+      <h3>Pair with your {garmentLabel(cfg.garment)}</h3>
       <p className="ds-note">Adds a {ROLE_LABEL[want].toLowerCase()} as the other piece of a uniform set, in your colours. Your {ROLE_LABEL[role].toLowerCase()} stays as it is.</p>
       {list.length
         ? <ul className="ds-pick-grid">{list.map((f, i) => <FamilyCard key={f.id} fam={f} cfg={cfg} fitsRole={() => true} pieceRole={null} onPick={onPair} i={i0 + i}/>)}</ul>
@@ -400,8 +401,8 @@ function PairSection({ cfg, onPair, i0 = 0 }) {
   );
 }
 
-function Templates({ head, onClose, cfg, pieceRole, onPickFamily, onPairFamily = null, extra }) {
-  const [cat, setCat] = useState(ALL);
+function Templates({ head, onClose, cfg, pieceRole, onPickFamily, onPairFamily = null, extra, startCat = null }) {
+  const [cat, setCat] = useState(startCat ?? ALL);
   const [roleOn, setRoleOn] = useState(true);
   const [fam, setFam] = useState(null);
   const [pairFam, setPairFam] = useState(null);
@@ -482,7 +483,10 @@ function ArtScope({ value, onChange }) {
 }
 
 export default function GarmentPicker({ tab = 'inspiration', inline = false, cfg, pieceRole = null, onPickPhoto, onPick3D, onPickFamily, onPairFamily = null, onUpload, pendingArt, onCancelArt, onSketchArt = null, artScope = null, onArtScope = null, onClose = null, extra = null }) {
-  const [view, setView] = useState(tab);
+  // A landing tile's category (studioIntent.js) opens the scratch list filtered to it; an unknown id is ignored.
+  const [startCat] = useState(() => { const c = inline && !cfg.garment ? peekStudioCategory() : null; return CATALOG.some(x => x.id === c) ? c : null; });
+  useEffect(clearStudioCategory, []);
+  const [view, setView] = useState(startCat ? 'templates' : tab);
   const title = pendingArt ? 'Now choose the garment for your design' : cfg.garment ? 'Change garment' : 'Start from a VFRB garment';
   const sub = pendingArt
     ? <><p>Your file <strong>{pendingArt.name}</strong> goes on the garment you pick{artScope === 'set' ? '; pick the top and its bottom is added as a set' : ''}. <button type="button" className="ds-pick-link" onClick={onCancelArt}><X size={14} aria-hidden="true"/>Cancel upload</button></p>
@@ -505,7 +509,7 @@ export default function GarmentPicker({ tab = 'inspiration', inline = false, cfg
     <section ref={root} className="ds-pick" data-inline={inline || undefined} data-compact={compact || undefined} aria-labelledby="ds-pick-h">
       {view === 'inspiration'
         ? <Photos head={head} onClose={onClose} cfg={cfg} pieceRole={pieceRole} onPickPhoto={onPickPhoto} onPick3D={onPick3D} onPickFamily={onPickFamily} extra={extra}/>
-        : <Templates head={head} onClose={onClose} cfg={cfg} pieceRole={pieceRole} onPickFamily={onPickFamily} onPairFamily={onPairFamily} extra={extra}/>}
+        : <Templates head={head} onClose={onClose} cfg={cfg} pieceRole={pieceRole} onPickFamily={onPickFamily} onPairFamily={onPairFamily} extra={extra} startCat={startCat}/>}
     </section>
   );
 }

@@ -5,15 +5,15 @@ import { TTL } from '../../utils/cache';
 import { fetchResource } from '../../utils/adminResources';
 import { useCachedResource } from '../../hooks/useCachedResource';
 import { NavIcon } from '../../components/ui/icons';
-import { isAdmin, isOwner, ownerCanOpen } from '../../utils/jobAccess';
+import { isAdmin, isOwner, canOpen, stationStage } from '../../utils/jobAccess';
 import { PageHeader, AttentionStrip, Card, DataTable, EmptyState, Meter, StatusChip } from '../../components/ui';
 import { StatGrid, ErrorBlock, useLivePoll, LiveStamp } from '../../components/admin/AdminUI';
 
-const STAGES = [
+const ALL_STAGES = [
   ['pattern', 'Pattern', 'pattern'], ['segregation', 'Segregation', 'segregation'], ['cutting', 'Cutting', 'cutting'],
   ['sewing', 'Sewing', 'garmentType'], ['qc', 'QC', 'qc'], ['pressing', 'Pressing', 'pressing'], ['packing', 'Packing', 'package'],
 ];
-const STAGE_LABEL = Object.fromEntries(STAGES.map(([k, l]) => [k, l]));
+const STAGE_LABEL = Object.fromEntries(ALL_STAGES.map(([k, l]) => [k, l]));
 const localDay = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) : '—');
 const peso = (n) => `₱${Number(n).toLocaleString('en-PH')}`;
@@ -24,7 +24,7 @@ const OUTPUT_PAGE = 500;
 function AlertList({ title, count, more, loading, failed, empty, head, num = [], children, isEmpty }) {
   return (
     <Card padding="none" title={<>{title} <span className="adm-chip">{loading ? '…' : count}</span></>} action={more}>
-      <DataTable label={title} dense loading={loading} rows={3} isEmpty={failed || isEmpty}
+      <DataTable label={title} dense mobileCards densityToggle={false} loading={loading} rows={3} isEmpty={failed || isEmpty}
         empty={<EmptyState compact>{failed ? "Couldn't load this list." : empty}</EmptyState>}>
         <thead><tr>{head.map((h) => <th key={h} className={num.includes(h) ? 'num' : undefined}>{h}</th>)}</tr></thead>
         <tbody>{children}</tbody>
@@ -37,8 +37,11 @@ export default function AdminDashboard() {
   const nav = useNavigate();
   const user = (() => { try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}'); } catch { return {}; } })();
   const isManager = isAdmin(user) || isOwner(user); // both may read revenue
-  // The read-only Owner gets plain tiles where a link would land on Access denied.
-  const go = (path) => (!isOwner(user) || ownerCanOpen(path) ? () => nav(path) : undefined);
+  // Owner and Station get plain tiles where a link would land on Access denied.
+  const go = (path) => (canOpen(path, user) ? () => nav(path) : undefined);
+  // A Station sees only its own stage on the floor board.
+  const own = stationStage(user);
+  const STAGES = own ? ALL_STAGES.filter(([k]) => k === own) : ALL_STAGES;
   const day = localDay();
 
   const [data, dataLoading, loadDashboard] = useCachedResource('dashboard_stats', () => fetchResource('dashboard'), TTL.DASHBOARD);
@@ -116,13 +119,14 @@ export default function AdminDashboard() {
             return <Link key={k} to={`/admin/production?stage=${k}`} className={cls} style={{ '--i': i, textDecoration: 'none' }} aria-label={`${label}: ${stageCount[k] ?? 0} orders, ${outByStage[k] ?? 0} pieces today`}>{body}</Link>;
           })}
         </div>
+        {!loading && !outLoading && STAGES.every(([k]) => !stageCount[k] && !outByStage[k]) && <p className="adm-pipe-none">No activity yet</p>}
       </Card>
 
       <StatGrid items={kpis} loading={loading} />
 
       <div className="dash-grid">
         <Card title="Today's output" subtitle={`${outputToday.toLocaleString()} pieces logged`}
-          action={go('/admin/output-log') ? <Link className="adm-link-btn" to="/admin/output-log">Output log →</Link> : null}>
+          action={go('/admin/output-log') ? <Link className="adm-link-btn" to="/admin/output-log">Output log</Link> : null}>
           {outLoading ? <div className="adm-sk" style={{ height: 150 }} />
             : !outRaw ? <EmptyState compact>Per-stage breakdown unavailable. Total: {outputToday} pcs.</EmptyState>
             : outRaw.rows.length === 0 ? <EmptyState compact>Nothing logged yet today.</EmptyState>
@@ -140,28 +144,28 @@ export default function AdminDashboard() {
 
         <AlertList title="Awaiting review" count={o.pending ?? 0} loading={pLoading} failed={pendingRaw == null} isEmpty={!pendingRaw?.length}
           empty="No pending orders." head={['Order', 'Customer', 'Pcs', 'Placed']} num={['Pcs']}
-          more={(o.pending ?? 0) > 0 ? <Link className="adm-link-btn" to="/admin/orders?status=pending">View all →</Link> : null}>
+          more={(o.pending ?? 0) > 0 ? <Link className="adm-link-btn" to="/admin/orders?status=pending">View all</Link> : null}>
           {(pendingRaw ?? []).map((x) => (
             <tr key={x.order_id} {...rowKeys(() => openOrder(x.order_id))}>
-              <td style={{ fontWeight: 800, color: 'var(--teal)' }}>#{x.order_id}</td>
-              <td style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.customer_name ?? '—'}</td>
-              <td className="num">{x.quantity_ordered ?? 0}</td>
-              <td style={{ color: 'var(--text-subtle)', whiteSpace: 'nowrap' }}>{fmtDate(x.created_at)}</td>
+              <td data-label="Order" style={{ fontWeight: 800, color: 'var(--teal)' }}>#{x.order_id}</td>
+              <td data-label="Customer" style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.customer_name ?? '—'}</td>
+              <td data-label="Pcs" className="num">{x.quantity_ordered ?? 0}</td>
+              <td data-label="Placed" style={{ color: 'var(--text-subtle)', whiteSpace: 'nowrap' }}>{fmtDate(x.created_at)}</td>
             </tr>
           ))}
         </AlertList>
 
         <AlertList title="Low stock" count={lowCount} loading={loading} failed={!data} isEmpty={!low.length}
           empty="No materials at or below reorder." head={['Material', 'On hand', 'vs reorder']} num={['On hand']}
-          more={lowCount > 0 ? <Link className="adm-link-btn" to="/admin/inventory?filter=reorder">Inventory →</Link> : null}>
+          more={lowCount > 0 ? <Link className="adm-link-btn" to="/admin/inventory?filter=reorder">Inventory</Link> : null}>
           {low.map((m) => {
             const reorder = Number(m.reorder_threshold) || 0;
             const qty = Number(m.quantity_in_stock) || 0;
             return (
               <tr key={m.material_id} {...rowKeys(() => nav('/admin/inventory?filter=reorder'))}>
-                <td style={{ fontWeight: 700 }}>{m.material_name}</td>
-                <td className="num" style={{ color: 'var(--danger-text)', fontWeight: 700 }}>{qty} {m.unit}</td>
-                <td style={{ minWidth: 90 }}><Meter pct={reorder > 0 ? (qty / reorder) * 100 : 0} tone="low" label={`${m.material_name}: ${qty} of ${reorder} ${m.unit} reorder point`} /></td>
+                <td data-label="Material" style={{ fontWeight: 700 }}>{m.material_name}</td>
+                <td data-label="On hand" className="num" style={{ color: 'var(--danger-text)', fontWeight: 700 }}>{qty} {m.unit}</td>
+                <td data-label="vs reorder" style={{ minWidth: 90 }}><Meter pct={reorder > 0 ? (qty / reorder) * 100 : 0} tone="low" label={`${m.material_name}: ${qty} of ${reorder} ${m.unit} reorder point`} /></td>
               </tr>
             );
           })}
@@ -172,10 +176,10 @@ export default function AdminDashboard() {
             empty={`No stage has gone ${delayDays}+ days without output.`} head={['Order', 'Stage', 'Done', 'Idle']} num={['Done', 'Idle']}>
             {delayed.map((x) => (
               <tr key={x.order_id} {...rowKeys(go(`/admin/production/${x.order_id}`) ?? (() => openOrder(x.order_id)))}>
-                <td><span style={{ fontWeight: 800, color: 'var(--teal)' }}>#{x.order_id}</span> <span style={{ color: 'var(--text-subtle)' }}>{x.customer_name}</span></td>
-                <td><StatusChip status={x.stage} label={STAGE_LABEL[x.stage] ?? x.stage} size={12} /></td>
-                <td className="num">{x.qty_completed}/{x.qty_target}</td>
-                <td className="num" style={{ color: 'var(--warning-text)', fontWeight: 700 }}>{x.days_stalled}d</td>
+                <td data-label="Order"><span style={{ fontWeight: 800, color: 'var(--teal)' }}>#{x.order_id}</span> <span style={{ color: 'var(--text-subtle)' }}>{x.customer_name}</span></td>
+                <td data-label="Stage"><StatusChip status={x.stage} label={STAGE_LABEL[x.stage] ?? x.stage} size={12} /></td>
+                <td data-label="Done" className="num">{x.qty_completed}/{x.qty_target}</td>
+                <td data-label="Idle" className="num" style={{ color: 'var(--warning-text)', fontWeight: 700 }}>{x.days_stalled}d</td>
               </tr>
             ))}
           </AlertList>

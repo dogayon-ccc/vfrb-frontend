@@ -1,17 +1,18 @@
 // Upload guard for "Upload my design" and logos: the 5 MB cap, the real type read from the file's bytes (never trusted from its name
 // or MIME), SVG turned into a PNG (an SVG is only ever decoded as an <img>, where scripts and external loads never run, and only the
 // raster is placed or sent), a minimum pixel size, and the original file kept alongside whatever is placed.
+import { sniffKind, KIND_MIME as MIME } from '../../../utils/fileCheck';
 
 export const MAX_BYTES = 5 * 1024 * 1024;
 export const MIN_SIDE = { logo: 120, artwork: 200 }; // shortest side in px for a sharp print at its placed size
 const SVG_LONG_SIDE = 1600; // an SVG is rasterised at this long side
-const MIME = { png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp', svg: 'image/svg+xml' };
+export const PLACE_LONG_SIDE = { logo: 1024, artwork: 1600 }; // placed images are stored inside the saved design JSON
+const PLACE_BUDGET = 900 * 1024; // per image, so a two-sided design stays well under the server's request limit
 
-// The file's real kind from its first bytes: png | jpg | webp | svg, or null.
+// The file's real kind from its first bytes: png | jpg | webp | svg, or null (a PDF is not an image here).
 export function sniffBytes(b, text = '') {
-  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return 'png';
-  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'jpg';
-  if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return 'webp';
+  const kind = sniffKind(b);
+  if (kind) return kind === 'pdf' ? null : kind;
   // SVG: optional BOM, XML prolog, comments and doctype, then an <svg> root.
   if (/^﻿?\s*(<\?xml[^>]*>\s*)?(<!--[\s\S]*?-->\s*)*(<!DOCTYPE svg[^>]*>\s*)?(<!--[\s\S]*?-->\s*)*<svg[\s>]/i.test(text)) return 'svg';
   return null;
@@ -84,5 +85,29 @@ export async function referenceFile(prep) {
     ctx.globalCompositeOperation = 'destination-over'; ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, c.width, c.height);
     blob = await toBlob(c, 'image/jpeg', 0.9);
     return new File([blob], `${baseName(prep.original.name)}.jpg`, { type: 'image/jpeg' });
+  } finally { URL.revokeObjectURL(url); }
+}
+
+// Scale for an image of w × h so its long side is at most `long`: 1 when it already fits.
+export const fitScale = (w, h, long) => Math.min(1, long / Math.max(w, h, 1));
+
+// The image as it is stored in the design: at most PLACE_LONG_SIDE and PLACE_BUDGET, transparency kept. A file that already fits is
+// returned untouched; otherwise PNG, then WEBP, then a smaller size until it fits.
+export async function fitForCanvas(file, purpose = 'logo') {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await decode(url);
+    let k = fitScale(img.naturalWidth, img.naturalHeight, PLACE_LONG_SIDE[purpose] ?? PLACE_LONG_SIDE.logo);
+    if (k === 1 && file.size <= PLACE_BUDGET) return file;
+    for (let pass = 0; pass < 4; pass++, k *= 0.75) {
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(img.naturalWidth * k)); c.height = Math.max(1, Math.round(img.naturalHeight * k));
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      for (const [type, q] of [['image/png'], ['image/webp', 0.9]]) {
+        const blob = await toBlob(c, type, q);
+        if (blob.size <= PLACE_BUDGET) return new File([blob], `${baseName(file.name)}.${blob.type === 'image/webp' ? 'webp' : 'png'}`, { type: blob.type });
+      }
+    }
+    return file; // a pathological image: placed as it is rather than refused
   } finally { URL.revokeObjectURL(url); }
 }

@@ -12,7 +12,7 @@ import { NavIcon } from '../ui';
 // template, zone colours, pocket/button/closure changes, the customer's reference photo and the order notes. Admin never edits a submitted design here.
 
 const ZONE_LABEL = { body: 'Body', sleeve: 'Sleeves', collar: 'Collar', pocket: 'Pocket / lower', tipping: 'Tipping' };
-const label = { fontSize: 11, fontWeight: 700, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 6 };
+const label = { fontSize: 11, fontWeight: 700, color: 'var(--text-faint)', marginBottom: 6 };
 const box = { padding: 12, background: 'var(--bg-surface)', borderRadius: 'var(--r-md)', fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5, overflowWrap: 'anywhere' };
 
 const parseCfg = (cfg) => { if (!cfg || typeof cfg === 'object') return cfg ?? null; try { return JSON.parse(cfg); } catch { return null; } };

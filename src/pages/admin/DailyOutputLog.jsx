@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
-import { NavIcon } from '../../components/ui';
-import { PageHeader, PillTabs, TabPanel, Panel, StatusPill, ErrorBlock, EmptyBlock, SkeletonRows, OrderLink, RecordedBy } from '../../components/admin/AdminUI';
+import { NavIcon, DataTable } from '../../components/ui';
+import { PageHeader, PillTabs, TabPanel, Panel, StatusPill, ErrorBlock, EmptyBlock, OrderLink, RecordedBy } from '../../components/admin/AdminUI';
 import QCChecklistForm from '../../components/admin/QCChecklistForm';
 import ProductionProgress from '../../components/admin/ProductionProgress';
+import { STAGES, stationStage } from '../../utils/jobAccess';
 
-const STAGES = ['pattern', 'segregation', 'cutting', 'sewing', 'qc', 'pressing', 'packing'];
 const SIZES  = ['xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl', 'custom'];
 const SIZE_LABELS = { xs: 'XS', s: 'S', m: 'M', l: 'L', xl: 'XL', xxl: '2XL', xxxl: '3XL', custom: 'Custom' };
 const cap = (s) => (s === 'qc' ? 'QC' : s.charAt(0).toUpperCase() + s.slice(1));
@@ -55,6 +55,7 @@ export default function AdminDailyOutputLog() {
   const [defBusy, setDefBusy] = useState(false);
   const [defMsg,  setDefMsg]  = useState(null); // { ok, text }
   const [form,    setForm]    = useState(() => emptyForm(deepId));
+  const own = stationStage(); // a Station logs only its assigned stage
   const [loading, setLoading] = useState(true);
   const [loadErr, setLoadErr] = useState(false);
   const [saving,  setSaving]  = useState(false);
@@ -74,19 +75,19 @@ export default function AdminDailyOutputLog() {
   const load = useCallback(() => {
     setLoading(true); setLoadErr(false);
     Promise.allSettled([
-      axios.get('/api/admin/orders', { params: { status: STAGES.join(','), per_page: 100 } }),
+      axios.get('/api/admin/orders', { params: { status: own || STAGES.join(','), per_page: 100 } }),
       axios.get('/api/admin/output-logs', { params: { date: localDay() } }),
     ]).then(([o, l]) => {
       setOrders(o.status === 'fulfilled' ? (o.value.data?.data ?? o.value.data ?? []) : []);
       setLogs(l.status === 'fulfilled' ? (l.value.data?.data ?? l.value.data ?? []) : []);
       setLoadErr(o.status === 'rejected');
     }).finally(() => setLoading(false));
-  }, []);
+  }, [own]);
   useEffect(() => { load(); }, [load]);
 
   // Stages go step by step: output is always logged against the order's current stage, never a chosen one.
   const selOrder = orders.find((o) => String(o.order_id) === String(form.order_id));
-  const stage = selOrder && STAGES.includes(selOrder.status) ? selOrder.status : null;
+  const stage = selOrder && STAGES.includes(selOrder.status) && (!own || selOrder.status === own) ? selOrder.status : null;
 
   useEffect(() => {
     setMaterialQty({}); setOrderMaterials([]); setQc(null); setDefect(emptyDefect); setDefMsg(null);
@@ -152,7 +153,7 @@ export default function AdminDailyOutputLog() {
 
   const submit = async () => {
     if (!form.order_id) { setErr('Select an order.'); return; }
-    if (!stage) { setErr('This order is not at a production stage.'); return; }
+    if (!stage) { setErr(own ? `This order is not at your stage (${cap(own)}).` : 'This order is not at a production stage.'); return; }
     // Zero pieces is allowed only to save consumption for a Pattern stage that is complete but held.
     if (totalInForm === 0 && !(patternDone && materialActuals().length)) { setErr('Enter at least 1 piece completed.'); return; }
     setSaving(true); setErr(''); setSuccess('');
@@ -237,7 +238,7 @@ export default function AdminDailyOutputLog() {
                   </select>
                 </label>
                 <div><span className="adm-field">Your stage</span>
-                  <div className="dol-stage" aria-live="polite">{stage ? `${cap(stage)} · step ${STAGES.indexOf(stage) + 1} of ${STAGES.length}` : '—'}</div>
+                  <div className="dol-stage" aria-live="polite">{(stage ?? own) ? `${cap(stage ?? own)} · step ${STAGES.indexOf(stage ?? own) + 1} of ${STAGES.length}` : '—'}</div>
                 </div>
               </div>
 
@@ -336,7 +337,7 @@ export default function AdminDailyOutputLog() {
                 </section>
               )}
 
-              {form.order_id && orderSizes.length > 0 && (
+              {form.order_id && orderSizes.length > 0 && (!own || own === 'sewing') && (
                 <div className="adm-callout warn" style={{ display: 'block', marginBottom: 0 }}>
                   <b>Report a defect</b>
                   <div style={{ marginBottom: 10 }}>Only pieces you sewed on this order can be reported.</div>
@@ -397,29 +398,24 @@ export default function AdminDailyOutputLog() {
 
       {tab === 'history' && (
         <Panel title={`Today's logs — ${today}`} flush>
-          {loading ? <SkeletonRows rows={3} h={40} /> : logs.length === 0 ? (
-            <EmptyBlock>No logs for today yet. <button className="adm-link-btn" onClick={() => setTab('log')}>Log output</button></EmptyBlock>
-          ) : (
-            <div className="adm-tbl-scroll">
-              <table className="adm-table" style={{ minWidth: 560 }}>
-                <thead><tr><th>Order</th><th>Stage</th><th>Total</th><th>By size</th><th>Defects</th><th>Recorded</th></tr></thead>
-                <tbody>
-                  {logs.map((l, i) => (
-                    <tr key={l.log_id ?? i}>
-                      <td><OrderLink id={l.order_id} /></td>
-                      <td>{cap(l.stage ?? '')}</td>
-                      <td style={{ fontSize: 14, fontWeight: 800, color: 'var(--teal)' }}>{l.total_output}</td>
-                      <td><SizeChips row={l} /></td>
-                      <td>
-                        {l.defect_count > 0 ? <span style={{ color: 'var(--danger-text)', fontWeight: 700 }}>{l.defect_count} defect{l.defect_count > 1 ? 's' : ''}{l.defect_size ? ` · ${l.defect_size}` : ''}</span> : '—'}
-                      </td>
-                      <td><RecordedBy name={l.logged_by_name} at={l.created_at} label="" /></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <DataTable label="Today's output logs" mobileCards className="adm-flush-table" loading={loading} rows={3}
+            isEmpty={logs.length === 0} empty={<EmptyBlock>No logs for today yet. <button className="adm-link-btn" onClick={() => setTab('log')}>Log output</button></EmptyBlock>}>
+            <thead><tr><th>Order</th><th>Stage</th><th>Total</th><th>By size</th><th>Defects</th><th>Recorded</th></tr></thead>
+            <tbody>
+              {logs.map((l, i) => (
+                <tr key={l.log_id ?? i}>
+                  <td data-label="Order"><OrderLink id={l.order_id} /></td>
+                  <td data-label="Stage">{cap(l.stage ?? '')}</td>
+                  <td data-label="Total" style={{ fontSize: 14, fontWeight: 800, color: 'var(--teal)' }}>{l.total_output}</td>
+                  <td data-label="By size"><SizeChips row={l} /></td>
+                  <td data-label="Defects">
+                    {l.defect_count > 0 ? <span style={{ color: 'var(--danger-text)', fontWeight: 700 }}>{l.defect_count} defect{l.defect_count > 1 ? 's' : ''}{l.defect_size ? ` · ${l.defect_size}` : ''}</span> : '—'}
+                  </td>
+                  <td data-label="Recorded"><RecordedBy name={l.logged_by_name} at={l.created_at} label="" /></td>
+                </tr>
+              ))}
+            </tbody>
+          </DataTable>
         </Panel>
       )}
       </TabPanel>

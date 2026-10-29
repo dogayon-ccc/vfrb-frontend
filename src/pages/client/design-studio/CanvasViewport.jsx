@@ -1,8 +1,8 @@
 import { Component, Suspense, lazy, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Minus, Plus, Moon, Sun, Scan, Maximize2, Minimize2, Expand, Shrink, Lightbulb, RotateCw } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
+import { Minus, Plus, Scan, Maximize2, Minimize2, Expand, Shrink, Lightbulb, RotateCw, FlipHorizontal2 } from 'lucide-react';
 import { NavIcon } from '../../../components/ui/icons';
-import { familyFor, STATUS_3D_LABEL } from './garmentCatalog';
+import { familyFor } from './garmentCatalog';
 import { get3DCapabilities, hemNote3D, detailParts3D, explodableFor } from './garmentCapabilities';
 import { LIGHT_PRESETS } from './lightRig';
 import { ZONE_LABEL } from './dsShared';
@@ -42,26 +42,31 @@ const clampZoom = z => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, +z.toFixed(3)));
 
 const Scene3D = lazy(() => import('../DesignStudio3D'));
 
-// Fit the artboard so the garment fills ~65% of the fit area between the stage lanes (width permitting), centred. The artboard holds the garment
-// with a margin, so GARMENT_SHARE converts garment height to artboard height; MAX_FIT keeps the raster canvas crisp.
-const STAGE_FILL = 0.65, GARMENT_SHARE = 0.9, MAX_FIT = 2;
-function useFit(paneRef, wrapRef) {
+// Fit the artboard so the garment fills ~72% of the visible stage (above any bottom sheet), never past the fit area between the lanes or its width.
+// The artboard holds the garment with a margin: the garment's measured share of it (GARMENT_SHARE until the base has drawn) converts
+// garment height to artboard height; MAX_FIT keeps the raster canvas crisp.
+const STAGE_FILL = 0.72, GARMENT_SHARE = 0.9, MAX_FIT = 2;
+function useFit(paneRef, wrapRef, garmentH = 0) {
   const [fit, setFit] = useState(1);
   useEffect(() => {
     const pane = paneRef.current, wrap = wrapRef.current;
     if (!pane || !wrap) return undefined;
+    const stage = pane.closest('.ds-cv');
     const measure = () => {
       if (!wrap.offsetWidth || !wrap.offsetHeight) return;
-      const gutter = window.innerWidth >= 1024 ? 96 : 24;
-      const byH = (pane.clientHeight * STAGE_FILL / GARMENT_SHARE) / wrap.offsetHeight;
+      const w = window.innerWidth, gutter = w >= 1280 ? 48 : w >= 600 ? 16 : 0; // phones: the artboard's own margin is the gutter
+      const stageH = stage ? stage.clientHeight - (parseFloat(getComputedStyle(stage).paddingBottom) || 0) : pane.clientHeight;
+      const share = garmentH > 0 ? Math.min(1, garmentH / wrap.offsetHeight) : GARMENT_SHARE;
+      const byH = Math.min(stageH * STAGE_FILL / share, pane.clientHeight) / wrap.offsetHeight;
       setFit(Math.max(0.3, Math.min(MAX_FIT, (pane.clientWidth - gutter) / wrap.offsetWidth, byH)));
     };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(pane);
     ro.observe(wrap);
+    if (stage) ro.observe(stage);
     return () => ro.disconnect();
-  }, [paneRef, wrapRef]);
+  }, [paneRef, wrapRef, garmentH]);
   return fit;
 }
 
@@ -98,9 +103,9 @@ class ThreeEB extends Component {
       <div style={{ width:'100%',height:'100%',display:'flex',flexDirection:'column',
         alignItems:'center',justifyContent:'center',gap:12 }}>
         <NavIcon name="warning" size={32} color="var(--cx-stage-ink-2)"/>
-        <p style={{ color:'var(--cx-stage-ink-2)',fontSize:12,textAlign:'center',
+        <p style={{ color:'var(--cx-stage-ink-2)',fontSize:13,textAlign:'center',
           padding:'0 24px',lineHeight:1.6 }}>
-          {this.state.load ? '3D view could not load.' : 'WebGL unavailable or context lost.'}<br/>{this.state.load ? 'Check your connection and retry, or keep designing in 2D.' : 'If this keeps happening, reload the page or use 2D mode.'}
+          {this.state.load ? 'The 3D preview could not load.' : 'The 3D preview is not available on this device right now.'}<br/>{this.state.load ? 'Check your connection and try again. Your design is safe in 2D.' : 'Your design is safe; switch to 2D to keep working.'}
         </p>
         <button onClick={() => (this.state.fails >= 2 ? window.location.reload() : this.retry())}
           className="ds-btn ds-btn--primary">
@@ -117,7 +122,7 @@ class ThreeEB extends Component {
 export default function CanvasViewport({
   cfg, setCfg, canvasWrapRef, canvasEl, aiPulse, face, switchFace, initFailed,
   selObj, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, garmentRect = null, viewMode, has3DLoaded, onLogoFile, zoom, setZoom, snapshot, overlays,
-  blank = null, setViewMode, pieceBar = null, setCompanion = null, showSet = false, setSnapOptions = null, trace = null, clearSelection = null, onPickZone = null,
+  blank = null, setViewMode, viewOpen, setViewOpen, setCompanion = null, showSet = false, setSnapOptions = null, trace = null, clearSelection = null, onPickZone = null,
 }) {
   const paneRef = useRef(null);
   const [webglOk, setWebglOk] = useState(hasWebGL);
@@ -126,15 +131,15 @@ export default function CanvasViewport({
   const [lostNote, setLostNote] = useState(false);
   const on3DLost = () => { setWebglOk(false); setViewMode?.('2d'); setLostNote(true); };
   useEffect(() => { if (!lostNote) return undefined; const t = setTimeout(() => setLostNote(false), 8000); return () => clearTimeout(t); }, [lostNote]);
-  // Exploded view, part picking and lighting presets: single explodable models only (not the 3D set view).
-  const canExplode = explodableFor(cfg) && !(showSet && setCompanion?.can3D);
+  // Exploded view, part picking and lighting presets: explodable models only.
+  const canExplode = explodableFor(cfg);
   const [explode, setExplode] = useState(false);
   const [lighting, setLighting] = useState('studio');
-  const [spin, setSpin] = useState(() => !window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+  const [spin, setSpin] = useState(false); // the turntable starts off: no motion the customer did not ask for
   const [picked, setPicked] = useState(null);
   const pickZone = useCallback(z => { setPicked(z); onPickZone?.(z); }, [onPickZone]);
   useEffect(() => { setExplode(false); setPicked(null); }, [cfg.garment, cfg.sleeve, cfg.fit]);
-  const fit = useFit(paneRef, canvasWrapRef);
+  const fit = useFit(paneRef, canvasWrapRef, garmentRect?.height ?? 0);
   const at = useSelectionAnchor(selObj, canvasEl, paneRef);
   // The artboard's real logical size, read from the Fabric canvas (photo bases and templates differ), not assumed.
   const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 });
@@ -166,8 +171,8 @@ export default function CanvasViewport({
   // The wrapper is flex-centred in the pane's content box and transformed by translate(pan) scale(scale) about its centre, so
   // canvas (0, 0) lands at content centre + pan - size * scale / 2. Computed, not measured, so rulers never lag the canvas.
   const show2D = viewMode === '2d' || !show3D;
-  // The set view shows both pieces; rulers, guides and grid measure one garment, so they step aside while it is open.
-  const set2D = showSet && !!setCompanion && (viewMode !== '3d' || !setCompanion.can3D);
+  // The set view shows both pieces (2D only; 3D shows one piece at a time); rulers, guides and grid step aside while it is open.
+  const set2D = showSet && !!setCompanion && viewMode !== '3d';
   const rulersOn = guides.rulers && !!cfg.garment && show2D && !initFailed && !!garmentRect && !set2D;
   // Ruler guides: pulled out of a ruler, kept for this session only (never saved); they snap while the rulers are shown.
   const [rulerGuides, setRulerGuides] = useState([]);
@@ -338,11 +343,8 @@ export default function CanvasViewport({
     if (f) onLogoFile(f);
   };
 
-  const stageBtn = (
-    <button type="button" className="ds-stage-btn" aria-pressed={dark} aria-label="Dark stage"
-      title={dark ? 'Dark stage is on: switch back to the light stage' : 'Dark stage: see the design on a dark background'} onClick={() => setDark(d => !d)}>
-      {dark ? <Sun size={17} aria-hidden="true"/> : <Moon size={17} aria-hidden="true"/>}<span className="ds-stage-lbl" aria-hidden="true">{dark ? 'Light' : 'Dark'}</span>
-    </button>
+  const ctrl = (label, icon, onClick, extra = {}) => (
+    <button type="button" className="ds-ctrl" onClick={onClick} {...extra}>{icon}<span>{label}</span></button>
   );
 
   const gridOn = guides.grid && !!cfg.garment && show2D && !!view && !!garmentRect && !set2D;
@@ -359,9 +361,9 @@ export default function CanvasViewport({
     show3D && canExplode && picked && { id: 'zone', text: `Selected in the editor: ${ZONE_LABEL[picked] ?? picked}` },
     ...(show3D && cfg.garment ? (() => {
       const status = familyFor(cfg.garment)?.status3D;
-      const info = status && status !== 'supported' ? STATUS_3D_LABEL[status] : null;
       const approx = GALLERY.find(d => d.id === cfg.inspirationId)?.familyApprox3D;
-      const label = status === 'none' ? null : approx ? `3D shows the generic ${cfg.garment} model, not the photo` : info?.label;
+      // The plain "approx." status is the chip under the 2D | 3D toggle (TopBar.jsx); only the stand-in model note stays here.
+      const label = status === 'none' ? null : approx ? `3D shows the generic ${cfg.garment} model, not the photo` : null;
       const c3 = get3DCapabilities(cfg.garment, cfg.fit, cfg.sleeve);
       const hem = hemNote3D(c3);
       const placed = [...(overlays?.front ?? []), ...(overlays?.back ?? [])];
@@ -377,32 +379,26 @@ export default function CanvasViewport({
       onDragOver={e=>e.preventDefault()}
       onDrop={onDrop}>
 
-      {/* Lane contract: chips, the set bar, guides and 3D notes sit in the top lane and stage controls in the bottom lane; the garment
+      {/* Lane contract: guides, the stage light and 3D notes sit in the top lane and stage controls in the bottom lane; the garment
           is fitted into the area between them, so nothing on the stage overlays it (only the selection toolbar, inside that area). */}
       {cfg.garment && (
         <div className="ds-lane ds-lane-top" data-notes={notes3D.length ? '1' : undefined}>
-          {show2D && !initFailed && <GuidesMenu guides={guides} setGuides={setGuides}/>}
+          {!initFailed && <GuidesMenu guides={guides} setGuides={setGuides} showGuides={show2D} base={show2D ? status : null} dark={dark} setDark={setDark}
+            open={viewOpen} onOpenChange={setViewOpen}/>}
           {show2D && canPan && (
             <button type="button" className="ds-pan-btn" aria-pressed={hand} aria-label="Pan" title="Pan the zoomed design (or scroll, hold Space and drag, or drag the empty stage)" onClick={() => setHand(v => !v)}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.9-5.9-2.3l-3.6-3.6a2 2 0 0 1 2.8-2.8L7 15"/></svg>
             </button>
           )}
-          {pieceBar && <div className="ds-set-wrap">{pieceBar}</div>}
-          {/* One quiet status badge: what kind of 2D base this is (the garment's name is in the selector and the Garment panel). */}
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.span key={cfg.garment} className="ds-ctx-chip" aria-live="polite" title={status.title}
-              initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} transition={{ duration:.2 }}>
-              {!pieceBar && <strong className="ds-wide-only">{cfg.garment}</strong>}{status.label}
-            </motion.span>
-          </AnimatePresence>
           {notes3D.map(n => <div key={n.id} role="status" className="ds-stage-note" data-tone={n.warn ? 'warn' : undefined}>{n.text}</div>)}
         </div>
       )}
 
       <div ref={fitRef} className="ds-stage-fit">
-        {/* Set view: both pieces on one scale. In 3D it shows here only when a piece has no model of its own. */}
-        {set2D && <SetView2D top={setCompanion.role === 'top' ? setCompanion.cfg : cfg} bottom={setCompanion.role === 'top' ? cfg : setCompanion.cfg}
-          note={viewMode === '3d' ? 'The 3D set view needs a 3D model for both pieces, so this is the 2D set.' : null}/>}
+        {/* Skeleton until the garment base has drawn, so the stage is never blank while a photo or template loads. */}
+        {show2D && cfg.garment && !garmentRect && !initFailed && <div className="ds-ref3d-skel" role="status"><span aria-hidden="true"/>Loading your design…</div>}
+        {/* Set view: both pieces on one scale (2D). */}
+        {set2D && <SetView2D top={setCompanion.role === 'top' ? setCompanion.cfg : cfg} bottom={setCompanion.role === 'top' ? cfg : setCompanion.cfg}/>}
         {/* Both panes stay mounted and only toggle visibility, so Fabric and WebGL keep their state; show2D also covers
             viewMode==='3d' before the 3D pane exists, so the workspace is never blank. Rulers are pinned outside the scaled wrapper. */}
         {gridOn && <StageGrid view={view} g={garmentRect} pct={guides.size} {...stageOff} w={view.pw + stageOff.dx} h={view.ph + stageOff.dy}/>}
@@ -429,7 +425,7 @@ export default function CanvasViewport({
               <div style={{ width:320,height:320,display:'flex',flexDirection:'column',
                 alignItems:'center',justifyContent:'center',gap:12,textAlign:'center',padding:24 }}>
                 <NavIcon name="warning" size={32} color="var(--cx-stage-ink-2)"/>
-                <p style={{ color:'var(--cx-stage-ink-2)',fontSize:12,lineHeight:1.6 }}>
+                <p style={{ color:'var(--cx-stage-ink-2)',fontSize:13,lineHeight:1.6 }}>
                   The design canvas failed to load.<br/>This is usually a stale cached
                   version — reloading the page fixes it.
                 </p>
@@ -462,16 +458,9 @@ export default function CanvasViewport({
               zIndex: viewMode==='3d' ? 1 : 0,
             }}>
             <ThreeEB>
-              <Suspense fallback={
-                <div style={{ width:'100%',height:'100%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10 }}>
-                  <span className="ds-spin" style={{ width:32, height:32, borderWidth:3 }} aria-hidden="true"/>
-                  <p style={{ color:'var(--cx-stage-ink-2)',fontSize:12 }}>Loading 3D engine…</p>
-                </div>
-              }>
+              <Suspense fallback={<div className="ds-ref3d-skel" role="status"><span aria-hidden="true"/>Loading the 3D preview…</div>}>
                 <Scene3D cfg={cfg} overlayDataUrl={snapshot} overlays={overlays} onContextLost={on3DLost}
-                  exploded={canExplode && explode} lighting={canExplode ? lighting : 'studio'} onPickZone={canExplode ? pickZone : null} turntable={spin}
-                  companion={showSet && setCompanion?.can3D ? setCompanion.cfg : null} companionRole={setCompanion?.role ?? null}
-                  companionOverlays={setCompanion?.overlays ?? null}/>
+                  exploded={canExplode && explode} lighting={canExplode ? lighting : 'studio'} onPickZone={canExplode ? pickZone : null} turntable={spin}/>
               </Suspense>
             </ThreeEB>
             {!cfg.garment && (
@@ -483,50 +472,32 @@ export default function CanvasViewport({
         )}
       </div>
 
-      {/* Bottom lane: zoom and Front/Back (2D) or the rotate hint (3D), plus the stage light; none while the first-run picker is up */}
+      {/* Bottom lane: one bar of at most five labelled controls, then the zoom level and hints on their own row (never inside the bar) */}
       {cfg.garment && (
         <div className="ds-lane ds-lane-bottom">
-          {!show2D && <p className="ds-stage-hint"><NavIcon name="cursor" size={11}/> {canExplode ? 'Drag to rotate, tap a part to select it' : 'Drag to rotate, pinch or scroll to zoom'}</p>}
-          <div className="ds-bottombar" role="group" aria-label="Stage controls" data-view-only>
-            {show2D && (<>
-              <div className="ds-zoom" role="group" aria-label="Zoom">
-                <button type="button" aria-label="Zoom out" onClick={()=>setZoom(z=>Math.max(ZOOM_MIN, +(z-0.15).toFixed(2)))}><Minus size={16} aria-hidden="true"/></button>
-                <output className="ds-zoom-val" aria-label="Zoom level" title={photo ? 'Zoom level (a photo base never goes above its full resolution)' : 'Zoom level'}>{Math.round(scale*100)}%</output>
-                <button type="button" aria-label="Fit to the stage" aria-pressed={fitted} title={fitted ? 'Fitted to the stage' : 'Fit to the stage (Ctrl+0)'} onClick={fitView}><Scan size={15} aria-hidden="true"/></button>
-                <button type="button" aria-label="Zoom in" disabled={atCap} title={atCap ? 'Full photo resolution: zooming further would blur it' : undefined} onClick={()=>setZoom(z=>Math.min(ZOOM_MAX, +(z+0.15).toFixed(2)))}><Plus size={16} aria-hidden="true"/></button>
-              </div>
-              <div className="ds-face" role="group" aria-label="Garment side">
-                {['front','back'].map(v=>(
-                  <button key={v} type="button" aria-pressed={face===v} onClick={()=>switchFace(v)}
-                    disabled={v === 'back' && !backOk} title={v === 'back' && !backOk ? 'No back photo for this garment yet' : undefined}>
-                    {face === v && <motion.span layoutId="ds-face-pill" className="ds-face-pill" aria-hidden="true" transition={{ duration:.2, ease:[.22, 1, .36, 1] }}/>}
-                    <span>{v === 'front' ? 'Front' : 'Back'}</span>
-                  </button>
-                ))}
-              </div>
+          <div className="ds-ctrlbar" role="toolbar" aria-label="Stage controls" data-view-only>
+            {show2D ? (<>
+              {ctrl('Zoom out', <Minus size={16} aria-hidden="true"/>, () => setZoom(z => Math.max(ZOOM_MIN, +(z - 0.15).toFixed(2))))}
+              {ctrl('Zoom in', <Plus size={16} aria-hidden="true"/>, () => setZoom(z => Math.min(ZOOM_MAX, +(z + 0.15).toFixed(2))),
+                { disabled: atCap, title: atCap ? 'Full photo resolution: zooming further would blur it' : undefined })}
+              {ctrl('Fit', <Scan size={15} aria-hidden="true"/>, fitView, { 'aria-pressed': fitted, title: 'Fit to the stage (Ctrl+0)' })}
+              {ctrl('Back view', <FlipHorizontal2 size={16} aria-hidden="true"/>, () => switchFace(face === 'back' ? 'front' : 'back'),
+                { 'aria-pressed': face === 'back', disabled: face !== 'back' && !backOk, title: !backOk ? 'No back photo for this garment yet' : undefined })}
+            </>) : (<>
+              {ctrl(spin ? 'Stop turning' : 'Turntable', <RotateCw size={16} aria-hidden="true"/>, () => setSpin(x => !x), { 'aria-pressed': spin })}
+              {canExplode && ctrl(explode ? 'Assemble' : 'Explode', explode ? <Shrink size={16} aria-hidden="true"/> : <Expand size={16} aria-hidden="true"/>, () => setExplode(x => !x),
+                { 'aria-pressed': explode, title: explode ? 'Put the parts back together' : 'Pull the collar, sleeves and pockets apart' })}
+              {canExplode && ctrl(LIGHT_PRESETS[lighting].label, <Lightbulb size={16} aria-hidden="true"/>, () => setLighting(l => (l === 'studio' ? 'daylight' : 'studio')),
+                { title: 'Switch the 3D lighting (colours stay calibrated in both)' })}
             </>)}
-            {!show2D && (
-              <button type="button" className="ds-stage-btn ds-full-btn" aria-pressed={spin} aria-label={spin ? 'Stop turntable' : 'Turntable: rotate the garment slowly'}
-                title={spin ? 'Stop turntable' : 'Turntable: rotate the garment slowly'} onClick={() => setSpin(x => !x)}>
-                <RotateCw size={16} aria-hidden="true"/><span className="ds-stage-lbl" aria-hidden="true">{spin ? 'Stop' : 'Turntable'}</span>
-              </button>
-            )}
-            {!show2D && canExplode && (<>
-              <button type="button" className="ds-stage-btn ds-full-btn" aria-pressed={explode} aria-label={explode ? 'Put the parts back together' : 'Exploded view: pull the collar, sleeves and pockets apart'}
-                title={explode ? 'Put the parts back together' : 'Exploded view: pull the collar, sleeves and pockets apart'} onClick={() => setExplode(x => !x)}>
-                {explode ? <Shrink size={16} aria-hidden="true"/> : <Expand size={16} aria-hidden="true"/>}<span className="ds-stage-lbl" aria-hidden="true">{explode ? 'Assemble' : 'Explode'}</span>
-              </button>
-              <button type="button" className="ds-stage-btn ds-full-btn" aria-label={`Lighting: ${LIGHT_PRESETS[lighting].label}. Switch to ${LIGHT_PRESETS[lighting === 'studio' ? 'daylight' : 'studio'].label}`}
-                title="Switch the 3D lighting (colours stay calibrated in both)" onClick={() => setLighting(l => (l === 'studio' ? 'daylight' : 'studio'))}>
-                <Lightbulb size={16} aria-hidden="true"/><span className="ds-stage-lbl" aria-hidden="true">{LIGHT_PRESETS[lighting].label}</span>
-              </button>
-            </>)}
-            <button type="button" className="ds-stage-btn ds-full-btn" aria-pressed={!!full} aria-label={full ? 'Exit full screen' : 'Full screen'}
-              title={full ? 'Exit full screen (Esc)' : 'Full screen: the design takes the whole screen'} onClick={toggleFull}>
-              {full ? <Minimize2 size={16} aria-hidden="true"/> : <Maximize2 size={16} aria-hidden="true"/>}<span className="ds-stage-lbl" aria-hidden="true">{full ? 'Exit' : 'Full screen'}</span>
-            </button>
-            {stageBtn}
+            {ctrl(full ? 'Exit full screen' : 'Full screen', full ? <Minimize2 size={16} aria-hidden="true"/> : <Maximize2 size={16} aria-hidden="true"/>, toggleFull,
+              { 'aria-pressed': !!full, title: full ? 'Exit full screen (Esc)' : 'The design takes the whole screen' })}
           </div>
+          <p className="ds-stage-hint">
+            {show2D
+              ? <><output aria-label="Zoom level" title={photo ? 'A photo base never goes above its full resolution' : undefined}>{Math.round(scale * 100)}%</output> · Tap a part of the garment to colour it</>
+              : canExplode ? 'Drag to rotate, tap a part to select it' : 'Drag to rotate, pinch or scroll to zoom'}
+          </p>
         </div>
       )}
     </div>

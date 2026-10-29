@@ -1,6 +1,5 @@
-// src/pages/client/Orders.jsx — Orders list: search, sort, status chips, visual order cards with the 5-step strip
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { asList } from '../../utils/asList';
@@ -8,8 +7,9 @@ import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
 import EmptyState from '../../components/EmptyState';
 import { Card, Button, PageHeader, Stepper, Skeleton } from '../../components/ui';
 import {
-  Chips, StatusPill, OrderThumb, LIFECYCLE, lifecycleIndex, GROUPS, orderTitle, fmtDate,
+  Chips, StatusPill, OrderThumb, LIFECYCLE, lifecycleIndex, GROUPS, orderTitle, fmtDate, parseCfg,
 } from '../../components/customer/kit';
+import { reorderDesign } from '../../utils/designActions';
 
 const SORTS = [
   { id: 'new', label: 'Newest first' },
@@ -17,22 +17,32 @@ const SORTS = [
   { id: 'due', label: 'Due date' },
 ];
 
-function OrderCard({ o, onOpen }) {
+function OrderCard({ o, onOpen, onReorder }) {
   const done = o.status === 'completed' || o.status === 'cancelled';
+  const cfg = parseCfg(o);
+  const canReorder = Object.keys(cfg).length > 0;
   return (
-    <Card as={motion.button} type="button" layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-      interactive padding="none" onClick={onOpen} className="ox-card" aria-label={`View order ${o.order_id}, ${orderTitle(o)}`}>
-      <div className="ox-top">
-        <span className="ox-thumb"><OrderThumb order={o} size={64} /></span>
-        <span className="ox-txt">
-          <small>Order #{o.order_id}</small>
-          <strong>{orderTitle(o)}</strong>
-          <span>{o.quantity_ordered ?? 0} pcs{o.target_delivery_date ? ` · Due ${fmtDate(o.target_delivery_date, { month: 'short', day: 'numeric' })}` : ''}</span>
+    <Card as={motion.article} layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+      interactive padding="none" className="ox-card">
+      <button type="button" className="ox-open" onClick={onOpen} aria-label={`View order ${o.order_id}, ${orderTitle(o)}`}>
+        <div className="ox-top">
+          <span className="ox-thumb"><OrderThumb order={o} size={64} /></span>
+          <span className="ox-txt">
+            <small>Order #{o.order_id}</small>
+            <strong>{orderTitle(o)}</strong>
+            <span>{o.quantity_ordered ?? 0} pcs{o.target_delivery_date ? ` · Due ${fmtDate(o.target_delivery_date, { month: 'short', day: 'numeric' })}` : ''}</span>
+          </span>
+          <StatusPill status={o.status} />
+        </div>
+        {!done && <div className="ox-steps"><Stepper steps={LIFECYCLE} current={lifecycleIndex(o.status)} label={`Order ${o.order_id} progress`} /></div>}
+      </button>
+      <div className="ox-foot">
+        <span>Ordered {fmtDate(o.created_at)}</span>
+        <span className="ox-acts">
+          <Button size="sm" onClick={onOpen}>Details</Button>
+          {canReorder && <Button size="sm" variant="primary" onClick={() => onReorder({ config: cfg })}>Reorder</Button>}
         </span>
-        <StatusPill status={o.status} />
       </div>
-      {!done && <div className="ox-steps"><Stepper steps={LIFECYCLE} current={lifecycleIndex(o.status)} label={`Order ${o.order_id} progress`} /></div>}
-      <div className="ox-foot"><span>Ordered {fmtDate(o.created_at)}</span><b>View details</b></div>
     </Card>
   );
 }
@@ -42,9 +52,12 @@ export default function CustomerOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [group, setGroup] = useState('all');
+  const [sp] = useSearchParams(); // ?status=<group id> from the dashboard chips
+  const [group, setGroup] = useState(() => (GROUPS.some(g => g.id === sp.get('status')) ? sp.get('status') : 'all'));
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('new');
+  const [actErr, setActErr] = useState('');
+  const reorder = (d) => { setActErr(''); if (!reorderDesign(d, nav)) setActErr('Could not start the order in this browser. Try again.'); };
 
   const load = useCallback((force = false) => {
     if (force) cacheClear('orders_list');
@@ -100,6 +113,7 @@ export default function CustomerOrders() {
         <Chips items={chips} value={group} onChange={setGroup} label="Filter orders by status" />
       </div>
 
+      {actErr && <p role="alert" className="mx-err">{actErr}</p>}
       {loading ? (
         <div className="ox-grid">
           {[1, 2, 3].map(i => <Card key={i} padding="sm"><Skeleton variant="text" count={3} label="Loading orders" /></Card>)}
@@ -115,7 +129,7 @@ export default function CustomerOrders() {
           cta={blank ? { label: 'Start a design', onClick: () => nav('/design-studio') } : { label: 'Clear filters', onClick: () => { setSearch(''); setGroup('all'); } }} />
       ) : (
         <AnimatePresence mode="popLayout">
-          <div className="ox-grid">{list.map(o => <OrderCard key={o.order_id} o={o} onOpen={() => nav(`/orders/${o.order_id}`)} />)}</div>
+          <div className="ox-grid">{list.map(o => <OrderCard key={o.order_id} o={o} onOpen={() => nav(`/orders/${o.order_id}`)} onReorder={reorder} />)}</div>
         </AnimatePresence>
       )}
     </div>

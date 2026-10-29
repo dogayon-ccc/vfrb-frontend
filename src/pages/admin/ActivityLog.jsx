@@ -6,22 +6,23 @@ import { Card, NavIcon } from '../../components/ui';
 import { RecordedBy } from '../../components/admin/AdminUI';
 
 const ACTION_LABELS = {
-  output_logged:        { label: 'Output Logged',      icon: 'package',      color: 'var(--teal)',       bg: 'var(--teal-50)' },
-  stage_progress:       { label: 'Stage Progress',      icon: 'production',   color: 'var(--purple)',     bg: 'var(--purple-50)' },
-  qc_checked:            { label: 'QC Check',            icon: 'qc',            color: 'var(--success-text)',    bg: 'var(--success-bg)' },
-  physical_count:        { label: 'Physical Count',      icon: 'physicalCount', color: 'var(--info)',       bg: 'var(--info-bg)' },
-  count_reconciled:      { label: 'Count Reconciled',    icon: 'reconcile',    color: 'var(--info)',       bg: 'var(--info-bg)' },
-  inventory_stock_in:    { label: 'Stock In',            icon: 'stockIn',      color: 'var(--success-text)',    bg: 'var(--success-bg)' },
-  inventory_stock_out:   { label: 'Stock Out',           icon: 'stockOut',     color: 'var(--danger-text)',     bg: 'var(--danger-bg)' },
-  inventory_adjustment:  { label: 'Stock Adjustment',    icon: 'adjustment',   color: 'var(--warning-text)',    bg: 'var(--warning-bg)' },
-  inventory_wastage:     { label: 'Wastage Logged',      icon: 'delete',       color: 'var(--danger-text)',     bg: 'var(--danger-bg)' },
-  delivery_updated:      { label: 'Delivery Update',     icon: 'delivery',     color: 'var(--warning-text)',    bg: 'var(--warning-bg)' },
-  po_created:             { label: 'PO Created',          icon: 'invoice',      color: 'var(--purple)',     bg: 'var(--purple-50)' },
-  rfq_created:            { label: 'RFQ Created',         icon: 'email',        color: 'var(--purple)',     bg: 'var(--purple-50)' },
-  payment_recorded:       { label: 'Payment Recorded',    icon: 'salesPay',     color: 'var(--success-text)', bg: 'var(--success-bg)' },
-  settings_updated:       { label: 'Settings Updated',    icon: 'settings',     color: 'var(--text-muted)', bg: 'var(--bg-surface)' },
+  output_logged:        { label: 'Output logged',      icon: 'package',      color: 'var(--teal)',       bg: 'var(--teal-50)' },
+  stage_progress:       { label: 'Stage progress',      icon: 'production',   color: 'var(--purple)',     bg: 'var(--purple-50)' },
+  qc_checked:            { label: 'QC check',            icon: 'qc',            color: 'var(--success-text)',    bg: 'var(--success-bg)' },
+  physical_count:        { label: 'Physical count',      icon: 'physicalCount', color: 'var(--info)',       bg: 'var(--info-bg)' },
+  count_reconciled:      { label: 'Count reconciled',    icon: 'reconcile',    color: 'var(--info)',       bg: 'var(--info-bg)' },
+  inventory_stock_in:    { label: 'Stock in',            icon: 'stockIn',      color: 'var(--success-text)',    bg: 'var(--success-bg)' },
+  inventory_stock_out:   { label: 'Stock out',           icon: 'stockOut',     color: 'var(--danger-text)',     bg: 'var(--danger-bg)' },
+  inventory_adjustment:  { label: 'Stock adjustment',    icon: 'adjustment',   color: 'var(--warning-text)',    bg: 'var(--warning-bg)' },
+  inventory_wastage:     { label: 'Wastage logged',      icon: 'delete',       color: 'var(--danger-text)',     bg: 'var(--danger-bg)' },
+  delivery_updated:      { label: 'Delivery update',     icon: 'delivery',     color: 'var(--warning-text)',    bg: 'var(--warning-bg)' },
+  po_created:             { label: 'PO created',          icon: 'invoice',      color: 'var(--purple)',     bg: 'var(--purple-50)' },
+  rfq_created:            { label: 'RFQ created',         icon: 'email',        color: 'var(--purple)',     bg: 'var(--purple-50)' },
+  payment_recorded:       { label: 'Payment recorded',    icon: 'salesPay',     color: 'var(--success-text)', bg: 'var(--success-bg)' },
+  settings_updated:       { label: 'Settings updated',    icon: 'settings',     color: 'var(--text-muted)', bg: 'var(--bg-surface)' },
 };
 
+const ROLE_LABEL = { manager:'Administrator', owner:'Owner', customer:'Customer' };
 const inp = { padding:'9px 12px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)', fontSize:13, outline:'none', fontFamily:'var(--font)' };
 
 function timeAgo(dateStr) {
@@ -139,8 +140,8 @@ export default function ActivityLog() {
                   </div>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginBottom:2 }}>
-                      <span style={{ fontSize:12, fontWeight:800, color:meta.color, textTransform:'uppercase', letterSpacing:'.03em' }}>{meta.label}</span>
-                      <span style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', color:'var(--text-faint)', background:'var(--bg-surface)', borderRadius:'var(--r-xs)', padding:'1px 6px' }}>{row.actor_role}</span>
+                      <span style={{ fontSize:12, fontWeight:800, color:meta.color }}>{meta.label}</span>
+                      <span style={{ fontSize:10, fontWeight:700, color:'var(--text-faint)', background:'var(--bg-surface)', borderRadius:'var(--r-xs)', padding:'1px 6px' }}>{ROLE_LABEL[row.actor_role] ?? row.actor_role}</span>
                     </div>
                     <p style={{ fontSize:13, color:'var(--ink)', margin:0 }}>{row.description}</p>
                     <RecordedBy name={row.actor_name} at={row.occurred_at} label="Recorded by" />

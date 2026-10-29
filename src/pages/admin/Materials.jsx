@@ -130,7 +130,7 @@ export default function AdminMaterials() {
     <>
       <style>{`
         @media(min-width:521px){.mat-grid3{grid-template-columns:1fr 1fr 1fr}}
-        .mat-group{margin:4px 0 -4px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-subtle)}
+        .mat-group{margin:4px 0 -4px;font-size:12px;font-weight:800;color:var(--text-subtle)}
         .mat-hint{display:block;margin-top:5px;font-size:12px;line-height:1.4;color:var(--text-subtle)}
         .mat-hint a{color:var(--teal);font-weight:700}
         .mat-own{display:grid;grid-template-columns:1fr 1fr;gap:8px}

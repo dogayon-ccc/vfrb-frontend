@@ -1,6 +1,6 @@
 // src/pages/client/OrderDetail.jsx
-// Customer Order Detail — summary + status left, materials + messages right (one column on phones),
-// AI material recommendation (accept/reject), delivery tracking, message preview.
+// Customer Order Detail: status, proposal and design in the main column; delivery, messages, details and billing
+// in a sticky aside; materials full width below. Phones stack main, materials, aside. Empty sections render nothing.
 //
 // SCHEMA (locked — never deviate):
 //   orders.order_id, status, garment_type, quantity_ordered, color,
@@ -14,7 +14,9 @@
 // Caching: cacheGet('order_detail_'+id) 30s TTL, cleared on AI accept/reject.
 
 import { humanize } from '../../utils/humanize';
-import { savedDesignName } from '../../utils/designName';
+import { savedDesignName, garmentLabel } from '../../utils/designName';
+
+const garmentName = v => garmentLabel(humanize(v));
 import { useState, useEffect, useCallback } from 'react';
 import DesignPreview from '../../components/DesignPreview';
 import OrderBilling from '../../components/OrderBilling';
@@ -28,15 +30,15 @@ import LoadError                             from './settings/LoadError';
 import { getStorageUrl, isImageFile }        from '../../utils/fileUrl';
 import { NavIcon }                           from '../../components/ui/icons';
 import { announceMessagesRead }              from '../../hooks/useUnreadMessages';
-import { RecCard, AI_OPTIONAL_LINE }        from './AIMaterials';
+import { RecCard, AI_OPTIONAL_LINE, stripCodes } from './AIMaterials';
 import { OrderThumb, StatusPill, LIFECYCLE, lifecycleIndex, orderTitle, parseCfg, fmtDate } from '../../components/customer/kit';
 import { Card, Button, Badge, PageHeader, Stepper, Skeleton, StatusChip, AlertBanner, EmptyState } from '../../components/ui';
 import { setOrders, ROLE_LABEL } from './design-studio/uniformSet';
 
 
-const PAYMENT_LABEL = { full:'Full payment', full_payment:'Full payment', down:'Down payment', down_payment:'Down payment', net_30:'Net 30 days', net_60:'Net 60 days', not_specified:'Confirmed by VFRB' };
 
 // delivery_status → customer label; StatusChip supplies colour and icon.
+const METHOD_LABEL = { pickup:'Pick up at VFRB', vfrb_deliver:'VFRB delivers', courier:'Courier' };
 const DELIVERY_LABEL = { preparing:'Preparing', dispatched:'Dispatched', in_transit:'In transit', delivered:'Delivered', returned:'Returned' };
 
 // Side requests that load and fail on their own; a 403/404 just means "nothing yet".
@@ -48,9 +50,9 @@ const SECTIONS = {
 const SECTION_TITLE = { delivery: 'Delivery tracking', messages: 'Messages', materials: 'Material recommendation' };
 
 // Placeholder card for one section while it loads or after it failed.
-function SectionState({ id, state, onRetry, style }) {
+function SectionState({ id, state, onRetry }) {
   return (
-    <Card className="od-card" style={style} title={SECTION_TITLE[id]} aria-busy={state === 'loading' || undefined}>
+    <Card className="od-card" title={SECTION_TITLE[id]} aria-busy={state === 'loading' || undefined}>
       {state === 'loading' ? <Skeleton count={3} height={14} label={`Loading ${SECTION_TITLE[id].toLowerCase()}`}/> : (
         <div role="alert" className="od-note-row">
           <span>Couldn't load this section. Check your connection.</span>
@@ -62,8 +64,7 @@ function SectionState({ id, state, onRetry, style }) {
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-// A uniform set's linked orders on one card: each piece with its own preview (2D, or 3D where the garment has a model),
-// production progress, and its own documents and messages. Siblings are found in the customer's order list by set id.
+// A uniform set's linked orders as one compact row per piece (thumb, role, status, link). Siblings come from the customer's order list by set id.
 function UniformSetCard({ order, nav }) {
   const setId = parseCfg(order)?.uniformSet?.id;
   const [list, setList] = useState(null);
@@ -81,30 +82,45 @@ function UniformSetCard({ order, nav }) {
     <Card className="od-card od-set" title={`Uniform set · ${pieces.length} linked order${pieces.length > 1 ? 's' : ''}`}>
         {list === null && <p className="od-set-note">Loading the other piece…</p>}
         {list !== null && pieces.length < 2 && <p className="od-set-note">The other piece of this set was not found in your orders.</p>}
-        <div className="od-set-grid">
+        <ul className="od-set-list">
           {pieces.map(o => {
             const cfg = parseCfg(o), cur = String(o.order_id) === String(order.order_id);
             return (
-              <article key={o.order_id} className="od-set-piece" data-current={cur || undefined}>
-                <header className="od-set-h">
-                  <div className="od-min">
-                    <p className="od-set-role">{ROLE_LABEL[cfg?.uniformSet?.role] ?? 'Piece'}{cur && ' · this order'}</p>
-                    <p className="od-set-name">#{o.order_id} · {humanize(o.garment_type) ?? 'Garment'}</p>
-                    <p className="od-set-sub">{o.quantity_ordered ?? 0} pcs{o.target_delivery_date ? ` · Due ${fmtDate(o.target_delivery_date)}` : ''}</p>
-                  </div>
-                  <StatusPill status={o.status}/>
-                </header>
-                <DesignPreview cfg={cfg && Object.keys(cfg).length ? cfg : null} height={220} previewUrl={o.design_preview_url ?? null}/>
-                <div className="od-set-act">
-                  {!cur && <Button onClick={() => nav(`/orders/${o.order_id}`)}>Details &amp; documents</Button>}
-                  <Button onClick={() => nav(`/messages?order=${o.order_id}`)}>Messages</Button>
+              <li key={o.order_id} className="od-set-row" data-current={cur || undefined}>
+                <OrderThumb order={o} size={48}/>
+                <div className="od-min od-set-txt">
+                  <p className="od-set-name">{ROLE_LABEL[cfg?.uniformSet?.role] ?? 'Piece'} · #{o.order_id} {garmentName(o.garment_type) ?? 'Garment'}</p>
+                  <p className="od-set-sub">{cur ? 'This order · ' : ''}{o.quantity_ordered ?? 0} pcs{o.target_delivery_date ? ` · Due ${fmtDate(o.target_delivery_date)}` : ''}</p>
                 </div>
-              </article>
+                <StatusPill status={o.status}/>
+                {!cur && <Button size="sm" iconRight="chevronRight" onClick={() => nav(`/orders/${o.order_id}`)}>Open</Button>}
+              </li>
             );
           })}
-        </div>
+        </ul>
     </Card>
   );
+}
+
+// An empty section as one quiet line instead of a full card.
+function QuietLine({ title, children }) {
+  return <p className="od-quiet"><strong>{title}</strong><span>{children}</span></p>;
+}
+
+// Per-material notes first, else the joined notes split into sentences; "Replaced X: why." becomes a plain sentence.
+const REPLACED_RE = /^Replaced (.+?): (.+?)\.?$/;
+const recMaterials = aiRec => { try { return (typeof aiRec.materials_json === 'string' ? JSON.parse(aiRec.materials_json) : aiRec.materials_json) ?? {}; } catch { return {}; } };
+function recNotes(aiRec) {
+  const mats = recMaterials(aiRec);
+  const own = Object.values(mats).map(m => m?.note).filter(Boolean);
+  const lines = (own.length ? own : (aiRec.notes ?? '').split(/(?<=\.)\s+/)).map(l => l.trim()).filter(Boolean);
+  const changes = [], other = [];
+  for (const l of lines) {
+    const m = l.match(REPLACED_RE);
+    if (m) changes.push(`${stripCodes(m[1])} was replaced because ${m[2]}.`);
+    else other.push(l);
+  }
+  return { changes: [...new Set(changes)].slice(0, 4), other: [...new Set(other)].join(' ') };
 }
 
 // Reasons VFRB or the customer gave, as the backend posts them to the order's message thread.
@@ -309,23 +325,23 @@ export default function CustomerOrderDetail() {
   const status    = order?.status ?? 'pending';
   // Summary title is the saved design name (orderTitle); the line under it keeps the garment when the name replaced it.
   const savedName = savedDesignName(order?.studio_config);
-  const garmentLine = [savedName && humanize(order?.garment_type), parseCfg(order).category, `${order?.quantity_ordered ?? 0} pcs`].filter(Boolean).join(' · ');
+  const garmentLine = [savedName && garmentName(order?.garment_type), parseCfg(order).category, `${order?.quantity_ordered ?? 0} pcs`].filter(Boolean).join(' · ');
   // The promised date counts only once the customer accepted it; before that target_delivery_date is just their preference.
   const agreedDate = order?.proposal_status === 'accepted' ? (order.promised_date ?? null) : null;
   const dueLine = agreedDate ? ` · Due ${fmtDate(agreedDate)}`
     : order?.target_delivery_date ? ` · Preferred ${fmtDate(order.target_delivery_date)}` : '';
 
   const specs = [
-    { label:'Garment Type', value: humanize(order?.garment_type) ?? '—'              },
+    { label:'Garment type', value: garmentName(order?.garment_type) ?? '—'              },
     { label:'Color',        value: order?.color ?? '—'                      },
     { label:'Quantity',     value: order?.quantity_ordered
         ? `${order.quantity_ordered} pcs` : '—'                            },
     { label:'Collar',       value: humanize(order?.collar_type) ?? '—'                },
     { label:'Sleeve',       value: humanize(order?.sleeve_type) ?? '—'                },
     { label:'Pocket',       value: humanize(order?.pocket_type) ?? '—'                },
-    { label:'Order Type',   value: humanize(order?.order_type) ?? '—'                 },
-    { label:'Payment',      value: PAYMENT_LABEL[order?.payment_terms] ?? '—' },
-    { label:'PO Reference', value: order?.po_reference ?? 'N/A'             },
+    { label:'Order type',   value: humanize(order?.order_type) ?? '—'                 },
+    { label:'Delivery',     value: METHOD_LABEL[order?.delivery_method] ?? '—' },
+    { label:'PO reference', value: order?.po_reference ?? '—' },
     { label: agreedDate ? 'Delivery' : 'Preferred date', value: (agreedDate ?? order?.target_delivery_date)
         ? new Date(agreedDate ?? order.target_delivery_date).toLocaleDateString('en-PH',{
             year:'numeric', month:'long', day:'numeric',
@@ -423,10 +439,22 @@ export default function CustomerOrderDetail() {
     </div>
   );
 
-  // `order` sets the phone stacking (status → delivery → materials → messages → details → billing); desktop keeps each column's order.
-  const card = (n, extra = '') => ({ className: `od-card ${extra}`.trim(), style: { order: n } });
   const recDone = ['ready','accepted','rejected'].includes(order.ai_recommendation_status);
   const pngName = `VFRB-ORD-${order.order_id}-design.png`, specName = `VFRB-ORD-${order.order_id}-spec-sheet.pdf`;
+
+  const refUrl = order.client_design_ref_file ? getStorageUrl(order.client_design_ref_file) : null;
+  const refIsImage = !!refUrl && isImageFile(order.client_design_ref_file);
+  const hasDesign = !!(order.studio_config || order.design_preview_url || refIsImage);
+  const shownSpecs = specs.filter(s => s.value && s.value !== '—');
+  const deliveryRows = delivery ? [
+    { l:'Method',        v: METHOD_LABEL[delivery.delivery_method] ?? humanize(delivery.delivery_method) },
+    { l:'Courier',       v: delivery.courier_name },
+    { l:'Tracking #',    v: delivery.tracking_number },
+    { l:'Address',       v: delivery.delivery_address },
+    { l:'Est. delivery', v: delivery.estimated_delivery_date ? fmtDate(delivery.estimated_delivery_date, { year:'numeric', month:'long', day:'numeric' }) : null },
+  ].filter(r => r.v) : [];
+  const dsLabel = delivery?.delivery_method === 'pickup' && delivery.delivery_status === 'preparing' ? 'Ready for pickup'
+    : delivery?.delivery_status ? (DELIVERY_LABEL[delivery.delivery_status] ?? humanize(delivery.delivery_status)) : 'Not scheduled yet';
 
   return (
     <>
@@ -441,239 +469,201 @@ export default function CustomerOrderDetail() {
 
       <div className="od-wrap">
         <PageHeader back={{ to: '/orders', label: 'My Orders' }} title={`Order #${orderId}`}
-          subtitle={[humanize(order.garment_type) ?? 'Custom Order', order.quantity_ordered && `${order.quantity_ordered} pcs`, order.color].filter(Boolean).join(' · ')}
+          subtitle={[garmentName(order.garment_type) ?? 'Custom Order', order.quantity_ordered && `${order.quantity_ordered} pcs`, order.color].filter(Boolean).join(' · ')}
           actions={<StatusPill status={status}/>} className="od-head"/>
 
-        <div className="od-cols"><div className="od-main">
-        {/* ── Lifecycle summary (customer-facing 5 steps derived from real status) ── */}
-        {status !== 'cancelled' && (
-          <Card {...card(1)}>
-            <div className="od-sum">
-              <div className="od-sum-h">
-                <span className="od-sum-thumb"><OrderThumb order={order} size={64}/></span>
-                <div className="od-sum-txt">
-                  <p className="od-sum-t" title={orderTitle(order)}>{orderTitle(order)}</p>
-                  <p className="od-sum-m">{garmentLine}{dueLine}</p>
+        {/* Desktop: main | aside, materials full width below. DOM order (main, materials, aside) is the phone order. */}
+        <div className="od-grid">
+        <div className="od-col od-main">
+          {status !== 'cancelled' && (
+            <Card className="od-card">
+              <div className="od-sum">
+                <div className="od-sum-h">
+                  <span className="od-sum-thumb"><OrderThumb order={order} size={64}/></span>
+                  <div className="od-sum-txt">
+                    <p className="od-sum-t" title={orderTitle(order)}>{orderTitle(order)}</p>
+                    <p className="od-sum-m">{garmentLine}{dueLine}</p>
+                  </div>
+                  <Button icon="chat" onClick={() => nav(`/messages?order=${orderId}`)}>Messages</Button>
                 </div>
-                <Button icon="chat" onClick={() => nav(`/messages?order=${orderId}`)}>Messages</Button>
+                <Stepper steps={LIFECYCLE} current={lifecycleIndex(status)} label="Order progress"/>
               </div>
-              <Stepper steps={LIFECYCLE} current={lifecycleIndex(status)} label="Order progress"/>
-            </div>
-          </Card>
-        )}
+            </Card>
+          )}
 
-        {/* ── Completed / Cancelled banners ─────────────────────────────── */}
-        {status === 'completed' && (
-          <AlertBanner tone="success" title="Order completed" style={{ order:2 }}>
-            Your order is ready. Final 20% payment is due on delivery.
-          </AlertBanner>
-        )}
+          {status === 'completed' && (
+            <AlertBanner tone="success" title="Order completed">Your order is ready. VFRB will contact you about the hand-over.</AlertBanner>
+          )}
+          {status === 'cancelled' && (
+            <AlertBanner tone="error" title="Order cancelled">
+              {reasons.length > 0
+                ? reasons.map(m => (
+                    <span key={m.message_id ?? m.body} className="od-reason">
+                      <strong>{m.body.startsWith('Proposal') ? 'You declined:' : 'Reason from Admin:'}</strong> {m.body.replace(REASON_RE, '')}
+                    </span>))
+                : 'No reason was recorded. Message VFRB for details.'}
+            </AlertBanner>
+          )}
 
-        {status === 'cancelled' && (
-          <AlertBanner tone="error" title="Order cancelled" style={{ order:2 }}>
-            {reasons.length > 0
-              ? reasons.map(m => (
-                  <span key={m.message_id ?? m.body} className="od-reason">
-                    <strong>{m.body.startsWith('Proposal') ? 'You declined:' : 'Reason from Admin:'}</strong> {m.body.replace(REASON_RE, '')}
-                  </span>))
-              : 'No reason was recorded. Message VFRB for details.'}
-          </AlertBanner>
-        )}
-
-        <div style={{ order:3 }}>
           <ProposalCard order={order} orderId={orderId} showToast={showToast}
             onDone={() => { cacheClear(CACHE_KEY, 'orders_list'); return load(true); }}/>
+
+          {reasons.length > 0 && status !== 'cancelled' && (
+            <div className="od-reasons" role="note">{reasons.map(m => <p key={m.message_id ?? m.body}>{m.body}</p>)}</div>
+          )}
+
+          {(hasDesign || refUrl || order.client_design_notes) && (
+            <Card className="od-card" title="Your design" subtitle={status === 'cancelled' ? orderTitle(order) : undefined}
+              action={(order.design_preview_url || order.studio_config) && (
+                <div className="od-acts-inline">
+                  {order.design_preview_url && (
+                    <Button icon="download" loading={dlBusy === pngName} disabled={!!dlBusy} onClick={() => downloadDesign(order.design_preview_url, pngName)}>
+                      {dlBusy === pngName ? 'Preparing…' : 'Download PNG'}
+                    </Button>
+                  )}
+                  {order.studio_config && (
+                    <Button icon="download" loading={dlBusy === specName} disabled={!!dlBusy}
+                      onClick={() => downloadDesign(`/api/customer/orders/${order.order_id}/spec-sheet`, specName, true)}>
+                      {dlBusy === specName ? 'Preparing…' : 'Download spec sheet'}
+                    </Button>
+                  )}
+                </div>
+              )}>
+              {hasDesign && <>
+                <div className="od-stage">
+                  <DesignPreview cfg={order.studio_config} height={340} fit
+                    previewUrl={order.design_preview_url ?? null} snapshot={order.design_3d_snapshot_url ?? null}
+                    referenceImageUrl={!order.studio_config && refIsImage ? refUrl : null}/>
+                </div>
+                <p className="od-muted od-gap">
+                  {order.studio_config
+                    ? 'This is the artwork submitted with your order. VFRB works from it, so check it matches what you expect.'
+                    : 'This is the reference you uploaded. VFRB works from it and confirms details with you.'}
+                </p>
+              </>}
+              {order.client_design_notes && <p className="od-pre od-gap">{order.client_design_notes}</p>}
+              {/* Images already show above; a PDF, or a reference sent beside a Studio design, gets a link. */}
+              {refUrl && (!refIsImage || order.studio_config) && (
+                <a href={refUrl} target="_blank" rel="noopener noreferrer" className="ui-btn od-gap od-ref-link" data-v="secondary" data-size="md">
+                  <NavIcon name="attachment" size={14}/> {refIsImage ? 'View reference photo' : 'View reference PDF'}
+                </a>
+              )}
+            </Card>
+          )}
+
+          <UniformSetCard order={order} nav={nav}/>
         </div>
 
-        {reasons.length > 0 && status !== 'cancelled' && (
-          <div className="od-reasons" role="note" style={{ order:4 }}>
-            {reasons.map(m => <p key={m.message_id ?? m.body}>{m.body}</p>)}
-          </div>
-        )}
-
-        {/* ── Delivery tracking ─────────────────────────────────────────── */}
-        {secState.delivery ? <SectionState id="delivery" state={secState.delivery} onRetry={() => retrySection('delivery')} style={{ order:5 }}/> : delivery && (() => {
-          // delivery_status column — NOT .status (locked schema rule)
-          const ds = delivery.delivery_status;
-          const label = ds ? (DELIVERY_LABEL[ds] ?? humanize(ds)) : 'Not scheduled yet';
-          const rows = [
-            { l:'Method',        v: delivery.delivery_method },
-            { l:'Courier',       v: delivery.courier_name },
-            { l:'Tracking #',    v: delivery.tracking_number },
-            { l:'Address',       v: delivery.delivery_address },
-            { l:'Est. Delivery', v: delivery.estimated_delivery_date ? fmtDate(delivery.estimated_delivery_date, { year:'numeric', month:'long', day:'numeric' }) : null },
-          ].filter(r => r.v);
-          return (
-            <Card {...card(5)} title="Delivery tracking" action={<StatusChip status={ds ?? 'pending'} label={label}/>}>
-              {rows.length === 0
-                ? <p className="od-muted">VFRB staff haven't added delivery details yet.</p>
-                : <dl className="od-kv">{rows.map(r => <div key={r.l}><dt>{r.l}</dt><dd>{r.v}</dd></div>)}</dl>}
+        <div className="od-col od-mat">
+          {!recDone && !['completed','cancelled'].includes(order.status) && (
+            <Card className="od-card" title="Material recommendation">
+              <p className="od-muted od-lead">
+                {order.ai_recommendation_status === 'generating'
+                  ? 'Your recommendation is being prepared. Check again in a moment.'
+                  : order.ai_recommendation_status === 'failed'
+                  ? 'The recommendation could not be generated. Try again, or choose the material types yourself.'
+                  : 'No material types have been recommended for this order yet.'}
+              </p>
+              {aiMsg && <p role="alert" className="od-err">{aiMsg}</p>}
+              <div className="od-acts">
+                <Button variant="primary" loading={aiBusy} onClick={order.ai_recommendation_status === 'generating' ? () => load(true) : retryAI}>
+                  {aiBusy ? 'Working…' : order.ai_recommendation_status === 'generating' ? 'Check again' : 'Get recommendation'}
+                </Button>
+                <Button onClick={() => nav('/ai-materials')}>Choose materials myself</Button>
+              </div>
             </Card>
-          );
-        })()}
+          )}
 
-        {(order.studio_config || order.design_preview_url || (order.client_design_ref_file && isImageFile(order.client_design_ref_file))) && (
-          <Card {...card(20, 'od-hero')} title="Your design"
-            subtitle={status === 'cancelled' ? orderTitle(order) : undefined}
-            action={(order.design_preview_url || order.studio_config) && (
-              <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
-                {order.design_preview_url && (
-                  <Button icon="download" loading={dlBusy === pngName} disabled={!!dlBusy}
-                    onClick={() => downloadDesign(order.design_preview_url, pngName)}>
-                    {dlBusy === pngName ? 'Preparing…' : 'Download PNG'}
-                  </Button>
-                )}
-                {order.studio_config && (
-                  <Button icon="download" loading={dlBusy === specName} disabled={!!dlBusy}
-                    onClick={() => downloadDesign(`/api/customer/orders/${order.order_id}/spec-sheet`, specName, true)}>
-                    {dlBusy === specName ? 'Preparing…' : 'Download spec sheet'}
-                  </Button>
-                )}
-              </div>
-            )}>
-            <div className="od-stage">
-              <DesignPreview cfg={order.studio_config} height={340}
-                previewUrl={order.design_preview_url ?? null} snapshot={order.design_3d_snapshot_url ?? null}
-                referenceImageUrl={!order.studio_config ? getStorageUrl(order.client_design_ref_file) : null}/>
-            </div>
-            <p className="od-muted od-gap">
-              {order.design_preview_url
-                ? 'This is the artwork submitted with your order. VFRB staff work from this file, so check it matches what you expect before production starts.'
-                : 'Preview built from your submitted design.'}
-            </p>
-          </Card>
-        )}
-
-        {order.client_design_notes && (
-          <Card {...card(21)} title="Design notes">
-            <p className="od-pre">{order.client_design_notes}</p>
-          </Card>
-        )}
-
-        {/* ── Order specs grid ──────────────────────────────────────────── */}
-        <Card {...card(22)} title="Order specifications">
-          <dl className="od-spec-grid">
-            {specs.filter(s => s.value && s.value !== '—').map(spec => (
-              <div key={spec.label} className="od-spec">
-                <dt>{spec.label}</dt>
-                <dd>
-                  {spec.label === 'Color' && /^#[0-9a-f]{3,6}$/i.test(spec.value)
-                    ? <span className="od-swatch"><i style={{ background:spec.value }} aria-hidden="true"/>{spec.value}</span>
-                    : spec.value}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </Card>
-
-        {/* Requires the backend's storage symlink (php artisan storage:link) to resolve. */}
-        {order.client_design_ref_file && (
-          <Card {...card(23)} title="Reference file">
-            {isImageFile(order.client_design_ref_file) ? (
-              <a href={getStorageUrl(order.client_design_ref_file)} target="_blank" rel="noopener noreferrer" className="od-ref-img">
-                <img src={getStorageUrl(order.client_design_ref_file)} alt="Customer reference"
-                  onError={e => { e.target.style.display='none'; }}/>
-              </a>
-            ) : (
-              <a href={getStorageUrl(order.client_design_ref_file)} target="_blank" rel="noopener noreferrer" className="ui-btn od-ref-pdf" data-v="secondary" data-size="md">
-                <NavIcon name="attachment" size={14}/> View reference PDF
-              </a>
-            )}
-          </Card>
-        )}
-
-        <div style={{ order:24 }}><UniformSetCard order={order} nav={nav}/></div>
-
-        {/* Billing reads its own endpoint, so it mounts only once the order itself has loaded. */}
-        <Card {...card(30, 'od-billing')} title="Billing">
-          <OrderBilling orderId={order.order_id ?? orderId} mode="customer" />
-        </Card>
-        </div><div className="od-side">
-        {/* ── AI Recommendation card ────────────────────────────────────── */}
-        {order && !recDone && !['completed','cancelled'].includes(order.status) && (
-          <Card {...card(10)} title="Material recommendation">
-            <p className="od-muted od-lead">
-              {order.ai_recommendation_status === 'generating'
-                ? 'Your recommendation is being prepared. Check again in a moment.'
-                : order.ai_recommendation_status === 'failed'
-                ? 'The recommendation could not be generated. Try again, or choose the material types yourself.'
-                : 'No material types have been recommended for this order yet.'}
-            </p>
-            {aiMsg && <p role="alert" className="od-err">{aiMsg}</p>}
-            <div className="od-acts">
-              <Button variant="primary" loading={aiBusy}
-                onClick={order.ai_recommendation_status === 'generating' ? () => load(true) : retryAI}>
-                {aiBusy ? 'Working…' : order.ai_recommendation_status === 'generating' ? 'Check again' : 'Get recommendation'}
-              </Button>
-              <Button onClick={() => nav('/ai-materials')}>Choose materials myself</Button>
-            </div>
-          </Card>
-        )}
-
-        {recDone && secState.materials && <SectionState id="materials" state={secState.materials} onRetry={() => retrySection('materials')} style={{ order:10 }}/>}
-        {aiRec && recDone && !secState.materials && (
-          <Card as={motion.section} initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} {...card(10)}
-            title="AI material recommendation" subtitle="Based on VFRB production standards"
-            action={order.ai_recommendation_status === 'accepted' ? <Badge tone="success" icon="success">Accepted</Badge>
-              : order.ai_recommendation_status === 'rejected' ? <Badge tone="danger">Declined</Badge> : null}>
-            {order.ai_recommendation_status === 'rejected' && (
-              <div className="od-note-row">
-                <span>VFRB staff has been notified. Want to pick materials yourself instead?</span>
-                <Button onClick={() => nav('/ai-materials')}>Choose myself</Button>
-              </div>
-            )}
-
-            {/* Materials breakdown */}
-            {aiRec.materials_json && (() => {
-              try {
-                const mats = typeof aiRec.materials_json === 'string' ? JSON.parse(aiRec.materials_json) : aiRec.materials_json;
-                return (
+          {recDone && secState.materials && <SectionState id="materials" state={secState.materials} onRetry={() => retrySection('materials')}/>}
+          {aiRec && recDone && !secState.materials && (
+            <Card className="od-card" title="AI material recommendation" subtitle="Based on VFRB production standards"
+              action={order.ai_recommendation_status === 'accepted' ? <Badge tone="success" icon="success">Accepted</Badge>
+                : order.ai_recommendation_status === 'rejected' ? <Badge tone="danger">Declined</Badge> : null}>
+              {order.ai_recommendation_status === 'rejected' && (
+                <div className="od-note-row">
+                  <span>The VFRB team has been notified. Want to pick materials yourself instead?</span>
+                  <Button onClick={() => nav('/ai-materials')}>Choose myself</Button>
+                </div>
+              )}
+              {(() => {
+                const mats = recMaterials(aiRec);
+                return Object.keys(mats).length > 0 && (
                   <div className="od-gap-b">
                     <p className="od-label">{AI_OPTIONAL_LINE}</p>
-                    <div className="od-rec-grid">
-                      {Object.entries(mats).map(([mat, info], i) => <RecCard key={mat} rec={{ ...info, material_name: mat }} index={i}/>)}
+                    <div className="od-rec-grid">{Object.entries(mats).map(([mat, info]) => <RecCard key={mat} rec={{ ...info, material_name: mat }}/>)}</div>
+                  </div>
+                );
+              })()}
+              {(() => {
+                const { changes, other } = recNotes(aiRec);
+                return <>
+                  {changes.length > 0 && (
+                    <div className="od-gap-b">
+                      <h3 className="od-label">Changes made</h3>
+                      <ul className="od-changes">{changes.map(c => <li key={c}>{c}</li>)}</ul>
                     </div>
-                  </div>
-                );
-              } catch { return null; }
-            })()}
+                  )}
+                  {other && <p className="od-muted od-gap-b">{other}</p>}
+                </>;
+              })()}
+              {order.ai_recommendation_status === 'ready' && (
+                <div className="od-acts">
+                  <Button variant="primary" icon="success" disabled={!!aiAction} loading={aiAction === 'accept'} onClick={() => handleAI('accept')}>Accept recommendation</Button>
+                  <Button className="is-danger" disabled={!!aiAction} loading={aiAction === 'reject'} onClick={() => handleAI('reject')}>Decline</Button>
+                </div>
+              )}
+            </Card>
+          )}
 
-            {aiRec.notes && <p className="od-muted od-gap-b">{aiRec.notes}</p>}
+        </div>
 
-            {/* Accept / Reject — only when status is 'ready' */}
-            {order.ai_recommendation_status === 'ready' && (
-              <div className="od-acts">
-                <Button variant="primary" icon="success" disabled={!!aiAction} loading={aiAction === 'accept'} onClick={() => handleAI('accept')}>Accept recommendation</Button>
-                <Button className="is-danger" disabled={!!aiAction} loading={aiAction === 'reject'} onClick={() => handleAI('reject')}>Decline</Button>
+        <div className="od-col od-aside">
+          {secState.delivery ? <SectionState id="delivery" state={secState.delivery} onRetry={() => retrySection('delivery')}/>
+            : delivery && (deliveryRows.length === 0
+              ? <QuietLine title="Delivery">{delivery.delivery_status ? `${dsLabel}. VFRB hasn't added the details yet.` : 'Not scheduled yet. VFRB adds details once your order ships.'}</QuietLine>
+              : (
+                <Card className="od-card" title="Delivery tracking" action={<StatusChip status={delivery.delivery_status ?? 'pending'} label={dsLabel}/>}>
+                  <dl className="od-kv">{deliveryRows.map(r => <div key={r.l}><dt>{r.l}</dt><dd>{r.v}</dd></div>)}</dl>
+                </Card>))}
+
+          {secState.messages ? <SectionState id="messages" state={secState.messages} onRetry={() => retrySection('messages')}/> : messages.length > 0 && (
+            <Card className="od-card" title="Messages" action={<Button size="sm" iconRight="chevronRight" onClick={() => nav(`/messages?order=${orderId}`)}>Open chat</Button>}>
+              <div className="od-msgs">
+                {messages.slice(-3).map(msg => {
+                  const at = msg.sent_at ?? msg.created_at;
+                  return (
+                    <div key={msg.message_id} className="od-msg" data-me={msg.sender_id === meId || undefined}>
+                      <p>{msg.body}</p>
+                      <time>{at ? new Date(at).toLocaleTimeString('en-PH', { hour:'2-digit', minute:'2-digit' }) : ''}</time>
+                    </div>
+                  );
+                })}
               </div>
-            )}
-          </Card>
-        )}
+            </Card>
+          )}
 
-        {/* ── Messages preview ──────────────────────────────────────────── */}
-        {secState.messages ? <SectionState id="messages" state={secState.messages} onRetry={() => retrySection('messages')} style={{ order:11 }}/> : messages.length > 0 && (
-          <Card {...card(11)} title="Messages" action={<Button size="sm" iconRight="chevronRight" onClick={() => nav(`/messages?order=${orderId}`)}>Open chat</Button>}>
-            <div className="od-msgs">
-              {messages.slice(-3).map(msg => {
-                const at = msg.sent_at ?? msg.created_at;
-                return (
-                  <div key={msg.message_id} className="od-msg" data-me={msg.sender_id === meId || undefined}>
-                    {/* body column — order_messages schema */}
-                    <p>{msg.body}</p>
-                    <time>{at ? new Date(at).toLocaleTimeString('en-PH', { hour:'2-digit', minute:'2-digit' }) : ''}</time>
+          {shownSpecs.length > 0 && (
+            <Card className="od-card" title="Order details">
+              <dl className="od-spec-grid">
+                {shownSpecs.map(spec => (
+                  <div key={spec.label} className="od-spec">
+                    <dt>{spec.label}</dt>
+                    <dd>{spec.label === 'Color' && /^#[0-9a-f]{3,6}$/i.test(spec.value)
+                      ? <span className="od-swatch"><i style={{ background:spec.value }} aria-hidden="true"/>{spec.value}</span>
+                      : spec.value}</dd>
                   </div>
-                );
-              })}
-              {messages.length > 3 && <p className="od-muted od-center">+{messages.length - 3} earlier</p>}
-            </div>
-          </Card>
-        )}
+                ))}
+              </dl>
+            </Card>
+          )}
 
-        </div></div>
-        {/* ── Bottom action row ─────────────────────────────────────────── */}
-        <div className="od-acts od-bottom">
-          <Button icon="chat" onClick={() => nav(`/messages?order=${orderId}`)}>Message VFRB team</Button>
-          <Button variant="ghost" icon="back" onClick={() => nav('/orders')}>All orders</Button>
+          {/* Billing reads its own endpoint; an empty bill collapses to one quiet line (CSS). */}
+          <Card className="od-card od-billing" title="Billing">
+            <OrderBilling orderId={order.order_id ?? orderId} mode="customer" />
+          </Card>
+
+          {status === 'cancelled' && <Button icon="chat" onClick={() => nav(`/messages?order=${orderId}`)}>Message the VFRB team</Button>}
+        </div>
         </div>
       </div>
     </>

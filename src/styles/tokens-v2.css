@@ -1,0 +1,67 @@
+/* src/styles/tokens-v2.css — L4 foundation. New names only; existing token blocks are untouched. */
+
+/* Bricolage Grotesque + Source Sans 3, latin, self-hosted (SIL OFL 1.1, see docs/FONTS.md). */
+@font-face { font-family: 'Bricolage Grotesque'; font-style: normal; font-weight: 600; font-display: swap; src: url('/fonts/bricolage-grotesque-latin-600.woff2') format('woff2'); }
+@font-face { font-family: 'Bricolage Grotesque'; font-style: normal; font-weight: 700; font-display: swap; src: url('/fonts/bricolage-grotesque-latin-700.woff2') format('woff2'); }
+@font-face { font-family: 'Source Sans 3'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/source-sans-3-latin-400.woff2') format('woff2'); }
+@font-face { font-family: 'Source Sans 3'; font-style: normal; font-weight: 500; font-display: swap; src: url('/fonts/source-sans-3-latin-500.woff2') format('woff2'); }
+@font-face { font-family: 'Source Sans 3'; font-style: normal; font-weight: 700; font-display: swap; src: url('/fonts/source-sans-3-latin-700.woff2') format('woff2'); }
+
+:root {
+  --font-v2-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+  --font-v2-sans: 'Source Sans 3', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  --color-chalk:      #F4F5F2;   /* page */
+  --color-mat:        #DDE3DE;   /* Studio stage */
+  --color-navy-cloth: #1B2A4A;   /* dark panels */
+  --color-on-navy:    #E6EDF3;
+  --color-teal-fill:  #028090;   /* button fills, white text only (4.67:1) */
+  --color-on-teal:    #FFFFFF;
+  --color-teal-ink:   #015F6B;   /* teal text + links: 6.73 chalk, 5.65 mat */
+  --color-thread-red: #C4313B;   /* alerts + the one active stitch */
+  --color-thread-red-ink: #A82A33; /* red text on mat (#C4313B is 4.19 there) */
+  --color-kraft:      #C9A27A;   /* size tags, tape control */
+  --color-on-kraft:   #17222B;
+
+  --stitch-line: 1px dashed color-mix(in srgb, var(--color-ink) 35%, transparent);
+  --stitch-line-active: 1px dashed var(--color-thread-red);
+  --mat-grid-size: 1cm;
+  --mat-grid: linear-gradient(to right, rgb(23 34 43 / .06) 1px, transparent 1px) 0 0 / var(--mat-grid-size) var(--mat-grid-size),
+              linear-gradient(to bottom, rgb(23 34 43 / .06) 1px, transparent 1px) 0 0 / var(--mat-grid-size) var(--mat-grid-size),
+              var(--color-mat);
+
+  --dur-v2-fast: var(--dur-2, 150ms);
+  --dur-v2-slow: var(--dur-3, 300ms);
+
+  /* Pattern Room aliases (--pr-*): new names over existing tokens, so dark mode follows them. */
+  --pr-paper: var(--color-chalk);         --pr-paper-inset: var(--color-mat);
+  --pr-ink: var(--color-ink);             --pr-ink-muted: var(--color-ink-2);   --pr-ink-meta: var(--color-ink-3);
+  --pr-thread-red: var(--color-thread-red); --pr-thread-red-ink: var(--color-thread-red-ink);
+  --pr-stitch: var(--stitch-line);        --pr-stitch-active: var(--stitch-line-active);
+  --pr-swatch-size: 32px;                 --pr-swatch-radius: var(--radius-tick);
+  --pr-swatch-ring: inset 0 0 0 1px rgb(0 0 0 / .12);
+  --pr-swatch-selected: 2px solid var(--color-teal-fill);
+  --pr-tape-bg: var(--color-kraft);       --pr-tape-ink: var(--color-on-kraft);
+  --pr-elev-0: var(--shadow-0); --pr-elev-1: var(--shadow-1); --pr-elev-2: var(--shadow-2); --pr-elev-3: var(--shadow-3);
+  --pr-dur-fast: var(--dur-v2-fast);      --pr-dur-slow: var(--dur-v2-slow);    --pr-ease: var(--ease-out-soft);
+}
+
+html[data-theme=dark] {
+  --color-chalk:      #0E1419;
+  --color-mat:        #18222B;
+  --color-navy-cloth: #101A2E;
+  --color-teal-ink:   #5CC8D4;   /* 9.42 chalk-dark, 8.19 mat-dark */
+  --color-thread-red: #F07A82;
+  --color-thread-red-ink: #F07A82; /* 6.90 chalk-dark, 6.00 mat-dark */
+  --color-kraft:      #B08A63;
+  --stitch-line: 1px dashed color-mix(in srgb, var(--color-ink) 30%, transparent);
+  --mat-grid: linear-gradient(to right, rgb(230 237 243 / .05) 1px, transparent 1px) 0 0 / var(--mat-grid-size) var(--mat-grid-size),
+              linear-gradient(to bottom, rgb(230 237 243 / .05) 1px, transparent 1px) 0 0 / var(--mat-grid-size) var(--mat-grid-size),
+              var(--color-mat);
+}
+
+.num-tab { font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --dur-v2-fast: 0ms; --dur-v2-slow: 0ms; }
+}

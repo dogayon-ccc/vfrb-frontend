@@ -14,7 +14,7 @@ import { pieceOf } from './garmentCatalog';
 import { wovenFill } from './wovenPatterns';
 import { loadFont, webFontFor, defaultWeight } from './studioFonts';
 import { sketchInk } from './sketchLine';
-import { emptyHistory, entry, pushStep, stepHistory, canStep, switchSide, lookOf, sameLook, syncLook, lookToApply } from './editHistory';
+import { emptyHistory, entry, pushStep, stepHistory, canStep, switchSide, lookOf, sameLook, syncLook, lookToApply, foldSince } from './editHistory';
 
 // Template lines (garmentPaths `details`). Untagged ones are decorative: no __zoneKey, never clicked or hovered. A tagged part (pocket,
 // buttons, closure) is tappable as zone 'detail:<part>' and carries the customer's colour as `style` (garmentDetails.js).
@@ -184,10 +184,10 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
           zones.push({ obj: zone, d });
         };
         draw(initPaths.body,    colors.body,                     'body');
-        draw(initPaths.collar,  colors.collar,                   'collar');
+        draw(initPaths.collar,  colors.collar ?? colors.body,    'collar');
         draw(initPaths.sleeveL, colors.sleeve ?? colors.body,    'sleeve');
         draw(initPaths.sleeveR, colors.sleeve ?? colors.body,    'sleeve');
-        draw(initPaths.pocket,  colors.pocket  ?? colors.collar, 'pocket');
+        draw(initPaths.pocket,  colors.pocket  ?? colors.collar ?? colors.body, 'pocket');
         insertDetails(fabric, c, initPaths.details, zi, colors.body);
         addFabricShading(fabric, c, initPaths, face, zones, () => fc.current === c && redrawToken.current === 0);
         c.setWidth(initPaths.w);
@@ -477,10 +477,10 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       };
 
       makeZone(paths.body,    colors.body,                    'body');
-      makeZone(paths.collar,  colors.collar,                  'collar');
+      makeZone(paths.collar,  colors.collar ?? colors.body,   'collar');
       makeZone(paths.sleeveL, colors.sleeve ?? colors.body,   'sleeve');
       makeZone(paths.sleeveR, colors.sleeve ?? colors.body,   'sleeve');
-      makeZone(paths.pocket,  colors.pocket ?? colors.collar, 'pocket');
+      makeZone(paths.pocket,  colors.pocket ?? colors.collar ?? colors.body, 'pocket');
       const baseEnd = insertDetails(fabric, canvas, paths.details, zi, colors.body);
 
       // Tipping: contrast trim traced along the collar edge (real garment
@@ -542,6 +542,16 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     parkedHistory.current = {};
     pushHistory();
   }, [pushHistory]);
+
+  // AI preview: markHistory() before it; settleHistory(mark, true) folds every step since into one, (mark, false) puts history back.
+  const markHistory = useCallback(() => history.current, []);
+  const settleHistory = useCallback((mark, keep) => {
+    if (!mark) return;
+    if (!keep) { history.current = mark; setHistoryTick(t => t + 1); return; }
+    flushLook();
+    const next = foldSince(history.current, mark);
+    if (next !== history.current) { history.current = next; setHistoryTick(t => t + 1); }
+  }, [flushLook]);
 
   const restoreSnapshot = useCallback((target, next) => {
     history.current = next;
@@ -717,6 +727,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     if (!obj || obj.__garmentBase || obj.__hoverGlow) return;
     if (obj.__locked && !('__locked' in props)) return;
     obj.set(props);
+    obj.setCoords(); // keeps the selection handles on a moved or resized object
     if (typeof props.text === 'string') obj.__layerName = props.text.slice(0, 20) + (props.text.length > 20 ? '…' : '');
     if (typeof obj.text === 'string' && changesLayout(props)) {
       restyleText(obj, props).then(() => { canvas.renderAll(); if (commit) pushHistory(); bumpLayers(); }).catch(() => {});
@@ -1122,12 +1133,31 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     return true;
   }, [findLayer, presetPos, pushHistory, bumpLayers]);
 
+  // The zone being coloured stays outlined on the garment (solid; the hover outline is dashed), one box per part (both sleeves).
+  // A glow object (__hoverGlow), so exports, history and thumbnails already leave it out; a base redraw clears it and the caller redraws.
+  const zoneOutline = useRef([]);
+  const showZoneOutline = useCallback((zone) => {
+    import('fabric').then((mod) => { const fabric = mod.fabric ?? mod.default ?? mod;
+      const c = fc.current;
+      if (!c) return;
+      zoneOutline.current.forEach(o => c.remove(o));
+      zoneOutline.current = !zone ? [] : c.getObjects().filter(o => o.__garmentBase && o.__zoneKey === zone && o.visible !== false).map(o => {
+        const r = o.getBoundingRect();
+        const box = new fabric.Rect({ left: r.left - 3, top: r.top - 3, width: r.width + 6, height: r.height + 6, rx: 6, ry: 6,
+          fill: 'transparent', stroke: T2, strokeWidth: 2, selectable: false, evented: false, __hoverGlow: true });
+        c.add(box);
+        return box;
+      });
+      c.requestRenderAll();
+    });
+  }, []);
+
   return {
     onAdded, addLogo, addText, addShape, addPocket, setPocketColor, mirrorSelected, updateSelected, arrangeLayer, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
-    pushHistory, undo, redo, canUndo, canRedo, editTick, resizeCanvas,
+    pushHistory, markHistory, settleHistory, undo, redo, canUndo, canRedo, editTick, resizeCanvas,
     layers, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
     setDrawMode, setBrushStyle, initFailed,
     setSnapOptions, garmentRect, clearSelection, setOverlaysFrozen,
-    presetPos, textItems, editText,
+    presetPos, textItems, editText, showZoneOutline,
   };
 }

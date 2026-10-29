@@ -2,14 +2,17 @@ import Photo from '../components/landing/Photo';
 import Reveal from '../components/landing/Reveal';
 import SitePage from '../components/site/SitePage';
 import { Btn, Head, TextLink, Accordion } from '../components/site/parts';
-import { PRODUCTS, UNIFORM_TYPES, ORDER_FAQS } from '../components/site/content';
+import { useNavigate } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
+import { FIND_UNIFORM, ORDER_FAQS } from '../components/site/content';
+import { startStudioIn } from '../utils/studioIntent';
 import { MIN_ORDER_QTY } from '../utils/orderQuantity';
 import { P, GALLERY } from './landing/photos';
 
 const STEPS = [
   ['Design', 'Create and save your uniform in the VFRB Design Studio.'],
-  ['Order in bulk', `Open the Order Wizard from your saved design. Enter sizes, quantity (minimum ${MIN_ORDER_QTY} pieces) and the date you need it by.`],
-  ['VFRB confirms and produces', 'VFRB reviews your order and date, then confirms it. Your uniforms move through the production floor, from pattern to packing.'],
+  ['Proposal and date', `Order from your saved design: sizes, quantity (minimum ${MIN_ORDER_QTY} pieces) and the date you need it by. VFRB sends a proposal with a delivery date for you to accept.`],
+  ['Production', 'Once you accept, your uniforms move through the production floor, from pattern to packing.'],
   ['Delivery and invoice', 'Your uniforms are delivered, and the invoice and payment receipts are kept in your customer account.'],
 ];
 
@@ -17,6 +20,7 @@ const WORK = [P.embroidery, P.sublimationTee, P.printing, P.sublimationPolo, P.t
   .map(photo => GALLERY.find(g => g.photo === photo));
 
 export default function Landing() {
+  const nav = useNavigate();
   return (
     <SitePage title="Company uniforms made in Muntinlupa">
       <section className="vs-hero">
@@ -29,14 +33,27 @@ export default function Landing() {
                 VFRB Enterprise, also known as Tailor Centre VFRB Manila, is a medium-scale, family-owned garment
                 industry specialized in corporate and company uniforms.
               </p>
-              <div className="vs-btns"><Btn to="/login">Design your uniform</Btn></div>
+              <div className="vs-btns"><Btn to="/design-studio">Design your uniform</Btn></div>
+              <p className="vs-proof">Family-owned since 2000</p>
             </div>
             <div className="vs-hero__media">
-              <div className="vs-sticker" aria-hidden="true"><span>Since</span><b>2000</b></div>
               <Photo photo={P.sewing4} instant hover={false} pos="18% center" className="vs-hero__main" ratio="auto" sizes="(min-width: 900px) 50vw, 100vw" />
               <Photo photo={P.uniforms} instant hover={false} pos="28% center" className="vs-hero__inset" ratio="4 / 3" sizes="(min-width: 900px) 23vw, 46vw" />
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="vs-sec" aria-labelledby="find">
+        <div className="vs-wrap">
+          <Head kicker="Find your uniform" id="find" title="Start from the garments for your kind of team." />
+          <ul className="vs-types vs-find">
+            {FIND_UNIFORM.map(([label, cat]) => (
+              <li key={cat}><button type="button" onClick={() => { startStudioIn(cat); nav('/design-studio'); }}>
+                <span>{label}</span><ArrowRight size={18} aria-hidden="true" />
+              </button></li>
+            ))}
+          </ul>
         </div>
       </section>
 
@@ -65,19 +82,7 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="vs-sec vs-tint" aria-labelledby="types">
-        <div className="vs-wrap">
-          <Head kicker="Uniform types" id="types" title="Uniforms for every kind of team." />
-          <Reveal as="ul" className="vs-types">
-            {UNIFORM_TYPES.map(t => <li key={t}>{t}</li>)}
-          </Reveal>
-          <ul className="vs-serve" style={{ marginTop: 20 }} aria-label="Garments VFRB makes">
-            {PRODUCTS.map(x => <li key={x}>{x}</li>)}
-          </ul>
-        </div>
-      </section>
-
-      <section className="vs-sec" aria-labelledby="faq">
+      <section className="vs-sec vs-tint" aria-labelledby="faq">
         <div className="vs-wrap vs-faqgrid">
           <Reveal className="vs-stack">
             <p className="vs-kicker">FAQ</p>

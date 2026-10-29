@@ -1,4 +1,4 @@
-export const STAFF_ROLES = ['manager', 'owner']; // admin portal roles; the staff role is retired
+export const STAFF_ROLES = ['manager', 'staff', 'owner']; // admin portal roles; staff = Administrator (Station)
 
 export const readUser = () => {
   try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}') || {}; } catch { return {}; }

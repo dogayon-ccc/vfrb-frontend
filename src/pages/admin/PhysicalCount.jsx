@@ -19,7 +19,7 @@ const inp  = {
 };
 const fi   = e => { e.target.style.borderColor=T;         e.target.style.boxShadow=`0 0 0 3px rgba(2,128,144,.1)`; };
 const fo   = e => { e.target.style.borderColor='var(--border)'; e.target.style.boxShadow='none'; };
-const lbl  = { display:'block', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'var(--text-subtle)', marginBottom:7, fontFamily:FONT };
+const lbl  = { display:'block', fontSize:11, fontWeight:700, color:'var(--text-subtle)', marginBottom:7, fontFamily:FONT };
 const card = { background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:14, boxShadow:'0 1px 3px rgba(0,0,0,.05)' };
 
 const readIsManager = () => isAdmin();
@@ -108,13 +108,13 @@ function CountModal({ materials, onClose, onDone, isMobile, initialMatId }) {
 
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
               <div>
-                <label style={lbl}>Physical Count *</label>
+                <label style={lbl}>Physical count *</label>
                 <input type="number" min={0} step={0.01} value={physQty}
                   onChange={e => setPhysQty(e.target.value)} placeholder="0.00"
                   style={inp} onFocus={fi} onBlur={fo}/>
               </div>
               <div>
-                <label style={lbl}>Count Date *</label>
+                <label style={lbl}>Count date *</label>
                 <input type="date" value={date}
                   max={new Date().toISOString().split('T')[0]}
                   onChange={e => setDate(e.target.value)} style={inp} onFocus={fi} onBlur={fo}/>
@@ -134,8 +134,8 @@ function CountModal({ materials, onClose, onDone, isMobile, initialMatId }) {
                 </p>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10 }}>
                   {[
-                    ['System Stock',    `${preview.sys}`,  'var(--text-subtle)'],
-                    ['Physical Count',  `${preview.phy}`,  T],
+                    ['System stock',    `${preview.sys}`,  'var(--text-subtle)'],
+                    ['Physical count',  `${preview.phy}`,  T],
                     ['Variance',
                       `${preview.variance > 0 ? '+' : ''}${preview.variance} (${preview.pct}%)`,
                       preview.variance > 0 ? 'var(--success)' : preview.variance < 0 ? 'var(--danger)' : 'var(--text-subtle)'],
@@ -157,7 +157,7 @@ function CountModal({ materials, onClose, onDone, isMobile, initialMatId }) {
 
             <div>
               <label style={lbl}>
-                Reason for Variance{' '}
+                Reason for variance{' '}
                 <span style={{ color:'var(--text-faint)', fontWeight:400, textTransform:'none' }}>(if any)</span>
               </label>
               <textarea value={reason} onChange={e => setReason(e.target.value)}
@@ -252,7 +252,7 @@ function ReconcileModal({ count, onClose, onDone, isMobile }) {
           </div>
 
           <div>
-            <label style={lbl}>Reconciliation Action</label>
+            <label style={lbl}>Reconciliation action</label>
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
               {[
                 {
@@ -284,7 +284,7 @@ function ReconcileModal({ count, onClose, onDone, isMobile }) {
           </div>
 
           <div>
-            <label style={lbl}>Manager Notes</label>
+            <label style={lbl}>Manager notes</label>
             <textarea value={note} onChange={e => setNote(e.target.value)}
               placeholder="Reconciliation explanation…" rows={2}
               style={{ ...inp, resize:'none' }} onFocus={fi} onBlur={fo}/>
@@ -401,7 +401,7 @@ export default function AdminPhysicalCount() {
       <p>Generated: ${escapeHtml(r.data.generated_at)} | By: ${escapeHtml(r.data.generated_by)}</p>
       <table>
         <tr><th>#</th><th>Material</th><th>Category</th><th>Unit</th>
-            <th>System Qty</th><th>Physical Count</th><th>Variance</th><th>Notes</th></tr>
+            <th>System qty</th><th>Physical count</th><th>Variance</th><th>Notes</th></tr>
         ${mats.map((m, i) => `
           <tr>
             <td>${i + 1}</td>

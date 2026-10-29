@@ -10,7 +10,7 @@ const CSS = `
 .pp-cell{position:relative;display:flex;flex-direction:column;gap:6px;padding:12px 12px 10px;border-radius:12px;border:1px solid var(--border);background:var(--bg-card);min-width:0}
 .pp-cell.now{border-color:var(--teal);box-shadow:0 0 0 2px var(--teal-100)}
 .pp-cell.done{background:var(--success-bg);border-color:transparent}
-.pp-lbl{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--text-subtle);white-space:nowrap}
+.pp-lbl{font-size:11px;font-weight:700;color:var(--text-subtle);white-space:nowrap}
 .pp-cell.now .pp-lbl{color:var(--teal)}
 .pp-num{font-size:26px;font-weight:800;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
 .pp-num small{font-size:14px;font-weight:600;color:var(--text-faint)}

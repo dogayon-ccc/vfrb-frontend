@@ -1,19 +1,27 @@
 // Light mobile-first theme (Design Studio only stays dark). Logic unchanged from prior version.
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { ViewLink as Link } from '../../components/ViewLink';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { startSession } from '../../utils/session';
 import { isStaffRole } from '../../utils/authRoute';
+import { peekStudioCategory } from '../../utils/studioIntent';
 import AuthShell, { authInput } from '../../components/AuthShell';
 import { NavIcon } from '../../components/ui/icons';
 import { CONTACT } from '../../components/site/config';
+import RequestAccess from './RequestAccess';
 
 // 44px tap height without breaking the sentence's line flow.
 const CONTACT_LINK = { display: 'inline-flex', alignItems: 'center', minHeight: 44, fontWeight: 700, color: 'var(--teal-dark)' };
 
 const T = 'var(--teal)';
+const VERIFY_DELAY_MS = 1800;
+
+const throttledText = (headers) => {
+  const secs = Number(headers?.['retry-after']);
+  return secs > 0 ? `Too many tries. Wait ${secs} seconds and try again.` : 'Too many tries. Wait a minute and try again.';
+};
 
 export default function Login() {
   const navigate = useNavigate();
@@ -26,6 +34,9 @@ export default function Login() {
   const [error, setError] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [focused, setFocused] = useState('');
+  const [ask, setAsk] = useState(false);
+  const [notice, setNotice] = useState('');
+  const verifyTimer = useRef();
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   useEffect(() => {
@@ -35,22 +46,27 @@ export default function Login() {
     setSearchParams(prev => { const n = new URLSearchParams(prev); n.delete('google_error'); return n; }, { replace: true });
   }, [searchParams, setSearchParams]);
 
+  useEffect(() => () => clearTimeout(verifyTimer.current), []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.login.trim() || !form.password.trim()) { setError('Please enter your username or email and your password.'); return; }
     setLoading(true); setError('');
     try {
       const { data } = await axios.post('/api/login', form);
-      startSession(data.token, data.user);
-      if (isStaffRole(data.user)) {
-        navigate('/admin/dashboard');
+      if (!isStaffRole(data.user) && !data.user.email_verified_at) {
+        // Session starts with the redirect so GuestOnly cannot bounce the page before the note shows.
+        setNotice('Your email is not verified yet. Taking you to the verification page…');
+        verifyTimer.current = setTimeout(() => { startSession(data.token, data.user); navigate('/verify-email'); }, VERIFY_DELAY_MS);
         return;
       }
-      navigate(data.user.email_verified_at ? '/dashboard' : '/verify-email');
+      startSession(data.token, data.user);
+      navigate(isStaffRole(data.user) ? '/admin/dashboard' : peekStudioCategory() ? '/design-studio' : '/dashboard'); // a landing tile resumes in the Studio
     } catch (err) {
       const st = err.response?.status;
       setError(
         !err.response ? 'Cannot reach the server. Check your connection and that the backend is running.'
+        : st === 429 ? throttledText(err.response.headers)
         : st === 404 ? 'Server endpoint not found (404). The backend is not reachable at this address.'
         : st >= 500 ? 'The server had a problem. Please try again.'
         : err.response.data?.message ?? 'Invalid username/email or password.'
@@ -75,6 +91,12 @@ export default function Login() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {notice && (
+        <p role="status" style={{ borderRadius: 12, padding: '12px 16px', marginBottom: 16, background: 'var(--teal-50)', color: 'var(--ink)', fontSize: 14, lineHeight: 1.5 }}>
+          {notice}
+        </p>
+      )}
 
       <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div>
@@ -110,7 +132,7 @@ export default function Login() {
           </div>
         </div>
 
-        <motion.button type="submit" disabled={loading} whileHover={{ scale: loading ? 1 : 1.01 }} whileTap={{ scale: .98 }}
+        <motion.button type="submit" disabled={loading || !!notice} whileHover={{ scale: loading ? 1 : 1.01 }} whileTap={{ scale: .98 }}
           style={{ width: '100%', height: 56, borderRadius: 14, border: 'none', fontWeight: 800, fontSize: 17,
             color: 'var(--text-on-accent)', cursor: loading ? 'not-allowed' : 'pointer', display: 'flex',
             alignItems: 'center', justifyContent: 'center', gap: 10,
@@ -138,10 +160,21 @@ export default function Login() {
         Continue with Google
       </button>
 
-      <p style={{ textAlign: 'center', fontSize: 15, color: 'var(--text-muted)', marginTop: 28 }}>
-        No account yet? VFRB creates customer accounts.{' '}
+      <div style={{ textAlign: 'center', fontSize: 15, color: 'var(--text-muted)', marginTop: 28 }}>
+        No account?{' '}
+        <button type="button" onClick={() => setAsk(v => !v)} aria-expanded={ask} aria-controls="request-access"
+          style={{ ...CONTACT_LINK, border: 'none', background: 'none', padding: 0, fontSize: 15, cursor: 'pointer' }}>Request access</button>
+      </div>
+      {ask && <div id="request-access" style={{ marginTop: 12 }}><RequestAccess/></div>}
+
+      <p style={{ textAlign: 'center', fontSize: 15, color: 'var(--text-muted)', marginTop: 20 }}>
+        Or{' '}
         <a href={CONTACT.facebook} target="_blank" rel="noopener noreferrer" style={CONTACT_LINK}>Message us on Facebook</a>
         {' '}or call <a href={CONTACT.phoneHref} style={{ ...CONTACT_LINK, whiteSpace: 'nowrap' }}>{CONTACT.phone}</a> and we will set one up for you.
+      </p>
+
+      <p style={{ textAlign: 'center', marginTop: 12 }}>
+        <Link to="/gallery" style={{ ...CONTACT_LINK, fontSize: 15, padding: '0 8px' }}>See our work</Link>
       </p>
     </AuthShell>
   );

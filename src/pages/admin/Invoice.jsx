@@ -113,7 +113,7 @@ export default function AdminInvoice() {
           overflow-x:auto; -webkit-overflow-scrolling:touch;
           border-radius:var(--r-md); border:1px solid var(--border);
         }
-        .inv-bom-wrap table { min-width:480px; width:100%; border-collapse:collapse; }
+        .inv-bom-wrap table, .adm-shell .inv-bom-wrap table { width:100%; min-width:0; border-collapse:collapse; }
         @media (max-width:640px) {
           .inv-grid-2 { grid-template-columns:1fr; }
           .inv-header  { flex-direction:column; gap:8px; }
@@ -208,8 +208,8 @@ export default function AdminInvoice() {
             <div className="inv-grid-2" style={{ marginBottom:24 }}>
               <div style={{ background:'var(--bg)', borderRadius:'var(--r-lg)', padding:'16px' }}>
                 <p style={{ fontSize:10, fontWeight:700, color:'var(--text-subtle)',
-                  textTransform:'uppercase', letterSpacing:'.07em', marginBottom:10 }}>
-                  Bill To
+ marginBottom:10 }}>
+                  Bill to
                 </p>
                 <p style={{ fontSize:15, fontWeight:700, color:'var(--ink)' }}>
                   {order.user?.name ?? '—'}
@@ -235,8 +235,8 @@ export default function AdminInvoice() {
               </div>
               <div style={{ background:'var(--bg)', borderRadius:'var(--r-lg)', padding:'16px' }}>
                 <p style={{ fontSize:10, fontWeight:700, color:'var(--text-subtle)',
-                  textTransform:'uppercase', letterSpacing:'.07em', marginBottom:10 }}>
-                  Order Details
+ marginBottom:10 }}>
+                  Order details
                 </p>
                 {[
                   ['Order ID',  `#${order.order_id}`],
@@ -246,7 +246,7 @@ export default function AdminInvoice() {
                   ['Deadline',  (order.promised_date || order.negotiated_delivery_date || order.target_delivery_date)
                     ? new Date(order.promised_date || order.negotiated_delivery_date || order.target_delivery_date).toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})
                     : 'N/A'],
-                  ['PO Ref',    order.po_reference ?? 'N/A'],
+                  ['PO ref',    order.po_reference ?? 'N/A'],
                 ].map(([label, val]) => (
                   <div key={label} style={{ display:'flex', justifyContent:'space-between',
                     marginBottom:5 }}>
@@ -259,7 +259,7 @@ export default function AdminInvoice() {
                     <span style={{ color:'var(--text-faint)', fontSize:12 }}>Reference File</span>
                     <a href={getStorageUrl(order.client_design_ref_file)} target="_blank" rel="noopener noreferrer"
                       style={{ display:'flex', alignItems:'center', gap:4, color:'var(--teal)', fontSize:12, fontWeight:700, textDecoration:'none' }}>
-                      <NavIcon name="attachment" size={12} color="var(--teal)" /> View File →
+                      <NavIcon name="attachment" size={12} color="var(--teal)" /> View file
                     </a>
                   </div>
                 )}
@@ -270,8 +270,8 @@ export default function AdminInvoice() {
               <div style={{ marginBottom:20, padding:'12px 16px', borderRadius:'var(--r-md)',
                 background:'var(--bg)', border:'1px solid var(--border)' }}>
                 <p style={{ fontSize:10, fontWeight:700, color:'var(--text-subtle)',
-                  textTransform:'uppercase', letterSpacing:'.07em', marginBottom:6 }}>
-                  Design Description
+ marginBottom:6 }}>
+                  Design description
                 </p>
                 <p style={{ color:'var(--text-muted)', fontSize:13, lineHeight:1.6 }}>
                   {order.client_design_notes}
@@ -282,16 +282,15 @@ export default function AdminInvoice() {
             {recs.length > 0 && (
               <div style={{ marginBottom:24 }}>
                 <p style={{ fontSize:13, fontWeight:700, color:'var(--teal)', marginBottom:10,
-                  textTransform:'uppercase', letterSpacing:'.07em' }}>
-                  Bill of Materials (BOM)
+ }}>
+                  Bill of materials (BOM)
                 </p>
                 <div className="inv-bom-wrap"><table>
                   <thead>
                     <tr style={{ background:'var(--bg)' }}>
-                      {['Material','Unit','Actual Used'].map(h => (
+                      {['Material','Unit','Actual used'].map(h => (
                         <th key={h} style={{ padding:'8px 12px', textAlign:'left',
                           fontSize:10, fontWeight:700, color:'var(--text-subtle)',
-                          textTransform:'uppercase', letterSpacing:'.05em',
                           borderBottom:'2px solid var(--border)' }}>{h}</th>
                       ))}
                     </tr>
@@ -317,15 +316,15 @@ export default function AdminInvoice() {
 
             <div style={{ marginBottom:20 }}>
               <p style={{ fontSize:13, fontWeight:700, color:'var(--teal)', marginBottom:10,
-                textTransform:'uppercase', letterSpacing:'.07em' }}>
-                Payment Summary
+ }}>
+                Payment summary
               </p>
               <div style={{ background:'var(--bg)', borderRadius:'var(--r-lg)',
                 border:'1px solid var(--border)', overflow:'hidden' }}>
                 {[
-                  { label:'Total Amount', val: total > 0 ? `₱${Number(total).toLocaleString('en-PH',{minimumFractionDigits:2})}` : 'To be confirmed' },
-                  { label:'Amount Paid',  val: paid > 0  ? `₱${Number(paid).toLocaleString('en-PH',{minimumFractionDigits:2})}` : '₱0.00', color:'var(--success-text)' },
-                  { label:'Balance Due',  val: balance > 0 ? `₱${Number(balance).toLocaleString('en-PH',{minimumFractionDigits:2})}` : '₱0.00',
+                  { label:'Total amount', val: total > 0 ? `₱${Number(total).toLocaleString('en-PH',{minimumFractionDigits:2})}` : 'To be confirmed' },
+                  { label:'Amount paid',  val: paid > 0  ? `₱${Number(paid).toLocaleString('en-PH',{minimumFractionDigits:2})}` : '₱0.00', color:'var(--success-text)' },
+                  { label:'Balance due',  val: balance > 0 ? `₱${Number(balance).toLocaleString('en-PH',{minimumFractionDigits:2})}` : '₱0.00',
                     color: balance > 0 ? 'var(--danger-text)' : 'var(--success-text)', bold:true },
                 ].map(row => (
                   <div key={row.label} style={{ display:'flex', justifyContent:'space-between',
@@ -349,8 +348,8 @@ export default function AdminInvoice() {
               <div style={{ padding:'14px 16px', borderRadius:'var(--r-lg)',
                 background:'var(--teal-50)', border:'1px solid var(--teal-100)', marginBottom:20 }}>
                 <p style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, fontWeight:700, color:'var(--teal)', marginBottom:6,
-                  textTransform:'uppercase', letterSpacing:'.07em' }}>
-                  <NavIcon name="ai" size={12} color="var(--teal)" /> AI Material Explanation
+ }}>
+                  <NavIcon name="ai" size={12} color="var(--teal)" /> AI material explanation
                 </p>
                 <p style={{ color:'var(--text-muted)', fontSize:12, lineHeight:1.7 }}>
                   {order.ai_explanation}

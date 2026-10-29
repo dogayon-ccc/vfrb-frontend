@@ -6,6 +6,7 @@ import { openTarget } from './designGallery';
 import { selectFamily } from './selectGarment';
 import GarmentPicker from './GarmentPicker';
 import ShowcaseConsent from './ShowcaseConsent';
+import { garmentLabel } from '../../../utils/designName';
 
 export function MiniPreview({ garment, colors }) {
   const paths = BASE_PATHS[garment] ?? BASE_PATHS['Polo Shirt'];
@@ -28,7 +29,7 @@ function IconBtn({ children, onClick, danger }) {
         width:24, height:24, borderRadius:7, border:'none', flexShrink:0,
         background: danger ? 'rgba(229,62,62,.12)' : 'rgba(15,23,42,.07)',
         color:      danger ? 'var(--danger-text)' : 'var(--cx-ink-2)',
-        fontSize:11, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
+        fontSize:13, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
       }}>{children}</button>
   );
 }
@@ -73,12 +74,12 @@ function Tile({ label, sub, thumb, onClick, editable, onRename, onDelete, showca
             onChange={e => setValue(e.target.value)}
             onBlur={commitRename}
             onKeyDown={e => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') { setValue(label); setRenaming(false); } }}
-            style={{ fontSize:12, fontWeight:700, color:'var(--cx-ink)', textAlign:'center',
+            style={{ fontSize:13, fontWeight:700, color:'var(--cx-ink)', textAlign:'center',
               width:'100%', border:'1px solid rgba(2,195,154,.4)', borderRadius:5, padding:'2px 4px' }}/>
         ) : (
-          <p style={{ fontSize:12, fontWeight:700, color:'var(--cx-ink)', margin:0, textAlign:'center' }}>{label}</p>
+          <p style={{ fontSize:13, fontWeight:700, color:'var(--cx-ink)', margin:0, textAlign:'center' }}>{label}</p>
         )}
-        <div style={{ fontSize:11, color:'var(--cx-ink-2)' }}>{sub}</div>
+        <div style={{ fontSize:13, color:'var(--cx-ink-2)' }}>{sub}</div>
       </button>
 
       {editable && !renaming && (
@@ -152,7 +153,7 @@ export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanv
                 <h3 className="ds-pick-sec">Your past designs</h3>
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(150px,1fr))', gap:10 }}>
                   {archived.map(d => (
-                    <Tile key={`d-${d.id}`} label={d.label} sub={d.garment} editable
+                    <Tile key={`d-${d.id}`} label={garmentLabel(d.label)} sub={garmentLabel(d.garment)} editable
                       onClick={() => loadArchived(d)}
                       onRename={(newLabel) => renameDesign(d.id, newLabel)}
                       onDelete={() => deleteDesign(d.id)}

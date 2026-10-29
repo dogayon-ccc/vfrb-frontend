@@ -24,7 +24,7 @@ const CSS = `
 .ob-sub { margin:2px 0 0; font-size:12px; color:var(--text-subtle); overflow-wrap:anywhere; }
 .ob-stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 110px), 1fr)); gap:8px; }
 .ob-stat { min-width:0; padding:10px 12px; border-radius:10px; background:var(--bg-surface); border:1px solid var(--border); }
-.ob-stat span { display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--text-subtle); }
+.ob-stat span { display:block; font-size:11px; font-weight:700; color:var(--text-subtle); }
 .ob-stat strong { display:block; margin-top:3px; font-size:15px; font-weight:800; color:var(--ink); overflow-wrap:anywhere; }
 .ob-pill { display:inline-flex; align-items:center; min-height:24px; padding:0 10px; border-radius:999px; font-size:11px; font-weight:800; white-space:nowrap; }
 .ob-pill-warn { background:#fef3c7; color:#92400e; }
@@ -64,7 +64,7 @@ export default function OrderBilling({ orderId, mode = 'customer', isManager = f
   const [form, setForm] = useState(null);         // 'issue' | 'paid' | 'void' | null
   const [msg, setMsg] = useState(null);           // { type: 'ok'|'err', text }
   const [issue, setIssue] = useState({ billing_profile_id: '', due_date: '', notes: '' });
-  const [pay, setPay] = useState({ payment_method: 'cash', reference_no: '', notes: '' });
+  const [pay, setPay] = useState({ payment_method: 'bank_transfer', reference_no: '', notes: '' });
 
   const load = useCallback(async (signal) => {
     setState('loading');
@@ -152,7 +152,7 @@ export default function OrderBilling({ orderId, mode = 'customer', isManager = f
   return (
     <>
       <style>{CSS}</style>
-      <div className="ob">
+      <div className="ob" data-empty={(!admin && !invoice && receipts.length === 0 && !data.void_count) || undefined}>
         {admin && total != null && (
           <div className="ob-stats">
             <div className="ob-stat"><span>Total</span><strong>{peso(total)}</strong></div>
@@ -183,7 +183,7 @@ export default function OrderBilling({ orderId, mode = 'customer', isManager = f
         ) : (
           <p className="ob-note">
             {scope === 'customer'
-              ? 'No invoice yet. It will appear here once VFRB issues it.'
+              ? 'No invoice yet. It appears here once the VFRB team issues it.'
               : total == null ? 'Set the agreed total on this order before an invoice can be issued.' : 'No invoice issued yet.'}
           </p>
         )}
@@ -268,7 +268,7 @@ export default function OrderBilling({ orderId, mode = 'customer', isManager = f
                 {METHODS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
             </label>
-            <label>Reference no. (optional)
+            <label>Reference no. (e.g. BDO / Metrobank ref, optional)
               <input className="ob-in" maxLength={50} value={pay.reference_no}
                 onChange={(e) => setPay((s) => ({ ...s, reference_no: e.target.value }))} />
             </label>

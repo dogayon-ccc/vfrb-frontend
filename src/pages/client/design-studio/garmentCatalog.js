@@ -17,9 +17,9 @@
 import { photoFits, assetFor, templateIdFor, vectorFits } from './garmentAssets';
 import { glbSlotFor, slotLive } from './glbSlots';
 import { BASE_PATHS, getGarmentPaths } from './garmentPaths';
-import { get3DCapabilities, fitsFor, sleeves3DFor, has3DModel } from './garmentCapabilities';
+import { get3DCapabilities, fitsFor, sleeves3DFor, has3DModel, has3DFor } from './garmentCapabilities';
 import { realTrimFor, colorsForGarment } from './colorRules';
-import { DERIVED_FAMILIES, DERIVED_BY_NAME, REMOVED_GARMENT } from './derivedFamilies';
+import { DERIVED_FAMILIES, DERIVED_BY_NAME, REMOVED_GARMENT, SUPERSEDED_DERIVED } from './derivedFamilies';
 import { CUSTOM_GARMENTS, CUSTOM_TOP, CUSTOM_BOTTOM, CUSTOM_SKIRT, PARAM_FAMILIES, isParametric, normalizeCustom } from './customGarment';
 
 // Category -> its garments, in display order. Source: the VFRB interview's garment list
@@ -38,11 +38,11 @@ const BASE_CATEGORY_DEFS = [
 // Derived families join their category after its own garments (the picker groups them under "From reference").
 // Rebuilt parametric families (customGarment PARAM_FAMILIES) join their category the same way.
 const CATEGORY_DEFS = BASE_CATEGORY_DEFS.map(c => ({ ...c, garments: [...c.garments, ...Object.entries(PARAM_FAMILIES).filter(([, f]) => f.category === c.id).map(([name]) => name),
-  ...DERIVED_FAMILIES.filter(d => d.category === c.id).map(d => d.name)] }));
+  ...DERIVED_FAMILIES.filter(d => d.category === c.id && !SUPERSEDED_DERIVED.has(d.id)).map(d => d.name)] }));
 
 // Sleeve styles VFRB really offers per garment. One row to edit if the client adds a style; every consumer reads FAMILIES.
 const SLEEVE_OPTS = {
-  'Polo Shirt': ['Short'],
+  'Polo Shirt': ['Short', 'Long'],
   'T-Shirt': ['Short'],
   'Round Neck': ['Short', 'Long'],
   'Mandarin Collar': ['Short', 'Long'],
@@ -71,7 +71,7 @@ export const LEGACY_GARMENT = { 'School Polo': 'Polo Shirt', 'V-Neck Shirt': 'Sc
 // same family either way, not a duplicate to invent apart).
 // Build-your-own garments are families too (sleeve, fit and pieces resolve the same way) but belong to no category: the picker offers them
 // as its own first card, never inside a category list.
-const FAMILY_NAMES = [...new Set([...CATEGORY_DEFS.flatMap(c => c.garments), ...CUSTOM_GARMENTS])];
+const FAMILY_NAMES = [...new Set([...CATEGORY_DEFS.flatMap(c => c.garments), ...CUSTOM_GARMENTS, ...DERIVED_FAMILIES.filter(d => SUPERSEDED_DERIVED.has(d.id)).map(d => d.name)])];
 
 // One entry per family: everything real and verified about it, nothing guessed.
 const FAMILIES = Object.fromEntries(FAMILY_NAMES.map(name => {
@@ -227,6 +227,8 @@ export const STATUS_3D_LABEL = {
   partial:   { label: '3D (approx.)', tone: 'warn' },
   none:      { label: '2D only', tone: 'muted' },
 };
+// The Studio's 3D label for one design (garment, sleeve, fit, inspiration), always from has3DFor. No model is verified yet.
+export const label3D = d => (has3DFor(d) ? (familyFor(d.garment)?.verified3D ? '3D' : '3D (approx.)') : '3D not available');
 
 // ONE answer to "what exactly does (garment, sleeve, fit, face) resolve to": family + variant (2D asset id) + zones + 3D + honest status.
 // Gallery, Studio, Order Wizard and both Order Detail pages read this instead of re-deriving it. Status never says 'verified': no GLB has passed validation.

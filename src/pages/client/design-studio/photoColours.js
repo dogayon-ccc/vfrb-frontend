@@ -1,3 +1,5 @@
+import { withBody } from './colorRules';
+
 // Garment colour of each gallery photo, measured 2026-10-12: median of the garment's central pixels in public/gallery/<id>.webp
 // (white background excluded; sets: [top, bottom], split like REF_SPLIT). "Use as template" starts the design in these colours.
 export const PHOTO_COLOURS = {
@@ -16,8 +18,8 @@ export const PHOTO_COLOURS = {
   'shirt-two-tone-gpc': ['#ABC6EF', '#373841'], 'shirt-utility-beige-long': ['#A59D94'], 'shorts': ['#686C75'],
 };
 
-// Body and sleeves take the photo colour; collar/pocket/trim keep their own rules (a photo base keeps its real trim until one is picked).
+// Body and sleeves take the photo colour, and every zone following the body (pocket, collar) moves with it; a real trim stays.
 export const withPhotoColour = (colors, id, part = 0) => {
   const hex = PHOTO_COLOURS[id]?.[part];
-  return hex ? { ...colors, body: hex, sleeve: hex } : colors;
+  return hex ? { ...withBody(colors, hex), sleeve: hex } : colors;
 };

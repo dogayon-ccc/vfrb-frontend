@@ -28,8 +28,8 @@ export const DARK  = '#F8FAFC';
 export const DARK2 = '#EEF2F7';
 
 export const secLabel = {
-  fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '.09em', color: 'var(--cx-ink-2)',
+  fontSize: 13, fontWeight: 700,
+  color: 'var(--cx-ink-2)',
   margin: '10px 0 5px 1px',
 };
 
@@ -144,7 +144,7 @@ export function pattern3D(garment, sleeve, fit, zone, id) {
   const cap = get3DCapabilities(garment, fit, sleeve);
   return cap.supported ? (cap.patterns?.zones ?? []).includes(zone) && (cap.patterns?.ids ?? []).includes(id) : null;
 }
-export const ONLY_2D_TAG = { fontSize: 11, fontWeight: 700, color: 'var(--cx-ink-2)' };
+export const ONLY_2D_TAG = { fontSize: 13, fontWeight: 700, color: 'var(--cx-ink-2)' };
 
 export const placementsFor = (garment, sleeve, fit) =>
   zonesFor(garment, sleeve, fit).includes('sleeve') ? LOGO_PRESETS : LOGO_PRESETS.filter(p => !p.id.endsWith('_arm'));
@@ -242,24 +242,33 @@ export const SHAPES = [
 export const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif`;
 
 export const inputStyle = {
-  width:'100%', padding:'9px 11px', borderRadius:9, fontSize:12,
+  width:'100%', padding:'9px 11px', borderRadius:9, fontSize:13,
   background:'#fff', border:'1px solid #e2e8f0',
   color:'#1a2332', outline:'none', boxSizing:'border-box', fontFamily: FONT,
 };
 
 export const TOOLS = [
-  // `section`: the uniform itself. On desktop these are the right panel's section tabs (the rail keeps the tools that add things).
-  { id:'type',     icon:'garmentType', label:'Garment', primary:true, section:true, hint:'Category, garment, fit and sleeve' },
-  { id:'color',    icon:'colorZone',   label:'Colors',  primary:true, section:true, hint:'Color each part of the garment' },
-  { id:'details',  icon:'qcFastener',  label:'Details', section:true, hint:'Pockets, buttons and closures (2D)' },
-  { id:'pattern',  icon:'pattern',     label:'Pattern', section:true, hint:'Stripes, checks and more' },
-  { id:'text',     icon:'text',        label:'Text',    primary:true, hint:'Add names, slogans or numbers' },
-  { id:'assets',   icon:'logo',        label:'Logo',    primary:true, hint:'Logos, shapes and starter templates' },
-  { id:'layers',   icon:'layersPanel', label:'Layers',  section:true, hint:'Reorder, hide or rename items' },
+  { id:'type',     icon:'garmentType', label:'Garment', hint:'Category, garment, fit and sleeve' },
+  { id:'color',    icon:'colorZone',   label:'Colours', hint:'Colour each part of the garment' },
+  { id:'pattern',  icon:'pattern',     label:'Pattern', hint:'Stripes, checks and more' },
+  { id:'details',  icon:'qcFastener',  label:'Details', hint:'Pockets, buttons and closures (2D)' },
+  { id:'assets',   icon:'logo',        label:'Logo',    hint:'Logos, shapes and starter templates' },
+  { id:'text',     icon:'text',        label:'Text',    hint:'Add names, slogans or numbers' },
   { id:'draw',     icon:'draw',        label:'Draw',    hint:'Sketch freehand on the garment' },
-  { id:'ai',       icon:'ai',          label:'AI',      hint:'Describe a design in words' },
+  { id:'layers',   icon:'layersPanel', label:'Layers',  hint:'Reorder, hide or rename items' },
+  { id:'ai',       icon:'ai',          label:'Ask AI',  hint:'Describe a change; it becomes design edits you preview first' },
   { id:'selected', icon:'cursor',      label:'Selection', hint:'Adjust the item you picked' },
 ];
+// The panel's labelled tabs. Each owns one or more tools; the first is where the tab opens.
+export const TABS = [
+  { id:'type',     icon:'garmentType', label:'Garment',     tools:['type'] },
+  { id:'color',    icon:'colorZone',   label:'Colours',     tools:['color', 'pattern'] },
+  { id:'details',  icon:'qcFastener',  label:'Details',     tools:['details'] },
+  { id:'logotext', icon:'logo',        label:'Logo & text', tools:['assets', 'text', 'draw'] },
+  { id:'layers',   icon:'layersPanel', label:'Layers',      tools:['layers'] },
+  { id:'ai',       icon:'ai',          label:'Ask AI',      tools:['ai'] },
+];
+export const tabOf = tool => TABS.find(t => t.tools.includes(tool)) ?? null;
 
 // 6 starter designs from VFRB's common garment types (PH institutional palette).
 // Blank-canvas start: garment is null until the customer actually drags one
@@ -275,6 +284,9 @@ export const TOOLS = [
 // partial or malformed sessionStorage value degrades to DEFAULT_CFG here
 // exactly the same way it does everywhere else, instead of a second,
 // slightly-different fallback living in this file.
+// Upload extras (Trace over a photo, Create a 2D garment from a photo): code kept, switched off.
+export const REF_PHOTO_TOOLS = false;
+
 export const INIT_CFG = () => {
   let raw = null;
   try { raw = sessionStorage.getItem('studio_config'); } catch {}

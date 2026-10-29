@@ -11,13 +11,13 @@ const STEPS = [
     link: ['/login', 'Sign in'] },
   { title: 'AI reviews your materials',
     desc: 'Gemini AI looks at your garment type, quantity, and specs and recommends the categories of raw materials your order will need: fabric, trims, thread, accessories. You can review this on the AI Materials page before your order is finalized.' },
-  { title: 'Accept and notify VFRB staff',
+  { title: 'Accept and notify the VFRB team',
     desc: 'Once you\u2019re happy with the recommendation, accept it. This notifies the VFRB production team to prepare the exact materials for your order.' },
   { title: 'VFRB confirms your order',
     desc: 'VFRB reviews your order and the deadline you asked for, then accepts or declines it. Your status changes from Pending to Confirmed when it is accepted.',
     link: ['/inside-vfrb', 'See the production floor'] },
   { title: 'Track progress anytime',
-    desc: 'Open My Orders to see whether your order is Pending, Confirmed or Completed, with no need to call or visit to ask. Use Messages in your portal to reach VFRB staff about a specific order.' },
+    desc: 'Open My Orders to see whether your order is Pending, Confirmed or Completed, with no need to call or visit to ask. Use Messages in your portal to reach the VFRB team about a specific order.' },
   { title: 'Payment and delivery',
     desc: 'VFRB sends you the price for your order. Once you accept it, an 80% downpayment is due, and production starts after it is received. The remaining 20% is paid on delivery. Your invoice and receipts appear in your customer account.' },
 ];
@@ -52,7 +52,7 @@ export default function Guide() {
             <Photo photo={P.packed} pos="center 40%" ratio="4 / 3" caption="Packed and labeled for delivery" />
             <div className="vs-card">
               <h2 className="vs-h3">Questions?</h2>
-              <p>Use Messages in your portal to reach VFRB staff about a specific order, or check the FAQ for common questions.</p>
+              <p>Use Messages in your portal to reach the VFRB team about a specific order, or check the FAQ for common questions.</p>
               <Btn to="/faq" variant="line">Open the FAQ</Btn>
             </div>
           </aside>

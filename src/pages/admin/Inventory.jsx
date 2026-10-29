@@ -5,7 +5,7 @@ import axios from 'axios';
 import { FileSpreadsheet, FileText } from 'lucide-react';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
 import { NavIcon, DataTable, EmptyState } from '../../components/ui';
-import { isOwner } from '../../utils/jobAccess';
+import { isAdmin, isStation, canOpen } from '../../utils/jobAccess';
 import useListKeys from '../../hooks/useListKeys';
 import MaterialCode from '../../components/admin/MaterialCode';
 import { ClientLineStatus } from '../../components/admin/ClientMaterialsPanel';
@@ -253,10 +253,12 @@ export default function AdminInventory() {
       )}
 
       <PageHeader title="Inventory" sub={loading ? 'Loading materials…' : `Stock on hand and every movement · ${reorderCount} to reorder · ${flagCount.out} out of stock`}>
-        <Link className="adm-btn" to="/admin/materials"><NavIcon name="materials" size={14} color="currentColor" /> Material details</Link>
+        {canOpen('/admin/materials') && <Link className="adm-btn" to="/admin/materials"><NavIcon name="materials" size={14} color="currentColor" /> Material details</Link>}
+        {!isStation() && <>
         <button className="adm-btn" style={{ minHeight:44 }} onClick={()=>exportStock('csv')} disabled={!!exporting}><FileSpreadsheet size={14} aria-hidden="true" /> {exporting==='csv' ? 'Exporting…' : 'Export CSV'}</button>
         <button className="adm-btn" style={{ minHeight:44 }} onClick={()=>exportStock('pdf')} disabled={!!exporting}><FileText size={14} aria-hidden="true" /> {exporting==='pdf' ? 'Exporting…' : 'Export PDF'}</button>
-        {!isOwner() && <>
+        </>}
+        {isAdmin() && <>
         <button className="adm-btn" aria-pressed={counting} onClick={()=>{ if (counting) exitCount(); else { setCounting(true); setTab('stock'); setCountMsg(null); } }}>
           <NavIcon name="physicalCount" size={14} color="currentColor" /> {counting ? (entries.length ? `Discard ${entries.length} & exit` : 'Exit count mode') : 'Count mode'}
         </button>
@@ -270,7 +272,7 @@ export default function AdminInventory() {
 
       {reorderCount > 0 && !counting && (
         <Banner tone="warn" icon="warning"
-          action={isOwner() ? null : <button className="adm-btn primary" onClick={()=>nav('/admin/procurement')}>Create PO →</button>}>
+          action={isAdmin() ? <button className="adm-btn primary" onClick={()=>nav('/admin/procurement')}>Create PO</button> : null}>
           {reorderCount} material{reorderCount!==1?'s':''} at or below reorder point
         </Banner>
       )}
@@ -284,9 +286,9 @@ export default function AdminInventory() {
       )}
 
       {!counting && <PillTabs value={tab} onChange={setTab} tabs={[
-        { key:'stock', label:'VFRB Stock', count:materials.length },
+        { key:'stock', label:'VFRB stock', count:materials.length },
         ...(clientStock.ready ? [{ key:'client', label:'Client-supplied', count:clientStock.orders.length }] : []),
-        { key:'logs', label:'Transaction Log', count:logs.length },
+        ...(isStation() ? [] : [{ key:'logs', label:'Transaction log', count:logs.length }]),
       ]} />}
 
       <TabPanel k={tab}>
@@ -373,7 +375,7 @@ export default function AdminInventory() {
         </DataTable>
       )}
 
-      {tab==='logs' && (
+      {tab==='logs' && !isStation() && (
         <DataTable label="Transaction log" dense mobileCards loading={loading} rows={8} isEmpty={logs.length === 0}
           empty={<EmptyState title="No transactions yet" />}
           footer={logs.length > 30 ? <span>Latest 30 of {logs.length}</span> : null}>

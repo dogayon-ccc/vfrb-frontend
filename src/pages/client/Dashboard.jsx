@@ -6,9 +6,11 @@ import { motion } from 'framer-motion';
 import axios from 'axios';
 import { asList } from '../../utils/asList';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
-import { Card, Button, Stepper, Skeleton, EmptyState, AlertBanner } from '../../components/ui';
-import { savedDesignName } from '../../utils/designName';
+import { Button, Stepper, Skeleton, EmptyState, AlertBanner, PageHeader } from '../../components/ui';
+import { savedDesignName, garmentLabel } from '../../utils/designName';
 import { openDesign, reorderDesign, duplicateDesign } from '../../utils/designActions';
+import { setStudioLock } from '../../utils/studioLock';
+import { Palette } from 'lucide-react';
 import heroPhoto from '../../assets/brand/uniforms.jpg';
 import {
   StatusPill, OrderThumb, DesignThumb, LIFECYCLE, lifecycleIndex, nextStep,
@@ -39,16 +41,22 @@ function Confetti() {
   );
 }
 
-// Compact row for an order: thumbnail, name, meta line, status chip.
-function OrderRow({ order, meta }) {
+// Order ticket: thumbnail stub, perforation, then name, meta and status; the whole ticket opens the order.
+function OrderTicket({ order, meta, children }) {
   const nav = useNavigate();
   return (
-    <button type="button" className="dx-row" onClick={() => nav(`/orders/${order.order_id}`)}
-      aria-label={`Open order ${order.order_id}, ${orderTitle(order)}`}>
-      <OrderThumb order={order} size={56} />
-      <span className="dx-row-txt"><strong>{orderTitle(order)}</strong><small>{meta}</small></span>
-      <StatusPill status={order.status} />
-    </button>
+    <li className="dx-tk">
+      <span className="dx-tk-stub"><OrderThumb order={order} size={56} /></span>
+      <div className="dx-tk-body">
+        <button type="button" className="dx-tk-main" onClick={() => nav(`/orders/${order.order_id}`)}
+          aria-label={`Open order ${order.order_id}, ${orderTitle(order)}`}>
+          <span className="dx-row-txt"><strong>{orderTitle(order)}</strong><small>{meta}</small>
+            {order.status === 'pending' && order.created_at && <small>Waiting for VFRB since {shortDate(order.created_at)}</small>}</span>
+          <StatusPill status={order.status} />
+        </button>
+        {children}
+      </div>
+    </li>
   );
 }
 
@@ -66,6 +74,7 @@ export default function CustomerDashboard() {
   const [designs, setDesigns] = useState([]);
   const [copying, setCopying] = useState(null);
   const [designErr, setDesignErr] = useState('');
+  const startNew = () => { try { sessionStorage.removeItem('studio_config'); } catch { /* storage blocked */ } setStudioLock(null); nav('/design-studio'); };
   const duplicate = async (d) => {
     setCopying(d.id); setDesignErr('');
     try { openDesign(await duplicateDesign(d), nav); } catch { setDesignErr('Could not make a copy. Check your connection and try again.'); setCopying(null); }
@@ -99,7 +108,7 @@ export default function CustomerDashboard() {
     if (o.status === 'fulfilled' && o.value) { const l = asList(o.value.data); setOrders(l); cacheSet('orders_list', l, TTL.ORDERS); }
     else if (o.status === 'rejected' && !co) setError(true);
     if (d.status === 'fulfilled' && d.value.data?.draft?.studio_config?.garment) setDraft(d.value.data.draft);
-    if (g.status === 'fulfilled' && Array.isArray(g.value.data)) setDesigns(g.value.data.filter(x => x.is_archived && x.config?.garment).slice(0, 3));
+    if (g.status === 'fulfilled' && Array.isArray(g.value.data)) setDesigns(g.value.data.filter(x => x.is_archived && x.config?.garment).slice(0, 4));
     setLoading(false);
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -113,25 +122,24 @@ export default function CustomerDashboard() {
   const completed = orders.filter(o => o.status === 'completed').length;
   const pending = orders.filter(o => o.status === 'pending').length;
   // Same title as My Designs: the customer's design name, else the draft label, else the garment.
-  const draftTitle = draft ? savedDesignName(draft.studio_config) || draft.label || humanize(draft.studio_config.garment) : '';
+  const draftTitle = draft ? garmentLabel(savedDesignName(draft.studio_config) || draft.label || humanize(draft.studio_config.garment)) : '';
 
   const featured = active[0] ?? sorted[0] ?? null;
   const moreActive = active.slice(1, 3);
   const recent = sorted.filter(o => o !== featured && !moreActive.includes(o)).slice(0, 3);
   const next = nextStep(featured);
-  const body = draft?.studio_config?.colors?.body;
-  const tint = /^#[0-9a-f]{3,8}$/i.test(body ?? '') ? { '--dx-tint': `color-mix(in srgb, ${body} 22%, var(--cx-stage))` } : undefined;
+  const pcs = (o) => `Order #${o.order_id} · ${Number(o.quantity_ordered ?? 0)} pcs`;
 
   return (
     <div className="cx-page dx">
       {confetti && <Confetti />}
-      {confetti && <AlertBanner tone="success" title="Order placed!" style={{ marginBottom: 16 }}>VFRB staff will review and confirm it shortly.</AlertBanner>}
+      {confetti && <AlertBanner tone="success" title="Order placed!" style={{ marginBottom: 16 }}>The VFRB team will review and confirm it shortly.</AlertBanner>}
 
-      <motion.section initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="dx-hero" aria-labelledby="dash-h1">
+      <PageHeader title="Dashboard" subtitle={greeting(user.name)} />
+
+      <motion.section initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="dx-hero" aria-labelledby="dash-hero-t">
         <div className="dx-hero-txt">
-          {/* The greeting is the page title; the design name is the display line under it. */}
-          <h1 id="dash-h1" className="dx-eyebrow">{greeting(user.name)}</h1>
-          <h2 className="dx-title">{loading ? 'Your design studio' : draft ? draftTitle : 'Design your team’s uniform'}</h2>
+          <h2 id="dash-hero-t" className="dx-title">{loading ? 'Your design studio' : draft ? draftTitle : 'Design your team’s uniform'}</h2>
           <p className="dx-hero-sub">{draft
             ? `Draft, last edited ${reltime(draft.updated_at)}. Pick up where you left off, then order in bulk.`
             : 'Pick a garment, set the colours and add your logo. Quantity and sizes come after.'}</p>
@@ -141,85 +149,72 @@ export default function CustomerDashboard() {
           </div>
           <p className="dx-proof">Family-owned since 2000, Bayanan, Muntinlupa City</p>
         </div>
-        <div className="dx-stage" style={tint}>
+        <span className="dx-perf" aria-hidden="true" />
+        <div className="dx-stage">
           {loading ? <Skeleton variant="block" height="100%" label="Loading your design" className="dx-stage-sk" />
             : draft ? <DesignThumb src={draft.preview_dataurl} garment={draft.studio_config.garment} colors={draft.studio_config.colors} name={draftTitle} scale={1.8} />
             : <img src={heroPhoto} alt="" className="dx-stage-photo" width="1600" height="720" fetchpriority="high" />}
         </div>
       </motion.section>
 
-      {!loading && total > 0 && (
-        <p className="dx-summary">
-          <Link to="/orders">{total} order{total === 1 ? '' : 's'}</Link>: {completed} completed, {inProd} in production, {confirmed} confirmed, {pending} pending
-        </p>
-      )}
-
-      <div className="dx-status">
-        <Card title={loading || openStatus(featured) ? 'Order status' : featured ? 'Latest order' : 'How ordering works'}
-          action={<Link to="/orders" className="cx-link">All orders</Link>}>
-          {loading ? <Skeleton count={3} height={16} label="Loading orders" />
-            : error ? (
-              <EmptyState compact tone="error" title="Couldn’t load your orders"
-                action={<Button onClick={() => { setLoading(true); load(true); }}>Try again</Button>}>Check your connection and try again.</EmptyState>
-            ) : (
-              <div className="dx-strip">
-                {featured && <OrderRow order={featured} meta={`Order #${featured.order_id} · ${Number(featured.quantity_ordered ?? 0)} pcs${featured.target_delivery_date ? ` · Due ${shortDate(featured.target_delivery_date)}` : ''}`} />}
-                {featured?.status !== 'cancelled' && (
-                  <Stepper steps={LIFECYCLE} label={featured ? `Order ${featured.order_id} progress` : 'Order steps'}
-                    current={featured ? lifecycleIndex(featured.status) : 0} />
-                )}
-              </div>
-            )}
-        </Card>
-        <Card tone="subtle" className="dx-next" title="What happens next">
-          {loading ? <Skeleton count={2} label="Loading" /> : (
-            <>
-              <p className="dx-next-t">{next.title}</p>
-              <p className="dx-next-b">{next.body}</p>
-              {featured
-                ? <Button onClick={() => nav(`/orders/${featured.order_id}`)}>Open order #{featured.order_id}</Button>
-                : <Button variant="primary" onClick={openStudio}>Open the Studio</Button>}
-            </>
+      <section className="dx-sec" aria-labelledby="ord-h">
+        <div className="cx-sec-h"><h2 id="ord-h">{loading || openStatus(featured) ? 'Your orders' : featured ? 'Latest order' : 'How ordering works'}</h2>
+          {total > 0 && <Link to="/orders" className="cx-link">All orders</Link>}</div>
+        {!loading && total > 0 && (
+          <nav className="dx-summary" aria-label="Orders by status">
+            <Link to="/orders" className="dx-chip">{total} order{total === 1 ? '' : 's'}</Link>
+            {[['pending', pending, 'pending'], ['confirmed', confirmed, 'confirmed'], ['prod', inProd, 'in production'], ['done', completed, 'completed']]
+              .filter(([, n]) => n > 0).map(([id, n, label]) => <Link key={id} to={`/orders?status=${id}`} className="dx-chip">{n} {label}</Link>)}
+          </nav>
+        )}
+        {loading ? <Skeleton variant="block" count={2} height={88} gap={12} label="Loading orders" />
+          : error ? (
+            <EmptyState compact tone="error" title="Couldn’t load your orders"
+              action={<Button onClick={() => { setLoading(true); load(true); }}>Try again</Button>}>Check your connection and try again.</EmptyState>
+          ) : featured ? (
+            <ol className="dx-thread">
+              <OrderTicket order={featured} meta={`${pcs(featured)}${featured.target_delivery_date ? ` · Due ${shortDate(featured.target_delivery_date)}` : ''}`}>
+                <div className="dx-tk-more">
+                  {featured.status !== 'cancelled' && <Stepper steps={LIFECYCLE} label={`Order ${featured.order_id} progress`} current={lifecycleIndex(featured.status)} />}
+                  <p className="dx-next-b"><b>{next.title}.</b> {next.body}</p>
+                </div>
+              </OrderTicket>
+              {moreActive.map(o => <OrderTicket key={o.order_id} order={o} meta={pcs(o)} />)}
+              {recent.map(o => <OrderTicket key={o.order_id} order={o} meta={`${pcs(o)} · ${fmtDate(o.created_at)}`} />)}
+            </ol>
+          ) : (
+            <div className="dx-howto">
+              <Stepper steps={LIFECYCLE} label="Order steps" current={0} />
+              <p className="dx-next-b"><b>{next.title}.</b> {next.body}</p>
+            </div>
           )}
-        </Card>
-      </div>
-
-      {!loading && moreActive.length > 0 && (
-        <Card title={`Also in progress (${moreActive.length})`} padding="none" className="dx-sec">
-          {moreActive.map(o => <OrderRow key={o.order_id} order={o} meta={`Order #${o.order_id} · ${Number(o.quantity_ordered ?? 0)} pcs`} />)}
-        </Card>
-      )}
+      </section>
 
       {!loading && designs.length > 0 && (
         <section className="dx-sec" aria-labelledby="rd-h">
           <div className="cx-sec-h"><h2 id="rd-h">Recent designs</h2><Link to="/my-designs" className="cx-link">View all</Link></div>
           <div className="dx-rd">
             {designs.map(d => {
-              const name = savedDesignName(d.config) || d.label || humanize(d.garment);
+              const name = garmentLabel(savedDesignName(d.config) || d.label || humanize(d.garment));
               return (
                 <div key={d.id} className="dx-rd-item">
                   <button type="button" className="dx-rd-open" aria-label={`${d.locked ? 'View' : 'Open'} ${name} in the Studio`} onClick={() => openDesign(d, nav)}>
                     <span className="dx-rd-thumb"><DesignThumb src={d.is_copy ? null : d.photo_path} garment={d.garment} colors={d.config?.colors} name={name} scale={1.5} /></span>
                     <strong>{name}</strong><em>{d.locked ? 'Ordered · view only' : d.is_copy ? 'Copy · colors only' : 'Saved design'}</em>
                   </button>
-                  {d.locked && (
-                    <div className="dx-rd-acts">
-                      <Button variant="primary" fullWidth disabled={!!copying} onClick={() => duplicate(d)}>{copying === d.id ? 'Copying…' : 'Duplicate to edit'}</Button>
-                      <Button fullWidth onClick={() => reorderDesign(d, nav)}>Reorder</Button>
-                    </div>
-                  )}
+                  <div className="dx-rd-acts">
+                    <Button variant="primary" fullWidth onClick={() => reorderDesign(d, nav)}>Reorder</Button>
+                    <Button fullWidth disabled={!!copying} onClick={() => duplicate(d)}>{copying === d.id ? 'Copying…' : 'Duplicate to edit'}</Button>
+                  </div>
                 </div>
               );
             })}
+            <button type="button" className="cx-newtile" onClick={startNew}>
+              <Palette size={22} aria-hidden="true" /> <strong>Start a new design</strong><span>Pick a garment and make it yours</span>
+            </button>
           </div>
           {designErr && <p role="alert" className="dx-err">{designErr}</p>}
         </section>
-      )}
-
-      {!loading && !error && recent.length > 0 && (
-        <Card title="Earlier orders" padding="none" className="dx-sec" action={<Link to="/orders" className="cx-link">View all</Link>}>
-          {recent.map(o => <OrderRow key={o.order_id} order={o} meta={`Order #${o.order_id} · ${o.quantity_ordered ?? 0} pcs · ${fmtDate(o.created_at)}`} />)}
-        </Card>
       )}
     </div>
   );

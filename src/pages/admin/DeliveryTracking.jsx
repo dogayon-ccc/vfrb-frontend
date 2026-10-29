@@ -5,15 +5,16 @@ import { NavIcon } from '../../components/ui';
 import BottomSheet from '../../components/ui/BottomSheet';
 import { PageHeader, StatGrid, PillTabs, Panel, StatusPill, SearchBox, ErrorBlock, SkeletonRows, FilterSheet, FilterButton, useIsMobile, OrderLink } from '../../components/admin/AdminUI';
 
-// Status is automatic: ready once packing is done, partial once some pieces are delivered. The only manual step is Mark delivered.
+// Prepared once packing is done; staff move it to In transit, then Delivered. Full payment delivers an order already in transit.
 // `tone` reuses an existing StatusPill colour.
 const DEL_CFG = {
-  ready:     { l:'Ready for delivery',  c:'var(--warning)', tone:'preparing'  },
+  ready:     { l:'Prepared',            c:'var(--warning)', tone:'preparing'  },
+  in_transit:{ l:'In transit',          c:'var(--teal)',    tone:'in_transit' },
   partial:   { l:'Partially delivered', c:'var(--purple)',  tone:'in_transit' },
   delivered: { l:'Delivered',           c:'var(--success)', tone:'delivered'  },
   returned:  { l:'Returned',            c:'var(--danger)',  tone:'returned'   },
 };
-const autoStatus = (d) => (['delivered', 'returned'].includes(d.delivery_status) ? d.delivery_status : Number(d.delivered_qty) > 0 ? 'partial' : 'ready');
+const autoStatus = (d) => (['delivered', 'returned'].includes(d.delivery_status) ? d.delivery_status : Number(d.delivered_qty) > 0 ? 'partial' : d.delivery_status === 'in_transit' ? 'in_transit' : 'ready');
 const AutoPill = ({ d }) => { const k = autoStatus(d); return <StatusPill status={DEL_CFG[k].tone} label={k === 'partial' ? `${DEL_CFG[k].l} · ${d.delivered_qty}/${d.quantity_ordered ?? '—'}` : DEL_CFG[k].l} />; };
 
 const METHODS = ['cash','gcash','ewallet','bank_transfer'];
@@ -25,6 +26,13 @@ const lacksAddress = (d) => d.delivery_method !== 'pickup' && (!d.delivery_addre
 
 function MarkDeliveredModal({ delivery, onClose, onDone, isMobile }) {
   const needsAddress = lacksAddress(delivery);
+  // A delivery still being prepared can ship first; pickups go straight to Delivered.
+  // A delivered order can only be returned; a returned one is checked and sent again.
+  const isReturn = delivery.delivery_status === 'delivered';
+  const canTransit = ['preparing', 'returned'].includes(delivery.delivery_status) && delivery.delivery_method !== 'pickup';
+  const [step, setStep] = useState(isReturn ? 'returned' : canTransit ? 'in_transit' : 'delivered');
+  const [courier, setCourier] = useState(delivery.courier_name ?? '');
+  const [trackingNo, setTrackingNo] = useState(delivery.tracking_number ?? '');
   const [address, setAddress] = useState(needsAddress ? (delivery.customer_address ?? '') : '');
   const [notes, setNotes] = useState('');
   const [busy,  setBusy]  = useState(false);
@@ -49,12 +57,24 @@ function MarkDeliveredModal({ delivery, onClose, onDone, isMobile }) {
 
   const [recordPayment, setRecordPayment] = useState(true);
   const [amountPaid,    setAmountPaid]    = useState('');
-  const [method,        setMethod]        = useState('cash');
-  const [terms,         setTerms]         = useState('down_payment');
+  const [method,        setMethod]        = useState('bank_transfer');
+  const [terms,         setTerms]         = useState('full_payment');
   const [orNumber,      setOrNumber]      = useState('');
 
   const submit = async () => {
     setBusy(true); setErr(''); setWarn('');
+    if (step === 'returned') {
+      try { await axios.patch(`/api/admin/delivery/${delivery.tracking_id}/status`, { delivery_status: 'returned', notes: notes.trim() }); onDone(); }
+      catch (e) { setErr(e.response?.data?.message ?? 'Failed to record the return.'); setBusy(false); }
+      return;
+    }
+    if (step === 'in_transit') {
+      try {
+        await axios.patch(`/api/admin/delivery/${delivery.tracking_id}/status`, { delivery_status: 'in_transit', courier_name: courier.trim() || null, tracking_number: trackingNo.trim() || null, notes: notes || null, ...(needsAddress ? { delivery_address: address.trim() } : {}) });
+        onDone();
+      } catch (e) { setErr(e.response?.data?.message ?? 'Failed to mark in transit.'); setBusy(false); }
+      return;
+    }
     try {
       await axios.patch(`/api/admin/delivery/${delivery.tracking_id}/delivered`, { notes, ...(ready !== false && qty ? { delivered_qty: qtyNum } : {}), ...(needsAddress ? { delivery_address: address.trim() } : {}) });
     } catch (e) {
@@ -78,32 +98,49 @@ function MarkDeliveredModal({ delivery, onClose, onDone, isMobile }) {
   };
 
   return (
-    <BottomSheet title={`Mark order #${delivery.order_id} delivered`} onClose={marked ? onDone : onClose} isMobile={isMobile} maxWidth={480}>
+    <BottomSheet title={isReturn ? `Record a return · order #${delivery.order_id}` : canTransit ? `Update delivery · order #${delivery.order_id}` : `Mark order #${delivery.order_id} delivered`} onClose={marked ? onDone : onClose} isMobile={isMobile} maxWidth={480}>
       <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-        <label><span className="adm-field">Pieces delivered now</span>
+        {canTransit && (
+          <div className="adm-chip-row" role="radiogroup" aria-label="New delivery status">
+            {[['in_transit', 'In transit'], ['delivered', 'Delivered']].map(([k, l]) => (
+              <button key={k} type="button" role="radio" aria-checked={step === k} className={`adm-fchip${step === k ? ' on' : ''}`} onClick={() => setStep(k)} disabled={marked}>{l}</button>
+            ))}
+          </div>
+        )}
+        {step === 'in_transit' && (
+          <div className="adm-form-grid">
+            <label><span className="adm-field">Courier / driver</span>
+              <input className="adm-input" maxLength={100} value={courier} onChange={e=>setCourier(e.target.value)} placeholder="Optional" />
+            </label>
+            <label><span className="adm-field">Tracking number</span>
+              <input className="adm-input" maxLength={100} value={trackingNo} onChange={e=>setTrackingNo(e.target.value)} placeholder="Optional" />
+            </label>
+          </div>
+        )}
+        {step === 'delivered' && <label><span className="adm-field">Pieces delivered now</span>
           <input className="adm-input" type="number" inputMode="numeric" min={1} max={ready || undefined} value={qty} onChange={e=>setQty(e.target.value)} disabled={marked || ready === null || ready === false} aria-describedby="dlv-qty-hint" />
           <span id="dlv-qty-hint" style={{ display:'block', fontSize:12, marginTop:4, color: qtyBad ? 'var(--danger-text)' : 'var(--text-subtle)' }}>
             {ready === null ? 'Checking packed pieces…' : ready === false ? 'Packed count unavailable — the full remaining quantity will be delivered.'
               : `${ready} packed and ready · ${already} of ${ordered} delivered so far${!qtyBad && isPartial ? ' · this is a partial delivery' : ''}`}
           </span>
-        </label>
-        {needsAddress && (
+        </label>}
+        {needsAddress && !isReturn && (
           <label><span className="adm-field">Delivery address (required)</span>
             <textarea className="adm-input" rows={2} value={address} onChange={e=>setAddress(e.target.value)} disabled={marked} required
               placeholder="Street, barangay, city" />
           </label>
         )}
-        <label><span className="adm-field">Delivery notes</span>
-          <textarea className="adm-input" rows={3} value={notes} onChange={e=>setNotes(e.target.value)} disabled={marked}
-            placeholder="e.g. Received by the principal, complete, no damage…" />
+        <label><span className="adm-field">{isReturn ? 'Reason for the return (required)' : 'Delivery notes'}</span>
+          <textarea className="adm-input" rows={3} value={notes} onChange={e=>setNotes(e.target.value)} disabled={marked} required={isReturn}
+            placeholder={isReturn ? 'e.g. Wrong collar colour on 20 pieces' : 'e.g. Received by the principal, complete, no damage…'} />
         </label>
 
-        <label className="adm-mrow" style={{ cursor:'pointer', fontSize:13, fontWeight:700, minHeight:44 }}>
+        {step === 'delivered' && <label className="adm-mrow" style={{ cursor:'pointer', fontSize:13, fontWeight:700, minHeight:44 }}>
           <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}><NavIcon name="salesPay" size={14} color="currentColor" /> Record a payment with this delivery</span>
           <input type="checkbox" checked={recordPayment} onChange={e=>setRecordPayment(e.target.checked)} disabled={marked} style={{ width:20, height:20 }} />
-        </label>
+        </label>}
 
-        {recordPayment && !marked && (
+        {step === 'delivered' && recordPayment && !marked && (
           <div style={{ display:'flex', flexDirection:'column', gap:12, padding:14, borderRadius:12, background:'var(--bg)', border:'1px solid var(--border)' }}>
             <label><span className="adm-field">Amount paid (₱)</span>
               <input className="adm-input" type="number" inputMode="decimal" min={0} step={0.01} value={amountPaid} onChange={e=>setAmountPaid(e.target.value)} placeholder="Leave blank to skip for now" />
@@ -135,7 +172,7 @@ function MarkDeliveredModal({ delivery, onClose, onDone, isMobile }) {
           {marked ? <button className="adm-btn primary" onClick={onDone}>Close</button> : (
             <>
               <button className="adm-btn" onClick={onClose}>Cancel</button>
-              <button className="adm-btn success" onClick={submit} disabled={busy || ready === null || qtyBad || (needsAddress && !address.trim())}><NavIcon name="success" size={14} color="currentColor" /> {busy ? 'Saving…' : isPartial && ready !== false ? `Deliver ${qtyNum} piece${qtyNum === 1 ? '' : 's'}` : 'Confirm delivery'}</button>
+              <button className="adm-btn success" onClick={submit} disabled={busy || (isReturn && !notes.trim()) || (step === 'delivered' && (ready === null || qtyBad)) || (needsAddress && !address.trim())}><NavIcon name="success" size={14} color="currentColor" /> {busy ? 'Saving…' : isReturn ? 'Record return' : step === 'in_transit' ? 'Mark in transit' : isPartial && ready !== false ? `Deliver ${qtyNum} piece${qtyNum === 1 ? '' : 's'}` : 'Confirm delivery'}</button>
             </>
           )}
         </div>
@@ -149,12 +186,10 @@ const schedOf = (d) => d.estimated_delivery_date ?? d.expected_delivery_date;
 
 function DeliveryActions({ d, onModal, stop }) {
   const click = (fn) => (e) => { if (stop) e.stopPropagation(); fn(); };
-  if (['delivered', 'returned'].includes(d.delivery_status)) return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--success-text)', fontWeight: 700 }}><NavIcon name="success" size={13} color="currentColor" /> Done</span>;
-  return (
-    <>
-      <button className="adm-btn success" onClick={click(() => onModal({ type: 'delivered', delivery: d }))}><NavIcon name="success" size={13} color="currentColor" /> Mark delivered</button>
-    </>
-  );
+  const open = click(() => onModal({ type: 'delivered', delivery: d }));
+  if (d.delivery_status === 'delivered') return <button className="adm-btn" onClick={open}><NavIcon name="warning" size={13} color="currentColor" /> Record return</button>;
+  const update = ['preparing', 'returned'].includes(d.delivery_status);
+  return <button className="adm-btn success" onClick={open}><NavIcon name={update ? 'delivery' : 'success'} size={13} color="currentColor" /> {update ? 'Update delivery' : 'Mark delivered'}</button>;
 }
 
 export default function AdminDeliveryTracking() {
@@ -190,7 +225,7 @@ export default function AdminDeliveryTracking() {
   }, [deliveries, filter, search]);
 
   const tabs = [{ key: 'all', label: 'All', count: deliveries.length }, ...Object.entries(DEL_CFG).map(([k, c]) => ({ key: k, label: c.l, count: counts[k] ?? 0 }))];
-  const active = (counts.ready ?? 0) + (counts.partial ?? 0);
+  const active = (counts.ready ?? 0) + (counts.in_transit ?? 0) + (counts.partial ?? 0);
   const clearFilters = () => { setSearch(''); setFilter('all'); };
 
   return (
@@ -262,7 +297,7 @@ export default function AdminDeliveryTracking() {
               <div style={{ fontSize: 12, color: 'var(--text-subtle)' }}>Tracking #{d.tracking_id} · scheduled {fmtDate(schedOf(d))}</div>
               {(d.delivery_address ?? d.customer_address) && <div style={{ fontSize: 12, color: 'var(--text-subtle)', marginTop: 4, display: 'flex', gap: 5 }}><NavIcon name="location" size={13} color="currentColor" style={{ flexShrink: 0, marginTop: 2 }} />{d.delivery_address ?? d.customer_address}</div>}
               {d.actual_delivery_date && <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 4 }}>Delivered {fmtDate(d.actual_delivery_date)}</div>}
-              {!['delivered', 'returned'].includes(ds) && <div className="adm-mfoot"><DeliveryActions d={d} onModal={setModal} /></div>}
+              <div className="adm-mfoot"><DeliveryActions d={d} onModal={setModal} /></div>
             </div>
           );
         })}

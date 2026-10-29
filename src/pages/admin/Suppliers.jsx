@@ -34,15 +34,15 @@ function SupplierModal({ item, onClose, onDone, isMobile }) {
   return (
     <BottomSheet title={isEdit ? 'Edit Supplier' : 'Add Supplier'} onClose={onClose} isMobile={isMobile} maxWidth={560}>
       <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-        {F({ k:'supplier_name', label:'Supplier Name *', placeholder:'e.g. OTG Company' })}
+        {F({ k:'supplier_name', label:'Supplier name *', placeholder:'e.g. OTG Company' })}
         <div className="adm-form-grid">
-          {F({ k:'contact_person', label:'Contact Person', placeholder:'Full name' })}
-          {F({ k:'contact_number', label:'Contact Number', placeholder:'09XXXXXXXXX', inputMode:'tel' })}
+          {F({ k:'contact_person', label:'Contact person', placeholder:'Full name' })}
+          {F({ k:'contact_number', label:'Contact number', placeholder:'09XXXXXXXXX', inputMode:'tel' })}
         </div>
         <div className="adm-form-grid">
           {F({ k:'email', label:'Email', type:'email', placeholder:'supplier@email.com' })}
           <div>
-            <label className="adm-field">Payment Terms</label>
+            <label className="adm-field">Payment terms</label>
             <select className="adm-input" value={form.payment_terms_with_supplier ?? 'Net 30'} onChange={e => set('payment_terms_with_supplier', e.target.value)}>
               {['Net 7','Net 14','Net 30','Net 60','COD','Wednesday close / Friday transfer','Upon delivery'].map(t => <option key={t} value={t}>{t}</option>)}
             </select>
@@ -50,7 +50,7 @@ function SupplierModal({ item, onClose, onDone, isMobile }) {
         </div>
         {F({ k:'address', label:'Address', placeholder:'City, Province' })}
         <div>
-          <label className="adm-field">Materials Supplied</label>
+          <label className="adm-field">Materials supplied</label>
           <textarea className="adm-input" rows={2} value={form.materials_supplied ?? ''} onChange={e => set('materials_supplied', e.target.value)} placeholder="e.g. Cotton fabric, elastic, thread…" />
         </div>
         {err && <ErrorBlock msg={err} />}

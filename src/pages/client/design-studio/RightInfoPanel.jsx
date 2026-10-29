@@ -33,7 +33,8 @@ function kindOf(o) {
 const ALIGN = [['left', 'Left', 'Align left'], ['hcenter', 'Center', 'Center horizontally'], ['right', 'Right', 'Align right'],
   ['top', 'Top', 'Align top'], ['vcenter', 'Middle', 'Center vertically'], ['bottom', 'Bottom', 'Align bottom']];
 
-export function SelectionInspector({ selObj, updateSelected, alignSelected, toggleSelectedLock, pushHistory, arrangeLayer, garmentRect = null, setPocketColor = null, mirrorSelected = null }) {
+export function SelectionInspector({ selObj, updateSelected, alignSelected, toggleSelectedLock, pushHistory, arrangeLayer, garmentRect = null, setPocketColor = null, mirrorSelected = null,
+  zones = [], presetPos = null }) {
   // Metrics are % of the garment (origin = its top-left), the same system as the rulers; a multi-selection shows its group bounds.
   const active = selObj.canvas?.getActiveObject?.() ?? selObj, multi = active.type === 'activeselection';
   const m = metricsPct(active, garmentRect), g = garmentRect;
@@ -102,6 +103,18 @@ export function SelectionInspector({ selObj, updateSelected, alignSelected, togg
           </div>
         )}
         {!multi && range(`Rotation ${angle}°`, angle, 0, 360, v => live({ angle: v }), locked)}
+        {!multi && selObj.__logo && !selObj.__artwork && presetPos && zones.length > 0 && (
+          <>
+            <p className="ds-group-label" style={{ marginTop: 12 }}>Move to zone</p>
+            <div className="ds-chips" role="group" aria-label="Move logo to a zone">
+              {/* Same anchor addLogo uses for a preset, so a moved logo lands where a fresh one would. */}
+              {zones.map(z => (
+                <button key={z.id} type="button" className="ds-chip" disabled={locked}
+                  onClick={() => { const p = presetPos(z.id); if (p) updateSelected({ originX: 'left', originY: 'top', left: p.x, top: p.y }); }}>{z.label}</button>
+              ))}
+            </div>
+          </>
+        )}
         {alignSelected && !multi && <p className="ds-group-label" style={{ marginTop: 12 }}>Align on garment</p>}
         {alignSelected && !multi && (
           <div className="ds-ins-align" role="group" aria-label="Align to garment">

@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import axios from 'axios';
 import { RecCard, AcceptModal, SelfPickModal, ConfettiBurst, AI_OPTIONAL_LINE } from './AIMaterials';
 import { NavIcon } from '../../components/ui/icons';
+import { garmentLabel } from '../../utils/designName';
 
 const T = 'var(--teal)';
 const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif`;
@@ -109,13 +110,13 @@ export default function MaterialsReveal({ order, onDone }) {
           <div className="mr-badge"><NavIcon name="ai" size={30} color="#fff"/></div>
           <h1 className="mr-title">Order #{order.order_id} submitted</h1>
           <p className="mr-sub">
-            Review the raw materials our AI suggests for your {order.garment_type || 'order'}, or pick your own from VFRB's catalog.
+            Review the raw materials our AI suggests for your {garmentLabel(order.garment_type) || 'order'}, or pick your own from VFRB's catalog.
           </p>
         </motion.div>
 
         <div className="mr-note">
           <NavIcon name="info" size={16} color="var(--teal)"/>
-          <span>AI suggests material types only. VFRB staff decide exact quantities and pricing.</span>
+          <span>AI suggests material types only. The VFRB team decides exact quantities and pricing.</span>
         </div>
 
         {generating && (
@@ -133,7 +134,7 @@ export default function MaterialsReveal({ order, onDone }) {
           <>
           <p className="mr-opt">{AI_OPTIONAL_LINE}</p>
           <div className="mr-grid">
-            {recs.map((r, i) => <RecCard key={i} rec={r} index={i}/>)}
+            {recs.map((r, i) => <RecCard key={i} rec={r}/>)}
           </div>
           </>
         )}
@@ -144,7 +145,7 @@ export default function MaterialsReveal({ order, onDone }) {
           <div className="mr-bar-in">
             {recs.length > 0 && (
               <button onClick={() => setShowAccept(true)} className="mr-btn mr-ok">
-                <NavIcon name="success" size={16} color="#fff"/> Accept &amp; notify staff
+                <NavIcon name="success" size={16} color="#fff"/> Accept &amp; notify the VFRB team
               </button>
             )}
             <button onClick={() => setShowPicker(true)} className="mr-btn mr-alt">

@@ -32,13 +32,17 @@ export function StatGrid({ children, className = '', style }) {
   return <div className={`ui-stat-grid ${className}`.trim()} style={style}>{children}</div>;
 }
 
+// Nothing to count yet: null, blank, a dash, or a figure that reads as zero (0, ₱0.00, 0%).
+const isEmptyValue = (v) => v == null || v === '' || v === '—' || (/\d/.test(String(v)) && Number(String(v).replace(/[₱,%\s]/g, '')) === 0);
+
 export default function StatTile({
   label, value, sub, icon, tone = 'default', chip, chipTone, to, onClick, loading = false,
   countUp = false, className = '', style, valueStyle,
 }) {
   const shown = useCountUp(value, countUp && !loading);
   const Icon = typeof icon === 'string' ? null : icon;
-  const cls = ['ui-stat', tone !== 'default' && tone, className].filter(Boolean).join(' ');
+  const empty = !loading && isEmptyValue(value);
+  const cls = ['ui-stat', tone !== 'default' && tone, empty && 'is-empty', className].filter(Boolean).join(' ');
   const body = (
     <>
       <div className="ui-stat-top">
@@ -52,7 +56,7 @@ export default function StatTile({
       </div>
       {loading
         ? <div className="sk" style={{ height: 28, width: '45%', marginTop: 6 }} aria-hidden="true" />
-        : <div className="ui-stat-val" style={valueStyle}>{shown}</div>}
+        : <div className="ui-stat-val" style={empty ? undefined : valueStyle}>{shown}</div>}
       {sub && <div className="ui-stat-sub">{sub}</div>}
     </>
   );

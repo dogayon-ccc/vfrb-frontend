@@ -20,3 +20,5 @@ export { default as AttentionStrip } from './AttentionStrip.jsx';
 export { default as Meter } from './Meter.jsx';
 export { default as Drawer } from './Drawer.jsx';
 export { default as ActionMenu } from './ActionMenu.jsx';
+export { default as StitchDivider } from './StitchDivider.jsx';
+export { default as SwatchTile } from './SwatchTile.jsx';

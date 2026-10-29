@@ -75,9 +75,9 @@ function ShirtMesh({ colors, sleeveType, collarType, referenceTexture }) {
   const groupRef = useRef();
 
   const body   = colors?.body   ?? DEFAULT_GARMENT_COLOR;
-  const collar = colors?.collar ?? '#02C39A';
+  const collar = colors?.collar ?? colors?.body ?? '#02C39A';
   const sleeve = colors?.sleeve ?? colors?.body ?? DEFAULT_GARMENT_COLOR;
-  const pocket = colors?.pocket ?? colors?.collar ?? '#016070';
+  const pocket = colors?.pocket ?? colors?.collar ?? colors?.body ?? '#016070';
 
   const matBody   = useMemo(() => mat(body, 0.72, 0.03, referenceTexture), [body, referenceTexture]);
   const matCollar = useMemo(() => mat(collar),  [collar]);
@@ -241,7 +241,7 @@ function PantsMesh({ colors, referenceTexture }) {
 // ── SHORTS MESH ───────────────────────────────────────────────────────────────
 function ShortsMesh({ colors, referenceTexture }) {
   const body   = colors?.body   ?? DEFAULT_GARMENT_COLOR;
-  const collar = colors?.collar ?? '#02C39A';
+  const collar = colors?.collar ?? colors?.body ?? '#02C39A';
 
   const matBody = useMemo(() => mat(body, 0.72, 0.03, referenceTexture), [body, referenceTexture]);
   const matBand = useMemo(() => mat(collar, 0.6), [collar]);
@@ -277,7 +277,7 @@ function ShortsMesh({ colors, referenceTexture }) {
 // the trapezoid silhouette used by the 2D GarmentSVG/Fabric.js skirt asset.
 function SkirtMesh({ colors, referenceTexture }) {
   const body  = colors?.body   ?? DEFAULT_GARMENT_COLOR;
-  const band  = colors?.collar ?? '#02C39A';
+  const band  = colors?.collar ?? colors?.body ?? '#02C39A';
 
   const matBody = useMemo(() => mat(body, 0.72, 0.03, referenceTexture), [body, referenceTexture]);
   const matBand = useMemo(() => mat(band, 0.6),        [band]);

@@ -12,7 +12,7 @@ import {
   useState, useEffect, useRef, useCallback, useMemo,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import axios from 'axios';
 import { NavIcon } from '../../components/ui/icons';
 import { ConfirmDialog } from '../../components/ui';
@@ -31,7 +31,7 @@ import { isEditableSelection } from './design-studio/RightInfoPanel';
 import { useLogoUpload } from './design-studio/useLogoUpload';
 import InspoGallery from './design-studio/InspoGallery';
 import ShowcaseGallery from './design-studio/ShowcaseGallery';
-import { T2, INIT_CFG, FONTS, PATTERNS, zonesFor } from './design-studio/dsShared';
+import { T2, INIT_CFG, FONTS, PATTERNS, zonesFor, REF_PHOTO_TOOLS } from './design-studio/dsShared';
 import { templateFacts, checkEdit, applyStateEdits } from './design-studio/designEdits';
 import { describePatterns } from './design-studio/wovenPatterns';
 import { deserializeDesign, serializeDesign, draftLabel } from './design-studio/designSerialization';
@@ -48,8 +48,8 @@ import { describeDetails } from './design-studio/garmentDetails';
 import { describePockets } from './design-studio/pocketTools';
 import { describeCustom, isCustom, isParametric, CUSTOM_TOP } from './design-studio/customGarment';
 import { readTrace, writeTrace, normalizeTrace } from './design-studio/traceGuide';
-import { DEFAULT_PIECE, otherRole, normalizeSet, withSet, mirrorStyle, mirrorOverlay } from './design-studio/uniformSet';
-import PieceSelector from './design-studio/PieceSelector';
+import { DEFAULT_PIECE, otherRole, normalizeSet, withSet, mirrorStyle, mirrorOverlay, orderQueue } from './design-studio/uniformSet';
+import PiecesRail, { PieceActions } from './design-studio/PiecesRail';
 
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────
@@ -64,8 +64,6 @@ export default function DesignStudio() {
   const [zoom,       setZoom]       = useState(1);
   const [tool,       setTool]       = useState('type');
   const [assetsTab,  setAssetsTab]  = useState('logo');
-  const [sheetOpen,  setSheetOpen]  = useState(false);
-  const [sheetFull,  setSheetFull]  = useState(false); // phone sheet: peek (closed) / half (open) / full
   const [viewMode,   setViewMode]   = useState('2d');
   const [snapshot,   setSnapshot]   = useState(null);
   const [overlays,   setOverlays]   = useState(null);
@@ -93,16 +91,6 @@ export default function DesignStudio() {
   const [activeZone, setActiveZone] = useState('body');
   const [detailFocus, setDetailFocus] = useState(null); // the detail last tapped on the canvas, highlighted in the Details panel
 
-  // Mirrors the phone/tablet (bottom sheet) breakpoint in DesignStudioStyles.jsx (native matchMedia, no new dependency).
-  const [isNarrow, setIsNarrow] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches
-  );
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 1023px)');
-    const onChange = (e) => setIsNarrow(e.matches);
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
-  }, []);
   const [aiPulse,    setAiPulse]    = useState(false);     // teal pulse overlay on AI gen
   const [saved,      setSaved]      = useState(false);
   const [showInspo,  setShowInspo]  = useState(false); // inspiration gallery overlay
@@ -130,10 +118,16 @@ export default function DesignStudio() {
   const [draftSaved, setDraftSaved] = useState(false); // "Draft saved to cloud" feedback
   // Transient success toast driven by the REAL save flags (local write first, then cloud draft).
   const [toast, setToast] = useState(null);
+  const reduceMotion = useReducedMotion();
   const [toastErr, setToastErr] = useState(false);
+  // Every toast clears after 3 s; a newer toast restarts the timer.
+  useEffect(() => {
+    if (!toast) return undefined;
+    const t = setTimeout(() => { setToast(null); setToastErr(false); }, 3000);
+    return () => clearTimeout(t);
+  }, [toast]);
   const flashError = useCallback((msg) => {
     setToastErr(true); setToast(msg);
-    setTimeout(() => { setToast(null); setToastErr(false); }, 4000);
   }, []);
   const savedPrev = useRef({ saved: false, draftSaved: false });
   useEffect(() => {
@@ -144,8 +138,7 @@ export default function DesignStudio() {
     savedPrev.current = { saved, draftSaved };
     if (!msg) return undefined;
     setToast(msg);
-    const t = setTimeout(() => setToast(null), 2400);
-    return () => clearTimeout(t);
+    return undefined;
   }, [saved, draftSaved]);
   const [saving, setSaving] = useState(false);
   const [saveErr, setSaveErr] = useState(false);
@@ -164,9 +157,9 @@ export default function DesignStudio() {
 
   // BUG 2 FIX: pass canvasEl (ref object), not canvasEl.current (null at render)
   const { onAdded, addLogo, addText, addShape, addPocket, setPocketColor, mirrorSelected, updateSelected, arrangeLayer, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
-          pushHistory, undo, redo, canUndo, canRedo, editTick, initFailed,
+          pushHistory, markHistory, settleHistory, undo, redo, canUndo, canRedo, editTick, initFailed,
           layers, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
-          setDrawMode, setBrushStyle, setSnapOptions, garmentRect, clearSelection, setOverlaysFrozen, presetPos, textItems, editText } =
+          setDrawMode, setBrushStyle, setSnapOptions, garmentRect, clearSelection, setOverlaysFrozen, presetPos, textItems, editText, showZoneOutline } =
     useGarmentCanvas(
       canvasEl,
       cfg.garment,
@@ -176,12 +169,8 @@ export default function DesignStudio() {
       cfg.patterns,
       cfg.patternParams,
       setSelObj,
-      // zone click → open Colors tab. setSheetOpen was missing here — on desktop the left
-      // panel is always visible so the tab switch alone was enough to look like it worked,
-      // but on tablet/mobile that panel is a bottom sheet gated by sheetOpen, so tapping a
-      // garment zone silently did nothing visible until the customer separately opened it.
-      // A tapped pocket, button or closure detail ('detail:<part>') opens the Details panel on that part instead.
-      (zone) => { if (zone.startsWith('detail:')) { setDetailFocus(zone.slice(7)); setTool('details'); } else { setActiveZone(zone); setTool('color'); } setSheetOpen(true); },
+      // A tapped zone opens Colours on it; a tapped pocket, button or closure detail ('detail:<part>') opens Details on that part.
+      (zone) => { if (zone.startsWith('detail:')) { setDetailFocus(zone.slice(7)); setTool('details'); } else { setActiveZone(zone); setTool('color'); } },
       cfg.fit,
       cfg.details,
       customKey,
@@ -189,22 +178,24 @@ export default function DesignStudio() {
       (look) => setCfg(p => ({ ...p, colors: look.colors, patterns: look.patterns, patternParams: look.patternParams, details: look.details }))
     );
 
-  // Picking a placed item swaps the inspector to its controls at every width. On phones the
-  // sheet only opens when nothing else is open, and closes again once the item is deselected.
+  const zone = zonesFor(cfg.garment, cfg.sleeve, cfg.fit).includes(activeZone) ? activeZone : 'body';
+  // While Colours is open the zone being coloured is outlined on the garment; redrawn after a base redraw (which clears it).
+  const outlined = tool === 'color' ? zone : null;
+  useEffect(() => {
+    const t = setTimeout(() => showZoneOutline(outlined), 450);
+    return () => clearTimeout(t);
+  }, [outlined, showZoneOutline, cfg.garment, cfg.sleeve, cfg.fit, cfg.colors, cfg.details, customKey, face]);
+
+  // Picking a placed item swaps the panel to its inspector at every width; deselecting returns to the previous tool.
   const priorTool = useRef('type');
-  const sheetOpenedBySel = useRef(false);
   useEffect(() => {
     if (isEditableSelection(selObj)) {
-      if (tool === 'selected' || tool === 'draw' || (isNarrow && sheetOpen)) return;
+      if (tool === 'selected' || tool === 'draw') return;
       priorTool.current = tool;
       setTool('selected');
-      if (isNarrow) { sheetOpenedBySel.current = true; setSheetOpen(true); }
-    } else if (tool === 'selected') {
-      setTool(priorTool.current);
-      if (sheetOpenedBySel.current) { sheetOpenedBySel.current = false; setSheetOpen(false); }
-    }
+    } else if (tool === 'selected') setTool(priorTool.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selObj, isNarrow]);
+  }, [selObj]);
 
   useEffect(() => {
     if (viewMode === '3d' && !has3DFor(cfg)) setViewMode('2d');
@@ -220,16 +211,16 @@ export default function DesignStudio() {
   useEffect(() => { keep3DRef.current = false; }, [viewMode]);
 
   // Tracing guide (traceGuide.js): a DOM underlay for this tab only, never in the design, exports or the order.
-  const [trace, setTraceState] = useState(readTrace);
+  const [trace, setTraceState] = useState(() => (REF_PHOTO_TOOLS ? readTrace() : null));
   const setTrace = useCallback((v) => setTraceState(prev => { const next = normalizeTrace(typeof v === 'function' ? v(prev) : v); writeTrace(next); return next; }), []);
   // "Create a 2D garment from reference": the confirmed sketch opens as a build-your-own garment (colours and overlays are kept).
   const openSketch = useCallback((d) => setCfg(p => applyGarment(p, d.garment, { ...(d.sleeve ? { sleeve: d.sleeve } : {}), custom: d.custom })), []);
-  const logoUpload = useLogoUpload(addLogo, { onTrace: setTrace, onSketch: openSketch });
+  const logoUpload = useLogoUpload(addLogo, REF_PHOTO_TOOLS ? { onTrace: setTrace, onSketch: openSketch } : {});
   // A file dropped on the canvas goes through the same pipeline as the panel, and
   // the panel opens so the customer can see progress, errors and the result.
   const onLogoFile = useCallback((file) => {
     if (lockRef.current?.colorOnly) return; // a colour-only copy takes no new logos, including dropped files
-    setTool('assets'); setAssetsTab('logo'); setSheetOpen(true);
+    setTool('assets'); setAssetsTab('logo');
     logoUpload.upload(file);
   }, [logoUpload]);
 
@@ -350,7 +341,7 @@ export default function DesignStudio() {
     ops.forEach(op => { const why = checkEdit(op, facts, ids); (why ? skipped : ok).push(why ? { op, why } : op); });
     if (!ok.length && !start) return { applied: 0, skipped };
     const result = applyStateEdits(base, ok);
-    setAiPreview({ cfg, canvas: getCanvasJSON(), result });
+    setAiPreview({ cfg, canvas: getCanvasJSON(), result, mark: markHistory() });
     setCfg(result);
     const font = FONTS.find(f => f.id === 'inter').css;
     const ink = parseInt((result.colors?.body ?? '#000000').slice(1), 16) > 0x7fffff ? '#111827' : '#FFFFFF'; // readable on the body colour
@@ -362,15 +353,15 @@ export default function DesignStudio() {
     if (start) setTimeout(texts, 250); else texts(); // a new template draws its base first
     setAiPulse(true); setTimeout(() => setAiPulse(false), 1200);
     return { applied: ok.length, skipped };
-  }, [aiPreview, cfg, textItems, getCanvasJSON, addText, editText, presetPos]);
+  }, [aiPreview, cfg, textItems, getCanvasJSON, markHistory, addText, editText, presetPos]);
   const undoAI = useCallback(() => {
     if (!aiPreview) return;
     setCfg(aiPreview.cfg);
     loadCanvasJSON(aiPreview.canvas, { keepHistory: true });
-    setTimeout(pushHistory, 300); // the restore is itself one undoable step
+    settleHistory(aiPreview.mark, false); // Cancel leaves no undo step behind
     setAiPreview(null);
-  }, [aiPreview, loadCanvasJSON, pushHistory]);
-  const keepAI = useCallback(() => setAiPreview(null), []);
+  }, [aiPreview, loadCanvasJSON, settleHistory]);
+  const keepAI = useCallback(() => { settleHistory(aiPreview?.mark, true); setAiPreview(null); }, [aiPreview, settleHistory]);
   // Changes made by hand during a preview are lost on Undo; the panel says so.
   const aiEditedSince = !!aiPreview && cfg !== aiPreview.result;
   const viewAI3D = useCallback(() => { if (has3DFor(cfg)) { setHas3DLoaded(true); setViewMode('3d'); } }, [cfg]);
@@ -446,9 +437,8 @@ export default function DesignStudio() {
     const toLoad = faceJSON.current[face] ?? [];
     if (toLoad.length > 0) setTimeout(() => loadCanvasJSON(toLoad), 350);
     setPendingDraft(null);
-    setLock({ warn: true });
+    accountCopy.current = true;
     setToast('Design restored from your last session');
-    setTimeout(() => setToast(null), 3000);
   }, [pendingDraft, loadCanvasJSON, face]);
 
   const dismissDraft = useCallback(() => setPendingDraft(null), []);
@@ -556,9 +546,6 @@ export default function DesignStudio() {
     loadPiece(target, role);
   }, [uset, cfg.garment, pieceSnapshot, loadPiece]);
 
-  // Keeps the piece on screen as a single design; the other piece is discarded.
-  const leaveSet = useCallback(() => { setUset(null); setApplyBoth(false); }, []);
-
   // "Apply to: Both": colour and pattern edits, and each logo or text added, also go onto the other piece's saved snapshot.
   // The first change after a piece switch is that piece loading, not an edit, so it only arms the mirror.
   const [applyBoth, setApplyBoth] = useState(false);
@@ -587,17 +574,14 @@ export default function DesignStudio() {
     if (!uset || pieceOf(cfg.garment) !== uset.active) return null;
     const snap = uset.pieces[otherRole(uset.active)];
     if (!snap?.garment) return null;
-    const { cfg: other, frontOverlays, backOverlays } = deserializeDesign(snap);
-    // The other piece's own logos, text and drawings ride along so the 3D set shows them on that piece (where its model takes decals).
-    return { cfg: other, overlays: { front: frontOverlays, back: backOverlays }, role: otherRole(uset.active), can3D: has3DFor(cfg) && has3DFor(other) };
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- has3DFor reads exactly these fields
-  }, [uset, cfg.garment, cfg.sleeve, cfg.fit, cfg.inspirationId]);
+    return { cfg: deserializeDesign(snap).cfg, role: otherRole(uset.active) };
+  }, [uset, cfg.garment]);
 
-  const pieceBar = cfg.garment && (
-    <PieceSelector cfg={cfg} uset={uset} onSwitch={switchPiece} onStart={startSet} onLeave={leaveSet} applyBoth={applyBoth} onApplyBoth={setApplyBoth}
-      canSet={!!setCompanion} showSet={showSet}
-      onShowSet={v => { if (v && viewMode === '3d' && setCompanion?.can3D) setHas3DLoaded(true); setShowSet(v); }}/>
-  );
+  // Phones and tablets: More > View opens the stage's View menu.
+  const [viewOpen, setViewOpen] = useState(false);
+
+  const pieceProps = { cfg, uset, onSwitch: switchPiece, onStart: startSet, applyBoth, onApplyBoth: setApplyBoth,
+    canSet: !!setCompanion, setView: viewMode !== '3d', showSet: showSet && viewMode !== '3d', onShowSet: setShowSet };
 
   // ── Account draft write — the one payload for manual Save, autosave and Order ──
   // POST /drafts replaces every column of the single row, so a request without preview_dataurl
@@ -623,6 +607,7 @@ export default function DesignStudio() {
   // Skipped when the account already holds exactly this design (e.g. right after a manual Save). autoState feeds the save status.
   const [autoState, setAutoState] = useState(null);
   const baseFp = useRef(null); // the design as it opened, so merely opening one never reads "Unsaved"
+  const accountCopy = useRef(false); // the design on the canvas came from the account (restored draft or saved design), so unchanged reads "Saved"
   const saveFns = useRef(null);
   saveFns.current = { snapshotDesign, persistDraft };
   useEffect(() => {
@@ -631,7 +616,7 @@ export default function DesignStudio() {
     const dirtyCheck = setTimeout(() => {
       const fp = draftFingerprint(saveFns.current.snapshotDesign());
       if (baseFp.current === null && lastSavedFp.current === null) baseFp.current = fp;
-      setAutoState(s => (s === 'saving' ? s : fp === (lastSavedFp.current ?? baseFp.current) ? (lastSavedFp.current ? 'saved' : null) : 'dirty'));
+      setAutoState(s => (s === 'saving' ? s : fp === (lastSavedFp.current ?? baseFp.current) ? (lastSavedFp.current || accountCopy.current || lockRef.current?.designId ? 'saved' : null) : 'dirty'));
     }, 400);
     autoSaveTimer.current = setTimeout(async () => {
       const { snapshotDesign: snapNow, persistDraft: persist } = saveFns.current;
@@ -646,7 +631,7 @@ export default function DesignStudio() {
     }, 30_000);
     return () => { clearTimeout(dirtyCheck); clearTimeout(autoSaveTimer.current); };
   }, [cfg, locked, editTick]);
-  const status = saveStatus({ saving, saveErr, auto: autoState, draftSaved, saved });
+  const status = cfg.garment ? saveStatus({ saving, saveErr, auto: autoState, draftSaved, saved }) : null;
 
   // ── Manual save: sessionStorage + DB ─────────────────────────────────────
   const saveDesign = useCallback(async () => {
@@ -750,6 +735,13 @@ export default function DesignStudio() {
 
   const orderThis = useCallback(async () => {
     if (!cfg.garment || ordering || locked) return;
+    // VFRB accepts full sets only (one top + one bottom); the Garment panel holds "Add a matching …".
+    if (!orderQueue(snapshotDesign())) {
+      const role = pieceOf(cfg.garment);
+      setTool('type');
+      flashError(role ? `VFRB takes full sets only: add the matching ${otherRole(role)} first.` : 'VFRB takes full sets only: choose a top or a bottom to start a set.');
+      return;
+    }
     setOrdering(true); // instant feedback — see the state declaration above
     try {
       // exportFrontBack() captures both faces' PNGs and, as a side effect, leaves
@@ -772,7 +764,6 @@ export default function DesignStudio() {
     }
   }, [cfg, ordering, locked, snapshotDesign, exportFrontBack, persistDraft, nav, flashError]);
 
-  const clearGarment = useCallback(() => setCfg(p => ({ ...p, garment: null })), []);
 
   // "Duplicate to edit": the account gets a copy (POST /copy) and the Studio switches to it, colours only; the ordered design stays as it is.
   const [copying, setCopying] = useState(false);
@@ -788,7 +779,6 @@ export default function DesignStudio() {
       setCfg(p => ({ ...p, name: copy.config?.name ?? p.name }));
       lastSavedFp.current = draftFingerprint(copy.config);
       setToast('Copy saved to My Designs. You can change its colours.');
-      setTimeout(() => setToast(null), 3000);
     } catch { flashError('Could not make a copy. Check your connection and try again.'); }
     finally { setCopying(false); }
   }, [copying, cfg.name, snapshotDesign, flashError]);
@@ -800,7 +790,7 @@ export default function DesignStudio() {
     const keep = lockRef.current?.designId ? { designId: lockRef.current.designId } : null;
     setLock(keep); setStudioLock(keep); setWarnAsk(false);
   }, []);
-  // Saved, not ordered: the first press, click or tap inside the editor asks before anything changes. View-only controls ([data-view-only]) pass.
+  // Saved from an order, not final: the first press, click or tap inside the editor asks before anything changes. View-only controls ([data-view-only]) pass.
   const gateEdit = lock?.warn ? (e) => { if (e.target.closest?.('[data-view-only]')) return; e.preventDefault(); e.stopPropagation(); if (e.type !== 'keydown' || e.key === 'Enter' || e.key === ' ') setWarnAsk(true); } : undefined;
 
   // Optimistic UI for "Order This": exportFrontBack() below can take ~0.5-1s
@@ -810,34 +800,27 @@ export default function DesignStudio() {
   // on the same tick as the click, before any await, so the button reflects
   // "in progress" immediately rather than waiting on the async work to resolve.
 
-  const zone = zonesFor(cfg.garment, cfg.sleeve, cfg.fit).includes(activeZone) ? activeZone : 'body';
 
   return (
     <>
       <DesignStudioStyles/>
 
-      <div className="ds" data-sheet={sheetOpen ? 'open' : 'closed'} data-snap={sheetOpen ? (sheetFull ? 'full' : 'half') : cfg.garment ? 'peek' : 'none'} data-first={!cfg.garment || undefined} style={{ position:'relative' }}>
+      <div className="ds" data-locked={locked || undefined} data-first={!cfg.garment || undefined} style={{ position:'relative' }}>
 
         {/* ── TOP BAR ── */}
         <TopBar nav={nav} cfg={cfg} setCfg={locked ? () => {} : setCfg} undo={lock?.warn ? () => setWarnAsk(true) : undo} redo={lock?.warn ? () => setWarnAsk(true) : redo}
           canUndo={canUndo && !locked} canRedo={canRedo && !locked} status={locked ? null : status}
           viewMode={viewMode} setViewMode={setViewMode} setHas3DLoaded={setHas3DLoaded}
-          showShowcase={showShowcase} setShowShowcase={toggleShowcase} showcaseCount={locked || colorOnly ? 0 : showcaseCount}/>
+          showShowcase={showShowcase} setShowShowcase={toggleShowcase} showcaseCount={locked || colorOnly ? 0 : showcaseCount}
+          saveDesign={saveDesign} saving={saving} saved={saved} draftSaved={draftSaved} orderThis={orderThis} ordering={ordering}
+          downloadImage={downloadImage} downloadPdf={downloadPdf} exporting={exporting}
+          lock={locked ? lock : null} onReorder={reorderThis} onDuplicate={duplicateToEdit} copying={copying}/>
 
         {/* ── DRAFT OFFER ── in the page flow under the bar, so it can never cover menus or stage controls */}
         {pendingDraft && !cfg.garment && layers.length === 0 && (
           <DraftStrip draft={pendingDraft} hasWork={!!cfg.name?.trim() || layers.length > 0} onRestore={restoreDraft} onDismiss={dismissDraft}/>
         )}
 
-        {/* ── FINAL DESIGN ── read-only until the customer duplicates it */}
-        {locked && (
-          <div role="status" style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap', padding:'8px 16px', background:'var(--teal-50, #f0fdfa)', borderBottom:'1px solid var(--border)', fontSize:13, color:'var(--ink)' }}>
-            <NavIcon name="warning" size={15}/>
-            <strong style={{ flex:'1 1 200px' }}>{lock.orderId ? `This design is final for order #${lock.orderId}` : 'This design is final for its order'}</strong>
-            <button type="button" className="ds-btn" onClick={reorderThis}>Reorder</button>
-            <button type="button" className="ds-btn ds-btn--primary" onClick={duplicateToEdit} disabled={copying} aria-busy={copying}>{copying ? 'Copying…' : 'Duplicate to edit'}</button>
-          </div>
-        )}
         {/* ── COLOUR-ONLY COPY ── */}
         {colorOnly && (
           <div role="status" style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 16px', background:'var(--amber-50, #fffbeb)', borderBottom:'1px solid var(--border)', fontSize:13, color:'var(--ink)' }}>
@@ -852,16 +835,17 @@ export default function DesignStudio() {
           <AnimatePresence>
             {toast && (
               <motion.div key="toast" className="ds-toast" role="status"
-                initial={{ opacity:0, y:12, scale:.96 }} animate={{ opacity:1, y:0, scale:1 }} exit={{ opacity:0, y:8 }}
-                transition={{ duration:.2 }}>
+                initial={reduceMotion ? false : { opacity:0, y:12, scale:.96 }} animate={{ opacity:1, y:0, scale:1 }} exit={reduceMotion ? { opacity:0 } : { opacity:0, y:8 }}
+                transition={{ duration: reduceMotion ? 0 : .2 }}>
                 <NavIcon name={toastErr ? 'warning' : 'success'} size={16}/> {toast}
               </motion.div>
             )}
           </AnimatePresence>
 
+          <PiecesRail {...pieceProps} other={setCompanion} readOnly={colorOnly}/>
+
           {/* ── TOOL STRIP + PANEL DRAWER ── */}
-          <ToolDrawer onlyTools={colorOnly ? ['color'] : null} tool={tool} setTool={setTool} sheetOpen={sheetOpen} setSheetOpen={setSheetOpen} sheetFull={sheetFull} setSheetFull={setSheetFull}
-            summary={{ cfg, face, saved, saving, saveErr, draftSaved, status, saveDesign, orderThis, ordering, onOpenTool: (id) => { setTool(id); setSheetOpen(true); }, downloadImage, downloadPdf, exporting, clearGarment }} cfg={cfg} setCfg={setCfg}
+          <ToolDrawer onlyTools={colorOnly ? ['color'] : null} tool={tool} setTool={setTool} onOpenTool={setTool} cfg={cfg} setCfg={setCfg}
             activeZone={zone} setActiveZone={setActiveZone} detailFocus={detailFocus}
             addText={addText} addShape={addShape} addPocket={addPocket} setPocketColor={setPocketColor} mirrorSelected={mirrorSelected} updateSelected={updateSelected} arrangeLayer={arrangeLayer}
             assetsTab={assetsTab} setAssetsTab={setAssetsTab} logoUpload={logoUpload}
@@ -871,8 +855,10 @@ export default function DesignStudio() {
             ai={{ preview: previewAI, undo: undoAI, keep: keepAI, previewing: !!aiPreview, editedSince: aiEditedSince, view3D: viewAI3D, has3D: has3DFor(cfg) }} textItems={textItems} layers={layers} selObj={selObj} alignSelected={alignSelected}
             selectLayer={selectLayer} toggleLayerVisibility={toggleLayerVisibility}
             toggleLayerLock={toggleLayerLock} toggleSelectedLock={toggleSelectedLock} setLayerOpacity={setLayerOpacity}
-            pushHistory={pushHistory}
-            renameLayer={renameLayer} deleteLayer={deleteLayer} reorderLayers={reorderLayers} pieceRole={uset?.active ?? null} trace={trace} setTrace={setTrace}/>
+            pushHistory={pushHistory} presetPos={presetPos}
+            renameLayer={renameLayer} deleteLayer={deleteLayer} reorderLayers={reorderLayers} pieceRole={uset?.active ?? null} trace={trace} setTrace={setTrace} status={locked ? null : status}
+            garmentExtra={<PieceActions {...pieceProps} other={setCompanion} readOnly={colorOnly} inSheet/>}
+            more={{ onView: () => setViewOpen(true), onCopy: duplicateToEdit, canCopy: !!lock?.designId, copying }}/>
 
           {/* ── CANVAS AREA ── */}
           <CanvasViewport cfg={cfg} setCfg={setCfg} canvasWrapRef={canvasWrapRef} canvasEl={canvasEl} initFailed={initFailed}
@@ -883,9 +869,9 @@ export default function DesignStudio() {
             blank={<GarmentPicker inline cfg={cfg} pieceRole={uset?.active ?? (pendingArt && artScope ? (artScope === 'bottom' ? 'bottom' : 'top') : null)} onPickPhoto={pickPhoto}
               onPick3D={(d, f) => { keep3DRef.current = true; pickPhoto(d, f); setHas3DLoaded(true); setViewMode('3d'); }}
               onPickFamily={(fam, category, pick) => selectFamily(setCfg, fam, category, pick)}
-              onUpload={startUpload} pendingArt={pendingArt} onCancelArt={() => setPendingArt(null)} onSketchArt={sketchPending}
+              onUpload={startUpload} pendingArt={pendingArt} onCancelArt={() => setPendingArt(null)} onSketchArt={REF_PHOTO_TOOLS ? sketchPending : null}
               artScope={artScope} onArtScope={uset ? null : setArtScope}/>} setViewMode={setViewMode}
-            pieceBar={colorOnly ? null : pieceBar} setCompanion={setCompanion} showSet={showSet} setSnapOptions={setSnapOptions} trace={trace} clearSelection={clearSelection}/>
+            viewOpen={viewOpen} setViewOpen={setViewOpen} setCompanion={setCompanion} showSet={showSet} setSnapOptions={setSnapOptions} trace={trace} clearSelection={clearSelection}/>
         </div>
 
         {/* Click-away scrim behind whichever gallery is open (z-index sits under the galleries' 100). */}

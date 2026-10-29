@@ -26,7 +26,7 @@ function ParamSlider({ label, value, range, onChange }) {
   return (
     <label style={{ display:'flex', flexDirection:'column', gap:3 }}>
       <span style={{ display:'flex', justifyContent:'space-between',
-        fontSize:11, color:'var(--cx-ink-2)' }}>
+        fontSize:13, color:'var(--cx-ink-2)' }}>
         <span>{label}</span>
         <span style={{ color:'var(--cx-thread-ink)', fontWeight:700 }}>{value}px</span>
       </span>
@@ -43,11 +43,11 @@ function WovenControls({ cfg, setCfg, zone, patDef }) {
   const c1 = cfg.colors?.[zone] ?? cfg.colors?.body ?? '#1b2a4a';
   const p = wovenParams(patDef.id, cfg.patternParams?.[zone], c1);
   const setP = (k, v) => setCfg(s => ({ ...s, patternParams: { ...(s.patternParams ?? {}), [zone]: { ...wovenParams(patDef.id, s.patternParams?.[zone], c1), [k]: v } } }));
-  const row = { display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, fontSize:12, color:'var(--cx-ink-2)', minHeight:44 };
+  const row = { display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, fontSize:13, color:'var(--cx-ink-2)', minHeight:44 };
   return (
     <motion.div initial={{ opacity:0, height:0 }} animate={{ opacity:1, height:'auto' }}
       style={{ padding:'11px 12px', borderRadius:10, background:'rgba(2,195,154,.06)', border:'1px solid rgba(2,195,154,.18)', display:'flex', flexDirection:'column', gap:6, overflow:'hidden' }}>
-      <p style={{ fontSize:12, fontWeight:700, color:'var(--cx-thread-ink)', margin:0 }}>Adjust {patDef.label}</p>
+      <p style={{ fontSize:13, fontWeight:700, color:'var(--cx-thread-ink)', margin:0 }}>Adjust {patDef.label}</p>
       <label style={row}><span>Colour 1 (zone colour)</span>
         <input type="color" value={c1} onChange={e => setCfg(s => ({ ...s, colors: { ...s.colors, [zone]: e.target.value } }))} style={{ width:44, height:32 }}/></label>
       <label style={row}><span>Colour 2</span>
@@ -59,10 +59,10 @@ function WovenControls({ cfg, setCfg, zone, patDef }) {
         <span style={{ display:'flex', justifyContent:'space-between' }}><span>Rotation</span><b>{p.rotation}°</b></span>
         <input type="range" min={0} max={165} step={15} value={p.rotation} onChange={e => setP('rotation', Number(e.target.value))} style={{ accentColor:T2 }}/></label>
       <button type="button" onClick={() => setCfg(s => { const pp = { ...(s.patternParams ?? {}) }; delete pp[zone]; return { ...s, patternParams: pp }; })}
-        style={{ alignSelf:'flex-start', minHeight:32, padding:'3px 9px', borderRadius:7, border:'1px solid rgba(15,23,42,.15)', background:'transparent', color:'var(--cx-ink-2)', fontSize:12, cursor:'pointer' }}>
+        style={{ alignSelf:'flex-start', minHeight:32, padding:'3px 9px', borderRadius:7, border:'1px solid rgba(15,23,42,.15)', background:'transparent', color:'var(--cx-ink-2)', fontSize:13, cursor:'pointer' }}>
         Reset to default
       </button>
-      <p style={{ fontSize:11, color:'var(--cx-ink-2)', margin:0 }}>Shown in 2D, previews, PNG and PDF. The 3D model shows this zone in its solid colour.</p>
+      <p style={{ fontSize:13, color:'var(--cx-ink-2)', margin:0 }}>Shown in 2D, previews, PNG and PDF. The 3D model shows this zone in its solid colour.</p>
     </motion.div>
   );
 }
@@ -99,12 +99,12 @@ export default function PatternPanel({ cfg, setCfg, activeZone }) {
         <p style={{ fontSize:13,fontWeight:700,color:'#1a2332',margin:'0 0 2px' }}>
           Pattern Overlay
         </p>
-        <p style={{ fontSize:12,color:'var(--cx-ink-2)',margin:0 }}>
+        <p style={{ fontSize:13,color:'var(--cx-ink-2)',margin:0 }}>
           Applied on top of zone color. Select zone in Colors tab.
         </p>
       </div>
 
-      {photoBase && <p role="status" style={{ fontSize:12, color:'rgba(15,23,42,.68)', margin:0 }}>
+      {photoBase && <p role="status" style={{ fontSize:13, color:'rgba(15,23,42,.68)', margin:0 }}>
         Patterns are unavailable on this photo base. Choose a vector garment to add a pattern.
       </p>}
 
@@ -131,7 +131,7 @@ export default function PatternPanel({ cfg, setCfg, activeZone }) {
                     backgroundImage: (u => u ? `url(${u})` : undefined)(wovenTileUrl(pat.id, cfg.colors?.[activeZone] ?? cfg.colors?.body ?? '#1b2a4a',
                       wovenParams(pat.id, cfg.patternParams?.[activeZone], cfg.colors?.[activeZone] ?? cfg.colors?.body).c2, 0.75)) }}/>
                 : <NavIcon name={pat.icon} size={18} color={sel ? 'var(--cx-thread-ink)' : 'var(--cx-ink-2)'}/>}
-              <span style={{ fontSize:11, color: sel?'var(--cx-thread-ink)':'var(--cx-ink-2)',
+              <span style={{ fontSize:13, color: sel?'var(--cx-thread-ink)':'var(--cx-ink-2)',
                 fontWeight:sel?700:400, textAlign:'center' }}>
                 {pat.label}
               </span>
@@ -149,11 +149,11 @@ export default function PatternPanel({ cfg, setCfg, activeZone }) {
           style={{ padding:'11px 12px', borderRadius:10, marginTop:2,
             background:'rgba(2,195,154,.06)', border:`1px solid rgba(2,195,154,.18)`,
             display:'flex', flexDirection:'column', gap:10, overflow:'hidden' }}>
-          <p style={{ fontSize:11, fontWeight:700, color:'var(--cx-thread-ink)', margin:0,
+          <p style={{ fontSize:13, fontWeight:700, color:'var(--cx-thread-ink)', margin:0,
             display:'flex', alignItems:'center', gap:5 }}>
             <NavIcon name={patDef.icon} size={12}/> Adjust {patDef.label}
           </p>
-          <ParamSlider label="Stripe Width" value={params.width} range={WIDTH_RANGE}
+          <ParamSlider label="Stripe width" value={params.width} range={WIDTH_RANGE}
             onChange={v => setParam('width', v)}/>
           <ParamSlider label="Spacing" value={params.spacing} range={SPACING_RANGE}
             onChange={v => setParam('spacing', v)}/>
@@ -163,7 +163,7 @@ export default function PatternPanel({ cfg, setCfg, activeZone }) {
             }))}
             style={{ alignSelf:'flex-start', padding:'3px 9px', borderRadius:7,
               border:'1px solid rgba(15,23,42,.15)', background:'transparent',
-              color:'var(--cx-ink-2)', fontSize:11, cursor:'pointer' }}>
+              color:'var(--cx-ink-2)', fontSize:13, cursor:'pointer' }}>
             Reset to default
           </button>
         </motion.div>

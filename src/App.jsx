@@ -93,6 +93,7 @@ const CustomerSettings    = lazy(() => import('./pages/client/AccountSettings'))
 
 // ── Design Studio — separately lazy (Fabric.js + Three.js are heavy) ─────────
 const DesignStudio = lazy(() => import('./pages/client/DesignStudio'));
+const DevLayouts = import.meta.env.DEV ? lazy(() => import('./dev/layouts/DevLayouts')) : null;
 
 // ── Auth extras — lazy ────────────────────────────────────────────────────────
 const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'));
@@ -315,6 +316,8 @@ export default function App() {
             </RequireAuth>
           }/>
 
+          {DevLayouts && <Route path="/dev/layouts" element={<Suspense fallback={null}><DevLayouts/></Suspense>}/>}
+
           {/* ── 404 ───────────────────────────────────────────────────────── */}
           <Route path="*" element={
             <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column',
@@ -330,7 +333,7 @@ export default function App() {
               <a href="/" style={{ padding:'10px 22px', borderRadius:10,
                 background:'#028090', color:'#fff', textDecoration:'none',
                 fontSize:13, fontWeight:700, fontFamily:FONT }}>
-                Go Home →
+                Go home
               </a>
             </div>
           }/>

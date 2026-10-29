@@ -9,7 +9,7 @@ import UiSkeleton from '../ui/Skeleton';
 import StatusChip from '../ui/StatusChip';
 import { MiniPreview } from '../../pages/client/design-studio/InspoGallery';
 import { BASE_PATHS } from '../../pages/client/design-studio/garmentPaths';
-import { savedDesignName } from '../../utils/designName';
+import { savedDesignName, garmentLabel } from '../../utils/designName';
 import { humanize } from '../../utils/humanize';
 
 // Derived set garments (e.g. Midi Pencil Skirt) have no silhouette of their own; use the base Skirt, not the Polo fallback.
@@ -61,13 +61,13 @@ export function nextStep(order) {
   if (IN_PRODUCTION.includes(s)) return { title: 'Your uniforms are being made', body: 'Nothing is needed from you right now. This page updates when the order is complete.' };
   if (s === 'confirmed') return { title: 'Your order is confirmed', body: 'Production begins once VFRB receives the down payment. This page shows Completed when your uniforms are done.' };
   if (order.proposal_status === 'pending') return { title: 'VFRB is waiting for your reply', body: 'Open the order to review the proposed delivery date, then accept or send a message.' };
-  return { title: 'VFRB is reviewing your order', body: 'Staff check your design, sizes and quantity, then propose a delivery date for you to accept.' };
+  return { title: 'VFRB is reviewing your order', body: 'The VFRB team checks your design, sizes and quantity, then proposes a delivery date for you to accept.' };
 }
 
 export const fmtDate = (d, o = { month: 'short', day: 'numeric', year: 'numeric' }) =>
   d ? new Date(d).toLocaleDateString('en-PH', o) : '—';
 // The customer's saved design name (studio_config.name; the order API has no separate name field), else the garment.
-export const orderTitle = (o) => savedDesignName(o?.studio_config) || humanize(o?.garment_type)?.trim() || 'Custom Order';
+export const orderTitle = (o) => garmentLabel(savedDesignName(o?.studio_config) || humanize(o?.garment_type)?.trim()) || 'Custom Order';
 export const parseCfg = (o) => {
   const raw = o?.studio_config;
   if (!raw) return {};

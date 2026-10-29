@@ -29,6 +29,12 @@ export function pushStep(h, snapshot, limit = HISTORY_LIMIT) {
   return { stack, idx: stack.length - 1 };
 }
 
+// Folds every step after `mark`'s current entry into one (an applied AI preview); unchanged when the mark fell off the stack.
+export function foldSince(h, mark) {
+  const base = h.stack.indexOf(mark.stack[mark.idx]);
+  return base < 0 || h.idx <= base + 1 ? h : { stack: [...h.stack.slice(0, base + 1), h.stack[h.idx]], idx: base + 1 };
+}
+
 // dir -1 undoes, +1 redoes; null when there is nothing to step to.
 export function stepHistory(h, dir) {
   const idx = h.idx + dir;

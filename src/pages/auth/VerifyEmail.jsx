@@ -104,7 +104,7 @@ export default function VerifyEmail() {
             ? 'Your VFRB Enterprise account is now active. You can start placing orders and tracking production.'
             : 'Your email address has already been verified. You can sign in normally.'}
         </p>
-        <PrimaryBtn onClick={goToDashboard}>Go to Dashboard →</PrimaryBtn>
+        <PrimaryBtn onClick={goToDashboard}>Go to dashboard</PrimaryBtn>
       </Shell>
     );
   }
@@ -151,7 +151,7 @@ export default function VerifyEmail() {
         {error && <Banner><span style={{display:'inline-flex',verticalAlign:'-3px',marginRight:6}}><NavIcon name="warning" size={14} color="#991b1b"/></span>{error}</Banner>}
       </AnimatePresence>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <PrimaryBtn onClick={goToDashboard}>I've verified my email →</PrimaryBtn>
+        <PrimaryBtn onClick={goToDashboard}>I've verified my email</PrimaryBtn>
         <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: .98 }} onClick={resend} disabled={sending}
           style={{ width: '100%', padding: 12, borderRadius: 12, cursor: sending ? 'not-allowed' : 'pointer',
             background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-muted)',

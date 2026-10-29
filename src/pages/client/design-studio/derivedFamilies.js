@@ -14,7 +14,7 @@ export const DERIVED_LICENCE = 'unknown (not recorded)';
 const ROWS = [
   ['blazer-open-front-black', 'Open-Front Blazer', 'Corporate', 'top', 'Long', 'female'],
   ['blouse-asymmetric-blue', 'Asymmetric Collar Blouse', 'Corporate', 'top', 'Short', 'female'],
-  ['blouse-mandarin-yellow', 'Mandarin Blouse', 'Hospitality / Service', 'top', 'Short', 'female'],
+  ['blouse-mandarin-yellow', 'Mandarin Blouse (Reference)', 'Hospitality / Service', 'top', 'Short', 'female'],
   ['blouse-pleated-bib-white', 'Pleated Bib Blouse', 'School Uniform', 'top', 'Short', 'female',
     'flattened hanger scan: torso depth 0.07-0.09 against 0.66-0.74 for worn blouses at the same scale (GLB-STAGING-AUDIT.md)'],
   ['blouse-scarf-cream', 'Scarf-Tie Blouse', 'Corporate', 'top', 'Short', 'female'],
@@ -116,6 +116,8 @@ export const DERIVED_FAMILIES = ROWS.filter(([id]) => DERIVED_GEOMETRY[id] && !N
 }));
 export const DERIVED_BY_NAME = Object.fromEntries(DERIVED_FAMILIES.map(d => [d.name, d]));
 export const isDerived = garment => !!DERIVED_BY_NAME[garment];
+// Rebuilt under the plain name as a parametric family (customGarment PARAM_FAMILIES); kept unlisted so saved designs and the photo still open it.
+export const SUPERSEDED_DERIVED = new Set(['blouse-mandarin-yellow']);
 
 // What "Use as template" opens for a reference photo: the single piece, or a set's top and bottom. A top may be a reused family, and a
 // removed piece is replaced by its authored template (REMOVED_DERIVED). derived = the piece that opens first is a derived template.

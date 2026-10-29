@@ -22,8 +22,9 @@ const tab = on => ({ minHeight: 44, padding: '0 16px', borderRadius: 99, border:
 // The one preview used by Order Wizard, client Order Detail and admin Order Detail.
 // Default is always 2D (reference photo, submitted artwork PNG, or the template silhouette). 3D is offered only for a family with a real GLB
 // and only when WebGL works; any 3D failure (load error or a lost context) drops back to 2D instead of breaking the page.
+// fit: an image preview takes its own height (capped at 640px) instead of the fixed box.
 // onSnapshot(pngDataUrl): when given, the 3D view offers "Save 3D snapshot"; `snapshot` is the one already taken.
-export default function DesignPreview({ cfg, previewUrl = null, referenceImageUrl = null, height = 240, onSnapshot = null, snapshot = null }) {
+export default function DesignPreview({ cfg, previewUrl = null, referenceImageUrl = null, height = 240, fit = false, onSnapshot = null, snapshot = null }) {
   const [view, setView] = useState('2d');
   const [lost, setLost] = useState(false);
   const [spin, setSpin] = useState(() => !calm());
@@ -44,10 +45,12 @@ export default function DesignPreview({ cfg, previewUrl = null, referenceImageUr
   // A selection without its own model (e.g. a long-sleeve design of a short-sleeve-only scan) stays 2D: no substitute model is shown.
   const no3DNote = design && fam && fam.status3D !== 'none' && !can3D && hasWebGL() ? (withheld ? `No 3D model matches this design's garment. Showing 2D.` : `No 3D model for ${design.garment}${design.sleeve ? ` · ${design.sleeve.toLowerCase()} sleeve` : ''}. Showing 2D.`) : null;
 
+  const image = referenceImageUrl || previewUrl;
+  const imgStyle = fit ? { display: 'block', width: '100%', height: 'auto', maxHeight: 640, objectFit: 'contain' } : { maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' };
   const flat = (
-    <div style={box(height)}>
-      {referenceImageUrl ? <img src={referenceImageUrl} alt="Reference" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }}/>
-        : previewUrl ? <img src={previewUrl} alt="Submitted design" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }}/>
+    <div style={fit && image ? { ...box('auto'), maxHeight: 640 } : box(height)}>
+      {referenceImageUrl ? <img src={referenceImageUrl} alt="Reference" style={imgStyle}/>
+        : previewUrl ? <img src={previewUrl} alt="Submitted design" style={imgStyle}/>
         : design && fam ? (
           <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
             {(hasBackView(design.garment, design.sleeve ?? 'Short', design.fit) ? ['front', 'back'] : ['front']).map(f => <GarmentSilhouette key={f} garment={design.garment} sleeve={design.sleeve ?? 'Short'} fit={design.fit} colors={design.colors} details={design.details} custom={design.custom} patterns={design.patterns} patternParams={design.patternParams} face={f} width={Math.round(height * 0.5)} height={Math.round(height * 0.62)}/>)}

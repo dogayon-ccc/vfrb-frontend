@@ -37,10 +37,10 @@ export default function GarmentSilhouette({ garment, sleeve = 'Short', colors = 
 
   const zones = [
     { d: p.body,    fill: colors.body,                    z: 'body' },
-    { d: p.collar,  fill: colors.collar,                  z: 'collar' },
+    { d: p.collar,  fill: colors.collar ?? colors.body,   z: 'collar' },
     { d: p.sleeveL, fill: colors.sleeve ?? colors.body,   z: 'sleeve' },
     { d: p.sleeveR, fill: colors.sleeve ?? colors.body,   z: 'sleeve' },
-    { d: p.pocket,  fill: colors.pocket ?? colors.collar, z: 'pocket' },
+    { d: p.pocket,  fill: colors.pocket ?? colors.collar ?? colors.body, z: 'pocket' },
   ];
   // Woven patterns (wovenPatterns.js) as SVG pattern fills, same tile and transform as the Studio canvas; none during SSR.
   const woven = Object.fromEntries([...new Set(zones.map(z => z.z))].map(z => {
@@ -50,7 +50,7 @@ export default function GarmentSilhouette({ garment, sleeve = 'Short', colors = 
     if (!url) return [z, null];
     return [z, { pid: `w${uid}${z}`, url, ...tileSize(id, prm.scale), rot: prm.rotation }];
   }));
-  const fillOf = (z, fill) => (woven[z] ? `url(#${woven[z].pid})` : fill ?? '#e2e8f0');
+  const fillOf = (z, fill) => (woven[z] ? `url(#${woven[z].pid})` : fill ?? colors.body ?? '#e2e8f0');
 
   const ink = sketchInk(colors.body);
   const lines = (p.details ?? []).filter(d => DETAIL[d.kind] && (width >= 80 || d.kind !== 'button'));

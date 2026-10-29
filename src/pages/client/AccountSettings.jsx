@@ -15,7 +15,6 @@ import { phPhoneError, compactPhone, formatPhMobile, isPhMobile } from '../../ut
 import ProfilePhotoField from '../../components/ProfilePhotoField';
 import AppearanceField from '../../components/AppearanceField';
 import { readUser } from '../../utils/authRoute';
-import { USER_CHANGE_EVENT } from '../../utils/session';
 
 // ── Shipping Addresses ───────────────────────────────────────────────────
 const BLANK_ADDR = { label: '', recipient_name: '', contact_number: '', address_line: '', city: '', province: '', postal_code: '', is_default: false };
@@ -50,27 +49,27 @@ function AddressForm({ initial, onCancel, onSaved }) {
   };
 
   return (
-    <Card title={form.shipping_id ? 'Edit Address' : 'New Address'}>
+    <Card title={form.shipping_id ? 'Edit address' : 'New address'}>
       <form noValidate onSubmit={e => { e.preventDefault(); save(); }} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <Field label="Label" value={form.label} onChange={e => set('label', e.target.value)} placeholder="e.g. Main Office, Warehouse" maxLength={50} error={errs.label} autoFocus/>
         <div className="acct-field-row">
-          <Field label="Recipient Name" value={form.recipient_name} onChange={e => set('recipient_name', e.target.value)} maxLength={100} autoComplete="name" error={errs.recipient_name}/>
-          <Field label="Contact Number" value={form.contact_number} onChange={e => set('contact_number', e.target.value)} placeholder="09XX XXX XXXX" inputMode="tel" autoComplete="tel"
+          <Field label="Recipient name" value={form.recipient_name} onChange={e => set('recipient_name', e.target.value)} maxLength={100} autoComplete="name" error={errs.recipient_name}/>
+          <Field label="Contact number" value={form.contact_number} onChange={e => set('contact_number', e.target.value)} placeholder="09XX XXX XXXX" inputMode="tel" autoComplete="tel"
             onBlur={() => isPhMobile(form.contact_number) && set('contact_number', formatPhMobile(form.contact_number))}
             error={errs.contact_number || (form.contact_number && phPhoneError(form.contact_number)) || undefined}/>
         </div>
-        <Field label="Address Line" value={form.address_line} onChange={e => set('address_line', e.target.value)} placeholder="Unit, building, street, barangay" maxLength={255} autoComplete="street-address" error={errs.address_line}/>
+        <Field label="Address line" value={form.address_line} onChange={e => set('address_line', e.target.value)} placeholder="Unit, building, street, barangay" maxLength={255} autoComplete="street-address" error={errs.address_line}/>
         <div className="acct-field-row">
-          <Field label="City / Municipality" value={form.city} onChange={e => set('city', e.target.value)} maxLength={100} autoComplete="address-level2" error={errs.city}/>
+          <Field label="City or municipality" value={form.city} onChange={e => set('city', e.target.value)} maxLength={100} autoComplete="address-level2" error={errs.city}/>
           <Field label="Province" value={form.province} onChange={e => set('province', e.target.value)} maxLength={100} autoComplete="address-level1" error={errs.province}/>
         </div>
-        <Field label="Postal Code (optional)" value={form.postal_code} onChange={e => set('postal_code', e.target.value)} inputMode="numeric" maxLength={4} autoComplete="postal-code"
+        <Field label="Postal code (optional)" value={form.postal_code} onChange={e => set('postal_code', e.target.value)} inputMode="numeric" maxLength={4} autoComplete="postal-code"
           placeholder="e.g. 1770" error={errs.postal_code || postalError(form.postal_code) || undefined}/>
         <DefaultToggle checked={form.is_default} onChange={v => set('is_default', v)}>Use as my default delivery address</DefaultToggle>
         <Toast msg={err} type="error"/>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <Button variant="ghost" fullWidth onClick={onCancel}>Cancel</Button>
-          <Button type="submit" variant="primary" fullWidth icon="save" loading={saving}>{saving ? 'Saving…' : 'Save Address'}</Button>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <Button variant="ghost" onClick={onCancel}>Cancel</Button>
+          <Button type="submit" variant="primary" icon="save" loading={saving}>{saving ? 'Saving…' : 'Save address'}</Button>
         </div>
       </form>
     </Card>
@@ -184,7 +183,7 @@ function NotificationsSection() {
 
   return (
     <Card>
-      <Row k="email_enabled" label="Email Notifications" live={prefs.email_provider_live}/>
+      <Row k="email_enabled" label="Email notifications" live={prefs.email_provider_live}/>
       <Toast msg={msg} type="success"/><Toast msg={err} type="error"/>
     </Card>
   );
@@ -242,13 +241,13 @@ function FabricsSection() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 10, flexWrap: 'wrap' }}>
-        <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Fabrics you prefer for future orders — VFRB staff can see these when reviewing your requests.</p>
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Fabrics you prefer for future orders — the VFRB team can see these when reviewing your requests.</p>
         {!picking && !failed && catalog.length > 0 && <Button variant="primary" icon="add" onClick={() => setPicking(true)}>Add Fabric</Button>}
       </div>
       <Toast msg={msg} type="success"/><Toast msg={err} type="error"/>
 
       {picking && (
-        <Card title="Add Preferred Fabric" style={{ marginBottom: 14 }}>
+        <Card title="Add preferred fabric" style={{ marginBottom: 14 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <Field as="select" label="Fabric" value={selectedId} onChange={e => setSelectedId(e.target.value)}>
               <option value="">Select a fabric…</option>
@@ -269,7 +268,7 @@ function FabricsSection() {
       ) : failed ? (
         <LoadError what="fabric preferences" onRetry={load}/>
       ) : prefs.length === 0 && !picking ? (
-        <EmptyState illustration="order" headline="No preferred fabrics yet" sub="Add fabrics you like so staff know your preferences for future orders."
+        <EmptyState illustration="order" headline="No preferred fabrics yet" sub="Add fabrics you like so the VFRB team knows your preferences for future orders."
           cta={{ label: '+ Add Fabric', onClick: () => setPicking(true) }}/>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -297,14 +296,14 @@ function FabricsSection() {
 
 // ── Page shell: settings hub (wireframe — profile card + section rows) ─────
 const SECTIONS = [
-  { id: 'profile',       label: 'Personal Information', hint: 'Name, contact, organization', icon: 'profile' },
-  { id: 'shipping',      label: 'Shipping Addresses',   hint: 'Where your orders are delivered', icon: 'delivery' },
-  { id: 'appearance',    label: 'Photo & Appearance',   hint: 'Profile photo, mode and accent colour', icon: 'camera' },
+  { id: 'profile',       label: 'Personal information', hint: 'Name, contact, organization', icon: 'profile' },
+  { id: 'shipping',      label: 'Shipping addresses',   hint: 'Where your orders are delivered', icon: 'delivery' },
+  { id: 'appearance',    label: 'Photo and appearance', hint: 'Profile photo, mode and accent colour', icon: 'camera' },
   { id: 'notifications', label: 'Notifications',        hint: 'Choose what you get notified about', icon: 'notifications' },
-  { id: 'fabrics',       label: 'Preferred Fabrics',    hint: 'Fabrics staff should know about', icon: 'package' },
+  { id: 'fabrics',       label: 'Preferred fabrics',    hint: 'Fabrics the VFRB team should know about', icon: 'package' },
   { id: 'billing',       label: 'Invoice details',      hint: 'Billing name, company, billing address', icon: 'invoice' },
-  { id: 'password',      label: 'Password & Security',  hint: 'Change or recover your password', icon: 'lock' },
-  { id: 'help',          label: 'Help & Support',       hint: 'Guides and contact', icon: 'info' },
+  { id: 'password',      label: 'Password and security', hint: 'Change or recover your password', icon: 'lock' },
+  { id: 'help',          label: 'Help and support',     hint: 'Guides and contact', icon: 'info' },
   { id: 'feedback',      label: 'Feedback',             hint: 'Report a bug or suggest an idea', icon: 'chat' },
 ];
 const PANELS = {
@@ -319,20 +318,12 @@ export default function AccountSettings() {
   const sec = SECTIONS.some(x => x.id === tab) ? tab : null;
   const setSec = (id) => setParams(id ? { tab: id } : {}, { replace: !id });
   const [wide, setWide] = useState(() => typeof window !== 'undefined' && window.matchMedia('(min-width:900px)').matches);
-  const [me, setMe] = useState(() => { try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}'); } catch { return {}; } });
 
   useEffect(() => {
     const mq = window.matchMedia('(min-width:900px)');
     const h = e => setWide(e.matches);
     mq.addEventListener('change', h);
     return () => mq.removeEventListener('change', h);
-  }, []);
-  useEffect(() => {
-    axios.get('/api/customer/profile').then(r => setMe(m => ({ ...m, ...(r.data?.user ?? r.data ?? {}) }))).catch(() => {});
-    // A new photo from the Photo & Appearance panel shows on the header card at once.
-    const onUser = (e) => setMe(m => ({ ...m, avatar: e.detail?.avatar ?? null }));
-    window.addEventListener(USER_CHANGE_EVENT, onUser);
-    return () => window.removeEventListener(USER_CHANGE_EVENT, onUser);
   }, []);
 
   const active = wide ? (sec ?? 'profile') : sec;
@@ -368,15 +359,7 @@ export default function AccountSettings() {
 
   return (
     <div className="cx-page">
-      {(wide || !sec) && <PageHeader title="Account Settings" subtitle="Your profile, delivery, notifications and preferences." />}
-
-      {(wide || !sec) && (
-        <Card as="div" className="st-me" bodyClassName="st-me-in">
-          <span className="st-av" aria-hidden="true">{me.avatar ? <img src={me.avatar} alt="" /> : (me.name ?? '?').charAt(0).toUpperCase()}</span>
-          <span className="st-me-txt"><b>{me.name ?? 'Customer'}</b><small>{me.email ?? ''}</small></span>
-          {!wide && <Button onClick={() => setSec('profile')}>Edit profile</Button>}
-        </Card>
-      )}
+      {(wide || !sec) && <PageHeader title="Account settings" subtitle="Your profile, delivery, notifications and preferences." />}
 
       {wide ? (
         <div className="acct-split"><div>{list}</div><div>{panel}</div></div>

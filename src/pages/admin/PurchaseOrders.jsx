@@ -15,7 +15,7 @@ const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif
 const inp  = { width:'100%', padding:'10px 14px', borderRadius:10, border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)', fontSize:13, outline:'none', fontFamily:FONT, boxSizing:'border-box', transition:'border .15s,box-shadow .15s' };
 const fi   = e => { e.target.style.borderColor=T;         e.target.style.boxShadow=`0 0 0 3px rgba(2,128,144,.1)`; };
 const fo   = e => { e.target.style.borderColor='var(--border)'; e.target.style.boxShadow='none'; };
-const lbl  = { display:'block', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'var(--text-subtle)', marginBottom:7, fontFamily:FONT };
+const lbl  = { display:'block', fontSize:11, fontWeight:700, color:'var(--text-subtle)', marginBottom:7, fontFamily:FONT };
 const card = { background:'var(--bg-card)', border:'1px solid var(--border)', borderRadius:14, boxShadow:'0 1px 3px rgba(0,0,0,.05)' };
 
 const PO_STATUS = {
@@ -57,12 +57,12 @@ function ColorSwatchMatch({ orderedHex, receivedHex, onChangeReceived }) {
     <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
         {[
-          {icon:'orders', label:'Order Color', hex:orderedHex, onChange:null},
-          {icon:'inventory', label:'Received Color', hex:receivedHex, onChange:onChangeReceived},
+          {icon:'orders', label:'Order color', hex:orderedHex, onChange:null},
+          {icon:'inventory', label:'Received color', hex:receivedHex, onChange:onChangeReceived},
         ].map(({icon, label, hex, onChange}) => (
           <div key={label}>
             <p style={{ fontSize:10,fontWeight:700,color:'var(--text-subtle)',margin:'0 0 6px',
-              textTransform:'uppercase',letterSpacing:'.06em',fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}>
+fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}>
               <NavIcon name={icon} size={11} color="currentColor"/>{label}
             </p>
             <div style={{ position:'relative',height:60,borderRadius:10,
@@ -187,14 +187,14 @@ function NewRFQModal({ materials, onClose, onDone }) {
           </div>
           <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:12 }}>
             <div>
-              <label style={lbl}>Quantity Needed *</label>
+              <label style={lbl}>Quantity needed *</label>
               <input type="number" min={0.01} step={0.01} value={qty}
                 onChange={e=>setQty(e.target.value)} placeholder="0.00"
                 style={inp} onFocus={fi} onBlur={fo}/>
               {selMat && <p style={{ fontSize:10,color:'var(--text-subtle)',margin:'3px 0 0',fontFamily:FONT }}>Unit: {selMat.unit}</p>}
             </div>
             <div>
-              <label style={lbl}>Needed By</label>
+              <label style={lbl}>Needed by</label>
               <input type="date" value={byDate} min={new Date().toISOString().split('T')[0]}
                 onChange={e=>setByDate(e.target.value)} style={inp} onFocus={fi} onBlur={fo}/>
             </div>
@@ -289,13 +289,13 @@ function LogResponseModal({ rfq, suppliers, onClose, onDone }) {
           </div>
           <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:12 }}>
             <div>
-              <label style={lbl}>Unit Price (₱) *</label>
+              <label style={lbl}>Unit price (₱) *</label>
               <input type="number" min={0} step={0.01} value={price}
                 onChange={e=>setPrice(e.target.value)} placeholder="0.00"
                 style={inp} onFocus={fi} onBlur={fo}/>
             </div>
             <div>
-              <label style={lbl}>Qty Available</label>
+              <label style={lbl}>Qty available</label>
               <input type="number" min={0} step={0.01} value={qtyAvail}
                 onChange={e=>setQtyAvail(e.target.value)} placeholder={String(rfq.qty_needed)}
                 style={inp} onFocus={fi} onBlur={fo}/>
@@ -303,7 +303,7 @@ function LogResponseModal({ rfq, suppliers, onClose, onDone }) {
           </div>
           <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:12 }}>
             <div>
-              <label style={lbl}>Lead Time (days)</label>
+              <label style={lbl}>Lead time (days)</label>
               <input type="number" min={1} value={leadDays}
                 onChange={e=>setLeadDays(e.target.value)} placeholder="e.g. 7"
                 style={inp} onFocus={fi} onBlur={fo}/>
@@ -392,8 +392,8 @@ function printRFQ(rfq) {
     <table>
       <thead>
         <tr>
-          <th>#</th><th>Supplier</th><th>Unit Price</th><th>Qty Available</th>
-          <th>Lead Time</th><th>Notes</th><th>Status</th>
+          <th>#</th><th>Supplier</th><th>Unit price</th><th>Qty available</th>
+          <th>Lead time</th><th>Notes</th><th>Status</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -473,7 +473,7 @@ function ReceiveModal({ po, onClose, onDone }) {
           </div>
           <div>
             <label style={{ ...lbl,marginBottom:7 }}>
-              Color Notes{' '}
+              Color notes{' '}
               <span style={{ color:'var(--text-faint)',fontWeight:400,textTransform:'none' }}>
                 {mismatch?'(required for mismatch)':'(optional)'}
               </span>
@@ -545,10 +545,10 @@ function ConfirmColorModal({ po, onClose, onDone }) {
         </div>
         <div style={{ padding:'20px 22px',display:'flex',flexDirection:'column',gap:14 }}>
           <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10 }}>
-            {[{icon:'orders',label:'Order Color',h:po.order_color_hex},{icon:'inventory',label:'Received',h:po.received_color_hex}].map(({icon,label,h})=>(
+            {[{icon:'orders',label:'Order color',h:po.order_color_hex},{icon:'inventory',label:'Received',h:po.received_color_hex}].map(({icon,label,h})=>(
               <div key={label}>
                 <p style={{ fontSize:10,fontWeight:700,color:'var(--text-subtle)',margin:'0 0 6px',
-                  textTransform:'uppercase',letterSpacing:'.06em',fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}>
+fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}>
                   <NavIcon name={icon} size={11} color="currentColor"/>{label}
                 </p>
                 <div style={{ height:50,borderRadius:10,border:'2px solid var(--border)',
@@ -567,7 +567,7 @@ function ConfirmColorModal({ po, onClose, onDone }) {
             </p>
           </div>
           <div>
-            <label style={lbl}>Manager Confirmation Notes *</label>
+            <label style={lbl}>Manager confirmation notes *</label>
             <textarea value={notes} onChange={e=>setNotes(e.target.value)}
               placeholder="Why is this color acceptable? (e.g. customer approved off-shade)…"
               rows={3} style={{ ...inp, resize:'none' }} onFocus={fi} onBlur={fo}/>
@@ -711,7 +711,7 @@ export default function AdminPurchaseOrders() {
       {receiving && <ReceiveModal po={receiving} onClose={() => setReceiving(null)} onDone={(msg, hm) => { setReceiving(null); showToast(msg, hm ? 'warn' : 'success'); refresh(); }} />}
       {confirming && <ConfirmColorModal po={confirming} onClose={() => setConfirming(null)} onDone={(msg) => { setConfirming(null); showToast(msg); refresh(); }} />}
 
-      <PageHeader title="Procurement" sub="RFQ → Purchase Order → Goods receipt · color swatch matching on delivery">
+      <PageHeader title="Procurement" sub="RFQ → Purchase order → Goods receipt · color swatch matching on delivery">
         <button className="adm-btn" onClick={refresh}><NavIcon name="refresh" size={14} color="currentColor" /> Refresh</button>
         <button className="adm-btn primary" onClick={() => setNewRFQ(true)}><NavIcon name="add" size={14} color="currentColor" /> New RFQ</button>
       </PageHeader>

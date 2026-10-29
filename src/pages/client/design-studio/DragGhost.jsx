@@ -42,14 +42,14 @@ export default function DragGhost({ ghost }) {
             {ghost.preview
               ? (typeof ghost.preview === 'string' && ghost.preview.startsWith('data:')
                 ? <img src={ghost.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }}/>
-                : <span style={{ fontSize: 22 }}>{ghost.preview}</span>)
-              : <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(15,23,42,.5)', textAlign: 'center', lineHeight: 1.1 }}>
+                : <span style={{ fontSize: 24 }}>{ghost.preview}</span>)
+              : <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(15,23,42,.5)', textAlign: 'center', lineHeight: 1.1 }}>
                   {ghost.label}
                 </span>}
           </div>
           {ghost.over && (
             <span style={{
-              fontSize: 9, fontWeight: 800, color: '#fff', background: T2,
+              fontSize: 13, fontWeight: 800, color: '#fff', background: T2,
               padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap',
             }}>
               Drop to place

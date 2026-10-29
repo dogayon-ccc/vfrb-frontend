@@ -4,7 +4,7 @@ import { cacheGet, cacheClear } from '../../utils/cache';
 import { fetchResource } from '../../utils/adminResources';
 import BottomSheet from '../../components/ui/BottomSheet';
 import { NavIcon } from '../../components/ui/icons';
-import { isAdmin } from '../../utils/jobAccess';
+import { isAdmin, roleLabel, STAGES, STAGE_LABEL } from '../../utils/jobAccess';
 import { PageHeader, StatGrid, PillTabs, ErrorBlock, Panel, StatusPill, SearchBox, Avatar, SkeletonRows, Toast, useToast, useIsMobile } from '../../components/admin/AdminUI';
 
 const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif`;
@@ -13,22 +13,24 @@ const T = 'var(--teal)', T2 = 'var(--teal-2)';
 const inp = { width:'100%', padding:'10px 14px', borderRadius:10, border:'1px solid var(--border)', background:'#fff', color:'var(--ink)', fontSize:13, outline:'none', fontFamily:FONT, transition:'border .15s,box-shadow .15s', boxSizing:'border-box' };
 const fi  = e => { e.target.style.borderColor=T; e.target.style.boxShadow=`0 0 0 3px rgba(2,128,144,.1)`; };
 const fo  = e => { e.target.style.borderColor='var(--border)'; e.target.style.boxShadow='none'; };
-const lbl = { display:'block', fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.07em', color:'var(--text-subtle)', marginBottom:7 };
+const lbl = { display:'block', fontSize:11, fontWeight:700, color:'var(--text-subtle)', marginBottom:7 };
 
 // Admin-portal accounts listed here; customers created here are listed on the Clients page.
 const ROLE_CFG = {
   manager: { c:'var(--teal)', bg:'var(--teal-50, #f0fdfa)', l:'Administrator (Manager)', tab:'Administrators' },
-  // Retired role: old staff accounts stay listed so they can be reassigned or deactivated.
-  staff:   { c:'var(--info)', bg:'var(--info-bg)', l:'Staff (retired)', tab:'Retired staff', legacy:true },
+  staff:   { c:'var(--info)', bg:'var(--info-bg)', l:'Administrator (Station)', tab:'Stations' },
   owner:   { c:'var(--warning-text)', bg:'var(--warning-bg)', l:'Owner', tab:'Owners' },
 };
-const ADMIN_ROLES = ['manager', 'owner'];
+const ADMIN_ROLES = ['manager', 'staff', 'owner'];
+// Station accounts carry their stage; the API rejects a stage on any other role.
+const withStage = (body) => (body.role === 'staff' ? body : (({ assigned_stage, ...rest }) => rest)(body));
+const roleText = (u, rc) => (u.role === 'staff' ? roleLabel(u) : rc.l);
 const CLIENT_TYPES = [['corporate','Corporate'], ['school','School'], ['government','Government'], ['medical','Medical'], ['organization','Organization']];
 
-const INIT = { name:'', email:'', password:'', password_confirmation:'', role:'customer', contact_number:'', username:'', organization_name:'', client_type:'' };
+const INIT = { name:'', email:'', password:'', password_confirmation:'', role:'customer', contact_number:'', username:'', organization_name:'', client_type:'', assigned_stage:'' };
 
-function CreateUserModal({ onClose, onDone, isMobile, adminRoles }) {
-  const [form, setForm] = useState({ ...INIT });
+export function CreateUserModal({ onClose, onDone, isMobile, adminRoles, initial }) {
+  const [form, setForm] = useState({ ...INIT, ...initial });
   const [busy, setBusy] = useState(false);
   const [err,  setErr]  = useState('');
   const set = (k,v) => setForm(f => ({ ...f, [k]:v }));
@@ -44,9 +46,10 @@ function CreateUserModal({ onClose, onDone, isMobile, adminRoles }) {
     if (isCustomer && (!form.organization_name.trim() || !form.client_type)) {
       setErr('Organization and client type are required for a customer.'); return;
     }
+    if (form.role === 'staff' && !form.assigned_stage) { setErr('Choose the stage this Station works.'); return; }
     setBusy(true); setErr('');
     try {
-      const r = await axios.post('/api/admin/users', form);
+      const r = await axios.post('/api/admin/users', withStage(form));
       onDone(!isCustomer ? 'Account created.' : r.data?.password_link_sent
         ? 'Customer created. A link to set their own password was emailed to them.'
         : 'Customer created, but the password email could not be sent. Share the password you set, or ask them to use Forgot password.');
@@ -59,7 +62,7 @@ function CreateUserModal({ onClose, onDone, isMobile, adminRoles }) {
         <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
           <div className="um-modal-grid2">
             <div>
-              <label style={lbl}>Full Name *</label>
+              <label style={lbl}>Full name *</label>
               <input value={form.name} onChange={e=>set('name',e.target.value)} placeholder="e.g. Roxanne" style={inp} onFocus={fi} onBlur={fo}/>
             </div>
             <div>
@@ -70,6 +73,13 @@ function CreateUserModal({ onClose, onDone, isMobile, adminRoles }) {
               </select>
             </div>
           </div>
+          {form.role === 'staff' && <div>
+              <label style={lbl}>Stage *</label>
+              <select value={form.assigned_stage} onChange={e=>set('assigned_stage',e.target.value)} style={{ ...inp, cursor:'pointer' }}>
+                <option value="">Choose…</option>
+                {STAGES.map(k => <option key={k} value={k}>{STAGE_LABEL[k]}</option>)}
+              </select>
+            </div>}
           {isCustomer && (
             <>
               <div className="um-modal-grid2">
@@ -78,7 +88,7 @@ function CreateUserModal({ onClose, onDone, isMobile, adminRoles }) {
                   <input value={form.organization_name} onChange={e=>set('organization_name',e.target.value)} placeholder="e.g. St. Luke's Medical" style={inp} onFocus={fi} onBlur={fo}/>
                 </div>
                 <div>
-                  <label style={lbl}>Client Type *</label>
+                  <label style={lbl}>Client type *</label>
                   <select value={form.client_type} onChange={e=>set('client_type',e.target.value)} style={{ ...inp, cursor:'pointer' }}>
                     <option value="">Choose…</option>
                     {CLIENT_TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
@@ -93,11 +103,11 @@ function CreateUserModal({ onClose, onDone, isMobile, adminRoles }) {
             </>
           )}
           <div>
-            <label style={lbl}>Email Address *</label>
+            <label style={lbl}>Email address *</label>
             <input type="email" value={form.email} onChange={e=>set('email',e.target.value)} placeholder="name@company.com" style={inp} onFocus={fi} onBlur={fo}/>
           </div>
           <div>
-            <label style={lbl}>Contact Number</label>
+            <label style={lbl}>Contact number</label>
             <input value={form.contact_number} onChange={e=>set('contact_number',e.target.value)} placeholder="09XXXXXXXXX" style={inp} onFocus={fi} onBlur={fo}/>
           </div>
           <div className="um-modal-grid2">
@@ -106,7 +116,7 @@ function CreateUserModal({ onClose, onDone, isMobile, adminRoles }) {
               <input type="password" value={form.password} onChange={e=>set('password',e.target.value)} placeholder="Min 8 characters" style={inp} onFocus={fi} onBlur={fo}/>
             </div>
             <div>
-              <label style={lbl}>Confirm Password *</label>
+              <label style={lbl}>Confirm password *</label>
               <input type="password" value={form.password_confirmation} onChange={e=>set('password_confirmation',e.target.value)} placeholder="Repeat password" style={inp} onFocus={fi} onBlur={fo}/>
             </div>
           </div>
@@ -125,14 +135,16 @@ function CreateUserModal({ onClose, onDone, isMobile, adminRoles }) {
 }
 
 function EditUserModal({ user, onClose, onDone, isMobile }) {
-  const [role, setRole] = useState(user.role === 'staff' ? 'manager' : user.role);
+  const [role, setRole] = useState(user.role);
+  const [stage, setStage] = useState(user.assigned_stage ?? '');
   const [busy, setBusy] = useState(false);
   const [err,  setErr]  = useState('');
 
   const submit = async () => {
+    if (role === 'staff' && !stage) { setErr('Choose the stage this Station works.'); return; }
     setBusy(true); setErr('');
     try {
-      await axios.put(`/api/admin/users/${user.user_id}`, { role });
+      await axios.put(`/api/admin/users/${user.user_id}`, withStage({ role, assigned_stage: stage }));
       onDone();
     } catch(e) { setErr(e.response?.data?.message ?? 'Failed to update user.'); }
     finally { setBusy(false); }
@@ -147,6 +159,13 @@ function EditUserModal({ user, onClose, onDone, isMobile }) {
               {ADMIN_ROLES.map(v => <option key={v} value={v}>{ROLE_CFG[v].l}</option>)}
             </select>
           </div>
+          {role === 'staff' && <div>
+              <label style={lbl}>Stage *</label>
+              <select value={stage} onChange={e=>setStage(e.target.value)} style={{ ...inp, cursor:'pointer' }}>
+                <option value="">Choose…</option>
+                {STAGES.map(k => <option key={k} value={k}>{STAGE_LABEL[k]}</option>)}
+              </select>
+            </div>}
           {err && <p style={{ color:'var(--danger-text)', fontSize:12, fontWeight:600, display:'flex', alignItems:'center', gap:6 }}><NavIcon name="warning" size={13} color="var(--danger)"/>{err}</p>}
           <div style={{ display:'flex', gap:10, justifyContent:'flex-end', paddingTop:12, marginTop:2, borderTop:'1px solid var(--border)' }}>
             <button onClick={onClose} style={{ padding:'9px 18px', borderRadius:9, border:'1px solid var(--border)', background:'#fff', color:'var(--ink)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:FONT }}>Cancel</button>
@@ -176,7 +195,7 @@ function UserDetail({ u, isMe, canAct, onEdit, onToggle, toggling }) {
         </div>
       </div>
       <dl className="um-detail-list">
-        <div><dt>Role</dt><dd><span className="adm-pill" style={{ background:rc.bg, color:rc.c }}>{rc.l}</span></dd></div>
+        <div><dt>Role</dt><dd><span className="adm-pill" style={{ background:rc.bg, color:rc.c }}>{roleText(u, rc)}</span></dd></div>
         <div><dt>Status</dt><dd><StatusPill status={isActive ? 'active' : 'inactive'} label={isActive ? 'Active' : 'Inactive'} /></dd></div>
         <div><dt>Contact number</dt><dd>{u.contact_number || '—'}</dd></div>
         {u.organization_name && <div><dt>Organization</dt><dd>{u.organization_name}</dd></div>}
@@ -278,9 +297,6 @@ export default function AdminUserManagement() {
   return (
     <>
       <style>{`@keyframes sk{0%{background-position:-400px 0}100%{background-position:400px 0}}
-        @keyframes um-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-        .um-modal-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-        @media(max-width:480px){.um-modal-grid2{grid-template-columns:1fr;}}
         .um-split{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;align-items:start}
         .um-detail{display:none}
         .um-row.off{opacity:.65}
@@ -298,7 +314,7 @@ export default function AdminUserManagement() {
         .um-detail-mail{font-size:13px;color:var(--text-subtle);overflow-wrap:anywhere}
         .um-detail-list{margin:18px 0 0;display:grid;gap:12px}
         .um-detail-list>div{display:grid;grid-template-columns:130px minmax(0,1fr);gap:8px;align-items:center}
-        .um-detail-list dt{font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--text-subtle)}
+        .um-detail-list dt{font-size:12px;font-weight:800;color:var(--text-subtle)}
         .um-detail-list dd{margin:0;font-size:14px;color:var(--ink);overflow-wrap:anywhere}
         .um-detail-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)}
         .um-detail-empty{color:var(--text-subtle);font-size:14px}
@@ -327,17 +343,17 @@ export default function AdminUserManagement() {
       {loadErr && <div style={{ marginBottom:14 }}><ErrorBlock msg="Could not load users." onRetry={() => load(true)} /></div>}
 
       <StatGrid loading={loading} items={[
-        { label:'Total Accounts', value:users.length },
+        { label:'Total accounts', value:users.length },
         { label:'Active', value:users.filter(u => u.is_active !== false).length, color:'var(--success-text)' },
         { label:'Inactive', value:users.filter(u => u.is_active === false).length, color: users.some(u => u.is_active === false) ? 'var(--danger-text)' : undefined },
-        { label:'Administrators', value:(counts.manager ?? 0), color:'var(--teal)' },
+        { label:'Administrators', value:(counts.manager ?? 0) + (counts.staff ?? 0), color:'var(--teal)' },
       ]} />
 
       <div className="adm-toolbar">
         <SearchBox value={search} onChange={setSearch} placeholder="Search by name or email…" />
       </div>
       <PillTabs value={roleF} onChange={setRoleF} tabs={[
-        { key:'all', label:'All Users', count:users.length },
+        { key:'all', label:'All users', count:users.length },
         ...Object.entries(ROLE_CFG).filter(([key, r]) => !r.legacy || (counts[key] ?? 0) > 0).map(([key, r]) => ({ key, label:r.tab, count:counts[key] ?? 0 })),
       ]} />
 
@@ -373,7 +389,7 @@ export default function AdminUserManagement() {
                             </button>
                           </td>
                           <td className="adm-hide-t" style={{ color:'var(--text-subtle)' }}>{u.contact_number ?? '—'}</td>
-                          <td><span className="adm-pill" style={{ background:rc.bg, color:rc.c }}>{rc.l}</span></td>
+                          <td><span className="adm-pill" style={{ background:rc.bg, color:rc.c }}>{roleText(u, rc)}</span></td>
                           <td><StatusPill status={isActive ? 'active' : 'inactive'} label={isActive ? 'Active' : 'Inactive'} /></td>
                           <td className="um-col-act" onClick={(e) => e.stopPropagation()}>
                             {canAct && (
@@ -412,7 +428,7 @@ export default function AdminUserManagement() {
                       <div style={{ fontSize:14, fontWeight:800, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{u.name}{isMe && <span className="adm-chip" style={{ marginLeft:6, background:'var(--teal-50)', color:'var(--teal)' }}>YOU</span>}</div>
                       <div style={{ fontSize:12, color:'var(--text-subtle)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{u.email}</div>
                     </div>
-                    <span className="adm-pill" style={{ background:rc.bg, color:rc.c }}>{rc.l}</span>
+                    <span className="adm-pill" style={{ background:rc.bg, color:rc.c }}>{roleText(u, rc)}</span>
                   </div>
                   <div className="adm-mrow" style={{ marginTop:12, paddingTop:10, borderTop:'1px solid var(--bg-surface)' }}>
                     <span style={{ fontSize:12, color:'var(--text-subtle)' }}>{u.contact_number || 'No contact number'}</span>

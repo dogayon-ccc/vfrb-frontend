@@ -12,7 +12,7 @@ const TERMS   = ['full_payment', 'down_payment', 'net_30'];
 const METHOD_CFG = {
   cash:          { label: 'Cash',          icon: 'salesPay', bg: 'var(--success-bg)', fg: 'var(--success-text)' },
   gcash:         { label: 'GCash',         icon: 'phone',    bg: 'var(--purple-50)',  fg: 'var(--purple)' },
-  ewallet:       { label: 'E-Wallet',      icon: 'ewallet',  bg: 'var(--info-bg)',    fg: 'var(--info-text)' },
+  ewallet:       { label: 'E-wallet',      icon: 'ewallet',  bg: 'var(--info-bg)',    fg: 'var(--info-text)' },
   bank_transfer: { label: 'Bank Transfer', icon: 'bank',     bg: 'var(--warning-bg)', fg: 'var(--warning-text)' },
   not_yet_paid:  { label: 'Not yet paid',  icon: 'pending',  bg: 'var(--danger-bg)',  fg: 'var(--danger-text)' },
 };
@@ -35,7 +35,7 @@ const Balance = ({ t }) => (Number(t.balance_due) > 0
 function RecordModal({ onClose, onDone, isMobile, isManager }) {
   const [orders,    setOrders]    = useState(null);
   const [orderInfo, setOrderInfo] = useState(null);
-  const [form, setForm] = useState({ order_id: '', amount_paid: '', amount_total: '', payment_method: 'cash', payment_terms: 'down_payment', or_number: '', notes: '' });
+  const [form, setForm] = useState({ order_id: '', amount_paid: '', amount_total: '', payment_method: 'bank_transfer', payment_terms: 'down_payment', or_number: '', notes: '' });
   const [busy, setBusy] = useState(false);
   const [err,  setErr]  = useState('');
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
@@ -75,7 +75,7 @@ function RecordModal({ onClose, onDone, isMobile, isManager }) {
     finally { setBusy(false); }
   };
 
-  const refLabel = form.payment_method === 'gcash' ? 'GCash ref #' : form.payment_method === 'bank_transfer' ? 'Bank ref #' : 'OR number';
+  const refLabel = form.payment_method === 'gcash' ? 'GCash ref #' : form.payment_method === 'bank_transfer' ? 'Bank ref # (BDO / Metrobank)' : 'OR number';
   return (
     <BottomSheet title="Record payment" onClose={onClose} isMobile={isMobile} maxWidth={520}>
       <p style={{ fontSize: 12, color: 'var(--text-subtle)', margin: '-8px 0 14px' }}>No payment gateway — record what the customer paid.</p>
@@ -229,7 +229,7 @@ export default function AdminSalesTransactions() {
           {loading ? <SkeletonRows rows={5} h={44} /> : loadErr ? null : filtered.length === 0 ? empty : (
             <div className="adm-tbl-scroll">
               <table className="adm-table">
-                <thead><tr><th>Txn</th><th>Order</th><th>Customer</th><th>Paid</th><th>Balance</th><th>Method</th><th className="adm-hide-t">OR / Ref</th><th>Recorded</th></tr></thead>
+                <thead><tr><th>Txn</th><th>Order</th><th>Customer</th><th>Paid</th><th>Balance</th><th>Method</th><th className="adm-hide-t">OR / ref</th><th>Recorded</th></tr></thead>
                 <tbody>
                   {filtered.map((t, i) => (
                     <tr key={t.transaction_id ?? i}>

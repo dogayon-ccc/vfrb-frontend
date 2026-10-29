@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -9,8 +9,8 @@ import OrderBilling from '../../components/OrderBilling';
 import ProductionProgress from '../../components/admin/ProductionProgress';
 import ClientMaterialsPanel from '../../components/admin/ClientMaterialsPanel';
 import { savedDesignName } from '../../utils/designName';
-import { NavIcon, StatusChip, AlertBanner } from '../../components/ui';
-import { canAccessArea, readAdminUser, isAdmin } from '../../utils/jobAccess';
+import { NavIcon, StatusChip, AlertBanner, DataTable } from '../../components/ui';
+import { canAccessArea, readAdminUser, isAdmin, isStation, canOpen } from '../../utils/jobAccess';
 import { Panel, StatusPill, Meter, EmptyBlock, Toast, useToast, useIsMobile } from '../../components/admin/AdminUI';
 
 function getIsManager() {
@@ -27,8 +27,8 @@ function Field({ label, value }) {
   if (value == null || value === '' || value === '—') return null;
   return (
     <div>
-      <div style={{ fontSize:13, fontWeight:700, color:'var(--text-faint)', textTransform:'uppercase',
-        letterSpacing:'.04em', marginBottom:4, fontFamily:'var(--font)' }}>{label}</div>
+      <div style={{ fontSize:13, fontWeight:700, color:'var(--text-faint)',
+        marginBottom:4, fontFamily:'var(--font)' }}>{label}</div>
       <div style={{ fontSize:14, fontWeight:600, color:'var(--ink)', fontFamily:'var(--font)' }}>{value ?? '—'}</div>
     </div>
   );
@@ -61,8 +61,8 @@ function ReviewPanel({ order, onUpdated }) {
     <div style={{ background:'var(--warning-bg)', border:'1px solid var(--warning-border)', borderRadius:'var(--r-lg)',
       padding:20, marginBottom:16 }}>
       <h3 style={{ display:'flex', alignItems:'center', gap:7, margin:'0 0 4px', fontSize:13, fontWeight:800, color:'var(--warning-text)',
-        textTransform:'uppercase', letterSpacing:'.04em', fontFamily:'var(--font)' }}>
-        <NavIcon name="warning" size={14} color="var(--warning)" /> Review & Confirm
+ fontFamily:'var(--font)' }}>
+        <NavIcon name="warning" size={14} color="var(--warning)" /> Review & confirm
       </h3>
       <p style={{ fontSize:13, color:'var(--warning-text)', margin:'0 0 16px', fontFamily:'var(--font)' }}>
         This order is pending — nothing proceeds to production until it's confirmed here.
@@ -71,7 +71,7 @@ function ReviewPanel({ order, onUpdated }) {
 
       <div style={{ marginBottom:14 }}>
         <label style={{ display:'block', fontSize:13, fontWeight:700, color:'var(--text-subtle)',
-          textTransform:'uppercase', marginBottom:6, fontFamily:'var(--font)' }}>Note to the customer (required if cancelling)</label>
+ marginBottom:6, fontFamily:'var(--font)' }}>Note to the customer (required if cancelling)</label>
         <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
           placeholder="e.g. Quantity exceeds this week's production quota, proposing split delivery"
           style={{ width:'100%', padding:'9px 12px', borderRadius:'var(--r-md)', border:'1px solid var(--border)',
@@ -98,7 +98,7 @@ function ReviewPanel({ order, onUpdated }) {
 
 const inpStyle = { width:'100%', padding:'9px 12px', borderRadius:'var(--r-md)', border:'1px solid var(--border)',
   fontSize:13, boxSizing:'border-box', fontFamily:'var(--font)', background:'var(--bg-card)', color:'var(--ink)' };
-const lblStyle = { display:'block', fontSize:13, fontWeight:700, color:'var(--text-subtle)', textTransform:'uppercase', marginBottom:6, fontFamily:'var(--font)' };
+const lblStyle = { display:'block', fontSize:13, fontWeight:700, color:'var(--text-subtle)', marginBottom:6, fontFamily:'var(--font)' };
 const peso = v => `₱${Number(v ?? 0).toLocaleString('en-PH', { minimumFractionDigits:2, maximumFractionDigits:2 })}`;
 const PROPOSAL_LABEL = { pending:'Sent, waiting for the customer', accepted:'Accepted by the customer', declined:'Declined by the customer' };
 const apiError = (e, fallback) => {
@@ -295,19 +295,15 @@ function StaffCheck({ rec, setToast, onSaved }) {
 const NEXT_STEPS = ['Send proposal', 'Customer decides', 'Down payment', 'Production'];
 const jump = (sel) => document.querySelector(sel)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-// One clear "what do I do now" card for the manager: proposal, customer reply, down payment, production.
-function NextAction({ order }) {
-  const navigate = useNavigate();
-  if (order.status === 'cancelled') return null;
+// Where the manager stands: 0 proposal, 1 customer reply, 2 down payment, 3 production.
+function orderStep(order) {
   const ps = order.proposal_status;
   const dpDone = !!order.down_payment_received_at || order.order_type === 'subcontract';
-  const early = order.status === 'pending';
   const confirmedOnly = order.status === 'confirmed';
   const finished = order.status === 'completed';
-  let active = 0;
-  if (early) active = ps === 'pending' ? 1 : 0;
+  let active = 3;
+  if (order.status === 'pending') active = ps === 'pending' ? 1 : 0;
   else if (confirmedOnly && !dpDone) active = 2;
-  else active = 3;
   const copy = [
     ps === 'declined' ? 'The customer declined. Revise the date, total or note and send the proposal again.'
       : 'Set the promised date (at least 7 days out) and the total, add a note, then send your proposal.',
@@ -317,7 +313,21 @@ function NextAction({ order }) {
       : confirmedOnly ? 'Down payment is in. Begin the Pattern stage in Production so staff can log output.'
       : 'Production is open. Staff log output in the Output Log.',
   ][active];
-  const needsStart = active === 3 && confirmedOnly;
+  return { active, finished, copy, title: finished ? 'All done' : NEXT_STEPS[active], needsStart: active === 3 && confirmedOnly };
+}
+
+function useStepAction(order, step) {
+  const navigate = useNavigate();
+  if (!step) return null;
+  if (step.active === 0) return { label: 'Open proposal form', run: () => jump('#adm-prop-date') };
+  if (step.active === 2) return { label: 'Record down payment', run: () => jump('.adm-prop-dp') };
+  if (step.needsStart) return { label: 'Open Production', run: () => navigate(`/admin/production/${order.order_id}`) };
+  return null;
+}
+
+// One clear "what do I do now" card for the manager: proposal, customer reply, down payment, production.
+function NextAction({ step, action }) {
+  const { active, finished, copy, title } = step;
   return (
     <section className="adm-next" aria-label="Next action">
       <ol className="adm-next-steps">
@@ -331,14 +341,37 @@ function NextAction({ order }) {
       <div className="adm-next-body">
         <div>
           <div className="adm-next-kicker">Next action</div>
-          <div className="adm-next-title">{finished ? 'All done' : NEXT_STEPS[active]}</div>
+          <div className="adm-next-title">{title}</div>
           <p className="adm-next-copy">{copy}</p>
         </div>
-        {active === 0 && <button className="adm-btn primary" onClick={() => jump('#adm-prop-date')}>Open proposal form</button>}
-        {active === 2 && <button className="adm-btn primary" onClick={() => jump('.adm-prop-dp')}>Record down payment</button>}
-        {needsStart && <button className="adm-btn primary" onClick={() => navigate(`/admin/production/${order.order_id}`)}>Open Production</button>}
+        {action && <button className="adm-btn primary" onClick={action.run}>{action.label}</button>}
       </div>
     </section>
+  );
+}
+
+// Follows the reader once the order header scrolls away: order, status, current step and its one action.
+function OrderActionBar({ order, watch, title, action }) {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const el = watch.current;
+    if (!el) return undefined;
+    const io = new IntersectionObserver(([e]) => setShow(!e.isIntersecting && e.boundingClientRect.top < 0), { rootMargin: '-80px 0px 0px 0px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [watch]);
+  if (!action && !title) return null;
+  return (
+    <div className="adm-od-bar-anchor">
+      <div className="adm-od-bar" data-show={show || undefined} data-solo={!action || undefined} aria-hidden={!show} inert={show ? undefined : ''}>
+        <div className="adm-od-bar-id">
+          <strong>#{order.order_id}</strong>
+          <StatusPill status={order.status} />
+        </div>
+        {title && <span className="adm-od-bar-step">{title}</span>}
+        {action && <button type="button" className="adm-btn primary" onClick={action.run}>{action.label}</button>}
+      </div>
+    </div>
   );
 }
 
@@ -404,6 +437,10 @@ export default function AdminOrderDetail() {
     }
   };
 
+  const headRef = useRef(null);
+  const step = order && getIsManager() && order.status !== 'cancelled' ? orderStep(order) : null;
+  const stepAction = useStepAction(order, step);
+
   if (loading) {
     return (
       <div className="adm-od">
@@ -451,8 +488,10 @@ export default function AdminOrderDetail() {
 
   return (
     <div className="adm-od">
+      <OrderActionBar order={order} watch={headRef} title={step?.title}
+        action={stepAction ?? (canTrack ? { label: 'Track Production', run: () => navigate(`/admin/production/${order.order_id}`) } : null)} />
 
-      <div className="adm-od-head">
+      <div className="adm-od-head" ref={headRef}>
         <div style={{ minWidth:0 }}>
           <button className="adm-link-btn" onClick={() => navigate('/admin/orders')} style={{ display:'inline-flex', alignItems:'center', gap:5, padding:0, marginBottom:8, color:'var(--text-subtle)' }}>
             <NavIcon name="back" size={13} color="currentColor" /> All Orders
@@ -492,7 +531,7 @@ export default function AdminOrderDetail() {
 
       {order.status !== 'cancelled' && <ProductionProgress orderId={order.order_id} />}
 
-      {isManager && <NextAction order={order} />}
+      {step && <NextAction step={step} action={stepAction} />}
 
       {order.status === 'pending' && isManager && (
         <details className="adm-more">
@@ -534,15 +573,15 @@ export default function AdminOrderDetail() {
 
           <Panel title="Order Information" style={{ order:3 }}>
             <div className="adm-od-fields">
-              <Field label="Garment Type"   value={order.garment_type}/>
+              <Field label="Garment type"   value={order.garment_type}/>
               <Field label="Quantity"       value={order.quantity_ordered ? `${order.quantity_ordered} pcs` : null}/>
               <Field label="Color"          value={order.color}/>
               <Field label="Collar"         value={order.collar_type}/>
               <Field label="Sleeve"         value={order.sleeve_type}/>
               <Field label="Pocket"         value={order.pocket_type}/>
-              <Field label="Order Type"     value={order.order_type}/>
-              <Field label="Sizing Type"    value={order.sizing_type}/>
-              <Field label="PO Reference"   value={order.po_reference}/>
+              <Field label="Order type"     value={order.order_type}/>
+              <Field label="Sizing type"    value={order.sizing_type}/>
+              <Field label="PO reference"   value={order.po_reference}/>
             </div>
           </Panel>
 
@@ -559,19 +598,19 @@ export default function AdminOrderDetail() {
           </Panel>
 
           <Panel title="Quality Control" style={{ order:5 }}
-            action={canAccessArea(readAdminUser(), 'production') ? <button className="adm-link-btn" onClick={() => navigate('/admin/qc')}>QC checklist →</button> : null}>
+            action={canOpen('/admin/qc') ? <button className="adm-link-btn" onClick={() => navigate('/admin/qc')}>QC checklist</button> : null}>
             <div className="adm-od-fields">
-              <Field label="QC Required" value={order.qc_required ? 'Yes' : 'No'}/>
-              <Field label="QC Result" value={order.qc_passed_at ? `Passed ${fmtDay(order.qc_passed_at)}` : (qcHold ? 'Awaiting passing checklist' : 'Not passed yet')}/>
+              <Field label="QC required" value={order.qc_required ? 'Yes' : 'No'}/>
+              <Field label="QC result" value={order.qc_passed_at ? `Passed ${fmtDay(order.qc_passed_at)}` : (qcHold ? 'Awaiting passing checklist' : 'Not passed yet')}/>
             </div>
           </Panel>
 
           <Panel title="Delivery" style={{ order:6 }}
-            action={isManager ? <button className="adm-link-btn" onClick={() => navigate('/admin/delivery')}>Delivery →</button> : null}>
+            action={isManager ? <button className="adm-link-btn" onClick={() => navigate('/admin/delivery')}>Delivery</button> : null}>
             <div className="adm-od-fields">
-              <Field label="Customer Requested" value={fmtDay(order.target_delivery_date)}/>
+              <Field label="Customer requested" value={fmtDay(order.target_delivery_date)}/>
               <Field label="Negotiated"       value={fmtDay(order.negotiated_delivery_date)}/>
-              <Field label="Est. Completion"  value={fmtDay(order.estimated_completion_date)}/>
+              <Field label="Est. completion"  value={fmtDay(order.estimated_completion_date)}/>
             </div>
           </Panel>
 
@@ -612,39 +651,34 @@ export default function AdminOrderDetail() {
             <OrderDesignDetails order={order} />
           </Panel>
 
-          <ClientMaterialsPanel order={order} style={{ order:8 }} setToast={setToast}
-            canWrite={isManager} canMessage={isManager} />
+          {!isStation() && <ClientMaterialsPanel order={order} style={{ order:8 }} setToast={setToast}
+            canWrite={isManager} canMessage={isManager} />}
 
           <Panel title="Material Recommendations" flush style={{ order:8 }}>
-            {recs.length === 0 ? (
-              <EmptyBlock>No material recommendations recorded yet.</EmptyBlock>
-            ) : (
-              <div className="adm-tbl-scroll">
-                <table className="adm-table">
-                  <thead><tr><th>Material</th><th>Customer</th><th>Staff check</th><th>Consumption</th><th>In Stock</th></tr></thead>
-                  <tbody>
-                    {recs.map((rec, i) => (
-                      <tr key={rec.rec_id ?? i}>
-                        <td style={{ fontWeight:600 }}>{rec.material_name ?? rec.material?.material_name ?? rec.category ?? '—'}</td>
-                        <td style={{ textTransform:'capitalize' }}>{rec.customer_accepted ? 'Accepted' : (rec.status ?? 'pending')}</td>
-                        <td><StaffCheck rec={rec} setToast={setToast} onSaved={(f) => setOrder(o => ({ ...o, recommendations: o.recommendations.map(r => r.rec_id === rec.rec_id ? { ...r, ...f } : r) }))}/></td>
-                        <td>{rec.actual_qty_issued != null
-                          ? <>{rec.actual_qty_issued} {rec.unit ?? rec.material?.unit ?? ''} <span style={{ color:'var(--text-subtle)', fontSize:12 }}>· {rec.issued_at ? 'issued at Cutting' : 'recorded, deducts at Cutting'}</span></>
-                          : <span style={{ color:'var(--text-faint)' }}>Not yet recorded</span>}</td>
-                        <td style={{ color:'var(--text-subtle)' }}>{rec.material?.ownership === 'client'
-                          ? 'Client-supplied'
-                          : <>{rec.material?.quantity_in_stock ?? '—'} {rec.material?.unit ?? ''}</>}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            <DataTable label="Material recommendations" mobileCards densityToggle={false} className="adm-flush-table"
+              isEmpty={recs.length === 0} empty={<EmptyBlock>No material recommendations recorded yet.</EmptyBlock>}>
+              <thead><tr><th>Material</th><th>Customer</th><th>Staff check</th><th>Consumption</th><th>In stock</th></tr></thead>
+              <tbody>
+                {recs.map((rec, i) => (
+                  <tr key={rec.rec_id ?? i}>
+                    <td data-label="Material" style={{ fontWeight:600 }}>{rec.material_name ?? rec.material?.material_name ?? rec.category ?? '—'}</td>
+                    <td data-label="Customer" style={{ textTransform:'capitalize' }}>{rec.customer_accepted ? 'Accepted' : (rec.status ?? 'pending')}</td>
+                    <td data-label="Staff check"><StaffCheck rec={rec} setToast={setToast} onSaved={(f) => setOrder(o => ({ ...o, recommendations: o.recommendations.map(r => r.rec_id === rec.rec_id ? { ...r, ...f } : r) }))}/></td>
+                    <td data-label="Consumption">{rec.actual_qty_issued != null
+                      ? <>{rec.actual_qty_issued} {rec.unit ?? rec.material?.unit ?? ''} <span style={{ color:'var(--text-subtle)', fontSize:12 }}>· {rec.issued_at ? 'issued at Cutting' : 'recorded, deducts at Cutting'}</span></>
+                      : <span style={{ color:'var(--text-faint)' }}>Not yet recorded</span>}</td>
+                    <td data-label="In stock" style={{ color:'var(--text-subtle)' }}>{rec.material?.ownership === 'client'
+                      ? 'Client-supplied'
+                      : <>{rec.material?.quantity_in_stock ?? '—'} {rec.material?.unit ?? ''}</>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </DataTable>
           </Panel>
 
-          <Panel title="Billing" style={{ order:9 }}>
+          {!isStation() && <Panel title="Billing" style={{ order:9 }}>
             <OrderBilling orderId={order.order_id} mode="admin" isManager={isManager} />
-          </Panel>
+          </Panel>}
         </div>
       </div>
       <Toast toast={toast} />

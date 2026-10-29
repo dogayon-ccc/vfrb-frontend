@@ -46,7 +46,7 @@ export default function TextPanel({ onAdd, bodyColor }) {
           placeholder="e.g. VFRB Enterprise" maxLength={32} style={{ ...inputStyle, flex:1 }}/>
         <button type="button" onClick={()=>setShowEmoji(s=>!s)} aria-label="Insert emoji"
           style={{ width:38, borderRadius:9, border:`1px solid ${showEmoji?T2:'rgba(15,23,42,.1)'}`,
-            background: showEmoji ? 'rgba(2,195,154,.14)' : '#fff', fontSize:16, cursor:'pointer' }}>
+            background: showEmoji ? 'rgba(2,195,154,.14)' : '#fff', fontSize:15, cursor:'pointer' }}>
           🙂
         </button>
       </div>
@@ -56,7 +56,7 @@ export default function TextPanel({ onAdd, bodyColor }) {
           padding:8, borderRadius:9, background:'rgba(15,23,42,.04)' }}>
           {UNIQUE_EMOJIS.map(e => (
             <button key={e} type="button" onClick={()=>insertEmoji(e)}
-              style={{ fontSize:16, padding:4, border:'none', background:'none', cursor:'pointer', borderRadius:6 }}>
+              style={{ fontSize:15, padding:4, border:'none', background:'none', cursor:'pointer', borderRadius:6 }}>
               {e}
             </button>
           ))}
@@ -76,7 +76,7 @@ export default function TextPanel({ onAdd, bodyColor }) {
               fontWeight: font===f.id ? 700 : 400,
             }}>
             {f.label}
-            <span style={{ display:'block', fontFamily:'inherit', fontSize:10, fontWeight:400, opacity:.7 }}>{f.cat}</span>
+            <span style={{ display:'block', fontFamily:'inherit', fontSize:13, fontWeight:400, opacity:.7 }}>{f.cat}</span>
           </button>
         ))}
       </div>
@@ -99,7 +99,7 @@ export default function TextPanel({ onAdd, bodyColor }) {
         style={{
           padding:'9px', borderRadius:9, border:'none',
           background: val.trim() ? `linear-gradient(135deg,${T},${T2})` : 'rgba(15,23,42,.08)',
-          color: val.trim() ? '#fff' : 'rgba(15,23,42,.35)', fontSize:12, fontWeight:700, cursor: val.trim()?'pointer':'not-allowed',
+          color: val.trim() ? '#fff' : 'rgba(15,23,42,.35)', fontSize:13, fontWeight:700, cursor: val.trim()?'pointer':'not-allowed',
           display:'flex', alignItems:'center', justifyContent:'center', gap:6,
         }}>
         <NavIcon name="edit" size={13}/> Add to Canvas

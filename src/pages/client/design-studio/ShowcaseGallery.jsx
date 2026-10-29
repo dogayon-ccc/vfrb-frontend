@@ -8,6 +8,7 @@ import { Sparkles, X, CircleAlert } from 'lucide-react';
 import GarmentSilhouette from './GarmentSilhouette';
 import { deserializeDesign } from './designSerialization';
 import { applyGarment, FAMILY_BY_NAME } from './garmentCatalog';
+import { garmentLabel } from '../../../utils/designName';
 
 // The other client's look on this customer's design: shape and colours only; name, overlays and set stay the customer's own.
 export function openShowcase(p, config) {
@@ -58,7 +59,7 @@ export default function ShowcaseGallery({ showShowcase, setShowShowcase, setCfg 
                   <GarmentSilhouette garment={d.config?.garment} sleeve={d.config?.sleeve ?? 'Short'} fit={d.config?.fit} custom={d.config?.custom} colors={d.config?.colors ?? {}}
                     patterns={d.config?.patterns} patternParams={d.config?.patternParams} details={d.config?.details} width={64} height={78}/>
                   <span className="ds-show-label">{d.label}</span>
-                  <span className="ds-show-g">{d.garment}</span>
+                  <span className="ds-show-g">{garmentLabel(d.garment)}</span>
                 </button>
               ))}
             </div>

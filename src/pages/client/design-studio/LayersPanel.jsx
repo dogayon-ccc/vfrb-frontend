@@ -5,7 +5,7 @@ import { familyFor } from './garmentCatalog';
 const ICON = { logo: 'image', artwork: 'image', drawing: 'draw', shape: 'shapes', text: 'text', pocket: 'shapes' };
 const KIND = { logo: 'Logo', artwork: 'Artwork image', drawing: 'Drawing', shape: 'Shape', text: 'Text' };
 
-export default function LayersPanel({ layers, selectedId, garment, onSelect, onToggleVisibility, onToggleLock, onOpacity, onRename, onDelete, onReorder }) {
+export default function LayersPanel({ layers, selectedId, garment, onSelect, onToggleVisibility, onToggleLock, onOpacity, onRename, onDelete, onReorder, onAdd = null }) {
   const [dragId, setDragId] = useState(null);
   const [overId, setOverId] = useState(null);
   const [editingId, setEditingId] = useState(null);
@@ -47,9 +47,12 @@ export default function LayersPanel({ layers, selectedId, garment, onSelect, onT
   return (
     <div className="ds-lay">
       {layers.length === 0 ? (
-        <p className="ds-lay-empty">Layers: nothing on this side yet. Text, logos and shapes you add appear here.</p>
+        <div className="ds-lay-empty">
+          <p>Nothing on this side yet.</p>
+          {onAdd && <button type="button" className="ds-btn ds-btn--primary" onClick={onAdd}>Add a logo or text</button>}
+        </div>
       ) : (<>
-        <p className="ds-lay-count">Layers on this side Â· {layers.length}</p>
+        <p className="ds-lay-count">Layers on this side · {layers.length}</p>
         <ul className="ds-lay-list" aria-label="Layers, front-most first">
           {layers.map((layer, i) => {
             const sel = layer.id === selectedId;

@@ -1,10 +1,11 @@
 // Account draft offer: an in-flow strip under the bar (never over menus or the stage); restoring over existing work asks first.
 import { useState } from 'react';
 import { History, X } from 'lucide-react';
+import { garmentLabel } from '../../../utils/designName';
 
 export default function DraftStrip({ draft, hasWork, onRestore, onDismiss }) {
   const [confirm, setConfirm] = useState(false);
-  const name = draft.label || draft.studio_config?.name || draft.studio_config?.garment;
+  const name = garmentLabel(draft.label || draft.studio_config?.name || draft.studio_config?.garment);
   return (
     <div className="ds-draft" role="region" aria-label="Unfinished design">
       <History size={16} strokeWidth={2} aria-hidden="true" />

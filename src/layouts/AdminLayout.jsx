@@ -14,19 +14,15 @@ import AlertBanner from '../components/ui/AlertBanner';
 import ThreadPull from '../components/ui/ThreadPull';
 import useDialogFocus from '../hooks/useDialogFocus';
 import { prefetchPath } from '../utils/adminResources';
-import { readAdminUser, ownerCanOpen } from '../utils/jobAccess';
+import { readAdminUser, canOpen, roleLabel as roleLabelFor, isStation } from '../utils/jobAccess';
 import AccessDenied from '../components/AccessDenied';
 
 // Start loading a page's data the moment the pointer, keyboard or finger shows intent on its link.
 const intent = (to) => ({ onPointerEnter: () => prefetchPath(to), onFocus: () => prefetchPath(to), onTouchStart: () => prefetchPath(to) });
 import '../styles/admin.css';
 import logo from '../assets/company-logo.jpg';
-import {
-  LayoutDashboard, ClipboardList, Package, MessageSquare, ShoppingCart,
-  Truck, Layers, Factory, FileText, ShieldCheck, ScanLine,
-  Wallet, BarChart3, Receipt, Building2, Users, MessageCircle, Settings,
-  LogOut, Bell, Trophy, Contact, ScrollText, MoreHorizontal, Search, PanelLeftClose, PanelLeftOpen,
-} from 'lucide-react';
+import { LogOut, Bell, MoreHorizontal, Search, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { navFor, searchNav } from './adminNav';
 
 const RAIL_KEY = 'vfrb_admin_rail';
 // Stored choice wins; otherwise tablets start icon-only so content keeps its width.
@@ -43,25 +39,6 @@ const T  = 'var(--teal)';
 const T2 = 'var(--teal-2)';
 const MG = 'var(--purple)';
 
-const STAFF_NAV = [
-  { to:'/admin',              icon:LayoutDashboard, label:'Dashboard',    end:true, area:null,         group:'Overview'   },
-  { to:'/admin/orders',       icon:ClipboardList,   label:'Orders',                area:null,         group:'Sales'      },
-  { to:'/admin/customers',    icon:Contact,         label:'Customers',               area:null,         group:'Sales'      },
-  { to:'/admin/inventory',    icon:Package,         label:'Inventory',             area:'inventory',  group:'Inventory'  },
-  { to:'/admin/messages',     icon:MessageSquare,   label:'Messages',              area:null,         group:'Sales'      },
-  { to:'/admin/procurement',  icon:ShoppingCart,    label:'Procurement',           area:'inventory',  group:'Inventory'  },
-  { to:'/admin/delivery',     icon:Truck,           label:'Delivery',              area:null,         group:'Sales'      },
-  { to:'/admin/materials',    icon:Layers,          label:'Materials',             area:'inventory',  group:'Inventory'  },
-  { to:'/admin/production',   icon:Factory,         label:'Production Orders',     area:'production', group:'Production' },
-  { to:'/admin/output-log',   icon:FileText,        label:'Output Log',            area:'production', group:'Production' },
-  { to:'/admin/qc',           icon:ShieldCheck,     label:'QC Checklist',          area:'production', group:'Production' },
-  { to:'/admin/physical-count',icon:ScanLine,       label:'Physical Count',        area:'inventory',  group:'Inventory'  },
-  { to:'/admin/transactions', icon:Wallet,          label:'Sales & Pay',           area:null,         group:'Sales'      },
-];
-
-// Sidebar section order. Grouping happens at render time so the drawer keeps STAFF_NAV's order.
-const NAV_GROUPS = ['Overview', 'Sales', 'Inventory', 'Production', 'Admin'];
-
 function DrawerTile({ item, badge = 0 }) {
   return (
     <NavLink to={item.to} {...intent(item.to)} className={({ isActive }) => `adm-drawer-tile${isActive ? ' active' : ''}`} aria-label={badge ? `${item.label}, ${badge} new` : undefined}>
@@ -72,24 +49,6 @@ function DrawerTile({ item, badge = 0 }) {
     </NavLink>
   );
 }
-
-const MANAGER_EXTRA = [
-  { to:'/admin/reports',      icon:BarChart3,   label:'Reports'              },
-  { to:'/admin/invoice',      icon:Receipt,     label:'Invoice'              },
-  { to:'/admin/suppliers',    icon:Building2,   label:'Suppliers'            },
-  { to:'/admin/users',        icon:Users,       label:'User Management'      },
-  { to:'/admin/designs/showcase-queue', icon:Trophy, label:'Showcase'           },
-  { to:'/admin/feedback',     icon:MessageCircle,label:'Feedback'            },
-  { to:'/admin/audit-logs',   icon:ScrollText,  label:'Audit Log'            },
-  { to:'/admin/settings',     icon:Settings,    label:'Settings'             },
-];
-
-const MOB_NAV = [
-  { to:'/admin',           icon:LayoutDashboard, label:'Home',     end:true, area:null        },
-  { to:'/admin/orders',    icon:ClipboardList,   label:'Orders',            area:null        },
-  { to:'/admin/inventory', icon:Package,         label:'Stock',              area:'inventory' },
-  { to:'/admin/production',icon:Factory, label:'Production',        area:'production'},
-];
 
 function NotifRow({ n, onRead }) {
   const id      = n.notif_id ?? n.id;
@@ -157,11 +116,12 @@ export default function AdminLayout() {
   useAppearance(userId);
 
   const owner     = role === 'owner'; // read-only: only the pages OwnerReadOnly lets it GET
-  const isManager  = !owner;
-  const roleLabel  = owner ? 'Owner · view only' : 'Administrator (Manager)';
-  const visibleStaffNav = owner ? STAFF_NAV.filter(i => ownerCanOpen(i.to)) : STAFF_NAV;
-  const extraNav   = owner ? MANAGER_EXTRA.filter(i => ownerCanOpen(i.to)) : MANAGER_EXTRA;
-  const mobNav     = owner ? MOB_NAV.filter(i => ownerCanOpen(i.to)) : MOB_NAV;
+  const station   = isStation({ role });
+  const isManager  = !owner && !station;
+  const me         = { ...readAdminUser(), role };
+  const roleLabel  = roleLabelFor(me);
+  const allowed    = (i) => canOpen(i.to, me);
+  const nav        = navFor(allowed);
   // Owner has no /admin/messages access, so no badge poll.
   const msgUnread  = useUnreadMessages('/api/admin/messages/unread-count', !owner);
   const badgeFor   = (to) => (to === '/admin/messages' ? msgUnread : 0);
@@ -225,6 +185,15 @@ export default function AdminLayout() {
   }, []);
 
   useEffect(() => { setMoreOpen(false); }, [location.pathname]);
+
+  // The rail scrolls to the active page on load and on navigation; only the rail moves, never the page.
+  const navRef = useRef(null);
+  useEffect(() => {
+    const nav = navRef.current, link = nav?.querySelector('.adm-link.active');
+    if (!link) return;
+    const top = link.offsetTop - nav.offsetTop, bottom = top + link.offsetHeight;
+    if (top < nav.scrollTop || bottom > nav.scrollTop + nav.clientHeight) nav.scrollTop = Math.max(0, top - (nav.clientHeight - link.offsetHeight) / 2);
+  }, [location.pathname, collapsed]);
 
   const moreBtnRef = useRef(null);
   const moreRef = useRef(null);
@@ -300,11 +269,10 @@ export default function AdminLayout() {
   const initials = name ? name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase() : 'A';
 
   // Title shown in the top bar: the longest nav entry that matches the current URL.
-  const titleNav  = [...visibleStaffNav, ...extraNav].sort((a, b) => b.to.length - a.to.length);
-  // Page-jump box in the top bar: filters the same nav entries the sidebar shows.
-  const jumpHits  = jumpQ.trim() ? [...visibleStaffNav, ...extraNav].filter(i => i.label.toLowerCase().includes(jumpQ.trim().toLowerCase())).slice(0, 6) : [];
+  const titleNav  = [...nav.items].sort((a, b) => b.to.length - a.to.length);
+  const jumpHits  = searchNav(nav.items, jumpQ);
   const jumpGo    = (to) => { setJumpQ(''); setJumpOpen(false); setJumpIdx(0); jumpRef.current?.blur(); navigate(to); };
-  const roleChip  = owner ? 'Owner · view only' : 'Administrator';
+  const roleChip  = owner || station ? roleLabel : 'Administrator';
   const pageTitle = location.pathname === '/admin/dashboard'
     ? 'Dashboard'
     : (titleNav.find(i => (i.end ? location.pathname === i.to : location.pathname.startsWith(i.to)))?.label ?? 'Workspace');
@@ -365,7 +333,7 @@ export default function AdminLayout() {
           border: 1.5px solid color-mix(in srgb,var(--color-on-rail) 18%,transparent); }
         .adm-sb-brand { min-width: 0; flex: 1; }
         .adm-sb-brand b, .adm-sb-brand small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .adm-sb-brand b { font-size: 14px; font-weight: 800; letter-spacing: .08em; color: var(--color-on-rail); }
+        .adm-sb-brand b { font-size: 14px; font-weight: 800; letter-spacing: .01em; color: var(--color-on-rail); }
         .adm-sb-brand small { font-size: 12px; font-weight: 600; color: var(--teal-2); margin-top: 2px; }
         .rail-min .adm-sb-brand, .rail-min .adm-link-label, .rail-min .adm-sb-user-txt, .rail-min .adm-rail-toggle-label {
           position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
@@ -431,8 +399,6 @@ export default function AdminLayout() {
           margin: 18px 12px 6px;
           font-size: 11.5px;
           font-weight: 800;
-          letter-spacing: .14em;
-          text-transform: uppercase;
           color: color-mix(in srgb,var(--color-on-rail) 48%,transparent);
           white-space: nowrap;
         }
@@ -480,17 +446,16 @@ export default function AdminLayout() {
 
         .adm-sb-user {
           display: flex; align-items: center; gap: 12px; margin: 0 12px 12px; padding: 10px;
-          border-radius: 12px; background: color-mix(in srgb,var(--color-on-rail) 6%,transparent);
-          border: 1px solid var(--rail-line);
+          border-radius: 12px; background: transparent;
         }
         .adm-sb-user-txt { min-width: 0; }
-        .rail-min .adm-sb-user { justify-content: center; padding: 8px 0; background: transparent; border-color: transparent; }
+        .rail-min .adm-sb-user { justify-content: center; padding: 8px 0; }
         .adm-sb-user-av {
           width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%; overflow: hidden;
           display: grid; place-items: center; font-size: 14px; font-weight: 800; color: #fff;
         }
         .adm-sb-user b { display: block; font-size: 15px; font-weight: 800; color: var(--color-on-rail); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .adm-sb-user small { display: block; font-size: 13px; color: color-mix(in srgb,var(--color-on-rail) 70%,transparent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .adm-sb-user small { display: block; font-size: 13px; color: color-mix(in srgb,var(--color-on-rail) 70%,transparent); overflow-wrap: anywhere; }
         .adm-jump { position: relative; width: min(360px, 30vw); flex-shrink: 0; }
         .adm-jump > svg { position: absolute; left: 14px; top: 15px; color: var(--text-subtle); pointer-events: none; }
         .adm-jump kbd {
@@ -525,6 +490,7 @@ export default function AdminLayout() {
           border: 0; border-radius: 10px; background: none; color: var(--ink); font: 600 15px var(--font-sans); text-align: left; cursor: pointer;
         }
         .adm-jump-list button:hover, .adm-jump-list button:focus-visible { background: var(--teal-50); color: var(--teal-dark); }
+        .adm-jump-list small { margin-left: auto; font: 600 12px var(--font-sans); color: var(--text-subtle); }
         @keyframes jumpIn { from { opacity: 0; transform: translateY(-6px) scale(.98); } }
         .adm-crumb { min-width: 0; }
         .adm-crumb-t { margin: 0; font-size: 13px; font-weight: 700; color: var(--text-subtle); }
@@ -534,8 +500,6 @@ export default function AdminLayout() {
         .adm-sec {
           font-size: 12px;
           font-weight: 800;
-          text-transform: uppercase;
-          letter-spacing: .09em;
           color: color-mix(in srgb,var(--color-on-rail) 35%,transparent);
           padding: 14px 12px 6px;
           margin: 0;
@@ -665,20 +629,15 @@ export default function AdminLayout() {
           <div className="adm-sb-head">
             <img src={logo} alt="VFRB" className="adm-sb-logo"/>
             <div className="adm-sb-brand">
-              <b>VFRB ENTERPRISE</b>
+              <b>VFRB Enterprise</b>
               <small>Custom Uniforms</small>
             </div>
           </div>
 
-          <nav className="adm-nav-scroll" aria-label="Admin pages" style={{ flex:1, overflowY:'auto', overflowX:'hidden',
+          <nav ref={navRef} className="adm-nav-scroll" aria-label="Admin pages" style={{ flex:1, overflowY:'auto', overflowX:'hidden',
             padding:'8px 12px 16px' }} onScroll={() => setTip(null)}>
 
-            {NAV_GROUPS.map((g, gi) => {
-              const items = g === 'Admin'
-                ? [...visibleStaffNav.filter(i => i.group === g), ...extraNav]
-                : visibleStaffNav.filter(i => i.group === g);
-              if (!items.length) return null;
-              return (
+            {nav.groups.map(({ name: g, items }, gi) => (
                 <div key={g} role="group" aria-label={g}>
                   <p className="adm-nav-group" aria-hidden="true" style={gi === 0 ? { marginTop:4 } : undefined}>{g}</p>
                   {items.map(item => {
@@ -697,8 +656,7 @@ export default function AdminLayout() {
                     );
                   })}
                 </div>
-              );
-            })}
+            ))}
 
           </nav>
 
@@ -765,7 +723,7 @@ export default function AdminLayout() {
                     <li key={i.to} id={`adm-jump-${n}`} role="option" aria-selected={n === jumpIdx}>
                       <button type="button" tabIndex={-1} className={n === jumpIdx ? 'on' : undefined}
                         onMouseEnter={() => setJumpIdx(n)} onMouseDown={e => { e.preventDefault(); jumpGo(i.to); }}>
-                        <i.icon size={18} strokeWidth={1.9} aria-hidden="true"/>{i.label}
+                        <i.icon size={18} strokeWidth={1.9} aria-hidden="true"/>{i.label}<small>{i.group}</small>
                       </button>
                     </li>
                   ))}
@@ -775,6 +733,7 @@ export default function AdminLayout() {
 
             <span className={`adm-role-chip adm-desk-only${owner ? ' owner' : ''}`}>{roleChip}</span>
             {owner && <span className="adm-role-chip owner adm-mob-only" aria-label="Owner, view only">Owner</span>}
+            {station && <span className="adm-role-chip adm-mob-only" aria-label={roleLabel}>{roleLabel.split(' · ')[1]}</span>}
 
             {!owner && <div ref={bellRef} style={{ position:'relative' }}>
               <motion.button
@@ -807,7 +766,7 @@ export default function AdminLayout() {
                         justifyContent:'center', padding:'0 3px',
                         border:'2px solid var(--bg-card)',
                       }}>
-                      {unread > 99 ? '99+' : unread}
+                      {unread > 9 ? '9+' : unread}
                     </motion.span>
                   )}
                 </AnimatePresence>
@@ -875,8 +834,8 @@ export default function AdminLayout() {
                           {notifToday.length > 0 && (
                             <>
                               <div style={{ padding:'8px 16px 4px', fontSize:12, fontWeight:800,
-                                color:'var(--text-faint)', textTransform:'uppercase',
-                                letterSpacing:'.08em', background:'var(--bg-surface)' }}>Today</div>
+                                color:'var(--text-faint)',
+                                background:'var(--bg-surface)' }}>Today</div>
                               {notifToday.map(n => (
                                 <NotifRow key={n.notif_id ?? n.id} n={n} onRead={markRead}/>
                               ))}
@@ -885,8 +844,8 @@ export default function AdminLayout() {
                           {notifEarlier.length > 0 && (
                             <>
                               <div style={{ padding:'8px 16px 4px', fontSize:12, fontWeight:800,
-                                color:'var(--text-faint)', textTransform:'uppercase',
-                                letterSpacing:'.08em', background:'var(--bg-surface)',
+                                color:'var(--text-faint)',
+                                background:'var(--bg-surface)',
                                 borderTop: notifToday.length > 0 ? '1px solid var(--bg-surface)' : 'none' }}>
                                 Earlier
                               </div>
@@ -957,7 +916,7 @@ export default function AdminLayout() {
               </AlertBanner>
             )}
             <PageErrorBoundary resetKey={location.pathname}>
-              <div key={location.pathname} className="adm-page vfrb-page thread-page"><Suspense fallback={<AppPageSkeleton/>}>{owner && !ownerCanOpen(location.pathname) ? <AccessDenied what="This page"/> : <Outlet/>}</Suspense><ThreadPull/></div>
+              <div key={location.pathname} className="adm-page vfrb-page thread-page"><Suspense fallback={<AppPageSkeleton/>}>{!canOpen(location.pathname, me) ? <AccessDenied what="This page"/> : <Outlet/>}</Suspense><ThreadPull/></div>
             </PageErrorBoundary>
           </div>
         </main>
@@ -977,12 +936,8 @@ export default function AdminLayout() {
                 animate={{ y:0, opacity:1, transition:{ duration:.24, ease:[.22, 1, .36, 1] } }}
                 exit={{ y:80, opacity:0, pointerEvents:'none', transition:{ duration:.16, ease:'easeIn' } }}>
 
-                {NAV_GROUPS.map(g => {
-                  const inBar = mobNav.map(i => i.to);
-                  const items = [
-                    ...visibleStaffNav.filter(i => i.group === g && !inBar.includes(i.to)),
-                    ...(g === 'Admin' ? extraNav : []),
-                  ];
+                {nav.groups.map(({ name: g, items: all }) => {
+                  const items = all.filter(i => !i.short);
                   if (!items.length) return null;
                   return (
                     <div key={g} role="group" aria-label={g}>
@@ -1001,7 +956,7 @@ export default function AdminLayout() {
         </AnimatePresence>
 
         <nav className="adm-bnav" aria-label="Mobile navigation">
-          {mobNav.map(item => {
+          {nav.bar.map(item => {
             const active = item.end
               ? location.pathname === item.to
               : location.pathname.startsWith(item.to);
@@ -1012,7 +967,7 @@ export default function AdminLayout() {
                   style={{ filter: active ? 'none' : 'grayscale(.4) opacity(.65)' }}>
                   <item.icon size={22} strokeWidth={2}/>
                 </span>
-                <span className="adm-bnav-label">{item.label}</span>
+                <span className="adm-bnav-label">{item.short}</span>
               </NavLink>
             );
           })}

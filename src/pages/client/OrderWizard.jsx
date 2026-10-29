@@ -1,1358 +1,115 @@
-// src/pages/client/OrderWizard.jsx
-// 4-step order wizard: Design → Configure → Sizing → Review.
-// On submit, hands off to MaterialsReveal instead of navigating directly.
+// Order Wizard: Design → Sizes → Delivery → Review, then MaterialsReveal for each created order.
+// A Studio design (or each piece of a uniform set) arrives via sessionStorage and is never re-entered here.
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import axios from 'axios';
+import MaterialsReveal from './MaterialsReveal';
+import { AlertBanner, NavIcon } from '../../components/ui';
 import { clearStudioHandoff, draftFingerprint, peekDesignRef } from '../../utils/studioHandoff';
-import { checkUpload } from '../../utils/fileCheck';
-import { useState, useEffect, useRef } from 'react';
-import DesignPreview from '../../components/DesignPreview';
-import SizeChartTable from '../../components/SizeChartTable';
-import { PH_SIZE_CHART } from '../../utils/sizeChart';
-import { useNavigate }                                   from 'react-router-dom';
-import { motion, AnimatePresence }                       from 'framer-motion';
-import axios                                             from 'axios';
-import MaterialsReveal                                   from './MaterialsReveal';
-import { orderQueue, setNote, ROLE_LABEL }               from './design-studio/uniformSet'; // post-submit AI-materials reveal, see its own header for SCOPE-001
-import { STD_SIZES, MIN_ORDER_QTY, orderQty, qtyShort } from '../../utils/orderQuantity';
-import { NavIcon }                                        from '../../components/ui/icons';
-import { zonesFor }                                       from './design-studio/dsShared';
-import useDialogFocus                                    from '../../hooks/useDialogFocus';
-
-
-const T    = 'var(--teal)';
-const T2   = '#02C39A';
-const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif`;
-
-// ── Shared style helpers ──────────────────────────────────────────────────────
-const inp = {
-  width:'100%', minHeight:44, padding:'10px 14px', borderRadius:10, background:'#fff',
-  border:'1px solid var(--border)', color:'var(--ink)', fontSize:13, outline:'none',
-  fontFamily:FONT, transition:'border .15s,box-shadow .15s', boxSizing:'border-box',
-};
-const fi = e => { e.target.style.borderColor=T; e.target.style.boxShadow=`0 0 0 3px rgba(2,128,144,.1)`; };
-const fo = e => { e.target.style.borderColor='var(--border)'; e.target.style.boxShadow='none'; };
-const lbl = {
-  display:'block', fontSize:13, fontWeight:700, textTransform:'uppercase',
-  letterSpacing:'.07em', color:'var(--text-subtle)', marginBottom:7, fontFamily:FONT,
-};
-const errMsg = (msg) => msg
-  ? <p style={{ color:'#ef4444', fontSize:13, marginTop:5, fontFamily:FONT, display:'flex', alignItems:'center', gap:4 }}><NavIcon name="warning" size={11} color="#ef4444"/> {msg}</p>
-  : null;
-
-const COLLAR_MAP = { 'V-Neck':'V-Neck', 'Polo Collar':'Polo Collar', 'Round Neck':'Round Neck', 'Mandarin':'Mandarin Collar' };
-
-// Keyed on Design Studio's raw sleeve pill values, not the SLEEVES dropdown labels.
-const SLEEVE_MAP = { 'Sleeveless':'Sleeveless', 'Short':'Short Sleeve', '3/4':'3/4 Sleeve', 'Long':'Long Sleeve', 'Raglan':'Raglan Sleeve' };
-
-// Design Studio has no separate collar-style picker at all (serializeDesign always
-// writes collarType:null — see designSerialization.js) — so collar_type can only ever
-// be pre-filled by inference from the garment name the customer already chose in
-// Studio, never from a Studio-captured collar value. For 'Round Neck'/'Mandarin
-// Collar' the garment name literally IS the collar style. For the additional names
-// below, the garment shape unambiguously implies one specific real-world collar
-// (checked against COLLARS' own option list so every value here is a valid pick) —
-// pre-filling these closes the "customer re-enters what Studio already decided" gap
-// for the common top garments; garments left out (Blouse, Jacket, Vest, Scrub Top,
-// Lab Coat, Polo Barong, School Uniform Top, Medical Scrubs Top, Others) genuinely
-// have more than one plausible real-world collar for the same drawn shape, so asking
-// there is a real question, not a re-ask, and is intentionally left alone.
-const GARMENT_IMPLIED_COLLAR = {
-  'Round Neck':      'Round Neck',
-  'Mandarin Collar': 'Mandarin Collar',
-  'Polo Shirt':      'Polo Collar',
-  'School Polo':     'Polo Collar',
-  'V-Neck Shirt':    'V-Neck',
-  'Button-Down':     'Button Down',
-};
-
-const HEX_TO_NAME = {
-  '#028090':'Teal','#1e3a5f':'Navy Blue','#7f1d1d':'Dark Red','#14532d':'Dark Green',
-  '#f0f0f0':'White','#1a1a1a':'Black','#6b7280':'Gray','#dc2626':'Red',
-  '#2563eb':'Blue','#7c3aed':'Purple','#db2777':'Pink','#d97706':'Orange',
-  '#1B2A4A':'Navy Blue','#2952A3':'Royal Blue','#006A4E':'Bottle Green',
-  '#800000':'Maroon','#808080':'Gray','#FFFFFF':'White','#000000':'Black',
-  '#87CEEB':'Sky Blue','#AED6F1':'Light Blue',
-};
-const hexToName = h => HEX_TO_NAME[h?.toUpperCase?.()] ?? HEX_TO_NAME[h] ?? (h ? h.toUpperCase() : '');
-
-// Module-level so validate() (outside StepDesign) can also read it.
-const GARMENT_SPECS = {
-  // garment_type: { needsCollar, needsSleeve, needsPocket, needsWaist, category }
-  // T-Shirt's scan has no collar node (see design-studio/dsShared.js zonesFor) — matches that, not independently re-derived.
-  'T-Shirt':                   { needsCollar:false, needsSleeve:true,  needsPocket:false, needsWaist:false, cat:'top' },
-  'Polo Shirt':                { needsCollar:true,  needsSleeve:true,  needsPocket:true,  needsWaist:false, cat:'top' },
-  'School Uniform Top':        { needsCollar:true,  needsSleeve:true,  needsPocket:true,  needsWaist:false, cat:'top' },
-  'School Uniform Bottom':     { needsCollar:false, needsSleeve:false, needsPocket:false, needsWaist:true,  cat:'bottom' },
-  // PE Uniform Top/Bottom removed per VFRB_ENGINEERING_CONSTITUTION.md ("NO SPORTS / PE
-  // CATEGORY") — same rule this session applied to garmentCatalog.js's CATEGORY_DEFS.
-  // garment_type is free-text server-side (OrderController.php: 'required|string|max:60',
-  // not an enum), so removing these two options here doesn't affect any backend contract.
-  'Blouse':                    { needsCollar:true,  needsSleeve:true,  needsPocket:false, needsWaist:false, cat:'top' },
-  'Polo Barong':                { needsCollar:true,  needsSleeve:true,  needsPocket:true,  needsWaist:false, cat:'top' },
-  'Medical Scrubs Top':        { needsCollar:true,  needsSleeve:true,  needsPocket:true,  needsWaist:false, cat:'top' },
-  'Medical Scrubs Bottom':     { needsCollar:false, needsSleeve:false, needsPocket:false, needsWaist:true,  cat:'bottom' },
-  'Shorts':                    { needsCollar:false, needsSleeve:false, needsPocket:true,  needsWaist:true,  cat:'bottom' },
-  'Pants':                     { needsCollar:false, needsSleeve:false, needsPocket:true,  needsWaist:true,  cat:'bottom' },
-  'Skirt':                     { needsCollar:false, needsSleeve:false, needsPocket:false, needsWaist:true,  cat:'bottom' },
-  'Jacket':                    { needsCollar:true,  needsSleeve:true,  needsPocket:true,  needsWaist:false, cat:'top' },
-  'Vest':                      { needsCollar:true,  needsSleeve:false, needsPocket:true,  needsWaist:false, cat:'top' },
-  'Others':                    { needsCollar:true,  needsSleeve:true,  needsPocket:true,  needsWaist:false, cat:'top' },
-  // Flags cross-checked against each garment's BASE_PATHS in DesignStudio.jsx.
-  'Scrub Top':                 { needsCollar:true,  needsSleeve:true,  needsPocket:true,  needsWaist:false, cat:'top' },
-  'V-Neck Shirt':               { needsCollar:true,  needsSleeve:true,  needsPocket:false, needsWaist:false, cat:'top' },
-  'Lab Coat':                  { needsCollar:true,  needsSleeve:true,  needsPocket:true,  needsWaist:false, cat:'top' },
-  'Lab Coverall':              { needsCollar:true,  needsSleeve:true,  needsPocket:true,  needsWaist:true,  cat:'top' },
-  'School Polo':                { needsCollar:true,  needsSleeve:true,  needsPocket:true,  needsWaist:false, cat:'top' },
-  'Round Neck':                 { needsCollar:true,  needsSleeve:true,  needsPocket:true,  needsWaist:false, cat:'top' },
-  'Mandarin Collar':            { needsCollar:true,  needsSleeve:true,  needsPocket:false, needsWaist:false, cat:'top' },
-  'Button-Down':                { needsCollar:true,  needsSleeve:true,  needsPocket:true,  needsWaist:false, cat:'top' },
-  'Blazer':                     { needsCollar:true,  needsSleeve:true,  needsPocket:true,  needsWaist:false, cat:'top' },
-  'Collarless Blazer':          { needsCollar:false, needsSleeve:true,  needsPocket:true,  needsWaist:false, cat:'top' },
-  'Dress':                      { needsCollar:true,  needsSleeve:true,  needsPocket:false, needsWaist:true,  cat:'top' },
-  'Pleated Skirt':              { needsCollar:false, needsSleeve:false, needsPocket:false, needsWaist:true,  cat:'bottom' },
-  // 'Track Pants' removed — it only ever appeared under the PE/Sports category, which
-  // garmentCatalog.js's CATEGORY_DEFS no longer has (constitution: "NO SPORTS / PE
-  // CATEGORY"). Leaving it here would make it a stale option this manual dropdown could
-  // still select even though no Studio category can reach it anymore.
-};
-const GARMENTS = Object.keys(GARMENT_SPECS);
-
-// The 14 garments the Design Studio actually models (dsShared.js CATS) get their
-// collar/sleeve flags from zonesFor() instead of the hand-set values above — same
-// bug class as the T-Shirt fix, now closed for good instead of one garment at a
-// time. needsPocket is deliberately left hand-set: checked against garmentPaths.js
-// and it diverges for Pants/Shorts (no pocket path in the Studio, but the table
-// says needsPocket:true) — that's very likely a real manufacturing-order concept
-// distinct from the Studio's colorable pocket zone, not a bug, so not collapsed
-// here. needsWaist/cat aren't modeled by zonesFor() either and stay hand-set.
-const STUDIO_GARMENTS = new Set([
-  'T-Shirt','Polo Shirt','Shorts','Pants','Skirt','Scrub Top','V-Neck Shirt',
-  'Lab Coat','Lab Coverall','School Polo','Round Neck','Mandarin Collar',
-  'Button-Down','Blouse','Blazer','Collarless Blazer','Dress','Pleated Skirt',
-]);
-for (const name of STUDIO_GARMENTS) {
-  const zones = zonesFor(name);
-  GARMENT_SPECS[name].needsCollar = zones.includes('collar');
-  GARMENT_SPECS[name].needsSleeve = zones.includes('sleeve');
-}
-
-// Same completeness check drives both the mount-time auto-skip and StepQuantitySize's banner — one definition, not two.
-// fromStudio: backend treats collar/sleeve as nullable, so a Studio design never needs them re-entered.
-function studioComplete(garmentType, collarType, sleeveType, notes, fromStudio = false) {
-  const spec = GARMENT_SPECS[garmentType];
-  if (!garmentType || !spec) return false;
-  if (!fromStudio && spec.needsCollar && !collarType) return false;
-  if (!fromStudio && spec.needsSleeve && !sleeveType) return false;
-  return !!notes?.trim();
-}
-
-// ── Studio banner ─────────────────────────────────────────────────────────────
-function StudioBanner({ cfg, onClear, onEdit }) {
-  const bodyColor = cfg.colors?.body ?? T;
-  const garmentName = cfg.garmentType ?? cfg.garment ?? '';
-  // Same rule as the mount pre-fill below: only claim a collar value when
-  // one genuinely exists (either sent by studio_config or implied by a
-  // garment name that IS a collar style). Never fabricate one.
-  const collarDisplay = GARMENT_IMPLIED_COLLAR[garmentName]
-    ?? (cfg.collarType ?? cfg.collar ?? null);
-  // Same mapping SLEEVE_MAP uses for the dropdown, so the banner text
-  // never shows a raw DS value ("Long") next to a dropdown that actually
-  // needs "Long Sleeve" — keeps the summary line and the form in sync.
-  const sleeveDisplay = SLEEVE_MAP[cfg.sleeveType ?? cfg.sleeve] ?? null;
-  const allPrefilled = !!(garmentName && collarDisplay && sleeveDisplay);
-  return (
-    <motion.div initial={{ opacity:0, y:-8 }} animate={{ opacity:1, y:0 }}
-      style={{ padding:'14px 16px', borderRadius:14, marginBottom:20,
-        background:'rgba(2,195,154,.07)', border:'1.5px solid rgba(2,195,154,.3)',
-        display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
-
-      {/* Color preview or PNG thumbnail */}
-      {cfg.previewPng ? (
-        <div style={{ width:52, height:52, borderRadius:10, flexShrink:0,
-          overflow:'hidden', border:'2px solid rgba(2,195,154,.3)' }}>
-          <img src={cfg.previewPng} alt="design"
-            style={{ width:'100%', height:'100%', objectFit:'cover' }}/>
-        </div>
-      ) : (
-        <div style={{ width:52, height:52, borderRadius:10, flexShrink:0,
-          background:bodyColor, border:'2px solid rgba(2,195,154,.3)',
-          display:'flex', alignItems:'center', justifyContent:'center', fontSize:24 }}>
-          <NavIcon name="garmentType" size={22} color="#fff"/>
-        </div>
-      )}
-
-      <div style={{ flex:1, minWidth:140 }}>
-        <span style={{ fontSize:13, fontWeight:700, padding:'2px 9px', borderRadius:100,
-          background:'rgba(2,195,154,.15)', color:T, fontFamily:FONT, display:'inline-flex', alignItems:'center', gap:4 }}>
-          <NavIcon name="designStudio" size={11} color={T}/> {cfg.name || 'Designed in Studio'}
-        </span>
-        <p style={{ color:'var(--ink)', fontSize:13, fontWeight:600, margin:'5px 0 1px', fontFamily:FONT }}>
-          {[garmentName, collarDisplay, sleeveDisplay].filter(Boolean).join(' · ')}
-        </p>
-        <p style={{ color:'var(--text-subtle)', fontSize:13, margin:0, fontFamily:FONT }}>
-          {[cfg.category, 'Carried over from your Studio design'].filter(Boolean).join(' · ')}
-        </p>
-      </div>
-
-      <div style={{ display:'flex', gap:7 }}>
-        <motion.button whileTap={{ scale:.95 }}
-          onClick={onEdit}
-          style={{ padding:'7px 12px', minHeight:40, borderRadius:9, cursor:'pointer', fontSize:13,
-            fontWeight:600, background:'rgba(2,195,154,.10)',
-            border:'1px solid rgba(2,195,154,.3)', color:T,
-            fontFamily:FONT, transition:'background .13s' }}>
-          Edit in Studio
-        </motion.button>
-        <motion.button whileTap={{ scale:.95 }} onClick={onClear}
-          style={{ padding:'7px 12px', borderRadius:9, cursor:'pointer', fontSize:13,
-            fontWeight:500, background:'var(--bg-surface)', border:'1px solid var(--border)',
-            color:'var(--text-subtle)', fontFamily:FONT }}>
-          Clear
-        </motion.button>
-      </div>
-    </motion.div>
-  );
-}
-
-// ── Step 0: Design ────────────────────────────────────────────────────────────
-function Adv({ on, open, children }) {
-  if (!on) return <>{children}</>;
-  return (
-    <details className="wz-adv" open={open}>
-      <summary>Adjust details manually <small>(optional - your Studio design is already saved)</small></summary>
-      <div className="wz-adv-b">{children}</div>
-    </details>
-  );
-}
-
-function StudioRefNote({ file, onRemove }) {
-  const [url, setUrl] = useState(null);
-  useEffect(() => { const u = URL.createObjectURL(file); setUrl(u); return () => URL.revokeObjectURL(u); }, [file]);
-  return (
-    <div style={{ display:'flex', alignItems:'center', gap:12, padding:12, borderRadius:14, border:'1px solid var(--border)', background:'#fff' }}>
-      {url && <img src={url} alt="" width={56} height={56} style={{ objectFit:'cover', borderRadius:8, flexShrink:0, background:'var(--bg-surface)' }}/>}
-      <div style={{ flex:1, minWidth:0 }}>
-        <p style={{ margin:0, fontSize:13, fontWeight:700, color:'var(--ink)', fontFamily:FONT }}>Reference photo for VFRB</p>
-        <p style={{ margin:'2px 0 0', fontSize:13, color:'var(--text-subtle)', fontFamily:FONT, overflowWrap:'anywhere' }}>{file.name} · from the Design Studio, sent as this order's reference image</p>
-      </div>
-      <button type="button" onClick={onRemove} style={{ minHeight:44, padding:'0 12px', borderRadius:10, border:'1px solid var(--border)', background:'#fff', color:'var(--ink)', fontWeight:600, cursor:'pointer', fontFamily:FONT }}>Remove</button>
-    </div>
-  );
-}
-
-function StepDesign({ form, set, errors, studio, onClearStudio, onOpenStudio }) {
-  const fileRef  = useRef(null);
-  const [refErr, setRefErr] = useState('');
-  const pickRef = async (e) => {
-    const f = e.target.files?.[0] || null;
-    const msg = await checkUpload(f, { kinds: ['jpg', 'png', 'pdf'], maxBytes: 5 * 1048576 }); // the server's limit (OrderController: max:5120)
-    setRefErr(msg);
-    if (msg) { e.target.value = ''; return; }
-    set('design_ref_file', f);
-  };
-
-  const COLLARS  = ['Round Neck','V-Neck','Polo Collar','Mandarin Collar','Button Down','No Collar','Others'];
-  const SLEEVES  = ['Short Sleeve','Long Sleeve','3/4 Sleeve','Sleeveless','Raglan Sleeve','Others'];
-  const POCKETS  = ['Left Chest Pocket','No Pocket','Two Side Pockets','Chest + Side Pockets'];
-
-  const gSpec = GARMENT_SPECS[form.garment_type] ?? { needsCollar:true, needsSleeve:true, needsPocket:true, needsWaist:false, cat:'top' };
-  const isBottom = gSpec.cat === 'bottom';
-
-  return (
-    <div style={{ display:'flex', flexDirection:'column', gap:18 }}>
-      {studio && <StudioBanner cfg={studio} onClear={onClearStudio} onEdit={onOpenStudio}/>}
-      {studio && (
-        <div style={{ borderRadius:14, border:'1px solid var(--border)', background:'#fff', padding:14 }}>
-          <DesignPreview cfg={studio} previewUrl={studio.previewPng ?? null} height={300}/>
-        </div>
-      )}
-      {/* A reference photo chosen in the Studio ("Use as: Reference photo for VFRB") rides on the order's reference field. */}
-      {studio && form.design_ref_file && <StudioRefNote file={form.design_ref_file} onRemove={() => set('design_ref_file', null)}/>}
-
-      {!studio && (
-        <motion.div
-          whileHover={{ y:-2, boxShadow:`0 8px 24px rgba(2,128,144,.12)` }}
-          whileTap={{ scale:.98 }}
-          onClick={onOpenStudio}
-          style={{ padding:'18px 20px', borderRadius:14, cursor:'pointer',
-            background:'linear-gradient(135deg,rgba(2,128,144,.06),rgba(2,195,154,.10))',
-            border:'1.5px dashed rgba(2,195,154,.4)',
-            display:'flex', alignItems:'center', gap:16 }}>
-          <div style={{ width:50, height:50, borderRadius:12, flexShrink:0,
-            background:`linear-gradient(135deg,${T},${T2})`,
-            display:'flex', alignItems:'center', justifyContent:'center', fontSize:24 }}>
-            <NavIcon name="designStudio" size={22} color="#fff"/>
-          </div>
-          <div style={{ flex:1 }}>
-            <p style={{ color:T, fontSize:14, fontWeight:800, marginBottom:4, fontFamily:FONT }}>
-              Design Your Uniform First →
-            </p>
-            <p style={{ color:'var(--text-muted)', fontSize:13, lineHeight:1.5, fontFamily:FONT }}>
-              Use the interactive Design Studio to pick garment type, collar, sleeves,
-              and colors. Choices carry over automatically.
-            </p>
-          </div>
-          <span style={{ color:T, fontSize:22, flexShrink:0 }}>→</span>
-        </motion.div>
-      )}
-
-      <Adv on={!!studio} open={!form.garment_type || !!errors.garment_type}>
-      <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-        <div style={{ flex:1, height:1, background:'var(--border)' }}/>
-        <span style={{ color:'var(--text-faint)', fontSize:13, whiteSpace:'nowrap', fontFamily:FONT }}>
-          {studio ? 'or edit details below' : 'or fill manually'}
-        </span>
-        <div style={{ flex:1, height:1, background:'var(--border)' }}/>
-      </div>
-
-      <div style={{ padding:'12px 14px', borderRadius:12, background:'#f0fdfa',
-        border:'1px solid #99f6e4' }}>
-        <p style={{ color:'var(--ink)', fontSize:13, fontWeight:600,
-          marginBottom:3, fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}><NavIcon name="tip" size={13} color="var(--ink)"/>How it works</p>
-        <p style={{ color:'var(--text-muted)', fontSize:13, lineHeight:1.6, fontFamily:FONT }}>
-          VFRB Enterprise manufactures custom garments based on your specifications.
-          Describe your design and our AI will recommend the raw materials needed for your order.
-        </p>
-      </div>
-
-      <div>
-        <label style={lbl}>Garment Type <span style={{ color:'#ef4444' }}>*</span></label>
-        <select value={form.garment_type||''} onChange={e=>{
-          const g = e.target.value;
-          const spec = GARMENT_SPECS[g] ?? { needsCollar:true, needsSleeve:true };
-          set('garment_type', g);
-          if (!spec.needsCollar) set('collar_type', '');
-          if (!spec.needsSleeve) set('sleeve_type', '');
-          if (!spec.needsPocket) set('pocket_type', '');
-        }}
-          style={{ ...inp, cursor:'pointer' }} onFocus={fi} onBlur={fo}>
-          <option value="">Select garment type…</option>
-          {GARMENTS.map(t => <option key={t} value={t}>{t}</option>)}
-        </select>
-        {errMsg(errors.garment_type)}
-      </div>
-
-      {/* ── Conditional fields based on garment type — DSA: O(1) hash map lookup ── */}
-
-      {/* Bottom garments (Pants/Shorts/Skirts): show waist info, NOT collar/sleeve */}
-      {isBottom && (
-        <div style={{ padding:'12px 14px', borderRadius:10,
-          background:'#f0fdfa', border:'1px solid #99f6e4' }}>
-          <p style={{ fontSize:13, fontWeight:700, color:T, margin:'0 0 4px', fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}>
-            <NavIcon name="pattern" size={13} color={T}/> Bottom Garment Selected
-          </p>
-          <p style={{ fontSize:13, color:'var(--text-muted)', lineHeight:1.6, fontFamily:FONT }}>
-            {form.garment_type} does not require collar or sleeve type.
-            Our team will apply VFRB standard waist measurements.
-            Use the Design Description below to specify elastic waist, drawstring, zipper, pocket details, etc.
-          </p>
-        </div>
-      )}
-
-      {/* Top garments: show collar + sleeve selectors */}
-      {gSpec.needsCollar && gSpec.needsSleeve && (
-        <div className="wiz-2col" style={{ display:'grid', gap:12 }}>
-          <div>
-            <label style={lbl}>Collar Type {!studio && <span style={{ color:'#ef4444' }}>*</span>}</label>
-            <select value={form.collar_type||''} onChange={e=>set('collar_type',e.target.value)}
-              style={{ ...inp, cursor:'pointer' }} onFocus={fi} onBlur={fo}>
-              <option value="">Select collar…</option>
-              {COLLARS.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-            {errMsg(errors.collar_type)}
-            {studio && !form.collar_type && (
-              <p style={{ color:'var(--text-faint)', fontSize:13, margin:'3px 0 0', fontFamily:FONT }}>
-                Optional — leave blank if not needed
-              </p>
-            )}
-          </div>
-          <div>
-            <label style={lbl}>Sleeve Type {!studio && <span style={{ color:'#ef4444' }}>*</span>}</label>
-            <select value={form.sleeve_type||''} onChange={e=>set('sleeve_type',e.target.value)}
-              style={{ ...inp, cursor:'pointer' }} onFocus={fi} onBlur={fo}>
-              <option value="">Select sleeve…</option>
-              {SLEEVES.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-            {errMsg(errors.sleeve_type)}
-            {studio && !form.sleeve_type && (
-              <p style={{ color:'var(--text-faint)', fontSize:13, margin:'3px 0 0', fontFamily:FONT }}>
-                Optional — leave blank if not needed
-              </p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Collar only (e.g. Vest) */}
-      {gSpec.needsCollar && !gSpec.needsSleeve && (
-        <div>
-          <label style={lbl}>Collar Type {!studio && <span style={{ color:'#ef4444' }}>*</span>}</label>
-          <select value={form.collar_type||''} onChange={e=>set('collar_type',e.target.value)}
-            style={{ ...inp, cursor:'pointer' }} onFocus={fi} onBlur={fo}>
-            <option value="">Select collar…</option>
-            {COLLARS.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
-          {errMsg(errors.collar_type)}
-          {studio && !form.collar_type && (
-            <p style={{ color:'var(--text-faint)', fontSize:13, margin:'3px 0 0', fontFamily:FONT }}>
-              Optional — leave blank if not needed
-            </p>
-          )}
-        </div>
-      )}
-
-      {/* Optional — matches pocket_type's nullable backend validation. */}
-      {gSpec.needsPocket && (
-        <div>
-          <label style={lbl}>
-            Pocket Type{' '}
-            <span style={{ color:'var(--text-faint)', fontWeight:400, textTransform:'none', letterSpacing:0 }}>
-              (optional)
-            </span>
-          </label>
-          <select value={form.pocket_type||''} onChange={e=>set('pocket_type',e.target.value)}
-            style={{ ...inp, cursor:'pointer' }} onFocus={fi} onBlur={fo}>
-            <option value="">Select pocket style…</option>
-            {POCKETS.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
-        </div>
-      )}
-
-      </Adv>
-
-      <div>
-        <label style={lbl}>{studio ? 'Special instructions' : 'Design Description'} <span style={{ color:'#ef4444' }}>*</span></label>
-        <textarea value={form.client_design_notes||''} rows={4}
-          onChange={e=>set('client_design_notes',e.target.value)}
-          onFocus={fi} onBlur={fo}
-          placeholder="Describe your design: colors, patterns, logos, placement, special requirements…"
-          style={{ ...inp, resize:'vertical', minHeight:100 }}/>
-        {errMsg(errors.client_design_notes)}
-      </div>
-
-      <div>
-        <label style={lbl}>
-          Reference Image / File{' '}
-          <span style={{ color:'var(--text-faint)', fontWeight:400, textTransform:'none', letterSpacing:0 }}>
-            (optional)
-          </span>
-        </label>
-        <motion.div whileHover={{ borderColor:T }}
-          style={{ border:`2px dashed ${form.design_ref_file?T:'var(--border)'}`,
-            borderRadius:12, padding:'18px 16px', textAlign:'center',
-            background:form.design_ref_file?'#f0fdfa':'var(--bg-surface)', cursor:'pointer',
-            transition:'all .15s' }}
-          onClick={() => fileRef.current?.click()}>
-          {form.design_ref_file
-            ? (<><p style={{ color:T, fontSize:13, fontWeight:600, fontFamily:FONT }}>
-                ✓ {form.design_ref_file.name}</p>
-               <p style={{ color:'var(--text-subtle)', fontSize:13, marginTop:4, fontFamily:FONT }}>
-                Click to change</p></>)
-            : (<><div style={{ display:'flex', justifyContent:'center', marginBottom:6 }}><NavIcon name="attachment" size={24} color="var(--text-faint)"/></div>
-               <p style={{ color:'var(--text-subtle)', fontSize:13, fontFamily:FONT }}>
-                Click to upload reference image or PDF</p>
-               <p style={{ color:'var(--text-faint)', fontSize:13, marginTop:4, fontFamily:FONT }}>
-                JPG, PNG, PDF — max 5 MB</p></>)
-          }
-        </motion.div>
-        <input ref={fileRef} type="file" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" aria-label="Reference image or PDF" aria-describedby={refErr ? 'ref-file-err' : undefined} style={{ display:'none' }}
-          onChange={pickRef}/>
-        {refErr && <p id="ref-file-err" role="alert" style={{ color:'var(--danger)', fontSize:13, marginTop:6, fontFamily:FONT }}>{refErr}</p>}
-      </div>
-    </div>
-  );
-}
-
-// Step 2: Quantity + Size Breakdown — merges the old separate "Configure" (quantity/color)
-// and "Sizing" steps into one, per the Design Summary / Quantity+Size / Delivery+Notes /
-// Review flow. Design fields (garment/collar/sleeve/pocket) stay in Step 1 only — this step
-// never re-asks for them.
-function StepQuantitySize({ form, set, errors, studio, onEditDesign, onShowChart, title = null, first = true }) {
-  const complete = studioComplete(form.garment_type, form.collar_type, form.sleeve_type, form.client_design_notes, !!studio);
-  const isCustom = form.sizing_type === 'custom';
-  return (
-    <div style={{ display:'flex', flexDirection:'column', gap:18 }}>
-      {title && <h2 className="wz-piece-h">{title}</h2>}
-
-      {first && <div className="wz-min" role="note">
-        <strong>Minimum order: {MIN_ORDER_QTY} pieces.</strong> You can't submit below {MIN_ORDER_QTY}.
-      </div>}
-      {first && <p className="wz-lead">Orders take at least 7 days. VFRB confirms your delivery date after review.</p>}
-
-      {studio && complete && (
-        <div style={{ padding:'12px 14px', borderRadius:11,
-          background:'rgba(2,195,154,.08)', border:'1px solid rgba(2,195,154,.25)',
-          display:'flex', alignItems:'center', gap:10 }}>
-          <NavIcon name="designStudio" size={16} color={T}/>
-          <p style={{ flex:1, fontSize:13, color:'var(--ink)', fontFamily:FONT, lineHeight:1.5 }}>
-            <strong>Designed in Studio — {form.garment_type}{form.sleeve_type ? ` · ${form.sleeve_type}` : ''}.</strong>{' '}
-            Your Studio configuration carried over — nothing to configure again here.
-          </p>
-          <button type="button" onClick={onEditDesign}
-            style={{ flexShrink:0, padding:'6px 10px', borderRadius:8, border:'1px solid rgba(2,128,144,.3)',
-              background:'#fff', color:T, fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:FONT }}>
-            Edit design
-          </button>
-        </div>
-      )}
-
-      {/* Client type — OTG/institutional clients are staff-handled subcontract deals per
-          VFRB's real payment terms (full payment on delivery, no self-service), not
-          something a customer picks here. Self-service orders are always Direct Client
-          (80% DP / 20% on delivery) — order_type stays 'direct', no longer a UI choice. */}
-      {first && <div style={{ padding:'12px 14px', borderRadius:11, background:'var(--bg-surface)', border:'1px solid var(--border)' }}>
-        <p style={{ fontSize:13, fontWeight:700, color:'var(--ink)', margin:0, fontFamily:FONT }}>Direct Customer order</p>
-        <p style={{ fontSize:13, color:'var(--text-subtle)', margin:'3px 0 0', fontFamily:FONT }}>
-          80% downpayment at confirmation, 20% on delivery.
-        </p>
-      </div>}
-
-      {/* Color — known from Studio, so shown read-only; asked only for manual orders */}
-      {studio?.colors?.body ? (
-        <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', borderRadius:11, background:'var(--bg-surface)', border:'1px solid var(--border)' }}>
-          <span style={{ width:22, height:22, borderRadius:6, background:studio.colors.body, border:'1px solid rgba(0,0,0,.12)', flexShrink:0 }}/>
-          <p style={{ margin:0, fontSize:13, color:'var(--text-subtle)', fontFamily:FONT }}>Color from your design: <strong style={{ color:'var(--ink)' }}>{form.color || studio.colors.body}</strong></p>
-        </div>
-      ) : (
-        <div>
-          <label style={lbl}>Primary Color <span style={{ color:'#ef4444' }}>*</span></label>
-          <input type="text" value={form.color||''} onChange={e => set('color', e.target.value)}
-            placeholder="e.g. White, Navy Blue, Maroon" style={inp} onFocus={fi} onBlur={fo}/>
-          {errMsg(errors.color)}
-        </div>
-      )}
-
-      <SizeChartTable/>
-
-      {/* Size breakdown — merged in from the old separate Sizing step */}
-      <div style={{ display:'flex', justifyContent:'space-between',
-        alignItems:'center', flexWrap:'wrap', gap:8, marginTop:6 }}>
-        <p style={{ fontSize:13, fontWeight:700, color:'var(--ink)',
-          margin:0, fontFamily:FONT }}>
-          How many pieces per size?
-        </p>
-        <motion.button
-          whileHover={{ scale:1.03 }} whileTap={{ scale:.96 }}
-          type="button" onClick={onShowChart}
-          style={{ padding:'6px 14px', borderRadius:9, border:`1px solid ${T}30`,
-            background:'#f0fdfa', color:'#026a77', fontSize:13, fontWeight:700,
-            cursor:'pointer', fontFamily:FONT, display:'flex',
-            alignItems:'center', gap:5 }}>
-          <NavIcon name="pattern" size={13} color={T} style={{ verticalAlign:'-2px', marginRight:4 }}/>Size Chart
-        </motion.button>
-      </div>
-
-      <div>
-        <label style={lbl}>Sizing Method</label>
-        <div style={{ display:'flex', gap:10 }}>
-          {[
-            { v:'standard', l:'Standard Sizes', ic:'checklist' },
-            { v:'custom',   l:'Custom Measurements', ic:'edit' },
-          ].map(o => (
-            <motion.button key={o.v} type="button"
-              whileHover={{ y:-1 }} whileTap={{ scale:.97 }}
-              onClick={() => set('sizing_type', o.v)}
-              style={{ flex:1, padding:'14px 12px', borderRadius:12, border:'none',
-                cursor:'pointer', textAlign:'center', fontFamily:FONT,
-                background: form.sizing_type===o.v ? '#f0fdfa' : '#fff',
-                outline:`2px solid ${form.sizing_type===o.v ? T+'55' : 'var(--border)'}`,
-                transition:'all .15s' }}>
-              <div style={{ display:'flex', justifyContent:'center', marginBottom:6 }}><NavIcon name={o.ic} size={20} color={form.sizing_method===o.v ? T : 'var(--text-faint)'}/></div>
-              <p style={{ fontSize:13, fontWeight:700, margin:0, fontFamily:FONT,
-                color: form.sizing_type===o.v ? T : 'var(--ink)' }}>
-                {o.l}
-              </p>
-            </motion.button>
-          ))}
-        </div>
-      </div>
-
-      {!isCustom && (
-        <>
-          <div>
-            <label style={lbl}>
-              Size Breakdown{' '}
-              <span style={{ color:'var(--text-faint)', fontWeight:400, textTransform:'none', letterSpacing:0 }}>
-                (pieces per size)
-              </span>
-            </label>
-            <div className="wiz-size-grid">
-              {STD.map(sz => (
-                <SteP key={sz} label={sz}
-                  value={form.sizes?.[sz] || 0}
-                  onChange={v => set('sizes', { ...form.sizes, [sz]:v })}/>
-              ))}
-            </div>
-            {errMsg(errors.sizes)}
-          </div>
-
-          <QtyMeter form={form}/>
-        </>
-      )}
-
-      {isCustom && (
-        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-          <div style={{ padding:'12px 14px', borderRadius:10,
-            background:'#fffbeb', border:'1px solid #fde68a' }}>
-            <p style={{ color:'#92400e', fontSize:13, fontWeight:600,
-              marginBottom:3, fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}>
-              <NavIcon name="warning" size={13} color="#92400e"/> Custom Measurements
-            </p>
-            <p style={{ color:'#92400e', fontSize:13, marginTop:4,
-              lineHeight:1.5, fontFamily:FONT }}>
-              Custom measurements will be reviewed by VFRB production staff
-              who will confirm the final sizing specifications.
-            </p>
-          </div>
-
-          {[
-            ['chest_cm',  'Chest (cm)',  '96'],
-            ['waist_cm',  'Waist (cm)',  '76'],
-            ['hip_cm',    'Hip (cm)',    '98'],
-            ['length_cm', 'Length (cm)', '70'],
-            ['sleeve_cm', 'Sleeve (cm)', '24'],
-          ].map(([k, l, ph]) => (
-            <div key={k}>
-              <label style={lbl}>{l}</label>
-              <input type="number" min={0} step={0.5} placeholder={`e.g. ${ph}`}
-                value={form.measurements?.[k] || ''}
-                onChange={e => set('measurements', { ...form.measurements, [k]:Number(e.target.value)||0 })}
-                style={inp} onFocus={fi} onBlur={fo}/>
-            </div>
-          ))}
-
-          <div>
-            <label style={lbl}>Quantity (pieces) <span style={{ color:'#ef4444' }}>*</span></label>
-            <input type="number" min={1} value={form.custom_qty||''}
-              onChange={e => set('custom_qty', Number(e.target.value))}
-              placeholder="Minimum 100 pcs" style={inp} onFocus={fi} onBlur={fo}/>
-            {errMsg(errors.custom_qty)}
-          </div>
-          <QtyMeter form={form}/>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Step 3: Delivery + PO/Reference + Notes — split out of the old merged "Configure" step so
-// order logistics (quantity/sizing) and delivery/paperwork are two distinct, focused steps.
-// Earliest delivery date a customer can pick: one week from today (backend: vfrb.min_promised_days).
-const MIN_LEAD_DAYS = 7;
-const minDeadline = () => {
-  const d = new Date(); d.setDate(d.getDate() + MIN_LEAD_DAYS);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
-
-function StepDelivery({ form, set, errors }) {
-  return (
-    <div style={{ display:'flex', flexDirection:'column', gap:18 }}>
-      <p className="wz-lead">Tell us when you would like the order. VFRB reviews it and proposes the delivery date.</p>
-
-      <div>
-        <label style={lbl} htmlFor="wz-deadline">Preferred date (optional, VFRB will confirm)</label>
-        <input id="wz-deadline" type="date" min={minDeadline()} value={form.deadline||''}
-          onChange={e => set('deadline', e.target.value)}
-          style={inp} onFocus={fi} onBlur={fo}/>
-        {errMsg(errors.deadline)}
-      </div>
-
-      <div className="st-2col">
-        <div>
-          <label style={lbl}>Fabric Type <span style={{ color:'#ef4444' }}>*</span></label>
-          <select value={form.fabric_type||''} onChange={e => set('fabric_type', e.target.value)}
-            style={inp} onFocus={fi} onBlur={fo}>
-            <option value="">Select fabric</option>
-            {FABRIC_TYPES.map(f => <option key={f} value={f}>{f}</option>)}
-          </select>
-          {errMsg(errors.fabric_type)}
-        </div>
-
-        <div>
-          <label style={lbl}>
-            PO Reference{' '}
-            <span style={{ color:'var(--text-faint)', fontWeight:400, textTransform:'none', letterSpacing:0 }}>
-              (optional)
-            </span>
-          </label>
-          <input type="text" value={form.po_reference||''}
-            onChange={e => set('po_reference', e.target.value)}
-            placeholder="Your purchase order number"
-            style={inp} onFocus={fi} onBlur={fo}/>
-        </div>
-      </div>
-
-      <div>
-        <label style={lbl}>Delivery Address <span style={{ color:'#ef4444' }}>*</span></label>
-        <textarea value={form.delivery_address||''} rows={3}
-          onChange={e => set('delivery_address', e.target.value)}
-          placeholder="Street, barangay, city, province"
-          style={{ ...inp, resize:'vertical', minHeight:70 }}
-          onFocus={fi} onBlur={fo}/>
-        {errMsg(errors.delivery_address)}
-      </div>
-
-      <div>
-        <label style={lbl}>
-          Additional Notes{' '}
-          <span style={{ color:'var(--text-faint)', fontWeight:400, textTransform:'none', letterSpacing:0 }}>
-            (optional)
-          </span>
-        </label>
-        <textarea value={form.special_notes||''} rows={3}
-          onChange={e => set('special_notes', e.target.value)}
-          placeholder="Any additional instructions for VFRB…"
-          style={{ ...inp, resize:'vertical', minHeight:70 }}
-          onFocus={fi} onBlur={fo}/>
-        {errMsg(errors.special_notes)}
-      </div>
-    </div>
-  );
-}
-
-const FABRIC_TYPES = ['Cotton', 'Sublimation / Dry-fit', 'TC', 'Not sure'];
-
-// ── Step 2: Sizing — stepper buttons ─────────────────────────────────────────
-const STD = STD_SIZES;
-
-function SteP({ label, value, onChange }) {
-  const commit = (raw) => {
-    const n = parseInt(String(raw).replace(/\D/g, ''), 10);
-    onChange(Math.min(99999, Number.isFinite(n) ? n : 0));
-  };
-  return (
-    <motion.div className="wz-cell" whileHover={{ y:-1, boxShadow:'0 4px 12px rgba(0,0,0,.07)' }}
-      style={{ background:'#fff', border:`1.5px solid ${value>0?T:'var(--border)'}`,
-        borderRadius:12, padding:'12px 10px', textAlign:'center',
-        transition:'border-color .15s' }}>
-      <p style={{ fontSize:13, fontWeight:800, color: value>0?T:'var(--ink)', marginBottom:8, fontFamily:FONT }}>{label}</p>
-      <div className="wz-stp">
-        <motion.button whileTap={{ scale:.85 }} type="button" className="wz-stp-b" aria-label={`Remove one ${label}`}
-          onClick={() => onChange(Math.max(0, value - 1))}>−</motion.button>
-        <input className="wz-stp-i" type="text" inputMode="numeric" pattern="[0-9]*" aria-label={`${label} pieces`}
-          value={value} data-on={value > 0} onFocus={e => e.target.select()} onChange={e => commit(e.target.value)}/>
-        <motion.button whileTap={{ scale:.85 }} type="button" className="wz-stp-b" aria-label={`Add one ${label}`}
-          onClick={() => onChange(value + 1)}>+</motion.button>
-      </div>
-    </motion.div>
-  );
-}
-
-// Live order total: the sum of the size counts (or the custom piece count), against the 100-piece minimum.
-function QtyMeter({ form }) {
-  const total = orderQty(form), short = qtyShort(form);
-  return (
-    <div className="wz-qty" data-ok={!short} role="status" aria-live="polite">
-      <div className="wz-qty-row">
-        <span>Order total</span>
-        <strong>{total} pcs</strong>
-      </div>
-      <div className="wz-qty-bar" aria-hidden="true"><span style={{ width:`${Math.min(100, (total / MIN_ORDER_QTY) * 100)}%` }}/></div>
-      <p>{short ? `Minimum ${MIN_ORDER_QTY} pieces: ${short} more needed.` : `Meets the ${MIN_ORDER_QTY}-piece minimum.`}</p>
-    </div>
-  );
-}
-
-function StepReview({ form, set, studio, onEdit, title = null, last = true }) {
-  const tot = orderQty(form);
-
-  // Local blob URL for the uploaded reference file — not yet stored server-side at review time.
-  const [refFileBlobUrl, setRefFileBlobUrl] = useState(null);
-  useEffect(() => {
-    if (!form.design_ref_file) { setRefFileBlobUrl(null); return; }
-    const url = URL.createObjectURL(form.design_ref_file);
-    setRefFileBlobUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [form.design_ref_file]);
-
-  // Only trust the stashed preview while a Studio design is loaded; a manual order must never show an earlier design's artwork.
-  const previewPng  = studio?.previewPng || (studio ? (() => {
-    try { return sessionStorage.getItem('studio_preview') || null; }
-    catch { return null; }
-  })() : null);
-  const bodyColor   = studio?.colors?.body ?? T;
-  const garmentName = form.garment_type || studio?.garmentType || 'Custom Garment';
-
-  const reviewSections = [
-    {
-      t:'Design Details', go:0,
-      rows:[
-        ['Garment',     form.garment_type || '—'],
-        ...(form.collar_type ? [['Collar', form.collar_type]] : []),
-        ...(form.pocket_type ? [['Pocket', form.pocket_type]] : []),
-        ...(form.sleeve_type ? [['Sleeve', form.sleeve_type]] : []),
-        ['Description', form.client_design_notes || '—'],
-        ['Reference',   form.design_ref_file?.name || 'None'],
-      ],
-    },
-    {
-      t:'Order Configuration', go:1,
-      rows:[
-        ['Quantity',    `${tot} pcs`],
-        ['Color',       form.color || '—'],
-        ['Fabric',      form.fabric_type || '—'],
-        ['Deliver to',  form.delivery_address || '—'],
-        ['Preferred date', form.deadline || 'VFRB will propose'],
-        ['PO Ref',      form.po_reference || 'None'],
-      ],
-    },
-    {
-      t:'Sizing', go:1,
-      rows: form.sizing_type==='custom' ? [
-        ['Method', 'Custom'],
-        ['Chest',  `${form.measurements?.chest_cm || '—'} cm`],
-        ['Waist',  `${form.measurements?.waist_cm || '—'} cm`],
-        ['Hip',    `${form.measurements?.hip_cm   || '—'} cm`],
-        ['Length', `${form.measurements?.length_cm|| '—'} cm`],
-      ] : [
-        ['Method', 'Standard'],
-        ...STD.filter(s => (form.sizes?.[s]||0) > 0).map(s => [s, `${form.sizes[s]} pcs`]),
-        ['Total', `${tot} pcs`],
-      ],
-    },
-  ];
-
-  return (
-    <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-
-      <div style={{ padding:'2px 2px 0' }}>
-        <p style={{ fontSize:13, fontWeight:700, color:T2, textTransform:'uppercase', letterSpacing:'.08em', margin:'0 0 4px', fontFamily:FONT }}>{title ?? 'Confirm your order'}</p>
-        <p style={{ fontSize:20, fontWeight:800, color:'var(--ink)', margin:'0 0 8px', fontFamily:FONT, lineHeight:1.2, overflowWrap:'anywhere' }}>{garmentName}</p>
-        <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
-          {[tot && `${tot} pcs`, form.color, form.sleeve_type, '80% DP · 20% on delivery'].filter(Boolean).map((tag,i) => (
-            <span key={i} style={{ fontSize:13, fontWeight:600, padding:'3px 10px', borderRadius:99, background:'var(--bg-surface)', color:'var(--text-muted)', border:'1px solid var(--border)', fontFamily:FONT }}>{tag}</span>
-          ))}
-        </div>
-      </div>
-
-      {/* Also renders for a reference-photo upload with no Design Studio config. */}
-      {(studio || form.design_ref_file) && (
-        <motion.div initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }}
-          style={{ background:'#fff', borderRadius:14, border:'1px solid var(--border)',
-            overflow:'hidden', boxShadow:'0 1px 3px rgba(0,0,0,.05)' }}>
-          <div style={{ padding:'11px 16px', background:'var(--bg-surface)',
-            borderBottom:'1px solid var(--border)' }}>
-            <p style={{ fontSize:13, fontWeight:700, color:'var(--text-subtle)',
-              textTransform:'uppercase', letterSpacing:'.07em',
-              margin:0, fontFamily:FONT }}>
-              Design Preview
-            </p>
-          </div>
-          <div style={{ padding:'16px' }}>
-            <DesignPreview cfg={studio} height={300}
-              previewUrl={studio?.previewPng ?? null}
-              onSnapshot={studio ? png => set('design_3d_snapshot', png) : null} snapshot={form.design_3d_snapshot ?? null}
-              referenceImageUrl={!studio && form.design_ref_file?.type?.startsWith('image/') ? refFileBlobUrl : null}/>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Review tables */}
-      {reviewSections.map((sec, si) => (
-        <motion.div key={sec.t}
-          initial={{ opacity:0, y:6 }}
-          animate={{ opacity:1, y:0 }}
-          transition={{ delay:si * 0.05 }}
-          style={{ background:'#fff', borderRadius:12,
-            border:'1px solid var(--border)', overflow:'hidden' }}>
-          <div style={{ padding:'4px 8px 4px 16px', background:'var(--bg-surface)', display:'flex',
-            alignItems:'center', justifyContent:'space-between', gap:8, borderBottom:'1px solid var(--border)' }}>
-            <p style={{ fontSize:13, fontWeight:700, color:'var(--text-subtle)',
-              textTransform:'uppercase', letterSpacing:'.07em',
-              margin:0, fontFamily:FONT }}>
-              {sec.t}
-            </p>
-            {onEdit && <button type="button" className="wz-edit" onClick={() => onEdit(sec.go)}>Edit<span className="sr-only"> {sec.t}</span></button>}
-          </div>
-          {sec.rows.map(([l, v]) => (
-            <div key={l} style={{ display:'flex', justifyContent:'space-between',
-              padding:'9px 16px', borderBottom:'1px solid var(--bg-surface)' }}>
-              <span style={{ fontSize:13, color:'var(--text-subtle)', fontFamily:FONT }}>{l}</span>
-              <span style={{ fontSize:13, fontWeight:600, color:'var(--ink)',
-                maxWidth:'60%', textAlign:'right', wordBreak:'break-word',
-                fontFamily:FONT }}>
-                {v}
-              </span>
-            </div>
-          ))}
-        </motion.div>
-      ))}
-
-      {/* AI note */}
-      {last && <div style={{ padding:'14px 16px', borderRadius:12,
-        background:'#f0fdfa', border:'1px solid #99f6e4' }}>
-        <p style={{ color:'var(--ink)', fontSize:13, fontWeight:700,
-          marginBottom:6, fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}>
-          <NavIcon name="ai" size={13} color="var(--ink)"/> AI Material Recommendation (Auto)
-        </p>
-        <p style={{ color:'var(--text-muted)', fontSize:13, lineHeight:1.6, margin:0, fontFamily:FONT }}>
-          After submitting, our AI will analyze your order and recommend the
-          types of raw materials needed. You can review and accept the recommendation
-          from the AI Materials page.
-        </p>
-      </div>}
-    </div>
-  );
-}
-
-// ── Step progress indicator ───────────────────────────────────────────────────
-const STEPS = ['Design Summary', 'Quantity & Sizes', 'Delivery & Notes', 'Review'];
-
-function StepBar({ step }) {
-  return (
-    <ol className="wz-steps" aria-label="Order steps">
-      {STEPS.map((l, i) => (
-        <li key={l} className="wz-step" data-s={i < step ? 'done' : i === step ? 'now' : 'todo'}
-          aria-current={i === step ? 'step' : undefined}>
-          <span className="wz-dot">{i < step ? <NavIcon name="success" size={14}/> : i + 1}</span>
-          <span className="wz-lbl">{l}</span>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
-function WizSummary({ forms, studios, step }) {
-  const shared = forms[0];
-  const pieceRows = (form, studio) => {
-    const cfg = studio ?? {};
-    const total = orderQty(form);
-    return [
-      ['Garment', cfg.garmentType ?? cfg.garment ?? form.garment_type],
-      ...(form.collar_type ? [['Collar', form.collar_type]] : []),
-      ...((form.sleeve_type || !studio) ? [['Sleeve', form.sleeve_type]] : []),
-      ['Quantity', total ? `${total} pcs${total < MIN_ORDER_QTY ? ` (min ${MIN_ORDER_QTY})` : ''}` : null],
-      ...(form.design_ref_file ? [['Reference photo', form.design_ref_file.name]] : []), // e.g. one chosen in the Studio (Use as: Reference photo)
-    ];
-  };
-  const dl = rows => (
-    <dl>
-      {rows.map(([k, v]) => (
-        <div key={k}><dt>{k}</dt><dd key={String(v ?? '')} className="wz-flash" data-empty={!v}>{v || (step === 0 ? '-' : 'Not set')}</dd></div>
-      ))}
-    </dl>
-  );
-  const isSet = forms.length > 1;
-  return (
-    <aside className="cx-card wz-sum" aria-label="Order summary">
-      <div className="cx-card-h"><h2>{isSet ? 'Uniform Set Summary' : 'Order Summary'}</h2></div>
-      <div className="wz-sum-b">
-        {forms.map((form, i) => {
-          const studio = studios[i];
-          return (
-            <div key={i} className="wz-sum-piece">
-              {isSet && <p className="wz-sum-role">{ROLE_LABEL[studio?.uniformSet?.role] ?? `Piece ${i + 1}`}</p>}
-              {studio
-                ? <div style={{ marginBottom:14 }}><DesignPreview cfg={studio} previewUrl={studio.previewPng ?? null} height={isSet ? 150 : 190}/></div>
-                : <div className="wz-thumb" style={{ background:'var(--bg-surface)' }}><NavIcon name="garmentType" size={28} color="var(--text-faint)"/></div>}
-              {dl(pieceRows(form, studio))}
-            </div>
-          );
-        })}
-        {dl([
-          ...(isSet ? [['Set total', `${forms.reduce((a, f) => a + orderQty(f), 0)} pcs`]] : []),
-          ['Fabric', shared.fabric_type],
-          ['Deliver to', shared.delivery_address],
-          ['PO / Ref', shared.po_reference],
-        ])}
-      </div>
-    </aside>
-  );
-}
-
-
-function SizeChartModal({ onClose }) {
-  const [chartTab, setChartTab] = useState('tops');
-  const chart = PH_SIZE_CHART[chartTab];
-
-  const boxRef = useRef(null);
-  useDialogFocus(boxRef, { onClose });
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      onClick={onClose}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 500,
-        background: 'rgba(0,0,0,.52)', backdropFilter: 'blur(4px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: 20,
-      }}
-    >
-      <motion.div
-        ref={boxRef} role="dialog" aria-modal="true" aria-label="General sizing guide"
-        initial={{ opacity: 0, scale: .94, y: 16 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{   opacity: 0, scale: .96, y: 8 }}
-        transition={{ duration: .22, ease: 'easeOut' }}
-        onClick={e => e.stopPropagation()}
-        style={{
-          background: '#fff', borderRadius: 18, width: '100%', maxWidth: 560,
-          maxHeight: '88vh', overflow: 'hidden', display: 'flex',
-          flexDirection: 'column',
-          boxShadow: '0 24px 60px rgba(0,0,0,.25)',
-        }}
-      >
-        {/* Header */}
-        <div style={{
-          padding: '16px 20px', borderBottom: '1px solid var(--border)',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          background: 'var(--bg-surface)', flexShrink: 0,
-        }}>
-          <div>
-            <p style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)',
-              margin: 0, fontFamily: FONT, display:'flex', alignItems:'center', gap:6 }}><NavIcon name="pattern" size={15} color="var(--ink)"/>General Sizing Guide</p>
-            <p style={{ fontSize: 13, color: 'var(--text-subtle)', margin: '2px 0 0',
-              fontFamily: FONT }}>
-              Generic reference only, in cm. This is not VFRB's pattern standard; VFRB confirms final measurements with you.
-            </p>
-          </div>
-          <button onClick={onClose} style={{
-            width: 30, height: 30, borderRadius: 8, border: 'none',
-            background: 'var(--border)', color: 'var(--text-subtle)',
-            cursor: 'pointer', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', flexShrink: 0,
-          }}><NavIcon name="close" size={14} color="var(--text-subtle)"/></button>
-        </div>
-
-        {/* Tops / Bottoms tabs */}
-        <div style={{
-          display: 'flex', gap: 8, padding: '12px 20px 0',
-          borderBottom: '1px solid var(--border)', flexShrink: 0,
-        }}>
-          {[
-            { k: 'tops',    l: 'Tops',    ic:'garmentType' },
-            { k: 'bottoms', l: 'Bottoms', ic:'pattern' },
-          ].map(t => (
-            <button key={t.k} onClick={() => setChartTab(t.k)}
-              style={{
-                padding: '7px 16px', borderRadius: '8px 8px 0 0',
-                border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700,
-                fontFamily: FONT, transition: 'all .13s',
-                background: chartTab === t.k ? '#fff' : 'transparent',
-                color:      chartTab === t.k ? T      : 'var(--text-subtle)',
-                borderBottom: chartTab === t.k ? `2px solid ${T}` : '2px solid transparent',
-                marginBottom: -1,
-              }}>
-              <NavIcon name={t.ic} size={12} color={chartTab === t.k ? T : 'var(--text-subtle)'} style={{ verticalAlign:'-2px', marginRight:5 }}/>{t.l}
-            </button>
-          ))}
-        </div>
-
-        {/* Table */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 20px' }}>
-          <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-subtle)',
-            margin: '0 0 12px', fontFamily: FONT }}>
-            {chart.label}
-          </p>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{
-              width: '100%', borderCollapse: 'collapse',
-              fontSize: 13, fontFamily: FONT,
-            }}>
-              <thead>
-                <tr style={{ background: T }}>
-                  {chart.headers.map(h => (
-                    <th key={h} style={{
-                      padding: '9px 14px', textAlign: 'left',
-                      color: '#fff', fontWeight: 700, fontSize: 13,
-                      whiteSpace: 'nowrap',
-                    }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {chart.rows.map((row, i) => (
-                  <tr key={i} style={{
-                    background: i % 2 === 0 ? 'var(--bg-surface)' : '#fff',
-                    borderBottom: '1px solid var(--border)',
-                  }}>
-                    {row.map((cell, ci) => (
-                      <td key={ci} style={{
-                        padding: '9px 14px', color: ci === 0 ? T : 'var(--ink)',
-                        fontWeight: ci === 0 ? 800 : 500,
-                        whiteSpace: 'nowrap',
-                      }}>{cell}</td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <p style={{
-            fontSize: 13, color: 'var(--text-faint)', margin: '14px 0 0',
-            lineHeight: 1.6, fontFamily: FONT,
-          }}>
-            ℹ️ These are guide measurements. Final garment dimensions are confirmed
-            with VFRB production staff after order placement.
-            Custom measurements can be provided in the sizing step.
-          </p>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
-
-// ── Confetti burst (CSS keyframe particles, no external library) ──────────────
-// 28 particles, random colors, random trajectories.
-// Mounts on submit success, auto-unmounts after 2.8s.
-const CONFETTI_COLORS = [T, T2, '#fbbf24', '#f472b6', '#60a5fa', '#34d399', '#f97316'];
-
-function ConfettiBurst() {
-  const particles = Array.from({ length: 28 }, (_, i) => {
-    const color  = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
-    const x      = Math.random() * 100;   // vw start
-    const xDrift = (Math.random() - 0.5) * 260;
-    const rot    = Math.random() * 720;
-    const delay  = Math.random() * 0.4;
-    const dur    = 1.6 + Math.random() * 0.8;
-    const size   = 6 + Math.random() * 8;
-    const shape  = i % 3 === 0 ? '50%' : i % 3 === 1 ? '2px' : '0';
-    return { color, x, xDrift, rot, delay, dur, size, shape };
-  });
-
-  return (
-    <>
-      <style>{`
-        @keyframes sk  { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
-        @keyframes cfetti {
-          0%   { transform: translateY(0) translateX(0) rotate(0deg); opacity: 1; }
-          100% { transform: translateY(80vh) translateX(var(--cx)) rotate(var(--cr)); opacity: 0; }
-        }
-      `}</style>
-      <div style={{
-        position: 'fixed', inset: 0, zIndex: 9999,
-        pointerEvents: 'none', overflow: 'hidden',
-      }}>
-        {particles.map((p, i) => (
-          <div key={i} style={{
-            position: 'absolute',
-            top: '-12px',
-            left: `${p.x}%`,
-            width:  p.size,
-            height: p.size,
-            borderRadius: p.shape,
-            background: p.color,
-            '--cx': `${p.xDrift}px`,
-            '--cr': `${p.rot}deg`,
-            animation: `cfetti ${p.dur}s ease-in ${p.delay}s forwards`,
-            opacity: 0,
-          }}/>
-        ))}
-      </div>
-    </>
-  );
-}
-
-// ── Form state ────────────────────────────────────────────────────────────────
-// One form per garment: a single design has one, a uniform set one per piece (top first). Delivery, PO and notes are
-// shared, so they are written to every form at once. Quantity is never typed: it is the size total (utils/orderQuantity).
-const INIT = {
-  garment_type:'', collar_type:'', sleeve_type:'', pocket_type:'', client_design_notes:'',
-  design_ref_file:null, order_type:'direct', color:'',
-  fabric_type:'', delivery_address:'', po_reference:'', special_notes:'', deadline:'', sizing_type:'standard',
-  sizes:{}, measurements:{}, custom_qty:'',
-};
-const SHARED = ['order_type', 'fabric_type', 'delivery_address', 'po_reference', 'special_notes', 'deadline'];
-// Orders of a set already placed, so a retry or a refresh after a part-failed submit never places a piece twice.
+import { qtyShort } from '../../utils/orderQuantity';
+import { orderQueue, setNote, ROLE_LABEL } from './design-studio/uniformSet';
+import { STEPS, INIT, SHARED, prefillFrom, validateStep, orderFields, garmentKind, garmentOf } from './order-wizard/orderForm';
+import { StepDesign, StepSizes, StepDelivery, StepReview } from './order-wizard/WizardSteps';
+import { SummaryPanel, SummaryBar } from './order-wizard/OrderSummary';
+import { garmentLabel } from '../../utils/designName';
+
+// Pieces of a set already placed, so a retry or refresh after a part-failed submit never places one twice.
 const PLACED_KEY = 'set_orders_placed';
-const readPlaced = (setId) => { try { return JSON.parse(sessionStorage.getItem(PLACED_KEY) || '{}')[setId] ?? {}; } catch { return {}; } };
-const writePlaced = (setId, placed) => { try { sessionStorage.setItem(PLACED_KEY, JSON.stringify({ [setId]: placed })); } catch { /* quota */ } };
+const readPlaced = id => { try { return JSON.parse(sessionStorage.getItem(PLACED_KEY) || '{}')[id] ?? {}; } catch { return {}; } };
+const writePlaced = (id, placed) => { try { sessionStorage.setItem(PLACED_KEY, JSON.stringify({ [id]: placed })); } catch { /* quota */ } };
+const dataUrlBlob = async url => (await fetch(url)).blob();
 
-// Pre-fill fields from one design snapshot (a single design or one piece of a set), and whether Design Summary can be skipped.
-function prefillFrom(cfg) {
-  // Canonical fields (garment/sleeve/collar) with a legacy-alias fallback, matching StudioBanner's cfg.garmentType ?? cfg.garment.
-  const garmentName = cfg.garmentType ?? cfg.garment ?? '';
-  const collarRaw   = cfg.collarType  ?? cfg.collar  ?? '';
-  const sleeveRaw   = cfg.sleeveType  ?? cfg.sleeve  ?? '';
-  // Only pre-fill from a real mapped value — never default to the garment name.
-  const derivedCollar = COLLAR_MAP[collarRaw] ?? GARMENT_IMPLIED_COLLAR[garmentName] ?? null;
-  const derivedSleeve = SLEEVE_MAP[sleeveRaw] ?? null;
-  const notes = [
-    cfg.category  ? `${cfg.category} uniform.` : '',
-    garmentName   ? `${garmentName} style.` : '',
-    derivedCollar ? `${derivedCollar} collar.` : '',
-    derivedSleeve ? `${derivedSleeve}.` : '',
-    cfg.colors?.body ? `Primary color: ${hexToName(cfg.colors.body)}.` : '',
-  ].filter(Boolean).join(' ');
-  const fields = {
-    ...(garmentName && { garment_type: garmentName }),
-    ...(derivedCollar && { collar_type: derivedCollar }),
-    ...(derivedSleeve && { sleeve_type: derivedSleeve }),
-    ...(hexToName(cfg.colors?.body) && { color: hexToName(cfg.colors?.body) }),
-    client_design_notes: notes,
-  };
-  return { fields, complete: studioComplete(garmentName, derivedCollar, derivedSleeve, notes, true) };
+// Reads the Studio / My Designs handoff once: one form per piece, or one empty form for an upload order.
+function readHandoff() {
+  const ref = peekDesignRef();
+  try {
+    const raw = sessionStorage.getItem('studio_config');
+    if (!raw) return { studios: [null], forms: [{ ...INIT, design_ref_file: ref }], fp: null, bad: false };
+    const parsed = JSON.parse(raw);
+    const list = orderQueue(parsed) ?? [parsed];
+    return { studios: list, forms: list.map((cfg, i) => ({ ...INIT, ...prefillFrom(cfg), design_ref_file: i === 0 ? ref : null })), fp: draftFingerprint(parsed), bad: false };
+  } catch {
+    return { studios: [null], forms: [{ ...INIT, design_ref_file: ref }], fp: null, bad: true };
+  }
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+const apiMessage = e => {
+  const fe = e.response?.data?.errors;
+  return (fe && Object.values(fe)[0]?.[0]) ?? e.response?.data?.message ?? (e.response ? 'The order could not be submitted.' : 'No connection. Check your internet and submit again.');
+};
+
 export default function OrderWizard() {
   const nav = useNavigate();
+  const [init] = useState(readHandoff);
+  const [studios, setStudios] = useState(init.studios);
+  const [forms, setForms] = useState(init.forms);
+  const [errs, setErrs] = useState(() => init.forms.map(() => ({})));
+  const [step, setStep] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [apiErr, setApiErr] = useState('');
+  const [created, setCreated] = useState(null);
+  const [revealIdx, setRevealIdx] = useState(0);
+  const cardRef = useRef(null);
+  const moved = useRef(false);
 
-  const [step,    setStep]    = useState(0);
-  const [forms,   setForms]   = useState(() => [{ ...INIT, design_ref_file: peekDesignRef() }]); // a reference photo chosen in the Studio arrives here
-  const [studios, setStudios] = useState([null]);
-  const [errs,    setErrs]    = useState([{}]);
-  const [busy,    setBusy]    = useState(false);
-  const [apiErr,  setApiErr]  = useState('');
-  const [dir,     setDir]     = useState(1); // 1=forward, -1=back (for slide direction)
-  const [showSizeChart,  setShowSizeChart]  = useState(false);
-  const [showConfetti,   setShowConfetti]   = useState(false);
+  const isSet = forms.length > 1;
+  const setId = studios[0]?.uniformSet?.id ?? null;
+  const roleOf = i => studios[i]?.uniformSet?.role ?? null;
+  const pieceName = i => `${ROLE_LABEL[roleOf(i)] ?? `Piece ${i + 1}`}: ${garmentLabel(forms[i].garment_type) || 'Garment'}`;
+  const titleOf = i => (isSet ? pieceName(i) : null);
+  const kindOf = i => garmentKind(forms[i].garment_type || garmentOf(studios[i]), roleOf(i));
+
   useEffect(() => {
     document.documentElement.dataset.wizard = '1';
     return () => { delete document.documentElement.dataset.wizard; };
   }, []);
-  // Once set, short-circuits the wizard for the blocking MaterialsReveal screen, one created order at a time.
-  const [created,   setCreated]   = useState(null);
-  const [revealIdx, setRevealIdx] = useState(0);
-  // Fingerprint of the design handed in from the Studio or My Designs: after the order is placed,
-  // the account draft is retired only if it is still this same design.
-  const handoffFp = useRef(null);
-  const form = forms[0], studio = studios[0];
-  const isSet = forms.length > 1;
-  const setId = studio?.uniformSet?.id ?? null;
-  const roleOf = i => studios[i]?.uniformSet?.role ?? null;
-  const pieceTitle = i => (isSet ? `${ROLE_LABEL[roleOf(i)] ?? `Piece ${i + 1}`}: ${forms[i].garment_type || 'Garment'}` : null);
 
-  // Read studio_config from DesignStudio on mount: a set becomes one form per piece.
+  // After a step change: scroll up and move focus to the step card for screen readers.
   useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem('studio_config');
-      if (!raw) return;
-      const parsed = JSON.parse(raw);
-      handoffFp.current = draftFingerprint(parsed);
-      const list = orderQueue(parsed) ?? [parsed];
-      const pre = list.map(prefillFrom);
-      setStudios(list);
-      setForms(prev => list.map((_, i) => ({ ...INIT, design_ref_file: i === 0 ? prev[0].design_ref_file : null, ...pre[i].fields })));
-      setErrs(list.map(() => ({})));
-      // Studio already supplied everything every piece needs — skip straight to order logistics (Quantity & Sizes).
-      if (pre.every(p => p.complete)) setStep(1);
-    } catch { /* silent */ }
-  }, []);
+    if (!moved.current) return;
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
+    cardRef.current?.focus({ preventScroll: true });
+    moved.current = false;
+  }, [step]);
 
-  const clearStudio = () => {
-    setStudios([null]);
-    clearStudioHandoff();
-    setForms(f => [{ ...INIT, ...Object.fromEntries(SHARED.map(k => [k, f[0][k]])), design_ref_file: f[0].design_ref_file }]);
-    setErrs([{}]);
-  };
-
-  const setFor = (i) => (k, v) => {
+  const setFor = i => (k, v) => {
     setForms(fs => fs.map((f, n) => (n === i || SHARED.includes(k) ? { ...f, [k]: v } : f)));
     setErrs(es => es.map((e, n) => (n === i ? { ...e, [k]: '' } : e)));
   };
 
-  const validatePiece = (f, s) => {
-    const e = {};
-    // The artwork submitted with the order is the Studio design; a hand-edited garment type must not contradict it.
-    const designGarment = s ? (s.garmentType ?? s.garment) : null;
-    if (designGarment && f.garment_type && designGarment !== f.garment_type) {
-      e.garment_type = `This order says "${f.garment_type}" but your design is a ${designGarment}. Use "Edit in Studio" or "Clear" to change the garment.`;
-    }
-    if (step===0) {
-      if (!f.garment_type) e.garment_type = 'Required';
-      // DSA: O(1) hash map lookup — only validate collar/sleeve for tops
-      const spec = GARMENT_SPECS[f.garment_type] ?? { needsCollar:true, needsSleeve:true };
-      if (!s && spec.needsCollar && !f.collar_type) e.collar_type = 'Required';
-      if (!s && spec.needsSleeve && !f.sleeve_type) e.sleeve_type = 'Required';
-      const notes = f.client_design_notes?.trim() ?? '';
-      if (!notes) e.client_design_notes = 'Please describe your design';
-      else if (notes.length < 15) e.client_design_notes = 'Please give VFRB enough detail to work from (garment, color, key details) — a few words isn\'t enough to manufacture from';
-    }
-    if (step===1) {
-      // order_type is fixed to 'direct' (INIT default) — no longer a customer choice, see StepQuantitySize.
-      if (!s?.colors?.body && !f.color?.trim()) e.color = 'Required';
-      const short = qtyShort(f);
-      if (short) e[f.sizing_type === 'custom' ? 'custom_qty' : 'sizes'] = `VFRB accepts bulk orders only: minimum ${MIN_ORDER_QTY} pieces (${short} more needed)`;
-    }
-    if (step===2) {
-      if (!f.fabric_type) e.fabric_type = 'Choose a fabric type';
-      if (!f.delivery_address?.trim()) e.delivery_address = 'Required';
-      if (f.deadline && f.deadline < minDeadline()) e.deadline = `The earliest date is ${minDeadline()} (one week from today)`;
-    }
-    return e;
-  };
+  const goTo = n => { moved.current = true; setApiErr(''); setErrs(forms.map(() => ({}))); setStep(n); };
   const validate = () => {
-    const all = forms.map((f, i) => validatePiece(f, studios[i]));
+    const all = forms.map((f, i) => (step === 2 && i > 0 ? {} : validateStep(step, f, studios[i])));
     setErrs(all);
-    return all.every(e => !Object.keys(e).length);
+    return all.every(e => !Object.values(e).some(Boolean));
+  };
+  const next = () => { if (validate()) goTo(step + 1); };
+
+  const clearDesign = () => {
+    clearStudioHandoff();
+    setStudios([null]);
+    setForms(f => [{ ...INIT, ...Object.fromEntries(SHARED.map(k => [k, f[0][k]])) }]);
+    setErrs([{}]);
+    goTo(0);
   };
 
-  const cardRef = useRef(null);
-  const firstStep = useRef(true);
-  const moved = useRef(false);
-  useEffect(() => {
-    if (firstStep.current) { firstStep.current = false; return; }
-    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' });
-    moved.current = true;
-  }, [step]);
-
-  const goNext = () => {
-    if (!validate()) return;
-    setDir(1);
-    setStep(s => s + 1);
-    setErrs(forms.map(() => ({})));
-  };
-  const goBack = () => {
-    setDir(-1);
-    setStep(s => s - 1);
-    setErrs(forms.map(() => ({})));
-  };
-
-  // One order. `linked` = order ids already placed for this set, named in the staff note and the saved config.
+  // One order; `linked` = order ids already placed for this set, named in the staff note and saved config.
   const postOrder = async (f, s, linked) => {
-    const fd = new FormData();
-    ['garment_type','collar_type','sleeve_type','pocket_type','client_design_notes',
-     'order_type','color'].forEach(k => fd.append(k, f[k]));
-    fd.append('quantity_ordered', orderQty(f));
-    fd.append('fabric_type',      f.fabric_type);
-    fd.append('delivery_address', f.delivery_address.trim());
-    if (f.deadline)         fd.append('preferred_date',   f.deadline);
-    if (f.po_reference)     fd.append('po_reference',     f.po_reference);
     const uset = s?.uniformSet ? { ...s.uniformSet, ...(linked.length && { linkedOrderIds: linked }) } : null;
-    const setLine = uset ? setNote(uset) : '';
-    const notesOut = [setLine, f.special_notes].filter(Boolean).join('\n');
-    if (notesOut)           fd.append('special_notes',    notesOut);
-    // Backend reads this as 'design_ref_file' (OrderController::customerStore).
-    if (f.design_ref_file)  fd.append('design_ref_file', f.design_ref_file);
-    if (s) {
-      // previewPng is a base64 data URL; the backend stores it as a real
-      // file and strips it from studio_config, so send it as a Blob rather
-      // than letting a ~150-500KB string ride along inside the JSON column.
-      const { previewPng, ...studioRest } = s;
-      fd.append('studio_config', JSON.stringify(uset ? { ...studioRest, uniformSet: uset } : studioRest));
-      if (s.colors?.body) fd.append('studio_color', s.colors.body);
-      if (previewPng?.startsWith('data:image/png')) {
-        const blob = await (await fetch(previewPng)).blob();
-        fd.append('design_preview_file', blob, `design-${Date.now()}.png`);
-      }
-      // Optional customer-taken 3D (approx.) view; the 2D design stays what VFRB produces from.
-      if (f.design_3d_snapshot?.startsWith('data:image/png')) {
-        const blob = await (await fetch(f.design_3d_snapshot)).blob();
-        fd.append('design_3d_snapshot_file', blob, `design-3d-${Date.now()}.png`);
-      }
-    }
-    fd.append('sizing_type', f.sizing_type);
-    // Backend expects a single JSON-string field, not bracket-notation sizes[XS]=...
-    if (f.sizing_type === 'standard') {
-      const sizePayload = {};
-      STD.forEach(sz => { if ((f.sizes?.[sz]||0) > 0) sizePayload[sz] = f.sizes[sz]; });
-      if (Object.keys(sizePayload).length) fd.append('sizes', JSON.stringify(sizePayload));
-    } else {
-      const measurementPayload = {};
-      Object.entries(f.measurements||{}).forEach(([k,v]) => { if (v) measurementPayload[k] = v; });
-      if (Object.keys(measurementPayload).length) fd.append('measurements', JSON.stringify(measurementPayload));
-      if (f.custom_qty) fd.append('custom_qty', f.custom_qty);
-    }
-    const r = await axios.post('/api/customer/orders', fd, { headers:{ 'Content-Type':'multipart/form-data' } });
-    return r.data.order ?? { order_id: r.data.order_id, garment_type: f.garment_type, quantity_ordered: orderQty(f) };
+    const { previewPng, ...cfg } = s ?? {};
+    const fd = new FormData();
+    Object.entries(orderFields(f, s ? (uset ? { ...cfg, uniformSet: uset } : cfg) : null, uset ? setNote(uset) : '')).forEach(([k, v]) => fd.append(k, v));
+    if (f.design_ref_file) fd.append('design_ref_file', f.design_ref_file);
+    // The backend stores the preview as a file and strips it from studio_config.
+    if (previewPng?.startsWith('data:image/png')) fd.append('design_preview_file', await dataUrlBlob(previewPng), `design-${Date.now()}.png`);
+    if (f.design_3d_snapshot?.startsWith('data:image/png')) fd.append('design_3d_snapshot_file', await dataUrlBlob(f.design_3d_snapshot), `design-3d-${Date.now()}.png`);
+    const r = await axios.post('/api/customer/orders', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+    return r.data.order ?? { order_id: r.data.order_id, garment_type: f.garment_type, quantity_ordered: fd.get('quantity_ordered') };
   };
 
-  // Places every piece in turn (top first). A piece placed earlier, in this visit or before a refresh, is not placed again.
-  const handleSubmit = async () => {
-    if (!validate()) return;
+  const submit = async () => {
     setBusy(true); setApiErr('');
     const placed = setId ? readPlaced(setId) : {};
     const done = [];
@@ -1361,169 +118,83 @@ export default function OrderWizard() {
       for (; i < forms.length; i++) {
         const role = roleOf(i);
         if (role && placed[role]) { done.push(placed[role]); continue; }
-        const order = await postOrder(forms[i], studios[i], done.map(o => o.order_id));
-        done.push(order);
-        if (setId) { placed[role] = { order_id: order.order_id, garment_type: order.garment_type, quantity_ordered: order.quantity_ordered }; writePlaced(setId, placed); }
+        const o = await postOrder(forms[i], studios[i], done.map(d => d.order_id));
+        done.push(o);
+        if (setId) { placed[role] = { order_id: o.order_id, garment_type: o.garment_type, quantity_ordered: o.quantity_ordered }; writePlaced(setId, placed); }
       }
-      // The design now lives on the order (studio_config + preview), so retire the account draft, but only when it
-      // still holds this design: a draft changed elsewhere since the handoff is a different design and stays.
-      const fp = handoffFp.current;
+      // Retire the account draft only if it still holds the design that was handed in.
+      const fp = init.fp;
       if (fp) axios.get('/api/customer/drafts/latest')
         .then(d => { if (draftFingerprint(d.data?.draft?.studio_config) === fp) return axios.delete('/api/customer/drafts/latest'); })
         .catch(() => {});
       clearStudioHandoff();
       try { sessionStorage.removeItem(PLACED_KEY); } catch { /* storage blocked */ }
-      // Confetti fires immediately; MaterialsReveal mounts once it finishes.
-      setShowConfetti(true);
-      setTimeout(() => { setRevealIdx(0); setCreated(done); }, 1400);
-    } catch(e) {
-      // response.data.message is a generic validation string; .errors has per-field detail.
-      const fieldErrors = e.response?.data?.errors;
-      const firstDetail = fieldErrors ? Object.values(fieldErrors)[0]?.[0] : null;
-      const msg = firstDetail ?? e.response?.data?.message ?? e.response?.data?.error ?? 'Failed to submit. Try again.';
-      setApiErr(done.length
-        ? `${ROLE_LABEL[roleOf(0)] ?? 'First piece'} placed as order #${done.map(o => o.order_id).join(', #')}. ${ROLE_LABEL[roleOf(i)] ?? 'Next piece'} failed: ${msg} Submit again to place it.`
-        : msg);
+      setRevealIdx(0); setCreated(done);
+    } catch (e) {
+      const msg = apiMessage(e);
+      setApiErr(done.length ? `${pieceName(0)} was placed as order #${done.map(o => o.order_id).join(', #')}. ${pieceName(i)} failed: ${msg} Submit again to place it.` : msg);
     } finally { setBusy(false); }
   };
 
-  const perPiece = (render) => (
-    <div style={{ display:'flex', flexDirection:'column', gap:28 }}>
-      {forms.map((f, i) => <div key={i} className={isSet ? 'wz-piece' : undefined}>{render(f, i)}</div>)}
-    </div>
+  const createdOrder = created?.[revealIdx];
+  if (createdOrder) return (
+    <MaterialsReveal key={createdOrder.order_id} order={createdOrder}
+      onDone={() => (revealIdx < created.length - 1 ? setRevealIdx(revealIdx + 1) : nav(`/orders/${created[0].order_id}`, { state: { justCreated: true } }))}/>
   );
-  const COMPS = [
-    perPiece((f, i) => <>
-      {isSet && <h2 className="wz-piece-h">{pieceTitle(i)}</h2>}
-      <StepDesign form={f} set={setFor(i)} errors={errs[i] ?? {}} studio={studios[i]} onClearStudio={clearStudio} onOpenStudio={() => nav('/design-studio')}/>
-    </>),
-    perPiece((f, i) => <StepQuantitySize form={f} set={setFor(i)} errors={errs[i] ?? {}} studio={studios[i]} title={pieceTitle(i)} first={i === 0}
-      onEditDesign={() => { setDir(-1); setStep(0); }} onShowChart={() => setShowSizeChart(true)}/>),
-    <StepDelivery     key="v" form={form} set={setFor(0)} errors={errs[0] ?? {}}/>,
-    perPiece((f, i) => <StepReview form={f} set={setFor(i)} studio={studios[i]} title={isSet ? `${pieceTitle(i)} · order ${i + 1} of ${forms.length}` : null}
-      last={i === forms.length - 1} onEdit={(n) => { setDir(-1); setStep(n); setErrs(forms.map(() => ({}))); }}/>),
-  ];
 
+  const perPiece = render => forms.map((f, i) => <div key={i} className="wz-piece">{render(f, i)}</div>);
+  const common = i => ({ form: forms[i], set: setFor(i), errors: errs[i] ?? {}, studio: studios[i], title: titleOf(i), uid: `wz${i}` });
+  const body = [
+    () => perPiece((_, i) => <StepDesign {...common(i)} onOpenStudio={() => nav('/design-studio')}/>),
+    () => perPiece((_, i) => <StepSizes {...common(i)} kind={kindOf(i)}/>),
+    () => <StepDelivery form={forms[0]} set={setFor(0)} errors={errs[0] ?? {}}/>,
+    () => perPiece((_, i) => <StepReview {...common(i)} sharedShown={i > 0} onEdit={goTo}/>),
+  ][step];
+  const last = step === STEPS.length - 1;
   const belowMin = forms.some(f => qtyShort(f));
-  const createdOrder = created?.[revealIdx] ?? null;
+
   return (
-    <>
-      {/* Blocking post-submit reveal — nothing below renders while an order is being revealed. A set reveals each piece's order in turn. */}
-      {createdOrder && (
-        <MaterialsReveal
-          key={createdOrder.order_id}
-          order={createdOrder}
-          onDone={() => {
-            if (revealIdx < created.length - 1) { setRevealIdx(revealIdx + 1); return; }
-            nav(`/orders/${created[0].order_id}`, { state: { justCreated: true } });
-          }}
-        />
-      )}
-      {!createdOrder && (
-      <>
-      <style>{`
-        @keyframes sk { 0% { background-position:-400px 0 } 100% { background-position:400px 0 } }
+    <div className="cx-page wz-page">
+      <header className="wz-head">
+        <h1>{isSet ? 'Order a uniform set' : 'Place an order'}</h1>
+        <p>Step {step + 1} of {STEPS.length}: {STEPS[step]}</p>
+      </header>
+      <ol className="wz-steps" aria-label="Order steps">
+        {STEPS.map((l, i) => (
+          <li key={l} className="wz-step" data-s={i < step ? 'done' : i === step ? 'now' : 'todo'} aria-current={i === step ? 'step' : undefined}>
+            {i < step
+              ? <button type="button" className="wz-dot" onClick={() => goTo(i)} aria-label={`Back to ${l}`}><NavIcon name="success" size={14}/></button>
+              : <span className="wz-dot">{i + 1}</span>}
+            <span className="wz-lbl">{l}</span>
+          </li>
+        ))}
+      </ol>
 
-        .wiz-size-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
-        .wiz-2col      { grid-template-columns:1fr; }
-        .wiz-step-card { padding:18px 16px; }
-        .wz-piece + .wz-piece { padding-top:24px; border-top:1px dashed var(--border); }
-        .wz-piece-h { margin:0; font-size:15px; font-weight:800; color:var(--ink); }
-        .wz-qty { padding:12px 16px; border-radius:11px; background:#fef3c7; border:1px solid #fde68a; }
-        .wz-qty[data-ok="true"] { background:#f0fdfa; border-color:#99f6e4; }
-        .wz-qty-row { display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:13px; color:var(--ink); }
-        .wz-qty-row strong { font-size:18px; font-weight:800; color:var(--teal); }
-        .wz-qty-bar { height:6px; margin:8px 0 6px; border-radius:99px; background:rgba(15,23,42,.08); overflow:hidden; }
-        .wz-qty-bar span { display:block; height:100%; background:#d97706; transition:width .2s; }
-        .wz-qty[data-ok="true"] .wz-qty-bar span { background:var(--teal); }
-        .wz-qty p { margin:0; font-size:13px; font-weight:600; color:#92400e; }
-        .wz-qty[data-ok="true"] p { color:var(--teal-700, #026a77); }
-        .wz-sum-piece + .wz-sum-piece, .wz-sum-piece + dl { margin-top:14px; padding-top:14px; border-top:1px solid var(--border); }
-        .wz-min { padding:12px 14px; border-radius:11px; background:#fef3c7; border:2px solid #d97706; color:#78350f; font-size:13px; }
-        .wz-min strong { font-weight:800; }
-        .wz-lead { margin:0; font-size:13px; color:var(--text-muted); }
-        .wz-sum-role { margin:0 0 8px; font-size:13px; font-weight:800; text-transform:uppercase; letter-spacing:.07em; color:var(--text-subtle); }
+      {init.bad && <AlertBanner tone="warning" title="Your saved design couldn't be read">Reopen it from My Designs, or order from your own file below.</AlertBanner>}
+      {isSet && <p className="wz-set" role="note">Uniform set: <strong>{forms.map((_, i) => pieceName(i)).join(' + ')}</strong>. Submitting places one linked order per piece.</p>}
 
-        @media (min-width:480px) {
-          .wiz-size-grid { grid-template-columns:repeat(3,1fr); }
-          .wiz-2col      { grid-template-columns:1fr 1fr; }
-        }
-        @media (min-width:768px) {
-          .wiz-size-grid { grid-template-columns:repeat(auto-fill,minmax(128px,1fr)); gap:8px; }
-          .wiz-size-grid > * { min-width:0; }
-          .wiz-step-card { padding:24px 22px; }
-        }
-      `}</style>
+      <div className="wz-cols">
+        <div className="wz-main">
+          <motion.section key={step} className="cx-card wz-card" ref={cardRef} tabIndex={-1} aria-label={`Step ${step + 1}: ${STEPS[step]}`}
+            initial={moved.current ? { opacity: 0, y: 8 } : false} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18 }}>
+            {body()}
+            {step === 0 && studios[0] && <button type="button" className="wz-clear" onClick={clearDesign}>Order from my own file instead</button>}
+          </motion.section>
 
-      {/* Confetti burst on submit success */}
-      {showConfetti && <ConfettiBurst/>}
+          {apiErr && <div className="wz-err" role="alert"><NavIcon name="warning" size={14}/> {apiErr}</div>}
 
-      {/* Size chart modal */}
-      <AnimatePresence>
-        {showSizeChart && (
-          <SizeChartModal onClose={() => setShowSizeChart(false)}/>
-        )}
-      </AnimatePresence>
-
-      <div className="cx-page wz-page" style={{ fontFamily:FONT }}>
-        <div className="wz-head">
-          <div>
-            <h1>{isSet ? 'Order a Uniform Set' : 'Place an Order'}</h1>
-            <p>Step {step+1} of {STEPS.length} - {STEPS[step]}</p>
-          </div>
-        </div>
-        <p className="sr-only" role="status" aria-live="polite">{`Step ${step + 1} of ${STEPS.length}: ${STEPS[step]}`}</p>
-        <StepBar step={step}/>
-        {isSet && (
-          <p className="wz-set" role="status" style={{ margin:'0 0 14px', padding:'10px 14px', borderRadius:12, background:'var(--teal-50, #e6f4f5)', border:'1px solid var(--border)', fontSize:13, color:'var(--ink)' }}>
-            Uniform set: <strong>{forms.map((f, i) => `${ROLE_LABEL[roleOf(i)]} ${f.garment_type}`).join(' + ')}</strong>. One submit places a linked order for each piece.
-          </p>
-        )}
-        {(studio || form.garment_type) && (
-          <div className="wz-mini" aria-label="Order snapshot">
-            <style>{`.wz-mini{display:none;align-items:center;gap:12px;padding:10px 12px;margin-bottom:14px;border:1px solid var(--border);border-radius:14px;background:#fff}.wz-mini-t{width:48px;height:48px;border-radius:10px;display:grid;place-items:center;overflow:hidden;flex-shrink:0}.wz-mini-t img{width:100%;height:100%;object-fit:contain}.wz-mini-n{margin:0;font-size:14px;font-weight:800;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wz-mini-s{margin:2px 0 0;font-size:13px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}@media(max-width:639px){.wz-mini{display:flex}}`}</style>
-            <div className="wz-mini-t" style={{ background: studio?.previewPng ? 'var(--bg-surface)' : (studio?.colors?.body ?? 'var(--bg-surface)') }}>
-              {studio?.previewPng ? <img src={studio.previewPng} alt=""/> : <NavIcon name="garmentType" size={20} color="#fff"/>}
-            </div>
-            <div style={{ minWidth:0, flex:1 }}>
-              <p className="wz-mini-n">{forms.map(f => f.garment_type).filter(Boolean).join(' + ') || 'Custom garment'}</p>
-              <p className="wz-mini-s">{forms.map(f => orderQty(f)).some(Boolean) ? forms.map(f => `${orderQty(f)} pcs`).join(' + ') : 'Quantity not set yet'}</p>
-            </div>
-          </div>
-        )}
-
-        <div className="wz-cols">
-          <div className="wz-main">
-            <AnimatePresence mode="wait" custom={dir}>
-              <motion.div key={step} custom={dir}
-                initial={{ opacity:0, x: dir * 24 }} animate={{ opacity:1, x:0 }}
-                onAnimationComplete={(def) => { if (def?.opacity === 1 && moved.current) { moved.current = false; cardRef.current?.focus({ preventScroll: true }); } }}
-                exit={{ opacity:0, x: dir * -24 }} transition={{ duration:.2, ease:'easeOut' }}>
-                <div className="wiz-step-card cx-card" ref={cardRef} tabIndex={-1} aria-label={`Step ${step + 1} of ${STEPS.length}: ${STEPS[step]}`}>{COMPS[step]}</div>
-              </motion.div>
-            </AnimatePresence>
-
-            {apiErr && (
-              <div className="wz-err" role="alert">
-                <NavIcon name="warning" size={14} color="var(--danger)"/> {apiErr}
-              </div>
-            )}
-
-            <div className="wz-actions">
-              <button className="cx-btn cx-btn-s" onClick={step > 0 ? goBack : () => nav(-1)}>
-                {step > 0 ? 'Back' : 'Cancel'}
-              </button>
-              <button className="cx-btn cx-btn-p wz-next" disabled={busy || (step === STEPS.length - 1 && belowMin)}
-                onClick={step === STEPS.length - 1 ? handleSubmit : goNext}>
-                {busy ? 'Submitting' : step === STEPS.length - 1 ? (isSet ? `Submit ${forms.length} Orders` : 'Submit Order') : `Next: ${STEPS[step+1]}`}
+          <div className="wz-actions">
+            <SummaryBar forms={forms} studios={studios}/>
+            <div className="wz-btns">
+              <button type="button" className="cx-btn cx-btn-s" onClick={step ? () => goTo(step - 1) : () => nav(-1)}>{step ? 'Back' : 'Cancel'}</button>
+              <button type="button" className="cx-btn cx-btn-p wz-next" aria-busy={busy || undefined} disabled={busy || (last && belowMin)} onClick={last ? submit : next}>
+                {busy ? 'Submitting…' : last ? (isSet ? `Submit ${forms.length} orders` : 'Submit order') : `Next: ${STEPS[step + 1]}`}
               </button>
             </div>
           </div>
-          <div className="wz-side"><WizSummary forms={forms} studios={studios} step={step}/></div>
         </div>
+        <div className="wz-side"><SummaryPanel forms={forms} studios={studios}/></div>
       </div>
-      </>
-      )}
-    </>
+    </div>
   );
 }

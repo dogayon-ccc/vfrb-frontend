@@ -18,10 +18,10 @@ import axios from 'axios';
 import EmptyState from '../../components/EmptyState';
 import { Card, Button, Badge, PageHeader, Skeleton, ActionMenu } from '../../components/ui';
 import { Chips, DesignThumb, reltime, fmtDate } from '../../components/customer/kit';
-import { savedDesignName } from '../../utils/designName';
+import { savedDesignName, garmentLabel } from '../../utils/designName';
 import { openDesign, reorderDesign, duplicateDesign } from '../../utils/designActions';
 
-// Gallery card: big preview, one primary action, everything else in the "⋯" menu.
+// Gallery card: big preview, one primary action, one visible secondary, the rest in the "⋯" menu.
 function DesignCard({ img, garment, colors, title, meta, badge, tone, primary, secondary, tertiary, i, what }) {
   return (
     <Card as={motion.article} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 8) * 0.04 }}
@@ -33,8 +33,9 @@ function DesignCard({ img, garment, colors, title, meta, badge, tone, primary, s
       <div className="mx-body">
         <div className="mx-txt"><h3 title={title}>{title}</h3><p>{meta}</p></div>
         <div className="mx-acts">
-          {primary && <Button variant="primary" onClick={primary.onClick} disabled={primary.disabled}>{primary.label}</Button>}
-          <ActionMenu label={`More actions for ${title}`} items={[secondary, tertiary]} />
+          {primary && <Button variant="primary" className="mx-primary" onClick={primary.onClick} disabled={primary.disabled}>{primary.label}</Button>}
+          {secondary && <Button onClick={secondary.onClick} disabled={secondary.disabled}>{secondary.label}</Button>}
+          {tertiary && <ActionMenu label={`More actions for ${title}`} items={[tertiary]} />}
         </div>
       </div>
     </Card>
@@ -78,7 +79,7 @@ export default function MyDesigns() {
   useEffect(load, []);
 
   const openStudioBlank = () => { sessionStorage.removeItem('studio_config'); setStudioLock(null); nav('/design-studio'); };
-  const continueDraft = () => { sessionStorage.setItem('studio_config', JSON.stringify(draft.studio_config)); setStudioLock({ warn: true }); nav('/design-studio'); };
+  const continueDraft = () => { sessionStorage.setItem('studio_config', JSON.stringify(draft.studio_config)); setStudioLock(null); nav('/design-studio'); };
   const orderDraft = () => {
     const png = draft.preview_dataurl;
     const snap = png?.startsWith?.('data:image/png') ? { ...draft.studio_config, previewPng: png } : draft.studio_config;
@@ -97,7 +98,7 @@ export default function MyDesigns() {
   const hit = (...v) => !q.trim() || v.filter(Boolean).join(' ').toLowerCase().includes(q.trim().toLowerCase());
   const cfg = draft?.studio_config ?? {};
   // Card title: the customer's design name when it has one (archived designs are labelled "<garment> — Order #n" by the backend).
-  const titleOf = (c, label, fallback) => savedDesignName(c) || label || fallback;
+  const titleOf = (c, label, fallback) => garmentLabel(savedDesignName(c) || label || fallback);
   const draftTitle = draft ? titleOf(cfg, draft.label, cfg.garment || 'Untitled design') : '';
   const showDraft = draft && (tab === 'all' || tab === 'draft') && hit(draftTitle, cfg.garment, cfg.category);
   const shownCopies = tab === 'all' || tab === 'draft' ? copies.filter(d => hit(titleOf(d.config, d.label), d.label, d.garment, d.category)) : [];
@@ -156,15 +157,14 @@ export default function MyDesigns() {
           {showPast && shownPast.map((d, i) => (
             <DesignCard key={d.id} i={i + 1} img={d.photo_path} garment={d.garment} colors={d.config?.colors}
               title={titleOf(d.config, d.label, d.garment || 'Design')} meta={[d.category, d.sleeve].filter(Boolean).join(' · ') || fmtDate(d.updated_at ?? d.created_at)}
-              {...(d.locked
-                ? { badge: 'Ordered · view only', tone: FINAL, tertiary: { label: 'View in Studio', onClick: () => open(d) },
-                    primary: { label: busy === d.id ? 'Copying…' : 'Duplicate to edit', onClick: () => duplicate(d), disabled: !!busy } }
-                : { badge: 'Ordered before', tone: ORDERED, primary: { label: 'Open in Studio', onClick: () => open(d) } })}
-              secondary={{ label: 'Reorder', onClick: () => reorder(d) }} />
+              badge={d.locked ? 'Ordered · view only' : 'Ordered before'} tone={d.locked ? FINAL : ORDERED}
+              primary={{ label: 'Reorder', onClick: () => reorder(d) }}
+              secondary={{ label: busy === d.id ? 'Copying…' : 'Duplicate to edit', onClick: () => duplicate(d), disabled: !!busy }}
+              tertiary={{ label: d.locked ? 'View in Studio' : 'Open in Studio', onClick: () => open(d) }} />
           ))}
           {shownTpl.map((d, i) => (
             <DesignCard key={`t${d.id}`} i={i} img={d.photo_path} garment={d.garment} colors={d.config?.colors}
-              title={d.label || d.garment || 'Inspiration'} meta={[d.category, d.sleeve].filter(Boolean).join(' · ') || 'Starter design'}
+              title={garmentLabel(d.label || d.garment) || 'Inspiration'} meta={[d.category, d.sleeve].filter(Boolean).join(' · ') || 'Starter design'}
               badge="Inspiration" tone={INSPO} what="Starter design photo" primary={{ label: 'Use as starting point', onClick: () => useTemplate(d) }} />
           ))}
           {tab !== 'inspo' && <button type="button" className="cx-newtile" onClick={openStudioBlank}>

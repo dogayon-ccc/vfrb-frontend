@@ -4,7 +4,7 @@ import axios                                                  from 'axios';
 import { cacheGet, cacheClear }                              from '../../utils/cache';
 import { fetchResource }                                     from '../../utils/adminResources';
 import { NavIcon }                                            from '../../components/ui/icons';
-import { canAccessArea, isOwner, isAdmin }                    from '../../utils/jobAccess';
+import { canAccessArea, isOwner, isAdmin, roleLabel }                 from '../../utils/jobAccess';
 import ProductionProgress, { useProductionSummaries }        from '../../components/admin/ProductionProgress';
 import { DataTable, Drawer, EmptyState }                      from '../../components/ui';
 import useListKeys                                            from '../../hooks/useListKeys';
@@ -175,7 +175,7 @@ export default function AdminOrders() {
   const tabs = ALL_TABS.map(k => ({ key:k, label: k === 'all' ? 'All' : LABEL[k], count: k === 'all' ? orders.length : (counts[k] ?? 0) }));
   const tabLabel = tabs.find(t => t.key === tab)?.label ?? 'All';
   const open = openIdx >= 0 ? filtered[openIdx] : null;
-  const role = isOwner(user) ? 'Owner' : 'Administrator (Manager)';
+  const role = isOwner(user) ? 'Owner' : roleLabel(user);
 
   return (
     <>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 890" width="1024" height="890" data-source="/models/authored/scrub-top-vneck-three-quarter.glb" data-face="back">
+  <path id="body" fill="#3a6ea5" fill-rule="evenodd" d="M439 20.5L458.5 23L500.5 35L523.5 35L584.5 20L612.5 32L716.5 59L729.5 65L734 70.5L736 100.5L684 172.5L711 223.5L734 280.5L750 310.5L744 476.5L744 652.5L752.5 882L271 881.5L280 652.5L280 476.5L274 310.5L290 280.5L313 223.5L340 172.5L288 100.5L290 70.5L294.5 65L307.5 59L411.5 32Z"/>
+  <path id="sleeve_l" fill="#81b29a" fill-rule="evenodd" d="M743 90.5L796.5 133L942.5 280L1016 337.5L951.5 426L875.5 374L748 308.5L711 223.5L684 172.5Z"/>
+  <path id="sleeve_r" fill="#81b29a" fill-rule="evenodd" d="M279 90.5L340 172.5L313 223.5L276 308.5L148.5 374L72.5 426L8 337.5L81.5 280L227.5 133Z"/>
+  <path id="neck_band" fill="#e07a5f" fill-rule="evenodd" d="M442 8.5L462.5 10L498.5 21L519.5 22L561.5 10L581.5 8L595 19.5L595 22.5L592.5 25L581.5 20L523.5 35L500.5 35L443.5 20L431.5 25L428 20.5Z"/>
+</svg>

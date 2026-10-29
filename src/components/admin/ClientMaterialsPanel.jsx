@@ -12,7 +12,7 @@ const KIND = {
   received: { title: 'Record client delivery', verb: 'Record delivery', note: 'e.g. OTG delivery, DR #1234', label: 'Received' },
   wastage:  { title: 'Record wastage', verb: 'Record wastage', note: 'e.g. 2 m stained while cutting', label: 'Wastage' },
   returned: { title: 'Return leftovers to client', verb: 'Record return', note: 'e.g. Returned with delivery, received by OTG', label: 'Returned' },
-  issued:   { label: 'Used at Cutting' },
+  issued:   { label: 'Used at cutting' },
 };
 
 // Status of one client-material line; shared with Inventory's Client-supplied tab.
@@ -119,7 +119,7 @@ export default function ClientMaterialsPanel({ order, canWrite, canMessage, setT
         .cm-card-top b{font-size:14px;overflow-wrap:anywhere}
         .cm-cards dl{margin:10px 0 0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
         .cm-cards dl > div:nth-child(4){grid-column:1/-1}
-        .cm-cards dt{font-size:11px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--text-subtle)}
+        .cm-cards dt{font-size:11px;font-weight:800;color:var(--text-subtle)}
         .cm-cards dd{margin:2px 0 0;font-size:14px;font-variant-numeric:tabular-nums}
         @media(max-width:767px){.cm-actions{width:100%}.cm-actions .adm-btn{flex:1 1 auto;justify-content:center}}
       `}</style>

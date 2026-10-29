@@ -74,7 +74,6 @@ export function addFabricShading(fabric, canvas, paths, face, zones, current) {
   }
   detailRealism(fabric, canvas);
   const top = Math.max(...zones.map(z => at(z.obj))) + 2; // above the last zone and its grain, below detail lines and the customer's design
-  const overBody = at(zones[0].obj) + 2;                     // just above the body and its grain, under collar, sleeves and pocket
   const shadeUrl = paths.shade?.[face];
   if (shadeUrl) {
     Img.fromURL(shadeUrl, { crossOrigin: 'anonymous' }).then(img => {
@@ -85,11 +84,20 @@ export function addFabricShading(fabric, canvas, paths, face, zones, current) {
     }).catch(() => {}); // no shade map: the flat fill and grain still read as cloth
     return;
   }
-  // Vector templates: soft darkening toward the outline (cloth turning away), clipped to the body, and a light diagonal sheen.
-  canvas.insertAt(overBody, new fabric.Path(paths.body, { ...deco, fill: 'transparent', stroke: 'rgba(15,23,42,.16)', strokeWidth: 16,
-    shadow: new fabric.Shadow({ color: 'rgba(15,23,42,.28)', blur: 14 }), clipPath: new fabric.Path(paths.body, { absolutePositioned: true }) }));
-  canvas.insertAt(overBody + 1, new fabric.Path(paths.body, { ...deco, stroke: null, fill: new fabric.Gradient({
-    type: 'linear', coords: { x1: 0, y1: 0, x2: paths.w, y2: paths.h },
-    colorStops: [{ offset: 0, color: 'rgba(255,255,255,.18)' }, { offset: 0.45, color: 'rgba(255,255,255,0)' }, { offset: 0.72, color: 'rgba(0,0,0,0)' }, { offset: 1, color: 'rgba(0,0,0,.12)' }],
-  }) }));
+  // Vector templates: one rule for every zone (body, sleeves, collar, pocket), each clipped to itself and stacked just above its own
+  // fill and grain: soft darkening toward its outline (cloth turning away), sized to the zone so a thin collar is not swallowed, and
+  // one diagonal sheen across the whole garment, so the light falls the same way on every part.
+  for (const z of zones) {
+    const edge = new fabric.Path(z.d, { ...deco, fill: 'transparent', stroke: 'rgba(15,23,42,.16)', clipPath: new fabric.Path(z.d, { absolutePositioned: true }) });
+    const w = Math.min(16, Math.min(edge.width, edge.height) * 0.3);
+    edge.set({ strokeWidth: w, shadow: new fabric.Shadow({ color: 'rgba(15,23,42,.28)', blur: w * 0.875 }) });
+    const sheen = new fabric.Path(z.d, { ...deco, stroke: null });
+    sheen.set('fill', new fabric.Gradient({
+      type: 'linear', coords: { x1: -sheen.left, y1: -sheen.top, x2: paths.w - sheen.left, y2: paths.h - sheen.top },
+      colorStops: [{ offset: 0, color: 'rgba(255,255,255,.18)' }, { offset: 0.45, color: 'rgba(255,255,255,0)' }, { offset: 0.72, color: 'rgba(0,0,0,0)' }, { offset: 1, color: 'rgba(0,0,0,.12)' }],
+    }));
+    const above = at(z.obj) + (tile ? 2 : 1);
+    canvas.insertAt(above, edge);
+    canvas.insertAt(above + 1, sheen);
+  }
 }
