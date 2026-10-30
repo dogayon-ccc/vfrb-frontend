@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { MoreHorizontal, Eye, Copy } from 'lucide-react';
+import { MoreHorizontal, Eye, Copy, X } from 'lucide-react';
 import { NavIcon } from '../../../components/ui/icons';
 import LayersPanel from './LayersPanel';
 import AssetsPanel from './AssetsPanel';
@@ -16,10 +16,23 @@ import { TOOLS, TABS, tabOf, zonesFor, ZONE_LABEL, placementsFor } from './dsSha
 import { assetFor } from './garmentAssets';
 
 
-const SHORT = { color: 'Colour', logotext: 'Logo' };
-// Phones and tablets: five bottom-nav items; Details, Ask AI, View and Save a copy sit under More.
-const NAV = ['type', 'color', 'logotext', 'layers'];
-const NAV_LABEL = { type: 'Garment', color: 'Colours', logotext: 'Logo', layers: 'Layers' };
+// Phones and tablets: the four tabs plus More (View, Save a copy).
+const NAV = ['type', 'add', 'layers', 'ai'];
+const NAV_LABEL = { type: 'Garment', add: 'Add', layers: 'Layers', ai: 'Ask AI' };
+
+// Raw-material suggestions are made per order, so the Studio only says where they appear. No prices.
+function MaterialNote() {
+  const [hidden, setHidden] = useState(() => { try { return localStorage.getItem('ds_material_note') === '0'; } catch { return false; } });
+  if (hidden) return null;
+  const hide = () => { setHidden(true); try { localStorage.setItem('ds_material_note', '0'); } catch { /* storage blocked */ } };
+  return (
+    <aside className="ds-matnote" aria-label="Fabric suggestions">
+      <NavIcon name="materials" size={16}/>
+      <p><strong>Fabric suggestions</strong>After you order, VFRB suggests the fabric and trims for this design. You can accept them or choose your own.</p>
+      <button type="button" className="ds-matnote-x" aria-label="Hide fabric suggestions note" onClick={hide}><X size={16} aria-hidden="true"/></button>
+    </aside>
+  );
+}
 
 // The design at a glance: garment, the colour of each zone it has, and how many items are placed. No prices.
 function SpecSummary({ cfg, layers = [], status = null }) {
@@ -39,10 +52,10 @@ function SpecSummary({ cfg, layers = [], status = null }) {
   );
 }
 
-// Panel: one row of six labelled tabs (Garment, Colour, Details, Logo, Layers, Ask AI), the active tab's tool, then a spec summary
-// (desktop). Save and order live in TopBar.
-// A tab holding several tools (Colours: colour/pattern; Logo & text: logo/text/draw) switches them with a labelled segment.
-// Phones and tablets: a bottom nav (Garment, Colours, Logo, Layers, More) under a sheet of at most 40% of the screen that folds to
+// Panel: four labelled tabs (Garment, Add, Layers, Ask AI), the active tab's tool, then a spec summary (desktop); a canvas
+// selection swaps in the Selection inspector. Save and order live in TopBar.
+// A tab holding several tools (Garment: type/colours/pattern/details; Add: logo/text/draw) switches them with a labelled segment.
+// Phones and tablets: a bottom nav (Garment, Add, Layers, Ask AI, More) under a sheet of at most 40% of the screen that folds to
 // a handle; the spec summary is one line there. `garmentExtra` (piece actions) shows in the Garment sheet there; `more` = { onView, onCopy, canCopy, copying }.
 // `onlyTools`: the tools a restricted design may use (a colour-only copy passes ['color']); everything else is hidden.
 export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, onlyTools = null, garmentExtra = null, more = null, ...p }) {
@@ -113,18 +126,18 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
 
   return (
     <>
-      <section className="ds-panel" aria-label={title} data-collapsed={collapsed || undefined}>
+      <section className="ds-panel ds-chrome" aria-label={title} data-collapsed={collapsed || undefined}>
         {collapsed && (
           <button type="button" className="ds-panel-toggle" aria-expanded="false" aria-label="Show the panel" title="Show the panel" onClick={() => setCollapsed(false)}>
             <NavIcon name="chevronLeft" size={18}/>
           </button>
         )}
-        {/* One row of six labelled tabs, icon above text. */}
+        {/* One row of labelled tabs, icon above text. */}
         {!noGarment && (
           <nav className="ds-tabs" aria-label="Design sections">
             {tabs.map(t => (
               <button key={t.id} type="button" aria-current={t.id === tab?.id ? 'true' : undefined} onClick={() => pick(t)}>
-                <NavIcon name={t.icon} size={18}/><span>{SHORT[t.id] ?? t.label}</span>
+                <NavIcon name={t.icon} size={18}/><span>{t.label}</span>
               </button>
             ))}
           </nav>
@@ -151,6 +164,7 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
         ) : moreOpen ? moreList : (
           <>
             {tool === 'type' && garmentExtra && <div className="ds-phone-only">{garmentExtra}</div>}
+            {tab?.id === 'type' && <MaterialNote/>}
             {subs.length > 1 && (
               <div className="ds-seg ds-subtabs" role="tablist" aria-label={`${tab.label} sections`}>
                 {subs.map(id => {

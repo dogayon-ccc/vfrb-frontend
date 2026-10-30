@@ -167,6 +167,7 @@ t('gallery photo id survives Save -> Reload -> Order snapshot as inspirationId; 
 t('switching garment drops the photo id; a mismatched or unknown photo id is never saved', (() => { const onPants = G.applyGarment({ ...base }, 'Pants', { inspirationId: 'pants' }); const moved = G.applyGarment(onPants, 'Shorts'); return moved.inspirationId === null && S.serializeDesign({ ...onPants, inspirationId: 'shorts' }, {}).inspirationId === null && S.serializeDesign({ ...onPants, inspirationId: 'nope' }, {}).inspirationId === null && S.deserializeDesign({ garment: 'Pants', inspirationId: 'school-skirt' }).cfg.inspirationId === null; })());
 { const U = await L('/src/pages/client/design-studio/uniformSet.js');
   const fams = Object.keys(G.FAMILY_BY_NAME);
+  t('dresses and the coverall are a complete outfit; set pieces and "Dress Slacks" never are', ['Dress', 'Belted Shift Dress', 'Maternity Tunic Dress', 'Lab Coverall'].every(G.isCompleteOutfit) && !['Polo Shirt', 'Pants', 'Skirt', 'Dress Slacks', '', null].some(G.isCompleteOutfit));
   t('every family is a set top or bottom except the full-length ones (Lab Coverall, Dress and the two derived dresses)', fams.every(f => ['Lab Coverall', 'Dress', 'Belted Shift Dress', 'Maternity Tunic Dress'].includes(f) ? G.pieceOf(f) === null : ['top', 'bottom'].includes(G.pieceOf(f))) && ['Pants', 'Shorts', 'Skirt', 'Pleated Skirt'].every(f => G.pieceOf(f) === 'bottom'));
   const top = S.serializeDesign({ ...G.applyGarment({ ...base }, 'Polo Shirt', { fit: 'male' }), colors: { body: '#123456' } }, { frontOverlays: [{ type: 'i-text', text: 'TOP' }] });
   const bot = S.serializeDesign({ ...G.applyGarment({ ...base }, 'Pants', { inspirationId: 'pants' }), colors: { body: '#800000' } }, {});
@@ -371,7 +372,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const cust = src('../src/styles/customer.css'), shell = src('../src/styles/customer-shell.css'), layout = src('../src/layouts/CustomerLayout.jsx');
   const defs = [...cust.matchAll(/([^{}]+)\{[^{}]*--cx-[\w-]+\s*:/g)].map(m => m[1].trim());
   const global = ['theme.css', 'admin.css', 'site.css', 'auth.css', 'modals.css', 'responsive.css'].filter(f => /--cx-/.test(src(`../src/styles/${f}`))).concat(/--cx-/.test(src('../src/main.css')) ? ['main.css'] : []);
-  t('customer tokens are defined only on customer roots (html[data-cx], .cm-shell, the Studio .ds; dark mode re-points the same roots, never .ds), never on :root or shared stylesheets', defs.length === 2 && defs[0].endsWith(':is(html[data-cx],.cm-shell,.ds)') && defs[1].endsWith('html[data-theme=dark]:is([data-cx]),html[data-theme=dark] .cm-shell') && global.length === 0);
+  t('customer tokens are defined only on customer roots (html[data-cx], .cm-shell, the Studio .ds and its .ds-chrome frame; dark mode re-points the same roots, never .ds), never on :root or shared stylesheets', defs.length === 2 && defs[0].endsWith(':is(html[data-cx],.cm-shell,.ds,.ds-chrome)') && defs[1].endsWith('html[data-theme=dark]:is([data-cx]),html[data-theme=dark] .cm-shell') && global.length === 0);
   const sels = [...shell.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/(?:^|[;}])\s*([^{}@;]+)\{/g)].map(m => m[1].trim()).filter(s => !/^(from|to|\d+%)$/.test(s)).flatMap(s => s.split(','));
   t('every customer shell rule is scoped to the customer root, so admin is untouched after the shell has loaded', sels.length > 30 && sels.every(s => /data-cx|\.cx-|\.cm-(shell|main|content|studio-fab)/.test(s)));
   t('the customer shell sets data-cx on mount and removes it on unmount; shell CSS is imported only by the layout', /useLayoutEffect\(\(\) => \{[\s\S]{0,120}dataset\.cx = ''[\s\S]{0,60}delete root\.dataset\.cx/.test(layout) && /import '\.\.\/styles\/customer-shell\.css'/.test(layout) && !/customer-shell\.css/.test(src('../src/main.jsx')));
@@ -416,20 +417,22 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     /const noGarment = !p\.cfg\.garment/.test(drawer) && /\{!noGarment && \(\s*<nav className="ds-tabs"/.test(drawer) && /Choose a garment on the canvas to start designing\./.test(drawer)
     && /if \(!cfg\.garment\) return null;/.test(get('PiecesRail.jsx')));
   const SH = await L('/src/pages/client/design-studio/dsShared.js');
-  t('six labelled tabs on desktop (Garment, Colour, Details, Logo, Layers, Ask AI): every tool belongs to exactly one tab, Layers is a real tab, Draw sits in Logo & text; phones and tablets: Garment, Colours, Logo, Layers, More (Details, Ask AI, View, Save a copy)',
-    SH.TABS.map(t => t.label).join('|') === 'Garment|Colours|Details|Logo & text|Layers|Ask AI'
+  t('four labelled tabs (Garment, Add, Layers, Ask AI): every tool belongs to exactly one tab, Colours/Pattern/Details sit in Garment, Draw in Add; phones and tablets add More (View, Save a copy); the Garment tab carries the price-free fabric note',
+    SH.TABS.map(t => t.label).join('|') === 'Garment|Add|Layers|Ask AI'
     && SH.TOOLS.filter(t => t.id !== 'selected').every(t => SH.TABS.filter(x => x.tools.includes(t.id)).length === 1)
-    && SH.tabOf('draw').id === 'logotext' && SH.tabOf('pattern').id === 'color' && /layers:\s*\(\)\s*=>/.test(drawer) && (drawer.match(/<LayersPanel\b/g) ?? []).length === 1
-    && !/sr-only|toggleMore/.test(drawer) && /<span>\{SHORT\[t\.id\] \?\? t\.label\}<\/span>/.test(drawer)
-    && /const NAV = \['type', 'color', 'logotext', 'layers'\];/.test(drawer) && /className="ds-more"/.test(drawer) && /<span>More<\/span>/.test(drawer));
+    && SH.tabOf('draw').id === 'add' && ['color', 'pattern', 'details'].every(id => SH.tabOf(id).id === 'type') && /layers:\s*\(\)\s*=>/.test(drawer) && (drawer.match(/<LayersPanel\b/g) ?? []).length === 1
+    && !/sr-only|toggleMore/.test(drawer) && /<span>\{t\.label\}<\/span>/.test(drawer)
+    && /const NAV = \['type', 'add', 'layers', 'ai'\];/.test(drawer) && /className="ds-more"/.test(drawer) && /<span>More<\/span>/.test(drawer)
+    && /\{tab\?\.id === 'type' && <MaterialNote\/>\}/.test(drawer) && !/₱|price|cost|php/i.test(drawer.match(/<p><strong>Fabric suggestions[^]*?<\/p>/)?.[0] ?? 'price'));
   const bar = get('TopBar.jsx'), dsx = fsx.readFileSync(urlx.fileURLToPath(new URL('../src/pages/client/DesignStudio.jsx', import.meta.url)), 'utf8');
   t('top bar holds the one primary action: Review & order (Review on phones), Reorder when final; Save, export and the save state live there; no dock, no inline lock banner',
     /'Review & order'/.test(bar) && /className="ds-bar-primary" onClick=\{onReorder\}/.test(bar) && /onClick=\{saveDesign\}/.test(bar) && /Export PDF spec sheet/.test(bar)
     && !/<StudioDock/.test(get('ToolDrawer.jsx')) && !/FINAL DESIGN/.test(dsx) && /<PiecesRail /.test(dsx) && !/ds-bar-cat|cfg\.category/.test(bar));
   const CATd = await L('/src/pages/client/design-studio/garmentCatalog.js');
-  t('dock 3D status matches the garment cards: an unverified "supported" model reads "3D (approx.)", plain "3D" only with a verification record',
+  t('dock and order preview 3D labels agree: an unverified model (supported or partial) reads "3D (approx.)", plain "3D" only with a verification record',
     /\{label3D\(cfg\)\}/.test(get('TopBar.jsx')) && !/Approx\. 3D</.test(get('TopBar.jsx'))
-    && ['Pants', 'Jogger Scrub Pants', 'Custom Skirt'].every(g => { const f = CATd.familyFor(g); return f && f.status3D !== 'none' && !f.verified3D; }));
+    && /\{label3D\(design\)\}/.test(rd('src/components/DesignPreview.jsx')) && !/status3D === 'partial'/.test(rd('src/components/DesignPreview.jsx'))
+    && ['Pants', 'Jogger Scrub Pants', 'Skirt'].every(g => { const f = CATd.familyFor(g); return f && f.status3D !== 'none' && !f.verified3D && CATd.label3D({ garment: g }) === '3D (approx.)'; }));
 }
 // Studio visual quality: photo bases never above native resolution; a new design starts with one base colour.
 {
@@ -791,7 +794,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const rej = s => ({ status: 'rejected', reason: s ? { response: { status: s } } : new Error('Network Error') });
   t('Order Detail: a network or server failure is a retryable error, never "Order not found", and is not cached; 404/403 stay "not found"',
     LS.fetchFailed(rej()) && LS.fetchFailed(rej(500)) && LS.fetchFailed(rej(429)) && !LS.fetchFailed(rej(404)) && !LS.fetchFailed(rej(403)) && !LS.fetchFailed({ status: 'fulfilled', value: {} })
-    && /const failed = fetchFailed\(o\);/.test(od) && /if \(!failed\) cacheSet\(CACHE_KEY/.test(od) && od.indexOf('if (loadErr) return') < od.indexOf('if (!order) return') && /onRetry=\{\(\) => load\(true\)\}/.test(od));
+    && /const failed = fetchFailed\(o\);/.test(od) && /if \(!failed\b[^\n]*\) cacheSet\(CACHE_KEY/.test(od) && od.indexOf('if (loadErr) return') < od.indexOf('if (!order) return') && /onRetry=\{\(\) => load\(true\)\}/.test(od));
   const Cp = await L('/src/pages/client/design-studio/garmentCapabilities.js');
   const noted = Cp.SCANNED_GARMENTS.filter(g => Cp.hemNote3D(g.capabilities)).map(g => g.id);
   const cv = rd('../src/pages/client/design-studio/CanvasViewport.jsx');
@@ -1550,6 +1553,23 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     const sl = s ?? 'Short', gen = CG.isParametric(g) ? GP.customPaths(g, null, sl) : (GP.SLEEVE_VARIANTS[sl] ?? (b => b))(GP.BASE_PATHS[g]);
     return [null, { size: 'XS' }, { size: '3XL', fit: 'female' }].every(z => keys(GP.getGarmentPaths(g, sl, 'front', z)) === keys(gen));
   }));
+}
+// Tool rail: Photoshop letters, Alt+Z zooms out, modifiers never steal Ctrl shortcuts; bucket and Colours panel share one paint rule.
+{
+  const R = await L('/src/pages/client/design-studio/railTools.js');
+  const CR = await L('/src/pages/client/design-studio/colorRules.js');
+  const k = (key, m = {}) => R.railKey({ key, ...m });
+  t('tool rail: V H I G B E T U pick their tools, Z / Alt+Z zoom, Ctrl or Cmd letters and held keys are left alone',
+    ['V', 'H', 'I', 'G', 'B', 'E', 'T', 'U'].map(x => k(x.toLowerCase())).join() === 'move,hand,sample,fill,brush,eraser,text,shape'
+    && k('z') === 'zoom-in' && k('z', { altKey: true }) === 'zoom-out' && k('z', { ctrlKey: true }) === null && k('d', { metaKey: true }) === null
+    && k('v', { repeat: true }) === null && k('Escape') === 'move' && k('q') === null
+    && R.activeRail({ hand: true, pick: 'fill', tool: 'draw' }) === 'hand' && R.activeRail({ pick: 'sample', tool: 'draw' }) === 'sample'
+    && R.activeRail({ tool: 'draw', erasing: true }) === 'eraser' && R.activeRail({ tool: 'color' }) === 'move');
+  const c0 = CR.startColors('#111111');
+  t('paint bucket and Colours panel share paintZone: the body carries following parts, any other part changes alone',
+    JSON.stringify(CR.paintZone(c0, 'body', '#222222')) === JSON.stringify(CR.withBody(c0, '#222222'))
+    && CR.paintZone(c0, 'collar', '#333333').collar === '#333333' && CR.paintZone(c0, 'collar', '#333333').body === '#111111'
+    && /paintZone\(p\.colors, zone, c\)/.test(fsx.readFileSync('src/pages/client/design-studio/ColorsPanel.jsx', 'utf8')));
 }
 console.log(out.join('\n')); const f =out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);

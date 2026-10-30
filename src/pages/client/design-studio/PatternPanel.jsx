@@ -95,8 +95,8 @@ export default function PatternPanel({ cfg, setCfg, activeZone }) {
       flex:1, overflowY:'auto' }}>
 
       <div style={{ padding:'9px 11px',borderRadius:9,
-        background:'rgba(15,23,42,.04)',border:'1px solid rgba(15,23,42,.08)' }}>
-        <p style={{ fontSize:13,fontWeight:700,color:'#1a2332',margin:'0 0 2px' }}>
+        background:'var(--bg-surface)',border:'1px solid var(--border)' }}>
+        <p style={{ fontSize:13,fontWeight:700,color:'var(--ink)',margin:'0 0 2px' }}>
           Pattern Overlay
         </p>
         <p style={{ fontSize:13,color:'var(--cx-ink-2)',margin:0 }}>
@@ -104,7 +104,7 @@ export default function PatternPanel({ cfg, setCfg, activeZone }) {
         </p>
       </div>
 
-      {photoBase && <p role="status" style={{ fontSize:13, color:'rgba(15,23,42,.68)', margin:0 }}>
+      {photoBase && <p role="status" style={{ fontSize:13, color:'var(--text-muted)', margin:0 }}>
         Patterns are unavailable on this photo base. Choose a vector garment to add a pattern.
       </p>}
 

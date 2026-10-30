@@ -137,7 +137,7 @@ export default function CustomerDashboard() {
 
       <PageHeader title="Dashboard" subtitle={greeting(user.name)} />
 
-      <motion.section initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="dx-hero" aria-labelledby="dash-hero-t">
+      <motion.section initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="dx-hero cx-navy" aria-labelledby="dash-hero-t">
         <div className="dx-hero-txt">
           <h2 id="dash-hero-t" className="dx-title">{loading ? 'Your design studio' : draft ? draftTitle : 'Design your team’s uniform'}</h2>
           <p className="dx-hero-sub">{draft

@@ -3,7 +3,8 @@ import { useRef, useState } from 'react';
 import DesignPreview from '../../../components/DesignPreview';
 import SizeChartTable from '../../../components/SizeChartTable';
 import SizeProportions from '../design-studio/SizeProportions';
-import { Button, Field, NavIcon } from '../../../components/ui';
+import { Badge, Button, Field, NavIcon } from '../../../components/ui';
+import { isCompleteOutfit, COMPLETE_OUTFIT } from '../design-studio/garmentCatalog';
 import { checkUpload } from '../../../utils/fileCheck';
 import { useReferenceRules } from '../../../utils/uploadRules';
 import { useObjectUrl } from '../../../hooks/useObjectUrl';
@@ -51,7 +52,7 @@ export function StepDesign({ form, set, errors, studio, onOpenStudio, title, uid
       {title && <h2 className="wz-piece-h">{title}</h2>}
       <div className="wz-stage"><DesignPreview cfg={studio} previewUrl={studio.previewPng ?? null} height={300}/></div>
       <div className="wz-design-row">
-        <p><strong>{garmentLabel(studio.name || garmentOf(studio))}</strong><span>{[garmentLabel(garmentOf(studio)), form.sleeve_type, form.color].filter(Boolean).join(' · ')}</span></p>
+        <p><strong>{garmentLabel(studio.name || garmentOf(studio))}</strong>{isCompleteOutfit(garmentOf(studio)) && <span className="cx-tag-row"><Badge tone="success">{COMPLETE_OUTFIT}</Badge></span>}<span>{[garmentLabel(garmentOf(studio)), form.sleeve_type, form.color].filter(Boolean).join(' · ')}</span></p>
         <Button icon="designStudio" onClick={onOpenStudio}>Edit in Studio</Button>
       </div>
       <p className="wz-lead">Your Studio design is attached as it is. Change it in the Studio, not here.</p>
@@ -72,7 +73,9 @@ export function StepDesign({ form, set, errors, studio, onOpenStudio, title, uid
         <option value="">Choose a garment</option>
         <optgroup label="Tops">{GARMENTS.top.map(g => <option key={g}>{g}</option>)}</optgroup>
         <optgroup label="Bottoms">{GARMENTS.bottom.map(g => <option key={g}>{g}</option>)}</optgroup>
+        <optgroup label="Complete outfits">{GARMENTS.outfit.map(g => <option key={g}>{g}</option>)}</optgroup>
       </Field>
+      {isCompleteOutfit(form.garment_type) && <p className="wz-lead">{COMPLETE_OUTFIT}: one piece covers the whole uniform, so no matching top or bottom is needed.</p>}
       <Field as="textarea" rows={4} label="Describe the design" value={form.client_design_notes} error={errors.client_design_notes}
         onChange={e => set('client_design_notes', e.target.value)} placeholder="Colors, logo placement, collar and sleeve style, anything the file doesn't show"/>
     </div>

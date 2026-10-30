@@ -1,3 +1,9 @@
+import { getAccentVars, DEFAULT_ACCENT_HEX, DARK_ON_ACCENT } from '../../../utils/accentColor';
+
+// The Studio's teal, lifted for dark surfaces, as declarations for the dark chrome.
+const CHROME_ACCENT = Object.entries({ ...getAccentVars(DEFAULT_ACCENT_HEX, true), '--on-teal': DARK_ON_ACCENT, '--text-on-accent': DARK_ON_ACCENT })
+  .map(([k, v]) => `${k}:${v};`).join('');
+
 export default function DesignStudioStyles() {
   return (
     <style>{`
@@ -17,6 +23,19 @@ export default function DesignStudioStyles() {
         background:var(--cx-paper);color:var(--cx-ink);font-family:var(--cx-sans);
       }
       .ds button:focus-visible,.ds [role=button]:focus-visible{outline:2px solid var(--cx-thread-ink);outline-offset:2px;}
+      /* Dark chrome (bar, Pieces rail, panel) around the light cutting mat: the dark atelier bases; customer.css derives the rest */
+      .ds .ds-chrome{color-scheme:dark;${CHROME_ACCENT}
+        --color-page:#14181a;--color-surface:#1a1f22;--color-surface-2:#26313b;--color-card:#1f2528;--color-line:#30393d;--color-line-strong:#4a5559;
+        --color-ink:#ece7de;--color-ink-2:#c9c2b6;--color-ink-3:#a39d93;
+        --cx-shade:0 0 0;--cx-weave-light:rgb(255 255 255 / .05);--cx-weave-dark:rgb(0 0 0 / .25);--cx-scrim:rgb(0 0 0 / .55);
+        --shadow-1:0 1px 2px rgba(0,0,0,.45);--shadow-2:0 2px 6px rgba(0,0,0,.4),0 18px 40px -14px rgba(0,0,0,.7);
+        color:var(--cx-ink);}
+      .ds-matnote{display:grid;grid-template-columns:auto minmax(0,1fr) 44px;align-items:start;gap:8px;margin:12px 12px 0;padding:8px 0 8px 12px;
+        border:1px solid var(--cx-line);border-radius:var(--cx-r-md);background:var(--cx-paper-2);font-size:13px;line-height:1.45;color:var(--cx-ink-2);}
+      .ds-matnote > svg{margin-top:2px;color:var(--cx-thread-ink);}
+      .ds-matnote strong{display:block;color:var(--cx-ink);font-weight:700;}
+      .ds-matnote-x{width:44px;height:44px;margin:-8px 0;display:grid;place-items:center;border:0;border-radius:var(--cx-r-md);background:none;color:var(--cx-ink-2);cursor:pointer;}
+      .ds-matnote-x:hover{background:var(--cx-hover);color:var(--cx-ink);}
 
       /* Top bar: one row at every width; undo/redo and the single 2D/3D toggle never fold away */
       .ds-bar{height:calc(56px + env(safe-area-inset-top,0px));flex-shrink:0;display:flex;align-items:center;gap:8px;padding:env(safe-area-inset-top,0px) max(12px,env(safe-area-inset-right,0px)) 0 max(12px,env(safe-area-inset-left,0px));
@@ -89,6 +108,8 @@ export default function DesignStudioStyles() {
       .ds-rail-txt strong{font-size:15px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
       .ds-rail-acts{display:flex;flex-direction:column;align-items:flex-start;gap:8px;}
       .ds-rail-acts .ds-btn{width:100%;min-height:44px;justify-content:center;}
+      .ds-rail-note{margin:0;font-size:13px;line-height:1.4;color:var(--cx-ink-2);}
+      .ds-rail-note[data-sheet]{padding:12px 16px 0;}
       @media (prefers-reduced-motion:reduce){.ds-rail-card{transition:none;}}
       .ds-empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:28px 16px;text-align:center;border:1px dashed var(--border);border-radius:var(--r-lg);background:var(--bg-surface);}
       .ds-empty-icon{width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--teal-50);}
@@ -572,10 +593,21 @@ export default function DesignStudioStyles() {
       /* Rail: sliding active pill (framer layoutId) replaces the per-button background swap */
       /* Guides: one button in the top lane; its popover holds every guide toggle */
       .ds-guides{position:relative;}
-      .ds-guides-btn,.ds-pan-btn{min-height:40px;display:inline-flex;align-items:center;gap:8px;padding:0 12px;border:1px solid var(--cx-line);border-radius:var(--cx-r-md);
+      .ds-guides-btn,.ds-tools-btn{min-height:40px;display:inline-flex;align-items:center;gap:8px;padding:0 12px;border:1px solid var(--cx-line);border-radius:var(--cx-r-md);
         background:var(--cx-card);color:var(--cx-ink);font:700 13px var(--cx-sans);cursor:pointer;box-shadow:var(--cx-elev-0);}
-      .ds-pan-btn{padding:0 8px;}
-      .ds-guides-btn[aria-expanded=true],.ds-pan-btn[aria-pressed=true]{border-color:var(--cx-thread);color:var(--cx-thread-ink);background:var(--cx-thread-tint);}
+      .ds-tools-btn{padding:0 8px;}
+      .ds-guides-btn[aria-expanded=true],.ds-tools-btn[aria-pressed=true]{border-color:var(--cx-thread);color:var(--cx-thread-ink);background:var(--cx-thread-tint);}
+      .ds-tools{display:inline-flex;align-items:center;gap:2px;padding:2px;border:1px solid var(--cx-line);border-radius:var(--cx-r-md);background:var(--cx-card);box-shadow:var(--cx-elev-0);}
+      .ds-tools .ds-tools-btn{min-width:44px;justify-content:center;border-color:transparent;box-shadow:none;}
+      .ds-tools .ds-tools-btn:hover:not(:disabled){background:var(--cx-hover);}
+      .ds-tools .ds-tools-btn:disabled{opacity:.45;cursor:default;}
+      .ds-tools-ink{position:relative;width:40px;height:40px;margin-left:4px;border-radius:50%;cursor:pointer;}
+      .ds-tools-ink input{width:100%;height:100%;padding:0;border:2px solid var(--cx-card);border-radius:50%;box-shadow:0 0 0 1px var(--cx-line-strong);cursor:pointer;background:none;}
+      .ds-tools-ink input::-webkit-color-swatch-wrapper{padding:0;}
+      .ds-tools-ink input::-webkit-color-swatch{border:0;border-radius:50%;}
+      .ds-tools-ink input::-moz-color-swatch{border:0;border-radius:50%;}
+      .ds-tools-ink:has(:focus-visible){outline:2px solid var(--cx-thread-ink);outline-offset:2px;}
+      @media (max-width:767px){.ds-tools-btn:is([data-tool=hand],[data-tool=brush],[data-tool=eraser],[data-tool=text],[data-tool=shape]){display:none;}.ds-tools-ink{width:44px;height:44px;}}
       .ds-guides-n{min-width:18px;height:18px;display:grid;place-items:center;padding:0 4px;border-radius:var(--cx-r-md);background:var(--cx-thread);color:var(--cx-on-thread);font-size:13px;}
       .ds-guides-pop{z-index:var(--cx-z-popover);width:min(300px,calc(100vw - 24px));padding:8px;display:flex;flex-direction:column;gap:2px;overflow-y:auto;overscroll-behavior:contain;
         border:1px solid var(--cx-line);border-radius:var(--cx-r-lg);background:var(--cx-card);box-shadow:var(--cx-elev-2);text-align:left;}
@@ -725,7 +757,7 @@ export default function DesignStudioStyles() {
         .ds-rail-thumb>*{max-width:32px;max-height:40px;}
         .ds-rail-txt small{font-size:13px;}
         .ds-rail-txt strong{font-size:13px;}
-        .ds-rail .ds-rail-acts{display:none;}
+        .ds-rail :is(.ds-rail-acts,.ds-rail-note){display:none;}
         .ds-rail-acts[data-sheet]{display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:12px 16px 0;}
         .ds-rail-acts[data-sheet] .ds-btn{width:100%;}
         .ds-lane{padding:8px 8px 0;}
@@ -763,7 +795,7 @@ export default function DesignStudioStyles() {
         .ai-pulse{animation:none;}
       }
       @media (pointer:coarse){
-        .ds-touch,.ds-ftb button,.ds-bar-btn,.ds-bar-view button,.ds-stage-btn,.ds-guides-btn,.ds-pan-btn{min-width:44px;min-height:44px;}
+        .ds-touch,.ds-ftb button,.ds-bar-btn,.ds-bar-view button,.ds-stage-btn,.ds-guides-btn,.ds-tools-btn{min-width:44px;min-height:44px;}
         .ds input[type="range"]{min-height:44px;}
       }
 
@@ -880,7 +912,7 @@ export default function DesignStudioStyles() {
 
       /* Desktop right panel: one row of six labelled tabs, icon above text (ToolDrawer.jsx); phones use the bottom nav */
       @media (min-width:1024px){
-        .ds-tabs{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:2px;padding:8px 6px;border-bottom:1px solid var(--cx-line);}
+        .ds-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px;padding:8px 6px;border-bottom:1px solid var(--cx-line);}
         .ds-tabs button{min-width:0;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:4px 2px;border:1px solid transparent;white-space:nowrap;
           border-radius:var(--cx-r-md);background:none;font:600 13px/1.15 var(--cx-sans);color:var(--cx-ink-2);cursor:pointer;
           transition:background .15s,color .15s,border-color .15s;}
@@ -961,7 +993,7 @@ export default function DesignStudioStyles() {
     
       /* 44px touch targets for every Studio control (VFRB rule). Decorative icons, badges and rulers are left as they are. */
       .ds :is(.ds-ftb button,.ds-stage-btn,.ds-ctrl,.ds-pick-tabs button,.ds-byo-check,.ds-zone,.ds-tp-change .ds-btn,
-        .ds-link-danger,.ds-seg button,.ds-btn,.ds-tp-catchip,.ds-guides-btn,.ds-pan-btn,.ds-guides-row select,.ds-lay-pick,.ds-lay-edit,
+        .ds-link-danger,.ds-seg button,.ds-btn,.ds-tp-catchip,.ds-guides-btn,.ds-tools-btn,.ds-guides-row select,.ds-lay-pick,.ds-lay-edit,
         .ds-ins-field input,.ds-ins-field select,.ds-ins-align .ds-act,.ds-piece-add,.ds-tabs button){min-height:44px;}
       .ds :is(.ds-ftb button,.ds-stage-btn,.ds-ctrl){min-width:44px;}
       .ds :is(.ds-ftb button,.ds-stage-btn){width:44px;height:44px;}

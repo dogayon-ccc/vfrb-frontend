@@ -7,7 +7,8 @@ export const FABRIC_TYPES = ['Cotton', 'Sublimation / Dry-fit', 'TC', 'Not sure'
 // Garments a customer can name for an upload-only order (garment_type is free text server-side).
 export const GARMENTS = {
   top: ['T-Shirt', 'Polo Shirt', 'Round Neck', 'V-Neck Shirt', 'Button-Down', 'Mandarin Collar', 'Blouse', 'Polo Barong',
-    'Scrub Top', 'Lab Coat', 'Lab Coverall', 'Jacket', 'Blazer', 'Collarless Blazer', 'Vest', 'Dress', 'Others'],
+    'Scrub Top', 'Lab Coat', 'Jacket', 'Blazer', 'Collarless Blazer', 'Vest', 'Others'],
+  outfit: ['Dress', 'Lab Coverall'],
   bottom: ['Pants', 'Shorts', 'Skirt', 'Pleated Skirt', 'Scrub Pants'],
 };
 const BOTTOM_RE = /pant|short|skirt|trouser|slack|jogger/i;

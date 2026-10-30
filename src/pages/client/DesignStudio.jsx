@@ -50,6 +50,7 @@ import { describeCustom, isCustom, isParametric, CUSTOM_TOP } from './design-stu
 import { readTrace, writeTrace, normalizeTrace } from './design-studio/traceGuide';
 import { DEFAULT_PIECE, otherRole, normalizeSet, withSet, mirrorStyle, mirrorOverlay, orderQueue } from './design-studio/uniformSet';
 import PiecesRail, { PieceActions } from './design-studio/PiecesRail';
+import { paintZone } from './design-studio/colorRules';
 
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────
@@ -155,11 +156,12 @@ export default function DesignStudio() {
   setCustomSpec(cfg.garment, cfg.custom);
   const customKey = cfg.custom ? JSON.stringify(cfg.custom) : '';
 
+  const pickRef = useRef(null); // tool rail state read by the canvas tap handler, which is bound once
   // BUG 2 FIX: pass canvasEl (ref object), not canvasEl.current (null at render)
   const { onAdded, addLogo, addText, addShape, addPocket, setPocketColor, mirrorSelected, updateSelected, arrangeLayer, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
           pushHistory, markHistory, settleHistory, undo, redo, canUndo, canRedo, editTick, initFailed,
           layers, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
-          setDrawMode, setBrushStyle, setSnapOptions, garmentRect, clearSelection, setOverlaysFrozen, presetPos, textItems, editText, showZoneOutline } =
+          setDrawMode, setPickMode, setBrushStyle, setSnapOptions, garmentRect, clearSelection, setOverlaysFrozen, presetPos, textItems, editText, showZoneOutline } =
     useGarmentCanvas(
       canvasEl,
       cfg.garment,
@@ -170,7 +172,10 @@ export default function DesignStudio() {
       cfg.patternParams,
       setSelObj,
       // A tapped zone opens Colours on it; a tapped pocket, button or closure detail ('detail:<part>') opens Details on that part.
-      (zone) => { if (zone.startsWith('detail:')) { setDetailFocus(zone.slice(7)); setTool('details'); } else { setActiveZone(zone); setTool('color'); } },
+      (zone) => {
+        const pk = pickRef.current; // paint bucket: the tapped part takes the active colour, one undo step like the Colours panel
+        if (pk?.pick === 'fill' && !zone.startsWith('detail:')) { if (!pk.final) setCfg(p => ({ ...p, colors: paintZone(p.colors, zone, pk.color) })); return; }
+        if (zone.startsWith('detail:')) { setDetailFocus(zone.slice(7)); setTool('details'); } else { setActiveZone(zone); setTool('color'); } },
       cfg.fit,
       cfg.details,
       customKey,
@@ -255,6 +260,20 @@ export default function DesignStudio() {
 
   const changeBrushSize = (size) => { setBrushSize(size); setBrushStyle(size, undefined); };
   const changeBrushColor = (color) => { setBrushColorState(color); setBrushStyle(undefined, color); };
+
+  // Tool rail: eyedropper and paint bucket share the brush colour as the active colour; drawing turns them off.
+  const [pick, setPick] = useState(null);
+  const [pickNote, setPickNote] = useState('');
+  pickRef.current = { pick, color: brushColor, colors: cfg.colors, final: locked };
+  useEffect(() => { if (tool === 'draw') setPick(null); }, [tool]);
+  useEffect(() => {
+    setPickMode(pick, (r) => {
+      const hex = (r?.zone && pickRef.current.colors?.[r.zone]) || r?.hex;
+      if (hex) changeBrushColor(hex);
+      setPickNote(hex ? `Active colour ${hex.toUpperCase()}` : 'No colour to pick there');
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pick, setPickMode, cfg.garment, face]);
 
   // ── Keyboard shortcuts: Ctrl+Z undo, Ctrl+Y redo ────────────────────────
   // MUST be after useGarmentCanvas destructuring — undo/redo are declared there.
@@ -865,6 +884,7 @@ export default function DesignStudio() {
             aiPulse={aiPulse} face={face} switchFace={switchFace}
             selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected} alignSelected={alignSelected} arrangeSelected={arrangeSelected} garmentRect={garmentRect}
             viewMode={viewMode} has3DLoaded={has3DLoaded} onLogoFile={onLogoFile} onPickZone={setActiveZone}
+            rail={locked ? null : { tool, setTool, pick, setPick, erasing, setErasing, color: brushColor, setColor: changeBrushColor, note: pickNote, colourOnly: colorOnly }}
             zoom={zoom} setZoom={setZoom} snapshot={snapshot} overlays={overlays}
             blank={<GarmentPicker inline cfg={cfg} pieceRole={uset?.active ?? (pendingArt && artScope ? (artScope === 'bottom' ? 'bottom' : 'top') : null)} onPickPhoto={pickPhoto}
               onPick3D={(d, f) => { keep3DRef.current = true; pickPhoto(d, f); setHas3DLoaded(true); setViewMode('3d'); }}

@@ -1,13 +1,12 @@
 import { secLabel, ZONE_LABEL, zonesFor, zone3D, ONLY_2D_TAG } from './dsShared';
 import { assetFor } from './garmentAssets';
-import { withBody } from './colorRules';
+import { paintZone } from './colorRules';
 import { SwatchGrid, CustomColor, colourName } from './SwatchGrid';
 
 // Colours of the one zone tapped on the garment: named swatch dots, then a custom swatch with a hex field.
 // The zone list stays behind "Other zones" for keyboard and screen-reader users.
 export default function ColorsPanel({ cfg, setCfg, activeZone, setActiveZone }) {
-  // The base colour carries every zone still following it (colorRules.js); other zones change alone.
-  const setColor = (zone, c) => setCfg(p => ({ ...p, colors: zone === 'body' ? withBody(p.colors, c) : { ...p.colors, [zone]: c } }));
+  const setColor = (zone, c) => setCfg(p => ({ ...p, colors: paintZone(p.colors, zone, c) }));
   // On a photo base with a trim mask the 'collar' zone recolours the whole trim (band, cuffs, welts), so it is called Trim.
   const photo = cfg.garment ? assetFor(cfg.garment, cfg.sleeve, 'front', cfg.fit) : null;
   const label = z => (photo?.trim && z === 'collar' ? 'Trim' : ZONE_LABEL[z] ?? z);

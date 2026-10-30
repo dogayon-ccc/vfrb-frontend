@@ -2,7 +2,7 @@
 // piece tabs above the canvas, for a set only (the actions move to the Garment sheet).
 import GarmentSilhouette from './GarmentSilhouette';
 import { SET_ROLES, ROLE_LABEL } from './uniformSet';
-import { pieceOf } from './garmentCatalog';
+import { pieceOf, isCompleteOutfit, COMPLETE_OUTFIT } from './garmentCatalog';
 import { garmentLabel } from '../../../utils/designName';
 
 function Card({ role, c, name }) {
@@ -12,7 +12,7 @@ function Card({ role, c, name }) {
         {c && <GarmentSilhouette garment={c.garment} sleeve={c.sleeve ?? 'Short'} fit={c.fit} colors={c.colors} details={c.details} custom={c.custom}
           patterns={c.patterns} patternParams={c.patternParams} width={48} height={58}/>}
       </span>
-      <span className="ds-rail-txt"><small>{role ? ROLE_LABEL[role] : 'Garment'}</small><strong>{garmentLabel(name) ?? 'Not chosen yet'}</strong></span>
+      <span className="ds-rail-txt"><small>{role ? ROLE_LABEL[role] : isCompleteOutfit(name) ? COMPLETE_OUTFIT : 'Garment'}</small><strong>{garmentLabel(name) ?? 'Not chosen yet'}</strong></span>
     </>
   );
 }
@@ -22,6 +22,7 @@ function Card({ role, c, name }) {
 export function PieceActions({ cfg, uset, other = null, onStart, canSet, setView = true, showSet, onShowSet,
   applyBoth = false, onApplyBoth = null, readOnly = false, inSheet = false }) {
   const role = cfg.garment ? pieceOf(cfg.garment) : null;
+  if (!readOnly && !role && isCompleteOutfit(cfg.garment)) return <p className="ds-rail-note" data-sheet={inSheet || undefined}>{COMPLETE_OUTFIT}: no matching piece needed.</p>;
   if (readOnly || !role) return null;
   return (
     <div className="ds-rail-acts" data-sheet={inSheet || undefined}>
@@ -51,7 +52,7 @@ export default function PiecesRail(props) {
   const active = uset?.active ?? role;
   const pieceCfg = r => (r === active ? cfg : other?.role === r ? other.cfg : null);
   return (
-    <aside className="ds-rail" aria-label="Pieces" data-set={uset ? '1' : undefined}>
+    <aside className="ds-rail ds-chrome" aria-label="Pieces" data-set={uset ? '1' : undefined}>
       <h2 className="ds-rail-h">Pieces</h2>
       {uset ? (
         <ul className="ds-rail-list" role="group" aria-label="Piece to edit">

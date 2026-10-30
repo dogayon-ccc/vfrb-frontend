@@ -34,6 +34,7 @@ import { RecCard, AI_OPTIONAL_LINE, stripCodes } from './AIMaterials';
 import { OrderThumb, StatusPill, LIFECYCLE, lifecycleIndex, orderTitle, parseCfg, fmtDate } from '../../components/customer/kit';
 import { Card, Button, Badge, PageHeader, Stepper, Skeleton, StatusChip, AlertBanner, EmptyState } from '../../components/ui';
 import { setOrders, ROLE_LABEL } from './design-studio/uniformSet';
+import { isCompleteOutfit, COMPLETE_OUTFIT } from './design-studio/garmentCatalog';
 
 
 
@@ -476,13 +477,14 @@ export default function CustomerOrderDetail() {
         <div className="od-grid">
         <div className="od-col od-main">
           {status !== 'cancelled' && (
-            <Card className="od-card">
+            <Card className="od-card cx-navy">
               <div className="od-sum">
                 <div className="od-sum-h">
                   <span className="od-sum-thumb"><OrderThumb order={order} size={64}/></span>
                   <div className="od-sum-txt">
                     <p className="od-sum-t" title={orderTitle(order)}>{orderTitle(order)}</p>
                     <p className="od-sum-m">{garmentLine}{dueLine}</p>
+                    {isCompleteOutfit(order.garment_type) && <span className="cx-tag-row"><Badge tone="success">{COMPLETE_OUTFIT}</Badge></span>}
                   </div>
                   <Button icon="chat" onClick={() => nav(`/messages?order=${orderId}`)}>Messages</Button>
                 </div>

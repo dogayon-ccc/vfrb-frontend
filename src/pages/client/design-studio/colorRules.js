@@ -19,6 +19,9 @@ export const withBody = (colors, hex) => ({
   ...Object.fromEntries(FOLLOWS_BODY.filter(z => same(colors[z], colors.body)).map(z => [z, hex])),
 });
 
+// One zone painted by the Colours panel or the paint bucket: the base colour carries the zones still following it, any other zone changes alone.
+export const paintZone = (colors, zone, hex) => (zone === 'body' ? withBody(colors, hex) : { ...colors, [zone]: hex });
+
 // Changing garment: a collar that only showed the previous garment's real trim follows the body again; a garment with a real trim gets it while the collar follows the body.
 export const colorsForGarment = (colors, prevTrim, nextTrim) => {
   let collar = colors.collar;

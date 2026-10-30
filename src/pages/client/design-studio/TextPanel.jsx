@@ -45,8 +45,8 @@ export default function TextPanel({ onAdd, bodyColor }) {
         <input ref={inputRef} value={val} onChange={e=>setVal(e.target.value)}
           placeholder="e.g. VFRB Enterprise" maxLength={32} style={{ ...inputStyle, flex:1 }}/>
         <button type="button" onClick={()=>setShowEmoji(s=>!s)} aria-label="Insert emoji"
-          style={{ width:38, borderRadius:9, border:`1px solid ${showEmoji?T2:'rgba(15,23,42,.1)'}`,
-            background: showEmoji ? 'rgba(2,195,154,.14)' : '#fff', fontSize:15, cursor:'pointer' }}>
+          style={{ width:38, borderRadius:9, border:`1px solid ${showEmoji?T2:'var(--border-strong)'}`,
+            background: showEmoji ? 'var(--teal-50)' : 'var(--bg-card)', fontSize:15, cursor:'pointer' }}>
           🙂
         </button>
       </div>
@@ -98,8 +98,8 @@ export default function TextPanel({ onAdd, bodyColor }) {
         disabled={!val.trim()}
         style={{
           padding:'9px', borderRadius:9, border:'none',
-          background: val.trim() ? `linear-gradient(135deg,${T},${T2})` : 'rgba(15,23,42,.08)',
-          color: val.trim() ? '#fff' : 'rgba(15,23,42,.35)', fontSize:13, fontWeight:700, cursor: val.trim()?'pointer':'not-allowed',
+          background: val.trim() ? `linear-gradient(135deg,${T},${T2})` : 'var(--bg-surface-2)',
+          color: val.trim() ? '#fff' : 'var(--text-muted)', fontSize:13, fontWeight:700, cursor: val.trim()?'pointer':'not-allowed',
           display:'flex', alignItems:'center', justifyContent:'center', gap:6,
         }}>
         <NavIcon name="edit" size={13}/> Add to Canvas

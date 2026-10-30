@@ -132,6 +132,9 @@ export const PIECE_OF = {
   ...Object.fromEntries(Object.entries(PARAM_FAMILIES).map(([name, f]) => [name, f.role])),
 };
 export const pieceOf = garment => PIECE_OF[garment] ?? null;
+// A dress or coverall is the whole uniform: no matching piece is offered or needed ("Dress Slacks" is a bottom, never one).
+export const isCompleteOutfit = garment => !!garment && !pieceOf(garment) && /\b(dress|coverall)\b/i.test(garment) && !/slack|pant|trouser|skirt|short/i.test(garment);
+export const COMPLETE_OUTFIT = 'Complete outfit';
 
 // Browse facets, derived from the same facts (never a second list to keep in step): what kind of piece a family is, and who its fits are
 // for. Gender is a filter and a recommendation, never a restriction: a family with a unisex sketch (or no fit at all) is for anyone.
@@ -220,13 +223,6 @@ export function neighborFamily(category, garment, dir) {
   return next;
 }
 
-// Short label + tone for the 3D-status badge shown on garment cards, so "no real 3D" is stated
-// honestly at selection time instead of only discovered after switching to the 3D tab.
-export const STATUS_3D_LABEL = {
-  supported: { label: '3D', tone: 'ok' },
-  partial:   { label: '3D (approx.)', tone: 'warn' },
-  none:      { label: '2D only', tone: 'muted' },
-};
 // The Studio's 3D label for one design (garment, sleeve, fit, inspiration), always from has3DFor. No model is verified yet.
 export const label3D = d => (has3DFor(d) ? (familyFor(d.garment)?.verified3D ? '3D' : '3D (approx.)') : '3D not available');
 

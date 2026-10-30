@@ -4,6 +4,7 @@ import BottomSheet from '../../../components/ui/BottomSheet';
 import { NavIcon } from '../../../components/ui';
 import { orderQty, MIN_ORDER_QTY } from '../../../utils/orderQuantity';
 import { ROLE_LABEL } from '../design-studio/uniformSet';
+import { isCompleteOutfit, COMPLETE_OUTFIT } from '../design-studio/garmentCatalog';
 import { useObjectUrl } from '../../../hooks/useObjectUrl';
 import { garmentLabel } from '../../../utils/designName';
 
@@ -32,7 +33,7 @@ function SummaryBody({ forms, studios }) {
         <div key={i} className="wz-spiece">
           <Thumb form={f} studio={studios[i]}/>
           <p>
-            {isSet && <small>{ROLE_LABEL[studios[i]?.uniformSet?.role] ?? `Piece ${i + 1}`}</small>}
+            {isSet ? <small>{ROLE_LABEL[studios[i]?.uniformSet?.role] ?? `Piece ${i + 1}`}</small> : isCompleteOutfit(f.garment_type) && <small>{COMPLETE_OUTFIT}</small>}
             <strong>{garmentLabel(f.garment_type) || 'Garment not chosen'}</strong>
             <span>{[studios[i] ? 'Studio design' : f.design_ref_file ? 'Your file' : null, f.color].filter(Boolean).join(' · ')}</span>
             <span>{qtyLabel(orderQty(f))}</span>

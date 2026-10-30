@@ -63,7 +63,7 @@ export default function TopBar({ nav, cfg, setCfg, undo, redo, canUndo, canRedo,
   ];
 
   return (
-    <div className="ds-bar">
+    <div className="ds-bar ds-chrome">
       <button type="button" className="ds-bar-btn ds-bar-back" onClick={() => nav('/dashboard')} aria-label="Back to dashboard" title="Back to dashboard">
         <ArrowLeft size={18} strokeWidth={2} aria-hidden="true" /><span>Back</span>
       </button>

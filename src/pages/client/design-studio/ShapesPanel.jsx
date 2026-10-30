@@ -89,22 +89,22 @@ export default function ShapesPanel({ selObj, onAdd, onUpdate }) {
             <div style={{ display:'flex', gap:6 }}>
               <button type="button" onClick={() => onUpdate({ strokeWidth: 0 })}
                 style={{ flex:1, padding:'7px', borderRadius:8, cursor:'pointer', fontSize:13,
-                  border:`1px solid ${(selObj.strokeWidth ?? 1) === 0 ? T2 : 'rgba(15,23,42,.12)'}`,
-                  background: (selObj.strokeWidth ?? 1) === 0 ? 'rgba(2,195,154,.14)' : '#fff',
+                  border:`1px solid ${(selObj.strokeWidth ?? 1) === 0 ? T2 : 'var(--border-strong)'}`,
+                  background: (selObj.strokeWidth ?? 1) === 0 ? 'var(--teal-50)' : 'var(--bg-card)',
                   color:'var(--cx-ink-2)', fontWeight:600 }}>
                 None
               </button>
               <button type="button" onClick={() => onUpdate({ strokeWidth: 1, stroke:'rgba(0,0,0,.25)' })}
                 style={{ flex:1, padding:'7px', borderRadius:8, cursor:'pointer', fontSize:13,
-                  border:`1px solid ${(selObj.strokeWidth ?? 0) === 1 ? T2 : 'rgba(15,23,42,.12)'}`,
-                  background: (selObj.strokeWidth ?? 0) === 1 ? 'rgba(2,195,154,.14)' : '#fff',
+                  border:`1px solid ${(selObj.strokeWidth ?? 0) === 1 ? T2 : 'var(--border-strong)'}`,
+                  background: (selObj.strokeWidth ?? 0) === 1 ? 'var(--teal-50)' : 'var(--bg-card)',
                   color:'var(--cx-ink-2)', fontWeight:600 }}>
                 Thin
               </button>
               <button type="button" onClick={() => onUpdate({ strokeWidth: 3, stroke:'rgba(0,0,0,.4)' })}
                 style={{ flex:1, padding:'7px', borderRadius:8, cursor:'pointer', fontSize:13,
-                  border:`1px solid ${selObj.strokeWidth === 3 ? T2 : 'rgba(15,23,42,.12)'}`,
-                  background: selObj.strokeWidth === 3 ? 'rgba(2,195,154,.14)' : '#fff',
+                  border:`1px solid ${selObj.strokeWidth === 3 ? T2 : 'var(--border-strong)'}`,
+                  background: selObj.strokeWidth === 3 ? 'var(--teal-50)' : 'var(--bg-card)',
                   color:'var(--cx-ink-2)', fontWeight:600 }}>
                 Thick
               </button>
@@ -112,7 +112,7 @@ export default function ShapesPanel({ selObj, onAdd, onUpdate }) {
           </div>
         </>
       ) : (
-        <p style={{ fontSize:13, color:'rgba(15,23,42,.35)', textAlign:'center', margin:'4px 0 0', lineHeight:1.5 }}>
+        <p style={{ fontSize:13, color:'var(--text-muted)', textAlign:'center', margin:'4px 0 0', lineHeight:1.5 }}>
           Select a shape on the canvas to edit its fill, border, corners, opacity, rotation, flip and order.
         </p>
       )}

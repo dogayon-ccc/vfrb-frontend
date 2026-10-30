@@ -243,12 +243,12 @@ export const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,san
 
 export const inputStyle = {
   width:'100%', padding:'9px 11px', borderRadius:9, fontSize:13,
-  background:'#fff', border:'1px solid #e2e8f0',
-  color:'#1a2332', outline:'none', boxSizing:'border-box', fontFamily: FONT,
+  background:'var(--bg-card)', border:'1px solid var(--border-strong)',
+  color:'var(--ink)', outline:'none', boxSizing:'border-box', fontFamily: FONT,
 };
 
 export const TOOLS = [
-  { id:'type',     icon:'garmentType', label:'Garment', hint:'Category, garment, fit and sleeve' },
+  { id:'type',     icon:'garmentType', label:'Type',    hint:'Category, garment, fit and sleeve' },
   { id:'color',    icon:'colorZone',   label:'Colours', hint:'Colour each part of the garment' },
   { id:'pattern',  icon:'pattern',     label:'Pattern', hint:'Stripes, checks and more' },
   { id:'details',  icon:'qcFastener',  label:'Details', hint:'Pockets, buttons and closures (2D)' },
@@ -261,10 +261,8 @@ export const TOOLS = [
 ];
 // The panel's labelled tabs. Each owns one or more tools; the first is where the tab opens.
 export const TABS = [
-  { id:'type',     icon:'garmentType', label:'Garment',     tools:['type'] },
-  { id:'color',    icon:'colorZone',   label:'Colours',     tools:['color', 'pattern'] },
-  { id:'details',  icon:'qcFastener',  label:'Details',     tools:['details'] },
-  { id:'logotext', icon:'logo',        label:'Logo & text', tools:['assets', 'text', 'draw'] },
+  { id:'type',     icon:'garmentType', label:'Garment',     tools:['type', 'color', 'pattern', 'details'] },
+  { id:'add',      icon:'logo',        label:'Add',         tools:['assets', 'text', 'draw'] },
   { id:'layers',   icon:'layersPanel', label:'Layers',      tools:['layers'] },
   { id:'ai',       icon:'ai',          label:'Ask AI',      tools:['ai'] },
 ];

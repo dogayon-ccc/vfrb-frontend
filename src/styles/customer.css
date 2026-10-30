@@ -1,7 +1,7 @@
 /* Customer portal kit — wireframe-driven. Uses existing theme.css tokens only. */
 
-/* Atelier tokens: customer scope only (html[data-cx] while the customer shell is mounted, .cm-shell for the accent, .ds for the full-screen Studio). */
-:is(html[data-cx],.cm-shell,.ds){
+/* Atelier tokens: customer scope only (html[data-cx] while the customer shell is mounted, .cm-shell for the accent, .ds for the full-screen Studio, .ds-chrome for its dark frame). */
+:is(html[data-cx],.cm-shell,.ds,.ds-chrome){
   --cx-paper:var(--color-page);--cx-paper-2:var(--color-surface);--cx-card:var(--color-card);
   --cx-line:var(--color-line);--cx-line-strong:var(--color-line-strong);
   --cx-ink:var(--color-ink);--cx-ink-2:var(--color-ink-2);--cx-ink-3:var(--color-ink-3);
@@ -161,7 +161,7 @@ button.wz-dot:focus-visible{outline:2.5px solid var(--teal);outline-offset:2px}
 .wz-piece-h{margin:0;font-size:15px;font-weight:800;color:var(--ink)}
 .wz-lead{margin:0;font-size:13px;line-height:1.55;color:var(--text-muted)}
 .wz-error{display:flex;align-items:center;gap:6px;margin:0;font-size:13px;color:var(--danger-text)}
-.wz-stage{border-radius:12px;overflow:hidden;background:radial-gradient(ellipse 62% 58% at 50% 46%,var(--cx-stage-lit),var(--cx-stage))}
+.wz-stage{border-radius:12px;overflow:hidden}
 .wz-design-row,.wz-choice{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
 .wz-design-row p,.wz-choice p{flex:1 1 200px;min-width:0;margin:0;display:flex;flex-direction:column;gap:2px;font-size:13px;color:var(--text-muted)}
 .wz-design-row strong,.wz-choice strong{font-size:15px;color:var(--ink);overflow-wrap:anywhere}
@@ -292,7 +292,7 @@ html[data-theme=dark] :is(.cm-shell .ui-btn[data-v=secondary],.cx-btn-s):hover:n
 .dx-hero-acts{display:flex;flex-wrap:wrap;gap:10px;width:100%}
 .dx-hero-acts .ui-btn{flex:1 1 150px}
 .dx-proof{margin:6px 0 0;font-size:13px;color:var(--cx-ink-3)}
-.dx-stage{position:relative;display:grid;place-items:center;min-height:240px;padding:24px;overflow:hidden;background:radial-gradient(ellipse 62% 58% at 50% 46%,var(--cx-stage-lit) 0%,var(--cx-stage) 100%)}
+.dx-stage{position:relative;display:grid;place-items:center;min-height:240px;padding:24px;overflow:hidden}
 /* Ticket perforation: dashed tear line with two punched notches (page colour) at its ends */
 .dx-perf{position:absolute;z-index:2;grid-column:1;grid-row:2;top:0;left:0;right:0;height:0;border-top:2px dashed var(--cx-line-strong);pointer-events:none}
 .dx-perf::before,.dx-perf::after,.dx-tk::before,.dx-tk::after{content:"";position:absolute;width:20px;height:20px;border:1px solid var(--cx-line);border-radius:50%;background:var(--cx-paper)}
@@ -302,7 +302,6 @@ html[data-theme=dark] :is(.cm-shell .ui-btn[data-v=secondary],.cx-btn-s):hover:n
 .dx-stage-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .dx-stage:has(.dx-stage-photo)::after{display:none}
 .dx-stage-sk{position:absolute;inset:0}
-html[data-theme=dark] .dx-stage{--cx-stage:#1d2326;--cx-stage-lit:#2c3539}
 .dx-summary{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 16px}
 .dx-chip{display:inline-flex;align-items:center;min-height:44px;padding:0 14px;border:1px solid var(--border-strong);border-radius:999px;background:var(--bg-card);color:var(--ink);font-size:13px;font-weight:700;text-decoration:none}
 .dx-chip:hover{border-color:var(--teal);background:var(--cx-thread-tint)}
@@ -334,7 +333,7 @@ html[data-theme=dark] .dx-stage{--cx-stage:#1d2326;--cx-stage-lit:#2c3539}
 .dx-rd .cx-newtile{min-height:0}
 .dx-rd-item{display:flex;flex-direction:column;padding:0 0 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-card);overflow:hidden;min-width:0}
 .dx-rd-open{display:flex;flex-direction:column;gap:8px;padding:0;border:0;background:none;cursor:pointer;font:inherit;color:inherit;text-align:left;min-width:0}
-.dx-rd-thumb{display:grid;place-items:center;height:160px;background:radial-gradient(ellipse 60% 60% at 50% 45%,var(--cx-stage-lit),var(--cx-stage))}
+.dx-rd-thumb{display:grid;place-items:center;height:160px}
 .dx-rd-thumb .cx-dthumb{height:100%;width:100%;background:transparent}
 .dx-rd-item strong{padding:0 12px;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dx-rd-item em{padding:0 12px;font-style:normal;font-size:var(--text-meta);color:var(--text-subtle)}
@@ -445,7 +444,7 @@ html[data-wizard]{scroll-padding-bottom:160px}
 @media(min-width:1280px){.ox-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .ox-card{cursor:default;display:block;width:100%;padding:0;font:inherit;color:inherit;text-align:left;background:var(--cx-card)}
 .ox-top{display:flex;align-items:center;flex-wrap:wrap;gap:10px 12px;padding:14px 16px 0}
-.ox-thumb{display:grid;place-items:center;border-radius:12px;background:radial-gradient(ellipse 60% 60% at 50% 45%,var(--cx-stage-lit),var(--cx-stage))}
+.ox-thumb{display:grid;place-items:center;border-radius:12px}
 .ox-thumb .cx-thumb{background:transparent;border-color:transparent}
 .ox-txt{flex:1 1 140px;min-width:0;display:flex;flex-direction:column;gap:2px}
 .ox-txt small{font-size:13px;font-weight:700;color:var(--text-subtle)}
@@ -468,7 +467,7 @@ html[data-wizard]{scroll-padding-bottom:160px}
 .ui-card.mx-card{overflow:visible;position:relative}
 .mx-card:has(.ui-menu-btn[aria-expanded=true]){z-index:20}
 .mx-card-in{display:flex;flex-direction:column;flex:1}
-.mx-stage{position:relative;display:block;width:100%;aspect-ratio:1/1;overflow:hidden;padding:0;border:0;cursor:pointer;font:inherit;background:radial-gradient(ellipse 62% 58% at 50% 46%,var(--cx-stage-lit),var(--cx-stage))}
+.mx-stage{position:relative;display:block;width:100%;aspect-ratio:1/1;overflow:hidden;padding:0;border:0;cursor:pointer;font:inherit}
 .mx-stage{border-radius:var(--radius) var(--radius) 0 0}
 .mx-stage:disabled{cursor:default}
 .mx-stage:focus-visible{outline:3px solid var(--cx-thread-ink);outline-offset:-3px}
@@ -536,12 +535,12 @@ html[data-wizard]{scroll-padding-bottom:160px}
 .od-card .od-note-row:last-child{margin-bottom:0}
 .od-sum{display:flex;flex-direction:column;gap:18px}
 .od-sum-h{display:flex;align-items:center;flex-wrap:wrap;gap:10px 14px}
-.od-sum-thumb{display:grid;place-items:center;border-radius:12px;background:radial-gradient(ellipse 60% 60% at 50% 45%,var(--cx-stage-lit),var(--cx-stage))}
+.od-sum-thumb{display:grid;place-items:center;border-radius:12px}
 .od-sum-thumb .cx-thumb{background:transparent;border-color:transparent}
 .od-sum-txt{flex:1 1 160px;min-width:0}
 .od-sum-t{margin:0;font-size:16px;font-weight:800;color:var(--ink);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
 .od-sum-m{margin:3px 0 0;font-size:13px;color:var(--text-subtle)}
-.od-stage{border-radius:12px;overflow:hidden;background:radial-gradient(ellipse 62% 58% at 50% 46%,var(--cx-stage-lit),var(--cx-stage))}
+.od-stage{border-radius:12px;overflow:hidden}
 .od-kv{display:flex;flex-direction:column;gap:8px;margin:0}
 .od-kv>div{display:flex;flex-wrap:wrap;gap:4px 10px;padding:8px 10px;border-radius:8px;background:var(--cx-paper-2)}
 .od-kv dt{min-width:96px;font-size:13px;font-weight:700;color:var(--text-subtle)}
@@ -633,3 +632,27 @@ html[data-wizard]{scroll-padding-bottom:160px}
 .size-chart th, .size-chart td { padding:6px 12px; text-align:left; border-top:1px solid var(--border); }
 .size-chart th { font-weight:700; color:var(--ink); }
 .size-chart p { margin:0; padding:8px 12px; font-size:13px; color:var(--text-muted); border-top:1px solid var(--border); }
+
+/* Premium pass: garments sit on the Studio's light cutting mat everywhere */
+:is(.wz-stage,.dx-stage,.dx-rd-thumb,.ox-thumb,.mx-stage,.od-sum-thumb,.od-stage){background:radial-gradient(ellipse 60% 55% at 50% 45%,color-mix(in srgb,var(--color-chalk) 70%,transparent),transparent 75%),var(--mat-grid)}
+/* Navy cloth band: re-points ink and line tokens so shared primitives (Button, Stepper) read on navy */
+.cx-navy{--cx-ink:var(--color-on-navy);--ink:var(--color-on-navy);--text:var(--color-on-navy);
+  --cx-ink-2:color-mix(in srgb,var(--color-on-navy) 84%,var(--color-navy-cloth));--cx-ink-3:color-mix(in srgb,var(--color-on-navy) 72%,var(--color-navy-cloth));
+  --text-muted:var(--cx-ink-2);--text-subtle:var(--cx-ink-3);--cx-thread-ink:var(--color-on-navy);
+  --cx-line:color-mix(in srgb,var(--color-on-navy) 22%,transparent);--cx-line-strong:color-mix(in srgb,var(--color-on-navy) 38%,transparent);
+  --border:var(--cx-line);--border-strong:var(--cx-line-strong);color:var(--color-on-navy)}
+.cm-shell .cx-navy{background:var(--color-navy-cloth);border-color:transparent;box-shadow:var(--cx-elev-1)}
+.cx-navy :focus-visible{outline-color:var(--color-on-navy)}
+html .cm-shell .cx-navy .ui-btn[data-v=secondary]{background:transparent;color:var(--color-on-navy);border-color:var(--cx-line-strong)}
+html .cm-shell .cx-navy .ui-btn[data-v=secondary]:hover:not(:disabled){background:color-mix(in srgb,var(--color-on-navy) 10%,transparent);border-color:var(--color-on-navy)}
+.cm-shell .cx-navy .ui-btn[data-v=primary]:hover:not(:disabled){background:var(--teal-dark)}
+.cx-navy .od-sum-thumb{box-shadow:inset 0 0 0 1px var(--cx-line)}
+.dx-hero.cx-navy .dx-stage{margin:0 12px 12px;border-radius:calc(var(--cx-r-lg) - 4px)}
+@media(min-width:768px){.dx-hero.cx-navy .dx-stage{margin:12px 12px 12px 0}}
+/* Five-step order thread: sewn steps are solid teal, steps still to come are a dashed stitch */
+.cm-shell .ui-step::before{height:0;background:none;border-top:2px dashed var(--border-strong)}
+.cm-shell .ui-step:is([data-s=done],[data-s=now])::before{border-top:2px solid var(--teal)}
+.od-stage{--bg-surface:transparent}
+html[data-theme=dark] .cm-shell .ui-step[data-s=now] .ui-step-dot{color:var(--color-teal-ink);border-color:var(--color-teal-ink)}
+/* Inline tag under a title (e.g. Complete outfit); never stretches in a flex column */
+.cx-tag-row{display:flex;align-self:flex-start;margin-top:6px}

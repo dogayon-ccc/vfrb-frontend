@@ -18,6 +18,7 @@ import { StageGrid, PinnedRulers, GuideLine, RULER_H, RULER_W } from './StageRul
 import SetView2D from './SetView2D';
 import FloatingToolbar from './FloatingToolbar';
 import GuidesMenu from './GuidesMenu';
+import ToolRail from './ToolRail';
 import { traceBox } from './traceGuide';
 
 // The tracing guide inside the artboard (canvas logical px, so it zooms and pans with the garment). Never a canvas object: exports,
@@ -122,7 +123,7 @@ class ThreeEB extends Component {
 export default function CanvasViewport({
   cfg, setCfg, canvasWrapRef, canvasEl, aiPulse, face, switchFace, initFailed,
   selObj, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, garmentRect = null, viewMode, has3DLoaded, onLogoFile, zoom, setZoom, snapshot, overlays,
-  blank = null, setViewMode, viewOpen, setViewOpen, setCompanion = null, showSet = false, setSnapOptions = null, trace = null, clearSelection = null, onPickZone = null,
+  blank = null, setViewMode, viewOpen, setViewOpen, setCompanion = null, showSet = false, setSnapOptions = null, trace = null, clearSelection = null, onPickZone = null, rail = null,
 }) {
   const paneRef = useRef(null);
   const [webglOk, setWebglOk] = useState(hasWebGL);
@@ -385,11 +386,7 @@ export default function CanvasViewport({
         <div className="ds-lane ds-lane-top" data-notes={notes3D.length ? '1' : undefined}>
           {!initFailed && <GuidesMenu guides={guides} setGuides={setGuides} showGuides={show2D} base={show2D ? status : null} dark={dark} setDark={setDark}
             open={viewOpen} onOpenChange={setViewOpen}/>}
-          {show2D && canPan && (
-            <button type="button" className="ds-pan-btn" aria-pressed={hand} aria-label="Pan" title="Pan the zoomed design (or scroll, hold Space and drag, or drag the empty stage)" onClick={() => setHand(v => !v)}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.9-5.9-2.3l-3.6-3.6a2 2 0 0 1 2.8-2.8L7 15"/></svg>
-            </button>
-          )}
+          {show2D && rail && !initFailed && <ToolRail rail={rail} hand={hand} setHand={setHand} canPan={canPan} zoomBy={f => setZoom(z => clampZoom(z * f))}/>}
           {notes3D.map(n => <div key={n.id} role="status" className="ds-stage-note" data-tone={n.warn ? 'warn' : undefined}>{n.text}</div>)}
         </div>
       )}
