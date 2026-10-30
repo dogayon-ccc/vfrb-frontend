@@ -18,7 +18,7 @@
 .au-art img { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; object-position: center 40%; }
 .au-art::after { content: ''; position: absolute; inset: 0; z-index: -1;
   background: linear-gradient(to top, rgba(10, 32, 41, 0.94) 8%, rgba(10, 32, 41, 0.58) 58%, rgba(10, 32, 41, 0.34)); }
-.au-back { position: absolute; top: 8px; left: 8px; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px;
+.au-back { position: absolute; top: max(8px, env(safe-area-inset-top, 0px)); left: max(8px, env(safe-area-inset-left, 0px)); display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px;
   border-radius: 999px; font-size: 14px; font-weight: 600; color: #fff; text-decoration: none; background: rgba(10, 32, 41, 0.5); }
 .au-back:hover { background: rgba(10, 32, 41, 0.72); }
 .au-art-in { display: grid; gap: 22px; width: 100%; padding: 56px 20px 22px; }
