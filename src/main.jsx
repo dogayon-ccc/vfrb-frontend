@@ -20,6 +20,7 @@ import { isChunkLoadError } from './components/PageErrorBoundary';
 // build; the session flag stops a loop if the chunk is genuinely unreachable.
 const RELOAD_FLAG = 'vfrb_chunk_reload';
 function reloadForNewBuild() {
+  if (window.location.pathname.startsWith('/design-studio')) return false; // never drop an unsaved design
   try {
     if (sessionStorage.getItem(RELOAD_FLAG)) return false;
     sessionStorage.setItem(RELOAD_FLAG, '1');

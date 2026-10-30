@@ -43,6 +43,7 @@ import Landing      from './pages/Landing';
 import CustomerLogin    from './pages/auth/Login';
 import AuthSkeleton, { useAuthReady } from './components/AuthSkeleton';
 import { AppShellSkeleton, SiteSkeleton, StudioSkeleton } from './components/PageSkeletons';
+import UpdatePrompt from './components/UpdatePrompt';
 import RouteLoadingScreen from './components/LoadingScreen';
 import { areaOf } from './utils/routeArea';
 import VerifyEmail      from './pages/auth/VerifyEmail';
@@ -214,6 +215,7 @@ export default function App() {
       <ScrollTop/>
       <RouteLoadingScreen/>
       <StorageNotice/>
+      <UpdatePrompt/>
       {/* appIconPath points at the local icon — the package default falls back to a
           Google CDN call, which this project's offline-tolerant rule forbids. */}
       <PWAPrompt

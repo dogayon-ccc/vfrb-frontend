@@ -127,8 +127,8 @@ export default function Login() {
               <p id="login-error" role="alert" style={{ fontSize: 13, fontWeight: 500, color: 'var(--danger)' }}>{error}</p>
             </div>
           )}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10 }}>
-            <Link to="/forgot-password" style={{ fontSize: 14, fontWeight: 700, color: 'var(--teal-dark)', textDecoration: 'none' }}>Forgot password?</Link>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
+            <Link to="/forgot-password" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, fontSize: 14, fontWeight: 700, color: 'var(--teal-dark)', textDecoration: 'none' }}>Forgot password?</Link>
           </div>
         </div>
 
