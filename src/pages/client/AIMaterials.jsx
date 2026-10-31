@@ -500,7 +500,12 @@ export default function AIMaterials() {
 
   return (
     <>
-      <style>{`@keyframes sk{0%{background-position:-400px 0}100%{background-position:400px 0}}`}</style>
+      <style>{`@keyframes sk{0%{background-position:-400px 0}100%{background-position:400px 0}}
+        .aim-go{width:100%;min-height:48px;padding:12px;border:none;border-radius:var(--radius);background:var(--teal);color:var(--on-teal);font:700 14px ${FONT};cursor:pointer;transition:background .15s}
+        .aim-go:hover:not(:disabled){background:var(--teal-dark)}
+        .aim-go:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+        .aim-go:disabled{background:var(--teal-50);color:var(--teal);cursor:not-allowed}
+        @media(prefers-reduced-motion:reduce){.aim-go{transition:none}}`}</style>
 
       {showAccept && order && (
         <AcceptModal order={order} recs={recs}
@@ -615,20 +620,7 @@ export default function AIMaterials() {
 
             {/* Generate button */}
             <div style={{ marginBottom:20 }}>
-              <motion.button
-                whileHover={{ scale: generating ? 1 : 1.01,
-                  boxShadow: generating ? '0 8px 24px rgba(2,128,144,0)' : `0 8px 24px rgba(2,128,144,.35)` }}
-                whileTap={{ scale: generating ? 1 : .97 }}
-                onClick={generate} disabled={generating}
-                style={{ width:'100%', padding:'14px', borderRadius:13, border:'none',
-                  background: generating
-                    ? 'rgba(2,128,144,.15)'
-                    : `linear-gradient(135deg,${T},${T2})`,
-                  color: generating ? T : '#fff',
-                  fontSize:14, fontWeight:700, cursor: generating ? 'not-allowed' : 'pointer',
-                  fontFamily:FONT, position:'relative', overflow:'hidden',
-                  transition:'all .2s',
-                  boxShadow: generating ? 'none' : `0 4px 16px rgba(2,128,144,.3)` }}>
+              <button className="aim-go" onClick={generate} disabled={generating}>
                 {generating ? (
                   <span style={{ display:'flex', alignItems:'center',
                     justifyContent:'center', gap:10 }}>
@@ -642,7 +634,7 @@ export default function AIMaterials() {
                     ? 'Regenerate AI Recommendation'
                     : 'Get AI Material Recommendation'
                 )}
-              </motion.button>
+              </button>
               <p style={{ fontSize:13, color:'var(--text-faint)', textAlign:'center',
                 marginTop:6, fontFamily:FONT }}>
                 Powered by Google Gemini Flash · Results cached per order

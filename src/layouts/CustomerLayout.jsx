@@ -24,10 +24,10 @@ const NAV = [
   { to:'/my-designs', icon:Shirt,           label:'My Designs', short:'Designs', end:false },
   { to:'/orders',     icon:ClipboardList,   label:'My Orders',  short:'Orders',  end:false },
   // AI Materials has no nav entry — it's the blocking MaterialsReveal screen after order submit, not a standalone page.
-  { to:'/messages',   icon:MessageSquare,   label:'Messages',   short:'Chat',    end:false },
+  { to:'/messages',   icon:MessageSquare,   label:'Messages',   short:'Messages', end:false },
   { to:'/settings',   icon:Settings,        label:'Settings',   short:'Settings', end:false },
 ];
-// Bottom nav follows the wireframe: Home, Designs, Orders, Chat + More.
+// Bottom nav: Home, Designs, Orders, Messages + More.
 const MOB_NAV = NAV.slice(0, 4);
 // Studio entry: rail on desktop, this FAB on phones (main tabs only, so it never covers a composer or action bar).
 const FAB_ROUTES = ['/dashboard', '/my-designs', '/orders'];
@@ -37,8 +37,6 @@ export default function CustomerLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const still = useReducedMotion();
-  const section = location.pathname.startsWith('/order/create') ? 'New Order'
-    : (NAV.find(n => location.pathname.startsWith(n.to))?.label ?? 'Customer Portal');
   const [name, setName] = useState('Customer');
   const [unread, setUnread] = useState(0);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -116,10 +114,6 @@ export default function CustomerLayout() {
           <img src={logo} alt="" />
           <span><b>VFRB</b><small>Customer portal</small></span>
         </Link>
-        <div className="cx-crumb">
-          <b>{section}</b>
-          <span>{new Date().toLocaleDateString('en-PH', { weekday:'long', month:'long', day:'numeric', year:'numeric' })}</span>
-        </div>
         <div className="cx-bar-sp" />
         <div className="cx-bell" ref={bellRef}>
           <button type="button" className="cx-icon-btn" onClick={toggleBell} aria-label={bellLabel}

@@ -1,12 +1,12 @@
-// src/pages/client/Dashboard.jsx — Customer home (hero → KPIs → active orders, designs, recent orders; notifications live in the navbar bell)
+// src/pages/client/Dashboard.jsx — Customer home: navy hero, current order thread, other orders, recent designs.
 import { humanize } from '../../utils/humanize';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import axios from 'axios';
 import { asList } from '../../utils/asList';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
-import { Button, Stepper, Skeleton, EmptyState, AlertBanner, PageHeader } from '../../components/ui';
+import { Button, Stepper, Skeleton, EmptyState, AlertBanner } from '../../components/ui';
 import { savedDesignName, garmentLabel } from '../../utils/designName';
 import { openDesign, reorderDesign, duplicateDesign } from '../../utils/designActions';
 import { setStudioLock } from '../../utils/studioLock';
@@ -41,21 +41,17 @@ function Confetti() {
   );
 }
 
-// Order ticket: thumbnail stub, perforation, then name, meta and status; the whole ticket opens the order.
-function OrderTicket({ order, meta, children }) {
+// Compact row for the other orders; the whole row opens the order.
+function OrderRow({ order, meta }) {
   const nav = useNavigate();
   return (
-    <li className="dx-tk">
-      <span className="dx-tk-stub"><OrderThumb order={order} size={56} /></span>
-      <div className="dx-tk-body">
-        <button type="button" className="dx-tk-main" onClick={() => nav(`/orders/${order.order_id}`)}
-          aria-label={`Open order ${order.order_id}, ${orderTitle(order)}`}>
-          <span className="dx-row-txt"><strong>{orderTitle(order)}</strong><small>{meta}</small>
-            {order.status === 'pending' && order.created_at && <small>Waiting for VFRB since {shortDate(order.created_at)}</small>}</span>
-          <StatusPill status={order.status} />
-        </button>
-        {children}
-      </div>
+    <li>
+      <button type="button" className="dx-orow" onClick={() => nav(`/orders/${order.order_id}`)}
+        aria-label={`Open order ${order.order_id}, ${orderTitle(order)}`}>
+        <OrderThumb order={order} size={44} />
+        <span className="dx-row-txt"><strong>{orderTitle(order)}</strong><small>{meta}</small></span>
+        <StatusPill status={order.status} />
+      </button>
     </li>
   );
 }
@@ -66,6 +62,7 @@ const openStatus = (o) => o && !['completed', 'cancelled'].includes(o.status);
 export default function CustomerDashboard() {
   const nav = useNavigate();
   const location = useLocation();
+  const still = useReducedMotion();
   const user = useMemo(() => { try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}'); } catch { return {}; } }, []);
   const [stats, setStats] = useState(null);
   const [orders, setOrders] = useState([]);
@@ -108,7 +105,7 @@ export default function CustomerDashboard() {
     if (o.status === 'fulfilled' && o.value) { const l = asList(o.value.data); setOrders(l); cacheSet('orders_list', l, TTL.ORDERS); }
     else if (o.status === 'rejected' && !co) setError(true);
     if (d.status === 'fulfilled' && d.value.data?.draft?.studio_config?.garment) setDraft(d.value.data.draft);
-    if (g.status === 'fulfilled' && Array.isArray(g.value.data)) setDesigns(g.value.data.filter(x => x.is_archived && x.config?.garment).slice(0, 4));
+    if (g.status === 'fulfilled' && Array.isArray(g.value.data)) setDesigns(g.value.data.filter(x => x.is_archived && x.config?.garment).slice(0, 3));
     setLoading(false);
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -135,25 +132,26 @@ export default function CustomerDashboard() {
       {confetti && <Confetti />}
       {confetti && <AlertBanner tone="success" title="Order placed!" style={{ marginBottom: 16 }}>The VFRB team will review and confirm it shortly.</AlertBanner>}
 
-      <PageHeader title="Dashboard" subtitle={greeting(user.name)} />
-
-      <motion.section initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="dx-hero cx-navy" aria-labelledby="dash-hero-t">
+      <motion.section initial={still ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .2 }}
+        className="dx-hero cx-navy" aria-labelledby="dash-hero-t">
         <div className="dx-hero-txt">
-          <h2 id="dash-hero-t" className="dx-title">{loading ? 'Your design studio' : draft ? draftTitle : 'Design your team’s uniform'}</h2>
-          <p className="dx-hero-sub">{draft
-            ? `Draft, last edited ${reltime(draft.updated_at)}. Pick up where you left off, then order in bulk.`
-            : 'Pick a garment, set the colours and add your logo. Quantity and sizes come after.'}</p>
+          <p className="dx-hello">{greeting(user.name)}</p>
+          <h1 id="dash-hero-t" className="dx-title">Design your team’s uniform</h1>
+          <p className="dx-hero-sub">Pick a garment, set the colours and add your logo. Quantity and sizes come after.</p>
           <div className="dx-hero-acts">
-            <Button variant="primary" size="lg" icon="designStudio" onClick={openStudio}>{draft ? 'Continue design' : 'Start designing'}</Button>
+            <Button variant="primary" size="lg" icon="designStudio" onClick={startNew}>Start designing</Button>
             <Button size="lg" onClick={() => nav('/my-designs')}>My designs</Button>
           </div>
-          <p className="dx-proof">Family-owned since 2000, Bayanan, Muntinlupa City</p>
         </div>
-        <span className="dx-perf" aria-hidden="true" />
         <div className="dx-stage">
-          {loading ? <Skeleton variant="block" height="100%" label="Loading your design" className="dx-stage-sk" />
-            : draft ? <DesignThumb src={draft.preview_dataurl} garment={draft.studio_config.garment} colors={draft.studio_config.colors} name={draftTitle} scale={1.8} />
-            : <img src={heroPhoto} alt="" className="dx-stage-photo" width="1600" height="720" fetchpriority="high" />}
+          <img src={heroPhoto} alt="Finished VFRB uniforms on the workshop table" className="dx-stage-photo" width="1600" height="720" fetchpriority="high" />
+          {draft && (
+            <div className="dx-draft">
+              <span className="dx-draft-thumb"><DesignThumb src={draft.preview_dataurl} garment={draft.studio_config.garment} colors={draft.studio_config.colors} name={draftTitle} /></span>
+              <span className="dx-draft-txt"><strong>{draftTitle}</strong><small>Draft, edited {reltime(draft.updated_at)}</small></span>
+              <Button variant="primary" onClick={openStudio}>Continue</Button>
+            </div>
+          )}
         </div>
       </motion.section>
 
@@ -172,27 +170,41 @@ export default function CustomerDashboard() {
             <EmptyState compact tone="error" title="Couldn’t load your orders"
               action={<Button onClick={() => { setLoading(true); load(true); }}>Try again</Button>}>Check your connection and try again.</EmptyState>
           ) : featured ? (
-            <ol className="dx-thread">
-              <OrderTicket order={featured} meta={`${pcs(featured)}${featured.target_delivery_date ? ` · Due ${shortDate(featured.target_delivery_date)}` : ''}`}>
-                <div className="dx-tk-more">
-                  {featured.status !== 'cancelled' && <Stepper steps={LIFECYCLE} label={`Order ${featured.order_id} progress`} current={lifecycleIndex(featured.status)} />}
-                  <p className="dx-next-b"><b>{next.title}.</b> {next.body}</p>
-                </div>
-              </OrderTicket>
-              {moreActive.map(o => <OrderTicket key={o.order_id} order={o} meta={pcs(o)} />)}
-              {recent.map(o => <OrderTicket key={o.order_id} order={o} meta={`${pcs(o)} · ${fmtDate(o.created_at)}`} />)}
-            </ol>
+            <>
+              <article className="dx-order">
+                <button type="button" className="dx-order-main" onClick={() => nav(`/orders/${featured.order_id}`)}
+                  aria-label={`Open order ${featured.order_id}, ${orderTitle(featured)}`}>
+                  <OrderThumb order={featured} size={64} />
+                  <span className="dx-order-name"><strong>{orderTitle(featured)}</strong>
+                    {featured.status === 'pending' && featured.created_at && <small>Waiting for VFRB since {shortDate(featured.created_at)}</small>}</span>
+                  <StatusPill status={featured.status} />
+                </button>
+                <dl className="dx-facts">
+                  <div><dt>Order</dt><dd>#{featured.order_id}</dd></div>
+                  <div><dt>Pieces</dt><dd>{Number(featured.quantity_ordered ?? 0)}</dd></div>
+                  <div><dt>Due</dt><dd>{featured.target_delivery_date ? shortDate(featured.target_delivery_date) : 'Not set yet'}</dd></div>
+                </dl>
+                {featured.status !== 'cancelled' && <Stepper className="dx-steps" steps={LIFECYCLE} label={`Order ${featured.order_id} progress`} current={lifecycleIndex(featured.status)} />}
+                <p className="dx-next-b"><b>{next.title}.</b> {next.body}</p>
+              </article>
+              {moreActive.length + recent.length > 0 && (
+                <ul className="dx-olist">
+                  {moreActive.map(o => <OrderRow key={o.order_id} order={o} meta={pcs(o)} />)}
+                  {recent.map(o => <OrderRow key={o.order_id} order={o} meta={`${pcs(o)} · ${fmtDate(o.created_at)}`} />)}
+                </ul>
+              )}
+            </>
           ) : (
-            <div className="dx-howto">
-              <Stepper steps={LIFECYCLE} label="Order steps" current={0} />
+            <div className="dx-order">
+              <Stepper className="dx-steps" steps={LIFECYCLE} label="Order steps" current={0} />
               <p className="dx-next-b"><b>{next.title}.</b> {next.body}</p>
             </div>
           )}
       </section>
 
-      {!loading && designs.length > 0 && (
+      {!loading && (
         <section className="dx-sec" aria-labelledby="rd-h">
-          <div className="cx-sec-h"><h2 id="rd-h">Recent designs</h2><Link to="/my-designs" className="cx-link">View all</Link></div>
+          <div className="cx-sec-h"><h2 id="rd-h">Recent designs</h2>{designs.length > 0 && <Link to="/my-designs" className="cx-link">View all</Link>}</div>
           <div className="dx-rd">
             {designs.map(d => {
               const name = garmentLabel(savedDesignName(d.config) || d.label || humanize(d.garment));
@@ -200,7 +212,7 @@ export default function CustomerDashboard() {
                 <div key={d.id} className="dx-rd-item">
                   <button type="button" className="dx-rd-open" aria-label={`${d.locked ? 'View' : 'Open'} ${name} in the Studio`} onClick={() => openDesign(d, nav)}>
                     <span className="dx-rd-thumb"><DesignThumb src={d.is_copy ? null : d.photo_path} garment={d.garment} colors={d.config?.colors} name={name} scale={1.5} /></span>
-                    <strong>{name}</strong><em>{d.locked ? 'Ordered · view only' : d.is_copy ? 'Copy · colors only' : 'Saved design'}</em>
+                    <strong>{name}</strong><em>{d.locked ? 'Ordered, view only' : d.is_copy ? 'Copy, colours only' : 'Saved design'}</em>
                   </button>
                   <div className="dx-rd-acts">
                     <Button variant="primary" fullWidth onClick={() => reorderDesign(d, nav)}>Reorder</Button>
@@ -210,7 +222,7 @@ export default function CustomerDashboard() {
               );
             })}
             <button type="button" className="cx-newtile" onClick={startNew}>
-              <Palette size={22} aria-hidden="true" /> <strong>Start a new design</strong><span>Pick a garment and make it yours</span>
+              <span className="dx-new-ico"><Palette size={22} aria-hidden="true" /></span><strong>Start a new design</strong><span>Pick a garment and make it yours</span>
             </button>
           </div>
           {designErr && <p role="alert" className="dx-err">{designErr}</p>}

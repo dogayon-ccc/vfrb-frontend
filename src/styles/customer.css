@@ -284,68 +284,89 @@ html[data-theme=dark] :is(.cm-shell .ui-btn[data-v=secondary],.cx-btn-s):hover:n
 .cm-shell .ui-card.subtle{background:var(--cx-paper-2);border-color:var(--cx-line)}
 @media(min-width:768px){.cm-shell .ui-card-head{padding:16px 22px}.cm-shell .ui-card-body{padding:18px 22px}}
 
-/* Dashboard: configurator hero (copy beside the garment on a lit stage), 5-step status strip, next-step card */
-.dx-hero{position:relative;display:grid;grid-template-columns:minmax(0,1fr);overflow:hidden;margin-bottom:16px;border:1px solid var(--cx-line);border-radius:var(--cx-r-lg);background:var(--cx-card);box-shadow:var(--cx-elev-0)}
-.dx-hero-txt{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:8px;padding:24px 20px;min-width:0}
-.dx-eyebrow{margin:0;font:700 14px/1.3 var(--cx-sans);letter-spacing:0;color:var(--cx-thread-ink)}
-.dx-hero .dx-title{margin:0;font-family:var(--cx-serif);font-weight:400;line-height:1.1;font-size:clamp(28px,4.4vw,46px);color:var(--cx-ink);overflow-wrap:anywhere;text-wrap:balance}
-.dx-hero-sub{margin:0 0 10px;font-size:15px;line-height:1.55;color:var(--cx-ink-2);max-width:46ch}
+/* Dashboard: navy hero (copy 7 / photo 5), current order on a five-step thread, other orders, four design tiles */
+.dx-hero{position:relative;display:grid;grid-template-columns:minmax(0,1fr);gap:12px;overflow:hidden;margin-bottom:28px;padding:10px;border-radius:24px}
+.dx-hero-txt{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:10px;padding:22px 14px 14px;min-width:0}
+.dx-hello{margin:0;font:600 14px/1.3 var(--cx-sans);color:var(--cx-ink-2)}
+.dx-hero .dx-title{margin:0;font-family:var(--cx-serif);font-weight:400;line-height:1.05;font-size:clamp(32px,4.2vw,54px);letter-spacing:-.01em;color:var(--cx-ink);text-wrap:balance}
+.dx-hero-sub{margin:0 0 10px;font-size:16px;line-height:1.55;color:var(--cx-ink-2);max-width:60ch}
 .dx-hero-acts{display:flex;flex-wrap:wrap;gap:10px;width:100%}
 .dx-hero-acts .ui-btn{flex:1 1 150px}
-.dx-proof{margin:6px 0 0;font-size:13px;color:var(--cx-ink-3)}
-.dx-stage{position:relative;display:grid;place-items:center;min-height:240px;padding:24px;overflow:hidden}
-/* Ticket perforation: dashed tear line with two punched notches (page colour) at its ends */
-.dx-perf{position:absolute;z-index:2;grid-column:1;grid-row:2;top:0;left:0;right:0;height:0;border-top:2px dashed var(--cx-line-strong);pointer-events:none}
-.dx-perf::before,.dx-perf::after,.dx-tk::before,.dx-tk::after{content:"";position:absolute;width:20px;height:20px;border:1px solid var(--cx-line);border-radius:50%;background:var(--cx-paper)}
-.dx-perf::before{left:-11px;top:-11px}.dx-perf::after{right:-11px;top:-11px}
-.dx-stage::after{content:"";position:absolute;left:18%;right:18%;bottom:20px;height:14px;border-radius:50%;background:rgb(var(--cx-shade) / .14);filter:blur(6px)}
-.dx-stage .cx-dthumb{position:relative;z-index:1;width:min(240px,72%);height:auto;aspect-ratio:5/6;background:transparent}
+.dx-stage{position:relative;min-height:220px;overflow:hidden;border-radius:16px}
 .dx-stage-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.dx-stage:has(.dx-stage-photo)::after{display:none}
-.dx-stage-sk{position:absolute;inset:0}
-.dx-summary{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 16px}
-.dx-chip{display:inline-flex;align-items:center;min-height:44px;padding:0 14px;border:1px solid var(--border-strong);border-radius:999px;background:var(--bg-card);color:var(--ink);font-size:13px;font-weight:700;text-decoration:none}
+/* Kraft running stitch sewn just inside the photo edge */
+.dx-stage::after{content:"";position:absolute;inset:10px;border:2px dashed var(--color-kraft);border-radius:10px;pointer-events:none}
+.dx-draft{position:absolute;z-index:1;left:20px;right:20px;bottom:20px;display:flex;align-items:center;gap:12px;max-width:380px;padding:10px 10px 10px 10px;border-radius:14px;background:var(--color-card);color:var(--color-ink);box-shadow:var(--shadow-2)}
+.dx-draft-thumb{flex:none;width:48px;height:48px;overflow:hidden;border-radius:10px;background:var(--color-mat)}
+.dx-draft-thumb .cx-dthumb{width:100%;height:100%;background:transparent}
+.dx-draft-txt{flex:1;min-width:0;display:grid;gap:2px}
+.dx-draft-txt strong{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dx-draft-txt small{font-size:13px;color:var(--color-ink-2)}
+.dx-sec{margin-bottom:32px}
+.dx-sec>.cx-sec-h{margin-bottom:14px}
+.dx-summary{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px}
+.dx-chip{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border:1px solid var(--cx-line);border-radius:999px;background:var(--cx-card);color:var(--cx-ink);font-size:13px;font-weight:700;text-decoration:none;transition:border-color var(--cx-dur-2),background var(--cx-dur-2)}
 .dx-chip:hover{border-color:var(--teal);background:var(--cx-thread-tint)}
 .dx-chip:focus-visible{outline:2px solid var(--cx-thread-ink);outline-offset:2px}
-/* Orders hang on one stitched thread; each order is a ticket with a thumbnail stub */
-.dx-thread{position:relative;display:flex;flex-direction:column;gap:12px;margin:12px 0 0;padding:0 0 0 22px;list-style:none}
-.dx-thread::before{content:"";position:absolute;left:7px;top:28px;bottom:28px;border-left:2px dashed var(--cx-thread)}
-.dx-tk{position:relative;display:grid;grid-template-columns:80px minmax(0,1fr);overflow:hidden;border:1px solid var(--cx-line);border-radius:var(--cx-r-md);background:var(--cx-card)}
-.dx-tk::before{left:68px;top:-11px}.dx-tk::after{left:68px;bottom:-11px}
-.dx-tk-stub{display:grid;place-items:start center;padding:14px 0;border-right:2px dashed var(--cx-line-strong)}
-.dx-tk-body{display:flex;flex-direction:column;min-width:0}
-.dx-tk-main{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;width:100%;min-height:84px;padding:12px 16px;border:0;background:none;font:inherit;color:inherit;text-align:left;cursor:pointer}
-.dx-tk-main::before{content:"";position:absolute;inset:0;z-index:0}
-.dx-tk-main>*{position:relative;z-index:1}
-.dx-tk:hover{border-color:var(--cx-line-strong)}
-.dx-tk:has(.dx-tk-main:focus-visible){outline:2px solid var(--cx-thread-ink);outline-offset:2px}
-.dx-tk-main:focus-visible{outline:0}
-.dx-tk-main .status-chip{flex-shrink:0;max-width:100%}
-.dx-tk-more,.dx-howto{position:relative;display:flex;flex-direction:column;gap:14px;padding:0 16px 16px;pointer-events:none}
-.dx-howto{margin-top:12px;padding:16px;border:1px solid var(--cx-line);border-radius:var(--cx-r-md);background:var(--cx-card)}
-.dx-next-b{margin:0;font-size:14px;line-height:1.55;color:var(--cx-ink-2);max-width:68ch}
+/* Current order card */
+.dx-order{display:flex;flex-direction:column;gap:18px;padding:18px;border:1px solid var(--cx-line);border-radius:20px;background:var(--cx-card);box-shadow:var(--cx-elev-0);container-type:inline-size}
+.dx-order-main{display:flex;align-items:center;flex-wrap:wrap;gap:10px 14px;width:100%;min-height:64px;padding:0;border:0;background:none;font:inherit;color:inherit;text-align:left;cursor:pointer;border-radius:12px}
+.dx-order-main:focus-visible{outline:2px solid var(--cx-thread-ink);outline-offset:4px}
+.dx-order-name{flex:1 1 160px;min-width:0;display:grid;gap:2px}
+.dx-order-name strong{font-family:var(--cx-serif);font-weight:400;font-size:22px;line-height:1.2;overflow-wrap:anywhere}
+.dx-order-name small{font-size:13px;color:var(--cx-ink-3)}
+.dx-order-main .status-chip{flex-shrink:0}
+.dx-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:0;padding:14px 0;border-block:1px solid var(--cx-line)}
+.dx-facts>div{min-width:0;padding-inline:14px;border-left:1px solid var(--cx-line)}
+.dx-facts>div:first-child{padding-left:0;border-left:0}
+.dx-facts dt{font-size:13px;color:var(--cx-ink-3)}
+.dx-facts dd{margin:2px 0 0;font-size:17px;font-weight:700;color:var(--cx-ink);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.dx-steps .ui-step[data-s=todo] .ui-step-dot{border-style:dashed}
+.dx-next-b{margin:0;padding:12px 14px;border-radius:12px;background:var(--cx-paper);font-size:14px;line-height:1.55;color:var(--cx-ink-2)}
 .dx-next-b b{color:var(--cx-ink)}
-.dx-sec{margin-bottom:24px}
-.dx-row-txt{flex:1 1 150px;min-width:0;display:flex;flex-direction:column;gap:2px}
-.dx-row-txt strong{font-size:15px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Other orders */
+.dx-olist{margin:12px 0 0;padding:0;list-style:none;border:1px solid var(--cx-line);border-radius:16px;background:var(--cx-card);overflow:hidden}
+.dx-olist li+li{border-top:1px solid var(--cx-line)}
+.dx-orow{display:flex;align-items:center;gap:12px;width:100%;min-height:64px;padding:10px 16px;border:0;background:none;font:inherit;color:inherit;text-align:left;cursor:pointer;transition:background var(--cx-dur-2)}
+.dx-orow:hover{background:var(--cx-hover)}
+.dx-orow:focus-visible{outline:2px solid var(--cx-thread-ink);outline-offset:-2px}
+.dx-orow .status-chip{flex-shrink:0}
+.dx-row-txt{flex:1 1 120px;min-width:0;display:flex;flex-direction:column;gap:2px}
+.dx-row-txt strong{font-size:15px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dx-row-txt small{font-size:13px;color:var(--text-subtle)}
-.dx-rd{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(220px,1fr);gap:14px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;padding-bottom:6px}
-.dx-rd>*{scroll-snap-align:start}
-.dx-rd .cx-newtile{min-height:0}
-.dx-rd-item{display:flex;flex-direction:column;padding:0 0 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-card);overflow:hidden;min-width:0}
-.dx-rd-open{display:flex;flex-direction:column;gap:8px;padding:0;border:0;background:none;cursor:pointer;font:inherit;color:inherit;text-align:left;min-width:0}
-.dx-rd-thumb{display:grid;place-items:center;height:160px}
+/* Recent designs: three tiles and a dashed new-design tile */
+.dx-rd{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.dx-rd-item{display:flex;flex-direction:column;min-width:0;padding:8px 8px 12px;border:1px solid var(--cx-line);border-radius:18px;background:var(--cx-card)}
+.dx-rd-open{display:flex;flex-direction:column;gap:4px;padding:0 0 4px;border:0;border-radius:12px;background:none;cursor:pointer;font:inherit;color:inherit;text-align:left;min-width:0}
+.dx-rd-open:focus-visible{outline:2px solid var(--cx-thread-ink);outline-offset:2px}
+.dx-rd-thumb{display:grid;place-items:center;height:150px;margin-bottom:6px;overflow:hidden;border-radius:12px}
 .dx-rd-thumb .cx-dthumb{height:100%;width:100%;background:transparent}
-.dx-rd-item strong{padding:0 12px;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.dx-rd-item em{padding:0 12px;font-style:normal;font-size:var(--text-meta);color:var(--text-subtle)}
-.dx-rd-acts{display:flex;flex-direction:column;gap:6px;padding:10px 12px 0}
+.dx-rd-item strong{padding:0 4px;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dx-rd-item em{padding:0 4px;font-style:normal;font-size:13px;color:var(--text-subtle)}
+.dx-rd-acts{display:flex;flex-direction:column;gap:6px;margin-top:auto;padding:8px 0 0}
+.dx .cx-newtile{min-height:200px;border-radius:18px;text-align:center}
+.dx-new-ico{display:grid;place-items:center;width:52px;height:52px;margin-bottom:4px;border-radius:50%;background:var(--cx-thread-tint);color:var(--cx-thread-ink)}
 .dx-err{margin:10px 0 0;font-size:13px;color:var(--danger-text)}
 .dx .cx-link{white-space:nowrap;min-height:44px;display:inline-flex;align-items:center}
-@media(min-width:768px){.cx-page.dx{padding-bottom:104px}}
-@media(min-width:768px){.dx-hero{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}
-  .dx-perf{grid-column:2;grid-row:1;top:0;bottom:0;right:auto;height:auto;width:0;border-top:0;border-left:2px dashed var(--cx-line-strong)}
-  .dx-perf::before{left:-11px;top:-11px}.dx-perf::after{left:-11px;right:auto;top:auto;bottom:-11px}.dx-hero-txt{padding:36px 32px}.dx-stage{min-height:340px}.dx-hero-acts .ui-btn{flex:0 0 auto}.dx-rd-thumb{height:180px}}
-@media(prefers-reduced-motion:no-preference){.dx-rd-item{transition:transform var(--cx-dur-2) var(--cx-ease),box-shadow var(--cx-dur-2)}.dx-rd-item:hover{transform:translateY(-2px);box-shadow:var(--cx-elev-1)}}
+@media(max-width:479px){.dx-hero-acts .ui-btn{flex-basis:100%}.dx-rd .ui-btn{padding-inline:8px;font-size:13px}}
+@media(max-width:767px){.dx-stage{min-height:150px}}
+@media(min-width:768px){
+  .cx-page.dx{padding-bottom:104px}
+  .dx-hero-txt{padding:36px 28px}
+  .dx-hero-acts .ui-btn{flex:0 0 auto}
+  .dx-stage{min-height:300px}
+  .dx-order{padding:22px 26px}
+  .dx-rd-thumb{height:170px}
+}
+@media(min-width:1024px){
+  .dx-hero{grid-template-columns:minmax(0,7fr) minmax(0,5fr);min-height:360px}
+  .dx-hero-txt{padding:44px 40px}
+  .dx-rd{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+}
+@media(prefers-reduced-motion:no-preference){
+  .dx-rd-item{transition:transform var(--cx-dur-2) var(--cx-ease),box-shadow var(--cx-dur-2)}
+  .dx-rd-item:hover{transform:translateY(-2px);box-shadow:var(--cx-elev-1)}
+}
 
 .cx-how{list-style:none;margin:0 0 18px;padding:0;display:grid;gap:0;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-card);overflow:hidden}
 .cx-how li{display:flex;gap:14px;align-items:flex-start;padding:16px 18px;border-top:1px solid var(--border)}
@@ -617,11 +638,8 @@ html[data-wizard]{scroll-padding-bottom:160px}
 /* Touch floor for shared header back link and filter chips at every width */
 .cm-shell .ui-head-back{min-height:44px}
 .cx-chip{min-height:44px}
-@media(max-width:479px){.dx-hero-acts .ui-btn{flex-basis:100%}}
-/* Phone: a compact stage so order status stays near the top. */
-@media(max-width:767px){.dx-stage{min-height:0;height:172px;padding:12px}.dx-stage .cx-dthumb{width:auto;height:148px}.dx-stage::after{bottom:10px}.dx-hero-txt{padding:20px 18px 18px}}
 /* Narrow cards: step labels collapse to the caption instead of breaking mid-word */
-.ox-steps,.dx-tk-more,.dx-howto,.od-sum{container-type:inline-size}
+.ox-steps,.od-sum{container-type:inline-size}
 .cm-shell .ui-step-lbl{overflow-wrap:normal}
 @container (max-width:480px){.ui-step-lbl{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.ui-steps-cap{display:block}}
 .od-head .ui-head-actions{display:flex;width:auto}
@@ -635,7 +653,7 @@ html[data-wizard]{scroll-padding-bottom:160px}
 .size-chart p { margin:0; padding:8px 12px; font-size:13px; color:var(--text-muted); border-top:1px solid var(--border); }
 
 /* Premium pass: garments sit on the Studio's light cutting mat everywhere */
-:is(.wz-stage,.dx-stage,.dx-rd-thumb,.ox-thumb,.mx-stage,.od-sum-thumb,.od-stage){background:radial-gradient(ellipse 60% 55% at 50% 45%,color-mix(in srgb,var(--color-chalk) 70%,transparent),transparent 75%),var(--mat-grid)}
+:is(.wz-stage,.dx-rd-thumb,.ox-thumb,.mx-stage,.od-sum-thumb,.od-stage){background:radial-gradient(ellipse 60% 55% at 50% 45%,color-mix(in srgb,var(--color-chalk) 70%,transparent),transparent 75%),var(--mat-grid)}
 /* Navy cloth band: re-points ink and line tokens so shared primitives (Button, Stepper) read on navy */
 .cx-navy{--cx-ink:var(--color-on-navy);--ink:var(--color-on-navy);--text:var(--color-on-navy);
   --cx-ink-2:color-mix(in srgb,var(--color-on-navy) 84%,var(--color-navy-cloth));--cx-ink-3:color-mix(in srgb,var(--color-on-navy) 72%,var(--color-navy-cloth));
@@ -648,8 +666,6 @@ html .cm-shell .cx-navy .ui-btn[data-v=secondary]{background:transparent;color:v
 html .cm-shell .cx-navy .ui-btn[data-v=secondary]:hover:not(:disabled){background:color-mix(in srgb,var(--color-on-navy) 10%,transparent);border-color:var(--color-on-navy)}
 .cm-shell .cx-navy .ui-btn[data-v=primary]:hover:not(:disabled){background:var(--teal-dark)}
 .cx-navy .od-sum-thumb{box-shadow:inset 0 0 0 1px var(--cx-line)}
-.dx-hero.cx-navy .dx-stage{margin:0 12px 12px;border-radius:calc(var(--cx-r-lg) - 4px)}
-@media(min-width:768px){.dx-hero.cx-navy .dx-stage{margin:12px 12px 12px 0}}
 /* Five-step order thread: sewn steps are solid teal, steps still to come are a dashed stitch */
 .cm-shell .ui-step::before{height:0;background:none;border-top:2px dashed var(--border-strong)}
 .cm-shell .ui-step:is([data-s=done],[data-s=now])::before{border-top:2px solid var(--teal)}
