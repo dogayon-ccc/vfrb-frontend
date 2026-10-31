@@ -34,7 +34,7 @@ config.js   <- NAV, CONTACT
 photos.js   <- photo registry (src, w, h, alt) + GALLERY
 site.css    <- all public styling, scoped under .vs
 ```
-Legacy `MarketingNav.jsx` and `Footer.jsx` are one-line re-exports so FAQ, Guide, Privacy and Terms share the same chrome.
+Public pages wrap in `site/SitePage` (Privacy and Terms via `LegalPage`), which renders `SiteHeader` and `SiteFooter`, so they all share the same chrome.
 
 ## 3. Deep dive
 - **Content consistency:** pages import lists from `content.js` instead of retyping them. `PHASES` uses the stage names in the public FAQ and Guide. `ORDER_STEPS` mirrors the Guide; change both together.
