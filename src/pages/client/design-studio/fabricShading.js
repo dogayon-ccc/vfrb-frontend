@@ -6,7 +6,7 @@
 //  - vector templates: soft inner-edge shading toward the outline, plus a light diagonal sheen
 //  - derived templates (traced from a reference model): the model's own lighting (folds, seams, buttons) multiplied over the fill
 //  - template details (detailRealism): seams sit in a soft groove with a raised topstitch, folds blur out, buttons catch a
-//    highlight and cast a small shadow, the pocket casts a shadow onto the body. No blur on the many seam lines, so phones stay fast.
+//    highlight and cast a small shadow. The pocket, collar and sleeves cast a soft shadow onto the body (castShadows). No blur on the many seam lines, so phones stay fast.
 //  Woven patterns carry their own thread shading in the tile (wovenPatterns.js).
 
 let grainTile = null;
@@ -51,11 +51,35 @@ function detailRealism(fabric, canvas) {
       o.set({ shadow: new fabric.Shadow({ color: 'rgba(15,23,42,.22)', blur: 0, offsetX: 0, offsetY: 1 }) });
     }
   }
-  // Pocket zone: a soft shadow cast outside its edge only (an inverted clip), so the pocket's own colour or pattern is untouched.
-  const pocket = canvas.getObjects().find(x => x.__zoneKey === 'pocket');
-  if (pocket) canvas.insertAt(at(pocket), new fabric.Path(pocket.path, { ...deco, objectCaching: true, fill: '#000000', stroke: null,
-    shadow: new fabric.Shadow({ color: 'rgba(15,23,42,.3)', blur: 5, offsetX: 0, offsetY: 2 }),
-    clipPath: new fabric.Path(pocket.path, { absolutePositioned: true, inverted: true }) }));
+}
+
+// Raised parts cast a soft shadow onto the cloth under them: an opaque copy of the part directly beneath it, in the part's own
+// colour so its edge leaves no dark fringe. [alpha, blur, offsetY]; collar and sleeves only on vector templates (a shade map has its own).
+const CAST = { pocket: [0.3, 5, 2], collar: [0.26, 7, 2], sleeve: [0.16, 9, 1] };
+function castShadows(fabric, canvas, zones, keys) {
+  for (const z of zones.filter(x => keys.includes(x.obj.__zoneKey))) {
+    const [a, blur, offsetY] = CAST[z.obj.__zoneKey];
+    canvas.insertAt(canvas.getObjects().indexOf(z.obj), new fabric.Path(z.d, { ...deco, objectCaching: true, stroke: null,
+      fill: typeof z.obj.fill === 'string' ? z.obj.fill : '#ffffff',
+      shadow: new fabric.Shadow({ color: `rgba(15,23,42,${a})`, blur, offsetX: 0, offsetY }) }));
+  }
+}
+
+// Soft darkening toward a zone's outline, as an image: the area outside the zone casts a blurred shadow into it through a clip, so
+// only the falloff shows (a clipped stroke left a flat grey band on light colours). Sized to the zone so a thin collar is not swallowed.
+function innerShade(Img, shape, d) {
+  const w = Math.min(16, Math.min(shape.width, shape.height) * 0.3), pad = Math.ceil(w * 2), S = 2;
+  const x0 = shape.pathOffset.x - shape.width / 2 - pad, y0 = shape.pathOffset.y - shape.height / 2 - pad;
+  const el = document.createElement('canvas');
+  el.width = Math.ceil((shape.width + 2 * pad) * S); el.height = Math.ceil((shape.height + 2 * pad) * S);
+  const ctx = el.getContext('2d'), zone = new Path2D(d), frame = new Path2D();
+  ctx.scale(S, S); ctx.translate(-x0, -y0);
+  ctx.clip(zone);
+  frame.rect(x0, y0, el.width / S, el.height / S); frame.addPath(zone);
+  ctx.shadowColor = 'rgba(15,23,42,.34)'; ctx.shadowBlur = w * 1.5 * S; // shadowBlur is in device px, unaffected by scale()
+  ctx.fillStyle = '#000';
+  ctx.fill(frame, 'evenodd');
+  return new Img(el, { ...deco, left: x0, top: y0, originX: 'left', originY: 'top', scaleX: 1 / S, scaleY: 1 / S });
 }
 
 // Inserts the layers around the `zones` already drawn ([{ obj, d }], bottom-most first). `current()` is false once a newer redraw
@@ -73,8 +97,9 @@ export function addFabricShading(fabric, canvas, paths, face, zones, current) {
     canvas.insertAt(at(z.obj) + 1, new fabric.Path(z.d, { ...deco, fill: new fabric.Pattern({ source: tile, repeat: 'repeat' }), stroke: null, opacity: 0.85, globalCompositeOperation: 'multiply' }));
   }
   detailRealism(fabric, canvas);
-  const top = Math.max(...zones.map(z => at(z.obj))) + 2; // above the last zone and its grain, below detail lines and the customer's design
   const shadeUrl = paths.shade?.[face];
+  castShadows(fabric, canvas, zones, shadeUrl ? ['pocket'] : Object.keys(CAST));
+  const top = Math.max(...zones.map(z => at(z.obj))) + 2; // above the last zone and its grain, below detail lines and the customer's design
   if (shadeUrl) {
     Img.fromURL(shadeUrl, { crossOrigin: 'anonymous' }).then(img => {
       if (!current()) return;
@@ -88,9 +113,7 @@ export function addFabricShading(fabric, canvas, paths, face, zones, current) {
   // fill and grain: soft darkening toward its outline (cloth turning away), sized to the zone so a thin collar is not swallowed, and
   // one diagonal sheen across the whole garment, so the light falls the same way on every part.
   for (const z of zones) {
-    const edge = new fabric.Path(z.d, { ...deco, fill: 'transparent', stroke: 'rgba(15,23,42,.16)', clipPath: new fabric.Path(z.d, { absolutePositioned: true }) });
-    const w = Math.min(16, Math.min(edge.width, edge.height) * 0.3);
-    edge.set({ strokeWidth: w, shadow: new fabric.Shadow({ color: 'rgba(15,23,42,.28)', blur: w * 0.875 }) });
+    const edge = innerShade(Img, new fabric.Path(z.d), z.d);
     const sheen = new fabric.Path(z.d, { ...deco, stroke: null });
     sheen.set('fill', new fabric.Gradient({
       type: 'linear', coords: { x1: -sheen.left, y1: -sheen.top, x2: paths.w - sheen.left, y2: paths.h - sheen.top },

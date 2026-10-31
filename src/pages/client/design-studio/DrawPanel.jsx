@@ -11,11 +11,9 @@
 // tool's real canvas work (addLogo, addText, etc.) — this file never
 // touches the canvas directly.
 import { T2, secLabel } from './dsShared';
+import { STROKE_SIZES } from './railTools';
 
-// Brush size presets — 3 thumb-friendly dots on mobile, not a slider
-// (matches the Figma customer-portal reference's brush-size spec: preset
-// dots rather than a fine-grained control that's fiddly to hit on touch).
-const SIZES = [2, 5, 10];
+const SIZES = STROKE_SIZES;
 
 // Brush colors — reuses the same institutional palette already established
 // elsewhere in Design Studio (school navy/white, scrub ceil/green, corporate

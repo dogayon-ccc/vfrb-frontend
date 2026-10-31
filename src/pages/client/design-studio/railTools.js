@@ -6,10 +6,19 @@ export const RAIL_TOOLS = [
   { id: 'fill',   key: 'G', label: 'Paint bucket', hint: 'Fill a garment part with the active colour', colour: true },
   { id: 'brush',  key: 'B', label: 'Brush',        hint: 'Draw freehand in the active colour' },
   { id: 'eraser', key: 'E', label: 'Eraser',       hint: 'Erase your own drawings and uploaded art' },
+  { id: 'pen',    key: 'P', label: 'Pen',          hint: 'Click for corners, drag for curves; click the first point to fill a shape; Enter, Esc or double-click to finish' },
+  { id: 'line',   key: 'L', label: 'Line',         hint: 'Drag a straight line; hold Shift for 45° steps' },
   { id: 'text',   key: 'T', label: 'Text',         hint: 'Add names, slogans or numbers' },
   { id: 'shape',  key: 'U', label: 'Shapes',       hint: 'Add a shape' },
 ];
 const BY_KEY = Object.fromEntries(RAIL_TOOLS.map(t => [t.key, t.id]));
+
+// Stroke widths shared by the Draw panel and the rail (Brush, Pen, Line); presets, not a slider, for thumbs.
+export const STROKE_SIZES = [2, 5, 10];
+export const STROKE_TOOLS = ['brush', 'pen', 'line'];
+
+// Rail tools that work through canvas taps instead of selecting items.
+export const PICK_TOOLS = ['sample', 'fill', 'pen', 'line'];
 
 // A bare letter (no Ctrl, Cmd or Alt) picks its tool; Z zooms in and Alt+Z out; Escape returns to Move.
 export function railKey(e) {

@@ -351,9 +351,9 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('starter-design photos are labelled as starter photos, not as the customer\'s saved preview', /aria-label="Starter design photo of Polo"/.test(html({ src: png, garment: 'Polo Shirt', name: 'Polo', what: 'Starter design photo' })));
   const src = p => fsx.readFileSync(urlx.fileURLToPath(new URL(p, import.meta.url)), 'utf8');
   const my = src('../src/pages/client/MyDesigns.jsx'), home = src('../src/pages/client/Dashboard.jsx'), canvas = src('../src/pages/client/design-studio/useGarmentCanvas.js');
-  t('My Designs and Home draw saved-design thumbnails only through DesignThumb (draft preview_dataurl, archived photo_path)', !/MiniPreview/.test(my) && !/MiniPreview/.test(home) && /<DesignThumb src=\{img\}/.test(my) && /img=\{draft\.preview_dataurl\}/.test(my) && /DesignThumb compact src=\{draft\.preview_dataurl\}/.test(home) && /DesignThumb compact src=\{d\.photo_path\}/.test(home));
-  const tiles = [my, home].flatMap(s => s.match(/<(button|Link|a)\b[^>]*>(?:(?!<\/\1>)[\s\S])*?<DesignThumb compact[\s\S]*?<\/\1>/g) ?? []);
-  t('a compact DesignThumb inside an interactive tile is aria-hidden, so the tile text is its single accessible name', tiles.length > 0 && tiles.every(b => /aria-hidden="true"[^<]*>\s*<DesignThumb compact|<DesignThumb compact[^>]*aria-hidden="true"/.test(b)));
+  t('My Designs and Home draw saved-design thumbnails only through DesignThumb (draft preview_dataurl, archived photo_path; a copy shows colours only)', !/MiniPreview/.test(my) && !/MiniPreview/.test(home) && /<DesignThumb src=\{img\}/.test(my) && /img=\{draft\.preview_dataurl\}/.test(my) && /<DesignThumb src=\{draft\.preview_dataurl\}/.test(home) && /<DesignThumb src=\{d\.is_copy \? null : d\.photo_path\}/.test(home));
+  const tiles = [my, home].flatMap(s => s.match(/<(button|Link|a)\b[^>]*>(?:(?!<\/\1>)[\s\S])*?<DesignThumb[\s\S]*?<\/\1>/g) ?? []);
+  t('a DesignThumb inside an interactive tile never names the tile: the tile has its own aria-label or the thumb is aria-hidden', tiles.length > 0 && tiles.every(b => /^<(button|Link|a)\b[^>]*aria-label=/.test(b) || /aria-hidden="true"[^<]*>\s*<DesignThumb|<DesignThumb[^>]*aria-hidden="true"/.test(b)));
   t('Home and My Designs title a design by the customer\'s saved name first', /savedDesignName\(draft\.studio_config\) \|\| draft\.label/.test(home) && /savedDesignName\(d\.config\) \|\| d\.label/.test(home) && /savedDesignName\(c\) \|\| label \|\| fallback/.test(my));
   t('the draft preview render (exportPNG) hides the zone hover outline, like exportFace', /const exportPNG[\s\S]{0,300}__hoverGlow[\s\S]{0,120}o\.visible = false/.test(canvas));
 }
@@ -372,7 +372,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const cust = src('../src/styles/customer.css'), shell = src('../src/styles/customer-shell.css'), layout = src('../src/layouts/CustomerLayout.jsx');
   const defs = [...cust.matchAll(/([^{}]+)\{[^{}]*--cx-[\w-]+\s*:/g)].map(m => m[1].trim());
   const global = ['theme.css', 'admin.css', 'site.css', 'auth.css', 'modals.css', 'responsive.css'].filter(f => /--cx-/.test(src(`../src/styles/${f}`))).concat(/--cx-/.test(src('../src/main.css')) ? ['main.css'] : []);
-  t('customer tokens are defined only on customer roots (html[data-cx], .cm-shell, the Studio .ds and its .ds-chrome frame; dark mode re-points the same roots, never .ds), never on :root or shared stylesheets', defs.length === 2 && defs[0].endsWith(':is(html[data-cx],.cm-shell,.ds,.ds-chrome)') && defs[1].endsWith('html[data-theme=dark]:is([data-cx]),html[data-theme=dark] .cm-shell') && global.length === 0);
+  t('customer tokens are defined only on customer roots (html[data-cx], .cm-shell, the Studio .ds and its .ds-chrome frame; dark mode re-points the same roots, never .ds; .cx-navy re-points ink on navy surfaces), never on :root or shared stylesheets', defs.length === 3 && defs[2].endsWith('.cx-navy') && defs[0].endsWith(':is(html[data-cx],.cm-shell,.ds,.ds-chrome)') && defs[1].endsWith('html[data-theme=dark]:is([data-cx]),html[data-theme=dark] .cm-shell') && global.length === 0);
   const sels = [...shell.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/(?:^|[;}])\s*([^{}@;]+)\{/g)].map(m => m[1].trim()).filter(s => !/^(from|to|\d+%)$/.test(s)).flatMap(s => s.split(','));
   t('every customer shell rule is scoped to the customer root, so admin is untouched after the shell has loaded', sels.length > 30 && sels.every(s => /data-cx|\.cx-|\.cm-(shell|main|content|studio-fab)/.test(s)));
   t('the customer shell sets data-cx on mount and removes it on unmount; shell CSS is imported only by the layout', /useLayoutEffect\(\(\) => \{[\s\S]{0,120}dataset\.cx = ''[\s\S]{0,60}delete root\.dataset\.cx/.test(layout) && /import '\.\.\/styles\/customer-shell\.css'/.test(layout) && !/customer-shell\.css/.test(src('../src/main.jsx')));
@@ -417,13 +417,13 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     /const noGarment = !p\.cfg\.garment/.test(drawer) && /\{!noGarment && \(\s*<nav className="ds-tabs"/.test(drawer) && /Choose a garment on the canvas to start designing\./.test(drawer)
     && /if \(!cfg\.garment\) return null;/.test(get('PiecesRail.jsx')));
   const SH = await L('/src/pages/client/design-studio/dsShared.js');
-  t('four labelled tabs (Garment, Add, Layers, Ask AI): every tool belongs to exactly one tab, Colours/Pattern/Details sit in Garment, Draw in Add; phones and tablets add More (View, Save a copy); the Garment tab carries the price-free fabric note',
+  t('four labelled tabs (Garment, Add, Layers, Ask AI): every tool belongs to exactly one tab, Colours/Pattern/Details sit in Garment, Draw in Add; phones and tablets add More (View, Save a copy); the Garment tab carries the price-free fabric note, hidden in the one-part view',
     SH.TABS.map(t => t.label).join('|') === 'Garment|Add|Layers|Ask AI'
     && SH.TOOLS.filter(t => t.id !== 'selected').every(t => SH.TABS.filter(x => x.tools.includes(t.id)).length === 1)
     && SH.tabOf('draw').id === 'add' && ['color', 'pattern', 'details'].every(id => SH.tabOf(id).id === 'type') && /layers:\s*\(\)\s*=>/.test(drawer) && (drawer.match(/<LayersPanel\b/g) ?? []).length === 1
     && !/sr-only|toggleMore/.test(drawer) && /<span>\{t\.label\}<\/span>/.test(drawer)
     && /const NAV = \['type', 'add', 'layers', 'ai'\];/.test(drawer) && /className="ds-more"/.test(drawer) && /<span>More<\/span>/.test(drawer)
-    && /\{tab\?\.id === 'type' && <MaterialNote\/>\}/.test(drawer) && !/₱|price|cost|php/i.test(drawer.match(/<p><strong>Fabric suggestions[^]*?<\/p>/)?.[0] ?? 'price'));
+    && /\{tab\?\.id === 'type' && !partView && <MaterialNote\/>\}/.test(drawer) && !/₱|price|cost|php/i.test(drawer.match(/<p><strong>Fabric suggestions[^]*?<\/p>/)?.[0] ?? 'price'));
   const bar = get('TopBar.jsx'), dsx = fsx.readFileSync(urlx.fileURLToPath(new URL('../src/pages/client/DesignStudio.jsx', import.meta.url)), 'utf8');
   t('top bar holds the one primary action: Review & order (Review on phones), Reorder when final; Save, export and the save state live there; no dock, no inline lock banner',
     /'Review & order'/.test(bar) && /className="ds-bar-primary" onClick=\{onReorder\}/.test(bar) && /onClick=\{saveDesign\}/.test(bar) && /Export PDF spec sheet/.test(bar)
@@ -913,24 +913,24 @@ t('new families route to their own models per sleeve; no model for a sleeve they
       && adj.indexOf("return ['short'") < adj.indexOf("DB::table('inventory_logs')->insert") && /notifyLowStock\(/.test(adj));
     const ord = be('app/Http/Controllers/Api/OrderController.php');
     const upd = ord.slice(ord.indexOf('public function adminUpdate'), ord.indexOf('private function notifyManagers'));
-    t('admin order update: status, total, negotiated delivery date and review notes are manager-only; the manager note goes to the customer message and never overwrites orders.notes (the customer\'s own notes)',
-      /hasAny\(\['status', 'agreed_total', 'negotiated_delivery_date', 'notes'\]\) && !\$request->user\(\)->isManager\(\)/.test(upd)
-      && /collect\(\$request->only\(\['status', 'negotiated_delivery_date'\]\)\)/.test(upd) && !/only\(\[[^\]]*'notes'/.test(upd)
+    t('admin order update: status, total, negotiated delivery date, review notes and order type are manager-only; the manager note goes to the customer message and never overwrites orders.notes (the customer\'s own notes)',
+      /hasAny\(\['status', 'agreed_total', 'negotiated_delivery_date', 'notes', 'order_type'\]\) && ! ?\$request->user\(\)->isManager\(\)/.test(upd)
+      && /collect\(\$request->only\(\['status', 'negotiated_delivery_date', 'order_type'\]\)\)/.test(upd) && !/only\(\[[^\]]*'notes'/.test(upd)
       && /Reason: \{\$request->input\('notes'\)\}/.test(upd) && /Note from VFRB: \{\$request->input\('notes'\)\}/.test(upd));
     const st = be('app/Http/Controllers/Api/SettingsController.php');
     t('email_provider_live comes from the mail config: false for log/array mailers and sandbox hosts (mailtrap, sandbox, mailhog, mailpit, localhost), true otherwise; no hard-coded false',
       /'email_provider_live' => self::emailProviderLive\(\)/.test(st) && /in_array\(\$mailer, \['log', 'array'\], true\)/.test(st) && /mailtrap\|sandbox\|mailhog\|mailpit\|localhost/.test(st));
     const api = be('routes/api.php'), uc = be('app/Http/Controllers/Api/UserController.php');
-    const staffGroup = api.slice(api.lastIndexOf("Route::middleware(['auth:sanctum', 'role:staff,manager", api.indexOf("'/profile/password', [UserController::class, 'adminUpdatePassword']")));
-    t('admin password change: PUT /api/admin/profile/password in the staff+manager group, customer and admin routes share one method (current password check + the same strength rule)',
-      /Route::put\('\/profile\/password', \[UserController::class, 'adminUpdatePassword'\]\)/.test(api) && /role:staff,manager/.test(staffGroup.slice(0, 200))
+    const staffGroup = api.slice(api.lastIndexOf("Route::middleware(['auth:sanctum', 'role:manager,owner,staff'", api.indexOf("'/profile/password', [UserController::class, 'adminUpdatePassword']")));
+    t('admin password change: PUT /api/admin/profile/password in the shared admin group (manager, owner, staff; owner.readonly applies), customer and admin routes share one method (current password check + the same strength rule)',
+      /Route::put\('\/profile\/password', \[UserController::class, 'adminUpdatePassword'\]\)/.test(api) && /role:manager,owner,staff', 'owner\.readonly'/.test(staffGroup.slice(0, 200))
       && /function customerUpdatePassword\(Request \$request\)\s*\{\s*return \$this->changeOwnPassword\(\$request\);/.test(uc) && /function adminUpdatePassword\(Request \$request\)\s*\{\s*return \$this->changeOwnPassword\(\$request\);/.test(uc)
       && /private function changeOwnPassword[\s\S]*PasswordRule::min\(8\)->mixedCase\(\)->numbers\(\)->symbols\(\)[\s\S]*Hash::check\(\$request->input\('current_password'\)/.test(uc));
   } else console.log(`NOTE backend repo not found at ${BE}: the four backend source checks were not run`);
   const od = rd('../src/pages/admin/OrderDetail.jsx');
-  t('admin OrderDetail: "Order Summary (PDF)" only for managers (manager-only endpoint); "Track Production" and "Open tracking" only with the production area',
+  t('admin OrderDetail: "Order Summary (PDF)" only for managers (manager-only endpoint); "Track Production" (button and next-step action) only with the production area',
     /const isManager = getIsManager\(\), canTrack = canAccessArea\(readAdminUser\(\), 'production'\);/.test(od) && /\{canTrack && \(\s*<button className="adm-btn primary"[^\n]*\n\s*<NavIcon name="production"[^\n]*Track Production/.test(od)
-    && /\{isManager && \(\s*<button className="adm-btn" onClick=\{handleDownloadPdf\}/.test(od) && /action=\{canTrack \? <button className="adm-link-btn"[^\n]*Open tracking →<\/button> : null\}/.test(od) && /Note to the customer \(required if cancelling\)/.test(od));
+    && /\{isManager && \(\s*<button className="adm-btn" onClick=\{\(\) => handleDownloadPdf\(\)\}/.test(od) && /canTrack \? \{ label: 'Track Production'/.test(od) && /Note to the customer \(required if cancelling\)/.test(od));
   const ui = rd('../src/components/admin/AdminUI.jsx'), css = rd('../src/styles/admin.css');
   t('order ids in Delivery, Incidents and Reports are real links to /admin/orders/:id (react-router Link, keyboard focus ring, 44px on touch, row click not triggered)',
     /export const OrderLink = \(\{ id, prefix = '#' \}\) => \(\s*<Link className="adm-order-link" to=\{`\/admin\/orders\/\$\{id\}`\} onClick=\{e => e\.stopPropagation\(\)\}>/.test(ui)
@@ -947,10 +947,11 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('dead code removed: no unused SK style const in Delivery, Physical Count, Purchase Orders, Users; no unused TTL import in Users',
     ['DeliveryTracking', 'PhysicalCount', 'PurchaseOrders', 'UserManagement'].every(f => !/\bconst SK\b/.test(rd(`../src/pages/admin/${f}.jsx`))) && !/\bTTL\b/.test(rd('../src/pages/admin/UserManagement.jsx')));
   const um = rd('../src/pages/admin/UserManagement.jsx'), umRoles = um.match(/const ROLE_CFG = \{([\s\S]*?)\n\};/)?.[1] ?? '';
-  t('User Management roles: create, edit-role and filter tabs all come from one list of Admin (manager), Staff and Owner; no Client option',
-    /manager: \{[^}]*l:'Admin'/.test(umRoles) && /staff:\s+\{[^}]*l:'Staff'/.test(umRoles) && /owner:\s+\{[^}]*l:'Owner'/.test(umRoles) && !/customer/.test(umRoles)
-    && (um.match(/\{ROLE_OPTIONS\}/g) ?? []).length === 2 && /Object\.entries\(ROLE_CFG\)\.map\(\(\[key, r\]\) => \(\{ key, label:r\.tab/.test(um)
-    && !/<option value="(manager|staff|customer)"|key:'customer'|'Clients'|'Managers'/.test(um));
+  t('User Management roles: one ROLE_CFG of Administrator (Manager), Administrator (Station) and Owner drives the tabs and the edit-role list; Create adds Customer as the only extra option',
+    /manager: \{[^}]*l:'Administrator \(Manager\)'/.test(umRoles) && /staff:\s+\{[^}]*l:'Administrator \(Station\)'/.test(umRoles) && /owner:\s+\{[^}]*l:'Owner'/.test(umRoles) && !/customer/.test(umRoles)
+    && /const ADMIN_ROLES = \['manager', 'staff', 'owner'\];/.test(um) && /\{ADMIN_ROLES\.map\(v => <option key=\{v\} value=\{v\}>\{ROLE_CFG\[v\]\.l\}<\/option>\)\}/.test(um)
+    && /<option value="customer">Customer<\/option>\s*\{adminRoles\.map/.test(um) && /Object\.entries\(ROLE_CFG\)[^\n]*\.map\(\(\[key, r\]\) => \(\{ key, label:r\.tab/.test(um)
+    && (um.match(/<option value="customer">/g) ?? []).length === 1 && !/<option value="(manager|staff)"|'Clients'|'Managers'/.test(um));
 }
 
 // Owner: read-only admin account. Frontend mirror of backend OwnerReadOnly (GET-only, 9 areas); the server stays the enforcement point.
@@ -964,32 +965,32 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && !['/admin/users', '/admin/settings', '/admin/production', '/admin/procurement', '/admin/physical-count', '/admin/delivery', '/admin/messages', '/admin/customers', '/admin/suppliers', '/admin/qc'].some(JA.ownerCanOpen)
     && JA.isOwner(owner) && !JA.isOwner({ role: 'manager' }) && JA.canAccessArea(owner, 'inventory') && !JA.canAccessArea(owner, 'production'));
   const app = rdo('../src/App.jsx'), lay = rdo('../src/layouts/AdminLayout.jsx'), login = rdo('../src/pages/auth/Login.jsx');
-  t('owner routing: signs in to the admin portal, gets the manager dashboard, every admin route sits behind OwnerGate; reports/activity-log/audit-logs/invoice open to owner, other manager pages do not',
-    AR.isStaffRole(owner) && AR.homeFor(owner) === '/admin/dashboard' && /if \(isStaffRole\(data\.user\)\)/.test(login)
-    && /\['manager', 'owner'\]\.includes\(user\.role\) \? <AdminDashboard\/>/.test(app) && /isOwner\(\) && !ownerCanOpen\(pathname\) \? <AccessDenied/.test(app)
-    && /<Route element=\{<OwnerGate\/>\}>\s*<Route path="dashboard"/.test(app) && /<\/Route>\s*<Route path="\*" element=\{<AdminNotFound\/>\}\/>/.test(app)
-    && ['reports', 'activity-log', 'audit-logs', 'invoice'].every(r => new RegExp(`path="${r}"\\s+element=\\{<RequireManager owner>`).test(app))
-    && ['feedback', 'suppliers', 'users'].every(r => new RegExp(`path="${r}"\\s+element=\\{<RequireManager>`).test(app)) && !/\['manager',\s*'staff'\]\.includes/.test(app));
-  t('owner shell: nav lists only owner pages, label says view only, no notification bell or polling (API refuses notifications)',
-    /owner \? STAFF_NAV\.filter\(i => ownerCanOpen\(i\.to\)\)/.test(lay) && /owner \? MANAGER_EXTRA\.filter\(i => ownerCanOpen\(i\.to\)\)/.test(lay) && /owner \? MOB_NAV\.filter\(i => ownerCanOpen\(i\.to\)\)/.test(lay)
-    && /'Owner · view only'/.test(lay) && /\{!owner && <div ref=\{bellRef\}/.test(lay) && /if \(isOwner\(\)\) return; \/\/ the API refuses notifications/.test(lay));
+  t('owner routing: signs in to the admin portal and lands on the shared dashboard; the shell gates every admin page with canOpen; reports/activity-log/audit-logs/invoice open to owner through RequireManager, feedback/suppliers/users do not',
+    AR.isStaffRole(owner) && AR.homeFor(owner) === '/admin/dashboard' && /navigate\(isStaffRole\(data\.user\) \? '\/admin\/dashboard'/.test(login)
+    && /function DashboardHome\(\) \{\s*return <AdminDashboard\/>;/.test(app) && /!canOpen\(path, me\) \? <AccessDenied what="This page"\/> : <Outlet\/>/.test(lay)
+    && /return isAdmin\(user\) \|\| \(isOwner\(user\) && ownerCanOpen\(pathname\)\) \? children : <AccessDenied/.test(app) && /<Route path="\*" element=\{<AdminNotFound\/>\}\/>\s*<\/Route>/.test(app)
+    && ['reports', 'activity-log', 'audit-logs', 'invoice', 'feedback', 'suppliers', 'users'].every(r => new RegExp(`path="${r}"\\s+element=\\{<RequireManager>`).test(app))
+    && ['/admin/reports', '/admin/activity-log', '/admin/audit-logs', '/admin/invoice'].every(JA.ownerCanOpen) && !['/admin/feedback', '/admin/suppliers', '/admin/users'].some(JA.ownerCanOpen)
+    && !/\['manager',\s*'staff'\]\.includes/.test(app));
+  t('owner shell: sidebar and page search list only pages canOpen allows, the role chip says read-only, no notification bell, polling or Quick add',
+    /const allowed\s+= \(i\) => canOpen\(i\.to, me\);/.test(lay) && /const nav\s+= navFor\(allowed\);/.test(lay) && (lay.match(/items=\{nav\.items\}/g) ?? []).length === 2
+    && /owner \? 'Owner · read-only'/.test(lay) && /\{!owner && <div ref=\{bellRef\}/.test(lay) && /if \(owner\) return; \/\/ the API refuses notifications/.test(lay) && /const quick\s+= owner \? \[\]/.test(lay));
   const audit = rdo('../src/pages/admin/AuditLog.jsx');
   t('audit log: read-only GET /api/admin/audit-logs with action/date filters and pages; listed in the manager Admin group',
     /axios\.get\('\/api\/admin\/audit-logs'/.test(audit) && !/axios\.(post|put|patch|delete)/.test(audit)
     && ['params.action', 'params.date_from', 'params.date_to', 'page: target'].every(s => audit.includes(s))
     && /\{ to:'\/admin\/audit-logs',\s+icon:ScrollText,\s+label:'Audit Log'/.test(rdo('../src/layouts/adminNav.js')));
   const dash = rdo('../src/pages/admin/Dashboard.jsx');
-  t('owner dashboard: no revenue (snapshot or chart tab), no Total Orders, no RFQ/delivery requests, links only to owner pages',
-    /!owner && \{ label: 'Total Orders'/.test(dash) && /!owner && \{ label: 'Revenue \(Month\)'/.test(dash) && /action=\{owner \? null : <PillTabs/.test(dash)
-    && /owner \? Promise\.resolve\(\[\]\) : axios\.get\('\/api\/admin\/rfq/.test(dash) && /owner \? Promise\.resolve\(\[\]\) : axios\.get\('\/api\/admin\/delivery/.test(dash)
-    && /\.filter\(\(q\) => !owner \|\| ownerCanOpen\(q\.path\)\)/.test(dash) && /!\['RFQs Awaiting Response', 'Upcoming Deliveries'\]\.includes\(a\.title\)/.test(dash) && /items\.length > 0 && onFooter &&/.test(dash));
+  t('owner dashboard: tiles and rows link only to pages canOpen allows (plain tiles otherwise), no RFQ/delivery fetches; the owner reads revenue like the manager',
+    /const go = \(path\) => \(canOpen\(path, user\) \? \(\) => nav\(path\) : undefined\);/.test(dash) && /const isManager = isAdmin\(user\) \|\| isOwner\(user\);/.test(dash)
+    && !/onClick: \(\) => nav\(/.test(dash) && !/axios\.get\('\/api\/admin\/(rfq|delivery)/.test(dash) && /action=\{canLog && go\('\/admin\/output-log'\) \? <Link/.test(dash) && /if \(!go\('\/admin\/production'\)\) return <div/.test(dash));
   const pg = f => rdo(`../src/pages/admin/${f}.jsx`);
-  t('owner write controls hidden: payment, stock in/out, add/edit material, run automation, staff AI check; no links to pages the owner cannot open',
-    /\{!isOwner\(\) && <button className="adm-btn primary" onClick=\{\(\) => setModal\(true\)\}>/.test(pg('SalesTransactions')) && /!isOwner\(\) && <button className="adm-link-btn" onClick=\{\(\) => setModal\(true\)\}>/.test(pg('SalesTransactions'))
-    && /\{!isOwner\(\) && <>\s*<button[^\n]*physical-count[\s\S]*?setModal\('out'\)[\s\S]*?setModal\('in'\)[\s\S]*?<\/>\}/.test(pg('Inventory')) && /action=\{isOwner\(\) \? null : <button[^\n]*procurement/.test(pg('Inventory'))
-    && (pg('Materials').match(/!owner && /g) ?? []).length === 5 && /\{!isOwner\(\) && \(\s*<button className="adm-btn primary" onClick=\{runDigest\}/.test(pg('Reports'))
-    && /if \(isOwner\(\)\) return <span/.test(pg('OrderDetail')) && /action=\{isOwner\(\) \? null : <button[^\n]*\/admin\/delivery/.test(pg('OrderDetail')) && /\{!isOwner\(\) && <Panel title="Communication"/.test(pg('OrderDetail'))
-    && /isManager && order\.status === 'pending'/.test(pg('Orders')) && /'View only \(Owner\)'/.test(pg('Orders')) && !/axios\.(post|put|patch|delete)/.test(pg('Invoice') + pg('ActivityLog')));
+  t('owner and station write controls hidden: payment, stock in/out, Create PO, order confirm, Communication and fabric verdicts are manager-only; owner sees no add/edit material or digest; Invoice and Activity Log never write',
+    /function getIsManager\(\) \{\s*return isAdmin\(\);/.test(pg('SalesTransactions')) && (pg('SalesTransactions').match(/isManager && <button[^\n]*onClick=\{\(\) => setModal\(true\)\}/g) ?? []).length === 2
+    && /\{isAdmin\(\) && <>[\s\S]*?setModal\('in'\)/.test(pg('Inventory')) && /action=\{isAdmin\(\) \? <button[^\n]*\/admin\/procurement/.test(pg('Inventory'))
+    && (pg('Materials').match(/isOwner\(\)/g) ?? []).length >= 3 && /\{!isOwner\(\) && <button className="adm-btn primary" onClick=\{runDigest\}/.test(pg('Reports'))
+    && /if \(!getIsManager\(\)\) return <span/.test(pg('OrderDetail')) && /action=\{isManager \? <button[^\n]*\/admin\/delivery/.test(pg('OrderDetail')) && /\{isManager && <Panel title="Communication"/.test(pg('OrderDetail'))
+    && /const isManager = isAdmin\(user\);/.test(pg('Orders')) && /isManager && order\.status === 'pending'/.test(pg('Orders')) && !/axios\.(post|put|patch|delete)/.test(pg('Invoice') + pg('ActivityLog')));
 }
 
 // Garment details (pockets, buttons, closures): one table, only what each 2D template really draws, saved in studio_config.details.
@@ -1138,7 +1139,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const src = f => fsx.readFileSync(f, 'utf8'), BE = process.env.VFRB_BACKEND ?? 'C:/laragon/www/vfrb-capstone', be = f => fsx.existsSync(`${BE}/${f}`) ? src(`${BE}/${f}`) : null;
   const dol = src('src/pages/admin/DailyOutputLog.jsx'), form = src('src/components/admin/QCChecklistForm.jsx'), hist = src('src/pages/admin/QCChecklist.jsx');
   t('QC: Daily Output Log shows the checklist inline at the QC stage and says Pressing is blocked until it passes',
-    /const atQc = form\.stage === 'qc'/.test(dol) && /\{atQc && \(/.test(dol) && /<QCChecklistForm inline orderId=\{form\.order_id\}/.test(dol) && /Pressing is blocked until QC passes/.test(dol));
+    /const atQc = stage === 'qc' && !!form\.order_id/.test(dol) && /\{atQc && \(/.test(dol) && /<QCChecklistForm inline orderId=\{form\.order_id\}/.test(dol) && /Pressing is blocked until QC passes/.test(dol));
   t('QC: the inline form writes to the same endpoint Reports read (POST /api/admin/orders/{id}/qc)', /axios\.post\(`\/api\/admin\/orders\/\$\{orderId\}\/qc`/.test(form));
   t('QC: the QC page is read-only history (GET /api/admin/qc-checklists, no writes, no form)',
     /axios\.get\('\/api\/admin\/qc-checklists'/.test(hist) && !/axios\.(post|put|patch|delete)/.test(hist) && !/<QCChecklistForm/.test(hist));
@@ -1297,7 +1298,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     PK.POCKET_KINDS.length === 5 && PK.POCKET_KINDS.every(k => PK.pocketGeometry(k.id).panels.length && PK.pocketGeometry(k.id).stitches.length)
     && JSON.stringify(PK.describePockets({ front: pocketJson, back: [] })) === '["Front: Flap pocket #C0392B"]' && PK.mirroredX(10, 50) === 90
     && /'__pocket','__pocketPanels','__pocketColor'/.test(rd('../src/pages/client/design-studio/useGarmentCanvas.js')) && /!o\.__pocket/.test(rd('../src/pages/client/design-studio/overlayDecals.js'))
-    && /describePockets/.test(rd('../src/pages/client/design-studio/SpecSheet.jsx')) && /describePockets/.test(rd('../src/components/admin/OrderDesignDetails.jsx')));
+    && /describePockets/.test(rd('../src/pages/client/DesignStudio.jsx')) && /describePockets/.test(rd('../src/components/admin/OrderDesignDetails.jsx')));
   // Tracing guide: a DOM underlay, never in the canvas, the design JSON, exports or the order.
   const tr = TG.normalizeTrace({ src: 'data:image/png;base64,AAAA', opacity: 500, scale: 1, x: 99 });
   t('tracing guide: only image data URLs, values clamped; never a Fabric object, never serialised, never in an export; uploads pass the upload guard',
@@ -1559,12 +1560,23 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const R = await L('/src/pages/client/design-studio/railTools.js');
   const CR = await L('/src/pages/client/design-studio/colorRules.js');
   const k = (key, m = {}) => R.railKey({ key, ...m });
-  t('tool rail: V H I G B E T U pick their tools, Z / Alt+Z zoom, Ctrl or Cmd letters and held keys are left alone',
-    ['V', 'H', 'I', 'G', 'B', 'E', 'T', 'U'].map(x => k(x.toLowerCase())).join() === 'move,hand,sample,fill,brush,eraser,text,shape'
+  t('tool rail: V H I G B E P L T U pick their tools, Z / Alt+Z zoom, Ctrl or Cmd letters and held keys are left alone',
+    ['V', 'H', 'I', 'G', 'B', 'E', 'P', 'L', 'T', 'U'].map(x => k(x.toLowerCase())).join() === 'move,hand,sample,fill,brush,eraser,pen,line,text,shape'
     && k('z') === 'zoom-in' && k('z', { altKey: true }) === 'zoom-out' && k('z', { ctrlKey: true }) === null && k('d', { metaKey: true }) === null
     && k('v', { repeat: true }) === null && k('Escape') === 'move' && k('q') === null
     && R.activeRail({ hand: true, pick: 'fill', tool: 'draw' }) === 'hand' && R.activeRail({ pick: 'sample', tool: 'draw' }) === 'sample'
+    && R.activeRail({ pick: 'pen' }) === 'pen' && R.PICK_TOOLS.join() === 'sample,fill,pen,line'
     && R.activeRail({ tool: 'draw', erasing: true }) === 'eraser' && R.activeRail({ tool: 'color' }) === 'move');
+  const V = await L('/src/pages/client/design-studio/vectorTools.js');
+  const pt = (x, y, hx = 0, hy = 0) => ({ x, y, hx, hy });
+  const s45 = V.constrain45({ x: 0, y: 0 }, { x: 10, y: 9 });
+  t('pen and line geometry: corners are straight, a dragged anchor curves, closing returns to the start, Shift snaps to 45°',
+    V.pathData([pt(0, 0), pt(10, 0)]) === 'M 0 0 L 10 0' && V.pathData([pt(0, 0)]) === ''
+    && V.pathData([pt(0, 0, 5, 0), pt(10, 10)]) === 'M 0 0 C 5 0 10 10 10 10'
+    && V.pathData([pt(0, 0), pt(10, 0), pt(10, 10)], true) === 'M 0 0 L 10 0 L 10 10 L 0 0 Z'
+    && V.closesAt([pt(0, 0), pt(10, 0), pt(10, 10)], { x: 1, y: 1 }, 3) && !V.closesAt([pt(0, 0), pt(10, 0)], { x: 0, y: 0 }, 3)
+    && V.trimDoubleClick([pt(0, 0), pt(10, 0), pt(10.5, 0), pt(10.5, 0)]).length === 2
+    && Math.abs(s45.x - s45.y) < 1e-9 && Math.abs(Math.hypot(s45.x, s45.y) - Math.hypot(10, 9)) < 1e-9);
   const c0 = CR.startColors('#111111');
   t('paint bucket and Colours panel share paintZone: the body carries following parts, any other part changes alone',
     JSON.stringify(CR.paintZone(c0, 'body', '#222222')) === JSON.stringify(CR.withBody(c0, '#222222'))

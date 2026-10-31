@@ -387,6 +387,28 @@ export default function DesignStudioStyles() {
       .ds-panel-prompt{margin:16px;padding:16px;border:1px dashed var(--cx-line-strong);border-radius:var(--cx-r-md);font-size:13px;line-height:1.5;color:var(--cx-ink-2);text-align:center;}
       .ds-tp-change{display:flex;align-items:center;justify-content:space-between;gap:8px;}
       .ds-tp-change .ds-btn{min-height:40px;}
+      /* Whole uniform and one-part views */
+      .ds-wu-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;}
+      .ds-wu-head h3{margin:0;font:400 20px/1.2 var(--cx-serif);color:var(--cx-ink);}
+      .ds-wu-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px 16px;margin:0 0 8px;padding:12px;border:1px solid var(--cx-line);border-radius:var(--cx-r-md);background:var(--cx-paper-2);}
+      .ds-wu-sum dt{font-size:13px;font-weight:700;color:var(--cx-ink-2);}
+      .ds-wu-sum dd{margin:0;font-size:14px;font-weight:700;color:var(--cx-ink);overflow-wrap:anywhere;}
+      .ds-parts{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:8px;margin-bottom:12px;}
+      .ds-part{min-height:52px;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:8px;align-items:center;padding:6px 12px;
+        border:1px solid var(--cx-line);border-radius:var(--cx-r-md);background:var(--cx-card);color:var(--cx-ink);text-align:left;cursor:pointer;
+        transition:border-color var(--cx-dur-1) var(--cx-ease),background-color var(--cx-dur-1) var(--cx-ease);}
+      .ds-part>.ds-zone-sw{grid-row:span 2;width:22px;height:22px;}
+      .ds-part>.ds-zone-sw[data-off]{background:repeating-linear-gradient(-45deg,var(--cx-line) 0 2px,transparent 2px 5px);}
+      .ds-part-name{font:700 14px var(--cx-sans);}
+      .ds-part-val{font:600 13px var(--cx-sans);color:var(--cx-ink-2);}
+      .ds-part:hover{border-color:var(--cx-thread);}
+      .ds-part[aria-pressed=true]{border-color:var(--cx-thread);background:var(--cx-thread-tint);}
+      .ds-part--link{min-height:44px;width:100%;grid-template-columns:auto 1fr auto;grid-template-rows:auto;}
+      .ds-part-head{display:flex;align-items:stretch;gap:8px;margin-bottom:12px;}
+      .ds-part-head .ds-zone-now{flex:1;min-width:0;margin:0;}
+      .ds-part-done{min-width:72px;justify-content:center;}
+      .ds-part-sec{margin:0 0 12px;}
+      @media (prefers-reduced-motion:reduce){.ds-part{transition:none;}}
       .ds-acc-sw{padding:4px 16px 16px;}
       .ds-acc-sw .ds-swatch-chips{margin:0;}
       .ds-lay-empty{display:flex;flex-direction:column;align-items:flex-start;gap:8px;font-size:13px;line-height:1.5;color:var(--cx-ink-2);}
@@ -606,6 +628,10 @@ export default function DesignStudioStyles() {
       .ds-tools-ink input::-webkit-color-swatch-wrapper{padding:0;}
       .ds-tools-ink input::-webkit-color-swatch{border:0;border-radius:50%;}
       .ds-tools-ink input::-moz-color-swatch{border:0;border-radius:50%;}
+      .ds-tools-size{display:flex;gap:2px;margin-left:4px;padding-left:4px;border-left:1px solid var(--cx-line);}
+      .ds-tools-size button{width:44px;height:44px;display:grid;place-items:center;border:0;border-radius:var(--cx-r-md);background:transparent;cursor:pointer;}
+      .ds-tools-size button[aria-checked=true]{background:var(--cx-thread-tint);}
+      .ds-tools-size i{display:block;border-radius:50%;background:var(--cx-ink);}
       .ds-tools-ink:has(:focus-visible){outline:2px solid var(--cx-thread-ink);outline-offset:2px;}
       @media (max-width:767px){.ds-tools-btn:is([data-tool=hand],[data-tool=brush],[data-tool=eraser],[data-tool=text],[data-tool=shape]){display:none;}.ds-tools-ink{width:44px;height:44px;}}
       .ds-guides-n{min-width:18px;height:18px;display:grid;place-items:center;padding:0 4px;border-radius:var(--cx-r-md);background:var(--cx-thread);color:var(--cx-on-thread);font-size:13px;}
@@ -994,7 +1020,7 @@ export default function DesignStudioStyles() {
       /* 44px touch targets for every Studio control (VFRB rule). Decorative icons, badges and rulers are left as they are. */
       .ds :is(.ds-ftb button,.ds-stage-btn,.ds-ctrl,.ds-pick-tabs button,.ds-byo-check,.ds-zone,.ds-tp-change .ds-btn,
         .ds-link-danger,.ds-seg button,.ds-btn,.ds-tp-catchip,.ds-guides-btn,.ds-tools-btn,.ds-guides-row select,.ds-lay-pick,.ds-lay-edit,
-        .ds-ins-field input,.ds-ins-field select,.ds-ins-align .ds-act,.ds-piece-add,.ds-tabs button){min-height:44px;}
+        .ds-ins-field input,.ds-ins-field select,.ds-ins-align .ds-act,.ds-piece-add,.ds-tabs button,.ds-tp-clear,.ds-link,.ds-chip){min-height:44px;}
       .ds :is(.ds-ftb button,.ds-stage-btn,.ds-ctrl){min-width:44px;}
       .ds :is(.ds-ftb button,.ds-stage-btn){width:44px;height:44px;}
       .ds .ds-tp-mini{width:44px;height:44px;}

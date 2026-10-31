@@ -69,9 +69,18 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
   const noGarment = !p.cfg.garment;
   const title = noGarment ? 'Design tools' : tab?.label ?? active.label;
 
+  const layersList = () => (
+    <LayersPanel layers={p.layers} selectedId={p.selObj?.__layerId} garment={p.cfg.garment} onSelect={p.selectLayer}
+      onToggleVisibility={p.toggleLayerVisibility} onToggleLock={p.toggleLayerLock} onOpacity={p.setLayerOpacity}
+      onRename={p.renameLayer} onDelete={p.deleteLayer} onReorder={p.reorderLayers} onAdd={() => setTool('assets')}/>
+  );
+  const partView = tool === 'color' && allowed('type'); // a part is open; Done returns to the whole uniform
+
   const PANELS = {
-    type:    () => <TypePanel cfg={p.cfg} setCfg={p.setCfg} setActiveZone={p.setActiveZone} onOpenTool={onOpenTool} onChangeGarment={p.onChangeGarment} trace={p.trace} setTrace={p.setTrace}/>,
-    color:   () => <ColorsPanel cfg={p.cfg} setCfg={p.setCfg} activeZone={p.activeZone} setActiveZone={p.setActiveZone}/>,
+    type:    () => <TypePanel cfg={p.cfg} setCfg={p.setCfg} onPickPart={z => { p.setActiveZone(z); setTool('color'); }} onOpenTool={onOpenTool}
+                     onChangeGarment={p.onChangeGarment} trace={p.trace} setTrace={p.setTrace} layers={layersList()}/>,
+    color:   () => <ColorsPanel cfg={p.cfg} setCfg={p.setCfg} activeZone={p.activeZone} setActiveZone={p.setActiveZone}
+                     onDone={partView ? () => setTool('type') : null}/>,
     details: () => <DetailsPanel cfg={p.cfg} setCfg={p.setCfg} focus={p.detailFocus} onColourPocket={() => { p.setActiveZone('pocket'); setTool('color'); }} onAddPocket={p.addPocket}/>,
     assets:  () => <AssetsPanel tab={p.assetsTab} setTab={p.setAssetsTab} cfg={p.cfg} logo={p.logoUpload}
                      shapes={{ selObj:p.selObj, onAdd:p.addShape, onUpdate:p.updateSelected }}
@@ -79,11 +88,7 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
     text:    () => <TextPanel onAdd={p.addText} bodyColor={p.cfg?.colors?.body}/>,
     draw:    () => <DrawPanel size={p.brushSize} color={p.brushColor} onSizeChange={p.changeBrushSize} onColorChange={p.changeBrushColor} erasing={p.erasing} setErasing={p.setErasing}/>,
     ai:      () => <div className="ds-sum"><AIDesignChat cfg={p.cfg} textItems={p.textItems} ai={p.ai}/></div>,
-    layers:  () => (
-      <LayersPanel layers={p.layers} selectedId={p.selObj?.__layerId} garment={p.cfg.garment} onSelect={p.selectLayer}
-        onToggleVisibility={p.toggleLayerVisibility} onToggleLock={p.toggleLayerLock} onOpacity={p.setLayerOpacity}
-        onRename={p.renameLayer} onDelete={p.deleteLayer} onReorder={p.reorderLayers} onAdd={() => setTool('assets')}/>
-    ),
+    layers:  () => layersList(),
     pattern: () => (assetFor(p.cfg.garment, p.cfg.sleeve, 'front', p.cfg.fit)
       ? <p className="ds-note" style={{ padding:'20px 4px', textAlign:'center' }}>Patterns need a drawn garment, not a photo base.</p>
       : <PatternPanel cfg={p.cfg} setCfg={p.setCfg} activeZone={p.activeZone}/>),
@@ -164,8 +169,8 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
         ) : moreOpen ? moreList : (
           <>
             {tool === 'type' && garmentExtra && <div className="ds-phone-only">{garmentExtra}</div>}
-            {tab?.id === 'type' && <MaterialNote/>}
-            {subs.length > 1 && (
+            {tab?.id === 'type' && !partView && <MaterialNote/>}
+            {subs.length > 1 && !partView && (
               <div className="ds-seg ds-subtabs" role="tablist" aria-label={`${tab.label} sections`}>
                 {subs.map(id => {
                   const t = TOOLS.find(x => x.id === id);
@@ -174,7 +179,7 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
               </div>
             )}
             <AnimatePresence mode="wait">
-              <motion.div key={tool}
+              <motion.div key={partView ? `color:${p.activeZone}` : tool}
                 initial={reduce ? false : { opacity:0 }}
                 animate={{ opacity:1, transition:{ duration: reduce ? 0 : .18, ease:[.22, 1, .36, 1] } }}
                 exit={{ opacity:0, transition:{ duration: reduce ? 0 : .12 } }}

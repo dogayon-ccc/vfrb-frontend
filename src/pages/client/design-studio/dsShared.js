@@ -270,7 +270,7 @@ export const tabOf = tool => TABS.find(t => t.tools.includes(tool)) ?? null;
 
 // 6 starter designs from VFRB's common garment types (PH institutional palette).
 // Blank-canvas start: garment is null until the customer actually drags one
-// onto the canvas (see dragPlace.js / useDragPlace.js). A restored draft or
+// onto the canvas. A restored draft or
 // mid-session sessionStorage copy always wins over this — this only applies
 // to a genuinely fresh visit. `category` still defaults so the Type panel
 // opens on a sensible garment grid instead of an empty one; it has no

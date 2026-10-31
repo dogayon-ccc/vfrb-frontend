@@ -14,6 +14,7 @@ import { pieceOf } from './garmentCatalog';
 import { wovenFill } from './wovenPatterns';
 import { loadFont, webFontFor, defaultWeight } from './studioFonts';
 import { sketchInk } from './sketchLine';
+import { pathData, constrain45, closesAt, trimDoubleClick } from './vectorTools';
 import { emptyHistory, entry, pushStep, stepHistory, canStep, switchSide, lookOf, sameLook, syncLook, lookToApply, foldSince } from './editHistory';
 
 // Template lines (garmentPaths `details`). Untagged ones are decorative: no __zoneKey, never clicked or hovered. A tagged part (pocket,
@@ -144,7 +145,11 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     setGarmentRect(p => (p && g && ['left', 'top', 'width', 'height'].every(k => Math.abs(p[k] - g[k]) < 0.5) ? p : g));
   }, []);
   const eraser = useRef(false); // Draw tool in eraser mode: a stroke cuts the customer's drawings and art, never the garment
-  const pick = useRef(null); // Eyedropper ('sample') or paint bucket ('fill'): taps never select or move a design item
+  const pick = useRef(null); // Eyedropper ('sample'), paint bucket ('fill'), Pen or Line: taps never select or move a design item
+  // Pen/Line work in progress; previewed on the interaction layer only, so nothing unfinished is saved or undoable.
+  const vec = useRef({ anchors: [], drag: false, cursor: null, line: null });
+  const vecApi = useRef(null); // { finish, back, cancel, busy } bound inside the canvas setup
+  const penKeys = useRef(null);
   // Snapping options (set by the Studio's grid/snap toggles) and the guides of the current drag. Guides are drawn on Fabric's
   // interaction layer only, never added as objects, so they cannot be saved, exported or put in history.
   const snapOpts = useRef({ snap: true, gridPct: 10, rulerGuides: [], scale: 1, showGrid: false, centre: false, smart: true }); // scale: on-screen px per canvas px (zoom x fit)
@@ -230,6 +235,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
 
       fc.current.on('mouse:move', (opt) => {
         // No zone highlight while an element is being moved or resized: it would compete with the snap guides.
+        if (vecMove(opt)) return;
         const hit = fc.current._currentTransform ? null : zoneAt(fc.current, opt.e);
         if (hoverEl.current) { fc.current.remove(hoverEl.current); hoverEl.current = null; }
         if (hit) {
@@ -255,10 +261,12 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       let tap = null;
       fc.current.on('mouse:down', (opt) => {
         if (pick.current?.mode === 'sample') { tap = null; pick.current.onSample(sampleAt(fc.current, opt.e)); return; }
+        if (vecDown(opt)) { tap = null; return; }
         tap = opt.target && !opt.target.__zoneKey ? null : { p: fc.current.getViewportPoint(opt.e), zone: zoneAt(fc.current, opt.e)?.__zoneKey };
       });
       fc.current.on('mouse:up', (opt) => {
         const t = tap; tap = null;
+        vecUp();
         if (!t?.zone) return;
         const p = fc.current.getViewportPoint(opt.e);
         if (Math.hypot(p.x - t.p.x, p.y - t.p.y) <= 6 && zoneAt(fc.current, opt.e)?.__zoneKey === t.zone) onZoneClick(t.zone);
@@ -391,6 +399,97 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       fc.current.on('selection:cleared',  () => onSelect(null));
       fc.current.on('object:added', e => freezeObj(e.target));
 
+      // A finished stroke, pen path or line becomes a Drawing layer: erasable, saved and shown in 3D like a brush stroke.
+      function keepDrawing(obj, name) {
+        obj.set({ __draw: true, __layerId: crypto.randomUUID(), __layerName: name, selectable: true });
+        fc.current.renderAll();
+        pushHistory();
+        bumpLayers();
+        const L = latest.current; // a set's "Apply to: Both" copies the stroke onto the other piece too
+        onAdded.current?.(plainObject(obj, OVERLAY_PROPS), getGarmentPaths(L.garment, L.sleeve));
+      }
+
+      // Pen: click = corner, drag = curve, first point closes, Enter / double-click / Esc finishes. Line: drag; Shift = 45 deg.
+      const vecMode = () => (pick.current?.mode === 'pen' || pick.current?.mode === 'line' ? pick.current.mode : null);
+      const vecStyle = () => pick.current?.style?.() ?? { color: T2, width: 4 };
+      const onePx = () => 1 / (fc.current.viewportTransform[0] * (snapOpts.current.scale || 1));
+      const clearVec = () => { if (fc.current?.contextTop) fc.current.clearContext(fc.current.contextTop); };
+      function drawVec() {
+        const c = fc.current, ctx = c?.contextTop;
+        if (!ctx) return;
+        const v = vec.current, vt = c.viewportTransform, r = c.getRetinaScaling?.() ?? 1, px = onePx(), { color, width } = vecStyle();
+        c.clearContext(ctx);
+        ctx.save();
+        ctx.setTransform(r * vt[0], 0, 0, r * vt[3], r * vt[4], r * vt[5]);
+        ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+        const stroke = (pts, w, ink, dash = []) => { ctx.setLineDash(dash); ctx.lineWidth = w; ctx.strokeStyle = ink; ctx.stroke(new Path2D(pathData(pts))); };
+        const corner = p => ({ x: p.x, y: p.y, hx: 0, hy: 0 });
+        if (v.line) stroke([corner(v.line.from), corner(v.line.to)], width, color);
+        const a = v.anchors;
+        if (a.length > 1) stroke(a, width, color);
+        if (a.length && v.cursor && !v.drag) stroke([a[a.length - 1], corner(v.cursor)], px, '#e11d74', [4 * px, 3 * px]);
+        const closing = !!v.cursor && closesAt(a, v.cursor, 8 * px);
+        ctx.setLineDash([]); ctx.lineWidth = px; ctx.strokeStyle = '#e11d74'; ctx.fillStyle = '#fff';
+        a.forEach((p, i) => {
+          const ring = i === 0 && closing, s = (ring ? 9 : 5) * px;
+          ctx.beginPath();
+          if (ring) ctx.arc(p.x, p.y, s / 2, 0, Math.PI * 2); else ctx.rect(p.x - s / 2, p.y - s / 2, s, s);
+          ctx.fill(); ctx.stroke();
+          if (p.hx || p.hy) { ctx.beginPath(); ctx.moveTo(p.x - p.hx, p.y - p.hy); ctx.lineTo(p.x + p.hx, p.y + p.hy); ctx.stroke(); }
+        });
+        ctx.restore();
+      }
+      function vecFinish(closed = false, name = closed ? 'Pen shape' : 'Pen path') {
+        const a = trimDoubleClick(vec.current.anchors);
+        vec.current = { anchors: [], drag: false, cursor: null, line: null };
+        clearVec();
+        if (a.length < 2) return;
+        import('fabric').then((mod) => {
+          const fabric = mod.fabric ?? mod.default ?? mod, c = fc.current;
+          if (!c) return;
+          const { color, width } = vecStyle();
+          const path = new fabric.Path(pathData(a, closed), { fill: closed ? color : '', stroke: color, strokeWidth: width, strokeLineCap: 'round', strokeLineJoin: 'round' });
+          c.add(path);
+          keepDrawing(path, name);
+        }).catch(() => {});
+      }
+      function vecDown(opt) {
+        const mode = vecMode();
+        if (!mode) return false;
+        const p = fc.current.getScenePoint(opt.e), v = vec.current;
+        if (mode === 'line') v.line = { from: p, to: p };
+        else if (closesAt(v.anchors, p, 8 * onePx())) { vecFinish(true); return true; }
+        else { v.anchors.push({ x: p.x, y: p.y, hx: 0, hy: 0 }); v.drag = true; }
+        drawVec();
+        return true;
+      }
+      function vecMove(opt) {
+        const mode = vecMode();
+        if (!mode) return false;
+        const p = fc.current.getScenePoint(opt.e), v = vec.current, last = v.anchors[v.anchors.length - 1];
+        if (mode === 'line') { if (v.line) v.line.to = opt.e.shiftKey ? constrain45(v.line.from, p) : p; }
+        else if (v.drag) { const hx = p.x - last.x, hy = p.y - last.y, curve = Math.hypot(hx, hy) > 3 * onePx(); last.hx = curve ? hx : 0; last.hy = curve ? hy : 0; }
+        else v.cursor = opt.e.shiftKey && last ? constrain45(last, p) : p;
+        drawVec();
+        return true;
+      }
+      function vecUp() {
+        const mode = vecMode(), v = vec.current;
+        if (mode === 'pen') { v.drag = false; return; }
+        if (mode !== 'line' || !v.line) return;
+        const { from, to } = v.line;
+        v.line = null;
+        if (Math.hypot(to.x - from.x, to.y - from.y) > 3 * onePx()) v.anchors = [{ ...from, hx: 0, hy: 0 }, { ...to, hx: 0, hy: 0 }];
+        vecFinish(false, 'Line');
+      }
+      fc.current.on('mouse:dblclick', () => { if (vecMode() === 'pen') vecFinish(false); });
+      vecApi.current = {
+        finish: () => vecFinish(false),
+        back: () => { vec.current.anchors.pop(); drawVec(); },
+        cancel: () => { vec.current = { anchors: [], drag: false, cursor: null, line: null }; clearVec(); },
+        busy: () => vec.current.anchors.length > 0,
+      };
+
       // Freeform stroke → tag + track as a layer, same as addLogo/addText below
       fc.current.on('path:created', (e) => {
         const path = e.path;
@@ -403,17 +502,13 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
           if (n) { pushHistory(); bumpLayers(); }
           return;
         }
-        path.set({ __draw: true, __layerId: crypto.randomUUID(), __layerName: 'Drawing', selectable: true });
-        fc.current.renderAll();
-        pushHistory();
-        bumpLayers();
-        const L = latest.current; // a set's "Apply to: Both" copies the stroke onto the other piece too
-        onAdded.current?.(plainObject(path, OVERLAY_PROPS), getGarmentPaths(L.garment, L.sleeve));
+        keepDrawing(path, 'Drawing');
       });
     }).catch(err => { console.error('[DesignStudio] fabric load error:', err); if (!cancelled) setInitFailed(true); });
 
     return () => {
       cancelled = true;
+      if (penKeys.current) window.removeEventListener('keydown', penKeys.current, true);
       if (fc.current) {
         const canvas = fc.current;
         fc.current = null;
@@ -619,7 +714,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   const canRedo = canStep(history.current, 1);
 
   // pos: optional {x,y} in canvas-logical space, supplied when the logo was
-  // dragged onto the canvas from the panel (see dragPlace.js) instead of
+  // dragged onto the canvas from the panel instead of
   // placed at a fixed preset — dragging always wins over the preset dropdown
   // since it's the position the customer actually chose.
   const addLogo = useCallback((dataUrl, presetId = 'left_chest', pos = null, opts = null) => {
@@ -650,8 +745,8 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
 
   // pos: optional {x,y} in canvas-logical space from a drag-drop; falls
   // back to the original fixed placement (upper-third, centered) when the
-  // text was placed via the keyboard-accessible path instead (see
-  // useDragPlace.js's placeByKeyboard, which passes the canvas center).
+  // text was placed via the keyboard-accessible path instead
+  // with the canvas center.
   const addText = useCallback((text, color, fontCss, sizePx, pos = null) => {
     const canvas = fc.current;
     if (!canvas) return;
@@ -922,8 +1017,22 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     }).catch(() => {});
   }, []);
 
-  const setPickMode = useCallback((mode, onSample = null) => {
-    pick.current = mode ? { mode, onSample } : null;
+  // `style` (Pen/Line) returns the active { color, width } when a path is drawn.
+  const setPickMode = useCallback((mode, onSample = null, style = null) => {
+    if (pick.current?.mode !== mode) vecApi.current?.cancel();
+    pick.current = mode ? { mode, onSample, style } : null;
+    if (penKeys.current) { window.removeEventListener('keydown', penKeys.current, true); penKeys.current = null; }
+    if (mode === 'pen') { // captured first, so Esc keeps the Pen and Backspace never deletes a selected item mid-path
+      penKeys.current = (e) => {
+        const api = vecApi.current;
+        if (!api?.busy() || /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName ?? '')) return;
+        if (e.key === 'Enter' || e.key === 'Escape') api.finish();
+        else if (e.key === 'Backspace' || e.key === 'Delete') api.back();
+        else return;
+        e.preventDefault(); e.stopImmediatePropagation();
+      };
+      window.addEventListener('keydown', penKeys.current, true);
+    }
     const canvas = fc.current;
     if (!canvas) return;
     canvas.skipTargetFind = !!mode;
