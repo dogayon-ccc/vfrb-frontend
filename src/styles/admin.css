@@ -321,8 +321,15 @@ textarea.adm-input{padding:10px 14px;resize:vertical;min-height:64px}
 .cm-pager div{display:flex;gap:8px}
 @media(max-width:767px){.cm-pager{border:1px solid var(--border);border-radius:var(--radius);background:var(--bg-card);margin-top:8px}}
 
-.adm-page{animation:admPage var(--dur-base) var(--ease-out) backwards}
-@keyframes admPage{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+/* Page change: 200 ms slide + fade; backwards fill so no transform stays on the page (fixed modals inside keep working). */
+.adm-shell .adm-page{animation:admPage .2s ease-out backwards}
+@keyframes admPage{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+.pl{display:grid;place-items:center;min-height:40vh}
+.pl-box{display:grid;justify-items:center;gap:12px}
+.pl-mark{width:56px;height:56px;border-radius:14px;object-fit:cover;animation:plPulse .7s ease-out}
+.pl-stitch{width:120px;height:0;border-top:2px dashed var(--adm-kraft);clip-path:inset(0 100% 0 0);animation:plStitch .7s ease-out forwards}
+@keyframes plPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.08);opacity:.75}}
+@keyframes plStitch{to{clip-path:inset(0 0 0 0)}}
 .adm-btn{transition:transform var(--dur-fast) var(--ease-out),box-shadow var(--dur-fast),background var(--dur-fast),border-color var(--dur-fast),color var(--dur-fast)}
 .adm-btn:not(:disabled):active{transform:scale(.97)}
 .adm-btn.primary:not(:disabled):hover{box-shadow:var(--shadow-2);transform:translateY(-1px)}
@@ -341,12 +348,11 @@ textarea.adm-input{padding:10px 14px;resize:vertical;min-height:64px}
   .adm-search{min-height:44px;font-size:16px}
   .adm-input{font-size:16px}
   .adm-btn{min-height:44px}
-  .adm-page{animation-duration:var(--dur-base)}
 }
 .msg-list-head .adm-search-wrap{flex:none;max-width:none}
 .set-logo{margin-top:14px}
 .adm-drawer-grid:first-child{margin-top:2px}
-@media(prefers-reduced-motion:reduce){.adm-page,.adm-mcard,.adm-row,.adm-tab{animation:none;transition:none}.adm-btn:active,.adm-mcard:active{transform:none}}
+@media(prefers-reduced-motion:reduce){.adm-shell .adm-page,.adm-mcard,.adm-row,.adm-tab,.pl-mark{animation:none;transition:none}.pl-stitch{animation:none;clip-path:none}.adm-btn:active,.adm-mcard:active{transform:none}}
 
 .dsh-hero{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px 16px;align-items:center;padding:18px;margin-bottom:16px;border-radius:var(--radius);color:var(--text-on-accent);background:linear-gradient(120deg,var(--color-rail-deep) 0%,var(--color-rail) 55%,var(--teal) 100%);box-shadow:var(--shadow-md);overflow:hidden;animation:admIn var(--dur-slow) var(--ease-out) both}
 .dsh-hero::after{content:'';position:absolute;right:-60px;top:-60px;width:220px;height:220px;border-radius:50%;border:34px solid color-mix(in srgb,var(--teal-2) 14%,transparent);pointer-events:none}

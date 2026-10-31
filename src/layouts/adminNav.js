@@ -1,10 +1,9 @@
-// The one admin nav config: the rail, the mobile bar, the More sheet, the page title and "Jump to a page" all read it.
-// `short` puts an entry in the mobile bar under that label. Access is decided by canOpen, never here.
+// The one admin nav config: the sidebar, the breadcrumb, the page search and Quick add read it. Access is decided by canOpen, never here.
 import {
   LayoutDashboard, ClipboardList, Package, MessageSquare, ShoppingCart,
   Truck, Layers, Factory, FileText, ShieldCheck, ScanLine,
   Wallet, BarChart3, Receipt, Building2, Users, MessageCircle, Settings,
-  Trophy, Contact, ScrollText,
+  Trophy, Contact, ScrollText, Activity, PackagePlus,
 } from 'lucide-react';
 
 export const NAV_GROUPS = ['Operate', 'Materials', 'Money', 'People', 'System'];
@@ -29,9 +28,27 @@ export const NAV = [
   { to:'/admin/users',                  icon:Users,           label:'User Management',   group:'People' },
   { to:'/admin/feedback',               icon:MessageCircle,   label:'Feedback',          group:'People' },
   { to:'/admin/designs/showcase-queue', icon:Trophy,          label:'Showcase',          group:'People' },
+  { to:'/admin/activity-log',           icon:Activity,        label:'Activity Log',      group:'System' },
   { to:'/admin/audit-logs',             icon:ScrollText,      label:'Audit Log',         group:'System' },
   { to:'/admin/settings',               icon:Settings,        label:'Settings',          group:'System' },
 ];
+
+// Quick add: each entry opens the existing page that holds the action. `station` lets a station run it too.
+export const QUICK_ADD = [
+  { to:'/admin/inventory',    icon:PackagePlus,  label:'Stock in',       page:'Inventory' },
+  { to:'/admin/materials',    icon:Layers,       label:'Add material',   page:'Materials' },
+  { to:'/admin/procurement',  icon:ShoppingCart, label:'Create PO',      page:'Procurement' },
+  { to:'/admin/output-log',   icon:FileText,     label:'Log output',     page:'Output Log', station:true },
+  { to:'/admin/transactions', icon:Wallet,       label:'Record payment', page:'Sales & Pay' },
+  { to:'/admin/suppliers',    icon:Building2,    label:'Add supplier',   page:'Suppliers' },
+  { to:'/admin/users',        icon:Users,        label:'Add user',       page:'User Management' },
+];
+
+// Longest nav entry for a path; /admin/dashboard is the Dashboard entry.
+export function navMatch(path, items = NAV) {
+  const hit = (i) => path === i.to || (!i.end && path.startsWith(`${i.to}/`)) || (i.to === '/admin' && path === '/admin/dashboard');
+  return [...items].sort((a, b) => b.to.length - a.to.length).find(hit) ?? null;
+}
 
 export function navFor(allowed) {
   const items = NAV.filter(allowed);
