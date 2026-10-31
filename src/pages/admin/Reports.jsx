@@ -282,7 +282,7 @@ export default function AdminReports() {
             <Panel title="By payment method" flush>
               <div className="adm-tbl-scroll"><table className="adm-table">
                 <thead><tr><th>Method</th><th style={{ textAlign: 'right' }}>Transactions</th><th style={{ textAlign: 'right' }}>Collected</th></tr></thead>
-                <tbody>{totals.by_method.map((m) => <tr key={m.payment_method ?? 'none'}><td style={{ textTransform: 'capitalize' }}>{String(m.payment_method ?? '—').replace(/_/g, ' ')}</td><td style={{ textAlign: 'right' }}>{m.count}</td><td style={{ textAlign: 'right', fontWeight: 700 }}>{peso(m.total)}</td></tr>)}</tbody>
+                <tbody>{totals.by_method.map((m) => <tr key={m.payment_method ?? 'none'}><td style={{ textTransform: 'capitalize' }}>{String(m.payment_method ?? '—').replace(/_/g, ' ')}</td><td style={{ textAlign: 'right' }}>{m.count}</td><td style={{ textAlign: 'right', fontWeight: 700, whiteSpace: 'nowrap' }}>{peso(m.total)}</td></tr>)}</tbody>
               </table></div>
             </Panel>
           )}

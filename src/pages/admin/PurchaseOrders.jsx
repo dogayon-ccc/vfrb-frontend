@@ -595,10 +595,12 @@ fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}>
 
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—');
 const peso = (v) => `₱${Number(v ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
+// DB flags arrive as 0/1; a bare 0 would render as text in JSX
+const colorHold = (po) => !!po.color_mismatch && !po.color_confirmed;
 const PO_TABS = ['all', 'sent', 'received', 'closed'];
 
 function PoActions({ po, isManager, onReceive, onConfirm, stop }) {
-  const hold = po.color_mismatch && !po.color_confirmed;
+  const hold = colorHold(po);
   const click = (fn) => (e) => { if (stop) e.stopPropagation(); fn(); };
   return (
     <>
@@ -609,11 +611,11 @@ function PoActions({ po, isManager, onReceive, onConfirm, stop }) {
 }
 
 function PoFlags({ po }) {
-  const hold = po.color_mismatch && !po.color_confirmed;
+  const hold = colorHold(po);
   return (
     <>
       {hold && <span className="adm-pill" style={{ background: 'var(--warning-bg)', color: 'var(--warning-text)' }}>Color mismatch — cutting held</span>}
-      {po.color_confirmed && po.color_mismatch && <span className="adm-pill" style={{ background: 'var(--success-bg)', color: 'var(--success-text)' }}>Color override approved</span>}
+      {!!(po.color_confirmed && po.color_mismatch) && <span className="adm-pill" style={{ background: 'var(--success-bg)', color: 'var(--success-text)' }}>Color override approved</span>}
     </>
   );
 }
@@ -621,7 +623,7 @@ function PoFlags({ po }) {
 function ColorCompare({ po }) {
   if (po.status !== 'received' || !po.order_color_hex) return null;
   const de = deltaE(po.order_color_hex, po.received_color_hex);
-  const hold = po.color_mismatch && !po.color_confirmed;
+  const hold = colorHold(po);
   return (
     <div className="po-swatches">
       {[['Order', po.order_color_hex], ['Received', po.received_color_hex]].map(([l, h]) => (
@@ -675,7 +677,7 @@ export default function AdminPurchaseOrders() {
   useEffect(() => { load(); }, [load]);
 
   const refresh = () => { cacheClear('purchase_orders_full'); load(true); };
-  const mismatchCount = pos.filter((p) => p.color_mismatch && !p.color_confirmed).length;
+  const mismatchCount = pos.filter(colorHold).length;
   const openRfqs = rfqs.filter((r) => r.status === 'open').length;
   const toReceive = pos.filter((p) => p.status === 'sent').length;
 
@@ -772,7 +774,7 @@ export default function AdminPurchaseOrders() {
           <div className="adm-only-m adm-stagger" key={`${poFilter}-${search}`}>
             {loading ? <SkeletonRows rows={3} h={140} /> : loadErr ? null : filteredPos.length === 0 ? empty('procurement', search || poFilter !== 'all' ? 'No purchase orders match' : 'No purchase orders yet. Create one from an approved RFQ.') : filteredPos.map((po, i) => {
               const items = Array.isArray(po.items) ? po.items : [];
-              const hold = po.color_mismatch && !po.color_confirmed;
+              const hold = colorHold(po);
               return (
                 <div key={po.po_id} className="adm-mcard accent" style={{ '--i': Math.min(i, 8), '--acc': hold ? 'var(--warning)' : (PO_STATUS[po.status]?.c ?? 'var(--teal)') }}>
                   <div className="adm-mrow"><b style={{ color: 'var(--teal)' }}>{po.po_number}</b><StatusPill status={po.status} label={PO_STATUS[po.status]?.l} /></div>

@@ -386,16 +386,17 @@ export default function AdminLayout() {
         }
         .adm-content { flex: 1; width: 100%; min-width: 0; padding: var(--shell-pad) var(--shell-pad) 48px; }
 
-        .adm-crumbs { flex: 1; min-width: 0; }
+        .adm-crumbs { flex: 1 1 auto; min-width: 0; }
         .adm-crumbs ol { display: flex; align-items: center; gap: 6px; list-style: none; min-width: 0; overflow: hidden; }
         .adm-crumbs li { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 13px; color: var(--adm-on-2); white-space: nowrap; }
         .adm-crumbs li > svg { flex-shrink: 0; opacity: .6; }
-        .adm-crumbs li:not(:last-child) { flex-shrink: 0; }
+        .adm-crumbs li:last-child { flex-shrink: 0; }
+        .adm-crumbs li:not(:last-child) > :is(a, span) { overflow: hidden; text-overflow: ellipsis; }
         .adm-crumbs a { color: var(--adm-on-2); text-decoration: none; border-radius: 4px; }
         .adm-crumbs a:hover { color: var(--adm-on); text-decoration: underline; }
-        .adm-crumbs [aria-current="page"] { font: 400 19px/1.2 var(--font-display); color: var(--adm-on); overflow: hidden; text-overflow: ellipsis; }
+        .adm-crumbs [aria-current="page"] { font: 400 19px/1.2 var(--font-display); color: var(--adm-on); }
 
-        .adm-jump { position: relative; width: clamp(180px, 26vw, 340px); flex-shrink: 1; min-width: 0; }
+        .adm-jump { position: relative; flex: 0 4 340px; min-width: 150px; }
         .adm-jump > svg { position: absolute; left: 13px; top: 13px; color: var(--adm-on-2); pointer-events: none; }
         .adm-jump input {
           width: 100%; height: 44px; padding: 0 40px 0 40px; border-radius: 12px;
@@ -475,7 +476,7 @@ export default function AdminLayout() {
         .adm-pop .adm-signout:hover { background: color-mix(in srgb, var(--adm-thread) 10%, transparent); color: var(--adm-thread); }
         .adm-scrim { display: none; }
 
-        @media (max-width: 1279px) { .adm-crumbs li:not(.pg) { display: none; } .adm-crumbs li:not(.pg) + li.pg > svg { display: none; } }
+        @media (max-width: 1279px) { .adm-crumbs li:not(.pg) { display: none; } .adm-crumbs li:not(.pg) + li.pg > svg { display: none; } .adm-crumbs li:last-child { flex-shrink: 1; } .adm-crumbs [aria-current="page"] { overflow: hidden; text-overflow: ellipsis; } }
         @media (max-width: 1099px) { .adm-profile-name, .adm-quick-label { display: none; } .adm-quick-btn { padding: 0; } }
         @media (min-width: 768px) { .adm-mob-only { display: none !important; } }
         @media (max-width: 767px) {

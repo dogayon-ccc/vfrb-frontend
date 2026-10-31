@@ -22,7 +22,7 @@ export const StatGrid = ({ items, loading }) => (
       <StatTile key={s.label} className="adm-in" style={{ animationDelay: `${i * 45}ms` }}
         label={s.label} value={s.value} sub={s.sub} chip={s.chip} chipTone={s.chipTone}
         icon={s.icon} tone={s.tone} to={s.to} onClick={s.onClick} loading={loading} countUp
-        valueStyle={s.color ? { color: s.color } : undefined} />
+        valueStyle={{ color: s.color, '--len': String(s.value ?? '').length }} />
     ))}
   </UiStatGrid>
 );
