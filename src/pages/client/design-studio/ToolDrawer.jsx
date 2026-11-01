@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { MoreHorizontal, Eye, Copy, X } from 'lucide-react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { MoreHorizontal, Eye, Copy, X, HelpCircle } from 'lucide-react';
 import { NavIcon } from '../../../components/ui/icons';
 import LayersPanel from './LayersPanel';
 import AssetsPanel from './AssetsPanel';
@@ -121,6 +121,7 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
         <li key={t.id}><button type="button" onClick={() => pick(t)}><NavIcon name={t.icon} size={18}/>{t.label}</button></li>
       ))}
       {more?.onView && <li><button type="button" onClick={() => { setMoreOpen(false); more.onView(); }}><Eye size={18} aria-hidden="true"/>View<small>Guides, stage, sketch</small></button></li>}
+      {more?.onTour && <li><button type="button" onClick={() => { setMoreOpen(false); more.onTour(); }}><HelpCircle size={18} aria-hidden="true"/>Tour and gestures<small>How the Studio works, step by step</small></button></li>}
       {more?.onCopy && (
         <li><button type="button" onClick={more.onCopy} disabled={!more.canCopy || more.copying} aria-busy={more.copying || undefined}>
           <Copy size={18} aria-hidden="true"/>{more.copying ? 'Saving a copy…' : 'Save a copy'}{!more.canCopy && <small>Open a saved design from My Designs first</small>}
@@ -178,15 +179,13 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
                 })}
               </div>
             )}
-            <AnimatePresence mode="wait">
-              <motion.div key={partView ? `color:${p.activeZone}` : tool}
-                initial={reduce ? false : { opacity:0 }}
-                animate={{ opacity:1, transition:{ duration: reduce ? 0 : .18, ease:[.22, 1, .36, 1] } }}
-                exit={{ opacity:0, transition:{ duration: reduce ? 0 : .12 } }}
-                className="ds-panel-body" role={subs.length > 1 ? 'tabpanel' : undefined}>
-                {PANELS[tool]()}
-              </motion.div>
-            </AnimatePresence>
+            {/* Enter-only fade: with an exit wait, two quick panel switches (an upload opening Selection) could leave the body empty. */}
+            <motion.div key={partView ? `color:${p.activeZone}` : tool}
+              initial={reduce ? false : { opacity:0 }}
+              animate={{ opacity:1, transition:{ duration: reduce ? 0 : .18, ease:[.22, 1, .36, 1] } }}
+              className="ds-panel-body" role={subs.length > 1 ? 'tabpanel' : undefined}>
+              {PANELS[tool]()}
+            </motion.div>
           </>
         )}
         </div>

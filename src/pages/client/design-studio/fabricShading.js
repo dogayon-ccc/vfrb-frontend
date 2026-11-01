@@ -3,10 +3,11 @@
 // The colour stays the zones' own fill (the source of truth); these layers only light it.
 //  - drop shadow under the garment, so it sits on the stage instead of floating
 //  - woven grain: a fine noise tile multiplied over every zone (patterns included)
-//  - vector templates: soft inner-edge shading toward the outline, plus a light diagonal sheen
+//  - vector templates: soft inner-edge shading toward the outline, the body and sleeves rolling round (ROLL), plus a light diagonal sheen
 //  - derived templates (traced from a reference model): the model's own lighting (folds, seams, buttons) multiplied over the fill
 //  - template details (detailRealism): seams sit in a soft groove with a raised topstitch, folds blur out, buttons catch a
-//    highlight and cast a small shadow. The pocket, collar and sleeves cast a soft shadow onto the body (castShadows). No blur on the many seam lines, so phones stay fast.
+//    highlight, show their thread holes and cast a small shadow; hems and cuffs get a twin-needle row (twinStitch), folds a light ridge.
+//    The pocket, collar and sleeves cast a soft shadow onto the body (castShadows). No blur on the many seam lines, so phones stay fast.
 //  Woven patterns carry their own thread shading in the tile (wovenPatterns.js).
 
 let grainTile = null;
@@ -29,9 +30,31 @@ function grain() {
 
 const deco = { selectable: false, evented: false, objectCaching: false, __garmentBase: true };
 
+// Twin-needle hem: a second stitch row `gap` px inside each hem or cuff run of a seam path (one M then one L or Q), toward the
+// garment's centre. Runs in the top fifth (shoulder seams), steep runs (side seams, plackets) and short ticks are skipped.
+// Fabric path commands in, SVG path data out; null when no run qualifies.
+export function twinStitch(cmds, { w, h }, gap = 2.4) {
+  const r = v => Math.round(v * 100) / 100, out = [];
+  for (let i = 0; i < (cmds?.length ?? 0); i++) {
+    const m = cmds[i], s = cmds[i + 1];
+    if (m[0] !== 'M' || !s || (s[0] !== 'L' && s[0] !== 'Q') || (cmds[i + 2] && cmds[i + 2][0] !== 'M')) continue;
+    const [x0, y0] = m.slice(1), [x1, y1] = s.slice(-2), dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy);
+    if (len < 8 || Math.abs(dx) < 0.5 * Math.abs(dy) || (y0 + y1) / 2 < 0.2 * h) continue;
+    let nx = -dy / len, ny = dx / len;
+    if (nx * (w / 2 - (x0 + x1) / 2) + ny * (h / 2 - (y0 + y1) / 2) < 0) { nx = -nx; ny = -ny; }
+    const p = (x, y) => `${r(x + nx * gap)} ${r(y + ny * gap)}`;
+    out.push(`M ${p(x0, y0)} ${s[0] === 'Q' ? `Q ${p(s[1], s[2])} ` : 'L '}${p(x1, y1)}`);
+  }
+  return out.length ? out.join(' ') : null;
+}
+
+// Cloth turning round the body: darker at both sides, a soft highlight left of centre (light from the top left, as the sheen).
+export const ROLL = [[0, 'rgba(15,23,42,.10)'], [0.3, 'rgba(255,255,255,.08)'], [0.55, 'rgba(255,255,255,0)'], [0.85, 'rgba(15,23,42,.05)'], [1, 'rgba(15,23,42,.12)']];
+const ROLL_ZONES = ['body', 'sleeve'];
+
 // Detail lines are tagged by useGarmentCanvas insertDetails (__detailKind, __detailPart). New layers go directly under or over
 // the detail they belong to, so the template's own stacking (under-collar vs over-everything) is kept.
-function detailRealism(fabric, canvas) {
+function detailRealism(fabric, canvas, box) {
   const at = o => canvas.getObjects().indexOf(o);
   const pathOf = (o, extra) => new fabric.Path(o.path, { ...deco, objectCaching: true, ...extra });
   for (const o of canvas.getObjects().filter(x => x.__detailKind)) {
@@ -40,13 +63,23 @@ function detailRealism(fabric, canvas) {
       // Groove: a wide, faint stroke under the seam line. Topstitch: the dashed thread lifts with a 1px light edge.
       canvas.insertAt(at(o), pathOf(o, { fill: '', stroke: 'rgba(15,23,42,.07)', strokeWidth: k === 'seam' ? 4 : 3, strokeLineCap: 'round' }));
       if (k === 'seam') o.set({ shadow: new fabric.Shadow({ color: 'rgba(255,255,255,.5)', blur: 0, offsetX: 0, offsetY: 0.8 }) });
+      const twin = k === 'seam' && !o.__detailPart && twinStitch(o.path, box);
+      if (twin) canvas.insertAt(at(o) + 1, new fabric.Path(twin, { ...deco, fill: '', stroke: o.stroke, strokeWidth: o.strokeWidth, strokeDashArray: o.strokeDashArray, opacity: 0.85,
+        shadow: new fabric.Shadow({ color: 'rgba(255,255,255,.5)', blur: 0, offsetX: 0, offsetY: 0.8 }) }));
     } else if (k === 'fold') {
       canvas.insertAt(at(o), pathOf(o, { fill: '', stroke: 'rgba(15,23,42,.05)', strokeWidth: 7, strokeLineCap: 'round' }));
+      // Ridge: the lit side of the crease, a hairline just up and left of the fold line.
+      canvas.insertAt(at(o) + 1, pathOf(o, { fill: '', stroke: 'rgba(255,255,255,.22)', strokeWidth: 1.2, strokeLineCap: 'round', left: o.left - 1, top: o.top - 0.6 }));
     } else if (k === 'button') {
       o.set({ shadow: new fabric.Shadow({ color: 'rgba(15,23,42,.35)', blur: 2, offsetX: 0, offsetY: 1 }) });
       canvas.insertAt(at(o) + 1, pathOf(o, { stroke: null, fill: new fabric.Gradient({ type: 'radial', gradientUnits: 'percentage',
         coords: { x1: 0.36, y1: 0.3, r1: 0, x2: 0.36, y2: 0.3, r2: 0.62 },
         colorStops: [{ offset: 0, color: 'rgba(255,255,255,.75)' }, { offset: 1, color: 'rgba(255,255,255,0)' }] }) }));
+      // Thread holes: four on a full-size button, two on a small one.
+      const c = o.getCenterPoint(), rr = Math.min(o.width, o.height) / 2, q = rr * 0.3;
+      const holes = rr >= 2.4 ? [[-q, -q], [q, -q], [-q, q], [q, q]] : rr >= 1.6 ? [[-q, 0], [q, 0]] : [];
+      holes.forEach(([dx, dy]) => canvas.insertAt(at(o) + 2, new fabric.Circle({ ...deco, radius: Math.max(0.4, rr * 0.16), left: c.x + dx, top: c.y + dy,
+        originX: 'center', originY: 'center', fill: 'rgba(15,23,42,.45)', stroke: null })));
     } else if (/pocket/i.test(o.__detailPart ?? '')) {
       o.set({ shadow: new fabric.Shadow({ color: 'rgba(15,23,42,.22)', blur: 0, offsetX: 0, offsetY: 1 }) });
     }
@@ -96,7 +129,7 @@ export function addFabricShading(fabric, canvas, paths, face, zones, current) {
   if (tile) for (const z of zones) {
     canvas.insertAt(at(z.obj) + 1, new fabric.Path(z.d, { ...deco, fill: new fabric.Pattern({ source: tile, repeat: 'repeat' }), stroke: null, opacity: 0.85, globalCompositeOperation: 'multiply' }));
   }
-  detailRealism(fabric, canvas);
+  detailRealism(fabric, canvas, { w: paths.w, h: paths.h });
   const shadeUrl = paths.shade?.[face];
   castShadows(fabric, canvas, zones, shadeUrl ? ['pocket'] : Object.keys(CAST));
   const top = Math.max(...zones.map(z => at(z.obj))) + 2; // above the last zone and its grain, below detail lines and the customer's design
@@ -119,8 +152,13 @@ export function addFabricShading(fabric, canvas, paths, face, zones, current) {
       type: 'linear', coords: { x1: -sheen.left, y1: -sheen.top, x2: paths.w - sheen.left, y2: paths.h - sheen.top },
       colorStops: [{ offset: 0, color: 'rgba(255,255,255,.18)' }, { offset: 0.45, color: 'rgba(255,255,255,0)' }, { offset: 0.72, color: 'rgba(0,0,0,0)' }, { offset: 1, color: 'rgba(0,0,0,.12)' }],
     }));
-    const above = at(z.obj) + (tile ? 2 : 1);
+    const above = at(z.obj) + (tile ? 2 : 1), rolls = ROLL_ZONES.includes(z.obj.__zoneKey);
     canvas.insertAt(above, edge);
-    canvas.insertAt(above + 1, sheen);
+    if (rolls) {
+      const roll = new fabric.Path(z.d, { ...deco, stroke: null });
+      roll.set('fill', new fabric.Gradient({ type: 'linear', coords: { x1: 0, y1: 0, x2: roll.width, y2: 0 }, colorStops: ROLL.map(([offset, color]) => ({ offset, color })) }));
+      canvas.insertAt(above + 1, roll);
+    }
+    canvas.insertAt(above + (rolls ? 2 : 1), sheen);
   }
 }

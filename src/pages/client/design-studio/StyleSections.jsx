@@ -4,7 +4,7 @@
 import { FlipHorizontal2, FlipVertical2, BringToFront, ArrowUp, ArrowDown, SendToBack } from 'lucide-react';
 import { FONTS, LEGACY_FONTS } from './dsShared';
 import { webFontFor, nearestWeight, numericWeight } from './studioFonts';
-import { clampCurve, gradientSpec, readGradient, readAdjust, adjustFilters, CLIP_KINDS, clipFor } from './overlayTools';
+import { clampCurve, gradientSpec, readGradient, readAdjust, adjustFilters, CLIP_KINDS, clipFor, TRIM_MAX, readTrim, applyTrim, BLENDS, blendOf } from './overlayTools';
 
 // Fabric is already loaded once a selection exists; this resolves from the module cache.
 const withFabric = fn => import('fabric').then(m => fn(m.fabric ?? m.default ?? m));
@@ -51,19 +51,40 @@ function FillSection({ o, live, commit, locked, fallback }) {
   );
 }
 
-// Logos and artwork: brightness, contrast, greyscale and a crop shape. Fabric filters and clipPath, so they save and reach 3D.
+// Logos and artwork: brightness, contrast, saturation, blur, greyscale, trimmed edges and a crop shape. Fabric filters, crop and
+// clipPath, so they save and reach 3D.
+const TRIM_SIDES = [['l', 'Left'], ['r', 'Right'], ['t', 'Top'], ['b', 'Bottom']];
 export function ImageStyleSection({ o, live, commit, locked }) {
   const a = readAdjust(o), clip = o.__clip ?? 'none';
+  const src = o.getOriginalSize?.() ?? { width: o.width, height: o.height }, trim = readTrim(o, src.width, src.height);
   const adjust = next => withFabric(fabric => { o.set({ filters: adjustFilters(fabric, { ...a, ...next }) }); o.applyFilters(); live({}); });
+  const cut = (k, v) => withFabric(fabric => { applyTrim(fabric, o, { ...trim, [k]: v }); live({}); });
   return (
     <>
       <Range label={`Brightness ${a.b}`} value={a.b} min={-100} max={100} disabled={locked} onLive={b => adjust({ b })} onCommit={commit}/>
       <Range label={`Contrast ${a.c}`} value={a.c} min={-100} max={100} disabled={locked} onLive={c => adjust({ c })} onCommit={commit}/>
+      <Range label={`Saturation ${a.s}`} value={a.s} min={-100} max={100} disabled={locked || a.grey} onLive={s => adjust({ s })} onCommit={commit}/>
+      <Range label={`Blur ${a.blur ? a.blur : 'off'}`} value={a.blur} min={0} max={60} disabled={locked} onLive={blur => adjust({ blur })} onCommit={commit}/>
       <Seg label="Colour mode" value={a.grey ? 'grey' : 'colour'} disabled={locked} onPick={k => adjust({ grey: k === 'grey' }).then(commit)}
         items={[['colour', 'Colour'], ['grey', 'Greyscale']]}/>
+      <p className="ds-group-label" style={{ marginTop: 12 }}>Trim edges · % of the image</p>
+      {TRIM_SIDES.map(([k, side]) => (
+        <Range key={k} label={`${side} ${trim[k]}%`} value={trim[k]} min={0} max={TRIM_MAX} disabled={locked} onLive={v => cut(k, v)} onCommit={commit}/>
+      ))}
       <p className="ds-group-label" style={{ marginTop: 12 }}>Crop shape</p>
       <Seg label="Crop shape" value={clip} disabled={locked}
         onPick={k => withFabric(fabric => { live({ clipPath: clipFor(fabric, k, o.width, o.height), __clip: k }); commit(); })} items={CLIP_KINDS}/>
+    </>
+  );
+}
+
+// Blend mode for any single element: Multiply lets the garment colour and its fabric shading show through, like a print.
+export function BlendRow({ o, set, locked }) {
+  return (
+    <>
+      <p className="ds-group-label" style={{ marginTop: 12 }}>Blend with the garment</p>
+      <Seg label="Blend mode" value={blendOf(o)} disabled={locked} onPick={k => set({ globalCompositeOperation: k })}
+        items={BLENDS.map(([k, text]) => [k, text, `${text} blend`])}/>
     </>
   );
 }

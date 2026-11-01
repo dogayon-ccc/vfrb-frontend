@@ -28,9 +28,11 @@ export default function SiteHeader() {
   const burger = useRef(null);
   const mark = useRef(null);
   const [stuck, setStuck] = useState(false);
+  // The landing hero has its own Sign in, so the header one waits until the hero scrolls away.
+  const [pastHero, setPastHero] = useState(false);
 
   useEffect(() => {
-    const on = () => setStuck(window.scrollY > 8);
+    const on = () => { setStuck(window.scrollY > 8); setPastHero(window.scrollY > window.innerHeight * 0.6); };
     on();
     window.addEventListener('scroll', on, { passive: true });
     return () => window.removeEventListener('scroll', on);
@@ -65,8 +67,8 @@ export default function SiteHeader() {
         <nav className="vs-nav" aria-label="Main">
           {NAV.map(n => <NavLink key={n.to} to={n.to}>{n.label}</NavLink>)}
         </nav>
-        <div className="vs-header__cta">
-          <Btn to="/login">Design your uniform</Btn>
+        <div className={`vs-header__cta${pathname === '/' && !pastHero ? ' is-off' : ''}`}>
+          <Btn to="/login">Sign in</Btn>
         </div>
         <button ref={burger} type="button" className="vs-burger" aria-expanded={open} aria-controls="vs-sheet"
           aria-label={open ? 'Close menu' : 'Open menu'} onClick={() => setOpen(o => !o)}>
@@ -76,7 +78,7 @@ export default function SiteHeader() {
       <nav id="vs-sheet" className={`vs-sheet${open ? ' is-open' : ''}`} aria-label="Mobile" aria-hidden={!open}>
         {NAV.map(n => <NavLink key={n.to} to={n.to} className="vs-sheet__link">{n.label}<span aria-hidden="true">›</span></NavLink>)}
         <div className="vs-sheet__cta">
-          <Btn to="/login">Design your uniform</Btn>
+          <Btn to="/login">Sign in</Btn>
         </div>
       </nav>
     </header>

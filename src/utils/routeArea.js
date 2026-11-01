@@ -1,5 +1,4 @@
-// Which part of the app a path belongs to: picks the loading skeleton and
-// decides when the full-screen loader runs (only when the area changes).
+// Which part of the app a path belongs to: picks the loading skeleton shown while that page loads.
 const AUTH_PATHS   = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email', '/auth/'];
 const CLIENT_PATHS = ['/dashboard', '/my-designs', '/orders', '/order/', '/ai-materials', '/messages', '/settings', '/billing', '/help', '/profile'];
 

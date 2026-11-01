@@ -7,15 +7,12 @@ import axios from 'axios';
 import { startSession } from '../../utils/session';
 import { isStaffRole } from '../../utils/authRoute';
 import { peekStudioCategory } from '../../utils/studioIntent';
-import AuthShell, { authInput } from '../../components/AuthShell';
-import { NavIcon } from '../../components/ui/icons';
+import AuthShell, { Field, PasswordField, FormError, SubmitBtn } from '../../components/AuthShell';
 import { CONTACT } from '../../components/site/config';
 import RequestAccess from './RequestAccess';
 
-// 44px tap height without breaking the sentence's line flow.
 const CONTACT_LINK = { display: 'inline', padding: '12px 0', fontWeight: 700, color: 'var(--teal-dark)' }; // inline padding: a 44px tap area that does not stretch the sentence's lines
 
-const T = 'var(--teal)';
 const VERIFY_DELAY_MS = 1800;
 const GOOGLE_ON = import.meta.env.VITE_GOOGLE_LOGIN !== 'false';
 
@@ -33,12 +30,14 @@ export default function Login() {
   const [form, setForm] = useState({ login: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showPw, setShowPw] = useState(false);
-  const [focused, setFocused] = useState('');
-  const [ask, setAsk] = useState(false);
+  const [errs, setErrs] = useState({});
+  const [ask, setAsk] = useState(location.hash === '#request-access');
   const [notice, setNotice] = useState('');
   const verifyTimer = useRef();
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const askRef = useRef(null);
+  const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setErrs(e => ({ ...e, [k]: '' })); setError(''); };
+
+  useEffect(() => { if (location.hash === '#request-access') askRef.current?.scrollIntoView({ block: 'start' }); }, [location.hash]);
 
   useEffect(() => {
     const googleError = searchParams.get('google_error');
@@ -51,7 +50,9 @@ export default function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.login.trim() || !form.password.trim()) { setError('Please enter your username or email and your password.'); return; }
+    const next = { login: form.login.trim() ? '' : 'Enter your username or email.', password: form.password.trim() ? '' : 'Enter your password.' };
+    setErrs(next);
+    if (next.login || next.password) return;
     setLoading(true); setError('');
     try {
       const { data } = await axios.post('/api/login', form);
@@ -100,48 +101,13 @@ export default function Login() {
       )}
 
       <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div>
-          <label htmlFor="login-email" style={{ display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Username or email</label>
-          <input id="login-email" type="text" autoComplete="username" autoCapitalize="none" spellCheck={false} required aria-invalid={!!error} aria-describedby={error ? 'login-error' : undefined} value={form.login}
-            onChange={e => { set('login', e.target.value); if (error) setError(''); }}
-            onFocus={() => setFocused('email')} onBlur={() => setFocused('')}
-            placeholder="username or you@company.com" style={authInput(focused, 'email', error)}/>
-        </div>
-
-        <div>
-          <label htmlFor="login-password" style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 6, display: 'block' }}>Password</label>
-          <div style={{ position: 'relative' }}>
-            <input id="login-password" type={showPw ? 'text' : 'password'} autoComplete="current-password" required aria-invalid={!!error} aria-describedby={error ? 'login-error' : undefined} value={form.password}
-              onChange={e => { set('password', e.target.value); if (error) setError(''); }}
-              onFocus={() => setFocused('password')} onBlur={() => setFocused('')}
-              placeholder="Enter your password" style={{ ...authInput(focused, 'password', error), paddingRight: 52 }}/>
-            <button type="button" onClick={() => setShowPw(v => !v)} aria-label={showPw ? 'Hide password' : 'Show password'}
-              style={{ position: 'absolute', right: 5, top: '50%', transform: 'translateY(-50%)', background: 'none',
-                border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                width: 44, height: 44, padding: 0, borderRadius: 10, color: focused === 'password' ? T : 'var(--text-faint)' }}>
-              <NavIcon name={showPw ? 'hide' : 'show'} size={18}/>
-            </button>
-          </div>
-          {error && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
-              <NavIcon name="warning" size={14} color="var(--danger)"/>
-              <p id="login-error" role="alert" style={{ fontSize: 13, fontWeight: 500, color: 'var(--danger)' }}>{error}</p>
-            </div>
-          )}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 2 }}>
-            <Link to="/forgot-password" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, fontSize: 14, fontWeight: 700, color: 'var(--teal-dark)', textDecoration: 'none' }}>Forgot password?</Link>
-          </div>
-        </div>
-
-        <motion.button type="submit" disabled={loading || !!notice} aria-busy={loading} whileHover={{ scale: loading ? 1 : 1.01 }} whileTap={{ scale: .98 }}
-          style={{ width: '100%', height: 56, borderRadius: 14, border: 'none', fontWeight: 800, fontSize: 17,
-            color: 'var(--text-on-accent)', cursor: loading ? 'not-allowed' : 'pointer', display: 'flex',
-            alignItems: 'center', justifyContent: 'center', gap: 10,
-            background: loading ? 'color-mix(in srgb, var(--teal) 55%, transparent)' : T,
-            boxShadow: loading ? 'none' : '0 10px 24px -8px color-mix(in srgb, var(--teal) 70%, transparent)' }}>
-          {loading && <span className="au-spin" aria-hidden="true"/>}
-          {loading ? 'Signing in…' : 'Sign in'}
-        </motion.button>
+        <Field id="login-email" label="Username or email" type="text" autoComplete="username" autoCapitalize="none" spellCheck={false} required
+          value={form.login} onChange={e => set('login', e.target.value)} placeholder="username or you@company.com" error={errs.login}/>
+        <PasswordField id="login-password" label="Password" autoComplete="current-password" required value={form.password}
+          onChange={e => set('password', e.target.value)} placeholder="Enter your password" error={errs.password}
+          aside={<Link to="/forgot-password" className="au-aside">Forgot password?</Link>}/>
+        <FormError msg={error}/>
+        <SubmitBtn loading={loading} disabled={!!notice} busy="Signing in…">Sign in</SubmitBtn>
       </form>
 
       {GOOGLE_ON && <>
@@ -169,16 +135,17 @@ export default function Login() {
         <button type="button" onClick={() => setAsk(v => !v)} aria-expanded={ask} aria-controls="request-access"
           style={{ ...CONTACT_LINK, display: 'inline-flex', alignItems: 'center', minHeight: 44, border: 'none', background: 'none', padding: 0, fontSize: 15, cursor: 'pointer' }}>Request access</button>
       </div>
-      {ask && <div id="request-access" style={{ marginTop: 12 }}><RequestAccess/></div>}
+      <div id="request-access" ref={askRef} style={{ scrollMarginTop: 16 }}>
+        <AnimatePresence initial={false}>
+          {ask && <motion.div key="ra" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: [0.2, 0.7, 0.2, 1] }} style={{ overflow: 'hidden', margin: '0 -6px' }}><div style={{ padding: '12px 6px 6px' }}><RequestAccess/></div></motion.div>}
+        </AnimatePresence>
+      </div>
 
       <p style={{ textAlign: 'center', fontSize: 15, color: 'var(--text-muted)', marginTop: 20 }}>
         Or{' '}
         <a href={CONTACT.facebook} target="_blank" rel="noopener noreferrer" style={CONTACT_LINK}>Message us on Facebook</a>
         {' '}or call <a href={CONTACT.phoneHref} style={{ ...CONTACT_LINK, whiteSpace: 'nowrap' }}>{CONTACT.phone}</a> and we will set one up for you.
-      </p>
-
-      <p style={{ textAlign: 'center', marginTop: 12 }}>
-        <Link to="/gallery" style={{ ...CONTACT_LINK, fontSize: 15, padding: '12px 8px' }}>See our work</Link>
       </p>
     </AuthShell>
   );

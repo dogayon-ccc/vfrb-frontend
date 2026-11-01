@@ -1,4 +1,5 @@
 import { Component, Suspense, lazy, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AnimatePresence } from 'framer-motion';
 import { Minus, Plus, Scan, Maximize2, Minimize2, Expand, Shrink, Lightbulb, RotateCw, FlipHorizontal2 } from 'lucide-react';
 import { NavIcon } from '../../../components/ui/icons';
@@ -20,6 +21,8 @@ import FloatingToolbar from './FloatingToolbar';
 import GuidesMenu, { ViewToggles, UNITS_NOTE } from './GuidesMenu';
 import { viewKey } from './railTools';
 import ToolRail from './ToolRail';
+import Navigator from './Navigator';
+import { panToFrac } from './navigatorView';
 import { traceBox } from './traceGuide';
 
 // The tracing guide inside the artboard (canvas logical px, so it zooms and pans with the garment). Never a canvas object: exports,
@@ -125,7 +128,7 @@ class ThreeEB extends Component {
 export default function CanvasViewport({
   cfg, setCfg, canvasWrapRef, canvasEl, aiPulse, face, switchFace, initFailed,
   selObj, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, garmentRect = null, viewMode, has3DLoaded, onLogoFile, zoom, setZoom, snapshot, overlays,
-  blank = null, setViewMode, viewOpen, setViewOpen, setCompanion = null, showSet = false, setSnapOptions = null, trace = null, clearSelection = null, onPickZone = null, rail = null,
+  blank = null, setViewMode, viewOpen, setViewOpen, setCompanion = null, showSet = false, setSnapOptions = null, trace = null, clearSelection = null, onPickZone = null, rail = null, onUndo = null,
 }) {
   const paneRef = useRef(null);
   const [webglOk, setWebglOk] = useState(hasWebGL);
@@ -226,6 +229,9 @@ export default function CanvasViewport({
     return () => ro.disconnect();
   }, [measure]);
   const canPan = !!view?.canPan && show2D;
+  // The Navigator renders here (it needs the stage's pan and zoom) but shows in the Pieces column's slot (desktop only).
+  const [navSlot, setNavSlot] = useState(null);
+  useEffect(() => { const el = document.getElementById('ds-navigator-slot'); if (el !== navSlot) setNavSlot(el); });
 
   // Scroll / trackpad pans; Ctrl+wheel (and trackpad pinch, which arrives as Ctrl+wheel) zooms.
   useEffect(() => {
@@ -270,14 +276,31 @@ export default function CanvasViewport({
     applyPan(clampPan({ x: d.p.x + e.clientX - d.x, y: d.p.y + e.clientY - d.y }, limits.current));
   };
   const endPan = (e) => { if (drag.current?.id === e.pointerId) drag.current = null; };
-  // Pinch on touch zooms (two fingers anywhere on the stage); the pan limits are re-applied by measure() at the new scale.
-  const fingers = useRef(new Map()), pinch = useRef(null), zoomNow = useRef(zoom);
+  // Touch: two fingers pinch to zoom and drag to pan together; a quick two-finger tap undoes. The pan limits are re-applied by
+  // measure() at the new scale. Double-tap (or double-click) the empty stage: Fit, or zoom in when already fitted.
+  const fingers = useRef(new Map()), pinch = useRef(null), zoomNow = useRef(zoom), lastTap = useRef(null);
   zoomNow.current = zoom;
-  const dist = () => { const [a, b] = [...fingers.current.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+  const pts = () => [...fingers.current.values()];
+  const dist = () => { const [a, b] = pts(); return Math.hypot(a.x - b.x, a.y - b.y); };
+  const mid = () => { const [a, b] = pts(); return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; };
+  // A short confirmation on the stage for a gesture that has no button (undo, fit), read out politely.
+  const [gesture, setGesture] = useState(null);
+  const gestureTimer = useRef(null);
+  const flash = (text) => { setGesture(text); clearTimeout(gestureTimer.current); gestureTimer.current = setTimeout(() => setGesture(null), 900); };
+  useEffect(() => () => clearTimeout(gestureTimer.current), []);
   const onPaneDownCapture = (e) => {
     if (e.pointerType === 'touch' && cfg.garment && show2D) {
       fingers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      if (fingers.current.size === 2) { pinch.current = { d: dist(), z: zoomNow.current }; e.stopPropagation(); e.preventDefault(); return; }
+      if (fingers.current.size === 2) { const d = dist(); pinch.current = { d, dNow: d, z: zoomNow.current, m: mid(), moved: 0, t: performance.now() }; e.stopPropagation(); e.preventDefault(); return; }
+    }
+    if (e.button === 0 && e.target === paneRef.current && cfg.garment && show2D) {
+      const now = performance.now(), l = lastTap.current;
+      if (l && now - l.t < 320 && Math.hypot(e.clientX - l.x, e.clientY - l.y) < 24) {
+        lastTap.current = null;
+        if (zoomNow.current === 1) { setZoom(ZOOM_MAX); flash(`Zoomed in`); } else { fitView(); flash('Fit'); }
+        return;
+      }
+      lastTap.current = { t: now, x: e.clientX, y: e.clientY };
     }
     if (e.button === 0 && e.target === paneRef.current && !hand && !space) clearSelection?.(); // the empty stage, outside the artboard
     if (!canPan) return;
@@ -286,9 +309,26 @@ export default function CanvasViewport({
   const onPaneMoveCapture = (e) => {
     if (!fingers.current.has(e.pointerId)) return;
     fingers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    if (pinch.current && fingers.current.size === 2) { e.stopPropagation(); setZoom(clampZoom(pinch.current.z * dist() / (pinch.current.d || 1))); }
+    if (pinch.current && fingers.current.size === 2) {
+      e.stopPropagation();
+      const p = pinch.current, m = mid(), d = dist();
+      p.moved += Math.hypot(m.x - p.m.x, m.y - p.m.y);
+      p.dNow = d;
+      applyPan(clampPan({ x: panRef.current.x + m.x - p.m.x, y: panRef.current.y + m.y - p.m.y }, limits.current));
+      p.m = m;
+      setZoom(clampZoom(p.z * d / (p.d || 1)));
+    }
   };
-  const onPaneUpCapture = (e) => { fingers.current.delete(e.pointerId); if (fingers.current.size < 2) pinch.current = null; };
+  const onPaneUpCapture = (e) => {
+    const p = pinch.current;
+    if (p && fingers.current.size === 2 && fingers.current.has(e.pointerId)) {
+      pinch.current = null;
+      // Both fingers down and up within a moment, barely moving: a two-finger tap, which undoes (the tiny zoom it caused is put back).
+      if (onUndo && performance.now() - p.t < 260 && p.moved < 12 && Math.abs(p.dNow - p.d) < 12) { setZoom(p.z); onUndo(); flash('Undone'); }
+    }
+    fingers.current.delete(e.pointerId);
+    if (fingers.current.size < 2) pinch.current = null;
+  };
   // Fit: back to the fitted size, centred (Ctrl+0 or the zoom readout).
   // Fit reads as pressed only while the design really sits at the fitted size and position.
   const fitted = zoom === 1 && pan.x === 0 && pan.y === 0;
@@ -409,6 +449,7 @@ export default function CanvasViewport({
 
       <div ref={fitRef} className="ds-stage-fit">
         {/* Phones: the 3D status sits in the stage corner instead of under the 2D | 3D switch, so the top bar stays one row. */}
+        {gesture && <div className="ds-gesture" role="status">{gesture}</div>}
         {cfg.garment && <span className="ds-stage-badge" data-off={label3D(cfg) === '3D not available' ? '1' : undefined}>{label3D(cfg)}</span>}
         {/* Skeleton until the garment base has drawn, so the stage is never blank while a photo or template loads. */}
         {show2D && cfg.garment && !garmentRect && !initFailed && <div className="ds-ref3d-skel" role="status"><span aria-hidden="true"/>Loading your design…</div>}
@@ -515,6 +556,10 @@ export default function CanvasViewport({
           {rulersOn && <p className="ds-units-note" role="note">{UNITS_NOTE}</p>}
         </div>
       )}
+      {navSlot && stage2D && view && canvasSize.w > 0 && createPortal(
+        <Navigator source={canvasEl} size={canvasSize} view={view} zoom={zoom} shown={Math.round(scale * 100)} min={ZOOM_MIN} max={ZOOM_MAX}
+          setZoom={z => setZoom(typeof z === 'function' ? p => clampZoom(z(p)) : clampZoom(z))} onFit={fitView} fitted={fitted}
+          onPanTo={(fx, fy) => applyPan(clampPan(panToFrac(fx, fy, canvasSize, scale), limits.current))}/>, navSlot)}
     </div>
   );
 }

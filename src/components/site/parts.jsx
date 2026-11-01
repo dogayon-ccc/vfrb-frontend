@@ -82,7 +82,7 @@ export function Journey({ current }) {
           </Link>
         </Reveal>
         <div className="vs-btns">
-          <Btn to="/login" variant="mint">Design your uniform</Btn>
+          <Btn to="/login" variant="mint">Sign in</Btn>
         </div>
         <nav className="vs-rail" aria-label="Site journey">
           {JOURNEY.map((j, k) => k === i

@@ -39,3 +39,10 @@ export function trimDoubleClick(anchors, tol = 2) {
   }
   return out;
 }
+
+// Rectangle and Ellipse tools: the box dragged from `from` to `to`. Square (Shift) uses the longer side on both axes, toward the drag.
+export function dragBox(from, to, square = false) {
+  let dx = to.x - from.x, dy = to.y - from.y;
+  if (square) { const s = Math.max(Math.abs(dx), Math.abs(dy)); dx = (Math.sign(dx) || 1) * s; dy = (Math.sign(dy) || 1) * s; }
+  return { left: Math.min(from.x, from.x + dx), top: Math.min(from.y, from.y + dy), width: Math.abs(dx), height: Math.abs(dy) };
+}

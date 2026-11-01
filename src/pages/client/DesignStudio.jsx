@@ -50,6 +50,7 @@ import { describeCustom, isCustom, isParametric, CUSTOM_TOP } from './design-stu
 import { readTrace, writeTrace, normalizeTrace } from './design-studio/traceGuide';
 import { DEFAULT_PIECE, otherRole, normalizeSet, withSet, mirrorStyle, mirrorOverlay, orderQueue } from './design-studio/uniformSet';
 import PiecesRail, { PieceActions } from './design-studio/PiecesRail';
+import StudioHelp from './design-studio/StudioHelp';
 import { paintZone } from './design-studio/colorRules';
 
 // MAIN COMPONENT
@@ -638,6 +639,7 @@ export default function DesignStudio() {
 
   // Phones and tablets: More > View opens the stage's View menu.
   const [viewOpen, setViewOpen] = useState(false);
+  const [help, setHelp] = useState(null); // StudioHelp: null | 'tour' | 'keys'
 
   const pieceProps = { cfg, uset, onSwitch: switchPiece, onStart: startSet, applyBoth, onApplyBoth: setApplyBoth,
     canSet: !!setCompanion, setView: viewMode !== '3d', showSet: showSet && viewMode !== '3d', onShowSet: setShowSet };
@@ -963,7 +965,9 @@ export default function DesignStudio() {
             )}
           </AnimatePresence>
 
-          <PiecesRail {...pieceProps} other={setCompanion} readOnly={colorOnly}/>
+          <PiecesRail {...pieceProps} other={setCompanion} readOnly={colorOnly}
+            dock={{ layers, selectedId: selObj?.__layerId, onSelect: selectLayer, onToggleVisibility: toggleLayerVisibility, onAdd: () => setTool('assets'), onOpenLayers: () => setTool('layers') }}
+            help={{ onTour: () => setHelp('tour'), onKeys: () => setHelp('keys') }}/>
 
           {/* ── TOOL STRIP + PANEL DRAWER ── */}
           <ToolDrawer onlyTools={colorOnly ? ['color'] : null} tool={tool} setTool={setTool} onOpenTool={setTool} cfg={cfg} setCfg={setCfg}
@@ -979,13 +983,14 @@ export default function DesignStudio() {
             pushHistory={pushHistory} presetPos={presetPos} nudgeSelected={nudgeSelected}
             renameLayer={renameLayer} deleteLayer={deleteLayer} reorderLayers={reorderLayers} pieceRole={uset?.active ?? null} trace={trace} setTrace={setTrace} status={locked ? null : status}
             garmentExtra={<PieceActions {...pieceProps} other={setCompanion} readOnly={colorOnly} inSheet/>}
-            more={{ onView: () => setViewOpen(true), onCopy: duplicateToEdit, canCopy: !!lock?.designId, copying }}/>
+            more={{ onView: () => setViewOpen(true), onCopy: duplicateToEdit, canCopy: !!lock?.designId, copying, onTour: () => setHelp('tour') }}/>
 
           {/* ── CANVAS AREA ── */}
           <CanvasViewport cfg={cfg} setCfg={setCfg} canvasWrapRef={canvasWrapRef} canvasEl={canvasEl} initFailed={initFailed}
             aiPulse={aiPulse} face={face} switchFace={switchFace}
             selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected} alignSelected={alignSelected} arrangeSelected={arrangeSelected} garmentRect={garmentRect}
             viewMode={viewMode} has3DLoaded={has3DLoaded} onLogoFile={onLogoFile} onPickZone={setActiveZone}
+            onUndo={locked ? null : lock?.warn ? () => setWarnAsk(true) : undo}
             rail={locked ? null : { tool, setTool, pick, setPick, erasing, setErasing, color: brushColor, setColor: changeBrushColor, size: brushSize, setSize: changeBrushSize, note: pickNote, colourOnly: colorOnly }}
             zoom={zoom} setZoom={setZoom} snapshot={snapshot} overlays={overlays}
             blank={<GarmentPicker inline cfg={cfg} pieceRole={uset?.active ?? (pendingArt && artScope ? (artScope === 'bottom' ? 'bottom' : 'top') : null)} onPickPhoto={pickPhoto}
@@ -995,6 +1000,8 @@ export default function DesignStudio() {
               artScope={artScope} onArtScope={uset ? null : setArtScope}/>} setViewMode={setViewMode}
             viewOpen={viewOpen} setViewOpen={setViewOpen} setCompanion={setCompanion} showSet={showSet} setSnapOptions={setSnapOptions} trace={trace} clearSelection={clearSelection}/>
         </div>
+
+        <StudioHelp mode={help} setMode={setHelp} ready={!!cfg.garment && !locked && !initFailed && !showInspo && !showShowcase}/>
 
         {/* Click-away scrim behind whichever gallery is open (z-index sits under the galleries' 100). */}
         {(showInspo || showShowcase) && (

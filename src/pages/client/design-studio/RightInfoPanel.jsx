@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
 import { NavIcon } from '../../../components/ui/icons';
 import { shapeLabel } from './overlayTools';
-import { TextStyleSection, ShapeStyleSection, ImageStyleSection, ArrangeRow } from './StyleSections';
+import { TextStyleSection, ShapeStyleSection, ImageStyleSection, ArrangeRow, BlendRow } from './StyleSections';
 import { metricsPct, xyText } from './canvasGuides';
 import { pocketLabel } from './pocketTools';
 import { SwatchGrid } from './SwatchGrid';
@@ -169,6 +169,7 @@ export function SelectionInspector({ selObj, updateSelected, alignSelected, togg
         {selObj.type === 'image' && <ImageStyleSection o={selObj} live={live} commit={commit} locked={locked}/>}
         {range(`Opacity ${Math.round((selObj.opacity ?? 1) * 100)}%`, Math.round((selObj.opacity ?? 1) * 100), 10, 100,
           v => live({ opacity: v / 100 }), false)}
+        <BlendRow o={selObj} set={updateSelected} locked={locked}/>
         <ArrangeRow o={selObj} set={updateSelected} arrangeLayer={arrangeLayer} locked={locked}/>
       </section>}
 

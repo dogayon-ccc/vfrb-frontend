@@ -101,15 +101,43 @@ export const gradientSpec = (from, to, dir = 'v') => ({ type: 'linear', gradient
 export const readGradient = fill => (fill?.colorStops?.length >= 2
   ? { from: fill.colorStops[0].color, to: fill.colorStops[fill.colorStops.length - 1].color, dir: fill.coords?.x2 > 0 ? 'h' : 'v' } : null);
 
-// Image adjustments as Fabric filters: saved in the design JSON and re-applied on load. b and c run -100..100.
+// Image adjustments as Fabric filters: saved in the design JSON and re-applied on load. b, c and s run -100..100, blur 0..100.
 export const readAdjust = o => {
-  const f = o?.filters ?? [], get = t => f.find(x => x?.type === t);
-  return { b: Math.round((get('Brightness')?.brightness ?? 0) * 100), c: Math.round((get('Contrast')?.contrast ?? 0) * 100), grey: !!get('Grayscale') };
+  const f = o?.filters ?? [], get = t => f.find(x => x?.type === t), pct = v => Math.round((v ?? 0) * 100);
+  return { b: pct(get('Brightness')?.brightness), c: pct(get('Contrast')?.contrast), s: pct(get('Saturation')?.saturation), blur: pct(get('Blur')?.blur), grey: !!get('Grayscale') };
 };
-export function adjustFilters(fabric, { b = 0, c = 0, grey = false }) {
+export function adjustFilters(fabric, { b = 0, c = 0, s = 0, blur = 0, grey = false }) {
   const F = fabric.filters;
-  return [b && new F.Brightness({ brightness: b / 100 }), c && new F.Contrast({ contrast: c / 100 }), grey && new F.Grayscale()].filter(Boolean);
+  return [b && new F.Brightness({ brightness: b / 100 }), c && new F.Contrast({ contrast: c / 100 }), s && new F.Saturation({ saturation: s / 100 }),
+    blur && new F.Blur({ blur: blur / 100 }), grey && new F.Grayscale()].filter(Boolean);
 }
+
+// Trim edges of an image: % of its source cut from each side, as Fabric's own cropX/cropY/width/height (saved with the image).
+export const TRIM_MAX = 45;
+const trimPct = v => Math.max(0, Math.min(TRIM_MAX, Math.round(Number(v) || 0)));
+export function readTrim(o, ow, oh) {
+  if (!(ow > 0) || !(oh > 0)) return { l: 0, r: 0, t: 0, b: 0 };
+  const x = o.cropX ?? 0, y = o.cropY ?? 0;
+  return { l: trimPct(x / ow * 100), r: trimPct((ow - x - o.width) / ow * 100), t: trimPct(y / oh * 100), b: trimPct((oh - y - o.height) / oh * 100) };
+}
+export function trimProps(trim, ow, oh) {
+  const [l, r, t, b] = ['l', 'r', 't', 'b'].map(k => trimPct(trim[k]) / 100);
+  return { cropX: ow * l, cropY: oh * t, width: ow * (1 - l - r), height: oh * (1 - t - b) };
+}
+// Applies a trim so the part of the image that stays visible does not move on the garment; a crop shape is re-fitted to the new size.
+export function applyTrim(fabric, o, trim) {
+  const el = o.getOriginalSize?.() ?? { width: o.width, height: o.height }, next = trimProps(trim, el.width, el.height);
+  const dx = (next.cropX + next.width / 2) - ((o.cropX ?? 0) + o.width / 2), dy = (next.cropY + next.height / 2) - ((o.cropY ?? 0) + o.height / 2);
+  const centre = fabric.util.transformPoint(new fabric.Point(dx, dy), o.calcTransformMatrix());
+  o.set(next);
+  if (o.__clip && o.__clip !== 'none') o.set({ clipPath: clipFor(fabric, o.__clip, next.width, next.height) });
+  o.setPositionByOrigin(centre, 'center', 'center');
+  o.setCoords();
+}
+
+// Blend: how an element mixes with the garment colour under it. Fabric's globalCompositeOperation, saved with the element.
+export const BLENDS = [['source-over', 'Normal'], ['multiply', 'Multiply'], ['screen', 'Screen'], ['overlay', 'Overlay']];
+export const blendOf = o => (BLENDS.some(([k]) => k === o?.globalCompositeOperation) ? o.globalCompositeOperation : 'source-over');
 
 // Crop an image to a shape: a clipPath centred on the element, saved with it. __clip names the shape for the panel.
 export const CLIP_KINDS = [['none', 'None'], ['circle', 'Circle'], ['rounded', 'Rounded'], ['heart', 'Heart']];

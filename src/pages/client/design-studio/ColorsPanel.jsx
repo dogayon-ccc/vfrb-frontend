@@ -1,7 +1,47 @@
 import { secLabel, zone3D, ONLY_2D_TAG } from './dsShared';
-import { paintZone } from './colorRules';
+import { useEffect, useRef, useState } from 'react';
+import { paintZone, designPalette, pushRecent, contrastRatio, contrastLabel, bestInk } from './colorRules';
 import { SwatchGrid, CustomColor, colourName } from './SwatchGrid';
 import { PartButtons, PartStyles, partLabel } from './PartControls';
+
+const RECENT_KEY = 'ds_recent_colours';
+const readRecent = () => { try { const v = JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]'); return Array.isArray(v) ? v.filter(c => /^#[0-9a-f]{6}$/i.test(c)).slice(0, 8) : []; } catch { return []; } };
+
+// A row of one-tap colours (this design's own, or recent custom picks).
+function QuickRow({ title, colours, current, label, onPick }) {
+  return (
+    <div className="ds-quick">
+      <p style={secLabel}>{title}</p>
+      <div className="ds-quick-row" role="group" aria-label={`${title} colours`}>
+        {colours.map(c => (
+          <button key={c} type="button" className="ds-quick-sw" style={{ background: c }} aria-pressed={c === (current ?? '').toLowerCase()}
+            aria-label={`${label}: ${colourName(c)} ${c.toUpperCase()}`} title={c.toUpperCase()} onClick={() => onPick(c)}/>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Body: which text ink reads on it. Any other part: how it reads against the body. A guide only, never a rule.
+function ContrastNote({ zone, cur, body, label }) {
+  if (zone === 'body') {
+    const b = bestInk(cur);
+    return (
+      <div className="ds-contrast">
+        <span className="ds-contrast-demo" style={{ background: cur, color: b.ink }} aria-hidden="true">Aa</span>
+        <p><b>{b.name} text reads best</b> on this body colour ({b.r.toFixed(1)}:1). Use it for names and numbers.</p>
+      </div>
+    );
+  }
+  if (!/^#[0-9a-f]{6}$/i.test(body ?? '')) return null;
+  const r = contrastRatio(cur, body), word = contrastLabel(r);
+  return (
+    <div className="ds-contrast" data-level={r >= 3 ? 'high' : r >= 1.6 ? 'mid' : 'low'}>
+      <span className="ds-contrast-pair" aria-hidden="true"><i style={{ background: body }}/><i style={{ background: cur }}/></span>
+      <p><b>{word}</b> against the body ({r.toFixed(1)}:1).{r < 1.6 ? ` Pick a lighter or darker ${label.toLowerCase()} if it should show.` : ''}</p>
+    </div>
+  );
+}
 
 // One part of the garment: its colours and the style options it really has. Done returns to the whole uniform;
 // without Done (a colour-only copy) the part buttons switch parts instead.
@@ -10,6 +50,15 @@ export default function ColorsPanel({ cfg, setCfg, activeZone, setActiveZone, on
   const label = partLabel(cfg, activeZone);
   const cur = cfg.colors[activeZone];
   const only2D = zone3D(cfg.garment, cfg.sleeve, cfg.fit, activeZone) === false;
+  const palette = designPalette(cfg.colors);
+  const [recent, setRecent] = useState(readRecent);
+  // Custom picks only: the colour input fires while dragging, so the list is saved on a short pause, not every frame.
+  const saveTimer = useRef(null);
+  const remember = hex => {
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => setRecent(list => { const next = pushRecent(list, hex); try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch { /* storage blocked */ } return next; }), 400);
+  };
+  useEffect(() => () => clearTimeout(saveTimer.current), []);
 
   return (
     <div className="ds-colors">
@@ -35,8 +84,11 @@ export default function ColorsPanel({ cfg, setCfg, activeZone, setActiveZone, on
           <p style={secLabel}>Philippine colours</p>
           <SwatchGrid label={label} current={cur} onPick={hex => setColor(activeZone, hex)}/>
           <p style={secLabel}>Custom</p>
-          <CustomColor label={label} current={cur} onPick={hex => setColor(activeZone, hex)}/>
+          <CustomColor label={label} current={cur} onPick={hex => { setColor(activeZone, hex); remember(hex); }}/>
           {activeZone === 'tipping' && <button type="button" className="ds-link" onClick={() => setColor('tipping', null)}>Turn off tipping</button>}
+          {palette.length > 1 && <QuickRow title="In this design" colours={palette} current={cur} label={label} onPick={hex => setColor(activeZone, hex)}/>}
+          {recent.length > 0 && <QuickRow title="Recent" colours={recent} current={cur} label={label} onPick={hex => setColor(activeZone, hex)}/>}
+          {cfg.garment && /^#[0-9a-f]{6}$/i.test(cur ?? '') && <ContrastNote zone={activeZone} cur={cur} body={cfg.colors.body} label={label}/>}
         </>
       )}
     </div>

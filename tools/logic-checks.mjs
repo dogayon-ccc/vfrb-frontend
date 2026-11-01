@@ -615,7 +615,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     (hook.match(/plainObject\(o, OVERLAY_PROPS\)/g) ?? []).length === 1 && /const overlayJSON = canvas =>/.test(hook) && (hook.match(/overlayJSON\(/g) ?? []).length === 4 && !/o\.toObject\(OVERLAY_PROPS\)/.test(hook) && /export function plainObject/.test(layers) && /translateToGivenOrigin/.test(layers));
   // 8. Navigation: Fit (Ctrl+0), Space-drag pan, pinch zoom on touch, existing pan limits kept.
   t('navigation: Fit button and Ctrl+0, Space-drag pan kept, two-finger pinch zoom clamped to the zoom range, pan limits re-applied; a zone opens its colours on a tap, not on the first finger of a pinch',
-    /ctrl\('Fit', <Scan/.test(cv) && /e\.key === '0'/.test(cv) && /e\.code === 'Space'/.test(cv) && /setZoom\(clampZoom\(pinch\.current\.z \* dist\(\)/.test(cv) && /limits\.current = panLimits\(/.test(cv) && /clampPan\(/.test(cv)
+    /ctrl\('Fit', <Scan/.test(cv) && /e\.key === '0'/.test(cv) && /e\.code === 'Space'/.test(cv) && /setZoom\(clampZoom\(p\.z \* d \/ \(p\.d \|\| 1\)\)\)/.test(cv) && /limits\.current = panLimits\(/.test(cv) && /clampPan\(/.test(cv)
     && /\.ds-pane\[data-garment\]\{touch-action:none;\}/.test(css) && /fc\.current\.on\('mouse:up', \(opt\) => \{\s*const t = tap; tap = null;/.test(hook));
   // 9. Eraser: customer strokes and uploaded art only, one undo step, holes move with the layer.
   const pts = CG.samplePath([['M', 0, 0], ['L', 10, 0], ['Q', 15, 0, 20, 0]], 2);
@@ -1094,6 +1094,21 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('image adjust: reads brightness/contrast/greyscale off Fabric filters (defaults 0, 0, off); crop shapes are none, circle, rounded, heart',
     (() => { const a = OT.readAdjust({ filters: [{ type: 'Brightness', brightness: 0.25 }, { type: 'Grayscale' }] }), z = OT.readAdjust({});
       return a.b === 25 && a.c === 0 && a.grey && z.b === 0 && !z.grey && OT.CLIP_KINDS.map(k => k[0]).join() === 'none,circle,rounded,heart'; })());
+  t('image adjust: saturation and blur read back from Fabric filters (defaults 0); an all-zero adjust adds no filter',
+    (() => { const a = OT.readAdjust({ filters: [{ type: 'Saturation', saturation: -0.4 }, { type: 'Blur', blur: 0.2 }] }), z = OT.readAdjust({});
+      const F = { filters: Object.fromEntries(['Brightness', 'Contrast', 'Saturation', 'Blur', 'Grayscale'].map(n => [n, function (o) { Object.assign(this, { type: n }, o); }])) };
+      const built = OT.adjustFilters(F, { s: 30, blur: 10 });
+      return a.s === -40 && a.blur === 20 && z.s === 0 && z.blur === 0 && OT.adjustFilters(F, {}).length === 0
+        && built.map(x => x.type).join() === 'Saturation,Blur' && built[0].saturation === 0.3 && built[1].blur === 0.1; })());
+  t('trim edges: % per side clamps to 0..45 and maps to cropX/cropY/width/height; reading the crop back gives the same %',
+    (() => { const p = OT.trimProps({ l: 10, r: 20, t: 5, b: 99 }, 200, 100), back = OT.readTrim({ cropX: p.cropX, cropY: p.cropY, width: p.width, height: p.height }, 200, 100);
+      const none = OT.trimProps({}, 200, 100);
+      return p.cropX === 20 && p.width === 140 && p.cropY === 5 && Math.abs(p.height - 50) < 1e-9 && back.l === 10 && back.r === 20 && back.t === 5 && back.b === 45
+        && none.cropX === 0 && none.width === 200 && none.height === 100 && OT.TRIM_MAX === 45 && OT.readTrim({ width: 10, height: 10 }, 0, 0).l === 0; })());
+  t('blend: Normal, Multiply, Screen, Overlay as Fabric globalCompositeOperation; anything else reads as Normal; shown for every single element',
+    OT.BLENDS.map(b => b[0]).join() === 'source-over,multiply,screen,overlay' && OT.blendOf({ globalCompositeOperation: 'multiply' }) === 'multiply'
+    && OT.blendOf({ globalCompositeOperation: 'xor' }) === 'source-over' && OT.blendOf(null) === 'source-over'
+    && /<BlendRow o=\{selObj\}/.test(rdx('../src/pages/client/design-studio/RightInfoPanel.jsx')));
   t('crop shape (__clip) is an overlay prop, so it survives save, reload and undo',
     /OVERLAY_PROPS = \[[^\]]*'__clip'/.test(rdx('../src/pages/client/design-studio/useGarmentCanvas.js')));
   const doc = rdx('../docs/engineering/FONT-LICENSES.md');
@@ -1248,7 +1263,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('set view is 2D only: 3D shows one piece at a time (no companion model), rulers step aside for the 2D set, the Set button is hidden in 3D, and a single garment shows only "Add a matching ..."',
     /<SetView2D /.test(cvp) && /!!garmentRect && !set2D/.test(cvp) && /const set2D = showSet && !!setCompanion && viewMode !== '3d';/.test(cvp)
     && !/companion=/.test(cvp) && !/needs a 3D model for both pieces/.test(cvp)
-    && /\{uset && setView && \(/.test(psel) && /if \(readOnly \|\| !role\) return null;/.test(psel) && /\{!uset && \(/.test(psel) && /Add a matching \{ROLE_LABEL\[/.test(psel));
+    && /\{uset && setView && \(/.test(psel) && /if \(readOnly \|\| !role\) return null;/.test(psel) && /\{!uset && \(/.test(psel) && /<span>Add<span className="ds-piece-add-x"> a matching<\/span> \{ROLE_LABEL\[/.test(psel));
   const fams = Object.values(CT.FAMILY_BY_NAME);
   t('details: a control exists only where the 2D template draws that part; photo bases and derived templates get none',
     fams.every(f => GD.detailsFor(f.id, f.styles[0] ?? 'Short').every(o => ['front', 'back'].some(face => { const p = GP.getGarmentPaths(f.id, f.styles[0] ?? 'Short', face); return o.id === 'patchPocket' ? !!p.pocket : p.details.some(d => d.part === o.id); })))
@@ -1618,12 +1633,14 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const R = await L('/src/pages/client/design-studio/railTools.js');
   const CR = await L('/src/pages/client/design-studio/colorRules.js');
   const k = (key, m = {}) => R.railKey({ key, ...m });
-  t('tool rail: V H I G B E P L T U pick their tools, Z / Alt+Z zoom, Ctrl or Cmd letters and held keys are left alone',
-    ['V', 'H', 'I', 'G', 'B', 'E', 'P', 'L', 'T', 'U'].map(x => k(x.toLowerCase())).join() === 'move,hand,sample,fill,brush,eraser,pen,line,text,shape'
+  t('tool rail: V H I G B E P L T U M O pick their tools, Z / Alt+Z zoom, Ctrl or Cmd letters and held keys are left alone',
+    ['V', 'H', 'I', 'G', 'B', 'E', 'P', 'L', 'T', 'U', 'M', 'O'].map(x => k(x.toLowerCase())).join() === 'move,hand,sample,fill,brush,eraser,pen,line,text,shape,rect,ellipse'
+    && new Set(R.RAIL_TOOLS.map(x => x.key)).size === R.RAIL_TOOLS.length
     && k('z') === 'zoom-in' && k('z', { altKey: true }) === 'zoom-out' && k('z', { ctrlKey: true }) === null && k('d', { metaKey: true }) === null
     && k('v', { repeat: true }) === null && k('Escape') === 'move' && k('q') === null
     && R.activeRail({ hand: true, pick: 'fill', tool: 'draw' }) === 'hand' && R.activeRail({ pick: 'sample', tool: 'draw' }) === 'sample'
-    && R.activeRail({ pick: 'pen' }) === 'pen' && R.PICK_TOOLS.join() === 'sample,fill,pen,line'
+    && R.activeRail({ pick: 'pen' }) === 'pen' && R.PICK_TOOLS.join() === 'sample,fill,pen,line,rect,ellipse' && R.BOX_TOOLS.every(b => R.PICK_TOOLS.includes(b))
+    && R.activeRail({ pick: 'ellipse' }) === 'ellipse'
     && R.activeRail({ tool: 'draw', erasing: true }) === 'eraser' && R.activeRail({ tool: 'color' }) === 'move');
   const V = await L('/src/pages/client/design-studio/vectorTools.js');
   const pt = (x, y, hx = 0, hy = 0) => ({ x, y, hx, hy });
@@ -1635,11 +1652,56 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && V.closesAt([pt(0, 0), pt(10, 0), pt(10, 10)], { x: 1, y: 1 }, 3) && !V.closesAt([pt(0, 0), pt(10, 0)], { x: 0, y: 0 }, 3)
     && V.trimDoubleClick([pt(0, 0), pt(10, 0), pt(10.5, 0), pt(10.5, 0)]).length === 2
     && Math.abs(s45.x - s45.y) < 1e-9 && Math.abs(Math.hypot(s45.x, s45.y) - Math.hypot(10, 9)) < 1e-9);
+  const bx = (a, b, q) => JSON.stringify(V.dragBox(a, b, q));
+  t('rectangle and ellipse tools: the box is the drag in any direction; Shift makes a square on the longer side toward the drag',
+    bx({ x: 10, y: 10 }, { x: 40, y: 30 }) === '{"left":10,"top":10,"width":30,"height":20}'
+    && bx({ x: 40, y: 30 }, { x: 10, y: 10 }) === '{"left":10,"top":10,"width":30,"height":20}'
+    && bx({ x: 10, y: 10 }, { x: 40, y: 20 }, true) === '{"left":10,"top":10,"width":30,"height":30}'
+    && bx({ x: 10, y: 10 }, { x: -5, y: 15 }, true) === '{"left":-5,"top":10,"width":15,"height":15}'
+    && bx({ x: 5, y: 5 }, { x: 5, y: 5 }, true) === '{"left":5,"top":5,"width":0,"height":0}'
+    && /keepBox\(mode, b\)/.test(fsx.readFileSync('src/pages/client/design-studio/useGarmentCanvas.js', 'utf8'))
+    && /__shape: true/.test(fsx.readFileSync('src/pages/client/design-studio/useGarmentCanvas.js', 'utf8').slice(fsx.readFileSync('src/pages/client/design-studio/useGarmentCanvas.js', 'utf8').indexOf('function keepBox'))));
+  const FS = await L('/src/pages/client/design-studio/fabricShading.js');
+  const B = { w: 100, h: 120 }, tw = c => FS.twinStitch(c, B);
+  const cuffs = tw([['M', 10, 50], ['L', 30, 70], ['M', 70, 70], ['L', 90, 50]]);
+  t('twin-needle hem: a second row 2.4 px toward the garment centre on each straight or curved hem and cuff run; never on shoulder or side seams, polylines or ticks',
+    tw([['M', 10, 100], ['L', 90, 100]]) === 'M 10 97.6 L 90 97.6' && tw([['M', 10, 100], ['Q', 50, 104, 90, 100]]) === 'M 10 97.6 Q 50 101.6 90 97.6'
+    && (cuffs?.match(/M /g) ?? []).length === 2
+    && tw([['M', 30, 10], ['L', 45, 15]]) === null && tw([['M', 50, 40], ['L', 52, 110]]) === null
+    && tw([['M', 0, 50], ['L', 20, 60], ['L', 40, 50]]) === null && tw([['M', 0, 50], ['L', 5, 50]]) === null
+    && tw([['M', 0, 50], ['C', 1, 1, 2, 2, 30, 50]]) === null && tw(undefined) === null
+    && FS.ROLL[0][0] === 0 && FS.ROLL[FS.ROLL.length - 1][0] === 1 && FS.ROLL.every(([o, c], i, a) => (i === 0 || o > a[i - 1][0]) && /^rgba\(/.test(c)));
   const c0 = CR.startColors('#111111');
   t('paint bucket and Colours panel share paintZone: the body carries following parts, any other part changes alone',
     JSON.stringify(CR.paintZone(c0, 'body', '#222222')) === JSON.stringify(CR.withBody(c0, '#222222'))
     && CR.paintZone(c0, 'collar', '#333333').collar === '#333333' && CR.paintZone(c0, 'collar', '#333333').body === '#111111'
     && /paintZone\(p\.colors, zone, c\)/.test(fsx.readFileSync('src/pages/client/design-studio/ColorsPanel.jsx', 'utf8')));
+  const rd = p => fsx.readFileSync(p, 'utf8');
+  t('colour guide: WCAG ratio (white/black 21:1, same colour 1:1), labels at 3 and 1.6, best text ink, design palette and recent list',
+    Math.abs(CR.contrastRatio('#ffffff', '#000000') - 21) < 1e-9 && Math.abs(CR.contrastRatio('#1b2a4a', '#1b2a4a') - 1) < 1e-9
+    && CR.contrastRatio('#000000', '#ffffff') === CR.contrastRatio('#ffffff', '#000000')
+    && CR.contrastLabel(3) === 'Stands out' && CR.contrastLabel(2) === 'Soft contrast' && CR.contrastLabel(1.2) === 'Blends in'
+    && CR.bestInk('#1B2A4A').name === 'White' && CR.bestInk('#F4F5F2').name === 'Black'
+    && CR.designPalette({ body: '#1B2A4A', collar: '#1b2a4a', sleeve: '#C4313B', pocket: null, tipping: 'stripes' }).join() === '#1b2a4a,#c4313b'
+    && CR.pushRecent(['#111111', '#222222'], '#222222').join() === '#222222,#111111' && CR.pushRecent([], 'red').length === 0
+    && CR.pushRecent(Array.from({ length: 8 }, (_, i) => `#00000${i}`), '#ffffff').length === 8);
+  t('shortcut list: tool letters come from RAIL_TOOLS, every listed edit/view key is handled in code, "?" opens it only without modifiers',
+    (() => { const S = Object.fromEntries(R.SHORTCUTS.map(g => [g.group, g.keys])), ds = rd('src/pages/client/DesignStudio.jsx'), cv = rd('src/pages/client/design-studio/CanvasViewport.jsx');
+      return S.Tools.map(k => k[0]).join() === R.RAIL_TOOLS.map(x => x.key).join()
+        && /e\.key === 'Delete'/.test(ds) && /ArrowLeft/.test(ds) && /KeyL/.test(ds) && /KeyH/.test(ds) && /BracketRight/.test(ds) && /e\.code === 'Space'/.test(cv) && /Digit0/.test(cv)
+        && R.helpKey({ key: '?' }) && !R.helpKey({ key: '?', ctrlKey: true }) && !R.helpKey({ key: '/' }) && R.railKey({ key: '?' }) === null && R.viewKey({ key: '?' }) === null; })());
+  const NV = await L('/src/pages/client/design-studio/navigatorView.js');
+  t('navigator: a fitted view frames the whole canvas, a zoomed one the visible part; centring a point gives the pan the stage uses',
+    (() => { const size = { w: 200, h: 300 }, all = NV.visibleFrac({ ox: 50, oy: 20, s: 1, pw: 300, ph: 340 }, size), half = NV.visibleFrac({ ox: -200, oy: -300, s: 2, pw: 200, ph: 300 }, size);
+      const p = NV.panToFrac(0.25, 0.5, size, 2);
+      return all.x === 0 && all.y === 0 && all.w === 1 && all.h === 1 && half.x === 0.5 && half.y === 0.5 && half.w === 0.5 && half.h === 0.5
+        && p.x === 100 && p.y === 0 && NV.visibleFrac(null, size) === null; })());
+  t('touch: pinch also pans, a quick still two-finger tap undoes, double-tap the empty stage fits or zooms in; the tour waits for a garment and reads storage in try/catch',
+    (() => { const cv = rd('src/pages/client/design-studio/CanvasViewport.jsx'), sh = rd('src/pages/client/design-studio/StudioHelp.jsx');
+      return /onUndo\(\); flash\('Undone'\)/.test(cv) && /panRef\.current\.x \+ m\.x - p\.m\.x/.test(cv) && /lastTap\.current/.test(cv)
+        && /try \{ return localStorage\.getItem\(SEEN_KEY\)/.test(sh) && /if \(!ready \|\| mode \|\| readSeen\(\)\)/.test(sh) && /filter\(\(\[sel\]\) => !sel \|\| find\(sel\)\)/.test(sh); })());
+  t('panel body never waits on an exit animation (an upload switching to Selection used to leave it blank)',
+    !/AnimatePresence/.test(rd('src/pages/client/design-studio/ToolDrawer.jsx')));
 }
 console.log(out.join('\n')); const f =out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);

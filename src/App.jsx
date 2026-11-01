@@ -44,7 +44,6 @@ import CustomerLogin    from './pages/auth/Login';
 import AuthSkeleton, { useAuthReady } from './components/AuthSkeleton';
 import { AppShellSkeleton, SiteSkeleton, StudioSkeleton } from './components/PageSkeletons';
 import UpdatePrompt from './components/UpdatePrompt';
-import RouteLoadingScreen from './components/LoadingScreen';
 import { useAfter } from './components/ui/PageLoader';
 import { areaOf } from './utils/routeArea';
 import VerifyEmail      from './pages/auth/VerifyEmail';
@@ -98,20 +97,26 @@ const DesignStudio = lazy(() => import('./pages/client/DesignStudio'));
 const DevLayouts = import.meta.env.DEV ? lazy(() => import('./dev/layouts/DevLayouts')) : null;
 
 // ── Auth extras — lazy ────────────────────────────────────────────────────────
-const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'));
-const ResetPassword  = lazy(() => import('./pages/auth/ResetPassword'));
-
-// ── Public info pages — lazy, no auth required ────────────────────────────────
-const GuidePage = lazy(() => import('./pages/Guide'));
-const FAQPage    = lazy(() => import('./pages/FAQ'));
-const TeamPage   = lazy(() => import('./pages/Team'));
-const AboutPage  = lazy(() => import('./pages/About'));
-const WhatWeDoPage = lazy(() => import('./pages/WhatWeDo'));
-const InsidePage = lazy(() => import('./pages/InsideVFRB'));
-const GalleryPage = lazy(() => import('./pages/Gallery'));
-const Group60Page = lazy(() => import('./pages/Group60'));
-const PrivacyPage = lazy(() => import('./pages/PrivacyPolicy')); // NEW Aug 28 2026
-const TermsPage    = lazy(() => import('./pages/TermsOfService')); // NEW Aug 28 2026
+// ── Public info pages — lazy, no auth required; PUBLIC is also what Prefetch warms ──
+const PUBLIC = {
+  forgot: () => import('./pages/auth/ForgotPassword'), reset: () => import('./pages/auth/ResetPassword'),
+  guide: () => import('./pages/Guide'), faq: () => import('./pages/FAQ'), team: () => import('./pages/Team'),
+  about: () => import('./pages/About'), whatWeDo: () => import('./pages/WhatWeDo'), inside: () => import('./pages/InsideVFRB'),
+  gallery: () => import('./pages/Gallery'), group60: () => import('./pages/Group60'),
+  privacy: () => import('./pages/PrivacyPolicy'), terms: () => import('./pages/TermsOfService'),
+};
+const ForgotPassword = lazy(PUBLIC.forgot);
+const ResetPassword  = lazy(PUBLIC.reset);
+const GuidePage    = lazy(PUBLIC.guide);
+const FAQPage      = lazy(PUBLIC.faq);
+const TeamPage     = lazy(PUBLIC.team);
+const AboutPage    = lazy(PUBLIC.about);
+const WhatWeDoPage = lazy(PUBLIC.whatWeDo);
+const InsidePage   = lazy(PUBLIC.inside);
+const GalleryPage  = lazy(PUBLIC.gallery);
+const Group60Page  = lazy(PUBLIC.group60);
+const PrivacyPage  = lazy(PUBLIC.privacy);
+const TermsPage    = lazy(PUBLIC.terms);
 
 // Skeletons appear only when a load takes longer than 150 ms; quicker loads show nothing.
 const Late = ({ children }) => (useAfter(150) ? children : null);
@@ -122,15 +127,30 @@ function Loader() {
   const area = areaOf(pathname);
   const late = useAfter(150);
   if (!late) return null;
-  if (area === 'auth') return <AuthSkeleton variant={pathname === '/login' ? 'split' : undefined}/>;
+  if (area === 'auth') return <AuthSkeleton variant={SPLIT_AUTH.includes(pathname) ? 'split' : undefined}/>;
   if (area === 'studio') return <StudioSkeleton/>;
   if (area === 'admin' || area === 'app') return <AppShellSkeleton/>;
   return <SiteSkeleton/>;
 }
 
+// Warm the public and auth chunks once the browser is idle, so page hops skip the skeleton.
+function Prefetch() {
+  const area = areaOf(useLocation().pathname);
+  useEffect(() => {
+    if ((area !== 'site' && area !== 'auth') || navigator.connection?.saveData) return undefined;
+    const idle = window.requestIdleCallback ?? ((f) => setTimeout(f, 1200));
+    const cancel = window.cancelIdleCallback ?? clearTimeout;
+    const id = idle(() => Object.values(PUBLIC).forEach(load => load().catch(() => {})));
+    return () => cancel(id);
+  }, [area]);
+  return null;
+}
+
 // Each route gets its own boundary: router navigations run as transitions, which
 // keep the old page on screen instead of showing an already-mounted fallback.
 const SiteLoad  = ({ children }) => <Suspense fallback={<Late><SiteSkeleton/></Late>}>{children}</Suspense>;
+const SPLIT_AUTH = ['/login', '/forgot-password', '/reset-password'];
+const AuthLoad  = ({ children }) => <Suspense fallback={<Late><AuthSkeleton variant="split"/></Late>}>{children}</Suspense>;
 const ShellLoad = ({ children }) => <Suspense fallback={<Late><AppShellSkeleton/></Late>}>{children}</Suspense>;
 
 // ── Auth guards ───────────────────────────────────────────────────────────────
@@ -220,7 +240,7 @@ export default function App() {
     <MotionConfig reducedMotion="user">
     <BrowserRouter>
       <ScrollTop/>
-      <RouteLoadingScreen/>
+      <Prefetch/>
       <StorageNotice/>
       <UpdatePrompt/>
       {/* appIconPath points at the local icon — the package default falls back to a
@@ -238,12 +258,12 @@ export default function App() {
           <Route path="/admin" element={<AdminRootRoute/>}/>
 
           {/* ── CUSTOMER AUTH ─────────────────────────────────────────────── */}
-          {/* Login's split panel has no photo, so it skips AuthGate's photo wait. */}
+          {/* Split auth pages have no photo, so they skip AuthGate's photo wait. */}
           <Route path="/login"           element={<GuestOnly><CustomerLogin/></GuestOnly>}/>
           {/* Self-registration is closed: VFRB creates customer accounts. */}
           <Route path="/register"        element={<Navigate to="/login" replace/>}/>
-          <Route path="/forgot-password" element={<AuthGate><ForgotPassword/></AuthGate>}/>
-          <Route path="/reset-password"  element={<AuthGate><ResetPassword/></AuthGate>}/>
+          <Route path="/forgot-password" element={<AuthLoad><ForgotPassword/></AuthLoad>}/>
+          <Route path="/reset-password"  element={<AuthLoad><ResetPassword/></AuthLoad>}/>
           <Route path="/verify-email"    element={<AuthGate><VerifyEmail/></AuthGate>}/>
           <Route path="/auth/google/complete" element={<GoogleComplete/>}/>
 

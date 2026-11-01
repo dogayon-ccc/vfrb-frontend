@@ -1,9 +1,9 @@
 // Tool rail in the stage's top lane: Photoshop-style tools and single-letter shortcuts (railTools.js), plus the active colour.
 import { useEffect } from 'react';
-import { MousePointer2, Hand, Pipette, PaintBucket, Brush, Eraser, PenTool, Slash, Type, Shapes } from 'lucide-react';
+import { MousePointer2, Hand, Pipette, PaintBucket, Brush, Eraser, PenTool, Slash, Type, Shapes, RectangleHorizontal, Circle } from 'lucide-react';
 import { RAIL_TOOLS, PICK_TOOLS, STROKE_SIZES, STROKE_TOOLS, railKey, activeRail } from './railTools';
 
-const ICONS = { move: MousePointer2, hand: Hand, sample: Pipette, fill: PaintBucket, brush: Brush, eraser: Eraser, pen: PenTool, line: Slash, text: Type, shape: Shapes };
+const ICONS = { move: MousePointer2, hand: Hand, sample: Pipette, fill: PaintBucket, brush: Brush, eraser: Eraser, pen: PenTool, line: Slash, text: Type, shape: Shapes, rect: RectangleHorizontal, ellipse: Circle };
 const typing = () => { const a = document.activeElement; return !!a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable); };
 
 export default function ToolRail({ rail, hand, setHand, canPan, zoomBy }) {
@@ -47,7 +47,7 @@ export default function ToolRail({ rail, hand, setHand, canPan, zoomBy }) {
           </button>
         );
       })}
-      <label className="ds-tools-ink" title="Active colour: the brush, pen, line and paint bucket use it, the eyedropper sets it">
+      <label className="ds-tools-ink" title="Active colour: the brush, pen, line, rectangle, ellipse and paint bucket use it, the eyedropper sets it">
         <input type="color" value={color} onChange={e => setColor(e.target.value)} aria-label="Active colour"/>
       </label>
       {STROKE_TOOLS.includes(active) && setSize && (

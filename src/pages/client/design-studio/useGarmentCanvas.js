@@ -14,7 +14,7 @@ import { pieceOf } from './garmentCatalog';
 import { wovenFill } from './wovenPatterns';
 import { loadFont, webFontFor, defaultWeight } from './studioFonts';
 import { sketchInk } from './sketchLine';
-import { pathData, constrain45, closesAt, trimDoubleClick } from './vectorTools';
+import { pathData, constrain45, closesAt, trimDoubleClick, dragBox } from './vectorTools';
 import { emptyHistory, entry, pushStep, stepHistory, canStep, switchSide, lookOf, sameLook, syncLook, lookToApply, foldSince } from './editHistory';
 
 // Template lines (garmentPaths `details`). Untagged ones are decorative: no __zoneKey, never clicked or hovered. A tagged part (pocket,
@@ -147,7 +147,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   const eraser = useRef(false); // Draw tool in eraser mode: a stroke cuts the customer's drawings and art, never the garment
   const pick = useRef(null); // Eyedropper ('sample'), paint bucket ('fill'), Pen or Line: taps never select or move a design item
   // Pen/Line work in progress; previewed on the interaction layer only, so nothing unfinished is saved or undoable.
-  const vec = useRef({ anchors: [], drag: false, cursor: null, line: null });
+  const vec = useRef({ anchors: [], drag: false, cursor: null, line: null, box: null });
   const vecApi = useRef(null); // { finish, back, cancel, busy } bound inside the canvas setup
   const penKeys = useRef(null);
   // Snapping options (set by the Studio's grid/snap toggles) and the guides of the current drag. Guides are drawn on Fabric's
@@ -410,7 +410,9 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       }
 
       // Pen: click = corner, drag = curve, first point closes, Enter / double-click / Esc finishes. Line: drag; Shift = 45 deg.
-      const vecMode = () => (pick.current?.mode === 'pen' || pick.current?.mode === 'line' ? pick.current.mode : null);
+      // Rectangle and Ellipse: drag a box; Shift = square or circle.
+      const VEC_MODES = ['pen', 'line', 'rect', 'ellipse'], isBox = m => m === 'rect' || m === 'ellipse';
+      const vecMode = () => (VEC_MODES.includes(pick.current?.mode) ? pick.current.mode : null);
       const vecStyle = () => pick.current?.style?.() ?? { color: T2, width: 4 };
       const onePx = () => 1 / (fc.current.viewportTransform[0] * (snapOpts.current.scale || 1));
       const clearVec = () => { if (fc.current?.contextTop) fc.current.clearContext(fc.current.contextTop); };
@@ -425,6 +427,13 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         const stroke = (pts, w, ink, dash = []) => { ctx.setLineDash(dash); ctx.lineWidth = w; ctx.strokeStyle = ink; ctx.stroke(new Path2D(pathData(pts))); };
         const corner = p => ({ x: p.x, y: p.y, hx: 0, hy: 0 });
         if (v.line) stroke([corner(v.line.from), corner(v.line.to)], width, color);
+        if (v.box) {
+          const b = dragBox(v.box.from, v.box.to, v.box.square), outline = new Path2D();
+          if (vecMode() === 'ellipse') outline.ellipse(b.left + b.width / 2, b.top + b.height / 2, b.width / 2, b.height / 2, 0, 0, Math.PI * 2);
+          else outline.rect(b.left, b.top, b.width, b.height);
+          ctx.globalAlpha = 0.55; ctx.fillStyle = color; ctx.fill(outline); ctx.globalAlpha = 1;
+          ctx.setLineDash([4 * px, 3 * px]); ctx.lineWidth = px; ctx.strokeStyle = '#e11d74'; ctx.stroke(outline);
+        }
         const a = v.anchors;
         if (a.length > 1) stroke(a, width, color);
         if (a.length && v.cursor && !v.drag) stroke([a[a.length - 1], corner(v.cursor)], px, '#e11d74', [4 * px, 3 * px]);
@@ -453,11 +462,30 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
           keepDrawing(path, name);
         }).catch(() => {});
       }
+      // A finished box becomes a Shape layer, the same object the Shapes panel adds, sized to the drag.
+      function keepBox(kind, b) {
+        import('fabric').then((mod) => {
+          const fabric = mod.fabric ?? mod.default ?? mod, c = fc.current;
+          if (!c) return;
+          const { color } = vecStyle();
+          const shape = makeShape(fabric, kind, { left: b.left + b.width / 2, top: b.top + b.height / 2, originX: 'center', originY: 'center',
+            fill: color, stroke: 'rgba(0,0,0,.25)', strokeWidth: 1, __shape: true, __layerId: crypto.randomUUID() }, color);
+          shape.set(kind === 'ellipse' ? { rx: b.width / 2, ry: b.height / 2 } : { width: b.width, height: b.height });
+          shape.setCoords();
+          c.add(shape);
+          c.renderAll();
+          pushHistory();
+          bumpLayers();
+          const L = latest.current;
+          onAdded.current?.(plainObject(shape, OVERLAY_PROPS), getGarmentPaths(L.garment, L.sleeve));
+        }).catch(() => {});
+      }
       function vecDown(opt) {
         const mode = vecMode();
         if (!mode) return false;
         const p = fc.current.getScenePoint(opt.e), v = vec.current;
-        if (mode === 'line') v.line = { from: p, to: p };
+        if (isBox(mode)) v.box = { from: p, to: p, square: !!opt.e.shiftKey };
+        else if (mode === 'line') v.line = { from: p, to: p };
         else if (closesAt(v.anchors, p, 8 * onePx())) { vecFinish(true); return true; }
         else { v.anchors.push({ x: p.x, y: p.y, hx: 0, hy: 0 }); v.drag = true; }
         drawVec();
@@ -467,7 +495,8 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         const mode = vecMode();
         if (!mode) return false;
         const p = fc.current.getScenePoint(opt.e), v = vec.current, last = v.anchors[v.anchors.length - 1];
-        if (mode === 'line') { if (v.line) v.line.to = opt.e.shiftKey ? constrain45(v.line.from, p) : p; }
+        if (isBox(mode)) { if (v.box) { v.box.to = p; v.box.square = !!opt.e.shiftKey; } }
+        else if (mode === 'line') { if (v.line) v.line.to = opt.e.shiftKey ? constrain45(v.line.from, p) : p; }
         else if (v.drag) { const hx = p.x - last.x, hy = p.y - last.y, curve = Math.hypot(hx, hy) > 3 * onePx(); last.hx = curve ? hx : 0; last.hy = curve ? hy : 0; }
         else v.cursor = opt.e.shiftKey && last ? constrain45(last, p) : p;
         drawVec();
@@ -475,6 +504,13 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       }
       function vecUp() {
         const mode = vecMode(), v = vec.current;
+        if (isBox(mode) && v.box) {
+          const b = dragBox(v.box.from, v.box.to, v.box.square);
+          v.box = null;
+          clearVec();
+          if (b.width > 3 * onePx() && b.height > 3 * onePx()) keepBox(mode, b); // a tap without a drag draws nothing
+          return;
+        }
         if (mode === 'pen') { v.drag = false; return; }
         if (mode !== 'line' || !v.line) return;
         const { from, to } = v.line;

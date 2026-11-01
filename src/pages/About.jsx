@@ -62,7 +62,7 @@ export default function About() {
             <div className="vs-stack">
               <p className="vs-body">Ready to order? Sign in to design your uniform, or message us directly.</p>
               <div className="vs-btns">
-                <Btn to="/login">Design your uniform</Btn>
+                <Btn to="/login">Sign in</Btn>
                 <Btn href={C.map} variant="line" target="_blank" rel="noopener noreferrer">Open in Google Maps</Btn>
               </div>
               <TextLink to="/what-we-do">See what we make</TextLink>

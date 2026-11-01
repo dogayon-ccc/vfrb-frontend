@@ -1,100 +1,86 @@
+import { useRef } from 'react';
+import { useReducedMotion } from 'framer-motion';
+import SitePage from '../components/site/SitePage';
 import Photo from '../components/landing/Photo';
 import Reveal from '../components/landing/Reveal';
-import SitePage from '../components/site/SitePage';
-import { Btn, Head, TextLink, Accordion } from '../components/site/parts';
-import { useNavigate } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
-import { FIND_UNIFORM, ORDER_FAQS } from '../components/site/content';
-import { startStudioIn } from '../utils/studioIntent';
+import { Btn, TextLink } from '../components/site/parts';
+import { CONTACT as C } from '../components/site/config';
+import useParallax from '../hooks/useParallax';
 import { MIN_ORDER_QTY } from '../utils/orderQuantity';
-import { P, GALLERY } from './landing/photos';
+import { P } from './landing/photos';
+import PatternReveal from './landing/PatternReveal';
+import CategoryCards from './landing/CategoryCards';
+import '../styles/landing.css';
 
 const STEPS = [
-  ['Design', 'Create and save your uniform in the VFRB Design Studio.'],
-  ['Proposal and date', `Order from your saved design: sizes, quantity (minimum ${MIN_ORDER_QTY} pieces) and the date you need it by. VFRB sends a proposal with a delivery date for you to accept.`],
-  ['Production', 'Once you accept, your uniforms move through the production floor, from pattern to packing.'],
-  ['Delivery and invoice', 'Your uniforms are delivered, and the invoice and payment receipts are kept in your customer account.'],
+  ['Design', 'Build and save your uniform in the VFRB Design Studio: garment, colours, logo and text.'],
+  ['Order', `Order from a saved design with sizes, quantity (minimum ${MIN_ORDER_QTY} pieces) and the date you need. VFRB replies with a proposal and a delivery date for you to accept.`],
+  ['Track', 'Follow the status of your order from your account and message the VFRB team.'],
+  ['Receive', 'Pick up your uniforms or have them delivered. The invoice and payment receipts stay in your account.'],
 ];
 
-const WORK = [P.embroidery, P.sublimationTee, P.printing, P.sublimationPolo, P.tees, P.sewing3, P.packed, P.ecobag]
-  .map(photo => GALLERY.find(g => g.photo === photo));
+const CONTACTS = [
+  ['Call', C.phoneHref, C.phone],
+  ['Email', `mailto:${C.email}`, C.email],
+  ['Message', C.facebook, 'Facebook page'],
+  ['Visit', C.map, `${C.address[0]}, ${C.address[1]}`],
+];
 
 export default function Landing() {
-  const nav = useNavigate();
+  const hero = useRef(null);
+  useParallax(hero, useReducedMotion());
   return (
     <SitePage title="Company uniforms made in Muntinlupa">
-      <section className="vs-hero">
+      <section ref={hero} className="lp-hero vs-wrap" aria-labelledby="lp-title">
+        <div className="lp-hero__copy">
+          <h1 className="vs-h1" id="lp-title">Company uniforms, made by one family since 2000.</h1>
+          <p className="lp-lede">Design your uniform in the VFRB Studio, order in bulk and follow it from the cutting table to your door. VFRB sets up accounts for schools, hospitals and companies.</p>
+          <div className="vs-btns">
+            <Btn to="/login" variant="mint">Sign in</Btn>
+            <Btn to="/login#request-access" variant="ghost-light">Request access</Btn>
+          </div>
+        </div>
+        <PatternReveal />
+      </section>
+
+      <section className="vs-sec vs-wrap" aria-labelledby="lp-how">
+        <h2 className="vs-h2" id="lp-how">From design to delivery</h2>
+        <ol className="lp-steps">
+          {STEPS.map(([t, d], i) => <Reveal as="li" key={t} delay={i * 0.04}><span aria-hidden="true">{i + 1}</span><h3>{t}</h3><p>{d}</p></Reveal>)}
+        </ol>
+      </section>
+
+      <section className="vs-sec vs-tint" aria-labelledby="lp-cats">
         <div className="vs-wrap">
-          <div className="vs-hero__grid">
-            <div className="vs-hero__copy">
-              <p className="vs-kicker" style={{ margin: 0 }}>VFRB Enterprise, Muntinlupa City</p>
-              <h1 className="vs-h1">Company uniforms, made by <span className="vs-mark">one family</span> since 2000.</h1>
-              <p className="vs-lede">
-                VFRB Enterprise, also known as Tailor Centre VFRB Manila, is a medium-scale, family-owned garment
-                industry specialized in corporate and company uniforms.
-              </p>
-              <div className="vs-btns"><Btn to="/design-studio">Design your uniform</Btn></div>
-              <p className="vs-proof">Family-owned since 2000</p>
-            </div>
-            <div className="vs-hero__media">
-              <Photo photo={P.sewing4} instant hover={false} pos="18% center" className="vs-hero__main" ratio="auto" sizes="(min-width: 900px) 50vw, 100vw" />
-              <Photo photo={P.uniforms} instant hover={false} pos="28% center" className="vs-hero__inset" ratio="4 / 3" sizes="(min-width: 900px) 23vw, 46vw" />
-            </div>
+          <h2 className="vs-h2" id="lp-cats">Start from your kind of team</h2>
+          <p className="vs-body lp-sub">Each opens the Studio at that category&rsquo;s templates. You sign in first.</p>
+          <CategoryCards />
+        </div>
+      </section>
+
+      <section className="vs-sec vs-dark lp-floor" aria-labelledby="lp-floor">
+        <div className="vs-wrap lp-floor__grid">
+          <Reveal className="lp-floor__copy">
+            <h2 className="vs-h2" id="lp-floor">Cut, sewn and packed on our own floor</h2>
+            <p className="vs-lede">Every order is made by the VFRB team in Bayanan, Muntinlupa, from the pattern table to the packed box.</p>
+            <TextLink to="/gallery">See more of our work</TextLink>
+          </Reveal>
+          <div className="lp-floor__photos">
+            <Photo photo={P.sewing4} className="lp-floor__a" ratio="4 / 5" pos="20% center" hover={false} caption="The sewing line" sizes="(min-width: 960px) 30vw, 60vw" />
+            <Photo photo={P.embroidery} className="lp-floor__b" ratio="1 / 1" hover={false} caption="Embroidery" sizes="(min-width: 960px) 20vw, 40vw" />
+            <Photo photo={P.packed} className="lp-floor__c" ratio="3 / 4" hover={false} caption="Packed by division" sizes="(min-width: 960px) 20vw, 40vw" />
           </div>
         </div>
       </section>
 
-      <section className="vs-sec" aria-labelledby="find">
-        <div className="vs-wrap">
-          <Head kicker="Find your uniform" id="find" title="Start from the garments for your kind of team." />
-          <ul className="vs-types vs-find">
-            {FIND_UNIFORM.map(([label, cat]) => (
-              <li key={cat}><button type="button" onClick={() => { startStudioIn(cat); nav('/design-studio'); }}>
-                <span>{label}</span><ArrowRight size={18} aria-hidden="true" />
-              </button></li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
-      <section className="vs-sec vs-tint" aria-labelledby="how">
-        <div className="vs-wrap vs-split vs-split--sticky">
-          <Reveal className="vs-stack">
-            <p className="vs-kicker">How it works</p>
-            <h2 className="vs-h2" id="how">From your design to your door, in four steps.</h2>
-            <TextLink to="/guide">Read the customer guide</TextLink>
-          </Reveal>
-          <Reveal delay={0.06}>
-            <ol className="vs-flow">
-              {STEPS.map(([t, d], i) => <li key={t}><em>{i + 1}</em><h3>{t}</h3><p>{d}</p></li>)}
-            </ol>
-          </Reveal>
-        </div>
-      </section>
-
-      <section className="vs-sec" aria-labelledby="work">
-        <div className="vs-wrap">
-          <Head kicker="Our work" id="work" title="Made on our own floor, packed for delivery." />
-          <Reveal className="vs-strip">
-            {WORK.map(g => <Photo key={g.caption} photo={g.photo} pos={g.pos} caption={g.caption} ratio="3 / 4" sizes="(min-width: 900px) 25vw, 50vw" />)}
-          </Reveal>
-          <div style={{ marginTop: 20 }}><TextLink to="/gallery">Open the full gallery</TextLink></div>
-        </div>
-      </section>
-
-      <section className="vs-sec vs-tint" aria-labelledby="faq">
-        <div className="vs-wrap vs-faqgrid">
-          <Reveal className="vs-stack">
-            <p className="vs-kicker">FAQ</p>
-            <h2 className="vs-h2" id="faq">Before you order</h2>
-            <p className="vs-body">Not answered here? See the full FAQ or contact VFRB.</p>
-            <div className="vs-btns">
-              <TextLink to="/faq">More questions</TextLink>
-              <TextLink to="/about#contact">Contact VFRB</TextLink>
-            </div>
-          </Reveal>
-          <Accordion items={ORDER_FAQS} />
-        </div>
+      <section className="vs-sec vs-wrap lp-contact" id="contact" aria-labelledby="lp-contact">
+        <h2 className="vs-h2" id="lp-contact">Rather talk first?</h2>
+        <p className="vs-body lp-sub">Call or message VFRB and an administrator can set up your account.</p>
+        <ul className="lp-contact__list">
+          {CONTACTS.map(([k, href, v]) => (
+            <li key={k}><a href={href} {...(href.startsWith('http') && { target: '_blank', rel: 'noopener noreferrer' })}><small>{k}</small>{v}</a></li>
+          ))}
+        </ul>
       </section>
     </SitePage>
   );

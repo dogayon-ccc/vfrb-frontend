@@ -99,6 +99,8 @@
 .vs-nav a[aria-current='page'] { color: var(--vs-ink); font-weight: 700; }
 .vs-header__cta { display: none; align-items: center; gap: 10px; }
 .vs-header__cta .vs-btn { min-height: 44px; padding: 0 18px; }
+.vs-header__cta { transition: opacity 200ms, visibility 200ms; }
+.vs-header__cta.is-off { opacity: 0; visibility: hidden; }
 .vs-burger { width: 46px; height: 46px; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
   background: transparent; border: 1.5px solid var(--vs-line); border-radius: 8px; cursor: pointer; color: var(--vs-ink); }
 .vs-burger span { display: block; width: 20px; height: 2px; background: currentColor; transition: transform var(--vs-t) var(--vs-ease), opacity var(--vs-t-fast); }

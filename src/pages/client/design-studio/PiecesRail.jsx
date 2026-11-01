@@ -1,9 +1,12 @@
-// Pieces rail: a card per uniform piece (tap to edit it) and the piece actions. A left column on desktop; on phones and tablets
-// piece tabs above the canvas, for a set only (the actions move to the Garment sheet).
+// Pieces rail: a card per uniform piece (tap to edit it) and the piece actions. A left column on desktop, with the docked layers
+// and the shortcut card under them; on phones and tablets a strip above the canvas (piece tabs for a set, the add action for one piece).
 import GarmentSilhouette from './GarmentSilhouette';
 import { SET_ROLES, ROLE_LABEL } from './uniformSet';
 import { pieceOf, isCompleteOutfit, COMPLETE_OUTFIT } from './garmentCatalog';
 import { garmentLabel } from '../../../utils/designName';
+import { NavIcon } from '../../../components/ui/icons';
+import { ICON } from './LayersPanel';
+import { SHORTCUTS } from './railTools';
 
 function Card({ role, c, name }) {
   return (
@@ -38,21 +41,76 @@ export function PieceActions({ cfg, uset, other = null, onStart, canSet, setView
       )}
       {!uset && (
         <button type="button" className="ds-piece-add" data-card onClick={onStart}>
-          <span className="ds-piece-add-plus" aria-hidden="true">+</span>Add a matching {ROLE_LABEL[SET_ROLES.find(r => r !== role)].toLowerCase()}
+          <span className="ds-piece-add-plus" aria-hidden="true">+</span><span>Add<span className="ds-piece-add-x"> a matching</span> {ROLE_LABEL[SET_ROLES.find(r => r !== role)].toLowerCase()}</span>
         </button>
       )}
     </div>
   );
 }
 
+// Desktop only: the layers on this side, always in view (Photoshop's docked Layers panel). Tap a row to select; the eye hides it.
+// Renaming, order, lock and opacity stay in the full Layers tab.
+function LayerDock({ layers = [], selectedId, onSelect, onToggleVisibility, onAdd, onOpenLayers }) {
+  return (
+    <section className="ds-dock" aria-labelledby="ds-dock-h">
+      <div className="ds-dock-head">
+        <h3 id="ds-dock-h">Layers <span>{layers.length}</span></h3>
+        {layers.length > 0 && onOpenLayers && <button type="button" className="ds-dock-link" onClick={onOpenLayers}>Edit all</button>}
+      </div>
+      {layers.length === 0 ? (
+        <div className="ds-dock-empty">
+          <p>Nothing on this side yet.</p>
+          {onAdd && <button type="button" className="ds-btn" onClick={onAdd}>Add a logo or text</button>}
+        </div>
+      ) : (
+        <ul className="ds-dock-list" aria-label="Layers on this side, front-most first">
+          {layers.map(l => (
+            <li key={l.id} className="ds-dock-row" data-sel={l.id === selectedId || undefined} data-hidden={!l.visible || undefined}>
+              <button type="button" className="ds-dock-pick" aria-pressed={l.id === selectedId} onClick={() => onSelect?.(l.id)}>
+                <NavIcon name={ICON[l.type] ?? 'text'} size={15}/>
+                <span>{l.name}</span>
+                {l.locked && <NavIcon name="lock" size={13}/>}
+              </button>
+              <button type="button" className="ds-dock-eye" aria-label={`${l.visible ? 'Hide' : 'Show'} ${l.name}`} aria-pressed={!l.visible}
+                onClick={() => onToggleVisibility?.(l.id)}><NavIcon name={l.visible ? 'show' : 'hide'} size={15}/></button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+// Help at the foot of the column: the tour, every shortcut ("?" anywhere) and the keyboard ones in a fold.
+function KeysCard({ onTour, onKeys }) {
+  return (
+    <div className="ds-help">
+      {(onTour || onKeys) && (
+        <div className="ds-help-acts">
+          {onTour && <button type="button" className="ds-btn" onClick={onTour}>Take the tour</button>}
+          {onKeys && <button type="button" className="ds-btn" onClick={onKeys} aria-label="All shortcuts" aria-keyshortcuts="?" title="All shortcuts (?)"><kbd>?</kbd></button>}
+        </div>
+      )}
+      <details className="ds-keys">
+        <summary>Keyboard shortcuts</summary>
+        <dl>
+          {SHORTCUTS.filter(g => g.group !== 'Touch').flatMap(g => g.keys).map(([k, label]) => <div key={k + label}><dt><kbd>{k}</kbd></dt><dd>{label}</dd></div>)}
+        </dl>
+      </details>
+    </div>
+  );
+}
+
 export default function PiecesRail(props) {
-  const { cfg, uset, other = null, onSwitch, onShowSet, showSet, readOnly = false } = props;
+  const { cfg, uset, other = null, onSwitch, onShowSet, showSet, readOnly = false, dock = null, help = null } = props;
   if (!cfg.garment) return null;
   const role = pieceOf(cfg.garment);
   const active = uset?.active ?? role;
   const pieceCfg = r => (r === active ? cfg : other?.role === r ? other.cfg : null);
+  // Phones and tablets: a single piece still gets the strip, so "Add a matching …" is one tap away (a set shows its piece tabs).
+  const strip = !uset && !readOnly && !!role;
   return (
-    <aside className="ds-rail ds-chrome" aria-label="Pieces" data-set={uset ? '1' : undefined}>
+    <aside className="ds-rail ds-chrome" aria-label="Pieces" data-set={uset ? '1' : undefined} data-strip={strip || undefined}>
       <h2 className="ds-rail-h">Pieces</h2>
       {uset ? (
         <ul className="ds-rail-list" role="group" aria-label="Piece to edit">
@@ -69,6 +127,9 @@ export default function PiecesRail(props) {
         <div className="ds-rail-card" data-single><Card role={role} c={cfg} name={cfg.garment}/></div>
       )}
       <PieceActions {...props}/>
+      <div id="ds-navigator-slot" className="ds-nav-slot"/>
+      {dock && !readOnly && <LayerDock {...dock}/>}
+      {!readOnly && <KeysCard onTour={help?.onTour} onKeys={help?.onKeys}/>}
     </aside>
   );
 }

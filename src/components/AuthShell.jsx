@@ -1,7 +1,9 @@
 // Shared chrome for all auth pages. Presentation only; form logic lives in each page.
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { ViewLink as Link } from './ViewLink';
+import { NavIcon } from './ui/icons';
+import useParallax from '../hooks/useParallax';
 import logo from '../assets/company-logo.jpg';
 import art from '../assets/brand/sewing-2.jpg';
 import flatA from '../assets/flats/scrub-top-vneck-short/front.svg';
@@ -24,7 +26,64 @@ export const authInput = (focusedKey, current, error) => ({
 export const fieldA11y = (id, msg) => ({ 'aria-invalid': msg ? true : undefined, 'aria-describedby': msg ? `${id}-err` : undefined });
 
 export function FieldError({ id, msg }) {
-  return msg ? <p id={`${id}-err`} role="alert" style={{ color: 'var(--danger)', fontSize: 12, marginTop: 5 }}>{msg}</p> : null;
+  return msg ? <p id={`${id}-err`} role="alert" className="au-err">{msg}</p> : null;
+}
+
+export const FormError = ({ msg }) => (msg ? <p role="alert" className="au-formerr"><NavIcon name="warning" size={16} color="var(--danger)" />{msg}</p> : null);
+
+// True only once `on` has lasted `ms`, so a fast request never flashes a loader.
+export function useLate(on, ms = 150) {
+  const [late, setLate] = useState(false);
+  useEffect(() => {
+    if (!on) { setLate(false); return undefined; }
+    const t = setTimeout(() => setLate(true), ms);
+    return () => clearTimeout(t);
+  }, [on, ms]);
+  return late;
+}
+
+export function SubmitBtn({ loading, disabled, busy, line, children }) {
+  const late = useLate(loading);
+  return (
+    <button type="submit" className={`au-submit${line ? ' au-submit--line' : ''}`} disabled={loading || disabled} aria-busy={loading}>
+      {late && <span className="au-spin" aria-hidden="true" />}{late ? busy : children}
+    </button>
+  );
+}
+
+export function AuthDone({ icon, title, action, onAction, children }) {
+  return (
+    <div role="status" className="au-done">
+      <span className="au-done__icon"><NavIcon name={icon} size={26} color="var(--teal)" /></span>
+      <h2>{title}</h2>
+      <p>{children}</p>
+      <button type="button" className="au-submit" onClick={onAction}>{action}</button>
+    </div>
+  );
+}
+
+export function Field({ id, label, error, aside, trailing, ...input }) {
+  const [on, setOn] = useState(false);
+  return (
+    <div>
+      <label htmlFor={id} className="au-label">{label}</label>
+      <div className="au-inputwrap">
+        <input id={id} {...input} {...fieldA11y(id, error)} onFocus={() => setOn(true)} onBlur={() => setOn(false)}
+          style={{ ...authInput(on ? id : '', id, error), ...(trailing && { paddingRight: 52 }) }} />
+        {trailing}
+      </div>
+      <FieldError id={id} msg={error} />
+      {aside && <div className="au-asiderow">{aside}</div>}
+    </div>
+  );
+}
+
+export function PasswordField(props) {
+  const [show, setShow] = useState(false);
+  return <Field {...props} type={show ? 'text' : 'password'} trailing={
+    <button type="button" className="au-eye" onClick={() => setShow(v => !v)} aria-label="Show password" aria-pressed={show}>
+      <NavIcon name={show ? 'hide' : 'show'} size={18} />
+    </button>} />;
 }
 
 const STEPS = [
@@ -41,35 +100,21 @@ const FLATS = [
   { src: flatA, cls: 'f4', d: 16, r: 4 },
 ];
 
-// Pointer parallax on fine pointers only; writes CSS vars so React never re-renders.
-function useParallax(ref, off) {
-  useEffect(() => {
-    const el = ref.current;
-    if (off || !el || !window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
-    let raf = 0;
-    const move = (e) => {
-      const b = el.getBoundingClientRect();
-      const x = (e.clientX - b.left) / b.width - 0.5, y = (e.clientY - b.top) / b.height - 0.5;
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => { el.style.setProperty('--px', x.toFixed(3)); el.style.setProperty('--py', y.toFixed(3)); });
-    };
-    const leave = () => { cancelAnimationFrame(raf); el.style.setProperty('--px', 0); el.style.setProperty('--py', 0); };
-    el.addEventListener('pointermove', move);
-    el.addEventListener('pointerleave', leave);
-    return () => { cancelAnimationFrame(raf); el.removeEventListener('pointermove', move); el.removeEventListener('pointerleave', leave); };
-  }, [ref, off]);
-}
+let dropped = false;
 
 function SplitArt({ calm }) {
   const ref = useRef(null);
   useParallax(ref, calm);
+  // Flats drop onto the panel once per visit, not again on every auth page hop.
+  const [drop] = useState(() => !calm && !dropped);
+  useEffect(() => { dropped = true; }, []);
   return (
     <aside className="au-art au-art--navy" ref={ref}>
       <Link to="/" className="au-brand" aria-label="VFRB Enterprise home">
         <img src={logo} alt="" width="44" height="44" />
         <span>VFRB Enterprise</span>
       </Link>
-      <div className="au-flats" aria-hidden="true">
+      <div className={`au-flats${drop ? ' is-drop' : ''}`} aria-hidden="true">
         {FLATS.map(f => <img key={f.cls} src={f.src} alt="" className={`au-flat ${f.cls}`} style={{ '--d': f.d, '--r': `${f.r}deg` }} />)}
       </div>
       <div className="au-art-in">
@@ -82,7 +127,7 @@ function SplitArt({ calm }) {
 
 export default function AuthShell({ title, subtitle, maxWidth = 400, variant, children }) {
   const calm = useReducedMotion();
-  const rise = calm ? {} : { hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { duration: 0.32, ease: [0.2, 0.7, 0.2, 1] } } };
+  const rise = calm ? {} : { hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { duration: 0.2, ease: [0.2, 0.7, 0.2, 1] } } };
   const split = variant === 'split';
 
   if (split) return (
