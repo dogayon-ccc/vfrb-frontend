@@ -98,7 +98,7 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
           ? <SelectionInspector selObj={p.selObj} updateSelected={p.updateSelected} alignSelected={p.alignSelected}
               toggleSelectedLock={p.toggleSelectedLock} pushHistory={p.pushHistory} garmentRect={p.garmentRect} arrangeLayer={p.arrangeLayer}
               setPocketColor={p.setPocketColor} mirrorSelected={p.mirrorSelected}
-              zones={placementsFor(p.cfg.garment, p.cfg.sleeve, p.cfg.fit)} presetPos={p.presetPos}/>
+              zones={placementsFor(p.cfg.garment, p.cfg.sleeve, p.cfg.fit)} presetPos={p.presetPos} nudgeSelected={p.nudgeSelected}/>
           : <p className="ds-sum-sub" style={{ padding:'24px 4px', textAlign:'center' }}>Tap a placed logo, text or shape on the canvas to edit it.</p>}
       </div>
     ),

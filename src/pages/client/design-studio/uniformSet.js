@@ -40,9 +40,11 @@ export function orderQueue(snap) {
   const roles = SET_ROLES.filter(r => pieces[r]?.garment);
   if (roles.length < 2) return null;
   const parts = roles.map(r => ({ role: r, garment: pieces[r].garment }));
+  // The active piece's render is snap.previewPng; another piece's rides in its own set entry (normalizeSet drops it on reopen).
+  const shot = r => (r === set.active ? snap.previewPng : snap.uniformSet.pieces?.[r]?.previewPng);
   return roles.map((r, i) => ({
     ...pieces[r],
-    ...(r === set.active && snap.previewPng ? { previewPng: snap.previewPng } : {}),
+    ...(shot(r) ? { previewPng: shot(r) } : {}),
     uniformSet: { id: set.id, role: r, part: i + 1, of: roles.length, parts },
   }));
 }

@@ -9,6 +9,7 @@ import UiSkeleton from '../ui/Skeleton';
 import StatusChip from '../ui/StatusChip';
 import { MiniPreview } from '../../pages/client/design-studio/InspoGallery';
 import { BASE_PATHS } from '../../pages/client/design-studio/garmentPaths';
+import { setOrders, ROLE_LABEL } from '../../pages/client/design-studio/uniformSet';
 import { savedDesignName, garmentLabel } from '../../utils/designName';
 import { humanize } from '../../utils/humanize';
 
@@ -68,6 +69,13 @@ export const fmtDate = (d, o = { month: 'short', day: 'numeric', year: 'numeric'
   d ? new Date(d).toLocaleDateString('en-PH', o) : '—';
 // The customer's saved design name (studio_config.name; the order API has no separate name field), else the garment.
 export const orderTitle = (o) => garmentLabel(savedDesignName(o?.studio_config) || humanize(o?.garment_type)?.trim()) || 'Custom Order';
+// "Top of a uniform set · with #181 Pants" on each piece of a set (its partner orders from `orders`); null for a single garment.
+export function setMateLine(o, orders) {
+  const mates = setOrders(o, orders).filter(m => m.order_id !== o.order_id);
+  if (!mates.length) return null;
+  const role = parseCfg(o).uniformSet?.role;
+  return `${ROLE_LABEL[role] ? `${ROLE_LABEL[role]} of a uniform set` : 'Uniform set'} · with ${mates.map(m => `#${m.order_id} ${orderTitle(m)}`).join(', ')}`;
+}
 export const parseCfg = (o) => {
   const raw = o?.studio_config;
   if (!raw) return {};

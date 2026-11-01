@@ -32,6 +32,7 @@ Read this first in every new session. Do not re-audit finished work. Update the 
 - Frontend preview was deployed by CLI (`vfrb-frontend-pjjzwyhby...`); the repo `ignoreCommand` builds only `main`.
 - Preview shares live DB variables, so preview clicks write real rows.
 - Plan: finish work, test locally on vfrb_demo, then a SHORT window with Preview protection off for the final live click-through (turn it back on right after).
+- Production checklist: `display_errors` must be Off in production, so a PHP warning can never corrupt a response (with it On, a startup warning turns a 422 into a 200).
 - Production order: Supabase backup, backend ff-merge to main and push, wait Ready, frontend ff-merge and push, verify, tag `defense-2026-11`, delete branches last.
 - Vercel "Needs Attention" env vars (not marked Sensitive): after deploy, re-enter the SAME value with Sensitive on. Never replace `APP_KEY`. Change `DB_PASSWORD` only together with Supabase.
 

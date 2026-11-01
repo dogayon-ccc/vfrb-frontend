@@ -11,7 +11,7 @@ import { stashStudioConfig, draftFingerprint } from '../../utils/studioHandoff';
 import {
   useState, useEffect, useRef, useCallback, useMemo,
 } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import axios from 'axios';
 import { NavIcon } from '../../components/ui/icons';
@@ -35,7 +35,7 @@ import { T2, INIT_CFG, FONTS, PATTERNS, zonesFor, REF_PHOTO_TOOLS } from './desi
 import { templateFacts, checkEdit, applyStateEdits } from './design-studio/designEdits';
 import { describePatterns } from './design-studio/wovenPatterns';
 import { deserializeDesign, serializeDesign, draftLabel } from './design-studio/designSerialization';
-import { saveStatus } from './design-studio/saveStatus';
+import { saveStatus, confirmedSave } from './design-studio/saveStatus';
 import { applyGarment, pieceOf } from './design-studio/garmentCatalog';
 import { openTarget } from './design-studio/designGallery';
 import { withPhotoColour } from './design-studio/photoColours';
@@ -56,6 +56,7 @@ import { paintZone } from './design-studio/colorRules';
 // ─────────────────────────────────────────────────────────────
 export default function DesignStudio() {
   const nav      = useNavigate();
+  const location = useLocation();
   // BUG 2 FIX: canvasEl is the ref OBJECT — hook reads .current inside useEffect
   const canvasEl     = useRef(null);
   // Responsive canvas: measure the .ds-cv container so the canvas fills it
@@ -299,7 +300,7 @@ export default function DesignStudio() {
       if (mod && e.shiftKey && e.code === 'KeyL') { e.preventDefault(); toggleSelectedLock(); return; }
       if (mod && e.shiftKey && e.code === 'KeyH' && selObj.__layerId) { e.preventDefault(); toggleLayerVisibility(selObj.__layerId); return; }
       if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelected(); return; }
-      const step = e.shiftKey ? 10 : 1;
+      const step = e.shiftKey ? 5 : 1; // grid steps
       const d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
       if (d) { e.preventDefault(); nudgeSelected(...d); }
     };
@@ -309,21 +310,37 @@ export default function DesignStudio() {
 
   // TASK O: save current face canvas JSON, then switch face + restore the other
   // Defined AFTER useGarmentCanvas so getCanvasJSON/loadCanvasJSON are in scope (no TDZ)
+  // After loadCanvasJSON: waits (up to 2 s) until the canvas holds `want` overlays, so a snapshot never reads a half-loaded face.
+  const settleOverlays = useCallback(async (want) => {
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    await wait(50); // the load clears the old objects first
+    for (let i = 0; i < 40 && (getCanvasJSON() ?? []).length !== want.length; i++) await wait(50);
+  }, [getCanvasJSON]);
+  // While a face or piece swap is mid-way the canvas is not the face in `face`: the save chip check and autosave wait for it to end.
+  const swapping = useRef(0);
+  const whileSwapping = useCallback(async (fn) => {
+    swapping.current += 1;
+    try { return await fn(); } finally { swapping.current -= 1; }
+  }, []);
+
   const switchFace = useCallback((newFace) => {
     if (newFace === face) return;
     faceJSON.current[face] = getCanvasJSON() ?? [];
-    setFace(newFace);
-    setTimeout(() => {
-      loadCanvasJSON(faceJSON.current[newFace] ?? [], { side: { from: face, to: newFace } });
-    }, 80);
-  }, [face, getCanvasJSON, loadCanvasJSON]);
+    whileSwapping(async () => {
+      setFace(newFace);
+      await new Promise(r => setTimeout(r, 80));
+      const want = faceJSON.current[newFace] ?? [];
+      loadCanvasJSON(want, { side: { from: face, to: newFace } });
+      await settleOverlays(want);
+    });
+  }, [face, getCanvasJSON, loadCanvasJSON, settleOverlays, whileSwapping]);
 
   // Skips the reload when we're already on the target face — calling
   // loadCanvasJSON() on a face whose content is already live and correct
   // kicks off a redundant async enlivenObjects() that can resolve late and
   // re-add objects onto whatever face we've since moved to. Real bug, caught
   // via screenshot: an emoji added on front leaked onto the back export.
-  const exportFrontBack = useCallback(async () => {
+  const exportFrontBack = useCallback(() => whileSwapping(async () => {
     const originalFace = face;
     let activeFace = originalFace;
     faceJSON.current[activeFace] = getCanvasJSON() ?? [];
@@ -335,6 +352,7 @@ export default function DesignStudio() {
         await new Promise(r => setTimeout(r, 150));
         loadCanvasJSON(faceJSON.current[target] ?? []);
         await new Promise(r => setTimeout(r, 250));
+        await settleOverlays(faceJSON.current[target] ?? []);
         activeFace = target;
       }
       return exportPNG();
@@ -346,7 +364,7 @@ export default function DesignStudio() {
     if (activeFace !== originalFace) await capture(originalFace);
 
     return compositeFrontBack(frontUrl, backUrl);
-  }, [face, getCanvasJSON, loadCanvasJSON, exportPNG, cfg.garment, cfg.sleeve, cfg.fit]);
+  }), [face, getCanvasJSON, loadCanvasJSON, settleOverlays, whileSwapping, exportPNG, cfg.garment, cfg.sleeve, cfg.fit]);
 
   // AI design edits (B5). Every operation is re-checked against the template it lands on (the current one, or the template a
   // from-scratch brief maps to). Preview applies them to the one DesignState, so the 2D canvas and the 3D view show the same thing;
@@ -433,7 +451,21 @@ export default function DesignStudio() {
     const { frontOverlays, backOverlays } = deserializeDesign(raw);
     faceJSON.current = { front: frontOverlays, back: backOverlays };
     const toLoad = faceJSON.current[face] ?? [];
-    if (toLoad.length > 0) setTimeout(() => loadCanvasJSON(toLoad), 350);
+    const loaded = whileSwapping(async () => {
+      if (!toLoad.length) return;
+      await new Promise(r => setTimeout(r, 350));
+      loadCanvasJSON(toLoad);
+      await settleOverlays(toLoad);
+    });
+    // "Continue editing" hands over the account draft itself: when it matches, an unchanged canvas reads "Saved".
+    if (!lockRef.current?.designId) Promise.all([axios.get('/api/customer/drafts/latest'), loaded]).then(([r]) => {
+      const acct = r.data?.draft?.studio_config;
+      if (!acct || draftFingerprint(acct) !== draftFingerprint(JSON.parse(raw))) return;
+      accountCopy.current = true;
+      lastSavedFp.current = draftFingerprint(acct); // the account's copy is the baseline, not the half-loaded first snapshot
+      const now = draftFingerprint(saveFns.current.snapshotDesign());
+      setAutoState(s => (s === 'saving' ? s : now === lastSavedFp.current ? 'saved' : 'dirty'));
+    }).catch(() => {});
     // Mount-once: this restores whatever sessionStorage held at the moment
     // Design Studio opened, not a live sync — re-running on `face` or
     // `loadCanvasJSON` identity changes would re-fire this on every face
@@ -454,11 +486,15 @@ export default function DesignStudio() {
     setUset(normalizeSet(pendingDraft.studio_config?.uniformSet));
     faceJSON.current = { front: frontOverlays, back: backOverlays };
     const toLoad = faceJSON.current[face] ?? [];
-    if (toLoad.length > 0) setTimeout(() => loadCanvasJSON(toLoad), 350);
+    if (toLoad.length > 0) whileSwapping(async () => {
+      await new Promise(r => setTimeout(r, 350));
+      loadCanvasJSON(toLoad);
+      await settleOverlays(toLoad);
+    });
     setPendingDraft(null);
     accountCopy.current = true;
     setToast('Design restored from your last session');
-  }, [pendingDraft, loadCanvasJSON, face]);
+  }, [pendingDraft, loadCanvasJSON, settleOverlays, whileSwapping, face]);
 
   const dismissDraft = useCallback(() => setPendingDraft(null), []);
   // The offer is only for a fresh, empty canvas: picking a garment or placing anything retires it.
@@ -536,9 +572,13 @@ export default function DesignStudio() {
     faceJSON.current = { front: frontOverlays, back: backOverlays };
     // Already on the front: swap the overlays at once (the base redraw keeps them), so the previous piece's
     // text and logos never sit on the new garment. A face change still waits for the front to draw.
-    const load = () => loadCanvasJSON(faceJSON.current.front ?? []);
-    if (face !== 'front') { setFace('front'); setTimeout(load, 350); } else load();
-  }, [cfg.category, face, loadCanvasJSON]);
+    const want = faceJSON.current.front ?? [];
+    whileSwapping(async () => {
+      if (face !== 'front') { setFace('front'); await new Promise(r => setTimeout(r, 350)); }
+      loadCanvasJSON(want);
+      await settleOverlays(want);
+    });
+  }, [cfg.category, face, loadCanvasJSON, settleOverlays, whileSwapping]);
 
   const startSet = useCallback(() => {
     const role = pieceOf(cfg.garment);
@@ -610,15 +650,17 @@ export default function DesignStudio() {
     const { previewPng, ...studio_config } = snap; // eslint-disable-line no-unused-vars
     const own = lockRef.current?.designId;
     if (own && !lockRef.current.final) { // an opened saved design or copy saves to its own row; the account draft is left alone
-      await axios.put(`/api/customer/designs/${own}`, { custom_builder_config: studio_config, design_name: studio_config.name?.trim()?.slice(0, 100) || undefined });
+      const { data } = await axios.put(`/api/customer/designs/${own}`, { custom_builder_config: studio_config, design_name: studio_config.name?.trim()?.slice(0, 100) || undefined });
+      if (!confirmedSave(data, 'id')) throw new Error('save not confirmed');
       lastSavedFp.current = draftFingerprint(studio_config);
       return;
     }
-    await axios.post('/api/customer/drafts', {
+    const { data } = await axios.post('/api/customer/drafts', {
       studio_config,
       preview_dataurl: await fitDraftPreview(exportPNG()),
       label:           draftLabel(cfg),
     });
+    if (!confirmedSave(data, 'draft_id')) throw new Error('save not confirmed'); // a 200 the server did not really store is a failure
     lastSavedFp.current = draftFingerprint(studio_config);
   }, [cfg, exportPNG]);
 
@@ -632,12 +674,16 @@ export default function DesignStudio() {
   useEffect(() => {
     clearTimeout(autoSaveTimer.current);
     if (!cfg.garment || locked) { baseFp.current = null; setAutoState(null); return undefined; } // a final design is never written back
-    const dirtyCheck = setTimeout(() => {
+    let dirtyCheck = null;
+    const check = () => {
+      if (swapping.current) { dirtyCheck = setTimeout(check, 200); return; } // a snapshot mid-swap would write the wrong face
       const fp = draftFingerprint(saveFns.current.snapshotDesign());
       if (baseFp.current === null && lastSavedFp.current === null) baseFp.current = fp;
       setAutoState(s => (s === 'saving' ? s : fp === (lastSavedFp.current ?? baseFp.current) ? (lastSavedFp.current || accountCopy.current || lockRef.current?.designId ? 'saved' : null) : 'dirty'));
-    }, 400);
-    autoSaveTimer.current = setTimeout(async () => {
+    };
+    dirtyCheck = setTimeout(check, 400);
+    const autosave = async () => {
+      if (swapping.current) { autoSaveTimer.current = setTimeout(autosave, 1000); return; }
       const { snapshotDesign: snapNow, persistDraft: persist } = saveFns.current;
       const snap = snapNow();
       if (draftFingerprint(snap) === (lastSavedFp.current ?? baseFp.current)) return;
@@ -647,7 +693,8 @@ export default function DesignStudio() {
       setAutoState('saving');
       try { await persist(snap); setSaveErr(false); setAutoState('saved'); }
       catch { setSaveErr(local ? 'local' : 'none'); setAutoState('dirty'); } // shown as a retry state, never silently dropped
-    }, 30_000);
+    };
+    autoSaveTimer.current = setTimeout(autosave, 30_000);
     return () => { clearTimeout(dirtyCheck); clearTimeout(autoSaveTimer.current); };
   }, [cfg, locked, editTick]);
   const status = cfg.garment ? saveStatus({ saving, saveErr, auto: autoState, draftSaved, saved }) : null;
@@ -677,11 +724,43 @@ export default function DesignStudio() {
     } finally { setSaving(false); }
   }, [cfg, saving, locked, snapshotDesign, persistDraft, flashError]);
 
+  // A set piece that is not on the canvas: draw it there just long enough to render it like the active piece (front, plus back
+  // where the garment has one, same size as exportPNG), then put the active piece, its face and its undo history back.
+  const renderOtherPiece = useCallback(piece => whileSwapping(async () => {
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    const keep = { cfg, face, faces: { ...faceJSON.current, [face]: getCanvasJSON() ?? [] } };
+    const { cfg: c, frontOverlays, backOverlays } = deserializeDesign(piece);
+    const shoot = async (f, want) => {
+      setFace(f);
+      await wait(150);
+      loadCanvasJSON(want, { keepHistory: true });
+      await settleOverlays(want);
+      return exportFace(f, getGarmentPaths(c.garment, c.sleeve ?? 'Short', f).h * 2);
+    };
+    try {
+      keep3DRef.current = true; // a render pass is not a garment pick: the view mode stays as it is
+      setCfg(p => ({ ...p, ...c, inspirationId: c.inspirationId ?? null }));
+      const front = await shoot('front', frontOverlays ?? []);
+      const back = hasBackView(c.garment, c.sleeve, c.fit) ? await shoot('back', backOverlays ?? []) : null;
+      return front ? await compositeFrontBack(front, back) : null;
+    } catch { return null; } finally {
+      keep3DRef.current = true;
+      setCfg(keep.cfg);
+      faceJSON.current = keep.faces;
+      setFace(keep.face);
+      await wait(150);
+      const back = keep.faces[keep.face] ?? [];
+      loadCanvasJSON(back, { keepHistory: true });
+      await settleOverlays(back);
+      await exportFace(keep.face, 1); // waits for the active garment to finish drawing; the draft thumbnail is taken from it next
+    }
+  }), [cfg, face, getCanvasJSON, loadCanvasJSON, settleOverlays, whileSwapping, exportFace]);
+
   // Order This → pass design to OrderWizard
   // Export files: each face is rendered at EXPORT_FACE_HEIGHT after it has fully drawn (exportFace), then the
   // live canvas returns to the face the customer was on. Photo bases have no back, so they export front only.
   const [exporting, setExporting] = useState(null);
-  const captureExportFaces = useCallback(async () => {
+  const captureExportFaces = useCallback(() => whileSwapping(async () => {
     const originalFace = face;
     let activeFace = originalFace;
     faceJSON.current[activeFace] = getCanvasJSON() ?? [];
@@ -704,9 +783,10 @@ export default function DesignStudio() {
       setFace(originalFace);
       await new Promise(r => setTimeout(r, 150));
       loadCanvasJSON(faceJSON.current[originalFace] ?? [], { keepHistory: true });
+      await settleOverlays(faceJSON.current[originalFace] ?? []);
     }
     return faces.every(f => f.url) ? faces : null;
-  }, [face, getCanvasJSON, loadCanvasJSON, exportFace, cfg.garment, cfg.sleeve, cfg.fit]);
+  }), [face, getCanvasJSON, loadCanvasJSON, settleOverlays, whileSwapping, exportFace, cfg.garment, cfg.sleeve, cfg.fit]);
 
   const exportName = ext => `vfrb-${(cfg.name?.trim() || cfg.garment || 'design').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${new Date().toLocaleDateString('en-CA')}.${ext}`; // local YYYY-MM-DD
 
@@ -770,7 +850,13 @@ export default function DesignStudio() {
       // the other one exactly as exportFrontBack left it.
       const previewPng = await exportFrontBack();
       const snap = snapshotDesign(previewPng);
-      if (!stashStudioConfig(snap).ok) throw new Error('storage');
+      const set = snap.uniformSet;
+      let shots = snap; // each other set piece gets its own render, so the Wizard and its order show its text and logos too
+      if (set) for (const role of Object.keys(set.pieces).filter(r => r !== set.active && set.pieces[r]?.garment)) {
+        const png = await renderOtherPiece(set.pieces[role]);
+        if (png) shots = { ...shots, uniformSet: { ...shots.uniformSet, pieces: { ...shots.uniformSet.pieces, [role]: { ...set.pieces[role], previewPng: png } } } };
+      }
+      if (!stashStudioConfig(shots).ok && !stashStudioConfig(snap).ok) throw new Error('storage');
       // Keep the account draft until the order is actually placed: store exactly this design, so leaving or
       // failing in the Wizard still finds it in My Designs. OrderWizard retires it after a successful submit.
       await persistDraft(snap).catch(() => {}); // the browser handoff above already carries the design
@@ -781,7 +867,23 @@ export default function DesignStudio() {
       setOrdering(false);
       flashError('Could not prepare your design for ordering. Try removing very large logos, then retry.');
     }
-  }, [cfg, ordering, locked, snapshotDesign, exportFrontBack, persistDraft, nav, flashError]);
+  }, [cfg, ordering, locked, snapshotDesign, exportFrontBack, renderOtherPiece, persistDraft, nav, flashError]);
+
+  // My Designs "Order this" on a set comes here first: once the garment and its overlays have drawn, Review & order renders every
+  // piece for its own order, exactly as if the customer had pressed it. The route state is cleared first, so Back never re-orders.
+  const orderRef = useRef(orderThis);
+  orderRef.current = orderThis;
+  const autoOrder = useRef(!!location.state?.autoOrder);
+  useEffect(() => {
+    if (!autoOrder.current || !garmentRect || !cfg.garment) return;
+    autoOrder.current = false;
+    nav(location.pathname, { replace: true, state: null });
+    (async () => {
+      for (let i = 0; i < 60 && swapping.current; i++) await new Promise(r => setTimeout(r, 100));
+      orderRef.current();
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once, when the opened design has drawn
+  }, [garmentRect, cfg.garment]);
 
 
   // "Duplicate to edit": the account gets a copy (POST /copy) and the Studio switches to it, colours only; the ordered design stays as it is.
@@ -874,7 +976,7 @@ export default function DesignStudio() {
             ai={{ preview: previewAI, undo: undoAI, keep: keepAI, previewing: !!aiPreview, editedSince: aiEditedSince, view3D: viewAI3D, has3D: has3DFor(cfg) }} textItems={textItems} layers={layers} selObj={selObj} alignSelected={alignSelected}
             selectLayer={selectLayer} toggleLayerVisibility={toggleLayerVisibility}
             toggleLayerLock={toggleLayerLock} toggleSelectedLock={toggleSelectedLock} setLayerOpacity={setLayerOpacity}
-            pushHistory={pushHistory} presetPos={presetPos}
+            pushHistory={pushHistory} presetPos={presetPos} nudgeSelected={nudgeSelected}
             renameLayer={renameLayer} deleteLayer={deleteLayer} reorderLayers={reorderLayers} pieceRole={uset?.active ?? null} trace={trace} setTrace={setTrace} status={locked ? null : status}
             garmentExtra={<PieceActions {...pieceProps} other={setCompanion} readOnly={colorOnly} inSheet/>}
             more={{ onView: () => setViewOpen(true), onCopy: duplicateToEdit, canCopy: !!lock?.designId, copying }}/>

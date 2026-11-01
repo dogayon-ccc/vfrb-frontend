@@ -50,7 +50,7 @@ export default function FeedbackSection() {
           onChange={e => setMessage(e.target.value)} placeholder="Tell us what happened or what would help."/>
         <p style={{ fontSize: 13, color: 'var(--text-faint)', margin: '-8px 0 0', textAlign: 'right' }}>{message.length}/{MAX}</p>
         {err && <p role="alert" style={{ fontSize: 13, fontWeight: 700, color: 'var(--danger)', margin: 0 }}>{err}</p>}
-        <Button variant="primary" fullWidth loading={busy} onClick={submit}>{err && !busy ? 'Retry' : busy ? 'Sending…' : 'Send Feedback'}</Button>
+        <Button variant="primary" fullWidth loading={busy} onClick={submit}>{err && !busy ? 'Retry' : busy ? 'Sending…' : 'Send feedback'}</Button>
       </div>
     </Card>
   );

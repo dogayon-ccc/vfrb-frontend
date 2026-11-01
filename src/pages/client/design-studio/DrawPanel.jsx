@@ -50,7 +50,7 @@ export default function DrawPanel({ size, color, onSizeChange, onColorChange, er
 
       {/* Brush size — preset dots, not a slider (thumb-friendly on mobile) */}
       <div>
-        <p style={secLabel}>Brush Size</p>
+        <p style={secLabel}>Brush size</p>
         <div style={{ display:'flex', gap:10 }}>
           {SIZES.map(s => {
             const active = s === size;
@@ -77,7 +77,7 @@ export default function DrawPanel({ size, color, onSizeChange, onColorChange, er
 
       {/* Brush color */}
       {!erasing && <div>
-        <p style={secLabel}>Brush Color</p>
+        <p style={secLabel}>Brush colour</p>
         <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
           {COLORS.map(c => {
             const active = c.hex.toLowerCase() === (color || '').toLowerCase();

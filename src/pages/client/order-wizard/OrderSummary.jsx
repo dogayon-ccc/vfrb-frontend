@@ -7,19 +7,18 @@ import { ROLE_LABEL } from '../design-studio/uniformSet';
 import { isCompleteOutfit, COMPLETE_OUTFIT } from '../design-studio/garmentCatalog';
 import { useObjectUrl } from '../../../hooks/useObjectUrl';
 import { garmentLabel } from '../../../utils/designName';
+import { DesignThumb } from '../../../components/customer/kit';
+import { garmentOf } from './orderForm';
 
-function Thumb({ form, studio }) {
+// A Studio design shows its render, or its own garment outline in its colours; an upload shows the file.
+function Thumb({ form, studio, scale = 1 }) {
   const ref = useObjectUrl(!studio && form.design_ref_file?.type?.startsWith('image/') ? form.design_ref_file : null);
-  const src = studio?.previewPng ?? ref;
-  return (
-    <span className="wz-sthumb" style={!src && studio?.colors?.body ? { background: studio.colors.body } : undefined}>
-      {src ? <img src={src} alt=""/> : <NavIcon name="garmentType" size={20}/>}
-    </span>
-  );
+  if (studio) return <span className="wz-sthumb"><DesignThumb compact scale={scale} src={studio.previewPng ?? null} garment={garmentOf(studio)} colors={studio.colors} name={garmentLabel(garmentOf(studio))}/></span>;
+  return <span className="wz-sthumb">{ref ? <img src={ref} alt=""/> : <NavIcon name="garmentType" size={20}/>}</span>;
 }
 
 const total = forms => forms.reduce((a, f) => a + orderQty(f), 0);
-const qtyLabel = q => (q ? `${q} pcs${q < MIN_ORDER_QTY ? ` (min ${MIN_ORDER_QTY})` : ''}` : 'Not set');
+const qtyLabel = q => (q ? `${q} pcs${q < MIN_ORDER_QTY ? ` (min ${MIN_ORDER_QTY})` : ''}` : 'Sizes not set yet');
 
 function SummaryBody({ forms, studios }) {
   const shared = forms[0], isSet = forms.length > 1;
@@ -60,7 +59,7 @@ export function SummaryBar({ forms, studios }) {
   return (
     <>
       <button type="button" className="wz-sbar" onClick={() => setOpen(true)} aria-haspopup="dialog">
-        <Thumb form={forms[0]} studio={studios[0]}/>
+        <Thumb form={forms[0]} studio={studios[0]} scale={0.6}/>
         <span className="wz-sbar-t"><strong>{name}</strong><span>{qtyLabel(total(forms))}</span></span>
         <span className="wz-sbar-l">Summary</span>
       </button>

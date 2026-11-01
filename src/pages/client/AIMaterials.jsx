@@ -18,17 +18,19 @@ const SK = {
   backgroundSize:'400px', animation:'sk 1.4s infinite',
 };
 
-// Category config, colors/icons per material category — shared with MaterialsReveal.jsx.
+// Category icon per material category — shared with MaterialsReveal.jsx. One Pattern Room tile (cutting-mat paper, ink icon) for every
+// category, so photo, swatch, spool and icon tiles read as one set; the category name on the tile tells them apart.
+const TILE = { color:'var(--pr-ink-muted)', bg:'var(--pr-paper-inset)' };
 export const CAT = {
-  Fabric:       { icon:'materials', color:'#3b82f6', bg:'#dbeafe' },
-  Thread:       { icon:'materials', color:'#8b5cf6', bg:'#ede9fe' },
-  Elastic:      { icon:'materials', color:'#f97316', bg:'#ffedd5' },
-  Accessories:  { icon:'package',   color:'var(--text-subtle)', bg:'#f1f5f9' },
-  Trim:         { icon:'materials', color:'#06b6d4', bg:'#cffafe' },
-  Label:        { icon:'package',   color:'#0d9488', bg:'#ccfbf1' },
-  Trims:        { icon:'materials', color:'#06b6d4', bg:'#cffafe' },
-  Lining:       { icon:'materials', color:'#f59e0b', bg:'#fef3c7' },
-  Other:        { icon:'package',   color:'var(--text-faint)', bg:'var(--bg-surface)' },
+  Fabric:       { icon:'materials', ...TILE },
+  Thread:       { icon:'materials', ...TILE },
+  Elastic:      { icon:'materials', ...TILE },
+  Accessories:  { icon:'package',   ...TILE },
+  Trim:         { icon:'materials', ...TILE },
+  Label:        { icon:'package',   ...TILE },
+  Trims:        { icon:'materials', ...TILE },
+  Lining:       { icon:'materials', ...TILE },
+  Other:        { icon:'package',   ...TILE },
 };
 
 const STATUS_C = {
@@ -259,7 +261,7 @@ export function SelfPickModal({ order, onClose, onDone }) {
                     {mats.map(m => (
                       <label key={m.material_id} style={{ display:'flex', alignItems:'center',
                         gap:10, padding:'8px 10px', borderRadius:9, cursor:'pointer',
-                        background: picked.has(m.material_id) ? `${cfg.color}12` : 'transparent' }}>
+                        background: picked.has(m.material_id) ? 'var(--cx-thread-tint)' : 'transparent' }}>
                         <input type="checkbox" checked={picked.has(m.material_id)}
                           onChange={()=>toggle(m.material_id)} style={{ width:16, height:16, accentColor:T }}/>
                         <span style={{ fontSize:13, color:'var(--ink)', fontFamily:FONT }}>{m.material_name}</span>
@@ -341,7 +343,7 @@ function SwatchTile({ hex, label }) {
 function SpoolGlyph({ hex, label }) {
   const c = hex ?? '#9ca3af';
   return (
-    <div aria-hidden="true" style={{ position:'relative', height:TILE_H, display:'grid', placeItems:'center', background:'var(--bg-surface)' }}>
+    <div aria-hidden="true" style={{ position:'relative', height:TILE_H, display:'grid', placeItems:'center', background:TILE.bg }}>
       <svg width="64" height="88" viewBox="0 0 64 88">
         <rect x="6" y="4" width="52" height="10" rx="3" fill="#c9a77c"/>
         <rect x="6" y="74" width="52" height="10" rx="3" fill="#c9a77c"/>

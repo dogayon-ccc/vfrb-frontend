@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react';
+import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
 import { NavIcon } from '../../../components/ui/icons';
 import { shapeLabel } from './overlayTools';
 import { TextStyleSection, ShapeStyleSection, ImageStyleSection, ArrangeRow } from './StyleSections';
-import { metricsPct } from './canvasGuides';
+import { metricsPct, xyText } from './canvasGuides';
 import { pocketLabel } from './pocketTools';
 import { SwatchGrid } from './SwatchGrid';
 
@@ -28,13 +30,39 @@ function kindOf(o) {
   return 'Text';
 }
 
+// Live "x, y" (template units) of the selection, updated while it is dragged, plus one-step nudge buttons (Shift = 5 steps).
+const NUDGE = [['Up', ArrowUp, 0, -1], ['Left', ArrowLeft, -1, 0], ['Right', ArrowRight, 1, 0], ['Down', ArrowDown, 0, 1]];
+function NudgePad({ obj, garmentRect, nudgeSelected, locked }) {
+  const [, tick] = useState(0);
+  useEffect(() => {
+    const c = obj.canvas;
+    if (!c) return undefined;
+    const f = () => tick(n => n + 1);
+    const evs = ['object:moving', 'object:scaling', 'object:modified'];
+    evs.forEach(ev => c.on(ev, f));
+    return () => evs.forEach(ev => c.off(ev, f));
+  }, [obj]);
+  const xy = xyText(metricsPct(obj, garmentRect));
+  return (
+    <div className="ds-nudge">
+      <p className="ds-nudge-xy"><span>x, y</span><output aria-live="off" aria-label="Position in template units">{xy}</output></p>
+      <div className="ds-nudge-pad" role="group" aria-label="Nudge by one grid step (Shift: 5 steps)">
+        {NUDGE.map(([dir, Icon, dx, dy]) => (
+          <button key={dir} type="button" className="ds-act" data-dir={dir.toLowerCase()} aria-label={`Nudge ${dir.toLowerCase()}`} title={`Nudge ${dir.toLowerCase()} one grid step (Shift: 5)`} disabled={locked}
+            onClick={e => { const n = e.shiftKey ? 5 : 1; nudgeSelected(dx * n, dy * n); }}><Icon size={16} aria-hidden="true"/></button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // Same controls on desktop (right panel) and tablet/phone ('selected' tab in the sheet).
 // [where, short label, accessible label]
 const ALIGN = [['left', 'Left', 'Align left'], ['hcenter', 'Center', 'Center horizontally'], ['right', 'Right', 'Align right'],
   ['top', 'Top', 'Align top'], ['vcenter', 'Middle', 'Center vertically'], ['bottom', 'Bottom', 'Align bottom']];
 
 export function SelectionInspector({ selObj, updateSelected, alignSelected, toggleSelectedLock, pushHistory, arrangeLayer, garmentRect = null, setPocketColor = null, mirrorSelected = null,
-  zones = [], presetPos = null }) {
+  zones = [], presetPos = null, nudgeSelected = null }) {
   // Metrics are % of the garment (origin = its top-left), the same system as the rulers; a multi-selection shows its group bounds.
   const active = selObj.canvas?.getActiveObject?.() ?? selObj, multi = active.type === 'activeselection';
   const m = metricsPct(active, garmentRect), g = garmentRect;
@@ -102,6 +130,7 @@ export function SelectionInspector({ selObj, updateSelected, alignSelected, togg
             {num('H %', m.h, v => updateSelected({ scaleY: ((v / 100) * g.height) / baseH }), multi || isText || !(baseH > 0))}
           </div>
         )}
+        {m && nudgeSelected && <NudgePad obj={active} garmentRect={g} nudgeSelected={nudgeSelected} locked={locked}/>}
         {!multi && range(`Rotation ${angle}°`, angle, 0, 360, v => live({ angle: v }), locked)}
         {!multi && selObj.__logo && !selObj.__artwork && presetPos && zones.length > 0 && (
           <>

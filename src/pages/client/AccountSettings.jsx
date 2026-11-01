@@ -101,7 +101,7 @@ function ShippingSection() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 10, flexWrap: 'wrap' }}>
         <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Saved delivery addresses. Your default is filled in when you place an order.</p>
-        {!editing && !failed && addrs.length > 0 && <Button variant="primary" icon="add" onClick={() => setEditing({})}>New Address</Button>}
+        {!editing && !failed && addrs.length > 0 && <Button variant="primary" icon="add" onClick={() => setEditing({})}>New address</Button>}
       </div>
       <Toast msg={msg} type="success"/><Toast msg={err} type="error"/>
       {editing ? (
@@ -242,7 +242,7 @@ function FabricsSection() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 10, flexWrap: 'wrap' }}>
         <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Fabrics you prefer for future orders — the VFRB team can see these when reviewing your requests.</p>
-        {!picking && !failed && catalog.length > 0 && <Button variant="primary" icon="add" onClick={() => setPicking(true)}>Add Fabric</Button>}
+        {!picking && !failed && catalog.length > 0 && <Button variant="primary" icon="add" onClick={() => setPicking(true)}>Add fabric</Button>}
       </div>
       <Toast msg={msg} type="success"/><Toast msg={err} type="error"/>
 

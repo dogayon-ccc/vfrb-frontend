@@ -20,6 +20,7 @@ import { Card, Button, Badge, PageHeader, Skeleton, ActionMenu } from '../../com
 import { Chips, DesignThumb, reltime, fmtDate } from '../../components/customer/kit';
 import { savedDesignName, garmentLabel } from '../../utils/designName';
 import { openDesign, reorderDesign, duplicateDesign } from '../../utils/designActions';
+import { orderQueue } from './design-studio/uniformSet';
 
 // Gallery card: big preview, one primary action, one visible secondary, the rest in the "⋯" menu.
 function DesignCard({ img, garment, colors, title, meta, badge, tone, primary, secondary, tertiary, i, what }) {
@@ -31,7 +32,7 @@ function DesignCard({ img, garment, colors, title, meta, badge, tone, primary, s
         <span className="mx-badge"><Badge tone={tone}>{badge}</Badge></span>
       </button>
       <div className="mx-body">
-        <div className="mx-txt"><h3 title={title}>{title}</h3><p>{meta}</p></div>
+        <div className="mx-txt"><span className="mx-badge-row"><Badge tone={tone}>{badge}</Badge></span><h3 title={title}>{title}</h3><p>{meta}</p></div>
         <div className="mx-acts">
           {primary && <Button variant="primary" className="mx-primary" onClick={primary.onClick} disabled={primary.disabled}>{primary.label}</Button>}
           {secondary && <Button onClick={secondary.onClick} disabled={secondary.disabled}>{secondary.label}</Button>}
@@ -42,6 +43,7 @@ function DesignCard({ img, garment, colors, title, meta, badge, tone, primary, s
   );
 }
 
+const sleeveText = s => (s ? `${String(s)[0].toUpperCase()}${String(s).slice(1).toLowerCase()} sleeve` : null); // 'short' -> 'Short sleeve'
 const DRAFT = 'warning';
 const ORDERED = 'success';
 const INSPO = 'info';
@@ -81,6 +83,8 @@ export default function MyDesigns() {
   const openStudioBlank = () => { sessionStorage.removeItem('studio_config'); setStudioLock(null); nav('/design-studio'); };
   const continueDraft = () => { sessionStorage.setItem('studio_config', JSON.stringify(draft.studio_config)); setStudioLock(null); nav('/design-studio'); };
   const orderDraft = () => {
+    // A set opens in the Studio first, so Review & order renders every piece and each order carries its own design image.
+    if (orderQueue(draft.studio_config)) { sessionStorage.setItem('studio_config', JSON.stringify(draft.studio_config)); setStudioLock(null); nav('/design-studio', { state: { autoOrder: true } }); return; }
     const png = draft.preview_dataurl;
     const snap = png?.startsWith?.('data:image/png') ? { ...draft.studio_config, previewPng: png } : draft.studio_config;
     stashStudioConfig(snap, { fromDraft: true });
@@ -156,7 +160,7 @@ export default function MyDesigns() {
           ))}
           {showPast && shownPast.map((d, i) => (
             <DesignCard key={d.id} i={i + 1} img={d.photo_path} garment={d.garment} colors={d.config?.colors}
-              title={titleOf(d.config, d.label, d.garment || 'Design')} meta={[d.category, d.sleeve].filter(Boolean).join(' · ') || fmtDate(d.updated_at ?? d.created_at)}
+              title={titleOf(d.config, d.label, d.garment || 'Design')} meta={[d.category, sleeveText(d.sleeve)].filter(Boolean).join(' · ') || fmtDate(d.updated_at ?? d.created_at)}
               badge={d.locked ? 'Ordered · view only' : 'Ordered before'} tone={d.locked ? FINAL : ORDERED}
               primary={{ label: 'Reorder', onClick: () => reorder(d) }}
               secondary={{ label: busy === d.id ? 'Copying…' : 'Duplicate to edit', onClick: () => duplicate(d), disabled: !!busy }}
@@ -164,7 +168,7 @@ export default function MyDesigns() {
           ))}
           {shownTpl.map((d, i) => (
             <DesignCard key={`t${d.id}`} i={i} img={d.photo_path} garment={d.garment} colors={d.config?.colors}
-              title={garmentLabel(d.label || d.garment) || 'Inspiration'} meta={[d.category, d.sleeve].filter(Boolean).join(' · ') || 'Starter design'}
+              title={garmentLabel(d.label || d.garment) || 'Inspiration'} meta={[d.category, sleeveText(d.sleeve)].filter(Boolean).join(' · ') || 'Starter design'}
               badge="Inspiration" tone={INSPO} what="Starter design photo" primary={{ label: 'Use as starting point', onClick: () => useTemplate(d) }} />
           ))}
           {tab !== 'inspo' && <button type="button" className="cx-newtile" onClick={openStudioBlank}>

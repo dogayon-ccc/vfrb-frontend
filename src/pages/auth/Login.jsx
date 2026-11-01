@@ -13,7 +13,7 @@ import { CONTACT } from '../../components/site/config';
 import RequestAccess from './RequestAccess';
 
 // 44px tap height without breaking the sentence's line flow.
-const CONTACT_LINK = { display: 'inline-flex', alignItems: 'center', minHeight: 44, fontWeight: 700, color: 'var(--teal-dark)' };
+const CONTACT_LINK = { display: 'inline', padding: '12px 0', fontWeight: 700, color: 'var(--teal-dark)' }; // inline padding: a 44px tap area that does not stretch the sentence's lines
 
 const T = 'var(--teal)';
 const VERIFY_DELAY_MS = 1800;
@@ -82,7 +82,7 @@ export default function Login() {
   };
 
   return (
-    <AuthShell variant="split" maxWidth={440} title="Sign In" subtitle="Sign in to track your orders and manage your account.">
+    <AuthShell variant="split" maxWidth={440} title="Sign in" subtitle="Sign in to track your orders and manage your account.">
       <AnimatePresence>
         {resetSuccess && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
@@ -140,7 +140,7 @@ export default function Login() {
             background: loading ? 'color-mix(in srgb, var(--teal) 55%, transparent)' : T,
             boxShadow: loading ? 'none' : '0 10px 24px -8px color-mix(in srgb, var(--teal) 70%, transparent)' }}>
           {loading && <span className="au-spin" aria-hidden="true"/>}
-          {loading ? 'Signing in…' : 'Sign In'}
+          {loading ? 'Signing in…' : 'Sign in'}
         </motion.button>
       </form>
 
@@ -167,7 +167,7 @@ export default function Login() {
       <div style={{ textAlign: 'center', fontSize: 15, color: 'var(--text-muted)', marginTop: 28 }}>
         No account?{' '}
         <button type="button" onClick={() => setAsk(v => !v)} aria-expanded={ask} aria-controls="request-access"
-          style={{ ...CONTACT_LINK, border: 'none', background: 'none', padding: 0, fontSize: 15, cursor: 'pointer' }}>Request access</button>
+          style={{ ...CONTACT_LINK, display: 'inline-flex', alignItems: 'center', minHeight: 44, border: 'none', background: 'none', padding: 0, fontSize: 15, cursor: 'pointer' }}>Request access</button>
       </div>
       {ask && <div id="request-access" style={{ marginTop: 12 }}><RequestAccess/></div>}
 
@@ -178,7 +178,7 @@ export default function Login() {
       </p>
 
       <p style={{ textAlign: 'center', marginTop: 12 }}>
-        <Link to="/gallery" style={{ ...CONTACT_LINK, fontSize: 15, padding: '0 8px' }}>See our work</Link>
+        <Link to="/gallery" style={{ ...CONTACT_LINK, fontSize: 15, padding: '12px 8px' }}>See our work</Link>
       </p>
     </AuthShell>
   );

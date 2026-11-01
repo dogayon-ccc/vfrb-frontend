@@ -35,6 +35,12 @@ const base = { category: 'School Uniform', garment: 'Polo Shirt', sleeve: 'Short
   t('save status: only an account save reads "Saved"; a browser-only copy, failures and unsaved edits each read differently; there is always a state (never blank)',
     SS({ auto: 'saved' }).short === 'Saved' && SS({ saved: true }).short === 'This device' && SS({ saveErr: 'local', auto: 'saved' }).tone === 'err' && SS({ saveErr: 'none' }).short === 'Not saved'
     && SS({ auto: 'dirty' }).short === 'Unsaved' && SS({ auto: 'saving' }).tone === 'busy' && SS({ saving: true, saveErr: 'none' }).tone === 'busy' && SS({}).short === 'Unsaved');
+  const CS = (await L('/src/pages/client/design-studio/saveStatus.js')).confirmedSave;
+  t('save confirmation: only a JSON object with the saved id and updated_at and no errors counts; HTML-wrapped or validation bodies never do',
+    CS({ draft_id: 7, updated_at: '2026-11-01T00:00:00Z' }, 'draft_id') && CS({ id: 3, updated_at: 'x' }, 'id')
+    && !CS('<br />{"message":"Validation failed."}', 'draft_id') && !CS({ message: 'Draft saved.' }, 'draft_id')
+    && !CS({ draft_id: 7, updated_at: 'x', errors: { studio_config: ['required'] } }, 'draft_id') && !CS({ draft_id: 7 }, 'draft_id')
+    && !CS(null, 'id') && !CS([], 'id') && !CS({ id: 3, updated_at: 'x', error: 'boom' }, 'id'));
 }
 t('pants null sleeve/fit', (c => c.sleeve === null && c.fit === null)(G.applyGarment(base, 'Pants')));
 t('Pants 2D has no photo base; a selected valid pattern is supported by its vector design', !A.assetFor('Pants', null, 'front') && Sh.pattern3D('Pants', null, null, 'body', 'hstripes') === true);
@@ -174,10 +180,26 @@ t('switching garment drops the photo id; a mismatched or unknown photo id is nev
   const snap = U.withSet(bot, { id: 'set-1', active: 'bottom', pieces: { top, bottom: null } });
   const q = U.orderQueue(snap);
   t('a set orders top first, each piece keeps its own garment, colour, template and overlays', q?.length === 2 && q[0].garment === 'Polo Shirt' && q[0].colors.body === '#123456' && q[0].frontOverlays?.[0]?.text === 'TOP' && q[1].garment === 'Pants' && q[1].colors.body === '#800000' && q[1].templateId === 'pants-trousers' && q[1].inspirationId === 'pants' && q.every((p, n) => p.uniformSet.id === 'set-1' && p.uniformSet.part === n + 1 && p.uniformSet.of === 2 && !p.uniformSet.pieces));
+  { const shots = { ...snap, previewPng: 'data:image/png;base64,BOT', uniformSet: { ...snap.uniformSet, pieces: { ...snap.uniformSet.pieces, top: { ...top, previewPng: 'data:image/png;base64,TOP' } } } };
+    const sq = U.orderQueue(shots), SH = await L('/src/utils/studioHandoff.js');
+    t('each set piece is ordered with its own rendered preview (text and logos included); the renders never change the draft identity or survive a reopen',
+      sq[0].previewPng.endsWith('TOP') && sq[1].previewPng.endsWith('BOT') && !q[0].previewPng
+      && SH.draftFingerprint(shots) === SH.draftFingerprint(snap) && !('previewPng' in U.normalizeSet(shots.uniformSet).pieces.top)); }
   t('a piece in the wrong role is dropped, a one-piece set is not orderable', U.normalizeSet({ id: 'x', active: 'top', pieces: { top: bot, bottom: top } }).pieces.top === null && U.orderQueue(U.withSet(bot, { id: 'x', active: 'bottom', pieces: { top: null, bottom: null } })) === null && U.normalizeSet({ id: 1, active: 'top' }) === null);
   t('set survives Save -> Reload (deserialize ignores it, normalize restores it)', (() => { const raw = JSON.parse(JSON.stringify(snap)); const d = S.deserializeDesign(raw); const set = U.normalizeSet(raw.uniformSet); return d.cfg.garment === 'Pants' && set.active === 'bottom' && set.pieces.top.garment === 'Polo Shirt'; })());
   t('set orders group by set id, top first, string or parsed studio_config, single order stays alone', (() => { const a = { order_id: 7, studio_config: JSON.stringify({ uniformSet: { id: 's9', role: 'bottom' } }) }, b = { order_id: 6, studio_config: { uniformSet: { id: 's9', role: 'top' } } }, c = { order_id: 5, studio_config: '{"uniformSet":{"id":"zz","role":"top"}}' }, d = { order_id: 4, studio_config: null }; const g = U.setOrders(a, [d, c, b, a]); return g.map(o => o.order_id).join() === '6,7' && U.setOrders(d, [a, b]).length === 1 && U.setOrders(c, [{ order_id: 3, studio_config: 'bad{' }]).length === 1; })());
+  { const K = await L('/src/components/customer/kit.jsx');
+    const a = { order_id: 181, garment_type: 'Pants', studio_config: JSON.stringify({ uniformSet: { id: 's1', role: 'bottom' } }) }, b = { order_id: 180, garment_type: 'Mandarin Blouse (Reference)', studio_config: { uniformSet: { id: 's1', role: 'top' } } };
+    t('order lists name each set piece and its partner order (garment label, no "(Reference)"); a single garment gets no set line',
+      K.setMateLine(b, [a, b]) === 'Top of a uniform set · with #181 Pants' && K.setMateLine(a, [a, b]) === 'Bottom of a uniform set · with #180 Mandarin Blouse'
+      && K.setMateLine({ order_id: 5, garment_type: 'Polo Shirt', studio_config: null }, [a, b]) === null); }
+  { const md = fsx.readFileSync('src/pages/client/MyDesigns.jsx', 'utf8'), ds = fsx.readFileSync('src/pages/client/DesignStudio.jsx', 'utf8');
+    t('My Designs "Order this" on a set goes through the Studio (every piece rendered); the Studio clears that route state before ordering, so Back never re-orders',
+      /if \(orderQueue\(draft\.studio_config\)\)[^\n]*nav\('\/design-studio', \{ state: \{ autoOrder: true \} \}\)/.test(md)
+      && /nav\(location\.pathname, \{ replace: true, state: null \}\);[\s\S]{0,200}orderRef\.current\(\)/.test(ds)); }
   { const W = await L('/src/pages/client/order-wizard/orderForm.js'), day = new Date(2026, 9, 26);
+    t('wizard prefill notes name the garment as the customer sees it (no internal "(Reference)" suffix), while garment_type stays the Studio id',
+      (p => p.garment_type === 'Mandarin Blouse (Reference)' && /Mandarin Blouse style\./.test(p.client_design_notes) && !/\(Reference\)/.test(p.client_design_notes))(W.prefillFrom({ garment: 'Mandarin Blouse (Reference)' })));
     const base = { ...W.INIT, garment_type: 'Polo Shirt', color: 'Navy', fabric_type: 'Cotton', delivery_address: 'Quezon City', client_design_notes: 'Navy polo with a left chest logo' };
     const one = W.orderFields({ ...base, sizes: { M: 60, L: 40 } }, null);
     t('wizard: a single-piece order posts the size total as quantity and drops empty fields', one.quantity_ordered === 100 && one.sizes === '{"M":60,"L":40}' && one.order_type === 'direct' && !('studio_config' in one) && !('preferred_date' in one) && !('measurements' in one));
@@ -318,6 +340,9 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const { previewPng, ...stored } = snap; // eslint-disable-line no-unused-vars
   const fp = H.draftFingerprint(snap);
   t('design fingerprint matches the same design after the backend JSON round trip, and ignores the preview image', !!fp && fp === H.draftFingerprint(php(JSON.parse(JSON.stringify(stored)))) && fp === H.draftFingerprint({ ...snap, previewPng: 'data:image/png;base64,BBBB' }));
+  t('an unnamed design (and unnamed set piece) matches its saved copy: Laravel stores empty strings as null',
+    H.draftFingerprint({ ...stored, name: '', uniformSet: { id: 's', active: 'top', pieces: { top: { garment: 'Polo Shirt', name: '' } } } })
+      === H.draftFingerprint({ ...stored, name: null, uniformSet: { id: 's', active: 'top', pieces: { top: { garment: 'Polo Shirt', name: null } } } }));
   t('design fingerprint differs for any real design change (colour, name, overlay text, overlay position)', [{ ...snap, colors: { ...snap.colors, body: '#123457' } }, { ...snap, name: named + '.' }, { ...snap, frontOverlays: [{ ...snap.frontOverlays[0], text: 'Nono' }] }, { ...snap, frontOverlays: [{ ...snap.frontOverlays[0], left: 10.6 }] }].every(x => H.draftFingerprint(x) !== fp) && H.draftFingerprint(null) === null);
   const src = p => fsx.readFileSync(urlx.fileURLToPath(new URL(p, import.meta.url)), 'utf8');
   const studio = src('../src/pages/client/DesignStudio.jsx'), wizard = src('../src/pages/client/OrderWizard.jsx');
@@ -544,18 +569,19 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const cv = src('../src/pages/client/design-studio/CanvasViewport.jsx'), css = src('../src/pages/client/design-studio/DesignStudioStyles.jsx');
   const layers = src('../src/pages/client/design-studio/canvasLayers.js'), hook = src('../src/pages/client/design-studio/useGarmentCanvas.js'), gm = src('../src/pages/client/design-studio/GuidesMenu.jsx');
   // 1. One Guides button and popover; defaults off on phones; the old prefs shape carries over.
-  const ph = CG.guideDefaults(true), dk = CG.guideDefaults(false), old = CG.readGuidePrefs({ grid: true, snap: false, size: 40 }, false);
-  t('guides: one popover with Grid, grid size, Snap, Rulers, Centre line, Smart guides; grid, rulers and centre line off by default (smart guides on desktop only); old prefs carried over',
-    ['Grid', 'Snap', 'Rulers', 'Centre line', 'Smart guides'].every(l => gm.includes(`'${l}'`)) && /aria-label="Grid size"/.test(gm) && /<GuidesMenu /.test(cv) && !/aria-label="Grid and rulers"/.test(cv)
-    && !ph.grid && !ph.rulers && !ph.centre && !ph.smart && !dk.centre && dk.smart && !dk.grid && old.grid && old.rulers && !old.snap && old.size === 20 && CG.readGuidePrefs({ size: 33 }).size === 10 && CG.readGuidePrefs({ v: 2, size: 10 }).size === 10);
+  const ph = CG.guideDefaults(true), dk = CG.guideDefaults(false), old = CG.readGuidePrefs({ grid: true, snap: false, size: 40 }, false), v2 = CG.readGuidePrefs({ v: 2, centre: true, size: 10 });
+  t('guides: View popover with Grid, Rulers, Snap, Guides toggles, grid size and Smart guides; grid, rulers and guides off by default (smart guides on desktop only); old prefs and the v2 centre line carried over',
+    ['Grid', 'Rulers', 'Snap', 'Guides', 'Smart guides'].every(l => gm.includes(`'${l}'`)) && /aria-label="Grid size"/.test(gm) && /<GuidesMenu /.test(cv) && !/aria-label="Grid and rulers"/.test(cv)
+    && !ph.grid && !ph.rulers && !ph.guides && !ph.smart && !dk.guides && dk.smart && !dk.grid && old.grid && old.rulers && !old.snap && old.size === 10 && CG.readGuidePrefs({ size: 33 }).size === 5
+    && CG.readGuidePrefs({ v: 3, size: 10 }).size === 10 && v2.guides && !('centre' in v2) && v2.size === 5);
   // 2. Grid: neutral ink, minor ~10% / every 5th ~18%, fades at low zoom, over the garment only between base and design, never in exports.
-  t('grid: neutral ink (no teal), minor 10% and every 5th line 18%, fades from 12 to 6 screen px, stage grid follows the artboard',
+  t('grid: neutral (no teal), minor and 0/50/100 lines from GRID_ALPHA, fades from 12 to 6 screen px, drawn over the garment box only with a difference blend (reads on light and dark cloth)',
     CG.GRID_ALPHA.minor === 0.1 && CG.GRID_ALPHA.major === 0.18 && CG.GRID_MAJOR_PCT === 50 && CG.gridFade(12) === 1 && CG.gridFade(6) === 0 && CG.gridFade(9) === 0.5
-    && /\.ds-sgrid line\{stroke:rgb\(var\(--ds-grid-ink\)/.test(css) && /--ds-grid-ink:var\(--cx-shade\)/.test(css) && !/ds-grid line\{stroke:rgba\(2,128,144/.test(css)
-    && /<StageGrid view=\{view\} g=\{garmentRect\}/.test(cv) && !/<Grid /.test(cv));
-  t('the grid is never painted over the garment: the live canvas paints only the design and (when on) the centre line; exports render elsewhere',
-    /render\(ctx, objects\);\s*if \(ctx === c\.contextContainer && opts\.current\.centre\) drawCentre/.test(layers) && !/drawGrid|source-atop/.test(layers)
-    && /installStageLayers\(fc\.current, snapOpts\)/.test(hook));
+    && /globalCompositeOperation = 'difference'/.test(layers) && /gridLines\(spec\.x0, spec\.sx, spec\.pct, g\.left, g\.left \+ g\.width\)/.test(layers) && !/rgba\(2,128,144/.test(layers)
+    && !/<StageGrid|<Grid /.test(cv) && !/ds-sgrid/.test(css));
+  t('grid and guides are painted over the design on the live canvas only (contextContainer); exports, previews and thumbnails render to their own canvas without them',
+    /render\(ctx, objects\);\s*if \(ctx !== c\.contextContainer\) return;\s*if \(opts\.current\.showGrid\) drawGrid\(ctx, c, opts\.current\);\s*if \(opts\.current\.guides\) drawGuides/.test(layers)
+    && /installStageLayers\(fc\.current, snapOpts\)/.test(hook) && /setSnapOptions\?\.\(\{ showGrid: gridOn, guides: guidesOn \}\)/.test(cv));
   // 3-4. Centre line and smart guides: centre always a snap line; edges and other elements only with smart guides.
   const box = { left: 60, top: 40, width: 200, height: 300 }, oth = [{ left: 100, top: 100, width: 40, height: 20 }];
   const centreOnly = SN2.snapTargets({ width: 320, height: 400, garment: box, garmentEdges: false }), full = SN2.snapTargets({ width: 320, height: 400, garment: box, others: oth });
@@ -611,20 +637,20 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   for (const pct of CG.GRID_PCTS) for (const s of [0.5, 0.9, 1.3, 2.4]) for (const o of [-60, 0, 85]) {
     const cell = (g.width * pct / 100) * s, fade = CG.gridFade(Math.min(cell, (g.height * pct / 100) * s));
     const lines = CG.gridLines(o + g.left * s, cell, pct, 0, 900).filter(l => fade > 0 || l.v % 50 === 0);
-    const ticks = new Map(CG.relativeTicks(o, s, 900, g.left, g.width, 30).map(t => [t.v, t.at]));
+    const ticks = new Map(CG.relativeTicks(o, s, 900, g.left, g.width, 30, pct).map(t => [t.v, t.at]));
     has50 = has50 && CG.gridLines(o + g.left * s, cell, pct, 0, 900).some(l => l.v === 50);
     for (const l of lines) { cases++; if (!ticks.has(l.v)) missing++; else worst = Math.max(worst, Math.abs(ticks.get(l.v) - l.at)); }
   }
-  t('grid lines coincide with ruler ticks (garment top-left origin; Fine 5% / Medium 10% / Coarse 20%; every zoom and pan tried) and the 50% centre is a grid line at every size',
-    cases > 300 && missing === 0 && worst < 1e-6 && has50 && JSON.stringify(CG.GRID_PCTS) === '[5,10,20]' && JSON.stringify(CG.gridSpec(g, 10)) === JSON.stringify({ x0: 37, y0: 21, sx: 24.6, sy: 30.1, pct: 10 }));
-  t('the stage grid is an SVG over the whole stage under the artboard, drawn from the same gridLines() as the garment grid and the snapping grid',
-    /<StageGrid view=\{view\} g=\{garmentRect\} pct=\{guides\.size\}/.test(cv) && /w=\{view\.pw \+ stageOff\.dx\} h=\{view\.ph \+ stageOff\.dy\}/.test(cv) && /gridLines\(/.test(rul)
-    && /\.ds-sgrid\{position:absolute;left:0;top:0;z-index:0;pointer-events:none;\}/.test(css) && SN3.snapTargets({ width: 320, height: 400, grid: CG.gridSpec(g, 10) }).v.some(l => l.kind === 'grid' && Math.abs(l.at - (37 + 24.6 * 3)) < 1e-9));
+  t('grid lines coincide with ruler ticks (garment top-left origin; Fine 2 / Medium 5 / Coarse 10 template units; every zoom and pan tried) and the 50 centre is a grid line at every size',
+    cases > 300 && missing === 0 && worst < 1e-6 && has50 && JSON.stringify(CG.GRID_PCTS) === '[2,5,10]' && /gridPct=\{gridOn \? guides\.size : 0\}/.test(cv) && JSON.stringify(CG.gridSpec(g, 10)) === JSON.stringify({ x0: 37, y0: 21, sx: 24.6, sy: 30.1, pct: 10 }));
+  t('the canvas grid and the snapping grid share gridSpec(); with Snap on, a drag snaps to the grid step whether or not the grid is shown',
+    /const g = garmentBox\(c\), spec = gridSpec\(g, o\.gridPct\)/.test(layers) && /grid: gridSpec\(g, snapOpts\.current\.gridPct\)/.test(src('../src/pages/client/design-studio/useGarmentCanvas.js'))
+    && !/showGrid \? gridSpec/.test(src('../src/pages/client/design-studio/useGarmentCanvas.js')) && SN3.snapTargets({ width: 320, height: 400, grid: CG.gridSpec(g, 10) }).v.some(l => l.kind === 'grid' && Math.abs(l.at - (37 + 24.6 * 3)) < 1e-9));
   // Rulers: full stage length, beyond 0 and 100, labels every 10% when they fit, 0/50/100 emphasised, live pointer marker, '%' corner.
-  const tk = CG.relativeTicks(200, 1.4, 900, 37, 246, 30), lab = tk.filter(x => x.major).map(x => x.v);
-  t('rulers run the full stage edge in garment % (negative before it, over 100 after it), label every 10% when it fits (else 25/50/100), emphasise 0, 50 and 100, show a live pointer marker',
-    tk.some(x => x.v < 0) && tk.some(x => x.v > 100) && lab.includes(-10) && lab.includes(110) && lab.every(v => v % 10 === 0) && ['0', '50', '100'].every(v => tk.find(x => String(x.v) === v)?.key)
-    && CG.relSteps(150, 30).major === 25 && CG.relSteps(400, 30).major === 10 && CG.relSteps(60, 30).major === 50 && /className="ds-ruler-mark"/.test(rul) && /fit\.addEventListener\('pointermove', move\)/.test(rul) && />%<\/div>/.test(rul));
+  const tk = CG.relativeTicks(200, 1.4, 900, 37, 246, 30), lab = tk.filter(x => x.label).map(x => x.v);
+  t('rulers run the full stage edge in template units (ticks before 0 and past 100), label only 0 to 100 (every 10 when it fits, else 25/50/100), emphasise 0, 50 and 100, show a live pointer marker',
+    tk.some(x => x.v < 0) && tk.some(x => x.v > 100) && lab[0] === 0 && lab[lab.length - 1] === 100 && lab.length === 11 && lab.every(v => v % 10 === 0) && /\{t\.label && <text/.test(rul) && !/\{t\.major && <text/.test(rul) && ['0', '50', '100'].every(v => tk.find(x => String(x.v) === v)?.key)
+    && CG.relSteps(150, 30).major === 25 && CG.relSteps(400, 30).major === 10 && CG.relSteps(60, 30).major === 50 && /className="ds-ruler-mark"/.test(rul) && /fit\.addEventListener\('pointermove', move\)/.test(rul) && />u<\/div>/.test(rul) && !/>%<\/div>/.test(rul));
   // Ruler guides: pulled from a ruler, snap to whole % (50 within 1.5), objects snap to them, session only (never saved), double-click removes.
   const gl = CG.guideLines(g, [{ axis: 'v', pct: 50 }, { axis: 'h', pct: 10 }]);
   t('ruler guides: drag from a ruler creates one, it snaps to whole % (and 50%), elements snap to it, double-click or Delete removes it, kept for the session only',
@@ -637,14 +663,46 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('metrics are % of the garment from its top-left (X, Y, W, H) plus rotation, while moving/resizing and in the inspector; a multi-selection shows its bounds and "N elements"; never units',
     m1.x === 10 && m1.y === 20 && m1.w === 61 && m1.h === 6.6 && m1.r === 30 && m3.n === 3 && m3.w === 50 && m3.h === 50 && CG.readoutPct(one, g) === 'X 10%  Y 20%  W 61%  H 7%  30°' && CG.readoutPct(many, g).startsWith('3 elements · X 0%')
     && /metricsPct\(active, garmentRect\)/.test(ins) && /`\$\{m\?\.n \?\? 2\} elements`/.test(ins) && /'X %'/.test(ins) && !/\b(cm|mm|inch|px)\b/.test(ins.match(/Position &amp; size[^<]*/)?.[0] ?? '') && /readoutPct\(ro\.obj, garmentBox\(c\)\)/.test(src('../src/pages/client/design-studio/useGarmentCanvas.js')));
-  t('old guide prefs migrate: px sizes 10/20/40 become 5/10/20 % once (v2), and stay put after',
-    CG.readGuidePrefs({ grid: true, size: 40 }).size === 20 && CG.readGuidePrefs({ size: 10 }).size === 5 && CG.readGuidePrefs({ v: 2, size: 5 }).size === 5 && CG.guideDefaults().v === 2);
+  t('old guide prefs migrate once (v3): v1 px 10/20/40 and v2 % 5/10/20 both become 2/5/10 template units, and stay put after',
+    CG.readGuidePrefs({ grid: true, size: 40 }).size === 10 && CG.readGuidePrefs({ size: 10 }).size === 2 && CG.readGuidePrefs({ v: 2, size: 5 }).size === 2 && CG.readGuidePrefs({ v: 2, size: 20 }).size === 10
+    && CG.readGuidePrefs({ v: 3, size: 5 }).size === 5 && CG.guideDefaults().v === 3 && CG.guideDefaults().size === 5);
+  // Studio grid task: snap rounding, nudge clamping, fixed guides, view keys, toggles, units note, per-user prefs, x, y readout.
+  t('snap rounding: snapToStep rounds to the nearest grid step (halves up), keeps float steps exact and leaves a zero step alone',
+    CG.snapToStep(12.4, 5) === 10 && CG.snapToStep(12.5, 5) === 15 && CG.snapToStep(7, 2) === 8 && CG.snapToStep(-1.2, 2) === -2 && CG.snapToStep(0.30000000000000004, 0.1) === 0.3 && CG.snapToStep(7.3, 0) === 7.3);
+  t('nudge clamps to 0..100: 1 step or 5 (Shift), with Snap it lands on the next grid line first; never past either edge',
+    CG.nudgePct(98, 1, 1, 5) === 100 && CG.nudgePct(2, -1, 5, 5) === 0 && CG.nudgePct(50, 1, 5, 2) === 60 && CG.nudgePct(13.4, 1, 1, 5, true) === 15 && CG.nudgePct(13.4, -1, 1, 5, true) === 10
+    && CG.nudgePct(15, 1, 1, 5, true) === 20 && CG.nudgePct(15, -1, 5, 5, true) === 0 && CG.nudgePct(99, 1, 5, 10, true) === 100 && CG.nudgePct(120, -1, 0, 5) === 100 && CG.nudgePct(-4, 1, 1, 2) === 0
+    && CG.clampPct(150) === 100 && CG.clampPct(-1) === 0);
+  const hookN = src('../src/pages/client/design-studio/useGarmentCanvas.js'), dsx = src('../src/pages/client/DesignStudio.jsx');
+  t('arrow keys nudge the selection 1 grid step (Shift = 5) through nudgePct in template units, one undo step per nudge; locked or editing text is left alone',
+    /const step = e\.shiftKey \? 5 : 1; \/\/ grid steps/.test(dsx) && /nudgePct\(x, Math\.sign\(dx\), Math\.abs\(dx\), step, snap\)/.test(hookN) && /obj\.__locked \|\| obj\.isEditing\) return;\s*const g = garmentBox\(canvas\);/.test(hookN));
+  const fg = CG.fixedGuides(g), red = SN3.snapTargets({ width: 320, height: 400, guides: fg });
+  t('guides: dashed centre line and chest line (25 from the top) in thread red #C4313B, display only, snap lines only while Guides are on',
+    fg.length === 2 && fg[0].axis === 'v' && fg[0].at === 37 + 123 && fg[1].axis === 'h' && Math.abs(fg[1].at - (21 + 301 * 0.25)) < 1e-9 && CG.CHEST_PCT === 25 && CG.fixedGuides(null).length === 0
+    && red.h.some(l => l.kind === 'guide' && Math.abs(l.at - fg[1].at) < 1e-9) && /'--color-thread-red', '#C4313B'/.test(layers) && /setLineDash\(\[6 \* px, 4 \* px\]\)/.test(layers)
+    && /\.\.\.\(snapOpts\.current\.guides \? fixedGuides\(g\) : \[\]\)/.test(hookN));
+  const RT = await L('/src/pages/client/design-studio/railTools.js'), vk = (key, m = {}) => RT.viewKey({ key, ...m });
+  t('keys: Shift+G toggles the grid and R the rulers; G alone stays the paint bucket; no other rail letter, Ctrl/Cmd/Alt or held key is taken',
+    vk('G', { shiftKey: true }) === 'grid' && vk('r') === 'rulers' && vk('g') === null && vk('R', { shiftKey: true }) === null && vk('r', { ctrlKey: true }) === null && vk('r', { metaKey: true }) === null
+    && vk('r', { altKey: true }) === null && vk('r', { repeat: true }) === null && RT.railKey({ key: 'g' }) === 'fill' && RT.railKey({ key: 'G', shiftKey: true }) === null && RT.railKey({ key: 'r' }) === null
+    && !RT.RAIL_TOOLS.some(x => x.key === 'R') && /viewKey\(e\)/.test(cv) && /isContentEditable/.test(cv.slice(cv.indexOf('Shift+G grid, R rulers'))));
+  t('view toggles: Grid, Rulers, Snap, Guides are 44px aria-pressed buttons (lane on desktop, View panel everywhere); the units note is shown with the rulers and in the panel; no cm or inches',
+    /aria-pressed=\{!!guides\[k\]\}/.test(gm) && /\.ds-vt-btn\{min-width:44px;min-height:44px;/.test(css) && /<ViewToggles guides=\{guides\} setGuides=\{setGuides\}\/>/.test(cv) && /<ViewToggles guides=\{guides\} setGuides=\{setGuides\} labelled\/>/.test(gm)
+    && gm.includes("'Rulers show template units, not centimetres. Real sizes appear only after VFRB confirms a scale.'") && /\{rulersOn && <p className="ds-units-note" role="note">\{UNITS_NOTE\}<\/p>\}/.test(cv)
+    && !/\b(cm|mm|inch|inches)\b/i.test(gm + cv + rul) && /transition:background \.15s,color \.15s,border-color \.15s;/.test(css) && /prefers-reduced-motion:reduce\)\{\.ds-vt-btn\{transition:none;\}\}/.test(css));
+  t('view prefs are per user in localStorage inside try/catch (browser key as fallback); the Studio works without storage',
+    CG.guidePrefsKey(7) === 'ds_guides:7' && CG.guidePrefsKey(null) === 'ds_guides' && CG.guidePrefsKey(undefined) === 'ds_guides' && JSON.stringify(CG.readGuidePrefs(null)) === JSON.stringify(CG.guideDefaults())
+    && /try \{ localStorage\.setItem\(guidesKey\(\), JSON\.stringify\(guides\)\); \} catch/.test(cv) && /catch \{ return readGuidePrefs\(null, phone\); \}/.test(cv) && /catch \{ return guidePrefsKey\(null\); \}/.test(cv));
+  const ser = src('../src/pages/client/design-studio/designSerialization.js');
+  t('live "x, y" readout in template units with Up/Down/Left/Right nudge buttons in the inspector; nothing about grid, rulers or guides reaches DesignState serialization',
+    CG.xyText({ x: 12.5, y: 30 }) === '12.5, 30' && CG.xyText(null) === '' && /function NudgePad/.test(ins) && /\['Up', ArrowUp, 0, -1\]/.test(ins) && /'object:moving', 'object:scaling', 'object:modified'/.test(ins)
+    && /nudgeSelected=\{p\.nudgeSelected\}/.test(src('../src/pages/client/design-studio/ToolDrawer.jsx')) && !/grid|guide|ruler|snap/i.test(ser));
   // Phone/tablet layout: one fixed column (piece tabs for a set, stage, a sheet of <= 40% that folds to a handle, bottom nav); a stage bar of <= 5 labelled controls.
   const cvx = src('../src/pages/client/design-studio/CanvasViewport.jsx'), tdx = src('../src/pages/client/design-studio/ToolDrawer.jsx');
   const bar2D = cvx.slice(cvx.indexOf('{show2D ? (<>'), cvx.indexOf('</>) : (<>')), bar3D = cvx.slice(cvx.indexOf('</>) : (<>'), cvx.indexOf("ctrl(full ? 'Exit full screen'"));
   t('phone/tablet layout: the stage fills the column, a sheet of at most 40% of the screen folds to a handle, five-item bottom nav; no snap states; stage bar of at most five labelled controls with hints outside it',
     /\.ds-lane-top:not\(\[data-notes\]\)\{flex-wrap:nowrap;/.test(css) && !/text-overflow:ellipsis/.test(css.match(/\.ds-ctx-chip\{[^}]*\}/)?.[0] ?? 'text-overflow:ellipsis')
-    && /\.ds-cv\{flex:1 1 auto;min-height:0;\}/.test(css) && /\.ds-sheet\{display:flex;flex-direction:column;min-height:0;max-height:40dvh;/.test(css)
+    && /\.ds-cv\{flex:1 1 auto;min-height:0;\}/.test(css) && +(css.match(/\.ds-sheet\{display:flex;flex-direction:column;min-height:0;max-height:(\d+)dvh;/)?.[1] ?? 99) <= 40
     && /\.ds-sheet\[data-folded\]>:not\(\.ds-sheet-handle\)\{display:none;\}/.test(css) && /\.ds-bnav\{display:grid;flex:none;grid-template-columns:repeat\(5,/.test(css)
     && !/data-snap|ds-grab|sheetOpen/.test(css + tdx)
     && (bar2D.match(/ctrl\('/g) ?? []).length + 1 <= 5 && (bar3D.match(/ctrl\(/g) ?? []).length + 1 <= 5 && /className="ds-stage-hint"/.test(cvx) && !/ds-stage-hint[^]*?<\/div>\s*<\/div>\s*\)\}\s*$/.test('')
@@ -1105,7 +1163,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     (h => /restyleText\(obj, props\)\.then\(\(\) => \{ canvas\.renderAll\(\); if \(commit\) pushHistory\(\)/.test(h) && /moveInStack\(canvas, obj, where\)\) return;\s+canvas\.renderAll\(\);\s+pushHistory\(\);/.test(h))(rdx('../src/pages/client/design-studio/useGarmentCanvas.js')));
   t('history: starts at an empty baseline (the first action is undoable); a design load restarts it, a side switch parks it, the export face swap keeps it; only the newest overlay load lands',
     (h => /history = useRef\(emptyHistory\(\)\)/.test(h) && /switchSide\(parkedHistory\.current/.test(h) && /if \(!keepHistory\) resetHistory\(\)/.test(h) && (h.match(/token !== overlayLoad\.current/g) ?? []).length === 3)(rdx('../src/pages/client/design-studio/useGarmentCanvas.js'))
-    && (rdx('../src/pages/client/DesignStudio.jsx').match(/keepHistory: true/g) ?? []).length === 3 // export face swap x2 + AI undo (restore, then one pushed step)
+    && (rdx('../src/pages/client/DesignStudio.jsx').match(/keepHistory: true/g) ?? []).length === 5 // export face swap x2 + AI undo (restore, then one pushed step) + set-piece render pass x2 (render, restore)
     && /loadCanvasJSON\(aiPreview\.canvas, \{ keepHistory: true \}\)/.test(rdx('../src/pages/client/DesignStudio.jsx'))
     && /side: \{ from: face, to: newFace \}/.test(rdx('../src/pages/client/DesignStudio.jsx')));
   t('2D realism layers are decorative only: built from deco (never selectable, never saved)',

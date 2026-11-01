@@ -1,5 +1,6 @@
 // Per-order threads (real order_messages data) styled as a conversation list, like Figma's Chat screen — no fabricated departments.
 import { humanize } from '../../utils/humanize';
+import { garmentLabel } from '../../utils/designName';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -14,7 +15,7 @@ import { NavIcon } from '../../components/ui/icons';
 
 const T = 'var(--teal)', T2 = '#02C39A';
 const FONT = "ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif";
-const title = (o) => o?.design?.design_name ?? humanize(o?.garment_type) ?? 'Custom Order';
+const title = (o) => o?.design?.design_name ?? garmentLabel(humanize(o?.garment_type)) ?? 'Custom Order';
 
 const dayKey = (d) => d ? new Date(d).toLocaleDateString('en-PH') : 'unknown';
 const dayLabel = (d) => {

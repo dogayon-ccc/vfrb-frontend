@@ -6,7 +6,7 @@ import { detailedPaths } from './garmentDetails';
 import { addFabricShading } from './fabricShading';
 import { assetFor, tintedCanvas } from './garmentAssets';
 import { snapTargets, computeSnap, snapThreshold, computeResizeSnap, movingEdges, snapAngle } from './snapGuides';
-import { placementTargets, readoutPct, alignDeltas, distributeDeltas, gridSpec, guideLines } from './canvasGuides';
+import { placementTargets, readoutPct, alignDeltas, distributeDeltas, gridSpec, guideLines, fixedGuides, nudgePct } from './canvasGuides';
 import { installStageLayers, drawPlacementGhosts, applyErase, garmentBox, plainObject } from './canvasLayers';
 import { reviveOverlays, restyleText, changesLayout, makeShape, shapeLabel, moveInStack, installTouchHandles, makePocket, recolorPocket } from './overlayTools';
 import { pocketSpot, mirroredX, pocketLabel } from './pocketTools';
@@ -152,7 +152,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   const penKeys = useRef(null);
   // Snapping options (set by the Studio's grid/snap toggles) and the guides of the current drag. Guides are drawn on Fabric's
   // interaction layer only, never added as objects, so they cannot be saved, exported or put in history.
-  const snapOpts = useRef({ snap: true, gridPct: 10, rulerGuides: [], scale: 1, showGrid: false, centre: false, smart: true }); // scale: on-screen px per canvas px (zoom x fit)
+  const snapOpts = useRef({ snap: true, gridPct: 10, rulerGuides: [], scale: 1, showGrid: false, guides: false, smart: true }); // scale: on-screen px per canvas px (zoom x fit)
   const dragGuides = useRef({ targets: null, guides: [], readout: null, ghosts: null });
   // Colour-only copies: placed items can't be picked, moved or edited; garment zones still take clicks.
   const frozen = useRef(false);
@@ -183,7 +183,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       });
       fabricReady.current = true;
       setReady(true);
-      installStageLayers(fc.current, snapOpts); // grid between garment and design, centre line on top; live canvas only
+      installStageLayers(fc.current, snapOpts); // grid and guides over the design; live canvas only
 
       const drawInitialGarment = () => {
         const c = fc.current;
@@ -275,14 +275,14 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       // Snapping, smart guides and a live readout while a design element is moved or resized. Targets are collected once per gesture.
       // Everything is drawn on Fabric's interaction layer (contextTop): never an object, so never saved, exported or undoable.
       const isOverlay = o => o && !o.__garmentBase && !o.__hoverGlow && o.visible !== false;
-      // Snap lines: the garment centre (and canvas centre) always; with smart guides also the garment edges and other elements'
-      // edges and centres; grid lines only while the grid is shown.
+      // Snap lines: the garment centre (and canvas centre) and the grid step always; the chest line while Guides are on; with smart
+      // guides also the garment edges and other elements' edges and centres.
       const targetsFor = (c, obj) => {
         const smart = snapOpts.current.smart;
         const moving = new Set(obj.getObjects ? [obj, ...obj.getObjects()] : [obj]);
         const others = smart ? c.getObjects().filter(o => isOverlay(o) && !moving.has(o)).map(o => o.getBoundingRect()) : [];
         const g = garmentBox(c); // grid and ruler guides are garment-relative (origin at its top-left)
-        return snapTargets({ width: c.getWidth(), height: c.getHeight(), garment: g, garmentEdges: smart, others, grid: snapOpts.current.showGrid ? gridSpec(g, snapOpts.current.gridPct) : null, guides: guideLines(g, snapOpts.current.rulerGuides) });
+        return snapTargets({ width: c.getWidth(), height: c.getHeight(), garment: g, garmentEdges: smart, others, grid: gridSpec(g, snapOpts.current.gridPct), guides: [...guideLines(g, snapOpts.current.rulerGuides), ...(snapOpts.current.guides ? fixedGuides(g) : [])] });
       };
       const threshold = () => snapThreshold(snapOpts.current.scale);
       // Fabric moves left/top during a drag without refreshing the cached corner coords that getBoundingRect() reads, so they are
@@ -952,12 +952,19 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     }).catch(() => {});
   }, [pushHistory, bumpLayers]);
 
-  // Keyboard nudge for the selected unlocked element (not while its text is being edited).
+  // Nudge the selected unlocked element by whole grid steps (dx, dy: signed step counts), top-left clamped to 0..100 template units.
   const nudgeSelected = useCallback((dx, dy) => {
     const canvas = fc.current;
     const obj = canvas?.getActiveObject();
     if (!obj || obj.__garmentBase || obj.__hoverGlow || obj.__locked || obj.isEditing) return;
-    obj.set({ left: (obj.left ?? 0) + dx, top: (obj.top ?? 0) + dy });
+    const g = garmentBox(canvas);
+    if (!g) return;
+    const { gridPct: step, snap } = snapOpts.current;
+    obj.setCoords();
+    const b = obj.getBoundingRect(), x = ((b.left - g.left) / g.width) * 100, y = ((b.top - g.top) / g.height) * 100;
+    const nx = dx ? nudgePct(x, Math.sign(dx), Math.abs(dx), step, snap) : x, ny = dy ? nudgePct(y, Math.sign(dy), Math.abs(dy), step, snap) : y;
+    if (nx === x && ny === y) return;
+    obj.set({ left: (obj.left ?? 0) + ((nx - x) / 100) * g.width, top: (obj.top ?? 0) + ((ny - y) / 100) * g.height });
     obj.setCoords();
     canvas.renderAll();
     pushHistory();

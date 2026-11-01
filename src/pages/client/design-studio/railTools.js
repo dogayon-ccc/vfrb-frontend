@@ -20,9 +20,18 @@ export const STROKE_TOOLS = ['brush', 'pen', 'line'];
 // Rail tools that work through canvas taps instead of selecting items.
 export const PICK_TOOLS = ['sample', 'fill', 'pen', 'line'];
 
-// A bare letter (no Ctrl, Cmd or Alt) picks its tool; Z zooms in and Alt+Z out; Escape returns to Move.
+// View toggles on the stage: Shift+G grid (G alone stays the paint bucket), R rulers. Ctrl, Cmd, Alt and held keys are left alone.
+export function viewKey(e) {
+  if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return null;
+  const k = e.key?.length === 1 ? e.key.toUpperCase() : null;
+  if (k === 'G' && e.shiftKey) return 'grid';
+  if (k === 'R' && !e.shiftKey) return 'rulers';
+  return null;
+}
+
+// A bare letter (no Ctrl, Cmd or Alt) picks its tool; Z zooms in and Alt+Z out; Escape returns to Move. View keys never pick a tool.
 export function railKey(e) {
-  if (e.ctrlKey || e.metaKey || e.repeat) return null;
+  if (e.ctrlKey || e.metaKey || e.repeat || viewKey(e)) return null;
   const k = e.key?.length === 1 ? e.key.toUpperCase() : e.key;
   if (k === 'Z') return e.altKey ? 'zoom-out' : 'zoom-in';
   if (e.altKey) return null;

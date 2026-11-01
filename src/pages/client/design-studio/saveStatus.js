@@ -1,3 +1,9 @@
+// A save counts only when the server returns a JSON object with no errors and the saved row's id and updated_at.
+export function confirmedSave(data, idKey) {
+  return !!data && typeof data === 'object' && !Array.isArray(data) && !data.errors && !data.error
+    && data[idKey] != null && !!data.updated_at;
+}
+
 // One save status for the top bar (always shown once a garment is on the canvas), from the manual-save flags and the autosave state.
 // An account save and a browser-only copy never read the same: only the account counts as "Saved".
 // auto: null (nothing to save yet) | 'dirty' | 'saving' | 'saved'; saveErr: false | 'local' (browser copy kept) | 'none'.

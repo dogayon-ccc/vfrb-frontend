@@ -49,7 +49,7 @@ export default function ShapesPanel({ selObj, onAdd, onUpdate }) {
   return (
     <div style={{ padding:'12px', display:'flex', flexDirection:'column', gap:14, flex:1, overflowY:'auto' }}>
       <div>
-        <p style={secLabel}>Add Shape</p>
+        <p style={secLabel}>Add shape</p>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8 }}>
           {SHAPES.map(sh => (
             <button key={sh.id} type="button" className="ds-shape-btn" onClick={() => onAdd(sh.kind)}>
@@ -63,7 +63,7 @@ export default function ShapesPanel({ selObj, onAdd, onUpdate }) {
       {isShapeSelected ? (
         <>
           <div>
-            <p style={secLabel}>Fill Color</p>
+            <p style={secLabel}>Fill colour</p>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:4 }}>
               {COLORS.map(c => (
                 <button key={c.hex} type="button" onClick={() => onUpdate({ [colorProp]: c.hex })}

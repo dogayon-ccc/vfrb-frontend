@@ -176,7 +176,7 @@ export function StepDelivery({ form, set, errors }) {
 function reviewRows(form, studio) {
   const custom = form.sizing_type === 'custom';
   const sizes = custom
-    ? Object.entries(form.measurements).filter(([, v]) => Number(v) > 0).map(([k, v]) => [k.replace('_', ' '), `${v} in`])
+    ? Object.entries(form.measurements).filter(([, v]) => Number(v) > 0).map(([k, v]) => [`${k[0].toUpperCase()}${k.slice(1).replace(/_/g, ' ')}`, `${v} in`])
     : STD_SIZES.filter(s => Number(form.sizes[s]) > 0).map(s => [s, `${form.sizes[s]} pcs`]);
   return [
     { t: 'Design', go: 0, rows: [['Garment', garmentLabel(form.garment_type)], ['Source', studio ? 'Design Studio' : 'Your file'], ['Reference', form.design_ref_file?.name],

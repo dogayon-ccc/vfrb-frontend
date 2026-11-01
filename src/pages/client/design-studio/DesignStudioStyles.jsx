@@ -652,14 +652,31 @@ export default function DesignStudioStyles() {
       .ds-guides-row small{display:block;font-size:13px;line-height:1.35;color:var(--cx-ink-2);}
       .ds-guides-row select{min-height:36px;margin-right:8px;padding:0 8px;border:1px solid var(--cx-line-strong);border-radius:var(--cx-r-md);background:var(--cx-card);color:var(--cx-ink);font:600 13px var(--cx-sans);}
       .ds-guides-row select:disabled{opacity:.5;}
-      /* Stage grid: neutral ink under the artboard, aligned to it and zoomed with it; minor lines lighter than every 5th */
-      .ds-cv{--ds-grid-ink:var(--cx-shade);}
-      .ds-cv[data-stage=dark]{--ds-grid-ink:255 255 255;}
-      .ds-sgrid{position:absolute;left:0;top:0;z-index:0;pointer-events:none;}
-      .ds-sgrid line{stroke:rgb(var(--ds-grid-ink) / var(--ds-ga));stroke-width:1;shape-rendering:crispEdges;}
-      .ds-sgrid line.ds-sgrid-major{stroke:rgb(var(--ds-grid-ink) / var(--ds-gA));}
+      /* View toggles (Grid, Rulers, Snap, Guides): 44px aria-pressed buttons, icon-only in the lane, labelled 2 x 2 in the View panel */
+      .ds-vt{display:inline-flex;gap:2px;padding:2px;border:1px solid var(--cx-line);border-radius:var(--cx-r-md);background:var(--cx-card);box-shadow:var(--cx-elev-0);}
+      .ds-vt-btn{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 10px;border:1px solid transparent;border-radius:var(--cx-r-md);
+        background:transparent;color:var(--cx-ink-2);font:700 13px var(--cx-sans);cursor:pointer;transition:background .15s,color .15s,border-color .15s;}
+      .ds-vt-btn:hover{background:var(--cx-hover);color:var(--cx-ink);}
+      .ds-vt-btn[aria-pressed=true]{border-color:var(--cx-thread);color:var(--cx-thread-ink);background:var(--cx-thread-tint);}
+      .ds-vt[data-labelled]{display:grid;grid-template-columns:1fr 1fr;padding:4px 0 6px;border:0;box-shadow:none;background:none;gap:6px;}
+      .ds-vt[data-labelled] .ds-vt-btn{justify-content:flex-start;padding:0 12px;border-color:var(--cx-line);background:var(--cx-card);color:var(--cx-ink);}
+      .ds-vt[data-labelled] .ds-vt-btn[aria-pressed=true]{border-color:var(--cx-thread);color:var(--cx-thread-ink);background:var(--cx-thread-tint);}
+      .ds-guides-units,.ds-units-note{font-size:13px;line-height:1.45;color:var(--cx-ink-2);}
+      .ds-guides-units{margin:4px 8px;}
+      .ds-units-note{max-width:min(100%,560px);margin:0;text-align:center;color:var(--cx-stage-ink-2);}
+      @media (prefers-reduced-motion:reduce){.ds-vt-btn{transition:none;}}
+      /* Nudge pad: live x, y in template units and four 44px step buttons in the inspector */
+      .ds-nudge{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+      .ds-nudge-xy{display:flex;flex-direction:column;gap:2px;font-size:var(--text-2xs);font-weight:700;color:var(--text-muted);}
+      .ds-nudge-xy output{font-size:var(--text-sm);color:var(--ink);font-variant-numeric:tabular-nums;}
+      .ds-nudge-pad{display:grid;grid-template-columns:repeat(3,44px);grid-template-rows:repeat(2,44px);gap:4px;}
+      .ds-nudge-pad .ds-act{width:44px;min-height:44px;padding:0;justify-content:center;}
+      .ds-nudge-pad [data-dir=up]{grid-column:2;grid-row:1;}
+      .ds-nudge-pad [data-dir=left]{grid-column:1;grid-row:2;}
+      .ds-nudge-pad [data-dir=down]{grid-column:2;grid-row:2;}
+      .ds-nudge-pad [data-dir=right]{grid-column:3;grid-row:2;}
       .ds-pane[data-garment]{touch-action:none;} /* pinch zoom and drags belong to the Studio, not the page */
-      /* Rulers: % of the garment only (0-100), horizontal labels at 11px, ink on card (>= 4.5:1) on light and dark stages */
+      /* Rulers: template units only (labels 0-100), horizontal labels at 11px, ink on card (>= 4.5:1) on light and dark stages */
       .ds-cv[data-rulers] .ds-pane{top:20px;left:34px;}
       .ds-ruler,.ds-ruler-corner{position:absolute;z-index:3;background:var(--cx-paper-2);}
       .ds-ruler-corner{pointer-events:none;}
@@ -739,7 +756,7 @@ export default function DesignStudioStyles() {
       .ds-more small{grid-column:2;font:500 13px/1.35 var(--cx-sans);color:var(--cx-ink-2);}
 
       /* Phones and tablets: one fixed column, nothing over the garment. Piece tabs (a set only), the stage, a sheet of
-         at most 40% of the screen that folds to a handle, then the five-item bottom nav. */
+         at most a third of the screen that folds to a handle, then the five-item bottom nav. */
       @media (max-width:1023px){
         .ds{--ds-pad-b:0px;--ds-nav-h:65px;}
         .ds-bar{padding:0 8px;gap:4px;}
@@ -753,13 +770,13 @@ export default function DesignStudioStyles() {
         .ds-cv{flex:1 1 auto;min-height:0;}
         .ds-panel{width:auto;flex:none;display:flex;flex-direction:column;overflow:visible;border-left:0;box-shadow:none;background:transparent;}
         .ds-tabs{display:none;}
-        .ds-sheet{display:flex;flex-direction:column;min-height:0;max-height:40dvh;background:var(--cx-card);border-top:1px solid var(--cx-line);
+        .ds-sheet{display:flex;flex-direction:column;min-height:0;max-height:34dvh;background:var(--cx-card);border-top:1px solid var(--cx-line);
           border-radius:16px 16px 0 0;box-shadow:0 -4px 16px rgb(15 23 42 / .06);}
         .ds-sheet-handle{display:flex;flex:none;width:100%;min-height:44px;align-items:center;justify-content:center;gap:8px;padding:0 16px;border:0;
           background:none;color:var(--cx-ink-2);font:600 13px var(--cx-sans);cursor:pointer;}
         .ds-sheet-handle span{width:36px;height:4px;border-radius:2px;background:var(--cx-line-strong);}
         .ds-sheet[data-folded]>:not(.ds-sheet-handle){display:none;}
-        .ds-body:has(.ds-rail[data-set]) .ds-sheet{max-height:calc(40dvh - 56px);} /* a set's piece tabs come out of the sheet, not the stage */
+        .ds-body:has(.ds-rail[data-set]) .ds-sheet{max-height:calc(34dvh - 48px);} /* a set's piece tabs come out of the sheet, not the stage */
         .ds-sheet-head{padding:0 16px 8px;}
         .ds-sheet-title p{display:none;}
         .ds-panel-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;}
@@ -788,7 +805,7 @@ export default function DesignStudioStyles() {
         .ds-rail-acts[data-sheet] .ds-btn{width:100%;}
         .ds-lane{padding:8px 8px 0;}
         /* The top lane is one row (pan, notes); View lives under More, so its lane button is hidden here */
-        .ds-lane-top>.ds-guides{display:none;}
+        .ds-lane-top>:is(.ds-guides,.ds-vt){display:none;}
         .ds-lane-top:not([data-notes]){flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;scrollbar-width:none;}
         .ds-lane-top>*{flex-shrink:0;}
         .ds-lane-top:not([data-notes])::-webkit-scrollbar{display:none;}
@@ -811,10 +828,25 @@ export default function DesignStudioStyles() {
         .ds[data-expanded] .ds-cv{flex:1;height:auto;}
       }
       /* Phones: the save state is its dot (the words stay for screen readers); the zoom hint row gives its height to the garment */
+      .ds-stage-badge{display:none;}
       @media (max-width:599px){
         .ds-bar-save{padding:0 4px;border:0;background:none;}
         .ds-bar-save-txt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
         .ds-lane-bottom .ds-stage-hint{display:none;}
+        /* The garment gets the height: one-row top bar (3D status moves to the stage corner), tighter lanes, a shorter sheet */
+        .ds-bar .ds-view-chip{display:none;}
+        .ds .ds-bar:has(.ds-view-chip){height:calc(56px + env(safe-area-inset-top,0px));}
+        .ds-stage-badge{display:block;position:absolute;top:8px;left:8px;z-index:3;padding:2px 8px;border-radius:8px;pointer-events:none;
+          background:var(--warning-bg,#fff4d6);color:var(--warning-text,#7a4b00);font:700 13px/18px var(--cx-sans);white-space:nowrap;}
+        .ds-stage-badge[data-off]{background:var(--bg-surface);color:var(--text-muted);}
+        .ds-cv[data-rulers] .ds-stage-badge{top:28px;left:28px;}
+        .ds-lane-top{padding:4px 8px 0;}
+        .ds-lane-bottom{padding:0 8px 4px;gap:2px;}
+        .ds-ctrlbar{padding:2px;}
+        .ds-ctrlbar .ds-ctrl{min-height:44px;padding:2px;}
+        .ds-units-note{font-size:13px;line-height:1.3;}
+        .ds-rail[data-set]{padding:2px 8px;}
+        .ds-rail-card{min-height:44px;}
       }
       @media (prefers-reduced-motion:reduce){
         .ds-panel{transition:none!important;}

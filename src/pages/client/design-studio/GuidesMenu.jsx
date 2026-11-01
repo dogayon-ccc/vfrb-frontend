@@ -1,18 +1,34 @@
-// One "View" button in the stage's top lane, labelled at every width. Its panel holds the Guides (Grid, grid size, Snap, Rulers,
-// Centre line, Smart guides; 2D only), the stage light and what the 2D base is (Sketch / Derived / Photo). It is rendered at the Studio
+// One "View" button in the stage's top lane, labelled at every width. Its panel holds the view toggles (Grid, Rulers, Snap, Guides),
+// grid size and Smart guides (2D only), the stage light and what the 2D base is (Sketch / Derived / Photo). It is rendered at the Studio
 // root so nothing can cover or clip it: a modal dialog with a backdrop up to 1023px, a popover capped to the stage height on desktop.
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import { X, Grid3x3, Ruler, Magnet, Crosshair } from 'lucide-react';
 import { GRID_PCTS, GRID_LABEL } from './canvasGuides';
 
-const ITEMS = [
-  ['grid', 'Grid', 'Neutral grid from the garment’s top-left corner'],
-  ['snap', 'Snap', 'Pull elements onto the centre, grid and guides while dragging'],
-  ['rulers', 'Rulers', '% of the garment; drag from a ruler to add a guide'],
-  ['centre', 'Centre line', 'Dashed line down the garment centre; elements snap to it'],
-  ['smart', 'Smart guides', 'Snap to other elements’ edges and centres, with guide lines'],
+export const UNITS_NOTE = 'Rulers show template units, not centimetres. Real sizes appear only after VFRB confirms a scale.';
+// [key, label, hint, icon, shortcut]
+const TOGGLES = [
+  ['grid', 'Grid', 'Grid over the garment, from its top-left corner', Grid3x3, 'Shift+G'],
+  ['rulers', 'Rulers', 'Template units 0 to 100; drag from a ruler to add a guide', Ruler, 'R'],
+  ['snap', 'Snap', 'Pull elements onto the grid step, centre and guides while dragging', Magnet, null],
+  ['guides', 'Guides', 'Dashed centre line and chest line', Crosshair, null],
 ];
+const SMART = ['smart', 'Smart guides', 'Snap to other elements’ edges and centres, with guide lines'];
+
+// The four view toggles as 44px aria-pressed buttons: icon-only in the stage lane, labelled in the View panel.
+export function ViewToggles({ guides, setGuides, labelled = false }) {
+  return (
+    <div className="ds-vt" role="group" aria-label="View toggles" data-labelled={labelled || undefined}>
+      {TOGGLES.map(([k, label, hint, Icon, key]) => (
+        <button key={k} type="button" className="ds-vt-btn" aria-pressed={!!guides[k]} aria-label={labelled ? undefined : label}
+          aria-keyshortcuts={key ?? undefined} title={`${hint}${key ? ` (${key})` : ''}`} onClick={() => setGuides(g => ({ ...g, [k]: !g[k] }))}>
+          <Icon size={16} aria-hidden="true"/>{labelled && <span>{label}</span>}
+        </button>
+      ))}
+    </div>
+  );
+}
 const narrow = () => typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches;
 
 // `open` / `onOpenChange` (optional): opened from elsewhere too (phones: More > View, the lane button is hidden there).
@@ -37,7 +53,7 @@ export default function GuidesMenu({ guides, setGuides, showGuides = true, base 
   }, [open]);
   useEffect(() => {
     if (!open) return undefined;
-    panel.current?.querySelector('input')?.focus();
+    panel.current?.querySelector('.ds-vt-btn, input')?.focus();
     const down = e => { if (!panel.current?.contains(e.target) && !btn.current?.contains(e.target)) setOpen(false); };
     const key = e => { if (e.key === 'Escape') { e.stopPropagation(); close(); } };
     document.addEventListener('pointerdown', down);
@@ -46,19 +62,24 @@ export default function GuidesMenu({ guides, setGuides, showGuides = true, base 
   }, [open]);
   const on = showGuides ? Object.entries(guides).filter(([k, v]) => !['size', 'v'].includes(k) && v).length : 0;
   const root = btn.current?.closest('.ds') ?? (typeof document !== 'undefined' ? document.body : null);
-  const guideRows = !showGuides ? [] : ITEMS.map(([k, label, hint]) => (
-    <div key={k} className="ds-guides-row">
-      <label>
-        <input type="checkbox" checked={!!guides[k]} onChange={e => setGuides(g => ({ ...g, [k]: e.target.checked }))}/>
-        <span><b>{label}</b><small>{hint}</small></span>
-      </label>
-      {k === 'grid' && (
-        <select aria-label="Grid size" value={guides.size} disabled={!guides.grid} onChange={e => setGuides(g => ({ ...g, size: Number(e.target.value) }))}>
+  const guideRows = !showGuides ? null : (
+    <>
+      <ViewToggles guides={guides} setGuides={setGuides} labelled/>
+      <div className="ds-guides-row">
+        <label htmlFor={`${id}-size`}><span><b>Grid step</b><small>Snap and arrow-key nudge move by this step</small></span></label>
+        <select id={`${id}-size`} aria-label="Grid size" value={guides.size} onChange={e => setGuides(g => ({ ...g, size: Number(e.target.value) }))}>
           {GRID_PCTS.map(s => <option key={s} value={s}>{GRID_LABEL[s]}</option>)}
         </select>
-      )}
-    </div>
-  ));
+      </div>
+      <div className="ds-guides-row">
+        <label>
+          <input type="checkbox" checked={!!guides[SMART[0]]} onChange={e => setGuides(g => ({ ...g, [SMART[0]]: e.target.checked }))}/>
+          <span><b>{SMART[1]}</b><small>{SMART[2]}</small></span>
+        </label>
+      </div>
+      <p className="ds-guides-units">{UNITS_NOTE}</p>
+    </>
+  );
   const rows = (
     <>
       {showGuides && <h3 className="ds-guides-sec">Guides</h3>}

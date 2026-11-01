@@ -1,27 +1,52 @@
 // Pure helpers for the Studio's guides, rulers, placement targets, alignment and eraser. No Fabric, no DOM: logic-checks.mjs tests them.
-// Units are canvas logical px unless a name says otherwise. Rulers speak only in % of the garment: VFRB sizing is never shown.
+// Units are canvas logical px unless a name says otherwise. Rulers speak only in template units (0-100 across the garment): VFRB sizing is never shown.
 import { placementsFor } from './dsShared';
 
-// ── One coordinate system: garment-relative. Origin = the garment's top-left; x in % of its width, y in % of its height. ──
+// ── One coordinate system: garment-relative template units. Origin = the garment's top-left; x 0-100 across its width, y 0-100 down its height. ──
 // Grid, rulers, ruler guides, snapping and every readout use it, so grid lines land exactly on ruler ticks.
 
-// ── Guide preferences (per viewer, remembered in this browser) ──
-export const GUIDE_KEYS = ['grid', 'snap', 'rulers', 'centre', 'smart'];
-export const GRID_PCTS = [5, 10, 20]; // grid cell in % of the garment: Fine, Medium, Coarse
-export const GRID_LABEL = { 5: 'Fine · 5%', 10: 'Medium · 10%', 20: 'Coarse · 20%' };
+// ── Guide preferences (per user, remembered in this browser) ──
+export const GUIDE_KEYS = ['grid', 'snap', 'rulers', 'guides', 'smart'];
+export const GRID_PCTS = [2, 5, 10]; // grid step in template units (0-100 across the garment): Fine, Medium, Coarse
+export const GRID_LABEL = { 2: 'Fine · 2', 5: 'Medium · 5', 10: 'Coarse · 10' };
 // Visual guides start off (a clean garment); snapping and, on desktop, smart guides help without drawing anything until a drag.
-export const guideDefaults = (phone = false) => ({ v: 2, grid: false, size: 10, snap: true, rulers: false, centre: false, smart: !phone });
-// Stored prefs win; older shapes carry over: { grid, snap, size } (grid meant grid + rulers) and px sizes 10/20/40 (now 5/10/20 %).
+export const guideDefaults = (phone = false) => ({ v: 3, grid: false, size: 5, snap: true, rulers: false, guides: false, smart: !phone });
+// Older sizes keep their Fine / Medium / Coarse meaning: v1 px 10/20/40 and v2 % 5/10/20 both become 2/5/10.
+const OLD_SIZES = { 1: { 10: 2, 20: 5, 40: 10 }, 2: { 5: 2, 10: 5, 20: 10 } };
+// Stored prefs win; older shapes carry over: { grid, snap, size } (grid meant grid + rulers) and the v2 'centre' line (now Guides).
 export function readGuidePrefs(stored, phone = false) {
   const d = guideDefaults(phone);
   if (!stored || typeof stored !== 'object') return d;
-  const g = { ...d, ...stored, v: 2 };
+  const g = { ...d, ...stored, v: 3 };
   if (!('rulers' in stored) && 'grid' in stored) g.rulers = !!stored.grid;
-  if (stored.v !== 2 && 'size' in stored) g.size = { 10: 5, 20: 10, 40: 20 }[stored.size] ?? d.size;
+  if (!('guides' in stored) && 'centre' in stored) g.guides = !!stored.centre;
+  delete g.centre;
+  if (stored.v !== 3 && 'size' in stored) g.size = OLD_SIZES[stored.v === 2 ? 2 : 1][stored.size] ?? d.size;
   for (const k of GUIDE_KEYS) g[k] = !!g[k];
   if (!GRID_PCTS.includes(g.size)) g.size = d.size;
   return g;
 }
+// Storage key per signed-in user; without a user id it falls back to the browser-wide key.
+export const guidePrefsKey = userId => (userId ? `ds_guides:${userId}` : 'ds_guides');
+
+// ── Fixed guides: dashed centre line (50) and chest line (25 from the top), display and snap only, never serialized ──
+export const CHEST_PCT = 25;
+export const fixedGuides = g => (g?.width > 0 && g?.height > 0
+  ? [{ axis: 'v', pct: 50, at: g.left + g.width / 2 }, { axis: 'h', pct: CHEST_PCT, at: g.top + (CHEST_PCT / 100) * g.height }] : []);
+
+// ── Snap and nudge in template units (0-100 across the garment box) ──
+const tidy = v => Math.round(v * 1e6) / 1e6;
+export const clampPct = v => Math.min(100, Math.max(0, v));
+export const snapToStep = (v, step) => (step > 0 ? tidy(Math.round(v / step) * step) : v);
+// One nudge of n grid steps in dir (-1 | 1); with snap on it lands on the next grid line first; always clamped to 0..100.
+export function nudgePct(v, dir, n = 1, step = 5, snap = false) {
+  if (!(step > 0) || !dir) return clampPct(v);
+  const k = v / step;
+  const base = snap ? (dir > 0 ? Math.floor(k + 1e-6) : Math.ceil(k - 1e-6)) * step : v;
+  return tidy(clampPct(base + dir * n * step));
+}
+// Live "x, y" readout of the selected element's top-left in template units.
+export const xyText = m => (m ? `${m.x}, ${m.y}` : '');
 
 // ── Grid ──
 // Opacity factor for grid lines `spacingPx` apart on screen: full from 12 px, gone below 6 px (the grid fades at low zoom). Never
@@ -43,26 +68,27 @@ export function gridLines(origin, cell, pct, from, to) {
 }
 
 // ── Rulers: % of the garment along the full stage edge (negative before the garment, beyond 100 after it) ──
-const MINORS = [1, 5, 10, 25, 50];
+const MINORS = [1, 2, 5, 10, 25, 50];
 const LABELS = [10, 25, 50, 100];
-// Label every 10% when it fits (>= minLabelPx apart), otherwise 25/50/100, so 0, 50 and 100 are always labelled; minor ticks >= 6 px
-// apart, dividing the label step and (from 5% up) every grid size, so each visible grid line lands on a tick.
-export function relSteps(extentPx, minLabelPx = 36) {
+// Label every 10 when it fits (>= minLabelPx apart), otherwise 25/50/100, so 0, 50 and 100 are always labelled; minor ticks >= 6 px
+// apart and dividing the label step and, when one is shown, the grid step, so each visible grid line lands on a tick.
+export function relSteps(extentPx, minLabelPx = 36, gridPct = 0) {
   const per = extentPx / 100;
   const major = LABELS.find(m => m * per >= minLabelPx) ?? 100;
-  const step = MINORS.find(s => major % s === 0 && s * per >= 6) ?? major;
+  const fits = s => major % s === 0 && s * per >= 6;
+  const step = MINORS.find(s => fits(s) && (!gridPct || gridPct % s === 0)) ?? MINORS.find(fits) ?? major;
   return { step, major };
 }
 // Ticks for a ruler `length` screen px long; screen = origin + canvas * scale; the garment spans [gStart, gStart + gSize] canvas px.
-// Every whole multiple of the step that is on the ruler is marked, before 0 and after 100 too; 0, 50 and 100 are key ticks.
-export function relativeTicks(origin, scale, length, gStart, gSize, minLabelPx = 36) {
+// Every whole multiple of the step that is on the ruler is marked, before 0 and after 100 too; only 0..100 is labelled; 0, 50 and 100 are key ticks.
+export function relativeTicks(origin, scale, length, gStart, gSize, minLabelPx = 36, gridPct = 0) {
   if (!(scale > 0) || !(gSize > 0)) return [];
-  const { step, major } = relSteps(gSize * scale, minLabelPx);
+  const { step, major } = relSteps(gSize * scale, minLabelPx, gridPct);
   const g0 = origin + gStart * scale, per = (gSize * scale) / 100;
   const out = [];
   for (let k = Math.ceil(-g0 / per / step - 1e-9); g0 + k * step * per <= length + 1e-9; k++) {
     const v = k * step;
-    out.push({ v, at: g0 + v * per, major: v % major === 0, key: v === 0 || v === 50 || v === 100 });
+    out.push({ v, at: g0 + v * per, major: v % major === 0, key: v === 0 || v === 50 || v === 100, label: v % major === 0 && v >= 0 && v <= 100 });
   }
   return out;
 }

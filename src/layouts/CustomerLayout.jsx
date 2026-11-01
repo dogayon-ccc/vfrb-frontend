@@ -8,7 +8,6 @@ import { useHideOnScroll } from '../hooks/useHideOnScroll';
 import { asList } from '../utils/asList';
 import PageErrorBoundary from '../components/PageErrorBoundary';
 import { AppPageSkeleton } from '../components/PageSkeletons';
-import FeedbackWidget from '../components/FeedbackWidget';
 import { signOut, USER_CHANGE_EVENT } from '../utils/session';
 import logo from '../assets/company-logo.jpg';
 import { useAppearance } from '../hooks/useAppearance';
@@ -47,6 +46,14 @@ export default function CustomerLayout() {
   const [me, setMe] = useState(readUser);
   useAppearance(me.user_id);
   const barHidden = useHideOnScroll(location.pathname);
+  // The Studio button appears once the page's own Studio action (Start designing / New design / New order) has scrolled away.
+  const [pastTop, setPastTop] = useState(false);
+  useEffect(() => {
+    const on = () => setPastTop(window.scrollY > 320);
+    on();
+    window.addEventListener('scroll', on, { passive: true });
+    return () => window.removeEventListener('scroll', on);
+  }, [location.pathname]);
   const msgUnread = useUnreadMessages('/api/customer/messages/unread-count');
   const badgeFor = (to) => (to === '/messages' ? msgUnread : 0);
 
@@ -174,6 +181,9 @@ export default function CustomerLayout() {
           </button>
         </nav>
         <div className="cx-rail-foot">
+          <Link to="/settings?tab=feedback" className="cx-rail-link" title="Send feedback">
+            <Megaphone size={18} strokeWidth={1.9} aria-hidden="true" /><span className="cx-rail-label">Send feedback</span>
+          </Link>
           <button type="button" className="cx-rail-link cx-rail-out" onClick={logout} title="Sign out">
             <LogOut size={18} strokeWidth={1.9} aria-hidden="true" /><span className="cx-rail-label">Sign out</span>
           </button>
@@ -195,12 +205,11 @@ export default function CustomerLayout() {
               <ThreadPull/>
             </motion.div>
           </AnimatePresence>
-          <FeedbackWidget/>
         </div>
       </main>
 
       {/* Tucks away while scrolling down (same signal as the header), so it never sits on a card's buttons mid-scroll. */}
-      {fab && <button type="button" className="cm-studio-fab" data-hidden={barHidden} onClick={openStudio} aria-label="Design Studio"><Palette size={24} strokeWidth={2} aria-hidden="true" /></button>}
+      {fab && <button type="button" className="cm-studio-fab" data-hidden={barHidden || !pastTop} onClick={openStudio} aria-label="Design Studio"><Palette size={24} strokeWidth={2} aria-hidden="true" /></button>}
 
       <AnimatePresence>
         {moreOpen && (

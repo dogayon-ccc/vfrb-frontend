@@ -7,7 +7,7 @@ import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
 import EmptyState from '../../components/EmptyState';
 import { Card, Button, PageHeader, Stepper, Skeleton } from '../../components/ui';
 import {
-  Chips, StatusPill, OrderThumb, LIFECYCLE, lifecycleIndex, GROUPS, orderTitle, fmtDate, parseCfg,
+  Chips, StatusPill, OrderThumb, LIFECYCLE, lifecycleIndex, GROUPS, orderTitle, fmtDate, parseCfg, setMateLine,
 } from '../../components/customer/kit';
 import { reorderDesign } from '../../utils/designActions';
 
@@ -17,10 +17,10 @@ const SORTS = [
   { id: 'due', label: 'Due date' },
 ];
 
-function OrderCard({ o, onOpen, onReorder }) {
+function OrderCard({ o, onOpen, onReorder, setLine }) {
   const done = o.status === 'completed' || o.status === 'cancelled';
   const cfg = parseCfg(o);
-  const canReorder = Object.keys(cfg).length > 0;
+  const canReorder = Object.keys(cfg).length > 0 && o.status !== 'pending'; // a pending order is still under VFRB review
   return (
     <Card as={motion.article} layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
       interactive padding="none" className="ox-card">
@@ -31,6 +31,7 @@ function OrderCard({ o, onOpen, onReorder }) {
             <small>Order #{o.order_id}</small>
             <strong>{orderTitle(o)}</strong>
             <span>{o.quantity_ordered ?? 0} pcs{o.target_delivery_date ? ` · Due ${fmtDate(o.target_delivery_date, { month: 'short', day: 'numeric' })}` : ''}</span>
+            {setLine && <span className="ox-set">{setLine}</span>}
           </span>
           <StatusPill status={o.status} />
         </div>
@@ -129,7 +130,7 @@ export default function CustomerOrders() {
           cta={blank ? { label: 'Start a design', onClick: () => nav('/design-studio') } : { label: 'Clear filters', onClick: () => { setSearch(''); setGroup('all'); } }} />
       ) : (
         <AnimatePresence mode="popLayout">
-          <div className="ox-grid">{list.map(o => <OrderCard key={o.order_id} o={o} onOpen={() => nav(`/orders/${o.order_id}`)} onReorder={reorder} />)}</div>
+          <div className="ox-grid">{list.map(o => <OrderCard key={o.order_id} o={o} setLine={setMateLine(o, orders)} onOpen={() => nav(`/orders/${o.order_id}`)} onReorder={reorder} />)}</div>
         </AnimatePresence>
       )}
     </div>

@@ -1,7 +1,7 @@
-// Fabric-side drawing for the Studio's guides: the garment centre line, placement ghosts while a logo or text moves, and the eraser
-// cut. The centre line is painted on the live canvas only (never in an export, which renders to its own canvas); ghosts go on the
-// interaction layer. None of them is a canvas object. The grid is the stage's SVG behind the canvas, never drawn on the garment.
-import { samplePath, erasable, touches } from './canvasGuides';
+// Fabric-side drawing for the Studio's guides: the grid and the centre and chest lines over the garment, placement ghosts while a
+// logo or text moves, and the eraser cut. Grid and guides are painted on the live canvas only (never in an export or thumbnail,
+// which render to their own canvas); ghosts go on the interaction layer. None of them is a canvas object, so none is saved.
+import { samplePath, erasable, touches, gridSpec, gridLines, gridFade, GRID_ALPHA, fixedGuides } from './canvasGuides';
 
 // Colour tokens read from the page (customer tokens are scoped to the Studio root), as rgba with an alpha.
 const token = (el, name, fallback) => (el && getComputedStyle(el).getPropertyValue(name).trim()) || fallback;
@@ -34,26 +34,51 @@ export function garmentBox(c) {
 // One screen px in canvas units through the Fabric zoom and the wrapper's CSS scale.
 const screenPx = (c, scale) => 1 / ((c.viewportTransform?.[0] || 1) * (scale || 1));
 
-// Dashed vertical line through the garment's centre, the full height of the artboard.
-function drawCentre(ctx, c, o) {
-  const g = garmentBox(c);
-  if (!g) return;
-  const px = screenPx(c, o.scale), x = g.left + g.width / 2;
+// Grid over the garment box only, one screen px wide; 'difference' keeps it readable on light and dark cloth alike.
+function drawGrid(ctx, c, o) {
+  const g = garmentBox(c), spec = gridSpec(g, o.gridPct);
+  if (!spec) return;
+  const px = screenPx(c, o.scale), fade = gridFade(Math.min(spec.sx, spec.sy) / px);
+  const keep = l => fade > 0 || l.v % 50 === 0; // faded out: only the 0/50/100 lines stay (each always has a ruler tick)
+  const xs = gridLines(spec.x0, spec.sx, spec.pct, g.left, g.left + g.width).filter(keep);
+  const ys = gridLines(spec.y0, spec.sy, spec.pct, g.top, g.top + g.height).filter(keep);
   ctx.save();
-  ctx.lineWidth = Math.max(px, 1);
-  ctx.setLineDash([6 * px, 4 * px]);
-  ctx.strokeStyle = rgba(token(c.lowerCanvasEl, '--cx-thread-ink', '#02606c'), 0.85);
-  ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, c.getHeight()); ctx.stroke();
+  ctx.globalCompositeOperation = 'difference';
+  ctx.lineWidth = px;
+  for (const [lines, v] of [[xs, true], [ys, false]]) for (const l of lines) {
+    ctx.strokeStyle = `rgba(255,255,255,${(l.major ? GRID_ALPHA.major * 2 * Math.max(fade, 0.6) : GRID_ALPHA.minor * 2.5 * fade).toFixed(3)})`;
+    ctx.beginPath();
+    if (v) { ctx.moveTo(l.at, g.top); ctx.lineTo(l.at, g.top + g.height); } else { ctx.moveTo(g.left, l.at); ctx.lineTo(g.left + g.width, l.at); }
+    ctx.stroke();
+  }
   ctx.restore();
 }
 
-// Paints the design, then the centre line (when on) on the live canvas; exports and previews render without it. The grid is never
-// painted over the garment: it is the stage's SVG grid behind the canvas, so the cloth always reads clean.
+// Dashed centre line (full artboard height) and chest line (garment width) in thread red.
+function drawGuides(ctx, c, o) {
+  const g = garmentBox(c);
+  if (!g) return;
+  const px = screenPx(c, o.scale);
+  ctx.save();
+  ctx.lineWidth = Math.max(px, 1);
+  ctx.setLineDash([6 * px, 4 * px]);
+  ctx.strokeStyle = rgba(token(c.lowerCanvasEl, '--color-thread-red', '#C4313B'), 0.9);
+  for (const l of fixedGuides(g)) {
+    ctx.beginPath();
+    if (l.axis === 'v') { ctx.moveTo(l.at, 0); ctx.lineTo(l.at, c.getHeight()); } else { ctx.moveTo(g.left, l.at); ctx.lineTo(g.left + g.width, l.at); }
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// Paints the design, then (when on) the grid and the guides over it, on the live canvas only; exports and previews render without them.
 export function installStageLayers(c, opts) {
   const render = c._renderObjects.bind(c);
   c._renderObjects = (ctx, objects) => {
     render(ctx, objects);
-    if (ctx === c.contextContainer && opts.current.centre) drawCentre(ctx, c, opts.current);
+    if (ctx !== c.contextContainer) return;
+    if (opts.current.showGrid) drawGrid(ctx, c, opts.current);
+    if (opts.current.guides) drawGuides(ctx, c, opts.current);
   };
 }
 

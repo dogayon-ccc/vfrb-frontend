@@ -14,7 +14,7 @@ import { Palette } from 'lucide-react';
 import heroPhoto from '../../assets/brand/uniforms.jpg';
 import {
   StatusPill, OrderThumb, DesignThumb, LIFECYCLE, lifecycleIndex, nextStep,
-  orderTitle, fmtDate, reltime, IN_PRODUCTION,
+  orderTitle, fmtDate, reltime, IN_PRODUCTION, setMateLine,
 } from '../../components/customer/kit';
 
 function greeting(name) {
@@ -42,14 +42,14 @@ function Confetti() {
 }
 
 // Compact row for the other orders; the whole row opens the order.
-function OrderRow({ order, meta }) {
+function OrderRow({ order, meta, setLine }) {
   const nav = useNavigate();
   return (
     <li>
       <button type="button" className="dx-orow" onClick={() => nav(`/orders/${order.order_id}`)}
         aria-label={`Open order ${order.order_id}, ${orderTitle(order)}`}>
         <OrderThumb order={order} size={44} />
-        <span className="dx-row-txt"><strong>{orderTitle(order)}</strong><small>{meta}</small></span>
+        <span className="dx-row-txt"><strong>{orderTitle(order)}</strong><small>{meta}</small>{setLine && <small className="dx-row-set">{setLine}</small>}</span>
         <StatusPill status={order.status} />
       </button>
     </li>
@@ -125,7 +125,7 @@ export default function CustomerDashboard() {
   const moreActive = active.slice(1, 3);
   const recent = sorted.filter(o => o !== featured && !moreActive.includes(o)).slice(0, 3);
   const next = nextStep(featured);
-  const pcs = (o) => `Order #${o.order_id} · ${Number(o.quantity_ordered ?? 0)} pcs`;
+  const pcs = (o) => `Order #${o.order_id} · ${Number(o.quantity_ordered ?? 0)} pcs${o.created_at ? ` · ${fmtDate(o.created_at)}` : ''}`;
 
   return (
     <div className="cx-page dx">
@@ -189,8 +189,7 @@ export default function CustomerDashboard() {
               </article>
               {moreActive.length + recent.length > 0 && (
                 <ul className="dx-olist">
-                  {moreActive.map(o => <OrderRow key={o.order_id} order={o} meta={pcs(o)} />)}
-                  {recent.map(o => <OrderRow key={o.order_id} order={o} meta={`${pcs(o)} · ${fmtDate(o.created_at)}`} />)}
+                  {[...moreActive, ...recent].map(o => <OrderRow key={o.order_id} order={o} meta={pcs(o)} setLine={setMateLine(o, orders)} />)}
                 </ul>
               )}
             </>
@@ -212,7 +211,7 @@ export default function CustomerDashboard() {
                 <div key={d.id} className="dx-rd-item">
                   <button type="button" className="dx-rd-open" aria-label={`${d.locked ? 'View' : 'Open'} ${name} in the Studio`} onClick={() => openDesign(d, nav)}>
                     <span className="dx-rd-thumb"><DesignThumb src={d.is_copy ? null : d.photo_path} garment={d.garment} colors={d.config?.colors} name={name} scale={1.5} /></span>
-                    <strong>{name}</strong><em>{d.locked ? 'Ordered, view only' : d.is_copy ? 'Copy, colours only' : 'Saved design'}</em>
+                    <strong>{name}</strong><em>{d.locked ? 'Ordered · view only' : d.is_copy ? 'Copy, colours only' : 'Ordered before'}</em>
                   </button>
                   <div className="dx-rd-acts">
                     <Button variant="primary" fullWidth onClick={() => reorderDesign(d, nav)}>Reorder</Button>

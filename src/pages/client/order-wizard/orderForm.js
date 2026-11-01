@@ -1,5 +1,6 @@
 // Pure Order Wizard logic: Studio prefill, per-step validation and the POST /api/customer/orders payload.
 import { STD_SIZES, MIN_ORDER_QTY, orderQty, qtyShort } from '../../../utils/orderQuantity';
+import { garmentLabel } from '../../../utils/designName';
 
 export const STEPS = ['Design', 'Sizes', 'Delivery', 'Review'];
 export const FABRIC_TYPES = ['Cotton', 'Sublimation / Dry-fit', 'TC', 'Not sure'];
@@ -49,7 +50,7 @@ export function prefillFrom(cfg) {
   const collar = COLLAR_MAP[cfg.collarType ?? cfg.collar] ?? IMPLIED_COLLAR[garment] ?? '';
   const sleeve = SLEEVE_MAP[cfg.sleeveType ?? cfg.sleeve] ?? '';
   const color = colorName(cfg.colors?.body);
-  const notes = [cfg.category && `${cfg.category} uniform.`, garment && `${garment} style.`, collar && `${collar} collar.`,
+  const notes = [cfg.category && `${cfg.category} uniform.`, garment && `${garmentLabel(garment)} style.`, collar && `${collar} collar.`,
     sleeve && `${sleeve}.`, color && `Primary color: ${color}.`, 'Designed in the VFRB Design Studio.'].filter(Boolean).join(' ');
   return { garment_type: garment, collar_type: collar, sleeve_type: sleeve, color, client_design_notes: notes };
 }

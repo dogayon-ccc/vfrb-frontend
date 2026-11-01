@@ -34,11 +34,11 @@ export function peekDesignRef() {
 }
 
 // Identity of a design for "is the account draft the design that was just ordered?".
-// Survives the Laravel JSON round trip: key order, null-valued keys, {} vs [] and float formatting are normalised,
-// and preview images are ignored (they are a rendering of the design, not the design).
+// Survives the Laravel JSON round trip: key order, null-valued keys, empty strings (ConvertEmptyStringsToNull saves them as null),
+// {} vs [] and float formatting are normalised, and preview images are ignored (they are a rendering of the design, not the design).
 const canon = v => {
   if (Array.isArray(v)) v = Object.fromEntries(v.map((x, i) => [i, x]));
-  if (v && typeof v === 'object') return '{' + Object.keys(v).filter(k => v[k] != null && k !== 'previewPng').sort().map(k => JSON.stringify(k) + ':' + canon(v[k])).join(',') + '}';
+  if (v && typeof v === 'object') return '{' + Object.keys(v).filter(k => v[k] != null && v[k] !== '' && k !== 'previewPng').sort().map(k => JSON.stringify(k) + ':' + canon(v[k])).join(',') + '}';
   return typeof v === 'number' ? String(+v.toPrecision(12)) : JSON.stringify(v ?? null);
 };
 export function draftFingerprint(snap) {

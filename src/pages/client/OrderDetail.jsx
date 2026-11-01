@@ -340,7 +340,6 @@ export default function CustomerOrderDetail() {
     { label:'Collar',       value: humanize(order?.collar_type) ?? '—'                },
     { label:'Sleeve',       value: humanize(order?.sleeve_type) ?? '—'                },
     { label:'Pocket',       value: humanize(order?.pocket_type) ?? '—'                },
-    { label:'Order type',   value: humanize(order?.order_type) ?? '—'                 },
     { label:'Delivery',     value: METHOD_LABEL[order?.delivery_method] ?? '—' },
     { label:'PO reference', value: order?.po_reference ?? '—' },
     { label: agreedDate ? 'Delivery' : 'Preferred date', value: (agreedDate ?? order?.target_delivery_date)
@@ -543,7 +542,7 @@ export default function CustomerOrderDetail() {
                     : 'This is the reference you uploaded. VFRB works from it and confirms details with you.'}
                 </p>
               </>}
-              {order.client_design_notes && <p className="od-pre od-gap">{order.client_design_notes}</p>}
+              {order.client_design_notes && <p className="od-pre od-gap">{garmentLabel(order.client_design_notes)}</p>}
               {/* Images already show above; a PDF, or a reference sent beside a Studio design, gets a link. */}
               {refUrl && (!refIsImage || order.studio_config) && (
                 <a href={refUrl} target="_blank" rel="noopener noreferrer" className="ui-btn od-gap od-ref-link" data-v="secondary" data-size="md">

@@ -2,7 +2,7 @@ import { Component, Suspense, lazy, useCallback, useEffect, useLayoutEffect, use
 import { AnimatePresence } from 'framer-motion';
 import { Minus, Plus, Scan, Maximize2, Minimize2, Expand, Shrink, Lightbulb, RotateCw, FlipHorizontal2 } from 'lucide-react';
 import { NavIcon } from '../../../components/ui/icons';
-import { familyFor } from './garmentCatalog';
+import { familyFor, label3D } from './garmentCatalog';
 import { get3DCapabilities, hemNote3D, detailParts3D, explodableFor } from './garmentCapabilities';
 import { LIGHT_PRESETS } from './lightRig';
 import { ZONE_LABEL } from './dsShared';
@@ -13,11 +13,12 @@ import { isDerived } from './derivedFamilies';
 import { isCustom, CUSTOM_BADGE, CUSTOM_3D_NOTE } from './customGarment';
 import { photoMaxScale } from './studioView';
 import { panLimits, clampPan } from './snapGuides';
-import { readGuidePrefs } from './canvasGuides';
-import { StageGrid, PinnedRulers, GuideLine, RULER_H, RULER_W } from './StageRulers';
+import { readGuidePrefs, guidePrefsKey } from './canvasGuides';
+import { PinnedRulers, GuideLine } from './StageRulers';
 import SetView2D from './SetView2D';
 import FloatingToolbar from './FloatingToolbar';
-import GuidesMenu from './GuidesMenu';
+import GuidesMenu, { ViewToggles, UNITS_NOTE } from './GuidesMenu';
+import { viewKey } from './railTools';
 import ToolRail from './ToolRail';
 import { traceBox } from './traceGuide';
 
@@ -33,10 +34,11 @@ function TraceLayer({ trace, w, h }) {
     style={{ left: b.left, top: b.top, width: b.width, height: b.height, opacity: trace.opacity / 100 }}/>;
 }
 
-// Guides are remembered per viewer in this browser; on a phone they start off (the screen is small and touch is coarse).
+// Guides are remembered per user in this browser (the browser-wide key seeds a user's first visit); on a phone they start off.
+const guidesKey = () => { try { return guidePrefsKey(JSON.parse(localStorage.getItem('vfrb_user') || '{}')?.user_id); } catch { return guidePrefsKey(null); } };
 const readGuides = () => {
   const phone = typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches;
-  try { return readGuidePrefs(JSON.parse(localStorage.getItem('ds_guides') || 'null'), phone); } catch { return readGuidePrefs(null, phone); }
+  try { return readGuidePrefs(JSON.parse(localStorage.getItem(guidesKey()) || localStorage.getItem('ds_guides') || 'null'), phone); } catch { return readGuidePrefs(null, phone); }
 };
 const ZOOM_MIN = 0.6, ZOOM_MAX = 1.8;
 const clampZoom = z => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, +z.toFixed(3)));
@@ -160,12 +162,23 @@ export default function CanvasViewport({
   const scale = Math.min(zoom * base, cap); // canvas logical px -> screen px
   const atCap = zoom * base >= cap - 1e-6;
   useEffect(() => { setZoom(1); }, [cfg.garment, cfg.sleeve, cfg.fit, setZoom]); // a new garment starts at the fitted size
-  // Guides (Grid, size, Snap, Rulers, Centre line, Smart guides): per-viewer convenience, remembered in this browser.
+  // Guides (Grid, size, Rulers, Snap, Guides, Smart guides): per-user convenience, remembered in this browser.
   const [guides, setGuides] = useState(readGuides);
   useEffect(() => {
-    setSnapOptions?.({ snap: guides.snap, gridPct: guides.size, showGrid: guides.grid, centre: guides.centre, smart: guides.smart, scale });
-    try { localStorage.setItem('ds_guides', JSON.stringify(guides)); } catch { /* storage blocked */ }
+    setSnapOptions?.({ snap: guides.snap, gridPct: guides.size, smart: guides.smart, scale });
+    try { localStorage.setItem(guidesKey(), JSON.stringify(guides)); } catch { /* storage blocked */ }
   }, [guides, scale, setSnapOptions]);
+  // Shift+G grid, R rulers (2D only; never while typing).
+  useEffect(() => {
+    const key = (e) => {
+      const a = document.activeElement, k = viewKey(e);
+      if (!k || e.defaultPrevented || !cfg.garment || viewMode === '3d' || (a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable))) return;
+      e.preventDefault();
+      setGuides(g => ({ ...g, [k]: !g[k] }));
+    };
+    window.addEventListener('keydown', key);
+    return () => window.removeEventListener('keydown', key);
+  }, [cfg.garment, viewMode]);
   const [dark, setDark] = useState(false);
 
   // ── Pan + pinned rulers ──
@@ -175,6 +188,10 @@ export default function CanvasViewport({
   // The set view shows both pieces (2D only; 3D shows one piece at a time); rulers, guides and grid step aside while it is open.
   const set2D = showSet && !!setCompanion && viewMode !== '3d';
   const rulersOn = guides.rulers && !!cfg.garment && show2D && !initFailed && !!garmentRect && !set2D;
+  // Grid and guides are painted on the live 2D canvas only (canvasLayers.js), never in the saved JSON, exports or thumbnails.
+  const stage2D = !!cfg.garment && show2D && !initFailed && !set2D;
+  const gridOn = guides.grid && stage2D, guidesOn = guides.guides && stage2D;
+  useEffect(() => { setSnapOptions?.({ showGrid: gridOn, guides: guidesOn }); }, [gridOn, guidesOn, setSnapOptions]);
   // Ruler guides: pulled out of a ruler, kept for this session only (never saved); they snap while the rulers are shown.
   const [rulerGuides, setRulerGuides] = useState([]);
   useEffect(() => { setSnapOptions?.({ rulerGuides: rulersOn ? rulerGuides : [] }); }, [rulersOn, rulerGuides, setSnapOptions]);
@@ -348,8 +365,6 @@ export default function CanvasViewport({
     <button type="button" className="ds-ctrl" onClick={onClick} {...extra}>{icon}<span>{label}</span></button>
   );
 
-  const gridOn = guides.grid && !!cfg.garment && show2D && !!view && !!garmentRect && !set2D;
-  const stageOff = { dx: rulersOn ? RULER_W : 0, dy: rulersOn ? RULER_H : 0 };
 
   const status = isCustom(cfg.garment) ? { label: CUSTOM_BADGE, title: CUSTOM_3D_NOTE }
     : photo ? { label: 'Photo', title: 'A recoloured photo of the real garment' }
@@ -386,20 +401,22 @@ export default function CanvasViewport({
         <div className="ds-lane ds-lane-top" data-notes={notes3D.length ? '1' : undefined}>
           {!initFailed && <GuidesMenu guides={guides} setGuides={setGuides} showGuides={show2D} base={show2D ? status : null} dark={dark} setDark={setDark}
             open={viewOpen} onOpenChange={setViewOpen}/>}
+          {show2D && !initFailed && !set2D && <ViewToggles guides={guides} setGuides={setGuides}/>}
           {show2D && rail && !initFailed && <ToolRail rail={rail} hand={hand} setHand={setHand} canPan={canPan} zoomBy={f => setZoom(z => clampZoom(z * f))}/>}
           {notes3D.map(n => <div key={n.id} role="status" className="ds-stage-note" data-tone={n.warn ? 'warn' : undefined}>{n.text}</div>)}
         </div>
       )}
 
       <div ref={fitRef} className="ds-stage-fit">
+        {/* Phones: the 3D status sits in the stage corner instead of under the 2D | 3D switch, so the top bar stays one row. */}
+        {cfg.garment && <span className="ds-stage-badge" data-off={label3D(cfg) === '3D not available' ? '1' : undefined}>{label3D(cfg)}</span>}
         {/* Skeleton until the garment base has drawn, so the stage is never blank while a photo or template loads. */}
         {show2D && cfg.garment && !garmentRect && !initFailed && <div className="ds-ref3d-skel" role="status"><span aria-hidden="true"/>Loading your design…</div>}
         {/* Set view: both pieces on one scale (2D). */}
         {set2D && <SetView2D top={setCompanion.role === 'top' ? setCompanion.cfg : cfg} bottom={setCompanion.role === 'top' ? cfg : setCompanion.cfg}/>}
         {/* Both panes stay mounted and only toggle visibility, so Fabric and WebGL keep their state; show2D also covers
             viewMode==='3d' before the 3D pane exists, so the workspace is never blank. Rulers are pinned outside the scaled wrapper. */}
-        {gridOn && <StageGrid view={view} g={garmentRect} pct={guides.size} {...stageOff} w={view.pw + stageOff.dx} h={view.ph + stageOff.dy}/>}
-        {rulersOn && view && <PinnedRulers view={view} g={garmentRect} fitRef={fitRef} onGuide={gd => setRulerGuides(l => [...l.filter(x => !(x.axis === gd.axis && x.pct === gd.pct)), gd])}/>}
+        {rulersOn && view && <PinnedRulers view={view} g={garmentRect} fitRef={fitRef} gridPct={gridOn ? guides.size : 0} onGuide={gd => setRulerGuides(l => [...l.filter(x => !(x.axis === gd.axis && x.pct === gd.pct)), gd])}/>}
         {rulersOn && view && rulerGuides.map(gd => <GuideLine key={gd.axis + gd.pct} guide={gd} view={view} g={garmentRect} onRemove={() => setRulerGuides(l => l.filter(x => x !== gd))}/>)}
         <div ref={paneRef} className="ds-pane" data-pan={canPan ? '1' : undefined} data-sel={selObj ? '1' : undefined} data-garment={cfg.garment && show2D ? '1' : undefined}
           onPointerDownCapture={onPaneDownCapture} onPointerMoveCapture={onPaneMoveCapture} onPointerUpCapture={onPaneUpCapture} onPointerCancelCapture={onPaneUpCapture}
@@ -495,6 +512,7 @@ export default function CanvasViewport({
               ? <><output aria-label="Zoom level" title={photo ? 'A photo base never goes above its full resolution' : undefined}>{Math.round(scale * 100)}%</output> · Tap a part of the garment to colour it</>
               : canExplode ? 'Drag to rotate, tap a part to select it' : 'Drag to rotate, pinch or scroll to zoom'}
           </p>
+          {rulersOn && <p className="ds-units-note" role="note">{UNITS_NOTE}</p>}
         </div>
       )}
     </div>

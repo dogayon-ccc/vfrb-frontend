@@ -34,7 +34,7 @@ export default function HelpSection() {
             <h2 id="hs-order-h">Question about an order?</h2>
             <p>Messages go straight to the VFRB team handling that order, with your design and status attached.</p>
           </div>
-          <Link to="/messages" className="ui-btn" data-v="primary" data-size="md">Open Messages</Link>
+          <Link to="/messages" className="ui-btn" data-v="primary" data-size="md">Open messages</Link>
         </Card>
 
         <Card title="Contact VFRB Enterprise" padding="none">
