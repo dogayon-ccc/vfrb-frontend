@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { lazy, Suspense, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { TTL } from '../../utils/cache';
@@ -18,6 +18,7 @@ const localDay = () => { const d = new Date(); return new Date(d.getTime() - d.g
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) : '—');
 const peso = (n) => `₱${Number(n).toLocaleString('en-PH')}`;
 const OUTPUT_PAGE = 500;
+const OrdersTrendChart = lazy(() => import('../../components/admin/OrdersTrendChart'));
 
 // Small alert list: a card holding a dense table, or an empty line when nothing is waiting.
 // head: column labels; num: labels of right-aligned numeric columns.
@@ -68,6 +69,7 @@ export default function AdminDashboard() {
   const outByStage = useMemo(() => (outRaw?.rows ?? []).reduce((a, l) => ({ ...a, [l.stage]: (a[l.stage] ?? 0) + (Number(l.total_output) || 0) }), {}), [outRaw]);
   const outMax = Math.max(1, ...Object.values(outByStage));
   const outPartial = outRaw && outRaw.total > outRaw.rows.length;
+  const trends = data?.order_trends ?? [];
 
   const attention = [
     { key: 'review', label: 'orders awaiting review', count: o.pending ?? 0, to: '/admin/orders?status=pending' },
@@ -169,6 +171,13 @@ export default function AdminDashboard() {
               ))}
               {outPartial && <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--text-faint)' }}>Bars cover the latest {outRaw.rows.length} of {outRaw.total} entries.</p>}
             </>}
+        </Card>
+
+        <Card title="Orders placed" subtitle="Per month, last 6 months" className="dash-full">
+          {loading ? <div className="adm-sk" style={{ height: 220 }} />
+            : !data ? <EmptyState compact>Order trend unavailable.</EmptyState>
+            : !trends.some((t) => t.orders > 0) ? <EmptyState compact>No orders placed in the last 6 months.</EmptyState>
+            : <Suspense fallback={<div className="adm-sk" style={{ height: 220 }} />}><OrdersTrendChart rows={trends} /></Suspense>}
         </Card>
 
         <div id="dash-late" className="dash-full" tabIndex={-1}>

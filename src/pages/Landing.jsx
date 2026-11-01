@@ -33,8 +33,8 @@ export default function Landing() {
     <SitePage title="Company uniforms made in Muntinlupa">
       <section ref={hero} className="lp-hero vs-wrap" aria-labelledby="lp-title">
         <div className="lp-hero__copy">
-          <h1 className="vs-h1" id="lp-title">Company uniforms, made by one family since 2000.</h1>
-          <p className="lp-lede">Design your uniform in the VFRB Studio, order in bulk and follow it from the cutting table to your door. VFRB sets up accounts for schools, hospitals and companies.</p>
+          <h1 className="vs-h1" id="lp-title">Custom uniforms, made smarter.</h1>
+          <p className="lp-lede">Design your uniform in the VFRB Studio, order in bulk and follow it from the cutting table to your door. VFRB sets up accounts for schools, hospitals and companies. Family-made in Muntinlupa since 2000.</p>
           <div className="vs-btns">
             <Btn to="/login" variant="mint">Sign in</Btn>
             <Btn to="/login#request-access" variant="ghost-light">Request access</Btn>

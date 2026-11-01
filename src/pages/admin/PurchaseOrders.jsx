@@ -7,6 +7,7 @@ import { cacheGet, cacheSet, cacheClear } from '../../utils/cache';
 import { NavIcon }                             from '../../components/ui/icons';
 import { escapeHtml }                          from '../../utils/escapeHtml';
 import { isAdmin } from '../../utils/jobAccess';
+import BottomSheet from '../../components/ui/BottomSheet';
 import { PageHeader, StatGrid, PillTabs, Panel, StatusPill, SearchBox, Banner, Toast, useToast, ErrorBlock, SkeletonRows, FilterSheet, FilterButton, useIsMobile } from '../../components/admin/AdminUI';
 
 const T    = 'var(--teal)';
@@ -112,10 +113,11 @@ fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}>
       )}
 
       {onChangeReceived && (
-        <div style={{ display:'flex',flexWrap:'wrap',gap:5 }}>
+        <div style={{ display:'flex',flexWrap:'wrap',gap:8 }}>
           {PH_SWATCHES.map(s=>(
-            <button key={s.hex} onClick={()=>onChangeReceived(s.hex)} title={`${s.name} ${s.hex}`}
-              style={{ width:26,height:26,borderRadius:6,cursor:'pointer',border:'none',padding:0,
+            <button key={s.hex} type="button" onClick={()=>onChangeReceived(s.hex)} title={`${s.name} ${s.hex}`}
+              aria-label={`Received colour: ${s.name}`} aria-pressed={receivedHex===s.hex}
+              style={{ width:44,height:44,borderRadius:8,cursor:'pointer',border:'none',padding:0,
                 background:s.hex,
                 outline:receivedHex===s.hex?`3px solid ${T}`:'1.5px solid rgba(0,0,0,.15)',
                 outlineOffset:receivedHex===s.hex?2:0,
@@ -413,102 +415,61 @@ function ReceiveModal({ po, onClose, onDone }) {
   const [colorNotes,  setColorNotes]  = useState('');
   const [busy,        setBusy]        = useState(false);
   const [err,         setErr]         = useState('');
+  const isMobile = useIsMobile();
 
   const de       = deltaE(po.order_color_hex, receivedHex);
   const mismatch = de !== null && de > 5;
   const items    = Array.isArray(po.items) ? po.items : [];
 
   const submit = async () => {
+    if (mismatch && !colorNotes.trim()) { setErr('Describe the colour difference before receiving with a mismatch.'); return; }
     setBusy(true); setErr('');
     try {
       const r = await axios.patch(`/api/admin/purchase-orders/${po.po_id}/receive`, {
         received_color_hex: receivedHex || null,
-        color_notes:        colorNotes  || null,
+        color_notes:        colorNotes.trim() || null,
       });
       cacheClear('dashboard_stats','materials_list');
       onDone(r.data.message, r.data.color_mismatch);
-    } catch(e) { setErr(e.response?.data?.message ?? 'Failed.'); }
+    } catch(e) { setErr(e.response?.data?.message ?? 'Could not record the receipt. Try again.'); }
     finally { setBusy(false); }
   };
 
   return (
-    <div style={{ position:'fixed',inset:0,background:'rgba(15,23,42,.5)',
-      backdropFilter:'blur(4px)',zIndex:200,display:'flex',
-      alignItems:'center',justifyContent:'center',padding:16 }}>
-      <motion.div initial={{ opacity:0,scale:.95 }} animate={{ opacity:1,scale:1 }}
-        style={{ background:'var(--bg-card)',borderRadius:18,width:'min(540px,100%)',
-          maxHeight:'92vh',display:'flex',flexDirection:'column',
-          boxShadow:'0 20px 60px rgba(0,0,0,.15)',overflow:'hidden' }}>
-        <div style={{ padding:'16px 22px',background:'var(--teal-50)',borderBottom:'1px solid var(--teal-100)' }}>
-          <h3 style={{ fontSize:15,fontWeight:800,color:'var(--ink)',margin:0,fontFamily:FONT }}>
-            <NavIcon name="inventory" size={14} color="currentColor" style={{verticalAlign:'-2px',marginRight:6}}/>Receive PO — {po.po_number}
-          </h3>
-          <p style={{ fontSize:11,color:'var(--text-subtle)',margin:'3px 0 0',fontFamily:FONT }}>
-            Match fabric color to order swatch before confirming
-          </p>
-        </div>
-        <div style={{ flex:1,overflowY:'auto',padding:'20px 22px',display:'flex',flexDirection:'column',gap:16 }}>
-          {items.length > 0 && (
-            <div style={{ background:'var(--bg)',borderRadius:11,padding:'12px 14px' }}>
-              <p style={{ fontSize:11,fontWeight:700,color:'var(--text-subtle)',margin:'0 0 8px',fontFamily:FONT }}>
-                Materials to receive:
-              </p>
-              {items.map((item,i)=>(
-                <div key={i} style={{ display:'flex',justifyContent:'space-between',padding:'4px 0',
-                  borderBottom:i<items.length-1?'1px solid var(--bg-surface)':'none' }}>
-                  <span style={{ fontSize:12,color:'var(--ink)',fontFamily:FONT }}>{item.material_name}</span>
-                  <span style={{ fontSize:12,fontWeight:700,color:T,fontFamily:FONT }}>+{item.qty} {item.unit}</span>
-                </div>
-              ))}
-            </div>
-          )}
-          <div style={{ background:'var(--bg-card)',border:'1px solid var(--border)',borderRadius:12,padding:'14px' }}>
-            <p style={{ fontSize:13,fontWeight:800,color:'var(--ink)',margin:'0 0 12px',fontFamily:FONT }}>
-              <NavIcon name="designStudio" size={14} color="currentColor" style={{verticalAlign:'-2px',marginRight:6}}/>Color Swatch Matching
-            </p>
-            <ColorSwatchMatch
-              orderedHex={po.order_color_hex}
-              receivedHex={receivedHex}
-              onChangeReceived={setReceivedHex}/>
+    <BottomSheet title={`Receive ${po.po_number}`} onClose={busy ? () => {} : onClose} isMobile={isMobile} maxWidth={540}>
+      <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+        <p style={{ margin:0, fontSize:13, color:'var(--text-subtle)' }}>Match the delivered fabric to the order swatch, then confirm the receipt. Stock goes up when you confirm.</p>
+        {items.length > 0 && (
+          <div style={{ background:'var(--bg)', borderRadius:11, padding:'12px 14px' }}>
+            <p style={{ fontSize:12, fontWeight:700, color:'var(--text-subtle)', margin:'0 0 8px' }}>Materials to receive</p>
+            {items.map((item,i)=>(
+              <div key={i} style={{ display:'flex', justifyContent:'space-between', gap:12, padding:'4px 0', fontSize:13,
+                borderBottom:i<items.length-1?'1px solid var(--bg-surface)':'none' }}>
+                <span style={{ color:'var(--ink)', minWidth:0, overflowWrap:'anywhere' }}>{item.material_name}</span>
+                <b style={{ color:'var(--teal)', whiteSpace:'nowrap' }}>+{item.qty} {item.unit}</b>
+              </div>
+            ))}
           </div>
-          <div>
-            <label style={{ ...lbl,marginBottom:7 }}>
-              Color notes{' '}
-              <span style={{ color:'var(--text-faint)',fontWeight:400,textTransform:'none' }}>
-                {mismatch?'(required for mismatch)':'(optional)'}
-              </span>
-            </label>
-            <textarea value={colorNotes} onChange={e=>setColorNotes(e.target.value)}
-              placeholder={mismatch?'Describe the color difference…':'Any notes on received color…'}
-              rows={2} style={{ ...inp, resize:'none' }} onFocus={fi} onBlur={fo}/>
-          </div>
-          {mismatch && (
-            <div style={{ padding:'10px 14px',borderRadius:10,background:'var(--warning-bg)',border:'1px solid var(--warning-border)' }}>
-              <p style={{ fontSize:11,color:'#92400e',fontWeight:600,margin:0,fontFamily:FONT }}>
-                <NavIcon name="warning" size={12} color="currentColor" style={{verticalAlign:'-2px',marginRight:4}}/>Proceeding will hold cutting. Manager must confirm color before cutting begins.
-              </p>
-            </div>
-          )}
-          {err && <p style={{ color:'var(--danger-text)',fontSize:12,fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}><NavIcon name="warning" size={13} color="currentColor"/>{err}</p>}
+        )}
+        <section aria-label="Colour swatch match" style={{ border:'1px solid var(--border)', borderRadius:12, padding:14 }}>
+          <p style={{ fontSize:13, fontWeight:800, color:'var(--ink)', margin:'0 0 12px' }}>Colour swatch match</p>
+          <ColorSwatchMatch orderedHex={po.order_color_hex} receivedHex={receivedHex} onChangeReceived={(h) => { setReceivedHex(h); setErr(''); }}/>
+        </section>
+        <div>
+          <label className="adm-field" htmlFor="po-color-notes">Colour notes {mismatch ? '*' : '(optional)'}</label>
+          <textarea id="po-color-notes" className="adm-input" rows={2} value={colorNotes} maxLength={500} aria-required={mismatch}
+            onChange={e=>{ setColorNotes(e.target.value); setErr(''); }}
+            placeholder={mismatch?'Describe the colour difference…':'Any notes on the received colour…'} style={{ resize:'none' }}/>
         </div>
-        <div style={{ padding:'14px 22px',borderTop:'1px solid var(--border)',
-          display:'flex',gap:10,justifyContent:'flex-end',background:'var(--bg)' }}>
-          <button onClick={onClose}
-            style={{ padding:'9px 18px',borderRadius:9,border:'1px solid var(--border)',
-              background:'var(--bg-card)',color:'var(--ink)',fontSize:13,fontWeight:600,
-              cursor:'pointer',fontFamily:FONT }}>Cancel</button>
-          <button onClick={submit} disabled={busy}
-            style={{ padding:'9px 22px',borderRadius:9,border:'none',
-              background:busy?'var(--text-faint)':mismatch
-                ?'linear-gradient(135deg,var(--warning),var(--warning))'
-                :`linear-gradient(135deg,${T},${T2})`,
-              color:'var(--text-on-accent)',fontSize:13,fontWeight:700,
-              cursor:busy?'not-allowed':'pointer',fontFamily:FONT }}>
-            {busy?<><NavIcon name="loading" size={13} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>Processing…</>:mismatch?<><NavIcon name="warning" size={13} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>Receive with Mismatch</>:<><NavIcon name="success" size={13} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>Confirm Receipt</>}
+        {err && <ErrorBlock msg={err} />}
+        <div className="adm-sheet-foot">
+          <button className="adm-btn" onClick={onClose} disabled={busy} style={{ minHeight:44 }}>Cancel</button>
+          <button className="adm-btn primary" onClick={submit} disabled={busy} style={{ minHeight:44 }}>
+            {busy ? 'Saving…' : mismatch ? 'Receive with mismatch' : 'Confirm receipt'}
           </button>
         </div>
-      </motion.div>
-    </div>
+      </div>
+    </BottomSheet>
   );
 }
 

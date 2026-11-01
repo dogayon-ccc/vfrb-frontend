@@ -15,17 +15,25 @@ export const PageHeader = ({ title, sub, meta, back, children }) => (
   <UiPageHeader className="adm-in" title={title} subtitle={sub} meta={meta} back={back} actions={children} />
 );
 
-// Admin KPI row on the shared stat tiles; numbers ease in once on load.
-export const StatGrid = ({ items, loading }) => (
-  <UiStatGrid>
-    {items.map((s, i) => (
-      <StatTile key={s.label} className="adm-in" style={{ animationDelay: `${i * 45}ms` }}
-        label={s.label} value={s.value} sub={s.sub} chip={s.chip} chipTone={s.chipTone}
-        icon={s.icon} tone={s.tone} to={s.to} onClick={s.onClick} loading={loading} countUp
-        valueStyle={{ color: s.color, '--len': String(s.value ?? '').length }} />
-    ))}
-  </UiStatGrid>
-);
+// Admin KPI row on the shared stat tiles; numbers ease in once, on the first load only.
+export function StatGrid({ items, loading }) {
+  const [first, setFirst] = useState(true);
+  useEffect(() => {
+    if (loading || !first) return undefined;
+    const t = setTimeout(() => setFirst(false), 800);
+    return () => clearTimeout(t);
+  }, [loading, first]);
+  return (
+    <UiStatGrid>
+      {items.map((s, i) => (
+        <StatTile key={s.label} className="adm-in" style={{ animationDelay: `${i * 45}ms` }}
+          label={s.label} value={s.value} sub={s.sub} chip={s.chip} chipTone={s.chipTone}
+          icon={s.icon} tone={s.tone} to={s.to} onClick={s.onClick} loading={loading} countUp={first}
+          valueStyle={{ color: s.color, '--len': String(s.value ?? '').length }} />
+      ))}
+    </UiStatGrid>
+  );
+}
 
 export const PillTabs = ({ tabs, value, onChange }) => {
   const gid = useId();
@@ -170,36 +178,55 @@ export const FilterButton = ({ label, onClick }) => (
   </button>
 );
 
-// Live data: re-runs `refresh` every `ms` while the tab is visible, and once when the
-// tab comes back. `data` is the page's current payload; each new payload stamps the time.
+const saveData = () => { try { return !!navigator.connection?.saveData; } catch { return false; } };
+
+// Live data: re-runs `refresh` every `ms` while the tab is visible and online, and once when it comes back.
+// Off under Save-Data or when ms is 0; backs off up to 8x after failures (refresh throws or resolves false).
 export function useLivePoll(refresh, data, ms = 30_000) {
   const [at, setAt] = useState(null);
   const [busy, setBusy] = useState(false);
   const inFlight = useRef(false);
+  const fails = useRef(0);
   const fn = useRef(refresh);
   fn.current = refresh;
-  useEffect(() => { if (data) setAt(new Date()); }, [data]);
+  useEffect(() => { if (data) setAt(Date.now()); }, [data]);
   const run = useCallback(async () => {
     if (inFlight.current) return;
     inFlight.current = true; setBusy(true);
-    try { await fn.current(); } finally { inFlight.current = false; setBusy(false); }
+    try { fails.current = [await fn.current()].flat().includes(false) ? fails.current + 1 : 0; } catch { fails.current += 1; }
+    finally { inFlight.current = false; setBusy(false); }
   }, []);
   useEffect(() => {
-    const tick = () => { if (document.visibilityState === 'visible') run(); };
-    const id = setInterval(tick, ms);
-    document.addEventListener('visibilitychange', tick);
-    return () => { clearInterval(id); document.removeEventListener('visibilitychange', tick); };
+    if (!ms || saveData()) return undefined;
+    let timer, stopped = false;
+    const live = () => document.visibilityState === 'visible' && navigator.onLine !== false;
+    const next = () => { clearTimeout(timer); if (!stopped && live()) timer = setTimeout(tick, ms * Math.min(2 ** fails.current, 8)); };
+    const tick = async () => { await run(); next(); };
+    const wake = () => (live() ? tick() : clearTimeout(timer));
+    const evs = [[document, 'visibilitychange'], [window, 'online'], [window, 'offline']];
+    evs.forEach(([t, e]) => t.addEventListener(e, wake));
+    next();
+    return () => { stopped = true; clearTimeout(timer); evs.forEach(([t, e]) => t.removeEventListener(e, wake)); };
   }, [run, ms]);
   return { at, busy, run };
 }
 
-export const LiveStamp = ({ at, busy, onRefresh, className = 'adm-btn' }) => (
-  <button className={`${className} adm-live`} onClick={onRefresh} disabled={busy} aria-label="Refresh now" title="Refreshes every 30 seconds while this tab is open">
-    <span className={`adm-live-dot${busy ? ' busy' : ''}`} aria-hidden="true" />
-    {at ? `Updated ${at.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })}` : 'Live'}
-    <NavIcon name="refresh" size={14} color="currentColor" />
-  </button>
-);
+const ago = (at, now) => { const m = Math.floor((now - at) / 60_000); return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : new Date(at).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' }); };
+
+export function LiveStamp({ at, busy, onRefresh, className = 'adm-btn' }) {
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => { const id = setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(id); }, []);
+  useEffect(() => { setNow(Date.now()); }, [at]);
+  const off = saveData();
+  return (
+    <button className={`${className} adm-live`} onClick={onRefresh} disabled={busy} aria-label="Refresh now"
+      title={off ? 'Auto-refresh is off while Save-Data is on' : 'Refreshes every 30 seconds while this tab is open and online'}>
+      <span className={`adm-live-dot${busy ? ' busy' : ''}`} aria-hidden="true" />
+      {at ? `Updated ${ago(at, now)}` : 'Live'}
+      <NavIcon name="refresh" size={14} color="currentColor" />
+    </button>
+  );
+}
 
 // Foundation primitives, re-exported so admin pages keep one import line.
 export { default as DataTable } from '../ui/DataTable';

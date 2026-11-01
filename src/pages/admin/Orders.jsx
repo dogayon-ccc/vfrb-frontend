@@ -8,7 +8,7 @@ import { canAccessArea, isOwner, isAdmin, roleLabel }                 from '../.
 import ProductionProgress, { useProductionSummaries }        from '../../components/admin/ProductionProgress';
 import { DataTable, Drawer, EmptyState }                      from '../../components/ui';
 import useListKeys                                            from '../../hooks/useListKeys';
-import { PageHeader, PillTabs, ErrorBlock, StatusPill, SearchBox, Banner, Toast, useToast, useIsMobile, FilterSheet, FilterButton } from '../../components/admin/AdminUI';
+import { PageHeader, PillTabs, ErrorBlock, useLivePoll, LiveStamp, StatusPill, SearchBox, Banner, Toast, useToast, useIsMobile, FilterSheet, FilterButton } from '../../components/admin/AdminUI';
 
 const LABEL = {
   pending:'Pending', confirmed:'Confirmed', pattern:'Pattern', segregation:'Segregation', cutting:'Cutting', sewing:'Sewing',
@@ -110,19 +110,21 @@ export default function AdminOrders() {
   const user      = JSON.parse(localStorage.getItem('vfrb_user') || '{}');
   const isManager = isAdmin(user);
 
-  const load = useCallback((force = false) => {
+  // quiet: background refresh that keeps the list on screen and only reports success.
+  const load = useCallback((force = false, quiet = false) => {
     if (!force) {
       const cached = cacheGet('admin_orders_list');
-      if (cached?.list) { setOrders(cached.list); setServerTotal(cached.total); setLoading(false); return; }
+      if (cached?.list) { setOrders(cached.list); setServerTotal(cached.total); setLoading(false); return Promise.resolve(true); }
     }
-    setLoading(true); setLoadErr(false);
-    fetchResource('orders')
-      .then(({ list, total }) => { setOrders(list); setServerTotal(total); })
-      .catch(() => setLoadErr(true))
+    if (!quiet) { setLoading(true); setLoadErr(false); }
+    return fetchResource('orders')
+      .then(({ list, total }) => { setOrders(list); setServerTotal(total); setLoadErr(false); return true; })
+      .catch(() => { if (!quiet) setLoadErr(true); return false; })
       .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => { load(); }, [load]);
+  const live = useLivePoll(() => { cacheClear('admin_orders_list'); return load(true, true); }, loading ? null : orders);
 
   const prodIds = useMemo(() => orders.filter(o => inProduction(o.status)).map(o => o.order_id), [orders]);
   const summaries = useProductionSummaries(prodIds);
@@ -188,9 +190,7 @@ export default function AdminOrders() {
       )}
 
       <PageHeader title="Orders" sub={`${orders.length} total · ${orders.filter(o => isLive(o.status)).length} open · ${role}`}>
-        <button className="adm-btn" onClick={() => { cacheClear('admin_orders_list'); load(true); }}>
-          <NavIcon name="refresh" size={14} color="currentColor" /> Refresh
-        </button>
+        <LiveStamp at={live.at} busy={live.busy} onRefresh={live.run} />
       </PageHeader>
 
       {loadErr && <div style={{ marginBottom:14 }}><ErrorBlock msg="Could not load orders." onRetry={() => load(true)} /></div>}

@@ -119,7 +119,10 @@ export default function ProductionTracking() {
   const loggedTotal = logged.reduce((a, x) => a + x.total, 0);
   const pct = isComplete ? 100 : loggedTotal ? Math.round((logged.reduce((a, x) => a + Math.min(x.done, x.total), 0) / loggedTotal) * 100) : 0;
   const stageIdx = STAGES.findIndex((s) => s.key === status);
-  const fillPct = stageIdx >= 0 ? (stageIdx / (STAGES.length - 1)) * 100 : isComplete ? 100 : 0;
+  // The current stage's logged share moves the fill part-way to the next stage.
+  const curLog = logged.find((x) => x.key === status);
+  const curFrac = curLog?.total ? Math.min(1, curLog.done / curLog.total) : 0;
+  const fillPct = stageIdx >= 0 ? (Math.min(stageIdx + curFrac, STAGES.length - 1) / (STAGES.length - 1)) * 100 : isComplete ? 100 : 0;
 
   const run = async (fn, okMsg) => {
     setAdvancing(true);
@@ -156,7 +159,7 @@ export default function ProductionTracking() {
         <div className="adm-detail">
           <div className="adm-stack">
             <Panel title="Progress" action={<span style={{ fontSize: 13, fontWeight: 800, color: 'var(--teal)' }}>{pct}%</span>}>
-              <div className="adm-steps" aria-label={`Stage ${stageIdx + 1} of ${STAGES.length}`}>
+              <div className="adm-steps" role="group" aria-label={stageIdx >= 0 ? `Stage ${stageIdx + 1} of ${STAGES.length}${curLog ? `, ${curLog.done} of ${curLog.total} pieces logged` : ''}` : isComplete ? 'All stages complete' : 'Not started'}>
                 <div className="adm-steps-fill" style={{ width: `${fillPct * 0.88}%` }} />
                 {STAGES.map((s) => {
                   const sIdx = STATUS_SEQ.indexOf(s.key);
@@ -165,6 +168,7 @@ export default function ProductionTracking() {
                     <div key={s.key} className={`adm-step ${st}`}>
                       <div className="adm-step-dot"><NavIcon name={st === 'done' ? 'success' : s.icon} size={16} color="currentColor" /></div>
                       <span className="adm-step-label">{s.label}</span>
+                      {st === 'now' && curLog && <span className="adm-step-part">{curLog.done}/{curLog.total}</span>}
                     </div>
                   );
                 })}

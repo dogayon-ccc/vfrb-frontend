@@ -20,8 +20,10 @@ export function useCachedResource(key, fetcher, ttl, { transform = (x) => x, onE
       setData(res);
       cacheSet(key, res, ttl);
       setAge(0);
+      return true;
     } catch (e) {
       onError?.(e);
+      return false;
     } finally {
       setLoading(false);
     }

@@ -24,6 +24,8 @@
 .pr-seam { fill: none; stroke: var(--red); stroke-width: 22; stroke-dasharray: 14 10; opacity: 0.7; }
 .pr-grain { fill: none; stroke: var(--navy); stroke-width: 3; }
 .pr-label { font: 600 30px/1 var(--vs-sans); fill: var(--navy); text-anchor: middle; }
+.pr-marks { pointer-events: none; }
+.pr-label--top { paint-order: stroke; stroke: var(--chalk); stroke-width: 12px; stroke-linejoin: round; }
 .pr-stitch { fill: none; stroke: var(--chalk); stroke-width: 3; stroke-dasharray: 10 8; }
 .pr-tag { position: absolute; bottom: 12px; padding: 6px 10px; border-radius: 6px; font-size: 13px; font-weight: 700; pointer-events: none; }
 .pr-tag--done { left: 12px; background: var(--navy); color: #fff; }

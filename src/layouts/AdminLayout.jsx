@@ -20,6 +20,7 @@ import '../styles/admin.css';
 import logo from '../assets/company-logo.jpg';
 import { LogOut, Bell, Search, PanelLeftClose, PanelLeftOpen, Menu, X, Plus, ChevronRight } from 'lucide-react';
 import { NAV, QUICK_ADD, navFor, navMatch, searchNav } from './adminNav';
+import { useLivePoll } from '../components/admin/AdminUI';
 
 // Hover, focus or touch on a link starts loading that page's chunk and data.
 const intent = (to) => ({ onPointerEnter: () => prefetchPath(to), onFocus: () => prefetchPath(to), onTouchStart: () => prefetchPath(to) });
@@ -175,7 +176,7 @@ export default function AdminLayout() {
 
   const fetchCount = () =>
     axios.get('/api/admin/notifications/unread-count')
-      .then(r => setUnread(r.data?.unread_count ?? 0)).catch(() => {});
+      .then(r => { setUnread(r.data?.unread_count ?? 0); return true; }).catch(() => false);
 
   const fetchNotifs = () => {
     setNotifLoad(true);
@@ -190,9 +191,8 @@ export default function AdminLayout() {
   useEffect(() => {
     if (owner) return; // the API refuses notifications to the owner
     fetchCount();
-    const iv = setInterval(fetchCount, 60_000);
-    return () => clearInterval(iv);
   }, []);
+  useLivePoll(fetchCount, null, owner ? 0 : 30_000);
 
   useEffect(() => {
     const u = JSON.parse(localStorage.getItem('vfrb_user') || '{}');

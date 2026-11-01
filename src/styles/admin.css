@@ -153,7 +153,8 @@ textarea.adm-input{padding:10px 14px;resize:vertical;min-height:64px}
 .adm-step.now .adm-step-dot{background:linear-gradient(135deg,var(--teal),var(--teal-2));border-color:transparent;color:var(--on-teal);box-shadow:0 0 0 5px color-mix(in srgb,var(--teal) 16%,transparent)}
 .adm-step-label{font-size:13px;font-weight:600;color:var(--text-faint);text-align:center}
 .adm-step.now .adm-step-label{color:var(--teal);font-weight:800}.adm-step.done .adm-step-label{color:var(--success-text)}
-@media(max-width:767px){.adm-step-dot{width:30px;height:30px}.adm-steps::before,.adm-steps-fill{top:14px}.adm-step-label{display:none}.adm-step.now .adm-step-label{display:block;position:absolute;top:36px;white-space:nowrap}.adm-steps{margin-bottom:22px}}
+.adm-step-part{font-size:12px;font-weight:700;color:var(--text-subtle);font-variant-numeric:tabular-nums}
+@media(max-width:767px){.adm-step-dot{width:30px;height:30px}.adm-steps::before,.adm-steps-fill{top:14px}.adm-step-label{display:none}.adm-step.now .adm-step-label{display:block;position:absolute;top:36px;white-space:nowrap}.adm-step-part{display:none}.adm-steps{margin-bottom:22px}}
 .adm-tl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
 .adm-tl li{position:relative;padding:0 0 14px 22px;font-size:13px}
 .adm-tl li::before{content:'';position:absolute;left:4px;top:5px;width:9px;height:9px;border-radius:50%;background:var(--teal-2)}

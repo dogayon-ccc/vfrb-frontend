@@ -72,7 +72,7 @@ export const ORDER_STEPS = [
 
 // The public journey, in reading order. Drives the "next page" band and the progress rail.
 export const JOURNEY = [
-  { to: '/', label: 'Home', title: 'VFRB Enterprise', blurb: 'Company uniforms, made by one family since 2000.', photo: P.sewing4, pos: '18% center' },
+  { to: '/', label: 'Home', title: 'VFRB Enterprise', blurb: 'Custom uniforms, made smarter.', photo: P.sewing4, pos: '18% center' },
   { to: '/about', label: 'About', title: 'About VFRB', blurb: 'Who we are, who we serve and how to reach us.', photo: P.familyCourt, pos: 'center 40%' },
   { to: '/what-we-do', label: 'What We Do', title: 'What we do', blurb: 'Tailoring, computerized embroidery and printing.', photo: P.uniforms, pos: '30% center' },
   { to: '/inside-vfrb', label: 'Inside VFRB', title: 'Inside VFRB', blurb: 'The production floor, stage by stage.', photo: P.sewing4, pos: 'center' },

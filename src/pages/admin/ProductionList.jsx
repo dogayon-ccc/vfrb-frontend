@@ -1,16 +1,17 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
+import { stationStage } from '../../utils/jobAccess';
 import { cacheGet, cacheSet } from '../../utils/cache';
 import { NavIcon } from '../../components/ui/icons';
 import { DataTable, EmptyState } from '../../components/ui';
 import useListKeys from '../../hooks/useListKeys';
 import ProductionProgress, { useProductionSummaries } from '../../components/admin/ProductionProgress';
 import {
-  PageHeader, Panel, StatusPill, SearchBox, Banner, ErrorBlock, FilterSheet, FilterButton, useIsMobile,
+  PageHeader, Panel, StatusPill, SearchBox, Banner, ErrorBlock, useLivePoll, LiveStamp, FilterSheet, FilterButton, useIsMobile,
 } from '../../components/admin/AdminUI';
 
-const STAGE_ORDER = ['pattern', 'segregation', 'cutting', 'sewing', 'qc', 'pressing', 'packing'];
+const ALL_STAGES = ['pattern', 'segregation', 'cutting', 'sewing', 'qc', 'pressing', 'packing'];
 const LABEL = { pattern: 'Pattern', segregation: 'Segregation', cutting: 'Cutting', sewing: 'Sewing', qc: 'QC', pressing: 'Pressing', packing: 'Packing' };
 const ICON = { pattern: 'pattern', segregation: 'segregation', cutting: 'cutting', sewing: 'garmentType', qc: 'qc', pressing: 'pressing', packing: 'package' };
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—');
@@ -26,26 +27,31 @@ export default function ProductionList() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [params, setParams] = useSearchParams();
+  // A Station sees only its own stage (mirrors the server scope).
+  const STAGE_ORDER = useMemo(() => { const own = stationStage(); return own ? [own] : ALL_STAGES; }, []);
   // The stage filter lives in the URL so the dashboard stage board can link straight to it.
   const stage = STAGE_ORDER.includes(params.get('stage')) ? params.get('stage') : 'all';
   const setStage = useCallback((k) => setParams(k === 'all' ? {} : { stage: k }, { replace: true }), [setParams]);
   const [search, setSearch] = useState('');
   const [sheet, setSheet] = useState(false);
 
-  const load = useCallback(async (force = false) => {
+  // quiet: background refresh that keeps the board on screen and only reports success.
+  const load = useCallback(async (force = false, quiet = false) => {
     if (!force) {
       const cached = cacheGet('production_orders_list');
-      if (cached) { setOrders(cached); setLoading(false); return; }
+      if (cached) { setOrders(cached.filter((o) => STAGE_ORDER.includes(o.status))); setLoading(false); return true; }
     }
-    setLoading(true); setLoadError(false);
+    if (!quiet) { setLoading(true); setLoadError(false); }
     try {
       const r = await axios.get('/api/admin/orders?status=production&per_page=100');
-      const prod = (r.data?.data ?? r.data ?? []).filter((o) => STAGE_ORDER.includes(o.status));
-      setOrders(prod);
+      const prod = (r.data?.data ?? r.data ?? []).filter((o) => ALL_STAGES.includes(o.status));
+      setOrders(prod.filter((o) => STAGE_ORDER.includes(o.status))); setLoadError(false);
       cacheSet('production_orders_list', prod, 30_000);
-    } catch { setLoadError(true); } finally { setLoading(false); }
-  }, []);
+      return true;
+    } catch { if (!quiet) setLoadError(true); return false; } finally { setLoading(false); }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, [load]);
+  const live = useLivePoll(() => load(true, true), loading ? null : orders);
 
   const summaries = useProductionSummaries(useMemo(() => orders.map((o) => o.order_id), [orders]));
   const counts = useMemo(() => orders.reduce((a, o) => { a[o.status] = (a[o.status] ?? 0) + 1; return a; }, {}), [orders]);
@@ -72,7 +78,7 @@ export default function ProductionList() {
       <PageHeader title="Production"
         sub={loading ? 'Loading…' : `${orders.length} orders · ${pieces.toLocaleString()} pcs · ${holds} on QC hold · ${overdue} past deadline`}>
         <button className="adm-btn" onClick={() => nav('/admin/output-log')}><NavIcon name="outputLog" size={14} color="currentColor" /> Output Log</button>
-        <button className="adm-btn" onClick={() => load(true)}><NavIcon name="refresh" size={14} color="currentColor" /> Refresh</button>
+        <LiveStamp at={live.at} busy={live.busy} onRefresh={live.run} />
       </PageHeader>
 
       {holds > 0 && (

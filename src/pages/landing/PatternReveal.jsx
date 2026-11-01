@@ -7,7 +7,7 @@ const Z = Object.fromEntries([...flat.matchAll(/<path id="([^"]+)"[^>]*?\sd="([^
 const BOX = '-30 -20 940 1064';
 const clamp = v => Math.min(100, Math.max(0, Math.round(v)));
 const KEYS = { ArrowLeft: -2, ArrowDown: -2, ArrowRight: 2, ArrowUp: 2, PageDown: -10, PageUp: 10 };
-const LABELS = [['Front', 440, 590], ['Sleeve', 118, 270], ['Sleeve', 762, 270], ['Pocket', 309, 418], ['Pocket', 284, 760], ['Pocket', 594, 760]];
+const LABELS = [['Sleeve', 118, 270], ['Sleeve', 762, 270], ['Pocket', 309, 418], ['Pocket', 284, 760], ['Pocket', 594, 760]];
 
 export default function PatternReveal() {
   const calm = useReducedMotion();
@@ -53,6 +53,8 @@ export default function PatternReveal() {
             aria-valuemin={0} aria-valuemax={100} aria-valuenow={cut} aria-valuetext={`${cut}% finished uniform`} onKeyDown={onKey}>
             <span aria-hidden="true" />
           </div>
+          {/* Above the handle and both layers, below the knob's reach, so it reads at every position. */}
+          <svg className="pr-layer pr-marks" viewBox={BOX} aria-hidden="true"><text x={440} y={680} className="pr-label pr-label--top">Front</text></svg>
         </div>
       </div>
       <figcaption>Scrub top Studio template, 2D. Drag the handle or use the arrow keys to compare.</figcaption>
