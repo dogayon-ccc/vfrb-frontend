@@ -12,11 +12,21 @@ function skipToMain(e) {
   if (t) { t.tabIndex = -1; t.focus(); t.scrollIntoView({ block: 'start' }); }
 }
 
+// One 0.7 s turn per press; a new press restarts it. Skipped under reduced motion.
+function spinMark(img) {
+  if (!img?.animate || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  img.getAnimations().forEach(a => a.cancel());
+  img.animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }], { duration: 700, easing: 'ease-in-out' });
+}
+
 export default function SiteHeader() {
   const [open, setOpen] = useState(false);
-  const { pathname } = useLocation();
+  const { pathname, search, hash } = useLocation();
+  // Already home: skip the no-op view transition, which would swallow a quick second press.
+  const atHome = pathname === '/' && !search && !hash;
   const root = useRef(null);
   const burger = useRef(null);
+  const mark = useRef(null);
   const [stuck, setStuck] = useState(false);
 
   useEffect(() => {
@@ -48,8 +58,8 @@ export default function SiteHeader() {
     <header className={`vs vs-header${stuck || open ? ' is-stuck' : ''}`} ref={root}>
       <a href="#main" className="vs-skip" onClick={skipToMain}>Skip to content</a>
       <div className="vs-wrap vs-header__bar">
-        <Link to="/" className="vs-brand" aria-label="VFRB Enterprise home">
-          <img src={logo} alt="" width="40" height="40" />
+        <Link to="/" className="vs-brand" aria-label="VFRB Enterprise home" onClick={(e) => { spinMark(mark.current); if (atHome) e.preventDefault(); }}>
+          <img ref={mark} src={logo} alt="" width="40" height="40" />
           <span><b>VFRB Enterprise</b><small>Custom Uniforms. Smarter Solutions.</small></span>
         </Link>
         <nav className="vs-nav" aria-label="Main">

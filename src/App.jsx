@@ -45,6 +45,7 @@ import AuthSkeleton, { useAuthReady } from './components/AuthSkeleton';
 import { AppShellSkeleton, SiteSkeleton, StudioSkeleton } from './components/PageSkeletons';
 import UpdatePrompt from './components/UpdatePrompt';
 import RouteLoadingScreen from './components/LoadingScreen';
+import { useAfter } from './components/ui/PageLoader';
 import { areaOf } from './utils/routeArea';
 import VerifyEmail      from './pages/auth/VerifyEmail';
 import GoogleComplete   from './pages/auth/GoogleComplete';
@@ -112,10 +113,16 @@ const Group60Page = lazy(() => import('./pages/Group60'));
 const PrivacyPage = lazy(() => import('./pages/PrivacyPolicy')); // NEW Aug 28 2026
 const TermsPage    = lazy(() => import('./pages/TermsOfService')); // NEW Aug 28 2026
 
+// Skeletons appear only when a load takes longer than 150 ms; quicker loads show nothing.
+const Late = ({ children }) => (useAfter(150) ? children : null);
+
 // ── Page loader — skeleton shaped like the page whose bundle is downloading ──
 function Loader() {
-  const area = areaOf(useLocation().pathname);
-  if (area === 'auth') return <AuthSkeleton/>;
+  const { pathname } = useLocation();
+  const area = areaOf(pathname);
+  const late = useAfter(150);
+  if (!late) return null;
+  if (area === 'auth') return <AuthSkeleton variant={pathname === '/login' ? 'split' : undefined}/>;
   if (area === 'studio') return <StudioSkeleton/>;
   if (area === 'admin' || area === 'app') return <AppShellSkeleton/>;
   return <SiteSkeleton/>;
@@ -123,8 +130,8 @@ function Loader() {
 
 // Each route gets its own boundary: router navigations run as transitions, which
 // keep the old page on screen instead of showing an already-mounted fallback.
-const SiteLoad  = ({ children }) => <Suspense fallback={<SiteSkeleton/>}>{children}</Suspense>;
-const ShellLoad = ({ children }) => <Suspense fallback={<AppShellSkeleton/>}>{children}</Suspense>;
+const SiteLoad  = ({ children }) => <Suspense fallback={<Late><SiteSkeleton/></Late>}>{children}</Suspense>;
+const ShellLoad = ({ children }) => <Suspense fallback={<Late><AppShellSkeleton/></Late>}>{children}</Suspense>;
 
 // ── Auth guards ───────────────────────────────────────────────────────────────
 function RequireAuth({ children, role }) {
@@ -204,7 +211,7 @@ function GuestOnly({ children }) {
 
 // Skeleton first, so every auth screen (incl. home → login, logout → login) opens on a placeholder.
 function AuthGate({ children }) {
-  return useAuthReady() ? children : <AuthSkeleton/>;
+  return useAuthReady() ? children : <Late><AuthSkeleton/></Late>;
 }
 
 
@@ -231,7 +238,8 @@ export default function App() {
           <Route path="/admin" element={<AdminRootRoute/>}/>
 
           {/* ── CUSTOMER AUTH ─────────────────────────────────────────────── */}
-          <Route path="/login"           element={<GuestOnly><AuthGate><CustomerLogin/></AuthGate></GuestOnly>}/>
+          {/* Login's split panel has no photo, so it skips AuthGate's photo wait. */}
+          <Route path="/login"           element={<GuestOnly><CustomerLogin/></GuestOnly>}/>
           {/* Self-registration is closed: VFRB creates customer accounts. */}
           <Route path="/register"        element={<Navigate to="/login" replace/>}/>
           <Route path="/forgot-password" element={<AuthGate><ForgotPassword/></AuthGate>}/>
@@ -314,7 +322,7 @@ export default function App() {
           {/* ── DESIGN STUDIO — full-screen, outside CustomerLayout ───────── */}
           <Route path="/design-studio" element={
             <RequireAuth role="customer">
-              <Suspense fallback={<StudioSkeleton/>}><DesignStudio/></Suspense>
+              <Suspense fallback={<Late><StudioSkeleton/></Late>}><DesignStudio/></Suspense>
             </RequireAuth>
           }/>
 

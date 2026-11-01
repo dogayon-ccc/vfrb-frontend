@@ -17,6 +17,7 @@ const CONTACT_LINK = { display: 'inline-flex', alignItems: 'center', minHeight: 
 
 const T = 'var(--teal)';
 const VERIFY_DELAY_MS = 1800;
+const GOOGLE_ON = import.meta.env.VITE_GOOGLE_LOGIN !== 'false';
 
 const throttledText = (headers) => {
   const secs = Number(headers?.['retry-after']);
@@ -81,7 +82,7 @@ export default function Login() {
   };
 
   return (
-    <AuthShell title="Sign In" subtitle="Sign in to track your orders and manage your account.">
+    <AuthShell variant="split" maxWidth={440} title="Sign In" subtitle="Sign in to track your orders and manage your account.">
       <AnimatePresence>
         {resetSuccess && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
@@ -104,7 +105,7 @@ export default function Login() {
           <input id="login-email" type="text" autoComplete="username" autoCapitalize="none" spellCheck={false} required aria-invalid={!!error} aria-describedby={error ? 'login-error' : undefined} value={form.login}
             onChange={e => { set('login', e.target.value); if (error) setError(''); }}
             onFocus={() => setFocused('email')} onBlur={() => setFocused('')}
-            placeholder="username or you@hospital.gov.ph" style={authInput(focused, 'email', error)}/>
+            placeholder="username or you@company.com" style={authInput(focused, 'email', error)}/>
         </div>
 
         <div>
@@ -113,11 +114,11 @@ export default function Login() {
             <input id="login-password" type={showPw ? 'text' : 'password'} autoComplete="current-password" required aria-invalid={!!error} aria-describedby={error ? 'login-error' : undefined} value={form.password}
               onChange={e => { set('password', e.target.value); if (error) setError(''); }}
               onFocus={() => setFocused('password')} onBlur={() => setFocused('')}
-              placeholder="Enter your password" style={{ ...authInput(focused, 'password', error), paddingRight: 48 }}/>
+              placeholder="Enter your password" style={{ ...authInput(focused, 'password', error), paddingRight: 52 }}/>
             <button type="button" onClick={() => setShowPw(v => !v)} aria-label={showPw ? 'Hide password' : 'Show password'}
-              style={{ position: 'absolute', right: 1, top: '50%', transform: 'translateY(-50%)', background: 'none',
+              style={{ position: 'absolute', right: 5, top: '50%', transform: 'translateY(-50%)', background: 'none',
                 border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: 13, color: focused === 'password' ? T : 'var(--text-faint)' }}>
+                width: 44, height: 44, padding: 0, borderRadius: 10, color: focused === 'password' ? T : 'var(--text-faint)' }}>
               <NavIcon name={showPw ? 'hide' : 'show'} size={18}/>
             </button>
           </div>
@@ -132,16 +133,18 @@ export default function Login() {
           </div>
         </div>
 
-        <motion.button type="submit" disabled={loading || !!notice} whileHover={{ scale: loading ? 1 : 1.01 }} whileTap={{ scale: .98 }}
+        <motion.button type="submit" disabled={loading || !!notice} aria-busy={loading} whileHover={{ scale: loading ? 1 : 1.01 }} whileTap={{ scale: .98 }}
           style={{ width: '100%', height: 56, borderRadius: 14, border: 'none', fontWeight: 800, fontSize: 17,
             color: 'var(--text-on-accent)', cursor: loading ? 'not-allowed' : 'pointer', display: 'flex',
             alignItems: 'center', justifyContent: 'center', gap: 10,
             background: loading ? 'color-mix(in srgb, var(--teal) 55%, transparent)' : T,
             boxShadow: loading ? 'none' : '0 10px 24px -8px color-mix(in srgb, var(--teal) 70%, transparent)' }}>
+          {loading && <span className="au-spin" aria-hidden="true"/>}
           {loading ? 'Signing in…' : 'Sign In'}
         </motion.button>
       </form>
 
+      {GOOGLE_ON && <>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '24px 0' }}>
         <div style={{ flex: 1, height: 1, background: 'var(--border)' }}/>
         <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>or continue with</span>
@@ -159,6 +162,7 @@ export default function Login() {
         </svg>
         Continue with Google
       </button>
+      </>}
 
       <div style={{ textAlign: 'center', fontSize: 15, color: 'var(--text-muted)', marginTop: 28 }}>
         No account?{' '}

@@ -24,6 +24,7 @@ Read this first in every new session. Do not re-audit finished work. Update the 
 - Frontend: `npm run build` passes (main chunk 116.38 kB). Logic checks 461/473; the 12 failures are stale admin/owner/QC checks (old STAFF_NAV/MANAGER_EXTRA shell, `RequireManager owner` routes, QC form, admin roles).
 - Admin shell (2026-10-31, 564602b): navy collapsible sidebar (icon-only state in `vfrb_admin_rail`, tooltips, kraft active bar, logo spin), navy menu bar (breadcrumb, page search, Quick add, bell, role chip), mobile <768 off-canvas drawer replacing the bottom bar and More sheet, 200 ms page transition, `PageLoader` (150 ms delay, one 0.7 s cycle). Activity Log in NAV (Manager + Owner). Quick add links to the page that holds each action (no "new order" route exists). Runtime-checked at 1440/1024/768/390 for manager, owner, station with a stubbed API only; real-session check still pending. Logo spin reset after the animation is unverified.
 - Browser walkthrough on vfrb_demo (manager, station, customer): done. Login throttle and request access verified there.
+- Sign-in flag: `VITE_GOOGLE_LOGIN=false` (in `.env.local` only) hides "Continue with Google"; any other value or unset shows it. Local `.env` has no Google keys; `.env.vercel` does.
 - Demo stack: backend `php -S` :8000 with `DB_DATABASE=vfrb_demo` overrides, Vite :5180 with `VITE_PROXY_TARGET`. Never use :5173 (points at live).
 
 ## Deploy status: NOT deployed
