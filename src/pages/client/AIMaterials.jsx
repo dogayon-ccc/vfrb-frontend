@@ -8,6 +8,7 @@ import { cacheGet, cacheSet, cacheClear, TTL }      from '../../utils/cache';
 import { asList }                                   from '../../utils/asList';
 import { materialColour }                           from '../../utils/materialColour';
 import { garmentLabel } from '../../utils/designName';
+import { useToast } from '../../components/customer/kit';
 
 const T    = 'var(--teal)';
 const T2   = '#02C39A';
@@ -418,6 +419,7 @@ export default function AIMaterials() {
   const [accepted,    setAccepted]    = useState(false);
   const [showConf,    setShowConf]    = useState(false);
   const [showPicker,  setShowPicker]  = useState(false);
+  const [toastNode, showToast] = useToast();
 
   // Load all customer orders for the selector
   const loadOrders = useCallback(() => {
@@ -469,7 +471,7 @@ export default function AIMaterials() {
       setSource(data?.source ?? null);
       setAccepted(o?.ai_recommendation_status === 'accepted');
     } catch(e) {
-      alert(e.response?.data?.message ?? 'AI recommendations are unavailable right now. Please try again shortly.');
+      showToast(e.response?.data?.message ?? 'AI recommendations are unavailable right now. Please try again shortly.', 'error');
     } finally {
       setGenerating(false);
     }
@@ -502,6 +504,7 @@ export default function AIMaterials() {
 
   return (
     <>
+      {toastNode}
       <style>{`@keyframes sk{0%{background-position:-400px 0}100%{background-position:400px 0}}
         .aim-go{width:100%;min-height:48px;padding:12px;border:none;border-radius:var(--radius);background:var(--teal);color:var(--on-teal);font:700 14px ${FONT};cursor:pointer;transition:background .15s}
         .aim-go:hover:not(:disabled){background:var(--teal-dark)}
