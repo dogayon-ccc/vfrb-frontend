@@ -70,7 +70,10 @@ function Tour({ onClose, onKeys, script = null, kicker = null, onDone = null }) 
     if (c) setPos(place(r, { w: c.offsetWidth, h: c.offsetHeight }, window.innerWidth, window.innerHeight));
   }, [sel]);
   useDialogFocus(card, { onClose, initial: '.ds-btn--primary' });
-  useLayoutEffect(() => { measure(); next.current?.focus(); }, [measure, i]);
+  useLayoutEffect(() => { measure(); }, [measure, i]);
+  // The card is hidden until placed, so focus waits for its position.
+  const placed = !!pos;
+  useEffect(() => { if (placed) next.current?.focus({ preventScroll: true }); }, [placed, i]);
   useEffect(() => { window.addEventListener('resize', measure); return () => window.removeEventListener('resize', measure); }, [measure]);
   useEffect(() => {
     const key = (e) => {

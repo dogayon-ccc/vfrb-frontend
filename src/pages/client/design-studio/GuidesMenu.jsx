@@ -52,8 +52,8 @@ export default function GuidesMenu({ guides, setGuides, showGuides = true, base 
     const top = r.bottom + 6;
     setPos({ left: r.left, top, maxHeight: Math.max(160, (stage ? stage.bottom : innerHeight) - top - 8) });
   }, [open]);
-  // Only the phone sheet is modal; the desktop popover closes on an outside click instead.
-  useDialogFocus(panel, { active: open && modal, onClose: close, initial: '.ds-vt-btn, input' });
+  // Both forms trap Tab; the desktop popover also closes on an outside click.
+  useDialogFocus(panel, { active: open, onClose: close, initial: '.ds-vt-btn, input' });
   useEffect(() => {
     if (!open) return undefined;
     panel.current?.querySelector('.ds-vt-btn, input')?.focus();
