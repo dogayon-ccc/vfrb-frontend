@@ -300,9 +300,11 @@ export default function AdminUserManagement() {
         .um-split{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;align-items:start}
         .um-detail{display:none}
         .um-row.off{opacity:.65}
+        .um-role{white-space:normal;line-height:1.3;max-width:15ch;display:inline-block}
+        .um-clip{display:block;max-width:26ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--text-subtle)}
         .um-pick{display:flex;align-items:center;gap:11px;width:100%;min-height:44px;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
         .um-pick:focus-visible{outline:2px solid var(--border-focus);outline-offset:4px;border-radius:8px}
-        @media(min-width:1180px){
+        @media(min-width:1360px){
           .um-split{grid-template-columns:minmax(0,1fr) minmax(320px,380px)}
           .um-col-act{display:none}
           .um-row.sel td{background:var(--teal-50)}
@@ -364,7 +366,7 @@ export default function AdminUserManagement() {
           {(search || roleF !== 'all') && <button className="adm-link-btn" onClick={() => { setSearch(''); setRoleF('all'); }}>Clear filters</button>}</div></Panel>
       ) : (
         <>
-          <div className="adm-only-d um-split">
+          <div className="adm-only-d adm-d-lg um-split">
             <Panel flush>
               <div className="adm-tbl-scroll">
                 <table className="adm-table">
@@ -383,13 +385,13 @@ export default function AdminUserManagement() {
                               <Avatar name={u.name} size={36} tone={u.role === 'manager' ? 'purple' : u.role === 'staff' ? 'blue' : undefined} />
                               <span style={{ display:'block', minWidth:0 }}>
                                 <span style={{ display:'block', fontWeight:700 }}>{u.name}{isMe && <span className="adm-chip" style={{ marginLeft:6, background:'var(--teal-50)', color:'var(--teal)' }}>YOU</span>}</span>
-                                <span style={{ display:'block', fontSize:12, color:'var(--text-subtle)' }}>{u.email}</span>
-                                {u.organization_name && <span style={{ display:'block', fontSize:12, color:'var(--text-subtle)' }}>{u.organization_name}</span>}
+                                <span className="um-clip" title={u.email}>{u.email}</span>
+                                {u.organization_name && <span className="um-clip" title={u.organization_name}>{u.organization_name}</span>}
                               </span>
                             </button>
                           </td>
                           <td className="adm-hide-t" style={{ color:'var(--text-subtle)' }}>{u.contact_number ?? '—'}</td>
-                          <td><span className="adm-pill" style={{ background:rc.bg, color:rc.c }}>{roleText(u, rc)}</span></td>
+                          <td><span className="adm-pill um-role" style={{ background:rc.bg, color:rc.c }}>{roleText(u, rc)}</span></td>
                           <td><StatusPill status={isActive ? 'active' : 'inactive'} label={isActive ? 'Active' : 'Inactive'} /></td>
                           <td className="um-col-act" onClick={(e) => e.stopPropagation()}>
                             {canAct && (
@@ -415,7 +417,7 @@ export default function AdminUserManagement() {
             </aside>
           </div>
 
-          <div className="adm-only-m adm-stagger" key={`${roleF}-${search}`}>
+          <div className="adm-only-m adm-m-lg adm-cards-t adm-stagger" key={`${roleF}-${search}`}>
             {filtered.map((u, i) => {
               const rc = ROLE_CFG[u.role] ?? { c:'var(--text-subtle)', bg:'var(--bg-surface)', l:u.role };
               const isActive = u.is_active !== false;

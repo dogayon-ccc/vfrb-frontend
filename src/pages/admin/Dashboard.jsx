@@ -17,8 +17,10 @@ const STAGE_LABEL = Object.fromEntries(ALL_STAGES.map(([k, l]) => [k, l]));
 const localDay = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) : '—');
 const peso = (n) => `₱${Number(n).toLocaleString('en-PH')}`;
+const noun = (n, word) => (Number(n) === 1 ? word : `${word}s`);
 const OUTPUT_PAGE = 500;
 const OrdersTrendChart = lazy(() => import('../../components/admin/OrdersTrendChart'));
+const RevenueTrendChart = lazy(() => import('../../components/admin/OrdersTrendChart').then((m) => ({ default: m.RevenueTrendChart })));
 
 // Small alert list: a card holding a dense table, or an empty line when nothing is waiting.
 // head: column labels; num: labels of right-aligned numeric columns.
@@ -70,11 +72,22 @@ export default function AdminDashboard() {
   const outMax = Math.max(1, ...Object.values(outByStage));
   const outPartial = outRaw && outRaw.total > outRaw.rows.length;
   const trends = data?.order_trends ?? [];
+  const sales = data?.monthly_sales ?? [];
+  const showSales = isManager && (!data || Array.isArray(data.monthly_sales));
 
+  // Overdue stays counted until the order is done or the invoice is paid. Station staff get no `invoices` key (money is stripped).
+  const lateOrders = data?.overdue?.orders ?? 0;
+  const lateInvoices = data?.overdue?.invoices;
+  const overdueLabel = lateInvoices === undefined ? `${noun(lateOrders, 'order')} overdue`
+    : !(lateOrders + lateInvoices) ? 'orders or invoices overdue'
+    : `overdue · ${lateOrders} ${noun(lateOrders, 'order')}, ${lateInvoices} ${noun(lateInvoices, 'invoice')}`;
+  const pendingCount = o.pending ?? 0;
+  const stalledCount = prod.delayed_count ?? 0;
   const attention = [
-    { key: 'review', label: 'orders awaiting review', count: o.pending ?? 0, to: '/admin/orders?status=pending' },
-    { key: 'low', label: 'materials at or below reorder', count: lowCount, to: '/admin/inventory?filter=reorder' },
-    { key: 'late', label: `stages stalled ${delayDays}+ days`, count: prod.delayed_count ?? 0, onClick: () => document.getElementById('dash-late')?.focus() },
+    { key: 'review', label: `${noun(pendingCount, 'order')} awaiting review`, count: pendingCount, to: '/admin/orders?status=pending' },
+    { key: 'low', label: `${noun(lowCount, 'material')} at or below reorder`, count: lowCount, to: '/admin/inventory?filter=reorder' },
+    { key: 'late', label: `${noun(stalledCount, 'stage')} stalled ${delayDays}+ days`, count: stalledCount, onClick: () => document.getElementById('dash-late')?.focus() },
+    { key: 'overdue', label: overdueLabel, count: lateOrders + (lateInvoices ?? 0) },
   ];
   const kpis = [
     { label: 'In production', value: o.in_production ?? 0, sub: `${o.confirmed ?? 0} confirmed, not started`, onClick: go('/admin/production') },
@@ -107,7 +120,7 @@ export default function AdminDashboard() {
 
       <div className="dash-page">
         {!loading && !data && <div className="dash-full"><ErrorBlock msg="Dashboard data is unavailable." onRetry={live.run} /></div>}
-        {!loading && data && <AttentionStrip className="dash-full" items={attention} clearTitle="Nothing waiting" clearNote="No orders to review, no low stock, no stalled stages." />}
+        {!loading && data && <AttentionStrip className="dash-full" items={attention} clearTitle="Nothing waiting" clearNote="No orders to review, no low stock, no stalled stages, nothing overdue." />}
         <div className="dash-full dash-kpis"><StatGrid items={kpis} loading={loading} /></div>
         <Card title="Production floor" subtitle="Orders at each stage · pieces logged today" padding="sm" className="dash-board dash-full">
           <div className="adm-pipe" aria-label="Orders per production stage">
@@ -173,12 +186,22 @@ export default function AdminDashboard() {
             </>}
         </Card>
 
-        <Card title="Orders placed" subtitle="Per month, last 6 months" className="dash-full">
-          {loading ? <div className="adm-sk" style={{ height: 220 }} />
-            : !data ? <EmptyState compact>Order trend unavailable.</EmptyState>
-            : !trends.some((t) => t.orders > 0) ? <EmptyState compact>No orders placed in the last 6 months.</EmptyState>
-            : <Suspense fallback={<div className="adm-sk" style={{ height: 220 }} />}><OrdersTrendChart rows={trends} /></Suspense>}
-        </Card>
+        <div className="dash-full vc-grid">
+          <Card title="Orders placed" subtitle="Per month, last 6 months" className={`vc-card${showSales ? '' : ' vc-full'}`}>
+            {loading ? <div className="adm-sk" style={{ height: 220 }} />
+              : !data ? <EmptyState compact>Order trend unavailable.</EmptyState>
+              : !trends.some((t) => t.orders > 0) ? <EmptyState compact>No orders placed in the last 6 months.</EmptyState>
+              : <Suspense fallback={<div className="adm-sk" style={{ height: 220 }} />}><OrdersTrendChart rows={trends} /></Suspense>}
+          </Card>
+          {showSales && (
+            <Card title="Amount collected" subtitle="Per payment month, last 6 months" className="vc-card">
+              {loading ? <div className="adm-sk" style={{ height: 220 }} />
+                : !data ? <EmptyState compact>Collection trend unavailable.</EmptyState>
+                : !sales.some((r) => r.total > 0) ? <EmptyState compact>No payments recorded in the last 6 months.</EmptyState>
+                : <Suspense fallback={<div className="adm-sk" style={{ height: 220 }} />}><RevenueTrendChart rows={sales} /></Suspense>}
+            </Card>
+          )}
+        </div>
 
         <div id="dash-late" className="dash-full" tabIndex={-1}>
           <AlertList title={`Stalled ${delayDays}+ days`} count={prod.delayed_count ?? 0} loading={loading} failed={!data} isEmpty={!delayed.length}

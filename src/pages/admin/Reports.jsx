@@ -1,9 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Legend
-} from 'recharts';
 import axios                            from 'axios';
+import { ChartCard, ChartLegend, TrendChart, BarsChart, DonutChart, useChartTheme, describeSeries, fmtPeso, fmtPesoShort, fmtCount } from '../../components/admin/charts/VfrbCharts';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
 import { NavIcon } from '../../components/ui/icons';
 import { isOwner } from '../../utils/jobAccess';
@@ -30,7 +27,27 @@ function downloadCSV(rows, filename) {
   URL.revokeObjectURL(url);
 }
 
-function buildCSV(data, tab) {
+function buildCSV(data, tab, sales) {
+  if (tab === 'sales') {
+    if (!sales) return null;
+    const t = sales.totals ?? {};
+    return [
+      ['VFRB Enterprise — Sales Summary', '', '', '', ''],
+      ['Generated', new Date().toLocaleString('en-PH'), '', '', ''],
+      ['', '', '', '', ''],
+      ['KPI', 'Value', '', '', ''],
+      ['Collected', Number(t.total_collected ?? 0).toFixed(2), '', '', ''],
+      ['Billed', Number(t.total_billed ?? 0).toFixed(2), '', '', ''],
+      ['Outstanding', Number(t.total_outstanding ?? 0).toFixed(2), '', '', ''],
+      ['Transactions', t.total_txns ?? 0, '', '', ''],
+      ['', '', '', '', ''],
+      ['Month', 'Collected', 'Billed', 'Outstanding', 'Transactions'],
+      ...(sales.monthly_trends ?? []).map((m) => [m.month, Number(m.collected ?? 0).toFixed(2), Number(m.billed ?? 0).toFixed(2), Number(m.outstanding ?? 0).toFixed(2), m.transaction_count ?? 0]),
+      ['', '', '', '', ''],
+      ['Payment method', 'Transactions', 'Collected', '', ''],
+      ...(t.by_method ?? []).map((m) => [String(m.payment_method ?? '—').replace(/_/g, ' '), m.count ?? 0, Number(m.total ?? 0).toFixed(2), '', '']),
+    ];
+  }
   if (!data) return null;
   if (tab === 'overview') {
     return [
@@ -66,21 +83,86 @@ function buildCSV(data, tab) {
   return null;
 }
 
-const CHART_GRID = '#f1f5f9';
-const CHART_TICK = '#94a3b8';
-const CHART_BAR = '#028090';
-const CHART_BAR2 = '#02C39A';
-const CHART_WARN = '#f59e0b';
 const peso = (v) => `₱${Number(v ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
-const tip = { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12, boxShadow: 'var(--shadow-md)' };
-const STAGE_LABEL = { pending: 'Pending', confirmed: 'Confirmed', pattern: 'Pattern', segregation: 'Segregation', cutting: 'Cutting', sewing: 'Sewing', qc: 'QC', pressing: 'Pressing', packing: 'Packing', completed: 'Completed', cancelled: 'Cancelled' };
+const STAGE_LABEL = { pending: 'Pending', confirmed: 'Confirmed', pattern: 'Pattern', segregation: 'Segregation', cutting: 'Cutting', sewing: 'Sewing', qc: 'QC', pressing: 'Pressing', packing: 'Packing', for_delivery: 'For delivery', completed: 'Completed', cancelled: 'Cancelled' };
+const sum = (rows, k) => rows.reduce((s, r) => s + (Number(r[k]) || 0), 0);
+const titleCase = (s) => String(s ?? '—').replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
 
-const ChartPanel = ({ title, sub, empty, children, style }) => (
-  <Panel title={title} style={style}>
-    {sub && <p className="adm-sub" style={{ marginTop: -6, marginBottom: 12 }}>{sub}</p>}
-    {empty ? <div className="adm-empty" style={{ padding: '28px 0' }}>{empty}</div> : children}
-  </Panel>
-);
+// Overview tab: order volume, pieces, mix and the live pipeline, all straight from /api/admin/reports.
+function OverviewCharts({ loading, trends, types, pipeline }) {
+  const t = useChartTheme();
+  const noTrend = !trends.some((r) => r.orders > 0);
+  const placed = sum(trends, 'orders'), done = sum(trends, 'completed');
+  const pipeRows = pipeline.map(([k, v]) => ({ stage: STAGE_LABEL[k] ?? titleCase(k), key: k, orders: v.count, pieces: v.total_pieces }));
+  return (
+    <div className="vc-grid">
+      <ChartCard className="vc-wide" title="Orders, last 6 months" subtitle="Placed vs completed, by month placed" loading={loading} height={260}
+        empty={noTrend && 'No orders in the last 6 months.'} figure={fmtCount(placed)} figureNote="orders placed"
+        legend={<ChartLegend items={[{ key: 'o', label: 'Placed', color: t.series[0] }, { key: 'c', label: 'Completed', value: fmtCount(done), color: t.series[1] }]} />}
+        table={{ head: ['Month', 'Placed', 'Completed', 'Pieces'], rows: trends.map((r) => [r.month, fmtCount(r.orders), fmtCount(r.completed), fmtCount(r.pieces)]) }}>
+        <TrendChart rows={trends} height={260} series={[{ key: 'orders', name: 'Placed' }, { key: 'completed', name: 'Completed' }]}
+          label={`Orders placed per month: ${describeSeries(trends, 'month', 'orders')}. Completed: ${describeSeries(trends, 'month', 'completed')}.`} />
+      </ChartCard>
+      <ChartCard className="vc-narrow" title="Order mix" subtitle="Orders by type, excluding cancelled" loading={loading} height={220}
+        empty={!types.length && 'No orders yet.'}
+        table={{ head: ['Type', 'Orders', 'Pieces'], rows: types.map((r) => [titleCase(r.order_type), fmtCount(r.count), fmtCount(r.total_pieces)]) }}>
+        <DonutChart items={types.map((r) => ({ key: r.order_type, label: titleCase(r.order_type), value: r.count }))} totalLabel="orders"
+          label={`Orders by type: ${types.map((r) => `${titleCase(r.order_type)} ${r.count}`).join(', ')}.`} />
+      </ChartCard>
+      <ChartCard className="vc-wide" title="Pieces ordered" subtitle="Garment pieces in orders placed each month" loading={loading} height={220}
+        empty={!trends.some((r) => r.pieces > 0) && 'No pieces ordered in the last 6 months.'} figure={fmtCount(sum(trends, 'pieces'))} figureNote="pieces in 6 months">
+        <BarsChart rows={trends} height={220} series={[{ key: 'pieces', name: 'Pieces', color: t.series[2] }]}
+          label={`Pieces ordered per month: ${describeSeries(trends, 'month', 'pieces')}.`} />
+      </ChartCard>
+      <ChartCard className="vc-narrow" title="Pipeline right now" subtitle="Orders at each status" loading={loading} height={Math.max(160, pipeRows.length * 30)}
+        empty={!pipeRows.length && 'No orders yet.'}
+        table={{ head: ['Status', 'Orders', 'Pieces'], rows: pipeRows.map((r) => [r.stage, fmtCount(r.orders), fmtCount(r.pieces)]) }}>
+        <BarsChart rows={pipeRows} x="stage" layout="horizontal" height={Math.max(160, pipeRows.length * 30)} categoryWidth={92}
+          series={[{ key: 'orders', name: 'Orders', cellColors: (r, th) => (r.key === 'cancelled' ? th.status.out : r.key === 'completed' ? th.status.ok : undefined) }]}
+          label={`Orders per status: ${pipeRows.map((r) => `${r.stage} ${r.orders}`).join(', ')}.`} />
+      </ChartCard>
+    </div>
+  );
+}
+
+// Sales tab: money collected and owed, payment mix and transaction volume from /api/admin/reports/sales.
+function SalesCharts({ loading, monthly, totals }) {
+  const t = useChartTheme();
+  const methods = totals?.by_method ?? [];
+  const collected = sum(monthly, 'collected'), owed = sum(monthly, 'outstanding');
+  const noMoney = !monthly.some((r) => r.collected > 0 || r.outstanding > 0);
+  return (
+    <div className="vc-grid">
+      <ChartCard className="vc-wide" title="Collected and outstanding" subtitle="By payment month, last 6 months" loading={loading} height={260}
+        empty={noMoney && 'No payments recorded in the last 6 months.'} figure={fmtPeso(collected)} figureNote="collected in 6 months"
+        legend={<ChartLegend items={[{ key: 'c', label: 'Collected', color: t.series[0] }, { key: 'o', label: 'Outstanding', color: t.series[1], value: fmtPesoShort(owed) }]} />}
+        table={{ head: ['Month', 'Collected', 'Outstanding', 'Billed'], rows: monthly.map((r) => [r.month, fmtPeso(r.collected), fmtPeso(r.outstanding), fmtPeso(r.billed)]) }}>
+        <TrendChart rows={monthly} height={260} format={fmtPeso} yFormat={fmtPesoShort}
+          series={[{ key: 'collected', name: 'Collected' }, { key: 'outstanding', name: 'Outstanding' }]}
+          label={`Collected per month: ${describeSeries(monthly, 'month', 'collected', fmtPeso)}. Outstanding: ${describeSeries(monthly, 'month', 'outstanding', fmtPeso)}.`} />
+      </ChartCard>
+      <ChartCard className="vc-narrow" title="Payment methods" subtitle="Share of amount collected, all time" loading={loading} height={220}
+        empty={!methods.some((m) => Number(m.total) > 0) && 'No payments recorded yet.'}
+        table={{ head: ['Method', 'Transactions', 'Collected'], rows: methods.map((m) => [titleCase(m.payment_method), fmtCount(m.count), fmtPeso(m.total)]) }}>
+        <DonutChart items={methods.map((m) => ({ key: m.payment_method ?? 'none', label: titleCase(m.payment_method), value: m.total }))}
+          format={fmtPesoShort} totalLabel="collected"
+          label={`Collected by payment method: ${methods.map((m) => `${titleCase(m.payment_method)} ${fmtPeso(m.total)}`).join(', ')}.`} />
+      </ChartCard>
+      <ChartCard className="vc-wide" title="Transactions per month" subtitle="Payments recorded, by payment month" loading={loading} height={220}
+        empty={!monthly.some((r) => r.transaction_count > 0) && 'No transactions in the last 6 months.'}
+        figure={fmtCount(sum(monthly, 'transaction_count'))} figureNote="transactions in 6 months">
+        <BarsChart rows={monthly} height={220} series={[{ key: 'transaction_count', name: 'Transactions', color: t.series[2] }]}
+          label={`Transactions per month: ${describeSeries(monthly, 'month', 'transaction_count')}.`} />
+      </ChartCard>
+      <ChartCard className="vc-narrow" title="Billing status" subtitle="Everything billed, all time" loading={loading} height={220}
+        empty={!(Number(totals?.total_billed) > 0) && 'Nothing billed yet.'}>
+        <DonutChart format={fmtPesoShort} totalLabel="billed" totalFormat={() => fmtPesoShort(totals?.total_billed)}
+          items={[{ key: 'collected', label: 'Collected', value: totals?.total_collected, color: t.series[0] }, { key: 'outstanding', label: 'Outstanding', value: totals?.total_outstanding, color: t.series[1] }]}
+          label={`Billed ${fmtPeso(totals?.total_billed)}: collected ${fmtPeso(totals?.total_collected)}, outstanding ${fmtPeso(totals?.total_outstanding)}.`} />
+      </ChartCard>
+    </div>
+  );
+}
 
 function AlertCard({ a }) {
   const critical = a.severity === 'critical';
@@ -170,12 +252,11 @@ export default function AdminReports() {
   const inv = data?.inventory_summary;
   const types = data?.order_type_breakdown ?? [];
   const pipeline = Object.entries(data?.pipeline_snapshot ?? {}).filter(([, v]) => v.count > 0);
-  const maxPipe = Math.max(1, ...pipeline.map(([, v]) => v.count));
   const critical = alerts.filter((a) => a.severity === 'critical').length;
 
   const csvTab = tab === 'alerts' ? 'prescriptive' : tab;
   const exportCsv = () => {
-    const rows = buildCSV(data, csvTab);
+    const rows = buildCSV(data, csvTab, sales);
     if (rows) downloadCSV(rows, `vfrb_${csvTab}_${new Date().toISOString().slice(0, 10)}.csv`);
   };
   const tabs = [
@@ -206,49 +287,11 @@ export default function AdminReports() {
           <StatGrid loading={loading} items={[
             { label: 'Total revenue', value: peso(data?.total_revenue), color: 'var(--success-text)' },
             { label: 'Total orders', value: data?.total_orders ?? 0 },
-            { label: 'Completed orders', value: data?.completed_orders ?? 0, color: 'var(--teal)' },
+            { label: 'Completed orders', value: data?.completed_orders ?? 0, color: 'var(--color-teal-ink)' },
             { label: 'Avg order value', value: peso(data?.avg_order_value) },
             ...(inv ? [{ label: 'Low-stock materials', value: `${inv.low} / ${inv.total}`, color: inv.low ? 'var(--warning-text)' : undefined, sub: `Stock value ${peso(inv.total_value)}` }] : []),
           ]} />
-          <div className="rpt-two">
-            <ChartPanel title="Orders — last 6 months" sub="Orders placed vs completed, by month" empty={!loading && trends.length === 0 && 'No orders in the last 6 months.'}>
-              {loading ? <SkeletonRows rows={1} h={220} /> : (
-                <div style={{ width: '100%', minWidth: 0, minHeight: 230 }}>
-                <ResponsiveContainer width="100%" height={230}>
-                  <BarChart data={trends} margin={{ top: 4, right: 0, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} vertical={false} />
-                    <XAxis dataKey="month" tick={{ fontSize: 11, fill: CHART_TICK }} axisLine={false} tickLine={false} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: CHART_TICK }} axisLine={false} tickLine={false} />
-                    <Tooltip cursor={{ fill: 'rgba(2,128,144,0.06)' }} contentStyle={tip} />
-                    <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Bar dataKey="orders" name="Orders" fill={CHART_BAR} radius={[6, 6, 0, 0]} animationDuration={300} isAnimationActive={!REDUCED} />
-                    <Bar dataKey="completed" name="Completed" fill={CHART_BAR2} radius={[6, 6, 0, 0]} animationDuration={300} isAnimationActive={!REDUCED} />
-                  </BarChart>
-                </ResponsiveContainer>
-                </div>
-              )}
-            </ChartPanel>
-            <ChartPanel title="Pipeline snapshot" sub="Orders per status right now" empty={!loading && pipeline.length === 0 && 'No orders yet.'}>
-              {loading ? <SkeletonRows rows={4} h={22} /> : (
-                <div className="rpt-bars">
-                  {pipeline.map(([k, v]) => (
-                    <div key={k}>
-                      <div className="rpt-bar-h"><span>{STAGE_LABEL[k] ?? k}</span><b>{v.count} <i>· {v.total_pieces} pcs</i></b></div>
-                      <Meter pct={(v.count / maxPipe) * 100} tone={k === 'cancelled' ? 'low' : k === 'completed' ? 'ok' : undefined} />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </ChartPanel>
-          </div>
-          {types.length > 0 && (
-            <Panel title="Order type breakdown (excl. cancelled)" flush>
-              <div className="adm-tbl-scroll"><table className="adm-table">
-                <thead><tr><th>Type</th><th style={{ textAlign: 'right' }}>Orders</th><th style={{ textAlign: 'right' }}>Pieces</th></tr></thead>
-                <tbody>{types.map((t) => <tr key={t.order_type}><td style={{ textTransform: 'capitalize' }}>{t.order_type}</td><td style={{ textAlign: 'right' }}>{t.count}</td><td style={{ textAlign: 'right' }}>{Number(t.total_pieces ?? 0).toLocaleString()}</td></tr>)}</tbody>
-              </table></div>
-            </Panel>
-          )}
+          <OverviewCharts loading={loading} trends={trends} types={types} pipeline={pipeline} />
         </div>
       )}
 
@@ -261,31 +304,7 @@ export default function AdminReports() {
             { label: 'Outstanding', value: peso(totals?.total_outstanding), color: totals?.total_outstanding > 0 ? 'var(--warning-text)' : undefined },
             { label: 'Transactions', value: totals?.total_txns ?? 0 },
           ]} />
-          <ChartPanel title="Monthly sales — last 6 months" sub="Collected vs outstanding balance, by payment month" empty={!loading && sales && monthly.length === 0 && 'No payments recorded in the last 6 months.'}>
-            {loading ? <SkeletonRows rows={1} h={230} /> : monthly.length > 0 && (
-              <div style={{ width: '100%', minWidth: 0, minHeight: 240 }}>
-              <ResponsiveContainer width="100%" height={240}>
-                <BarChart data={monthly} margin={{ top: 4, right: 0, left: -5, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID} vertical={false} />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: CHART_TICK }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: CHART_TICK }} axisLine={false} tickLine={false} tickFormatter={(v) => `₱${(v / 1000).toFixed(0)}k`} />
-                  <Tooltip cursor={{ fill: 'rgba(2,128,144,0.06)' }} formatter={(v, n) => [peso(v), n]} contentStyle={tip} />
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="collected" name="Collected" fill={CHART_BAR} radius={[6, 6, 0, 0]} animationDuration={300} isAnimationActive={!REDUCED} />
-                  <Bar dataKey="outstanding" name="Outstanding" fill={CHART_WARN} radius={[6, 6, 0, 0]} animationDuration={300} isAnimationActive={!REDUCED} />
-                </BarChart>
-              </ResponsiveContainer>
-              </div>
-            )}
-          </ChartPanel>
-          {(totals?.by_method?.length ?? 0) > 0 && (
-            <Panel title="By payment method" flush>
-              <div className="adm-tbl-scroll"><table className="adm-table">
-                <thead><tr><th>Method</th><th style={{ textAlign: 'right' }}>Transactions</th><th style={{ textAlign: 'right' }}>Collected</th></tr></thead>
-                <tbody>{totals.by_method.map((m) => <tr key={m.payment_method ?? 'none'}><td style={{ textTransform: 'capitalize' }}>{String(m.payment_method ?? '—').replace(/_/g, ' ')}</td><td style={{ textAlign: 'right' }}>{m.count}</td><td style={{ textAlign: 'right', fontWeight: 700, whiteSpace: 'nowrap' }}>{peso(m.total)}</td></tr>)}</tbody>
-              </table></div>
-            </Panel>
-          )}
+          <SalesCharts loading={loading} monthly={monthly} totals={totals} />
         </div>
       )}
 

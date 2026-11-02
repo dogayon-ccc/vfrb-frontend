@@ -23,7 +23,7 @@ const ACTION_LABELS = {
 };
 
 const ROLE_LABEL = { manager:'Administrator', owner:'Owner', customer:'Customer' };
-const inp = { padding:'9px 12px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)', fontSize:13, outline:'none', fontFamily:'var(--font)' };
+const inp = { minHeight:44, padding:'9px 12px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)', fontSize:13, outline:'none', fontFamily:'var(--font)' };
 
 function timeAgo(dateStr) {
   const d = new Date(dateStr);

@@ -10,7 +10,7 @@ import { PageHeader, Panel, Banner, SearchBox, ErrorBlock, SkeletonRows, Toast, 
 
 // Material master data: what a material is and how it is planned and valued. Quantities live in Inventory.
 const UNITS = ['meters', 'kg', 'grams', 'yards', 'pieces', 'rolls', 'packs'];
-const CATS  = ['Fabric', 'Thread', 'Accessory', 'Elastic', 'Lining', 'Interfacing', 'Other'];
+const CATS  = ['Fabric', 'Thread', 'Accessories', 'Trims', 'Elastic', 'Lining', 'Interfacing', 'Other'];
 const INIT  = { material_name: '', material_code: '', unit: 'meters', category: 'Fabric', ownership: 'vfrb', reorder_threshold: 10, unit_cost: '', opening_stock: '' };
 const MASTER = ['material_name', 'material_code', 'unit', 'category', 'reorder_threshold', 'unit_cost'];
 const peso  = (v) => (v ? `₱${Number(v).toLocaleString('en-PH', { minimumFractionDigits: 2 })}` : '—');

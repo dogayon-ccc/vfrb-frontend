@@ -248,19 +248,18 @@ export default function AdminDeliveryTracking() {
       </div>
       <div className="adm-only-d"><PillTabs value={filter} onChange={setFilter} tabs={tabs} /></div>
 
-      <div className="adm-only-d adm-tabpanel" key={filter}>
+      <div className="adm-only-d adm-d-lg adm-tabpanel" key={filter}>
         <Panel flush>
           <div className="adm-tbl-scroll">
             <table className="adm-table">
-              <thead><tr><th>Tracking</th><th>Order</th><th>Customer</th><th>Scheduled</th><th className="adm-hide-t">Address</th><th>Status</th><th style={{ textAlign: 'right' }}>Actions</th></tr></thead>
+              <thead><tr><th>Order</th><th>Customer</th><th>Scheduled</th><th className="adm-hide-t">Address</th><th>Status</th><th style={{ textAlign: 'right' }}>Actions</th></tr></thead>
               <tbody>
                 {!loading && filtered.map((d, i) => {
                   const ds = autoStatus(d);
                   return (
                     <tr key={d.tracking_id ?? i}>
-                      <td style={{ fontWeight: 800, color: 'var(--teal)' }}>#{d.tracking_id}</td>
-                      <td style={{ fontWeight: 600 }}><OrderLink id={d.order_id}/></td>
-                      <td>{d.customer_name ?? '—'}</td>
+                      <td style={{ fontWeight: 600 }}><OrderLink id={d.order_id}/><div style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-subtle)', whiteSpace: 'nowrap' }}>Tracking #{d.tracking_id}</div></td>
+                      <td><div style={{ maxWidth: '18ch', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={d.customer_name ?? ''}>{d.customer_name ?? '—'}</div></td>
                       <td style={{ whiteSpace: 'nowrap', fontSize: 12, color: 'var(--text-subtle)' }}>{fmtDate(schedOf(d))}</td>
                       <td className="adm-hide-t" style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12, color: 'var(--text-subtle)' }} title={d.delivery_address ?? d.customer_address ?? ''}>{d.delivery_address ?? d.customer_address ?? '—'}</td>
                       <td>
@@ -285,7 +284,7 @@ export default function AdminDeliveryTracking() {
         </Panel>
       </div>
 
-      <div className="adm-only-m adm-stagger" key={`${filter}-${search}`}>
+      <div className="adm-only-m adm-m-lg adm-cards-t adm-stagger" key={`${filter}-${search}`}>
         {loading ? <SkeletonRows rows={3} h={140} /> : loadErr ? null : filtered.length === 0 ? (
           <div className="adm-empty"><NavIcon name="delivery" size={30} color="currentColor" /><div style={{ marginTop: 8, fontWeight: 700 }}>No deliveries found</div></div>
         ) : filtered.map((d, i) => {

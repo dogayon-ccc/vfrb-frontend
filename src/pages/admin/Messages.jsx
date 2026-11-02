@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { NavIcon } from '../../components/ui/icons';
-import { PageHeader, StatusPill, SearchBox, SkeletonRows, ErrorBlock } from '../../components/admin/AdminUI';
+import { PageHeader, StatusPill, SearchBox, SkeletonRows, ErrorBlock, useLivePoll } from '../../components/admin/AdminUI';
 import { announceMessagesRead } from '../../hooks/useUnreadMessages';
 import { useKeyboardInset } from '../../hooks/useKeyboardInset';
 
@@ -50,22 +50,22 @@ export default function AdminMessages() {
       const data = r.data?.threads ?? r.data?.data ?? r.data ?? [];
       setThreads(data); setLoadErr(false);
       setSelId((cur) => cur ?? (window.matchMedia('(min-width:768px)').matches && data.length ? (data[0].order_id ?? data[0].id) : null));
-    } catch { setLoadErr(true); } finally { setLoading(false); }
+      return true;
+    } catch { setLoadErr(true); return false; } finally { setLoading(false); }
   }, []);
 
   const loadMsgs = useCallback(async () => {
-    if (!selId) return;
+    if (!selId) return true;
     try {
       const r = await axios.get(`/api/admin/messages/${selId}`);
       setMsgs(r.data?.messages ?? r.data ?? []); setMsgErr(false);
-    } catch { setMsgErr(true); }
+      return true;
+    } catch { setMsgErr(true); return false; }
   }, [selId]);
 
-  useEffect(() => {
-    loadThreads();
-    const iv = setInterval(loadThreads, 60000);
-    return () => clearInterval(iv);
-  }, [loadThreads]);
+  useEffect(() => { loadThreads(); }, [loadThreads]);
+  // Threads and the open conversation refresh every 30 s while the tab is visible and online.
+  useLivePoll(() => Promise.all([loadThreads(), loadMsgs()]), null);
 
   // Deep link from Order Detail (?order=ID): threads only exist once someone has
   // messaged, so for an order with no thread yet, build the header from the real order.
@@ -85,8 +85,6 @@ export default function AdminMessages() {
     [threads, draftThread]);
   useEffect(() => {
     setMsgs([]); loadMsgs().then(() => selId && announceMessagesRead());
-    const iv = setInterval(loadMsgs, 60000);
-    return () => clearInterval(iv);
   }, [loadMsgs]); // eslint-disable-line react-hooks/exhaustive-deps
   const scrollToNewest = () => { const el = feedRef.current; if (el) el.scrollTop = el.scrollHeight; };
   // Scroll only the feed; scrollIntoView also moved the page.

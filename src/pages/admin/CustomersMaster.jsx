@@ -96,7 +96,7 @@ function AccessRequests({ onCreate }) {
           : !rows ? <SkeletonRows rows={2} h={52} />
           : rows.length === 0 ? <p className="adm-sub" style={{ padding: '14px 18px', margin: 0 }}>No pending access requests.</p>
           : <>
-            <div className="adm-only-d adm-tbl-scroll">
+            <div className="adm-only-d adm-d-lg adm-tbl-scroll">
               <table className="adm-table">
                 <thead><tr><th>Name</th><th>Organization</th><th>Email</th><th>Mobile</th><th>Requested</th><th><span className="sr-only">Action</span></th></tr></thead>
                 <tbody>{rows.map((r) => (
@@ -111,7 +111,7 @@ function AccessRequests({ onCreate }) {
                 ))}</tbody>
               </table>
             </div>
-            <div className="adm-only-m" style={{ padding: 12 }}>
+            <div className="adm-only-m adm-m-lg" style={{ padding: 12 }}>
               {rows.map((r) => (
                 <div key={r.contact_id} className="adm-mcard">
                   <div style={{ fontWeight: 700, overflowWrap: 'anywhere' }}>{r.name}</div>
@@ -195,7 +195,7 @@ export default function CustomersMaster() {
       {isAdmin() && <AccessRequests onCreate={setCreating} />}
 
       <StatGrid loading={!summary && loading} items={[
-        { label: 'All customers', value: summary?.total ?? 0, color: 'var(--teal)', onClick: () => setT('all') },
+        { label: 'All customers', value: summary?.total ?? 0, color: 'var(--color-teal-ink)', onClick: () => setT('all') },
         ...Object.entries(TYPES).map(([k, l]) => ({ label: l, value: summary?.[k] ?? 0, onClick: () => setT(type === k ? 'all' : k) })),
         { label: 'Untyped', value: summary?.untyped ?? 0 },
       ]} />
@@ -206,22 +206,22 @@ export default function CustomersMaster() {
       </div>
       <div className="adm-only-d"><PillTabs value={type} onChange={setT} tabs={tabs} /></div>
 
-      <div className="adm-only-d adm-tabpanel" key={type}>
+      <div className="adm-only-d adm-d-lg adm-tabpanel" key={type}>
         <Panel flush>
           <div className="adm-tbl-scroll">
-            <table className="adm-table">
-              <thead><tr><th>Customer</th><th>Organization</th><th>Type</th><th>Contact</th><th className="adm-hide-t">Address</th><th>Orders</th><th className="adm-hide-t">Last order</th><th className="adm-hide-t">Joined</th></tr></thead>
+            <table className="adm-table cm-table">
+              <thead><tr><th>Customer</th><th>Organization</th><th>Type</th><th>Contact</th><th className="adm-hide-t cm-hide-l">Address</th><th>Orders</th><th className="adm-hide-t cm-hide-m">Last order</th><th className="adm-hide-t cm-hide-l">Joined</th></tr></thead>
               <tbody>
                 {!loading && rows.map((c) => (
                   <tr key={c.user_id} className="adm-row" tabIndex={0} onClick={() => setSel(c)} onKeyDown={(e) => e.key === 'Enter' && setSel(c)}>
-                    <td><div className="cm-who"><Avatar name={c.name} /><div><div style={{ fontWeight: 700 }}>{c.name}</div><div className="cm-sub">{c.email}</div></div></div></td>
-                    <td>{dash(c.organization_name)}</td>
+                    <td><div className="cm-who"><Avatar name={c.name} /><div className="cm-clip"><div style={{ fontWeight: 700 }} title={c.name}>{c.name}</div><div className="cm-sub" title={c.email}>{c.email}</div></div></div></td>
+                    <td><div className="cm-clip" title={c.organization_name ?? ''}>{dash(c.organization_name)}</div></td>
                     <td><TypePill type={c.client_type} /></td>
                     <td style={{ whiteSpace: 'nowrap', fontSize: 12 }}>{dash(c.contact_number)}</td>
-                    <td className="adm-hide-t" style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12, color: 'var(--text-subtle)' }} title={c.address ?? ''}>{dash(c.address)}</td>
+                    <td className="adm-hide-t cm-hide-l" style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12, color: 'var(--text-subtle)' }} title={c.address ?? ''}>{dash(c.address)}</td>
                     <td><OrdersCell c={c} /></td>
-                    <td className="adm-hide-t" style={{ whiteSpace: 'nowrap', fontSize: 12, color: 'var(--text-subtle)' }}>{fmt(c.last_order_at)}</td>
-                    <td className="adm-hide-t" style={{ whiteSpace: 'nowrap', fontSize: 12, color: 'var(--text-subtle)' }}>{fmt(c.created_at)}</td>
+                    <td className="adm-hide-t cm-hide-m" style={{ whiteSpace: 'nowrap', fontSize: 12, color: 'var(--text-subtle)' }}>{fmt(c.last_order_at)}</td>
+                    <td className="adm-hide-t cm-hide-l" style={{ whiteSpace: 'nowrap', fontSize: 12, color: 'var(--text-subtle)' }}>{fmt(c.created_at)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -238,12 +238,13 @@ export default function CustomersMaster() {
         </Panel>
       </div>
 
-      <div className="adm-only-m adm-stagger" key={`${type}-${q}-${page}`}>
+      <div className="adm-only-m adm-m-lg adm-cards-t adm-stagger" key={`${type}-${q}-${page}`}>
         {loading ? <SkeletonRows rows={3} h={120} /> : rows.length === 0 ? (
           <div className="adm-empty"><NavIcon name="users" size={30} color="currentColor" /><div style={{ marginTop: 8, fontWeight: 700 }}>{filtered ? 'No customers match' : 'No registered customers yet'}</div>
             {filtered && <button className="adm-link-btn" onClick={clear}>Clear filters</button>}</div>
         ) : rows.map((c, i) => (
-          <div key={c.user_id} className="adm-mcard" style={{ '--i': Math.min(i, 8) }} onClick={() => setSel(c)}>
+          <div key={c.user_id} className="adm-mcard" style={{ '--i': Math.min(i, 8) }} role="button" tabIndex={0} aria-label={`Open ${c.name}`}
+            onClick={() => setSel(c)} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), setSel(c))}>
             <div className="adm-mrow">
               <div className="cm-who" style={{ minWidth: 0 }}><Avatar name={c.name} /><div style={{ minWidth: 0 }}><div style={{ fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</div><div className="cm-sub">{dash(c.organization_name)}</div></div></div>
               <TypePill type={c.client_type} />

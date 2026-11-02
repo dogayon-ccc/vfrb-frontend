@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { FileSpreadsheet, FileText } from 'lucide-react';
@@ -10,6 +10,7 @@ import useListKeys from '../../hooks/useListKeys';
 import MaterialCode from '../../components/admin/MaterialCode';
 import { ClientLineStatus } from '../../components/admin/ClientMaterialsPanel';
 import BottomSheet from '../../components/ui/BottomSheet';
+const InventoryCharts = lazy(() => import('../../components/admin/charts/InventoryCharts'));
 import { PageHeader, PillTabs, TabPanel, ErrorBlock, StatusPill, SearchBox, Meter, Banner, Toast, useToast, useIsMobile } from '../../components/admin/AdminUI';
 
 // Movement types as the ERP names them (inventory_logs.type).
@@ -239,6 +240,8 @@ export default function AdminInventory() {
         .inv-count{width:110px;min-height:40px;text-align:right;font-variant-numeric:tabular-nums}
         .inv-bar{display:flex;align-items:center;gap:8px;min-width:140px}
         .inv-bar .adm-meter{flex:1}
+        .inv-reo{display:none}
+        @media(min-width:768px) and (max-width:1023px){.inv-col-bar,.inv-col-reo{display:none}.inv-reo{display:block;font-size:12px;font-weight:500;color:var(--text-subtle)}}
         @media(pointer:coarse){.inv-chips .adm-fchip{min-height:44px}.inv-count{min-height:44px}}
         .inv-kind{display:grid;grid-template-columns:1fr 1fr;gap:8px}
         .inv-kind button{display:flex;flex-direction:column;gap:2px;align-items:flex-start;text-align:left;min-height:56px;padding:10px 12px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--bg-card);color:var(--ink);cursor:pointer;font:inherit}
@@ -292,6 +295,11 @@ export default function AdminInventory() {
       ]} />}
 
       <TabPanel k={tab}>
+      {tab==='stock' && !counting && !loading && !loadError && materials.length > 0 && (
+        <Suspense fallback={<div className="adm-sk" style={{ height: 260, marginBottom: 16 }} />}>
+          <InventoryCharts flagCount={flagCount} materials={materials} showValue={!isStation()} />
+        </Suspense>
+      )}
       {tab==='stock' && (
         <DataTable label="Stock levels" dense mobileCards loading={loading} rows={8}
           isEmpty={!loadError && filtered.length === 0}
@@ -317,9 +325,9 @@ export default function AdminInventory() {
                   <button className="adm-btn" onClick={exitCount} disabled={saving}>Cancel</button>
                   <button className="adm-btn primary" onClick={saveCounts} disabled={saving || !entries.length} style={{ minHeight:44 }}>{saving ? 'Saving…' : `Save ${entries.length} count${entries.length===1?'':'s'}`}</button>
                 </span></>
-            : <span>{filtered.length} of {materials.length} materials · bar full at 2× reorder point, tick = reorder point</span>}>
+            : <span>{filtered.length} of {materials.length} materials<span className="inv-col-bar"> · bar full at 2× reorder point, tick = reorder point</span></span>}>
           <thead><tr>
-            <th>Material</th><th className="num">On hand</th><th>Stock</th><th className="num">Reorder at</th><th>Flag</th>
+            <th>Material</th><th className="num">On hand</th><th className="inv-col-bar">Stock</th><th className="num inv-col-reo">Reorder at</th><th>Flag</th>
             {counting && <><th className="num">Counted</th><th className="num">Variance</th></>}
           </tr></thead>
           <tbody ref={keys.listRef}>
@@ -334,9 +342,9 @@ export default function AdminInventory() {
                     <div style={{ fontWeight:700 }}>{m.material_name}<MaterialCode code={m.material_code}/></div>
                     <div style={{ fontSize:12, color:'var(--text-subtle)' }}>{m.category ?? '—'}</div>
                   </td>
-                  <td data-label="On hand" className="num" style={{ fontWeight:800, color: f !== 'ok' ? 'var(--danger-text)' : 'var(--ink)' }}>{sys} <span style={{ fontSize:12, fontWeight:600, color:'var(--text-faint)' }}>{m.unit}</span></td>
-                  <td data-label="Stock"><div className="inv-bar"><Meter pct={stockPct(m)} tone={f === 'ok' ? 'ok' : 'low'} marker={Number(m.reorder_threshold) > 0 ? 50 : undefined} label={`${m.material_name}: ${sys} ${m.unit}, reorder at ${m.reorder_threshold ?? 0}`} /></div></td>
-                  <td data-label="Reorder at" className="num" style={{ color:'var(--text-subtle)' }}>{m.reorder_threshold ?? 0} {m.unit}</td>
+                  <td data-label="On hand" className="num" style={{ fontWeight:800, color: f !== 'ok' ? 'var(--danger-text)' : 'var(--ink)' }}>{sys} <span style={{ fontSize:12, fontWeight:600, color:'var(--text-faint)' }}>{m.unit}</span><span className="inv-reo">reorder at {m.reorder_threshold ?? 0}</span></td>
+                  <td data-label="Stock" className="inv-col-bar"><div className="inv-bar"><Meter pct={stockPct(m)} tone={f === 'ok' ? 'ok' : 'low'} marker={Number(m.reorder_threshold) > 0 ? 50 : undefined} label={`${m.material_name}: ${sys} ${m.unit}, reorder at ${m.reorder_threshold ?? 0}`} /></div></td>
+                  <td data-label="Reorder at" className="num inv-col-reo" style={{ color:'var(--text-subtle)' }}>{m.reorder_threshold ?? 0} {m.unit}</td>
                   <td data-label="Flag"><StatusPill status={f} group={`stock-${f}`} label={FLAG_LABEL[f]} /></td>
                   {counting && <>
                     <td data-label="Counted" className="num">

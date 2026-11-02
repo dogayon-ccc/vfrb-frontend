@@ -686,7 +686,7 @@ export default function AdminPurchaseOrders() {
 
       <StatGrid loading={loading} items={[
         { label: 'Open RFQs', value: openRfqs, color: 'var(--info)', onClick: () => setTab('rfq') },
-        { label: 'To receive', value: toReceive, color: 'var(--teal)', onClick: () => { setTab('pos'); setPoFilter('sent'); } },
+        { label: 'To receive', value: toReceive, color: 'var(--color-teal-ink)', onClick: () => { setTab('pos'); setPoFilter('sent'); } },
         { label: 'Color holds', value: mismatchCount, color: mismatchCount ? 'var(--warning-text)' : undefined },
         { label: 'Purchase orders', value: pos.length, onClick: () => { setTab('pos'); setPoFilter('all'); } },
       ]} />

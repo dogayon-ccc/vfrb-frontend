@@ -9,7 +9,7 @@ import { useAppearance } from '../hooks/useAppearance';
 import PageLoader from '../components/ui/PageLoader';
 import IconBox from '../components/ui/IconBox';
 import NavBadge from '../components/ui/NavBadge';
-import { useUnreadMessages } from '../hooks/useUnreadMessages';
+import { MESSAGES_READ_EVENT } from '../hooks/useUnreadMessages';
 import AlertBanner from '../components/ui/AlertBanner';
 import ThreadPull from '../components/ui/ThreadPull';
 import useDialogFocus from '../hooks/useDialogFocus';
@@ -111,23 +111,28 @@ function NavSearch({ id, items, onGo }) {
   );
 }
 
-function NotifRow({ n, onRead }) {
+function NotifRow({ n, onRead, onGo, earlier }) {
   const id      = n.notif_id ?? n.id;
   const isRead  = !!n.is_read;
-  const timeStr = (n.date_sent ?? n.created_at)
-    ? new Date(n.date_sent ?? n.created_at).toLocaleTimeString('en-PH', { hour:'2-digit', minute:'2-digit' })
+  const sent    = n.date_sent ?? n.created_at;
+  const timeStr = sent
+    ? new Date(sent).toLocaleString('en-PH', earlier ? { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' } : { hour:'2-digit', minute:'2-digit' })
     : '';
-
-  return (
-    <div className={`adm-notif-row${isRead ? '' : ' unread'}`} onClick={() => { if (!isRead) onRead(id); }}>
+  const read = () => { if (!isRead) onRead(id); };
+  const body = (
+    <>
       <span className="adm-notif-dot" aria-hidden="true"/>
       <div style={{ flex:1, minWidth:0 }}>
         <p className="adm-notif-t">{notifTitle(n)}</p>
         <p className="adm-notif-m">{n.message ?? n.body ?? ''}</p>
         {timeStr && <p className="adm-notif-time">{timeStr}</p>}
       </div>
-    </div>
+    </>
   );
+
+  return n.order_id
+    ? <Link to={`/admin/orders/${n.order_id}`} className={`adm-notif-row${isRead ? '' : ' unread'}`} onClick={() => { read(); onGo(); }}>{body}</Link>
+    : <div className={`adm-notif-row${isRead ? '' : ' unread'}`} onClick={read}>{body}</div>;
 }
 
 export default function AdminLayout() {
@@ -155,9 +160,17 @@ export default function AdminLayout() {
   const nav        = navFor(allowed);
   const quick      = owner ? [] : QUICK_ADD.filter(a => (isManager || a.station) && allowed(a));
   const roleChip   = owner ? 'Owner · read-only' : station ? `Station: ${roleLabel.split(' · ')[1] ?? 'unassigned'}` : 'Manager';
-  // Owner has no /admin/messages access, so no badge poll.
-  const msgUnread  = useUnreadMessages('/api/admin/messages/unread-count', !owner);
-  const badgeFor   = (to) => (to === '/admin/messages' ? msgUnread : 0);
+  // Nav badges ride the shared 30 s live poll; Owner has no messages access, so only stock is polled there.
+  const canMsgs    = !owner && canOpen('/admin/messages', me);
+  const canStock   = canOpen('/admin/inventory', me);
+  const [msgUnread, setMsgUnread] = useState(0);
+  const [lowStock,  setLowStock]  = useState(0);
+  const fetchBadges = () => Promise.all([
+    canMsgs && axios.get('/api/admin/messages/unread-count').then(r => { setMsgUnread(Number(r.data?.unread_count) || 0); return true; }).catch(() => false),
+    canStock && axios.get('/api/admin/inventory', { params: { low_stock: 1, per_page: 1 } }).then(r => { setLowStock(Number(r.data?.total) || 0); return true; }).catch(() => false),
+  ]);
+  const badgeFor   = (to) => (to === '/admin/messages' ? msgUnread : to === '/admin/inventory' ? lowStock : 0);
+  const badgeNote  = (to, n) => (to === '/admin/inventory' ? `${n} low on stock` : `${n} new`);
 
   const [notifs,    setNotifs]    = useState([]);
   const [unread,    setUnread]    = useState(0);
@@ -193,6 +206,15 @@ export default function AdminLayout() {
     fetchCount();
   }, []);
   useLivePoll(fetchCount, null, owner ? 0 : 30_000);
+  const badgesRef = useRef(fetchBadges);
+  badgesRef.current = fetchBadges;
+  useEffect(() => {
+    const on = () => badgesRef.current();
+    on();
+    window.addEventListener(MESSAGES_READ_EVENT, on);
+    return () => window.removeEventListener(MESSAGES_READ_EVENT, on);
+  }, []);
+  useLivePoll(fetchBadges, null, canMsgs || canStock ? 30_000 : 0);
 
   useEffect(() => {
     const u = JSON.parse(localStorage.getItem('vfrb_user') || '{}');
@@ -392,7 +414,7 @@ export default function AdminLayout() {
         .adm-crumbs li > svg { flex-shrink: 0; opacity: .6; }
         .adm-crumbs li:last-child { flex-shrink: 0; }
         .adm-crumbs li:not(:last-child) > :is(a, span) { overflow: hidden; text-overflow: ellipsis; }
-        .adm-crumbs a { color: var(--adm-on-2); text-decoration: none; border-radius: 4px; }
+        .adm-crumbs a { display: inline-block; min-width: 44px; line-height: 44px; color: var(--adm-on-2); text-decoration: none; border-radius: 4px; }
         .adm-crumbs a:hover { color: var(--adm-on); text-decoration: underline; }
         .adm-crumbs [aria-current="page"] { font: 400 19px/1.2 var(--font-display); color: var(--adm-on); }
 
@@ -462,6 +484,8 @@ export default function AdminLayout() {
         .adm-notif-sec { padding: 8px 16px 4px; font-size: 12px; font-weight: 700; color: var(--text-faint); background: var(--bg-surface); }
         .adm-notif-row { display: flex; gap: 10px; align-items: flex-start; padding: 10px 16px; border-bottom: 1px solid var(--bg-surface); background: var(--bg-card); }
         .adm-notif-row.unread { background: var(--teal-50); cursor: pointer; }
+        a.adm-notif-row { color: inherit; text-decoration: none; }
+        a.adm-notif-row:focus-visible { outline: 2px solid var(--teal); outline-offset: -2px; }
         .adm-notif-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 6px; border: 1px solid var(--border); }
         .unread .adm-notif-dot { background: var(--teal); border-color: var(--teal); }
         .adm-notif-t { font-size: 14px; font-weight: 500; color: var(--ink); line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -489,7 +513,7 @@ export default function AdminLayout() {
           .drawer-open .adm-sb { transform: none; visibility: visible; transition: transform .2s ease-out; }
           .drawer-open .adm-scrim { display: block; position: fixed; inset: 0; z-index: 890; border: 0; background: rgb(19 31 56 / .5); }
           .adm-bar { height: 56px; padding: 0 var(--content-pad-mob); gap: 8px; }
-          .adm-crumbs a { min-height: 44px; display: inline-flex; align-items: center; }
+          html:has(.adm-shell.drawer-open) { overflow: hidden; }
           .adm-crumbs [aria-current="page"] { font-size: 18px; }
           .adm-content { padding: var(--content-pad-mob) var(--content-pad-mob) 32px; }
           .adm-notif-panel { position: fixed; top: 64px; left: 8px; right: 8px; width: auto; max-height: calc(100dvh - 80px); }
@@ -532,7 +556,7 @@ export default function AdminLayout() {
                   return (
                     <Link key={item.to} to={item.to} {...intent(item.to)} {...tipProps(item.label)} className="adm-link"
                       aria-current={current?.to === item.to ? 'page' : undefined}
-                      aria-label={badge ? `${item.label}, ${badge} new` : undefined}>
+                      aria-label={badge ? `${item.label}, ${badgeNote(item.to, badge)}` : undefined}>
                       <span className="nav-ico-wrap">
                         <IconBox icon={item.icon} size={18} width={20}/>
                         {mini && <NavBadge n={badge} corner/>}
@@ -632,9 +656,9 @@ export default function AdminLayout() {
                       ) : (
                         <>
                           {notifToday.length > 0 && <div className="adm-notif-sec">Today</div>}
-                          {notifToday.map(n => <NotifRow key={n.notif_id ?? n.id} n={n} onRead={markRead}/>)}
+                          {notifToday.map(n => <NotifRow key={n.notif_id ?? n.id} n={n} onRead={markRead} onGo={() => setBellOpen(false)}/>)}
                           {notifEarlier.length > 0 && <div className="adm-notif-sec">Earlier</div>}
-                          {notifEarlier.map(n => <NotifRow key={n.notif_id ?? n.id} n={n} onRead={markRead}/>)}
+                          {notifEarlier.map(n => <NotifRow key={n.notif_id ?? n.id} n={n} onRead={markRead} onGo={() => setBellOpen(false)} earlier/>)}
                         </>
                       )}
                     </div>
