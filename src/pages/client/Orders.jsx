@@ -121,7 +121,7 @@ export default function CustomerOrders() {
         </div>
       ) : error ? (
         <EmptyState illustration="error" headline="Couldn't load your orders"
-          sub="Something went wrong reaching the server. Check your connection and try again."
+          sub="Check your connection and try again."
           cta={{ label: 'Retry', onClick: () => load(true) }} />
       ) : list.length === 0 ? (
         <EmptyState illustration="order"

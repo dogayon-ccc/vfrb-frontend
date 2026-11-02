@@ -78,9 +78,10 @@ function useDecals(overlays) {
       const items = await renderDecals(overlays?.[side]);
       const withTex = await Promise.all(items.map(async d => ({ ...d, tex: await loadTexture(d.url) })));
       return withTex.filter(d => d.tex);
-    })).then(([front, back]) => { if (!stale) setDecals({ front, back }); }).catch(() => {});
+    })).then(([front, back]) => { if (stale) [...front, ...back].forEach(d => d.tex.dispose()); else setDecals({ front, back }); }).catch(() => {});
     return () => { stale = true; };
   }, [overlays]);
+  useEffect(() => () => [...decals.front, ...decals.back].forEach(d => d.tex.dispose()), [decals]); // free the previous set's GPU textures
   return decals;
 }
 

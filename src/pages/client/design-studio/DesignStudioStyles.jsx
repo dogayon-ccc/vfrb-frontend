@@ -139,6 +139,7 @@ export default function DesignStudioStyles() {
       .ds-help{flex:none;margin-top:auto;display:flex;flex-direction:column;gap:8px;}
       .ds-help .ds-keys{margin-top:0;}
       .ds-help-acts{display:grid;grid-template-columns:1fr 44px;gap:8px;}
+      .ds-help-howto{grid-column:1/-1;}
       .ds-help-acts .ds-btn{min-height:44px;justify-content:center;}
       .ds-help-acts kbd{font:700 15px var(--cx-sans);}
       .ds-nav-slot:empty{display:none;}
@@ -200,7 +201,20 @@ export default function DesignStudioStyles() {
       .ds-keysdlg dl>div{display:grid;grid-template-columns:minmax(96px,auto) 1fr;align-items:center;gap:10px;}
       .ds-keysdlg dd{margin:0;font-size:13px;color:#33415c;}
       .ds-keysdlg kbd{display:inline-block;padding:2px 7px;border:1px solid rgb(27 42 74 / .25);border-bottom-width:2px;border-radius:6px;background:#fff;font:600 12px var(--cx-sans);color:#1B2A4A;}
-      @media (prefers-reduced-motion:reduce){.ds-tour-spot,.ds-tour-card,.ds-tour-dots i{transition:none;}.ds-gesture{animation:none;}}
+      .ds-howto-lede{margin:0 0 12px;font-size:14px;color:#33415c;}
+      .ds-howto-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;}
+      .ds-howto-list button{width:100%;min-height:44px;display:grid;gap:2px;text-align:left;padding:12px 14px;border:1px solid rgb(27 42 74 / .14);border-radius:12px;background:#fff;color:#1B2A4A;cursor:pointer;transition:border-color .2s,transform .2s;}
+      .ds-howto-list button:hover{border-color:#028090;transform:translateY(-1px);}
+      .ds-howto-list strong{font:700 14px var(--cx-sans);}
+      .ds-howto-list span{font-size:13px;color:#33415c;}
+      .ds-howto-list small{font:600 12px var(--cx-sans);color:#046A78;margin-top:4px;}
+      @keyframes ds-dlg-in{from{opacity:0;transform:translate(-50%,-48%) scale(.97);}}
+      @keyframes ds-card-in{from{opacity:0;transform:translateY(6px);}}
+      .ds-keysdlg{animation:ds-dlg-in .2s ease-out;}
+      .ds-tour-card{animation:ds-card-in .2s ease-out;}
+      .ds-tour-dim{animation:ds-fade .2s ease-out;}
+      @keyframes ds-fade{from{opacity:0;}}
+      @media (prefers-reduced-motion:reduce){.ds-tour-spot,.ds-tour-card,.ds-tour-dots i,.ds-howto-list button{transition:none;}.ds-gesture,.ds-keysdlg,.ds-tour-card,.ds-tour-dim{animation:none;}}
       @media (prefers-reduced-motion:reduce){.ds-rail-card{transition:none;}}
       .ds-empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:28px 16px;text-align:center;border:1px dashed var(--border);border-radius:var(--r-lg);background:var(--bg-surface);}
       .ds-empty-icon{width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:var(--teal-50);}

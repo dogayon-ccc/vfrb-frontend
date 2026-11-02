@@ -24,6 +24,7 @@ import ToolRail from './ToolRail';
 import Navigator from './Navigator';
 import { panToFrac } from './navigatorView';
 import { traceBox } from './traceGuide';
+import { uses2DOnlyEffects } from './overlayTools';
 
 // The tracing guide inside the artboard (canvas logical px, so it zooms and pans with the garment). Never a canvas object: exports,
 // thumbnails and saves render the Fabric canvas only. Under the garment by default (the canvas paints over it); over it while tracing.
@@ -47,6 +48,9 @@ const ZOOM_MIN = 0.6, ZOOM_MAX = 1.8;
 const clampZoom = z => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, +z.toFixed(3)));
 
 const Scene3D = lazy(() => import('../DesignStudio3D'));
+const CALM = !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches; // the turntable never spins under reduced motion
+// 2D <-> 3D: a 200 ms crossfade; the hidden pane goes invisible only after its fade so neither view ever blinks out.
+const paneFade = on => ({ opacity: on ? 1 : 0, transition: CALM ? 'none' : on ? 'opacity .2s ease-out' : 'opacity .2s ease-out, visibility 0s linear .2s' });
 
 // Fit the artboard so the garment fills ~72% of the visible stage (above any bottom sheet), never past the fit area between the lanes or its width.
 // The artboard holds the garment with a margin: the garment's measured share of it (GARMENT_SHARE until the base has drawn) converts
@@ -425,6 +429,7 @@ export default function CanvasViewport({
       const placed = [...(overlays?.front ?? []), ...(overlays?.back ?? [])];
       return [label && { id: 'approx', text: label, warn: true }, hem && { id: 'hem', text: hem, warn: true },
         placed.some(o => o?.__pocket) && { id: 'pockets', text: 'Pockets are shown in 2D only' },
+        uses2DOnlyEffects(placed, cfg.patterns) && { id: 'fx2d', text: 'Some effects appear in 2D only' },
         placed.some(o => o && !o.__pocket) && c3.supported && !(c3.logo && c3.text) && { id: 'decals', text: 'Logos and text are 2D only on this model' },
         Object.keys(cfg.details ?? {}).length > 0 && { id: 'details', text: detailParts3D(cfg.garment, cfg.sleeve, cfg.fit) ? 'Button and closure colours are shown in 2D only' : 'Pocket, button and closure changes are shown in 2D only' }];
     })() : []),
@@ -465,7 +470,7 @@ export default function CanvasViewport({
             display:'flex', alignItems:'center', justifyContent:'center',
             visibility: show2D ? 'visible' : 'hidden',
             pointerEvents: show2D ? 'auto' : 'none',
-            zIndex: show2D ? 1 : 0,
+            zIndex: show2D ? 1 : 0, ...paneFade(show2D),
           }}>
           {/* Pan tool / Space held: a layer over the artboard takes the drag so Fabric never starts a selection or a move. */}
           {canPan && (hand || space) && (
@@ -510,7 +515,7 @@ export default function CanvasViewport({
           <div className="ds-pane" style={{
               visibility: viewMode==='3d' ? 'visible' : 'hidden',
               pointerEvents: viewMode==='3d' ? 'auto' : 'none',
-              zIndex: viewMode==='3d' ? 1 : 0,
+              zIndex: viewMode==='3d' ? 1 : 0, ...paneFade(viewMode === '3d'),
             }}>
             <ThreeEB>
               <Suspense fallback={<div className="ds-ref3d-skel" role="status"><span aria-hidden="true"/>Loading the 3D preview…</div>}>
@@ -539,7 +544,8 @@ export default function CanvasViewport({
               {ctrl('Back view', <FlipHorizontal2 size={16} aria-hidden="true"/>, () => switchFace(face === 'back' ? 'front' : 'back'),
                 { 'aria-pressed': face === 'back', disabled: face !== 'back' && !backOk, title: !backOk ? 'No back photo for this garment yet' : undefined })}
             </>) : (<>
-              {ctrl(spin ? 'Stop turning' : 'Turntable', <RotateCw size={16} aria-hidden="true"/>, () => setSpin(x => !x), { 'aria-pressed': spin })}
+              {ctrl(spin ? 'Stop turning' : 'Turntable', <RotateCw size={16} aria-hidden="true"/>, () => setSpin(x => !x),
+                { 'aria-pressed': spin, disabled: CALM, title: CALM ? 'Off while your device asks for reduced motion; drag to rotate' : undefined })}
               {canExplode && ctrl(explode ? 'Assemble' : 'Explode', explode ? <Shrink size={16} aria-hidden="true"/> : <Expand size={16} aria-hidden="true"/>, () => setExplode(x => !x),
                 { 'aria-pressed': explode, title: explode ? 'Put the parts back together' : 'Pull the collar, sleeves and pockets apart' })}
               {canExplode && ctrl(LIGHT_PRESETS[lighting].label, <Lightbulb size={16} aria-hidden="true"/>, () => setLighting(l => (l === 'studio' ? 'daylight' : 'studio')),

@@ -8,7 +8,10 @@
 //     the Studio's own Inspiration tab, not repeated here) + this customer's own designs
 //     tied to an order (is_archived true). `locked` ones are view-only with Reorder and
 //     "Duplicate to edit" (POST /api/customer/designs/{id}/copy); copies are colour-only.
+//   GET /api/customer/orders — a submitted Studio design is archived only when its order completes, so until then it shows from its order.
 import { stashStudioConfig } from '../../utils/studioHandoff';
+import { getStorageUrl } from '../../utils/fileUrl';
+import { asList } from '../../utils/asList';
 import { setStudioLock } from '../../utils/studioLock';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -17,7 +20,7 @@ import { Palette } from 'lucide-react';
 import axios from 'axios';
 import EmptyState from '../../components/EmptyState';
 import { Card, Button, Badge, PageHeader, Skeleton, ActionMenu } from '../../components/ui';
-import { Chips, DesignThumb, reltime, fmtDate } from '../../components/customer/kit';
+import { Chips, DesignThumb, reltime, fmtDate, STATUS } from '../../components/customer/kit';
 import { savedDesignName, garmentLabel } from '../../utils/designName';
 import { openDesign, reorderDesign, duplicateDesign } from '../../utils/designActions';
 import { orderQueue } from './design-studio/uniformSet';
@@ -48,6 +51,14 @@ const DRAFT = 'warning';
 const ORDERED = 'success';
 const INSPO = 'info';
 const FINAL = 'neutral';
+const parseCfg = c => { try { return typeof c === 'string' ? JSON.parse(c) : c; } catch { return null; } };
+// Live orders whose Studio design is not archived yet (not linked to any listed design row).
+export function inOrderDesigns(orders, rows) {
+  const ids = new Set(rows.map(r => r.id)), linked = new Set(rows.map(r => r.order_id).filter(Boolean));
+  return orders.filter(o => o.status !== 'cancelled' && !linked.has(o.order_id) && !(o.design_id && ids.has(o.design_id)))
+    .map(o => ({ id: `o${o.order_id}`, order_id: o.order_id, status: o.status, config: parseCfg(o.studio_config), img: getStorageUrl(o.client_design_preview_file), at: o.created_at }))
+    .filter(d => d.config?.garment);
+}
 const STEPS = [['Design', 'Pick a garment in the Design Studio, then set colors, logo and text.'], ['Save', 'Save it to keep your work. You can come back and edit any time.'], ['Order', 'Tell us quantity and sizes. VFRB reviews the order before production.']];
 
 export default function MyDesigns() {
@@ -55,6 +66,7 @@ export default function MyDesigns() {
   const [draft, setDraft] = useState(null);
   const [past, setPast] = useState([]);
   const [copies, setCopies] = useState([]);
+  const [inOrder, setInOrder] = useState([]);
   const [busy, setBusy] = useState(null);
   const [actErr, setActErr] = useState('');
   const [tpl, setTpl] = useState([]);
@@ -66,14 +78,16 @@ export default function MyDesigns() {
 
   const load = () => {
     setLoading(true); setError(false);
-    Promise.allSettled([axios.get('/api/customer/drafts/latest'), axios.get('/api/customer/designs')]).then(([d, p]) => {
+    Promise.allSettled([axios.get('/api/customer/drafts/latest'), axios.get('/api/customer/designs'), axios.get('/api/customer/orders')]).then(([d, p, o]) => {
       if (d.status === 'fulfilled' && d.value.data?.draft?.studio_config?.garment) setDraft(d.value.data.draft); else setDraft(null);
+      const rows = p.status === 'fulfilled' && Array.isArray(p.value.data) ? p.value.data : [];
       if (p.status === 'fulfilled') {
-        const rows = Array.isArray(p.value.data) ? p.value.data : [];
         setPast(rows.filter(x => x.is_archived && !x.is_copy && x.config?.garment));
         setCopies(rows.filter(x => x.is_copy && x.config?.garment));
         setTpl(rows.filter(x => !x.is_archived && x.config?.garment));
       }
+      // Only with the design list loaded, so an archived design is never shown twice.
+      setInOrder(o.status === 'fulfilled' && p.status === 'fulfilled' ? inOrderDesigns(asList(o.value.data), rows) : []);
       if (d.status === 'rejected' && p.status === 'rejected') setError(true);
       setLoading(false);
     });
@@ -98,7 +112,7 @@ export default function MyDesigns() {
     try { open(await duplicateDesign(d)); } catch { setActErr('Could not make a copy. Check your connection and try again.'); setBusy(null); }
   };
 
-  const nDraft = (draft ? 1 : 0) + copies.length, nOrdered = past.length, nInspo = tpl.length, total = nDraft + nOrdered;
+  const nDraft = (draft ? 1 : 0) + copies.length, nOrdered = past.length + inOrder.length, nInspo = tpl.length, total = nDraft + nOrdered;
   const hit = (...v) => !q.trim() || v.filter(Boolean).join(' ').toLowerCase().includes(q.trim().toLowerCase());
   const cfg = draft?.studio_config ?? {};
   // Card title: the customer's design name when it has one (archived designs are labelled "<garment> — Order #n" by the backend).
@@ -108,8 +122,9 @@ export default function MyDesigns() {
   const shownCopies = tab === 'all' || tab === 'draft' ? copies.filter(d => hit(titleOf(d.config, d.label), d.label, d.garment, d.category)) : [];
   const shownPast = past.filter(d => hit(titleOf(d.config, d.label), d.label, d.garment, d.category));
   const showPast = tab === 'all' || tab === 'ordered';
+  const shownInOrder = inOrder.filter(d => hit(titleOf(d.config), d.config.garment, d.config.category, `#${d.order_id}`));
   const shownTpl = tab === 'inspo' ? tpl.filter(d => hit(d.label, d.garment, d.category)) : [];
-  const noMatch = q.trim() && !showDraft && !shownCopies.length && !(showPast && shownPast.length) && !shownTpl.length;
+  const noMatch = q.trim() && !showDraft && !shownCopies.length && !(showPast && (shownPast.length || shownInOrder.length)) && !shownTpl.length;
   const empty = !loading && !error && total === 0;
   const tabEmpty = !loading && !error && total > 0 && ((tab === 'draft' && !nDraft) || (tab === 'ordered' && !nOrdered) || (tab === 'inspo' && !nInspo));
 
@@ -141,7 +156,7 @@ export default function MyDesigns() {
         </Card>
       )}
       {tabEmpty && <EmptyState illustration="order" headline={tab === 'draft' ? 'No drafts right now' : tab === 'inspo' ? 'No inspiration yet' : 'No past orders yet'}
-        sub={tab === 'draft' ? 'Start a new design in the Design Studio.' : tab === 'inspo' ? 'Starter designs will appear here.' : 'Designs from your completed orders will show up here.'} cta={{ label: 'Open Design Studio', onClick: openStudioBlank }} />}
+        sub={tab === 'draft' ? 'Start a new design in the Design Studio.' : tab === 'inspo' ? 'Starter designs will appear here.' : 'Designs from your orders will show up here.'} cta={{ label: 'Open Design Studio', onClick: openStudioBlank }} />}
 
       {actErr && <p role="alert" className="mx-err">{actErr}</p>}
       {noMatch && <EmptyState illustration="order" headline="No designs match your search" sub="Try a different garment name." />}
@@ -157,6 +172,13 @@ export default function MyDesigns() {
             <DesignCard key={d.id} i={i + 1} img={null} garment={d.garment} colors={d.config?.colors}
               title={titleOf(d.config, d.label, d.garment || 'Design')} meta={d.order_id ? `Copy of a design from order #${d.order_id}` : 'Copy'}
               badge="Copy" tone={DRAFT} primary={{ label: 'Edit colors', onClick: () => open(d) }} secondary={{ label: 'Order this', onClick: () => reorder(d) }} />
+          ))}
+          {showPast && shownInOrder.map((d, i) => (
+            <DesignCard key={d.id} i={i + 1} img={d.img} garment={d.config.garment} colors={d.config.colors} what="Submitted design"
+              title={titleOf(d.config, null, d.config.garment)} meta={`Order #${d.order_id} · ${STATUS[d.status]?.label ?? 'Pending'}`}
+              badge="In an order" tone={ORDERED}
+              primary={{ label: 'View order', onClick: () => nav(`/orders/${d.order_id}`) }}
+              secondary={{ label: 'Reorder', onClick: () => reorder(d) }} />
           ))}
           {showPast && shownPast.map((d, i) => (
             <DesignCard key={d.id} i={i + 1} img={d.photo_path} garment={d.garment} colors={d.config?.colors}

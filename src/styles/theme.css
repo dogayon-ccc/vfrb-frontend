@@ -399,8 +399,9 @@ input:focus, textarea:focus, select:focus {
     var(--bg-surface) 75%
   );
   background-size: 400px 100%;
-  animation: vfrb-shimmer 1.4s var(--ease-in) infinite;
+  animation: vfrb-sk-show 0s .15s both, vfrb-shimmer .7s .15s linear infinite; /* hidden 150 ms, then 0.7 s cycles */
 }
+@keyframes vfrb-sk-show { from { opacity: 0; } }
 
 /* Page entry animation */
 .fade-in {
@@ -942,13 +943,13 @@ input:focus, textarea:focus, select:focus {
 .ui-sk .ui-sk-block { border-radius: var(--radius); }
 .ui-sk .ui-sk-circle { border-radius: var(--radius-pill); flex-shrink: 0; }
 
-/* ThreadPull route transition: stitch runs 0→150ms, page unrolls over 300ms. Fill is backwards only so no clip-path stays on (it would clip fixed popovers). */
+/* ThreadPull route transition (motion token 200 ms): stitch runs 0→150ms, page unrolls over 200ms. Fill is backwards only so no clip-path stays on (it would clip fixed popovers). */
 .thread-page { position: relative; }
-.thread-page.vfrb-page { animation: thread-unroll var(--dur-3) var(--ease-snap) backwards; }
+.thread-page.vfrb-page { animation: thread-unroll 200ms var(--ease-snap) backwards; }
 .thread-page > .thread-pull {
   position: absolute; z-index: 5; top: 0; left: 0; right: 0; height: 2px; pointer-events: none;
   background: repeating-linear-gradient(90deg, var(--teal) 0 8px, transparent 8px 13px);
-  opacity: 0; animation: thread-run var(--dur-3) var(--ease-snap) both;
+  opacity: 0; animation: thread-run 200ms var(--ease-snap) both;
 }
 .thread-page > .thread-pull::after {
   content: ''; position: absolute; top: -3px; left: 0; width: 8px; height: 8px; border-radius: var(--radius-pill);
@@ -968,6 +969,7 @@ input:focus, textarea:focus, select:focus {
 @media (prefers-reduced-motion: reduce) {
   .thread-page.vfrb-page { animation: none; }
   .thread-page > .thread-pull { display: none; }
+  .sk { animation: vfrb-sk-show 0s .15s both; } /* still waits 150 ms, never shimmers */
 }
 @media (max-width: 767px) {
   .ui-table th, .ui-table td, .adm-table th, .adm-table td { padding: 10px 12px; }

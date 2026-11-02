@@ -1459,7 +1459,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     const dp = srcy('../src/components/DesignPreview.jsx'), s3d = srcy('../src/pages/client/DesignStudio3D.jsx'), wz = srcy('../src/pages/client/OrderWizard.jsx');
     t('order 3D preview: logos/text ride as decals, turntable is off under reduced motion, a lost context drops to 2D, the snapshot is a PNG upload',
       /overlays=\{overlays\} turntable=\{spin\} captureRef=\{capture\} onContextLost=/.test(dp) && /useState\(\(\) => !calm\(\)\)/.test(dp) && /&& !lost;/.test(dp)
-      && /const spin = turntable \?\? ownSpin;/.test(s3d) && /gl\.render\(scene, camera\); return gl\.domElement\.toDataURL\('image\/png'\)/.test(s3d)
+      && /const spin = !CALM && \(turntable \?\? ownSpin\);/.test(s3d) && /gl\.render\(scene, camera\); return gl\.domElement\.toDataURL\('image\/png'\)/.test(s3d)
       && /fd\.append\('design_3d_snapshot_file', await dataUrlBlob\(f\.design_3d_snapshot\)/.test(wz));
   }
   const removedNames = Object.keys(DFy.REMOVED_GARMENT);
@@ -1720,6 +1720,69 @@ t('new families route to their own models per sleeve; no model for a sleeve they
         && /try \{ return localStorage\.getItem\(SEEN_KEY\)/.test(sh) && /if \(!ready \|\| mode \|\| readSeen\(\)\)/.test(sh) && /filter\(\(\[sel\]\) => !sel \|\| find\(sel\)\)/.test(sh); })());
   t('panel body never waits on an exit animation (an upload switching to Selection used to leave it blank)',
     !/AnimatePresence/.test(rd('src/pages/client/design-studio/ToolDrawer.jsx')));
+}
+{ // 3D honesty: 2D-only effects note, label rules on every garment, lazy three, throttled sync, disposal, reduced motion
+  const OT = await L('/src/pages/client/design-studio/overlayTools.js'), CAT = await L('/src/pages/client/design-studio/garmentCatalog.js');
+  const CP = await L('/src/pages/client/design-studio/garmentCapabilities.js'), GS = await L('/src/pages/client/design-studio/glbSlots.js');
+  const rd = q => fsx.readFileSync(q, 'utf8');
+  const grad = { type: 'linear', colorStops: [{ offset: 0, color: '#fff' }, { offset: 1, color: '#000' }] };
+  t('2D-only effects: blend modes, image filters, gradient fills (also inside groups) and gradient zone patterns flag; plain overlays do not',
+    OT.uses2DOnlyEffects([{ globalCompositeOperation: 'multiply' }]) && OT.uses2DOnlyEffects([{ type: 'Image', filters: [{ type: 'Brightness', brightness: 0.2 }] }])
+    && OT.uses2DOnlyEffects([{ fill: grad }]) && OT.uses2DOnlyEffects([{ type: 'Group', objects: [{ fill: grad }] }]) && OT.uses2DOnlyEffects([], { body: 'gradient' })
+    && !OT.uses2DOnlyEffects([{ fill: '#ff0000', globalCompositeOperation: 'source-over', filters: [] }, null], { body: 'solid' }) && !OT.uses2DOnlyEffects(null, null));
+  const all = Object.keys(CAT.FAMILY_BY_NAME).flatMap(g => [null, 'Short', 'Long', '3/4', 'Sleeveless'].flatMap(s => [null, 'male', 'female', 'unisex'].map(f => ({ garment: g, sleeve: s, fit: f }))));
+  t('3D labels on every garment, sleeve and fit: "3D (approx.)" exactly when a model renders, else "3D not available"; plain "3D" needs a verification record (none today)',
+    all.length > 100 && all.every(d => CAT.label3D(d) === (CP.has3DFor(d) ? '3D (approx.)' : '3D not available')) && all.some(d => CP.has3DFor(d))
+    && CP.SCANNED_GARMENTS.every(e => !e.verification && (!e.label || e.label === '3D (approx.)'))
+    && GS.slot3DLabel({ state: 'verified' }) === '3D (approx.)' && GS.slot3DLabel({ state: 'verified', verification: { method: 'render-compare', date: '2026-11-02' } }) === '3D' && GS.slot3DLabel({ state: 'none' }) === null);
+  const ds = rd('src/pages/client/DesignStudio.jsx'), d3 = rd('src/pages/client/DesignStudio3D.jsx'), sm = rd('src/pages/client/design-studio/ScannedGarmentMesh.jsx'), cv = rd('src/pages/client/design-studio/CanvasViewport.jsx');
+  const srcDir = urlx.fileURLToPath(new URL('../src', import.meta.url)), walk = d => fsx.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(`${d}/${e.name}`) : /\.jsx?$/.test(e.name) ? [`${d}/${e.name}`] : []);
+  const graph3D = /(DesignStudio3D|ScannedGarmentMesh|ReferenceModel3D|garmentMeshManifest|regionShader|regionTexture|StageTowers3D|GarmentPreview3D)\.jsx?$/;
+  const staticThree = walk(srcDir).filter(f => !graph3D.test(f) && /^import [^;]*from '(three|@react-three\/[a-z]+)'|^import [^;]*from '[./]+[^']*(DesignStudio3D|ScannedGarmentMesh|ReferenceModel3D|garmentMeshManifest|regionShader)'/m.test(rd(f)));
+  t('three, R3F and the 3D scene load only through lazy imports (no static import outside the 3D modules)', staticThree.length === 0
+    && /lazy\(\(\) => import\('\.\.\/DesignStudio3D'\)\)/.test(cv) && /lazy\(\(\) => import\('\.\/ReferenceModel3D'\)\)/.test(rd('src/pages/client/design-studio/GarmentPicker.jsx')));
+  t('2D -> 3D sync is throttled (trailing timer, unchanged overlays keep their decals); textures and primitive materials are disposed; DPR capped on touch; no auto-rotate under reduced motion; fx note shown',
+    /SYNC_3D_MS - \(performance\.now\(\) - last3D\.current\.at\)/.test(ds) && /if \(json !== last3D\.current\.json\) setOverlays/.test(ds)
+    && /useEffect\(\(\) => \(\) => texture\?\.dispose\(\), \[texture\]\)/.test(d3) && /useEffect\(\(\) => \(\) => m\.dispose\(\), \[m\]\)/.test(d3) && (d3.match(/useMemo\(\(\) => mat\(/g) ?? []).length === 1
+    && /d\.tex\.dispose\(\)\), \[decals\]\)/.test(sm) && /if \(stale\) \[\.\.\.front, \.\.\.back\]\.forEach\(d => d\.tex\.dispose\(\)\)/.test(sm)
+    && /\(pointer: coarse\)'\)\.matches \? \[1, 1\.5\]/.test(d3) && /const spin = !CALM && /.test(d3) && /disabled: CALM/.test(cv)
+    && /uses2DOnlyEffects\(placed, cfg\.patterns\) && \{ id: 'fx2d', text: 'Some effects appear in 2D only' \}/.test(cv));
+}
+{ const IG = await L('/src/pages/client/design-studio/InspoGallery.jsx'), mini = g => renderToString(React.createElement(IG.MiniPreview, { garment: g, colors: {} }));
+  t('design thumbnails draw the garment itself: a blouse is not the polo fallback, and no garment draws no outline', mini('Mandarin Blouse') !== mini('Polo Shirt') && !mini(null).includes('<path'));
+  const rd = q => fsx.readFileSync(q, 'utf8'), dp = rd('src/components/DesignPreview.jsx');
+  t('a preview or reference image that fails to load falls back to the template render, never a broken image',
+    /onError=\{\(\) => setBadImg\(refUrl\)\}/.test(dp) && /onError=\{\(\) => setBadImg\(pngUrl\)\}/.test(dp) && /badImgs\.includes\(previewUrl\) \? null/.test(dp));
+  const MD = await L('/src/pages/client/MyDesigns.jsx'), cfg = JSON.stringify({ garment: 'Pants' });
+  const io = MD.inOrderDesigns([{ order_id: 1, status: 'pending', studio_config: cfg }, { order_id: 2, status: 'cancelled', studio_config: cfg },
+    { order_id: 3, status: 'completed', design_id: 9, studio_config: cfg }, { order_id: 4, status: 'confirmed', studio_config: cfg }, { order_id: 5, status: 'pending', studio_config: null }, { order_id: 6, status: 'pending', studio_config: '{bad' }],
+  [{ id: 9, order_id: 3 }, { id: 8, order_id: 4 }]);
+  t('My Designs lists a submitted Studio design from its order until it is archived: never cancelled, never twice, never without a config',
+    io.length === 1 && io[0].order_id === 1 && io[0].config.garment === 'Pants');
+  const PS = await L('/src/components/PageSkeletons.jsx'), app = rd('src/App.jsx');
+  const cSk = renderToString(React.createElement(PS.AppShellSkeleton, { customer: true })), aSk = renderToString(React.createElement(PS.AppShellSkeleton));
+  t('customers load on a light, customer-shaped skeleton, never the dark admin shell',
+    cSk.includes('data-light') && !cSk.includes('skx-dark') && aSk.includes('skx-dark') && /<ShellLoad customer><CustomerLayout\/>/.test(app) && /area === 'app'\) return <AppShellSkeleton customer\/>/.test(app));
+  const TU = await L('/src/pages/client/design-studio/studioTutorials.js'), RT = await L('/src/pages/client/design-studio/railTools.js'), DSx = await L('/src/pages/client/design-studio/dsShared.js');
+  const dsSrc = fsx.readdirSync('src/pages/client/design-studio').filter(f => /\.jsx?$/.test(f) && f !== 'studioTutorials.js').map(f => rd(`src/pages/client/design-studio/${f}`)).join('\n');
+  const toolIds = new Set(RT.RAIL_TOOLS.map(x => x.id)), tabIds = new Set(DSx.TABS.map(x => x.id));
+  const hookOk = sel => sel.split(',').every(part => [...part.matchAll(/\[data-tool=([a-z]+)\]/g)].every(m => toolIds.has(m[1])) && [...part.matchAll(/\[data-tab=([a-z]+)\]/g)].every(m => tabIds.has(m[1]))
+    && [...part.matchAll(/\.(ds-[a-z0-9-]+)/g)].every(m => dsSrc.includes(m[1])) && [...part.matchAll(/\[data-(strip|set)\]/g)].every(m => dsSrc.includes(`data-${m[1]}`)));
+  t('Studio how-to guides: every step that points at a control names a real tool, tab or Studio class; each guide has a title, summary and steps',
+    TU.TUTORIALS.length >= 8 && TU.TUTORIALS.every(g => g.id && g.title && g.summary && g.steps.length >= 2 && g.steps.every(([sel, h, b]) => h && b && (!sel || hookOk(sel))))
+    && /data-tab=\{t\.id\}/.test(rd('src/pages/client/design-studio/ToolDrawer.jsx')) && /data-tool=\{id\}/.test(rd('src/pages/client/design-studio/ToolRail.jsx')));
+  const sh = rd('src/pages/client/design-studio/StudioHelp.jsx');
+  t('How to opens from the Pieces column, phone More, the shortcut list and Settings > Help (?help=howto); an empty guide never crashes',
+    /onHowTo=\{help\?\.onHowTo\}/.test(rd('src/pages/client/design-studio/PiecesRail.jsx')) && /more\?\.onHowTo/.test(rd('src/pages/client/design-studio/ToolDrawer.jsx'))
+    && /get\('help'\) === 'howto'/.test(rd('src/pages/client/DesignStudio.jsx')) && /help=howto/.test(rd('src/pages/client/settings/HelpSection.jsx'))
+    && /onHowTo=\{\(\) => setMode\('howto'\)\}/.test(sh) && /Nothing to point at yet/.test(sh));
+  const css = n => rd(`src/styles/${n}.css`), cvx = rd('src/pages/client/design-studio/CanvasViewport.jsx');
+  t('motion tokens: skeletons stay hidden 150 ms then shimmer on a 0.7 s cycle; route entrance 200 ms; 2D/3D crossfade 200 ms, off under reduced motion',
+    /animation: vfrb-sk-show 0s \.15s both, vfrb-shimmer \.7s \.15s/.test(css('theme')) && /skx-show 0s \.15s both, skx-shimmer \.7s \.15s/.test(css('skeleton'))
+    && /cx-sk-show 0s \.15s both,cx-sk \.7s \.15s/.test(css('customer')) && /cx-sk-show 0s \.15s both,pm-shim \.7s \.15s/.test(css('premium'))
+    && /thread-unroll 200ms/.test(css('theme')) && /thread-run 200ms/.test(css('theme'))
+    && /transition: CALM \? 'none' : on \? 'opacity \.2s ease-out' : 'opacity \.2s ease-out, visibility 0s linear \.2s'/.test(cvx) && (cvx.match(/\.\.\.paneFade\(/g) ?? []).length === 2);
+  t('an empty order thread never tells the customer to ask "before you submit" (every thread belongs to a placed order)', !/before you submit/.test(rd('src/pages/client/Messages.jsx')));
 }
 console.log(out.join('\n')); const f =out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);

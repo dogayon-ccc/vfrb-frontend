@@ -15,7 +15,8 @@ const view3DTitle = (cfg, no3D) => (no3D
     : NO_FAMILY_3D.has(cfg.inspirationId) ? 'No 3D model matches the garment in this photo; 2D is the exact preview'
     : standIn3D(cfg.garment) ? `The only 3D model for ${garmentLabel(cfg.garment)} is a generic stand-in, not this garment, so 3D is off; 2D is the exact preview`
     : 'No 3D model for this garment and sleeve; 2D is the exact preview')
-  : '3D is an approximate spatial preview; use 2D for exact colours and placement');
+  : label3D(cfg) === '3D' ? 'Verified 3D model: edits show on the matching part'
+  : '3D is an approximate, read-only spatial preview; use 2D for exact colours and placement');
 
 const PHONE = '(max-width: 599px)';
 function usePhone() {

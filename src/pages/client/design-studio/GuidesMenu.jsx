@@ -5,6 +5,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Grid3x3, Ruler, Magnet, Crosshair } from 'lucide-react';
 import { GRID_PCTS, GRID_LABEL } from './canvasGuides';
+import useDialogFocus from '../../../hooks/useDialogFocus';
 
 export const UNITS_NOTE = 'Rulers show template units, not centimetres. Real sizes appear only after VFRB confirms a scale.';
 // [key, label, hint, icon, shortcut]
@@ -51,6 +52,8 @@ export default function GuidesMenu({ guides, setGuides, showGuides = true, base 
     const top = r.bottom + 6;
     setPos({ left: r.left, top, maxHeight: Math.max(160, (stage ? stage.bottom : innerHeight) - top - 8) });
   }, [open]);
+  // Only the phone sheet is modal; the desktop popover closes on an outside click instead.
+  useDialogFocus(panel, { active: open && modal, onClose: close, initial: '.ds-vt-btn, input' });
   useEffect(() => {
     if (!open) return undefined;
     panel.current?.querySelector('.ds-vt-btn, input')?.focus();

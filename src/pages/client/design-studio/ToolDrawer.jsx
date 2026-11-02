@@ -122,6 +122,7 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
       ))}
       {more?.onView && <li><button type="button" onClick={() => { setMoreOpen(false); more.onView(); }}><Eye size={18} aria-hidden="true"/>View<small>Guides, stage, sketch</small></button></li>}
       {more?.onTour && <li><button type="button" onClick={() => { setMoreOpen(false); more.onTour(); }}><HelpCircle size={18} aria-hidden="true"/>Tour and gestures<small>How the Studio works, step by step</small></button></li>}
+      {more?.onHowTo && <li><button type="button" onClick={() => { setMoreOpen(false); more.onHowTo(); }}><HelpCircle size={18} aria-hidden="true"/>How-to guides<small>Colour, logos, text, layers, sets and ordering</small></button></li>}
       {more?.onCopy && (
         <li><button type="button" onClick={more.onCopy} disabled={!more.canCopy || more.copying} aria-busy={more.copying || undefined}>
           <Copy size={18} aria-hidden="true"/>{more.copying ? 'Saving a copy…' : 'Save a copy'}{!more.canCopy && <small>Open a saved design from My Designs first</small>}
@@ -142,7 +143,7 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
         {!noGarment && (
           <nav className="ds-tabs" aria-label="Design sections">
             {tabs.map(t => (
-              <button key={t.id} type="button" aria-current={t.id === tab?.id ? 'true' : undefined} onClick={() => pick(t)}>
+              <button key={t.id} type="button" data-tab={t.id} aria-current={t.id === tab?.id ? 'true' : undefined} onClick={() => pick(t)}>
                 <NavIcon name={t.icon} size={18}/><span>{t.label}</span>
               </button>
             ))}

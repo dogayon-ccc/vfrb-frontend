@@ -45,12 +45,17 @@ export default function DesignPreview({ cfg, previewUrl = null, referenceImageUr
   // A selection without its own model (e.g. a long-sleeve design of a short-sleeve-only scan) stays 2D: no substitute model is shown.
   const no3DNote = design && fam && fam.status3D !== 'none' && !can3D && hasWebGL() ? (withheld ? `No 3D model matches this design's garment. Showing 2D.` : `No 3D model for ${design.garment}${design.sleeve ? ` · ${design.sleeve.toLowerCase()} sleeve` : ''}. Showing 2D.`) : null;
 
-  const image = referenceImageUrl || previewUrl;
+  // A preview file that fails to load falls back to the template render (or the "no preview" note), never a broken image.
+  const [badImgs, setBadImgs] = useState([]);
+  const setBadImg = url => setBadImgs(l => (l.includes(url) ? l : [...l, url]));
+  const refUrl = badImgs.includes(referenceImageUrl) ? null : referenceImageUrl;
+  const pngUrl = badImgs.includes(previewUrl) ? null : previewUrl;
+  const image = refUrl || pngUrl;
   const imgStyle = fit ? { display: 'block', width: '100%', height: 'auto', maxHeight: 640, objectFit: 'contain' } : { maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' };
   const flat = (
     <div style={fit && image ? { ...box('auto'), maxHeight: 640 } : box(height)}>
-      {referenceImageUrl ? <img src={referenceImageUrl} alt="Reference" style={imgStyle}/>
-        : previewUrl ? <img src={previewUrl} alt="Submitted design" style={imgStyle}/>
+      {refUrl ? <img src={refUrl} alt="Reference" style={imgStyle} onError={() => setBadImg(refUrl)}/>
+        : pngUrl ? <img src={pngUrl} alt="Submitted design" style={imgStyle} onError={() => setBadImg(pngUrl)}/>
         : design && fam ? (
           <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
             {(hasBackView(design.garment, design.sleeve ?? 'Short', design.fit) ? ['front', 'back'] : ['front']).map(f => <GarmentSilhouette key={f} garment={design.garment} sleeve={design.sleeve ?? 'Short'} fit={design.fit} colors={design.colors} details={design.details} custom={design.custom} patterns={design.patterns} patternParams={design.patternParams} face={f} width={Math.round(height * 0.5)} height={Math.round(height * 0.62)}/>)}

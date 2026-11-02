@@ -138,6 +138,9 @@ export function applyTrim(fabric, o, trim) {
 // Blend: how an element mixes with the garment colour under it. Fabric's globalCompositeOperation, saved with the element.
 export const BLENDS = [['source-over', 'Normal'], ['multiply', 'Multiply'], ['screen', 'Screen'], ['overlay', 'Overlay']];
 export const blendOf = o => (BLENDS.some(([k]) => k === o?.globalCompositeOperation) ? o.globalCompositeOperation : 'source-over');
+// True when saved overlays (groups included) or zone patterns use an effect the 3D view cannot reproduce: blend modes, image filters, gradients.
+export const uses2DOnlyEffects = (objects, patterns = null) => Object.values(patterns ?? {}).includes('gradient')
+  || (objects ?? []).some(o => !!o && ((o.globalCompositeOperation ?? 'source-over') !== 'source-over' || o.filters?.length > 0 || !!readGradient(o.fill) || uses2DOnlyEffects(o.objects)));
 
 // Crop an image to a shape: a clipPath centred on the element, saved with it. __clip names the shape for the panel.
 export const CLIP_KINDS = [['none', 'None'], ['circle', 'Circle'], ['rounded', 'Rounded'], ['heart', 'Heart']];

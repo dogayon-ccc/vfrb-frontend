@@ -1,9 +1,12 @@
 // Studio help: a guided tour that spotlights the real controls (desktop and phone steps differ, a step whose control is not on
 // screen is skipped) and the "?" shortcut list. The tour opens once, the first time a garment is on the stage; both reopen from the
-// Pieces column (desktop) or More (phones). Display only: nothing here touches the design.
+// Pieces column (desktop) or More (phones). How to lists short tutorials that play in the same spotlight card. Display only: nothing
+// here touches the design.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { SHORTCUTS, helpKey } from './railTools';
+import { TUTORIALS, tutorialById } from './studioTutorials';
+import useDialogFocus from '../../../hooks/useDialogFocus';
 
 const SEEN_KEY = 'ds_tour_v1';
 const DESKTOP = '(min-width:1024px)';
@@ -48,9 +51,13 @@ function place(r, card, vw, vh) {
   return { left: clampX(r.left), top: clampY(vh - ch - m) };
 }
 
-function Tour({ onClose, onKeys }) {
+// `script` (a tutorial's steps) replaces the device tour; `onDone` then returns to the How to list.
+function Tour({ onClose, onKeys, script = null, kicker = null, onDone = null }) {
   const [desk] = useState(() => window.matchMedia?.(DESKTOP).matches ?? true);
-  const [steps] = useState(() => (desk ? DESKTOP_STEPS : PHONE_STEPS).filter(([sel]) => !sel || find(sel)));
+  const [steps] = useState(() => {
+    const s = (script ?? (desk ? DESKTOP_STEPS : PHONE_STEPS)).filter(([sel]) => !sel || find(sel));
+    return s.length ? s : [[null, 'Nothing to point at yet', 'Open a garment on the stage first, then play this guide again.']];
+  });
   const [i, setI] = useState(0);
   const [rect, setRect] = useState(null);
   const [pos, setPos] = useState(null);
@@ -62,6 +69,7 @@ function Tour({ onClose, onKeys }) {
     setRect(r ? { left: r.left, top: r.top, width: r.width, height: r.height, right: r.right, bottom: r.bottom } : null);
     if (c) setPos(place(r, { w: c.offsetWidth, h: c.offsetHeight }, window.innerWidth, window.innerHeight));
   }, [sel]);
+  useDialogFocus(card, { onClose, initial: '.ds-btn--primary' });
   useLayoutEffect(() => { measure(); next.current?.focus(); }, [measure, i]);
   useEffect(() => { window.addEventListener('resize', measure); return () => window.removeEventListener('resize', measure); }, [measure]);
   useEffect(() => {
@@ -85,18 +93,19 @@ function Tour({ onClose, onKeys }) {
       <div ref={card} className="ds-tour-card" role="dialog" aria-modal="true" aria-labelledby="ds-tour-h" aria-describedby="ds-tour-b"
         style={pos ?? { visibility: 'hidden' }}>
         <div className="ds-tour-top">
-          <span className="ds-tour-step">Step {i + 1} of {steps.length}</span>
+          <span className="ds-tour-step">{kicker ? `${kicker} · ` : ''}Step {i + 1} of {steps.length}</span>
           <button type="button" className="ds-tour-x" aria-label="Close the tour" onClick={onClose}><X size={16} aria-hidden="true"/></button>
         </div>
         <h2 id="ds-tour-h">{title}</h2>
         <p id="ds-tour-b">{body}</p>
         <div className="ds-tour-dots" aria-hidden="true">{steps.map((_, n) => <i key={n} data-on={n === i || undefined}/>)}</div>
         <div className="ds-tour-acts">
-          {last && onKeys ? <button type="button" className="ds-link" onClick={onKeys}>See all shortcuts</button>
+          {onDone ? <button type="button" className="ds-link" onClick={onDone}>All guides</button>
+            : last && onKeys ? <button type="button" className="ds-link" onClick={onKeys}>See all shortcuts</button>
             : <button type="button" className="ds-link" onClick={onClose}>Skip tour</button>}
           <span className="ds-tour-nav">
             {i > 0 && <button type="button" className="ds-btn" onClick={() => setI(n => n - 1)}>Back</button>}
-            <button ref={next} type="button" className="ds-btn ds-btn--primary" onClick={() => (last ? onClose() : setI(n => n + 1))}>{last ? 'Start designing' : 'Next'}</button>
+            <button ref={next} type="button" className="ds-btn ds-btn--primary" onClick={() => (last ? (onDone ?? onClose)() : setI(n => n + 1))}>{last ? (onDone ? 'Done' : 'Start designing') : 'Next'}</button>
           </span>
         </div>
       </div>
@@ -104,21 +113,47 @@ function Tour({ onClose, onKeys }) {
   );
 }
 
-function Keys({ onClose, onTour }) {
-  const close = useRef(null);
-  useEffect(() => {
-    close.current?.focus();
-    const key = (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); onClose(); } };
-    window.addEventListener('keydown', key, true);
-    return () => window.removeEventListener('keydown', key, true);
-  }, [onClose]);
+// Shared modal frame for the shortcut list and the How to list: Tab stays inside, Esc and a click outside close it.
+function useDialogKeys(onClose) {
+  const box = useRef(null);
+  useDialogFocus(box, { onClose, initial: '.ds-tour-x' });
+  return box;
+}
+
+function HowTo({ onClose, onPick, onTour, onKeys }) {
+  const box = useDialogKeys(onClose);
   return (
     <div className="ds-tour" role="presentation" onPointerDown={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="ds-tour-dim" aria-hidden="true"/>
-      <div className="ds-keysdlg" role="dialog" aria-modal="true" aria-labelledby="ds-keys-h">
+      <div ref={box} className="ds-keysdlg ds-howto" role="dialog" aria-modal="true" aria-labelledby="ds-howto-h">
+        <div className="ds-tour-top">
+          <h2 id="ds-howto-h">How to</h2>
+          <button type="button" className="ds-tour-x" aria-label="Close the guides" onClick={onClose}><X size={16} aria-hidden="true"/></button>
+        </div>
+        <p className="ds-howto-lede">Pick a guide. Each one points at the real controls, step by step.</p>
+        <ul className="ds-howto-list">
+          {TUTORIALS.map(t => (
+            <li key={t.id}><button type="button" onClick={() => onPick(t.id)}><strong>{t.title}</strong><span>{t.summary}</span><small>{t.steps.length} steps</small></button></li>
+          ))}
+        </ul>
+        <div className="ds-tour-acts">
+          <button type="button" className="ds-link" onClick={onKeys}>Shortcuts</button>
+          <button type="button" className="ds-btn ds-btn--primary" onClick={onTour}>Take the full tour</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Keys({ onClose, onTour, onHowTo }) {
+  const box = useDialogKeys(onClose);
+  return (
+    <div className="ds-tour" role="presentation" onPointerDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="ds-tour-dim" aria-hidden="true"/>
+      <div ref={box} className="ds-keysdlg" role="dialog" aria-modal="true" aria-labelledby="ds-keys-h">
         <div className="ds-tour-top">
           <h2 id="ds-keys-h">Shortcuts and gestures</h2>
-          <button ref={close} type="button" className="ds-tour-x" aria-label="Close shortcuts" onClick={onClose}><X size={16} aria-hidden="true"/></button>
+          <button type="button" className="ds-tour-x" aria-label="Close shortcuts" onClick={onClose}><X size={16} aria-hidden="true"/></button>
         </div>
         <div className="ds-keysdlg-grid">
           {SHORTCUTS.map(g => (
@@ -129,7 +164,7 @@ function Keys({ onClose, onTour }) {
           ))}
         </div>
         <div className="ds-tour-acts">
-          <span/>
+          <button type="button" className="ds-link" onClick={onHowTo}>How-to guides</button>
           <button type="button" className="ds-btn ds-btn--primary" onClick={onTour}>Take the tour</button>
         </div>
       </div>
@@ -137,7 +172,7 @@ function Keys({ onClose, onTour }) {
   );
 }
 
-// mode: null | 'tour' | 'keys'. `ready`: a garment is on the stage and the design can be edited (the first-run tour waits for it).
+// mode: null | 'tour' | 'keys' | 'howto' | 'tut:<tutorial id>'. `ready`: a garment is on the stage and the design can be edited (the first-run tour waits for it).
 export default function StudioHelp({ mode, setMode, ready }) {
   useEffect(() => {
     if (!ready || mode || readSeen()) return undefined;
@@ -156,6 +191,9 @@ export default function StudioHelp({ mode, setMode, ready }) {
   }, [setMode]);
   const close = useCallback(() => { markSeen(); setMode(null); }, [setMode]);
   if (mode === 'tour') return <Tour onClose={close} onKeys={() => { markSeen(); setMode('keys'); }}/>;
-  if (mode === 'keys') return <Keys onClose={() => setMode(null)} onTour={() => setMode('tour')}/>;
+  if (mode === 'keys') return <Keys onClose={() => setMode(null)} onTour={() => setMode('tour')} onHowTo={() => setMode('howto')}/>;
+  if (mode === 'howto') return <HowTo onClose={() => setMode(null)} onPick={id => setMode(`tut:${id}`)} onTour={() => setMode('tour')} onKeys={() => setMode('keys')}/>;
+  const tut = typeof mode === 'string' && mode.startsWith('tut:') ? tutorialById(mode.slice(4)) : null;
+  if (tut) return <Tour key={tut.id} script={tut.steps} kicker={tut.title} onClose={() => setMode(null)} onDone={() => setMode('howto')}/>;
   return null;
 }

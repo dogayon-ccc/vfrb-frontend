@@ -10,6 +10,7 @@ const CONTACT = [
 ];
 
 const GUIDES = [
+  { to: '/design-studio?help=howto', icon: 'designStudio', label: 'Design Studio how-to guides', hint: 'Colour, logos, text, layers, sets and ordering' },
   { to: '/guide', icon: 'designStudio', label: 'How ordering works', hint: 'Design, order, track' },
   { to: '/faq', icon: 'info', label: 'FAQ', hint: 'Common questions' },
   { to: '/terms', icon: 'checklist', label: 'Terms of Service', hint: 'Order and payment terms' },

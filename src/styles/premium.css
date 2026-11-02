@@ -57,7 +57,7 @@
 .cm-shell .cx-tbl tbody tr:hover{background:var(--cx-thread-tint)}
 
 /* Skeleton + toast */
-.cm-shell .cx-sk{background:linear-gradient(100deg,var(--cx-paper-2) 30%,var(--cx-paper) 50%,var(--cx-paper-2) 70%);background-size:220% 100%;animation:pm-shim 1.3s linear infinite;border-radius:var(--cx-r-md)}
+.cm-shell .cx-sk{background:linear-gradient(100deg,var(--cx-paper-2) 30%,var(--cx-paper) 50%,var(--cx-paper-2) 70%);background-size:220% 100%;animation:cx-sk-show 0s .15s both,pm-shim .7s .15s linear infinite;border-radius:var(--cx-r-md)}
 .cm-shell .cx-toast{backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:var(--cx-elev-2)}
 
 /* Page entrance: staggered rise (120–300ms) */

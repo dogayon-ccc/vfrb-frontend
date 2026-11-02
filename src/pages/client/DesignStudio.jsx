@@ -53,6 +53,8 @@ import PiecesRail, { PieceActions } from './design-studio/PiecesRail';
 import StudioHelp from './design-studio/StudioHelp';
 import { paintZone } from './design-studio/colorRules';
 
+const SYNC_3D_MS = 300; // 2D -> 3D refresh window while the 3D view is open
+
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────
 export default function DesignStudio() {
@@ -235,11 +237,21 @@ export default function DesignStudio() {
   // in DesignStudio3D.jsx but never actually wired to a real data source,
   // so 3D never showed logo/text/pattern, only the flat body color. Refresh
   // on every switch to 3D so it's never stale from an earlier edit.
+  // Throttled (trailing, SYNC_3D_MS): a colour drag in 3D re-encodes and re-uploads at most once per window, and unchanged overlays keep their decals.
+  const last3D = useRef({ at: 0, json: '' });
   useEffect(() => {
-    if (viewMode !== '3d') return;
-    faceJSON.current[face] = getCanvasJSON() ?? [];
-    setSnapshot(exportPNG(cfg.colors.body));
-    setOverlays({ front: faceJSON.current.front, back: faceJSON.current.back });
+    if (viewMode !== '3d') return undefined;
+    const push = () => {
+      faceJSON.current[face] = getCanvasJSON() ?? [];
+      setSnapshot(exportPNG(cfg.colors.body));
+      const next = { front: faceJSON.current.front, back: faceJSON.current.back }, json = JSON.stringify(next);
+      if (json !== last3D.current.json) setOverlays(next);
+      last3D.current = { at: performance.now(), json };
+    };
+    const wait = SYNC_3D_MS - (performance.now() - last3D.current.at);
+    if (wait <= 0) { push(); return undefined; }
+    const t = setTimeout(push, wait);
+    return () => clearTimeout(t);
   }, [viewMode, exportPNG, getCanvasJSON, face, cfg.colors.body]);
 
   // ── FREEFORM DRAWING state (Sept 9 2026) ─────────────────────
@@ -639,7 +651,8 @@ export default function DesignStudio() {
 
   // Phones and tablets: More > View opens the stage's View menu.
   const [viewOpen, setViewOpen] = useState(false);
-  const [help, setHelp] = useState(null); // StudioHelp: null | 'tour' | 'keys'
+  // StudioHelp: null | 'tour' | 'keys' | 'howto' | 'tut:<id>'; ?help=howto (Settings > Help) opens the guide list.
+  const [help, setHelp] = useState(() => (new URLSearchParams(location.search).get('help') === 'howto' ? 'howto' : null));
 
   const pieceProps = { cfg, uset, onSwitch: switchPiece, onStart: startSet, applyBoth, onApplyBoth: setApplyBoth,
     canSet: !!setCompanion, setView: viewMode !== '3d', showSet: showSet && viewMode !== '3d', onShowSet: setShowSet };
@@ -967,7 +980,7 @@ export default function DesignStudio() {
 
           <PiecesRail {...pieceProps} other={setCompanion} readOnly={colorOnly}
             dock={{ layers, selectedId: selObj?.__layerId, onSelect: selectLayer, onToggleVisibility: toggleLayerVisibility, onAdd: () => setTool('assets'), onOpenLayers: () => setTool('layers') }}
-            help={{ onTour: () => setHelp('tour'), onKeys: () => setHelp('keys') }}/>
+            help={{ onTour: () => setHelp('tour'), onKeys: () => setHelp('keys'), onHowTo: () => setHelp('howto') }}/>
 
           {/* ── TOOL STRIP + PANEL DRAWER ── */}
           <ToolDrawer onlyTools={colorOnly ? ['color'] : null} tool={tool} setTool={setTool} onOpenTool={setTool} cfg={cfg} setCfg={setCfg}
@@ -983,7 +996,7 @@ export default function DesignStudio() {
             pushHistory={pushHistory} presetPos={presetPos} nudgeSelected={nudgeSelected}
             renameLayer={renameLayer} deleteLayer={deleteLayer} reorderLayers={reorderLayers} pieceRole={uset?.active ?? null} trace={trace} setTrace={setTrace} status={locked ? null : status}
             garmentExtra={<PieceActions {...pieceProps} other={setCompanion} readOnly={colorOnly} inSheet/>}
-            more={{ onView: () => setViewOpen(true), onCopy: duplicateToEdit, canCopy: !!lock?.designId, copying, onTour: () => setHelp('tour') }}/>
+            more={{ onView: () => setViewOpen(true), onCopy: duplicateToEdit, canCopy: !!lock?.designId, copying, onTour: () => setHelp('tour'), onHowTo: () => setHelp('howto') }}/>
 
           {/* ── CANVAS AREA ── */}
           <CanvasViewport cfg={cfg} setCfg={setCfg} canvasWrapRef={canvasWrapRef} canvasEl={canvasEl} initFailed={initFailed}

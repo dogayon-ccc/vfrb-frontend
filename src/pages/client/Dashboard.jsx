@@ -168,7 +168,7 @@ export default function CustomerDashboard() {
         {loading ? <Skeleton variant="block" count={2} height={88} gap={12} label="Loading orders" />
           : error ? (
             <EmptyState compact tone="error" title="Couldn’t load your orders"
-              action={<Button onClick={() => { setLoading(true); load(true); }}>Try again</Button>}>Check your connection and try again.</EmptyState>
+              action={<Button onClick={() => { setLoading(true); load(true); }}>Retry</Button>}>Check your connection and try again.</EmptyState>
           ) : featured ? (
             <>
               <article className="dx-order">

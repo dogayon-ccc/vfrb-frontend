@@ -109,7 +109,7 @@ const Loading = () => (
 const NoMessagesYet = () => (
   <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8 }}>
     <NavIcon name="messages" size={30} color="var(--text-faint)" />
-    <p style={{ color: 'var(--ink)', fontSize: 14, fontWeight: 700, fontFamily: FONT, margin: 0, textAlign: 'center' }}>Ask VFRB about your order before you submit</p>
+    <p style={{ color: 'var(--ink)', fontSize: 14, fontWeight: 700, fontFamily: FONT, margin: 0, textAlign: 'center' }}>No messages about this order yet</p>
     <p style={{ color: 'var(--text-subtle)', fontSize: 13, fontFamily: FONT, margin: 0, textAlign: 'center' }}>Type your question below. The VFRB team will reply here.</p>
   </div>
 );

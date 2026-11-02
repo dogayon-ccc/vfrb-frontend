@@ -1,7 +1,7 @@
 // Community showcase: finished designs other clients chose to share and a VFRB manager approved (GET /api/customer/designs/showcase).
 // The server publishes only garment, colours, patterns and details. Opening one goes through deserializeDesign + applyGarment like
 // any saved design, and never touches the customer's own logos and text.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { Sparkles, X, CircleAlert } from 'lucide-react';
@@ -9,6 +9,7 @@ import GarmentSilhouette from './GarmentSilhouette';
 import { deserializeDesign } from './designSerialization';
 import { applyGarment, FAMILY_BY_NAME } from './garmentCatalog';
 import { garmentLabel } from '../../../utils/designName';
+import useDialogFocus from '../../../hooks/useDialogFocus';
 
 // The other client's look on this customer's design: shape and colours only; name, overlays and set stay the customer's own.
 export function openShowcase(p, config) {
@@ -21,6 +22,8 @@ export function openShowcase(p, config) {
 export default function ShowcaseGallery({ showShowcase, setShowShowcase, setCfg }) {
   const [designs, setDesigns] = useState(null); // null = loading
   const [failed, setFailed] = useState(false);
+  const box = useRef(null);
+  useDialogFocus(box, { active: showShowcase, onClose: () => setShowShowcase(false) });
 
   useEffect(() => {
     if (!showShowcase) return;
@@ -35,7 +38,7 @@ export default function ShowcaseGallery({ showShowcase, setShowShowcase, setCfg 
   return (
     <AnimatePresence>
       {showShowcase && (
-        <motion.div className="ds-show" role="dialog" aria-labelledby="ds-show-h"
+        <motion.div ref={box} className="ds-show" role="dialog" aria-modal="true" aria-labelledby="ds-show-h"
           initial={{ opacity:0, y:-10 }} animate={{ opacity:1, y:0, transition:{ duration:.2, ease:'easeOut' } }}
           exit={{ opacity:0, y:-10, transition:{ duration:.15 } }} style={{ x:'-50%' }}>
           <div className="ds-show-head">

@@ -129,7 +129,8 @@ function Loader() {
   if (!late) return null;
   if (area === 'auth') return <AuthSkeleton variant={SPLIT_AUTH.includes(pathname) ? 'split' : undefined}/>;
   if (area === 'studio') return <StudioSkeleton/>;
-  if (area === 'admin' || area === 'app') return <AppShellSkeleton/>;
+  if (area === 'admin') return <AppShellSkeleton/>;
+  if (area === 'app') return <AppShellSkeleton customer/>;
   return <SiteSkeleton/>;
 }
 
@@ -151,7 +152,7 @@ function Prefetch() {
 const SiteLoad  = ({ children }) => <Suspense fallback={<Late><SiteSkeleton/></Late>}>{children}</Suspense>;
 const SPLIT_AUTH = ['/login', '/forgot-password', '/reset-password'];
 const AuthLoad  = ({ children }) => <Suspense fallback={<Late><AuthSkeleton variant="split"/></Late>}>{children}</Suspense>;
-const ShellLoad = ({ children }) => <Suspense fallback={<Late><AppShellSkeleton/></Late>}>{children}</Suspense>;
+const ShellLoad = ({ customer, children }) => <Suspense fallback={<Late><AppShellSkeleton customer={customer}/></Late>}>{children}</Suspense>;
 
 // ── Auth guards ───────────────────────────────────────────────────────────────
 function RequireAuth({ children, role }) {
@@ -324,7 +325,7 @@ export default function App() {
 
           {/* ── CUSTOMER PORTAL — root-level paths, no /client or /customer prefix ── */}
           <Route element={
-            <RequireAuth role="customer"><ShellLoad><CustomerLayout/></ShellLoad></RequireAuth>
+            <RequireAuth role="customer"><ShellLoad customer><CustomerLayout/></ShellLoad></RequireAuth>
           }>
             <Route path="dashboard"   element={<CustomerDashboard/>}/>
             <Route path="my-designs"  element={<CustomerMyDesigns/>}/>

@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
-import { BASE_PATHS } from './garmentPaths';
+import { getGarmentPaths } from './garmentPaths';
 import { openTarget } from './designGallery';
 import { selectFamily } from './selectGarment';
 import GarmentPicker from './GarmentPicker';
 import ShowcaseConsent from './ShowcaseConsent';
 import { garmentLabel } from '../../../utils/designName';
+import useDialogFocus from '../../../hooks/useDialogFocus';
 
 export function MiniPreview({ garment, colors }) {
-  const paths = BASE_PATHS[garment] ?? BASE_PATHS['Polo Shirt'];
+  const paths = getGarmentPaths(garment); // flats and aliases resolve here; a bare BASE_PATHS lookup drew a polo for them
   return (
     <svg viewBox={`0 0 ${paths.w} ${paths.h}`} width="54" height="66" style={{ display:'block' }}>
       {paths.body    && <path d={paths.body}    fill={colors.body   ?? '#1e3a5f'} stroke="rgba(15,23,42,.15)" strokeWidth="3"/>}
@@ -98,6 +99,8 @@ function Tile({ label, sub, thumb, onClick, editable, onRename, onDelete, showca
 // The picker modal: the one GarmentPicker (past designs under its header), opened on Inspiration (empty canvas) or Templates (Change garment).
 export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanvasJSON, onOpen3D, onPickPhoto, onPairFamily = null, tab = 'inspiration', cfg, pieceRole = null, onLoadArchived = null }) {
   const [archived, setArchived] = useState([]);
+  const box = useRef(null);
+  useDialogFocus(box, { active: showInspo, onClose: () => setShowInspo(false) });
 
   useEffect(() => {
     if (!showInspo) return;
@@ -145,7 +148,7 @@ export default function InspoGallery({ showInspo, setShowInspo, setCfg, loadCanv
           initial={{ opacity:0, y:-10 }}
           animate={{ opacity:1, y:0, transition:{ duration:.2, ease:'easeOut' } }}
           exit={{   opacity:0, y:-10, transition:{ duration:.15 } }}
-          className="ds-modal" role="dialog" aria-labelledby="ds-pick-h" style={{ x:'-50%' }}>
+          ref={box} className="ds-modal" role="dialog" aria-modal="true" aria-labelledby="ds-pick-h" style={{ x:'-50%' }}>
           {/* The picker owns the sticky header (title, close) and action footer; past designs sit under its header. */}
           <GarmentPicker key={tab} tab={tab} cfg={cfg} pieceRole={pieceRole} onPickPhoto={loadDesign} onPick3D={loadDesign3D} onPickFamily={loadFamily} onPairFamily={pairFamily}
             onClose={() => setShowInspo(false)} extra={archived.length > 0 && (

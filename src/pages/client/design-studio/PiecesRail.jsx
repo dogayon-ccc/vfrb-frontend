@@ -82,13 +82,14 @@ function LayerDock({ layers = [], selectedId, onSelect, onToggleVisibility, onAd
 }
 
 // Help at the foot of the column: the tour, every shortcut ("?" anywhere) and the keyboard ones in a fold.
-function KeysCard({ onTour, onKeys }) {
+function KeysCard({ onTour, onKeys, onHowTo }) {
   return (
     <div className="ds-help">
       {(onTour || onKeys) && (
         <div className="ds-help-acts">
           {onTour && <button type="button" className="ds-btn" onClick={onTour}>Take the tour</button>}
           {onKeys && <button type="button" className="ds-btn" onClick={onKeys} aria-label="All shortcuts" aria-keyshortcuts="?" title="All shortcuts (?)"><kbd>?</kbd></button>}
+          {onHowTo && <button type="button" className="ds-btn ds-help-howto" onClick={onHowTo}>How-to guides</button>}
         </div>
       )}
       <details className="ds-keys">
@@ -129,7 +130,7 @@ export default function PiecesRail(props) {
       <PieceActions {...props}/>
       <div id="ds-navigator-slot" className="ds-nav-slot"/>
       {dock && !readOnly && <LayerDock {...dock}/>}
-      {!readOnly && <KeysCard onTour={help?.onTour} onKeys={help?.onKeys}/>}
+      {!readOnly && <KeysCard onTour={help?.onTour} onKeys={help?.onKeys} onHowTo={help?.onHowTo}/>}
     </aside>
   );
 }

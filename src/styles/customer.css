@@ -67,7 +67,8 @@ a.cx-kpi:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
 .cx-kpi-i{width:38px;height:38px;border-radius:var(--radius);display:grid;place-items:center;flex-shrink:0}
 .cx-kpi b{display:block;font-size:22px;line-height:1;font-weight:800}
 .cx-kpi span{font-size:var(--text-meta);color:var(--text-subtle);font-weight:600}
-.cx-sk{border-radius:8px;background:linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%);background-size:400px;animation:cx-sk 1.4s infinite}
+.cx-sk{border-radius:8px;background:linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%);background-size:400px;animation:cx-sk-show 0s .15s both,cx-sk .7s .15s linear infinite}
+@keyframes cx-sk-show{from{opacity:0}}
 @keyframes cx-sk{0%{background-position:-400px 0}100%{background-position:400px 0}}
 .cx-thumb{display:grid;place-items:center;border-radius:12px;background:var(--bg-surface);border:1px solid var(--border);overflow:hidden;flex-shrink:0}
 /* DesignThumb: saved artwork, or a framed and labelled colour silhouette when there is none (never mistaken for the artwork). */
@@ -75,7 +76,7 @@ a.cx-kpi:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
 .cx-dthumb>*{grid-area:1/1}
 .cx-dthumb>img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;transition:opacity .2s} /* pinned to the box: a tall preview (trousers) fits whole instead of overflowing the grid row */
 .cx-dthumb[data-kind=loading]>img{opacity:0}
-.cx-dthumb-wait{align-self:stretch;justify-self:stretch;background:linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%);background-size:400px;animation:cx-sk 1.4s infinite}
+.cx-dthumb-wait{align-self:stretch;justify-self:stretch;background:linear-gradient(90deg,var(--bg-surface) 25%,var(--border) 50%,var(--bg-surface) 75%);background-size:400px;animation:cx-sk-show 0s .15s both,cx-sk .7s .15s linear infinite}
 .cx-dthumb[data-kind=fallback]{outline:1.5px dashed var(--border-strong);outline-offset:-7px}
 .cx-dthumb--sm[data-kind=fallback]{outline-offset:-4px}
 .cx-dthumb-sil{line-height:0}

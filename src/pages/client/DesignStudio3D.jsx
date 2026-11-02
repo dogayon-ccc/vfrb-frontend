@@ -41,6 +41,12 @@ function mat(color, roughness = 0.72, metalness = 0.03, texture = null) {
     roughness, metalness,
   });
 }
+// A primitive part's material, rebuilt only when its inputs change; the previous one is freed from the GPU.
+function useMat(color, roughness, metalness, texture) {
+  const m = useMemo(() => mat(color, roughness, metalness, texture), [color, roughness, metalness, texture]);
+  useEffect(() => () => m.dispose(), [m]);
+  return m;
+}
 
 // Loads a data URL (snapshot of the live 2D Fabric canvas) as a Three.js
 // texture. Data URLs need no CORS handling. Cancels cleanly if the URL
@@ -67,6 +73,7 @@ function useOverlayTexture(dataUrl) {
     );
     return () => { cancelled = true; };
   }, [dataUrl]);
+  useEffect(() => () => texture?.dispose(), [texture]); // each snapshot is a fresh GPU upload; free the previous one
   return texture;
 }
 
@@ -79,11 +86,11 @@ function ShirtMesh({ colors, sleeveType, collarType, referenceTexture }) {
   const sleeve = colors?.sleeve ?? colors?.body ?? DEFAULT_GARMENT_COLOR;
   const pocket = colors?.pocket ?? colors?.collar ?? colors?.body ?? '#016070';
 
-  const matBody   = useMemo(() => mat(body, 0.72, 0.03, referenceTexture), [body, referenceTexture]);
-  const matCollar = useMemo(() => mat(collar),  [collar]);
-  const matSleeve = useMemo(() => mat(sleeve),  [sleeve]);
-  const matPocket = useMemo(() => mat(pocket, 0.6), [pocket]);
-  const matNeck   = useMemo(() => mat('#0b1220', 1), []);
+  const matBody   = useMat(body, 0.72, 0.03, referenceTexture);
+  const matCollar = useMat(collar);
+  const matSleeve = useMat(sleeve);
+  const matPocket = useMat(pocket, 0.6);
+  const matNeck   = useMat('#0b1220', 1);
 
   const isLong      = /long/i.test(sleeveType ?? '');
   // 3/4-length sleeve — the 2D canvas (DesignStudio.jsx SLEEVE_VARIANTS)
@@ -202,8 +209,8 @@ function PantsMesh({ colors, referenceTexture }) {
   const body   = colors?.body   ?? DEFAULT_GARMENT_COLOR;
   const collar = colors?.collar ?? colors?.body ?? '#02C39A';
 
-  const matBody = useMemo(() => mat(body, 0.72, 0.03, referenceTexture), [body, referenceTexture]);
-  const matBand = useMemo(() => mat(collar, 0.6), [collar]);
+  const matBody = useMat(body, 0.72, 0.03, referenceTexture);
+  const matBand = useMat(collar, 0.6);
 
   return (
     <group position={[0, -0.1, 0]}>
@@ -243,8 +250,8 @@ function ShortsMesh({ colors, referenceTexture }) {
   const body   = colors?.body   ?? DEFAULT_GARMENT_COLOR;
   const collar = colors?.collar ?? colors?.body ?? '#02C39A';
 
-  const matBody = useMemo(() => mat(body, 0.72, 0.03, referenceTexture), [body, referenceTexture]);
-  const matBand = useMemo(() => mat(collar, 0.6), [collar]);
+  const matBody = useMat(body, 0.72, 0.03, referenceTexture);
+  const matBand = useMat(collar, 0.6);
 
   return (
     <group position={[0, 0.2, 0]}>
@@ -279,8 +286,8 @@ function SkirtMesh({ colors, referenceTexture }) {
   const body  = colors?.body   ?? DEFAULT_GARMENT_COLOR;
   const band  = colors?.collar ?? colors?.body ?? '#02C39A';
 
-  const matBody = useMemo(() => mat(body, 0.72, 0.03, referenceTexture), [body, referenceTexture]);
-  const matBand = useMemo(() => mat(band, 0.6),        [band]);
+  const matBody = useMat(body, 0.72, 0.03, referenceTexture);
+  const matBand = useMat(band, 0.6);
 
   return (
     <group position={[0, 0.1, 0]}>
@@ -454,7 +461,7 @@ export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overla
   // Auto-rotate stops for good once the customer drags (damping keeps the inertia) and never runs under reduced motion.
   const [ownSpin, setSpin] = useState(!CALM);
   // `turntable` (bool) makes spinning a parent-controlled toggle; null keeps the stop-on-drag default.
-  const spin = turntable ?? ownSpin;
+  const spin = !CALM && (turntable ?? ownSpin);
   const L = LIGHT_PRESETS[lighting] ?? LIGHT_PRESETS.studio;
 
   return (

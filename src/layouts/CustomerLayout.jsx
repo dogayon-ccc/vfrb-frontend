@@ -13,6 +13,7 @@ import logo from '../assets/company-logo.jpg';
 import { useAppearance } from '../hooks/useAppearance';
 import { useUnreadMessages } from '../hooks/useUnreadMessages';
 import NavBadge from '../components/ui/NavBadge';
+import useDialogFocus from '../hooks/useDialogFocus';
 import { Button } from '../components/ui';
 import ThreadPull from '../components/ui/ThreadPull';
 import '../styles/customer-shell.css';
@@ -39,6 +40,8 @@ export default function CustomerLayout() {
   const [name, setName] = useState('Customer');
   const [unread, setUnread] = useState(0);
   const [moreOpen, setMoreOpen] = useState(false);
+  const moreRef = useRef(null);
+  useDialogFocus(moreRef, { active: moreOpen, onClose: () => setMoreOpen(false) });
   const [bellOpen, setBellOpen] = useState(false);
   const [notifs, setNotifs] = useState(null);
   const [notifsErr, setNotifsErr] = useState(false);
@@ -216,7 +219,7 @@ export default function CustomerLayout() {
           <>
             <motion.div className="cx-scrim" onClick={() => setMoreOpen(false)}
               initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} transition={{ duration: still ? 0 : .2 }} />
-            <motion.div className="cx-sheet" id="cx-more" role="dialog" aria-label="More"
+            <motion.div ref={moreRef} className="cx-sheet" id="cx-more" role="dialog" aria-modal="true" aria-label="More"
               initial={still ? false : { y:40, opacity:0 }} animate={{ y:0, opacity:1 }} exit={still ? { opacity:0 } : { y:40, opacity:0 }}
               transition={{ duration: still ? 0 : .3, ease:[.22, 1, .36, 1] }}>
               <h2>More</h2>

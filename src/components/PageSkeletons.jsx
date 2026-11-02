@@ -36,18 +36,30 @@ export function AppPageSkeleton() {
   );
 }
 
-export function AppShellSkeleton() {
+// customer: the light customer sidebar and a hero-and-cards page, so a customer never sees the admin shell while loading.
+function CustomerPageSkeleton() {
+  return (
+    <div className="skx-page" {...busy('Loading page')}>
+      <B h={220} r={20} />
+      <B w="min(200px, 50%)" h={20} />
+      <div className="skx-stats">{[0, 1, 2].map(n => <div key={n} className="skx-card"><B h={120} r={12} /><B w="60%" /><B w="40%" h={10} /></div>)}</div>
+    </div>
+  );
+}
+
+export function AppShellSkeleton({ customer = false }) {
+  const dark = !customer;
   return (
     <div className="skx-shell" {...busy('Loading')}>
-      <aside className="skx-side">
+      <aside className="skx-side" data-light={customer || undefined}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 10 }}>
-          <B dark w={36} h={36} r="50%" /><B dark w="60%" h={14} />
+          <B dark={dark} w={36} h={36} r="50%" /><B dark={dark} w="60%" h={14} />
         </div>
-        {[0, 1, 2, 3, 4, 5, 6, 7].map(n => <B key={n} dark h={34} r={10} />)}
+        {[0, 1, 2, 3, 4, ...(customer ? [] : [5, 6, 7])].map(n => <B key={n} dark={dark} h={34} r={10} />)}
       </aside>
       <div>
         <header className="skx-top"><B w={180} h={16} /><B w={36} h={36} r="50%" /></header>
-        <main className="skx-main"><AppPageSkeleton /></main>
+        <main className="skx-main">{customer ? <CustomerPageSkeleton /> : <AppPageSkeleton />}</main>
       </div>
     </div>
   );
