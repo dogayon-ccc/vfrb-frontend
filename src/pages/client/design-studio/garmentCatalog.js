@@ -15,7 +15,7 @@
 // family's fit/style options and 3D status are read once, here, from the real capability data
 // — never guessed, never invented for a garment that doesn't have it.
 import { photoFits, assetFor, templateIdFor, vectorFits } from './garmentAssets';
-import { glbSlotFor, slotLive } from './glbSlots';
+import { glbSlotFor, slotLive, slotEditable3D } from './glbSlots';
 import { BASE_PATHS, getGarmentPaths } from './garmentPaths';
 import { get3DCapabilities, fitsFor, sleeves3DFor, has3DModel, has3DFor } from './garmentCapabilities';
 import { realTrimFor, colorsForGarment } from './colorRules';
@@ -224,10 +224,10 @@ export function neighborFamily(category, garment, dir) {
 }
 
 // The Studio's 3D label for one design (garment, sleeve, fit, inspiration), always from has3DFor. No model is verified yet.
-export const label3D = d => (has3DFor(d) ? (familyFor(d.garment)?.verified3D ? '3D' : '3D (approx.)') : '3D not available');
+export const label3D = d => (has3DFor(d) ? (resolveTarget(d.garment, d.sleeve, d.fit)?.edit3D ? '3D' : '3D (approx.)') : '3D not available');
 
 // ONE answer to "what exactly does (garment, sleeve, fit, face) resolve to": family + variant (2D asset id) + zones + 3D + honest status.
-// Gallery, Studio, Order Wizard and both Order Detail pages read this instead of re-deriving it. Status never says 'verified': no GLB has passed validation.
+// Gallery, Studio, Order Wizard and both Order Detail pages read this instead of re-deriving it. Status says 'verified' only for a GLB with a verification record.
 export function resolveTarget(garment, sleeve, fit, face = 'front') {
   const fam = FAMILIES[garment];
   if (!fam) return null;
@@ -235,6 +235,7 @@ export function resolveTarget(garment, sleeve, fit, face = 'front') {
   const asset = assetFor(garment, s, face, f);
   const exactGlb = asset && slotLive(glbSlotFor(asset.id)) ? glbSlotFor(asset.id).file : null; // the photo base's own garment-only GLB
   const sleeve3D = fam.status3D !== 'none' && (!s || sleeves3DFor(garment, f).includes(s));
+  const edit3D = exactGlb ? slotEditable3D(glbSlotFor(asset.id)) : sleeve3D && fam.verified3D; // full 3D editing: verified GLBs only
   return {
     family: fam.id, sleeve: s, fit: f, face, assetId: asset?.id ?? null, templateId: templateIdFor(garment, s, f), photo: !!asset,
     zones: asset ? asset.zones : fam.zones, limitations: asset?.limitations ?? [],
@@ -242,7 +243,8 @@ export function resolveTarget(garment, sleeve, fit, face = 'front') {
     glbSlot: asset ? glbSlotFor(asset.id) : null, // reserved path for a future garment-only GLB of this exact photo base; never implies a model exists
     glbSrc: exactGlb, // the exact GLB of this photo base, only while its slot is live
     glbStatus: asset ? (glbSlotFor(asset.id)?.state ?? 'none') : 'none',
-    status: statusFor({ editable2D: fam.has2D || !!asset, has3D: sleeve3D || !!exactGlb, verified3D: sleeve3D && fam.verified3D }),
+    edit3D, label3D: edit3D ? '3D' : sleeve3D || exactGlb ? '3D (approx.)' : null, // anything not verified stays read-only
+    status: statusFor({ editable2D: fam.has2D || !!asset, has3D: sleeve3D || !!exactGlb, verified3D: edit3D }),
   };
 }
 

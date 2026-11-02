@@ -8,6 +8,7 @@ import { CATALOG, pieceOf, applyGarment, resolveTarget, PIECE_FACETS, GENDER_FAC
 import { DERIVED_LABEL } from './derivedFamilies';
 import { CATEGORIES, PIECES, SLEEVES, GENDERS, ENTRIES, TIER_LABEL, filterDesigns, facetCounts } from './designGallery';
 import { hasWebGL } from './webglSupport';
+import { glbSlotFor, slotEditable3D } from './glbSlots';
 import { ROLE_LABEL } from './uniformSet';
 import { SwatchGrid } from './SwatchGrid';
 import GarmentCarousel from './GarmentCarousel';
@@ -104,7 +105,7 @@ export function previewSentence(p, offRole = null) {
   return `Opens the closest ${p.garmentFamily} template${sleeveTxt(p)}; it is not an exact copy of the photo.`;
 }
 export function previewChips(p, offRole = null) {
-  const three = !p.editable2D || offRole ? (p.ref3D ? '3D reference only' : 'No 3D') : p.has3D ? '3D (approx.), one body colour'
+  const three = !p.editable2D || offRole ? (p.ref3D ? '3D reference only' : 'No 3D') : p.has3D ? (p.base?.[3] && slotEditable3D(glbSlotFor(p.base[3])) ? '3D, editable' : '3D (approx.), one body colour')
     : p.familyApprox3D ? `3D is the generic ${p.garmentFamily} model` : '2D only';
   return [offRole ? TIER_LABEL.reference.label : TIER_LABEL[p.tier].label, CAT_LABEL[p.category], PIECE_LABEL[p.piece], GENDER_LABEL[p.gender], p.sleeve && `${p.sleeve} sleeve`, three,
     p.pieces?.derived && !offRole && DERIVED_LABEL].filter(Boolean);

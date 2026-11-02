@@ -20,3 +20,12 @@ export const GLB_SLOTS = Object.fromEntries([
 export const glbSlotFor = id => GLB_SLOTS[id] ?? GLB_SLOTS[`photo:${id}`] ?? null;
 // A slot renders only in these states; 'none', 'candidate' and 'disabled' never reach the viewer.
 export const slotLive = slot => slot?.state === 'approx' || slot?.state === 'verified';
+
+// Intake statuses a GLB can carry; 'none' means no file at all.
+export const GLB_STATUSES = ['candidate', 'approx', 'verified'];
+// Full 3D editing needs state 'verified' AND a verification record; anything else is read-only.
+export const slotEditable3D = slot => slot?.state === 'verified' && !!slot.verification?.method && !!slot.verification?.date;
+export const slot3DLabel = slot => slotEditable3D(slot) ? '3D' : slotLive(slot) ? '3D (approx.)' : null;
+// Intake verdict: a failed gate stays 'candidate'; a pass becomes 'verified' only with source, licence and owned photos.
+export const intakeStatus = ({ pass, source, licence, photosOwned }) =>
+  !pass ? 'candidate' : String(source ?? '').trim() && String(licence ?? '').trim() && photosOwned === 'yes' ? 'verified' : 'candidate';
