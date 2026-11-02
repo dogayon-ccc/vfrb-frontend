@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { MoreHorizontal, Eye, Copy, X, HelpCircle } from 'lucide-react';
 import { NavIcon } from '../../../components/ui/icons';
@@ -110,6 +110,9 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
   // A tab opens on its first tool (Draw never reopens by itself: it takes over the canvas).
   const [folded, setFolded] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const moreBtn = useRef(null);
+  // The More list unmounts as a dialog opens, so the More tab takes focus first and becomes the dialog's opener.
+  const fromMore = fn => () => { moreBtn.current?.focus({ preventScroll: true }); setMoreOpen(false); fn(); };
   useEffect(() => { setMoreOpen(false); setFolded(false); }, [pickedTool, p.activeZone]); // a zone or tool picked on the canvas opens its panel
   const pick = t => { if (collapsed) setCollapsed(false); setFolded(false); setMoreOpen(false); setTool(t.tools.find(allowed)); };
   const inMore = !NAV.includes(tab?.id);
@@ -120,9 +123,9 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
       {moreTabs.map(t => (
         <li key={t.id}><button type="button" onClick={() => pick(t)}><NavIcon name={t.icon} size={18}/>{t.label}</button></li>
       ))}
-      {more?.onView && <li><button type="button" onClick={() => { setMoreOpen(false); more.onView(); }}><Eye size={18} aria-hidden="true"/>View<small>Guides, stage, sketch</small></button></li>}
-      {more?.onTour && <li><button type="button" onClick={() => { setMoreOpen(false); more.onTour(); }}><HelpCircle size={18} aria-hidden="true"/>Tour and gestures<small>How the Studio works, step by step</small></button></li>}
-      {more?.onHowTo && <li><button type="button" onClick={() => { setMoreOpen(false); more.onHowTo(); }}><HelpCircle size={18} aria-hidden="true"/>How-to guides<small>Colour, logos, text, layers, sets and ordering</small></button></li>}
+      {more?.onView && <li><button type="button" onClick={fromMore(more.onView)}><Eye size={18} aria-hidden="true"/>View<small>Guides, stage, sketch</small></button></li>}
+      {more?.onTour && <li><button type="button" onClick={fromMore(more.onTour)}><HelpCircle size={18} aria-hidden="true"/>Tour and gestures<small>How the Studio works, step by step</small></button></li>}
+      {more?.onHowTo && <li><button type="button" onClick={fromMore(more.onHowTo)}><HelpCircle size={18} aria-hidden="true"/>How-to guides<small>Colour, logos, text, layers, sets and ordering</small></button></li>}
       {more?.onCopy && (
         <li><button type="button" onClick={more.onCopy} disabled={!more.canCopy || more.copying} aria-busy={more.copying || undefined}>
           <Copy size={18} aria-hidden="true"/>{more.copying ? 'Saving a copy…' : 'Save a copy'}{!more.canCopy && <small>Open a saved design from My Designs first</small>}
@@ -199,7 +202,7 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
                 <NavIcon name={t.icon} size={20}/><span>{NAV_LABEL[t.id]}</span>
               </button>
             ))}
-            <button type="button" aria-current={moreOpen || (inMore && !!tab) ? 'true' : undefined} aria-expanded={moreOpen}
+            <button ref={moreBtn} type="button" aria-current={moreOpen || (inMore && !!tab) ? 'true' : undefined} aria-expanded={moreOpen}
               onClick={() => { setFolded(false); setMoreOpen(o => !o); }}>
               <MoreHorizontal size={20} aria-hidden="true"/><span>More</span>
             </button>
