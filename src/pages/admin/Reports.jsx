@@ -205,7 +205,40 @@ function AlertCard({ a }) {
   );
 }
 
-const REDUCED = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+// One phrase per key of the backend run summary (VfrbDailyDigest::SUMMARY_KEYS); each count is new items sent by this run.
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+const DIGEST_PARTS = {
+  low_stock_digest:     n => `low-stock digest sent (${plural(n, 'material')})`,
+  rfqs_auto_created:    n => `${plural(n, 'RFQ')} auto-created for review`,
+  deadline_reminders:   n => plural(n, 'deadline reminder'),
+  overdue_flags:        n => plural(n, 'overdue flag'),
+  client_supply_orders: n => `client-materials alert (${plural(n, 'order')})`,
+  client_returns_due:   n => `client-return reminder (${plural(n, 'order')})`,
+  weekly_count_due:     n => `weekly count reminder (${plural(n, 'material')})`,
+};
+
+// Run Now response or error → the banner shown under the header.
+function digestResult(res, err) {
+  if (err) {
+    const status = err.response?.status;
+    const body = !err.response ? "Can't reach the server. Check your connection and try again."
+      : status === 403 ? "Your account can't run automation."
+      : status === 429 ? 'Too many runs in a short time. Wait a minute and try again.'
+      : status < 500 && err.response.data?.message ? err.response.data.message
+      : 'Something went wrong on the server. Try again; if it keeps failing, check the backend logs.';
+    return { tone: 'error', title: 'Automation run failed', body, retry: status !== 403 };
+  }
+  if (res?.skipped) {
+    return { tone: 'info', title: 'Automation is already running',
+      body: 'A scheduled run or another manager is running it now. Its alerts go out when it finishes; nothing is sent twice.', retry: true };
+  }
+  const sent = Object.entries(DIGEST_PARTS).filter(([k]) => res?.summary?.[k] > 0).map(([k, fmt]) => fmt(res.summary[k]));
+  if (res?.summary && !sent.length) {
+    return { tone: 'info', title: 'Nothing new to send', body: "Today's alerts already went out, or nothing needs attention right now." };
+  }
+  const list = sent.join(' · ');
+  return { tone: 'success', title: 'Automation run complete', body: list ? list.charAt(0).toUpperCase() + list.slice(1) + '.' : null };
+}
 
 export default function AdminReports() {
   const [data, setData] = useState(null);
@@ -214,7 +247,7 @@ export default function AdminReports() {
   const [loadErr, setLoadErr] = useState(false);
   const [tab, setTab] = useState('overview');
   const [runningDigest, setRunningDigest] = useState(false);
-  const [digestMsg, setDigestMsg] = useState('');
+  const [digest, setDigest] = useState(null); // banner from the last Run Now; stays until dismissed or the next run
 
   const load = useCallback((force = false) => {
     if (!force) {
@@ -235,14 +268,16 @@ export default function AdminReports() {
   const live = useLivePoll(() => load(true), data);
 
   const runDigest = useCallback(async () => {
-    setRunningDigest(true); setDigestMsg('');
+    setRunningDigest(true); setDigest(null);
     try {
       const r = await axios.post('/api/admin/automation/run-digest');
-      setDigestMsg(r.data?.message ?? 'Done.');
-      cacheClear('admin_reports', 'dashboard_stats', 'notifications');
-      load(true);
-    } catch { setDigestMsg('Automation run failed. Check backend logs.'); }
-    finally { setRunningDigest(false); setTimeout(() => setDigestMsg(''), 6000); }
+      setDigest(digestResult(r.data));
+      if (!r.data?.skipped) {
+        cacheClear('admin_reports', 'dashboard_stats', 'notifications');
+        load(true);
+      }
+    } catch (e) { setDigest(digestResult(null, e)); }
+    finally { setRunningDigest(false); }
   }, [load]);
 
   const alerts = data?.prescriptive_alerts ?? [];
@@ -269,15 +304,24 @@ export default function AdminReports() {
     <div className="rpt-printable">
       <div className="rpt-noprint">
         <PageHeader title="Reports" sub="Sales analytics · Orders & production · Stock and deadline alerts">
-          <button className="adm-btn" onClick={exportCsv} disabled={loading || !data || !buildCSV(data, csvTab)}><NavIcon name="download" size={14} color="currentColor" /> Export CSV</button>
+          <button className="adm-btn" onClick={exportCsv} disabled={loading || !buildCSV(data, csvTab, sales)}><NavIcon name="download" size={14} color="currentColor" /> Export CSV</button>
           <button className="adm-btn adm-hide-t" onClick={() => window.print()}><NavIcon name="print" size={14} color="currentColor" /> Print</button>
           <LiveStamp at={live.at} busy={live.busy} onRefresh={live.run} />
-          {!isOwner() && <button className="adm-btn primary" onClick={runDigest} disabled={runningDigest}
-            title="Run the automated low-stock digest, auto-suggested RFQs, and deadline reminders now">
+          {!isOwner() && <button className="adm-btn primary" onClick={runDigest} disabled={runningDigest} aria-busy={runningDigest}
+            title="Send today's automated alerts now: low-stock digest, auto RFQs, deadline and overdue reminders, client-material and weekly count reminders. Safe to repeat: nothing is sent twice.">
             <NavIcon name={runningDigest ? 'loading' : 'ai'} size={14} color="currentColor" /> {runningDigest ? 'Running…' : 'Run automation'}
           </button>}
         </PageHeader>
-        {digestMsg && <Banner tone="info" icon="info">{digestMsg}</Banner>}
+        {digest && (
+          <Banner tone={digest.tone} title={digest.title}>
+            {digest.body}
+            {/* Under the text, not in the action slot, so the message keeps its width on phones. */}
+            <span style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+              {digest.retry && <button className="adm-btn" onClick={runDigest} disabled={runningDigest}>Try again</button>}
+              <button className="adm-btn" onClick={() => setDigest(null)} aria-label="Dismiss automation message">Dismiss</button>
+            </span>
+          </Banner>
+        )}
         {loadErr && <div style={{ marginBottom: 14 }}><ErrorBlock msg="Could not load reports." onRetry={() => load(true)} /></div>}
         <PillTabs value={tab} onChange={setTab} tabs={tabs} />
       </div>
