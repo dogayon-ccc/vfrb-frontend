@@ -5,6 +5,7 @@ import { NavIcon } from '../../components/ui/icons';
 import { checkUpload } from '../../utils/fileCheck';
 import { PageHeader, Panel, Banner, Toast, useToast, SkeletonRows, Meter } from '../../components/admin/AdminUI';
 import RecommendationGuidancePanel from '../../components/admin/RecommendationGuidancePanel';
+import AiQualityPanel from '../../components/admin/AiQualityPanel';
 import { PASSWORD_RULE_TEXT, passwordOk, passwordLevel, levelLabel } from '../../utils/passwordRules';
 import ProfilePhotoField from '../../components/ProfilePhotoField';
 import AppearanceField from '../../components/AppearanceField';
@@ -255,6 +256,7 @@ export default function Settings() {
           {tab === 'password' && <PasswordPanel setToast={setToast} />}
 
           {tab === 'ai' && <RecommendationGuidancePanel setToast={setToast} />}
+          {tab === 'ai' && <AiQualityPanel />}
 
           {tab === 'users' && (
             <Panel title="User Management" subtitle="Create customer accounts and manage Administrator and Owner access.">

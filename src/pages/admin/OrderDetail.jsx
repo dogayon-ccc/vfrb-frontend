@@ -8,6 +8,7 @@ import OrderDesignDetails, { ReferenceFile } from '../../components/admin/OrderD
 import OrderBilling from '../../components/OrderBilling';
 import ProductionProgress from '../../components/admin/ProductionProgress';
 import ClientMaterialsPanel from '../../components/admin/ClientMaterialsPanel';
+import AiContextPanel from '../../components/admin/AiContextPanel';
 import { savedDesignName } from '../../utils/designName';
 import { NavIcon, StatusChip, AlertBanner, DataTable } from '../../components/ui';
 import { canAccessArea, readAdminUser, isAdmin, isStation, canOpen } from '../../utils/jobAccess';
@@ -675,6 +676,8 @@ export default function AdminOrderDetail() {
               </tbody>
             </DataTable>
           </Panel>
+
+          {!isStation() && <AiContextPanel orderId={order.order_id} />}
 
           {!isStation() && <Panel title="Billing" style={{ order:9 }}>
             <OrderBilling orderId={order.order_id} mode="admin" isManager={isManager} />
