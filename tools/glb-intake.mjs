@@ -119,7 +119,7 @@ export function gate(r) {
 
 const cell = s => String(s ?? '').replace(/[|\r\n]+/g, ' ').trim() || '-';
 export const registerLine = ({ date, file, result, source, licence }) => `| ${date} | ${cell(file)} | ${cell(result)} | ${cell(source)} | ${cell(licence)} |`;
-const HEADER = '# GLB intake register\n\nAppended by `node tools/glb-intake.mjs`. One line per intake run. A "verified" result still needs a manual slot record in `glbSlots.js`.\n\n| Date | File | Result | Source | Licence |\n|---|---|---|---|---|\n';
+const HEADER = '# GLB intake register\n\nAppended by `node tools/glb-intake.mjs`. One line per intake run. PASS = intake gate only (status gate-pass); slot verification still needs a manual record in `glbSlots.js`.\n\n| Date | File | Result | Source | Licence |\n|---|---|---|---|---|\n';
 
 function args(argv) {
   const o = { file: null, source: '', licence: '', photosOwned: '', register: true };
@@ -137,11 +137,12 @@ function main() {
   if (!o.file) { console.error('usage: node tools/glb-intake.mjs <file.glb> --source "<photo owner>" --licence "<plan and terms>" [--photos-owned yes] [--no-register]'); process.exit(2); }
   let r;
   try { r = inspectGlb(fs.readFileSync(o.file)); } catch (e) { console.error(`FAIL ${o.file}: ${e.message}`); process.exit(1); }
-  const g = gate(r), status = intakeStatus({ pass: g.pass, ...o });
+  const g = gate(r), slotStatus = intakeStatus({ pass: g.pass, ...o });
+  const label = g.pass ? 'PASS (gate only)' : 'FAIL', status = g.pass ? 'gate-pass' : slotStatus;
   const missing = [!o.source.trim() && '--source', !o.licence.trim() && '--licence', o.photosOwned !== 'yes' && '--photos-owned yes'].filter(Boolean);
   const f = n => n.toFixed(3), list = a => a.length ? a.join(', ') : '(none)';
   console.log([
-    `${g.pass ? 'PASS' : 'FAIL'}  ${path.basename(o.file)}  -> status: ${status}`,
+    `${label}  ${path.basename(o.file)}  -> status: ${status}`,
     `  size         ${(r.bytes / 1048576).toFixed(2)} MB`,
     `  triangles    ${r.tris} total, ${r.maxMeshTris} max per mesh`,
     `  UV sets      ${list(r.uvSets)}`,
@@ -154,12 +155,12 @@ function main() {
     `  textures     ${list(r.textures.map(t => t.size ? `${t.size.kind} ${t.size.w}x${t.size.h}` : t.external ? 'external' : 'unknown'))}`,
     `  compression  draco ${r.compression.draco ? 'yes' : 'no'}, meshopt ${r.compression.meshopt ? 'yes' : 'no'}`,
     ...g.fail.map(x => `  FAIL  ${x}`), ...g.warn.map(x => `  WARN  ${x}`),
-    g.pass && status !== 'verified' ? `  NOT VERIFIED: missing ${missing.join(', ')}` : '',
+    g.pass ? (slotStatus === 'verified' ? '  slot record may be marked verified (manual step)' : `  NOT VERIFIED: missing ${missing.join(', ')}`) : '',
   ].filter(Boolean).join('\n'));
   if (o.register) {
     const reg = fileURLToPath(new URL('../docs/glb-register.md', import.meta.url));
     if (!fs.existsSync(reg)) fs.writeFileSync(reg, HEADER);
-    const result = `${g.pass ? 'PASS' : 'FAIL'} / ${status}${g.pass && status !== 'verified' ? ` (missing ${missing.join(', ')})` : ''}`;
+    const result = g.pass ? `${label}${slotStatus !== 'verified' ? ` (missing ${missing.join(', ')})` : ''}` : `FAIL / ${status}`;
     fs.appendFileSync(reg, registerLine({ date: new Date().toISOString().slice(0, 10), file: path.basename(o.file), result, source: o.source, licence: o.licence }) + '\n');
     console.log(`  registered in docs/glb-register.md`);
   }
