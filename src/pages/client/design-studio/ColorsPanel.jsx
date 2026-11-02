@@ -4,8 +4,9 @@ import { paintZone, designPalette, pushRecent, contrastRatio, contrastLabel, bes
 import { SwatchGrid, CustomColor, colourName } from './SwatchGrid';
 import { PartButtons, PartStyles, partLabel } from './PartControls';
 
-const RECENT_KEY = 'ds_recent_colours';
-const readRecent = () => { try { const v = JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]'); return Array.isArray(v) ? v.filter(c => /^#[0-9a-f]{6}$/i.test(c)).slice(0, 8) : []; } catch { return []; } };
+// Recent colours are per user, like ds_guides:<user_id>; signOut clears them.
+const recentKey = () => { try { const id = JSON.parse(localStorage.getItem('vfrb_user') || '{}')?.user_id; return id ? `ds_recent_colours:${id}` : 'ds_recent_colours'; } catch { return 'ds_recent_colours'; } };
+const readRecent = () => { try { const v = JSON.parse(localStorage.getItem(recentKey()) ?? '[]'); return Array.isArray(v) ? v.filter(c => /^#[0-9a-f]{6}$/i.test(c)).slice(0, 8) : []; } catch { return []; } };
 
 // A row of one-tap colours (this design's own, or recent custom picks).
 function QuickRow({ title, colours, current, label, onPick }) {
@@ -56,7 +57,7 @@ export default function ColorsPanel({ cfg, setCfg, activeZone, setActiveZone, on
   const saveTimer = useRef(null);
   const remember = hex => {
     clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => setRecent(list => { const next = pushRecent(list, hex); try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch { /* storage blocked */ } return next; }), 400);
+    saveTimer.current = setTimeout(() => setRecent(list => { const next = pushRecent(list, hex); try { localStorage.setItem(recentKey(), JSON.stringify(next)); } catch { /* storage blocked */ } return next; }), 400);
   };
   useEffect(() => () => clearTimeout(saveTimer.current), []);
 

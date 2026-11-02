@@ -21,6 +21,7 @@ function clearApiCache() {
 export function clearSession() {
   localStorage.removeItem(TOKEN);
   localStorage.removeItem(USER);
+  try { Object.keys(localStorage).filter((k) => k.startsWith('ds_recent_colours')).forEach((k) => localStorage.removeItem(k)); } catch {}
   delete axios.defaults.headers.common.Authorization;
   sessionWipeAll();
   clearQueue();
