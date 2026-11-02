@@ -982,11 +982,12 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const be = q => fsx.readFileSync(`${BE}/${q}`, 'utf8');
   if (fsx.existsSync(`${BE}/routes/api.php`)) {
     const inv = be('app/Http/Controllers/Api/InventoryController.php');
-    const adj = inv.slice(inv.indexOf('private function adjustStock'), inv.indexOf('private function notifyLowStock'));
+    const adjAt = inv.indexOf('private function adjustStock'), adjEnd = inv.slice(adjAt + 1).search(/\n    (?:public|private|protected) function /);
+    const adj = adjEnd < 0 ? inv.slice(adjAt) : inv.slice(adjAt, adjAt + 1 + adjEnd);
     t('stock-out/wastage larger than the stock is refused inside the locked transaction (422 "Only X unit in stock; cannot remove Y."), with no clamp and no log row; cache and low-stock handling unchanged',
       /lockForUpdate\(\)->first\(\);\s*\/\/[^\n]*\n\s*if \(\$locked->quantity_in_stock \+ \$delta < 0\) \{\s*return \['short'/.test(adj) && !/max\(0,/.test(adj)
       && /"Only \{\$fmt\(\$newStock\['short'\]\)\} \{\$material->unit\} in stock; cannot remove \{\$fmt\(\$qty\)\}\."/.test(adj) && /\], 422\);\s*\}\s*(?:\/\/[^\n]*\n\s*if \(in_array\(\$type, \['adjustment', 'wastage'\], true\)\) \{\s*AuditLog::record\('inventory_adjusted', 'materials', \$id\);\s*\}\s*)?Cache::forget\('materials_list'\);/.test(adj)
-      && adj.indexOf("return ['short'") < adj.indexOf("DB::table('inventory_logs')->insert") && /notifyLowStock\(/.test(adj));
+      && adj.indexOf("return ['short'") < adj.indexOf("DB::table('inventory_logs')->insert") && /\(new \\App\\Services\\LowStockAlert\)->notify\(/.test(adj));
     const ord = be('app/Http/Controllers/Api/OrderController.php');
     const upd = ord.slice(ord.indexOf('public function adminUpdate'), ord.indexOf('private function notifyManagers'));
     t('admin order update: status, total, negotiated delivery date, review notes and order type are manager-only; the manager note goes to the customer message and never overwrites orders.notes (the customer\'s own notes)',
