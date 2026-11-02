@@ -558,7 +558,7 @@ button.vs-member:hover { transform: translateY(-3px); box-shadow: 0 14px 28px rg
 /* Find your uniform: tiles open the Studio filtered to a real garment category */
 .vs-find li { padding: 0; }
 .vs-find button { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 72px; padding: 16px 18px; border: 0; background: none; color: var(--vs-ink); font: inherit; font-weight: 700; font-size: 16px; text-align: left; cursor: pointer; }
-.vs-find button:hover { color: var(--vs-teal); }
+.vs-find button:hover { color: var(--vs-teal-deep); }
 .vs-find button:focus-visible { outline: 2px solid var(--vs-teal); outline-offset: -2px; }
 .vs-hero__main { border-radius: var(--vs-r-lg); box-shadow: var(--vs-shadow-up); }
 .vs-hero__inset { border-radius: var(--vs-r); border-width: 6px; box-shadow: var(--vs-shadow-up); }
