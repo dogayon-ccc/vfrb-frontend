@@ -261,12 +261,28 @@ export default function CanvasViewport({
   useEffect(() => { if (!canPan) setHand(false); }, [canPan]);
   useEffect(() => {
     if (!canPan) return undefined;
-    const typing = () => { const a = document.activeElement; return !!a && (/^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(a.tagName) || a.isContentEditable); };
-    const down = (e) => { if (e.code === 'Space' && !e.repeat && !typing()) { e.preventDefault(); setSpace(true); } };
-    const up = (e) => { if (e.code === 'Space') setSpace(false); };
+    // A button keeps Space only when it was reached by keyboard; one focused by a click or tap still lets Space pan.
+    let keyboardFocus = !!document.activeElement?.matches?.(':focus-visible');
+    const pointer = () => { keyboardFocus = false; };
+    const typing = () => {
+      const a = document.activeElement;
+      if (!a) return false;
+      if (a.tagName === 'BUTTON') return keyboardFocus;
+      return /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable;
+    };
+    const down = (e) => {
+      if (e.key === 'Tab') keyboardFocus = true;
+      // preventDefault also stops a click-focused button from firing on Space
+      if (e.code === 'Space' && !typing()) { e.preventDefault(); if (!e.repeat) setSpace(true); }
+    };
+    const up = (e) => { if (e.code === 'Space') { if (!typing()) e.preventDefault(); setSpace(false); } };
     const blur = () => setSpace(false);
     window.addEventListener('keydown', down); window.addEventListener('keyup', up); window.addEventListener('blur', blur);
-    return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); window.removeEventListener('blur', blur); setSpace(false); };
+    window.addEventListener('pointerdown', pointer, true);
+    return () => {
+      window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); window.removeEventListener('blur', blur);
+      window.removeEventListener('pointerdown', pointer, true); setSpace(false);
+    };
   }, [canPan]);
   const drag = useRef(null);
   const startPan = (e) => {

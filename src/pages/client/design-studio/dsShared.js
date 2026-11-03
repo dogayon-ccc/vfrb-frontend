@@ -282,8 +282,8 @@ export const tabOf = tool => TABS.find(t => t.tools.includes(tool)) ?? null;
 // partial or malformed sessionStorage value degrades to DEFAULT_CFG here
 // exactly the same way it does everywhere else, instead of a second,
 // slightly-different fallback living in this file.
-// Upload extras (Trace over a photo, Create a 2D garment from a photo): code kept, switched off.
-export const REF_PHOTO_TOOLS = false;
+// Upload extras (Trace over a photo, Create a 2D garment from a photo): on; photo-to-2D accepts only a confirmed full uniform set.
+export const REF_PHOTO_TOOLS = true;
 
 export const INIT_CFG = () => {
   let raw = null;

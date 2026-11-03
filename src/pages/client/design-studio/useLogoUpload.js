@@ -8,7 +8,7 @@ import { prepareUpload, referenceFile, fitForCanvas } from './uploadGuard';
 import { setDesignRef, peekDesignRef } from '../../../utils/studioHandoff';
 import { checkUpload } from '../../../utils/fileCheck';
 import { useReferenceRules } from '../../../utils/uploadRules';
-import { analyzeImageFile, sketchFromAnalysis } from './referenceSketch';
+import { analyzeImageFile, sketchFromAnalysis, REF_NOT_FULL_SET } from './referenceSketch';
 
 const IDLE = { phase: 'idle' };
 // Background removal is fetched on first use, not with the Studio.
@@ -91,6 +91,7 @@ export function useLogoUpload(addLogo, { onTrace = null, onSketch = null } = {})
   // Review step controls.
   const setRemoveBg = useCallback((on) => setStatus(s => (s.phase === 'review' && s.cut ? { ...s, removeBg: on } : s)), []);
   const setUseAs = useCallback((useAs) => setStatus(s => (s.phase === 'review' ? { ...s, useAs } : s)), []);
+  const setUniformOk = useCallback((uniformOk) => setStatus(s => (s.phase === 'review' ? { ...s, uniformOk } : s)), []);
   const tryAi = useCallback(async () => {
     if (status.phase !== 'review' || busy.current) return;
     busy.current = true;
@@ -108,10 +109,12 @@ export function useLogoUpload(addLogo, { onTrace = null, onSketch = null } = {})
           message: 'Shown under the garment as a tracing guide, locked and semi-transparent. It is never part of the design image, the export or the order.' });
         return;
       }
-      if (s.useAs === 'sketch') { // read the outline (the cut-out when there is one), then the customer confirms the type
+      if (s.useAs === 'sketch') { // only a confirmed uniform-only photo whose outline reads as a full set; the customer then confirms the type
+        if (!s.uniformOk) return;
         setStatus({ phase: 'working', method: 'check', fileName: s.fileName, progress: null });
         const analysis = await analyzeImageFile(s.cut ?? s.prep.file).catch(() => null);
-        const kind = analysis?.kind ?? 'top';
+        if (!analysis) { setStatus({ phase: 'error', code: 'NOT_SET', message: REF_NOT_FULL_SET, fileName: s.fileName }); return; }
+        const kind = analysis.kind;
         setStatus({ phase: 'sketch', analysis, kind, draft: sketchFromAnalysis(analysis, kind), traceSrc: await toDataUrl(s.prep.file), preview: s.before, fileName: s.fileName });
         return;
       }
@@ -154,5 +157,5 @@ export function useLogoUpload(addLogo, { onTrace = null, onSketch = null } = {})
   const dismiss = useCallback(() => { setStatus(IDLE); }, []);
 
   return { mode, setMode, kind, setKind, placement, setPlacement, status, upload: run, reference, refRules, removeReference, addOriginal, retry, dismiss, setRemoveBg, setUseAs, tryAi, confirm,
-    setSketchKind, setSketchDraft, createSketch, preferUseAs: (v) => { nextUseAs.current = v; }, canTrace: !!onTrace, canSketch: !!onSketch };
+    setSketchKind, setSketchDraft, createSketch, setUniformOk, preferUseAs: (v) => { nextUseAs.current = v; }, canTrace: !!onTrace, canSketch: !!onSketch };
 }

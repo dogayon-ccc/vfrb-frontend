@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { NavIcon } from '../../../components/ui/icons';
 import { placementsFor } from './dsShared';
-import { REF_KINDS, REF_SKETCH_LABEL, REF_SKETCH_NOTE, REF_3D_NOTE } from './referenceSketch';
+import { REF_KINDS, REF_SKETCH_LABEL, REF_SKETCH_NOTE, REF_3D_NOTE, REF_UNIFORM_CONFIRM } from './referenceSketch';
 import { CustomControls } from './BuildYourOwn';
 import { customPaths } from './garmentPaths';
 import GarmentThumb from './GarmentThumb';
@@ -67,7 +67,7 @@ function StatusCard({ logo }) {
     const canAi = mode !== 'ai' && (s.code === 'NO_SOLID_BG' || s.code === 'OVER_REMOVED');
     return (
       <div className="ds-status" data-phase="error" role="alert">
-        <div className="ds-status-row"><NavIcon name="warning" size={16}/><strong>{['TYPE', 'SIZE', 'SMALL', 'DECODE', 'READ', 'EMPTY'].includes(s.code) ? 'Upload not accepted' : 'Background not removed'}</strong></div>
+        <div className="ds-status-row"><NavIcon name="warning" size={16}/><strong>{['TYPE', 'SIZE', 'SMALL', 'DECODE', 'READ', 'EMPTY', 'NOT_SET'].includes(s.code) ? 'Upload not accepted' : 'Background not removed'}</strong></div>
         <p className="ds-note">{s.message}</p>
         {s.file && (
           <div className="ds-status-actions">
@@ -108,9 +108,12 @@ function StatusCard({ logo }) {
             <label key={id}><input type="radio" name="ds-useas" checked={s.useAs === id} onChange={() => logo.setUseAs(id)}/><span><b>{title}</b><small>{sub}</small></span></label>
           ))}
         </fieldset>
-        {s.useAs === 'sketch' && <p className="ds-note">{REF_3D_NOTE}</p>}
+        {s.useAs === 'sketch' && <>
+          <label className="ds-switch"><input type="checkbox" checked={!!s.uniformOk} onChange={e => logo.setUniformOk(e.target.checked)}/><span>{REF_UNIFORM_CONFIRM}</span></label>
+          <p className="ds-note">{REF_3D_NOTE}</p>
+        </>}
         <div className="ds-status-actions">
-          <button type="button" className="ds-btn ds-btn--primary" onClick={logo.confirm}>{action}</button>
+          <button type="button" className="ds-btn ds-btn--primary" onClick={logo.confirm} disabled={s.useAs === 'sketch' && !s.uniformOk}>{action}</button>
           <button type="button" className="ds-btn" onClick={dismiss}>Cancel</button>
         </div>
       </div>

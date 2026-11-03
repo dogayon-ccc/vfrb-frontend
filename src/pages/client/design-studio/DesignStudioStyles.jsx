@@ -600,7 +600,9 @@ export default function DesignStudioStyles() {
       .ds-drop:disabled{opacity:.6;cursor:not-allowed;border-color:var(--border-strong);}
       .ds-status{padding:12px;border-radius:var(--r-md);border:1px solid var(--border);background:var(--bg-card);display:flex;flex-direction:column;gap:8px;}
       .ds-status[data-phase="done"]{border-color:color-mix(in srgb,var(--teal) 55%,transparent);background:var(--teal-50);}
-      .ds-status[data-phase="error"]{border-color:var(--danger-text);background:var(--danger-bg);}
+      /* Error card keeps its light danger fill in the dark chrome, so its text takes the danger ink, not the chrome's light ink */
+      .ds-status[data-phase="error"]{border-color:var(--danger-text);background:var(--danger-bg);color:var(--danger-text);}
+      .ds-status[data-phase="error"] :is(.ds-note,.ds-link){color:inherit;}
       .ds-status-row{display:flex;align-items:center;gap:8px;font-size:var(--text-xs);color:var(--ink);}
       .ds-status[data-phase="error"] .ds-status-row{color:var(--danger-text);}
       .ds-status .ds-note{margin-top:0;}

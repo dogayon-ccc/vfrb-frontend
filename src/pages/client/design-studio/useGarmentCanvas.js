@@ -716,26 +716,32 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     const snapshot = target?.o ?? [];
     if (!canvas) return;
     // A colour-only step leaves the overlays alone (no rebuild, no flicker, the selection stays).
-    if (JSON.stringify(overlayJSON(canvas)) === JSON.stringify(snapshot)) return;
+    if (!historyLock.current && JSON.stringify(overlayJSON(canvas)) === JSON.stringify(snapshot)) return;
     historyLock.current = true;
     // Undo/redo rebuilds every overlay; keep the same element selected (by layer id) so editing continues.
     const activeId = canvas.getActiveObject()?.__layerId ?? null;
-    canvas.getObjects().filter(o => !o.__garmentBase && !o.__hoverGlow).forEach(o => canvas.remove(o));
+    // Claimed now, like a design load: a later step or load supersedes this one, and only the newest releases the lock.
+    const token = ++overlayLoad.current;
+    const current = () => token === overlayLoad.current;
+    const release = () => { if (current()) historyLock.current = false; };
+    const clear = () => canvas.getObjects().filter(o => !o.__garmentBase && !o.__hoverGlow).forEach(o => canvas.remove(o));
+    clear();
     import('fabric').then((mod) => { const fabric = mod.fabric ?? mod.default ?? mod;
-      if (!snapshot || snapshot.length === 0) { canvas.renderAll(); historyLock.current = false; bumpLayers(); return; }
-      const token = ++overlayLoad.current;
+      if (!current()) return;
+      if (!snapshot || snapshot.length === 0) { canvas.renderAll(); release(); bumpLayers(); return; }
       Promise.resolve(fabric.util.enlivenObjects(snapshot)).then(reviveOverlays)
         .then(enlivened => {
-          if (token !== overlayLoad.current) { historyLock.current = false; return; }
+          if (token !== overlayLoad.current) return;
+          clear(); // anything added while this was loading would otherwise double up
           (enlivened ?? []).forEach(obj => canvas.add(obj));
           const again = activeId && (enlivened ?? []).find(o => o.__layerId === activeId);
           if (again) canvas.setActiveObject(again);
           canvas.renderAll();
-          historyLock.current = false;
+          release();
           bumpLayers();
         })
-        .catch(() => { historyLock.current = false; });
-    }).catch(() => { historyLock.current = false; });
+        .catch(release);
+    }).catch(release);
   }, [bumpLayers]);
 
   const step = useCallback((dir) => {
@@ -1142,6 +1148,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       keepHistory = true;
     }
     const token = ++overlayLoad.current;
+    historyLock.current = false; // a load supersedes any undo/redo still rebuilding, so history records again
     const clear = () => canvas.getObjects().filter(o => !o.__garmentBase && !o.__hoverGlow).forEach(o => canvas.remove(o));
     import('fabric').then((mod) => { const fabric = mod.fabric ?? mod.default ?? mod;
       if (token !== overlayLoad.current) return;

@@ -1406,6 +1406,28 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('reference to 2D: two legs read as trousers, a T outline as a sleeved top, a flared outline as a skirt; an empty image is not read; the proposal is a clamped build-your-own spec',
     kinds.join() === 'trousers,top,skirt' && RS.analyzeSilhouette(new Uint8Array(W * H), W, H) === null && RS.sketchFromAnalysis(RS.analyzeSilhouette(teeM, W, H)).garment === CG.CUSTOM_TOP
     && RS.sketchFromAnalysis(null, 'trousers').custom.style === 'straight' && /No 3D from a photo/.test(RS.REF_3D_NOTE), kinds.join());
+  // Full-set gate: a sleeved top over a leg split, or a full-length dress, passes; a single piece or an unread photo never does.
+  const TH = 200, mt = f => { const m = new Uint8Array(W * TH); for (let y = 0; y < TH; y++) for (let x = 0; x < W; x++) m[y * W + x] = f(x, y) ? 1 : 0; return m; };
+  const sleeves = (x, y) => y > 12 && y < 40 && x > 5 && x < 75;
+  const setM = mt((x, y) => sleeves(x, y) || (y > 10 && y < 195 && x > 22 && x < 58 && !(y > 120 && x > 37 && x < 43)));
+  const dressM = mt((x, y) => sleeves(x, y) || (y > 10 && y < 190 && x > 24 && x < 56));
+  const longPantsM = mt((x, y) => y > 10 && y < 195 && x > 22 && x < 58 && !(y > 90 && x > 37 && x < 43));
+  const sets = [setM, dressM, longPantsM].map(m => RS.fullSetOf(RS.analyzeSilhouette(m, W, TH))).concat([teeM, pantsM, skirtM].map(m => RS.fullSetOf(RS.analyzeSilhouette(m, W, H))));
+  const setA = RS.setAnalysis(RS.analyzeSilhouette(setM, W, TH));
+  // Flat-lay: a top beside trousers (front or one leg side-on) passes; a top beside a top, or a long straight shirt alone, does not.
+  const FW = 160, mf = f => { const m = new Uint8Array(FW * H); for (let y = 0; y < H; y++) for (let x = 0; x < FW; x++) m[y * FW + x] = f(x, y) ? 1 : 0; return m; };
+  const tee = (x, y) => (y > 10 && y < 70 && x > 17 && x < 53) || (y > 12 && y < 30 && x > 2 && x < 68);
+  const flat = [mf((x, y) => tee(x, y) || (y > 5 && y < 95 && x > 95 && x < 135 && !(y > 40 && x > 112 && x < 118))),
+    mf((x, y) => tee(x, y) || (y > 5 && y < 95 && x > 110 && x < 128)), mf((x, y) => tee(x, y) || tee(x - 85, y))].map(m => RS.readFullSet(m, FW, H));
+  const shirtM = mt((x, y) => y > 10 && y < 190 && x > 20 && x < 60 - Math.max(0, y - 150) * 0.3);
+  const ul = rd('../src/pages/client/design-studio/useLogoUpload.js'), la = rd('../src/pages/client/design-studio/LogoAssets.jsx');
+  t('reference to 2D accepts only a full uniform set: two-piece and dress pass; trousers, a top or a skirt alone and an unread photo are refused; the customer must tick "no person" first',
+    sets.join() === 'two-piece,dress,,,,' && RS.fullSetOf(null) === null && RS.setAnalysis(null) === null
+    && flat[0]?.set === 'pieces' && flat[0].bottom.kind === 'trousers' && flat[1]?.bottom.kind === 'trousers' && flat[2] === null
+    && RS.sketchFromAnalysis(flat[0], 'trousers').garment === CG.CUSTOM_BOTTOM && RS.readFullSet(shirtM, W, TH) === null
+    && setA?.kind === 'top' && setA.sleeve === 'Short' && RS.sketchFromAnalysis(setA).garment === CG.CUSTOM_TOP && RS.setAnalysis(RS.analyzeSilhouette(dressM, W, TH))?.kind === 'dress'
+    && /if \(!s\.uniformOk\) return;/.test(ul) && /code: 'NOT_SET', message: REF_NOT_FULL_SET/.test(ul) && /disabled=\{s\.useAs === 'sketch' && !s\.uniformOk\}/.test(la)
+    && /no person or mannequin/.test(RS.REF_UNIFORM_CONFIRM), `${sets.join()} ${setA?.kind}/${setA?.sleeve}`);
   // Set targeting: Both mirrors logos, text, shapes, drawings and pockets; the 3D set passes each piece's own overlays.
   const hook = rd('../src/pages/client/design-studio/useGarmentCanvas.js'), d3 = rd('../src/pages/client/DesignStudio3D.jsx');
   t('set "Apply to: Both": every added logo, text, shape, drawing and pocket is offered to the other piece; the 3D set view renders each piece with its own overlays',
