@@ -37,9 +37,9 @@ export function CreateUserModal({ onClose, onDone, isMobile, adminRoles, initial
   const isCustomer = form.role === 'customer';
 
   const submit = async () => {
-    if (!form.name.trim() || !form.email.trim() || !form.password) {
-      setErr('Name, email, and password are required.'); return;
-    }
+    if (!form.name.trim() || !form.password) { setErr('Name and password are required.'); return; }
+    if (isCustomer && !form.email.trim()) { setErr('A customer needs an email address.'); return; }
+    if (!isCustomer && !form.email.trim() && !form.username.trim()) { setErr('Enter an email or a username so this person can sign in.'); return; }
     if (form.password !== form.password_confirmation) {
       setErr('Passwords do not match.'); return;
     }
@@ -50,7 +50,7 @@ export function CreateUserModal({ onClose, onDone, isMobile, adminRoles, initial
     setBusy(true); setErr('');
     try {
       const r = await axios.post('/api/admin/users', withStage(form));
-      onDone(!isCustomer ? 'Account created.' : r.data?.password_link_sent
+      onDone(!isCustomer ? (r.data?.email ? 'Account created.' : `Account created. They sign in with the username ${r.data?.username}.`) : r.data?.password_link_sent
         ? 'Customer created. A link to set their own password was emailed to them.'
         : 'Customer created, but the password email could not be sent. Share the password you set, or ask them to use Forgot password.');
     } catch(e) { setErr(e.response?.data?.message ?? e.response?.data?.errors?.[Object.keys(e.response?.data?.errors||{})[0]]?.[0] ?? 'Failed to create user.'); }
@@ -95,17 +95,10 @@ export function CreateUserModal({ onClose, onDone, isMobile, adminRoles, initial
                   </select>
                 </div>
               </div>
-              <div>
-                <label style={lbl}>Username</label>
-                <input value={form.username} onChange={e=>set('username',e.target.value)} placeholder="Optional, for signing in" style={inp} onFocus={fi} onBlur={fo}/>
-              </div>
               <p style={{ fontSize:11, color:'var(--text-faint)', margin:0 }}>Customers cannot sign up themselves. This account can sign in right away and is listed on the Clients page.</p>
             </>
           )}
-          <div>
-            <label style={lbl}>Email address *</label>
-            <input type="email" value={form.email} onChange={e=>set('email',e.target.value)} placeholder="name@company.com" style={inp} onFocus={fi} onBlur={fo}/>
-          </div>
+          <LoginFields email={form.email} username={form.username} set={set} emailRequired={isCustomer}/>
           <div>
             <label style={lbl}>Contact number</label>
             <input value={form.contact_number} onChange={e=>set('contact_number',e.target.value)} placeholder="09XXXXXXXXX" style={inp} onFocus={fi} onBlur={fo}/>
@@ -134,19 +127,57 @@ export function CreateUserModal({ onClose, onDone, isMobile, adminRoles, initial
   );
 }
 
+// Email is optional for Station, Administrator and Owner accounts; without one they sign in by username and get no emails.
+function LoginFields({ email, username, set, emailRequired }) {
+  return (
+    <>
+      <div className="um-modal-grid2">
+        <div>
+          <label style={lbl}>Email address{emailRequired ? ' *' : ' (optional)'}</label>
+          <input type="email" value={email} onChange={e=>set('email',e.target.value)} placeholder="name@company.com" style={inp} onFocus={fi} onBlur={fo}/>
+        </div>
+        <div>
+          <label style={lbl}>Username{emailRequired ? ' (optional)' : ''}</label>
+          <input value={username} onChange={e=>set('username',e.target.value)} placeholder="e.g. cutting.station" autoCapitalize="none" style={inp} onFocus={fi} onBlur={fo}/>
+        </div>
+      </div>
+      {!emailRequired && <p style={{ fontSize:11, color:'var(--text-faint)', margin:0 }}>Enter an email, a username, or both. Without an email they sign in with the username and get no email notifications; reset their password here.</p>}
+    </>
+  );
+}
+
+const firstError = (e, fallback) => e.response?.data?.errors?.[Object.keys(e.response?.data?.errors || {})[0]]?.[0] ?? e.response?.data?.message ?? fallback;
+
 function EditUserModal({ user, onClose, onDone, isMobile }) {
   const [role, setRole] = useState(user.role);
   const [stage, setStage] = useState(user.assigned_stage ?? '');
+  const [login, setLogin] = useState({ email: user.email ?? '', username: user.username ?? '' });
+  const [pw, setPw] = useState({ password: '', password_confirmation: '' });
   const [busy, setBusy] = useState(false);
   const [err,  setErr]  = useState('');
+  const [note, setNote] = useState('');
+  const setL = (k, v) => setLogin(l => ({ ...l, [k]: v }));
 
   const submit = async () => {
     if (role === 'staff' && !stage) { setErr('Choose the stage this Station works.'); return; }
+    if (!login.email.trim() && !login.username.trim()) { setErr('Keep an email or a username so this person can sign in.'); return; }
     setBusy(true); setErr('');
     try {
-      await axios.put(`/api/admin/users/${user.user_id}`, withStage({ role, assigned_stage: stage }));
+      await axios.put(`/api/admin/users/${user.user_id}`, withStage({ role, assigned_stage: stage, ...login }));
       onDone();
-    } catch(e) { setErr(e.response?.data?.message ?? 'Failed to update user.'); }
+    } catch(e) { setErr(firstError(e, 'Failed to update user.')); }
+    finally { setBusy(false); }
+  };
+
+  const setPassword = async () => {
+    if (!pw.password) { setErr('Type the new password.'); return; }
+    if (pw.password !== pw.password_confirmation) { setErr('Passwords do not match.'); return; }
+    setBusy(true); setErr(''); setNote('');
+    try {
+      const r = await axios.put(`/api/admin/users/${user.user_id}/password`, pw);
+      setPw({ password: '', password_confirmation: '' });
+      setNote(r.data?.message ?? 'Password updated.');
+    } catch(e) { setErr(firstError(e, 'Failed to set the password.')); }
     finally { setBusy(false); }
   };
 
@@ -166,6 +197,16 @@ function EditUserModal({ user, onClose, onDone, isMobile }) {
                 {STAGES.map(k => <option key={k} value={k}>{STAGE_LABEL[k]}</option>)}
               </select>
             </div>}
+          <LoginFields email={login.email} username={login.username} set={setL} emailRequired={false}/>
+          <fieldset style={{ border:'1px solid var(--border)', borderRadius:10, padding:'10px 12px 12px', margin:0 }}>
+            <legend style={{ ...lbl, padding:'0 4px', margin:0 }}>Set a new password</legend>
+            <div className="um-modal-grid2">
+              <input type="password" aria-label="New password" autoComplete="new-password" value={pw.password} onChange={e=>setPw(p=>({ ...p, password:e.target.value }))} placeholder="New password" style={inp} onFocus={fi} onBlur={fo}/>
+              <input type="password" aria-label="Repeat new password" autoComplete="new-password" value={pw.password_confirmation} onChange={e=>setPw(p=>({ ...p, password_confirmation:e.target.value }))} placeholder="Repeat password" style={inp} onFocus={fi} onBlur={fo}/>
+            </div>
+            <button type="button" className="adm-btn" onClick={setPassword} disabled={busy} style={{ marginTop:10 }}>Set password and sign them out</button>
+          </fieldset>
+          {note && <p role="status" style={{ color:'var(--teal)', fontSize:12, fontWeight:600, margin:0 }}>{note}</p>}
           {err && <p style={{ color:'var(--danger-text)', fontSize:12, fontWeight:600, display:'flex', alignItems:'center', gap:6 }}><NavIcon name="warning" size={13} color="var(--danger)"/>{err}</p>}
           <div style={{ display:'flex', gap:10, justifyContent:'flex-end', paddingTop:12, marginTop:2, borderTop:'1px solid var(--border)' }}>
             <button onClick={onClose} style={{ padding:'9px 18px', borderRadius:9, border:'1px solid var(--border)', background:'#fff', color:'var(--ink)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:FONT }}>Cancel</button>
@@ -179,6 +220,8 @@ function EditUserModal({ user, onClose, onDone, isMobile }) {
   );
 }
 
+const loginLabel = (u) => u.email || (u.username ? `@${u.username} · no email` : '—');
+
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—');
 
 function UserDetail({ u, isMe, canAct, onEdit, onToggle, toggling }) {
@@ -191,7 +234,7 @@ function UserDetail({ u, isMe, canAct, onEdit, onToggle, toggling }) {
         <Avatar name={u.name} size={56} tone={u.role === 'manager' ? 'purple' : u.role === 'staff' ? 'blue' : undefined} />
         <div style={{ minWidth:0 }}>
           <h2 id="um-detail-title" className="um-detail-name">{u.name}{isMe && <span className="adm-chip" style={{ marginLeft:8, background:'var(--teal-50)', color:'var(--teal)' }}>YOU</span>}</h2>
-          <div className="um-detail-mail">{u.email}</div>
+          <div className="um-detail-mail">{loginLabel(u)}</div>
         </div>
       </div>
       <dl className="um-detail-list">
@@ -204,7 +247,7 @@ function UserDetail({ u, isMe, canAct, onEdit, onToggle, toggling }) {
       </dl>
       {canAct ? (
         <div className="um-detail-actions">
-          <button className="adm-btn" onClick={() => onEdit(u)}><NavIcon name="edit" size={13} color="currentColor" /> Edit role</button>
+          <button className="adm-btn" onClick={() => onEdit(u)}><NavIcon name="edit" size={13} color="currentColor" /> Edit account</button>
           <button className={`adm-btn ${isActive ? 'danger' : 'success'}`} onClick={() => toggling !== u.user_id && onToggle(u)} aria-disabled={toggling === u.user_id || undefined}>
             {toggling === u.user_id ? 'Saving…' : isActive ? 'Deactivate' : 'Activate'}
           </button>
@@ -285,7 +328,7 @@ export default function AdminUserManagement() {
   const canManage = () => isAdmin(me);
 
   const filtered = users.filter(u => {
-    const ms = !search || u.name?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase());
+    const ms = !search || u.name?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase()) || u.username?.toLowerCase().includes(search.toLowerCase());
     return ms && (roleF === 'all' || u.role === roleF);
   });
 
@@ -352,7 +395,7 @@ export default function AdminUserManagement() {
       ]} />
 
       <div className="adm-toolbar">
-        <SearchBox value={search} onChange={setSearch} placeholder="Search by name or email…" />
+        <SearchBox value={search} onChange={setSearch} placeholder="Search by name, email or username…" />
       </div>
       <PillTabs value={roleF} onChange={setRoleF} tabs={[
         { key:'all', label:'All users', count:users.length },
@@ -385,7 +428,7 @@ export default function AdminUserManagement() {
                               <Avatar name={u.name} size={36} tone={u.role === 'manager' ? 'purple' : u.role === 'staff' ? 'blue' : undefined} />
                               <span style={{ display:'block', minWidth:0 }}>
                                 <span style={{ display:'block', fontWeight:700 }}>{u.name}{isMe && <span className="adm-chip" style={{ marginLeft:6, background:'var(--teal-50)', color:'var(--teal)' }}>YOU</span>}</span>
-                                <span className="um-clip" title={u.email}>{u.email}</span>
+                                <span className="um-clip" title={loginLabel(u)}>{loginLabel(u)}</span>
                                 {u.organization_name && <span className="um-clip" title={u.organization_name}>{u.organization_name}</span>}
                               </span>
                             </button>
@@ -428,7 +471,7 @@ export default function AdminUserManagement() {
                     <Avatar name={u.name} size={40} tone={u.role === 'manager' ? 'purple' : u.role === 'staff' ? 'blue' : undefined} />
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontSize:14, fontWeight:800, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{u.name}{isMe && <span className="adm-chip" style={{ marginLeft:6, background:'var(--teal-50)', color:'var(--teal)' }}>YOU</span>}</div>
-                      <div style={{ fontSize:12, color:'var(--text-subtle)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{u.email}</div>
+                      <div style={{ fontSize:12, color:'var(--text-subtle)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{loginLabel(u)}</div>
                     </div>
                     <span className="adm-pill" style={{ background:rc.bg, color:rc.c }}>{roleText(u, rc)}</span>
                   </div>
