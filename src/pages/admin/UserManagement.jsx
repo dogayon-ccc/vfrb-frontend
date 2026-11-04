@@ -169,6 +169,7 @@ function LoginFields({ email, username, set, emailRequired }) {
 const firstError = (e, fallback) => e.response?.data?.errors?.[Object.keys(e.response?.data?.errors || {})[0]]?.[0] ?? e.response?.data?.message ?? fallback;
 
 function EditUserModal({ user, onClose, onDone, isMobile }) {
+  const [name, setName] = useState(user.name ?? '');
   const [role, setRole] = useState(user.role);
   const [stage, setStage] = useState(user.assigned_stage ?? '');
   const [login, setLogin] = useState({ email: user.email ?? '', username: user.username ?? '' });
@@ -183,6 +184,7 @@ function EditUserModal({ user, onClose, onDone, isMobile }) {
 
   // One Save: sign-in details first (clearing an email is what allows a direct password), then the new password.
   const submit = async () => {
+    if (!name.trim()) { setErr('Enter a name.'); return; }
     if (role === 'staff' && !stage) { setErr('Choose the stage this Station works.'); return; }
     if (noEmail && !login.username.trim()) { setErr('Keep an email or a username so this person can sign in.'); return; }
     if (newPassword && !passwordOk(pw.password)) { setErr(PASSWORD_RULE_TEXT); return; }
@@ -190,7 +192,7 @@ function EditUserModal({ user, onClose, onDone, isMobile }) {
     setBusy(true); setErr('');
     let step = 'Failed to update user.';
     try {
-      await axios.put(`/api/admin/users/${user.user_id}`, withStage({ role, assigned_stage: stage, ...login }));
+      await axios.put(`/api/admin/users/${user.user_id}`, withStage({ name: name.trim(), role, assigned_stage: stage, ...login }));
       if (newPassword) {
         step = 'Details saved, but the password was not changed.';
         await axios.put(`/api/admin/users/${user.user_id}/password`, pw);
@@ -212,6 +214,10 @@ function EditUserModal({ user, onClose, onDone, isMobile }) {
   return (
     <BottomSheet title={`Edit ${user.name}`} onClose={onClose} isMobile={isMobile} maxWidth={440}>
         <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+          <div>
+            <label style={lbl} htmlFor="edit-user-name">Full name *</label>
+            <input id="edit-user-name" value={name} maxLength={100} autoComplete="off" onChange={e=>setName(e.target.value)} style={inp} onFocus={fi} onBlur={fo}/>
+          </div>
           <div>
             <label style={lbl}>Role</label>
             <select value={role} onChange={e=>setRole(e.target.value)} style={{ ...inp, cursor:'pointer' }}>
