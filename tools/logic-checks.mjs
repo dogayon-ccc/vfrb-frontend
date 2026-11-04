@@ -195,7 +195,7 @@ t('switching garment drops the photo id; a mismatched or unknown photo id is nev
       && K.setMateLine({ order_id: 5, garment_type: 'Polo Shirt', studio_config: null }, [a, b]) === null); }
   { const md = fsx.readFileSync('src/pages/client/MyDesigns.jsx', 'utf8'), ds = fsx.readFileSync('src/pages/client/DesignStudio.jsx', 'utf8');
     t('My Designs "Order this" on a set goes through the Studio (every piece rendered); the Studio clears that route state before ordering, so Back never re-orders',
-      /if \(orderQueue\(draft\.studio_config\)\)[^\n]*nav\('\/design-studio', \{ state: \{ autoOrder: true \} \}\)/.test(md)
+      /const orderDraft = \(\) => \{[^\n]*nav\('\/design-studio', \{ state: \{ autoOrder: true \} \}\)/.test(md)
       && /nav\(location\.pathname, \{ replace: true, state: null \}\);[\s\S]{0,200}orderRef\.current\(\)/.test(ds)); }
   { const W = await L('/src/pages/client/order-wizard/orderForm.js'), day = new Date(2026, 9, 26);
     t('wizard prefill notes name the garment as the customer sees it (no internal "(Reference)" suffix), while garment_type stays the Studio id',
@@ -365,7 +365,15 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const src = p => fsx.readFileSync(urlx.fileURLToPath(new URL(p, import.meta.url)), 'utf8');
   const studio = src('../src/pages/client/DesignStudio.jsx'), wizard = src('../src/pages/client/OrderWizard.jsx');
   t('Studio: every account draft write goes through one payload that always carries a preview and the design-name label', (studio.match(/axios\.post\('\/api\/customer\/drafts'/g) ?? []).length === 1 && /preview_dataurl: await fitDraftPreview\(exportPNG\(\)\)/.test(studio) && /label:\s+draftLabel\(cfg\)/.test(studio) && !/`\$\{cfg\.garment\} — \$\{cfg\.category\}`/.test(studio));
-  t('Studio never deletes the account draft (Order keeps it; the Wizard retires it after a successful submit)', !/drafts\/latest'\)/.test(studio.replace(/axios\.get\('\/api\/customer\/drafts\/latest'\)/g, '')) && !/axios\.delete\([^)]*drafts/.test(studio));
+  const noClear = studio.replace(/const clearDesign = [\s\S]*?\[whileSwapping, loadCanvasJSON/, '');
+  t('Order and save never delete the account draft; only an explicit Remove does, and only when it holds this design', noClear !== studio && !/drafts\/latest'\)/.test(noClear.replace(/axios\.get\('\/api\/customer\/drafts\/latest'\)/g, '')) && !/axios\.delete\([^)]*drafts/.test(noClear) && /ownsDraft = !lockRef\.current\?\.designId && \(lastSavedFp\.current \|\| accountCopy\.current\)/.test(studio))
+  { const U2 = await L('/src/pages/client/design-studio/uniformSet.js');
+    t('removing a set piece keeps the other one; nothing stays when the other has no garment yet', U2.remainingPiece({ active: 'top', pieces: { top: { garment: 'Polo Shirt' }, bottom: { garment: 'Pants' } } }).snap.garment === 'Pants' && U2.remainingPiece({ active: 'bottom', pieces: { top: { garment: 'Polo Shirt' }, bottom: null } }).role === 'top' && U2.remainingPiece({ active: 'top', pieces: { top: { garment: 'Polo Shirt' }, bottom: null } }) === null);
+    t('Order this on a draft always goes through the Studio full-set rule; a complete outfit passes that rule', /const orderDraft = \(\) => \{[^\n]*autoOrder: true/.test(src('../src/pages/client/MyDesigns.jsx')) && /!orderQueue\(snapshotDesign\(\)\) && !isCompleteOutfit\(cfg\.garment\)/.test(studio)); }
+  t('Remove resets the whole design after clearing the browser copy, so a name or colour never carries over', /clearStudioHandoff\(\{ keepRef \}\);\s*setCfg\(INIT_CFG\(\)\)/.test(studio));
+  t('order and save refuse to read the canvas while overlays are still loading, so a slow load never drops a layer', (studio.match(/if \(swapping\.current\) \{ flashError\(STILL_LOADING\); return; \}/g) ?? []).length === 2 && /i < 200 && \(getCanvasJSON\(\) \?\? \[\]\)\.length !== want\.length/.test(studio));
+  t('a refused photo never creates a garment: the picker reads it before opening the custom top', /sketchPending = useCallback\(async \(\) => \{\s*if \(!await analyzeImageFile\(pendingArt\)[^\n]*setArtRefused\(true\); return; \}[\s\S]{0,160}openSketch\(/.test(studio))
+  t('Discard uses one helper on My Designs, the Dashboard and the Studio strip', ['MyDesigns', 'Dashboard', 'DesignStudio'].every(p => /discardDraft\(\)/.test(src('../src/pages/client/' + p + '.jsx'))));
   t('Wizard deletes the draft only after the order POST succeeds, and only when the draft is still the ordered design', (m => m.length === 1)(wizard.match(/axios\.delete\('\/api\/customer\/drafts\/latest'\)/g) ?? []) && wizard.indexOf("axios.post('/api/customer/orders'") < wizard.indexOf("axios.delete('/api/customer/drafts/latest')") && /draftFingerprint\(d\.data\?\.draft\?\.studio_config\) === fp\) return axios\.delete/.test(wizard) && !/catch\(e\)[\s\S]{0,400}drafts\/latest/.test(wizard));
 }
 // Order title = the saved design name (studio_config.name, the only place the API stores it), else the garment; never blank.
@@ -440,7 +448,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const unverified = combos.filter(c => C.resolveTarget(c.garment, c.sleeve, c.fit)?.status !== '2d-3d');
   t('a garment lands in 2D unless its 3D is verified (every catalog garment/sleeve/fit today; a verified one keeps the current view)', combos.length > 20 && unverified.every(c => V.landingViewFor(c, '3d') === '2d') && V.landingView('2d-3d', '3d') === '3d' && V.landingView('2d-3d-approx', '3d') === '2d' && V.landingViewFor({ garment: null }, '3d') === '2d');
   const ds = src('../src/pages/client/DesignStudio.jsx');
-  t('the draft offer is an in-flow strip shown only on an empty canvas; restoring over existing work asks first', /pendingDraft && !cfg\.garment && layers\.length === 0 && \(\s*<DraftStrip/.test(ds) && /hasWork \? setConfirm\(true\) : onRestore\(\)/.test(src('../src/pages/client/design-studio/DraftStrip.jsx')) && !/position:'absolute', top:58/.test(ds));
+  t('the draft offer is an in-flow strip shown only on an empty canvas; restoring over existing work asks first', /pendingDraft && !cfg\.garment && layers\.length === 0 && \(\s*<DraftStrip/.test(ds) && /hasWork \? setAsk\('replace'\) : onRestore\(\)/.test(src('../src/pages/client/design-studio/DraftStrip.jsx')) && !/position:'absolute', top:58/.test(ds));
 }
 // Studio: every element once. One garment picker, undo/redo only in the top bar, rail tools wait for a garment.
 {

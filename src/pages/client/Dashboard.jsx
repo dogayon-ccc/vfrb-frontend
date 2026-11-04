@@ -6,7 +6,8 @@ import { motion, useReducedMotion } from 'framer-motion';
 import axios from 'axios';
 import { asList } from '../../utils/asList';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
-import { Button, Stepper, Skeleton, EmptyState, AlertBanner } from '../../components/ui';
+import { Button, Stepper, Skeleton, EmptyState, AlertBanner, ConfirmDialog } from '../../components/ui';
+import { discardDraft, DISCARD_DRAFT } from '../../utils/studioHandoff';
 import { savedDesignName, garmentLabel } from '../../utils/designName';
 import { openDesign, reorderDesign, duplicateDesign } from '../../utils/designActions';
 import { setStudioLock } from '../../utils/studioLock';
@@ -67,6 +68,12 @@ export default function CustomerDashboard() {
   const [stats, setStats] = useState(null);
   const [orders, setOrders] = useState([]);
   const [draft, setDraft] = useState(null);
+  const [askDiscard, setAskDiscard] = useState(false);
+  const [discardErr, setDiscardErr] = useState('');
+  const confirmDiscard = async () => {
+    setDiscardErr('');
+    try { await discardDraft(); setDraft(null); setAskDiscard(false); } catch { setDiscardErr('Could not discard the draft. Check your connection and try again.'); }
+  };
   const openStudio = () => { try { if (draft?.studio_config) sessionStorage.setItem('studio_config', JSON.stringify(draft.studio_config)); else sessionStorage.removeItem('studio_config'); } catch { /* private mode */ } nav('/design-studio'); };
   const [designs, setDesigns] = useState([]);
   const [copying, setCopying] = useState(null);
@@ -150,8 +157,10 @@ export default function CustomerDashboard() {
               <span className="dx-draft-thumb"><DesignThumb src={draft.preview_dataurl} garment={draft.studio_config.garment} colors={draft.studio_config.colors} name={draftTitle} /></span>
               <span className="dx-draft-txt"><strong>{draftTitle}</strong><small>Draft, edited {reltime(draft.updated_at)}</small></span>
               <Button variant="primary" onClick={openStudio}>Continue</Button>
+              <Button icon="delete" aria-label="Discard draft" title="Discard draft" onClick={() => setAskDiscard(true)}/>
             </div>
           )}
+          <ConfirmDialog open={askDiscard} {...DISCARD_DRAFT} body={discardErr || DISCARD_DRAFT.body} onCancel={() => setAskDiscard(false)} onConfirm={confirmDiscard}/>
         </div>
       </motion.section>
 

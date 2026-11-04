@@ -17,6 +17,7 @@ import { CUSTOM_TOP, CUSTOM_BOTTOM, CUSTOM_SKIRT, CUSTOM_BADGE, DEFAULT_CUSTOM, 
 import { CustomControls, CustomNote } from './BuildYourOwn';
 import { peekStudioCategory, clearStudioCategory } from '../../../utils/studioIntent';
 import { garmentLabel } from '../../../utils/designName';
+import { REF_NOT_FULL_SET } from './referenceSketch';
 
 const ReferenceModel3D = lazy(() => import('./ReferenceModel3D'));
 const CAT_SHORT = { 'School Uniform': 'School', 'Medical / Scrubs': 'Medical', 'Hospitality / Service': 'Hospitality', 'Industrial / Work': 'Industrial' };
@@ -65,14 +66,14 @@ const Foot = ({ children }) => (children ? <footer className="ds-pick-foot">{chi
 
 const ACCEPT = 'image/png,image/jpeg,image/webp,image/svg+xml';
 // "Upload my design" in the header: tap to choose a file, or drop one on it. The file waits until a garment is chosen.
-function UploadButton({ onUpload }) {
+function UploadButton({ onUpload, label = null }) {
   const [over, setOver] = useState(false);
   const take = f => { if (f) onUpload(f); };
   return (
     <label className="ds-pick-upbtn" data-over={over || undefined} title="PNG, JPG, WEBP or SVG, up to 5 MB"
       onDragOver={e => { e.preventDefault(); e.stopPropagation(); setOver(true); }} onDragLeave={() => setOver(false)}
       onDrop={e => { e.preventDefault(); e.stopPropagation(); setOver(false); take(e.dataTransfer.files?.[0]); }}>
-      <Upload size={16} strokeWidth={2} aria-hidden="true"/>Upload<span className="ds-wide-only">my design</span>
+      <Upload size={16} strokeWidth={2} aria-hidden="true"/>{label ?? <>Upload<span className="ds-wide-only">my design</span></>}
       <input type="file" className="sr-only" accept={ACCEPT} onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; take(f); }}/>
     </label>
   );
@@ -483,7 +484,7 @@ function ArtScope({ value, onChange }) {
   );
 }
 
-export default function GarmentPicker({ tab = 'inspiration', inline = false, cfg, pieceRole = null, onPickPhoto, onPick3D, onPickFamily, onPairFamily = null, onUpload, pendingArt, onCancelArt, onSketchArt = null, artScope = null, onArtScope = null, onClose = null, extra = null }) {
+export default function GarmentPicker({ tab = 'inspiration', inline = false, cfg, pieceRole = null, onPickPhoto, onPick3D, onPickFamily, onPairFamily = null, onUpload, pendingArt, onCancelArt, onSketchArt = null, artRefused = false, onAttachRefused = null, referenceName = null, artScope = null, onArtScope = null, onClose = null, extra = null }) {
   // A landing tile's category (studioIntent.js) opens the scratch list filtered to it; an unknown id is ignored.
   const [startCat] = useState(() => { const c = inline && !cfg.garment ? peekStudioCategory() : null; return CATALOG.some(x => x.id === c) ? c : null; });
   useEffect(clearStudioCategory, []);
@@ -492,8 +493,18 @@ export default function GarmentPicker({ tab = 'inspiration', inline = false, cfg
   const sub = pendingArt
     ? <><p>Your file <strong>{pendingArt.name}</strong> goes on the garment you pick{artScope === 'set' ? '; pick the top and its bottom is added as a set' : ''}. <button type="button" className="ds-pick-link" onClick={onCancelArt}><X size={14} aria-hidden="true"/>Cancel upload</button></p>
         {onArtScope && <ArtScope value={artScope} onChange={onArtScope}/>}
-        {onSketchArt && <p><button type="button" className="ds-btn" onClick={onSketchArt}><PencilRuler size={15} aria-hidden="true"/>Create a 2D garment from this photo</button> <span className="ds-note">Reads the outline into an editable sketch you confirm (2D only).</span></p>}</>
-    : <p>Real uniforms we have made, or a VFRB template.</p>;
+        {artRefused && (
+          <div className="ds-status" data-phase="error" role="alert">
+            <div className="ds-status-row"><strong>Upload not accepted</strong></div>
+            <p className="ds-note">{REF_NOT_FULL_SET}</p>
+            <div className="ds-status-actions">
+              <UploadButton onUpload={onUpload} label="Choose another photo"/>
+              <button type="button" className="ds-btn" onClick={onAttachRefused}>Attach as reference</button>
+            </div>
+          </div>
+        )}
+        {onSketchArt && !artRefused && <p><button type="button" className="ds-btn" onClick={onSketchArt}><PencilRuler size={15} aria-hidden="true"/>Create a 2D garment from this photo</button> <span className="ds-note">Reads the outline into an editable sketch you confirm (2D only).</span></p>}</>
+    : <><p>Real uniforms we have made, or a VFRB template.</p>{referenceName && <p className="ds-note">Reference photo attached: {referenceName}. It goes with your order.</p>}</>;
   const head = legend => <Head title={title} sub={sub} onClose={onClose} view={view} setView={setView} legend={legend} onUpload={pendingArt ? null : onUpload}/>;
   // Compact header once the picker's scroll box (the inline stage or the modal) has scrolled. The gap between the two thresholds, with
   // scroll anchoring off (CSS), keeps the header's own height change from flipping it back.

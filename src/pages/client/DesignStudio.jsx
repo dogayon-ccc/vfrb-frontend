@@ -7,7 +7,9 @@
 //            zone hover glow, garment card grid, logo placement presets,
 //            font selector, Pollinations.ai texture, Save Design
 
-import { stashStudioConfig, draftFingerprint } from '../../utils/studioHandoff';
+import { stashStudioConfig, draftFingerprint, clearStudioHandoff, discardDraft } from '../../utils/studioHandoff';
+import { analyzeImageFile } from './design-studio/referenceSketch';
+import { garmentLabel } from '../../utils/designName';
 import {
   useState, useEffect, useRef, useCallback, useMemo,
 } from 'react';
@@ -36,7 +38,7 @@ import { templateFacts, checkEdit, applyStateEdits } from './design-studio/desig
 import { describePatterns } from './design-studio/wovenPatterns';
 import { deserializeDesign, serializeDesign, draftLabel } from './design-studio/designSerialization';
 import { saveStatus, confirmedSave } from './design-studio/saveStatus';
-import { applyGarment, pieceOf } from './design-studio/garmentCatalog';
+import { applyGarment, pieceOf, isCompleteOutfit } from './design-studio/garmentCatalog';
 import { openTarget } from './design-studio/designGallery';
 import { withPhotoColour } from './design-studio/photoColours';
 import { landingViewFor } from './design-studio/studioView';
@@ -48,7 +50,7 @@ import { describeDetails } from './design-studio/garmentDetails';
 import { describePockets } from './design-studio/pocketTools';
 import { describeCustom, isCustom, isParametric, CUSTOM_TOP } from './design-studio/customGarment';
 import { readTrace, writeTrace, normalizeTrace } from './design-studio/traceGuide';
-import { DEFAULT_PIECE, otherRole, normalizeSet, withSet, mirrorStyle, mirrorOverlay, orderQueue } from './design-studio/uniformSet';
+import { DEFAULT_PIECE, ROLE_LABEL, otherRole, normalizeSet, withSet, mirrorStyle, mirrorOverlay, orderQueue, remainingPiece } from './design-studio/uniformSet';
 import PiecesRail, { PieceActions } from './design-studio/PiecesRail';
 import StudioHelp from './design-studio/StudioHelp';
 import { paintZone } from './design-studio/colorRules';
@@ -57,6 +59,8 @@ const SYNC_3D_MS = 300; // 2D -> 3D refresh window while the 3D view is open
 
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────
+const STILL_LOADING = 'Your design is still loading. Try again in a moment.';
+
 export default function DesignStudio() {
   const nav      = useNavigate();
   const location = useLocation();
@@ -224,7 +228,9 @@ export default function DesignStudio() {
   const setTrace = useCallback((v) => setTraceState(prev => { const next = normalizeTrace(typeof v === 'function' ? v(prev) : v); writeTrace(next); return next; }), []);
   // "Create a 2D garment from reference": the confirmed sketch opens as a build-your-own garment (colours and overlays are kept).
   const openSketch = useCallback((d) => setCfg(p => applyGarment(p, d.garment, { ...(d.sleeve ? { sleeve: d.sleeve } : {}), custom: d.custom })), []);
-  const logoUpload = useLogoUpload(addLogo, REF_PHOTO_TOOLS ? { onTrace: setTrace, onSketch: openSketch } : {});
+  const abandonRef = useRef(null);
+  const onAbandon = useCallback(() => abandonRef.current?.(), []);
+  const logoUpload = useLogoUpload(addLogo, REF_PHOTO_TOOLS ? { onTrace: setTrace, onSketch: openSketch, onAbandon } : {});
   // A file dropped on the canvas goes through the same pipeline as the panel, and
   // the panel opens so the customer can see progress, errors and the result.
   const onLogoFile = useCallback((file) => {
@@ -327,7 +333,7 @@ export default function DesignStudio() {
   const settleOverlays = useCallback(async (want) => {
     const wait = ms => new Promise(r => setTimeout(r, ms));
     await wait(50); // the load clears the old objects first
-    for (let i = 0; i < 40 && (getCanvasJSON() ?? []).length !== want.length; i++) await wait(50);
+    for (let i = 0; i < 200 && (getCanvasJSON() ?? []).length !== want.length; i++) await wait(50); // slow phones: a half-loaded canvas must not read as the design
   }, [getCanvasJSON]);
   // While a face or piece swap is mid-way the canvas is not the face in `face`: the save chip check and autosave wait for it to end.
   const swapping = useRef(0);
@@ -510,6 +516,9 @@ export default function DesignStudio() {
   }, [pendingDraft, loadCanvasJSON, settleOverlays, whileSwapping, face]);
 
   const dismissDraft = useCallback(() => setPendingDraft(null), []);
+  const discardPending = useCallback(async () => {
+    try { await discardDraft(); setPendingDraft(null); } catch { flashError('Could not discard the draft. Check your connection and try again.'); }
+  }, [flashError]);
   // The offer is only for a fresh, empty canvas: picking a garment or placing anything retires it.
   useEffect(() => { if (cfg.garment || layers.length) setPendingDraft(null); }, [cfg.garment, layers.length]);
 
@@ -534,9 +543,20 @@ export default function DesignStudio() {
   // "Upload my design": the file waits until a garment is chosen, then goes through the normal upload as artwork.
   const [pendingArt, setPendingArt] = useState(null);
   const [artScope, setArtScope] = useState(null); // what the uploaded photo shows: 'top' | 'bottom' | 'set' | null (not said)
-  const startUpload = useCallback((file) => { logoUpload.setKind('artwork'); setArtScope(null); setPendingArt(file); }, [logoUpload]);
-  // From the picker: make a sketch from the waiting photo. A custom top opens at once so the upload can run; the review starts on "Create a 2D garment".
-  const sketchPending = useCallback(() => { logoUpload.preferUseAs('sketch'); setArtScope(null); openSketch({ garment: CUSTOM_TOP, sleeve: 'Short', custom: null }); }, [logoUpload, openSketch]);
+  const [artRefused, setArtRefused] = useState(false);
+  const startUpload = useCallback((file) => { logoUpload.setKind('artwork'); setArtScope(null); setArtRefused(false); setPendingArt(file); }, [logoUpload]);
+  const uploadSketch = useRef(null); // set while a Custom Top exists only for a pending photo: { offer } is the draft offer it retired
+  const attachRefusedArt = useCallback(async () => {
+    const bad = await logoUpload.attachPhoto(pendingArt);
+    if (bad) { flashError(bad); return; }
+    setPendingArt(null); setArtRefused(false);
+  }, [logoUpload, pendingArt, flashError]);
+  // From the picker: the photo is read first, so a refused one never creates a garment. An accepted one opens a custom top for the review.
+  const sketchPending = useCallback(async () => {
+    if (!await analyzeImageFile(pendingArt).catch(() => null)) { setArtRefused(true); return; }
+    uploadSketch.current = { offer: pendingDraft };
+    logoUpload.preferUseAs('sketch'); setArtScope(null); openSketch({ garment: CUSTOM_TOP, sleeve: 'Short', custom: null });
+  }, [logoUpload, openSketch, pendingArt, pendingDraft]);
   // A full-set photo: the picked piece becomes one half of a new set and the missing piece starts on its default garment.
   const artSetRef = useRef(null);
   artSetRef.current = () => {
@@ -661,7 +681,8 @@ export default function DesignStudio() {
   // POST /drafts replaces every column of the single row, so a request without preview_dataurl
   // erases the stored thumbnail: each write sends a preview of the design it saves.
   const lastSavedFp = useRef(null);
-  const persistDraft = useCallback(async (snap) => {
+  const saveInFlight = useRef(null);
+  const writeDraft = useCallback(async (snap) => {
     const { previewPng, ...studio_config } = snap; // eslint-disable-line no-unused-vars
     const own = lockRef.current?.designId;
     if (own && !lockRef.current.final) { // an opened saved design or copy saves to its own row; the account draft is left alone
@@ -678,10 +699,12 @@ export default function DesignStudio() {
     if (!confirmedSave(data, 'draft_id')) throw new Error('save not confirmed'); // a 200 the server did not really store is a failure
     lastSavedFp.current = draftFingerprint(studio_config);
   }, [cfg, exportPNG]);
+  const persistDraft = useCallback(snap => (saveInFlight.current = writeDraft(snap)), [writeDraft]);
 
   // ── Auto-save debounce — fires 30s after the last design or overlay change ──
   // Skipped when the account already holds exactly this design (e.g. right after a manual Save). autoState feeds the save status.
   const [autoState, setAutoState] = useState(null);
+  const saveSoon = useRef(false); // a removed set piece must not come back from the draft if the customer leaves right away
   const baseFp = useRef(null); // the design as it opened, so merely opening one never reads "Unsaved"
   const accountCopy = useRef(false); // the design on the canvas came from the account (restored draft or saved design), so unchanged reads "Saved"
   const saveFns = useRef(null);
@@ -699,6 +722,7 @@ export default function DesignStudio() {
     dirtyCheck = setTimeout(check, 400);
     const autosave = async () => {
       if (swapping.current) { autoSaveTimer.current = setTimeout(autosave, 1000); return; }
+      saveSoon.current = false;
       const { snapshotDesign: snapNow, persistDraft: persist } = saveFns.current;
       const snap = snapNow();
       if (draftFingerprint(snap) === (lastSavedFp.current ?? baseFp.current)) return;
@@ -709,14 +733,51 @@ export default function DesignStudio() {
       try { await persist(snap); setSaveErr(false); setAutoState('saved'); }
       catch { setSaveErr(local ? 'local' : 'none'); setAutoState('dirty'); } // shown as a retry state, never silently dropped
     };
-    autoSaveTimer.current = setTimeout(autosave, 30_000);
+    autoSaveTimer.current = setTimeout(autosave, saveSoon.current ? 1500 : 30_000); // soon: after the kept piece has drawn, for the thumbnail
     return () => { clearTimeout(dirtyCheck); clearTimeout(autoSaveTimer.current); };
   }, [cfg, locked, editTick]);
   const status = cfg.garment ? saveStatus({ saving, saveErr, auto: autoState, draftSaved, saved }) : null;
 
+  // Back to a blank Studio: canvas, browser copy and, only when it holds this design, the account draft. A saved design's row is never touched.
+  const [askRemove, setAskRemove] = useState(false);
+  const clearDesign = useCallback(async ({ keepRef = false } = {}) => {
+    clearTimeout(autoSaveTimer.current);
+    faceJSON.current = { front: [], back: [] };
+    setFace('front');
+    whileSwapping(async () => { loadCanvasJSON([]); await settleOverlays([]); });
+    setTrace(null);
+    clearStudioHandoff({ keepRef });
+    setCfg(INIT_CFG()); // the whole design, so its name and colours never carry onto the next garment
+    if (!keepRef) logoUpload.removeReference();
+    setAutoState(null);
+    await saveInFlight.current?.catch(() => {}); // a save still on the wire would recreate the draft after the delete
+    const ownsDraft = !lockRef.current?.designId && (lastSavedFp.current || accountCopy.current);
+    setLock(null); setStudioLock(null);
+    lastSavedFp.current = baseFp.current = null; accountCopy.current = false;
+    if (ownsDraft) await axios.delete('/api/customer/drafts/latest').catch(() => flashError('The garment was removed here, but your account draft could not be deleted. Discard it from My Designs.'));
+  }, [whileSwapping, loadCanvasJSON, settleOverlays, setTrace, logoUpload, flashError]);
+  const pieceLeft = uset && remainingPiece(uset);
+  const removeGarment = useCallback(() => {
+    setAskRemove(false); setUset(null); setShowSet(false); setApplyBoth(false);
+    if (!pieceLeft) { clearDesign(); return; }
+    saveSoon.current = true;
+    try { if (sessionStorage.getItem('studio_config')) { sessionStorage.setItem('studio_config', JSON.stringify(pieceLeft.snap)); setStudioLock(lockRef.current); } } catch { /* quota: the account save below still runs */ }
+    loadPiece(pieceLeft.snap, pieceLeft.role);
+  }, [pieceLeft, clearDesign, loadPiece]);
+  // Cancel or a refusal in the review removes the garment the upload made, unless the customer has moved on to another one.
+  abandonRef.current = () => {
+    const made = uploadSketch.current;
+    uploadSketch.current = null;
+    if (!made || cfg.garment !== CUSTOM_TOP) return;
+    clearDesign({ keepRef: true });
+    if (made.offer) setPendingDraft(made.offer);
+  };
+  useEffect(() => { if (['trace', 'done'].includes(logoUpload.status.phase)) uploadSketch.current = null; }, [logoUpload.status.phase]);
+
   // ── Manual save: sessionStorage + DB ─────────────────────────────────────
   const saveDesign = useCallback(async () => {
     if (!cfg.garment || saving || locked) return;
+    if (swapping.current) { flashError(STILL_LOADING); return; }
     setSaving(true); setSaveErr(false);
     const snap = snapshotDesign();
     let local = false;
@@ -849,8 +910,9 @@ export default function DesignStudio() {
 
   const orderThis = useCallback(async () => {
     if (!cfg.garment || ordering || locked) return;
+    if (swapping.current) { flashError(STILL_LOADING); return; } // the canvas is not the design yet: reading it now would drop layers
     // VFRB accepts full sets only (one top + one bottom); the Garment panel holds "Add a matching …".
-    if (!orderQueue(snapshotDesign())) {
+    if (!orderQueue(snapshotDesign()) && !isCompleteOutfit(cfg.garment)) {
       const role = pieceOf(cfg.garment);
       setTool('type');
       flashError(role ? `VFRB takes full sets only: add the matching ${otherRole(role)} first.` : 'VFRB takes full sets only: choose a top or a bottom to start a set.');
@@ -894,7 +956,7 @@ export default function DesignStudio() {
     autoOrder.current = false;
     nav(location.pathname, { replace: true, state: null });
     (async () => {
-      for (let i = 0; i < 60 && swapping.current; i++) await new Promise(r => setTimeout(r, 100));
+      for (let i = 0; i < 130 && swapping.current; i++) await new Promise(r => setTimeout(r, 100));
       orderRef.current();
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once, when the opened design has drawn
@@ -954,7 +1016,7 @@ export default function DesignStudio() {
 
         {/* ── DRAFT OFFER ── in the page flow under the bar, so it can never cover menus or stage controls */}
         {pendingDraft && !cfg.garment && layers.length === 0 && (
-          <DraftStrip draft={pendingDraft} hasWork={!!cfg.name?.trim() || layers.length > 0} onRestore={restoreDraft} onDismiss={dismissDraft}/>
+          <DraftStrip draft={pendingDraft} hasWork={!!cfg.name?.trim() || layers.length > 0} onRestore={restoreDraft} onDismiss={dismissDraft} onDiscard={discardPending}/>
         )}
 
         {/* ── COLOUR-ONLY COPY ── */}
@@ -994,7 +1056,7 @@ export default function DesignStudio() {
             selectLayer={selectLayer} toggleLayerVisibility={toggleLayerVisibility}
             toggleLayerLock={toggleLayerLock} toggleSelectedLock={toggleSelectedLock} setLayerOpacity={setLayerOpacity}
             pushHistory={pushHistory} presetPos={presetPos} nudgeSelected={nudgeSelected}
-            renameLayer={renameLayer} deleteLayer={deleteLayer} reorderLayers={reorderLayers} pieceRole={uset?.active ?? null} trace={trace} setTrace={setTrace} status={locked ? null : status}
+            renameLayer={renameLayer} deleteLayer={deleteLayer} reorderLayers={reorderLayers} pieceRole={uset?.active ?? null} trace={trace} setTrace={setTrace} status={locked ? null : status} onRemoveGarment={() => setAskRemove(true)}
             garmentExtra={<PieceActions {...pieceProps} other={setCompanion} readOnly={colorOnly} inSheet/>}
             more={{ onView: () => setViewOpen(true), onCopy: duplicateToEdit, canCopy: !!lock?.designId, copying, onTour: () => setHelp('tour'), onHowTo: () => setHelp('howto') }}/>
 
@@ -1009,7 +1071,8 @@ export default function DesignStudio() {
             blank={<GarmentPicker inline cfg={cfg} pieceRole={uset?.active ?? (pendingArt && artScope ? (artScope === 'bottom' ? 'bottom' : 'top') : null)} onPickPhoto={pickPhoto}
               onPick3D={(d, f) => { keep3DRef.current = true; pickPhoto(d, f); setHas3DLoaded(true); setViewMode('3d'); }}
               onPickFamily={(fam, category, pick) => selectFamily(setCfg, fam, category, pick)}
-              onUpload={startUpload} pendingArt={pendingArt} onCancelArt={() => setPendingArt(null)} onSketchArt={REF_PHOTO_TOOLS ? sketchPending : null}
+              onUpload={startUpload} pendingArt={pendingArt} onCancelArt={() => { setPendingArt(null); setArtRefused(false); }} onSketchArt={REF_PHOTO_TOOLS ? sketchPending : null}
+              artRefused={artRefused} onAttachRefused={attachRefusedArt} referenceName={logoUpload.reference?.name}
               artScope={artScope} onArtScope={uset ? null : setArtScope}/>} setViewMode={setViewMode}
             viewOpen={viewOpen} setViewOpen={setViewOpen} setCompanion={setCompanion} showSet={showSet} setSnapOptions={setSnapOptions} trace={trace} clearSelection={clearSelection}/>
         </div>
@@ -1027,6 +1090,10 @@ export default function DesignStudio() {
           loadCanvasJSON={loadCanvasJSON} onOpen3D={() => { keep3DRef.current = true; setHas3DLoaded(true); setViewMode('3d'); }}
           onLoadArchived={d => setLock(lockFor(d))}/>
 
+        <ConfirmDialog open={askRemove} title={pieceLeft ? `Remove the ${ROLE_LABEL[uset.active].toLowerCase()}?` : 'Remove this garment?'} confirmLabel="Remove"
+          body={pieceLeft ? `${garmentLabel(pieceLeft.snap.garment)} stays as a single garment. Add a matching ${ROLE_LABEL[uset.active].toLowerCase()} before ordering: VFRB takes full sets only.`
+            : 'This clears the garment, its layers, any attached reference photo and its unfinished draft. Saved designs and orders are not touched.'}
+          onCancel={() => setAskRemove(false)} onConfirm={removeGarment}/>
         <ConfirmDialog open={warnAsk} title="Edit this saved design?"
           body="Changes replace your saved design when it saves. Continue to edit it?"
           confirmLabel="Edit design" onCancel={() => setWarnAsk(false)} onConfirm={confirmEdit}/>

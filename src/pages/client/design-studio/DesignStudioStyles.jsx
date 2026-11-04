@@ -948,7 +948,8 @@ export default function DesignStudioStyles() {
         .ds-modal{top:60px;max-height:calc(100dvh - 72px);}
         .ds-ftb{padding:4px;}
         .ds-ftb-kind{display:none;}
-        .ds-draft{padding-left:12px;font-size:13px;}
+        .ds-draft{padding-left:12px;font-size:13px;flex-wrap:wrap;}
+        .ds-draft p{flex:1 1 calc(100% - 32px);}
         /* Expanded stage: the canvas takes the whole column */
         .ds[data-expanded] :is(.ds-panel,.ds-rail){display:none;}
         .ds[data-expanded] .ds-cv{flex:1;height:auto;}

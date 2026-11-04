@@ -1,3 +1,6 @@
+import axios from 'axios';
+import { readStudioLock } from './studioLock';
+
 export const HANDOFF_KEYS = ['studio_config', 'studio_preview', 'studio_from_draft', 'studio_design_ref'];
 
 export function stashStudioConfig(snap, { fromDraft = false } = {}) {
@@ -9,7 +12,17 @@ export function stashStudioConfig(snap, { fromDraft = false } = {}) {
   try { const { previewPng, ...rest } = snap; write(rest); return { ok: true, previewKept: false }; } catch { return { ok: false, previewKept: false }; }
 }
 
-export const clearStudioHandoff = () => { refMem = null; HANDOFF_KEYS.forEach(k => { try { sessionStorage.removeItem(k); } catch { /* storage blocked */ } }); };
+export const clearStudioHandoff = ({ keepRef = false } = {}) => {
+  if (!keepRef) refMem = null;
+  HANDOFF_KEYS.filter(k => !keepRef || k !== 'studio_design_ref').forEach(k => { try { sessionStorage.removeItem(k); } catch { /* storage blocked */ } });
+};
+
+export const DISCARD_DRAFT = { title: 'Discard this draft?', body: 'Your unfinished design is deleted and cannot be restored. Saved designs and orders are not touched.', confirmLabel: 'Discard draft' };
+// A browser copy of the draft would bring it back on the next Studio visit; an opened saved design keeps its own copy.
+export async function discardDraft() {
+  await axios.delete('/api/customer/drafts/latest');
+  if (!readStudioLock()?.designId) clearStudioHandoff();
+}
 
 // Reference photo picked in the Studio ("Use as: Reference photo for VFRB"). It goes to the order's existing reference-file field
 // (design_ref_file), never a new one. Kept in memory for the SPA hop to the Order Wizard, and in this tab's session when it fits.

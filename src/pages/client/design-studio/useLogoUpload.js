@@ -22,7 +22,7 @@ const toDataUrl = (file) => new Promise((resolve, reject) => {
 });
 
 // onTrace({ src, name }): show the image as the tracing underlay. onSketch({ garment, sleeve, custom }): open a build-your-own sketch.
-export function useLogoUpload(addLogo, { onTrace = null, onSketch = null } = {}) {
+export function useLogoUpload(addLogo, { onTrace = null, onSketch = null, onAbandon = null } = {}) {
   const [mode, setMode] = useState('auto');            // auto | ai | off (logos)
   const [placement, setPlacement] = useState('left_chest');
   const [kind, setKind] = useState('logo');              // logo | artwork (a personal design) | reference (a file for VFRB)
@@ -113,7 +113,7 @@ export function useLogoUpload(addLogo, { onTrace = null, onSketch = null } = {})
         if (!s.uniformOk) return;
         setStatus({ phase: 'working', method: 'check', fileName: s.fileName, progress: null });
         const analysis = await analyzeImageFile(s.cut ?? s.prep.file).catch(() => null);
-        if (!analysis) { setStatus({ phase: 'error', code: 'NOT_SET', message: REF_NOT_FULL_SET, fileName: s.fileName }); return; }
+        if (!analysis) { nextUseAs.current = 'sketch'; setStatus({ phase: 'error', code: 'NOT_SET', message: REF_NOT_FULL_SET, fileName: s.fileName, prep: s.prep }); return; }
         const kind = analysis.kind;
         setStatus({ phase: 'sketch', analysis, kind, draft: sketchFromAnalysis(analysis, kind), traceSrc: await toDataUrl(s.prep.file), preview: s.before, fileName: s.fileName });
         return;
@@ -122,13 +122,14 @@ export function useLogoUpload(addLogo, { onTrace = null, onSketch = null } = {})
         const ref = await referenceFile(s.prep); // the original when it is a JPG or PNG
         attachReference(ref);
         setStatus(IDLE); // the reference card shows it, with Remove
+        onAbandon?.();
         return;
       }
       const useCut = s.removeBg && s.cut;
       await place(useCut ? s.cut : s.prep.file, { method: useCut ? s.method : 'none', fileName: s.fileName, changed: !!useCut,
         message: useCut ? 'Placed with the background removed. Canvas Undo removes it.' : 'Placed exactly as uploaded.' }, true);
     } finally { busy.current = false; }
-  }, [status, place, onTrace, attachReference]);
+  }, [status, place, onTrace, attachReference, onAbandon]);
 
   // Reference-to-2D step: correct the detected type (re-proposes the shape), refine it, then open it with the photo as a tracing guide.
   const setSketchKind = useCallback((kind) => setStatus(s => (s.phase === 'sketch' ? { ...s, kind, draft: sketchFromAnalysis(s.analysis, kind) } : s)), []);
@@ -154,8 +155,20 @@ export function useLogoUpload(addLogo, { onTrace = null, onSketch = null } = {})
     run(status.file, nextMode ?? status.method);
   }, [status, run]);
 
-  const dismiss = useCallback(() => { setStatus(IDLE); }, []);
+  const dismiss = useCallback(() => { setStatus(IDLE); onAbandon?.(); }, [onAbandon]);
+  // A refused photo can still go to VFRB as the order's reference. Returns the reason when the file itself is not acceptable.
+  const attachPhoto = useCallback(async (file) => {
+    const prep = await prepareUpload(file, 'artwork');
+    if (!prep.ok) return prep.message;
+    attachReference(await referenceFile(prep));
+    return null;
+  }, [attachReference]);
+  const attachRefused = useCallback(async () => {
+    if (status.code !== 'NOT_SET') return;
+    attachReference(await referenceFile(status.prep));
+    dismiss();
+  }, [status, attachReference, dismiss]);
 
-  return { mode, setMode, kind, setKind, placement, setPlacement, status, upload: run, reference, refRules, removeReference, addOriginal, retry, dismiss, setRemoveBg, setUseAs, tryAi, confirm,
+  return { mode, setMode, kind, setKind, placement, setPlacement, status, upload: run, reference, refRules, removeReference, attachPhoto, attachRefused, addOriginal, retry, dismiss, setRemoveBg, setUseAs, tryAi, confirm,
     setSketchKind, setSketchDraft, createSketch, setUniformOk, preferUseAs: (v) => { nextUseAs.current = v; }, canTrace: !!onTrace, canSketch: !!onSketch };
 }

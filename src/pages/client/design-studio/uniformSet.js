@@ -32,6 +32,12 @@ export function withSet(activeSnap, set) {
   return { ...activeSnap, uniformSet: { id: set.id, active: set.active, pieces: { ...set.pieces, [set.active]: clean(activeSnap) } } };
 }
 
+// The piece that stays when the active one is removed from a set, or null when the other piece has no garment yet.
+export function remainingPiece(set) {
+  const role = otherRole(set.active), snap = set.pieces[role];
+  return snap?.garment ? { role, snap } : null;
+}
+
 // Pieces to order, top first, each tagged with its place in the set; null unless both pieces have a garment.
 export function orderQueue(snap) {
   const set = normalizeSet(snap?.uniformSet);

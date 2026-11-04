@@ -8,7 +8,7 @@ import TraceControls from './TraceControls';
 import { PartButtons, PartStyles, partsFor } from './PartControls';
 
 // Whole uniform: the real design at a glance, a button per part it has, then its layers. Choosing the garment happens in GarmentPicker.
-export default function TypePanel({ cfg, setCfg, onPickPart, onOpenTool, onChangeGarment, trace = null, setTrace = null, layers = null }) {
+export default function TypePanel({ cfg, setCfg, onPickPart, onOpenTool, onChangeGarment, onRemove, trace = null, setTrace = null, layers = null }) {
   if (!cfg.garment) return null;
   const photo  = assetFor(cfg.garment, cfg.sleeve, 'front', cfg.fit);
   const custom = isParametric(cfg.garment); // a spec-driven shape: build-your-own or a rebuilt family
@@ -23,7 +23,7 @@ export default function TypePanel({ cfg, setCfg, onPickPart, onOpenTool, onChang
         <h3>Whole uniform</h3>
         <div className="ds-tp-change">
           <button type="button" className="ds-btn" onClick={onChangeGarment}><Replace size={15} aria-hidden="true"/>Change garment</button>
-          <button type="button" className="ds-tp-clear" onClick={() => setCfg(p => ({ ...p, garment: null }))}><Trash2 size={14} aria-hidden="true"/>Remove</button>
+          <button type="button" className="ds-tp-clear" onClick={onRemove}><Trash2 size={14} aria-hidden="true"/>Remove</button>
         </div>
       </header>
       <dl className="ds-wu-sum">

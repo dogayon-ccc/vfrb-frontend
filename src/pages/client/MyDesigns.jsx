@@ -9,7 +9,7 @@
 //     tied to an order (is_archived true). `locked` ones are view-only with Reorder and
 //     "Duplicate to edit" (POST /api/customer/designs/{id}/copy); copies are colour-only.
 //   GET /api/customer/orders — a submitted Studio design is archived only when its order completes, so until then it shows from its order.
-import { stashStudioConfig } from '../../utils/studioHandoff';
+import { discardDraft, DISCARD_DRAFT } from '../../utils/studioHandoff';
 import { getStorageUrl } from '../../utils/fileUrl';
 import { asList } from '../../utils/asList';
 import { setStudioLock } from '../../utils/studioLock';
@@ -19,11 +19,10 @@ import { motion } from 'framer-motion';
 import { Palette } from 'lucide-react';
 import axios from 'axios';
 import EmptyState from '../../components/EmptyState';
-import { Card, Button, Badge, PageHeader, Skeleton, ActionMenu } from '../../components/ui';
+import { Card, Button, Badge, PageHeader, Skeleton, ActionMenu, ConfirmDialog } from '../../components/ui';
 import { Chips, DesignThumb, reltime, fmtDate, STATUS } from '../../components/customer/kit';
 import { savedDesignName, garmentLabel } from '../../utils/designName';
 import { openDesign, reorderDesign, duplicateDesign } from '../../utils/designActions';
-import { orderQueue } from './design-studio/uniformSet';
 
 // Gallery card: big preview, one primary action, one visible secondary, the rest in the "⋯" menu.
 function DesignCard({ img, garment, colors, title, meta, badge, tone, primary, secondary, tertiary, i, what }) {
@@ -96,13 +95,12 @@ export default function MyDesigns() {
 
   const openStudioBlank = () => { sessionStorage.removeItem('studio_config'); setStudioLock(null); nav('/design-studio'); };
   const continueDraft = () => { sessionStorage.setItem('studio_config', JSON.stringify(draft.studio_config)); setStudioLock(null); nav('/design-studio'); };
-  const orderDraft = () => {
-    // A set opens in the Studio first, so Review & order renders every piece and each order carries its own design image.
-    if (orderQueue(draft.studio_config)) { sessionStorage.setItem('studio_config', JSON.stringify(draft.studio_config)); setStudioLock(null); nav('/design-studio', { state: { autoOrder: true } }); return; }
-    const png = draft.preview_dataurl;
-    const snap = png?.startsWith?.('data:image/png') ? { ...draft.studio_config, previewPng: png } : draft.studio_config;
-    stashStudioConfig(snap, { fromDraft: true });
-    nav('/order/create');
+  // Through the Studio: it applies the full-set rule and renders every piece, so each order carries its own design image.
+  const orderDraft = () => { sessionStorage.setItem('studio_config', JSON.stringify(draft.studio_config)); setStudioLock(null); nav('/design-studio', { state: { autoOrder: true } }); };
+  const [askDiscard, setAskDiscard] = useState(false);
+  const confirmDiscard = async () => {
+    setAskDiscard(false); setActErr('');
+    try { await discardDraft(); setDraft(null); } catch { setActErr('Could not discard the draft. Check your connection and try again.'); }
   };
   const useTemplate = (d) => { sessionStorage.setItem('studio_config', JSON.stringify(d.config)); setStudioLock(null); nav('/design-studio'); };
   const open = (d) => { setActErr(''); if (!openDesign(d, nav)) setActErr('Could not open the design in this browser. Try again.'); };
@@ -159,6 +157,7 @@ export default function MyDesigns() {
         sub={tab === 'draft' ? 'Start a new design in the Design Studio.' : tab === 'inspo' ? 'Starter designs will appear here.' : 'Designs from your orders will show up here.'} cta={{ label: 'Open Design Studio', onClick: openStudioBlank }} />}
 
       {actErr && <p role="alert" className="mx-err">{actErr}</p>}
+      <ConfirmDialog open={askDiscard} {...DISCARD_DRAFT} onCancel={() => setAskDiscard(false)} onConfirm={confirmDiscard}/>
       {noMatch && <EmptyState illustration="order" headline="No designs match your search" sub="Try a different garment name." />}
 
       {!loading && !error && (total > 0 || (tab === 'inspo' && nInspo > 0)) && !noMatch && (
@@ -166,7 +165,7 @@ export default function MyDesigns() {
           {showDraft && (
             <DesignCard i={0} img={draft.preview_dataurl} garment={cfg.garment} colors={cfg.colors}
               title={draftTitle} meta={`${cfg.category ?? 'Design'} · edited ${reltime(draft.updated_at)}`}
-              badge="Draft" tone={DRAFT} primary={{ label: 'Continue editing', onClick: continueDraft }} secondary={{ label: 'Order this', onClick: orderDraft }} />
+              badge="Draft" tone={DRAFT} primary={{ label: 'Continue editing', onClick: continueDraft }} secondary={{ label: 'Order this', onClick: orderDraft }} tertiary={{ label: 'Discard draft', tone: 'danger', onClick: () => setAskDiscard(true) }} />
           )}
           {shownCopies.map((d, i) => (
             <DesignCard key={d.id} i={i + 1} img={null} garment={d.garment} colors={d.config?.colors}

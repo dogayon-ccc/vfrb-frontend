@@ -52,7 +52,7 @@ function Progress({ progress }) {
   );
 }
 
-function StatusCard({ logo }) {
+function StatusCard({ logo, onBrowse }) {
   const { status: s, retry, addOriginal, dismiss, mode } = logo;
   if (s.phase === 'working') {
     return (
@@ -74,6 +74,12 @@ function StatusCard({ logo }) {
             {canAi && <button type="button" className="ds-btn ds-btn--primary" onClick={() => retry('ai')}>Try AI mode</button>}
             {!canAi && s.method && s.code !== 'TYPE' && s.code !== 'SIZE' && <button type="button" className="ds-btn ds-btn--primary" onClick={() => retry()}><NavIcon name="refresh" size={13}/> Retry</button>}
             <button type="button" className="ds-btn" onClick={addOriginal}>Add original anyway</button>
+          </div>
+        )}
+        {s.code === 'NOT_SET' && (
+          <div className="ds-status-actions">
+            <button type="button" className="ds-btn ds-btn--primary" onClick={onBrowse}>Choose another photo</button>
+            <button type="button" className="ds-btn" onClick={logo.attachRefused}>Attach as reference</button>
           </div>
         )}
         <button type="button" className="ds-link" onClick={dismiss}>Dismiss</button>
@@ -241,7 +247,7 @@ export default function LogoAssets({ cfg, logo }) {
       <input ref={fileRef} type="file" hidden accept={isRef ? logo.refRules.accept : IMAGE_ACCEPT} aria-label={prompt}
         onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ''; }}/>
 
-      <StatusCard logo={logo}/>
+      <StatusCard logo={logo} onBrowse={browse}/>
       <ReferenceCard file={logo.reference} onReplace={isRef && !working ? browse : null} onRemove={logo.removeReference}/>
     </div>
   );

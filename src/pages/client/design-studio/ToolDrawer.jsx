@@ -78,7 +78,7 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
 
   const PANELS = {
     type:    () => <TypePanel cfg={p.cfg} setCfg={p.setCfg} onPickPart={z => { p.setActiveZone(z); setTool('color'); }} onOpenTool={onOpenTool}
-                     onChangeGarment={p.onChangeGarment} trace={p.trace} setTrace={p.setTrace} layers={layersList()}/>,
+                     onChangeGarment={p.onChangeGarment} onRemove={p.onRemoveGarment} trace={p.trace} setTrace={p.setTrace} layers={layersList()}/>,
     color:   () => <ColorsPanel cfg={p.cfg} setCfg={p.setCfg} activeZone={p.activeZone} setActiveZone={p.setActiveZone}
                      onDone={partView ? () => setTool('type') : null}/>,
     details: () => <DetailsPanel cfg={p.cfg} setCfg={p.setCfg} focus={p.detailFocus} onColourPocket={() => { p.setActiveZone('pocket'); setTool('color'); }} onAddPocket={p.addPocket}/>,
