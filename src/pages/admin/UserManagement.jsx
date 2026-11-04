@@ -27,6 +27,9 @@ const withStage = (body) => (body.role === 'staff' ? body : (({ assigned_stage, 
 const roleText = (u, rc) => (u.role === 'staff' ? roleLabel(u) : rc.l);
 const CLIENT_TYPES = [['corporate','Corporate'], ['school','School'], ['government','Government'], ['medical','Medical'], ['organization','Organization']];
 
+// Mirrors the API password rule so a weak password is explained before submitting.
+const PW_RULE = /^(?=.*\p{Ll})(?=.*\p{Lu})(?=.*\d)(?=.*[\p{P}\p{S}]).{8,}$/u;
+const PW_HINT = 'Use at least 8 characters with upper and lower case letters, a number and a symbol.';
 const INIT = { name:'', email:'', password:'', password_confirmation:'', role:'customer', contact_number:'', username:'', organization_name:'', client_type:'', assigned_stage:'' };
 
 const ROLE_CHOICES = {
@@ -49,6 +52,7 @@ export function CreateUserModal({ onClose, onDone, isMobile, adminRoles, initial
     if (!form.name.trim() || !form.password) { setErr('Name and password are required.'); return; }
     if (isCustomer && !form.email.trim()) { setErr('A customer needs an email address.'); return; }
     if (!isCustomer && !form.email.trim() && !form.username.trim()) { setErr('Enter an email or a username so this person can sign in.'); return; }
+    if (!PW_RULE.test(form.password)) { setErr(PW_HINT); return; }
     if (form.password !== form.password_confirmation) {
       setErr('Passwords do not match.'); return;
     }
@@ -62,7 +66,7 @@ export function CreateUserModal({ onClose, onDone, isMobile, adminRoles, initial
       onDone(!isCustomer ? (r.data?.email ? 'Account created.' : `Account created. They sign in with the username ${r.data?.username}.`) : r.data?.password_link_sent
         ? 'Customer created. A link to set their own password was emailed to them.'
         : 'Customer created, but the password email could not be sent. Share the password you set, or ask them to use Forgot password.');
-    } catch(e) { setErr(e.response?.data?.message ?? e.response?.data?.errors?.[Object.keys(e.response?.data?.errors||{})[0]]?.[0] ?? 'Failed to create user.'); }
+    } catch(e) { setErr(firstError(e, 'Failed to create user.')); }
     finally { setBusy(false); }
   };
 
@@ -124,7 +128,7 @@ export function CreateUserModal({ onClose, onDone, isMobile, adminRoles, initial
           <div className="um-modal-grid2">
             <div>
               <label style={lbl}>Password *</label>
-              <input type="password" value={form.password} onChange={e=>set('password',e.target.value)} placeholder="Min 8 characters" style={inp} onFocus={fi} onBlur={fo}/>
+              <input type="password" value={form.password} onChange={e=>set('password',e.target.value)} placeholder="Aa, 0-9 and a symbol, 8+ characters" title={PW_HINT} style={inp} onFocus={fi} onBlur={fo}/>
             </div>
             <div>
               <label style={lbl}>Confirm password *</label>
