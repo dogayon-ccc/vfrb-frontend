@@ -601,7 +601,7 @@ export default function DesignStudio() {
   // Put a piece (serialized snapshot, or a fresh default garment for that role) on the canvas, front view.
   const loadPiece = useCallback((snap, role) => {
     const { cfg: c, frontOverlays, backOverlays } = deserializeDesign(snap ?? { garment: DEFAULT_PIECE[role], category: cfg.category });
-    setCfg(p => ({ ...p, ...c, inspirationId: c.inspirationId ?? null }));
+    setCfg(p => ({ ...p, ...c, name: p.name?.trim() ? p.name : c.name, inspirationId: c.inspirationId ?? null }));
     faceJSON.current = { front: frontOverlays, back: backOverlays };
     // Already on the front: swap the overlays at once (the base redraw keeps them), so the previous piece's
     // text and logos never sit on the new garment. A face change still waits for the front to draw.

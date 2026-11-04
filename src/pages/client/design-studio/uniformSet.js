@@ -29,7 +29,9 @@ export function normalizeSet(raw) {
 // Whole-set snapshot: `activeSnap` is the freshest copy of the active piece.
 export function withSet(activeSnap, set) {
   if (!set) return activeSnap;
-  return { ...activeSnap, uniformSet: { id: set.id, active: set.active, pieces: { ...set.pieces, [set.active]: clean(activeSnap) } } };
+  // A set has one name, whichever piece it was typed on.
+  const pieces = Object.fromEntries(Object.entries(set.pieces).map(([r, p]) => [r, p && { ...p, name: activeSnap.name }]));
+  return { ...activeSnap, uniformSet: { id: set.id, active: set.active, pieces: { ...pieces, [set.active]: clean(activeSnap) } } };
 }
 
 // The piece that stays when the active one is removed from a set, or null when the other piece has no garment yet.
@@ -46,10 +48,13 @@ export function orderQueue(snap) {
   const roles = SET_ROLES.filter(r => pieces[r]?.garment);
   if (roles.length < 2) return null;
   const parts = roles.map(r => ({ role: r, garment: pieces[r].garment }));
+  // Sets saved before the name was shared can hold it on one piece only.
+  const name = [snap.name, ...roles.map(r => pieces[r].name)].find(n => n?.trim()) ?? '';
   // The active piece's render is snap.previewPng; another piece's rides in its own set entry (normalizeSet drops it on reopen).
   const shot = r => (r === set.active ? snap.previewPng : snap.uniformSet.pieces?.[r]?.previewPng);
   return roles.map((r, i) => ({
     ...pieces[r],
+    name,
     ...(shot(r) ? { previewPng: shot(r) } : {}),
     uniformSet: { id: set.id, role: r, part: i + 1, of: roles.length, parts },
   }));
