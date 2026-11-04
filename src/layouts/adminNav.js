@@ -25,7 +25,7 @@ export const NAV = [
   { to:'/admin/invoice',                icon:Receipt,         label:'Invoice',           group:'Money' },
   { to:'/admin/reports',                icon:BarChart3,       label:'Reports',           group:'Money' },
   { to:'/admin/customers',              icon:Contact,         label:'Customers',         group:'People' },
-  { to:'/admin/users',                  icon:Users,           label:'User Management',   group:'People' },
+  { to:'/admin/users',                  icon:Users,           label:'User Management',   group:'People', noSidebar:true },
   { to:'/admin/feedback',               icon:MessageCircle,   label:'Feedback',          group:'People' },
   { to:'/admin/designs/showcase-queue', icon:Trophy,          label:'Showcase',          group:'People' },
   { to:'/admin/activity-log',           icon:Activity,        label:'Activity Log',      group:'System' },
@@ -52,7 +52,7 @@ export function navMatch(path, items = NAV) {
 
 export function navFor(allowed) {
   const items = NAV.filter(allowed);
-  const groups = NAV_GROUPS.map(name => ({ name, items: items.filter(i => i.group === name) })).filter(g => g.items.length);
+  const groups = NAV_GROUPS.map(name => ({ name, items: items.filter(i => i.group === name && !i.noSidebar) })).filter(g => g.items.length);
   return { items, groups, bar: items.filter(i => i.short) };
 }
 

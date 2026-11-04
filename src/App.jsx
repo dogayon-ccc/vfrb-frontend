@@ -68,7 +68,6 @@ const AdminMessages          = lazy(() => import('./pages/admin/Messages'));
 const AdminDeliveryTracking  = lazy(() => import('./pages/admin/DeliveryTracking'));
 const AdminCustomers         = lazy(() => import('./pages/admin/CustomersMaster'));
 const AdminSuppliers         = lazy(() => import('./pages/admin/Suppliers'));
-const AdminUserManagement    = lazy(() => import('./pages/admin/UserManagement'));
 const AdminShowcaseQueue     = lazy(() => import('./pages/admin/ShowcaseModerationQueue'));
 const AdminSettings          = lazy(() => import('./pages/admin/Settings'));
 const AdminActivityLog       = lazy(() => import('./pages/admin/ActivityLog'));
@@ -318,7 +317,7 @@ export default function App() {
             <Route path="audit-logs" element={<RequireManager><AdminAuditLog/></RequireManager>}/>
             <Route path="invoice"   element={<RequireManager><AdminInvoice/></RequireManager>}/>
             <Route path="suppliers" element={<RequireManager><AdminSuppliers/></RequireManager>}/>
-            <Route path="users"     element={<RequireManager><AdminUserManagement/></RequireManager>}/>
+            <Route path="users"     element={<RequireManager><Navigate to="/admin/settings?tab=users" replace/></RequireManager>}/>
             <Route path="designs/showcase-queue" element={<RequireManager><AdminShowcaseQueue/></RequireManager>}/>
             <Route path="*" element={<AdminNotFound/>}/>
           </Route>

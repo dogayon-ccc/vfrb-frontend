@@ -1027,8 +1027,8 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('User Management roles: one ROLE_CFG of Administrator (Manager), Administrator (Station) and Owner drives the tabs and the edit-role list; Create adds Customer as the only extra option',
     /manager: \{[^}]*l:'Administrator \(Manager\)'/.test(umRoles) && /staff:\s+\{[^}]*l:'Administrator \(Station\)'/.test(umRoles) && /owner:\s+\{[^}]*l:'Owner'/.test(umRoles) && !/customer/.test(umRoles)
     && /const ADMIN_ROLES = \['manager', 'staff', 'owner'\];/.test(um) && /\{ADMIN_ROLES\.map\(v => <option key=\{v\} value=\{v\}>\{ROLE_CFG\[v\]\.l\}<\/option>\)\}/.test(um)
-    && /<option value="customer">Customer<\/option>\s*\{adminRoles\.map/.test(um) && /Object\.entries\(ROLE_CFG\)[^\n]*\.map\(\(\[key, r\]\) => \(\{ key, label:r\.tab/.test(um)
-    && (um.match(/<option value="customer">/g) ?? []).length === 1 && !/<option value="(manager|staff)"|'Clients'|'Managers'/.test(um));
+    && /\['customer', \.\.\.adminRoles\]\.map\(r =>/.test(um) && /Object\.entries\(ROLE_CFG\)[^\n]*\.map\(\(\[key, r\]\) => \(\{ key, label:r\.tab/.test(um)
+    && !/<option value="customer">/.test(um) && !/<option value="(manager|staff)"|'Clients'|'Managers'/.test(um));
 }
 
 // Owner: read-only admin account. Frontend mirror of backend OwnerReadOnly (GET-only, 9 areas); the server stays the enforcement point.

@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { NavIcon } from '../../components/ui/icons';
 import { checkUpload } from '../../utils/fileCheck';
@@ -10,7 +10,9 @@ import { PASSWORD_RULE_TEXT, passwordOk, passwordLevel, levelLabel } from '../..
 import ProfilePhotoField from '../../components/ProfilePhotoField';
 import AppearanceField from '../../components/AppearanceField';
 import { readUser } from '../../utils/authRoute';
-import { isStation, STATION_SETTINGS } from '../../utils/jobAccess';
+import { isAdmin, isStation, STATION_SETTINGS } from '../../utils/jobAccess';
+
+const UserManagement = lazy(() => import('./UserManagement'));
 
 const NOTIFY = [
   { key: 'email_enabled', live: 'email_provider_live', label: 'Email notifications', icon: 'email', note: 'Order updates, AI recommendations ready, and account alerts.',
@@ -134,7 +136,7 @@ export default function Settings() {
   const sections = [
     ['company', 'settings', 'Company'], ['profile', 'profile', 'Your profile'], ['notify', 'notifications', 'Notifications'],
     ['password', 'lock', 'Password'], ['ai', 'ai', 'AI guidance'], ['users', 'users', 'User Management'],
-  ].filter(([k]) => !station || STATION_SETTINGS.includes(k));
+  ].filter(([k]) => !station || STATION_SETTINGS.includes(k)).filter(([k]) => k !== 'users' || isAdmin());
   // One section at a time; ?tab= keeps it linkable and Back-able.
   const [params, setParams] = useSearchParams();
   const tab = sections.some(([k]) => k === params.get('tab')) ? params.get('tab') : sections[0][0];
@@ -208,14 +210,12 @@ export default function Settings() {
                     </div>
                   </div>
                   <div className="set-form">
-                    <div className="set-grid">
+                    <div className="set-grid three">
                       <Field label="Company name" id="set-company_name"><input {...bind('company_name')} /></Field>
-                      <Field label="Address" id="set-address"><input {...bind('address')} placeholder="e.g. 31 San Guillermo St., Bayanan, Muntinlupa City" />{unset('address')}</Field>
-                    </div>
-                    <div className="set-grid">
                       <Field label="Contact number" id="set-contact_number"><input {...bind('contact_number')} inputMode="tel" placeholder="e.g. 0917 123 4567" />{unset('contact_number')}</Field>
                       <Field label="Contact email" id="set-contact_email"><input {...bind('contact_email')} type="email" placeholder="e.g. hello@vfrbenterprise.com" />{unset('contact_email')}</Field>
                     </div>
+                    <Field label="Address" id="set-address"><input {...bind('address')} placeholder="e.g. 31 San Guillermo St., Bayanan, Muntinlupa City" />{unset('address')}</Field>
                   </div>
                 </div>
               )}
@@ -258,12 +258,7 @@ export default function Settings() {
           {tab === 'ai' && <RecommendationGuidancePanel setToast={setToast} />}
           {tab === 'ai' && <AiQualityPanel />}
 
-          {tab === 'users' && (
-            <Panel title="User Management" subtitle="Create customer accounts and manage Administrator and Owner access.">
-              <p className="adm-sub" style={{ marginBottom: 16 }}>Customers cannot sign up themselves. Every customer, Administrator and Owner account is created in User Management.</p>
-              <Link to="/admin/users" className="adm-btn primary" style={{ textDecoration: 'none' }}><NavIcon name="users" size={14} color="currentColor" /> Open User Management</Link>
-            </Panel>
-          )}
+          {tab === 'users' && <Suspense fallback={<SkeletonRows rows={5} h={48} />}><UserManagement embedded /></Suspense>}
         </div>
       </div>
     </div>

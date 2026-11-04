@@ -5,7 +5,7 @@ import { fetchResource } from '../../utils/adminResources';
 import BottomSheet from '../../components/ui/BottomSheet';
 import { NavIcon } from '../../components/ui/icons';
 import { isAdmin, roleLabel, STAGES, STAGE_LABEL } from '../../utils/jobAccess';
-import { PageHeader, StatGrid, PillTabs, ErrorBlock, Panel, StatusPill, SearchBox, Avatar, SkeletonRows, Toast, useToast, useIsMobile } from '../../components/admin/AdminUI';
+import { StatGrid, PillTabs, ErrorBlock, Panel, StatusPill, SearchBox, Avatar, SkeletonRows, Toast, useToast, useIsMobile } from '../../components/admin/AdminUI';
 
 const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif`;
 
@@ -29,8 +29,17 @@ const CLIENT_TYPES = [['corporate','Corporate'], ['school','School'], ['governme
 
 const INIT = { name:'', email:'', password:'', password_confirmation:'', role:'customer', contact_number:'', username:'', organization_name:'', client_type:'', assigned_stage:'' };
 
+const ROLE_CHOICES = {
+  customer: { l:'Customer', icon:'users', note:'Places bulk uniform orders. Needs an email address.' },
+  manager: { l:ROLE_CFG.manager.l, icon:'manager', note:'Runs the whole system and manages every account.' },
+  staff: { l:ROLE_CFG.staff.l, icon:'production', note:'Works one production stage. Email is optional.' },
+  owner: { l:ROLE_CFG.owner.l, icon:'reports', note:'Read-only view of the business. Email is optional.' },
+};
+
 export function CreateUserModal({ onClose, onDone, isMobile, adminRoles, initial }) {
   const [form, setForm] = useState({ ...INIT, ...initial });
+  // Callers with no role choice (Customers access requests) skip straight to the form.
+  const [picked, setPicked] = useState(!adminRoles.length);
   const [busy, setBusy] = useState(false);
   const [err,  setErr]  = useState('');
   const set = (k,v) => setForm(f => ({ ...f, [k]:v }));
@@ -57,21 +66,30 @@ export function CreateUserModal({ onClose, onDone, isMobile, adminRoles, initial
     finally { setBusy(false); }
   };
 
+  if (!picked) return (
+    <BottomSheet title="What type of account?" onClose={onClose} isMobile={isMobile} maxWidth={560}>
+      <div className="um-modal-grid2">
+        {['customer', ...adminRoles].map(r => (
+          <button key={r} type="button" className="um-role-pick" onClick={() => { set('role', r); setPicked(true); }}>
+            <NavIcon name={ROLE_CHOICES[r].icon} size={18} color="var(--teal)"/>
+            <b>{ROLE_CHOICES[r].l}</b>
+            <span>{ROLE_CHOICES[r].note}</span>
+          </button>
+        ))}
+      </div>
+    </BottomSheet>
+  );
+
   return (
     <BottomSheet title="Create User Account" onClose={onClose} isMobile={isMobile} maxWidth={500}>
         <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-          <div className="um-modal-grid2">
-            <div>
-              <label style={lbl}>Full name *</label>
-              <input value={form.name} onChange={e=>set('name',e.target.value)} placeholder="e.g. Roxanne" style={inp} onFocus={fi} onBlur={fo}/>
-            </div>
-            <div>
-              <label style={lbl}>Role</label>
-              <select value={form.role} onChange={e=>set('role',e.target.value)} style={{ ...inp, cursor:'pointer' }}>
-                <option value="customer">Customer</option>
-                {adminRoles.map(v => <option key={v} value={v}>{ROLE_CFG[v].l}</option>)}
-              </select>
-            </div>
+          <div className="um-role-chosen">
+            <span>{ROLE_CHOICES[form.role].l}</span>
+            {adminRoles.length > 0 && <button type="button" className="adm-btn" onClick={() => { setPicked(false); setErr(''); }}>Change</button>}
+          </div>
+          <div>
+            <label style={lbl}>Full name *</label>
+            <input value={form.name} onChange={e=>set('name',e.target.value)} placeholder="e.g. Roxanne" style={inp} onFocus={fi} onBlur={fo}/>
           </div>
           {form.role === 'staff' && <div>
               <label style={lbl}>Stage *</label>
@@ -347,7 +365,7 @@ export default function AdminUserManagement() {
         .um-clip{display:block;max-width:26ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--text-subtle)}
         .um-pick{display:flex;align-items:center;gap:11px;width:100%;min-height:44px;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
         .um-pick:focus-visible{outline:2px solid var(--border-focus);outline-offset:4px;border-radius:8px}
-        @media(min-width:1360px){
+        @media(min-width:1640px){
           .um-split{grid-template-columns:minmax(0,1fr) minmax(320px,380px)}
           .um-col-act{display:none}
           .um-row.sel td{background:var(--teal-50)}
@@ -380,9 +398,10 @@ export default function AdminUserManagement() {
         />
       )}
 
-      <PageHeader title="User Management" sub={`${users.length} admin accounts · Customers cannot sign up themselves; create their accounts here with Add User.`}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:12, marginBottom:16 }}>
+        <p className="adm-sub" style={{ margin:0, flex:'1 1 280px' }}>{users.length} admin accounts · Customers cannot sign up themselves; create their accounts here with Add User.</p>
         <button className="adm-btn primary" onClick={() => setModal(true)}><NavIcon name="add" size={14} color="currentColor" /> Add User</button>
-      </PageHeader>
+      </div>
 
       {toggleErr && <div style={{ marginBottom:14 }}><ErrorBlock msg={toggleErr} /></div>}
       {loadErr && <div style={{ marginBottom:14 }}><ErrorBlock msg="Could not load users." onRetry={() => load(true)} /></div>}
