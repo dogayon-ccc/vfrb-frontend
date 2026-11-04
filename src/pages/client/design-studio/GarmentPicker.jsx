@@ -17,7 +17,7 @@ import { CUSTOM_TOP, CUSTOM_BOTTOM, CUSTOM_SKIRT, CUSTOM_BADGE, DEFAULT_CUSTOM, 
 import { CustomControls, CustomNote } from './BuildYourOwn';
 import { peekStudioCategory, clearStudioCategory } from '../../../utils/studioIntent';
 import { garmentLabel } from '../../../utils/designName';
-import { REF_NOT_FULL_SET } from './referenceSketch';
+import { PERSON_UNCHECKED_2D, PERSON_CHECKING } from './personDetector';
 
 const ReferenceModel3D = lazy(() => import('./ReferenceModel3D'));
 const CAT_SHORT = { 'School Uniform': 'School', 'Medical / Scrubs': 'Medical', 'Hospitality / Service': 'Hospitality', 'Industrial / Work': 'Industrial' };
@@ -484,7 +484,7 @@ function ArtScope({ value, onChange }) {
   );
 }
 
-export default function GarmentPicker({ tab = 'inspiration', inline = false, cfg, pieceRole = null, onPickPhoto, onPick3D, onPickFamily, onPairFamily = null, onUpload, pendingArt, onCancelArt, onSketchArt = null, artRefused = false, onAttachRefused = null, referenceName = null, artScope = null, onArtScope = null, onClose = null, extra = null }) {
+export default function GarmentPicker({ tab = 'inspiration', inline = false, cfg, pieceRole = null, onPickPhoto, onPick3D, onPickFamily, onPairFamily = null, onUpload, pendingArt, onCancelArt, onSketchArt = null, artRefused = null, artChecking = false, onAttachRefused = null, referenceName = null, artScope = null, onArtScope = null, onClose = null, extra = null }) {
   // A landing tile's category (studioIntent.js) opens the scratch list filtered to it; an unknown id is ignored.
   const [startCat] = useState(() => { const c = inline && !cfg.garment ? peekStudioCategory() : null; return CATALOG.some(x => x.id === c) ? c : null; });
   useEffect(clearStudioCategory, []);
@@ -496,14 +496,15 @@ export default function GarmentPicker({ tab = 'inspiration', inline = false, cfg
         {artRefused && (
           <div className="ds-status" data-phase="error" role="alert">
             <div className="ds-status-row"><strong>Upload not accepted</strong></div>
-            <p className="ds-note">{REF_NOT_FULL_SET}</p>
+            <p className="ds-note">{artRefused}</p>
             <div className="ds-status-actions">
+              {artRefused === PERSON_UNCHECKED_2D && <button type="button" className="ds-btn" onClick={onSketchArt}>Check again</button>}
               <UploadButton onUpload={onUpload} label="Choose another photo"/>
               <button type="button" className="ds-btn" onClick={onAttachRefused}>Attach as reference</button>
             </div>
           </div>
         )}
-        {onSketchArt && !artRefused && <p><button type="button" className="ds-btn" onClick={onSketchArt}><PencilRuler size={15} aria-hidden="true"/>Create a 2D garment from this photo</button> <span className="ds-note">Reads the outline into an editable sketch you confirm (2D only).</span></p>}</>
+        {onSketchArt && !artRefused && <p><button type="button" className="ds-btn" onClick={onSketchArt} disabled={artChecking}><PencilRuler size={15} aria-hidden="true"/>Create a 2D garment from this photo</button> <span className="ds-note" role="status">{artChecking ? PERSON_CHECKING : 'Reads the outline into an editable sketch you confirm (2D only).'}</span></p>}</>
     : <><p>Real uniforms we have made, or a VFRB template.</p>{referenceName && <p className="ds-note">Reference photo attached: {referenceName}. It goes with your order.</p>}</>;
   const head = legend => <Head title={title} sub={sub} onClose={onClose} view={view} setView={setView} legend={legend} onUpload={pendingArt ? null : onUpload}/>;
   // Compact header once the picker's scroll box (the inline stage or the modal) has scrolled. The gap between the two thresholds, with

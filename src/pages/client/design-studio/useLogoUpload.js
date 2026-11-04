@@ -9,6 +9,7 @@ import { setDesignRef, peekDesignRef } from '../../../utils/studioHandoff';
 import { checkUpload } from '../../../utils/fileCheck';
 import { useReferenceRules } from '../../../utils/uploadRules';
 import { analyzeImageFile, sketchFromAnalysis, REF_NOT_FULL_SET } from './referenceSketch';
+import { checkPerson, personGate, PERSON_REFUSED } from './personDetector';
 
 const IDLE = { phase: 'idle' };
 // Background removal is fetched on first use, not with the Studio.
@@ -45,6 +46,10 @@ export function useLogoUpload(addLogo, { onTrace = null, onSketch = null, onAban
     setStatus({ phase: 'done', preview: dataUrl, artwork: art, ...info });
   }, [addLogo, placement, kind]);
 
+  const runPersonCheck = useCallback((prep) => {
+    checkPerson(prep.file).then(person => setStatus(s => (s.phase === 'review' && s.prep === prep ? { ...s, person } : s)));
+  }, []);
+
   // Artwork: remove the background ('auto' instant/offline, or 'ai' when asked), then wait for the customer's choice.
   const review = useCallback(async (prep, method = 'auto', prev = null) => {
     setStatus({ phase: 'working', method, fileName: prep.original.name, progress: null });
@@ -53,9 +58,10 @@ export function useLogoUpload(addLogo, { onTrace = null, onSketch = null, onAban
     const removed = res.status === 'removed';
     setStatus({ phase: 'review', prep, fileName: prep.original.name, before: prev?.before ?? keepUrl(prep.file),
       after: removed ? keepUrl(res.file) : null, cut: removed ? res.file : null, removeBg: removed, method,
-      note: res.message, canAi: !removed && method !== 'ai' && (res.code === 'NO_SOLID_BG' || res.code === 'OVER_REMOVED'), useAs: prev?.useAs ?? nextUseAs.current });
+      note: res.message, canAi: !removed && method !== 'ai' && (res.code === 'NO_SOLID_BG' || res.code === 'OVER_REMOVED'), useAs: prev?.useAs ?? nextUseAs.current, person: prev?.person ?? 'checking', uniformOk: prev?.uniformOk });
     nextUseAs.current = 'artwork';
-  }, []);
+    if (!prev) runPersonCheck(prep);
+  }, [runPersonCheck]);
 
   const run = useCallback(async (file, runMode = mode) => {
     if (!file || busy.current) return;
@@ -73,14 +79,17 @@ export function useLogoUpload(addLogo, { onTrace = null, onSketch = null, onAban
       const prep = await prepareUpload(file, kind === 'artwork' ? 'artwork' : 'logo');
       if (!prep.ok) { setStatus({ phase: 'error', code: prep.code, message: prep.message, fileName: file.name }); return; }
       if (kind === 'artwork') { await review(prep); return; }
+      const person = await checkPerson(prep.file);
+      if (person === 'person') { setStatus({ phase: 'error', code: 'PERSON', message: PERSON_REFUSED, fileName: file.name, prep }); return; }
+      const warned = (m) => [m, personGate('artwork', person).message].filter(Boolean).join(' ');
       if (prep.rasterised || runMode === 'off') {
-        await place(prep.file, { method: 'none', fileName: file.name, message: prep.rasterised ? 'SVG converted to a transparent PNG (scripts and links are never kept).' : 'Added as-is (background removal is off).' });
+        await place(prep.file, { method: 'none', fileName: file.name, message: warned(prep.rasterised ? 'SVG converted to a transparent PNG (scripts and links are never kept).' : 'Added as-is (background removal is off).') });
         return;
       }
       setStatus({ phase: 'working', method: runMode, fileName: file.name, progress: null });
       const res = await processLogo(prep.file, { mode: runMode, onProgress: (progress) => setStatus((s) => (s.phase === 'working' ? { ...s, progress } : s)) });
       if (res.status === 'failed') { setStatus({ phase: 'error', code: res.code, message: res.message, method: runMode, file: prep.file, fileName: file.name }); return; }
-      await place(res.file, { method: res.method, message: res.message, fileName: file.name, changed: res.status === 'removed' });
+      await place(res.file, { method: res.method, message: warned(res.message), fileName: file.name, changed: res.status === 'removed' });
     } catch (e) {
       setStatus({ phase: 'error', code: 'UNKNOWN', message: e?.message || 'Something went wrong.', method: runMode, file, fileName: file.name });
     } finally {
@@ -92,6 +101,11 @@ export function useLogoUpload(addLogo, { onTrace = null, onSketch = null, onAban
   const setRemoveBg = useCallback((on) => setStatus(s => (s.phase === 'review' && s.cut ? { ...s, removeBg: on } : s)), []);
   const setUseAs = useCallback((useAs) => setStatus(s => (s.phase === 'review' ? { ...s, useAs } : s)), []);
   const setUniformOk = useCallback((uniformOk) => setStatus(s => (s.phase === 'review' ? { ...s, uniformOk } : s)), []);
+  const recheckPerson = useCallback(() => {
+    if (status.phase !== 'review') return;
+    setStatus(s => ({ ...s, person: 'checking' }));
+    runPersonCheck(status.prep);
+  }, [status, runPersonCheck]);
   const tryAi = useCallback(async () => {
     if (status.phase !== 'review' || busy.current) return;
     busy.current = true;
@@ -102,6 +116,7 @@ export function useLogoUpload(addLogo, { onTrace = null, onSketch = null, onAban
     busy.current = true;
     const s = status;
     try {
+      if (personGate(s.useAs, s.person).blocked) return;
       if (s.useAs === 'trace') { // the original (never the cut-out): tracing follows the real photo
         const src = await toDataUrl(s.prep.file);
         onTrace?.({ src, name: s.fileName });
@@ -164,11 +179,11 @@ export function useLogoUpload(addLogo, { onTrace = null, onSketch = null, onAban
     return null;
   }, [attachReference]);
   const attachRefused = useCallback(async () => {
-    if (status.code !== 'NOT_SET') return;
+    if (status.code !== 'NOT_SET' && status.code !== 'PERSON') return;
     attachReference(await referenceFile(status.prep));
     dismiss();
   }, [status, attachReference, dismiss]);
 
   return { mode, setMode, kind, setKind, placement, setPlacement, status, upload: run, reference, refRules, removeReference, attachPhoto, attachRefused, addOriginal, retry, dismiss, setRemoveBg, setUseAs, tryAi, confirm,
-    setSketchKind, setSketchDraft, createSketch, setUniformOk, preferUseAs: (v) => { nextUseAs.current = v; }, canTrace: !!onTrace, canSketch: !!onSketch };
+    setSketchKind, setSketchDraft, createSketch, setUniformOk, recheckPerson, preferUseAs: (v) => { nextUseAs.current = v; }, canTrace: !!onTrace, canSketch: !!onSketch };
 }

@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { NavIcon } from '../../../components/ui/icons';
 import { placementsFor } from './dsShared';
 import { REF_KINDS, REF_SKETCH_LABEL, REF_SKETCH_NOTE, REF_3D_NOTE, REF_UNIFORM_CONFIRM } from './referenceSketch';
+import { personGate } from './personDetector';
 import { CustomControls } from './BuildYourOwn';
 import { customPaths } from './garmentPaths';
 import GarmentThumb from './GarmentThumb';
@@ -67,7 +68,7 @@ function StatusCard({ logo, onBrowse }) {
     const canAi = mode !== 'ai' && (s.code === 'NO_SOLID_BG' || s.code === 'OVER_REMOVED');
     return (
       <div className="ds-status" data-phase="error" role="alert">
-        <div className="ds-status-row"><NavIcon name="warning" size={16}/><strong>{['TYPE', 'SIZE', 'SMALL', 'DECODE', 'READ', 'EMPTY', 'NOT_SET'].includes(s.code) ? 'Upload not accepted' : 'Background not removed'}</strong></div>
+        <div className="ds-status-row"><NavIcon name="warning" size={16}/><strong>{['TYPE', 'SIZE', 'SMALL', 'DECODE', 'READ', 'EMPTY', 'NOT_SET', 'PERSON'].includes(s.code) ? 'Upload not accepted' : 'Background not removed'}</strong></div>
         <p className="ds-note">{s.message}</p>
         {s.file && (
           <div className="ds-status-actions">
@@ -76,7 +77,7 @@ function StatusCard({ logo, onBrowse }) {
             <button type="button" className="ds-btn" onClick={addOriginal}>Add original anyway</button>
           </div>
         )}
-        {s.code === 'NOT_SET' && (
+        {(s.code === 'NOT_SET' || s.code === 'PERSON') && (
           <div className="ds-status-actions">
             <button type="button" className="ds-btn ds-btn--primary" onClick={onBrowse}>Choose another photo</button>
             <button type="button" className="ds-btn" onClick={logo.attachRefused}>Attach as reference</button>
@@ -96,6 +97,7 @@ function StatusCard({ logo, onBrowse }) {
       ['reference', 'Attach a reference photo to my order', 'Sent with your order as its reference image; not printed', 'Attach as reference', true],
     ].filter(o => o[4]);
     const action = USE_AS.find(o => o[0] === s.useAs)?.[3] ?? 'Add to garment';
+    const gate = personGate(s.useAs, s.person);
     return (
       <div className="ds-status" data-phase="review" role="group" aria-label="Check your upload">
         <div className="ds-status-row"><strong>Check your upload</strong><span className="ds-note" style={{ marginLeft: 'auto' }}>{s.fileName}</span></div>
@@ -118,8 +120,10 @@ function StatusCard({ logo, onBrowse }) {
           <label className="ds-switch"><input type="checkbox" checked={!!s.uniformOk} onChange={e => logo.setUniformOk(e.target.checked)}/><span>{REF_UNIFORM_CONFIRM}</span></label>
           <p className="ds-note">{REF_3D_NOTE}</p>
         </>}
+        {gate.message && <p className="ds-note" role="status">{gate.message}</p>}
         <div className="ds-status-actions">
-          <button type="button" className="ds-btn ds-btn--primary" onClick={logo.confirm} disabled={s.useAs === 'sketch' && !s.uniformOk}>{action}</button>
+          <button type="button" className="ds-btn ds-btn--primary" onClick={logo.confirm} disabled={gate.blocked || (s.useAs === 'sketch' && !s.uniformOk)}>{action}</button>
+          {s.person === 'failed' && <button type="button" className="ds-btn" onClick={logo.recheckPerson}>Check again</button>}
           <button type="button" className="ds-btn" onClick={dismiss}>Cancel</button>
         </div>
       </div>

@@ -8,7 +8,8 @@
 //            font selector, Pollinations.ai texture, Save Design
 
 import { stashStudioConfig, draftFingerprint, clearStudioHandoff, discardDraft } from '../../utils/studioHandoff';
-import { analyzeImageFile } from './design-studio/referenceSketch';
+import { analyzeImageFile, REF_NOT_FULL_SET } from './design-studio/referenceSketch';
+import { checkPerson, personGate } from './design-studio/personDetector';
 import { garmentLabel } from '../../utils/designName';
 import {
   useState, useEffect, useRef, useCallback, useMemo,
@@ -543,17 +544,25 @@ export default function DesignStudio() {
   // "Upload my design": the file waits until a garment is chosen, then goes through the normal upload as artwork.
   const [pendingArt, setPendingArt] = useState(null);
   const [artScope, setArtScope] = useState(null); // what the uploaded photo shows: 'top' | 'bottom' | 'set' | null (not said)
-  const [artRefused, setArtRefused] = useState(false);
-  const startUpload = useCallback((file) => { logoUpload.setKind('artwork'); setArtScope(null); setArtRefused(false); setPendingArt(file); }, [logoUpload]);
+  const [artRefused, setArtRefused] = useState(null); // the reason shown when "Create a 2D garment" is refused
+  const [artChecking, setArtChecking] = useState(false);
+  const pendingArtRef = useRef(null);
+  pendingArtRef.current = pendingArt;
+  const startUpload = useCallback((file) => { logoUpload.setKind('artwork'); setArtScope(null); setArtRefused(null); setPendingArt(file); }, [logoUpload]);
   const uploadSketch = useRef(null); // set while a Custom Top exists only for a pending photo: { offer } is the draft offer it retired
   const attachRefusedArt = useCallback(async () => {
     const bad = await logoUpload.attachPhoto(pendingArt);
     if (bad) { flashError(bad); return; }
-    setPendingArt(null); setArtRefused(false);
+    setPendingArt(null); setArtRefused(null);
   }, [logoUpload, pendingArt, flashError]);
-  // From the picker: the photo is read first, so a refused one never creates a garment. An accepted one opens a custom top for the review.
+  // From the picker: the photo is checked first, so a refused one never creates a garment. An accepted one opens a custom top for the review.
   const sketchPending = useCallback(async () => {
-    if (!await analyzeImageFile(pendingArt).catch(() => null)) { setArtRefused(true); return; }
+    setArtRefused(null); setArtChecking(true);
+    const gate = personGate('sketch', await checkPerson(pendingArt));
+    setArtChecking(false);
+    if (pendingArtRef.current !== pendingArt) return; // cancelled or replaced during the check
+    if (gate.blocked) { setArtRefused(gate.message); return; }
+    if (!await analyzeImageFile(pendingArt).catch(() => null)) { setArtRefused(REF_NOT_FULL_SET); return; }
     uploadSketch.current = { offer: pendingDraft };
     logoUpload.preferUseAs('sketch'); setArtScope(null); openSketch({ garment: CUSTOM_TOP, sleeve: 'Short', custom: null });
   }, [logoUpload, openSketch, pendingArt, pendingDraft]);
@@ -1071,8 +1080,8 @@ export default function DesignStudio() {
             blank={<GarmentPicker inline cfg={cfg} pieceRole={uset?.active ?? (pendingArt && artScope ? (artScope === 'bottom' ? 'bottom' : 'top') : null)} onPickPhoto={pickPhoto}
               onPick3D={(d, f) => { keep3DRef.current = true; pickPhoto(d, f); setHas3DLoaded(true); setViewMode('3d'); }}
               onPickFamily={(fam, category, pick) => selectFamily(setCfg, fam, category, pick)}
-              onUpload={startUpload} pendingArt={pendingArt} onCancelArt={() => { setPendingArt(null); setArtRefused(false); }} onSketchArt={REF_PHOTO_TOOLS ? sketchPending : null}
-              artRefused={artRefused} onAttachRefused={attachRefusedArt} referenceName={logoUpload.reference?.name}
+              onUpload={startUpload} pendingArt={pendingArt} onCancelArt={() => { setPendingArt(null); setArtRefused(null); }} onSketchArt={REF_PHOTO_TOOLS ? sketchPending : null}
+              artRefused={artRefused} artChecking={artChecking} onAttachRefused={attachRefusedArt} referenceName={logoUpload.reference?.name}
               artScope={artScope} onArtScope={uset ? null : setArtScope}/>} setViewMode={setViewMode}
             viewOpen={viewOpen} setViewOpen={setViewOpen} setCompanion={setCompanion} showSet={showSet} setSnapOptions={setSnapOptions} trace={trace} clearSelection={clearSelection}/>
         </div>

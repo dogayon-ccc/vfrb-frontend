@@ -17,6 +17,7 @@
     "framer-motion": "^10.18.0",
     "lucide-react": "^0.383.0",
     "maath": "^0.5.3",
+    "onnxruntime-web": "1.20.0-dev.20240908-de7a02beef",
     "react": "^18.2.0",
     "react-color": "^2.19.3",
     "react-dom": "^18.2.0",
