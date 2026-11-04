@@ -1015,9 +1015,9 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && ['DeliveryTracking', 'Reports'].every(f => /<OrderLink id=\{/.test(rd(`../src/pages/admin/${f}.jsx`)))
     && !/#\{d\.order_id\}<\/td>|Order #\{item\.order_id\}<\/span>|#\{affected\.slice/.test(['DeliveryTracking', 'Reports'].map(f => rd(`../src/pages/admin/${f}.jsx`)).join('\n')));
   const PR = await L('/src/utils/passwordRules.js'), as = rd('../src/pages/admin/Settings.jsx'), ps = rd('../src/pages/client/settings/ProfileSection.jsx');
-  t('one password rule for customer and admin panels (8+, upper and lower case, number, symbol), admin Settings has its own Password panel calling PUT /api/admin/profile/password; no profile edit or session logout',
+  t('one password rule for customer and admin panels (8+, upper and lower case, number, symbol), admin Settings has its own Password panel calling PUT /api/account/password; no profile edit or session logout',
     PR.passwordOk('Abcdef1!') && !PR.passwordOk('abcdef1!') && !PR.passwordOk('Abcdefg!') && !PR.passwordOk('Abcdefg1') && !PR.passwordOk('Ab1!') && PR.passwordLevel('') === 1 && PR.passwordLevel('Abcdef1!') === 4
-    && /axios\.put\('\/api\/admin\/profile\/password', pw\)/.test(as) && /passwordOk\(pw\.password\)/.test(as) && /passwordOk\(pw\.password\)/.test(ps) && /autoComplete="current-password"/.test(as)
+    && /axios\.put\('\/api\/account\/password', pw\)/.test(as) && /passwordOk\(pw\.password\)/.test(as) && /passwordOk\(pw\.password\)/.test(ps) && /autoComplete="current-password"/.test(as)
     && !/admin\/profile'|logout-other|other-sessions/.test(as));
   t('email preference copy says "test inbox" (no provider name) and the validation docs no longer name Mailtrap',
     /test inbox/.test(as) && /test inbox/.test(rd('../src/pages/client/AccountSettings.jsx')) && !/mailtrap/i.test(as + rd('../docs/validation/SURVEY-EVIDENCE-MATRIX.md') + rd('../docs/validation/VALIDATOR-RUNBOOK.md')));
@@ -1036,10 +1036,10 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const JA = await L('/src/utils/jobAccess.js'), AR = await L('/src/utils/authRoute.js');
   const rdo = q => fsx.readFileSync(urlx.fileURLToPath(new URL(q, import.meta.url)), 'utf8');
   const owner = { role: 'owner' };
-  t('owner pages: exactly the backend read-only areas (invoice = the page over the orders API); everything else is closed',
-    JA.OWNER_PAGES.join() === 'dashboard,orders,reports,transactions,invoice,inventory,materials,activity-log,audit-logs'
+  t('owner pages: the backend read-only areas (invoice = the page over the orders API) plus Settings for their own account; everything else is closed',
+    JA.OWNER_PAGES.join() === 'dashboard,orders,reports,transactions,invoice,inventory,materials,activity-log,audit-logs,settings'
     && ['/admin', '/admin/dashboard', '/admin/orders/12', '/admin/reports', '/admin/transactions', '/admin/invoice?x=1', '/admin/inventory', '/admin/materials', '/admin/activity-log', '/admin/audit-logs'].every(JA.ownerCanOpen)
-    && !['/admin/users', '/admin/settings', '/admin/production', '/admin/procurement', '/admin/physical-count', '/admin/delivery', '/admin/messages', '/admin/customers', '/admin/suppliers', '/admin/qc'].some(JA.ownerCanOpen)
+    && !['/admin/users', '/admin/production', '/admin/procurement', '/admin/physical-count', '/admin/delivery', '/admin/messages', '/admin/customers', '/admin/suppliers', '/admin/qc'].some(JA.ownerCanOpen)
     && JA.isOwner(owner) && !JA.isOwner({ role: 'manager' }) && JA.canAccessArea(owner, 'inventory') && !JA.canAccessArea(owner, 'production'));
   const app = rdo('../src/App.jsx'), lay = rdo('../src/layouts/AdminLayout.jsx'), login = rdo('../src/pages/auth/Login.jsx');
   t('owner routing: signs in to the admin portal and lands on the shared dashboard; the shell gates every admin page with canOpen; reports/activity-log/audit-logs/invoice open to owner through RequireManager, feedback/suppliers/users do not',
@@ -1571,9 +1571,9 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const st = { role: 'staff', assigned_stage: 'cutting' }, inv = rd('../src/pages/admin/Inventory.jsx'), od = rd('../src/pages/admin/OrderDetail.jsx'), se = rd('../src/pages/admin/Settings.jsx'), lay = rd('../src/layouts/AdminLayout.jsx');
   t('station: Inventory hides Export CSV/PDF and the Transaction log tab; Order detail hides Client materials',
     /\{!isStation\(\) && <>\s*<button[^\n]*exportStock\('csv'\)[\s\S]*?Export PDF'\}<\/button>\s*<\/>\}/.test(inv) && /isStation\(\) \? \[\] : \[\{ key:'logs'/.test(inv) && /tab==='logs' && !isStation\(\)/.test(inv) && /\{!isStation\(\) && <ClientMaterialsPanel/.test(od));
-  t('station: can open /admin/settings for the Password section only (no settings fetches); manager and owner unchanged',
-    JA.canOpen('/admin/settings', st) && JA.STATION_SETTINGS.join() === 'password' && /filter\(\(\[k\]\) => !station \|\| STATION_SETTINGS\.includes\(k\)\)/.test(se) && /if \(station\) return;\s*loadCompany/.test(se)
-    && JA.canOpen('/admin/settings', { role: 'manager' }) && !JA.canOpen('/admin/settings', { role: 'owner' }) && !JA.canOpen('/admin/materials', st));
+  t('station: can open /admin/settings for the Password section only (no settings fetches); owner gets their own-account tabs only and no company fetch',
+    JA.canOpen('/admin/settings', st) && JA.STATION_SETTINGS.join() === 'password' && /filter\(\(\[k\]\) => !station \|\| STATION_SETTINGS\.includes\(k\)\)/.test(se) && /if \(station\) return;\s*if \(!owner\) loadCompany/.test(se) && /OWNER_TABS = \['profile', 'notify', 'password'\]/.test(se)
+    && JA.canOpen('/admin/settings', { role: 'manager' }) && JA.canOpen('/admin/settings', { role: 'owner' }) && !JA.canOpen('/admin/materials', st));
   t('station: sidebar footer role label wraps in full', JA.roleLabel(st) === 'Administrator (Station) · Cutting' && /\.adm-sb-user small \{[^}]*overflow-wrap: anywhere[^}]*\}/.test(lay) && !/\.adm-sb-user small \{[^}]*ellipsis/.test(lay));
 }
 { // Login "Request access": the honeypot is off-screen and unfocusable, and the POST carries only the five form fields

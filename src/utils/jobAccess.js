@@ -7,7 +7,7 @@ const pageKey = (path) => String(path).replace(/^\/admin\/?/, '').split(/[/?#]/)
 
 // Owner: read-only admin. Mirrors backend OwnerReadOnly::AREAS (GET only; every write is refused with 403).
 // Keys are the first path segment after /admin/; 'invoice' is the page that reads the orders API.
-export const OWNER_PAGES = ['dashboard', 'orders', 'reports', 'transactions', 'invoice', 'inventory', 'materials', 'activity-log', 'audit-logs'];
+export const OWNER_PAGES = ['dashboard', 'orders', 'reports', 'transactions', 'invoice', 'inventory', 'materials', 'activity-log', 'audit-logs', 'settings'];
 export const isOwner = (user = readAdminUser()) => user?.role === 'owner';
 export const ownerCanOpen = (path) => OWNER_PAGES.includes(pageKey(path));
 // Only the Administrator (Manager) writes; the Owner reads.

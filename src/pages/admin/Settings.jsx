@@ -19,10 +19,13 @@ const NOTIFY = [
     warn: 'The mail server is a test inbox, so no real email is sent yet. Your preference is saved for when VFRB connects its mail provider.' },
 ];
 
+// The owner cannot read company, AI or user settings from the API; these three are their own account.
+const OWNER_TABS = ['profile', 'notify', 'password'];
+
 const Field = ({ label, id, children }) => (<div><label className="adm-field" htmlFor={id}>{label}</label>{children}</div>);
 
 const BLANK_PW = { current_password: '', password: '', password_confirmation: '' };
-// The signed-in admin's own password (PUT /api/admin/profile/password; same rules as customers).
+// The signed-in admin's own password (PUT /api/account/password; same rules as customers).
 function PasswordPanel({ setToast }) {
   const [pw, setPw] = useState(BLANK_PW);
   const [busy, setBusy] = useState(false);
@@ -34,17 +37,15 @@ function PasswordPanel({ setToast }) {
     if (!passwordOk(pw.password)) return setErr(PASSWORD_RULE_TEXT);
     if (pw.password !== pw.password_confirmation) return setErr('The new passwords do not match.');
     setBusy(true);
-    try { await axios.put('/api/admin/profile/password', pw); setPw(BLANK_PW); setToast({ msg: 'Password changed.', type: 'success' }); }
+    try { await axios.put('/api/account/password', pw); setPw(BLANK_PW); setToast({ msg: 'Password changed.', type: 'success' }); }
     catch (e) { setErr(e.response?.data?.message ?? 'Could not change the password.'); }
     finally { setBusy(false); }
   };
   return (
-    <Panel title="Password" subtitle={`Change the password you sign in with. ${PASSWORD_RULE_TEXT}`}
+    <Panel title="Password" subtitle={PASSWORD_RULE_TEXT}
       action={<button className="adm-btn primary" onClick={save} disabled={busy}>{busy ? 'Changing…' : 'Change password'}</button>}>
       <div className="set-form">
-        <div className="set-grid">
-          <Field label="Current password" id="pw-current"><input id="pw-current" className="adm-input" type="password" autoComplete="current-password" value={pw.current_password} onChange={set('current_password')} /></Field>
-        </div>
+        <Field label="Current password" id="pw-current"><input id="pw-current" className="adm-input" type="password" autoComplete="current-password" value={pw.current_password} onChange={set('current_password')} /></Field>
         <div className="set-grid">
           <Field label="New password" id="pw-new"><input id="pw-new" className="adm-input" type="password" autoComplete="new-password" value={pw.password} onChange={set('password')} aria-describedby="pw-strength" /></Field>
           <Field label="Confirm new password" id="pw-confirm"><input id="pw-confirm" className="adm-input" type="password" autoComplete="new-password" value={pw.password_confirmation} onChange={set('password_confirmation')} /></Field>
@@ -56,6 +57,47 @@ function PasswordPanel({ setToast }) {
           </div>
         )}
         {err && <p role="alert" style={{ margin: 0, fontSize: 13, color: 'var(--danger-text)' }}>{err}</p>}
+      </div>
+    </Panel>
+  );
+}
+
+// The signed-in admin's own email and username (PUT /api/account/login). An email is what makes Forgot password work.
+function SignInPanel({ me, onSaved, setToast }) {
+  const [form, setForm] = useState({ email: me.email ?? '', username: me.username ?? '', current_password: '' });
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const set = k => e => { setForm(f => ({ ...f, [k]: e.target.value })); setErr(''); };
+  const save = async () => {
+    if (!form.current_password) return setErr('Enter your current password to save.');
+    setBusy(true);
+    try {
+      // Only what changed, so a stale browser copy can never overwrite the saved email or username.
+      const body = { current_password: form.current_password };
+      ['email', 'username'].forEach((k) => { if (form[k].trim() !== (me[k] ?? '')) body[k] = form[k]; });
+      const r = await axios.put('/api/account/login', body);
+      onSaved(r.data); setForm(f => ({ ...f, current_password: '' })); setToast({ msg: 'Sign-in details saved.', type: 'success' });
+    } catch (e) { setErr(e.response?.data?.message ?? 'Could not save your sign-in details.'); }
+    finally { setBusy(false); }
+  };
+  const sendLink = async () => {
+    setBusy(true);
+    try { await axios.post('/api/password/forgot', { email: me.email }); setToast({ msg: `Reset link sent to ${me.email}.`, type: 'success' }); }
+    catch (e) { setErr(e.response?.data?.message ?? 'Could not send the reset link.'); }
+    finally { setBusy(false); }
+  };
+  return (
+    <Panel title="Sign-in details" subtitle="Sign in with your email or your username."
+      action={<button className="adm-btn primary" onClick={save} disabled={busy}>{busy ? 'Saving…' : 'Save details'}</button>}>
+      <div className="set-form">
+        {!me.email && <Banner tone="warn" icon="warning">No email on this account. Add one to reset a forgotten password yourself and to get email notifications. Without it, only a manager can reset your password.</Banner>}
+        <div className="set-grid">
+          <Field label="Email (optional)" id="me-email"><input id="me-email" className="adm-input" type="email" autoComplete="email" value={form.email} onChange={set('email')} /></Field>
+          <Field label="Username" id="me-username"><input id="me-username" className="adm-input" autoComplete="username" value={form.username} onChange={set('username')} /></Field>
+        </div>
+        <Field label="Current password" id="me-current"><input id="me-current" className="adm-input" type="password" autoComplete="current-password" value={form.current_password} onChange={set('current_password')} /></Field>
+        {err && <p role="alert" style={{ margin: 0, fontSize: 13, color: 'var(--danger-text)' }}>{err}</p>}
+        {me.email && <div><button type="button" className="adm-btn" onClick={sendLink} disabled={busy}>Email me a reset link</button></div>}
       </div>
     </Panel>
   );
@@ -75,15 +117,22 @@ export default function Settings() {
   const [me, setMe] = useState(readUser);
   const fileRef = useRef(null);
   const station = isStation();
+  const owner = me.role === 'owner';
+  const saveMe = (patch) => setMe((u) => { const next = { ...u, ...patch }; localStorage.setItem('vfrb_user', JSON.stringify(next)); return next; });
 
   const loadCompany = () => {
     setCompanyLoading(true); setCompanyErr(false);
     axios.get('/api/admin/settings/company').then((r) => { setCompany(r.data); setSaved(r.data); })
       .catch(() => setCompanyErr(true)).finally(() => setCompanyLoading(false));
   };
+  // The browser copy of the account can be older than a manager's edit.
+  useEffect(() => {
+    axios.get('/api/user').then((r) => saveMe({ email: r.data.email, username: r.data.username })).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   useEffect(() => {
     if (station) return;
-    loadCompany();
+    if (!owner) loadCompany();
     axios.get('/api/settings/notifications').then((r) => setPrefs(r.data))
       .catch(() => setToast({ msg: 'Could not load notification preferences.', type: 'error' })).finally(() => setPrefsLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -135,8 +184,8 @@ export default function Settings() {
 
   const sections = [
     ['company', 'settings', 'Company'], ['profile', 'profile', 'Your profile'], ['notify', 'notifications', 'Notifications'],
-    ['password', 'lock', 'Password'], ['ai', 'ai', 'AI guidance'], ['users', 'users', 'User Management'],
-  ].filter(([k]) => !station || STATION_SETTINGS.includes(k)).filter(([k]) => k !== 'users' || isAdmin());
+    ['password', 'lock', 'Sign-in & security'], ['ai', 'ai', 'AI guidance'], ['users', 'users', 'User Management'],
+  ].filter(([k]) => !station || STATION_SETTINGS.includes(k)).filter(([k]) => !owner || OWNER_TABS.includes(k)).filter(([k]) => k !== 'users' || isAdmin());
   // One section at a time; ?tab= keeps it linkable and Back-able.
   const [params, setParams] = useSearchParams();
   const tab = sections.some(([k]) => k === params.get('tab')) ? params.get('tab') : sections[0][0];
@@ -177,7 +226,7 @@ export default function Settings() {
   return (
     <div className="set-wrap">
       <Toast toast={toast} />
-      <PageHeader title="Settings" sub={station ? 'Change the password you sign in with.' : 'Company identity, your account and system preferences.'} />
+      <PageHeader title="Settings" />
 
       <div className="set-layout">
         <nav ref={navRef} className="set-nav" data-fade={fade} onScroll={measure} role="tablist" aria-label="Settings sections" onKeyDown={onTabKey}>
@@ -225,16 +274,18 @@ export default function Settings() {
 
           {tab === 'profile' && (
             <Panel title="Your profile" subtitle="Your photo, display mode and accent colour. They apply only to your account.">
-              <ProfilePhotoField avatar={me.avatar} name={me.name} onChange={(avatar) => setMe((u) => ({ ...u, avatar }))} />
-              <div className="set-divider" />
-              <AppearanceField userId={me.user_id} />
+              <div className="set-two">
+                <ProfilePhotoField avatar={me.avatar} name={me.name} onChange={(avatar) => setMe((u) => ({ ...u, avatar }))} />
+                <AppearanceField userId={me.user_id} />
+              </div>
             </Panel>
           )}
 
           {tab === 'notify' && (
             <Panel title="Notifications" subtitle="How the system reaches you. Applies only to your account.">
+              {!me.email && <Banner tone="warn" icon="warning" action={<button className="adm-btn" onClick={() => pick('password')}>Add an email</button>}>This account has no email, so no email notifications can reach you.</Banner>}
               {prefsLoading ? <SkeletonRows rows={1} h={64} /> : NOTIFY.map((row, i) => {
-                const live = prefs[row.live]; const on = !!prefs[row.key];
+                const live = prefs[row.live]; const on = !!prefs[row.key] && !!me.email;
                 return (
                   <div key={row.key} className="set-pref" style={{ borderTop: i ? '1px solid var(--border)' : 'none' }}>
                     <span className="set-pref-ico"><NavIcon name={row.icon} size={18} color="currentColor" /></span>
@@ -246,14 +297,19 @@ export default function Settings() {
                       <p className="adm-sub" style={{ margin: '2px 0 0' }}>{row.note}</p>
                       {!live && <p className="set-pref-warn">{row.warn}</p>}
                     </div>
-                    <button role="switch" aria-checked={on} aria-label={row.label} className={`set-switch${on ? ' on' : ''}`} disabled={prefsBusy} onClick={() => togglePref(row.key)}><i /></button>
+                    <button role="switch" aria-checked={on} aria-label={row.label} className={`set-switch${on ? ' on' : ''}`} disabled={prefsBusy || !me.email} onClick={() => togglePref(row.key)}><i /></button>
                   </div>
                 );
               })}
             </Panel>
           )}
 
-          {tab === 'password' && <PasswordPanel setToast={setToast} />}
+          {tab === 'password' && (
+            <div className="set-two">
+              <SignInPanel key={`${me.email}|${me.username}`} me={me} onSaved={saveMe} setToast={setToast} />
+              <PasswordPanel setToast={setToast} />
+            </div>
+          )}
 
           {tab === 'ai' && <RecommendationGuidancePanel setToast={setToast} />}
           {tab === 'ai' && <AiQualityPanel />}

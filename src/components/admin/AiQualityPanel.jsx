@@ -42,7 +42,7 @@ export default function AiQualityPanel() {
 
   const o = data?.overall;
   return (
-    <Panel title="AI recommendation quality" style={{ marginTop: 16 }}>
+    <Panel title="AI recommendation quality">
       <p className="adm-sub" style={{ marginTop: -6 }}>
         How often staff and customers accept the materials the AI recommends. Materials customers picked themselves are not counted.
       </p>
