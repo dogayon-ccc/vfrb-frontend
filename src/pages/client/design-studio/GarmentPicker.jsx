@@ -18,6 +18,7 @@ import { CustomControls, CustomNote } from './BuildYourOwn';
 import { peekStudioCategory, clearStudioCategory } from '../../../utils/studioIntent';
 import { garmentLabel } from '../../../utils/designName';
 import { PERSON_UNCHECKED_2D, PERSON_CHECKING } from './personDetector';
+import { revealAlert } from './dsShared';
 
 const ReferenceModel3D = lazy(() => import('./ReferenceModel3D'));
 const CAT_SHORT = { 'School Uniform': 'School', 'Medical / Scrubs': 'Medical', 'Hospitality / Service': 'Hospitality', 'Industrial / Work': 'Industrial' };
@@ -494,7 +495,7 @@ export default function GarmentPicker({ tab = 'inspiration', inline = false, cfg
     ? <><p>Your file <strong>{pendingArt.name}</strong> goes on the garment you pick{artScope === 'set' ? '; pick the top and its bottom is added as a set' : ''}. <button type="button" className="ds-pick-link" onClick={onCancelArt}><X size={14} aria-hidden="true"/>Cancel upload</button></p>
         {onArtScope && <ArtScope value={artScope} onChange={onArtScope}/>}
         {artRefused && (
-          <div className="ds-status" data-phase="error" role="alert">
+          <div className="ds-status" data-phase="error" role="alert" tabIndex={-1} ref={revealAlert}>
             <div className="ds-status-row"><strong>Upload not accepted</strong></div>
             <p className="ds-note">{artRefused}</p>
             <div className="ds-status-actions">

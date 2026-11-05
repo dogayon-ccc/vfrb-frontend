@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { NavIcon } from '../../../components/ui/icons';
-import { placementsFor } from './dsShared';
+import { placementsFor, revealAlert } from './dsShared';
 import { REF_KINDS, REF_SKETCH_LABEL, REF_SKETCH_NOTE, REF_3D_NOTE, REF_UNIFORM_CONFIRM } from './referenceSketch';
 import { personGate } from './personDetector';
 import { CustomControls } from './BuildYourOwn';
@@ -67,7 +67,7 @@ function StatusCard({ logo, onBrowse }) {
   if (s.phase === 'error') {
     const canAi = mode !== 'ai' && (s.code === 'NO_SOLID_BG' || s.code === 'OVER_REMOVED');
     return (
-      <div className="ds-status" data-phase="error" role="alert">
+      <div className="ds-status" data-phase="error" role="alert" tabIndex={-1} ref={revealAlert}>
         <div className="ds-status-row"><NavIcon name="warning" size={16}/><strong>{['TYPE', 'SIZE', 'SMALL', 'DECODE', 'READ', 'EMPTY', 'NOT_SET', 'PERSON'].includes(s.code) ? 'Upload not accepted' : 'Background not removed'}</strong></div>
         <p className="ds-note">{s.message}</p>
         {s.file && (

@@ -295,3 +295,6 @@ export function hexToRgb(hex) {
   const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   return r ? `${parseInt(r[1],16)},${parseInt(r[2],16)},${parseInt(r[3],16)}` : '2,128,144';
 }
+
+// Ref for a refusal card: instant, so it needs no reduced-motion branch.
+export const revealAlert = el => { if (el) { el.scrollIntoView({ block: 'nearest' }); el.focus({ preventScroll: true }); } };
