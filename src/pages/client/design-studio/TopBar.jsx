@@ -30,7 +30,7 @@ function usePhone() {
 }
 
 // The one 2D | 3D switch: in the top bar, and on phones in the stage's top lane instead (CSS picks one), so the bar keeps room for the name.
-// The chip under the switch says what 3D this exact design has (label3D): "3D (approx.)" or "3D not available".
+// The chip beside the switch says what 3D this exact design has (label3D): "3D (approx.)" or "3D not available".
 export function ViewToggle({ cfg, viewMode, setViewMode, setHas3DLoaded }) {
   const no3D = !has3DFor(cfg);
   const pickView = (m) => { if (m === '3d') setHas3DLoaded(true); setViewMode(m); };
@@ -77,14 +77,14 @@ export default function TopBar({ nav, cfg, setCfg, undo, redo, canUndo, canRedo,
         ? <span className="ds-bar-save" role="status" title="Final designs are read-only"><span className="ds-bar-save-txt">{phone ? 'Final' : lock.orderId ? `Final for order #${lock.orderId}` : 'Final for its order'}</span></span>
         : status && <span className="ds-bar-save" role="status" aria-live="polite" data-tone={status.tone} title={status.long}><span className="ds-bar-save-dot" aria-hidden="true"/><span className="ds-bar-save-txt">{status.tone === 'err' && !phone ? status.long : status.short}</span></span>}
 
-      {!phone && !lock && (
+      {!phone && !lock && has && (
         <div className="ds-bar-group" role="group" aria-label="History">
           <button type="button" className="ds-bar-btn" onClick={undo} disabled={!canUndo} aria-label="Undo" title="Undo (Ctrl+Z)"><Undo2 size={18} strokeWidth={2} aria-hidden="true" /></button>
           <button type="button" className="ds-bar-btn" onClick={redo} disabled={!canRedo} aria-label="Redo" title="Redo (Ctrl+Y)"><Redo2 size={18} strokeWidth={2} aria-hidden="true" /></button>
         </div>
       )}
 
-      <ViewToggle cfg={cfg} viewMode={viewMode} setViewMode={setViewMode} setHas3DLoaded={setHas3DLoaded}/>
+      {has && <ViewToggle cfg={cfg} viewMode={viewMode} setViewMode={setViewMode} setHas3DLoaded={setHas3DLoaded}/>}
 
       {showcaseCount > 0 && !phone && (
         <button type="button" className="ds-bar-btn ds-bar-text" aria-pressed={showShowcase} aria-label="Showcase" title="Designs other customers chose to share" onClick={() => setShowShowcase(p => !p)}>
@@ -103,9 +103,8 @@ export default function TopBar({ nav, cfg, setCfg, undo, redo, canUndo, canRedo,
       <ActionMenu label="More: export and options" className="ds-bar-menu" drop="down" items={menu}/>
       {lock ? (
         <button type="button" className="ds-bar-primary" onClick={onReorder} data-view-only>Reorder</button>
-      ) : (
-        <button type="button" className="ds-bar-primary" onClick={orderThis} data-view-only disabled={!has || ordering} aria-busy={!!ordering}
-          title={has ? undefined : 'Pick a garment first'}>
+      ) : has && (
+        <button type="button" className="ds-bar-primary" onClick={orderThis} data-view-only disabled={ordering} aria-busy={!!ordering}>
           {ordering ? <><span className="ds-spin ds-spin--on-thread"/>Preparing…</> : <>{phone ? 'Review' : 'Review & order'}<ChevronRight size={16} aria-hidden="true"/></>}
         </button>
       )}

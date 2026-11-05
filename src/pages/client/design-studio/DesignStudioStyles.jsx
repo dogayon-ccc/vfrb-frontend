@@ -261,7 +261,7 @@ export default function DesignStudioStyles() {
         background:linear-gradient(var(--ds-mat-line) 1px,transparent 1px) 0 0/1cm 1cm,linear-gradient(90deg,var(--ds-mat-line) 1px,transparent 1px) 0 0/1cm 1cm,
           radial-gradient(ellipse 58% 52% at 50% 46%,var(--cx-stage-lit) 0%,var(--cx-stage) 72%);color:var(--cx-stage-ink);}
       .ds-cv[data-stage=dark]{--ds-mat:#1B2A4A;--ds-mat-lit:#3A5180;--ds-mat-line:transparent;--cx-stage-ink:#F4F5F2;--cx-stage-ink-2:#D8DCE4;}
-      .ds-cv[data-stage=dark] .ds-lane{--cx-card:#1B2A4A;--cx-paper:#16233F;--cx-paper-2:#16233F;--cx-line:#46587F;--cx-line-strong:#7686A6;--cx-ink:#F4F5F2;--cx-ink-2:#D8DCE4;--cx-ink-3:#B4BDCC;
+      .ds-cv[data-stage=dark] :is(.ds-lane,.ds-ruler,.ds-ruler-corner),.ds-pick[data-inline] .ds-pick-head{--cx-stage-ink:#F4F5F2;--cx-stage-ink-2:#D8DCE4;--cx-card:#1B2A4A;--cx-paper:#16233F;--cx-paper-2:#16233F;--cx-line:#46587F;--cx-line-strong:#7686A6;--cx-ink:#F4F5F2;--cx-ink-2:#D8DCE4;--cx-ink-3:#B4BDCC;
         --cx-hover:#2B3E66;--cx-thread:#C9A27A;--cx-thread-ink:#C9A27A;--cx-on-thread:#1B2A4A;--cx-thread-tint:rgb(201 162 122 / .16);}
       .ds-cv[data-stage=dark] .ds-lane :is(.ds-tools-btn[aria-pressed=true],.ds-guides-btn[aria-expanded=true]){background:#F4F5F2;border-color:#F4F5F2;color:#1B2A4A;}
       /* Stage lanes: chips, set bar, guides and 3D notes on top; zoom, Front/Back and the stage light below; the garment fits the area between */
@@ -993,7 +993,6 @@ export default function DesignStudioStyles() {
         .ds-lane-bottom .ds-stage-hint{display:none;}
         /* The garment gets the height: one-row top bar (3D status moves to the stage corner), tighter lanes, a shorter sheet */
         .ds-bar .ds-view-chip{display:none;}
-        .ds .ds-bar:has(.ds-view-chip){height:calc(56px + env(safe-area-inset-top,0px));}
         .ds-stage-badge{display:block;position:absolute;top:8px;left:8px;z-index:3;padding:2px 8px;border-radius:8px;pointer-events:none;
           background:var(--warning-bg,#fff4d6);color:var(--warning-text,#7a4b00);font:700 13px/18px var(--cx-sans);white-space:nowrap;}
         .ds-stage-badge[data-off]{background:var(--bg-surface);color:var(--text-muted);}
@@ -1087,7 +1086,9 @@ export default function DesignStudioStyles() {
       .ds-bar-view button+button::before{content:'';position:absolute;left:-2px;top:12px;bottom:12px;width:1px;background:var(--cx-line-strong);}
       .ds-view-chip{padding:0 8px;border-radius:8px;background:var(--warning-bg,#fff4d6);color:var(--warning-text,#7a4b00);font:700 13px/16px var(--cx-sans);white-space:nowrap;}
       .ds-view-chip.is-off{background:var(--bg-surface);color:var(--text-muted);}
-      .ds-bar:has(.ds-view-chip){height:calc(72px + env(safe-area-inset-top,0px));}
+      .ds-bar .ds-view-chip{padding:0;background:none;color:#C9A27A;}
+      .ds-bar .ds-view-chip.is-off{background:none;color:var(--cx-ink-2);}
+      .ds-bar .ds-view{flex-direction:row;align-items:center;gap:8px;}
       /* View menu sections (GuidesMenu.jsx) */
       .ds-guides-sec{margin:4px 8px 0;font:700 13px/1.4 var(--cx-sans);color:var(--cx-ink-2);}
       .ds-guides-base{margin:6px 8px 4px;padding-top:8px;border-top:1px solid var(--cx-line);font-size:13px;line-height:1.45;color:var(--cx-ink-2);}
@@ -1171,7 +1172,7 @@ export default function DesignStudioStyles() {
       .ds-pick-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;margin-top:4px;}
       .ds-pick-row .ds-pick-tabs{margin-top:0;}
       .ds-tab-short{display:none;}
-      .ds-pick-upbtn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border:1.5px dashed var(--cx-thread);border-radius:var(--cx-r-md);
+      .ds-pick-upbtn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border:1px solid var(--cx-thread);border-radius:var(--cx-r-md);
         background:var(--cx-card);color:var(--cx-thread-ink);font:700 13px var(--cx-sans);cursor:pointer;white-space:nowrap;}
       .ds-pick-upbtn[data-over]{border-style:solid;box-shadow:0 0 0 3px var(--cx-thread-ring);}
       .ds-pick-upbtn:focus-within{outline:2px solid var(--cx-thread-ink);outline-offset:2px;}
@@ -1204,8 +1205,35 @@ export default function DesignStudioStyles() {
         .ds-pick[data-compact] .ds-tab-short{display:inline;}
         .ds-pick[data-compact] .ds-pick-tabs button{padding:0 16px;}
       }
-      ::-webkit-scrollbar{width:3px;}
-      ::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:2px;}
+      .ds input[type=range]{min-width:44px;}
+      ::-webkit-scrollbar{width:8px;height:8px;}
+      ::-webkit-scrollbar-thumb{background:#7686A6;border-radius:4px;}
+
+      /* First-run picker: a navy header holds the three ways to start, the garments sit on chalk and use the stage's width. */
+      .ds-cv[data-first]{--ds-mat:#F4F5F2;--ds-mat-lit:#F4F5F2;}
+      .ds-pick[data-inline]{--ds-pick-pad:clamp(16px,4vw,48px);padding:0 var(--ds-pick-pad);}
+      .ds-pick[data-inline]>:is(.ds-pick-tools,.ds-pick-grid,.ds-pick-foot,.ds-pick-past){max-width:1240px;}
+      .ds-pick[data-inline] .ds-pick-grid{grid-template-columns:repeat(auto-fill,minmax(168px,1fr));}
+      .ds-pick[data-inline] .ds-pick-head{max-width:none;width:calc(100% + 2 * var(--ds-pick-pad));margin:0 calc(-1 * var(--ds-pick-pad));
+        padding:20px calc(var(--ds-pick-pad) + max(0px,(100% - 1240px) / 2)) 16px;align-items:flex-start;gap:8px;text-align:left;background:#1B2A4A;border-bottom:1px dashed rgb(201 162 122 / .55);}
+      .ds-pick[data-inline][data-compact] .ds-pick-head{padding-block:8px;}
+      .ds-pick[data-inline] .ds-pick-titlebar{display:block;}
+      .ds-pick[data-inline] .ds-pick-filters:not([open]){align-self:flex-start;}
+      .ds-pick[data-inline] .ds-pick-row{width:100%;justify-content:space-between;}
+      .ds-pick[data-inline] .ds-pick-legend{justify-content:flex-start;max-width:none;}
+      .ds-pick[data-inline] .ds-pick-tabs button[aria-selected=true]{background:#F4F5F2;color:#1B2A4A;}
+      .ds-pick[data-inline] .ds-pick-upbtn:hover{background:var(--cx-hover);}
+      .ds-pick[data-inline] .ds-pick-head .ds-note:not(.ds-status *){color:#D8DCE4;}
+      .ds-pick[data-inline] .ds-pick-head .ds-pick-frow{padding:4px 0;}
+      .ds-pick[data-inline] .ds-pick-head .ds-pick-frow>span{flex:0 0 auto;color:#D8DCE4;}
+      .ds-pick[data-inline]>:is(.ds-chips,.ds-pick-facets,.ds-pick-subh,.ds-pick-viewsw){max-width:1240px;}
+      .ds-pick[data-inline]>:is(.ds-chips,.ds-pick-facets) .ds-chips,.ds-pick[data-inline]>.ds-chips{justify-content:flex-start;}
+      .ds-pick[data-inline]>.ds-pick-viewsw{align-self:center;width:100%;justify-content:flex-start;margin:0 0 4px;padding:0;border:0;background:none;}
+      .ds-pick[data-inline]>.ds-pick-viewsw button{flex:0 0 auto;padding:0 16px;}
+      .ds-pick[data-inline]>.ds-pick-viewsw button[aria-checked=true]{background:#1B2A4A;color:#F4F5F2;}
+      @media (max-width:479px){
+        .ds-pick[data-inline] .ds-pick-row>*{flex:1 1 100%;justify-content:center;}
+      }
     
       /* 44px touch targets for every Studio control (VFRB rule). Decorative icons, badges and rulers are left as they are. */
       .ds :is(.ds-ftb button,.ds-stage-btn,.ds-ctrl,.ds-pick-tabs button,.ds-byo-check,.ds-zone,.ds-tp-change .ds-btn,

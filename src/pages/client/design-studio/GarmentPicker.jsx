@@ -74,7 +74,7 @@ function UploadButton({ onUpload, label = null }) {
     <label className="ds-pick-upbtn" data-over={over || undefined} title="PNG, JPG, WEBP or SVG, up to 5 MB"
       onDragOver={e => { e.preventDefault(); e.stopPropagation(); setOver(true); }} onDragLeave={() => setOver(false)}
       onDrop={e => { e.preventDefault(); e.stopPropagation(); setOver(false); take(e.dataTransfer.files?.[0]); }}>
-      <Upload size={16} strokeWidth={2} aria-hidden="true"/>{label ?? <>Upload<span className="ds-wide-only">my design</span></>}
+      <Upload size={16} strokeWidth={2} aria-hidden="true"/><span>{label ?? <>Upload<span className="ds-wide-only"> my design</span></>}</span>
       <input type="file" className="sr-only" accept={ACCEPT} onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; take(f); }}/>
     </label>
   );
