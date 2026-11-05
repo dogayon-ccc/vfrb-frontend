@@ -56,7 +56,9 @@ const canon = v => {
 };
 export function draftFingerprint(snap) {
   if (!snap || typeof snap !== 'object') return null;
-  const s = canon(snap);
+  // Which piece of a set is on the canvas is a view, not a change to the design.
+  const set = snap.uniformSet?.pieces;
+  const s = canon(set ? { uniformSet: { id: snap.uniformSet.id, pieces: set } } : snap);
   let h1 = 0xdeadbeef, h2 = 0x41c6ce57; // cyrb53
   for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677); }
   h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
