@@ -464,7 +464,7 @@ export default function CanvasViewport({
   ].filter(Boolean) : lostNote ? [{ id: 'gllost', text: '3D stopped working on this device. Showing the 2D design.', warn: true }] : [];
 
   return (
-    <div className="ds-cv" data-stage={dark ? 'dark' : undefined} data-rulers={rulersOn ? '1' : undefined} data-first={!cfg.garment ? '1' : undefined}
+    <div className="ds-cv" data-stage={dark && cfg.garment ? 'dark' : undefined} data-rulers={rulersOn ? '1' : undefined} data-first={!cfg.garment ? '1' : undefined}
       onDragOver={e=>e.preventDefault()}
       onDrop={onDrop}>
 

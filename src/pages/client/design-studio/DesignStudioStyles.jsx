@@ -351,7 +351,6 @@ export default function DesignStudioStyles() {
       .ds-pick-filters>.ds-btn{margin:4px 16px 0;}
       .ds-pick-frow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 16px;}
       .ds-pick-frow>span{flex:0 0 64px;font-size:13px;font-weight:700;color:var(--cx-ink-2);}
-      .ds-cv[data-stage=dark] .ds-pick-frow>span{color:#D8DCE4;}
       .ds-pick .ds-chips,.ds-pick-head .ds-chips{justify-content:center;}
       .ds-pick-tools .ds-chips{justify-content:flex-start;}
       .ds-pick-legend{width:100%;max-width:1040px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;font-size:13px;font-weight:600;color:var(--cx-stage-ink-2);}
@@ -361,6 +360,7 @@ export default function DesignStudioStyles() {
       .ds-pick-key-ic{width:20px;height:20px;display:grid;place-items:center;border-radius:50%;background:var(--cx-card);color:var(--cx-ink);box-shadow:var(--cx-elev-1);}
       .ds-pick-grid{list-style:none;width:100%;max-width:1040px;display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:12px;}
       .ds-pick-viewsw{align-self:flex-start;margin-bottom:8px;}
+      .ds-pick-viewsw button{min-width:44px;}
       .ds-car{width:100%;max-width:720px;display:flex;flex-direction:column;align-items:center;gap:12px;}
       .ds-car-stage{width:100%;display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;gap:8px;}
       .ds-car-nav{width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:50%;background:var(--bg-surface);color:var(--ink);cursor:pointer;}
@@ -1045,7 +1045,7 @@ export default function DesignStudioStyles() {
       .ds-lay-del:hover:not(:disabled){color:#dc2626;}
       .ds-lay-detail{display:flex;flex-direction:column;gap:8px;padding:4px 8px 8px;border-top:1px solid var(--border);}
       .ds-lay-op{display:flex;flex-direction:column;gap:4px;font-size:var(--text-2xs);font-weight:700;color:var(--text-muted);}
-      .ds-lay-op input,.ds-ins-range input{width:100%;accent-color:var(--teal);}
+      .ds-lay-op input,.ds-ins-range input{width:100%;min-height:44px;accent-color:var(--teal);}
       .ds-lay-tools{display:flex;gap:2px;justify-content:flex-end;}
       .ds-lay-base{display:flex;align-items:center;gap:8px;padding:8px;border:1px dashed var(--border-strong);border-radius:var(--r-md);color:var(--text-muted);}
 
