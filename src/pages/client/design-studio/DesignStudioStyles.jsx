@@ -30,6 +30,11 @@ export default function DesignStudioStyles() {
         --cx-shade:0 0 0;--cx-weave-light:rgb(255 255 255 / .05);--cx-weave-dark:rgb(0 0 0 / .25);--cx-scrim:rgb(0 0 0 / .55);
         --shadow-1:0 1px 2px rgba(0,0,0,.45);--shadow-2:0 2px 6px rgba(0,0,0,.4),0 18px 40px -14px rgba(0,0,0,.7);
         color:var(--cx-ink);}
+      .ds-bar.ds-chrome{border-bottom:1px dashed rgb(201 162 122 / .55);}
+      .ds-rail.ds-chrome{border-right:1px dashed rgb(201 162 122 / .55);}
+      .ds-chrome .ds-bar-primary{background:#028090;color:#fff;}
+      .ds-chrome .ds-bar-primary:hover:not(:disabled){background:#046A78;}
+      .ds-chrome .ds-bar-view button[aria-checked=true]{background:#C9A27A;color:#1B2A4A;}
       .ds-matnote{display:grid;grid-template-columns:auto minmax(0,1fr) 44px;align-items:start;gap:8px;margin:12px 12px 0;padding:8px 0 8px 12px;
         border:1px solid var(--cx-line);border-radius:var(--cx-r-md);background:var(--cx-paper-2);font-size:13px;line-height:1.45;color:var(--cx-ink-2);}
       .ds-matnote > svg{margin-top:2px;color:var(--cx-thread-ink);}
@@ -256,6 +261,9 @@ export default function DesignStudioStyles() {
         background:linear-gradient(var(--ds-mat-line) 1px,transparent 1px) 0 0/1cm 1cm,linear-gradient(90deg,var(--ds-mat-line) 1px,transparent 1px) 0 0/1cm 1cm,
           radial-gradient(ellipse 58% 52% at 50% 46%,var(--cx-stage-lit) 0%,var(--cx-stage) 72%);color:var(--cx-stage-ink);}
       .ds-cv[data-stage=dark]{--ds-mat:#1B2A4A;--ds-mat-lit:#1B2A4A;--ds-mat-line:transparent;--cx-stage-ink:#F4F5F2;--cx-stage-ink-2:#D8DCE4;}
+      .ds-cv[data-stage=dark] .ds-lane{--cx-card:#1B2A4A;--cx-paper:#16233F;--cx-paper-2:#16233F;--cx-line:#46587F;--cx-line-strong:#7686A6;--cx-ink:#F4F5F2;--cx-ink-2:#D8DCE4;--cx-ink-3:#B4BDCC;
+        --cx-hover:#2B3E66;--cx-thread:#C9A27A;--cx-thread-ink:#C9A27A;--cx-on-thread:#1B2A4A;--cx-thread-tint:rgb(201 162 122 / .16);}
+      .ds-cv[data-stage=dark] .ds-lane :is(.ds-tools-btn[aria-pressed=true],.ds-guides-btn[aria-expanded=true]){background:#F4F5F2;border-color:#F4F5F2;color:#1B2A4A;}
       /* Stage lanes: chips, set bar, guides and 3D notes on top; zoom, Front/Back and the stage light below; the garment fits the area between */
       .ds-lane{position:relative;z-index:var(--cx-z-stage);flex:none;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px 8px;padding:8px 8px 0;min-width:0;}
       .ds-lane-bottom{padding:0 8px 8px;}
@@ -524,6 +532,24 @@ export default function DesignStudioStyles() {
       .ds-lay-empty .ds-btn{min-height:44px;}
       .ds-artboard{transition:opacity var(--cx-dur-2) var(--cx-ease);}
       .ds-artboard[data-fading]{opacity:.35;}
+      .ds-table-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;}
+      .ds-cut,.ds-cut-mask{fill:none;stroke-linejoin:round;}
+      .ds-cut{stroke:#C9A27A;}
+      .ds-cut-mask{stroke:var(--ds-mat);}
+      .ds-open{fill-rule:evenodd;transform-box:fill-box;transform-origin:center;animation:440ms cubic-bezier(.2,.8,.2,1) backwards;}
+      .ds-open-bd{animation-name:dsOpenB;}
+      .ds-open-sl{animation-name:dsOpenL;animation-delay:80ms;}
+      .ds-open-sr{animation-name:dsOpenR;animation-delay:80ms;}
+      .ds-open-cl{animation-name:dsOpenC;animation-delay:120ms;}
+      .ds-open-pk{animation-name:dsOpenP;animation-delay:160ms;}
+      @keyframes dsOpenB{from{transform:translateY(2%)}}
+      @keyframes dsOpenL{from{transform:translate(-55%,12%) rotate(-11deg)}}
+      @keyframes dsOpenR{from{transform:translate(55%,12%) rotate(11deg)}}
+      @keyframes dsOpenC{from{transform:translateY(-20%)}}
+      @keyframes dsOpenP{from{transform:translateY(25%) scale(.9)}}
+      @keyframes dsOpenCanvas{0%,75%{opacity:0}100%{opacity:1}}
+      .ds-artboard[data-opening] .canvas-container{animation:dsOpenCanvas 600ms linear both;}
+      @media (prefers-reduced-motion:reduce){.ds-open{display:none;}.ds-artboard[data-opening] .canvas-container{animation:none;}}
       .ds-artboard[data-empty]{position:absolute!important;visibility:hidden;}
       .ds-artboard canvas{filter:drop-shadow(0 16px 24px rgb(var(--cx-shade) / .26));}
       @media (prefers-reduced-motion:reduce){.ds-pick-grid li{animation:none;}.ds-pick-card,.ds-artboard{transition:none;}.ds-pick-card:hover{transform:none;}}
@@ -1106,7 +1132,7 @@ export default function DesignStudioStyles() {
           border-radius:var(--cx-r-md);background:none;font:600 13px/1.15 var(--cx-sans);color:var(--cx-ink-2);cursor:pointer;
           transition:background .15s,color .15s,border-color .15s;}
         .ds-tabs button:hover{background:var(--cx-hover);color:var(--cx-ink);}
-        .ds-tabs button[aria-current]{background:var(--cx-thread-tint);border-color:var(--cx-thread);color:var(--cx-thread-ink);}
+        .ds-tabs button[aria-current]{background:none;border-color:transparent;border-bottom:3px dashed #C4313B;color:var(--cx-ink);font-weight:700;}
         .ds-tabs button:focus-visible{outline:2px solid var(--cx-thread-ink);outline-offset:2px;}
       }
       .ds-subtabs{margin:12px 12px 0;}

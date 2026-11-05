@@ -705,6 +705,13 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('old guide prefs migrate once (v3): v1 px 10/20/40 and v2 % 5/10/20 both become 2/5/10 template units, and stay put after',
     CG.readGuidePrefs({ grid: true, size: 40 }).size === 10 && CG.readGuidePrefs({ size: 10 }).size === 2 && CG.readGuidePrefs({ v: 2, size: 5 }).size === 2 && CG.readGuidePrefs({ v: 2, size: 20 }).size === 10
     && CG.readGuidePrefs({ v: 3, size: 5 }).size === 5 && CG.guideDefaults().v === 3 && CG.guideDefaults().size === 5);
+  const CO = (await L('/src/pages/client/design-studio/studioView.js')).claimOpening;
+  const fakeStore = () => { const m = {}; return { getItem: k => m[k] ?? null, setItem: (k, v) => { m[k] = v; } }; };
+  t('the Studio opening plays once per session, never under reduced motion, and survives blocked storage', (() => {
+    const s = fakeStore(), once = [CO(s, false, { done: false }), CO(s, false, { done: false })];
+    const memo = { done: false }, blocked = { getItem() { throw new Error('blocked'); } };
+    return once[0] && !once[1] && !CO(fakeStore(), true, { done: false }) && CO(blocked, false, memo) && !CO(blocked, false, memo) && CO(null, false, { done: false });
+  })());
   // Studio grid task: snap rounding, nudge clamping, fixed guides, view keys, toggles, units note, per-user prefs, x, y readout.
   t('snap rounding: snapToStep rounds to the nearest grid step (halves up), keeps float steps exact and leaves a zero step alone',
     CG.snapToStep(12.4, 5) === 10 && CG.snapToStep(12.5, 5) === 15 && CG.snapToStep(7, 2) === 8 && CG.snapToStep(-1.2, 2) === -2 && CG.snapToStep(0.30000000000000004, 0.1) === 0.3 && CG.snapToStep(7.3, 0) === 7.3);

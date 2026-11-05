@@ -12,7 +12,9 @@ import { hasWebGL } from './webglSupport';
 import { hasBackView, assetFor } from './garmentAssets';
 import { isDerived } from './derivedFamilies';
 import { isCustom, CUSTOM_BADGE, CUSTOM_3D_NOTE } from './customGarment';
-import { photoMaxScale } from './studioView';
+import { photoMaxScale, claimOpening } from './studioView';
+import StageOpening, { CutLine } from './StageOpening';
+import { getGarmentPaths } from './garmentPaths';
 import { panLimits, clampPan } from './snapGuides';
 import { readGuidePrefs, guidePrefsKey } from './canvasGuides';
 import { PinnedRulers, GuideLine } from './StageRulers';
@@ -194,6 +196,16 @@ export default function CanvasViewport({
   const show2D = viewMode === '2d' || !show3D;
   // The set view shows both pieces (2D only; 3D shows one piece at a time); rulers, guides and grid step aside while it is open.
   const set2D = showSet && !!setCompanion && viewMode !== '3d';
+  const flat = cfg.garment && !photo && show2D && !set2D ? getGarmentPaths(cfg.garment, cfg.sleeve, face) : null;
+  const [opening, setOpening] = useState(false);
+  const endOpening = useCallback(() => setOpening(false), []);
+  const canOpen = !!flat?.body;
+  useEffect(() => {
+    if (!canOpen) return;
+    let store = null;
+    try { store = window.sessionStorage; } catch { /* blocked storage: claimOpening keeps it in memory */ }
+    if (claimOpening(store, window.matchMedia('(prefers-reduced-motion: reduce)').matches)) setOpening(true);
+  }, [canOpen]);
   const rulersOn = guides.rulers && !!cfg.garment && show2D && !initFailed && !!garmentRect && !set2D;
   // Grid and guides are painted on the live 2D canvas only (canvasLayers.js), never in the saved JSON, exports or thumbnails.
   const stage2D = !!cfg.garment && show2D && !initFailed && !set2D;
@@ -493,7 +505,7 @@ export default function CanvasViewport({
             <div className="ds-pan-layer" aria-hidden="true" onPointerDown={startPan} onPointerMove={movePan} onPointerUp={endPan} onPointerCancel={endPan}/>
           )}
           {/* No transform transition: rulers are computed from the same zoom and pan, so an animated canvas would drift from them. */}
-          <div ref={canvasWrapRef} className="ds-artboard" data-fading={faceFading ? '1' : undefined} data-empty={!cfg.garment ? '1' : undefined} style={{
+          <div ref={canvasWrapRef} className="ds-artboard" data-opening={opening ? '1' : undefined} data-fading={faceFading ? '1' : undefined} data-empty={!cfg.garment ? '1' : undefined} style={{
               position:'relative', transform:`translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
             }}>
             {initFailed ? (
@@ -510,8 +522,9 @@ export default function CanvasViewport({
             ) : (
               <>
                 {/* Always mounted: Fabric moves the <canvas> into its own wrapper, so React must never insert a sibling before it later. */}
-                <div className="ds-trace-slot" aria-hidden="true">{cfg.garment && <TraceLayer trace={trace} w={canvasSize.w} h={canvasSize.h}/>}</div>
+                <div className="ds-trace-slot" aria-hidden="true">{cfg.garment && <TraceLayer trace={trace} w={canvasSize.w} h={canvasSize.h}/>}{flat?.body && <CutLine paths={flat}/>}</div>
                 <canvas ref={canvasEl} style={{ display:'block' }}/>
+                {opening && flat?.body && <StageOpening paths={flat} colors={cfg.colors} onEnd={endOpening}/>}
                 {aiPulse && <div className="ai-pulse"/>}
                 {cfg.garment && <div className="ds-stage-floor" aria-hidden="true"/>}
               </>
