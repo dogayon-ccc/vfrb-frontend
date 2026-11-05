@@ -36,6 +36,8 @@ export const contrastRatio = (a, b) => { const [x, y] = [luma(a), luma(b)].sort(
 // How a part reads against the body: 3:1 is the WCAG line for shapes that must be told apart.
 export const contrastLabel = r => (r >= 3 ? 'Stands out' : r >= 1.6 ? 'Soft contrast' : 'Blends in');
 // The text ink that reads best on a colour (names and numbers printed on it), with its ratio.
+// The garment must stand out (WCAG 1.4.11): the table is whichever ground contrasts more with the body colour.
+export const darkStageFor = body => (/^#[0-9a-f]{6}$/i.test(body ?? '') ? contrastRatio(body, '#1B2A4A') >= contrastRatio(body, '#F4F5F2') : true);
 export const bestInk = hex => { const w = contrastRatio(hex, '#ffffff'), k = contrastRatio(hex, '#000000'); return w >= k ? { ink: '#ffffff', name: 'White', r: w } : { ink: '#000000', name: 'Black', r: k }; };
 // Distinct solid colours already on the design, body first, lower-cased.
 export const designPalette = colors => [...new Set(['body', 'collar', 'sleeve', 'pocket', 'tipping'].map(z => colors?.[z]).filter(c => /^#[0-9a-f]{6}$/i.test(c ?? '')).map(c => c.toLowerCase()))];

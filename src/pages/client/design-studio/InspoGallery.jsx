@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import { Pencil, Trash2 } from 'lucide-react';
 import { getGarmentPaths } from './garmentPaths';
 import { openTarget } from './designGallery';
 import { selectFamily } from './selectGarment';
@@ -22,12 +23,11 @@ export function MiniPreview({ garment, colors }) {
   );
 }
 
-// 28px circular icon button — matches the panel's own close ("✕") button.
-function IconBtn({ children, onClick, danger }) {
+function IconBtn({ children, onClick, danger, label }) {
   return (
-    <button onClick={onClick}
+    <button type="button" aria-label={label} title={label} onClick={onClick}
       style={{
-        width:24, height:24, borderRadius:7, border:'none', flexShrink:0,
+        minWidth:44, height:44, padding:'0 8px', borderRadius:12, border:'none', flexShrink:0,
         background: danger ? 'rgba(229,62,62,.12)' : 'rgba(15,23,42,.07)',
         color:      danger ? 'var(--danger-text)' : 'var(--cx-ink-2)',
         fontSize:13, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center',
@@ -85,9 +85,9 @@ function Tile({ label, sub, thumb, onClick, editable, onRename, onDelete, showca
 
       {editable && !renaming && (
         <div style={{ display:'flex', gap:5, marginTop:2 }}>
-          <IconBtn onClick={(e) => { e.stopPropagation(); setRenaming(true); }}>✎</IconBtn>
-          <IconBtn danger onClick={handleDeleteClick}>
-            {confirmingDelete ? 'Sure?' : '🗑'}
+          <IconBtn label="Rename design" onClick={(e) => { e.stopPropagation(); setRenaming(true); }}><Pencil size={16} aria-hidden="true"/></IconBtn>
+          <IconBtn danger label={confirmingDelete ? 'Confirm delete' : 'Delete design'} onClick={handleDeleteClick}>
+            {confirmingDelete ? 'Delete?' : <Trash2 size={16} aria-hidden="true"/>}
           </IconBtn>
         </div>
       )}

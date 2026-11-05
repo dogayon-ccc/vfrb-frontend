@@ -705,6 +705,8 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('old guide prefs migrate once (v3): v1 px 10/20/40 and v2 % 5/10/20 both become 2/5/10 template units, and stay put after',
     CG.readGuidePrefs({ grid: true, size: 40 }).size === 10 && CG.readGuidePrefs({ size: 10 }).size === 2 && CG.readGuidePrefs({ v: 2, size: 5 }).size === 2 && CG.readGuidePrefs({ v: 2, size: 20 }).size === 10
     && CG.readGuidePrefs({ v: 3, size: 5 }).size === 5 && CG.guideDefaults().v === 3 && CG.guideDefaults().size === 5);
+  const DS = (await L('/src/pages/client/design-studio/colorRules.js')).darkStageFor;
+  t('the table contrasts with the garment: navy and black get the chalk ground, white and yellow the navy one', !DS('#1B2A4A') && !DS('#000000') && DS('#ffffff') && DS('#FFD700') && DS(null));
   const NR = (await L('/src/pages/client/design-studio/rovingKeys.js')).nextRoving;
   t('radio groups and tab lists: arrows wrap, Home and End jump, other keys do nothing', NR(2, 3, 'ArrowRight') === 0 && NR(0, 3, 'ArrowLeft') === 2 && NR(1, 3, 'ArrowDown') === 2 && NR(1, 3, 'ArrowUp') === 0 && NR(2, 3, 'Home') === 0 && NR(0, 3, 'End') === 2 && NR(0, 3, 'a') === null);
   const RT1 = await L('/src/pages/client/design-studio/railTools.js');

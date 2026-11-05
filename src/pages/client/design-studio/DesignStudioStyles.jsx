@@ -256,12 +256,12 @@ export default function DesignStudioStyles() {
 
       /* Stage: a sage cutting mat with a faint 1 cm screen grid (decoration on the stage, never on the garment or the export) and a
          soft pool of light behind the garment. Dark swaps the mat tokens only; stage ink stays >= 4.5:1 on both. */
-      .ds-cv{--ds-mat:#d5ddd2;--ds-mat-lit:#eef1ea;--ds-mat-line:rgb(38 70 56 / .09);
+      .ds-cv{--ds-mat:#E4E7E1;--ds-mat-lit:#F4F5F2;--ds-mat-line:transparent;--ds-cut:#046A78;
         --cx-stage:var(--ds-mat);--cx-stage-lit:var(--ds-mat-lit);
         order:2;flex:1;min-width:0;display:flex;flex-direction:column;position:relative;overflow:hidden;padding-bottom:var(--ds-pad-b);
         background:linear-gradient(var(--ds-mat-line) 1px,transparent 1px) 0 0/1cm 1cm,linear-gradient(90deg,var(--ds-mat-line) 1px,transparent 1px) 0 0/1cm 1cm,
           radial-gradient(ellipse 58% 52% at 50% 46%,var(--cx-stage-lit) 0%,var(--cx-stage) 72%);color:var(--cx-stage-ink);}
-      .ds-cv[data-stage=dark]{--ds-mat:#1B2A4A;--ds-mat-lit:#3A5180;--ds-mat-line:transparent;--cx-stage-ink:#F4F5F2;--cx-stage-ink-2:#D8DCE4;}
+      .ds-cv[data-stage=dark]{--ds-cut:#C9A27A;--ds-mat:#1B2A4A;--ds-mat-lit:#3A5180;--ds-mat-line:transparent;--cx-stage-ink:#F4F5F2;--cx-stage-ink-2:#D8DCE4;}
       .ds-cv[data-stage=dark] :is(.ds-lane,.ds-ruler,.ds-ruler-corner),.ds-pick[data-inline] .ds-pick-head{--cx-stage-ink:#F4F5F2;--cx-stage-ink-2:#D8DCE4;--cx-card:#1B2A4A;--cx-paper:#16233F;--cx-paper-2:#16233F;--cx-line:#46587F;--cx-line-strong:#7686A6;--cx-ink:#F4F5F2;--cx-ink-2:#D8DCE4;--cx-ink-3:#B4BDCC;
         --cx-hover:#2B3E66;--cx-thread:#C9A27A;--cx-thread-ink:#C9A27A;--cx-on-thread:#1B2A4A;--cx-thread-tint:rgb(201 162 122 / .16);}
       .ds-cv[data-stage=dark] .ds-lane .ds-tools{border-color:#7686A6;}
@@ -537,7 +537,7 @@ export default function DesignStudioStyles() {
       .ds-artboard[data-fading]{opacity:.35;}
       .ds-table-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;}
       .ds-cut,.ds-cut-hole{fill:none;stroke-linejoin:round;}
-      .ds-cut{stroke:#C9A27A;}
+      .ds-cut{stroke:var(--ds-cut);}
       .ds-cut-hole{stroke:#000;fill:#000;}
       .ds-open{fill-rule:evenodd;transform-box:fill-box;transform-origin:center;animation:440ms cubic-bezier(.2,.8,.2,1) backwards;}
       .ds-open-bd{animation-name:dsOpenB;}
@@ -1000,7 +1000,7 @@ export default function DesignStudioStyles() {
         .ds-stage-badge{display:block;position:absolute;top:8px;left:8px;z-index:3;padding:2px 8px;border-radius:8px;pointer-events:none;
           background:var(--warning-bg,#fff4d6);color:var(--warning-text,#7a4b00);font:700 13px/18px var(--cx-sans);white-space:nowrap;}
         .ds-stage-badge[data-off]{background:var(--bg-surface);color:var(--text-muted);}
-        .ds-cv[data-rulers] .ds-stage-badge{top:28px;left:28px;}
+        .ds-cv[data-rulers] .ds-stage-badge{top:28px;left:42px;}
         .ds-lane-top{padding:4px 8px 0;}
         .ds-lane-bottom{padding:0 8px 4px;gap:2px;}
         .ds-ctrlbar{padding:2px;}
@@ -1227,6 +1227,7 @@ export default function DesignStudioStyles() {
       .ds-pick[data-inline] .ds-pick-legend{justify-content:flex-start;max-width:none;}
       .ds-pick[data-inline] .ds-pick-tabs button[aria-checked=true]{background:#F4F5F2;color:#1B2A4A;}
       .ds-pick[data-inline] .ds-pick-upbtn:hover{background:var(--cx-hover);}
+      .ds-pick-past button{min-height:44px;}
       .ds-pick[data-inline] .ds-pick-head .ds-note:not(.ds-status *){color:#D8DCE4;}
       .ds-pick[data-inline] .ds-pick-head .ds-pick-frow{padding:4px 0;}
       .ds-pick[data-inline] .ds-pick-head .ds-pick-frow>span{flex:0 0 auto;color:#D8DCE4;}
@@ -1241,7 +1242,14 @@ export default function DesignStudioStyles() {
       @media (max-width:1023px){
         .ds-bar-title,.ds-bar-back span{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;}
         .ds-bar-back{border-color:transparent;}
-        .ds-bar-name{flex:1 1 120px;width:auto;min-width:120px;}
+        .ds-bar-name{flex:1 1 0;width:auto;min-width:0;}
+      }
+      /* Phones: the name gives way so Review is never clipped; save status stays in the panel summary. */
+      @media (max-width:767px){
+        .ds-bar .ds-bar-save{display:none;}
+        .ds-bar .ds-view-chip{display:none;}
+        .ds-bar-primary{padding:0 12px;}
+        .ds-bar-primary svg{display:none;}
       }
       /* Small phones and short screens: pinned picker bars would cover the garment, so they scroll with it. */
       @media (max-height:640px),(max-width:359px){

@@ -13,6 +13,7 @@ import { hasBackView, assetFor } from './garmentAssets';
 import { isDerived } from './derivedFamilies';
 import { isCustom, CUSTOM_BADGE, CUSTOM_3D_NOTE } from './customGarment';
 import { photoMaxScale, claimOpening } from './studioView';
+import { darkStageFor } from './colorRules';
 import StageOpening, { CutLine } from './StageOpening';
 import { getGarmentPaths } from './garmentPaths';
 import { panLimits, clampPan } from './snapGuides';
@@ -188,7 +189,8 @@ export default function CanvasViewport({
     window.addEventListener('keydown', key);
     return () => window.removeEventListener('keydown', key);
   }, [cfg.garment, viewMode]);
-  const [dark, setDark] = useState(true);
+  const [stagePick, setStagePick] = useState(null); // null until the customer uses the Dark stage switch
+  const dark = stagePick ?? darkStageFor(cfg.colors?.body);
 
   // ── Pan + pinned rulers ──
   // The wrapper is flex-centred in the pane's content box and transformed by translate(pan) scale(scale) about its centre, so
@@ -472,7 +474,7 @@ export default function CanvasViewport({
           is fitted into the area between them, so nothing on the stage overlays it (only the selection toolbar, inside that area). */}
       {cfg.garment && (
         <div className="ds-lane ds-lane-top" data-notes={notes3D.length ? '1' : undefined}>
-          {!initFailed && <GuidesMenu guides={guides} setGuides={setGuides} showGuides={show2D} base={show2D ? status : null} dark={dark} setDark={setDark}
+          {!initFailed && <GuidesMenu guides={guides} setGuides={setGuides} showGuides={show2D} base={show2D ? status : null} dark={dark} setDark={setStagePick}
             open={viewOpen} onOpenChange={setViewOpen}/>}
           {show2D && !initFailed && !set2D && <ViewToggles guides={guides} setGuides={setGuides}/>}
           {show2D && rail && !initFailed && <ToolRail rail={rail} hand={hand} setHand={setHand} canPan={canPan} zoomBy={f => setZoom(z => clampZoom(z * f))}/>}
