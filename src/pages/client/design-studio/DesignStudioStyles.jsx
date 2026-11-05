@@ -997,10 +997,6 @@ export default function DesignStudioStyles() {
         .ds-lane-bottom .ds-stage-hint{display:none;}
         /* The garment gets the height: one-row top bar (3D status moves to the stage corner), tighter lanes, a shorter sheet */
         .ds-bar .ds-view-chip{display:none;}
-        .ds-stage-badge{display:block;position:absolute;top:8px;left:8px;z-index:3;padding:2px 8px;border-radius:8px;pointer-events:none;
-          background:var(--warning-bg,#fff4d6);color:var(--warning-text,#7a4b00);font:700 13px/18px var(--cx-sans);white-space:nowrap;}
-        .ds-stage-badge[data-off]{background:var(--bg-surface);color:var(--text-muted);}
-        .ds-cv[data-rulers] .ds-stage-badge{top:28px;left:42px;}
         .ds-lane-top{padding:4px 8px 0;}
         .ds-lane-bottom{padding:0 8px 4px;gap:2px;}
         .ds-ctrlbar{padding:2px;}
@@ -1248,6 +1244,10 @@ export default function DesignStudioStyles() {
       @media (max-width:767px){
         .ds-bar .ds-bar-save{display:none;}
         .ds-bar .ds-view-chip{display:none;}
+        .ds-stage-badge{display:block;position:absolute;top:8px;left:8px;z-index:3;padding:2px 8px;border-radius:8px;pointer-events:none;
+          background:var(--warning-bg,#fff4d6);color:var(--warning-text,#7a4b00);font:700 13px/18px var(--cx-sans);white-space:nowrap;}
+        .ds-stage-badge[data-off]{background:var(--bg-surface);color:var(--text-muted);}
+        .ds-cv[data-rulers] .ds-stage-badge{top:28px;left:42px;}
         .ds-bar-primary{padding:0 12px;}
         .ds-bar-primary svg{display:none;}
       }
