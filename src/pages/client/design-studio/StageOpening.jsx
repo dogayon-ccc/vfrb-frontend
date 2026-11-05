@@ -10,8 +10,13 @@ export function CutLine({ paths }) {
   const outer = paths.w * 0.027;
   const shapes = [paths.body, paths.sleeveL, paths.sleeveR].filter(Boolean);
   return sized(paths, <>
-    {shapes.map(d => <path key={d} className="ds-cut" d={d} style={{ strokeWidth: outer, strokeDasharray: `${outer * .6} ${outer * .42}` }}/>)}
-    {shapes.map(d => <path key={`m${d}`} className="ds-cut-mask" d={d} style={{ strokeWidth: outer * .86 }}/>)}
+    <mask id="ds-cut-mask" maskUnits="userSpaceOnUse" x={-paths.w} y={-paths.h} width={paths.w * 3} height={paths.h * 3}>
+      <rect x={-paths.w} y={-paths.h} width={paths.w * 3} height={paths.h * 3} fill="#fff"/>
+      {shapes.map(d => <path key={d} className="ds-cut-hole" d={d} style={{ strokeWidth: outer * .86 }}/>)}
+    </mask>
+    <g mask="url(#ds-cut-mask)">
+      {shapes.map(d => <path key={d} className="ds-cut" d={d} style={{ strokeWidth: outer, strokeDasharray: `${outer * .6} ${outer * .42}` }}/>)}
+    </g>
   </>);
 }
 
