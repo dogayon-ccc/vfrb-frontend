@@ -718,6 +718,7 @@ export default function DesignStudio() {
   const accountCopy = useRef(false); // the design on the canvas came from the account (restored draft or saved design), so unchanged reads "Saved"
   const saveFns = useRef(null);
   saveFns.current = { snapshotDesign, persistDraft };
+  const atRest = () => (lastSavedFp.current || accountCopy.current || lockRef.current?.designId ? 'saved' : null);
   useEffect(() => {
     clearTimeout(autoSaveTimer.current);
     if (!cfg.garment || locked) { baseFp.current = null; setAutoState(null); return undefined; } // a final design is never written back
@@ -726,7 +727,7 @@ export default function DesignStudio() {
       if (swapping.current) { dirtyCheck = setTimeout(check, 200); return; } // a snapshot mid-swap would write the wrong face
       const fp = draftFingerprint(saveFns.current.snapshotDesign());
       if (baseFp.current === null && lastSavedFp.current === null) baseFp.current = fp;
-      setAutoState(s => (s === 'saving' ? s : fp === (lastSavedFp.current ?? baseFp.current) ? (lastSavedFp.current || accountCopy.current || lockRef.current?.designId ? 'saved' : null) : 'dirty'));
+      setAutoState(s => (s === 'saving' ? s : fp === (lastSavedFp.current ?? baseFp.current) ? atRest() : 'dirty'));
     };
     dirtyCheck = setTimeout(check, 400);
     const autosave = async () => {
@@ -734,7 +735,7 @@ export default function DesignStudio() {
       saveSoon.current = false;
       const { snapshotDesign: snapNow, persistDraft: persist } = saveFns.current;
       const snap = snapNow();
-      if (draftFingerprint(snap) === (lastSavedFp.current ?? baseFp.current)) return;
+      if (draftFingerprint(snap) === (lastSavedFp.current ?? baseFp.current)) { setAutoState(s => (s === 'saving' ? atRest() : s)); return; }
       // A reload restores the browser copy before the account draft, so an existing copy must not stay older than the autosave.
       let local = false;
       try { if (sessionStorage.getItem('studio_config')) { sessionStorage.setItem('studio_config', JSON.stringify(snap)); setStudioLock(lockRef.current); local = true; } } catch { /* quota: the account draft still saves */ }
@@ -770,6 +771,7 @@ export default function DesignStudio() {
     setAskRemove(false); setUset(null); setShowSet(false); setApplyBoth(false);
     if (!pieceLeft) { clearDesign(); return; }
     saveSoon.current = true;
+    setAutoState('saving'); // the account still holds the old set until the save below succeeds
     try { if (sessionStorage.getItem('studio_config')) { sessionStorage.setItem('studio_config', JSON.stringify(pieceLeft.snap)); setStudioLock(lockRef.current); } } catch { /* quota: the account save below still runs */ }
     loadPiece(pieceLeft.snap, pieceLeft.role);
   }, [pieceLeft, clearDesign, loadPiece]);

@@ -33,7 +33,7 @@ const base = { category: 'School Uniform', garment: 'Polo Shirt', sleeve: 'Short
   const rekey = H.syncLook(lh, lk('Scrub Top', '#00ff00'));
   t('history: a garment change re-keys the entry (no step), and undo never paints one garment’s colours onto another', rekey.stack.length === 3 && rekey.stack[2].look.k.startsWith('Scrub Top') && H.lookToApply(lh.stack[1], rekey.stack[2].look) === null);
   t('save status: only an account save reads "Saved"; a browser-only copy, failures and unsaved edits each read differently; there is always a state (never blank)',
-    SS({ auto: 'saved' }).short === 'Saved' && SS({ saved: true }).short === 'This device' && SS({ saveErr: 'local', auto: 'saved' }).tone === 'err' && SS({ saveErr: 'none' }).short === 'Not saved'
+    SS({ auto: 'saved' }).short === 'Saved' && SS({ saved: true }).short === 'Saved on this device' && SS({ saveErr: 'local', auto: 'saved' }).short === 'Saved on this device' && SS({ saveErr: 'local', auto: 'saved' }).tone === 'err' && SS({ saveErr: 'none' }).short === 'Not saved'
     && SS({ auto: 'dirty' }).short === 'Unsaved' && SS({ auto: 'saving' }).tone === 'busy' && SS({ saving: true, saveErr: 'none' }).tone === 'busy' && SS({}).short === 'Unsaved');
   const CS = (await L('/src/pages/client/design-studio/saveStatus.js')).confirmedSave;
   t('save confirmation: only a JSON object with the saved id and updated_at and no errors counts; HTML-wrapped or validation bodies never do',
