@@ -186,7 +186,7 @@ export default function CanvasViewport({
     window.addEventListener('keydown', key);
     return () => window.removeEventListener('keydown', key);
   }, [cfg.garment, viewMode]);
-  const [dark, setDark] = useState(false);
+  const [dark, setDark] = useState(true);
 
   // ── Pan + pinned rulers ──
   // The wrapper is flex-centred in the pane's content box and transformed by translate(pan) scale(scale) about its centre, so

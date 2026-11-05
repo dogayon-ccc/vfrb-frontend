@@ -23,10 +23,10 @@ export default function DesignStudioStyles() {
         background:var(--cx-paper);color:var(--cx-ink);font-family:var(--cx-sans);
       }
       .ds button:focus-visible,.ds [role=button]:focus-visible{outline:2px solid var(--cx-thread-ink);outline-offset:2px;}
-      /* Dark chrome (bar, Pieces rail, panel) around the light cutting mat: the dark atelier bases; customer.css derives the rest */
+      /* Navy chrome (bar, Pieces rail) on the pattern table, chalk panel: navy bases; customer.css derives the rest */
       .ds .ds-chrome{color-scheme:dark;${CHROME_ACCENT}
-        --color-page:#14181a;--color-surface:#1a1f22;--color-surface-2:#26313b;--color-card:#1f2528;--color-line:#30393d;--color-line-strong:#4a5559;
-        --color-ink:#ece7de;--color-ink-2:#c9c2b6;--color-ink-3:#a39d93;
+        --color-page:#16233F;--color-surface:#16233F;--color-surface-2:#2B3E66;--color-card:#1B2A4A;--color-line:#46587F;--color-line-strong:#7686A6;
+        --color-ink:#F4F5F2;--color-ink-2:#D8DCE4;--color-ink-3:#B4BDCC;
         --cx-shade:0 0 0;--cx-weave-light:rgb(255 255 255 / .05);--cx-weave-dark:rgb(0 0 0 / .25);--cx-scrim:rgb(0 0 0 / .55);
         --shadow-1:0 1px 2px rgba(0,0,0,.45);--shadow-2:0 2px 6px rgba(0,0,0,.4),0 18px 40px -14px rgba(0,0,0,.7);
         color:var(--cx-ink);}
@@ -255,7 +255,7 @@ export default function DesignStudioStyles() {
         order:2;flex:1;min-width:0;display:flex;flex-direction:column;position:relative;overflow:hidden;padding-bottom:var(--ds-pad-b);
         background:linear-gradient(var(--ds-mat-line) 1px,transparent 1px) 0 0/1cm 1cm,linear-gradient(90deg,var(--ds-mat-line) 1px,transparent 1px) 0 0/1cm 1cm,
           radial-gradient(ellipse 58% 52% at 50% 46%,var(--cx-stage-lit) 0%,var(--cx-stage) 72%);color:var(--cx-stage-ink);}
-      .ds-cv[data-stage=dark]{--ds-mat:#16271f;--ds-mat-lit:#25402f;--ds-mat-line:rgb(232 240 230 / .07);--cx-stage-ink:#f5f1e8;--cx-stage-ink-2:#d2dbdd;}
+      .ds-cv[data-stage=dark]{--ds-mat:#1B2A4A;--ds-mat-lit:#1B2A4A;--ds-mat-line:transparent;--cx-stage-ink:#F4F5F2;--cx-stage-ink-2:#D8DCE4;}
       /* Stage lanes: chips, set bar, guides and 3D notes on top; zoom, Front/Back and the stage light below; the garment fits the area between */
       .ds-lane{position:relative;z-index:var(--cx-z-stage);flex:none;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px 8px;padding:8px 8px 0;min-width:0;}
       .ds-lane-bottom{padding:0 8px 8px;}

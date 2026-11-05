@@ -136,7 +136,7 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
 
   return (
     <>
-      <section className="ds-panel ds-chrome" aria-label={title} data-collapsed={collapsed || undefined}>
+      <section className="ds-panel" aria-label={title} data-collapsed={collapsed || undefined}>
         {collapsed && (
           <button type="button" className="ds-panel-toggle" aria-expanded="false" aria-label="Show the panel" title="Show the panel" onClick={() => setCollapsed(false)}>
             <NavIcon name="chevronLeft" size={18}/>
