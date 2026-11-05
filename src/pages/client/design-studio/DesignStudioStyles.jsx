@@ -502,6 +502,10 @@ export default function DesignStudioStyles() {
       .ds-part{min-height:52px;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:8px;align-items:center;padding:6px 12px;
         border:1px solid var(--cx-line);border-radius:var(--cx-r-md);background:var(--cx-card);color:var(--cx-ink);text-align:left;cursor:pointer;
         transition:border-color var(--cx-dur-1) var(--cx-ease),background-color var(--cx-dur-1) var(--cx-ease);}
+      .ds-pieces-h{font:400 20px/1.2 var(--cx-serif);color:var(--cx-ink);}
+      .ds-pieces-sub{margin:2px 0 8px;font-size:13px;color:var(--cx-ink-2);}
+      .ds-piece{grid-row:span 2;width:32px;height:36px;overflow:visible;}
+      .ds-piece path{stroke:rgb(27 42 74 / .6);stroke-width:1px;vector-effect:non-scaling-stroke;}
       .ds-part>.ds-zone-sw{grid-row:span 2;width:22px;height:22px;}
       .ds-part>.ds-zone-sw[data-off]{background:repeating-linear-gradient(-45deg,var(--cx-line) 0 2px,transparent 2px 5px);}
       .ds-part-name{font:700 14px var(--cx-sans);}

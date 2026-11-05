@@ -1,4 +1,6 @@
+import { useLayoutEffect, useRef, useState } from 'react';
 import { ZONE_LABEL, zonesFor } from './dsShared';
+import { getGarmentPaths } from './garmentPaths';
 import { assetFor } from './garmentAssets';
 import { familyFor, resolveFit } from './garmentCatalog';
 import { sleeves3DFor } from './garmentCapabilities';
@@ -37,20 +39,38 @@ const withSleeve = (p, sv, family, photo) => {
   return { ...p, sleeve: sv, ...(toPhoto ? { fit: family.fits.find(f => !assetFor(p.garment, sv, 'front', f)) ?? p.fit } : {}) };
 };
 
+const PIECE_PATH = { body: 'body', collar: 'collar', sleeve: 'sleeveL', pocket: 'pocket' };
+
+// One cut piece cropped to its own shape; the box comes from the rendered path, so any path command works.
+function PieceThumb({ d, fill }) {
+  const ref = useRef(null);
+  const [box, setBox] = useState(null);
+  useLayoutEffect(() => {
+    try { const b = ref.current.getBBox(); if (b.width) setBox(`${b.x} ${b.y} ${b.width} ${b.height}`); } catch { setBox(null); }
+  }, [d]);
+  return <svg className="ds-piece" viewBox={box ?? undefined} aria-hidden="true"><path ref={ref} d={d} style={{ fill }}/></svg>;
+}
+
 export function PartButtons({ cfg, active = null, onPick }) {
+  const paths = cfg.garment && !photoOf(cfg) ? getGarmentPaths(cfg.garment, cfg.sleeve) : null;
   return (
-    <div className="ds-parts" role="group" aria-label="Garment parts">
+    <>
+    <h3 className="ds-pieces-h">Cut pieces</h3>
+    <p className="ds-pieces-sub">Colours for each piece</p>
+    <div className="ds-parts" role="group" aria-label="Cut pieces">
       {partsFor(cfg).map(z => {
-        const off = z === 'tipping' && !cfg.colors?.tipping;
+        const off = z === 'tipping' && !cfg.colors?.tipping, d = paths?.[PIECE_PATH[z]];
         return (
           <button key={z} type="button" className="ds-part" aria-pressed={active ? active === z : undefined} onClick={() => onPick(z)}>
-            <span className="ds-zone-sw" data-off={off || undefined} style={off ? undefined : { background: partDot(cfg, z) }} aria-hidden="true"/>
+            {d ? <PieceThumb d={d} fill={partDot(cfg, z)}/>
+              : <span className="ds-zone-sw" data-off={off || undefined} style={off ? undefined : { background: partDot(cfg, z) }} aria-hidden="true"/>}
             <span className="ds-part-name">{partLabel(cfg, z)}</span>
             <span className="ds-part-val">{off ? 'Off' : colourName(cfg.colors?.[z])}</span>
           </button>
         );
       })}
     </div>
+    </>
   );
 }
 

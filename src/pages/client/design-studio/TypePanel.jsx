@@ -31,7 +31,6 @@ export default function TypePanel({ cfg, setCfg, onPickPart, onOpenTool, onChang
       </dl>
 
       <section>
-        <p className="ds-h3">Parts</p>
         <PartButtons cfg={cfg} onPick={onPickPart}/>
         {photo && <p className="ds-note">{photoZoneNote(photo)}</p>}
       </section>
