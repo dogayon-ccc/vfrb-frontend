@@ -8,6 +8,7 @@
 //            font selector, Pollinations.ai texture, Save Design
 
 import { stashStudioConfig, draftFingerprint, clearStudioHandoff, discardDraft } from '../../utils/studioHandoff';
+import { useRovingGroups } from './design-studio/rovingKeys';
 import { analyzeImageFile, REF_NOT_FULL_SET } from './design-studio/referenceSketch';
 import { checkPerson, personGate } from './design-studio/personDetector';
 import { garmentLabel } from '../../utils/designName';
@@ -71,6 +72,11 @@ export default function DesignStudio() {
   const canvasWrapRef = useRef(null);
 
   const [cfg,        setCfg]        = useState(INIT_CFG);
+  useRovingGroups();
+  useEffect(() => {
+    document.title = `${cfg.name?.trim() || 'New design'} | Design Studio | VFRB`;
+    return () => { document.title = 'VFRB Enterprise'; };
+  }, [cfg.name]);
   const [zoom,       setZoom]       = useState(1);
   const [tool,       setTool]       = useState('type');
   const [assetsTab,  setAssetsTab]  = useState('logo');

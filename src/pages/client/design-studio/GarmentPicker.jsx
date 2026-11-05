@@ -50,9 +50,9 @@ function Head({ title, sub, onClose, view, setView, legend, onUpload }) {
       </div>
       {sub}
       <div className="ds-pick-row">
-        <div className="ds-pick-tabs" role="tablist" aria-label="Garment source">
+        <div className="ds-pick-tabs" role="radiogroup" aria-label="Garment source">
           {[['inspiration', 'Start from a reference', 'Reference'], ['templates', 'Start from scratch', 'Scratch']].map(([id, label, short]) => (
-            <button key={id} type="button" role="tab" aria-selected={view === id} aria-label={label} onClick={() => setView(id)}>
+            <button key={id} type="button" role="radio" aria-checked={view === id} aria-label={label} onClick={() => setView(id)}>
               <span className="ds-tab-long">{label}</span><span className="ds-tab-short" aria-hidden="true">{short}</span>
             </button>
           ))}
@@ -308,7 +308,7 @@ function Choice({ label, items, value, set, text }) {
   return (
     <div className="ds-pick-frow" role="radiogroup" aria-label={label}>
       <span>{label}</span>
-      {items.map(v => <button key={String(v)} type="button" role="radio" className="ds-chip" aria-checked={value === v} aria-pressed={value === v} onClick={() => set(v)}>{text(v)}</button>)}
+      {items.map(v => <button key={String(v)} type="button" role="radio" className="ds-chip" aria-checked={value === v} onClick={() => set(v)}>{text(v)}</button>)}
     </div>
   );
 }
@@ -360,7 +360,7 @@ function BuildYourOwnSteps({ cfg, pieceRole, onBack, onOpen }) {
           <h3>Build your own</h3>
           <div className="ds-pick-frow" role="radiogroup" aria-label="Garment">
             <span>Garment</span>
-            {kinds.map(([g, label]) => <button key={g} type="button" role="radio" className="ds-chip" aria-checked={garment === g} aria-pressed={garment === g} onClick={() => setGarment(g)}>{label}</button>)}
+            {kinds.map(([g, label]) => <button key={g} type="button" role="radio" className="ds-chip" aria-checked={garment === g} onClick={() => setGarment(g)}>{label}</button>)}
           </div>
           <CustomControls garment={garment} spec={specs[garment]} sleeve={sleeve} onSleeve={setSleeve} onSpec={next => setSpecs(p => ({ ...p, [garment]: next }))}/>
           <CustomNote/>
@@ -432,10 +432,10 @@ function Templates({ head, onClose, cfg, pieceRole, onPickFamily, onPairFamily =
     <>
       {head(legend)}
       {extra}
-      <div className="ds-chips" role="tablist" aria-label="Uniform category">
+      <div className="ds-chips" role="radiogroup" aria-label="Uniform category">
         <RoleChip pieceRole={pieceRole} on={roleOn} setOn={setRoleOn} count={OWN_FAMILIES.filter(fitsRole).length} total={OWN_FAMILIES.length}/>
         {[{ id: ALL }, ...CATALOG].map(c => (
-          <button key={c.id} type="button" role="tab" className="ds-chip" aria-selected={cat === c.id} aria-pressed={cat === c.id} onClick={() => setCat(c.id)}>
+          <button key={c.id} type="button" role="radio" className="ds-chip" aria-checked={cat === c.id} onClick={() => setCat(c.id)}>
             {c.id === ALL ? 'All' : CAT_SHORT[c.id] ?? c.id} ({inCat(c.id).length})
           </button>
         ))}
@@ -480,7 +480,7 @@ function ArtScope({ value, onChange }) {
   return (
     <div className="ds-pick-frow" role="radiogroup" aria-label="What does your photo show?">
       <span>Your photo shows</span>
-      {ART_SCOPES.map(([v, l]) => <button key={v} type="button" role="radio" className="ds-chip" aria-checked={value === v} aria-pressed={value === v} onClick={() => onChange(value === v ? null : v)}>{l}</button>)}
+      {ART_SCOPES.map(([v, l]) => <button key={v} type="button" role="radio" className="ds-chip" aria-checked={value === v} onClick={() => onChange(value === v ? null : v)}>{l}</button>)}
     </div>
   );
 }

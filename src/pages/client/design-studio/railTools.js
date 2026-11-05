@@ -13,6 +13,16 @@ export const RAIL_TOOLS = [
   { id: 'rect',   key: 'M', label: 'Rectangle',    hint: 'Drag to draw a rectangle in the active colour; hold Shift for a square' },
   { id: 'ellipse', key: 'O', label: 'Ellipse',     hint: 'Drag to draw an ellipse in the active colour; hold Shift for a circle' },
 ];
+// WCAG 2.1.4: single-key shortcuts can be turned off (speech input presses letters); on by default, remembered in this browser.
+const KEYS_PREF = 'ds_letter_keys';
+let letterKeys = true;
+try { letterKeys = localStorage.getItem(KEYS_PREF) !== '0'; } catch { /* no storage: stays on for this page */ }
+export const letterKeysOn = () => letterKeys;
+export function setLetterKeys(on) {
+  letterKeys = on;
+  try { localStorage.setItem(KEYS_PREF, on ? '1' : '0'); } catch { /* still applies for this page */ }
+}
+
 const BY_KEY = Object.fromEntries(RAIL_TOOLS.map(t => [t.key, t.id]));
 
 // Every Studio shortcut, grouped for the shortcut card and the "?" dialog: the tool letters above plus the keys the Studio,
@@ -25,7 +35,7 @@ export const SHORTCUTS = [
   { group: 'Touch', keys: [['Pinch', 'Zoom'], ['Two-finger drag', 'Pan'], ['Double-tap', 'Fit / zoom in'], ['Two-finger tap', 'Undo']] },
 ];
 // "?" (Shift+/ on most layouts) opens the shortcut list; never while typing or with Ctrl, Cmd or Alt.
-export const helpKey = e => e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.repeat;
+export const helpKey = e => letterKeys && e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey && !e.repeat;
 
 // Stroke widths shared by the Draw panel and the rail (Brush, Pen, Line); presets, not a slider, for thumbs.
 export const STROKE_SIZES = [2, 5, 10];
@@ -38,7 +48,7 @@ export const BOX_TOOLS = ['rect', 'ellipse'];
 
 // View toggles on the stage: Shift+G grid (G alone stays the paint bucket), R rulers. Ctrl, Cmd, Alt and held keys are left alone.
 export function viewKey(e) {
-  if (e.ctrlKey || e.metaKey || e.altKey || e.repeat) return null;
+  if (!letterKeys || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return null;
   const k = e.key?.length === 1 ? e.key.toUpperCase() : null;
   if (k === 'G' && e.shiftKey) return 'grid';
   if (k === 'R' && !e.shiftKey) return 'rulers';
@@ -49,6 +59,7 @@ export function viewKey(e) {
 export function railKey(e) {
   if (e.ctrlKey || e.metaKey || e.repeat || viewKey(e)) return null;
   const k = e.key?.length === 1 ? e.key.toUpperCase() : e.key;
+  if (!letterKeys && k !== 'Escape' && !e.altKey) return null;
   if (k === 'Z') return e.altKey ? 'zoom-out' : 'zoom-in';
   if (e.altKey) return null;
   if (k === 'Escape') return 'move';

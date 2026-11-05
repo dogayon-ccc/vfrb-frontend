@@ -7,7 +7,7 @@ function Seg({ label, items, value, onPick }) {
     <div className="ds-pick-frow" role="radiogroup" aria-label={label}>
       <span>{label}</span>
       {items.map(([id, text]) => (
-        <button key={id} type="button" role="radio" className="ds-chip" aria-checked={value === id} aria-pressed={value === id} onClick={() => onPick(id)}>{text}</button>
+        <button key={id} type="button" role="radio" className="ds-chip" aria-checked={value === id} onClick={() => onPick(id)}>{text}</button>
       ))}
     </div>
   );

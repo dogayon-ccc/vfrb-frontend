@@ -143,7 +143,7 @@ function StatusCard({ logo, onBrowse }) {
           : 'The garment outline could not be read from this photo (busy background or cropped garment). Pick the type and shape it by hand; the photo stays as a tracing guide.'}</p>
         <div className="ds-pick-frow" role="radiogroup" aria-label="Garment type">
           <span>This is a</span>
-          {REF_KINDS.map(([id, label]) => <button key={id} type="button" role="radio" className="ds-chip" aria-checked={s.kind === id} aria-pressed={s.kind === id} onClick={() => logo.setSketchKind(id)}>{label}</button>)}
+          {REF_KINDS.map(([id, label]) => <button key={id} type="button" role="radio" className="ds-chip" aria-checked={s.kind === id} onClick={() => logo.setSketchKind(id)}>{label}</button>)}
         </div>
         {s.kind === 'dress' && <p className="ds-note">A dress is sketched as a full-length top; there is no separate dress shape yet.</p>}
         <CustomControls garment={d.garment} spec={d.custom} sleeve={d.sleeve} onSpec={custom => logo.setSketchDraft({ custom })} onSleeve={sleeve => logo.setSketchDraft({ sleeve })}/>

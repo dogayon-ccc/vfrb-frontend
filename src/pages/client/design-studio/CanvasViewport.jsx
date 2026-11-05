@@ -464,7 +464,7 @@ export default function CanvasViewport({
   ].filter(Boolean) : lostNote ? [{ id: 'gllost', text: '3D stopped working on this device. Showing the 2D design.', warn: true }] : [];
 
   return (
-    <div className="ds-cv" data-stage={dark && cfg.garment ? 'dark' : undefined} data-rulers={rulersOn ? '1' : undefined} data-first={!cfg.garment ? '1' : undefined}
+    <div className="ds-cv" role="main" data-stage={dark && cfg.garment ? 'dark' : undefined} data-rulers={rulersOn ? '1' : undefined} data-first={!cfg.garment ? '1' : undefined}
       onDragOver={e=>e.preventDefault()}
       onDrop={onDrop}>
 
@@ -523,7 +523,7 @@ export default function CanvasViewport({
               <>
                 {/* Always mounted: Fabric moves the <canvas> into its own wrapper, so React must never insert a sibling before it later. */}
                 <div className="ds-trace-slot" aria-hidden="true">{cfg.garment && <TraceLayer trace={trace} w={canvasSize.w} h={canvasSize.h}/>}{flat?.body && <CutLine paths={flat}/>}</div>
-                <canvas ref={canvasEl} style={{ display:'block' }}/>
+                <canvas ref={canvasEl} role="img" aria-label="Your garment design. Use the Layers list to select items with the keyboard." style={{ display:'block' }}/>
                 {opening && flat?.body && <StageOpening paths={flat} colors={cfg.colors} onEnd={endOpening}/>}
                 {aiPulse && <div className="ai-pulse"/>}
                 {cfg.garment && <div className="ds-stage-floor" aria-hidden="true"/>}

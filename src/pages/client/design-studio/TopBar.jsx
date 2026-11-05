@@ -64,11 +64,11 @@ export default function TopBar({ nav, cfg, setCfg, undo, redo, canUndo, canRedo,
   ];
 
   return (
-    <div className="ds-bar ds-chrome">
+    <div className="ds-bar ds-chrome" role="banner">
       <button type="button" className="ds-bar-btn ds-bar-back" onClick={() => nav('/dashboard')} aria-label="Back to dashboard" title="Back to dashboard">
         <ArrowLeft size={18} strokeWidth={2} aria-hidden="true" /><span>Back</span>
       </button>
-      <span className="ds-bar-title">Design Studio</span>
+      <h1 className="ds-bar-title">Design Studio</h1>
       {/* Design name feeds cfg.name, carried into studio_config on every save */}
       <input className="ds-bar-name" value={cfg.name ?? ''} maxLength={80} placeholder="Untitled design" aria-label="Design name"
         readOnly={!!lock} onChange={e => setCfg(p => ({ ...p, name: e.target.value.slice(0, 80) }))} />

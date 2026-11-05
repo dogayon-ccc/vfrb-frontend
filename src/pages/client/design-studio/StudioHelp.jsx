@@ -4,7 +4,7 @@
 // here touches the design.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
-import { SHORTCUTS, helpKey } from './railTools';
+import { SHORTCUTS, helpKey, letterKeysOn, setLetterKeys } from './railTools';
 import { TUTORIALS, tutorialById } from './studioTutorials';
 import useDialogFocus from '../../../hooks/useDialogFocus';
 
@@ -150,6 +150,7 @@ function HowTo({ onClose, onPick, onTour, onKeys }) {
 
 function Keys({ onClose, onTour, onHowTo }) {
   const box = useDialogKeys(onClose);
+  const [letters, setLetters] = useState(letterKeysOn);
   return (
     <div className="ds-tour" role="presentation" onPointerDown={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="ds-tour-dim" aria-hidden="true"/>
@@ -166,6 +167,10 @@ function Keys({ onClose, onTour, onHowTo }) {
             </section>
           ))}
         </div>
+        <label className="ds-keys-pref">
+          <input type="checkbox" checked={letters} onChange={e => { setLetterKeys(e.target.checked); setLetters(e.target.checked); }}/>
+          <span>Single-key shortcuts<small>Turn off if you use speech input, or if letters trigger tools by accident.</small></span>
+        </label>
         <div className="ds-tour-acts">
           <button type="button" className="ds-link" onClick={onHowTo}>How-to guides</button>
           <button type="button" className="ds-btn ds-btn--primary" onClick={onTour}>Take the tour</button>

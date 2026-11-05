@@ -705,6 +705,17 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('old guide prefs migrate once (v3): v1 px 10/20/40 and v2 % 5/10/20 both become 2/5/10 template units, and stay put after',
     CG.readGuidePrefs({ grid: true, size: 40 }).size === 10 && CG.readGuidePrefs({ size: 10 }).size === 2 && CG.readGuidePrefs({ v: 2, size: 5 }).size === 2 && CG.readGuidePrefs({ v: 2, size: 20 }).size === 10
     && CG.readGuidePrefs({ v: 3, size: 5 }).size === 5 && CG.guideDefaults().v === 3 && CG.guideDefaults().size === 5);
+  const NR = (await L('/src/pages/client/design-studio/rovingKeys.js')).nextRoving;
+  t('radio groups and tab lists: arrows wrap, Home and End jump, other keys do nothing', NR(2, 3, 'ArrowRight') === 0 && NR(0, 3, 'ArrowLeft') === 2 && NR(1, 3, 'ArrowDown') === 2 && NR(1, 3, 'ArrowUp') === 0 && NR(2, 3, 'Home') === 0 && NR(0, 3, 'End') === 2 && NR(0, 3, 'a') === null);
+  const RT1 = await L('/src/pages/client/design-studio/railTools.js');
+  t('single-key shortcuts can be turned off (WCAG 2.1.4): letters, view keys and ? stop, Escape and Alt+Z stay', (() => {
+    const ev = (key, x = {}) => ({ key, ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, repeat: false, ...x });
+    const on = RT1.railKey(ev('v')) === 'move' && RT1.viewKey(ev('r')) === 'rulers';
+    RT1.setLetterKeys(false);
+    const off = RT1.railKey(ev('v')) === null && RT1.viewKey(ev('r')) === null && !RT1.helpKey(ev('?')) && RT1.railKey(ev('Escape')) === 'move' && RT1.railKey(ev('z', { altKey: true })) === 'zoom-out';
+    RT1.setLetterKeys(true);
+    return on && off;
+  })());
   const CO = (await L('/src/pages/client/design-studio/studioView.js')).claimOpening;
   const fakeStore = () => { const m = {}; return { getItem: k => m[k] ?? null, setItem: (k, v) => { m[k] = v; } }; };
   t('the Studio opening plays once per session, never under reduced motion, and survives blocked storage', (() => {
