@@ -11,7 +11,7 @@
 //   GET /api/customer/orders — a submitted Studio design is archived only when its order completes, so until then it shows from its order.
 import { discardDraft, DISCARD_DRAFT } from '../../utils/studioHandoff';
 import { getStorageUrl } from '../../utils/fileUrl';
-import { asList } from '../../utils/asList';
+import { fetchAllPages } from '../../utils/fetchAllPages';
 import { setStudioLock } from '../../utils/studioLock';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -77,7 +77,7 @@ export default function MyDesigns() {
 
   const load = () => {
     setLoading(true); setError(false);
-    Promise.allSettled([axios.get('/api/customer/drafts/latest'), axios.get('/api/customer/designs'), axios.get('/api/customer/orders')]).then(([d, p, o]) => {
+    Promise.allSettled([axios.get('/api/customer/drafts/latest'), axios.get('/api/customer/designs'), fetchAllPages('/api/customer/orders')]).then(([d, p, o]) => {
       if (d.status === 'fulfilled' && d.value.data?.draft?.studio_config?.garment) setDraft(d.value.data.draft); else setDraft(null);
       const rows = p.status === 'fulfilled' && Array.isArray(p.value.data) ? p.value.data : [];
       if (p.status === 'fulfilled') {
@@ -86,7 +86,7 @@ export default function MyDesigns() {
         setTpl(rows.filter(x => !x.is_archived && x.config?.garment));
       }
       // Only with the design list loaded, so an archived design is never shown twice.
-      setInOrder(o.status === 'fulfilled' && p.status === 'fulfilled' ? inOrderDesigns(asList(o.value.data), rows) : []);
+      setInOrder(o.status === 'fulfilled' && p.status === 'fulfilled' ? inOrderDesigns(o.value, rows) : []);
       if (d.status === 'rejected' && p.status === 'rejected') setError(true);
       setLoading(false);
     });

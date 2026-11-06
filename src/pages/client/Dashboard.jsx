@@ -5,6 +5,7 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import axios from 'axios';
 import { asList } from '../../utils/asList';
+import { fetchAllPages } from '../../utils/fetchAllPages';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
 import { Button, Stepper, Skeleton, EmptyState, AlertBanner, ConfirmDialog } from '../../components/ui';
 import { discardDraft, DISCARD_DRAFT } from '../../utils/studioHandoff';
@@ -104,12 +105,12 @@ export default function CustomerDashboard() {
     if (cs && co) { setLoading(false); }
     const [s, o, d, g] = await Promise.allSettled([
       cs ? null : axios.get('/api/customer/dashboard'),
-      co ? null : axios.get('/api/customer/orders'),
+      co ? null : fetchAllPages('/api/customer/orders'),
       axios.get('/api/customer/drafts/latest'),
       axios.get('/api/customer/designs'),
     ]);
     if (s.status === 'fulfilled' && s.value) { setStats(s.value.data); cacheSet('customer_dashboard', s.value.data, TTL.DASHBOARD); }
-    if (o.status === 'fulfilled' && o.value) { const l = asList(o.value.data); setOrders(l); cacheSet('orders_list', l, TTL.ORDERS); }
+    if (o.status === 'fulfilled' && o.value) { const l = o.value; setOrders(l); cacheSet('orders_list', l, TTL.ORDERS); }
     else if (o.status === 'rejected' && !co) setError(true);
     if (d.status === 'fulfilled' && d.value.data?.draft?.studio_config?.garment) setDraft(d.value.data.draft);
     if (g.status === 'fulfilled' && Array.isArray(g.value.data)) setDesigns(g.value.data.filter(x => x.is_archived && x.config?.garment).slice(0, 3));

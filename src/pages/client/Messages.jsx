@@ -6,6 +6,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { asList } from '../../utils/asList';
+import { fetchAllPages } from '../../utils/fetchAllPages';
 import { useVisiblePoll } from '../../hooks/useVisiblePoll';
 import { announceMessagesRead } from '../../hooks/useUnreadMessages';
 import { useKeyboardInset } from '../../hooks/useKeyboardInset';
@@ -143,7 +144,7 @@ export default function CustomerMessages() {
 
   const loadOrders = useCallback(() => {
     setLoading(true);
-    axios.get('/api/customer/orders').then(r => { setOrders(asList(r.data)); setOrdersError(false); })
+    fetchAllPages('/api/customer/orders').then(l => { setOrders(l); setOrdersError(false); })
       .catch(() => setOrdersError(true)).finally(() => setLoading(false));
   }, []);
 

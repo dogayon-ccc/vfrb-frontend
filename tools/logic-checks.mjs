@@ -1827,6 +1827,12 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && /thread-unroll 200ms/.test(css('theme')) && /thread-run 200ms/.test(css('theme'))
     && /transition: CALM \? 'none' : on \? 'opacity \.2s ease-out' : 'opacity \.2s ease-out, visibility 0s linear \.2s'/.test(cvx) && (cvx.match(/\.\.\.paneFade\(/g) ?? []).length === 2);
   t('an empty order thread never tells the customer to ask "before you submit" (every thread belongs to a placed order)', !/before you submit/.test(rd('src/pages/client/Messages.jsx')));
+  { const FP = await L('/src/utils/fetchAllPages.js'), seen = [];
+    const get = (u, { params }) => { seen.push(params); return Promise.resolve({ data: { data: [params.page * 10], last_page: 30 } }); };
+    const all = await FP.fetchAllPages('/x', { get }), flat = await FP.fetchAllPages('/x', { get: () => Promise.resolve({ data: [1, 2] }) });
+    t('fetchAllPages follows last_page at the backend max per_page, stops at 10 pages, and passes a plain array through',
+      all.length === 10 && all[9] === 100 && seen.every(p => p.per_page === 100) && flat.length === 2
+      && ['Orders', 'MyDesigns', 'Messages', 'AIMaterials', 'Dashboard'].every(p => /fetchAllPages\('\/api\/customer\/orders'\)/.test(rd(`src/pages/client/${p}.jsx`)) && !/axios\.get\('\/api\/customer\/orders'\)/.test(rd(`src/pages/client/${p}.jsx`)))); }
 }
 console.log(out.join('\n')); const f =out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);

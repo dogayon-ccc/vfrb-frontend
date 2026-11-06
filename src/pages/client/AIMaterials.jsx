@@ -5,7 +5,7 @@ import { motion, AnimatePresence }                  from 'framer-motion';
 import { NavIcon }                                  from '../../components/ui/icons';
 import axios                                        from 'axios';
 import { cacheGet, cacheSet, cacheClear, TTL }      from '../../utils/cache';
-import { asList }                                   from '../../utils/asList';
+import { fetchAllPages }                            from '../../utils/fetchAllPages';
 import { materialColour }                           from '../../utils/materialColour';
 import { garmentLabel } from '../../utils/designName';
 import { useToast } from '../../components/customer/kit';
@@ -424,9 +424,8 @@ export default function AIMaterials() {
   // Load all customer orders for the selector
   const loadOrders = useCallback(() => {
     setLoading(true); setOrdersError(false);
-    axios.get('/api/customer/orders')
-      .then(r => {
-        const all = asList(r.data);
+    fetchAllPages('/api/customer/orders')
+      .then(all => {
         const active = all.filter(o => o.status !== 'cancelled');
         setOrders(active);
         setSelId(prev => prev ?? active[0]?.order_id ?? null);

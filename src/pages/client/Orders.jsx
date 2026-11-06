@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import axios from 'axios';
 import { asList } from '../../utils/asList';
+import { fetchAllPages } from '../../utils/fetchAllPages';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
 import EmptyState from '../../components/EmptyState';
 import { Card, Button, PageHeader, Stepper, Skeleton } from '../../components/ui';
@@ -65,8 +65,8 @@ export default function CustomerOrders() {
     const cached = cacheGet('orders_list');
     if (cached) { setOrders(asList(cached)); setError(false); setLoading(false); return; }
     setLoading(true);
-    axios.get('/api/customer/orders')
-      .then(r => { const l = asList(r.data); setOrders(l); setError(false); cacheSet('orders_list', l, TTL?.ORDERS ?? 30_000); })
+    fetchAllPages('/api/customer/orders')
+      .then(l => { setOrders(l); setError(false); cacheSet('orders_list', l, TTL?.ORDERS ?? 30_000); })
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, []);
