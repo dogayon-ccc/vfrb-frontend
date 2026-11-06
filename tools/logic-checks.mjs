@@ -1847,6 +1847,9 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && /thread-unroll 200ms/.test(css('theme')) && /thread-run 200ms/.test(css('theme'))
     && /transition: CALM \? 'none' : on \? 'opacity \.2s ease-out' : 'opacity \.2s ease-out, visibility 0s linear \.2s'/.test(cvx) && (cvx.match(/\.\.\.paneFade\(/g) ?? []).length === 2);
   t('an empty order thread never tells the customer to ask "before you submit" (every thread belongs to a placed order)', !/before you submit/.test(rd('src/pages/client/Messages.jsx')));
+  { const dh = rd('src/pages/client/Dashboard.jsx');
+    t('Home hero is one first action: Continue my draft when a draft exists, else Create a design; no extra API call',
+      /draft \? \(<>[\s\S]*?onClick=\{openStudio\}>Continue my draft<[\s\S]*?\) : \(<>[\s\S]*?onClick=\{startNew\}>Create a design</.test(dh) && (dh.match(/axios\.get\(|fetchAllPages\(/g) ?? []).length === 4); }
   { const FP = await L('/src/utils/fetchAllPages.js'), seen = [];
     const get = (u, { params }) => { seen.push(params); return Promise.resolve({ data: { data: [params.page * 10], last_page: 30 } }); };
     const all = await FP.fetchAllPages('/x', { get }), flat = await FP.fetchAllPages('/x', { get: () => Promise.resolve({ data: [1, 2] }) });

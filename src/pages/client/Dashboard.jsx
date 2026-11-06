@@ -142,25 +142,31 @@ export default function CustomerDashboard() {
 
       <motion.section initial={still ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .2 }}
         className="dx-hero cx-navy" aria-labelledby="dash-hero-t">
+        {/* First action: continue the draft when there is one, else create a design. */}
         <div className="dx-hero-txt">
           <p className="dx-hello">{greeting(user.name)}</p>
-          <h1 id="dash-hero-t" className="dx-title">Design your team’s uniform</h1>
-          <p className="dx-hero-sub">Pick a garment, set the colours and add your logo. Quantity and sizes come after.</p>
-          <div className="dx-hero-acts">
-            <Button variant="primary" size="lg" icon="designStudio" onClick={startNew}>Start designing</Button>
-            <Button size="lg" onClick={() => nav('/my-designs')}>My designs</Button>
-          </div>
-        </div>
-        <div className="dx-stage">
-          <img src={heroPhoto} alt="Finished VFRB uniforms on the workshop table" className="dx-stage-photo" width="1600" height="720" fetchpriority="high" />
-          {draft && (
-            <div className="dx-draft">
-              <span className="dx-draft-thumb"><DesignThumb src={draft.preview_dataurl} garment={draft.studio_config.garment} colors={draft.studio_config.colors} name={draftTitle} /></span>
-              <span className="dx-draft-txt"><strong>{draftTitle}</strong><small>Draft, edited {reltime(draft.updated_at)}</small></span>
-              <Button variant="primary" onClick={openStudio}>Continue</Button>
-              <Button icon="delete" aria-label="Discard draft" title="Discard draft" onClick={() => setAskDiscard(true)}/>
+          {draft ? (<>
+            <p className="dx-kicker">Your draft</p>
+            <h1 id="dash-hero-t" className="dx-title">{draftTitle}</h1>
+            <p className="dx-hero-sub">Edited {reltime(draft.updated_at)}. Pick up where you left off, then review and order.</p>
+            <div className="dx-hero-acts">
+              <Button variant="primary" size="lg" icon="designStudio" onClick={openStudio}>Continue my draft</Button>
+              <Button size="lg" onClick={startNew}>Start a new design</Button>
+              <Button size="lg" icon="delete" aria-label="Discard draft" title="Discard draft" className="dx-discard" onClick={() => setAskDiscard(true)}/>
             </div>
-          )}
+          </>) : (<>
+            <h1 id="dash-hero-t" className="dx-title">Design your team’s uniform</h1>
+            <p className="dx-hero-sub">Pick a garment, set the colours and add your logo. Quantity and sizes come after.</p>
+            <div className="dx-hero-acts">
+              <Button variant="primary" size="lg" icon="designStudio" onClick={startNew}>Create a design</Button>
+              <Button size="lg" onClick={() => nav('/my-designs')}>My designs</Button>
+            </div>
+          </>)}
+        </div>
+        <div className={`dx-stage${draft ? ' dx-stage-table' : ''}`}>
+          {draft
+            ? <span className="dx-stage-draft"><DesignThumb src={draft.preview_dataurl} garment={draft.studio_config.garment} colors={draft.studio_config.colors} name={draftTitle} scale={2} /></span>
+            : <img src={heroPhoto} alt="Finished VFRB uniforms on the workshop table" className="dx-stage-photo" width="1600" height="720" fetchpriority="high" />}
           <ConfirmDialog open={askDiscard} {...DISCARD_DRAFT} body={discardErr || DISCARD_DRAFT.body} onCancel={() => setAskDiscard(false)} onConfirm={confirmDiscard}/>
         </div>
       </motion.section>
