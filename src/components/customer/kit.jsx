@@ -131,7 +131,7 @@ export function DesignThumb({ src, garment, colors, name, compact = false, scale
       {kind === 'loading' && <span className="cx-dthumb-wait" aria-hidden="true"/>}
       {kind === 'fallback' && <>
         <span className="cx-dthumb-sil" style={{ transform: `scale(${scale})` }} aria-hidden="true"><MiniPreview garment={thumbGarment(garment)} colors={colors ?? {}}/></span>
-        {!compact && <span className="cx-dthumb-note" aria-hidden="true">{src ? 'Preview unavailable' : 'Colours only'}</span>}
+        {!compact && <span className="cx-dthumb-note" aria-hidden="true">Colours only</span>}
       </>}
     </div>
   );

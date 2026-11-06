@@ -62,7 +62,7 @@ function drawGuides(ctx, c, o) {
   ctx.save();
   ctx.lineWidth = Math.max(px, 1);
   ctx.setLineDash([6 * px, 4 * px]);
-  ctx.strokeStyle = rgba(token(c.lowerCanvasEl, '--color-thread-red', '#C4313B'), 0.9);
+  ctx.strokeStyle = rgba(token(c.lowerCanvasEl, '--color-thread-red', '#C4313B'), 0.5);
   for (const l of fixedGuides(g)) {
     ctx.beginPath();
     if (l.axis === 'v') { ctx.moveTo(l.at, 0); ctx.lineTo(l.at, c.getHeight()); } else { ctx.moveTo(g.left, l.at); ctx.lineTo(g.left + g.width, l.at); }

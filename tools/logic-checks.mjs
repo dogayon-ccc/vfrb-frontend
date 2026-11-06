@@ -1847,6 +1847,15 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && /thread-unroll 200ms/.test(css('theme')) && /thread-run 200ms/.test(css('theme'))
     && /transition: CALM \? 'none' : on \? 'opacity \.2s ease-out' : 'opacity \.2s ease-out, visibility 0s linear \.2s'/.test(cvx) && (cvx.match(/\.\.\.paneFade\(/g) ?? []).length === 2);
   t('an empty order thread never tells the customer to ask "before you submit" (every thread belongs to a placed order)', !/before you submit/.test(rd('src/pages/client/Messages.jsx')));
+  { const MDs = await L('/src/pages/client/MyDesigns.jsx'), u = (id, role) => ({ uniformSet: { id, role }, garment: role === 'top' ? 'Polo Shirt' : 'Pants' });
+    const g = MDs.groupSets([{ id: 'o2', order_id: 2, img: 'b.png', config: u('S', 'bottom') }, { id: 'o1', order_id: 1, img: 't.png', config: u('S', 'top') },
+      { id: 'o3', order_id: 3, img: null, config: { garment: 'Lab Coat' } }, { id: 'o4', order_id: 4, img: null, config: u('L', 'top') }]);
+    const dp = MDs.draftPieces({ garment: 'Pants', colors: { body: '#000' }, uniformSet: { id: 'x', active: 'bottom', pieces: { top: { garment: 'Polo Shirt', colors: { body: '#f00' } }, bottom: { garment: 'Pants' } } } }, 'p.png');
+    t('My Designs: a uniform set\'s orders become one card with both pieces (top first, each its own preview); a lone piece or single garment stays its own card; a draft set shows both pieces',
+      g.length === 3 && g[0].members.map(m => m.order_id).join() === '1,2' && g[0].pieces.map(p => `${p.role}:${p.src}`).join() === 'top:t.png,bottom:b.png'
+      && g[1].pieces === null && g[2].pieces === null && g[2].order_id === 4
+      && dp?.map(p => `${p.role}:${p.src}:${p.garment}`).join() === 'top:null:Polo Shirt,bottom:p.png:Pants' && MDs.draftPieces({ garment: 'Pants' }, 'p.png') === null
+      && /Colours only<\/span>/.test(rd('src/components/customer/kit.jsx')) && !/Preview unavailable/.test(rd('src/components/customer/kit.jsx'))); }
   { const dh = rd('src/pages/client/Dashboard.jsx');
     t('Home hero is one first action: Continue my draft when a draft exists, else Create a design; no extra API call',
       /draft \? \(<>[\s\S]*?onClick=\{openStudio\}>Continue my draft<[\s\S]*?\) : \(<>[\s\S]*?onClick=\{startNew\}>Create a design</.test(dh) && (dh.match(/axios\.get\(|fetchAllPages\(/g) ?? []).length === 4); }

@@ -495,6 +495,11 @@ html[data-wizard]{scroll-padding-bottom:160px}
 .mx-stage{border-radius:var(--radius) var(--radius) 0 0}
 .mx-stage:disabled{cursor:default}
 .mx-stage:focus-visible{outline:3px solid var(--cx-thread-ink);outline-offset:-3px}
+.mx-set{position:absolute;inset:0;display:grid;grid-template-columns:1fr 1fr}
+.mx-set-piece{position:relative;min-width:0}
+@media(max-width:479px){.mx-set-piece .cx-dthumb-sil{zoom:.42}.mx-set-tag{bottom:6px;padding:1px 6px;font-size:11px}}
+.mx-set-piece+.mx-set-piece{border-left:1px dashed var(--cx-line-strong)}
+.mx-set-tag{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);padding:2px 10px;border-radius:999px;background:var(--color-navy-cloth);color:var(--color-on-navy);font-size:12px;font-weight:700}
 .mx-stage .cx-dthumb{position:absolute;inset:0;background:transparent;transition:transform var(--cx-dur-3) var(--cx-ease)}
 .mx-card:hover .mx-stage .cx-dthumb{transform:scale(1.04)}
 .mx-badge{position:absolute;top:10px;left:10px;max-width:calc(100% - 20px)}

@@ -23,26 +23,69 @@ import { Card, Button, Badge, PageHeader, Skeleton, ActionMenu, ConfirmDialog } 
 import { Chips, DesignThumb, reltime, fmtDate, STATUS } from '../../components/customer/kit';
 import { savedDesignName, garmentLabel } from '../../utils/designName';
 import { openDesign, reorderDesign, duplicateDesign } from '../../utils/designActions';
+import { normalizeSet, SET_ROLES, ROLE_LABEL } from './design-studio/uniformSet';
 
 // Gallery card: big preview, one primary action, one visible secondary, the rest in the "⋯" menu.
-function DesignCard({ img, garment, colors, title, meta, badge, tone, primary, secondary, tertiary, i, what }) {
+function DesignCard({ img, garment, colors, title, meta, badge, tone, primary, secondary, tertiary, i, what, pieces }) {
+  const more = [tertiary].flat().filter(Boolean);
   return (
     <Card as={motion.article} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 8) * 0.04 }}
       padding="none" className="mx-card" bodyClassName="mx-card-in">
       <button type="button" className="mx-stage" onClick={primary?.onClick} disabled={primary?.disabled} aria-label={`${primary?.label ?? 'Open'}: ${title}`}>
-        <DesignThumb src={img} garment={garment} colors={colors} name={title} what={what} scale={2.3} />
+        {pieces?.length > 1 ? <SetThumb pieces={pieces} name={title} what={what} />
+          : <DesignThumb src={img} garment={garment} colors={colors} name={title} what={what} scale={2.3} />}
         <span className="mx-badge"><Badge tone={tone}>{badge}</Badge></span>
       </button>
       <div className="mx-body">
         <div className="mx-txt"><span className="mx-badge-row"><Badge tone={tone}>{badge}</Badge></span><h3 title={title}>{title}</h3><p>{meta}</p></div>
         <div className="mx-acts">
           {primary && <Button variant="primary" className="mx-primary" onClick={primary.onClick} disabled={primary.disabled}>{primary.label}</Button>}
-          {secondary && <Button onClick={secondary.onClick} disabled={secondary.disabled}>{secondary.label}</Button>}
-          {tertiary && <ActionMenu label={`More actions for ${title}`} items={[tertiary]} />}
+          {secondary && <Button onClick={secondary.onClick} disabled={secondary.disabled} aria-label={secondary.ariaLabel}>{secondary.label}</Button>}
+          {more.length > 0 && <ActionMenu label={`More actions for ${title}`} items={more} />}
         </div>
       </div>
     </Card>
   );
+}
+
+// Both pieces of a uniform set side by side, each labelled with its role.
+function SetThumb({ pieces, name, what = 'Saved preview' }) {
+  return (
+    <span className="mx-set">
+      {pieces.map(p => (
+        <span key={p.role} className="mx-set-piece">
+          <DesignThumb compact src={p.src} garment={p.garment} colors={p.colors} name={`${ROLE_LABEL[p.role]} of ${name}`} what={what} scale={2} />
+          <span className="mx-set-tag" aria-hidden="true">{ROLE_LABEL[p.role]}</span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+// A draft set's pieces, top first; the active piece carries the saved render, the other shows its colours. Null for a single garment.
+export function draftPieces(cfg, src) {
+  const set = normalizeSet(cfg?.uniformSet);
+  if (!set) return null;
+  const ps = SET_ROLES.map(r => (r === set.active ? { role: r, src, garment: cfg.garment, colors: cfg.colors } : set.pieces[r]?.garment && { role: r, src: null, garment: set.pieces[r].garment, colors: set.pieces[r].colors }));
+  return ps.every(Boolean) ? ps : null;
+}
+
+// In-order cards grouped by uniform set id: a set's pieces become one card (top first); single garments stay alone.
+export function groupSets(items) {
+  const out = [], byId = new Map();
+  for (const d of items) {
+    const u = d.config?.uniformSet, role = u?.role;
+    if (!u?.id || !SET_ROLES.includes(role)) { out.push({ ...d, pieces: null }); continue; }
+    let g = byId.get(u.id);
+    if (!g) { g = { ...d, id: `s${u.id}`, members: [] }; byId.set(u.id, g); out.push(g); }
+    g.members.push(d);
+  }
+  return out.map(g => {
+    if (!g.members) return g;
+    const m = [...g.members].sort((a, b) => SET_ROLES.indexOf(a.config.uniformSet.role) - SET_ROLES.indexOf(b.config.uniformSet.role));
+    if (m.length < 2) return { ...m[0], pieces: null };
+    return { ...m[0], members: m, pieces: m.map(x => ({ role: x.config.uniformSet.role, src: x.img, garment: x.config.garment, colors: x.config.colors })) };
+  });
 }
 
 const sleeveText = s => (s ? `${String(s)[0].toUpperCase()}${String(s).slice(1).toLowerCase()} sleeve` : null); // 'short' -> 'Short sleeve'
@@ -110,7 +153,8 @@ export default function MyDesigns() {
     try { open(await duplicateDesign(d)); } catch { setActErr('Could not make a copy. Check your connection and try again.'); setBusy(null); }
   };
 
-  const nDraft = (draft ? 1 : 0) + copies.length, nOrdered = past.length + inOrder.length, nInspo = tpl.length, total = nDraft + nOrdered;
+  const inOrderCards = groupSets(inOrder);
+  const nDraft = (draft ? 1 : 0) + copies.length, nOrdered = past.length + inOrderCards.length, nInspo = tpl.length, total = nDraft + nOrdered;
   const hit = (...v) => !q.trim() || v.filter(Boolean).join(' ').toLowerCase().includes(q.trim().toLowerCase());
   const cfg = draft?.studio_config ?? {};
   // Card title: the customer's design name when it has one (archived designs are labelled "<garment> — Order #n" by the backend).
@@ -120,7 +164,7 @@ export default function MyDesigns() {
   const shownCopies = tab === 'all' || tab === 'draft' ? copies.filter(d => hit(titleOf(d.config, d.label), d.label, d.garment, d.category)) : [];
   const shownPast = past.filter(d => hit(titleOf(d.config, d.label), d.label, d.garment, d.category));
   const showPast = tab === 'all' || tab === 'ordered';
-  const shownInOrder = inOrder.filter(d => hit(titleOf(d.config), d.config.garment, d.config.category, `#${d.order_id}`));
+  const shownInOrder = inOrderCards.filter(d => hit(titleOf(d.config), ...(d.members ?? [d]).flatMap(m => [m.config.garment, m.config.category, `#${m.order_id}`])));
   const shownTpl = tab === 'inspo' ? tpl.filter(d => hit(d.label, d.garment, d.category)) : [];
   const noMatch = q.trim() && !showDraft && !shownCopies.length && !(showPast && (shownPast.length || shownInOrder.length)) && !shownTpl.length;
   const empty = !loading && !error && total === 0;
@@ -129,7 +173,8 @@ export default function MyDesigns() {
   return (
     <div className="cx-page">
       <PageHeader title="My Designs" subtitle={total ? `${total} of your own design${total !== 1 ? 's' : ''}${nInspo ? ` · ${nInspo} inspiration` : ''}` : 'Your work in progress, saved designs and inspiration'}>
-        {!empty && <Button variant="primary" icon="designStudio" onClick={openStudioBlank}>New design</Button>}
+        {!empty && draft && <Button variant="primary" icon="designStudio" onClick={continueDraft}>Continue my draft</Button>}
+        {!empty && <Button variant={draft ? 'secondary' : 'primary'} icon={draft ? undefined : 'designStudio'} onClick={openStudioBlank}>{draft ? 'New design' : 'Create a design'}</Button>}
       </PageHeader>
 
       {!loading && !error && (total > 0 || nInspo > 0) && (
@@ -163,7 +208,7 @@ export default function MyDesigns() {
       {!loading && !error && (total > 0 || (tab === 'inspo' && nInspo > 0)) && !noMatch && (
         <div className="cx-dgrid">
           {showDraft && (
-            <DesignCard i={0} img={draft.preview_dataurl} garment={cfg.garment} colors={cfg.colors}
+            <DesignCard i={0} img={draft.preview_dataurl} garment={cfg.garment} colors={cfg.colors} pieces={draftPieces(cfg, draft.preview_dataurl)}
               title={draftTitle} meta={`${cfg.category ?? 'Design'} · edited ${reltime(draft.updated_at)}`}
               badge="Draft" tone={DRAFT} primary={{ label: 'Continue editing', onClick: continueDraft }} secondary={{ label: 'Order this', onClick: orderDraft }} tertiary={{ label: 'Discard draft', tone: 'danger', onClick: () => setAskDiscard(true) }} />
           )}
@@ -172,13 +217,25 @@ export default function MyDesigns() {
               title={titleOf(d.config, d.label, d.garment || 'Design')} meta={d.order_id ? `Copy of a design from order #${d.order_id}` : 'Copy'}
               badge="Copy" tone={DRAFT} primary={{ label: 'Edit colors', onClick: () => open(d) }} secondary={{ label: 'Order this', onClick: () => reorder(d) }} />
           ))}
-          {showPast && shownInOrder.map((d, i) => (
-            <DesignCard key={d.id} i={i + 1} img={d.img} garment={d.config.garment} colors={d.config.colors} what="Submitted design"
-              title={titleOf(d.config, null, d.config.garment)} meta={`Order #${d.order_id} · ${STATUS[d.status]?.label ?? 'Pending'}`}
-              badge="In an order" tone={ORDERED}
-              primary={{ label: 'View order', onClick: () => nav(`/orders/${d.order_id}`) }}
-              secondary={{ label: 'Reorder', onClick: () => reorder(d) }} />
-          ))}
+          {showPast && shownInOrder.map((d, i) => {
+            const st = x => STATUS[x.status]?.label ?? 'Pending';
+            if (!d.members) return (
+              <DesignCard key={d.id} i={i + 1} img={d.img} garment={d.config.garment} colors={d.config.colors} what="Submitted design"
+                title={titleOf(d.config, null, d.config.garment)} meta={`Order #${d.order_id} · ${st(d)}`}
+                badge="In an order" tone={ORDERED}
+                primary={{ label: 'View order', onClick: () => nav(`/orders/${d.order_id}`) }}
+                secondary={{ label: 'Reorder', onClick: () => reorder(d) }} />
+            );
+            const [top, bot] = d.members, sts = [...new Set(d.members.map(st))];
+            return (
+              <DesignCard key={d.id} i={i + 1} pieces={d.pieces} what="Submitted design"
+                title={titleOf(d.config, null, d.config.garment)} meta={`Uniform set · orders #${top.order_id} + #${bot.order_id} · ${sts.join(' / ')}`}
+                badge="In an order" tone={ORDERED}
+                primary={{ label: 'View order', onClick: () => nav(`/orders/${top.order_id}`) }}
+                secondary={{ label: `Bottom #${bot.order_id}`, ariaLabel: `Bottom #${bot.order_id}, view order`, onClick: () => nav(`/orders/${bot.order_id}`) }}
+                tertiary={[{ label: 'Reorder the top', onClick: () => reorder(top) }, { label: 'Reorder the bottom', onClick: () => reorder(bot) }]} />
+            );
+          })}
           {showPast && shownPast.map((d, i) => (
             <DesignCard key={d.id} i={i + 1} img={d.photo_path} garment={d.garment} colors={d.config?.colors}
               title={titleOf(d.config, d.label, d.garment || 'Design')} meta={[d.category, sleeveText(d.sleeve)].filter(Boolean).join(' · ') || fmtDate(d.updated_at ?? d.created_at)}
