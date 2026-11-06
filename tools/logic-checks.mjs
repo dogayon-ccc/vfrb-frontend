@@ -1856,6 +1856,8 @@ t('new families route to their own models per sleeve; no model for a sleeve they
       && g[1].pieces === null && g[2].pieces === null && g[2].order_id === 4
       && dp?.map(p => `${p.role}:${p.src}:${p.garment}`).join() === 'top:null:Polo Shirt,bottom:p.png:Pants' && MDs.draftPieces({ garment: 'Pants' }, 'p.png') === null
       && /Colours only<\/span>/.test(rd('src/components/customer/kit.jsx')) && !/Preview unavailable/.test(rd('src/components/customer/kit.jsx'))); }
+  t('Order Detail: the sticky aside spans both desktop rows, so it never slides over the full-width materials section',
+    /grid-template-areas:"main aside" "mat aside"/.test(rd('src/styles/customer.css')) && !/"mat mat"/.test(rd('src/styles/customer.css')));
   { const dh = rd('src/pages/client/Dashboard.jsx');
     t('Home hero is one first action: Continue my draft when a draft exists, else Create a design; no extra API call',
       /draft \? \(<>[\s\S]*?onClick=\{openStudio\}>Continue my draft<[\s\S]*?\) : \(<>[\s\S]*?onClick=\{startNew\}>Create a design</.test(dh) && (dh.match(/axios\.get\(|fetchAllPages\(/g) ?? []).length === 4); }
