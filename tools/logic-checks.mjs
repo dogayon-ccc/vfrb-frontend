@@ -1867,6 +1867,11 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     t('fetchAllPages follows last_page at the backend max per_page, stops at 10 pages, and passes a plain array through',
       all.length === 10 && all[9] === 100 && seen.every(p => p.per_page === 100) && flat.length === 2
       && ['Orders', 'MyDesigns', 'Messages', 'AIMaterials', 'Dashboard'].every(p => /fetchAllPages\('\/api\/customer\/orders'\)/.test(rd(`src/pages/client/${p}.jsx`)) && !/axios\.get\('\/api\/customer\/orders'\)/.test(rd(`src/pages/client/${p}.jsx`)))); }
+  { const UID = await L('/src/utils/uid.js'), real = crypto.randomUUID, re = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/; let fb;
+    try { crypto.randomUUID = undefined; fb = [UID.uid(), UID.uid()]; } finally { crypto.randomUUID = real; }
+    t('uid: v4 format with or without crypto.randomUUID (plain-http LAN test); no raw randomUUID call left in src',
+      re.test(UID.uid()) && fb.every(x => re.test(x)) && fb[0] !== fb[1]
+      && ['src/utils/offlineQueue.js', 'src/pages/client/DesignStudio.jsx', 'src/pages/client/design-studio/uniformSet.js', 'src/pages/client/design-studio/useGarmentCanvas.js'].every(f => !/randomUUID/.test(rd(f)))); }
 }
 console.log(out.join('\n')); const f =out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);

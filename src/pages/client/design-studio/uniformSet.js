@@ -2,6 +2,7 @@
 // The active piece stays the top-level design snapshot (every existing reader keeps working); the set rides along as
 // `uniformSet`. Ordering creates one linked order per piece (a single order holds one garment).
 import { pieceOf, LEGACY_GARMENT } from './garmentCatalog';
+import { uid } from '../../../utils/uid';
 
 export const SET_ROLES = ['top', 'bottom'];
 export const otherRole = r => (r === 'top' ? 'bottom' : 'top');
@@ -92,7 +93,7 @@ export function mirrorStyle(snap, cfg, zones, patternsOk) {
 // src/dst are the garments' canvas sizes { w, h }; face is 'front' or 'back'.
 export function mirrorOverlay(snap, obj, src, dst, face = 'front') {
   if (!snap || !obj || !(src?.w > 0) || !(src?.h > 0)) return snap;
-  const copy = { ...obj, left: ((obj.left ?? 0) / src.w) * dst.w, top: ((obj.top ?? 0) / src.h) * dst.h, __layerId: crypto.randomUUID() };
+  const copy = { ...obj, left: ((obj.left ?? 0) / src.w) * dst.w, top: ((obj.top ?? 0) / src.h) * dst.h, __layerId: uid() };
   const key = face === 'back' ? 'backOverlays' : 'frontOverlays';
   const list = [...(snap[key] ?? (face === 'back' ? [] : snap.overlays ?? [])), copy];
   return face === 'back' ? { ...snap, backOverlays: list } : { ...snap, frontOverlays: list, overlays: list };

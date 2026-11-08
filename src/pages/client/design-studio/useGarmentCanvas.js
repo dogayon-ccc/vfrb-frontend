@@ -16,6 +16,7 @@ import { loadFont, webFontFor, defaultWeight } from './studioFonts';
 import { sketchInk } from './sketchLine';
 import { pathData, constrain45, closesAt, trimDoubleClick, dragBox } from './vectorTools';
 import { emptyHistory, entry, pushStep, stepHistory, canStep, switchSide, lookOf, sameLook, syncLook, lookToApply, foldSince } from './editHistory';
+import { uid } from '../../../utils/uid';
 
 // Template lines (garmentPaths `details`). Untagged ones are decorative: no __zoneKey, never clicked or hovered. A tagged part (pocket,
 // buttons, closure) is tappable as zone 'detail:<part>' and carries the customer's colour as `style` (garmentDetails.js).
@@ -401,7 +402,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
 
       // A finished stroke, pen path or line becomes a Drawing layer: erasable, saved and shown in 3D like a brush stroke.
       function keepDrawing(obj, name) {
-        obj.set({ __draw: true, __layerId: crypto.randomUUID(), __layerName: name, selectable: true });
+        obj.set({ __draw: true, __layerId: uid(), __layerName: name, selectable: true });
         fc.current.renderAll();
         pushHistory();
         bumpLayers();
@@ -469,7 +470,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
           if (!c) return;
           const { color } = vecStyle();
           const shape = makeShape(fabric, kind, { left: b.left + b.width / 2, top: b.top + b.height / 2, originX: 'center', originY: 'center',
-            fill: color, stroke: 'rgba(0,0,0,.25)', strokeWidth: 1, __shape: true, __layerId: crypto.randomUUID() }, color);
+            fill: color, stroke: 'rgba(0,0,0,.25)', strokeWidth: 1, __shape: true, __layerId: uid() }, color);
           shape.set(kind === 'ellipse' ? { rx: b.width / 2, ry: b.height / 2 } : { width: b.width, height: b.height });
           shape.setCoords();
           c.add(shape);
@@ -773,7 +774,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
           left: pos ? pos.x : art ? paths.w / 2 : paths.w * preset.x,
           top:  pos ? pos.y : art ? paths.h * 0.42 : paths.h * preset.y,
           originX: centred ? 'center' : 'left', originY: centred ? 'center' : 'top',
-          __logo: true, __artwork: art, __layerId: crypto.randomUUID(), __layerName: art ? 'Artwork' : 'Logo',
+          __logo: true, __artwork: art, __layerId: uid(), __layerName: art ? 'Artwork' : 'Logo',
         });
         canvas.add(img);
         canvas.setActiveObject(img);
@@ -800,7 +801,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         originX: 'center', originY: 'center', fontSize: sizePx ?? 18,
         fontFamily: fontCss ?? 'Arial Black, sans-serif',
         fill: color, fontWeight: weight, paintFirst: 'stroke', strokeLineJoin: 'round', __text: true,
-        __layerId: crypto.randomUUID(),
+        __layerId: uid(),
         __layerName: text.length > 20 ? text.slice(0, 20) + '…' : text,
       });
       canvas.add(t);
@@ -823,7 +824,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         left: pos ? pos.x : paths.w / 2, top: pos ? pos.y : paths.h / 2,
         originX: 'center', originY: 'center',
         fill: color, stroke: 'rgba(0,0,0,.25)', strokeWidth: 1,
-        __shape: true, __layerId: crypto.randomUUID(),
+        __shape: true, __layerId: uid(),
       };
       const shape = makeShape(fabric, kind, common, color); // overlayTools.js
       canvas.add(shape);
@@ -841,7 +842,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     if (!canvas) return;
     const paths = getGarmentPaths(garment, sleeve), at = pos ?? pocketSpot(kind, paths, pieceOf(garment));
     import('fabric').then((mod) => { const fabric = mod.fabric ?? mod.default ?? mod;
-      const pocket = makePocket(fabric, kind, { left: at.x, top: at.y, originX: 'center', originY: 'center', __layerId: crypto.randomUUID() }, color);
+      const pocket = makePocket(fabric, kind, { left: at.x, top: at.y, originX: 'center', originY: 'center', __layerId: uid() }, color);
       canvas.add(pocket);
       canvas.setActiveObject(pocket);
       canvas.renderAll();
@@ -867,7 +868,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     const g = garmentBox(canvas), cx = g ? g.left + g.width / 2 : canvas.getWidth() / 2;
     obj.clone(OVERLAY_PROPS).then(c => reviveOverlays([c])).then(([copy]) => {
       const p = obj.getCenterPoint();
-      copy.set({ flipX: !obj.flipX, __layerId: crypto.randomUUID(), __layerName: obj.__layerName ? `${obj.__layerName} (mirrored)` : undefined });
+      copy.set({ flipX: !obj.flipX, __layerId: uid(), __layerName: obj.__layerName ? `${obj.__layerName} (mirrored)` : undefined });
       copy.setPositionByOrigin({ x: mirroredX(p.x, cx), y: p.y }, 'center', 'center');
       copy.setCoords();
       canvas.add(copy);
@@ -941,7 +942,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       copy.set({
         left: (obj.left ?? 0) + 16,
         top: (obj.top ?? 0) + 16,
-        __layerId: crypto.randomUUID(),
+        __layerId: uid(),
         __layerName: obj.__layerName ? `${obj.__layerName} copy` : undefined,
       });
       canvas.add(copy);
@@ -1187,7 +1188,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     .filter(o => !o.__garmentBase && !o.__hoverGlow)
     .filter(o => typeof o.toObject === 'function')
     .map(o => {
-      if (!o.__layerId) o.__layerId = crypto.randomUUID(); // lazy-assign for legacy objects
+      if (!o.__layerId) o.__layerId = uid(); // lazy-assign for legacy objects
       const kind = o.__pocket ? 'pocket' : o.__shape ? 'shape' : o.__draw ? 'drawing' : o.__artwork ? 'artwork' : (o.__logo ? 'logo' : 'text');
       return {
         id: o.__layerId, type: kind,

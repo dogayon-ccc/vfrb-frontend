@@ -56,6 +56,7 @@ import { DEFAULT_PIECE, ROLE_LABEL, otherRole, normalizeSet, withSet, mirrorStyl
 import PiecesRail, { PieceActions } from './design-studio/PiecesRail';
 import StudioHelp from './design-studio/StudioHelp';
 import { paintZone } from './design-studio/colorRules';
+import { uid } from '../../utils/uid';
 
 const SYNC_3D_MS = 300; // 2D -> 3D refresh window while the 3D view is open
 
@@ -538,7 +539,7 @@ export default function DesignStudio() {
     if (d.pieces?.bottom && !uset && pieceOf(t.garment) === 'top') {
       const b = applyGarment(cfg, d.pieces.bottom, { category: t.category, inspirationId: d.id });
       const bottom = serializeDesign({ ...b, colors: withPhotoColour(b.colors, d.id, 1) }, { overlays: [], frontOverlays: [], backOverlays: [] });
-      setUset({ id: crypto.randomUUID(), active: 'top', pieces: { top: null, bottom } });
+      setUset({ id: uid(), active: 'top', pieces: { top: null, bottom } });
     }
   }, [uset, cfg]);
   const prevGarment = useRef(cfg.garment);
@@ -579,7 +580,7 @@ export default function DesignStudio() {
     if (artScope !== 'set' || uset || !role) return;
     const other = otherRole(role);
     const o = applyGarment(cfg, DEFAULT_PIECE[other], { category: cfg.category });
-    setUset({ id: crypto.randomUUID(), active: role, pieces: { [role]: null, [other]: serializeDesign(o, { overlays: [], frontOverlays: [], backOverlays: [] }) } });
+    setUset({ id: uid(), active: role, pieces: { [role]: null, [other]: serializeDesign(o, { overlays: [], frontOverlays: [], backOverlays: [] }) } });
   };
   // The file is cleared only when the timer fires: clearing it first re-ran this effect, whose cleanup cancelled the upload.
   const onLogoFileRef = useRef(onLogoFile);
@@ -632,7 +633,7 @@ export default function DesignStudio() {
     const role = pieceOf(cfg.garment);
     if (!role || uset) return;
     const other = otherRole(role);
-    setUset({ id: crypto.randomUUID(), active: other, pieces: { [role]: pieceSnapshot(), [other]: null } });
+    setUset({ id: uid(), active: other, pieces: { [role]: pieceSnapshot(), [other]: null } });
     loadPiece(null, other);
   }, [cfg.garment, uset, pieceSnapshot, loadPiece]);
 
@@ -642,7 +643,7 @@ export default function DesignStudio() {
     const role = pieceOf(cfg.garment), other = role && otherRole(role);
     if (!role || uset || pieceOf(fam.id) !== other) return;
     const piece = applyGarment({ ...cfg, inspirationId: null, details: {} }, fam.id, { ...(category ? { category } : {}), ...pick });
-    setUset({ id: crypto.randomUUID(), active: other, pieces: { [role]: pieceSnapshot(), [other]: null } });
+    setUset({ id: uid(), active: other, pieces: { [role]: pieceSnapshot(), [other]: null } });
     loadPiece(serializeDesign(piece, { overlays: [], frontOverlays: [], backOverlays: [] }), other);
   }, [cfg, uset, pieceSnapshot, loadPiece]);
 

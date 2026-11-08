@@ -1,6 +1,7 @@
 // Generic offline-mutation queue, backed by localStorage (survives reload,
 // unlike the sessionStorage-backed cache.js). Queue a write while offline,
 // flush it when 'online' fires. Reusable by any page — not Dashboard-only.
+import { uid } from './uid';
 const KEY = 'vfrb_offline_queue';
 
 const read  = () => { try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; } };
@@ -15,7 +16,7 @@ export const queueSize = () => read().length;
 export const clearQueue = () => { try { localStorage.removeItem(KEY); } catch {} };
 
 // entry: { method, url, data? } — must be plain/serialisable, not a closure.
-export const enqueue = (entry) => write([...read(), { ...entry, id: crypto.randomUUID(), ts: Date.now() }]);
+export const enqueue = (entry) => write([...read(), { ...entry, id: uid(), ts: Date.now() }]);
 
 // Replays every queued entry via the given axios instance. Entries that
 // still fail (still offline, or a real server error) stay queued for the
