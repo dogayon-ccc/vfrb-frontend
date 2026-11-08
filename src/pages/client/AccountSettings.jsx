@@ -313,7 +313,6 @@ const PANELS = {
 };
 
 export default function AccountSettings() {
-  usePageTitle('Account settings');
   const reduce = useReducedMotion();
   const [params, setParams] = useSearchParams();
   const tab = params.get('tab');
@@ -332,6 +331,9 @@ export default function AccountSettings() {
   const open = (x) => setSec(x.id);
   const current = SECTIONS.find(x => x.id === active);
   const Panel = PANELS[active];
+  usePageTitle(sec && current ? `${current.label} · Account settings` : 'Account settings');
+  // Phones show one section at a time, so its title is the page heading there.
+  const PanelH = wide ? 'h2' : 'h1';
 
   const list = (
     <Card as="nav" aria-label="Account settings sections" padding="none">
@@ -353,7 +355,7 @@ export default function AccountSettings() {
       aria-labelledby="acct-panel-h">
       <div className="st-panel-h">
         {!wide && <Button icon="back" onClick={() => setSec(null)} aria-label="Back to settings list" />}
-        <h2 id="acct-panel-h">{current.label}</h2>
+        <PanelH id="acct-panel-h" className="st-panel-t">{current.label}</PanelH>
       </div>
       <Panel/>
     </motion.section>
