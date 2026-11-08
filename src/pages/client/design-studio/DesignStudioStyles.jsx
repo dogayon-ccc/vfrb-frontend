@@ -333,6 +333,11 @@ export default function DesignStudioStyles() {
         border-top:1px solid var(--cx-line);background:var(--cx-stage);}
       .ds-modal .ds-pick-foot{background:var(--cx-card);}
       .ds-pick-foot .ds-btn{min-height:44px;}
+      @media (max-width:599px){
+        .ds-pick-foot:has(.ds-btn--primary){flex-direction:column-reverse;align-items:stretch;}
+        .ds-pick-foot:has(.ds-btn--primary) .ds-btn{width:100%;}
+        .ds-pick-foot:has(.ds-btn--primary)>.ds-btn:first-child{border-color:transparent;background:none;box-shadow:none;color:#046A78;text-decoration:underline;}
+      }
       .ds-pick-count{margin-right:auto;font-size:13px;font-weight:600;color:var(--cx-ink-2);}
       .ds-pick[data-inline] .ds-pick-count{color:var(--cx-stage-ink-2);}
       .ds-pick-past{width:100%;max-width:1040px;}
