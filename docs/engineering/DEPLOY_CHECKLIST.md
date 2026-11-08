@@ -28,6 +28,11 @@
 - [ ] Frontend: push `main` (the repo only builds `main`), wait for Ready.
 - [ ] If you test a Preview: Preview shares the live DB, so clicks write real rows; turn Vercel Authentication off only for that window.
 
+## Deployed 2026-11-09
+- Backend https://vfrb-capstone.vercel.app at `7b6e45e`; frontend https://vfrb-frontend.vercel.app at `610b358` (that commit holds print-through under the backend test message; code correct, history not rewritten).
+- Full smoke PASS 2026-11-09: customer, manager, station (email-less), owner and cron, reported by Dave; tag `defense-2026-11` (backend `7b6e45e`, frontend `610b358`).
+- Read-only smoke PASS (RUNTIME-VERIFIED): `/api/version` commit + DB connected; JSON 404; 401 without token (user, admin write, cron); CORS echoes only the frontend origin; live bundle contains the production line and print-through.
+
 ## Smoke (runbook §8, use a test customer and note IDs)
 - [ ] Sign in as customer, manager, station, owner.
 - [ ] Owner write -> 403; station write on another stage -> 403.
