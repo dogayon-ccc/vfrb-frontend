@@ -42,10 +42,10 @@
 
 /* hero 3D: the authored scrub top on the same kraft table, stacked over the pattern and cross-faded */
 .lp-visual { display: grid; gap: 14px; min-width: 0; }
-.lp-visual__pattern, .lp-3d { grid-area: 1 / 1; min-width: 0; transition: opacity 200ms var(--vs-ease), visibility 0s linear 200ms; }
+.lp-visual > .pr, .lp-3d { grid-area: 1 / 1; min-width: 0; transition: opacity 200ms var(--vs-ease), visibility 0s linear 200ms; }
 .lp-3d { display: grid; gap: 12px; align-content: start; }
-.lp-visual[data-view="pattern"] .lp-3d, .lp-visual[data-view="3d"] .lp-visual__pattern { opacity: 0; visibility: hidden; }
-.lp-visual[data-view="pattern"] .lp-visual__pattern, .lp-visual[data-view="3d"] .lp-3d { transition-delay: 0s; }
+.lp-visual[data-view="pattern"] .lp-3d, .lp-visual[data-view="3d"] > .pr { opacity: 0; visibility: hidden; }
+.lp-visual[data-view="pattern"] > .pr, .lp-visual[data-view="3d"] .lp-3d { transition-delay: 0s; }
 .lp-3d__stage { transform: none; cursor: grab; touch-action: none;
   background: linear-gradient(rgba(27, 42, 74, 0.07) 1px, transparent 1px) 0 0 / 8% 8%, linear-gradient(90deg, rgba(27, 42, 74, 0.07) 1px, transparent 1px) 0 0 / 8% 8%, var(--kraft); }
 .lp-3d__stage:active { cursor: grabbing; }
@@ -61,7 +61,7 @@
 .lp-switch button[aria-pressed="true"] { color: var(--navy); background: var(--chalk); }
 @media (max-width: 959px) {
   .lp-visual .lp-3d, .lp-switch { display: none; }
-  .lp-visual .lp-visual__pattern { opacity: 1; visibility: visible; }
+  .lp-visual > .pr { opacity: 1; visibility: visible; }
 }
 
 .lp-sub { margin-top: 12px; }
@@ -117,6 +117,6 @@
   .lp-floor__c { transform: translateX(-14%); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .pr-stage, .pr-stage.is-intro, .lp-card, .lp-card__art, .lp-contact__list a, .lp-visual__pattern, .lp-3d, .lp-3d__btn, .lp-switch button { transition: none; }
+  .pr-stage, .pr-stage.is-intro, .lp-card, .lp-card__art, .lp-contact__list a, .lp-visual > .pr, .lp-3d, .lp-3d__btn, .lp-switch button { transition: none; }
   .pr-stage, .lp-card:hover, .lp-card:focus-visible, .lp-card:hover .lp-card__art, .lp-card:focus-visible .lp-card__art { transform: none; }
 }

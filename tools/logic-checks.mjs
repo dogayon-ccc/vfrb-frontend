@@ -1876,10 +1876,15 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     ['Dashboard', 'MyDesigns', 'Orders', 'OrderDetail', 'OrderWizard', 'Messages', 'AccountSettings', 'AIMaterials'].every(p => /usePageTitle\(/.test(rd(`src/pages/client/${p}.jsx`)))
     && /aria-label=\{`Details for order #\$\{o\.order_id\}`\}/.test(rd('src/pages/client/Orders.jsx')) && /<h2 title=\{title\}>/.test(rd('src/pages/client/MyDesigns.jsx')));
   const HG = await L('/src/pages/landing/heroGate.js'), lp = rd('src/pages/Landing.jsx'), ok = { width: 1440, saveData: false, calm: false, webgl: true };
-  t('landing hero 3D: only >= 960px with WebGL, no Save-Data, no reduced motion (390, Save-Data, reduced motion, no WebGL keep the 2D pattern); HeroTurntable is lazy-only and failures fall back',
+  const hl = rd('src/pages/landing/HeroLive.jsx');
+  t('landing hero 3D: only >= 960px with WebGL, no Save-Data, no reduced motion (390, Save-Data, reduced motion, no WebGL keep the 2D pattern); the entry keeps only a width check, HeroLive and HeroTurntable are lazy-only and failures fall back',
     HG.hero3DAllowed(ok) && !HG.hero3DAllowed({ ...ok, width: 390 }) && !HG.hero3DAllowed({ ...ok, width: 959 }) && !HG.hero3DAllowed({ ...ok, saveData: true })
     && !HG.hero3DAllowed({ ...ok, calm: true }) && !HG.hero3DAllowed({ ...ok, webgl: false })
-    && /lazy\(\(\) => import\('\.\/landing\/HeroTurntable'\)\.catch\(/.test(lp) && !/^import [^;]*HeroTurntable/m.test(lp) && /webglcontextlost', onError/.test(rd('src/pages/landing/HeroTurntable.jsx')));
+    && /lazy\(\(\) => import\('\.\/landing\/HeroLive'\)\.catch\(/.test(lp) && !/^import [^;]*(HeroLive|HeroTurntable|heroGate)/m.test(lp) && !/hasWebGL|requestIdleCallback|useState/.test(lp)
+    && lp.includes(`matchMedia('(min-width:${HG.HERO_3D_MIN_WIDTH}px) and (prefers-reduced-motion:no-preference)')`) && /box\.dataset\.view = shown/.test(hl)
+    && /calm: matchMedia\('\(prefers-reduced-motion: reduce\)'\)\.matches/.test(hl)
+    && /lazy\(\(\) => import\('\.\/HeroTurntable'\)\.catch\(/.test(hl) && /hero3DAllowed\(\{/.test(hl) && /requestIdleCallback/.test(hl)
+    && /webglcontextlost', onError/.test(rd('src/pages/landing/HeroTurntable.jsx')));
 }
 console.log(out.join('\n')); const f =out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);
