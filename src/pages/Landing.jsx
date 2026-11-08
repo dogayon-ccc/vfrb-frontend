@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { lazy, Suspense, useRef } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import SitePage from '../components/site/SitePage';
 import Photo from '../components/landing/Photo';
@@ -26,6 +26,9 @@ const CONTACTS = [
   ['Visit', C.map, `${C.address[0]}, ${C.address[1]}`],
 ];
 
+// The pattern renders first and stays the fallback; on wide screens without reduced motion HeroLive runs the full 3D gate.
+const HeroLive = lazy(() => import('./landing/HeroLive').catch(() => ({ default: () => null })));
+
 export default function Landing() {
   const hero = useRef(null);
   useParallax(hero, useReducedMotion());
@@ -40,7 +43,10 @@ export default function Landing() {
             <Btn to="/login#request-access" variant="ghost-light">Request access</Btn>
           </div>
         </div>
-        <PatternReveal />
+        <div className="lp-visual">
+          <PatternReveal />
+          {matchMedia('(min-width:960px) and (prefers-reduced-motion:no-preference)').matches && <Suspense fallback={null}><HeroLive host={hero} /></Suspense>}
+        </div>
       </section>
 
       <section className="vs-sec vs-wrap" aria-labelledby="lp-how">
