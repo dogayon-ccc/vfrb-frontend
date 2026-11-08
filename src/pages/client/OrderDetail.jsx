@@ -18,6 +18,7 @@ import { savedDesignName, garmentLabel } from '../../utils/designName';
 
 const garmentName = v => garmentLabel(humanize(v));
 import { useState, useEffect, useCallback } from 'react';
+import usePageTitle from '../../hooks/usePageTitle';
 import DesignPreview from '../../components/DesignPreview';
 import OrderBilling from '../../components/OrderBilling';
 import { useParams, useNavigate }            from 'react-router-dom';
@@ -198,6 +199,7 @@ export default function CustomerOrderDetail() {
   const { id }  = useParams();
   const nav     = useNavigate();
   const orderId = id;
+  usePageTitle(`Order #${orderId}`);
 
   const [order,    setOrder]    = useState(null);
   const [delivery, setDelivery] = useState(null);

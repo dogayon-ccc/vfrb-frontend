@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import usePageTitle from '../../hooks/usePageTitle';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { asList } from '../../utils/asList';
@@ -40,8 +41,8 @@ function OrderCard({ o, onOpen, onReorder, setLine }) {
       <div className="ox-foot">
         <span>Ordered {fmtDate(o.created_at)}</span>
         <span className="ox-acts">
-          <Button size="sm" onClick={onOpen}>Details</Button>
-          {canReorder && <Button size="sm" variant="primary" onClick={() => onReorder({ config: cfg })}>Reorder</Button>}
+          <Button size="sm" onClick={onOpen} aria-label={`Details for order #${o.order_id}`}>Details</Button>
+          {canReorder && <Button size="sm" variant="primary" onClick={() => onReorder({ config: cfg })} aria-label={`Reorder order #${o.order_id}`}>Reorder</Button>}
         </span>
       </div>
     </Card>
@@ -49,6 +50,7 @@ function OrderCard({ o, onOpen, onReorder, setLine }) {
 }
 
 export default function CustomerOrders() {
+  usePageTitle('My Orders');
   const nav = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);

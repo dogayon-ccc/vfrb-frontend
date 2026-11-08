@@ -14,6 +14,7 @@ import { getStorageUrl } from '../../utils/fileUrl';
 import { fetchAllPages } from '../../utils/fetchAllPages';
 import { setStudioLock } from '../../utils/studioLock';
 import { useEffect, useState } from 'react';
+import usePageTitle from '../../hooks/usePageTitle';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Palette } from 'lucide-react';
@@ -37,7 +38,7 @@ function DesignCard({ img, garment, colors, title, meta, badge, tone, primary, s
         <span className="mx-badge"><Badge tone={tone}>{badge}</Badge></span>
       </button>
       <div className="mx-body">
-        <div className="mx-txt"><span className="mx-badge-row"><Badge tone={tone}>{badge}</Badge></span><h3 title={title}>{title}</h3><p>{meta}</p></div>
+        <div className="mx-txt"><span className="mx-badge-row"><Badge tone={tone}>{badge}</Badge></span><h2 title={title}>{title}</h2><p>{meta}</p></div>
         <div className="mx-acts">
           {primary && <Button variant="primary" className="mx-primary" onClick={primary.onClick} disabled={primary.disabled}>{primary.label}</Button>}
           {secondary && <Button onClick={secondary.onClick} disabled={secondary.disabled} aria-label={secondary.ariaLabel}>{secondary.label}</Button>}
@@ -104,6 +105,7 @@ export function inOrderDesigns(orders, rows) {
 const STEPS = [['Design', 'Pick a garment in the Design Studio, then set colors, logo and text.'], ['Save', 'Save it to keep your work. You can come back and edit any time.'], ['Order', 'Tell us quantity and sizes. VFRB reviews the order before production.']];
 
 export default function MyDesigns() {
+  usePageTitle('My Designs');
   const nav = useNavigate();
   const [draft, setDraft] = useState(null);
   const [past, setPast] = useState([]);

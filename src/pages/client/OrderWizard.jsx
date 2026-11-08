@@ -1,6 +1,7 @@
 // Order Wizard: Design → Sizes → Delivery → Review, then MaterialsReveal for each created order.
 // A Studio design (or each piece of a uniform set) arrives via sessionStorage and is never re-entered here.
 import { useEffect, useRef, useState } from 'react';
+import usePageTitle from '../../hooks/usePageTitle';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import axios from 'axios';
@@ -40,6 +41,7 @@ const apiMessage = e => {
 };
 
 export default function OrderWizard() {
+  usePageTitle('Place an order');
   const nav = useNavigate();
   const [init] = useState(readHandoff);
   const [studios, setStudios] = useState(init.studios);

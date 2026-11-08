@@ -1,6 +1,7 @@
 // src/pages/client/Dashboard.jsx — Customer home: navy hero, current order thread, other orders, recent designs.
 import { humanize } from '../../utils/humanize';
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import usePageTitle from '../../hooks/usePageTitle';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import axios from 'axios';
@@ -62,6 +63,7 @@ const shortDate = (d) => fmtDate(d, { month: 'short', day: 'numeric' });
 const openStatus = (o) => o && !['completed', 'cancelled'].includes(o.status);
 
 export default function CustomerDashboard() {
+  usePageTitle('Dashboard');
   const nav = useNavigate();
   const location = useLocation();
   const still = useReducedMotion();

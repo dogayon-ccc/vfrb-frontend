@@ -2,6 +2,7 @@
 import { humanize } from '../../utils/humanize';
 import { garmentLabel } from '../../utils/designName';
 import { useState, useEffect, useRef, useCallback } from 'react';
+import usePageTitle from '../../hooks/usePageTitle';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
@@ -116,6 +117,7 @@ const NoMessagesYet = () => (
 );
 
 export default function CustomerMessages() {
+  usePageTitle('Messages');
   const nav = useNavigate();
   const [params] = useSearchParams();
   const [orders, setOrders] = useState([]);

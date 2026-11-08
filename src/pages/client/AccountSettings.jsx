@@ -1,5 +1,6 @@
 // src/pages/client/AccountSettings.jsx — settings hub: profile, photo & appearance, addresses, notifications, fabrics, billing, security.
 import { useState, useEffect } from 'react';
+import usePageTitle from '../../hooks/usePageTitle';
 import { useSearchParams } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import axios from 'axios';
@@ -312,6 +313,7 @@ const PANELS = {
 };
 
 export default function AccountSettings() {
+  usePageTitle('Account settings');
   const reduce = useReducedMotion();
   const [params, setParams] = useSearchParams();
   const tab = params.get('tab');

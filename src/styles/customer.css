@@ -504,7 +504,7 @@ html[data-wizard]{scroll-padding-bottom:160px}
 .mx-body{display:flex;flex-direction:column;gap:10px;flex:1;padding:12px 14px 14px}
 .mx-txt{min-width:0}
 .mx-badge-row{display:none}
-.mx-txt h3{margin:0;font-size:15px;font-weight:800;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.mx-txt h2{margin:0;font-size:15px;font-weight:800;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
 .mx-txt p{margin:3px 0 0;font-size:var(--text-meta);color:var(--text-subtle)}
 .mx-acts{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:auto}
 .mx-acts>.ui-btn{flex:1;min-width:0;justify-content:center}
@@ -525,7 +525,7 @@ html[data-wizard]{scroll-padding-bottom:160px}
 @media(min-width:768px){.cx-dgrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}}
 @media(min-width:1100px){.cx-dgrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:339px){.cx-dgrid{grid-template-columns:1fr}}
-@media(max-width:479px){.cx-dgrid{gap:10px}.mx-body{padding:10px 10px 12px;gap:8px}.mx-txt h3{font-size:14px}.mx-acts .ui-btn{font-size:13px;padding-inline:8px}}
+@media(max-width:479px){.cx-dgrid{gap:10px}.mx-body{padding:10px 10px 12px;gap:8px}.mx-txt h2{font-size:14px}.mx-acts .ui-btn{font-size:13px;padding-inline:8px}}
 /* Phones: one design per row, thumbnail beside the name and actions, so every button keeps its full label */
 @media(max-width:479px){
   .cx-dgrid:has(.mx-card){grid-template-columns:1fr}

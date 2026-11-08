@@ -1872,6 +1872,9 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     t('uid: v4 format with or without crypto.randomUUID (plain-http LAN test); no raw randomUUID call left in src',
       re.test(UID.uid()) && fb.every(x => re.test(x)) && fb[0] !== fb[1]
       && ['src/utils/offlineQueue.js', 'src/pages/client/DesignStudio.jsx', 'src/pages/client/design-studio/uniformSet.js', 'src/pages/client/design-studio/useGarmentCanvas.js'].every(f => !/randomUUID/.test(rd(f)))); }
+  t('a11y: each customer page sets its own tab title; order buttons name their order; My Designs cards are h2 under the h1',
+    ['Dashboard', 'MyDesigns', 'Orders', 'OrderDetail', 'OrderWizard', 'Messages', 'AccountSettings', 'AIMaterials'].every(p => /usePageTitle\(/.test(rd(`src/pages/client/${p}.jsx`)))
+    && /aria-label=\{`Details for order #\$\{o\.order_id\}`\}/.test(rd('src/pages/client/Orders.jsx')) && /<h2 title=\{title\}>/.test(rd('src/pages/client/MyDesigns.jsx')));
 }
 console.log(out.join('\n')); const f =out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);

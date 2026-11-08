@@ -1,5 +1,6 @@
 // src/pages/client/AIMaterials.jsx — AI raw-material recommendation (Layer 1, Gemini Flash).
 import { useState, useEffect, useCallback, useRef } from 'react';
+import usePageTitle from '../../hooks/usePageTitle';
 import { useNavigate }                              from 'react-router-dom';
 import { motion, AnimatePresence }                  from 'framer-motion';
 import { NavIcon }                                  from '../../components/ui/icons';
@@ -403,6 +404,7 @@ export const AI_OPTIONAL_LINE = 'Suggested by AI. Optional.';
 
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function AIMaterials() {
+  usePageTitle('AI Material Recommendation');
   const nav = useNavigate();
 
   const [orders,      setOrders]      = useState([]);
