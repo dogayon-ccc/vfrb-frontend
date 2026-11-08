@@ -98,6 +98,8 @@ export default function DesignStudioStyles() {
       }
       /* Small desktops: a narrower Pieces column so the garment keeps its share of the stage */
       @media (min-width:1024px) and (max-width:1279px){.ds-rail{width:184px;padding:12px;}.ds-rail-thumb{width:48px;}}
+      /* Desktop rail: a long piece name wraps to two lines instead of "Mandarin B…" */
+      @media (min-width:1024px){.ds-rail .ds-rail-txt strong{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.25;overflow-wrap:break-word;}}
       /* Short desktop screens: the zoom hint row gives its height to the garment, as on phones */
       @media (min-width:1024px) and (max-height:820px){.ds-lane-bottom .ds-stage-hint{display:none;}}
       .ds-rail-h{font:400 18px/1.2 var(--cx-serif);color:var(--cx-ink);}
@@ -108,7 +110,8 @@ export default function DesignStudioStyles() {
       button.ds-rail-card:hover{border-color:var(--cx-line-strong);}
       .ds-rail-card[aria-pressed=true],.ds-rail-card[data-single]{border-color:var(--cx-thread);background:var(--cx-thread-tint);box-shadow:inset 0 0 0 1px var(--cx-thread);}
       .ds-rail-card:focus-visible{outline:2px solid var(--cx-thread-ink);outline-offset:2px;}
-      .ds-rail-thumb{flex:none;width:56px;height:64px;display:grid;place-items:center;border-radius:12px;background:var(--cx-paper);}
+      /* Chalk tile: a navy or black garment stays visible on the dark rail */
+      .ds-rail-thumb{flex:none;width:56px;height:64px;display:grid;place-items:center;border-radius:12px;background:#F4F5F2;}
       .ds-rail-txt{min-width:0;display:flex;flex-direction:column;gap:2px;}
       .ds-rail-txt small{font-size:13px;font-weight:600;color:var(--cx-ink-2);}
       .ds-rail-txt strong{font-size:15px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
