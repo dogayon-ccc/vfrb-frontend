@@ -10,6 +10,7 @@ import { MIN_ORDER_QTY } from '../utils/orderQuantity';
 import { P } from './landing/photos';
 import PatternReveal from './landing/PatternReveal';
 import CategoryCards from './landing/CategoryCards';
+import ProductionLine from './landing/ProductionLine';
 import '../styles/landing.css';
 
 const STEPS = [
@@ -78,6 +79,8 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      <ProductionLine />
 
       <section className="vs-sec vs-wrap lp-contact" id="contact" aria-labelledby="lp-contact">
         <h2 className="vs-h2" id="lp-contact">Rather talk first?</h2>
