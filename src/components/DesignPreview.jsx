@@ -89,7 +89,7 @@ export default function DesignPreview({ cfg, previewUrl = null, referenceImageUr
             )}
             {snapshot && <img src={snapshot} alt="Saved 3D snapshot" style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 8, background: 'var(--bg-surface-2, rgba(15,23,42,.07))' }}/>}
           </div>
-          {note && <p style={{ fontSize: 11, color: '#b45309', margin: '6px 0 0' }}>{note}</p>}
+          {note && <p style={{ fontSize: 11, color: '#92400e', margin: '6px 0 0' }}>{note}</p>}
         </Boundary>
       ) : <>{flat}{no3DNote && <p className="ds-note" style={{ marginTop: 6 }}>{no3DNote}</p>}</>}
       {snapshot && !onSnapshot && (

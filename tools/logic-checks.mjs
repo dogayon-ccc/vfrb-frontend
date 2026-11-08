@@ -1060,8 +1060,8 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     PR.passwordOk('Abcdef1!') && !PR.passwordOk('abcdef1!') && !PR.passwordOk('Abcdefg!') && !PR.passwordOk('Abcdefg1') && !PR.passwordOk('Ab1!') && PR.passwordLevel('') === 1 && PR.passwordLevel('Abcdef1!') === 4
     && /axios\.put\('\/api\/account\/password', pw\)/.test(as) && /passwordOk\(pw\.password\)/.test(as) && /passwordOk\(pw\.password\)/.test(ps) && /autoComplete="current-password"/.test(as)
     && !/admin\/profile'|logout-other|other-sessions/.test(as));
-  t('email preference copy says "test inbox" (no provider name) and the validation docs no longer name Mailtrap',
-    /test inbox/.test(as) && /test inbox/.test(rd('../src/pages/client/AccountSettings.jsx')) && !/mailtrap/i.test(as + rd('../docs/validation/SURVEY-EVIDENCE-MATRIX.md') + rd('../docs/validation/VALIDATOR-RUNBOOK.md')));
+  t('email preference copy: admin says "test inbox", the customer is told emails are not sent yet (no "test inbox"); no provider name; docs no longer name Mailtrap',
+    /test inbox/.test(as) && /Emails aren't sent yet/.test(rd('../src/pages/client/AccountSettings.jsx')) && !/test inbox/.test(rd('../src/pages/client/AccountSettings.jsx')) && !/mailtrap/i.test(as + rd('../docs/validation/SURVEY-EVIDENCE-MATRIX.md') + rd('../docs/validation/VALIDATOR-RUNBOOK.md')));
   t('dead code removed: no unused SK style const in Delivery, Physical Count, Purchase Orders, Users; no unused TTL import in Users',
     ['DeliveryTracking', 'PhysicalCount', 'PurchaseOrders', 'UserManagement'].every(f => !/\bconst SK\b/.test(rd(`../src/pages/admin/${f}.jsx`))) && !/\bTTL\b/.test(rd('../src/pages/admin/UserManagement.jsx')));
   const um = rd('../src/pages/admin/UserManagement.jsx'), umRoles = um.match(/const ROLE_CFG = \{([\s\S]*?)\n\};/)?.[1] ?? '';

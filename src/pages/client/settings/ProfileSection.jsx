@@ -133,7 +133,7 @@ export function PasswordSection() {
         <p className="st-privt" style={{ margin: 0 }}>Can't remember your current password? <Link to="/forgot-password" state={{ from: '/settings?tab=password' }} style={{ color: 'var(--teal)', fontWeight: 700 }}>Reset it by email</Link>.</p>
       </Card>
       <Card title="Google sign-in">
-        <p className="st-privt" style={{ margin: 0 }}>You can sign in with Google on the login page using the same email as this account. Connection status will appear here once VFRB enables account linking.</p>
+        <p className="st-privt" style={{ margin: 0 }}>Use Sign in with Google on the login page with this account's email.</p>
       </Card>
       <Card title="Close account">
         <p className="st-privt" style={{ margin: '0 0 12px' }}>To close your account or remove your data, message the VFRB team.</p>

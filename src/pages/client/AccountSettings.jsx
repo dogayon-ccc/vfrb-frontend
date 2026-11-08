@@ -167,7 +167,7 @@ function NotificationsSection() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
         <div>
           <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{label}</p>
-          {!live && <p style={{ fontSize: 13, color: 'var(--warning)', margin: '2px 0 0' }}>Email goes to a test inbox for now. Your preference is saved for when real delivery is on.</p>}
+          {!live && <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '2px 0 0' }}>Emails aren't sent yet. Your choice is saved, and order updates still appear in your notifications.</p>}
         </div>
         {/* 44px tap area around the 42x24 track. */}
         <button role="switch" aria-checked={on} aria-label={`Toggle ${label}`} onClick={() => toggle(k)} disabled={saving}
