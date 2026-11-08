@@ -135,7 +135,7 @@ class ThreeEB extends Component {
 export default function CanvasViewport({
   cfg, setCfg, canvasWrapRef, canvasEl, aiPulse, face, switchFace, initFailed,
   selObj, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, garmentRect = null, viewMode, has3DLoaded, onLogoFile, zoom, setZoom, snapshot, overlays,
-  blank = null, setViewMode, viewOpen, setViewOpen, setCompanion = null, showSet = false, setSnapOptions = null, trace = null, clearSelection = null, onPickZone = null, rail = null, onUndo = null,
+  blank = null, setViewMode, viewOpen, setViewOpen, setCompanion = null, showSet = false, setSnapOptions = null, trace = null, clearSelection = null, onPickZone = null, rail = null, onUndo = null, fullRef = null,
 }) {
   const paneRef = useRef(null);
   const [webglOk, setWebglOk] = useState(hasWebGL);
@@ -409,6 +409,7 @@ export default function CanvasViewport({
     return () => window.removeEventListener('keydown', key);
   }, [full, studioRoot, restoreView]);
   useEffect(() => () => { delete studioRoot()?.dataset.expanded; }, [studioRoot]);
+  useEffect(() => { if (fullRef) fullRef.current = toggleFull; }, [fullRef, toggleFull]); // phones: Full screen sits in the top bar's ⋯ menu
   useEffect(() => {
     if (!cfg.garment || !show2D) return undefined;
     const key = (e) => { if ((e.ctrlKey || e.metaKey) && (e.key === '0' || e.code === 'Digit0' || e.code === 'Numpad0')) { e.preventDefault(); fitView(); } };
@@ -573,7 +574,7 @@ export default function CanvasViewport({
                 { disabled: atCap, title: atCap ? 'Full photo resolution: zooming further would blur it' : undefined })}
               {ctrl('Fit', <Scan size={15} aria-hidden="true"/>, fitView, { 'aria-pressed': fitted, title: 'Fit to the stage (Ctrl+0)' })}
               {ctrl('Back view', <FlipHorizontal2 size={16} aria-hidden="true"/>, () => switchFace(face === 'back' ? 'front' : 'back'),
-                { 'aria-pressed': face === 'back', disabled: face !== 'back' && !backOk, title: !backOk ? 'No back photo for this garment yet' : undefined })}
+                { 'aria-pressed': face === 'back', disabled: face !== 'back' && !backOk, title: !backOk ? 'No back photo for this garment yet' : undefined, 'data-act': 'back' })}
             </>) : (<>
               {ctrl(spin ? 'Stop turning' : 'Turntable', <RotateCw size={16} aria-hidden="true"/>, () => setSpin(x => !x),
                 { 'aria-pressed': spin, disabled: CALM, title: CALM ? 'Off while your device asks for reduced motion; drag to rotate' : undefined })}
@@ -583,7 +584,7 @@ export default function CanvasViewport({
                 { title: 'Switch the 3D lighting (colours stay calibrated in both)' })}
             </>)}
             {ctrl(full ? 'Exit full screen' : 'Full screen', full ? <Minimize2 size={16} aria-hidden="true"/> : <Maximize2 size={16} aria-hidden="true"/>, toggleFull,
-              { 'aria-pressed': !!full, title: full ? 'Exit full screen (Esc)' : 'The design takes the whole screen' })}
+              { 'aria-pressed': !!full, title: full ? 'Exit full screen (Esc)' : 'The design takes the whole screen', 'data-act': 'full' })}
           </div>
           <p className="ds-stage-hint">
             {show2D

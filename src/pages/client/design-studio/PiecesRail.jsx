@@ -22,6 +22,12 @@ function Card({ role, c, name }) {
 
 // Preview the set, "Apply edits to both pieces" (desktop only, once both have a garment), add or drop the matching piece.
 // The desktop rail shows them under the cards; phones and tablets show them in the Garment sheet (`inSheet`).
+// "Add a matching bottom/top" for a single piece that has a set partner, else null (the phone ⋯ menu uses it).
+export const addPieceLabel = (cfg, uset) => {
+  const role = !uset && cfg.garment ? pieceOf(cfg.garment) : null;
+  return role ? `Add a matching ${ROLE_LABEL[SET_ROLES.find(r => r !== role)].toLowerCase()}` : null;
+};
+
 export function PieceActions({ cfg, uset, other = null, onStart, canSet, setView = true, showSet, onShowSet,
   applyBoth = false, onApplyBoth = null, readOnly = false, inSheet = false }) {
   const role = cfg.garment ? pieceOf(cfg.garment) : null;

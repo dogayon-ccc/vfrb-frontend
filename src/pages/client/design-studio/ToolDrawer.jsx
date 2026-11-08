@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { MoreHorizontal, Eye, Copy, X, HelpCircle } from 'lucide-react';
+import { MoreHorizontal, Eye, Copy, X, HelpCircle, ChevronUp, ChevronDown } from 'lucide-react';
 import { NavIcon } from '../../../components/ui/icons';
 import LayersPanel from './LayersPanel';
 import AssetsPanel from './AssetsPanel';
@@ -19,6 +19,11 @@ import { assetFor } from './garmentAssets';
 // Phones and tablets: the four tabs plus More (View, Save a copy).
 const NAV = ['type', 'add', 'layers', 'ai'];
 const NAV_LABEL = { type: 'Garment', add: 'Add', layers: 'Layers', ai: 'Ask AI' };
+// Phone/tablet sheet heights: peek (its bar only), half, full. The bar's button steps through them; a drag moves one or two steps.
+export const SNAPS = ['peek', 'half', 'full'];
+export const snapStep = (snap, dy) => (Math.abs(dy) < 24 ? snap
+  : SNAPS[Math.max(0, Math.min(SNAPS.length - 1, SNAPS.indexOf(snap) + (dy < 0 ? 1 : -1) * (Math.abs(dy) > 160 ? 2 : 1)))]);
+const SNAP_NEXT = { peek: ['half', 'Raise the panel'], half: ['full', 'Raise the panel to full height'], full: ['peek', 'Lower the panel'] };
 
 // Raw-material suggestions are made per order, so the Studio only says where they appear. No prices.
 function MaterialNote() {
@@ -108,13 +113,25 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
   const [collapsed, setCollapsedState] = useState(() => { try { return localStorage.getItem('ds_panel_collapsed') === '1'; } catch { return false; } });
   const setCollapsed = v => { setCollapsedState(v); try { localStorage.setItem('ds_panel_collapsed', v ? '1' : '0'); } catch { /* storage blocked */ } };
   // A tab opens on its first tool (Draw never reopens by itself: it takes over the canvas).
-  const [folded, setFolded] = useState(false);
+  const [snap, setSnap] = useState('peek');
+  const raise = () => setSnap(s => (s === 'peek' ? 'half' : s));
   const [moreOpen, setMoreOpen] = useState(false);
   const moreBtn = useRef(null);
   // The More list unmounts as a dialog opens, so the More tab takes focus first and becomes the dialog's opener.
   const fromMore = fn => () => { moreBtn.current?.focus({ preventScroll: true }); setMoreOpen(false); fn(); };
-  useEffect(() => { setMoreOpen(false); setFolded(false); }, [pickedTool, p.activeZone]); // a zone or tool picked on the canvas opens its panel
-  const pick = t => { if (collapsed) setCollapsed(false); setFolded(false); setMoreOpen(false); setTool(t.tools.find(allowed)); };
+  // A tap on the garment that picks a part or a placed item raises the sheet to half; a change the Studio makes by itself does not.
+  const tapAt = useRef(-1e9);
+  useEffect(() => {
+    const down = e => { if (e.target.closest?.('.ds-pane')) tapAt.current = performance.now(); };
+    document.addEventListener('pointerdown', down, true);
+    return () => document.removeEventListener('pointerdown', down, true);
+  }, []);
+  useEffect(() => { setMoreOpen(false); if (performance.now() - tapAt.current < 1500) raise(); }, [pickedTool, p.activeZone]);
+  useEffect(() => { if (p.sheetPing) raise(); }, [p.sheetPing]);
+  const pick = t => { if (collapsed) setCollapsed(false); raise(); setMoreOpen(false); setTool(t.tools.find(allowed)); };
+  const drag = useRef(null);
+  const dragDown = e => { if (e.target.closest('button')) return; drag.current = e.clientY; e.currentTarget.setPointerCapture(e.pointerId); };
+  const dragUp = e => { if (drag.current === null) return; const dy = e.clientY - drag.current; drag.current = null; setSnap(s => snapStep(s, dy)); };
   const inMore = !NAV.includes(tab?.id);
   const navTabs = tabs.filter(t => NAV.includes(t.id));
   const moreTabs = tabs.filter(t => !NAV.includes(t.id));
@@ -152,11 +169,17 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
             ))}
           </nav>
         )}
-        <div className="ds-sheet" data-folded={folded || undefined}>
+        <div className="ds-sheet" data-snap={snap}>
+        {/* Phones and tablets: the sheet's bar (drag it, or use its button), with the panel name and the save state. */}
         {!noGarment && (
-          <button type="button" className="ds-sheet-handle" aria-expanded={!folded} onClick={() => setFolded(f => !f)}>
-            <span aria-hidden="true"/>{folded ? `Show ${moreOpen ? 'More' : title}` : 'Hide panel'}
-          </button>
+          <div className="ds-sheet-bar" onPointerDown={dragDown} onPointerUp={dragUp} onPointerCancel={() => { drag.current = null; }}>
+            <span className="ds-sheet-grip" aria-hidden="true"/>
+            <h2 className="ds-sheet-name">{moreOpen ? 'More' : title}</h2>
+            {p.status && <span className="ds-sheet-status" data-tone={p.status.tone}>{p.status.short}</span>}
+            <button type="button" className="ds-sheet-toggle" aria-expanded={snap !== 'peek'} aria-label={SNAP_NEXT[snap][1]} onClick={() => setSnap(SNAP_NEXT[snap][0])}>
+              {snap === 'full' ? <ChevronDown size={20} aria-hidden="true"/> : <ChevronUp size={20} aria-hidden="true"/>}
+            </button>
+          </div>
         )}
         <header className="ds-sheet-head">
           <span className="ds-sheet-icon" aria-hidden="true"><NavIcon name={tab?.icon ?? active.icon} size={16}/></span>
@@ -203,7 +226,7 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
               </button>
             ))}
             <button ref={moreBtn} type="button" aria-current={moreOpen || (inMore && !!tab) ? 'true' : undefined} aria-expanded={moreOpen}
-              onClick={() => { setFolded(false); setMoreOpen(o => !o); }}>
+              onClick={() => { raise(); setMoreOpen(o => !o); }}>
               <MoreHorizontal size={20} aria-hidden="true"/><span>More</span>
             </button>
           </nav>

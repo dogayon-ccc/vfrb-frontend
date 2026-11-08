@@ -756,16 +756,31 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('live "x, y" readout in template units with Up/Down/Left/Right nudge buttons in the inspector; nothing about grid, rulers or guides reaches DesignState serialization',
     CG.xyText({ x: 12.5, y: 30 }) === '12.5, 30' && CG.xyText(null) === '' && /function NudgePad/.test(ins) && /\['Up', ArrowUp, 0, -1\]/.test(ins) && /'object:moving', 'object:scaling', 'object:modified'/.test(ins)
     && /nudgeSelected=\{p\.nudgeSelected\}/.test(src('../src/pages/client/design-studio/ToolDrawer.jsx')) && !/grid|guide|ruler|snap/i.test(ser));
-  // Phone/tablet layout: one fixed column (piece tabs for a set, stage, a sheet of <= 40% that folds to a handle, bottom nav); a stage bar of <= 5 labelled controls.
+  // Phone/tablet layout: one fixed column (piece tabs for a set, stage, a sheet with peek/half/full heights, bottom nav); a stage bar of <= 5 labelled controls.
   const cvx = src('../src/pages/client/design-studio/CanvasViewport.jsx'), tdx = src('../src/pages/client/design-studio/ToolDrawer.jsx');
   const bar2D = cvx.slice(cvx.indexOf('{show2D ? (<>'), cvx.indexOf('</>) : (<>')), bar3D = cvx.slice(cvx.indexOf('</>) : (<>'), cvx.indexOf("ctrl(full ? 'Exit full screen'"));
-  t('phone/tablet layout: the stage fills the column, a sheet of at most 40% of the screen folds to a handle, five-item bottom nav; no snap states; stage bar of at most five labelled controls with hints outside it',
+  const snapH = k => css.match(new RegExp(`\\.ds-sheet\\[data-snap=${k}\\]\\{height:([^;]+);\\}`))?.[1] ?? '';
+  t('phone/tablet layout: the stage fills the column; the sheet opens at peek (its bar only) with half (45%) and full (<= 85%) heights, a 44px bar button and a drag; five-item bottom nav; stage bar of at most five labelled controls with hints outside it',
     /\.ds-lane-top:not\(\[data-notes\]\)\{flex-wrap:nowrap;/.test(css) && !/text-overflow:ellipsis/.test(css.match(/\.ds-ctx-chip\{[^}]*\}/)?.[0] ?? 'text-overflow:ellipsis')
-    && /\.ds-cv\{flex:1 1 auto;min-height:0;\}/.test(css) && +(css.match(/\.ds-sheet\{display:flex;flex-direction:column;min-height:0;max-height:(\d+)dvh;/)?.[1] ?? 99) <= 40
-    && /\.ds-sheet\[data-folded\]>:not\(\.ds-sheet-handle\)\{display:none;\}/.test(css) && /\.ds-bnav\{display:grid;flex:none;grid-template-columns:repeat\(5,/.test(css)
-    && !/data-snap|ds-grab|sheetOpen/.test(css + tdx)
+    && /\.ds-cv\{flex:1 1 auto;min-height:0;\}/.test(css) && /\.ds-sheet\[data-snap=peek\]>:not\(\.ds-sheet-bar\)\{display:none;\}/.test(css)
+    && snapH('half') === '45dvh' && /^min\(85dvh,/.test(snapH('full')) && /useState\('peek'\)/.test(tdx) && /className="ds-sheet-toggle"[^>]*aria-expanded=\{snap !== 'peek'\}/.test(tdx)
+    && /\.ds-sheet-toggle\{flex:none;width:44px;height:44px;/.test(css) && /onPointerDown=\{dragDown\}/.test(tdx) && /className="ds-sheet-status"/.test(tdx)
+    && /\.ds-bnav\{display:grid;flex:none;grid-template-columns:repeat\(5,/.test(css)
     && (bar2D.match(/ctrl\('/g) ?? []).length + 1 <= 5 && (bar3D.match(/ctrl\(/g) ?? []).length + 1 <= 5 && /className="ds-stage-hint"/.test(cvx) && !/ds-stage-hint[^]*?<\/div>\s*<\/div>\s*\)\}\s*$/.test('')
     && !/<span className="sr-only">/.test(cvx));
+  // The sheet's drag: under 24px stays put, up raises one step (two past 160px), down lowers, always clamped to peek..full.
+  const sstep = (tdx.match(/export const snapStep = [^;]+;/) ?? [''])[0];
+  const SNAPS = ['peek', 'half', 'full'], snapStep = sstep ? new Function('SNAPS', `${sstep.replace('export const snapStep =', 'return')}`)(SNAPS) : null;
+  t('phone sheet drag steps: a short drag keeps the height, up raises one step (two past 160 px), down lowers, clamped to peek..full',
+    !!snapStep && snapStep('peek', -10) === 'peek' && snapStep('peek', -60) === 'half' && snapStep('peek', -200) === 'full' && snapStep('half', -60) === 'full'
+    && snapStep('full', -300) === 'full' && snapStep('full', 60) === 'half' && snapStep('full', 200) === 'peek' && snapStep('half', 300) === 'peek' && snapStep('peek', 100) === 'peek');
+  const tbx = src('../src/pages/client/design-studio/TopBar.jsx'), dsm = src('../src/pages/client/DesignStudio.jsx');
+  t('phone stage: zoom out/in/fit are round 44px buttons in the stage corner, Back view and Full screen move to the top bar ⋯ menu (with "Add a matching …" when one piece has a partner), the 3D chip sits bottom-left; desktop keeps its labelled bar and a solid teal tab underline',
+    /\.ds-lane-bottom \.ds-ctrlbar \.ds-ctrl\{flex:none;width:44px;height:44px;/.test(css) && /\.ds-lane-bottom \.ds-ctrl:is\(\[data-act=back\],\[data-act=full\]:not\(\[aria-pressed=true\]\)\)\{display:none;\}/.test(css)
+    && /'data-act': 'back'/.test(cvx) && /'data-act': 'full'/.test(cvx) && /fullRef\.current = toggleFull/.test(cvx)
+    && /\.\.\.\(phone && has \? phoneItems : \[\]\)/.test(tbx) && /label: 'Full screen', onClick: \(\) => fullRef\.current\?\.\(\)/.test(dsm) && /addLabel && \{ label: addLabel, onClick: startSet \}/.test(dsm)
+    && /\.ds-stage-badge\{display:block;position:absolute;bottom:8px;left:8px;/.test(css) && /\.ds-rail\[data-strip\]\{display:none;\}/.test(css)
+    && /\.ds-tabs button\[aria-current\]\{[^}]*border-bottom:3px solid var\(--cx-thread\);/.test(css) && !/dashed #C4313B/.test(css.match(/\.ds-tabs button\[aria-current\]\{[^}]*\}/)?.[0] ?? 'dashed #C4313B'));
   t('phone top lane wider than the screen (Guides + uniform set switch) scrolls from its start instead of centring past both edges: no Guides button off-screen',
     /\.ds-lane-top:not\(\[data-notes\]\)\{[^}]*justify-content:flex-start;overflow-x:auto;/.test(css) && /\.ds-lane-top:not\(\[data-notes\]\)>:first-child\{margin-left:auto;\}/.test(css) && /\.ds-lane-top:not\(\[data-notes\]\)>:last-child\{margin-right:auto;\}/.test(css));
   // Guides panel: rendered at the Studio root; a modal dialog up to 1023px; on desktop capped to the stage and scrolling inside.

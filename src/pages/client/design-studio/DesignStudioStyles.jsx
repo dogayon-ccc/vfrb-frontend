@@ -902,7 +902,7 @@ export default function DesignStudioStyles() {
       .ds-swatch-chips{list-style:none;display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
 
       /* Phone and tablet parts (ToolDrawer, PiecesRail, CanvasViewport): off on desktop, where the sheet's parts are plain panel rows */
-      .ds-bnav,.ds-sheet-handle,.ds-phone-only{display:none;}
+      .ds-bnav,.ds-sheet-bar,.ds-phone-only{display:none;}
       .ds-sheet{display:contents;}
       /* More (phones and tablets): Details, Ask AI, View, Save a copy */
       .ds-more{list-style:none;margin:0;padding:8px 12px 16px;display:flex;flex-direction:column;gap:6px;}
@@ -912,8 +912,8 @@ export default function DesignStudioStyles() {
       .ds-more button:disabled{color:var(--cx-ink-3);cursor:not-allowed;}
       .ds-more small{grid-column:2;font:500 13px/1.35 var(--cx-sans);color:var(--cx-ink-2);}
 
-      /* Phones and tablets: one fixed column, nothing over the garment. Piece tabs (a set only), the stage, a sheet of
-         at most a third of the screen that folds to a handle, then the five-item bottom nav. */
+      /* Phones and tablets: one fixed column. Piece tabs (a set only), the stage, a sheet with three heights (peek, half, full),
+         then the five-item bottom nav. */
       @media (max-width:1023px){
         .ds{--ds-pad-b:0px;--ds-nav-h:65px;}
         .ds-bar{padding:0 8px;gap:4px;}
@@ -928,14 +928,22 @@ export default function DesignStudioStyles() {
         .ds-cv{flex:1 1 auto;min-height:0;}
         .ds-panel{width:auto;flex:none;display:flex;flex-direction:column;overflow:visible;border-left:0;box-shadow:none;background:transparent;}
         .ds-tabs{display:none;}
-        .ds-sheet{display:flex;flex-direction:column;min-height:0;max-height:34dvh;background:var(--cx-card);border-top:1px solid var(--cx-line);
+        .ds-sheet{display:flex;flex-direction:column;min-height:0;background:var(--cx-card);border-top:1px solid var(--cx-line);
           border-radius:16px 16px 0 0;box-shadow:0 -4px 16px rgb(15 23 42 / .06);}
-        .ds-sheet-handle{display:flex;flex:none;width:100%;min-height:44px;align-items:center;justify-content:center;gap:8px;padding:0 16px;border:0;
-          background:none;color:var(--cx-ink-2);font:600 13px var(--cx-sans);cursor:pointer;}
-        .ds-sheet-handle span{width:36px;height:4px;border-radius:2px;background:var(--cx-line-strong);}
-        .ds-sheet[data-folded]>:not(.ds-sheet-handle){display:none;}
-        .ds-body:has(.ds-rail:is([data-set],[data-strip])) .ds-sheet{max-height:calc(34dvh - 48px);} /* a set's piece tabs come out of the sheet, not the stage */
-        .ds-sheet-head{padding:0 16px 8px;}
+        /* Peek shows the bar only; the stage refits (ResizeObserver) whenever the sheet changes height */
+        .ds-sheet[data-snap=peek]>:not(.ds-sheet-bar){display:none;}
+        .ds-sheet[data-snap=half]{height:45dvh;}
+        .ds-sheet[data-snap=full]{height:min(85dvh,calc(100dvh - 56px - var(--ds-nav-h) - 64px));}
+        .ds-sheet-bar{position:relative;display:flex;flex:none;align-items:center;gap:8px;min-height:52px;padding:6px 4px 2px 16px;touch-action:none;cursor:grab;}
+        .ds-sheet-grip{position:absolute;top:6px;left:50%;width:36px;height:4px;margin-left:-18px;border-radius:2px;background:var(--cx-line-strong);}
+        .ds-sheet-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:700 15px/1.2 var(--cx-sans);color:var(--cx-ink);}
+        .ds-sheet-status{flex:none;padding:0 8px;border:1px solid var(--cx-line);border-radius:10px;font:700 13px/20px var(--cx-sans);color:var(--text-subtle);}
+        .ds-sheet-status[data-tone=ok]{color:var(--cx-thread-ink);}
+        .ds-sheet-status[data-tone=err]{color:var(--danger-text);}
+        .ds-sheet-toggle{flex:none;width:44px;height:44px;display:grid;place-items:center;border:0;border-radius:var(--cx-r-md);background:none;color:var(--cx-ink-2);cursor:pointer;}
+        .ds-sheet-toggle:hover{background:var(--cx-hover);}
+        .ds-sheet-toggle:focus-visible{outline:2px solid var(--cx-thread-ink);outline-offset:2px;}
+        .ds-sheet-head{display:none;}
         .ds-sheet-title p{display:none;}
         .ds-panel-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;}
         .ds-phone-only{display:block;}
@@ -1009,6 +1017,23 @@ export default function DesignStudioStyles() {
         .ds-units-note{font-size:13px;line-height:1.3;}
         .ds-rail[data-set]{padding:2px 8px;}
         .ds-rail-card{min-height:44px;}
+        /* One piece: no strip (Add a matching piece is in the ⋯ menu and the Garment sheet); a set: compact piece chips */
+        .ds-rail[data-strip]{display:none;}
+        .ds-body:has(.ds-rail[data-strip]) .ds-rail-acts[data-sheet] .ds-piece-add{display:flex;}
+        .ds-rail[data-set] .ds-rail-thumb{display:none;}
+        /* Zoom: three round buttons in the stage's bottom-right corner; Back view and Full screen are in the ⋯ menu */
+        .ds-lane-bottom{position:relative;}
+        .ds-lane-bottom .ds-ctrlbar{position:absolute;right:8px;bottom:calc(100% + 8px);width:auto;gap:8px;padding:0;border:0;background:none;box-shadow:none;}
+        .ds-lane-bottom .ds-ctrlbar .ds-ctrl{flex:none;width:44px;height:44px;padding:0;border:1px solid var(--cx-line);border-radius:50%;background:var(--cx-card);box-shadow:var(--cx-elev-1);}
+        .ds-lane-bottom .ds-ctrlbar .ds-ctrl[aria-pressed=true]{background:var(--cx-thread-tint);border-color:var(--cx-thread);}
+        .ds-lane-bottom .ds-ctrl>span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+        .ds-lane-bottom .ds-ctrl:is([data-act=back],[data-act=full]:not([aria-pressed=true])){display:none;}
+        /* Full sheet: the stage is covered, so its corner controls step aside */
+        .ds-body:has(.ds-sheet[data-snap=full]) :is(.ds-lane-bottom .ds-ctrlbar,.ds-stage-badge){display:none;}
+        /* The save state is in the sheet bar, so the one-line summary goes */
+        .ds-sheet .ds-spec{display:none;}
+        .ds-bar{padding-left:max(8px,env(safe-area-inset-left));padding-right:max(8px,env(safe-area-inset-right));}
+        .ds-bnav{padding-left:max(4px,env(safe-area-inset-left));padding-right:max(4px,env(safe-area-inset-right));}
       }
       @media (prefers-reduced-motion:reduce){
         .ds-panel{transition:none!important;}
@@ -1139,7 +1164,7 @@ export default function DesignStudioStyles() {
           border-radius:var(--cx-r-md);background:none;font:600 13px/1.15 var(--cx-sans);color:var(--cx-ink-2);cursor:pointer;
           transition:background .15s,color .15s,border-color .15s;}
         .ds-tabs button:hover{background:var(--cx-hover);color:var(--cx-ink);}
-        .ds-tabs button[aria-current]{background:none;border-color:transparent;border-bottom:3px dashed #C4313B;color:var(--cx-ink);font-weight:700;}
+        .ds-tabs button[aria-current]{background:none;border-color:transparent;border-bottom:3px solid var(--cx-thread);color:var(--cx-ink);font-weight:700;}
         .ds-tabs button:focus-visible{outline:2px solid var(--cx-thread-ink);outline-offset:2px;}
       }
       .ds-subtabs{margin:12px 12px 0;}
@@ -1249,10 +1274,10 @@ export default function DesignStudioStyles() {
       @media (max-width:767px){
         .ds-bar .ds-bar-save{display:none;}
         .ds-bar .ds-view-chip{display:none;}
-        .ds-stage-badge{display:block;position:absolute;top:8px;left:8px;z-index:3;padding:2px 8px;border-radius:8px;pointer-events:none;
+        .ds-stage-badge{display:block;position:absolute;bottom:8px;left:8px;z-index:3;padding:2px 8px;border-radius:8px;pointer-events:none;
           background:var(--warning-bg,#fff4d6);color:var(--warning-text,#7a4b00);font:700 13px/18px var(--cx-sans);white-space:nowrap;}
         .ds-stage-badge[data-off]{background:var(--bg-surface);color:var(--text-muted);}
-        .ds-cv[data-rulers] .ds-stage-badge{top:28px;left:42px;}
+        .ds-cv[data-rulers] .ds-stage-badge{left:42px;}
         .ds-bar-primary{padding:0 12px;}
         .ds-bar-primary svg{display:none;}
       }

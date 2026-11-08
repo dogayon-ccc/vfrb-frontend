@@ -51,10 +51,12 @@ export function ViewToggle({ cfg, viewMode, setViewMode, setHas3DLoaded }) {
 
 export default function TopBar({ nav, cfg, setCfg, undo, redo, canUndo, canRedo, viewMode, setViewMode, setHas3DLoaded,
   showShowcase, setShowShowcase, showcaseCount = 0, status = null,
-  saveDesign, saving, saved, draftSaved, orderThis, ordering, downloadImage, downloadPdf, exporting, lock = null, onReorder, onDuplicate, copying = false }) {
+  saveDesign, saving, saved, draftSaved, orderThis, ordering, downloadImage, downloadPdf, exporting, lock = null, onReorder, onDuplicate, copying = false, phoneItems = [] }) {
   const phone = usePhone();
   const has = !!cfg.garment;
+  // phoneItems: stage actions that leave the stage on phones (back view, full screen, add a matching piece).
   const menu = [
+    ...(phone && has ? phoneItems : []),
     phone && !lock && { label: 'Undo', onClick: undo, disabled: !canUndo },
     phone && !lock && { label: 'Redo', onClick: redo, disabled: !canRedo },
     phone && !lock && has && { label: saving ? 'Saving…' : 'Save now', onClick: saveDesign, disabled: !!saving },

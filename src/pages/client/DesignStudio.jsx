@@ -53,7 +53,7 @@ import { describePockets } from './design-studio/pocketTools';
 import { describeCustom, isCustom, isParametric, CUSTOM_TOP } from './design-studio/customGarment';
 import { readTrace, writeTrace, normalizeTrace } from './design-studio/traceGuide';
 import { DEFAULT_PIECE, ROLE_LABEL, otherRole, normalizeSet, withSet, mirrorStyle, mirrorOverlay, orderQueue, remainingPiece } from './design-studio/uniformSet';
-import PiecesRail, { PieceActions } from './design-studio/PiecesRail';
+import PiecesRail, { PieceActions, addPieceLabel } from './design-studio/PiecesRail';
 import StudioHelp from './design-studio/StudioHelp';
 import { paintZone } from './design-studio/colorRules';
 import { uid } from '../../utils/uid';
@@ -173,6 +173,7 @@ export default function DesignStudio() {
   const customKey = cfg.custom ? JSON.stringify(cfg.custom) : '';
 
   const pickRef = useRef(null); // tool rail state read by the canvas tap handler, which is bound once
+  const [sheetPing, setSheetPing] = useState(0);
   // BUG 2 FIX: pass canvasEl (ref object), not canvasEl.current (null at render)
   const { onAdded, addLogo, addText, addShape, addPocket, setPocketColor, mirrorSelected, updateSelected, arrangeLayer, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
           pushHistory, markHistory, settleHistory, undo, redo, canUndo, canRedo, editTick, initFailed,
@@ -191,6 +192,7 @@ export default function DesignStudio() {
       (zone) => {
         const pk = pickRef.current; // paint bucket: the tapped part takes the active colour, one undo step like the Colours panel
         if (pk?.pick === 'fill' && !zone.startsWith('detail:')) { if (!pk.final) setCfg(p => ({ ...p, colors: paintZone(p.colors, zone, pk.color) })); return; }
+        setSheetPing(n => n + 1); // phones: a tapped part raises the sheet, even when that part was already open
         if (zone.startsWith('detail:')) { setDetailFocus(zone.slice(7)); setTool('details'); } else { setActiveZone(zone); setTool('color'); } },
       cfg.fit,
       cfg.details,
@@ -692,6 +694,15 @@ export default function DesignStudio() {
 
   const pieceProps = { cfg, uset, onSwitch: switchPiece, onStart: startSet, applyBoth, onApplyBoth: setApplyBoth,
     canSet: !!setCompanion, setView: viewMode !== '3d', showSet: showSet && viewMode !== '3d', onShowSet: setShowSet };
+  // Phones: stage actions that left the stage go in the top bar's ⋯ menu.
+  const fullRef = useRef(null);
+  const addLabel = locked || colorOnly ? null : addPieceLabel(cfg, uset);
+  const phoneItems = [
+    viewMode !== '3d' && { label: face === 'back' ? 'Front view' : 'Back view', onClick: () => switchFace(face === 'back' ? 'front' : 'back'),
+      disabled: face !== 'back' && !hasBackView(cfg.garment, cfg.sleeve, cfg.fit) },
+    { label: 'Full screen', onClick: () => fullRef.current?.() },
+    addLabel && { label: addLabel, onClick: startSet },
+  ];
 
   // ── Account draft write — the one payload for manual Save, autosave and Order ──
   // POST /drafts replaces every column of the single row, so a request without preview_dataurl
@@ -1030,7 +1041,7 @@ export default function DesignStudio() {
           showShowcase={showShowcase} setShowShowcase={toggleShowcase} showcaseCount={locked || colorOnly ? 0 : showcaseCount}
           saveDesign={saveDesign} saving={saving} saved={saved} draftSaved={draftSaved} orderThis={orderThis} ordering={ordering}
           downloadImage={downloadImage} downloadPdf={downloadPdf} exporting={exporting}
-          lock={locked ? lock : null} onReorder={reorderThis} onDuplicate={duplicateToEdit} copying={copying}/>
+          lock={locked ? lock : null} onReorder={reorderThis} onDuplicate={duplicateToEdit} copying={copying} phoneItems={phoneItems}/>
 
         {/* ── DRAFT OFFER ── in the page flow under the bar, so it can never cover menus or stage controls */}
         {pendingDraft && !cfg.garment && layers.length === 0 && (
@@ -1075,12 +1086,12 @@ export default function DesignStudio() {
             toggleLayerLock={toggleLayerLock} toggleSelectedLock={toggleSelectedLock} setLayerOpacity={setLayerOpacity}
             pushHistory={pushHistory} presetPos={presetPos} nudgeSelected={nudgeSelected}
             renameLayer={renameLayer} deleteLayer={deleteLayer} reorderLayers={reorderLayers} pieceRole={uset?.active ?? null} trace={trace} setTrace={setTrace} status={locked ? null : status} onRemoveGarment={() => setAskRemove(true)}
-            garmentExtra={<PieceActions {...pieceProps} other={setCompanion} readOnly={colorOnly} inSheet/>}
+            garmentExtra={<PieceActions {...pieceProps} other={setCompanion} readOnly={colorOnly} inSheet/>} sheetPing={sheetPing}
             more={{ onView: () => setViewOpen(true), onCopy: duplicateToEdit, canCopy: !!lock?.designId, copying, onTour: () => setHelp('tour'), onHowTo: () => setHelp('howto') }}/>
 
           {/* ── CANVAS AREA ── */}
           <CanvasViewport cfg={cfg} setCfg={setCfg} canvasWrapRef={canvasWrapRef} canvasEl={canvasEl} initFailed={initFailed}
-            aiPulse={aiPulse} face={face} switchFace={switchFace}
+            aiPulse={aiPulse} face={face} switchFace={switchFace} fullRef={fullRef}
             selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected} alignSelected={alignSelected} arrangeSelected={arrangeSelected} garmentRect={garmentRect}
             viewMode={viewMode} has3DLoaded={has3DLoaded} onLogoFile={onLogoFile} onPickZone={setActiveZone}
             onUndo={locked ? null : lock?.warn ? () => setWarnAsk(true) : undo}
