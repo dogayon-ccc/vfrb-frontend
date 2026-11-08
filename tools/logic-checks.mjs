@@ -619,7 +619,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && /globalCompositeOperation = 'difference'/.test(layers) && /gridLines\(spec\.x0, spec\.sx, spec\.pct, g\.left, g\.left \+ g\.width\)/.test(layers) && !/rgba\(2,128,144/.test(layers)
     && !/<StageGrid|<Grid /.test(cv) && !/ds-sgrid/.test(css));
   t('grid and guides are painted over the design on the live canvas only (contextContainer); exports, previews and thumbnails render to their own canvas without them',
-    /render\(ctx, objects\);\s*if \(ctx !== c\.contextContainer\) return;\s*if \(opts\.current\.showGrid\) drawGrid\(ctx, c, opts\.current\);\s*if \(opts\.current\.guides\) drawGuides/.test(layers)
+    /render\(ctx, objects\);\s*(?:try \{ printThrough\([^\n]*\n\s*)?if \(ctx !== c\.contextContainer\) return;\s*if \(opts\.current\.showGrid\) drawGrid\(ctx, c, opts\.current\);\s*if \(opts\.current\.guides\) drawGuides/.test(layers)
     && /installStageLayers\(fc\.current, snapOpts\)/.test(hook) && /setSnapOptions\?\.\(\{ showGrid: gridOn, guides: guidesOn \}\)/.test(cv));
   // 3-4. Centre line and smart guides: centre always a snap line; edges and other elements only with smart guides.
   const box = { left: 60, top: 40, width: 200, height: 300 }, oth = [{ left: 100, top: 100, width: 40, height: 20 }];
@@ -1029,6 +1029,16 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('2D realism layers are decorative only: no zone key, never selectable or evented, so they never reach history or the saved design',
     /const deco = \{ selectable: false, evented: false, objectCaching: false, __garmentBase: true \}/.test(fsx.readFileSync(rel('../src/pages/client/design-studio/fabricShading.js'), 'utf8'))
     && !/__zoneKeys*:/.test(fsx.readFileSync(rel('../src/pages/client/design-studio/fabricShading.js'), 'utf8')));
+  { const GAi = await L('/src/pages/client/design-studio/garmentAssets.js'), fsh = fsx.readFileSync(rel('../src/pages/client/design-studio/fabricShading.js'), 'utf8'), cl = fsx.readFileSync(rel('../src/pages/client/design-studio/canvasLayers.js'), 'utf8');
+    t('print-through: ink light only darkens (folds below the photo reference), clamps to 0..255 and survives a missing reference',
+      GAi.inkLight(140, 140) === 255 && GAi.inkLight(200, 140) === 255 && GAi.inkLight(70, 140) === 128 && GAi.inkLight(0, 140) === 0 && GAi.inkLight(-50, 140, 2) === 0 && GAi.inkLight(255, 0) === 255);
+    t('print-through: the five lighting layers are tagged __light, it runs for exports too (before the live-only grid) and only touches the design, never the saved JSON',
+      (fsh.match(/__light: true/g) ?? []).length === 5 && /render\(ctx, objects\);\s*try \{ printThrough\(ctx, objects, ctx === c\.contextContainer \? live : exp\); \} catch/.test(cl)
+      && /const isInk = o => !o\.__garmentBase && !o\.__hoverGlow/.test(cl) && /c\.__light = light;/.test(fsx.readFileSync(rel('../src/pages/client/design-studio/garmentAssets.js'), 'utf8'))); }
+{ const PL = await L('/src/pages/landing/ProductionLine.jsx'), pls = fsx.readFileSync(rel('../src/pages/landing/ProductionLine.jsx'), 'utf8');
+  t('landing production line: thread is 0 before the station track, 1 once its end passes 70% of the screen, clamped, a short row takes 35% of a screen; stations come from PHASES and reduced motion paints it fully sewn',
+    PL.threadProgress(900, 600, 800) === 0 && PL.threadProgress(-400, 600, 800) === 1 && PL.threadProgress(-40, 600, 800) === 1 && PL.threadProgress(260, 600, 800) === 0.5 && PL.threadProgress(420, 200, 800) === 0.5
+    && /PHASES\.flatMap\(p => p\.stages\)/.test(pls) && /prefers-reduced-motion: reduce\)'\)\.matches[^\n]*paint\(1\)/.test(pls)); }
 }
 
 // Validator-readiness fixes (2026-10-12). Backend items are source checks of the Laravel repo (VFRB_BACKEND, default the Laragon path).
