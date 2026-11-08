@@ -9,13 +9,11 @@ export default function PageHeader({ title, eyebrow, subtitle, meta, actions, ba
   return (
     <header className={['ui-head', stitched && 'is-stitched', className].filter(Boolean).join(' ')}>
       <div className="ui-head-txt">
-        {back && (
-          <Link className="ui-head-back" to={back.to}>
-            <ChevronLeft size={16} strokeWidth={2.2} aria-hidden="true" />{back.label}
-          </Link>
-        )}
         {eyebrow && <p className="ui-head-eyebrow">{eyebrow}</p>}
-        <h1 className="ui-title">{title}</h1>
+        <div className="ui-head-row">
+          {back && <Link className="ui-head-back" to={back.to} aria-label={`Back to ${back.label}`} title={`Back to ${back.label}`}><ChevronLeft size={16} strokeWidth={2.2} aria-hidden="true" /></Link>}
+          <h1 className="ui-title">{title}</h1>
+        </div>
         {subtitle && <p className="ui-sub">{subtitle}</p>}
         {meta && <div className="ui-head-meta">{meta}</div>}
       </div>

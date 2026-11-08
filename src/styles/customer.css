@@ -139,8 +139,6 @@ a.cx-kpi:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
 .st-privt{font-size:12px;color:var(--text-muted);line-height:1.6;margin:0}
 /* Order Wizard: four steps, summary panel at >=1024px, summary bar + sheet below that */
 .wz-page{max-width:1200px;padding-bottom:24px;overflow-x:clip;overflow-y:visible}
-.wz-head h1{font-size:clamp(20px,3vw,26px);font-weight:800;margin:0 0 4px;color:var(--ink)}
-.wz-head p{font-size:13px;color:var(--text-subtle);margin:0 0 16px}
 .wz-steps{list-style:none;margin:0 0 18px;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
 .wz-step{display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;text-align:center;min-width:0}
 .wz-step:not(:last-child)::after{content:"";position:absolute;top:21px;left:calc(50% + 26px);right:calc(-50% + 26px);height:2px;background:linear-gradient(var(--teal),var(--teal)) left/0% 100% no-repeat,var(--border);transition:background-size .3s ease}
@@ -650,11 +648,11 @@ html[data-wizard]{scroll-padding-bottom:160px}
 .st-nav-txt small{display:block;margin-top:1px;font-size:13px;color:var(--text-subtle)}
 .st-save{align-self:flex-end}
 .st-panel-h{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.st-panel-h .ui-btn{width:44px;height:44px;padding:0;flex:none}
 .st-panel-h h2{margin:0;font-family:var(--cx-serif);font-weight:400;font-size:24px;line-height:1.2}
 .hs-hero-card{grid-column:1/-1}
 .hs-hero-card .hs-hero{background:linear-gradient(120deg,var(--cx-thread-tint),var(--cx-card))}
 /* Touch floor for shared header back link and filter chips at every width */
-.cm-shell .ui-head-back{min-height:44px}
 .cx-chip{min-height:44px}
 /* Narrow cards: step labels collapse to the caption instead of breaking mid-word */
 .ox-steps,.od-sum{container-type:inline-size}

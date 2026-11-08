@@ -799,8 +799,9 @@ input:focus, textarea:focus, select:focus {
 .ui-head-txt { min-width: 0; flex: 1 1 320px; }
 .ui-head.is-stitched { padding-bottom: var(--space-4); border-bottom: var(--pr-stitch); }
 .ui-head-eyebrow { margin: 0 0 var(--space-1); font-size: var(--text-meta); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text-subtle); }
-.ui-head-back { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; margin-bottom: var(--space-1); color: var(--text-muted); font-size: var(--text-label); font-weight: 700; text-decoration: none; border-radius: var(--r-sm); }
-.ui-head-back:hover { color: var(--teal); }
+.ui-head-row { display: flex; align-items: center; gap: 10px; }
+.ui-head-back { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--bg-card); color: var(--ink); }
+.ui-head-back:hover { color: var(--teal); border-color: var(--teal); }
 .ui-title { margin: 0; font-size: var(--text-page); font-weight: 800; line-height: 1.15; letter-spacing: -0.015em; color: var(--ink); text-wrap: balance; }
 .ui-sub { margin: var(--space-1) 0 0; max-width: 68ch; font-size: var(--text-body); line-height: 1.5; color: var(--text-muted); }
 .ui-head-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin-top: var(--space-2); font-size: var(--text-label); color: var(--text-subtle); }

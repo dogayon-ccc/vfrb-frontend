@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import MaterialsReveal from './MaterialsReveal';
-import { AlertBanner, NavIcon } from '../../components/ui';
+import { AlertBanner, NavIcon, PageHeader } from '../../components/ui';
 import { clearStudioHandoff, draftFingerprint, peekDesignRef } from '../../utils/studioHandoff';
 import { qtyShort } from '../../utils/orderQuantity';
 import { orderQueue, setNote, ROLE_LABEL } from './design-studio/uniformSet';
@@ -155,10 +155,8 @@ export default function OrderWizard() {
 
   return (
     <div className="cx-page wz-page">
-      <header className="wz-head">
-        <h1>{isSet ? 'Order a uniform set' : 'Place an order'}</h1>
-        <p>Step {step + 1} of {STEPS.length}: {STEPS[step]}</p>
-      </header>
+      <PageHeader back={{ to: '/design-studio', label: 'Design Studio' }} title={isSet ? 'Order a uniform set' : 'Place an order'}
+        subtitle={`Step ${step + 1} of ${STEPS.length}: ${STEPS[step]}`} />
       <ol className="wz-steps" aria-label="Order steps">
         {STEPS.map((l, i) => (
           <li key={l} className="wz-step" data-s={i < step ? 'done' : i === step ? 'now' : 'todo'} aria-current={i === step ? 'step' : undefined}>
