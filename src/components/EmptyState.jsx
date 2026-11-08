@@ -6,9 +6,9 @@
 import UiEmptyState from './ui/EmptyState';
 
 const T = 'var(--teal)', T2 = 'var(--teal-2)';
-const PAPER = 'var(--bg-card)', SHADOW = 'var(--bg-surface-2)', TINT = 'var(--teal-50)';
+const PAPER = 'var(--bg-card)', SHADOW = 'var(--bg-surface-2)';
 
-// Isometric box + design cursor + "Design it!" bubble — orders/design-studio contexts.
+// Isometric box + design cursor: the one illustration for customer empty states.
 function BoxIllustration() {
   return (
     <svg viewBox="0 0 200 160" width="160" height="128" style={{ display:'block', margin:'0 auto', opacity:.88, maxWidth:'100%' }}>
@@ -32,10 +32,6 @@ function BoxIllustration() {
       <rect x="60" y="112" width="80" height="8" rx="3" fill={T2} opacity=".2"/>
       <rect x="60" y="112" width="80" height="8" rx="3" fill="none" stroke={T} strokeWidth="1" opacity=".3"/>
       {[68,76,84,92,100,108,116,124,132].map(x => <circle key={x} cx={x} cy="116" r="1.5" fill={T} opacity=".4"/>)}
-      <rect x="112" y="12" width="64" height="26" rx="9" fill={TINT} stroke={T2} strokeWidth="1.5"/>
-      <polygon points="128,38 136,38 130,46" fill={TINT} stroke={T2} strokeWidth="1"/>
-      <line x1="129" y1="38" x2="135" y2="38" stroke={TINT} strokeWidth="1.5"/>
-      <text x="144" y="29" textAnchor="middle" fontSize="10" fontWeight="700" fill={T} fontFamily="var(--font)">Design it!</text>
     </svg>
   );
 }

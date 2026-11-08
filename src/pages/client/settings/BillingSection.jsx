@@ -102,9 +102,9 @@ export default function BillingSection() {
         ) : loading ? <Skeletons/> : failed ? (
           <LoadError what="invoice details" onRetry={load}/>
         ) : profiles.length === 0 ? (
-          <EmptyState illustration="select-thread" headline="No invoice details yet"
+          <EmptyState illustration="order" headline="No invoice details yet"
             sub="Add the name, company and address to show on your invoices."
-            cta={{ label: '+ Add invoice details', onClick: () => setEditing({}) }}/>
+            cta={{ label: 'Add invoice details', onClick: () => setEditing({}) }}/>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {profiles.map(p => (

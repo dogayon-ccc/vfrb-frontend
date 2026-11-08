@@ -110,7 +110,7 @@ function ShippingSection() {
         <LoadError what="addresses" onRetry={load}/>
       ) : addrs.length === 0 ? (
         <EmptyState illustration="order" headline="No saved addresses" sub="Add a delivery address to speed up future orders."
-          cta={{ label: '+ Add Address', onClick: () => setEditing({}) }}/>
+          cta={{ label: 'Add address', onClick: () => setEditing({}) }}/>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {addrs.map(a => (
@@ -242,7 +242,7 @@ function FabricsSection() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 10, flexWrap: 'wrap' }}>
         <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>Fabrics you prefer for future orders — the VFRB team can see these when reviewing your requests.</p>
-        {!picking && !failed && catalog.length > 0 && <Button variant="primary" icon="add" onClick={() => setPicking(true)}>Add fabric</Button>}
+        {!picking && !failed && prefs.length > 0 && catalog.length > 0 && <Button variant="primary" icon="add" onClick={() => setPicking(true)}>Add fabric</Button>}
       </div>
       <Toast msg={msg} type="success"/><Toast msg={err} type="error"/>
 
@@ -269,7 +269,7 @@ function FabricsSection() {
         <LoadError what="fabric preferences" onRetry={load}/>
       ) : prefs.length === 0 && !picking ? (
         <EmptyState illustration="order" headline="No preferred fabrics yet" sub="Add fabrics you like so the VFRB team knows your preferences for future orders."
-          cta={{ label: '+ Add Fabric', onClick: () => setPicking(true) }}/>
+          cta={{ label: 'Add fabric', onClick: () => setPicking(true) }}/>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {prefs.map(p => (
