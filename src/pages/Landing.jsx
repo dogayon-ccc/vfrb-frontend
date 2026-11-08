@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
 import SitePage from '../components/site/SitePage';
 import Photo from '../components/landing/Photo';
@@ -9,6 +9,7 @@ import useParallax from '../hooks/useParallax';
 import { MIN_ORDER_QTY } from '../utils/orderQuantity';
 import { P } from './landing/photos';
 import PatternReveal from './landing/PatternReveal';
+import { hero3DAllowed } from './landing/heroGate';
 import CategoryCards from './landing/CategoryCards';
 import '../styles/landing.css';
 
@@ -26,9 +27,52 @@ const CONTACTS = [
   ['Visit', C.map, `${C.address[0]}, ${C.address[1]}`],
 ];
 
+function NoTurntable({ onError }) { useEffect(() => { onError(); }, [onError]); return null; }
+const HeroTurntable = lazy(() => import('./landing/HeroTurntable').catch(() => ({ default: NoTurntable })));
+
+function hasWebGL() {
+  try {
+    const gl = document.createElement('canvas').getContext('webgl2') || document.createElement('canvas').getContext('webgl');
+    gl?.getExtension('WEBGL_lose_context')?.loseContext();
+    return !!gl;
+  } catch { return false; }
+}
+
+function HeroVisual({ calm }) {
+  const [want, setWant] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [view, setView] = useState('3d');
+  // Starts after the page has loaded and gone idle, so the 3D chunk never delays first paint.
+  useEffect(() => {
+    if (!hero3DAllowed({ width: window.innerWidth, saveData: navigator.connection?.saveData, calm, webgl: !calm && hasWebGL() })) return undefined;
+    let idle = 0;
+    const start = () => { idle = (window.requestIdleCallback ?? (f => setTimeout(f, 300)))(() => setWant(true), { timeout: 2500 }); };
+    if (document.readyState === 'complete') start(); else window.addEventListener('load', start, { once: true });
+    return () => { window.removeEventListener('load', start); (window.cancelIdleCallback ?? clearTimeout)(idle); };
+  }, [calm]);
+  const onReady = useCallback(() => setReady(true), []);
+  const onError = useCallback(() => setFailed(true), []);
+  const live = want && !failed;
+  const shown = live && ready && view === '3d' ? '3d' : 'pattern';
+  return (
+    <div className="lp-visual" data-view={shown}>
+      <div className="lp-visual__pattern" aria-hidden={shown === '3d' || undefined}><PatternReveal /></div>
+      {live && <Suspense fallback={null}><HeroTurntable visible={shown === '3d'} onReady={onReady} onError={onError} /></Suspense>}
+      {live && ready && (
+        <div className="lp-switch" role="group" aria-label="Hero view">
+          <button type="button" aria-pressed={view === '3d'} onClick={() => setView('3d')}>3D model</button>
+          <button type="button" aria-pressed={view === 'pattern'} onClick={() => setView('pattern')}>Cutting pattern</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Landing() {
   const hero = useRef(null);
-  useParallax(hero, useReducedMotion());
+  const calm = useReducedMotion();
+  useParallax(hero, calm);
   return (
     <SitePage title="Company uniforms made in Muntinlupa">
       <section ref={hero} className="lp-hero vs-wrap" aria-labelledby="lp-title">
@@ -40,7 +84,7 @@ export default function Landing() {
             <Btn to="/login#request-access" variant="ghost-light">Request access</Btn>
           </div>
         </div>
-        <PatternReveal />
+        <HeroVisual calm={calm} />
       </section>
 
       <section className="vs-sec vs-wrap" aria-labelledby="lp-how">

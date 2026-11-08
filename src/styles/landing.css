@@ -40,6 +40,30 @@
 .pr-handle:focus-visible span { box-shadow: 0 0 0 3px var(--chalk), 0 0 0 6px var(--vs-mint); }
 .pr figcaption { justify-self: center; width: min(100%, 640px); font-size: 14px; line-height: 1.5; color: #c7cfdc; }
 
+/* hero 3D: the authored scrub top on the same kraft table, stacked over the pattern and cross-faded */
+.lp-visual { display: grid; gap: 14px; min-width: 0; }
+.lp-visual__pattern, .lp-3d { grid-area: 1 / 1; min-width: 0; transition: opacity 200ms var(--vs-ease), visibility 0s linear 200ms; }
+.lp-3d { display: grid; gap: 12px; align-content: start; }
+.lp-visual[data-view="pattern"] .lp-3d, .lp-visual[data-view="3d"] .lp-visual__pattern { opacity: 0; visibility: hidden; }
+.lp-visual[data-view="pattern"] .lp-visual__pattern, .lp-visual[data-view="3d"] .lp-3d { transition-delay: 0s; }
+.lp-3d__stage { transform: none; cursor: grab; touch-action: none;
+  background: linear-gradient(rgba(27, 42, 74, 0.07) 1px, transparent 1px) 0 0 / 8% 8%, linear-gradient(90deg, rgba(27, 42, 74, 0.07) 1px, transparent 1px) 0 0 / 8% 8%, var(--kraft); }
+.lp-3d__stage:active { cursor: grabbing; }
+.lp-3d__stage canvas { display: block; }
+.lp-3d__chip { top: 12px; bottom: auto; left: 12px; background: var(--navy); color: #fff; }
+.lp-3d__btn { position: absolute; right: 12px; bottom: 12px; min-height: 44px; padding: 0 16px; border: 0; border-radius: 22px; font: 700 14px/1 var(--vs-sans);
+  color: #fff; background: var(--navy); cursor: pointer; transition: background-color 200ms var(--vs-ease); }
+.lp-3d__btn:hover { background: var(--tink); }
+.lp-3d figcaption { justify-self: center; width: min(100%, 640px); font-size: 14px; line-height: 1.5; color: #c7cfdc; }
+.lp-switch { display: flex; justify-self: center; gap: 4px; padding: 4px; border-radius: 26px; background: rgba(255, 255, 255, 0.08); }
+.lp-switch button { min-height: 44px; padding: 0 18px; border: 0; border-radius: 22px; font: 600 14px/1 var(--vs-sans); color: #e3e8f0; background: transparent; cursor: pointer;
+  transition: background-color 200ms var(--vs-ease), color 200ms var(--vs-ease); }
+.lp-switch button[aria-pressed="true"] { color: var(--navy); background: var(--chalk); }
+@media (max-width: 959px) {
+  .lp-visual .lp-3d, .lp-switch { display: none; }
+  .lp-visual .lp-visual__pattern { opacity: 1; visibility: visible; }
+}
+
 .lp-sub { margin-top: 12px; }
 
 /* steps: a dashed thread runs across the top of each step */
@@ -93,6 +117,6 @@
   .lp-floor__c { transform: translateX(-14%); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .pr-stage, .pr-stage.is-intro, .lp-card, .lp-card__art, .lp-contact__list a { transition: none; }
+  .pr-stage, .pr-stage.is-intro, .lp-card, .lp-card__art, .lp-contact__list a, .lp-visual__pattern, .lp-3d, .lp-3d__btn, .lp-switch button { transition: none; }
   .pr-stage, .lp-card:hover, .lp-card:focus-visible, .lp-card:hover .lp-card__art, .lp-card:focus-visible .lp-card__art { transform: none; }
 }

@@ -1801,7 +1801,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && GS.slot3DLabel({ state: 'verified' }) === '3D (approx.)' && GS.slot3DLabel({ state: 'verified', verification: { method: 'render-compare', date: '2026-11-02' } }) === '3D' && GS.slot3DLabel({ state: 'none' }) === null);
   const ds = rd('src/pages/client/DesignStudio.jsx'), d3 = rd('src/pages/client/DesignStudio3D.jsx'), sm = rd('src/pages/client/design-studio/ScannedGarmentMesh.jsx'), cv = rd('src/pages/client/design-studio/CanvasViewport.jsx');
   const srcDir = urlx.fileURLToPath(new URL('../src', import.meta.url)), walk = d => fsx.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(`${d}/${e.name}`) : /\.jsx?$/.test(e.name) ? [`${d}/${e.name}`] : []);
-  const graph3D = /(DesignStudio3D|ScannedGarmentMesh|ReferenceModel3D|garmentMeshManifest|regionShader|regionTexture|StageTowers3D|GarmentPreview3D)\.jsx?$/;
+  const graph3D = /(DesignStudio3D|ScannedGarmentMesh|ReferenceModel3D|garmentMeshManifest|regionShader|regionTexture|StageTowers3D|GarmentPreview3D|HeroTurntable)\.jsx?$/;
   const staticThree = walk(srcDir).filter(f => !graph3D.test(f) && /^import [^;]*from '(three|@react-three\/[a-z]+)'|^import [^;]*from '[./]+[^']*(DesignStudio3D|ScannedGarmentMesh|ReferenceModel3D|garmentMeshManifest|regionShader)'/m.test(rd(f)));
   t('three, R3F and the 3D scene load only through lazy imports (no static import outside the 3D modules)', staticThree.length === 0
     && /lazy\(\(\) => import\('\.\.\/DesignStudio3D'\)\)/.test(cv) && /lazy\(\(\) => import\('\.\/ReferenceModel3D'\)\)/.test(rd('src/pages/client/design-studio/GarmentPicker.jsx')));
@@ -1875,6 +1875,11 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('a11y: each customer page sets its own tab title; order buttons name their order; My Designs cards are h2 under the h1',
     ['Dashboard', 'MyDesigns', 'Orders', 'OrderDetail', 'OrderWizard', 'Messages', 'AccountSettings', 'AIMaterials'].every(p => /usePageTitle\(/.test(rd(`src/pages/client/${p}.jsx`)))
     && /aria-label=\{`Details for order #\$\{o\.order_id\}`\}/.test(rd('src/pages/client/Orders.jsx')) && /<h2 title=\{title\}>/.test(rd('src/pages/client/MyDesigns.jsx')));
+  const HG = await L('/src/pages/landing/heroGate.js'), lp = rd('src/pages/Landing.jsx'), ok = { width: 1440, saveData: false, calm: false, webgl: true };
+  t('landing hero 3D: only >= 960px with WebGL, no Save-Data, no reduced motion (390, Save-Data, reduced motion, no WebGL keep the 2D pattern); HeroTurntable is lazy-only and failures fall back',
+    HG.hero3DAllowed(ok) && !HG.hero3DAllowed({ ...ok, width: 390 }) && !HG.hero3DAllowed({ ...ok, width: 959 }) && !HG.hero3DAllowed({ ...ok, saveData: true })
+    && !HG.hero3DAllowed({ ...ok, calm: true }) && !HG.hero3DAllowed({ ...ok, webgl: false })
+    && /lazy\(\(\) => import\('\.\/landing\/HeroTurntable'\)\.catch\(/.test(lp) && !/^import [^;]*HeroTurntable/m.test(lp) && /webglcontextlost', onError/.test(rd('src/pages/landing/HeroTurntable.jsx')));
 }
 console.log(out.join('\n')); const f =out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);
