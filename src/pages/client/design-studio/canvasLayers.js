@@ -59,23 +59,59 @@ function drawGuides(ctx, c, o) {
   const g = garmentBox(c);
   if (!g) return;
   const px = screenPx(c, o.scale);
+  const red = token(c.lowerCanvasEl, '--color-thread-red', '#C4313B');
   ctx.save();
-  ctx.lineWidth = Math.max(px, 1);
-  ctx.setLineDash([6 * px, 4 * px]);
-  ctx.strokeStyle = rgba(token(c.lowerCanvasEl, '--color-thread-red', '#C4313B'), 0.5);
   for (const l of fixedGuides(g)) {
     ctx.beginPath();
     if (l.axis === 'v') { ctx.moveTo(l.at, 0); ctx.lineTo(l.at, c.getHeight()); } else { ctx.moveTo(g.left, l.at); ctx.lineTo(g.left + g.width, l.at); }
-    ctx.stroke();
+    // Chalk casing under the red dash so the guide reads on red and dark garments too.
+    ctx.setLineDash([]); ctx.lineWidth = 3 * px; ctx.strokeStyle = 'rgba(244,245,242,.7)'; ctx.stroke();
+    ctx.setLineDash([6 * px, 4 * px]); ctx.lineWidth = Math.max(1.5 * px, 1); ctx.strokeStyle = rgba(red, 0.9); ctx.stroke();
   }
   ctx.restore();
 }
 
 // Paints the design, then (when on) the grid and the guides over it, on the live canvas only; exports and previews render without them.
+// Print-through: logos, text and drawings take the cloth's light (weave, folds, edge shading), so they read as printed, not pasted.
+// Runs for the live canvas and exports alike; only pixels under the design change, and nothing is saved.
+const isInk = o => !o.__garmentBase && !o.__hoverGlow && o.visible !== false;
+const offscreen = (box, k, w, h) => { const el = box[k] ?? (box[k] = document.createElement('canvas')); if (el.width !== w || el.height !== h) { el.width = w; el.height = h; } return el; };
+export function printThrough(ctx, objects, cache) {
+  const inks = objects.filter(isInk);
+  if (!inks.length || typeof document === 'undefined') return;
+  const lights = objects.filter(o => o.__light || (o.__garmentBase && o.getElement?.()?.__light));
+  if (!lights.length) return;
+  const w = ctx.canvas.width, h = ctx.canvas.height, t = ctx.getTransform();
+  const key = [w, h, t.a, t.d, t.e, t.f].join();
+  const light = offscreen(cache, 'light', w, h);
+  if (cache.key !== key || cache.lights?.length !== lights.length || lights.some((o, i) => cache.lights[i] !== o)) {
+    const lx = light.getContext('2d');
+    lx.setTransform(1, 0, 0, 1, 0, 0); lx.globalCompositeOperation = 'source-over'; lx.globalAlpha = 1;
+    lx.fillStyle = '#fff'; lx.fillRect(0, 0, w, h);
+    lx.setTransform(t);
+    for (const o of lights) {
+      const map = o.__light ? null : o.getElement().__light;
+      if (!map) { o.render(lx); continue; }
+      lx.save(); lx.transform(...o.calcTransformMatrix()); lx.globalCompositeOperation = 'multiply';
+      lx.drawImage(map, -o.width / 2, -o.height / 2, o.width, o.height); lx.restore();
+    }
+    cache.key = key; cache.lights = lights;
+  }
+  const mask = offscreen(cache, 'mask', w, h), mx = mask.getContext('2d');
+  mx.setTransform(1, 0, 0, 1, 0, 0); mx.globalCompositeOperation = 'source-over'; mx.clearRect(0, 0, w, h);
+  mx.setTransform(t);
+  for (const o of inks) o.render(mx);
+  mx.setTransform(1, 0, 0, 1, 0, 0); mx.globalCompositeOperation = 'source-in'; mx.globalAlpha = 1;
+  mx.drawImage(light, 0, 0);
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = 0.85;
+  ctx.drawImage(mask, 0, 0); ctx.restore();
+}
+
 export function installStageLayers(c, opts) {
-  const render = c._renderObjects.bind(c);
+  const render = c._renderObjects.bind(c), live = {}, exp = {};
   c._renderObjects = (ctx, objects) => {
     render(ctx, objects);
+    try { printThrough(ctx, objects, ctx === c.contextContainer ? live : exp); } catch { /* a failed light pass leaves the flat design */ }
     if (ctx !== c.contextContainer) return;
     if (opts.current.showGrid) drawGrid(ctx, c, opts.current);
     if (opts.current.guides) drawGuides(ctx, c, opts.current);

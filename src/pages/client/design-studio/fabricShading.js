@@ -9,6 +9,7 @@
 //    highlight, show their thread holes and cast a small shadow; hems and cuffs get a twin-needle row (twinStitch), folds a light ridge.
 //    The pocket, collar and sleeves cast a soft shadow onto the body (castShadows). No blur on the many seam lines, so phones stay fast.
 //  Woven patterns carry their own thread shading in the tile (wovenPatterns.js).
+//  Lighting layers are tagged __light: canvasLayers.printThrough lays the same light over logos and text so they read as printed.
 
 let grainTile = null;
 // 96px tile of soft two-scale noise around white: multiply darkens by at most ~7%, so colours stay true.
@@ -112,7 +113,7 @@ function innerShade(Img, shape, d) {
   ctx.shadowColor = 'rgba(15,23,42,.34)'; ctx.shadowBlur = w * 1.5 * S; // shadowBlur is in device px, unaffected by scale()
   ctx.fillStyle = '#000';
   ctx.fill(frame, 'evenodd');
-  return new Img(el, { ...deco, left: x0, top: y0, originX: 'left', originY: 'top', scaleX: 1 / S, scaleY: 1 / S });
+  return new Img(el, { ...deco, __light: true, left: x0, top: y0, originX: 'left', originY: 'top', scaleX: 1 / S, scaleY: 1 / S });
 }
 
 // Inserts the layers around the `zones` already drawn ([{ obj, d }], bottom-most first). `current()` is false once a newer redraw
@@ -127,7 +128,7 @@ export function addFabricShading(fabric, canvas, paths, face, zones, current) {
   const tile = grain();
   // Grain over each zone (sleeves and collar are separate paths), directly above that zone.
   if (tile) for (const z of zones) {
-    canvas.insertAt(at(z.obj) + 1, new fabric.Path(z.d, { ...deco, fill: new fabric.Pattern({ source: tile, repeat: 'repeat' }), stroke: null, opacity: 0.85, globalCompositeOperation: 'multiply' }));
+    canvas.insertAt(at(z.obj) + 1, new fabric.Path(z.d, { ...deco, fill: new fabric.Pattern({ source: tile, repeat: 'repeat' }), stroke: null, opacity: 0.85, globalCompositeOperation: 'multiply', __light: true }));
   }
   detailRealism(fabric, canvas, { w: paths.w, h: paths.h });
   const shadeUrl = paths.shade?.[face];
@@ -136,7 +137,7 @@ export function addFabricShading(fabric, canvas, paths, face, zones, current) {
   if (shadeUrl) {
     Img.fromURL(shadeUrl, { crossOrigin: 'anonymous' }).then(img => {
       if (!current()) return;
-      img.set({ ...deco, left: 0, top: 0, scaleX: paths.w / img.width, scaleY: paths.h / img.height, globalCompositeOperation: 'multiply' });
+      img.set({ ...deco, __light: true, left: 0, top: 0, scaleX: paths.w / img.width, scaleY: paths.h / img.height, globalCompositeOperation: 'multiply' });
       canvas.insertAt(Math.min(top, canvas.getObjects().length), img);
       canvas.requestRenderAll();
     }).catch(() => {}); // no shade map: the flat fill and grain still read as cloth
@@ -147,7 +148,7 @@ export function addFabricShading(fabric, canvas, paths, face, zones, current) {
   // one diagonal sheen across the whole garment, so the light falls the same way on every part.
   for (const z of zones) {
     const edge = innerShade(Img, new fabric.Path(z.d), z.d);
-    const sheen = new fabric.Path(z.d, { ...deco, stroke: null });
+    const sheen = new fabric.Path(z.d, { ...deco, stroke: null, __light: true });
     sheen.set('fill', new fabric.Gradient({
       type: 'linear', coords: { x1: -sheen.left, y1: -sheen.top, x2: paths.w - sheen.left, y2: paths.h - sheen.top },
       colorStops: [{ offset: 0, color: 'rgba(255,255,255,.18)' }, { offset: 0.45, color: 'rgba(255,255,255,0)' }, { offset: 0.72, color: 'rgba(0,0,0,0)' }, { offset: 1, color: 'rgba(0,0,0,.12)' }],
@@ -155,7 +156,7 @@ export function addFabricShading(fabric, canvas, paths, face, zones, current) {
     const above = at(z.obj) + (tile ? 2 : 1), rolls = ROLL_ZONES.includes(z.obj.__zoneKey);
     canvas.insertAt(above, edge);
     if (rolls) {
-      const roll = new fabric.Path(z.d, { ...deco, stroke: null });
+      const roll = new fabric.Path(z.d, { ...deco, stroke: null, __light: true });
       roll.set('fill', new fabric.Gradient({ type: 'linear', coords: { x1: 0, y1: 0, x2: roll.width, y2: 0 }, colorStops: ROLL.map(([offset, color]) => ({ offset, color })) }));
       canvas.insertAt(above + 1, roll);
     }

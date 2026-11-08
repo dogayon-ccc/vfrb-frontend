@@ -113,6 +113,23 @@ const isHex = h => typeof h === 'string' && /^#[0-9a-f]{6}$/i.test(h);
 
 // Luminance-preserving recolour: each pixel keeps its brightness relative to the zone's median, so folds, pocket edges and seams survive.
 // Below the median the target colour is darkened, above it the colour is lightened toward white.
+// Light a print takes from the photo's cloth (0-255): shadow and fold darkening only, never brighter than the ink itself.
+export const inkLight = (lum, ref, gain = 1) => Math.round(255 * Math.min(1, Math.max(0, 1 + (lum / (ref > 0 ? ref : 255) - 1) * gain)));
+const lightCache = new Map();
+// Grey light map of the photo (same size, same alpha), cached per photo; canvasLayers multiplies logos and text by it.
+function lightMap(src, px, w, h, ref, gain) {
+  if (lightCache.has(src)) return lightCache.get(src);
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const x = c.getContext('2d'), out = x.createImageData(w, h), o = out.data;
+  for (let i = 0; i < px.length; i += 4) {
+    const v = inkLight(0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2], ref, gain);
+    o[i] = o[i + 1] = o[i + 2] = v; o[i + 3] = px[i + 3];
+  }
+  x.putImageData(out, 0, 0);
+  if (lightCache.size > 12) lightCache.delete(lightCache.keys().next().value);
+  lightCache.set(src, c);
+  return c;
+}
 const shade = (lum, ref, gain, [tr, tg, tb]) => {
   const ratio = 1 + (lum / ref - 1) * gain;
   if (ratio <= 1) return [tr * ratio, tg * ratio, tb * ratio];
@@ -158,6 +175,7 @@ export async function tintedCanvas(asset, colors) {
   const ctx = c.getContext('2d', { willReadFrequently: true });
   ctx.drawImage(img, 0, 0);
   const d = ctx.getImageData(0, 0, c.width, c.height); const px = d.data;
+  const light = lightMap(asset.src, px, c.width, c.height, asset.refLum, asset.gain ?? 1);
   if (isHex(body) || isHex(trim)) {
     let maskPx = null;
     if (asset.trim?.mask && isHex(trim)) {
@@ -180,6 +198,7 @@ export async function tintedCanvas(asset, colors) {
   featherEdge(px, c.width, c.height);
   ctx.putImageData(d, 0, 0);
   c.__content = opaqueBounds(px, c.width, c.height); // read by canvasLayers.garmentBox
+  c.__light = light; // read by canvasLayers.printThrough
   if (tintCache.size > 24) tintCache.delete(tintCache.keys().next().value);
   tintCache.set(key, c);
   return c;
