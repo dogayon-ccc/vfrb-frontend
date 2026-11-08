@@ -1900,6 +1900,10 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && /calm: matchMedia\('\(prefers-reduced-motion: reduce\)'\)\.matches/.test(hl)
     && /lazy\(\(\) => import\('\.\/HeroTurntable'\)\.catch\(/.test(hl) && /hero3DAllowed\(\{/.test(hl) && /requestIdleCallback/.test(hl)
     && /webglcontextlost', onError/.test(rd('src/pages/landing/HeroTurntable.jsx')));
+  const KT = await L('/src/components/customer/kit.jsx'), now = Date.parse('2026-11-08T15:16:02Z');
+  t('draft "edited" time: a zone-less DB timestamp is read as UTC (saved seconds ago reads "just now", not "8h ago"); ISO with a zone is unchanged',
+    KT.reltime('2026-11-08 15:15:47', now) === 'just now' && KT.reltime('2026-11-08 13:15:47', now) === '2h ago'
+    && KT.reltime('2026-11-08T15:15:47.000000Z', now) === 'just now' && KT.reltime('2026-11-08T23:15:47+08:00', now) === 'just now' && KT.reltime(null) === '');
 }
 console.log(out.join('\n')); const f =out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);

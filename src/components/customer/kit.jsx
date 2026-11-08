@@ -81,9 +81,11 @@ export const parseCfg = (o) => {
   if (!raw) return {};
   try { return typeof raw === 'string' ? JSON.parse(raw) : raw; } catch { return {}; }
 };
-export function reltime(ts) {
+// A raw DB timestamp ("2026-11-08 15:15:47", no zone) is the server's UTC; ISO strings with a zone pass through.
+export const parseServerTime = (ts) => new Date(typeof ts === 'string' && /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/.test(ts) ? `${ts.replace(' ', 'T')}Z` : ts);
+export function reltime(ts, now = Date.now()) {
   if (!ts) return '';
-  const s = (Date.now() - new Date(ts).getTime()) / 1000;
+  const s = (now - parseServerTime(ts).getTime()) / 1000;
   if (s < 60) return 'just now';
   if (s < 3600) return `${Math.floor(s / 60)}m ago`;
   if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
