@@ -130,12 +130,6 @@ function lightMap(src, px, w, h, ref, gain) {
   lightCache.set(src, c);
   return c;
 }
-const shade = (lum, ref, gain, [tr, tg, tb]) => {
-  const ratio = 1 + (lum / ref - 1) * gain;
-  if (ratio <= 1) return [tr * ratio, tg * ratio, tb * ratio];
-  const k = Math.min(1, (ratio - 1) * 0.8);
-  return [tr + (255 - tr) * k, tg + (255 - tg) * k, tb + (255 - tb) * k];
-};
 
 // 3x3 average of one RGBA channel: the basis for softening hard cut-out and trim-mask edges by one pixel at runtime.
 const box3 = (px, w, h, ch) => {
@@ -162,6 +156,37 @@ export function opaqueBounds(px, w, h, min = 24) {
   return r < 0 ? null : { l, t, r, b, w, h };
 }
 
+// Colour-independent work per photo, done once: feathered pixels, luminance, opaque bounds and the print-through light map.
+const baseCache = new Map(), maskCache = new Map();
+function photoBase(asset) {
+  if (!baseCache.has(asset.src)) baseCache.set(asset.src, loadImage(asset.src).then(img => {
+    const w = img.naturalWidth, h = img.naturalHeight, c = document.createElement('canvas'); c.width = w; c.height = h;
+    const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(img, 0, 0);
+    const px = x.getImageData(0, 0, w, h).data, lum = new Float32Array(w * h);
+    for (let i = 0; i < lum.length; i++) lum[i] = 0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2];
+    const light = lightMap(asset.src, px, w, h, asset.refLum, asset.gain ?? 1);
+    featherEdge(px, w, h); // alpha only, so the recolour below reads the same RGB and luminance as before
+    return { w, h, px, lum, light, bounds: opaqueBounds(px, w, h) };
+  }));
+  return baseCache.get(asset.src);
+}
+// Softened trim-mask weights (0..255) at the photo's size, once per mask.
+function trimWeights(src, w, h) {
+  if (!maskCache.has(src)) maskCache.set(src, loadImage(src).then(m => {
+    const mc = document.createElement('canvas'); mc.width = w; mc.height = h;
+    const mx = mc.getContext('2d', { willReadFrequently: true }); mx.drawImage(m, 0, 0, w, h);
+    return box3(mx.getImageData(0, 0, w, h).data, w, h, 0);
+  }));
+  return maskCache.get(src);
+}
+// Recolour of one channel set into out[o..o+2], same curve as `shade` without allocating per pixel.
+const shadeInto = (out, o, lum, ref, gain, tr, tg, tb, wt, prev) => {
+  const ratio = 1 + (lum / ref - 1) * gain;
+  let r, g, b;
+  if (ratio <= 1) { r = tr * ratio; g = tg * ratio; b = tb * ratio; } else { const k = Math.min(1, (ratio - 1) * 0.8); r = tr + (255 - tr) * k; g = tg + (255 - tg) * k; b = tb + (255 - tb) * k; }
+  if (prev) { out[o] += r * wt; out[o + 1] += g * wt; out[o + 2] += b * wt; } else { out[o] = r * wt; out[o + 1] = g * wt; out[o + 2] = b * wt; }
+};
+
 // `colors` is a hex string (body only) or { body, collar }. `collar` is honoured only for assets that declare a trim zone.
 export async function tintedCanvas(asset, colors) {
   const body = typeof colors === 'string' ? colors : colors?.body;
@@ -169,36 +194,27 @@ export async function tintedCanvas(asset, colors) {
   if (trim && asset.trimUnset && trim.toLowerCase() === asset.trimUnset) trim = null;
   const key = `${asset.src}|${isHex(body) ? body : 'orig'}|${isHex(trim) ? trim : 'orig'}`;
   if (tintCache.has(key)) return tintCache.get(key);
-  const img = await loadImage(asset.src);
-  const c = document.createElement('canvas');
-  c.width = img.naturalWidth; c.height = img.naturalHeight;
-  const ctx = c.getContext('2d', { willReadFrequently: true });
-  ctx.drawImage(img, 0, 0);
-  const d = ctx.getImageData(0, 0, c.width, c.height); const px = d.data;
-  const light = lightMap(asset.src, px, c.width, c.height, asset.refLum, asset.gain ?? 1);
+  const base = await photoBase(asset), { w: W, h: H } = base;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const ctx = c.getContext('2d'), d = ctx.createImageData(W, H), px = d.data;
+  px.set(base.px);
   if (isHex(body) || isHex(trim)) {
-    let maskPx = null;
-    if (asset.trim?.mask && isHex(trim)) {
-      const m = await loadImage(asset.trim.mask), mc = document.createElement('canvas');
-      mc.width = c.width; mc.height = c.height;
-      const mx = mc.getContext('2d', { willReadFrequently: true }); mx.drawImage(m, 0, 0, c.width, c.height);
-      maskPx = box3(mx.getImageData(0, 0, c.width, c.height).data, c.width, c.height, 0); // softened trim boundary
-    }
-    const bRgb = isHex(body) ? hexRgb(body) : null; const tRgb = isHex(trim) ? hexRgb(trim) : null;
-    for (let i = 0; i < px.length; i += 4) {
-      if (px[i + 3] === 0) continue;
-      const lum = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
-      const w = maskPx ? maskPx[i >> 2] / 255 : 0; // 1 inside the trim mask
-      const orig = [px[i], px[i + 1], px[i + 2]];
-      const b = bRgb ? shade(lum, asset.refLum, asset.gain ?? 1, bRgb) : orig;
-      const t = tRgb ? shade(lum, asset.trim.refLum, asset.gain ?? 1, tRgb) : orig;
-      px[i] = b[0] * (1 - w) + t[0] * w; px[i + 1] = b[1] * (1 - w) + t[1] * w; px[i + 2] = b[2] * (1 - w) + t[2] * w;
+    const mask = asset.trim?.mask && isHex(trim) ? await trimWeights(asset.trim.mask, W, H) : null;
+    const bRgb = isHex(body) ? hexRgb(body) : null, tRgb = isHex(trim) ? hexRgb(trim) : null;
+    const gain = asset.gain ?? 1, src = base.px, lum = base.lum, acc = [0, 0, 0];
+    for (let i = 0, p = 0; i < px.length; i += 4, p++) {
+      if (src[i + 3] === 0) continue;
+      const wt = mask ? mask[p] / 255 : 0; // 1 inside the trim mask
+      if (bRgb) shadeInto(acc, 0, lum[p], asset.refLum, gain, bRgb[0], bRgb[1], bRgb[2], 1 - wt, false);
+      else { acc[0] = src[i] * (1 - wt); acc[1] = src[i + 1] * (1 - wt); acc[2] = src[i + 2] * (1 - wt); }
+      if (tRgb) shadeInto(acc, 0, lum[p], asset.trim.refLum, gain, tRgb[0], tRgb[1], tRgb[2], wt, true);
+      else if (wt) { acc[0] += src[i] * wt; acc[1] += src[i + 1] * wt; acc[2] += src[i + 2] * wt; }
+      px[i] = acc[0]; px[i + 1] = acc[1]; px[i + 2] = acc[2];
     }
   }
-  featherEdge(px, c.width, c.height);
   ctx.putImageData(d, 0, 0);
-  c.__content = opaqueBounds(px, c.width, c.height); // read by canvasLayers.garmentBox
-  c.__light = light; // read by canvasLayers.printThrough
+  c.__content = base.bounds; // read by canvasLayers.garmentBox
+  c.__light = base.light; // read by canvasLayers.printThrough
   if (tintCache.size > 24) tintCache.delete(tintCache.keys().next().value);
   tintCache.set(key, c);
   return c;

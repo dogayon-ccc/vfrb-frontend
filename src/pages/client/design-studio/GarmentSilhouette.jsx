@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { detailedPaths, applyDetails } from './garmentDetails';
 import { customPaths } from './garmentPaths';
 import { isParametric } from './customGarment';
@@ -7,16 +7,30 @@ import { isWoven, wovenParams, wovenTileUrl, tileSize } from './wovenPatterns';
 import { sketchInk } from './sketchLine';
 
 // Photo-based garments render the real recoloured photo (same compositor as the Studio canvas); everything else keeps the vector template.
-// Until the tint resolves, and during SSR, the untinted photo shows instead of a blank box.
+// The shared tinted canvas is drawn straight into a small canvas (no PNG encode per colour); until it resolves, and during SSR, the untinted photo shows.
 function PhotoBase({ asset, colors, width, height }) {
-  const [url, setUrl] = useState(null);
+  const ref = useRef(null);
+  const [ready, setReady] = useState(false);
   const body = colors.body, collar = colors.collar;
   useEffect(() => {
     let live = true;
-    tintedCanvas(asset, { body, collar }).then(c => { if (live) setUrl(c.toDataURL()); }).catch(() => {});
+    tintedCanvas(asset, { body, collar }).then(src => {
+      const el = ref.current;
+      if (!live || !el) return;
+      const dpr = Math.min(2, window.devicePixelRatio || 1), s = Math.min(width / src.width, height / src.height);
+      el.width = Math.round(width * dpr); el.height = Math.round(height * dpr);
+      const x = el.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0); x.imageSmoothingQuality = 'high';
+      x.drawImage(src, (width - src.width * s) / 2, (height - src.height * s) / 2, src.width * s, src.height * s);
+      setReady(true);
+    }).catch(() => {});
     return () => { live = false; };
-  }, [asset, body, collar]);
-  return <img src={url ?? asset.src} alt="" width={width} height={height} style={{ objectFit: 'contain', display: 'block' }} draggable={false}/>;
+  }, [asset, body, collar, width, height]);
+  return (
+    <>
+      {!ready && <img src={asset.src} alt="" width={width} height={height} style={{ objectFit: 'contain', display: 'block' }} draggable={false}/>}
+      <canvas ref={ref} aria-hidden="true" style={{ width, height, objectFit: 'contain', display: ready ? 'block' : 'none' }}/>
+    </>
+  );
 }
 
 // Same look as the Studio canvas details (useGarmentCanvas DETAIL_STYLE). Seams and lines are always drawn in the sketch-line
