@@ -47,7 +47,7 @@ Read this first in every new session. Do not re-audit finished work. Update the 
 - Throttle (read-only): login `routes/api.php:85`, admin login `:91`/`:322` 10/min; forgot `:94`, reset `:95` 5/min. Change-own-password `:245` (customer) and `:526` (admin) have only group limits (60/120 per min).
 - Lifecycle on vfrb_demo passed (set with a logo: save, My Designs, restore, Wizard, submit #215/#216, Order Detail); #215/#216 cancelled by demo-manager. Saved preview PNG has the logo; Order Detail shows the template fallback (demo APP_URL storage link, see Open 3).
 - LIVE: `main` fast-forwarded `e913571..7d4538d`, Vercel `FpfiyoW9QC8gS1P3ezoEHJTyuJxP`, entry `index-B8jxCOw2.js`, tag `defense-2026-11e`; docs `54c0661` on top. Live smoke passed as customer #15 at 1440 (see DEPLOY_CHECKLIST "Release nov9d"); #15 back to 4 designs / 0 drafts / 8 orders. All `release/*` branches deleted. Rollback: Vercel Instant Rollback to `23nK8BoH2cYxZ2g1DDjpzyfpKEGw` (`defense-2026-11d`) or revert `e913571..7d4538d`.
-- Follow-up `fix/404-title` (`ca0532c`, from `54c0661`, NOT pushed or merged): public `NotFound` and `AdminNotFound` set "Page not found" via `usePageTitle` (RUNTIME-VERIFIED on :5180, admin as demo-manager). See Open 5.
+- Follow-up `fix/404-title` (`ca0532c`, MERGED into `main` and pushed; `origin/main` = `c737731`): public `NotFound` and `AdminNotFound` set "Page not found" via `usePageTitle` (RUNTIME-VERIFIED on :5180, admin as demo-manager). See Open 5.
 
 ## release/nov9c (2026-11-09, LIVE, tag `defense-2026-11d`)
 - LIVE: `main` fast-forwarded `7a2eab8..5caedf3` and pushed 2026-11-09; Vercel deployment `23nK8BoH2cYxZ2g1DDjpzyfpKEGw` completed; live Studio chunk contains the fix (DEPLOYMENT-VERIFIED by bundle content; production smoke passed as live customer #15, rail held into Wizard step 1, test draft discarded). Backend unchanged `7b6e45e`. Rollback: previous production deployment (nov9b, `defense-2026-11c`) or revert `5caedf3`.
@@ -84,7 +84,7 @@ Read this first in every new session. Do not re-audit finished work. Update the 
    Unverified: unverified-customer note live, Output Log with rows, set-order wizard, Postgres behaviour, live AI recommendation with fabric.
 4. Manuscript: roles (Station with stage), request access, pickup and returns, auto production start, overdue flags, flats from model (no exact 2D/3D claim), uploads; re-screenshot after UI freeze; fix "verified 3D" wording.
 5. After nov9d (2026-11-09):
-   - Merge and push `fix/404-title` (`ca0532c`) to deploy the 404 tab-title fix; then live-check `/nope` shows "Page not found | VFRB Enterprise".
+   - `fix/404-title` (`ca0532c`) merged and pushed (`origin/main` = `c737731`). Still open: live-check `/nope` shows "Page not found | VFRB Enterprise" (UNVERIFIED on live).
    - Admin pages set no tab title: after sign-in `/admin/dashboard` keeps "Sign in | VFRB Enterprise", `/admin/orders` shows "VFRB Enterprise". Unfixed; fix with `usePageTitle` per page or a route-title map.
    - Privacy and Terms are live as drafts: need VFRB (and ideally legal) review, then remove the `draft` prop in `PrivacyPolicy.jsx` and `TermsOfService.jsx`.
    - Returning visitors keep the old bundle until they press Refresh on "New version available" (works; manual by design).
