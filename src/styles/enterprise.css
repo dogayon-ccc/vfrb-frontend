@@ -1,6 +1,6 @@
 /* Enterprise layer. Selectors carry .adm-shell so they beat the component stylesheets that load after this file. */
 .adm-shell, .adm-shell .adm-main, .adm-shell .adm-content, .adm-shell .adm-page { min-width: 0; max-width: 100%; }
-.adm-shell .adm-main { overflow-x: clip; }
+.adm-shell .adm-main { overflow-x: hidden; overflow-x: clip; }
 .adm-shell .adm-content { padding-bottom: calc(var(--shell-pad) + 24px); }
 .adm-shell .adm-panel-head { flex-wrap: wrap; row-gap: 6px; }
 .adm-shell .adm-panel-head > :first-child { flex: 1 1 0; min-width: 0; }

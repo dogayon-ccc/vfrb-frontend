@@ -10,10 +10,10 @@
 
 @media (prefers-reduced-motion: no-preference) {
   /* customer toast and update prompt */
-  .cx-toast { transition: opacity 240ms var(--mo-out), translate 560ms var(--mo-spring), scale 560ms var(--mo-spring); }
+  .cx-toast { transition: opacity 240ms var(--mo-out), translate 300ms var(--mo-spring), scale 300ms var(--mo-spring); }
   /* Studio guides sheet (the picker and the More sheet already animate in Framer Motion) */
   .ds-guides-scrim { transition: opacity 240ms var(--mo-out); }
-  .ds-guides-pop[data-modal] { transition: opacity 220ms var(--mo-out), translate 520ms var(--mo-spring); }
+  .ds-guides-pop[data-modal] { transition: opacity 220ms var(--mo-out), translate 300ms var(--mo-spring); }
 
   @starting-style {
     .cx-toast { opacity: 0; translate: 0 28px; scale: 0.92; }
@@ -21,12 +21,12 @@
     .ds-guides-pop[data-modal] { opacity: 0; translate: 0 48px; }
   }
 
-  /* keyframed overlays: same spring, a touch longer */
-  :root .ds-keysdlg, :root .ds-tour-card { animation: mo-pop 460ms var(--mo-spring) both; } /* :root beats the Studio's later <style> */
+  /* keyframed overlays: same spring, capped at 300ms */
+  :root .ds-keysdlg, :root .ds-tour-card { animation: mo-pop 300ms var(--mo-spring) both; } /* :root beats the Studio's later <style> */
   :root .adm-drawer, :root .ui-drawer-scrim { animation: mo-fade 260ms var(--mo-out) both; } /* :root beats admin.css, which loads later */
-  :root .adm-drawer-panel, :root .ui-drawer { animation: mo-slide-in 420ms var(--mo-out) both; }
+  :root .adm-drawer-panel, :root .ui-drawer { animation: mo-slide-in 300ms var(--mo-out) both; }
   /* menus open upward by default (theme.css); .down and .left flip the origin so they grow from their trigger */
-  .ui-menu-list { transform-origin: bottom right; animation: mo-menu 320ms var(--mo-spring) both; }
+  .ui-menu-list { transform-origin: bottom right; animation: mo-menu 240ms var(--mo-spring) both; }
   .ui-menu-list.left { transform-origin: bottom left; }
   .ui-menu-list.down { --mo-menu-y: -6px; transform-origin: top right; }
   .ui-menu-list.down.left { transform-origin: top left; }

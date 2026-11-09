@@ -462,14 +462,16 @@ export default function CustomerOrderDetail() {
 
   return (
     <>
-      <AnimatePresence>
-        {toast && (
-          <motion.div className="od-toast" data-type={toast.type} role="status" aria-live="polite"
-            initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:10 }}>
-            {toast.msg}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <div role="status" aria-live="polite">
+        <AnimatePresence>
+          {toast && (
+            <motion.div className="od-toast" data-type={toast.type}
+              initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:10 }} transition={{ duration: 0.2 }}>
+              {toast.msg}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       <div className="od-wrap">
         <PageHeader back={{ to: '/orders', label: 'My Orders' }} title={`Order #${orderId}`}

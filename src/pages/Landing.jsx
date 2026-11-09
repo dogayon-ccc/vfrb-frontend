@@ -10,6 +10,7 @@ import useParallax from '../hooks/useParallax';
 import { MIN_ORDER_QTY } from '../utils/orderQuantity';
 import { P } from './landing/photos';
 import PatternReveal from './landing/PatternReveal';
+import MarqueeBand from './landing/MarqueeBand';
 import CategoryCards from './landing/CategoryCards';
 import ProductionLine from './landing/ProductionLine';
 import { FIND_UNIFORM, PHASES } from '../components/site/content';
@@ -43,7 +44,8 @@ const HeroLive = lazy(() => import('./landing/HeroLive').catch(() => ({ default:
 
 export default function Landing() {
   const hero = useRef(null);
-  useParallax(hero, useReducedMotion());
+  const reduce = useReducedMotion();
+  useParallax(hero, reduce);
   return (
     <SitePage title="Company uniforms made in Muntinlupa">
       {createPortal(<div className="lp-progress" aria-hidden="true" />, document.body)}
@@ -62,13 +64,7 @@ export default function Landing() {
         </div>
       </section>
 
-      <div className="lp-marquee" aria-hidden="true">
-        {[0, 1].map(r => (
-          <div key={r} className={`lp-marquee__row${r ? ' lp-marquee__row--alt' : ''}`}>
-            {[0, 1].map(k => <span key={k}>{MARQUEE.map(m => <b key={m}>{m}</b>)}</span>)}
-          </div>
-        ))}
-      </div>
+      <MarqueeBand words={MARQUEE} reduce={reduce}/>
 
       <section className="vs-sec vs-wrap" aria-labelledby="lp-how">
         <h2 className="vs-h2" id="lp-how">From design to delivery</h2>

@@ -70,7 +70,7 @@
 @media (prefers-reduced-motion: reduce) { .au-skel .sk { animation: none; } }
 
 /* split variant (Login only): navy art 7/5 at >=1024, short navy header below */
-.au--split { --au-paper: #f4f5f2; --au-navy: #1b2a4a; --au-kraft: #c9a27a; --au-tink: #046a78; --teal-dark: #046a78; overflow-x: clip; }
+.au--split { --au-paper: #f4f5f2; --au-navy: #1b2a4a; --au-kraft: #c9a27a; --au-tink: #046a78; --teal-dark: #046a78; overflow-x: hidden; overflow-x: clip; }
 .au-art--navy { flex-direction: column; align-items: stretch; justify-content: flex-start; min-height: 0; background: var(--au-navy); border-radius: 0 0 20px 20px; }
 .au-art--navy::after { content: none; }
 .au-brand { display: inline-flex; align-items: center; gap: 12px; min-height: 44px; margin: max(12px, env(safe-area-inset-top, 0px)) 16px 0; align-self: flex-start;

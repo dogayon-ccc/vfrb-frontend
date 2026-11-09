@@ -138,7 +138,7 @@ a.cx-kpi:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
 .st-priv{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;margin:0 0 6px}
 .st-privt{font-size:12px;color:var(--text-muted);line-height:1.6;margin:0}
 /* Order Wizard: four steps, summary panel at >=1024px, summary bar + sheet below that */
-.wz-page{max-width:1200px;padding-bottom:24px;overflow-x:clip;overflow-y:visible}
+.wz-page{max-width:1200px;padding-bottom:24px;overflow-x:hidden;overflow-x:clip;overflow-y:visible}
 .wz-steps{list-style:none;margin:0 0 18px;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
 .wz-step{display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;text-align:center;min-width:0}
 .wz-step:not(:last-child)::after{content:"";position:absolute;top:21px;left:calc(50% + 26px);right:calc(-50% + 26px);height:2px;background:linear-gradient(var(--teal),var(--teal)) left/0% 100% no-repeat,var(--border);transition:background-size .3s ease}

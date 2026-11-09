@@ -217,9 +217,11 @@ export function useToast() {
   const [t, setT] = useState(null);
   useEffect(() => { if (!t) return; const id = setTimeout(() => setT(null), 3200); return () => clearTimeout(id); }, [t]);
   const show = useCallback((msg, type = 'success') => setT({ msg, type }), []);
-  const node = t ? (
-    <div className="cx-toast" role="status" aria-live="polite"
-      style={{ background: t.type === 'error' ? 'var(--danger)' : 'var(--teal)' }}>{t.msg}</div>
-  ) : null;
+  // The live region stays mounted so screen readers announce the message when it appears.
+  const node = (
+    <div role="status" aria-live="polite">
+      {t && <div className="cx-toast" style={{ background: t.type === 'error' ? 'var(--danger)' : 'var(--teal)' }}>{t.msg}</div>}
+    </div>
+  );
   return [node, show];
 }

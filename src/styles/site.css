@@ -32,7 +32,7 @@
 .vs :focus-visible { outline: 3px solid var(--vs-teal); outline-offset: 3px; border-radius: 4px; }
 .vs-dark :focus-visible { outline-color: var(--vs-mint); }
 
-.vs-page { background: var(--vs-paper); min-height: 100vh; overflow-x: clip; }
+.vs-page { background: var(--vs-paper); min-height: 100vh; overflow-x: hidden; overflow-x: clip; }
 .vs-wrap { width: 100%; max-width: 1320px; margin-inline: auto; padding-inline: clamp(16px, 4vw, 40px); }
 .vs-sec { padding-block: var(--vs-pad); }
 .vs-sec--tight { padding-block: clamp(32px, 4vw, 56px); }

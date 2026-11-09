@@ -168,6 +168,10 @@
 .lp-progress { display: none; }
 
 .lp-marquee { display: grid; gap: 6px; padding-block: clamp(18px, 3vw, 30px); overflow: hidden; background: var(--chalk); border-block: 1px solid var(--vs-line); }
+.lp-marquee-wrap { position: relative; }
+.lp-marquee-toggle { position: absolute; right: 12px; bottom: 8px; display: inline-flex; align-items: center; gap: 6px; min-width: 44px; min-height: 44px; padding: 0 12px; border: 1px solid var(--vs-line); border-radius: 999px; background: var(--chalk); color: var(--navy); font: 600 13px/1 system-ui, sans-serif; cursor: pointer; }
+.lp-marquee-toggle:focus-visible { outline: 3px solid #028090; outline-offset: 2px; }
+@media (max-width: 599px) { .lp-marquee-toggle span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } .lp-marquee-toggle { padding: 0; justify-content: center; } }
 .lp-marquee__row { display: flex; width: max-content; }
 .lp-marquee__row > span { display: flex; flex: none; }
 .lp-marquee b { display: inline-flex; align-items: center; gap: clamp(18px, 3vw, 40px); padding-right: clamp(18px, 3vw, 40px); font: 400 clamp(28px, 5vw, 64px)/1.1 var(--vs-display); color: var(--navy); white-space: nowrap; }
@@ -187,16 +191,16 @@
   @keyframes lp-visual-in { from { opacity: 0; transform: perspective(1400px) rotateY(-18deg) rotateX(8deg) scale(0.9); } to { opacity: 1; transform: none; } }
   @keyframes lp-aurora { 0% { transform: translate3d(-4%, -2%, 0) rotate(0deg) scale(1); } 50% { transform: translate3d(4%, 3%, 0) rotate(8deg) scale(1.08); } 100% { transform: translate3d(-4%, -2%, 0) rotate(0deg) scale(1); } }
   @keyframes lp-marquee { to { translate: -50% 0; } }
-  .lp-word { animation: lp-word-in 900ms var(--mo-out) both; animation-delay: calc(120ms + var(--i) * 90ms); transform-origin: 0 100%; }
-  .lp-lede { animation: lp-fade-up 800ms var(--mo-out) 520ms both; }
-  .lp-hero .vs-btns { animation: lp-fade-up 800ms var(--mo-out) 640ms both; }
-  .lp-visual { animation: lp-visual-in 1100ms var(--mo-out) 200ms both; }
+  .lp-word { animation: lp-word-in 300ms var(--mo-out) both; animation-delay: calc(60ms + var(--i) * 40ms); transform-origin: 0 100%; }
+  .lp-lede { animation: lp-fade-up 300ms var(--mo-out) 240ms both; }
+  .lp-hero .vs-btns { animation: lp-fade-up 300ms var(--mo-out) 300ms both; }
+  .lp-visual { animation: lp-visual-in 300ms var(--mo-out) 120ms both; }
   .lp-hero::after { animation: lp-aurora 18s ease-in-out infinite; }
   .lp-marquee__row > span { animation: lp-marquee 38s linear infinite; }
   .lp-marquee__row--alt > span { animation-direction: reverse; animation-duration: 46s; }
-  .lp-marquee:hover .lp-marquee__row > span { animation-play-state: paused; }
+  .lp-marquee:hover .lp-marquee__row > span, .lp-marquee-wrap[data-paused] .lp-marquee__row > span { animation-play-state: paused; }
   .lp-hero .vs-btn--mint { position: relative; overflow: hidden; }
-  .lp-hero .vs-btn--mint::after { content: ''; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.55) 50%, transparent 70%); translate: -120% 0; transition: translate 700ms var(--mo-out); }
+  .lp-hero .vs-btn--mint::after { content: ''; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.55) 50%, transparent 70%); translate: -120% 0; transition: translate 300ms var(--mo-out); }
   .lp-hero .vs-btn--mint:hover::after { translate: 120% 0; }
 
   @supports (animation-timeline: view()) {
@@ -206,7 +210,7 @@
     @keyframes lp-card-in { from { opacity: 0; translate: 0 80px; rotate: x 28deg; } to { opacity: 1; translate: 0 0; rotate: x 0deg; } }
     @keyframes lp-marquee-skew { from { translate: 180px 0; } to { translate: -180px 0; } }
     .lp-hero__copy { animation: lp-copy-out linear both; animation-timeline: view(); animation-range: exit 10% exit 90%; }
-    .lp-visual { animation: lp-visual-in 1100ms var(--mo-out) 200ms both, lp-stage-out linear both; animation-timeline: auto, view(); animation-range: normal, exit 0% exit 100%; }
+    .lp-visual { animation: lp-visual-in 300ms var(--mo-out) 120ms both, lp-stage-out linear both; animation-timeline: auto, view(); animation-range: normal, exit 0% exit 100%; }
     .lp-progress { display: block; position: fixed; top: calc(68px + env(safe-area-inset-top, 0px)); left: 0; right: 0; z-index: 299; height: 3px; transform-origin: 0 50%;
       background: repeating-linear-gradient(90deg, #c4313b 0 12px, rgba(196, 49, 59, 0.35) 12px 18px); animation: lp-thread linear both; animation-timeline: scroll(root); }
     .lp-cards li { animation: lp-card-in linear both; animation-timeline: view(); animation-range: entry calc(var(--i) * 7%) cover calc(30% + var(--i) * 7%); }

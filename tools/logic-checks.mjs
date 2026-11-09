@@ -1908,6 +1908,10 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('a11y: each customer page sets its own tab title; order buttons name their order; My Designs cards are h2 under the h1',
     ['Dashboard', 'MyDesigns', 'Orders', 'OrderDetail', 'OrderWizard', 'Messages', 'AccountSettings', 'AIMaterials'].every(p => /usePageTitle\(/.test(rd(`src/pages/client/${p}.jsx`)))
     && /aria-label=\{`Details for order #\$\{o\.order_id\}`\}/.test(rd('src/pages/client/Orders.jsx')) && /<h2 title=\{title\}>/.test(rd('src/pages/client/MyDesigns.jsx')));
+  const mqb = rd('src/pages/landing/MarqueeBand.jsx'), lcss = rd('src/styles/landing.css'), mapp = rd('src/styles/motion-app.css');
+  t('motion caps and pause: every landing animation and app overlay runs <= 300ms; the marquee has a 44px aria-pressed pause button; overflow-x: clip keeps a hidden fallback',
+    [...(lcss + mapp).matchAll(/(?:animation|transition):[^;]*?(\d+)ms/g)].every(m => +m[1] <= 300) && /aria-pressed=\{paused\}/.test(mqb) && /data-paused\] \.lp-marquee__row > span/.test(lcss)
+    && /\.lp-marquee-toggle \{[^}]*min-height: 44px/.test(lcss) && ['src/styles/auth.css', 'src/styles/customer.css', 'src/styles/enterprise.css', 'src/styles/site.css'].every(f => !/overflow-x: ?clip/.test(rd(f).replace(/overflow-x: ?hidden; ?overflow-x: ?clip/g, ''))));
   const HG = await L('/src/pages/landing/heroGate.js'), lp = rd('src/pages/Landing.jsx'), ok = { width: 1440, saveData: false, calm: false, webgl: true };
   const hl = rd('src/pages/landing/HeroLive.jsx');
   t('landing hero 3D: only >= 960px with WebGL, no Save-Data, no reduced motion (390, Save-Data, reduced motion, no WebGL keep the 2D pattern); the entry keeps only a width check, HeroLive and HeroTurntable are lazy-only and failures fall back',
