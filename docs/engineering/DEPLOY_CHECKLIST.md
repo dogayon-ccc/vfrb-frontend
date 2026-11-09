@@ -91,7 +91,7 @@
 - [ ] Phone with Reduce Motion on (iPhone: Accessibility > Motion): landing is static, numbers readable, no page slides.
 - [x] `/api/version` unchanged (`7b6e45e`, DB connected): DEPLOYMENT-VERIFIED.
 - [x] Order #28 as its customer: no stock wording in the AI material recommendation (`cbed33d`), notes intact: DEPLOYMENT-VERIFIED. Cosmetic: joined notes show ".." between sentences (backend, after the freeze).
-- [x] Test cleanup 2026-11-09: ZZ TEST order #29 cancelled by the manager (note "Test order, cancelled"; it had no linked design). Customer design #9 "ZZ TEST" (copy of #24) soft-deleted via `DELETE /api/customer/designs/9` (My Designs has no delete control). DEPLOYMENT-VERIFIED. Open: "Custom Top" draft, test accounts.
+- [x] Test cleanup 2026-11-09: ZZ TEST order #29 cancelled by the manager (note "Test order, cancelled"; it had no linked design). Customer design #9 "ZZ TEST" (copy of #24) soft-deleted via `DELETE /api/customer/designs/9` (My Designs has no delete control). DEPLOYMENT-VERIFIED. Stray "Custom Top — Hospitality / Service" draft discarded via My Designs (hard delete); `/api/customer/drafts/latest` returns null, My Designs shows 4 designs, 0 drafts: DEPLOYMENT-VERIFIED. Open: test accounts.
 
 ## Rollback
 - Trigger: blank or stuck landing, numbers shown wrong, overlays not appearing, Studio colours wrong, any console error on load.
