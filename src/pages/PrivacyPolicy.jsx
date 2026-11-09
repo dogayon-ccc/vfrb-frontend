@@ -75,13 +75,30 @@ const SECTIONS = [
     in local storage. Signing out removes the sign-in token.`,
   },
   {
-    title: '7. How long we keep it',
+    title: '7. Cookies and browser storage',
+    body: `VFRB does not use advertising or tracking cookies, and this site
+    has no analytics service. To work, your browser keeps a few items in
+    local storage on your own device: your sign-in token and basic
+    account details (removed when you sign out), Design Studio
+    preferences such as the grid, guides, panel layout, shortcut keys and
+    whether you have seen the tour, the admin sidebar layout, and a short
+    queue of actions saved while you are offline.
+
+    If you choose "Continue with Google", Google may set its own cookies
+    on its own sites under Google's privacy policy. You can remove
+    everything VFRB keeps in your browser by signing out and clearing
+    this site's data in your browser settings. The Studio still works
+    if your browser blocks storage; your preferences are just not
+    remembered.`,
+  },
+  {
+    title: '8. How long we keep it',
     body: `We keep account and order records for as long as your account
     is active and for as long as the law requires us to keep business
     and tax records. After that, records are deleted or made anonymous.`,
   },
   {
-    title: '8. Your rights under the Data Privacy Act of 2012',
+    title: '9. Your rights under the Data Privacy Act of 2012',
     body: `The Philippine Data Privacy Act of 2012 (Republic Act No.
     10173) gives you these rights over your personal data: to be
     informed, to access it, to object to its processing, to have it
@@ -99,7 +116,7 @@ const SECTIONS = [
     requires.`,
   },
   {
-    title: '9. Changes to this policy',
+    title: '10. Changes to this policy',
     body: `If this policy changes, the updated version will be posted on
     this page with a new date at the top.`,
   },
