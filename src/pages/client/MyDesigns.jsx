@@ -52,7 +52,7 @@ function DesignCard({ img, garment, colors, title, meta, badge, tone, primary, s
 
 // Both pieces of a uniform set side by side, each labelled with its role.
 function SetThumb({ pieces, name, what = 'Saved preview' }) {
-  const fits = pieceFits(pieces);
+  const fits = pieces.every(p => !p.src) ? pieceFits(pieces) : null; // a saved preview has its own framing, so mixing scales would mislead
   return (
     <span className="mx-set">
       {pieces.map((p, i) => (
