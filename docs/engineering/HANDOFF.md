@@ -39,6 +39,12 @@ Read this first in every new session. Do not re-audit finished work. Update the 
 - Production order: Supabase backup, backend ff-merge to main and push, wait Ready, frontend ff-merge and push, verify, tag `defense-2026-11`, delete branches last.
 - Vercel "Needs Attention" env vars (not marked Sensitive): after deploy, re-enter the SAME value with Sensitive on. Never replace `APP_KEY`. Change `DB_PASSWORD` only together with Supabase.
 
+## release/nov9c (2026-11-09, LIVE, tag `defense-2026-11d`)
+- LIVE: `main` fast-forwarded `7a2eab8..5caedf3` and pushed 2026-11-09; Vercel deployment `23nK8BoH2cYxZ2g1DDjpzyfpKEGw` completed; live Studio chunk contains the fix (DEPLOYMENT-VERIFIED by bundle content only; production smoke still open). Backend unchanged `7b6e45e`. Rollback: previous production deployment (nov9b, `defense-2026-11c`) or revert `5caedf3`.
+- Fix `5caedf3`: `renderOtherPiece` swaps `cfg` to the other piece while `uset.active` stays, so the pieces rail showed both pieces as the trousers; the rail and Garment sheet now hold the active piece's cfg (`railHold`) during that render. Stage, DesignState and payload unchanged.
+- Customer shell (Slice C): audited at 390 and 1440, no change needed (no overflow, 44px targets, shared `ui-head`, sticky bottom nav). 768 tablet layout and visible focus UNVERIFIED.
+- Demo lifecycle on vfrb_demo: orders #213/#214 (Scrub set) taken to Completed (manager stages, demo-station Sewing, QC checklist passed without override, set delivered together). Leftover: Ana's "Scrub Top" draft.
+
 ## release/nov9b (2026-11-09, LIVE, tag `defense-2026-11c`)
 - LIVE: `main` fast-forwarded to `835b3dc` and pushed 2026-11-09; new bundle served within ~40 s (DEPLOYMENT-VERIFIED by bundle content only; production smoke still open). Backend unchanged `7b6e45e`. Rollback: Vercel Instant Rollback to `vfrb-frontend-1xgd9ht4v` (`defense-2026-11b`).
 - Branch `release/nov9b` from `main` (`c9c11cc`). Lifecycle on vfrb_demo passed (set with a logo on each piece: save, My Designs, restore, Wizard, submit #211/#212, Order Detail); test orders #211/#212 cancelled by demo-manager. Slices: 1 set thumbnails at one real scale (`134630a`), 2 one 3D capability source and badge (`6603bb6`), 3 motion caps, marquee pause, live regions, iOS overflow fallback (`b8d460a`), 4 Studio focus tooltips, ruler span highlight, ruler corner (`0328d86`), 5 docs (`91da663`), set-card follow-up (`835b3dc`).

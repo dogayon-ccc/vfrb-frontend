@@ -124,6 +124,29 @@
 ## Rollback
 - Vercel Instant Rollback of the frontend to `vfrb-frontend-1xgd9ht4v` (`defense-2026-11b`). No backend or DB step.
 
+---
+
+# Release nov9c: pieces rail flicker during Review & order (frontend only, 2026-11-09)
+
+**Scope:** frontend only, one file (`DesignStudio.jsx`). No backend, migration, env, DesignState or payload change. Backend stays `7b6e45e`.
+**Status:** LIVE 2026-11-09. `main` fast-forwarded `7a2eab8..5caedf3`, tag `defense-2026-11d`. Vercel deployment `23nK8BoH2cYxZ2g1DDjpzyfpKEGw` completed.
+
+## Pre-deploy
+- [x] `npm run build` passes; logic checks 556/556 (BUILD-VERIFIED 2026-11-09).
+- [x] Demo stack :5180 -> :8000 (vfrb_demo): rail stays "Scrub Top / Jogger Scrub Pants" through Review & order at 1440 and 390 (RUNTIME-VERIFIED).
+- [x] Two-piece lifecycle on the demo stack: Studio at 390 -> Wizard -> #213/#214 -> proposal -> accept -> down payment -> all stages (station Sewing only; station 403 on other stages) -> QC checklist passed, no override -> set delivered together -> Completed. Customer saw status only (RUNTIME-VERIFIED).
+- [ ] (skipped: frontend-only, no DB change) `pg_dump` taken and size recorded.
+- [ ] Previous production deployment ID (nov9b, `835b3dc`) not recorded.
+
+## Deploy
+- [x] Pushed `release/nov9c`; fast-forwarded and pushed `main` (Preview check skipped). Live `DesignStudio-PAAjrbZW.js` contains the rail hold before the piece swap (DEPLOYMENT-VERIFIED by bundle content).
+
+## Smoke (production, read-only)
+- [ ] Studio: open a two-piece set, press Review & order, rail never shows both pieces as the trousers.
+
+## Rollback
+- Vercel Instant Rollback of the frontend to the previous production deployment (nov9b, `835b3dc`, tag `defense-2026-11c`), or revert `5caedf3` and push. No backend or DB step.
+
 ## Restore drill log
 | Date | Dump size | Minutes to restore | Row counts match | By |
 |---|---|---|---|---|
