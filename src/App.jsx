@@ -11,6 +11,7 @@ import { MotionConfig } from 'framer-motion';
 import StorageNotice from './components/StorageNotice';
 import RouteMeta from './components/RouteMeta';
 import BrandedStatus from './components/BrandedStatus';
+import usePageTitle from './hooks/usePageTitle';
 
 // Dev: no baseURL, /api/* goes through the Vite proxy. Prod: VITE_API_URL points straight at Railway.
 if (import.meta.env.VITE_API_URL) {
@@ -184,8 +185,15 @@ function RequireManager({ children }) {
   return isAdmin(user) || (isOwner(user) && ownerCanOpen(pathname)) ? children : <AccessDenied what="This page"/>;
 }
 
+// Unknown public path: its own tab title, or the previous page's title would stay.
+function NotFound() {
+  usePageTitle('Page not found');
+  return <BrandedStatus code="404" title="Page not found" body="There is no page at this address. It may have moved, or the link was mistyped."/>;
+}
+
 // Unknown /admin/* path: say so inside the shell instead of an empty outlet.
 function AdminNotFound() {
+  usePageTitle('Page not found');
   return (
     <div role="alert" style={{ maxWidth: 520, margin: '64px auto', padding: '0 20px', textAlign: 'center' }}>
       <h1 style={{ fontSize: 22, margin: '0 0 8px', color: 'var(--ink, #0f172a)' }}>Page not found</h1>
@@ -350,7 +358,7 @@ export default function App() {
           {DevLayouts && <Route path="/dev/layouts" element={<Suspense fallback={null}><DevLayouts/></Suspense>}/>}
 
           {/* ── 404 ───────────────────────────────────────────────────────── */}
-          <Route path="*" element={<BrandedStatus code="404" title="Page not found" body="There is no page at this address. It may have moved, or the link was mistyped."/>}/>
+          <Route path="*" element={<NotFound/>}/>
 
         </Routes>
       </Suspense>
