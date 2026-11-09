@@ -142,7 +142,7 @@
 - [x] Pushed `release/nov9c`; fast-forwarded and pushed `main` (Preview check skipped). Live `DesignStudio-PAAjrbZW.js` contains the rail hold before the piece swap (DEPLOYMENT-VERIFIED by bundle content).
 
 ## Smoke (production, read-only)
-- [ ] Studio: open a two-piece set, press Review & order, rail never shows both pieces as the trousers.
+- [x] Studio: open a two-piece set, press Review & order, rail never shows both pieces as the trousers (DEPLOYMENT-VERIFIED 2026-11-09 as live demo customer #15, 1440 only: rail stayed "Scrub Top / Jogger Scrub Pants" into Wizard step 1; nothing submitted; test draft discarded, Drafts back to 0).
 
 ## Rollback
 - Vercel Instant Rollback of the frontend to the previous production deployment (nov9b, `835b3dc`, tag `defense-2026-11c`), or revert `5caedf3` and push. No backend or DB step.
