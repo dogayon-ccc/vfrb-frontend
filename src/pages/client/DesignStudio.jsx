@@ -160,6 +160,8 @@ export default function DesignStudio() {
   const [saving, setSaving] = useState(false);
   const [saveErr, setSaveErr] = useState(false);
   const [ordering, setOrdering] = useState(false); // optimistic "Order This" in-flight state
+  const [railHold, setRailCfg] = useState(null); // renderOtherPiece only: the active piece's cfg while the canvas draws the other
+  const railCfg = railHold ?? cfg;
   const autoSaveTimer = useRef(null);
 
   // First run: the empty canvas's picker (reference / scratch / upload) is the whole flow; there is no separate tour.
@@ -680,20 +682,20 @@ export default function DesignStudio() {
   // Uniform set preview: the other piece. 2D always draws both on one scale; 3D only while both pieces have their own model for
   // their sleeve and fit (each renders its own GLB with its own colours; no fused set model and no substitute).
   const [showSet, setShowSet] = useState(false);
-  const setCompanion = useMemo(() => {
-    if (!uset || pieceOf(cfg.garment) !== uset.active) return null;
-    const snap = uset.pieces[otherRole(uset.active)];
-    if (!snap?.garment) return null;
-    return { cfg: deserializeDesign(snap).cfg, role: otherRole(uset.active) };
-  }, [uset, cfg.garment]);
+  const companion = useMemo(() => {
+    const snap = uset && uset.pieces[otherRole(uset.active)];
+    return snap?.garment ? { cfg: deserializeDesign(snap).cfg, role: otherRole(uset.active) } : null;
+  }, [uset]);
+  const setCompanion = uset && pieceOf(cfg.garment) === uset.active ? companion : null;
+  const railCompanion = uset && pieceOf(railCfg.garment) === uset.active ? companion : null;
 
   // Phones and tablets: More > View opens the stage's View menu.
   const [viewOpen, setViewOpen] = useState(false);
   // StudioHelp: null | 'tour' | 'keys' | 'howto' | 'tut:<id>'; ?help=howto (Settings > Help) opens the guide list.
   const [help, setHelp] = useState(() => (new URLSearchParams(location.search).get('help') === 'howto' ? 'howto' : null));
 
-  const pieceProps = { cfg, uset, onSwitch: switchPiece, onStart: startSet, applyBoth, onApplyBoth: setApplyBoth,
-    canSet: !!setCompanion, setView: viewMode !== '3d', showSet: showSet && viewMode !== '3d', onShowSet: setShowSet };
+  const pieceProps = { cfg: railCfg, uset, onSwitch: switchPiece, onStart: startSet, applyBoth, onApplyBoth: setApplyBoth,
+    canSet: !!railCompanion, setView: viewMode !== '3d', showSet: showSet && viewMode !== '3d', onShowSet: setShowSet };
   // Phones: stage actions that left the stage go in the top bar's ⋯ menu.
   const fullRef = useRef(null);
   const addLabel = locked || colorOnly ? null : addPieceLabel(cfg, uset);
@@ -844,6 +846,7 @@ export default function DesignStudio() {
     };
     try {
       keep3DRef.current = true; // a render pass is not a garment pick: the view mode stays as it is
+      setRailCfg(keep.cfg); // the pieces rail keeps showing the active piece while the other one is drawn
       setCfg(p => ({ ...p, ...c, inspirationId: c.inspirationId ?? null }));
       const front = await shoot('front', frontOverlays ?? []);
       const back = hasBackView(c.garment, c.sleeve, c.fit) ? await shoot('back', backOverlays ?? []) : null;
@@ -858,6 +861,7 @@ export default function DesignStudio() {
       loadCanvasJSON(back, { keepHistory: true });
       await settleOverlays(back);
       await exportFace(keep.face, 1); // waits for the active garment to finish drawing; the draft thumbnail is taken from it next
+      setRailCfg(null);
     }
   }), [cfg, face, getCanvasJSON, loadCanvasJSON, settleOverlays, whileSwapping, exportFace]);
 
@@ -1069,7 +1073,7 @@ export default function DesignStudio() {
             )}
           </AnimatePresence>
 
-          <PiecesRail {...pieceProps} other={setCompanion} readOnly={colorOnly}
+          <PiecesRail {...pieceProps} other={railCompanion} readOnly={colorOnly}
             dock={{ layers, selectedId: selObj?.__layerId, onSelect: selectLayer, onToggleVisibility: toggleLayerVisibility, onAdd: () => setTool('assets'), onOpenLayers: () => setTool('layers') }}
             help={{ onTour: () => setHelp('tour'), onKeys: () => setHelp('keys'), onHowTo: () => setHelp('howto') }}/>
 
@@ -1086,7 +1090,7 @@ export default function DesignStudio() {
             toggleLayerLock={toggleLayerLock} toggleSelectedLock={toggleSelectedLock} setLayerOpacity={setLayerOpacity}
             pushHistory={pushHistory} presetPos={presetPos} nudgeSelected={nudgeSelected}
             renameLayer={renameLayer} deleteLayer={deleteLayer} reorderLayers={reorderLayers} pieceRole={uset?.active ?? null} trace={trace} setTrace={setTrace} status={locked ? null : status} onRemoveGarment={() => setAskRemove(true)}
-            garmentExtra={<PieceActions {...pieceProps} other={setCompanion} readOnly={colorOnly} inSheet/>} sheetPing={sheetPing}
+            garmentExtra={<PieceActions {...pieceProps} other={railCompanion} readOnly={colorOnly} inSheet/>} sheetPing={sheetPing}
             more={{ onView: () => setViewOpen(true), onCopy: duplicateToEdit, canCopy: !!lock?.designId, copying, onTour: () => setHelp('tour'), onHowTo: () => setHelp('howto') }}/>
 
           {/* ── CANVAS AREA ── */}
