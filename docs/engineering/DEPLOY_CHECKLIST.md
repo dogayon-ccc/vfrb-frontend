@@ -147,6 +147,27 @@
 ## Rollback
 - Vercel Instant Rollback of the frontend to the previous production deployment (nov9b, `835b3dc`, tag `defense-2026-11c`), or revert `5caedf3` and push. No backend or DB step.
 
+# Release nov9d: dialogs, piece names, site meta, error screens, security headers, draft legal pages (frontend only, 2026-11-09)
+
+**Scope:** frontend only (`f326702` Slice U, `4ca5a5f` Slice L, `7d4538d` HANDOFF). No backend, migration, env, DesignState or payload change. Backend stays `7b6e45e`. No CSP.
+**Status:** LIVE 2026-11-09. `main` fast-forwarded `e913571..7d4538d`, tag `defense-2026-11e`. Vercel deployment `FpfiyoW9QC8gS1P3ezoEHJTyuJxP` completed; entry `index-B8jxCOw2.js`.
+
+## Pre-deploy
+- [x] `npm run build` passes; logic checks 556/556 (BUILD-VERIFIED 2026-11-09).
+- [x] Demo stack: dialogs at 320/390/1440, rail names 320-1440, two-piece lifecycle #215/#216 (cancelled by demo-manager); Studio, 3D, face check under the same headers served from `dist` on :5180 (RUNTIME-VERIFIED).
+- [ ] (skipped: frontend-only, no DB change) `pg_dump` taken and size recorded.
+
+## Deploy
+- [x] Pushed `release/nov9d`; fast-forwarded and pushed `main`. Live headers (nosniff, X-Frame-Options DENY, Referrer-Policy, Permissions-Policy), `robots.txt`, `sitemap.xml`, `favicon.ico`, og:title confirmed by curl (DEPLOYMENT-VERIFIED).
+
+## Smoke (production)
+- [x] Public, signed out: landing 3D hero, branded 404 with home link, Privacy/Terms with RA 10173 text and draft note, sign-in legal links, private routes noindex and redirect; no overflow at 1440 (DEPLOYMENT-VERIFIED). An open tab keeps the old bundle until "New version available > Refresh" (worked).
+- [x] Live demo customer #15, 1440: set opens in the Studio, rail names not clipped, 3D preview renders, face check loads (ort wasm 17.8 s first load, model 200) and passes a generated logo, Save -> dashboard "Edited just now", Discard dialog centred inside the viewport, discard confirmed; #15 back to 4 designs / 0 drafts, 8 orders unchanged (DEPLOYMENT-VERIFIED). 390 on live UNVERIFIED (X-Frame-Options DENY blocks the frame method); touch and Safari UNVERIFIED.
+- Known minor: the 404 page keeps the previous tab title.
+
+## Rollback
+- Vercel Instant Rollback to `23nK8BoH2cYxZ2g1DDjpzyfpKEGw` (nov9c, tag `defense-2026-11d`), or revert `e913571..7d4538d` and push. No backend or DB step.
+
 ## Restore drill log
 | Date | Dump size | Minutes to restore | Row counts match | By |
 |---|---|---|---|---|
