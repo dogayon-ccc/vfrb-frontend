@@ -43,6 +43,17 @@ export function realLength(garment, sleeve, custom = null) {
   return { cm: refCm * (own.y1 - own.y0) / (base.y1 - base.y0), approx: false };
 }
 
+// Thumbnail scale per set piece (largest 1) so pieces drawn in equal boxes (contain fit) share one px-per-cm. null if any is unknown.
+export function pieceFits(cfgs, box = { w: 54, h: 66 }) {
+  const r = cfgs.map(c => {
+    const s = c?.garment && templateSpan(c.garment, c.sleeve, c.custom), l = s && realLength(c.garment, c.sleeve, c.custom);
+    return l ? Math.min(box.w / s.w, box.h / s.h) * (s.y1 - s.y0) / l.cm : null;
+  });
+  if (r.length < 2 || r.some(x => !x)) return null;
+  const lo = Math.min(...r);
+  return r.map(x => lo / x);
+}
+
 // 2D set layout in cm, top-left origin: each piece's template canvas box (draw GarmentSilhouette into it) and the visible extent.
 // The top is centred over the bottom; the bottom's waist sits SET_OVERLAP of the top's length above the top's hem.
 export function setLayout2D(top, bottom) {

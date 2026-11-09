@@ -35,6 +35,7 @@ import { RecCard, AI_OPTIONAL_LINE, stripCodes } from './AIMaterials';
 import { OrderThumb, StatusPill, LIFECYCLE, lifecycleIndex, orderTitle, parseCfg, fmtDate } from '../../components/customer/kit';
 import { Card, Button, Badge, PageHeader, Stepper, Skeleton, StatusChip, AlertBanner, EmptyState } from '../../components/ui';
 import { setOrders, ROLE_LABEL } from './design-studio/uniformSet';
+import { pieceFits } from './design-studio/setScale';
 import { isCompleteOutfit, COMPLETE_OUTFIT } from './design-studio/garmentCatalog';
 
 
@@ -80,16 +81,17 @@ function UniformSetCard({ order, nav }) {
   }, [setId]);
   if (!setId) return null;
   const pieces = setOrders(order, Array.isArray(list) ? list : []);
+  const fits = pieces.length > 1 ? pieceFits(pieces.map(parseCfg)) : null;
   return (
     <Card className="od-card od-set" title={`Uniform set · ${pieces.length} linked order${pieces.length > 1 ? 's' : ''}`}>
         {list === null && <p className="od-set-note">Loading the other piece…</p>}
         {list !== null && pieces.length < 2 && <p className="od-set-note">The other piece of this set was not found in your orders.</p>}
         <ul className="od-set-list">
-          {pieces.map(o => {
+          {pieces.map((o, i) => {
             const cfg = parseCfg(o), cur = String(o.order_id) === String(order.order_id);
             return (
               <li key={o.order_id} className="od-set-row" data-current={cur || undefined}>
-                <OrderThumb order={o} size={48}/>
+                <OrderThumb order={o} size={48} fit={fits?.[i] ?? 1}/>
                 <div className="od-min od-set-txt">
                   <p className="od-set-name">{ROLE_LABEL[cfg?.uniformSet?.role] ?? 'Piece'} · #{o.order_id} {garmentName(o.garment_type) ?? 'Garment'}</p>
                   <p className="od-set-sub">{cur ? 'This order · ' : ''}{o.quantity_ordered ?? 0} pcs{o.target_delivery_date ? ` · Due ${fmtDate(o.target_delivery_date)}` : ''}</p>

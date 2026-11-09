@@ -1349,6 +1349,9 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const lay = SS.setLayout2D({ garment: 'Polo Shirt', sleeve: 'Short' }, { garment: 'Pants' });
   t('2D set layout: one px-per-cm for both pieces, bottom waist tucked 10% of the top\'s length under its hem, pieces centred',
     !!lay && Math.abs((lay.extent.y1 - lay.extent.y0) - (70 + 100 - 7)) < 0.5 && Math.abs((lay.top.x + lay.top.w / 2) - (lay.bottom.x + lay.bottom.w / 2)) < 1e-9 && !lay.approx);
+  const pf = SS.pieceFits([{ garment: 'Polo Shirt', sleeve: 'Short' }, { garment: 'Pants' }]), drawn = (g, f) => { const s = SS.templateSpan(g, 'Short'); return Math.min(54 / s.w, 66 / s.h) * (s.y1 - s.y0) * f; };
+  t('set thumbnails: pieceFits gives both pieces one px-per-cm in equal boxes (largest 1; Polo drawn at 70/100 of Pants), null when a piece is unknown',
+    !!pf && Math.max(...pf) === 1 && Math.abs(drawn('Polo Shirt', pf[0]) / drawn('Pants', pf[1]) - 0.7) < 0.01 && SS.pieceFits([{ garment: 'Polo Shirt' }, {}]) === null);
   const cvp = src('src/pages/client/design-studio/CanvasViewport.jsx'), psel = src('src/pages/client/design-studio/PiecesRail.jsx');
   t('set view is 2D only: 3D shows one piece at a time (no companion model), rulers step aside for the 2D set, the Set button is hidden in 3D, and a single garment shows only "Add a matching ..."',
     /<SetView2D /.test(cvp) && /!!garmentRect && !set2D/.test(cvp) && /const set2D = showSet && !!setCompanion && viewMode !== '3d';/.test(cvp)

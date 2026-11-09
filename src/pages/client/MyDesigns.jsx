@@ -25,6 +25,7 @@ import { Chips, DesignThumb, reltime, fmtDate, STATUS } from '../../components/c
 import { savedDesignName, garmentLabel } from '../../utils/designName';
 import { openDesign, reorderDesign, duplicateDesign } from '../../utils/designActions';
 import { normalizeSet, SET_ROLES, ROLE_LABEL } from './design-studio/uniformSet';
+import { pieceFits } from './design-studio/setScale';
 
 // Gallery card: big preview, one primary action, one visible secondary, the rest in the "⋯" menu.
 function DesignCard({ img, garment, colors, title, meta, badge, tone, primary, secondary, tertiary, i, what, pieces }) {
@@ -51,11 +52,12 @@ function DesignCard({ img, garment, colors, title, meta, badge, tone, primary, s
 
 // Both pieces of a uniform set side by side, each labelled with its role.
 function SetThumb({ pieces, name, what = 'Saved preview' }) {
+  const fits = pieceFits(pieces);
   return (
     <span className="mx-set">
-      {pieces.map(p => (
+      {pieces.map((p, i) => (
         <span key={p.role} className="mx-set-piece">
-          <DesignThumb compact src={p.src} garment={p.garment} colors={p.colors} name={`${ROLE_LABEL[p.role]} of ${name}`} what={what} scale={2} />
+          <DesignThumb compact src={p.src} garment={p.garment} colors={p.colors} name={`${ROLE_LABEL[p.role]} of ${name}`} what={what} scale={2} fit={fits?.[i] ?? 1} />
           <span className="mx-set-tag" aria-hidden="true">{ROLE_LABEL[p.role]}</span>
         </span>
       ))}
@@ -67,7 +69,7 @@ function SetThumb({ pieces, name, what = 'Saved preview' }) {
 export function draftPieces(cfg, src) {
   const set = normalizeSet(cfg?.uniformSet);
   if (!set) return null;
-  const ps = SET_ROLES.map(r => (r === set.active ? { role: r, src, garment: cfg.garment, colors: cfg.colors } : set.pieces[r]?.garment && { role: r, src: null, garment: set.pieces[r].garment, colors: set.pieces[r].colors }));
+  const ps = SET_ROLES.map(r => (r === set.active ? { role: r, src, garment: cfg.garment, sleeve: cfg.sleeve, custom: cfg.custom, colors: cfg.colors } : set.pieces[r]?.garment && { role: r, src: null, garment: set.pieces[r].garment, sleeve: set.pieces[r].sleeve, custom: set.pieces[r].custom, colors: set.pieces[r].colors }));
   return ps.every(Boolean) ? ps : null;
 }
 
@@ -85,7 +87,7 @@ export function groupSets(items) {
     if (!g.members) return g;
     const m = [...g.members].sort((a, b) => SET_ROLES.indexOf(a.config.uniformSet.role) - SET_ROLES.indexOf(b.config.uniformSet.role));
     if (m.length < 2) return { ...m[0], pieces: null };
-    return { ...m[0], members: m, pieces: m.map(x => ({ role: x.config.uniformSet.role, src: x.img, garment: x.config.garment, colors: x.config.colors })) };
+    return { ...m[0], members: m, pieces: m.map(x => ({ role: x.config.uniformSet.role, src: x.img, garment: x.config.garment, sleeve: x.config.sleeve, custom: x.config.custom, colors: x.config.colors })) };
   });
 }
 

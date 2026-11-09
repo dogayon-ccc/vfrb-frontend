@@ -100,9 +100,10 @@ export function StatusPill({ status }) {
 }
 
 // Garment thumbnail from the order's real studio_config; swatch fallback from order.color.
-export function OrderThumb({ order, size = 52 }) {
+// fit: real-scale factor for a set piece (setScale.pieceFits), 1 alone.
+export function OrderThumb({ order, size = 52, fit = 1 }) {
   const cfg = parseCfg(order);
-  const scale = size / 66;
+  const scale = size / 66 * fit;
   return (
     <div className="cx-thumb" style={{ width: size, height: size }} aria-hidden="true">
       {cfg.garment ? (
@@ -120,7 +121,8 @@ export function OrderThumb({ order, size = 52 }) {
 // Thumbnail of a saved design. `src` is the persisted artwork (a draft's preview_dataurl, or the order artwork an archived design
 // keeps as photo_path) and is shown as the design. Without one, or if it fails to load, the garment silhouette in the design's
 // colours stands in, framed and labelled so it never passes for the saved artwork. data-kind: preview | loading | fallback.
-export function DesignThumb({ src, garment, colors, name, compact = false, scale = 1, style, what = 'Saved preview' }) {
+// fit scales the silhouette only: saved previews are framed per export (one face or a front/back sheet).
+export function DesignThumb({ src, garment, colors, name, compact = false, scale = 1, fit = 1, style, what = 'Saved preview' }) {
   const [loaded, setLoaded] = useState(null);
   const [failed, setFailed] = useState(null);
   const usable = !!src && failed !== src;
@@ -132,7 +134,7 @@ export function DesignThumb({ src, garment, colors, name, compact = false, scale
       {usable && <img key={src} src={src} alt="" loading="lazy" decoding="async" onLoad={() => setLoaded(src)} onError={() => setFailed(src)}/>}
       {kind === 'loading' && <span className="cx-dthumb-wait" aria-hidden="true"/>}
       {kind === 'fallback' && <>
-        <span className="cx-dthumb-sil" style={{ transform: `scale(${scale})` }} aria-hidden="true"><MiniPreview garment={thumbGarment(garment)} colors={colors ?? {}}/></span>
+        <span className="cx-dthumb-sil" style={{ transform: `scale(${scale * fit})` }} aria-hidden="true"><MiniPreview garment={thumbGarment(garment)} colors={colors ?? {}}/></span>
         {!compact && <span className="cx-dthumb-note" aria-hidden="true">Colours only</span>}
       </>}
     </div>
