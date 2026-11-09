@@ -104,6 +104,12 @@ export function inOrderDesigns(orders, rows) {
     .map(o => ({ id: `o${o.order_id}`, order_id: o.order_id, status: o.status, config: parseCfg(o.studio_config), img: getStorageUrl(o.client_design_preview_file), at: o.created_at }))
     .filter(d => d.config?.garment);
 }
+// A copy can be deleted only when nothing uses it: not locked, orders loaded, and no non-cancelled order points at it.
+export function canDeleteCopy(d, orders) {
+  if (!d?.is_copy || d.locked || !Array.isArray(orders)) return false;
+  return !orders.some(o => o.status !== 'cancelled' && o.design_id != null && Number(o.design_id) === Number(d.id));
+}
+const DELETE_COPY = { title: 'Delete this copy?', body: 'The copy is removed from My Designs. The original design and your orders are not touched.', confirmLabel: 'Delete copy' };
 const STEPS = [['Design', 'Pick a garment in the Design Studio, then set colors, logo and text.'], ['Save', 'Save it to keep your work. You can come back and edit any time.'], ['Order', 'Tell us quantity and sizes. VFRB reviews the order before production.']];
 
 export default function MyDesigns() {
@@ -113,6 +119,9 @@ export default function MyDesigns() {
   const [past, setPast] = useState([]);
   const [copies, setCopies] = useState([]);
   const [inOrder, setInOrder] = useState([]);
+  const [orders, setOrders] = useState(null);
+  const [askDelete, setAskDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const [busy, setBusy] = useState(null);
   const [actErr, setActErr] = useState('');
   const [tpl, setTpl] = useState([]);
@@ -134,6 +143,7 @@ export default function MyDesigns() {
       }
       // Only with the design list loaded, so an archived design is never shown twice.
       setInOrder(o.status === 'fulfilled' && p.status === 'fulfilled' ? inOrderDesigns(o.value, rows) : []);
+      setOrders(o.status === 'fulfilled' && Array.isArray(o.value) ? o.value : null);
       if (d.status === 'rejected' && p.status === 'rejected') setError(true);
       setLoading(false);
     });
@@ -148,6 +158,13 @@ export default function MyDesigns() {
   const confirmDiscard = async () => {
     setAskDiscard(false); setActErr('');
     try { await discardDraft(); setDraft(null); } catch { setActErr('Could not discard the draft. Check your connection and try again.'); }
+  };
+  const confirmDelete = async () => {
+    const d = askDelete; if (!d || !canDeleteCopy(d, orders)) { setAskDelete(null); return; }
+    setDeleting(true); setActErr('');
+    try { await axios.delete(`/api/customer/designs/${d.id}`); setCopies(cs => cs.filter(c => c.id !== d.id)); }
+    catch (e) { setActErr(e.response?.data?.locked ? 'This copy is part of a confirmed order, so it stays.' : 'Could not delete the copy. Check your connection and try again.'); }
+    finally { setDeleting(false); setAskDelete(null); }
   };
   const useTemplate = (d) => { sessionStorage.setItem('studio_config', JSON.stringify(d.config)); setStudioLock(null); nav('/design-studio'); };
   const open = (d) => { setActErr(''); if (!openDesign(d, nav)) setActErr('Could not open the design in this browser. Try again.'); };
@@ -207,6 +224,7 @@ export default function MyDesigns() {
 
       {actErr && <p role="alert" className="mx-err">{actErr}</p>}
       <ConfirmDialog open={askDiscard} {...DISCARD_DRAFT} onCancel={() => setAskDiscard(false)} onConfirm={confirmDiscard}/>
+      <ConfirmDialog open={!!askDelete} {...DELETE_COPY} busy={deleting} onCancel={() => setAskDelete(null)} onConfirm={confirmDelete}/>
       {noMatch && <EmptyState illustration="order" headline="No designs match your search" sub="Try a different garment name." />}
 
       {!loading && !error && (total > 0 || (tab === 'inspo' && nInspo > 0)) && !noMatch && (
@@ -219,7 +237,8 @@ export default function MyDesigns() {
           {shownCopies.map((d, i) => (
             <DesignCard key={d.id} i={i + 1} img={null} garment={d.garment} colors={d.config?.colors}
               title={titleOf(d.config, d.label, d.garment || 'Design')} meta={d.order_id ? `Copy of a design from order #${d.order_id}` : 'Copy'}
-              badge="Copy" tone={DRAFT} primary={{ label: 'Edit colors', onClick: () => open(d) }} secondary={{ label: 'Order this', onClick: () => reorder(d) }} />
+              badge="Copy" tone={DRAFT} primary={{ label: 'Edit colors', onClick: () => open(d) }} secondary={{ label: 'Order this', onClick: () => reorder(d) }}
+              tertiary={canDeleteCopy(d, orders) && { label: 'Delete copy', tone: 'danger', onClick: () => setAskDelete(d) }} />
           ))}
           {showPast && shownInOrder.map((d, i) => {
             const st = x => STATUS[x.status]?.label ?? 'Pending';

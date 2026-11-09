@@ -784,7 +784,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     /\.ds-lane-bottom \.ds-ctrlbar \.ds-ctrl\{flex:none;width:44px;height:44px;/.test(css) && /\.ds-lane-bottom \.ds-ctrl:is\(\[data-act=back\],\[data-act=full\]:not\(\[aria-pressed=true\]\)\)\{display:none;\}/.test(css)
     && /'data-act': 'back'/.test(cvx) && /'data-act': 'full'/.test(cvx) && /fullRef\.current = toggleFull/.test(cvx)
     && /\.\.\.\(phone && has \? phoneItems : \[\]\)/.test(tbx) && /label: 'Full screen', onClick: \(\) => fullRef\.current\?\.\(\)/.test(dsm) && /addLabel && \{ label: addLabel, onClick: startSet \}/.test(dsm)
-    && /\.ds-stage-badge\{display:block;position:absolute;bottom:8px;left:8px;/.test(css) && /\.ds-rail\[data-strip\]\{display:none;\}/.test(css)
+    && /\.ds-stage-badge\{display:inline-flex;align-items:center;gap:6px;position:absolute;bottom:8px;left:8px;/.test(css) && /\.ds-rail\[data-strip\]\{display:none;\}/.test(css)
     && /\.ds-tabs button\[aria-current\]\{[^}]*border-bottom:3px solid var\(--cx-thread\);/.test(css) && !/dashed #C4313B/.test(css.match(/\.ds-tabs button\[aria-current\]\{[^}]*\}/)?.[0] ?? 'dashed #C4313B'));
   t('phone top lane wider than the screen (Guides + uniform set switch) scrolls from its start instead of centring past both edges: no Guides button off-screen',
     /\.ds-lane-top:not\(\[data-notes\]\)\{[^}]*justify-content:flex-start;overflow-x:auto;/.test(css) && /\.ds-lane-top:not\(\[data-notes\]\)>:first-child\{margin-left:auto;\}/.test(css) && /\.ds-lane-top:not\(\[data-notes\]\)>:last-child\{margin-right:auto;\}/.test(css));
@@ -1964,5 +1964,17 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('polish nov9 S1: AI Materials order options show the customer status label, never the raw stage; AI Materials and Messages carry no off-brand hex colours; Messages inputs use the focus-ringed cx-in field',
     /statusLabel\(o\.status\)/.test(aim) && !/\(\{o\.status\}\)/.test(aim) && !hex(aim).length && !hex(msg).length
     && (msg.match(/className="cx-in"/g) || []).length >= 2 && !/outline: 'none'/.test(msg)); }
+{ const css = fsx.readFileSync(urlx.fileURLToPath(new URL('../src/styles/customer.css', import.meta.url)), 'utf8');
+  const at768 = css.slice(css.indexOf('@media(min-width:768px){\r\n  .cx-page.dx'), css.indexOf('@media(min-width:1024px){\r\n  .dx-hero'));
+  t('polish nov9 S2: tablets (768+) get the two-column dashboard hero and three recent designs; Settings menu narrows to 248px at 900-1199 so the form keeps its width',
+    /\.dx-hero\{grid-template-columns:minmax\(0,7fr\) minmax\(0,5fr\)/.test(at768) && /\.dx-rd\{grid-template-columns:repeat\(3,/.test(at768)
+    && /@media\(min-width:900px\) and \(max-width:1199px\)\{\.acct-split\{grid-template-columns:248px/.test(css)); }
+{ const MD = await L('/src/pages/client/MyDesigns.jsx'), md = fsx.readFileSync(urlx.fileURLToPath(new URL('../src/pages/client/MyDesigns.jsx', import.meta.url)), 'utf8');
+  const c = { id: 9, is_copy: true, locked: false }, ok = MD.canDeleteCopy;
+  t('polish nov9 S3: Delete copy only for an unlocked copy with orders loaded and no live order using it (pending, confirmed, in production or completed all block; cancelled does not); originals never; goes through ConfirmDialog and DELETE /api/customer/designs/{id}',
+    ok(c, []) && ok(c, [{ design_id: 9, status: 'cancelled' }, { design_id: 3, status: 'pending' }])
+    && ['pending', 'confirmed', 'sewing', 'completed'].every(st => !ok(c, [{ design_id: '9', status: st }]))
+    && !ok(c, null) && !ok({ ...c, locked: true }, []) && !ok({ ...c, is_copy: false }, []) && !ok(null, [])
+    && md.includes('<ConfirmDialog open={!!askDelete}') && md.includes('axios.delete(`/api/customer/designs/${d.id}`)') && md.includes('if (!d || !canDeleteCopy(d, orders))')); }
 console.log(out.join('\n')); const f =out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);
