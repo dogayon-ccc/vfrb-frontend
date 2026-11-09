@@ -10,6 +10,9 @@ export function useViewNavigate() {
   const navigate = useNavigate();
   return useCallback((to, opts) => {
     if (!canMorph()) return navigate(to, opts);
+    // Shallower path (or home) reads as going back: the page slides in from the left.
+    const depth = p => (typeof p === 'string' ? p.split(/[?#]/)[0].split('/').filter(Boolean).length : 1);
+    document.documentElement.dataset.nav = to === '/' || depth(to) < depth(location.pathname) ? 'back' : 'forward';
     document.startViewTransition(() => flushSync(() => navigate(to, opts)));
   }, [navigate]);
 }

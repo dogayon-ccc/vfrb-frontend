@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import SiteHeader from './SiteHeader';
 import SiteFooter from './SiteFooter';
+import '../../styles/motion.css';
 
 export default function SitePage({ title, children }) {
   const { hash, pathname } = useLocation();

@@ -1034,7 +1034,12 @@ t('new families route to their own models per sleeve; no model for a sleeve they
       GAi.inkLight(140, 140) === 255 && GAi.inkLight(200, 140) === 255 && GAi.inkLight(70, 140) === 128 && GAi.inkLight(0, 140) === 0 && GAi.inkLight(-50, 140, 2) === 0 && GAi.inkLight(255, 0) === 255);
     t('print-through: the five lighting layers are tagged __light, it runs for exports too (before the live-only grid) and only touches the design, never the saved JSON',
       (fsh.match(/__light: true/g) ?? []).length === 5 && /render\(ctx, objects\);\s*try \{ printThrough\(ctx, objects, ctx === c\.contextContainer \? live : exp\); \} catch/.test(cl)
-      && /const isInk = o => !o\.__garmentBase && !o\.__hoverGlow/.test(cl) && /c\.__light = light;/.test(fsx.readFileSync(rel('../src/pages/client/design-studio/garmentAssets.js'), 'utf8'))); }
+      && /const isInk = o => !o\.__garmentBase && !o\.__hoverGlow/.test(cl) && /c\.__light = base\.light;/.test(fsx.readFileSync(rel('../src/pages/client/design-studio/garmentAssets.js'), 'utf8'))); }
+{ const ga = fsx.readFileSync(rel('../src/pages/client/design-studio/garmentAssets.js'), 'utf8'), gs = fsx.readFileSync(rel('../src/pages/client/design-studio/GarmentSilhouette.jsx'), 'utf8');
+  const tint = ga.slice(ga.indexOf('export async function tintedCanvas'));
+  t('fast colour change: feather, bounds, luminance, light map and trim mask are cached per photo; a new colour runs only the recolour loop; thumbnails draw the shared canvas (no PNG encode)',
+    /const base = await photoBase\(asset\)/.test(tint) && !/featherEdge\(|opaqueBounds\(|lightMap\(|box3\(|getImageData\(/.test(tint) && /baseCache\.has\(asset\.src\)/.test(ga) && /maskCache\.has\(src\)/.test(ga)
+    && !/toDataURL|toBlob/.test(gs) && /x\.drawImage\(src,/.test(gs)); }
 { const PL = await L('/src/pages/landing/ProductionLine.jsx'), pls = fsx.readFileSync(rel('../src/pages/landing/ProductionLine.jsx'), 'utf8');
   t('landing production line: thread is 0 before the station track, 1 once its end passes 70% of the screen, clamped, a short row takes 35% of a screen; stations come from PHASES and reduced motion paints it fully sewn',
     PL.threadProgress(900, 600, 800) === 0 && PL.threadProgress(-400, 600, 800) === 1 && PL.threadProgress(-40, 600, 800) === 1 && PL.threadProgress(260, 600, 800) === 0.5 && PL.threadProgress(420, 200, 800) === 0.5
@@ -1915,5 +1920,20 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     KT.reltime('2026-11-08 15:15:47', now) === 'just now' && KT.reltime('2026-11-08 13:15:47', now) === '2h ago'
     && KT.reltime('2026-11-08T15:15:47.000000Z', now) === 'just now' && KT.reltime('2026-11-08T23:15:47+08:00', now) === 'just now' && KT.reltime(null) === '');
 }
+// Motion layer: every animation sits behind the reduced-motion guard; scroll timelines only inside @supports; landing facts come from data.
+{ const rdm = q => fsx.readFileSync(urlx.fileURLToPath(new URL('../' + q, import.meta.url)), 'utf8');
+  const mo = rdm('src/styles/motion.css'), ma = rdm('src/styles/motion-app.css'), lc = rdm('src/styles/landing.css'), tr = rdm('src/styles/transitions.css'), lp = rdm('src/pages/Landing.jsx'), vl = rdm('src/components/ViewLink.jsx');
+  const before = (css, a, b) => css.slice(css.indexOf(a), css.indexOf(b));
+  const motionBlock = lc.slice(lc.indexOf('/* ── Motion layer'));
+  t('motion layer: site, app and landing animations run only with no-preference for reduced motion; scroll timelines only inside @supports (animation-timeline: view())',
+    /@media \(prefers-reduced-motion: no-preference\) \{\s*@supports \(animation-timeline: view\(\)\)/.test(mo) && !/animation-timeline/.test(mo.slice(0, mo.indexOf('@supports')))
+    && !/\{[^}]*\banimation:/.test(before(ma, '@keyframes mo-fade', '@media (prefers-reduced-motion: no-preference)').replace(/@keyframes[^{]*\{([^{}]*\{[^}]*\})*[^}]*\}/g, ''))
+    && /@media \(prefers-reduced-motion: no-preference\) \{\s*@keyframes lp-word-in/.test(motionBlock) && !/animation-timeline/.test(motionBlock.slice(0, motionBlock.indexOf('@supports (animation-timeline: view())')))
+    && /@media \(prefers-reduced-motion: no-preference\) \{\s*::view-transition-old\(root\)/.test(tr));
+  t('landing facts: stations, minimum order and categories come from PHASES, MIN_ORDER_QTY and FIND_UNIFORM; years from 2000; each count finishes once its card is fully in view; the number stays readable as text',
+    /\[new Date\(\)\.getFullYear\(\) - 2000,/.test(lp) && /\[PHASES\.flatMap\(p => p\.stages\)\.length,/.test(lp) && /\[MIN_ORDER_QTY,/.test(lp) && /\[FIND_UNIFORM\.length,/.test(lp)
+    && /<span>\{n\}<\/span>/.test(lp) && /mo-count linear both; animation-timeline: --lp-fact; animation-range: entry 0% entry 100%/.test(lc) && /content: counter\(n\) \/ ''/.test(lc));
+  t('page transitions: a shallower path or home slides back, deeper slides forward; reduced motion skips the transition entirely',
+    /dataset\.nav = to === '\/' \|\| depth\(to\) < depth\(location\.pathname\) \? 'back' : 'forward'/.test(vl) && /prefers-reduced-motion: reduce/.test(vl) && /html\[data-nav="back"\]::view-transition-new\(root\)/.test(tr)); }
 console.log(out.join('\n')); const f =out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);

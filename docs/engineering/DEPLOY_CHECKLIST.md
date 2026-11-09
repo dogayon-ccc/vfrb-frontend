@@ -46,8 +46,50 @@
 ## Post-deploy
 - [ ] Watch Vercel function logs for 5xx for the first hour and once daily for a week.
 - [ ] Next morning 07:00-07:59 Manila: digest notifications arrived once.
-- [ ] Tag `defense-2026-11`; update HANDOFF "Deploy status"; delete merged branches last.
+- [x] Tag `defense-2026-11` (verified on both remotes 2026-11-09); HANDOFF updated. [ ] Delete merged branches last.
 
 ## Rollback triggers (decide now)
 - Any role cannot sign in, CORS errors, 5xx on order create or draft save, previews 404, AI shows quantity/price/stock, cron 401/500.
 - Rollback: Vercel Instant Rollback, backend then frontend; DB restore only if a migration damaged data (single-file `migrate:rollback --path`).
+
+---
+
+# Follow-up release: Studio speed + motion layer (frontend only, prepared 2026-11-09)
+
+**Scope:** frontend only. No backend change, no migration, no env change. Backend stays `7b6e45e`.
+**Status at writing:** NOT committed (HEAD `244eaf2`, which is itself 1 ahead of `origin/main`, unpushed).
+
+## Decide first
+- [ ] Ship before or after the defense? `defense-2026-11` (frontend `610b358`) is the tested, tagged build. Pushing `main` deploys to production immediately. If the defense is close, keep this on a branch (`feat/motion-layer`) and merge after.
+
+## Pre-deploy
+- [x] `npm run build` passes; logic checks 553/553 (BUILD-VERIFIED 2026-11-09).
+- [x] Colour change: per-photo tint work cached; prod build shows no main-thread block > 50 ms on 5 new colours (was 58-188 ms). Tint output pixel-identical (max 1 level rounding) on all 6 photo bases (RUNTIME-VERIFIED, desktop Chrome).
+- [x] Landing motion, page transitions, overlays: RUNTIME-VERIFIED in Chrome at 1440 and 390. Reduced motion: verified by in-page simulation only.
+- [x] Layout sweep 390 + 1440: 15 public, 8 customer, 26 admin pages, no sideways overflow; admin order controls raised to 44 px.
+- [ ] UNVERIFIED: real Windows "Animation effects off", Safari, Firefox, real phone/touch. Do one phone pass on the Preview (below).
+- [ ] Commit, staging by name:
+  - `git add src/pages/client/design-studio/garmentAssets.js src/pages/client/design-studio/GarmentSilhouette.jsx`
+    `git commit -m "perf(studio): cache per-photo tint work; thumbnails draw the shared canvas"`
+  - `git add src/styles/motion.css src/styles/motion-app.css src/styles/landing.css src/styles/transitions.css src/pages/Landing.jsx src/pages/landing/CategoryCards.jsx src/components/site/SitePage.jsx src/components/ViewLink.jsx src/main.jsx src/pages/admin/OrderDetail.jsx tools/logic-checks.mjs`
+    `git commit -m "feat(ui): scroll-driven landing motion, spring overlays, directional page transitions; 44px admin order controls"`
+  - (`landing.css` carries the one canvas rule the perf commit needs; committing it in the second commit is fine as long as both ship together.)
+- [ ] `git status` clean except untracked root photos.
+
+## Deploy
+- [ ] Push a branch first, open the Vercel **Preview**, check it (Preview shares the live DB: look, don't save).
+- [ ] Merge to `main`, push, wait for Ready. Note the previous production deployment ID for rollback.
+
+## Smoke (production, read-only, ~5 min)
+- [ ] Landing signed out at 1440: headline animates in, red progress thread under header, marquee moves, facts read 26 / 7 / 100 / 5 when fully in view, cards tilt in, production line sews.
+- [ ] Landing on a phone: same, no sideways scroll; headings fully drawn once on screen.
+- [ ] Header nav About -> Home: slide forward / back, title morphs, no flash of blank page.
+- [ ] Customer: Studio colour change feels instant on a photo garment; Pieces rail and My Designs thumbnails show the right colour.
+- [ ] Customer: a toast and a "..." menu animate in; Studio "?" dialog and tour card pop in centred.
+- [ ] Manager: Customers drawer slides in; order page dropdown and "View Submitted Design" are full height.
+- [ ] Phone with Reduce Motion on (iPhone: Accessibility > Motion): landing is static, numbers readable, no page slides.
+- [ ] `/api/version` unchanged (`7b6e45e`): this release must not touch the backend.
+
+## Rollback
+- Trigger: blank or stuck landing, numbers shown wrong, overlays not appearing, Studio colours wrong, any console error on load.
+- Action: Vercel Instant Rollback of the frontend to the previous deployment (the `defense-2026-11` build). No backend or DB step.

@@ -97,7 +97,7 @@ function ReviewPanel({ order, onUpdated }) {
   );
 }
 
-const inpStyle = { width:'100%', padding:'9px 12px', borderRadius:'var(--r-md)', border:'1px solid var(--border)',
+const inpStyle = { width:'100%', minHeight:44, padding:'9px 12px', borderRadius:'var(--r-md)', border:'1px solid var(--border)',
   fontSize:13, boxSizing:'border-box', fontFamily:'var(--font)', background:'var(--bg-card)', color:'var(--ink)' };
 const lblStyle = { display:'block', fontSize:13, fontWeight:700, color:'var(--text-subtle)', marginBottom:6, fontFamily:'var(--font)' };
 const peso = v => `₱${Number(v ?? 0).toLocaleString('en-PH', { minimumFractionDigits:2, maximumFractionDigits:2 })}`;
@@ -632,7 +632,7 @@ export default function AdminOrderDetail() {
                 <DesignPreview cfg={order.studio_config} height={isMobile ? 260 : 360} previewUrl={order.design_preview_url ?? null} snapshot={order.design_3d_snapshot_url ?? null}/>
                 {order.design_preview_url && (
                   <a href={order.design_preview_url} target="_blank" rel="noopener noreferrer"
-                    style={{ display:'flex', alignItems:'center', gap:5, fontSize:13, fontWeight:600,
+                    style={{ display:'inline-flex', alignSelf:'flex-start', alignItems:'center', gap:5, minHeight:44, fontSize:13, fontWeight:600,
                       color:'var(--teal)', textDecoration:'none' }}>
                     <NavIcon name="download" size={13} color="var(--teal)" /> View Submitted Design (PNG)
                   </a>

@@ -14,8 +14,8 @@ export default function CategoryCards() {
   const nav = useNavigate();
   return (
     <ul className="lp-cards">
-      {FIND_UNIFORM.map(([label, cat]) => (
-        <li key={cat}>
+      {FIND_UNIFORM.map(([label, cat], i) => (
+        <li key={cat} style={{ '--i': i }}>
           <button type="button" className="lp-card" onClick={() => { startStudioIn(cat); nav('/design-studio'); }}>
             <span className="lp-card__art" aria-hidden="true">
               <Suspense fallback={null}><GarmentSilhouette garment={LEAD[cat]} colors={COLORS} width={160} height={190} /></Suspense>

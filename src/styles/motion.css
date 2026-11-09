@@ -1,0 +1,19 @@
+/* Public-site scroll motion: CSS scroll-driven animations (Chrome/Edge 115+, Safari 26+). Where unsupported, Reveal's IntersectionObserver
+   fade stays the fallback and everything else is static. Reduced motion turns all of it off. */
+@property --mo-n { syntax: '<integer>'; inherits: false; initial-value: 0; }
+
+@keyframes mo-rise { from { opacity: 0; translate: 0 56px; scale: 0.96; } to { opacity: 1; translate: 0 0; scale: 1; } }
+@keyframes mo-wipe { from { clip-path: inset(-20% 100% -20% 0); translate: -16px 0; } to { clip-path: inset(-20% -20% -20% -20%); translate: 0 0; } }
+@keyframes mo-open { from { clip-path: inset(14% 10% 14% 10% round 18px); scale: 0.94; } to { clip-path: inset(0 0 0 0 round 0); scale: 1; } }
+@keyframes mo-drift { from { translate: 0 -5%; } to { translate: 0 5%; } }
+@keyframes mo-count { from { --mo-n: 0; } to { --mo-n: var(--to); } }
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .vs-page .vs-reveal, .vs-page .vs-reveal.is-in { opacity: 1; transform: none; transition: none;
+      animation: mo-rise linear both; animation-timeline: view(); animation-range: entry calc(var(--i, 0) * 6%) cover calc(28% + var(--i, 0) * 6%); }
+    .vs-page main .vs-h2 { animation: mo-wipe linear both; animation-timeline: view(); animation-range: entry 0% entry 100%; }
+    .vs-page main .vs-photo { animation: mo-open linear both; animation-timeline: view(); animation-range: entry 0% cover 38%; }
+    .vs-page main .vs-photo img { scale: 1.12; animation: mo-drift linear both; animation-timeline: view(); animation-range: cover 0% cover 100%; }
+  }
+}

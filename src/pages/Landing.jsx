@@ -1,4 +1,5 @@
 import { lazy, Suspense, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useReducedMotion } from 'framer-motion';
 import SitePage from '../components/site/SitePage';
 import Photo from '../components/landing/Photo';
@@ -11,6 +12,7 @@ import { P } from './landing/photos';
 import PatternReveal from './landing/PatternReveal';
 import CategoryCards from './landing/CategoryCards';
 import ProductionLine from './landing/ProductionLine';
+import { FIND_UNIFORM, PHASES } from '../components/site/content';
 import '../styles/landing.css';
 
 const STEPS = [
@@ -18,6 +20,15 @@ const STEPS = [
   ['Order', `Order from a saved design with sizes, quantity (minimum ${MIN_ORDER_QTY} pieces) and the date you need. VFRB replies with a proposal and a delivery date for you to accept.`],
   ['Track', 'Follow the status of your order from your account and message the VFRB team.'],
   ['Receive', 'Pick up your uniforms or have them delivered. The invoice and payment receipts stay in your account.'],
+];
+
+const TITLE = ['Custom', 'uniforms,', 'made', 'smarter.'];
+const MARQUEE = ['School uniforms', 'Scrubs', 'Corporate wear', 'Hospitality', 'Workwear', 'Made in Muntinlupa since 2000'];
+const FACTS = [
+  [new Date().getFullYear() - 2000, 'years making uniforms in Muntinlupa'],
+  [PHASES.flatMap(p => p.stages).length, 'production stations, tracked one by one'],
+  [MIN_ORDER_QTY, 'pieces minimum per order'],
+  [FIND_UNIFORM.length, 'uniform categories to start from'],
 ];
 
 const CONTACTS = [
@@ -35,9 +46,10 @@ export default function Landing() {
   useParallax(hero, useReducedMotion());
   return (
     <SitePage title="Company uniforms made in Muntinlupa">
+      {createPortal(<div className="lp-progress" aria-hidden="true" />, document.body)}
       <section ref={hero} className="lp-hero vs-wrap" aria-labelledby="lp-title">
         <div className="lp-hero__copy">
-          <h1 className="vs-h1" id="lp-title">Custom uniforms, made smarter.</h1>
+          <h1 className="vs-h1" id="lp-title">{TITLE.map((w, i) => [i > 0 && ' ', <span key={w} className="lp-word" style={{ '--i': i }}>{w}</span>])}</h1>
           <p className="lp-lede">Design your uniform in the VFRB Studio, order in bulk and follow it from the cutting table to your door. VFRB sets up accounts for schools, hospitals and companies. Family-made in Muntinlupa since 2000.</p>
           <div className="vs-btns">
             <Btn to="/login" variant="mint">Sign in</Btn>
@@ -50,11 +62,24 @@ export default function Landing() {
         </div>
       </section>
 
+      <div className="lp-marquee" aria-hidden="true">
+        {[0, 1].map(r => (
+          <div key={r} className={`lp-marquee__row${r ? ' lp-marquee__row--alt' : ''}`}>
+            {[0, 1].map(k => <span key={k}>{MARQUEE.map(m => <b key={m}>{m}</b>)}</span>)}
+          </div>
+        ))}
+      </div>
+
       <section className="vs-sec vs-wrap" aria-labelledby="lp-how">
         <h2 className="vs-h2" id="lp-how">From design to delivery</h2>
         <ol className="lp-steps">
-          {STEPS.map(([t, d], i) => <Reveal as="li" key={t} delay={i * 0.04}><span aria-hidden="true">{i + 1}</span><h3>{t}</h3><p>{d}</p></Reveal>)}
+          {STEPS.map(([t, d], i) => <Reveal as="li" key={t} delay={i * 0.04} style={{ '--i': i }}><span aria-hidden="true">{i + 1}</span><h3>{t}</h3><p>{d}</p></Reveal>)}
         </ol>
+        <ul className="lp-facts">
+          {FACTS.map(([n, label]) => (
+            <li key={label}><b className="lp-facts__n" style={{ '--to': n }}><span>{n}</span></b><span>{label}</span></li>
+          ))}
+        </ul>
       </section>
 
       <section className="vs-sec vs-tint" aria-labelledby="lp-cats">
@@ -86,8 +111,8 @@ export default function Landing() {
         <h2 className="vs-h2" id="lp-contact">Rather talk first?</h2>
         <p className="vs-body lp-sub">Call or message VFRB and an administrator can set up your account.</p>
         <ul className="lp-contact__list">
-          {CONTACTS.map(([k, href, v]) => (
-            <li key={k}><a href={href} {...(href.startsWith('http') && { target: '_blank', rel: 'noopener noreferrer' })}><small>{k}</small>{v}</a></li>
+          {CONTACTS.map(([k, href, v], i) => (
+            <li key={k} style={{ '--i': i }}><a href={href} {...(href.startsWith('http') && { target: '_blank', rel: 'noopener noreferrer' })}><small>{k}</small>{v}</a></li>
           ))}
         </ul>
       </section>

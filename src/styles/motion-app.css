@@ -1,0 +1,33 @@
+/* App-wide motion tokens and overlay entrances. @starting-style animates an element's first render (Chrome 117+, Safari 17.5+,
+   Firefox 129+); older browsers just show it. Keyframed overlays get the same spring. Reduced motion: none of this runs. */
+:root { --mo-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --mo-spring: linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077, 1.121 24%, 1.149 26.2%, 1.159 28.8%, 1.155 30.8%, 1.135 33.4%, 1.012 43.1%, 0.996, 0.989 50.4%, 0.996 58.2%, 1.001 63.6%, 1); }
+
+@keyframes mo-pop { from { opacity: 0; translate: 0 18px; scale: 0.94; } to { opacity: 1; translate: 0 0; scale: 1; } }
+@keyframes mo-menu { from { opacity: 0; translate: 0 var(--mo-menu-y, 6px); scale: 0.92; } to { opacity: 1; translate: 0 0; scale: 1; } }
+@keyframes mo-slide-in { from { opacity: 0; translate: 48px 0; } to { opacity: 1; translate: 0 0; } }
+@keyframes mo-fade { from { opacity: 0; } }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* customer toast and update prompt */
+  .cx-toast { transition: opacity 240ms var(--mo-out), translate 560ms var(--mo-spring), scale 560ms var(--mo-spring); }
+  /* Studio guides sheet (the picker and the More sheet already animate in Framer Motion) */
+  .ds-guides-scrim { transition: opacity 240ms var(--mo-out); }
+  .ds-guides-pop[data-modal] { transition: opacity 220ms var(--mo-out), translate 520ms var(--mo-spring); }
+
+  @starting-style {
+    .cx-toast { opacity: 0; translate: 0 28px; scale: 0.92; }
+    .ds-guides-scrim { opacity: 0; }
+    .ds-guides-pop[data-modal] { opacity: 0; translate: 0 48px; }
+  }
+
+  /* keyframed overlays: same spring, a touch longer */
+  :root .ds-keysdlg, :root .ds-tour-card { animation: mo-pop 460ms var(--mo-spring) both; } /* :root beats the Studio's later <style> */
+  :root .adm-drawer, :root .ui-drawer-scrim { animation: mo-fade 260ms var(--mo-out) both; } /* :root beats admin.css, which loads later */
+  :root .adm-drawer-panel, :root .ui-drawer { animation: mo-slide-in 420ms var(--mo-out) both; }
+  /* menus open upward by default (theme.css); .down and .left flip the origin so they grow from their trigger */
+  .ui-menu-list { transform-origin: bottom right; animation: mo-menu 320ms var(--mo-spring) both; }
+  .ui-menu-list.left { transform-origin: bottom left; }
+  .ui-menu-list.down { --mo-menu-y: -6px; transform-origin: top right; }
+  .ui-menu-list.down.left { transform-origin: top left; }
+}
