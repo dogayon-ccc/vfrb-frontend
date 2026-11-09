@@ -1,6 +1,5 @@
 
 import { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import DesignPreview from '../../components/DesignPreview';
@@ -12,7 +11,7 @@ import AiContextPanel from '../../components/admin/AiContextPanel';
 import { savedDesignName } from '../../utils/designName';
 import { NavIcon, StatusChip, AlertBanner, DataTable } from '../../components/ui';
 import { canAccessArea, readAdminUser, isAdmin, isStation, canOpen } from '../../utils/jobAccess';
-import { Panel, StatusPill, Meter, EmptyBlock, Toast, useToast, useIsMobile } from '../../components/admin/AdminUI';
+import { Panel, StatusPill, EmptyBlock, Toast, useToast, useIsMobile } from '../../components/admin/AdminUI';
 
 function getIsManager() {
   try {

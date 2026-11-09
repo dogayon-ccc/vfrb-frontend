@@ -26,7 +26,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 import {
   LayoutGrid, ClipboardList, Boxes, MessageSquare, ShoppingCart, Truck,
-  Layers, Factory, FileText, ShieldCheck, Hash, Wallet,
+  Layers, Factory, FileText, ShieldCheck, Wallet,
   BarChart3, Receipt, Store, Users, Settings, Package, MessageCircle,
   User, Palette, ImagePlus, Type, Sparkles, Ruler, ClipboardCheck,
   CheckCircle2, XCircle, AlertCircle, Info, Eye, EyeOff, Lock, Trash2,

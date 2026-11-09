@@ -16,7 +16,7 @@
 //   const Scene3D = lazy(() => import('./DesignStudio3D'))
 
 import { useRef, useMemo, useState, useEffect, useLayoutEffect, Suspense } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useThree } from '@react-three/fiber';
 import { resolveTarget } from './design-studio/garmentCatalog';
 import { OrbitControls, ContactShadows, Float, Bounds, useBounds } from '@react-three/drei';
 import * as THREE from 'three';

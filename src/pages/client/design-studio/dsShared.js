@@ -12,7 +12,7 @@
 import { assetFor } from './garmentAssets';
 import { WEB_FONTS } from './studioFonts';
 import { WOVEN_PATTERNS } from './wovenPatterns';
-import { getGarmentPaths, BASE_PATHS } from './garmentPaths';
+import { getGarmentPaths } from './garmentPaths';
 import { deserializeDesign } from './designSerialization';
 // Pure-data capability lookup only — NOT garmentMeshManifest.js. That file also calls
 // useGLTF.preload (a @react-three/drei / Three.js side effect) at import time; dsShared.js is
