@@ -30,7 +30,7 @@ Read this first in every new session. Do not re-audit finished work. Update the 
 - Sign-in flag: `VITE_GOOGLE_LOGIN=false` (in `.env.local` only) hides "Continue with Google"; any other value or unset shows it. Local `.env` has no Google keys; `.env.vercel` does.
 - Demo stack: backend `php -S` :8000 with `DB_DATABASE=vfrb_demo` overrides, Vite :5180 with `VITE_PROXY_TARGET`. Never use :5173 (points at live).
 
-## Deploy status (2026-11-09): LIVE. Backend `7b6e45e`, frontend `610b358`, tag `defense-2026-11`; full smoke PASS (DEPLOY_CHECKLIST.md). Post-deploy: watch logs a week, check the 07:00 Manila digest, delete merged branches last.
+## Deploy status (2026-11-09): LIVE. Backend `7b6e45e`, frontend `610b358`, tag `defense-2026-11`; full smoke PASS (DEPLOY_CHECKLIST.md). Second release: live = `defense-2026-11b` (frontend `6cfda96`) + backend `7b6e45e`. Post-deploy: watch logs a week, check the 07:00 Manila digest, delete merged branches last.
 - Vercel backend preview (branch alias `vfrb-capstone-git-wip-oct21-overhaul-dsogayon-8611.vercel.app`) is Ready, but Vercel Authentication protects Preview, so the API answers `302` to `vercel.com/sso-api` and the frontend preview login fails CORS.
 - Frontend preview was deployed by CLI (`vfrb-frontend-pjjzwyhby...`); the repo `ignoreCommand` builds only `main`.
 - Preview shares live DB variables, so preview clicks write real rows.
