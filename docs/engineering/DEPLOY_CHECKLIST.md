@@ -104,17 +104,17 @@
 # Release nov9b: honest 3D labels, set scale, a11y and Studio polish (frontend only, prepared 2026-11-09)
 
 **Scope:** frontend only. No backend, migration, env, DesignState or payload change. Backend stays `7b6e45e`.
-**Status:** committed on `release/nov9b`, NOT pushed (Dave pushes).
+**Status:** LIVE 2026-11-09. `main` fast-forwarded `c9c11cc..835b3dc`, tag `defense-2026-11c`. Backend unchanged `7b6e45e`.
 
 ## Pre-deploy
 - [x] `npm run build` passes; logic checks 556/556 (BUILD-VERIFIED 2026-11-09).
 - [x] Demo stack :5180 -> :8000 (vfrb_demo): set thumbnails at real scale, 3D badges on 39 picker cards, landing pause button, live regions, Studio tooltips and ruler highlight (RUNTIME-VERIFIED; see HANDOFF).
-- [ ] Two-piece set lifecycle with logos on both pieces (save, My Designs, restore, Wizard, submit, Order Detail) on the demo stack.
-- [ ] `pg_dump` taken and size recorded (`scripts/backup-db.md`), replacing "Supabase backup taken".
-- [ ] Note current production deployment IDs (frontend live `vfrb-frontend-1xgd9ht4v`).
+- [x] Two-piece set lifecycle with logos on both pieces (save, My Designs, restore, Wizard, submit, Order Detail) on the demo stack (RUNTIME-VERIFIED: draft #73 -> orders #211/#212, both since cancelled).
+- [ ] (skipped: frontend-only, no DB change) `pg_dump` taken and size recorded (`scripts/backup-db.md`), replacing "Supabase backup taken".
+- [x] Previous production deployment noted: `vfrb-frontend-1xgd9ht4v` (`defense-2026-11b`).
 
 ## Deploy
-- [ ] Push `release/nov9b`, check the Vercel Preview (shares the live DB: look, don't save), then fast-forward `main`.
+- [x] Pushed `release/nov9b`; fast-forwarded and pushed `main` (Preview check skipped). Live bundle contains the new code (DEPLOYMENT-VERIFIED by bundle content).
 
 ## Smoke (production, read-only)
 - [ ] Studio picker: every card shows "3D preview (approximate)" or "2D design only: 3D coming"; the 2D/3D chip matches the card.

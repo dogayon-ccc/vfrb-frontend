@@ -39,8 +39,9 @@ Read this first in every new session. Do not re-audit finished work. Update the 
 - Production order: Supabase backup, backend ff-merge to main and push, wait Ready, frontend ff-merge and push, verify, tag `defense-2026-11`, delete branches last.
 - Vercel "Needs Attention" env vars (not marked Sensitive): after deploy, re-enter the SAME value with Sensitive on. Never replace `APP_KEY`. Change `DB_PASSWORD` only together with Supabase.
 
-## release/nov9b (2026-11-09, not pushed, not deployed)
-- Branch `release/nov9b` from `main` (`c9c11cc`). Slices: 1 set thumbnails at one real scale (`134630a`), 2 one 3D capability source and badge (`6603bb6`), 3 motion caps, marquee pause, live regions, iOS overflow fallback (`b8d460a`), 4 Studio focus tooltips, ruler span highlight, ruler corner (`0328d86`), 5 docs.
+## release/nov9b (2026-11-09, LIVE, tag `defense-2026-11c`)
+- LIVE: `main` fast-forwarded to `835b3dc` and pushed 2026-11-09; new bundle served within ~40 s (DEPLOYMENT-VERIFIED by bundle content only; production smoke still open). Backend unchanged `7b6e45e`. Rollback: Vercel Instant Rollback to `vfrb-frontend-1xgd9ht4v` (`defense-2026-11b`).
+- Branch `release/nov9b` from `main` (`c9c11cc`). Lifecycle on vfrb_demo passed (set with a logo on each piece: save, My Designs, restore, Wizard, submit #211/#212, Order Detail); test orders #211/#212 cancelled by demo-manager. Slices: 1 set thumbnails at one real scale (`134630a`), 2 one 3D capability source and badge (`6603bb6`), 3 motion caps, marquee pause, live regions, iOS overflow fallback (`b8d460a`), 4 Studio focus tooltips, ruler span highlight, ruler corner (`0328d86`), 5 docs (`91da663`), set-card follow-up (`835b3dc`).
 - 3D wording now lives only in `CAP3D` (glbSlots.js) and `Capability3D.jsx`: "3D preview available" / "3D preview (approximate)" / "2D design only: 3D coming". Table and policy: `3D_CAPABILITY.md`, `ADR-3d-capability-policy.md`.
 - Pants is not inconsistent: the Meshy trousers file is gated and the VFRB-authored `pants-straight.glb` serves Pants.
 - Saved preview PNGs in set cards are not rescaled (framing differs per export); only silhouettes use `pieceFits`.
