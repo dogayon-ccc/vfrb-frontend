@@ -18,8 +18,9 @@ import { darkStageFor } from './colorRules';
 import StageOpening, { CutLine } from './StageOpening';
 import { getGarmentPaths } from './garmentPaths';
 import { panLimits, clampPan } from './snapGuides';
-import { readGuidePrefs, guidePrefsKey } from './canvasGuides';
+import { readGuidePrefs, guidePrefsKey, metricsPct } from './canvasGuides';
 import { PinnedRulers, GuideLine } from './StageRulers';
+import StudioTip from './StudioTip';
 import SetView2D from './SetView2D';
 import FloatingToolbar from './FloatingToolbar';
 import GuidesMenu, { ViewToggles, UNITS_NOTE } from './GuidesMenu';
@@ -494,7 +495,8 @@ export default function CanvasViewport({
         {set2D && <SetView2D top={setCompanion.role === 'top' ? setCompanion.cfg : cfg} bottom={setCompanion.role === 'top' ? cfg : setCompanion.cfg}/>}
         {/* Both panes stay mounted and only toggle visibility, so Fabric and WebGL keep their state; show2D also covers
             viewMode==='3d' before the 3D pane exists, so the workspace is never blank. Rulers are pinned outside the scaled wrapper. */}
-        {rulersOn && view && <PinnedRulers view={view} g={garmentRect} fitRef={fitRef} gridPct={gridOn ? guides.size : 0} onGuide={gd => setRulerGuides(l => [...l.filter(x => !(x.axis === gd.axis && x.pct === gd.pct)), gd])}/>}
+        <StudioTip/>
+        {rulersOn && view && <PinnedRulers view={view} g={garmentRect} fitRef={fitRef} gridPct={gridOn ? guides.size : 0} sel={metricsPct(selObj, garmentRect)} onGuide={gd => setRulerGuides(l => [...l.filter(x => !(x.axis === gd.axis && x.pct === gd.pct)), gd])}/>}
         {rulersOn && view && rulerGuides.map(gd => <GuideLine key={gd.axis + gd.pct} guide={gd} view={view} g={garmentRect} onRemove={() => setRulerGuides(l => l.filter(x => x !== gd))}/>)}
         <div ref={paneRef} className="ds-pane" data-pan={canPan ? '1' : undefined} data-sel={selObj ? '1' : undefined} data-garment={cfg.garment && show2D ? '1' : undefined}
           onPointerDownCapture={onPaneDownCapture} onPointerMoveCapture={onPaneMoveCapture} onPointerUpCapture={onPaneUpCapture} onPointerCancelCapture={onPaneUpCapture}

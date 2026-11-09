@@ -689,7 +689,12 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const tk = CG.relativeTicks(200, 1.4, 900, 37, 246, 30), lab = tk.filter(x => x.label).map(x => x.v);
   t('rulers run the full stage edge in template units (ticks before 0 and past 100), label only 0 to 100 (every 10 when it fits, else 25/50/100), emphasise 0, 50 and 100, show a live pointer marker',
     tk.some(x => x.v < 0) && tk.some(x => x.v > 100) && lab[0] === 0 && lab[lab.length - 1] === 100 && lab.length === 11 && lab.every(v => v % 10 === 0) && /\{t\.label && <text/.test(rul) && !/\{t\.major && <text/.test(rul) && ['0', '50', '100'].every(v => tk.find(x => String(x.v) === v)?.key)
-    && CG.relSteps(150, 30).major === 25 && CG.relSteps(400, 30).major === 10 && CG.relSteps(60, 30).major === 50 && /className="ds-ruler-mark"/.test(rul) && /fit\.addEventListener\('pointermove', move\)/.test(rul) && />u<\/div>/.test(rul) && !/>%<\/div>/.test(rul));
+    && CG.relSteps(150, 30).major === 25 && CG.relSteps(400, 30).major === 10 && CG.relSteps(60, 30).major === 50 && /className="ds-ruler-mark"/.test(rul) && /fit\.addEventListener\('pointermove', move\)/.test(rul) && />u<\/button>/.test(rul) && !/>%<\/(div|button)>/.test(rul));
+  const tipSrc = src('../src/pages/client/design-studio/StudioTip.jsx'), railSrc = src('../src/pages/client/design-studio/ToolRail.jsx');
+  t('Studio tooltips: one StudioTip for data-tip, shown 200 ms after hover or keyboard focus, fade skipped under reduced motion; rail tools use it; ruler corner is a focusable button saying "Template units, not centimetres"; the selected span is highlighted on both rulers (display only)',
+    /const DELAY = 200/.test(tipSrc) && /focusin/.test(tipSrc) && /pointerover/.test(tipSrc) && /role="tooltip"/.test(tipSrc) && /data-tip=\{`\$\{label\}/.test(railSrc) && !/title=\{`\$\{label\} \(/.test(railSrc)
+    && /<button type="button" className="ds-ruler-corner"[^>]*data-tip="Template units, not centimetres"/.test(rul) && (rul.match(/className="ds-ruler-sel"/g) ?? []).length === 2
+    && /prefers-reduced-motion:no-preference\)\{\.ds-tip\{animation/.test(css));
   // Ruler guides: pulled from a ruler, snap to whole % (50 within 1.5), objects snap to them, session only (never saved), double-click removes.
   const gl = CG.guideLines(g, [{ axis: 'v', pct: 50 }, { axis: 'h', pct: 10 }]);
   t('ruler guides: drag from a ruler creates one, it snaps to whole % (and 50%), elements snap to it, double-click or Delete removes it, kept for the session only',

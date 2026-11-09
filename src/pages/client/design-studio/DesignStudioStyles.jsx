@@ -768,7 +768,7 @@ export default function DesignStudioStyles() {
       /* Rail: sliding active pill (framer layoutId) replaces the per-button background swap */
       /* Guides: one button in the top lane; its popover holds every guide toggle */
       .ds-guides{position:relative;}
-      .ds-guides-btn,.ds-tools-btn{min-height:40px;display:inline-flex;align-items:center;gap:8px;padding:0 12px;border:1px solid var(--cx-line);border-radius:var(--cx-r-md);
+      .ds-guides-btn,.ds-tools-btn{min-height:44px;display:inline-flex;align-items:center;gap:8px;padding:0 12px;border:1px solid var(--cx-line);border-radius:var(--cx-r-md);
         background:var(--cx-card);color:var(--cx-ink);font:700 13px var(--cx-sans);cursor:pointer;box-shadow:var(--cx-elev-0);}
       .ds-tools-btn{padding:0 8px;}
       .ds-guides-btn[aria-expanded=true],.ds-tools-btn[aria-pressed=true]{border-color:var(--cx-thread);color:var(--cx-thread-ink);background:var(--cx-thread-tint);}
@@ -843,7 +843,9 @@ export default function DesignStudioStyles() {
       /* Rulers: template units only (labels 0-100), horizontal labels at 11px, ink on card (>= 4.5:1) on light and dark stages */
       .ds-cv[data-rulers] .ds-pane{top:20px;left:34px;}
       .ds-ruler,.ds-ruler-corner{position:absolute;z-index:3;background:var(--cx-paper-2);}
-      .ds-ruler-corner{pointer-events:none;}
+      .ds-ruler-corner{padding:0;border:0;cursor:help;font-family:inherit;}
+      .ds-ruler-corner::before{content:'';position:absolute;inset:-12px -5px -12px -5px;}
+      .ds-ruler-corner:focus-visible{outline:3px solid #028090;outline-offset:-3px;}
       .ds-ruler-x{cursor:row-resize;touch-action:none;}
       .ds-ruler-y{cursor:col-resize;touch-action:none;}
       .ds-ruler{overflow:hidden;}
@@ -851,6 +853,11 @@ export default function DesignStudioStyles() {
       .ds-ruler-y{left:0;top:20px;box-shadow:inset -1px 0 0 var(--cx-line-strong);}
       .ds-ruler-corner{left:0;top:0;width:34px;height:20px;display:grid;place-items:center;font-size:13px;font-weight:700;color:var(--cx-ink-2);box-shadow:inset -1px -1px 0 var(--cx-line-strong);}
       .ds-ruler-art{fill:var(--cx-card);}
+      .ds-ruler-sel{fill:#C4313B;opacity:.18;pointer-events:none;}
+      .ds-tip{position:fixed;z-index:var(--z-tooltip,500);max-width:240px;padding:6px 10px;border-radius:8px;background:#1B2A4A;color:#F4F5F2;font:600 12px/1.4 var(--cx-sans);pointer-events:none;box-shadow:var(--cx-elev-1);transform:translate(-50%,0);}
+      .ds-tip[data-side=right]{transform:translate(0,-50%);}
+      @media(prefers-reduced-motion:no-preference){.ds-tip{animation:ds-tip-in 120ms ease-out both;}}
+      @keyframes ds-tip-in{from{opacity:0}}
       .ds-ruler line{stroke:var(--cx-ink-3);stroke-width:1;shape-rendering:crispEdges;}
       .ds-ruler text{fill:var(--cx-ink-2);font-family:inherit;font-weight:600;font-variant-numeric:tabular-nums;pointer-events:none;}
       .ds-ruler g[data-key] text{fill:var(--cx-ink);font-weight:800;}

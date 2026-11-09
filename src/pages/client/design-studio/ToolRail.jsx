@@ -36,24 +36,24 @@ export default function ToolRail({ rail, hand, setHand, canPan, zoomBy }) {
   });
 
   return (
-    <div className="ds-tools" role="toolbar" aria-label="Tools">
+    <div className="ds-tools" role="toolbar" aria-label="Tools" data-tip-side="right">
       {RAIL_TOOLS.map(({ id, key, label, hint }) => {
         const I = ICONS[id];
         return (
           <button key={id} type="button" className="ds-tools-btn" data-tool={id} aria-pressed={active === id} disabled={off(id)}
-            aria-label={label} aria-keyshortcuts={key} title={`${label} (${key}): ${id === 'hand' && !canPan ? 'zoom in to pan' : hint.toLowerCase()}`}
+            aria-label={label} aria-keyshortcuts={key} data-tip={`${label} (${key}): ${id === 'hand' && !canPan ? 'zoom in to pan' : hint.toLowerCase()}`}
             onClick={() => choose(id)}>
             <I size={17} aria-hidden="true"/>
           </button>
         );
       })}
-      <label className="ds-tools-ink" title="Active colour: the brush, pen, line, rectangle, ellipse and paint bucket use it, the eyedropper sets it">
+      <label className="ds-tools-ink" data-tip="Active colour: the brush, pen, line, rectangle, ellipse and paint bucket use it, the eyedropper sets it">
         <input type="color" value={color} onChange={e => setColor(e.target.value)} aria-label="Active colour"/>
       </label>
       {STROKE_TOOLS.includes(active) && setSize && (
         <div className="ds-tools-size" role="radiogroup" aria-label="Stroke width">
           {STROKE_SIZES.map(s => (
-            <button key={s} type="button" role="radio" aria-checked={size === s} aria-label={`${s} px stroke`} title={`${s} px stroke`} onClick={() => setSize(s)}>
+            <button key={s} type="button" role="radio" aria-checked={size === s} aria-label={`${s} px stroke`} data-tip={`${s} px stroke`} onClick={() => setSize(s)}>
               <i style={{ width: s + 2, height: s + 2 }} aria-hidden="true"/>
             </button>
           ))}

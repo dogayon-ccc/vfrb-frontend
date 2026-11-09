@@ -7,7 +7,8 @@ export const RULER_H = 20, RULER_W = 34; // ruler bands: top ruler height, left 
 
 // Rulers along the full top and left stage edges in template units (ticks before 0 and past 100, labels 0 to 100); 0, 50 and 100 are
 // emphasised; a live marker follows the pointer; dragging from a ruler pulls out a guide (top ruler: horizontal, left: vertical).
-export function PinnedRulers({ view, g, fitRef, onGuide, gridPct = 0 }) {
+// sel: the selected object's box in template units ({ x, y, w, h }), highlighted on both rulers. Display only.
+export function PinnedRulers({ view, g, fitRef, onGuide, gridPct = 0, sel = null }) {
   const { ox, oy, s, pw, ph } = view;
   const xs = relativeTicks(ox, s, pw, g.left, g.width, 30, gridPct), ys = relativeTicks(oy, s, ph, g.top, g.height, 24, gridPct);
   const mx = useRef(null), my = useRef(null);
@@ -40,14 +41,16 @@ export function PinnedRulers({ view, g, fitRef, onGuide, gridPct = 0 }) {
   const gy0 = Math.max(0, fromPct(0, oy, s, g.top, g.height)), gy1 = Math.min(ph, fromPct(100, oy, s, g.top, g.height));
   return (
     <>
-      <div className="ds-ruler-corner" aria-hidden="true">u</div>
+      <button type="button" className="ds-ruler-corner" aria-label="Ruler units: template units, not centimetres" data-tip="Template units, not centimetres">u</button>
       <svg className="ds-ruler ds-ruler-x" aria-label="Horizontal ruler, template units 0 to 100 across the garment: drag down to add a guide" role="img" width={pw} height={RULER_H} onPointerDown={start('h')}>
         {gx1 > gx0 && <rect className="ds-ruler-art" x={gx0} y={0} width={gx1 - gx0} height={RULER_H}/>}
+        {sel && <rect className="ds-ruler-sel" x={fromPct(sel.x, ox, s, g.left, g.width)} y={0} width={Math.max(1, (sel.w / 100) * g.width * s)} height={RULER_H}/>}
         {xs.map(t => tick(t, 'x'))}
         <line ref={mx} className="ds-ruler-mark" x1={0} y1={0} x2={0} y2={RULER_H}/>
       </svg>
       <svg className="ds-ruler ds-ruler-y" aria-label="Vertical ruler, template units 0 to 100 down the garment: drag right to add a guide" role="img" width={RULER_W} height={ph} onPointerDown={start('v')}>
         {gy1 > gy0 && <rect className="ds-ruler-art" x={0} y={gy0} width={RULER_W} height={gy1 - gy0}/>}
+        {sel && <rect className="ds-ruler-sel" x={0} y={fromPct(sel.y, oy, s, g.top, g.height)} width={RULER_W} height={Math.max(1, (sel.h / 100) * g.height * s)}/>}
         {ys.map(t => tick(t, 'y'))}
         <line ref={my} className="ds-ruler-mark" x1={0} y1={0} x2={RULER_W} y2={0}/>
       </svg>
