@@ -98,3 +98,33 @@
 - Action: Vercel Instant Rollback of the frontend to the previous deployment (the `defense-2026-11` build). No backend or DB step.
 - Frontend: live `vfrb-frontend-1xgd9ht4v` (`f1ae797`, same code as `6cfda96`); rollback target `vfrb-frontend-rjopl24v9-dsogayon-8611.vercel.app` (`610b358`, `defense-2026-11`). `g1pxgjy5q` (docs) and `3w9jr8f4g` (`6cfda96`) are release 2 code, not rollback targets.
 - Backend: live `vfrb-capstone-khedpubr1-dsogayon-8611.vercel.app` (`7b6e45e`); previous `vfrb-capstone-5gg2k26pv` (`4d8e8bc`) lacks the stock-note fix `cbed33d`, so don't roll the backend back for a frontend problem.
+
+---
+
+# Release nov9b: honest 3D labels, set scale, a11y and Studio polish (frontend only, prepared 2026-11-09)
+
+**Scope:** frontend only. No backend, migration, env, DesignState or payload change. Backend stays `7b6e45e`.
+**Status:** committed on `release/nov9b`, NOT pushed (Dave pushes).
+
+## Pre-deploy
+- [x] `npm run build` passes; logic checks 556/556 (BUILD-VERIFIED 2026-11-09).
+- [x] Demo stack :5180 -> :8000 (vfrb_demo): set thumbnails at real scale, 3D badges on 39 picker cards, landing pause button, live regions, Studio tooltips and ruler highlight (RUNTIME-VERIFIED; see HANDOFF).
+- [ ] Two-piece set lifecycle with logos on both pieces (save, My Designs, restore, Wizard, submit, Order Detail) on the demo stack.
+- [ ] `pg_dump` taken and size recorded (`scripts/backup-db.md`), replacing "Supabase backup taken".
+- [ ] Note current production deployment IDs (frontend live `vfrb-frontend-1xgd9ht4v`).
+
+## Deploy
+- [ ] Push `release/nov9b`, check the Vercel Preview (shares the live DB: look, don't save), then fast-forward `main`.
+
+## Smoke (production, read-only)
+- [ ] Studio picker: every card shows "3D preview (approximate)" or "2D design only: 3D coming"; the 2D/3D chip matches the card.
+- [ ] Order Detail of a set: top drawn shorter than the trousers.
+- [ ] Landing: "Pause moving text" stops the marquee; hero settles within 0.3 s.
+
+## Rollback
+- Vercel Instant Rollback of the frontend to `vfrb-frontend-1xgd9ht4v` (`defense-2026-11b`). No backend or DB step.
+
+## Restore drill log
+| Date | Dump size | Minutes to restore | Row counts match | By |
+|---|---|---|---|---|
+| | | | | |

@@ -39,10 +39,18 @@ Read this first in every new session. Do not re-audit finished work. Update the 
 - Production order: Supabase backup, backend ff-merge to main and push, wait Ready, frontend ff-merge and push, verify, tag `defense-2026-11`, delete branches last.
 - Vercel "Needs Attention" env vars (not marked Sensitive): after deploy, re-enter the SAME value with Sensitive on. Never replace `APP_KEY`. Change `DB_PASSWORD` only together with Supabase.
 
+## release/nov9b (2026-11-09, not pushed, not deployed)
+- Branch `release/nov9b` from `main` (`c9c11cc`). Slices: 1 set thumbnails at one real scale (`134630a`), 2 one 3D capability source and badge (`6603bb6`), 3 motion caps, marquee pause, live regions, iOS overflow fallback (`b8d460a`), 4 Studio focus tooltips, ruler span highlight, ruler corner (`0328d86`), 5 docs.
+- 3D wording now lives only in `CAP3D` (glbSlots.js) and `Capability3D.jsx`: "3D preview available" / "3D preview (approximate)" / "2D design only: 3D coming". Table and policy: `3D_CAPABILITY.md`, `ADR-3d-capability-policy.md`.
+- Pants is not inconsistent: the Meshy trousers file is gated and the VFRB-authored `pants-straight.glb` serves Pants.
+- Saved preview PNGs in set cards are not rescaled (framing differs per export); only silhouettes use `pieceFits`.
+- Backups and domain: `ADR-domain-dns-backup.md` (Proposed), runbook `scripts/backup-db.md`. Restore drill not run yet.
+- UNVERIFIED: real NVDA, touch, Safari, older iOS (the overflow fallback is CSS-only), the Studio tool rail at 390.
+
 ## Decisions made
 - No customer self-registration; Request access creates a contact only.
 - Station role = Administrator (Station) with `assigned_stage`; server enforces it.
-- Vector flats only in the editor; 3D shown honestly (0 verified models; "3D (approx.)" or "not available").
+- Vector flats only in the editor; 3D shown honestly (0 verified models; "3D preview (approximate)" or "2D design only: 3D coming", one source `CAP3D`).
 - Photo-to-3D generation (Meshy/Tripo style) is OUT of scope: AI is raw-material recommendation only; discuss with adviser if ever wanted.
 - Reference uploads and logo uploads built; "start from a photo" not built.
 - Retry-After on login 429 skipped (needs two backend changes for little value).
