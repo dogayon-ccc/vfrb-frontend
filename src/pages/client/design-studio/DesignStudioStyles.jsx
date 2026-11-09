@@ -1283,14 +1283,21 @@ export default function DesignStudioStyles() {
         .ds-bar-back{border-color:transparent;}
         .ds-bar-name{flex:1 1 0;width:auto;min-width:0;}
       }
-      /* Phones: the name gives way so Review is never clipped; save status stays in the panel summary. */
-      @media (max-width:767px){
+      /* Phones and tablets: the name gives way so Review is never clipped; save status stays in the panel summary. */
+      @media (max-width:1023px){
         .ds-bar .ds-bar-save{display:none;}
         .ds-bar .ds-view-chip{display:none;}
-        .ds-stage-badge{display:block;position:absolute;bottom:8px;left:8px;z-index:3;padding:2px 8px;border-radius:8px;pointer-events:none;
+        .ds-stage-badge{display:inline-flex;align-items:center;gap:6px;position:absolute;bottom:8px;left:8px;z-index:3;padding:2px 8px;border-radius:8px;pointer-events:none;
           background:var(--warning-bg,#fff4d6);color:var(--warning-text,#7a4b00);font:700 13px/18px var(--cx-sans);white-space:nowrap;}
         .ds-stage-badge[data-cap=none]{background:var(--bg-surface);color:var(--text-muted);}
         .ds-cv[data-rulers] .ds-stage-badge{left:42px;}
+      }
+      @media (min-width:768px) and (max-width:1023px){.ds-bar-name{min-width:120px;}}
+      @media (min-width:1024px) and (max-width:1279px){
+        .ds-bar-title,.ds-bar-back span{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;}
+        .ds-bar-name{flex:1 1 0;width:auto;min-width:120px;}
+      }
+      @media (max-width:767px){
         .ds-bar-primary{padding:0 12px;}
         .ds-bar-primary svg{display:none;}
       }
