@@ -90,6 +90,7 @@
 - [ ] Manager: Customers drawer slides in; order page dropdown and "View Submitted Design" are full height.
 - [ ] Phone with Reduce Motion on (iPhone: Accessibility > Motion): landing is static, numbers readable, no page slides.
 - [x] `/api/version` unchanged (`7b6e45e`, DB connected): DEPLOYMENT-VERIFIED.
+- [x] Order #28 as its customer: no stock wording in the AI material recommendation (`cbed33d`), notes intact: DEPLOYMENT-VERIFIED. Cosmetic: joined notes show ".." between sentences (backend, after the freeze).
 
 ## Rollback
 - Trigger: blank or stuck landing, numbers shown wrong, overlays not appearing, Studio colours wrong, any console error on load.
