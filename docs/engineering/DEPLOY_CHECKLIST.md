@@ -78,7 +78,7 @@
 
 ## Deploy
 - [ ] Push a branch first, open the Vercel **Preview**, check it (Preview shares the live DB: look, don't save).
-- [x] Pushed `main` (`610b358..6cfda96`); new build live. [ ] Note the previous production deployment ID for rollback. Note the previous production deployment ID for rollback.
+- [x] Pushed `main` (`610b358..6cfda96`); new build live. [x] Previous production deployment IDs noted (Rollback below).
 
 ## Smoke (production, read-only, ~5 min)
 - [x] Live bundle contains every change (scroll timelines, reduced-motion guard, spring, @starting-style, marquee/facts/progress, directional transitions, admin drawer override, Studio tint cache): DEPLOYMENT-VERIFIED by asset grep.
@@ -94,3 +94,5 @@
 ## Rollback
 - Trigger: blank or stuck landing, numbers shown wrong, overlays not appearing, Studio colours wrong, any console error on load.
 - Action: Vercel Instant Rollback of the frontend to the previous deployment (the `defense-2026-11` build). No backend or DB step.
+- Frontend: live `vfrb-frontend-1xgd9ht4v` (`f1ae797`, same code as `6cfda96`); rollback target `vfrb-frontend-rjopl24v9-dsogayon-8611.vercel.app` (`610b358`, `defense-2026-11`). `g1pxgjy5q` (docs) and `3w9jr8f4g` (`6cfda96`) are release 2 code, not rollback targets.
+- Backend: live `vfrb-capstone-khedpubr1-dsogayon-8611.vercel.app` (`7b6e45e`); previous `vfrb-capstone-5gg2k26pv` (`4d8e8bc`) lacks the stock-note fix `cbed33d`, so don't roll the backend back for a frontend problem.
