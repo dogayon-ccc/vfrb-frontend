@@ -163,7 +163,9 @@
 ## Smoke (production)
 - [x] Public, signed out: landing 3D hero, branded 404 with home link, Privacy/Terms with RA 10173 text and draft note, sign-in legal links, private routes noindex and redirect; no overflow at 1440 (DEPLOYMENT-VERIFIED). An open tab keeps the old bundle until "New version available > Refresh" (worked).
 - [x] Live demo customer #15, 1440: set opens in the Studio, rail names not clipped, 3D preview renders, face check loads (ort wasm 17.8 s first load, model 200) and passes a generated logo, Save -> dashboard "Edited just now", Discard dialog centred inside the viewport, discard confirmed; #15 back to 4 designs / 0 drafts, 8 orders unchanged (DEPLOYMENT-VERIFIED). 390 on live UNVERIFIED (X-Frame-Options DENY blocks the frame method); touch and Safari UNVERIFIED.
-- Known minor: the 404 page keeps the previous tab title.
+- Known minor: the 404 page keeps the previous tab title. Fixed by `fix/404-title` (`ca0532c`), merged and live: `main` `c737731`, Vercel deployment `2tPiRNSJdmmYRyJ13aBkeLyYapaN` (reported by Dave; live `/nope` title not checked by Claude).
+- Admin tab titles done on `fix/admin-tab-titles` (`abc790f`, RUNTIME-VERIFIED on :5180 as demo-manager); deploys with the next push of `main`.
+- Live smoke user #45 `zz_smoke_st` deactivated (reported by Dave).
 
 ## Rollback
 - Vercel Instant Rollback to `23nK8BoH2cYxZ2g1DDjpzyfpKEGw` (nov9c, tag `defense-2026-11d`), or revert `e913571..7d4538d` and push. No backend or DB step.
