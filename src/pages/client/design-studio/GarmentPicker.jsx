@@ -8,7 +8,7 @@ import { CATALOG, pieceOf, applyGarment, resolveTarget, PIECE_FACETS, GENDER_FAC
 import { DERIVED_LABEL } from './derivedFamilies';
 import { CATEGORIES, PIECES, SLEEVES, GENDERS, ENTRIES, TIER_LABEL, filterDesigns, facetCounts } from './designGallery';
 import { hasWebGL } from './webglSupport';
-import { glbSlotFor, slotEditable3D } from './glbSlots';
+import { glbSlotFor, slotEditable3D, CAP3D } from './glbSlots';
 import { ROLE_LABEL } from './uniformSet';
 import { SwatchGrid } from './SwatchGrid';
 import GarmentCarousel from './GarmentCarousel';
@@ -22,6 +22,8 @@ import { revealAlert } from './dsShared';
 
 const ReferenceModel3D = lazy(() => import('./ReferenceModel3D'));
 const CAT_SHORT = { 'School Uniform': 'School', 'Medical / Scrubs': 'Medical', 'Hospitality / Service': 'Hospitality', 'Industrial / Work': 'Industrial' };
+
+import Capability3D, { TIER_CAP } from './Capability3D';
 
 const PHOTO_BADGE = { reference: Eye, 'editable-2d': Square, '2d-3d-approx': Box, '2d-3d': CheckCircle2 };
 const PHOTO_LABEL = Object.fromEntries(Object.entries(TIER_LABEL).map(([k, t]) => [k, t.label]));
@@ -107,8 +109,8 @@ export function previewSentence(p, offRole = null) {
   return `Opens the closest ${p.garmentFamily} template${sleeveTxt(p)}; it is not an exact copy of the photo.`;
 }
 export function previewChips(p, offRole = null) {
-  const three = !p.editable2D || offRole ? (p.ref3D ? '3D reference only' : 'No 3D') : p.has3D ? (p.base?.[3] && slotEditable3D(glbSlotFor(p.base[3])) ? '3D, editable' : '3D (approx.), one body colour')
-    : p.familyApprox3D ? `3D is the generic ${p.garmentFamily} model` : '2D only';
+  const three = !p.editable2D || offRole ? (p.ref3D ? '3D reference only' : 'No 3D') : p.has3D ? (p.base?.[3] && slotEditable3D(glbSlotFor(p.base[3])) ? CAP3D.verified : `${CAP3D.approx}, one body colour`)
+    : p.familyApprox3D ? `3D is the generic ${p.garmentFamily} model` : CAP3D.none;
   return [offRole ? TIER_LABEL.reference.label : TIER_LABEL[p.tier].label, CAT_LABEL[p.category], PIECE_LABEL[p.piece], GENDER_LABEL[p.gender], p.sleeve && `${p.sleeve} sleeve`, three,
     p.pieces?.derived && !offRole && DERIVED_LABEL].filter(Boolean);
 }
@@ -239,7 +241,7 @@ function Photos({ head, onClose, cfg, pieceRole, onPickPhoto, onPick3D, onPickFa
             <button type="button" className="ds-pick-card" onClick={() => setPreview(d)} title={TIER_LABEL[tierOf(d)].note} aria-label={`${d.label}, ${PHOTO_LABEL[tierOf(d)]}`}>
               <span className="ds-pick-img"><img src={d.thumb} alt="" loading="lazy" decoding="async"/></span>
               <strong>{garmentLabel(d.label)}</strong>
-              <Badge icon={PHOTO_BADGE[tierOf(d)]} label={PHOTO_LABEL[tierOf(d)]}/>
+              <Capability3D kind={TIER_CAP[tierOf(d)]}/>
             </button>
           </li>
         ))}
@@ -297,7 +299,7 @@ function FamilyCard({ fam, cfg, fitsRole, pieceRole, onPick, i }) {
         onClick={() => onPick(fam)} aria-label={`${fam.id}, ${PHOTO_LABEL[tier]}`}>
         <span className="ds-pick-img"><TemplateImage fam={fam} cfg={cfg} pick={combosFor(fam, VECTOR)[0] ?? {}}/></span>
         <strong>{garmentLabel(fam.id)}</strong>
-        <Badge icon={PHOTO_BADGE[tier]} label={PHOTO_LABEL[tier]}/>
+        <Capability3D kind={TIER_CAP[tier]}/>
       </button>
     </li>
   );

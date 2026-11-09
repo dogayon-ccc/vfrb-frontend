@@ -3,7 +3,8 @@ import { createPortal } from 'react-dom';
 import { AnimatePresence } from 'framer-motion';
 import { Minus, Plus, Scan, Maximize2, Minimize2, Expand, Shrink, Lightbulb, RotateCw, FlipHorizontal2 } from 'lucide-react';
 import { NavIcon } from '../../../components/ui/icons';
-import { familyFor, label3D } from './garmentCatalog';
+import { familyFor, cap3D } from './garmentCatalog';
+import Capability3D from './Capability3D';
 import { get3DCapabilities, hemNote3D, detailParts3D, explodableFor } from './garmentCapabilities';
 import { LIGHT_PRESETS } from './lightRig';
 import { ZONE_LABEL } from './dsShared';
@@ -486,7 +487,7 @@ export default function CanvasViewport({
       <div ref={fitRef} className="ds-stage-fit">
         {/* Phones: the 3D status sits in the stage corner instead of under the 2D | 3D switch, so the top bar stays one row. */}
         {gesture && <div className="ds-gesture" role="status">{gesture}</div>}
-        {cfg.garment && <span className="ds-stage-badge" data-off={label3D(cfg) === '3D not available' ? '1' : undefined}>{label3D(cfg)}</span>}
+        {cfg.garment && <Capability3D kind={cap3D(cfg)} className="ds-stage-badge"/>}
         {/* Skeleton until the garment base has drawn, so the stage is never blank while a photo or template loads. */}
         {show2D && cfg.garment && !garmentRect && !initFailed && <div className="ds-ref3d-skel" role="status"><span aria-hidden="true"/>Loading your design…</div>}
         {/* Set view: both pieces on one scale (2D). */}

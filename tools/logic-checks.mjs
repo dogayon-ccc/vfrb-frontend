@@ -246,14 +246,14 @@ t('GLB slots: a slot never changes 3D status', G.resolveTarget('Mandarin Collar'
   t('GLB intake: VERIFIED only with a pass plus --source, --licence and --photos-owned yes; anything less stays candidate',
     GS.intakeStatus({ pass: true, source: 'VFRB', licence: 'Meshy Pro, private', photosOwned: 'yes' }) === 'verified'
     && [{ pass: false, source: 'a', licence: 'b', photosOwned: 'yes' }, { pass: true, source: ' ', licence: 'b', photosOwned: 'yes' }, { pass: true, source: 'a', licence: '', photosOwned: 'yes' }, { pass: true, source: 'a', licence: 'b', photosOwned: 'no' }, { pass: true }].every(x => GS.intakeStatus(x) === 'candidate'));
-  t('GLB statuses: only verified + a { method, date } record enables 3D editing; approx stays read-only "3D (approx.)"; candidate shows nothing',
+  t('GLB statuses: only verified + a { method, date } record enables 3D editing; approx stays read-only "3D preview (approximate)"; candidate shows nothing',
     GS.GLB_STATUSES.join() === 'candidate,approx,verified' && GS.slotEditable3D({ state: 'verified', verification: { method: 'glb-intake', date: '2026-11-02' } })
     && !GS.slotEditable3D({ state: 'verified', verification: null }) && !GS.slotEditable3D({ state: 'approx', verification: { method: 'x', date: 'y' } })
-    && GS.slot3DLabel({ state: 'approx' }) === '3D (approx.)' && GS.slot3DLabel({ state: 'candidate' }) === null && Object.values(GS.GLB_SLOTS).every(s => !GS.slotEditable3D(s)));
+    && GS.slot3DLabel({ state: 'approx' }) === '3D preview (approximate)' && GS.slot3DLabel({ state: 'candidate' }) === null && Object.values(GS.GLB_SLOTS).every(s => !GS.slotEditable3D(s)));
   t('GLB intake: register line escapes pipes and blanks', GI.registerLine({ date: '2026-11-02', file: 'a|b.glb', result: 'PASS / candidate', source: '', licence: 'x\ny' }) === '| 2026-11-02 | a b.glb | PASS / candidate | - | x y |'); }
-t('resolveTarget: no target enables 3D editing today; any 3D target is labelled "3D (approx.)", never status 2d-3d', (rs => rs.length > 20 && rs.every(r => r.edit3D === false && r.status !== '2d-3d' && r.label3D === (r.glb ? '3D (approx.)' : null)))(Object.keys(G.FAMILY_BY_NAME).flatMap(g => [null, 'Short', 'Long', '3/4'].flatMap(s => [null, 'male', 'female', 'unisex'].map(f => G.resolveTarget(g, s, f)))).filter(Boolean)));
+t('resolveTarget: no target enables 3D editing today; any 3D target is labelled "3D preview (approximate)", never status 2d-3d', (rs => rs.length > 20 && rs.every(r => r.edit3D === false && r.status !== '2d-3d' && r.label3D === (r.glb ? '3D preview (approximate)' : null)))(Object.keys(G.FAMILY_BY_NAME).flatMap(g => [null, 'Short', 'Long', '3/4'].flatMap(s => [null, 'male', 'female', 'unisex'].map(f => G.resolveTarget(g, s, f)))).filter(Boolean)));
 { const GP = await L('/src/pages/client/design-studio/GarmentPicker.jsx');
-  t('picker chips and the Studio 3D label follow the verified-only rule: no photo says "3D, editable" and no garment says plain "3D" today', D.ENTRIES.every(e => !GP.previewChips(e).includes('3D, editable') && (!e.has3D || !e.editable2D || GP.previewChips(e).includes('3D (approx.), one body colour') || !!e.familyApprox3D)) && Object.keys(G.FAMILY_BY_NAME).every(g => G.label3D({ garment: g }) !== '3D')); }
+  t('picker chips and the Studio 3D label follow the verified-only rule: no photo says "3D, editable" and no garment says "3D preview available" today', D.ENTRIES.every(e => !GP.previewChips(e).includes('3D, editable') && (!e.has3D || !e.editable2D || GP.previewChips(e).includes('3D preview (approximate), one body colour') || !!e.familyApprox3D)) && Object.keys(G.FAMILY_BY_NAME).every(g => G.label3D({ garment: g }) !== '3D preview available')); }
 t('15 worn photos each have a photo: slot',D.ENTRIES.filter(d => d.source === 'worn').every(d => GS.glbSlotFor(d.id)?.id === `photo:${d.id}`));
 t('capped Hero GLB exists at its runtime path', fsx.existsSync(pub('models/processed/work-shirt-short-sleeve-capped.glb')));
 { const cp = await import('node:child_process'); const r = cp.spawnSync(process.execPath, [urlx.fileURLToPath(new URL('./asset-audit.mjs', import.meta.url))], { encoding: 'utf8' }); t('asset audit: every referenced asset exists, every kept file is explained', r.status === 0 && /ASSET AUDIT: PASS/.test(r.stdout)); }
@@ -493,10 +493,10 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     /'Review & order'/.test(bar) && /className="ds-bar-primary" onClick=\{onReorder\}/.test(bar) && /onClick=\{saveDesign\}/.test(bar) && /Export PDF spec sheet/.test(bar)
     && !/<StudioDock/.test(get('ToolDrawer.jsx')) && !/FINAL DESIGN/.test(dsx) && /<PiecesRail /.test(dsx) && !/ds-bar-cat|cfg\.category/.test(bar));
   const CATd = await L('/src/pages/client/design-studio/garmentCatalog.js');
-  t('dock and order preview 3D labels agree: an unverified model (supported or partial) reads "3D (approx.)", plain "3D" only with a verification record',
-    /\{label3D\(cfg\)\}/.test(get('TopBar.jsx')) && !/Approx\. 3D</.test(get('TopBar.jsx'))
+  t('dock and order preview 3D labels agree: an unverified model (supported or partial) reads "3D preview (approximate)", "3D preview available" only with a verification record',
+    /<Capability3D kind=\{cap3D\(cfg\)\}/.test(get('TopBar.jsx')) && /<Capability3D kind=\{cap3D\(cfg\)\}/.test(get('CanvasViewport.jsx')) && !/Approx\. 3D</.test(get('TopBar.jsx'))
     && /\{label3D\(design\)\}/.test(rd('src/components/DesignPreview.jsx')) && !/status3D === 'partial'/.test(rd('src/components/DesignPreview.jsx'))
-    && ['Pants', 'Jogger Scrub Pants', 'Skirt'].every(g => { const f = CATd.familyFor(g); return f && f.status3D !== 'none' && !f.verified3D && CATd.label3D({ garment: g }) === '3D (approx.)'; }));
+    && ['Pants', 'Jogger Scrub Pants', 'Skirt'].every(g => { const f = CATd.familyFor(g); return f && f.status3D !== 'none' && !f.verified3D && CATd.label3D({ garment: g }) === '3D preview (approximate)'; }));
 }
 // Studio visual quality: photo bases never above native resolution; a new design starts with one base colour.
 {
@@ -552,7 +552,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const gp = src('../src/pages/client/design-studio/GarmentPicker.jsx');
   t('picker header (title, close, tabs, badge key) and action footer stick to the scroll box; the close lives in the header, never over a card',
     /\.ds-pick-head\{position:sticky;top:0;/.test(css) && /\.ds-pick-foot\{position:sticky;bottom:0;/.test(css) && /function Head\([^)]*onClose/.test(gp) && (gp.match(/ds-pick-close/g) ?? []).length === 1 && !/float:right/.test(rule('.ds-pick-close')));
-  t('every picker card shows its status badge (no hidden default) and the key lists the badges present; template cards and the carousel hero use the same four tiers as photos', !/!== def &&/.test(gp) && (gp.match(/<Badge icon=/g) ?? []).length === 4 && (gp.match(/<Legend labels=\{PHOTO_LABEL\}/g) ?? []).length === 2 && !/TEMPLATE_STATUS/.test(gp));
+  t('every picker card shows its status badge (no hidden default) and the key lists the badges present; template cards and the carousel hero use the same four tiers as photos', !/!== def &&/.test(gp) && (gp.match(/<Badge icon=/g) ?? []).length === 2 && (gp.match(/<Capability3D kind=\{TIER_CAP\[/g) ?? []).length === 2 && (gp.match(/<Legend labels=\{PHOTO_LABEL\}/g) ?? []).length === 2 && !/TEMPLATE_STATUS/.test(gp));
   // Top bar: no Inspo, no menu (a menu with one item is never rendered).
   const tb = src('../src/pages/client/design-studio/TopBar.jsx');
   t('top bar has no Inspo button and no overflow menu; Showcase is a direct button shown only with designs', !/<span>Inspo<|label: 'Inspo'|role="menu"|aria-haspopup/.test(tb) && /showcaseCount > 0 &&/.test(tb));
@@ -1715,10 +1715,10 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('program garments: all 12 open an editable 2D template with named zones, on the asked sleeve, each family once',
     opened.every(({ g, s, c }) => c.garment === g && c.sleeve === s && CAT.familyFor(g)?.has2D && Sh.zonesFor(g, s, c.fit).includes('body') && !!GP.getGarmentPaths(g, s ?? 'Short').body)
     && new Set(Object.keys(CAT.FAMILY_BY_NAME).map(n => n.toLowerCase())).size === Object.keys(CAT.FAMILY_BY_NAME).length);
-  t('program garments: the 3D label is has3DFor\'s answer; Polo Long and Round Neck Long have no model and say "3D not available"',
-    opened.every(({ c }) => CAT.label3D(c) === (CP.has3DFor(c) ? '3D (approx.)' : '3D not available'))
-    && ['Polo Shirt', 'Round Neck'].every(g => ['male', 'female'].every(fit => CAT.label3D({ garment: g, sleeve: 'Long', fit }) === '3D not available'))
-    && CAT.label3D({ garment: 'Polo Shirt', sleeve: 'Short', fit: 'male' }) === '3D (approx.)');
+  t('program garments: the 3D label is has3DFor\'s answer; Polo Long and Round Neck Long have no model and say "2D design only: 3D coming"',
+    opened.every(({ c }) => CAT.label3D(c) === (CP.has3DFor(c) ? '3D preview (approximate)' : '2D design only: 3D coming'))
+    && ['Polo Shirt', 'Round Neck'].every(g => ['male', 'female'].every(fit => CAT.label3D({ garment: g, sleeve: 'Long', fit }) === '2D design only: 3D coming'))
+    && CAT.label3D({ garment: 'Polo Shirt', sleeve: 'Short', fit: 'male' }) === '3D preview (approximate)');
   console.log(`program garments: ${opened.map(({ g, s, c }) => `${g}${s ? ' ' + s : ''} = ${CAT.label3D(c)}`).join('; ')}`);
   const SP = (await L('/src/pages/client/design-studio/SizeProportions.jsx')).default, sp = (garment, sizes) => renderToString(React.createElement(SP, { studio: { garment, sleeve: 'Long', fit: 'male', colors: {} }, sizes }));
   t('Order Wizard size row: one drawing per ordered size in chart order, on one shared frame; none for a traced template or no sizes; no cm anywhere',
@@ -1726,15 +1726,15 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && sp('Mandarin Blouse (Reference)', { M: 5 }) === '' && sp('Polo Shirt', {}) === '' && GP.sizable("Men's Slacks") && GP.sizable('Mandarin Blouse') && !GP.sizable('Mandarin Blouse (Reference)'));
   // M5: Mandarin Blouse is parametric (size chart, own zones, no model); the traced outline stays for saved designs and its photo only.
   const mb = G.applyGarment({ ...base, fit: null }, 'Mandarin Blouse', { sleeve: 'Long' }), mbp = GP.getGarmentPaths('Mandarin Blouse', 'Long');
-  t('M5 Mandarin Blouse: parametric top with body, collar and both sleeves; Short and Long; one picker entry; "3D not available" from has3DFor',
+  t('M5 Mandarin Blouse: parametric top with body, collar and both sleeves; Short and Long; one picker entry; "2D design only: 3D coming" from has3DFor',
     ['body', 'collar', 'sleeveL', 'sleeveR'].every(z => !!mbp[z]) && mb.sleeve === 'Long' && CAT.FAMILY_BY_NAME['Mandarin Blouse'].styles.join() === 'Short,Long'
     && G.CATALOG.flatMap(c => c.families.map(f => f.id)).filter(n => /^Mandarin Blouse/.test(n)).every(n => n === 'Mandarin Blouse')
-    && !CP.has3DFor(mb) && CAT.label3D(mb) === '3D not available' && S.serializeDesign({ ...mb, overlays: [] }).templateId === 'mandarin-blouse'
+    && !CP.has3DFor(mb) && CAT.label3D(mb) === '2D design only: 3D coming' && S.serializeDesign({ ...mb, overlays: [] }).templateId === 'mandarin-blouse'
     && S.deserializeDesign(S.serializeDesign({ ...mb, overlays: [] })).cfg.garment === 'Mandarin Blouse');
   const oldMb = S.deserializeDesign({ garment: 'Mandarin Blouse', templateId: 'derived-blouse-mandarin-yellow', colors: { body: '#c9a227' } }).cfg;
   t('M5 old traced Mandarin Blouse design: its saved templateId reopens the traced outline with the same colour and 3D status; the photo still opens it',
     oldMb.garment === 'Mandarin Blouse (Reference)' && oldMb.colors.body === '#c9a227' && Sh.zonesFor(oldMb.garment, oldMb.sleeve, oldMb.fit).join() === 'body'
-    && CP.has3DFor(oldMb) && CAT.label3D(oldMb) === '3D (approx.)'
+    && CP.has3DFor(oldMb) && CAT.label3D(oldMb) === '3D preview (approximate)'
     && D.openTarget(D.ENTRIES.find(d => d.id === 'blouse-mandarin-yellow'), {})?.garment === 'Mandarin Blouse (Reference)');
   // Tier 1 (GLB flats) keep the part-name parity check above; Tier 2 (generator templates) must keep the generator's zone keys at every size.
   const tier2 = opened.filter(({ g, s }) => !GP.getGarmentPaths(g, s ?? 'Short').flat);
@@ -1828,10 +1828,10 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && OT.uses2DOnlyEffects([{ fill: grad }]) && OT.uses2DOnlyEffects([{ type: 'Group', objects: [{ fill: grad }] }]) && OT.uses2DOnlyEffects([], { body: 'gradient' })
     && !OT.uses2DOnlyEffects([{ fill: '#ff0000', globalCompositeOperation: 'source-over', filters: [] }, null], { body: 'solid' }) && !OT.uses2DOnlyEffects(null, null));
   const all = Object.keys(CAT.FAMILY_BY_NAME).flatMap(g => [null, 'Short', 'Long', '3/4', 'Sleeveless'].flatMap(s => [null, 'male', 'female', 'unisex'].map(f => ({ garment: g, sleeve: s, fit: f }))));
-  t('3D labels on every garment, sleeve and fit: "3D (approx.)" exactly when a model renders, else "3D not available"; plain "3D" needs a verification record (none today)',
-    all.length > 100 && all.every(d => CAT.label3D(d) === (CP.has3DFor(d) ? '3D (approx.)' : '3D not available')) && all.some(d => CP.has3DFor(d))
+  t('3D labels on every garment, sleeve and fit: "3D preview (approximate)" exactly when a model renders, else "2D design only: 3D coming"; "3D preview available" needs a verification record (none today)',
+    all.length > 100 && all.every(d => CAT.label3D(d) === (CP.has3DFor(d) ? '3D preview (approximate)' : '2D design only: 3D coming')) && all.some(d => CP.has3DFor(d))
     && CP.SCANNED_GARMENTS.every(e => !e.verification && (!e.label || e.label === '3D (approx.)'))
-    && GS.slot3DLabel({ state: 'verified' }) === '3D (approx.)' && GS.slot3DLabel({ state: 'verified', verification: { method: 'render-compare', date: '2026-11-02' } }) === '3D' && GS.slot3DLabel({ state: 'none' }) === null);
+    && GS.slot3DLabel({ state: 'verified' }) === '3D preview (approximate)' && GS.slot3DLabel({ state: 'verified', verification: { method: 'render-compare', date: '2026-11-02' } }) === '3D preview available' && GS.slot3DLabel({ state: 'none' }) === null);
   const ds = rd('src/pages/client/DesignStudio.jsx'), d3 = rd('src/pages/client/DesignStudio3D.jsx'), sm = rd('src/pages/client/design-studio/ScannedGarmentMesh.jsx'), cv = rd('src/pages/client/design-studio/CanvasViewport.jsx');
   const srcDir = urlx.fileURLToPath(new URL('../src', import.meta.url)), walk = d => fsx.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(`${d}/${e.name}`) : /\.jsx?$/.test(e.name) ? [`${d}/${e.name}`] : []);
   const graph3D = /(DesignStudio3D|ScannedGarmentMesh|ReferenceModel3D|garmentMeshManifest|regionShader|regionTexture|StageTowers3D|GarmentPreview3D|HeroTurntable)\.jsx?$/;

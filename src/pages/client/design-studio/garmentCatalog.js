@@ -15,7 +15,7 @@
 // family's fit/style options and 3D status are read once, here, from the real capability data
 // — never guessed, never invented for a garment that doesn't have it.
 import { photoFits, assetFor, templateIdFor, vectorFits } from './garmentAssets';
-import { glbSlotFor, slotLive, slotEditable3D } from './glbSlots';
+import { glbSlotFor, slotLive, slotEditable3D, CAP3D } from './glbSlots';
 import { BASE_PATHS, getGarmentPaths } from './garmentPaths';
 import { get3DCapabilities, fitsFor, sleeves3DFor, has3DModel, has3DFor } from './garmentCapabilities';
 import { realTrimFor, colorsForGarment } from './colorRules';
@@ -224,7 +224,9 @@ export function neighborFamily(category, garment, dir) {
 }
 
 // The Studio's 3D label for one design (garment, sleeve, fit, inspiration), always from has3DFor. No model is verified yet.
-export const label3D = d => (has3DFor(d) ? (resolveTarget(d.garment, d.sleeve, d.fit)?.edit3D ? '3D' : '3D (approx.)') : '3D not available');
+// 3D capability of a design: verified | approx | none. has3DFor decides whether a model renders; only a verification record makes it verified.
+export const cap3D = d => (has3DFor(d) ? (resolveTarget(d.garment, d.sleeve, d.fit)?.edit3D ? 'verified' : 'approx') : 'none');
+export const label3D = d => CAP3D[cap3D(d)];
 
 // ONE answer to "what exactly does (garment, sleeve, fit, face) resolve to": family + variant (2D asset id) + zones + 3D + honest status.
 // Gallery, Studio, Order Wizard and both Order Detail pages read this instead of re-deriving it. Status says 'verified' only for a GLB with a verification record.
@@ -243,7 +245,7 @@ export function resolveTarget(garment, sleeve, fit, face = 'front') {
     glbSlot: asset ? glbSlotFor(asset.id) : null, // reserved path for a future garment-only GLB of this exact photo base; never implies a model exists
     glbSrc: exactGlb, // the exact GLB of this photo base, only while its slot is live
     glbStatus: asset ? (glbSlotFor(asset.id)?.state ?? 'none') : 'none',
-    edit3D, label3D: edit3D ? '3D' : sleeve3D || exactGlb ? '3D (approx.)' : null, // anything not verified stays read-only
+    edit3D, label3D: edit3D ? CAP3D.verified : sleeve3D || exactGlb ? CAP3D.approx : null, // anything not verified stays read-only
     status: statusFor({ editable2D: fam.has2D || !!asset, has3D: sleeve3D || !!exactGlb, verified3D: edit3D }),
   };
 }

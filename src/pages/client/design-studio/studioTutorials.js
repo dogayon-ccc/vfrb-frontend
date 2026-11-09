@@ -38,7 +38,7 @@ export const TUTORIALS = [
     ['.ds-rail-card', 'Switch pieces', 'Each piece has its own card. Tap one to edit it; Preview the set shows both together.'],
   ] },
   { id: 'views', title: 'Check front, back and 3D', summary: 'Turn the garment and preview it.', steps: [
-    ['.ds-bar-view', '2D or 3D', '2D is the design VFRB produces from. Where a model exists, 3D (approx.) shows the shape; its colours and fit can differ.'],
+    ['.ds-bar-view', '2D or 3D', '2D is the design VFRB produces from. Where a model exists, 3D preview (approximate) shows the shape; its colours and fit can differ.'],
     ['.ds-stage-fit', 'Zoom and pan', 'Z or Ctrl+scroll zooms, scrolling pans, and a double-click on the empty stage fits the garment again.'],
   ] },
   { id: 'order', title: 'Save and order', summary: 'Keep your work, then place the order.', steps: [

@@ -5,7 +5,8 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, Undo2, Redo2, Sparkles, Save, Check, ChevronRight } from 'lucide-react';
 import ActionMenu from '../../../components/ui/ActionMenu';
 import { has3DFor, NO_FAMILY_3D, standIn3D, no3DReason } from './garmentCapabilities';
-import { label3D } from './garmentCatalog';
+import { cap3D } from './garmentCatalog';
+import Capability3D from './Capability3D';
 import { isCustom, CUSTOM_3D_NOTE } from './customGarment';
 import { garmentLabel } from '../../../utils/designName';
 
@@ -15,7 +16,7 @@ const view3DTitle = (cfg, no3D) => (no3D
     : NO_FAMILY_3D.has(cfg.inspirationId) ? 'No 3D model matches the garment in this photo; 2D is the exact preview'
     : standIn3D(cfg.garment) ? `The only 3D model for ${garmentLabel(cfg.garment)} is a generic stand-in, not this garment, so 3D is off; 2D is the exact preview`
     : 'No 3D model for this garment and sleeve; 2D is the exact preview')
-  : label3D(cfg) === '3D' ? 'Verified 3D model: edits show on the matching part'
+  : cap3D(cfg) === 'verified' ? 'Verified 3D model: edits show on the matching part'
   : '3D is an approximate, read-only spatial preview; use 2D for exact colours and placement');
 
 const PHONE = '(max-width: 599px)';
@@ -30,7 +31,7 @@ function usePhone() {
 }
 
 // The one 2D | 3D switch: in the top bar, and on phones in the stage's top lane instead (CSS picks one), so the bar keeps room for the name.
-// The chip beside the switch says what 3D this exact design has (label3D): "3D (approx.)" or "3D not available".
+// The chip beside the switch says what 3D this exact design has (cap3D, shared Capability3D badge).
 export function ViewToggle({ cfg, viewMode, setViewMode, setHas3DLoaded }) {
   const no3D = !has3DFor(cfg);
   const pickView = (m) => { if (m === '3d') setHas3DLoaded(true); setViewMode(m); };
@@ -44,7 +45,7 @@ export function ViewToggle({ cfg, viewMode, setViewMode, setHas3DLoaded }) {
           </button>
         ))}
       </div>
-      {cfg.garment && <span className={`ds-view-chip${no3D ? ' is-off' : ''}`} title={view3DTitle(cfg, no3D)}>{label3D(cfg)}</span>}
+      {cfg.garment && <Capability3D kind={cap3D(cfg)} className={`ds-view-chip${no3D ? ' is-off' : ''}`} title={view3DTitle(cfg, no3D)}/>}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { assetFor, assetById } from './garmentAssets';
-import { glbSlotFor, slotLive } from './glbSlots';
+import { glbSlotFor, slotLive, CAP3D } from './glbSlots';
 import { applyGarment, resolveSleeve, FAMILY_BY_NAME } from './garmentCatalog';
 import { modelFromPhoto, has3DModel, NO_FAMILY_3D } from './garmentCapabilities';
 import { DERIVED_REFS, REFS_WITH_REMOVED, REUSED_TOPS, derivedPiecesFor } from './derivedFamilies';
@@ -158,10 +158,10 @@ export const DESIGNS = [
 ];
 
 export const TIER_LABEL = {
-  'reference':    { label: 'Reference photo', tone: 'muted', note: 'Inspiration only. No editable shape or 3D model for this design.' },
-  'editable-2d':  { label: 'Editable 2D', tone: 'info', note: 'Opens the closest VFRB garment template for editing. The photo stays a reference; the template is not an exact copy of it.' },
-  '2d-3d-approx': { label: '2D + 3D (approx.)', tone: 'warn', note: 'Editable in 2D with a real 3D model. 3D colour zones are approximate.' },
-  '2d-3d':        { label: '2D + 3D', tone: 'ok', note: 'Editable in 2D with a verified 3D model.' },
+  'reference':    { label: CAP3D.reference, tone: 'muted', note: 'Inspiration only. No editable shape or 3D model for this design.' },
+  'editable-2d':  { label: CAP3D.none, tone: 'info', note: 'Opens the closest VFRB garment template for editing. The photo stays a reference; the template is not an exact copy of it.' },
+  '2d-3d-approx': { label: CAP3D.approx, tone: 'warn', note: 'Editable in 2D with a real 3D model. 3D colour zones are approximate.' },
+  '2d-3d':        { label: CAP3D.verified, tone: 'ok', note: 'Editable in 2D with a verified 3D model.' },
 };
 
 export const ENTRIES = DESIGNS;
