@@ -1947,5 +1947,11 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && /<span>\{n\}<\/span>/.test(lp) && /mo-count linear both; animation-timeline: --lp-fact; animation-range: entry 0% entry 100%/.test(lc) && /content: counter\(n\) \/ ''/.test(lc));
   t('page transitions: a shallower path or home slides back, deeper slides forward; reduced motion skips the transition entirely',
     /dataset\.nav = to === '\/' \|\| depth\(to\) < depth\(location\.pathname\) \? 'back' : 'forward'/.test(vl) && /prefers-reduced-motion: reduce/.test(vl) && /html\[data-nav="back"\]::view-transition-new\(root\)/.test(tr)); }
+{ const AN = await L('/src/layouts/adminNav.js'), rd = q => fsx.readFileSync(urlx.fileURLToPath(new URL(q, import.meta.url)), 'utf8'), app = rd('../src/App.jsx');
+  const block = app.slice(app.indexOf('<Route path="/admin/*"'), app.indexOf('<Route path="*" element={<AdminNotFound/>}/>'));
+  const paths = [...block.matchAll(/<Route path="([^"*]+)"/g)].map(m => `/admin/${m[1].replace(/:[^/]+/g, '1')}`);
+  const missing = paths.filter(p => !AN.navMatch(p)?.label);
+  t(`admin tab titles: every admin route in App.jsx (${paths.length}) has a nav title entry${missing.length ? ` (missing ${missing.join(', ')})` : ''}`, paths.length >= 20 && !missing.length
+    && /usePageTitle\(current \?/.test(rd('../src/layouts/AdminLayout.jsx'))); }
 console.log(out.join('\n')); const f =out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);

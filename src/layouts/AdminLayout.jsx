@@ -13,6 +13,7 @@ import { MESSAGES_READ_EVENT } from '../hooks/useUnreadMessages';
 import AlertBanner from '../components/ui/AlertBanner';
 import ThreadPull from '../components/ui/ThreadPull';
 import useDialogFocus from '../hooks/useDialogFocus';
+import usePageTitle from '../hooks/usePageTitle';
 import { prefetchPath } from '../utils/adminResources';
 import { readAdminUser, canOpen, roleLabel as roleLabelFor, isStation } from '../utils/jobAccess';
 import AccessDenied from '../components/AccessDenied';
@@ -307,6 +308,8 @@ export default function AdminLayout() {
     ...(current ? [{ label: current.group }, { label: current.label, to: current.to, page: true }] : [{ label: 'Page' }]),
     ...(rest.length ? [{ label: /^\d+$/.test(rest[0]) ? `#${rest[0]}` : 'Details', page: true }] : []),
   ];
+  // Tab title from the matched nav item; unknown paths leave it to AdminNotFound.
+  usePageTitle(current ? (rest.length ? `${crumbs[crumbs.length - 1].label} · ${current.label}` : current.label) : null);
 
   const avatarEl = (cls) => (
     <span className={cls} style={{ background: isManager ? 'var(--purple)' : 'var(--teal)' }}>
