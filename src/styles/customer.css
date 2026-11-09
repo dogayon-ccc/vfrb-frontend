@@ -361,6 +361,8 @@ html[data-theme=dark] :is(.cm-shell .ui-btn[data-v=secondary],.cx-btn-s):hover:n
   .dx-stage{min-height:300px}
   .dx-order{padding:22px 26px}
   .dx-rd-thumb{height:170px}
+  .dx-hero{grid-template-columns:minmax(0,7fr) minmax(0,5fr);min-height:300px}
+  .dx-rd{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
 @media(min-width:1024px){
   .dx-hero{grid-template-columns:minmax(0,7fr) minmax(0,5fr);min-height:360px}
@@ -754,3 +756,4 @@ html[data-theme=dark] .cm-shell .ui-step[data-s=now] .ui-step-dot{color:var(--co
 .aim-pick-row input{width:18px;height:18px;accent-color:var(--cx-thread)}
 .aim-pick-row:has(input:focus-visible){outline:2px solid var(--cx-thread);outline-offset:1px}
 .aim-act .ui-btn[data-v=primary]{width:100%;max-width:420px}
+@media(min-width:900px) and (max-width:1199px){.acct-split{grid-template-columns:248px minmax(0,1fr)}}
