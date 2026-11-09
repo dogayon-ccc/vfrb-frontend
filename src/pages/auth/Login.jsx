@@ -147,6 +147,10 @@ export default function Login() {
         <a href={CONTACT.facebook} target="_blank" rel="noopener noreferrer" style={CONTACT_LINK}>Message us on Facebook</a>
         {' '}or call <a href={CONTACT.phoneHref} style={{ ...CONTACT_LINK, whiteSpace: 'nowrap' }}>{CONTACT.phone}</a> and we will set one up for you.
       </p>
+      <nav aria-label="Legal" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', columnGap: 20, marginTop: 12, fontSize: 14 }}>
+        <Link to="/privacy" style={{ ...CONTACT_LINK, display: 'inline-flex', alignItems: 'center', minHeight: 44 }}>Privacy Policy</Link>
+        <Link to="/terms" style={{ ...CONTACT_LINK, display: 'inline-flex', alignItems: 'center', minHeight: 44 }}>Terms of Service</Link>
+      </nav>
     </AuthShell>
   );
 }

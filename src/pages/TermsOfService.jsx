@@ -55,12 +55,23 @@ const SECTIONS = [
     staff accounts.`,
   },
   {
-    title: '8. Changes to these terms',
+    title: '8. Your personal data',
+    body: `VFRB handles your personal data as described in our Privacy
+    Policy and in line with the Philippine Data Privacy Act of 2012
+    (Republic Act No. 10173).`,
+  },
+  {
+    title: '9. Governing law',
+    body: `These terms are governed by the laws of the Republic of the
+    Philippines.`,
+  },
+  {
+    title: '10. Changes to these terms',
     body: `If these terms change, the updated version will be posted on
-    this page with a revised date below.`,
+    this page with a new date at the top.`,
   },
 ];
 
 export default function TermsOfService() {
-  return <LegalPage title="Terms of Service" updated="October 21, 2026" sections={SECTIONS} />;
+  return <LegalPage title="Terms of Service" updated="November 9, 2026" sections={SECTIONS} draft />;
 }

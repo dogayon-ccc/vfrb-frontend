@@ -43,29 +43,68 @@ const SECTIONS = [
     it never includes pricing, personal information, or account details.`,
   },
   {
-    title: '4. Data storage and security',
+    title: '4. The face check in the Design Studio',
+    body: `Before you create a 2D garment from a photo, or add a logo,
+    the Studio checks the photo for a face. This check runs only in your
+    browser. The photo is not uploaded for the check, and the result is
+    not stored. It only decides whether that step can continue.`,
+  },
+  {
+    title: '5. Who can see your information',
+    body: `VFRB staff see only what they need for their role: the
+    manager handles accounts, orders and billing, and station staff see
+    the production details for their stage. We use service providers to
+    run the system: Supabase (database), Vercel (hosting), Google (Gemini
+    for the material recommendation, and Google sign-in if you use it)
+    and an email service for account emails. They process data only to
+    provide that service to VFRB.
+
+    We do not sell your personal information.`,
+  },
+  {
+    title: '6. Data storage and security',
     body: `Your data is stored in a secured PostgreSQL database hosted on
-    Supabase. Passwords
-    are hashed using industry-standard one-way hashing (bcrypt) — never
-    stored in plain text or reversible form. Account access is protected
-    by token-based authentication. Customer and staff accounts are
-    created only by VFRB — there is no public registration, and staff
-    accounts can only be created by an Administrator (Manager).`,
+    Supabase. Passwords are hashed using industry-standard one-way
+    hashing (bcrypt), never stored in plain text or reversible form.
+    Account access is protected by token-based authentication. Customer
+    and staff accounts are created only by VFRB; there is no public
+    registration, and staff accounts can only be created by an
+    Administrator (Manager).
+
+    Your browser keeps your sign-in token and a few display preferences
+    in local storage. Signing out removes the sign-in token.`,
   },
   {
-    title: '5. Your rights',
-    body: `You may review and update your profile information at any
-    time from your account's Profile page. To request deletion of your
-    account or personal data, contact VFRB Enterprise directly using the
-    contact details on our About page.`,
+    title: '7. How long we keep it',
+    body: `We keep account and order records for as long as your account
+    is active and for as long as the law requires us to keep business
+    and tax records. After that, records are deleted or made anonymous.`,
   },
   {
-    title: '6. Changes to this policy',
+    title: '8. Your rights under the Data Privacy Act of 2012',
+    body: `The Philippine Data Privacy Act of 2012 (Republic Act No.
+    10173) gives you these rights over your personal data: to be
+    informed, to access it, to object to its processing, to have it
+    corrected, to have it erased or blocked, to data portability, and to
+    claim damages. You can also file a complaint with the National
+    Privacy Commission.
+
+    You can review and update your profile at any time from your
+    account settings. For any other request, including deleting your
+    account, contact VFRB Enterprise using the details on our About page.
+    We will answer within a reasonable time.
+
+    If a personal data breach happens that is likely to harm you, VFRB
+    will notify you and the National Privacy Commission as the law
+    requires.`,
+  },
+  {
+    title: '9. Changes to this policy',
     body: `If this policy changes, the updated version will be posted on
-    this page with a revised date below.`,
+    this page with a new date at the top.`,
   },
 ];
 
 export default function PrivacyPolicy() {
-  return <LegalPage title="Privacy Policy" updated="October 21, 2026" sections={SECTIONS} />;
+  return <LegalPage title="Privacy Policy" updated="November 9, 2026" sections={SECTIONS} draft />;
 }

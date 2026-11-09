@@ -17,8 +17,7 @@
 // fail to render defeats the purpose.
 
 import { Component } from 'react';
-
-const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif`;
+import BrandedStatus from './BrandedStatus';
 
 // Aug 30 2026 hardening — verified live-production bug (Railway log):
 // after a redeploy, a browser tab holding the OLD index.html tries to
@@ -84,37 +83,12 @@ class PageErrorBoundary extends Component {
 
   render() {
     if (this.state.hasError) {
-      return (
-        <div style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center',
-          justifyContent: 'center', gap: 12, padding: '60px 24px',
-          textAlign: 'center', fontFamily: FONT, minHeight: 320,
-        }}>
-          <p style={{ fontSize: 34, margin: 0, opacity: .35 }}>⚠️</p>
-          <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: 0 }}>
-            {this.state.isChunkError ? 'This page was updated' : 'This page ran into a problem'}
-          </h2>
-          <p style={{ color: '#475569', fontSize: 13, margin: 0, maxWidth: 380 }}>
-            {this.state.isChunkError
-              // Reached only if the auto-reload above already fired once
-              // and it happened again within 10s — a real network issue,
-              // so hand the person a manual retry instead of looping.
-              ? 'The app was updated on the server. Reload the page to get the latest version.'
-              : 'The rest of the app is still working — use the sidebar to go somewhere else, or try reloading just this page.'}
-          </p>
-          <button
-            onClick={() => this.state.isChunkError
-              ? window.location.reload()
-              : this.setState({ hasError: false, isChunkError: false })}
-            style={{
-              padding: '9px 20px', minHeight: 44, borderRadius: 10, border: 'none',
-              background: '#028090', color: '#fff', fontSize: 13, fontWeight: 700,
-              cursor: 'pointer', fontFamily: FONT,
-            }}>
-            {this.state.isChunkError ? 'Reload Page' : 'Try Again'}
-          </button>
-        </div>
-      );
+      const chunk = this.state.isChunkError;
+      return <BrandedStatus inline title={chunk ? 'This page was updated' : 'This page ran into a problem'}
+        body={chunk ? 'The app was updated on the server. Reload the page to get the latest version.'
+          : 'The rest of the app is still working. Try this page again, or go back home.'}
+        action={chunk ? 'Reload page' : 'Try again'}
+        onAction={() => chunk ? window.location.reload() : this.setState({ hasError: false, isChunkError: false })}/>;
     }
     return this.props.children;
   }

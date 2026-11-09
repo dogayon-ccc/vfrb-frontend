@@ -15,6 +15,7 @@ import './styles/enterprise.css';  // layout fixes, quieter elevation, print
 import './styles/motion-app.css';  // spring tokens + overlay entrances
 import App from './App.jsx';
 import { isChunkLoadError } from './components/PageErrorBoundary';
+import BrandedStatus from './components/BrandedStatus';
 
 // After a deploy, a tab still running the old shell (served by the PWA worker)
 // asks for chunk hashes that no longer exist. Reload once to pick up the new
@@ -57,30 +58,8 @@ class RootErrorBoundary extends Component {
   }
   render() {
     if (this.state.hasError) {
-      return (
-        <div style={{
-          minHeight: '100vh', display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center', gap: 14,
-          background: '#f8fafc', padding: 24, textAlign: 'center',
-          fontFamily: "ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif",
-        }}>
-          <p style={{ fontSize: 40, margin: 0, opacity: .3 }}>⚠️</p>
-          <h1 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: 0 }}>
-            Something went wrong
-          </h1>
-          <p style={{ color: '#475569', fontSize: 13, margin: 0, maxWidth: 380 }}>
-            The app hit an unexpected error and couldn't continue. Reloading
-            the page usually fixes this.
-          </p>
-          <button onClick={() => window.location.reload()} style={{
-            padding: '10px 22px', borderRadius: 10, border: 'none',
-            background: '#028090', color: '#fff', fontSize: 13, fontWeight: 700,
-            cursor: 'pointer',
-          }}>
-            Reload Page
-          </button>
-        </div>
-      );
+      return <BrandedStatus title="Something went wrong" body="The app hit an unexpected error. Reloading the page usually fixes this."
+        action="Reload page" onAction={() => window.location.reload()}/>;
     }
     return this.props.children;
   }

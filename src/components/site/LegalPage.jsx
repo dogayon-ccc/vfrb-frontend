@@ -4,7 +4,7 @@ import SitePage from './SitePage';
 const paras = (b) => b.split(/\n\s*\n/).map(x => x.replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean);
 
 // Shared layout for Privacy Policy and Terms of Service. sections: [{ title, body }].
-export default function LegalPage({ title, updated, sections }) {
+export default function LegalPage({ title, updated, sections, draft = false }) {
   return (
     <SitePage title={title}>
       <header className="vs-pagehead">
@@ -12,6 +12,8 @@ export default function LegalPage({ title, updated, sections }) {
           <p className="vs-kicker">Legal</p>
           <h1 className="vs-h1">{title}</h1>
           <p className="vs-lede">Last updated: {updated}</p>
+          {draft && <p role="note" style={{ display: 'inline-block', margin: '12px 0 0', padding: '8px 12px', borderRadius: 8, border: '1px solid #C4313B',
+            background: '#FFF4F4', color: '#8F1F27', fontSize: 14, fontWeight: 700 }}>Draft for VFRB review: not yet approved by VFRB or legal counsel.</p>}
         </div>
       </header>
       <section className="vs-sec vs-sec--tight" aria-label={title}>

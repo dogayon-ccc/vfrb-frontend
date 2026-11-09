@@ -9,6 +9,8 @@ import { installResponseGuards, watchCrossTabSession } from './utils/session';
 import PWAPrompt from 'react-ios-pwa-prompt';
 import { MotionConfig } from 'framer-motion';
 import StorageNotice from './components/StorageNotice';
+import RouteMeta from './components/RouteMeta';
+import BrandedStatus from './components/BrandedStatus';
 
 // Dev: no baseURL, /api/* goes through the Vite proxy. Prod: VITE_API_URL points straight at Railway.
 if (import.meta.env.VITE_API_URL) {
@@ -25,8 +27,6 @@ axios.interceptors.request.use((config) => {
 });
 installResponseGuards();
 watchCrossTabSession();
-
-const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif`;
 
 // ── Layouts — lazy (role-gated by RequireAuth; a visitor only ever needs
 // one, and neither is needed pre-login, so eager-importing both bloated
@@ -240,6 +240,7 @@ export default function App() {
     <MotionConfig reducedMotion="user">
     <BrowserRouter>
       <ScrollTop/>
+      <RouteMeta/>
       <Prefetch/>
       <StorageNotice/>
       <UpdatePrompt/>
@@ -349,24 +350,7 @@ export default function App() {
           {DevLayouts && <Route path="/dev/layouts" element={<Suspense fallback={null}><DevLayouts/></Suspense>}/>}
 
           {/* ── 404 ───────────────────────────────────────────────────────── */}
-          <Route path="*" element={
-            <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column',
-              alignItems:'center', justifyContent:'center', gap:14,
-              background:'#f8fafc', fontFamily:FONT }}>
-              <p style={{ fontSize:60, margin:0, opacity:.2 }}>🔍</p>
-              <h1 style={{ fontSize:22, fontWeight:800, color:'#0f172a', margin:0, fontFamily:FONT }}>
-                Page Not Found
-              </h1>
-              <p style={{ color:'#475569', fontSize:14, fontFamily:FONT }}>
-                The page you're looking for doesn't exist.
-              </p>
-              <a href="/" style={{ padding:'10px 22px', borderRadius:10,
-                background:'#028090', color:'#fff', textDecoration:'none',
-                fontSize:13, fontWeight:700, fontFamily:FONT }}>
-                Go home
-              </a>
-            </div>
-          }/>
+          <Route path="*" element={<BrandedStatus code="404" title="Page not found" body="There is no page at this address. It may have moved, or the link was mistyped."/>}/>
 
         </Routes>
       </Suspense>

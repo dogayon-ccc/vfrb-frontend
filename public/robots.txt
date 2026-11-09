@@ -1,0 +1,18 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /design-studio
+Disallow: /my-designs
+Disallow: /orders
+Disallow: /order/
+Disallow: /ai-materials
+Disallow: /messages
+Disallow: /settings
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /verify-email
+Disallow: /auth/
+Disallow: /dev/
+
+Sitemap: https://vfrb-frontend.vercel.app/sitemap.xml
