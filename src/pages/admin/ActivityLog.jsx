@@ -89,14 +89,14 @@ export default function ActivityLog() {
 
       <Card padding="sm" style={{ marginBottom:16 }}>
         <div style={{ display:'flex', flexWrap:'wrap', gap:10 }}>
-          <select value={filterAction} onChange={e => setFilterAction(e.target.value)} style={inp}>
+          <select value={filterAction} onChange={e => setFilterAction(e.target.value)} style={inp} aria-label="Action type">
             <option value="">All action types</option>
             {actionTypes.map(a => (
               <option key={a} value={a}>{ACTION_LABELS[a]?.label ?? a}</option>
             ))}
           </select>
-          <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} style={inp} title="From date"/>
-          <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} style={inp} title="To date"/>
+          <input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} style={inp} title="From date" aria-label="From date"/>
+          <input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} style={inp} title="To date" aria-label="To date"/>
           {(filterAction || filterDateFrom || filterDateTo) && (
             <button onClick={() => { setFilterAction(''); setFilterDateFrom(''); setFilterDateTo(''); }}
               style={{ padding:'9px 14px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-surface)', color:'var(--text-subtle)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)' }}>

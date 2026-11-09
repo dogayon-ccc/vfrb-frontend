@@ -590,7 +590,7 @@ export default function AIMaterials() {
             {/* Order picker */}
             <div style={{ display:'flex', gap:12, alignItems:'center',
               marginBottom:20, flexWrap:'wrap' }}>
-              <select value={selId ?? ''} onChange={e => setSelId(Number(e.target.value))}
+              <select value={selId ?? ''} onChange={e => setSelId(Number(e.target.value))} aria-label="Order"
                 style={{ flex:1, minWidth:200, minHeight:44, padding:'11px 14px', borderRadius:11,
                   border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)',
                   fontSize:13, outline:'none', fontFamily:FONT, cursor:'pointer' }}

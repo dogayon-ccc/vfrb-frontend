@@ -75,7 +75,7 @@ export default function DesignStudio() {
   const [cfg,        setCfg]        = useState(INIT_CFG);
   useRovingGroups();
   useEffect(() => {
-    document.title = `${cfg.name?.trim() || 'New design'} | Design Studio | VFRB`;
+    document.title = `${cfg.name?.trim() || 'New design'} · Design Studio | VFRB Enterprise`;
     return () => { document.title = 'VFRB Enterprise'; };
   }, [cfg.name]);
   const [zoom,       setZoom]       = useState(1);

@@ -87,7 +87,19 @@ export default function OrderWizard() {
     setErrs(all);
     return all.every(e => !Object.values(e).some(Boolean));
   };
-  const next = () => { if (validate()) goTo(step + 1); };
+  // A failed Next takes keyboard and screen-reader users to the first problem; its message is already a role="alert".
+  const focusErr = useRef(false);
+  const next = () => { if (validate()) goTo(step + 1); else focusErr.current = true; };
+  useEffect(() => {
+    if (!focusErr.current) return;
+    focusErr.current = false;
+    const hit = cardRef.current?.querySelector('[aria-invalid="true"], [data-error]');
+    const el = hit?.matches('input,select,textarea,button') ? hit : hit?.querySelector('input:not([type=file]),select,textarea,button');
+    if (!el) return;
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    el.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' });
+    el.focus({ preventScroll: true });
+  }, [errs]);
 
   const clearDesign = () => {
     clearStudioHandoff();
@@ -181,7 +193,7 @@ export default function OrderWizard() {
             {step === 0 && studios[0] && <button type="button" className="wz-clear" onClick={clearDesign}>Order from my own file instead</button>}
           </motion.section>
 
-          {apiErr && <div className="wz-err" role="alert"><NavIcon name="warning" size={14}/> {apiErr}</div>}
+          {apiErr && <div className="wz-err" role="alert" tabIndex={-1} ref={el => el?.focus({ preventScroll: false })}><NavIcon name="warning" size={14}/> {apiErr}</div>}
 
           <div className="wz-actions">
             <SummaryBar forms={forms} studios={studios}/>

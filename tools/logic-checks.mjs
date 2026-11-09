@@ -1953,5 +1953,11 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const missing = paths.filter(p => !AN.navMatch(p)?.label);
   t(`admin tab titles: every admin route in App.jsx (${paths.length}) has a nav title entry${missing.length ? ` (missing ${missing.join(', ')})` : ''}`, paths.length >= 20 && !missing.length
     && /usePageTitle\(current \?/.test(rd('../src/layouts/AdminLayout.jsx'))); }
+{ const rd = q => fsx.readFileSync(urlx.fileURLToPath(new URL(q, import.meta.url)), 'utf8'), wz = rd('../src/pages/client/OrderWizard.jsx'), al = rd('../src/pages/admin/ActivityLog.jsx');
+  t('a11y nov9: AI Materials order picker and the three Activity Log filters are labelled; Studio tab title ends "| VFRB Enterprise"; a failed Next focuses the first problem and a submit error takes focus; sign-in fields show a 2px teal focus ring',
+    /aria-label="Order"/.test(rd('../src/pages/client/AIMaterials.jsx')) && ['Action type', 'From date', 'To date'].every(l => al.includes(`aria-label="${l}"`))
+    && /Design Studio \| VFRB Enterprise`/.test(rd('../src/pages/client/DesignStudio.jsx'))
+    && /else focusErr\.current = true/.test(wz) && /querySelector\('\[aria-invalid="true"\], \[data-error\]'\)/.test(wz) && /className="wz-err" role="alert" tabIndex=\{-1\}/.test(wz)
+    && /outline: focusedKey === current \? '2px solid #028090' : 'none'/.test(rd('../src/components/AuthShell.jsx'))); }
 console.log(out.join('\n')); const f =out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);
