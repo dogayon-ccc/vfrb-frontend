@@ -613,7 +613,7 @@ export default function CustomerOrderDetail() {
                   {other && <p className="od-muted od-gap-b">{other}</p>}
                 </>;
               })()}
-              {order.ai_recommendation_status === 'ready' && (
+              {order.ai_recommendation_status === 'ready' && !['completed','cancelled'].includes(order.status) && (
                 <div className="od-acts">
                   <Button variant="primary" icon="success" disabled={!!aiAction} loading={aiAction === 'accept'} onClick={() => handleAI('accept')}>Accept recommendation</Button>
                   <Button className="is-danger" disabled={!!aiAction} loading={aiAction === 'reject'} onClick={() => handleAI('reject')}>Decline</Button>

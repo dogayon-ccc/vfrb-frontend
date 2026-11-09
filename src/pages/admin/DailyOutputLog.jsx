@@ -214,7 +214,7 @@ export default function AdminDailyOutputLog() {
         @media(max-width:420px){.dol-sizes{grid-template-columns:repeat(2,minmax(0,1fr))}}
       `}</style>
 
-      <PageHeader title="Daily Output Log" sub="Enter the outputter’s tally: pieces completed per size, per stage, for each PO">
+      <PageHeader title="Daily Output Log" sub="Enter the pieces finished per size and stage for each order">
         <button className="adm-btn" onClick={load}><NavIcon name="refresh" size={14} color="currentColor" /> Refresh</button>
       </PageHeader>
 

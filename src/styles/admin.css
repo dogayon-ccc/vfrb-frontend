@@ -613,3 +613,5 @@ button.adm-row:focus-visible,.adm-order-card:focus-visible{outline:2px solid var
 @media(max-width:1023px){.vc-grid>*,.vc-grid>.vc-wide,.vc-grid>.vc-narrow{grid-column:1/-1}}
 @media(max-width:480px){.vc-donut{justify-content:center}.vc-ring{width:180px!important;height:180px!important}}
 @media(prefers-reduced-motion:reduce){.vc-dlist li{transition:none}}
+/* Admin page titles share the customer heading face (DM Serif Display 400). */
+.adm-in .ui-title{font-family:var(--font-display);font-weight:400;letter-spacing:0}
