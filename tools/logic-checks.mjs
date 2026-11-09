@@ -1955,9 +1955,14 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && /usePageTitle\(current \?/.test(rd('../src/layouts/AdminLayout.jsx'))); }
 { const rd = q => fsx.readFileSync(urlx.fileURLToPath(new URL(q, import.meta.url)), 'utf8'), wz = rd('../src/pages/client/OrderWizard.jsx'), al = rd('../src/pages/admin/ActivityLog.jsx');
   t('a11y nov9: AI Materials order picker and the three Activity Log filters are labelled; Studio tab title ends "| VFRB Enterprise"; a failed Next focuses the first problem and a submit error takes focus; sign-in fields show a 2px teal focus ring',
-    /aria-label="Order"/.test(rd('../src/pages/client/AIMaterials.jsx')) && ['Action type', 'From date', 'To date'].every(l => al.includes(`aria-label="${l}"`))
+    /(aria-label|[^-]label)="Order"/.test(rd('../src/pages/client/AIMaterials.jsx')) && ['Action type', 'From date', 'To date'].every(l => al.includes(`aria-label="${l}"`))
     && /Design Studio \| VFRB Enterprise`/.test(rd('../src/pages/client/DesignStudio.jsx'))
     && /else focusErr\.current = true/.test(wz) && /querySelector\('\[aria-invalid="true"\], \[data-error\]'\)/.test(wz) && /className="wz-err" role="alert" tabIndex=\{-1\}/.test(wz)
     && /outline: focusedKey === current \? '2px solid #028090' : 'none'/.test(rd('../src/components/AuthShell.jsx'))); }
+{ const rd = q => fsx.readFileSync(urlx.fileURLToPath(new URL(q, import.meta.url)), 'utf8'), aim = rd('../src/pages/client/AIMaterials.jsx'), msg = rd('../src/pages/client/Messages.jsx');
+  const hex = x => (x.match(/['"`]#[0-9a-fA-F]{3,8}\b/g) || []).filter(h => !/C9A27A|C4313B|1B2A4A/i.test(h));
+  t('polish nov9 S1: AI Materials order options show the customer status label, never the raw stage; AI Materials and Messages carry no off-brand hex colours; Messages inputs use the focus-ringed cx-in field',
+    /statusLabel\(o\.status\)/.test(aim) && !/\(\{o\.status\}\)/.test(aim) && !hex(aim).length && !hex(msg).length
+    && (msg.match(/className="cx-in"/g) || []).length >= 2 && !/outline: 'none'/.test(msg)); }
 console.log(out.join('\n')); const f =out.filter(x => x.startsWith('FAIL')).length; console.log(`${out.length - f}/${out.length} passed`);
 await v.close(); process.exit(f ? 1 : 0);

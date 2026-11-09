@@ -1,28 +1,20 @@
 // src/pages/client/AIMaterials.jsx — AI raw-material recommendation (Layer 1, Gemini Flash).
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import usePageTitle from '../../hooks/usePageTitle';
+import useDialogFocus from '../../hooks/useDialogFocus';
 import { useNavigate }                              from 'react-router-dom';
-import { motion, AnimatePresence }                  from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { NavIcon }                                  from '../../components/ui/icons';
 import axios                                        from 'axios';
-import { cacheGet, cacheSet, cacheClear, TTL }      from '../../utils/cache';
+import { cacheClear }                               from '../../utils/cache';
 import { fetchAllPages }                            from '../../utils/fetchAllPages';
 import { materialColour }                           from '../../utils/materialColour';
 import { garmentLabel } from '../../utils/designName';
-import { useToast } from '../../components/customer/kit';
-import PageHeader from '../../components/ui/PageHeader';
+import { useToast, STATUS, StatusPill, EmptyState, ErrorState } from '../../components/customer/kit';
+import { PageHeader, Button, Field, Skeleton, AlertBanner } from '../../components/ui';
 
-const T    = 'var(--teal)';
-const T2   = '#02C39A';
-const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif`;
-
-const SK = {
-  borderRadius:8, background:'linear-gradient(90deg,var(--bg-surface) 25%,var(--bg-surface-2) 50%,var(--bg-surface) 75%)',
-  backgroundSize:'400px', animation:'sk 1.4s infinite',
-};
-
-// Category icon per material category — shared with MaterialsReveal.jsx. One Pattern Room tile (cutting-mat paper, ink icon) for every
-// category, so photo, swatch, spool and icon tiles read as one set; the category name on the tile tells them apart.
+// Category icon per material category — shared with MaterialsReveal.jsx. One Pattern Room tile for every category.
 const TILE = { color:'var(--pr-ink-muted)', bg:'var(--pr-paper-inset)' };
 export const CAT = {
   Fabric:       { icon:'materials', ...TILE },
@@ -36,39 +28,50 @@ export const CAT = {
   Other:        { icon:'package',   ...TILE },
 };
 
-const STATUS_C = {
-  pending:     { color:'#f59e0b', label:'Pending',     icon:'pending'     },
-  confirmed:   { color:'#3b82f6', label:'Confirmed',   icon:'success'     },
-  pattern:     { color:'var(--info-text)', label:'Confirmed', icon:'success' },
-  segregation: { color:'var(--info-text)', label:'Confirmed', icon:'success' },
-  cutting:     { color:'var(--info-text)', label:'Confirmed', icon:'success' },
-  sewing:      { color:'var(--info-text)', label:'Confirmed', icon:'success' },
-  qc:          { color:'var(--info-text)', label:'Confirmed', icon:'success' },
-  pressing:    { color:'var(--info-text)', label:'Confirmed', icon:'success' },
-  packing:     { color:'var(--info-text)', label:'Confirmed', icon:'success' },
-  completed:   { color:'#22c55e', label:'Completed',   icon:'success'     },
-  cancelled:   { color:'#ef4444', label:'Cancelled',   icon:'error'       },
-};
+// Customer label for an order status: stage names never reach the customer.
+const statusLabel = (s) => (STATUS[s] ?? STATUS.pending).label;
 
-// Confetti burst on accept — shared with MaterialsReveal.jsx.
+// Short brand burst on accept (300 ms); nothing under reduced motion. Shared with MaterialsReveal.jsx.
+const BURST = ['var(--teal)', 'var(--kraft, #C9A27A)', '#C4313B', 'var(--navy)'];
 export function ConfettiBurst() {
-  const particles = Array.from({ length:20 }, (_, i) => ({
-    id:i, color:[T,T2,'#22c55e','#f59e0b','#3b82f6','#ec4899'][i%6],
-    x: (Math.random()-0.5)*200, y: -(60+Math.random()*100),
-    rotate: Math.random()*360, delay: Math.random()*0.3,
-  }));
+  const reduce = useReducedMotion();
+  const [parts] = useState(() => Array.from({ length:16 }, (_, i) => ({
+    id:i, color:BURST[i % 4], x:(Math.random() - 0.5) * 180, y:-(40 + Math.random() * 80), r:Math.random() * 180,
+  })));
+  if (reduce) return null;
   return (
-    <div style={{ position:'absolute', inset:0, pointerEvents:'none', overflow:'visible', zIndex:10 }}>
-      {particles.map(p=>(
-        <motion.div key={p.id}
-          initial={{ opacity:1, x:0, y:0, rotate:0, scale:1 }}
-          animate={{ opacity:0, x:p.x, y:p.y, rotate:p.rotate, scale:0 }}
-          transition={{ duration:.9, delay:p.delay, ease:'easeOut' }}
-          style={{ position:'absolute', top:'50%', left:'50%',
-            width:8, height:8, borderRadius:p.id%3===0?'50%':2,
-            background:p.color, marginLeft:-4, marginTop:-4 }}/>
+    <div className="aim-burst" aria-hidden="true">
+      {parts.map(p => (
+        <motion.i key={p.id} style={{ background:p.color, borderRadius:p.id % 3 === 0 ? '50%' : 2 }}
+          initial={{ opacity:1, x:0, y:0, rotate:0, scale:1 }} animate={{ opacity:0, x:p.x, y:p.y, rotate:p.r, scale:.4 }}
+          transition={{ duration:.3, ease:'easeOut' }}/>
       ))}
     </div>
+  );
+}
+
+// One dialog frame for both material dialogs: portalled, focus-trapped, Esc closes.
+function AimDialog({ title, sub, icon, onClose, footer, children, width = 480 }) {
+  const ref = useRef(null);
+  const id = useRef(`aim-dlg-${Math.random().toString(36).slice(2, 8)}`).current;
+  useDialogFocus(ref, { onClose });
+  return createPortal(
+    <AnimatePresence>
+      <motion.div className="aim-scrim" initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
+        transition={{ duration:.2 }} onClick={onClose}>
+        <motion.div ref={ref} className="aim-dlg" role="dialog" aria-modal="true" aria-labelledby={id} style={{ '--w':`${width}px` }}
+          initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }} transition={{ duration:.2, ease:'easeOut' }}
+          onClick={e => e.stopPropagation()}>
+          <header className="aim-dlg-h">
+            <h2 id={id}><NavIcon name={icon} size={18} color="currentColor"/>{title}</h2>
+            {sub && <p>{sub}</p>}
+          </header>
+          <div className="aim-dlg-b">{children}</div>
+          <footer className="aim-dlg-f">{footer}</footer>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>,
+    document.querySelector('.cm-shell') ?? document.body,
   );
 }
 
@@ -84,104 +87,33 @@ export function AcceptModal({ order, recs, onClose, onDone }) {
       await axios.post(`/api/customer/orders/${order.order_id}/accept-materials`, { notes });
       cacheClear('orders_list','customer_dashboard');
       onDone();
-    } catch(e) { setErr(e.response?.data?.message ?? 'Failed. Try again.'); }
+    } catch(e) { setErr(e.response?.data?.message ?? 'Could not send. Check your connection and try again.'); }
     finally { setBusy(false); }
   };
 
   return (
-    <AnimatePresence>
-      <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
-        style={{ position:'fixed', inset:0, background:'rgba(15,23,42,.55)',
-          backdropFilter:'blur(6px)', zIndex:200, display:'flex',
-          alignItems:'center', justifyContent:'center', padding:16 }}>
-        <motion.div initial={{ opacity:0, scale:.94, y:16 }}
-          animate={{ opacity:1, scale:1, y:0 }} exit={{ opacity:0, scale:.94 }}
-          style={{ background:'var(--bg-card)', borderRadius:20, width:'min(480px,100%)',
-            maxHeight:'85vh', display:'flex', flexDirection:'column',
-            overflow:'hidden', boxShadow:'0 32px 80px rgba(0,0,0,.22)' }}>
-
-          {/* Header */}
-          <div style={{ padding:'20px 24px', background:'var(--teal-50)',
-            borderBottom:'1px solid #99f6e4', flexShrink:0 }}>
-            <h3 style={{ fontSize:16, fontWeight:800, color:'var(--ink)',
-              margin:0, fontFamily:FONT }}>
-              <NavIcon name="success" size={16} color="var(--ink)" style={{ verticalAlign:"-3px", marginRight:6 }}/>Confirm Material Acceptance
-            </h3>
-            <p style={{ fontSize:13, color:'var(--text-subtle)', margin:'4px 0 0', fontFamily:FONT }}>
-              Order #{order.order_id} · {garmentLabel(order.garment_type)} · {order.quantity_ordered} pcs
-            </p>
-          </div>
-
-          {/* Materials list */}
-          <div style={{ padding:'20px 24px', overflowY:'auto', flex:1 }}>
-            <div style={{ background:'var(--bg-surface)', borderRadius:12, padding:14,
-              marginBottom:16, border:'1px solid var(--border)' }}>
-              <p style={{ fontSize:13, fontWeight:700, color:'var(--text-subtle)',
-                marginBottom:10, fontFamily:FONT }}>
-                Materials you are accepting
-              </p>
-              {recs.map((r, i) => {
-                const cat = CAT[r.category] ?? CAT.Other;
-                return (
-                  <div key={i} style={{ display:'flex', justifyContent:'space-between',
-                    alignItems:'center', padding:'7px 0',
-                    borderBottom: i<recs.length-1?'1px solid #f1f5f9':'none' }}>
-                    <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                      <span style={{ display:'flex' }}><NavIcon name={cat.icon} size={16} color={cat.color}/></span>
-                      <div>
-                        <p style={{ fontSize:13, fontWeight:600, color:'var(--ink)',
-                          margin:0, fontFamily:FONT }}>
-                          {r.material_name}
-                        </p>
-                        <p style={{ fontSize:13, color:'var(--text-subtle)', margin:0, fontFamily:FONT }}>
-                          {r.category}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+    <AimDialog title="Accept these materials" icon="success" onClose={onClose}
+      sub={`Order #${order.order_id} · ${garmentLabel(order.garment_type)} · ${order.quantity_ordered} pcs`}
+      footer={<>
+        <Button variant="secondary" onClick={onClose}>Cancel</Button>
+        <Button variant="primary" onClick={submit} loading={busy} disabled={busy}>{busy ? 'Sending…' : 'Accept and notify VFRB'}</Button>
+      </>}>
+      <div className="aim-list">
+        <p className="aim-list-h">Materials you are accepting</p>
+        {recs.map((r, i) => {
+          const cat = CAT[r.category] ?? CAT.Other;
+          return (
+            <div key={i} className="aim-list-row">
+              <NavIcon name={cat.icon} size={16} color={cat.color}/>
+              <div><strong>{stripCodes(r.material_name)}</strong><small>{r.category}</small></div>
             </div>
-
-            <label style={{ display:'block', fontSize:13, fontWeight:700,
- color:'var(--text-subtle)',
-              marginBottom:7, fontFamily:FONT }}>
-              Notes for the VFRB team (optional)
-            </label>
-            <textarea value={notes} onChange={e=>setNotes(e.target.value)} rows={3}
-              placeholder="e.g. Please use cotton blend, prefer navy blue thread…"
-              style={{ width:'100%', padding:'10px 14px', borderRadius:10,
-                border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)',
-                fontSize:13, outline:'none', resize:'none',
-                fontFamily:FONT, boxSizing:'border-box' }}
-              onFocus={e=>{e.target.style.borderColor=T;e.target.style.boxShadow=`0 0 0 3px rgba(2,128,144,.1)`;}}
-              onBlur={e=>{e.target.style.borderColor='var(--border)';e.target.style.boxShadow='none';}}/>
-            {err && <p style={{ color:'#ef4444', fontSize:13, marginTop:8, fontFamily:FONT, display:'flex', alignItems:'center', gap:5 }}><NavIcon name="warning" size={12} color="#ef4444"/> {err}</p>}
-          </div>
-
-          {/* Footer */}
-          <div style={{ padding:'14px 24px', borderTop:'1px solid var(--border)',
-            display:'flex', gap:10, justifyContent:'flex-end', background:'var(--bg-surface)', flexShrink:0 }}>
-            <motion.button whileHover={{ scale:1.02 }} whileTap={{ scale:.97 }}
-              onClick={onClose}
-              style={{ padding:'9px 18px', borderRadius:10, border:'1px solid var(--border)',
-                background:'var(--bg-card)', color:'var(--ink)', fontSize:13, fontWeight:600,
-                cursor:'pointer', fontFamily:FONT }}>
-              Cancel
-            </motion.button>
-            <motion.button whileHover={{ scale:1.02 }} whileTap={{ scale:.97 }}
-              onClick={submit} disabled={busy}
-              style={{ padding:'9px 24px', borderRadius:10, border:'none',
-                background:busy?'var(--text-faint)':'linear-gradient(135deg,#22c55e,#16a34a)',
-                color:'#fff', fontSize:13, fontWeight:700,
-                cursor:busy?'not-allowed':'pointer', fontFamily:FONT,
-                boxShadow:busy?'none':'0 4px 14px rgba(34,197,94,.3)' }}>
-              {busy ? 'Confirming…' : 'Accept & Notify VFRB Team'}
-            </motion.button>
-          </div>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
+          );
+        })}
+      </div>
+      <Field as="textarea" label="Notes for the VFRB team (optional)" rows={3} value={notes} onChange={e => setNotes(e.target.value)}
+        placeholder="For example: prefer a cotton blend, navy thread" style={{ resize:'vertical', minHeight:88 }}/>
+      {err && <AlertBanner tone="error" title="Not sent" style={{ marginTop:12 }}>{err}</AlertBanner>}
+    </AimDialog>
   );
 }
 
@@ -201,107 +133,46 @@ export function SelfPickModal({ order, onClose, onDone }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const toggle = (id) => {
-    setPicked(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
+  const toggle = (id) => setPicked(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
 
   const submit = async () => {
     if (picked.size === 0) { setErr('Pick at least one material.'); return; }
     setBusy(true); setErr('');
     try {
-      await axios.post(`/api/customer/orders/${order.order_id}/select-materials`, {
-        material_ids: Array.from(picked), notes,
-      });
+      await axios.post(`/api/customer/orders/${order.order_id}/select-materials`, { material_ids: Array.from(picked), notes });
       onDone();
-    } catch(e) { setErr(e.response?.data?.message ?? 'Failed. Try again.'); }
+    } catch(e) { setErr(e.response?.data?.message ?? 'Could not send. Check your connection and try again.'); }
     finally { setBusy(false); }
   };
 
-  // Group by category for a scannable checklist
-  const byCategory = catalog.reduce((acc, m) => {
-    const cat = m.category || 'Other';
-    (acc[cat] ??= []).push(m);
-    return acc;
-  }, {});
+  const byCategory = catalog.reduce((acc, m) => { (acc[m.category || 'Other'] ??= []).push(m); return acc; }, {});
 
   return (
-    <AnimatePresence>
-      <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
-        style={{ position:'fixed', inset:0, background:'rgba(15,23,42,.55)',
-          backdropFilter:'blur(6px)', zIndex:200, display:'flex',
-          alignItems:'center', justifyContent:'center', padding:16 }}>
-        <motion.div initial={{ opacity:0, scale:.94, y:16 }}
-          animate={{ opacity:1, scale:1, y:0 }} exit={{ opacity:0, scale:.94 }}
-          style={{ background:'var(--bg-card)', borderRadius:20, width:'min(520px,100%)',
-            maxHeight:'85vh', display:'flex', flexDirection:'column',
-            overflow:'hidden', boxShadow:'0 32px 80px rgba(0,0,0,.22)' }}>
-
-          <div style={{ padding:'20px 24px', background:'var(--teal-50)', borderBottom:'1px solid #99f6e4', flexShrink:0 }}>
-            <h3 style={{ fontSize:16, fontWeight:800, color:'var(--ink)', margin:0, fontFamily:FONT }}>
-              <NavIcon name="materials" size={16} color="var(--ink)" style={{ verticalAlign:"-3px", marginRight:6 }}/>Choose Your Own Materials
-            </h3>
-            <p style={{ fontSize:13, color:'var(--text-subtle)', margin:'4px 0 0', fontFamily:FONT }}>
-              Order #{order.order_id} — skip the AI recommendation and pick from VFRB's catalog yourself
-            </p>
-          </div>
-
-          <div style={{ padding:'18px 24px', overflowY:'auto', flex:1 }}>
-            {loading ? (
-              <div style={{ ...SK, height:120, borderRadius:12 }}/>
-            ) : (
-              Object.entries(byCategory).map(([cat, mats]) => {
-                const cfg = CAT[cat] ?? CAT.Other;
-                return (
-                  <div key={cat} style={{ marginBottom:16 }}>
-                    <p style={{ fontSize:13, fontWeight:700, color:cfg.color,
-                      marginBottom:8, fontFamily:FONT }}>
-                      <NavIcon name={cfg.icon} size={11} color={cfg.color}/> {cat}
-                    </p>
-                    {mats.map(m => (
-                      <label key={m.material_id} style={{ display:'flex', alignItems:'center',
-                        gap:10, padding:'8px 10px', borderRadius:9, cursor:'pointer',
-                        background: picked.has(m.material_id) ? 'var(--cx-thread-tint)' : 'transparent' }}>
-                        <input type="checkbox" checked={picked.has(m.material_id)}
-                          onChange={()=>toggle(m.material_id)} style={{ width:16, height:16, accentColor:T }}/>
-                        <span style={{ fontSize:13, color:'var(--ink)', fontFamily:FONT }}>{m.material_name}</span>
-                      </label>
-                    ))}
-                  </div>
-                );
-              })
-            )}
-
-            <textarea value={notes} onChange={e=>setNotes(e.target.value)}
-              placeholder="Optional note for the VFRB team about your selection…" rows={2}
-              style={{ width:'100%', marginTop:6, padding:'10px 12px', borderRadius:10,
-                border:'1px solid var(--border)', fontSize:13, fontFamily:FONT, resize:'none', boxSizing:'border-box' }}/>
-
-            {err && <p style={{ color:'#ef4444', fontSize:13, marginTop:8, display:'flex', alignItems:'center', gap:5 }}><NavIcon name="warning" size={12} color="#ef4444"/> {err}</p>}
-          </div>
-
-          <div style={{ padding:'16px 24px', borderTop:'1px solid var(--border)',
-            display:'flex', gap:10, justifyContent:'flex-end', background:'var(--bg-surface)', flexShrink:0 }}>
-            <button onClick={onClose} style={{ padding:'10px 18px', borderRadius:10,
-              border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)',
-              fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:FONT }}>Cancel</button>
-            <button onClick={submit} disabled={busy || loading}
-              style={{ padding:'10px 22px', borderRadius:10, border:'none',
-                background: busy ? 'var(--text-faint)' : `linear-gradient(135deg,${T},${T2})`,
-                color:'#fff', fontSize:13, fontWeight:700,
-                cursor: busy ? 'not-allowed' : 'pointer', fontFamily:FONT }}>
-              {busy ? '⏳…' : `Send Selection (${picked.size})`}
-            </button>
-          </div>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
+    <AimDialog title="Choose your own materials" icon="materials" width={520} onClose={onClose}
+      sub={`Order #${order.order_id}. Skip the AI and pick from the VFRB catalog yourself.`}
+      footer={<>
+        <Button variant="secondary" onClick={onClose}>Cancel</Button>
+        <Button variant="primary" onClick={submit} loading={busy} disabled={busy || loading}>{busy ? 'Sending…' : `Send selection (${picked.size})`}</Button>
+      </>}>
+      {loading ? <Skeleton variant="block" height={120} label="Loading the catalog"/> : (
+        Object.entries(byCategory).map(([cat, mats]) => (
+          <fieldset key={cat} className="aim-pick">
+            <legend>{cat}</legend>
+            {mats.map(m => (
+              <label key={m.material_id} className="aim-pick-row" data-on={picked.has(m.material_id) || undefined}>
+                <input type="checkbox" checked={picked.has(m.material_id)} onChange={() => toggle(m.material_id)}/>
+                <span>{stripCodes(m.material_name)}</span>
+              </label>
+            ))}
+          </fieldset>
+        ))
+      )}
+      <Field as="textarea" label="Note for the VFRB team (optional)" rows={2} value={notes} onChange={e => setNotes(e.target.value)}
+        placeholder="Anything the team should know about your selection" style={{ resize:'vertical', minHeight:72 }}/>
+      {err && <AlertBanner tone="error" title="Check this" style={{ marginTop:12 }}>{err}</AlertBanner>}
+    </AimDialog>
   );
 }
-
 
 // Catalog facts the server reads from the materials table (never from the AI): code, stock and colour fit. No quantity or price.
 // Merges the catalog facts (GET /orders/{id}/ai-recommendation, keyed by material name) into the order's recommendation rows.
@@ -327,34 +198,27 @@ const isOwnImage = (url) => {
 // Display-only: drops internal codes like "(MAT-FAB-014)".
 export const stripCodes = (s) => s?.replace(/\s*\(?\bMAT-[A-Z]{3}-\d{3}\b\)?/g, '').trim();
 
-const TILE_H = 128;
-const typeChip = { position:'absolute', left:10, bottom:10, padding:'3px 9px', borderRadius:99, fontSize:13, fontWeight:700,
-  background:'rgb(255 255 255 / .92)', color:'#1f2937', fontFamily:FONT };
 const weave = (hex) => `repeating-linear-gradient(0deg, rgb(255 255 255 / .09) 0 2px, transparent 2px 4px),
   repeating-linear-gradient(90deg, rgb(0 0 0 / .11) 0 2px, transparent 2px 4px), ${hex}`;
 
 // Fabric as a woven colour swatch; a name without a colour word gets the neutral paper tile.
 function SwatchTile({ hex, label }) {
-  return (
-    <div aria-hidden="true" style={{ position:'relative', height:TILE_H, background: weave(hex ?? 'var(--bg-surface-2, #e5e7eb)') }}>
-      <span style={typeChip}>{label}</span>
-    </div>
-  );
+  return <div className="aim-tile" aria-hidden="true" style={{ background: weave(hex ?? 'var(--bg-surface-2)') }}><span className="aim-type">{label}</span></div>;
 }
 
 // Thread as a spool wound in the thread colour.
 function SpoolGlyph({ hex, label }) {
-  const c = hex ?? '#9ca3af';
+  const c = hex ?? 'var(--text-faint)';
   return (
-    <div aria-hidden="true" style={{ position:'relative', height:TILE_H, display:'grid', placeItems:'center', background:TILE.bg }}>
+    <div className="aim-tile aim-tile--paper" aria-hidden="true">
       <svg width="64" height="88" viewBox="0 0 64 88">
-        <rect x="6" y="4" width="52" height="10" rx="3" fill="#c9a77c"/>
-        <rect x="6" y="74" width="52" height="10" rx="3" fill="#c9a77c"/>
+        <rect x="6" y="4" width="52" height="10" rx="3" fill="var(--kraft, #C9A27A)"/>
+        <rect x="6" y="74" width="52" height="10" rx="3" fill="var(--kraft, #C9A27A)"/>
         <rect x="12" y="14" width="40" height="60" fill={c}/>
         {[22, 30, 38, 46, 54, 62].map(y => <line key={y} x1="12" x2="52" y1={y} y2={y + 2} stroke="rgb(0 0 0 / .16)" strokeWidth="1.5"/>)}
         <path d="M52 40 C60 44 58 56 62 62" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round"/>
       </svg>
-      <span style={typeChip}>{label}</span>
+      <span className="aim-type">{label}</span>
     </div>
   );
 }
@@ -367,36 +231,24 @@ export function RecCard({ rec }) {
   const label = rec.category || 'Material';
   const kind = /thread/i.test(rec.category ?? '') ? 'spool' : /fabric|lining/i.test(rec.category ?? '') ? 'swatch' : null;
   return (
-    <div className="vfrb-card flush overflow-hidden">
+    <article className="vfrb-card flush overflow-hidden aim-rec">
       {isOwnImage(rec.image_url) ? (
-        <img src={rec.image_url} alt={name} loading="lazy" className="block w-full object-cover" style={{ height:TILE_H }}/>
+        <img src={rec.image_url} alt={name} loading="lazy" className="aim-tile aim-tile--img"/>
       ) : kind === 'swatch' ? <SwatchTile hex={materialColour(rec.material_name)} label={label}/>
         : kind === 'spool' ? <SpoolGlyph hex={materialColour(rec.material_name)} label={label}/>
         : (
-        <div className="w-full flex items-center justify-center" style={{ position:'relative', height:TILE_H, background:cat.bg }} aria-hidden="true">
+        <div className="aim-tile aim-tile--paper" aria-hidden="true">
           <NavIcon name={cat.icon} size={32} color={cat.color}/>
-          <span style={typeChip}>{label}</span>
+          <span className="aim-type">{label}</span>
         </div>
       )}
-      <div style={{ padding:'var(--sp-4)' }}>
-        <p style={{ fontSize:17, fontWeight:800, color:'var(--ink)', margin:0, fontFamily:FONT, overflowWrap:'anywhere' }}>
-          {name}
-        </p>
+      <div className="aim-rec-b">
+        <h3>{name}</h3>
         {/* Catalog colour fit from the server: a neighbouring colour family, offered but not exact. */}
-        {rec.colour_match === 'near' && (
-          <span title="Close to your colour, not an exact match" style={{ display:'inline-block', marginTop:6, padding:'2px 8px', borderRadius:99, fontSize:13, fontWeight:700,
-            background:'var(--warning-bg, #fef3c7)', color:'var(--warning-text, #92400e)', fontFamily:FONT }}>
-            Near match
-          </span>
-        )}
-        {desc && (
-          <p title={desc} style={{ fontSize:13, color:'var(--text-muted)', lineHeight:1.5, margin:'6px 0 0', fontFamily:FONT,
-            whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-            {desc}
-          </p>
-        )}
+        {rec.colour_match === 'near' && <span className="aim-near" title="Close to your colour, not an exact match">Near match</span>}
+        {desc && <p title={desc}>{desc}</p>}
       </div>
-    </div>
+    </article>
   );
 }
 
@@ -424,7 +276,6 @@ export default function AIMaterials() {
   const [showPicker,  setShowPicker]  = useState(false);
   const [toastNode, showToast] = useToast();
 
-  // Load all customer orders for the selector
   const loadOrders = useCallback(() => {
     setLoading(true); setOrdersError(false);
     fetchAllPages('/api/customer/orders')
@@ -438,7 +289,6 @@ export default function AIMaterials() {
   }, []);
   useEffect(() => { loadOrders(); }, [loadOrders]);
 
-  // Load order detail + existing recommendations when selection changes
   const loadDetail = useCallback(() => {
     if (!selId) return;
     setLoadingRecs(true); setRecsError(false);
@@ -456,13 +306,11 @@ export default function AIMaterials() {
   }, [selId]);
   useEffect(() => { loadDetail(); }, [loadDetail]);
 
-  // Generate new AI recommendation
   const generate = async () => {
     if (!selId) return;
     setGenerating(true);
     try {
       const { data } = await axios.post('/api/customer/ai/recommend-materials', { order_id: selId });
-      // Reload order to get fresh recs + updated ai_recommendation_status
       const refresh  = await axios.get(`/api/customer/orders/${selId}`);
       const o        = refresh.data?.order ?? refresh.data;
       const recArr   = refresh.data?.recommendations ?? data.recommendations ?? [];
@@ -479,285 +327,104 @@ export default function AIMaterials() {
     }
   };
 
-  const onAccepted = () => {
-    setShowAccept(false);
-    setAccepted(true);
-    setShowConf(true);
-    cacheClear('orders_list','customer_dashboard');
-    setTimeout(() => setShowConf(false), 3500);
-  };
-
+  const celebrate = () => { setAccepted(true); setShowConf(true); cacheClear('orders_list','customer_dashboard'); setTimeout(() => setShowConf(false), 3500); };
+  const onAccepted = () => { setShowAccept(false); celebrate(); };
   const onSelfSelected = async () => {
-    setShowPicker(false);
-    setAccepted(true);
-    setShowConf(true);
-    cacheClear('orders_list','customer_dashboard');
-    const refresh = await axios.get(`/api/customer/orders/${selId}`).catch(()=>null);
-    if (refresh) {
-      setOrder(refresh.data?.order ?? refresh.data);
-      setRecs(refresh.data?.recommendations ?? []);
-    }
-    setTimeout(() => setShowConf(false), 3500);
+    setShowPicker(false); celebrate();
+    const refresh = await axios.get(`/api/customer/orders/${selId}`).catch(() => null);
+    if (refresh) { setOrder(refresh.data?.order ?? refresh.data); setRecs(refresh.data?.recommendations ?? []); }
   };
 
   const selectedOrder = orders.find(o => o.order_id === selId);
-  const sc = STATUS_C[selectedOrder?.status] ?? STATUS_C.pending;
   const hasRecs = recs.length > 0;
 
   return (
     <>
       {toastNode}
-      <style>{`@keyframes sk{0%{background-position:-400px 0}100%{background-position:400px 0}}
-        .aim-go{width:100%;min-height:48px;padding:12px;border:none;border-radius:var(--radius);background:var(--teal);color:var(--on-teal);font:700 14px ${FONT};cursor:pointer;transition:background .15s}
-        .aim-go:hover:not(:disabled){background:var(--teal-dark)}
-        .aim-go:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
-        .aim-go:disabled{background:var(--teal-50);color:var(--teal);cursor:not-allowed}
-        @media(prefers-reduced-motion:reduce){.aim-go{transition:none}}`}</style>
+      {showAccept && order && <AcceptModal order={order} recs={recs} onClose={() => setShowAccept(false)} onDone={onAccepted}/>}
+      {showPicker && order && <SelfPickModal order={order} onClose={() => setShowPicker(false)} onDone={onSelfSelected}/>}
 
-      {showAccept && order && (
-        <AcceptModal order={order} recs={recs}
-          onClose={() => setShowAccept(false)} onDone={onAccepted}/>
-      )}
-
-      {showPicker && order && (
-        <SelfPickModal order={order}
-          onClose={() => setShowPicker(false)} onDone={onSelfSelected}/>
-      )}
-
-      <div className="cx-page" style={{ fontFamily:FONT }}>
-
+      <div className="cx-page aim">
         <PageHeader title="AI Material Recommendation" subtitle="Suggests the types of material your order needs. VFRB's team confirms the final materials."/>
 
-        {/* How AI works — panel understands this is Layer 1 */}
-        <motion.div initial={{ opacity:0, y:-6 }} animate={{ opacity:1, y:0 }}
-          style={{ padding:'14px 18px', borderRadius:14,
-            background:'linear-gradient(135deg,rgba(2,128,144,.07),rgba(2,195,154,.05))',
-            border:'1px solid rgba(2,195,154,.2)', marginBottom:20 }}>
-          <div style={{ display:'flex', alignItems:'flex-start', gap:12 }}>
-            <div style={{ width:36, height:36, borderRadius:9, flexShrink:0,
-              background:`linear-gradient(135deg,${T},${T2})`,
-              display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <NavIcon name="ai" size={18} color="#fff"/>
-            </div>
-            <div>
-              <p style={{ fontSize:13, fontWeight:700, color:'var(--ink)',
-                margin:'0 0 4px', fontFamily:FONT }}>
-                How AI Recommendation Works
-              </p>
-              <p style={{ fontSize:13, color:'var(--text-muted)', lineHeight:1.65,
-                margin:0, fontFamily:FONT }}>
-                The AI reads your garment type, fit, colours and design details and suggests
-                the types of raw material your order needs. VFRB's production team sets the
-                exact quantities. When you accept, the team is told to prepare your materials.
-              </p>
-            </div>
+        <aside className="aim-how">
+          <span className="aim-how-ic" aria-hidden="true"><NavIcon name="ai" size={18} color="currentColor"/></span>
+          <div>
+            <h2>How it works</h2>
+            <p>The AI reads your garment type, fit, colours and design details and suggests the types of raw material your order needs.
+              VFRB's production team sets the exact quantities. When you accept, the team is told to prepare your materials.</p>
           </div>
-        </motion.div>
+        </aside>
 
-        {/* Order selector */}
         {loading ? (
-          <div style={{ ...SK, height:48, borderRadius:12, marginBottom:20 }}/>
+          <Skeleton variant="block" height={44} label="Loading your orders"/>
         ) : ordersError ? (
-          <div role="alert" style={{ background:'var(--danger-bg)', border:'1px solid var(--danger-border)', borderRadius:14,
-            padding:'20px 24px', textAlign:'center', fontFamily:FONT }}>
-            <p style={{ margin:'0 0 12px', fontSize:13, color:'var(--danger-text)' }}>Couldn't load your orders. Check your connection and try again.</p>
-            <button onClick={loadOrders} style={{ minHeight:44, padding:'0 20px', borderRadius:12, border:'1px solid var(--danger-border)',
-              background:'var(--bg-card)', color:'var(--danger-text)', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:FONT }}>Retry</button>
-          </div>
+          <ErrorState title="Couldn't load your orders" onRetry={loadOrders}/>
         ) : orders.length === 0 ? (
-          <div style={{ background:'var(--bg-card)', border:'1px solid var(--border)',
-            borderRadius:16, padding:'48px 24px', textAlign:'center',
-            boxShadow:'0 1px 3px rgba(0,0,0,.05)' }}>
-            <div style={{ display:"flex", justifyContent:"center", marginBottom:14, opacity:.3 }}><NavIcon name="ai" size={40}/></div>
-            <h3 style={{ fontSize:16, fontWeight:700, color:'var(--ink)',
-              marginBottom:8, fontFamily:FONT }}>
-              No orders yet
-            </h3>
-            <p style={{ fontSize:13, color:'var(--text-subtle)', marginBottom:20, fontFamily:FONT }}>
-              Place an order first to get AI material recommendations.
-            </p>
-            <motion.button whileHover={{ scale:1.02 }} whileTap={{ scale:.97 }}
-              onClick={() => nav('/order/create')}
-              style={{ padding:'11px 24px', borderRadius:12, border:'none',
-                background:`linear-gradient(135deg,${T},${T2})`,
-                color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer',
-                fontFamily:FONT, boxShadow:`0 4px 14px rgba(2,128,144,.3)` }}>
-              <NavIcon name="designStudio" size={14} color="#fff" style={{ verticalAlign:"-2px", marginRight:6 }}/>Start a new order
-            </motion.button>
-          </div>
+          <EmptyState title="No orders yet" action={<Button variant="primary" icon="designStudio" onClick={() => nav('/order/create')}>Start a new order</Button>}>
+            Place an order first, then get material suggestions for it here.
+          </EmptyState>
         ) : (
-          <>
-            {/* Order picker */}
-            <div style={{ display:'flex', gap:12, alignItems:'center',
-              marginBottom:20, flexWrap:'wrap' }}>
-              <select value={selId ?? ''} onChange={e => setSelId(Number(e.target.value))} aria-label="Order"
-                style={{ flex:1, minWidth:200, minHeight:44, padding:'11px 14px', borderRadius:11,
-                  border:'1px solid var(--border)', background:'var(--bg-card)', color:'var(--ink)',
-                  fontSize:13, outline:'none', fontFamily:FONT, cursor:'pointer' }}
-                onFocus={e=>{e.target.style.borderColor=T;e.target.style.boxShadow=`0 0 0 3px rgba(2,128,144,.1)`;}}
-                onBlur={e=>{e.target.style.borderColor='var(--border)';e.target.style.boxShadow='none';}}>
-                {orders.map(o => (
-                  <option key={o.order_id} value={o.order_id}>
-                    Order #{o.order_id} — {o.garment_type ?? 'Custom'} · {o.quantity_ordered} pcs ({o.status})
-                  </option>
-                ))}
-              </select>
-
-              {/* Status pill */}
-              {selectedOrder && (
-                <span style={{ padding:'6px 14px', borderRadius:99,
-                  fontSize:13, fontWeight:700,
-                  background:`${sc.color}18`, color:sc.color,
-                  border:`1px solid ${sc.color}30`, flexShrink:0, fontFamily:FONT }}>
-                  <NavIcon name={sc.icon} size={11} color={sc.color}/> {sc.label}
-                </span>
-              )}
-            </div>
-
-            {/* Generate button */}
-            <div style={{ marginBottom:20 }}>
-              <button className="aim-go" onClick={generate} disabled={generating}>
-                {generating ? (
-                  <span style={{ display:'flex', alignItems:'center',
-                    justifyContent:'center', gap:10 }}>
-                    <motion.span
-                      animate={{ rotate:360 }} transition={{ duration:.8, repeat:Infinity, ease:'linear' }}
-                      style={{ display:'inline-flex' }}><NavIcon name="loading" size={16} color="currentColor"/></motion.span>
-                    Reading your order…
-                  </span>
-                ) : (
-                  hasRecs
-                    ? 'Regenerate AI Recommendation'
-                    : 'Get AI Material Recommendation'
-                )}
-              </button>
-              <p style={{ fontSize:13, color:'var(--text-faint)', textAlign:'center',
-                marginTop:6, fontFamily:FONT }}>
-                Suggestions are saved with each order.
-              </p>
-              <p style={{ fontSize:13, textAlign:'center', marginTop:10, fontFamily:FONT }}>
-                <button type="button" onClick={()=>setShowPicker(true)}
-                  style={{ display:'inline-flex', alignItems:'center', minHeight:44, padding:'0 12px', background:'none', border:'none', color:T, fontWeight:700,
-                    fontSize:13, cursor:'pointer', textDecoration:'underline', fontFamily:FONT }}>
-                  Or choose your own materials instead
-                </button>
-              </p>
-            </div>
-
-            {/* Recommendations */}
-            {loadingRecs ? (
-              <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-                {[1,2,3].map(i => (
-                  <div key={i} style={{ background:'var(--bg-card)', border:'1px solid var(--border)',
-                    borderRadius:14, padding:'18px 20px' }}>
-                    <div style={{ display:'flex', gap:10, marginBottom:12 }}>
-                      <div style={{ ...SK, width:38, height:38, borderRadius:10, flexShrink:0 }}/>
-                      <div style={{ flex:1 }}>
-                        <div style={{ ...SK, height:14, width:'55%', marginBottom:8 }}/>
-                        <div style={{ ...SK, height:10, width:'30%' }}/>
-                      </div>
-                    </div>
-                    <div style={{ ...SK, height:36, borderRadius:10 }}/>
-                  </div>
-                ))}
+          <div className="aim-body">
+            <div className="aim-pickrow">
+              <div className="aim-sel">
+                <Field as="select" id="aim-order" label="Order" value={selId ?? ''} onChange={e => setSelId(Number(e.target.value))}>
+                  {orders.map(o => (
+                    <option key={o.order_id} value={o.order_id}>
+                      Order #{o.order_id} · {garmentLabel(o.garment_type) || 'Custom'} · {o.quantity_ordered} pcs ({statusLabel(o.status)})
+                    </option>
+                  ))}
+                </Field>
               </div>
+              {selectedOrder && <StatusPill status={selectedOrder.status}/>}
+            </div>
+
+            <div className="aim-act">
+              <Button variant="primary" fullWidth icon="ai" onClick={generate} loading={generating} disabled={generating}>
+                {generating ? 'Reading your order…' : hasRecs ? 'Get new suggestions' : 'Get AI material suggestions'}
+              </Button>
+              <p className="aim-hint">Suggestions are saved with each order.</p>
+              <Button variant="ghost" onClick={() => setShowPicker(true)}>Or choose your own materials</Button>
+            </div>
+
+            {loadingRecs ? (
+              <div className="aim-grid">{[1, 2, 3].map(i => <Skeleton key={i} variant="block" height={200} label="Loading suggestions"/>)}</div>
             ) : recsError ? (
-              <div role="alert" style={{ background:'var(--danger-bg)', border:'1px solid var(--danger-border)', borderRadius:14,
-            padding:'20px 24px', textAlign:'center', fontFamily:FONT }}>
-            <p style={{ margin:'0 0 12px', fontSize:13, color:'var(--danger-text)' }}>Couldn't load recommendations for this order.</p>
-            <button onClick={loadDetail} style={{ minHeight:44, padding:'0 20px', borderRadius:12, border:'1px solid var(--danger-border)',
-              background:'var(--bg-card)', color:'var(--danger-text)', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:FONT }}>Retry</button>
-          </div>
+              <ErrorState title="Couldn't load suggestions for this order" onRetry={loadDetail}/>
             ) : hasRecs ? (
               <>
-                {/* Accepted banner */}
                 <AnimatePresence>
                   {(accepted || showConf) && (
-                    <motion.div
-                      initial={{ opacity:0, scale:.97, y:-8 }}
-                      animate={{ opacity:1, scale:1, y:0 }}
-                      exit={{ opacity:0, scale:.97 }}
-                      style={{ padding:'16px 20px', borderRadius:14,
-                        background:'linear-gradient(135deg,rgba(34,197,94,.1),rgba(2,195,154,.08))',
-                        border:'1px solid rgba(34,197,94,.3)', marginBottom:20,
-                        display:'flex', alignItems:'center', gap:14,
-                        position:'relative', overflow:'hidden' }}>
+                    <motion.div className="aim-done" initial={{ opacity:0, y:-6 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0 }} transition={{ duration:.2 }}>
                       {showConf && <ConfettiBurst/>}
-                      <div style={{ width:36, height:36, borderRadius:10,
-                        background:'rgba(34,197,94,.15)', display:'flex',
-                        alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                        <NavIcon name="success" size={18} color="#22c55e"/>
-                      </div>
-                      <div>
-                        <p style={{ fontSize:13, fontWeight:800, color:'var(--success-text)',
-                          margin:0, fontFamily:FONT }}>
-                          Materials Accepted — VFRB Team Notified
-                        </p>
-                        <p style={{ fontSize:13, color:'var(--success-text)', margin:'3px 0 0', fontFamily:FONT }}>
-                          The VFRB team will prepare these materials for your production order.
-                        </p>
-                      </div>
+                      <AlertBanner tone="success" title="Materials accepted. VFRB has been notified.">
+                        The team will prepare these materials for your order.
+                      </AlertBanner>
                     </motion.div>
                   )}
                 </AnimatePresence>
 
                 {source === 'catalog_default' && (
-                  <p role="status" style={{ fontSize:13, color:'var(--warning-text)', background:'var(--warning-bg)', borderRadius:10, padding:'8px 12px', margin:'0 0 12px', fontFamily:FONT }}>
+                  <AlertBanner tone="info" title="Standard materials shown">
                     AI suggestions are unavailable right now, so these are VFRB's standard approved materials for this design. Our team will confirm them.
-                  </p>
+                  </AlertBanner>
                 )}
 
-                {/* Rec cards */}
-                <p style={{ fontSize:13, fontWeight:700, color:'var(--text-muted)', margin:'0 0 10px', fontFamily:FONT }}>{AI_OPTIONAL_LINE}</p>
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(min(100%,300px),1fr))', gap:14, marginBottom:20 }}>
-                  {recs.map((r, i) => (
-                    <RecCard key={r.rec_id ?? i} rec={r}/>
-                  ))}
-                </div>
+                <p className="aim-optional">{AI_OPTIONAL_LINE}</p>
+                <div className="aim-grid">{recs.map((r, i) => <RecCard key={r.rec_id ?? i} rec={r}/>)}</div>
 
-                {/* Accept CTA */}
                 {!accepted && (
-                  <motion.div initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }}
-                    style={{ padding:'22px', borderRadius:16,
-                      background:`linear-gradient(135deg,rgba(2,128,144,.06),rgba(2,195,154,.08))`,
-                      border:'1px solid rgba(2,195,154,.25)', textAlign:'center' }}>
-                    <p style={{ fontSize:15, fontWeight:700, color:'var(--ink)',
-                      marginBottom:6, fontFamily:FONT }}>
-                      Happy with these recommendations?
-                    </p>
-                    <p style={{ fontSize:13, color:'var(--text-subtle)', marginBottom:18,
-                      maxWidth:400, margin:'0 auto 18px', lineHeight:1.6, fontFamily:FONT }}>
-                      Accepting notifies the VFRB team to prepare exactly
-                      these materials for your order. You can add a note.
-                    </p>
-                    <motion.button
-                      whileHover={{ scale:1.02, boxShadow:'0 8px 24px rgba(34,197,94,.35)' }}
-                      whileTap={{ scale:.97 }}
-                      onClick={() => setShowAccept(true)}
-                      style={{ padding:'13px 36px', borderRadius:12, border:'none',
-                        background:'linear-gradient(135deg,#22c55e,#16a34a)',
-                        color:'#fff', fontSize:14, fontWeight:700, cursor:'pointer',
-                        fontFamily:FONT, boxShadow:'0 6px 20px rgba(34,197,94,.3)' }}>
-                      Accept & Notify VFRB Team
-                    </motion.button>
-                  </motion.div>
+                  <section className="aim-cta" aria-labelledby="aim-cta-h">
+                    <h2 id="aim-cta-h">Happy with these materials?</h2>
+                    <p>Accepting tells the VFRB team to prepare these materials for your order. You can add a note.</p>
+                    <Button variant="primary" icon="success" onClick={() => setShowAccept(true)}>Accept and notify VFRB</Button>
+                  </section>
                 )}
               </>
             ) : !generating && (
-              <motion.div initial={{ opacity:0, scale:.98 }} animate={{ opacity:1, scale:1 }}
-                style={{ background:'var(--bg-card)', border:'1px dashed var(--border)',
-                  borderRadius:16, padding:'48px 24px', textAlign:'center' }}>
-                <div style={{ display:"flex", justifyContent:"center", marginBottom:14, opacity:.3 }}><NavIcon name="ai" size={40}/></div>
-                <h3 style={{ fontSize:15, fontWeight:700, color:'var(--ink)',
-                  marginBottom:8, fontFamily:FONT }}>
-                  No recommendations yet
-                </h3>
-                <p style={{ fontSize:13, color:'var(--text-subtle)', fontFamily:FONT }}>
-                  Click "Get AI Material Recommendation" to analyze your order.
-                </p>
-              </motion.div>
+              <EmptyState title="No suggestions yet">Press “Get AI material suggestions” to read this order.</EmptyState>
             )}
-          </>
+          </div>
         )}
       </div>
     </>

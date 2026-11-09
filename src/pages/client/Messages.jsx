@@ -14,9 +14,9 @@ import { useKeyboardInset } from '../../hooks/useKeyboardInset';
 import EmptyState from '../../components/EmptyState';
 import { PageHeader, StatusPill, OrderThumb, Skeleton } from '../../components/customer/kit';
 import { NavIcon } from '../../components/ui/icons';
+import { Button } from '../../components/ui';
 
-const T = 'var(--teal)', T2 = '#02C39A';
-const FONT = "ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif";
+const FONT = 'var(--cx-sans)';
 const title = (o) => o?.design?.design_name ?? garmentLabel(humanize(o?.garment_type)) ?? 'Custom Order';
 
 const dayKey = (d) => d ? new Date(d).toLocaleDateString('en-PH') : 'unknown';
@@ -38,8 +38,8 @@ const listTime = (d) => {
 function Avatar({ size = 28, mb = 0 }) {
   return (
     <div aria-hidden="true" style={{ width: size, height: size, borderRadius: '50%', flexShrink: 0, marginBottom: mb,
-      background: `linear-gradient(135deg,${T},${T2})`, display: 'flex', alignItems: 'center',
-      justifyContent: 'center', fontSize: size * .4, fontWeight: 800, color: '#fff' }}>V</div>
+      background: 'var(--cx-thread)', display: 'flex', alignItems: 'center',
+      justifyContent: 'center', fontSize: size * .4, fontWeight: 800, color: 'var(--cx-on-thread)' }}>V</div>
   );
 }
 
@@ -47,7 +47,7 @@ function ThreadRow({ order, meta, active, onClick }) {
   const unread = Number(meta?.unread_count) || 0;
   return (
     <button onClick={onClick} aria-current={active ? 'true' : undefined} className="cx-row"
-      style={{ borderRadius: 12, borderBottom: 0, background: active ? 'var(--teal-50)' : 'transparent', padding: '10px 12px', minHeight: 44 }}>
+      style={{ borderRadius: 12, borderBottom: 0, background: active ? 'var(--cx-thread-tint)' : 'transparent', padding: '10px 12px', minHeight: 44 }}>
       <OrderThumb order={order} size={44} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
@@ -55,11 +55,11 @@ function ThreadRow({ order, meta, active, onClick }) {
             Order #{order.order_id}
           </p>
           <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-            {meta?.last_message_at && <span style={{ fontSize: 11, color: unread ? 'var(--teal)' : 'var(--text-subtle)', fontWeight: unread ? 700 : 400 }}>{listTime(meta.last_message_at)}</span>}
-            {unread > 0 && <><span aria-hidden="true" style={{ width: 9, height: 9, borderRadius: '50%', background: 'var(--teal)' }}/><span className="sr-only">{unread} unread</span></>}
+            {meta?.last_message_at && <span style={{ fontSize: 12, color: unread ? 'var(--cx-thread-ink)' : 'var(--text-subtle)', fontWeight: unread ? 700 : 400 }}>{listTime(meta.last_message_at)}</span>}
+            {unread > 0 && <><span aria-hidden="true" style={{ width: 9, height: 9, borderRadius: '50%', background: 'var(--cx-thread)' }}/><span className="sr-only">{unread} unread</span></>}
           </span>
         </div>
-        <p style={{ fontSize: 12, color: unread ? 'var(--ink)' : 'var(--text-subtle)', fontWeight: unread ? 700 : 400, margin: '2px 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <p style={{ fontSize: 13, color: unread ? 'var(--ink)' : 'var(--text-subtle)', fontWeight: unread ? 700 : 400, margin: '2px 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {meta?.last_body || title(order)}
         </p>
         <StatusPill status={order.status} />
@@ -76,16 +76,16 @@ function Bubble({ msg, isMe, showTime, isOptimistic }) {
       <div style={{ maxWidth: '72%', display: 'flex', flexDirection: 'column', alignItems: isMe ? 'flex-end' : 'flex-start', gap: 2 }}>
         <div style={{
           padding: '10px 14px', borderRadius: isMe ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-          background: isMe ? `linear-gradient(135deg,${T},${T2})` : 'var(--bg-card)',
+          background: isMe ? 'var(--cx-thread)' : 'var(--bg-card)',
           border: !isMe ? '1px solid var(--border)' : 'none',
           boxShadow: isMe ? 'var(--shadow-xs)' : 'none',
         }}>
-          <p style={{ fontSize: 13, lineHeight: 1.55, margin: 0, fontFamily: FONT, color: isMe ? '#fff' : 'var(--ink)', wordBreak: 'break-word' }}>
+          <p style={{ fontSize: 14, lineHeight: 1.55, margin: 0, fontFamily: FONT, color: isMe ? 'var(--cx-on-thread)' : 'var(--ink)', wordBreak: 'break-word' }}>
             {msg.body ?? msg.message}
           </p>
         </div>
         {showTime && timeOf(msg) && (
-          <p style={{ fontSize: 11, margin: 0, fontFamily: FONT, color: 'var(--text-subtle)', paddingLeft: isMe ? 0 : 2 }}>
+          <p style={{ fontSize: 12, margin: 0, fontFamily: FONT, color: 'var(--text-subtle)', paddingLeft: isMe ? 0 : 2 }}>
             {timeOf(msg)}{isOptimistic ? ' · Sending…' : ''}
           </p>
         )}
@@ -96,9 +96,9 @@ function Bubble({ msg, isMe, showTime, isOptimistic }) {
 
 const DaySep = ({ label }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0' }}>
-    <div style={{ flex: 1, height: 1, background: '#f1f5f9' }}/>
-    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-subtle)', fontFamily: FONT, whiteSpace: 'nowrap' }}>{label}</span>
-    <div style={{ flex: 1, height: 1, background: '#f1f5f9' }}/>
+    <div style={{ flex: 1, height: 1, background: 'var(--cx-line)' }}/>
+    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-subtle)', fontFamily: FONT, whiteSpace: 'nowrap' }}>{label}</span>
+    <div style={{ flex: 1, height: 1, background: 'var(--cx-line)' }}/>
   </div>
 );
 
@@ -239,8 +239,8 @@ export default function CustomerMessages() {
   return (
     <div className={`cx-page ${mobileView === 'thread' ? 'cust-msg-page-thread' : ''}`}>
       <style>{`
-        .cust-msg-wrap { display: flex; flex-direction: column; gap: 16px; height: calc(100dvh - var(--topbar-h,54px) - var(--taskbar-h,64px) - 130px); min-height: 380px; font-family: ${FONT}; color: #0f172a; }
-        .cust-msg-list, .cust-msg-chat { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-xs); }
+        .cust-msg-wrap { display: flex; flex-direction: column; gap: 16px; height: calc(100dvh - var(--topbar-h,54px) - var(--taskbar-h,64px) - 130px); min-height: 380px; font-family: var(--cx-sans); color: var(--cx-ink); }
+        .cust-msg-list, .cust-msg-chat { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--cx-r-md); overflow: hidden; box-shadow: var(--shadow-xs); }
         .cust-msg-list { width: 100%; overflow-y: auto; padding: 8px; }
         .cust-msg-chat { display: flex; flex-direction: column; min-height: 0; flex: 1; }
         .cust-msg-list { flex: 1; min-height: 0; }
@@ -273,12 +273,11 @@ export default function CustomerMessages() {
         <div className={`cust-msg-list ${mobileView !== 'list' ? 'hide-mobile' : ''}`}>
           <div style={{ padding: '4px 4px 8px' }}>
             <label htmlFor="msg-q" className="sr-only">Search conversations</label>
-            <input id="msg-q" type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search conversations…"
-              style={{ width: '100%', minHeight: 44, padding: '0 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-surface)', fontSize: 13, outline: 'none', fontFamily: FONT }}/>
+            <input id="msg-q" type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search conversations…" className="cx-in"/>
           </div>
           {loading && [1, 2, 3].map(i => <div key={i} style={{ display: 'flex', gap: 12, padding: 12 }}><Skeleton h={44} w={44}/><div style={{ flex: 1 }}><Skeleton h={12} w="50%"/><Skeleton h={10} w="80%" style={{ marginTop: 8 }}/></div></div>)}
           {!loading && !ordersError && orders.length > 0 && shown.length === 0 && (
-            <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-faint)', padding: 20 }}>No conversations match "{q}".</p>
+            <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-subtle)', padding: 20 }}>No conversations match "{q}".</p>
           )}
           {shown.map(o => <ThreadRow key={o.order_id} order={o} meta={meta[o.order_id]} active={o.order_id === selId} onClick={() => openThread(o.order_id)}/>)}
           {!loading && ordersError && (
@@ -304,7 +303,7 @@ export default function CustomerMessages() {
               </p>
               {selOrder && <div style={{ marginTop: 4 }}><StatusPill status={selOrder.status}/></div>}
             </div>
-            {selOrder && <button className="cx-btn cx-btn-s" style={{ minHeight: 44, padding: '0 12px', fontSize: 12 }} onClick={() => nav(`/orders/${selId}`)}>View order</button>}
+            {selOrder && <Button variant="secondary" size="sm" style={{ minHeight: 44 }} onClick={() => nav(`/orders/${selId}`)}>View order</Button>}
           </div>
 
           <div ref={logRef} role="log" aria-live="polite" aria-label="Message thread" style={{ flex: 1, overflowY: 'auto', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -343,8 +342,8 @@ export default function CustomerMessages() {
             {sendError && (
               <motion.p role="status" aria-live="polite"
                 initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
-                style={{ margin: 0, padding: '6px 16px', fontSize: 11, color: '#dc2626', background: '#fef2f2',
-                  borderTop: '1px solid #fecaca', fontFamily: FONT, flexShrink: 0 }}>
+                style={{ margin: 0, padding: '8px 16px', fontSize: 13, color: 'var(--danger-text)', background: 'var(--danger-bg)',
+                  borderTop: '1px solid var(--danger-border)', fontFamily: FONT, flexShrink: 0 }}>
                 Message didn't send — check your connection. Your draft is back in the box.
               </motion.p>
             )}
@@ -355,15 +354,10 @@ export default function CustomerMessages() {
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), send())}
               onFocus={() => setTimeout(() => { const el = logRef.current; if (el) el.scrollTop = el.scrollHeight; }, 300)}
               placeholder={selId ? 'Message the VFRB team…' : 'Select a conversation'} disabled={!selId}
-              style={{ flex: 1, padding: '10px 16px', borderRadius: 12, border: '1px solid var(--border)', background: selId ? 'var(--bg-card)' : 'var(--bg-surface)',
-                color: 'var(--ink)', fontSize: 13, outline: 'none', fontFamily: FONT, minHeight: 44 }}/>
-            <motion.button whileTap={{ scale: .95 }} onClick={send} disabled={sending || !newMsg.trim() || !selId}
-              style={{ padding: '10px 20px', borderRadius: 11, border: 'none', minHeight: 44, minWidth: 80, fontSize: 13, fontWeight: 700, fontFamily: FONT,
-                cursor: (sending || !newMsg.trim() || !selId) ? 'not-allowed' : 'pointer',
-                background: (sending || !newMsg.trim() || !selId) ? '#e2e8f0' : `linear-gradient(135deg,${T},${T2})`,
-                color: (sending || !newMsg.trim() || !selId) ? '#94a3b8' : '#fff' }}>
+              className="cx-in" style={{ flex: 1, minWidth: 0, fontSize: 14 }}/>
+            <Button variant="primary" onClick={send} loading={sending} disabled={sending || !newMsg.trim() || !selId} style={{ minWidth: 88 }}>
               {sending ? 'Sending' : 'Send'}
-            </motion.button>
+            </Button>
           </div>}
         </div>
       </div>
