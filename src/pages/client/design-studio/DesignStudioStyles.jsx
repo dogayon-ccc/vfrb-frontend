@@ -97,9 +97,7 @@ export default function DesignStudioStyles() {
         .ds-rail{order:1;width:216px;flex-shrink:0;display:flex;flex-direction:column;gap:16px;padding:16px;overflow-y:auto;overflow-x:hidden;background:var(--cx-card);border-right:1px solid var(--cx-line);}
       }
       /* Small desktops: a narrower Pieces column so the garment keeps its share of the stage */
-      @media (min-width:1024px) and (max-width:1279px){.ds-rail{width:184px;padding:12px;}.ds-rail-thumb{width:48px;}}
-      /* Desktop rail: a long piece name wraps to two lines instead of "Mandarin B…" */
-      @media (min-width:1024px){.ds-rail .ds-rail-txt strong{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.25;overflow-wrap:break-word;}}
+      @media (min-width:1024px) and (max-width:1279px){.ds-rail{width:184px;padding:12px;}.ds-rail .ds-rail-thumb{width:36px;}.ds-rail .ds-rail-card{gap:8px;padding:6px;}.ds-rail .ds-rail-txt strong{font-size:14px;}}
       /* Short desktop screens: the zoom hint row gives its height to the garment, as on phones */
       @media (min-width:1024px) and (max-height:820px){.ds-lane-bottom .ds-stage-hint{display:none;}}
       .ds-rail-h{font:400 18px/1.2 var(--cx-serif);color:var(--cx-ink);}
@@ -114,7 +112,8 @@ export default function DesignStudioStyles() {
       .ds-rail-thumb{flex:none;width:56px;height:64px;display:grid;place-items:center;border-radius:12px;background:#F4F5F2;}
       .ds-rail-txt{min-width:0;display:flex;flex-direction:column;gap:2px;}
       .ds-rail-txt small{font-size:13px;font-weight:600;color:var(--cx-ink-2);}
-      .ds-rail-txt strong{font-size:15px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+      /* Every width: a long piece name wraps to two lines instead of "Mandarin B…" */
+      .ds-rail-txt strong{font-size:15px;font-weight:700;overflow:hidden;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.25;overflow-wrap:break-word;}
       .ds-rail-acts{display:flex;flex-direction:column;align-items:flex-start;gap:8px;}
       .ds-rail-acts .ds-btn{width:100%;min-height:44px;justify-content:center;}
       .ds-rail-note{margin:0;font-size:13px;line-height:1.4;color:var(--cx-ink-2);}
