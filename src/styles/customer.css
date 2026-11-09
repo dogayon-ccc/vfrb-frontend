@@ -474,7 +474,7 @@ html[data-wizard]{scroll-padding-bottom:160px}
 .ox-thumb .cx-thumb{background:transparent;border-color:transparent}
 .ox-txt{flex:1 1 140px;min-width:0;display:flex;flex-direction:column;gap:2px}
 .ox-txt small{font-size:13px;font-weight:700;color:var(--text-subtle)}
-.ox-txt strong{font-size:15px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ox-txt strong{font-size:15px;font-weight:800;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;overflow-wrap:break-word} /* names wrap to two lines before clipping */
 .ox-txt span{font-size:13px;color:var(--text-subtle)}
 .ox-txt .ox-set{font-weight:700;color:var(--cx-thread-ink);overflow-wrap:anywhere}
 .ox-top .status-chip{flex-shrink:0;max-width:100%}

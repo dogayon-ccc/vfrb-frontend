@@ -36,7 +36,7 @@ export default function Field({
   const fieldId = id ?? (label ? `f-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')}` : undefined);
 
   const inputStyle = {
-    width: '100%', padding: '11px 14px', borderRadius: 'var(--r-md)',
+    width: '100%', minHeight: 44, padding: '11px 14px', borderRadius: 'var(--r-md)',
     border: `1px solid ${error ? 'var(--danger-text)' : focused ? 'var(--teal)' : 'var(--border)'}`,
     background: disabled ? 'var(--bg-surface)' : 'var(--bg-card)',
     color: disabled ? 'var(--text-faint)' : 'var(--ink)',

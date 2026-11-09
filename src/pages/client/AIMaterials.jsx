@@ -10,6 +10,7 @@ import { fetchAllPages }                            from '../../utils/fetchAllPa
 import { materialColour }                           from '../../utils/materialColour';
 import { garmentLabel } from '../../utils/designName';
 import { useToast } from '../../components/customer/kit';
+import PageHeader from '../../components/ui/PageHeader';
 
 const T    = 'var(--teal)';
 const T2   = '#02C39A';
@@ -525,16 +526,7 @@ export default function AIMaterials() {
 
       <div className="cx-page" style={{ fontFamily:FONT }}>
 
-        {/* Page header */}
-        <div style={{ marginBottom:22 }}>
-          <h1 style={{ fontSize:'clamp(22px,3vw,30px)', fontWeight:800, color:'var(--ink)',
-            margin:'0 0 4px', fontFamily:FONT }}>
-            <NavIcon name="ai" size={20} color="var(--ink)" style={{ verticalAlign:"-4px", marginRight:6 }}/>AI Material Recommendation
-          </h1>
-          <p style={{ color:'var(--text-subtle)', fontSize:13, margin:0, fontFamily:FONT }}>
-            Powered by Gemini Flash — VFRB material standards + your order specs
-          </p>
-        </div>
+        <PageHeader title="AI Material Recommendation" subtitle="Suggests the types of material your order needs. VFRB's team confirms the final materials."/>
 
         {/* How AI works — panel understands this is Layer 1 */}
         <motion.div initial={{ opacity:0, y:-6 }} animate={{ opacity:1, y:0 }}
@@ -554,11 +546,9 @@ export default function AIMaterials() {
               </p>
               <p style={{ fontSize:13, color:'var(--text-muted)', lineHeight:1.65,
                 margin:0, fontFamily:FONT }}>
-                Gemini Flash reads your garment type, fit, colors, and design details
-                to recommend the types of raw materials your order will need.
-                Exact quantities are determined by VFRB's production team — the AI provides
-                general guidance on material categories and descriptions.
-                When you accept, the VFRB team is notified to prepare your materials.
+                The AI reads your garment type, fit, colours and design details and suggests
+                the types of raw material your order needs. VFRB's production team sets the
+                exact quantities. When you accept, the team is told to prepare your materials.
               </p>
             </div>
           </div>
@@ -633,7 +623,7 @@ export default function AIMaterials() {
                     <motion.span
                       animate={{ rotate:360 }} transition={{ duration:.8, repeat:Infinity, ease:'linear' }}
                       style={{ display:'inline-flex' }}><NavIcon name="loading" size={16} color="currentColor"/></motion.span>
-                    Gemini is analyzing your order…
+                    Reading your order…
                   </span>
                 ) : (
                   hasRecs
@@ -643,7 +633,7 @@ export default function AIMaterials() {
               </button>
               <p style={{ fontSize:13, color:'var(--text-faint)', textAlign:'center',
                 marginTop:6, fontFamily:FONT }}>
-                Powered by Google Gemini Flash · Results cached per order
+                Suggestions are saved with each order.
               </p>
               <p style={{ fontSize:13, textAlign:'center', marginTop:10, fontFamily:FONT }}>
                 <button type="button" onClick={()=>setShowPicker(true)}
