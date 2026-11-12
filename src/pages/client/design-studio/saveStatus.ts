@@ -1,0 +1,18 @@
+// A save counts only when the server returns a JSON object with no errors and the saved row's id and updated_at.
+export function confirmedSave(data, idKey) {
+  return !!data && typeof data === 'object' && !Array.isArray(data) && !data.errors && !data.error
+    && data[idKey] != null && !!data.updated_at;
+}
+
+// One save status for the top bar (always shown once a garment is on the canvas), from the manual-save flags and the autosave state.
+// An account save and a browser-only copy never read the same: only the account counts as "Saved".
+// auto: null (nothing to save yet) | 'dirty' | 'saving' | 'saved'; saveErr: false | 'local' (browser copy kept) | 'none'.
+export function saveStatus({ saving = false, saveErr = false, auto = null, draftSaved = false, saved = false }: any) {
+  if (saving || auto === 'saving') return { tone: 'busy', short: 'Saving…', long: 'Saving…' };
+  if (saveErr === 'local') return { tone: 'err', short: 'Saved on this device', long: 'Saved on this device. Account save failed, retry' };
+  if (saveErr) return { tone: 'err', short: 'Not saved', long: 'Not saved — retry' };
+  if (auto === 'dirty') return { tone: 'idle', short: 'Unsaved', long: 'Unsaved changes — autosaves shortly' };
+  if (draftSaved || auto === 'saved') return { tone: 'ok', short: 'Saved', long: 'All changes saved to your account' };
+  if (saved) return { tone: 'ok', short: 'Saved on this device', long: 'Saved on this device' };
+  return { tone: 'idle', short: 'Unsaved', long: 'Not saved to your account yet' };
+}

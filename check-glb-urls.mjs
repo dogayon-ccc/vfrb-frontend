@@ -12,7 +12,7 @@ const paths = new Set();
 for (const f of walk('src').filter(f => /\.(jsx?|mjs)$/.test(f)))
   for (const m of fs.readFileSync(f, 'utf8').matchAll(/\/models\/[^'"`]+?\.glb/gi)) !/[${<]/.test(m[0]) && paths.add(m[0]);
 
-const toUrl = (p) => BASE + decodeURI(p.slice('/models'.length)).replace(/ /g, '-'); // same rule as src/lib/modelUrl.js
+const toUrl = (p) => BASE + decodeURI(p.slice('/models'.length)).replace(/ /g, '-'); // same rule as src/lib/modelUrl.ts
 const bad = [];
 for (const p of [...paths].sort()) {
   const url = encodeURI(toUrl(p));

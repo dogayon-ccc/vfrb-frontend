@@ -25,7 +25,7 @@ python tools/glb-extract/derive_template.py singles|sets|all [reference ids...]
 Derives editable pieces from the 23 reference models in `public/models/reference/`:
 
 1. Removes non-garment parts by evidence. Two pinstripe suits carry a fused mannequin neck: the faces inside the measured neck cylinder above the collar are removed. Floating fragments under 0.05% of the faces are dropped.
-2. Splits sets at `REF_SPLIT` (`referenceColour.js`). Flat-lay sets are split by connected component; worn sets get a plane clip at the top's hem, and any sleeve cuffs that hang past the hem go back to the top.
+2. Splits sets at `REF_SPLIT` (`referenceColour.ts`). Flat-lay sets are split by connected component; worn sets get a plane clip at the top's hem, and any sleeve cuffs that hang past the hem go back to the top.
 3. Recentres each piece and scales it to height 1.9 (the convention of the staged Meshy models). Welds seams and decimates to 50k triangles or fewer, behind three gates:
    - front-silhouette IoU of at least 0.98;
    - IoU of at least 0.97 in each of the five views;
@@ -35,5 +35,5 @@ Derives editable pieces from the 23 reference models in `public/models/reference
 4. Traces the front (and back, where it differs) orthographic silhouette into a closed 2D body path, and renders 1.5x shade maps from the model's depth.
 5. Writes `derived-manifest.json` (evidence per reference and piece, plus source hashes) and the generated `src/pages/client/design-studio/derivedTemplates.generated.js`. It aborts if any source GLB hash changed during the run.
 
-Names, categories and set roles of the derived families live in `src/pages/client/design-studio/derivedFamilies.js` (one table).
+Names, categories and set roles of the derived families live in `src/pages/client/design-studio/derivedFamilies.ts` (one table).
 `baseline-before-derived.json` records how every pre-existing family and gallery photo resolved at HEAD 57bbc2f. `tools/logic-checks.mjs` compares the current code against it.

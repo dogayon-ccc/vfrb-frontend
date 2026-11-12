@@ -1,9 +1,9 @@
 // GLB intake gate: node tools/glb-intake.mjs <file.glb> --source "<photo owner>" --licence "<plan and terms>" [--photos-owned yes] [--no-register]
-// Read-only on the GLB. Prints a PASS/FAIL report and appends one line to docs/glb-register.md. Never edits glbSlots.js.
+// Read-only on the GLB. Prints a PASS/FAIL report and appends one line to docs/glb-register.md. Never edits glbSlots.ts.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { intakeStatus } from '../src/pages/client/design-studio/glbSlots.js';
+import { intakeStatus } from '../src/pages/client/design-studio/glbSlots.ts';
 
 export const LIMITS = { bytes: 3 * 1024 * 1024, trisPerMesh: 20000, texture: 2048 }; // from docs/3D_INTAKE.md
 // Names only a person or rig carries; body, leg, neck, arm and hip are also garment parts (pant leg, neck band), so they are not here.
@@ -119,7 +119,7 @@ export function gate(r) {
 
 const cell = s => String(s ?? '').replace(/[|\r\n]+/g, ' ').trim() || '-';
 export const registerLine = ({ date, file, result, source, licence }) => `| ${date} | ${cell(file)} | ${cell(result)} | ${cell(source)} | ${cell(licence)} |`;
-const HEADER = '# GLB intake register\n\nAppended by `node tools/glb-intake.mjs`. One line per intake run. PASS = intake gate only (status gate-pass); slot verification still needs a manual record in `glbSlots.js`.\n\n| Date | File | Result | Source | Licence |\n|---|---|---|---|---|\n';
+const HEADER = '# GLB intake register\n\nAppended by `node tools/glb-intake.mjs`. One line per intake run. PASS = intake gate only (status gate-pass); slot verification still needs a manual record in `glbSlots.ts`.\n\n| Date | File | Result | Source | Licence |\n|---|---|---|---|---|\n';
 
 function args(argv) {
   const o = { file: null, source: '', licence: '', photosOwned: '', register: true };

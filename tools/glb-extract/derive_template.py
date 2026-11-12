@@ -2,7 +2,7 @@
 
 python tools/glb-extract/derive_template.py singles|sets|all [reference ids...]   |   reshade (shade maps only)
 
-Per reference: remove non-garment parts by evidence, split sets at REF_SPLIT (referenceColour.js), recentre and scale (height 1.9,
+Per reference: remove non-garment parts by evidence, split sets at REF_SPLIT (referenceColour.ts), recentre and scale (height 1.9,
 like the Meshy models the Studio already serves), decimate pieces over 50k triangles behind three gates, and write
 public/models/vfrb-derived/<id>[-top|-bottom].glb plus front/back shade maps. The front (and back, where it differs) orthographic
 silhouette becomes the piece's closed 2D body path. Results go to tools/glb-extract/derived-manifest.json and the generated module
@@ -37,8 +37,8 @@ def sha(p):
 
 
 def ref_split():
-    """REF_SPLIT read from referenceColour.js (single source of truth)."""
-    s = open(os.path.join(ROOT, 'src', 'pages', 'client', 'design-studio', 'referenceColour.js'), encoding='utf-8').read()
+    """REF_SPLIT read from referenceColour.ts (single source of truth)."""
+    s = open(os.path.join(ROOT, 'src', 'pages', 'client', 'design-studio', 'referenceColour.ts'), encoding='utf-8').read()
     return {m[0]: {'axis': m[1], 'at': float(m[2])} for m in re.findall(r"'([a-z0-9-]+)': \{ axis: '([xy])', at: ([0-9.]+) \}", s)}
 
 

@@ -1,5 +1,5 @@
 // GLB models are served from Cloudinary since commit d40b50b, so public/models no longer holds them. The checks read a model from
-// public/ when it is there, else from a cache downloaded once from VITE_MODEL_BASE_URL with the same path rule as src/lib/modelUrl.js.
+// public/ when it is there, else from a cache downloaded once from VITE_MODEL_BASE_URL with the same path rule as src/lib/modelUrl.ts.
 // The cache lives in node_modules/.cache/vfrb-models (never committed). Nothing here uploads, deletes or rewrites a source asset.
 import fs from 'node:fs';
 import path from 'node:path';

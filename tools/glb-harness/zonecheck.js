@@ -1,5 +1,5 @@
-import { zonesFor, FIT_GARMENTS } from '../../src/pages/client/design-studio/dsShared.js';
-import { get3DCapabilities } from '../../src/pages/client/design-studio/garmentCapabilities.js';
+import { zonesFor, FIT_GARMENTS } from '../../src/pages/client/design-studio/dsShared.ts';
+import { get3DCapabilities } from '../../src/pages/client/design-studio/garmentCapabilities.ts';
 window.__result = {
   FIT_GARMENTS,
   poloZones: zonesFor('Polo Shirt', 'Short'),

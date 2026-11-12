@@ -1,0 +1,14 @@
+export const STAFF_ROLES = ['manager', 'staff', 'owner']; // admin portal roles; staff = Administrator (Station)
+
+export const readUser = () => {
+  try { return JSON.parse(localStorage.getItem('vfrb_user') || '{}') || {}; } catch { return {}; }
+};
+
+export const readAuth = () => ({ token: localStorage.getItem('vfrb_token'), user: readUser() });
+
+export const isStaffRole = (user) => STAFF_ROLES.includes(user?.role);
+
+export const isSignedIn = ({ token, user }: any) =>
+  !!token && (isStaffRole(user) || user?.role === 'customer');
+
+export const homeFor = (user) => (isStaffRole(user) ? '/admin/dashboard' : '/dashboard');

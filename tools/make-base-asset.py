@@ -1,6 +1,6 @@
 """Cut one garment out of a transparent product photo and write a 2D base asset.
 usage: python tools/make-base-asset.py <src.png> <out.webp> <x0> <x1>   (x0..x1 = column band holding only that garment)
-Prints the JSON the garmentAssets.js manifest needs (size + reference luminance of the garment pixels)."""
+Prints the JSON the garmentAssets.ts manifest needs (size + reference luminance of the garment pixels)."""
 import sys, json
 from PIL import Image
 import numpy as np

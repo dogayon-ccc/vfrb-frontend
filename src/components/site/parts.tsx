@@ -1,0 +1,143 @@
+import { useId, useRef, useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { ViewLink as Link } from '../ViewLink';
+import Reveal from '../landing/Reveal';
+import Photo from '../landing/Photo';
+import { JOURNEY } from './content';
+
+export function Btn({ to, href, variant = 'primary', className = '', children, ...rest }: any) {
+  const cls = `vs-btn vs-btn--${variant} ${className}`;
+  if (to) return <Link to={to} className={cls} {...rest}>{children}</Link>;
+  if (href) return <a href={href} className={cls} {...rest}>{children}</a>;
+  return <button type="button" className={cls} {...rest}>{children}</button>;
+}
+
+export function TextLink({ to, href, children, ...rest }: any) {
+  return to ? <Link to={to} className="vs-link" {...rest}>{children}</Link>
+    : <a href={href} className="vs-link" {...rest}>{children}</a>;
+}
+
+export function Head({ kicker, title, lede, id }: any) {
+  return (
+    <Reveal className="vs-head">
+      <div>
+        {kicker && <p className="vs-kicker">{kicker}</p>}
+        <h2 className="vs-h2" id={id}>{title}</h2>
+      </div>
+      {lede && <p className="vs-lede">{lede}</p>}
+    </Reveal>
+  );
+}
+
+export function Banner({ kicker, title, lede, photo, pos = 'center', short = false, children }: any) {
+  return (
+    <header className={`vs-banner${short ? ' vs-banner--short' : ''}`}>
+      <div className="vs-banner__bg"><Photo photo={photo} instant hover={false} pos={pos} ratio="auto" radius={0} /></div>
+      <div className="vs-wrap">
+        {kicker && <p className="vs-kicker">{kicker}</p>}
+        <h1 className="vs-h1" style={{ maxWidth: '20ch' }}>{title}</h1>
+        {lede && <p className="vs-lede">{lede}</p>}
+        {children}
+      </div>
+    </header>
+  );
+}
+
+export function PlainHead({ kicker, title, lede }: any) {
+  return (
+    <header className="vs-wrap vs-plain-head">
+      {kicker && <p className="vs-kicker" style={{ marginBottom: 0 }}>{kicker}</p>}
+      <h1 className="vs-h1" style={{ maxWidth: '20ch' }}>{title}</h1>
+      {lede && <p className="vs-lede">{lede}</p>}
+    </header>
+  );
+}
+
+export function CtaBand({ photo, pos, title, lede, children }: any) {
+  return (
+    <section className="vs-cta vs-dark vs-sec" aria-labelledby="cta-title">
+      <div className="vs-cta__bg"><Photo photo={photo} hover={false} pos={pos} ratio="auto" radius={0} style={{ height: '100%' }} /></div>
+      <Reveal className="vs-wrap vs-stack">
+        <h2 className="vs-h2" id="cta-title" style={{ maxWidth: '20ch' }}>{title}</h2>
+        {lede && <p className="vs-lede">{lede}</p>}
+        <div className="vs-btns" style={{ paddingTop: 6 }}>{children}</div>
+      </Reveal>
+    </section>
+  );
+}
+
+export function Journey({ current }: any) {
+  const i = JOURNEY.findIndex(j => j.to === current);
+  const next = JOURNEY[(i + 1) % JOURNEY.length];
+  const last = i === JOURNEY.length - 1;
+  return (
+    <section className="vs-journey vs-dark" aria-labelledby="journey-next">
+      {next.photo && <div className="vs-journey__bg"><Photo photo={next.photo} pos={next.pos} hover={false} ratio="auto" radius={0} style={{ height: '100%' }} /></div>}
+      <div className="vs-wrap vs-journey__in">
+        <Reveal>
+          <Link to={next.to} className="vs-journey__next">
+            <span className="vs-kicker">{last ? 'Back to the start' : `Next, ${i + 2} of ${JOURNEY.length}`}</span>
+            <span className="vs-journey__title" id="journey-next">{last ? 'VFRB Enterprise' : next.title}</span>
+            <span className="vs-journey__blurb">{next.blurb}</span>
+          </Link>
+        </Reveal>
+        <div className="vs-btns">
+          <Btn to="/login" variant="mint">Sign in</Btn>
+        </div>
+        <nav className="vs-rail" aria-label="Site journey">
+          {JOURNEY.map((j, k) => k === i
+            ? <span key={j.to} aria-current="step">{j.label}</span>
+            : <Link key={j.to} to={j.to}>{j.label}</Link>)}
+        </nav>
+      </div>
+    </section>
+  );
+}
+
+function AccItem({ item, open, onToggle, onKey, btnRef, reduce }: any) {
+  const id = useId();
+  return (
+    <div className="vs-acc__item">
+      <h3 className="vs-acc__q">
+        <button type="button" ref={btnRef} className="vs-acc__btn" id={`${id}-b`} aria-expanded={open} aria-controls={`${id}-p`}
+          onClick={onToggle} onKeyDown={onKey}>
+          <span>{item.q}</span><span className="vs-acc__icon" aria-hidden="true" />
+        </button>
+      </h3>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div key="p" id={`${id}-p`} role="region" aria-labelledby={`${id}-b`} className="vs-acc__panel"
+            initial={reduce ? false : { height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+            exit={reduce ? { opacity: 0 } : { height: 0, opacity: 0 }}
+            transition={{ duration: reduce ? 0 : 0.24, ease: [0.2, 0.7, 0.2, 1] }} style={{ overflow: 'hidden' }}>
+            <p>{item.a}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// One-open-at-a-time Q&A list with arrow/Home/End keys between questions. items: [{ q, a }].
+export function Accordion({ items, defaultOpen = 0 }: any) {
+  const [openIdx, setOpenIdx] = useState(defaultOpen);
+  const refs = useRef([]);
+  const reduce = useReducedMotion();
+  const onKey = (i) => (e) => {
+    const last = items.length - 1;
+    const to = e.key === 'ArrowDown' ? (i === last ? 0 : i + 1) : e.key === 'ArrowUp' ? (i === 0 ? last : i - 1)
+      : e.key === 'Home' ? 0 : e.key === 'End' ? last : null;
+    if (to === null) return;
+    e.preventDefault();
+    refs.current[to]?.focus();
+  };
+  return (
+    <div className="vs-acc">
+      {items.map((item, i) => (
+        <AccItem key={item.q} item={item} open={openIdx === i} reduce={reduce}
+          btnRef={(el) => { refs.current[i] = el; }} onKey={onKey(i)}
+          onToggle={() => setOpenIdx(openIdx === i ? -1 : i)} />
+      ))}
+    </div>
+  );
+}
