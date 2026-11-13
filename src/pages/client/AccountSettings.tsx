@@ -13,9 +13,6 @@ import FeedbackSection from './settings/FeedbackSection';
 import LoadError from './settings/LoadError';
 import { Notice as Toast, useFlash, useRecords, fieldErrors, RecordRow, DefaultToggle, Skeletons } from './settings/RecordKit';
 import { phPhoneError, compactPhone, formatPhMobile, isPhMobile } from '../../utils/phPhone';
-import ProfilePhotoField from '../../components/ProfilePhotoField';
-import AppearanceField from '../../components/AppearanceField';
-import { readUser } from '../../utils/authRoute';
 
 // ── Shipping Addresses ───────────────────────────────────────────────────
 const BLANK_ADDR = { label: '', recipient_name: '', contact_number: '', address_line: '', city: '', province: '', postal_code: '', is_default: false };
@@ -132,76 +129,6 @@ function ShippingSection() {
   );
 }
 
-// ── Notification Preferences ─────────────────────────────────────────────
-
-function NotificationsSection() {
-  const [prefs, setPrefs] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState(''); const [err, setErr] = useState('');
-  const [failed, setFailed] = useState(false);
-
-  const load = () => {
-    setFailed(false);
-    axios.get('/api/settings/notifications').then(r => setPrefs(r.data)).catch(() => setFailed(true));
-  };
-  useEffect(load, []);
-
-  const toggle = async (key) => {
-    const next = { ...prefs, [key]: !prefs[key] };
-    setPrefs(next); setSaving(true); setErr('');
-    try {
-      await axios.patch('/api/settings/notifications', { [key]: next[key] });
-      setMsg('Preferences updated.');
-    } catch (e) {
-      setPrefs(prefs); // rollback
-      setErr(e.response?.data?.message ?? 'Failed to update. Please try again.');
-    } finally { setSaving(false); }
-  };
-
-  if (failed) return <LoadError what="notification settings" onRetry={load}/>;
-  if (!prefs) return <Skeleton variant="block" height={68} label="Loading" />;
-
-  const Row = ({ k, label, live }: any) => {
-    const on = !!prefs[k];
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border)' }}>
-        <div>
-          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{label}</p>
-          {!live && <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '2px 0 0' }}>Emails aren't sent yet. Your choice is saved, and order updates still appear in your notifications.</p>}
-        </div>
-        {/* 44px tap area around the 42x24 track. */}
-        <button role="switch" aria-checked={on} aria-label={`Toggle ${label}`} onClick={() => toggle(k)} disabled={saving}
-          style={{ width: 54, height: 44, padding: '10px 6px', border: 'none', background: 'none', cursor: saving ? 'not-allowed' : 'pointer', flexShrink: 0 }}>
-          <span style={{ display: 'block', position: 'relative', width: 42, height: 24, borderRadius: 99,
-            background: on ? 'var(--teal)' : 'var(--border-strong)', transition: 'background .18s' }}>
-            <span style={{ position: 'absolute', top: 3, left: on ? 21 : 3, width: 18, height: 18, borderRadius: '50%',
-              background: 'var(--bg-card)', transition: 'left .18s', boxShadow: '0 1px 3px rgba(0,0,0,.2)' }}/>
-          </span>
-        </button>
-      </div>
-    );
-  };
-
-  return (
-    <Card>
-      <Row k="email_enabled" label="Email notifications" live={prefs.email_provider_live}/>
-      <Toast msg={msg} type="success"/><Toast msg={err} type="error"/>
-    </Card>
-  );
-}
-
-// ── Photo & Appearance ───────────────────────────────────────────────────
-function AppearanceSection() {
-  const [user, setUser] = useState(readUser);
-  return (
-    <Card>
-      <ProfilePhotoField avatar={user.avatar} name={user.name} onChange={(avatar) => setUser((u) => ({ ...u, avatar }))}/>
-      <div style={{ borderTop: '1px solid var(--border)', margin: '16px 0' }}/>
-      <AppearanceField userId={user.user_id}/>
-    </Card>
-  );
-}
-
 // ── Preferred Fabrics ─────────────────────────────────────────────────────
 function FabricsSection() {
   const [prefs, setPrefs] = useState([]);
@@ -299,8 +226,6 @@ function FabricsSection() {
 const SECTIONS = [
   { id: 'profile',       label: 'Personal information', hint: 'Name, contact, organization', icon: 'profile' },
   { id: 'shipping',      label: 'Shipping addresses',   hint: 'Where your orders are delivered', icon: 'delivery' },
-  { id: 'appearance',    label: 'Photo and appearance', hint: 'Profile photo, mode and accent colour', icon: 'camera' },
-  { id: 'notifications', label: 'Notifications',        hint: 'Choose what you get notified about', icon: 'notifications' },
   { id: 'fabrics',       label: 'Preferred fabrics',    hint: 'Fabrics the VFRB team should know about', icon: 'package' },
   { id: 'billing',       label: 'Invoice details',      hint: 'Billing name, company, billing address', icon: 'invoice' },
   { id: 'password',      label: 'Password and security', hint: 'Change or recover your password', icon: 'lock' },
@@ -308,7 +233,7 @@ const SECTIONS = [
   { id: 'feedback',      label: 'Feedback',             hint: 'Report a bug or suggest an idea', icon: 'chat' },
 ];
 const PANELS = {
-  profile: ProfileSection, appearance: AppearanceSection, shipping: ShippingSection, notifications: NotificationsSection,
+  profile: ProfileSection, shipping: ShippingSection,
   fabrics: FabricsSection, billing: BillingSection, password: PasswordSection, help: HelpSection, feedback: FeedbackSection,
 };
 
@@ -363,7 +288,7 @@ export default function AccountSettings() {
 
   return (
     <div className="cx-page">
-      {(wide || !sec) && <PageHeader title="Account settings" subtitle="Your profile, delivery, notifications and preferences." />}
+      {(wide || !sec) && <PageHeader title="Account settings" subtitle="Your profile, delivery, invoice and security details." />}
 
       {wide ? (
         <div className="acct-split"><div>{list}</div><div>{panel}</div></div>

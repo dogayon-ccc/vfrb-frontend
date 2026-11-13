@@ -146,7 +146,7 @@ export default function CustomerMessages() {
 
   const loadOrders = useCallback(() => {
     setLoading(true);
-    fetchAllPages('/api/customer/orders').then(l => { setOrders(l); setOrdersError(false); })
+    fetchAllPages('/api/customer/orders').then(l => { setOrders(l.filter(o => String(o.status).toLowerCase() !== 'cancelled')); setOrdersError(false); })
       .catch(() => setOrdersError(true)).finally(() => setLoading(false));
   }, []);
 

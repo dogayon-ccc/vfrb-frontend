@@ -188,7 +188,7 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
             {!noGarment && !moreOpen && active.hint && <p>{active.hint}</p>}
           </div>
           <button type="button" className="ds-panel-toggle" aria-expanded="true" aria-label="Hide the panel" title="Hide the panel" onClick={() => setCollapsed(true)}>
-            <NavIcon name="chevronRight" size={18}/>
+            <NavIcon name="chevronRight" size={18}/><span className="ds-panel-toggle-t">Hide</span>
           </button>
         </header>
         <div className="ds-panel-scroll">

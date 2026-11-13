@@ -233,19 +233,21 @@ export default function DesignStudioStyles() {
 
       .ds-panel{
         --text-2xs:13px;--text-xs:13px;--text-sm:15px;
-        order:3;width:clamp(320px,25vw,380px);flex-shrink:0;display:flex;flex-direction:column;overflow:hidden;
+        order:3;width:clamp(340px,30vw,480px);flex-shrink:0;display:flex;flex-direction:column;overflow:hidden;
         background:var(--bg-card);border-left:1px solid var(--border);box-shadow:var(--shadow-xs);
       }
       .ds-panel-body{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;}
       .ds-panel-toggle{display:none;}
+      .ds-panel-toggle-t{font-size:12px;font-weight:600;}
+      @media (max-width:1023px){.ds-panel-toggle-t{display:none;}}
       @media (min-width:1024px){
         .ds-panel{position:relative;transition:width .2s ease;}
         .ds-panel-toggle{display:flex;position:absolute;top:8px;right:8px;z-index:3;width:44px;height:44px;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:var(--r-md);background:var(--bg-card);color:var(--text-muted);cursor:pointer;}
         .ds-panel-toggle:hover{color:var(--ink);border-color:var(--teal);}
-        .ds-sheet-head .ds-panel-toggle{position:static;flex:none;margin-left:8px;}
-        .ds-panel[data-collapsed]{width:48px;}
+        .ds-sheet-head .ds-panel-toggle{position:static;flex:none;margin-left:8px;width:auto;padding:0 12px;gap:6px;font:600 12px/1 inherit;}
+        .ds-panel[data-collapsed]{width:56px;}
         .ds-panel[data-collapsed] > :not(.ds-panel-toggle){display:none;}
-        .ds-panel[data-collapsed] .ds-panel-toggle{right:7px;}
+        .ds-panel[data-collapsed] .ds-panel-toggle{right:6px;border-color:var(--teal);color:var(--teal);box-shadow:var(--shadow-xs);}
       }
       @media (min-width:1024px) and (prefers-reduced-motion:reduce){.ds-panel{transition:none;}}
       .ds-sheet-head{

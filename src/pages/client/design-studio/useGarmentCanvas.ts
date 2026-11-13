@@ -176,6 +176,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       const paths = getGarmentPaths(garment, sleeve, face);
 
       installTouchHandles(fabric);
+      canvasRef.current.getContext('2d', { willReadFrequently: true }); // the eyedropper and hit tests read pixels back
       fc.current = new fabric.Canvas(canvasRef.current, {
         width: paths.w, height: paths.h,
         backgroundColor: 'transparent',

@@ -120,6 +120,9 @@ export function similarFilters(p, pool, canEdit) {
   return tries.find(f => filterDesigns(f, pool).some(canEdit)) ?? tries[0];
 }
 
+// Reference photos are whole uniforms: a set (top and bottom) or a dress. Single pieces are never listed here.
+const FULL_SETS = ENTRIES.filter(d => d.piece === 'set' || d.piece === 'dress');
+
 function Photos({ head, onClose, cfg, pieceRole, onPickPhoto, onPick3D, onPickFamily, extra }: any) {
   const [derivedFam, setDerivedFam] = useState(null);
   const [filters, setFilters] = useState({});
@@ -136,7 +139,7 @@ function Photos({ head, onClose, cfg, pieceRole, onPickPhoto, onPick3D, onPickFa
   const fitsRole = d => !pieceRole || (!!d.base && pieceOf(d.base[1]) === pieceRole);
   const canEdit = d => d.editable2D && fitsRole(d);
   const tierOf = d => (canEdit(d) ? d.tier : 'reference');
-  const pool = useMemo(() => (pieceRole && roleOn ? ENTRIES.filter(d => !!d.base && pieceOf(d.base[1]) === pieceRole) : ENTRIES), [pieceRole, roleOn]);
+  const pool = useMemo(() => (pieceRole && roleOn ? FULL_SETS.filter(d => !!d.base && pieceOf(d.base[1]) === pieceRole) : FULL_SETS), [pieceRole, roleOn]);
   const counts = useMemo(() => facetCounts(filters, pool), [filters, pool]);
   const matched = useMemo(() => filterDesigns(filters, pool), [filters, pool]);
   const kindCount = { editable: matched.filter(canEdit).length, reference: matched.filter(d => !canEdit(d)).length, all: matched.length };
@@ -145,7 +148,7 @@ function Photos({ head, onClose, cfg, pieceRole, onPickPhoto, onPick3D, onPickFa
   const legend = <Legend labels={PHOTO_LABEL} icons={PHOTO_BADGE} present={Object.keys(PHOTO_BADGE).filter(k => shown.some(d => tierOf(d) === k))}/>;
   const back = () => { setPreview(null); setView3D('3d'); setRef3DFailed(false); setTryCol(false); setRefPart('top'); };
   const famFitsRole = f => !pieceRole || pieceOf(f.id) === pieceRole;
-  const derived = DERIVED_FAMS.filter(f => !(pieceRole && roleOn) || famFitsRole(f));
+  const derived = DERIVED_FAMS.filter(f => !pieceOf(f.id) && (!(pieceRole && roleOn) || famFitsRole(f)));
   if (derivedFam) return <>{head(null)}<FamilySteps fam={derivedFam} cfg={cfg} backLabel="Back to photos" onBack={() => setDerivedFam(null)} onOpen={pick => onPickFamily(derivedFam, homeOf(derivedFam.id, cfg.category), pick)}/></>;
 
   if (preview) {
@@ -213,7 +216,7 @@ function Photos({ head, onClose, cfg, pieceRole, onPickPhoto, onPick3D, onPickFa
         <input type="search" className="ds-pick-search" placeholder="Search photos (blazer, mandarin, scrub…)" aria-label="Search photos"
           value={filters.q ?? ''} onChange={e => setFilters(f => ({ ...f, q: e.target.value }))}/>
         <div className="ds-chips" role="group" aria-label="Photo type">
-          <RoleChip pieceRole={pieceRole} on={roleOn} setOn={setRoleOn} count={ENTRIES.filter(canEdit).length} total={ENTRIES.length}/>
+          <RoleChip pieceRole={pieceRole} on={roleOn} setOn={setRoleOn} count={FULL_SETS.filter(canEdit).length} total={FULL_SETS.length}/>
           {[['editable', 'Editable in Studio'], ['reference', 'Inspiration only'], ['all', 'All']].map(([id, lbl]) => (
             <button key={id} type="button" className="ds-chip" aria-pressed={kind === id} onClick={() => setKind(id)}>{lbl} ({kindCount[id]})</button>
           ))}
@@ -241,7 +244,7 @@ function Photos({ head, onClose, cfg, pieceRole, onPickPhoto, onPick3D, onPickFa
             <button type="button" className="ds-pick-card" onClick={() => setPreview(d)} title={TIER_LABEL[tierOf(d)].note} aria-label={`${d.label}, ${PHOTO_LABEL[tierOf(d)]}`}>
               <span className="ds-pick-img"><img src={d.thumb} alt="" loading="lazy" decoding="async"/></span>
               <strong>{garmentLabel(d.label)}</strong>
-              <Capability3D kind={TIER_CAP[tierOf(d)]}/>
+              {TIER_CAP[tierOf(d)] !== 'approx' && <Capability3D kind={TIER_CAP[tierOf(d)]}/>}
             </button>
           </li>
         ))}
@@ -285,7 +288,7 @@ const tierOfFamily = fam => combosFor(fam, VECTOR)[0]?.status ?? 'reference';
 // All families once, each opened in the browsed category, or the customer's current one when it lists that family.
 const ALL = 'all';
 const homeOf = (famId, cur) => (CATALOG.find(c => c.id === cur && c.families.some(f => f.id === famId)) ?? CATALOG.find(c => c.families.some(f => f.id === famId))).id;
-const ALL_FAMILIES = [...new Map(CATALOG.flatMap(c => c.families).map(f => [f.id, f])).values()];
+const ALL_FAMILIES = [...new Map(CATALOG.flatMap(c => c.families).map(f => [f.id, f])).values()].filter(f => f.status3D !== 'none');
 const OWN_FAMILIES = ALL_FAMILIES.filter(f => !f.derived);
 // Templates traced from a reference photo's model: listed under "Start from a reference", never under "Start from scratch".
 const DERIVED_FAMS = ALL_FAMILIES.filter(f => f.derived && tierOfFamily(f) !== 'reference');
@@ -299,7 +302,7 @@ function FamilyCard({ fam, cfg, fitsRole, pieceRole, onPick, i }: any) {
         onClick={() => onPick(fam)} aria-label={`${fam.id}, ${PHOTO_LABEL[tier]}`}>
         <span className="ds-pick-img"><TemplateImage fam={fam} cfg={cfg} pick={combosFor(fam, VECTOR)[0] ?? {}}/></span>
         <strong>{garmentLabel(fam.id)}</strong>
-        <Capability3D kind={TIER_CAP[tier]}/>
+        {TIER_CAP[tier] !== 'approx' && <Capability3D kind={TIER_CAP[tier]}/>}
       </button>
     </li>
   );
@@ -393,7 +396,7 @@ function BuildYourOwnCard({ onPick }: any) {
 function PairSection({ cfg, onPair, i0 = 0 }: any) {
   const role = pieceOf(cfg.garment);
   if (!role) return <p className="ds-note ds-pick-pairnote">{garmentLabel(cfg.garment)} is a one-piece garment: it needs no separate top or bottom. Pick any garment below to replace it.</p>;
-  const list = counterpartsFor(cfg.garment, cfg.category).filter(f => !f.derived && tierOfFamily(f) !== 'reference');
+  const list = counterpartsFor(cfg.garment, cfg.category).filter(f => f.status3D !== 'none' && !f.derived && tierOfFamily(f) !== 'reference');
   const want = role === 'top' ? 'bottom' : 'top';
   return (
     <section className="ds-pick-sec ds-pick-pair" aria-label={`Pair a ${ROLE_LABEL[want].toLowerCase()} with your ${garmentLabel(cfg.garment)}`}>
@@ -421,7 +424,7 @@ function Templates({ head, onClose, cfg, pieceRole, onPickFamily, onPairFamily =
   const withColour = pick => (colour ? { ...pick, bodyColor: colour } : pick);
   const fitsRole = f => !pieceRole || pieceOf(f.id) === pieceRole;
   const facetOk = f => (!piece || pieceFacet(f.id) === piece) && (!gender || genderFacets(f).has(gender) || genderFacets(f).has('unisex'));
-  const inCat = c => (c === ALL ? ALL_FAMILIES : CATALOG.find(x => x.id === c).families).filter(f => !f.derived && tierOfFamily(f) !== 'reference' && (!(pieceRole && roleOn) || fitsRole(f)) && facetOk(f));
+  const inCat = c => (c === ALL ? ALL_FAMILIES : CATALOG.find(x => x.id === c).families).filter(f => f.status3D !== 'none' && !f.derived && tierOfFamily(f) !== 'reference' && (!(pieceRole && roleOn) || fitsRole(f)) && facetOk(f));
   const families = inCat(cat);
   const pairing = !!onPairFamily && !!cfg.garment && !pieceRole;
   const legend = <Legend labels={PHOTO_LABEL} icons={PHOTO_BADGE} present={Object.keys(PHOTO_BADGE).filter(k => families.some(f => tierOfFamily(f) === k))}/>;
@@ -503,7 +506,6 @@ export default function GarmentPicker({ tab = 'inspiration', inline = false, cfg
             <div className="ds-status-actions">
               {artRefused === PERSON_UNCHECKED_2D && <button type="button" className="ds-btn" onClick={onSketchArt}>Check again</button>}
               <UploadButton onUpload={onUpload} label="Choose another photo"/>
-              <button type="button" className="ds-btn" onClick={onAttachRefused}>Attach as reference</button>
             </div>
           </div>
         )}

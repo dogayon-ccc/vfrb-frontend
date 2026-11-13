@@ -1,5 +1,6 @@
 // The four Order Wizard steps. Styles: .wz-* in styles/customer.css.
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import axios from 'axios';
 import DesignPreview from '../../../components/DesignPreview';
 import SizeChartTable from '../../../components/SizeChartTable';
 import SizeProportions from '../design-studio/SizeProportions';
@@ -143,7 +144,18 @@ export function StepSizes({ form, set, errors, studio, kind, title, uid }: any) 
   );
 }
 
+const addrText = (a: any) => [a.address_line, a.city, a.province].filter(Boolean).join(', ') + (a.postal_code ? ` ${a.postal_code}` : '');
+
 export function StepDelivery({ form, set, errors }: any) {
+  const [saved, setSaved] = useState<any[]>([]);
+  useEffect(() => {
+    axios.get('/api/customer/shipping-addresses').then(r => {
+      const list = Array.isArray(r.data) ? r.data : (r.data?.data ?? []);
+      setSaved(list);
+      const d = list.find((a: any) => a.is_default);
+      if (d && !form.delivery_address.trim()) set('delivery_address', addrText(d));
+    }).catch(() => {});
+  }, []); // eslint-disable-line
   return (
     <div className="wz-stack">
       <p className="wz-lead">Orders take at least a week. VFRB reviews your order and confirms the delivery date.</p>
@@ -162,8 +174,12 @@ export function StepDelivery({ form, set, errors }: any) {
       </div>
       {form.delivery_method === 'pickup'
         ? <p className="wz-lead">VFRB tells you when your order is packed and ready to collect.</p>
-        : <Field as="textarea" rows={3} label="Delivery address" value={form.delivery_address} error={errors.delivery_address}
-            onChange={e => set('delivery_address', e.target.value)} placeholder="Street, barangay, city, province"/>}
+        : <>
+          {saved.length > 0 && <div className="wz-seg" role="group" aria-label="Saved addresses">
+            {saved.map((a: any) => <button key={a.shipping_id} type="button" aria-pressed={form.delivery_address === addrText(a)} onClick={() => set('delivery_address', addrText(a))}>{a.label}</button>)}
+          </div>}
+          <Field as="textarea" rows={3} label="Delivery address" value={form.delivery_address} error={errors.delivery_address}
+            onChange={e => set('delivery_address', e.target.value)} placeholder="Street, barangay, city, province"/></>}
       <div className="wz-grid2">
         <Field label="PO reference (optional)" value={form.po_reference} onChange={e => set('po_reference', e.target.value)} placeholder="Your purchase order number"/>
         <Field as="textarea" rows={2} label="Notes for VFRB (optional)" value={form.special_notes} onChange={e => set('special_notes', e.target.value)}/>

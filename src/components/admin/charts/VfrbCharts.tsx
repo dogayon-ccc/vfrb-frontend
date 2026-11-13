@@ -127,7 +127,7 @@ export function TrendChart({ rows, x = 'month', series, format = fmtCount, yForm
   const colored = series.map((s, i) => ({ ...s, color: s.color ?? t.series[i] }));
   return (
     <div className="vc-plot" role="img" aria-label={label} style={{ height }}>
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} initialDimension={{ width: 320, height: 200 }}>
         <AreaChart data={rows} margin={{ top: 10, right: 12, left: 0, bottom: 0 }} accessibilityLayer={false}
           onMouseLeave={() => setHover(null)}>
           <defs>
@@ -169,7 +169,7 @@ export function BarsChart({ rows, x = 'month', series, format = fmtCount, yForma
   const fixed = !horizontal && rows.length * series.length <= 8 ? 26 : undefined;
   return (
     <div className="vc-plot" role="img" aria-label={label} style={{ height }}>
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} initialDimension={{ width: 320, height: 200 }}>
         <BarChart data={rows} layout={horizontal ? 'vertical' : 'horizontal'} accessibilityLayer={false}
           margin={{ top: 6, right: horizontal ? 16 : 8, left: 0, bottom: 0 }} barGap={2} barCategoryGap={horizontal ? '24%' : '28%'}>
           <CartesianGrid stroke={t.grid} strokeDasharray="2 4" vertical={horizontal} horizontal={!horizontal} />
@@ -204,7 +204,7 @@ export function DonutChart({ items, format = fmtCount, totalLabel = 'Total', tot
   return (
     <div className="vc-donut">
       <div className="vc-ring" role="img" aria-label={label} style={{ height, width: height }}>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} initialDimension={{ width: 320, height: 200 }}>
           <PieChart accessibilityLayer={false}>
             <Pie data={data} dataKey="value" nameKey="label" innerRadius="64%" outerRadius="94%" paddingAngle={data.length > 1 ? 1.5 : 0}
               cornerRadius={4} stroke={t.surface} strokeWidth={2} startAngle={90} endAngle={-270}

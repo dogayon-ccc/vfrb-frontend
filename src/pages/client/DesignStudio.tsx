@@ -633,13 +633,11 @@ export default function DesignStudio() {
     });
   }, [cfg.category, face, loadCanvasJSON, settleOverlays, whileSwapping]);
 
+  // "Add a matching bottom/top" opens the picker's Pair section so the client chooses the other piece (it used to load a default one).
   const startSet = useCallback(() => {
-    const role = pieceOf(cfg.garment);
-    if (!role || uset) return;
-    const other = otherRole(role);
-    setUset({ id: uid(), active: other, pieces: { [role]: pieceSnapshot(), [other]: null } });
-    loadPiece(null, other);
-  }, [cfg.garment, uset, pieceSnapshot, loadPiece]);
+    if (!pieceOf(cfg.garment) || uset) return;
+    changeGarment();
+  }, [cfg.garment, uset, changeGarment]);
 
   // "Pair with your top/bottom" (picker): the garment on the canvas becomes one piece of a new set and the picked family the other, in the
   // same colours. Nothing already designed is lost; the new piece opens on the canvas.
@@ -1104,7 +1102,7 @@ export default function DesignStudio() {
             blank={<GarmentPicker inline cfg={cfg} pieceRole={uset?.active ?? (pendingArt && artScope ? (artScope === 'bottom' ? 'bottom' : 'top') : null)} onPickPhoto={pickPhoto}
               onPick3D={(d, f) => { keep3DRef.current = true; pickPhoto(d, f); setHas3DLoaded(true); setViewMode('3d'); }}
               onPickFamily={(fam, category, pick) => selectFamily(setCfg, fam, category, pick)}
-              onUpload={startUpload} pendingArt={pendingArt} onCancelArt={() => { setPendingArt(null); setArtRefused(null); }} onSketchArt={REF_PHOTO_TOOLS ? sketchPending : null}
+              onUpload={null} pendingArt={pendingArt} onCancelArt={() => { setPendingArt(null); setArtRefused(null); }} onSketchArt={REF_PHOTO_TOOLS ? sketchPending : null}
               artRefused={artRefused} artChecking={artChecking} onAttachRefused={attachRefusedArt} referenceName={logoUpload.reference?.name}
               artScope={artScope} onArtScope={uset ? null : setArtScope}/>} setViewMode={setViewMode}
             viewOpen={viewOpen} setViewOpen={setViewOpen} setCompanion={setCompanion} showSet={showSet} setSnapOptions={setSnapOptions} trace={trace} clearSelection={clearSelection}/>

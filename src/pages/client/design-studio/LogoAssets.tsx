@@ -80,7 +80,6 @@ function StatusCard({ logo, onBrowse }: any) {
         {(s.code === 'NOT_SET' || s.code === 'PERSON') && (
           <div className="ds-status-actions">
             <button type="button" className="ds-btn ds-btn--primary" onClick={onBrowse}>Choose another photo</button>
-            <button type="button" className="ds-btn" onClick={logo.attachRefused}>Attach as reference</button>
           </div>
         )}
         <button type="button" className="ds-link" onClick={dismiss}>Dismiss</button>
@@ -90,12 +89,7 @@ function StatusCard({ logo, onBrowse }: any) {
   // Artwork review: before/after, "Remove background" toggle (back to the original), and Use as artwork or reference photo.
   if (s.phase === 'review') {
     const art = s.useAs === 'artwork';
-    const USE_AS = [
-      ['artwork', 'Add my logo', 'A movable image layer on the design', 'Add to garment', true],
-      ['trace', 'Trace over it', 'A locked, see-through guide under the garment; never exported or ordered', 'Use as tracing guide', logo.canTrace],
-      ['sketch', 'Create a 2D garment from it', 'Reads the garment outline and proposes an editable sketch you confirm', 'Read the outline', logo.canSketch],
-      ['reference', 'Attach a reference photo to my order', 'Sent with your order as its reference image; not printed', 'Attach as reference', true],
-    ].filter(o => o[4]);
+    const USE_AS = [['artwork', 'Add my logo', 'A movable image layer on the design', 'Add to garment', true]];
     const action = USE_AS.find(o => o[0] === s.useAs)?.[3] ?? 'Add to garment';
     const gate = personGate(s.useAs, s.person);
     return (
@@ -110,12 +104,6 @@ function StatusCard({ logo, onBrowse }: any) {
           <label className="ds-switch"><input type="checkbox" checked={s.removeBg} onChange={e => logo.setRemoveBg(e.target.checked)}/><span>Remove background</span></label>
         )}
         {art && s.canAi && <button type="button" className="ds-btn" onClick={logo.tryAi}>Try AI background removal</button>}
-        <fieldset className="ds-useas">
-          <legend>Use as</legend>
-          {USE_AS.map(([id, title, sub]) => (
-            <label key={id}><input type="radio" name="ds-useas" checked={s.useAs === id} onChange={() => logo.setUseAs(id)}/><span><b>{title}</b><small>{sub}</small></span></label>
-          ))}
-        </fieldset>
         {s.useAs === 'sketch' && <>
           <label className="ds-switch"><input type="checkbox" checked={!!s.uniformOk} onChange={e => logo.setUniformOk(e.target.checked)}/><span>{REF_UNIFORM_CONFIRM}</span></label>
           <p className="ds-note">{REF_3D_NOTE}</p>

@@ -10,8 +10,6 @@ export const RAIL_TOOLS = [
   { id: 'line',   key: 'L', label: 'Line',         hint: 'Drag a straight line; hold Shift for 45° steps' },
   { id: 'text',   key: 'T', label: 'Text',         hint: 'Add names, slogans or numbers' },
   { id: 'shape',  key: 'U', label: 'Shapes',       hint: 'Add a shape' },
-  { id: 'rect',   key: 'M', label: 'Rectangle',    hint: 'Drag to draw a rectangle in the active colour; hold Shift for a square' },
-  { id: 'ellipse', key: 'O', label: 'Ellipse',     hint: 'Drag to draw an ellipse in the active colour; hold Shift for a circle' },
 ];
 // WCAG 2.1.4: single-key shortcuts can be turned off (speech input presses letters); on by default, remembered in this browser.
 const KEYS_PREF = 'ds_letter_keys';

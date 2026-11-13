@@ -65,7 +65,7 @@ export default function HeroTurntable({ visible, onReady, onError }: any) {
   }, [onReady, wake]);
   useEffect(() => () => {
     clearTimeout(sleep.current); clearTimeout(assemble.current);
-    try { gl.current?.dispose(); gl.current?.forceContextLoss(); } catch { /* already lost */ }
+    try { const g = gl.current; if (g && !g.getContext().isContextLost()) { g.dispose(); g.forceContextLoss(); } } catch { /* already lost */ }
   }, []);
   useEffect(() => { if (!ENTRY) onError(); }, [onError]);
   const toggle = () => { clearTimeout(assemble.current); setExploded(v => !v); wake(900); };
