@@ -47,7 +47,11 @@ import { landingViewFor } from './design-studio/studioView';
 import DraftStrip from './design-studio/DraftStrip';
 import GarmentPicker from './design-studio/GarmentPicker';
 import { selectFamily } from './design-studio/selectGarment';
+import { X } from 'lucide-react';
 import { has3DFor } from './design-studio/garmentCapabilities';
+import { hasWebGL } from './design-studio/webglSupport';
+import Capability3D from './design-studio/Capability3D';
+import { cap3D } from './design-studio/garmentCatalog';
 import { describeDetails } from './design-studio/garmentDetails';
 import { describePockets } from './design-studio/pocketTools';
 import { describeCustom, isCustom, isParametric, CUSTOM_TOP } from './design-studio/customGarment';
@@ -234,6 +238,14 @@ export default function DesignStudio() {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- landing runs once per garment change
   }, [cfg.garment]);
   useEffect(() => { keep3DRef.current = false; }, [viewMode]);
+  // 3D takes the whole stage: chrome steps aside, Exit 3D (or Esc) returns to designing.
+  const immersive = viewMode === '3d' && has3DLoaded && has3DFor(cfg) && hasWebGL();
+  useEffect(() => {
+    if (!immersive) return undefined;
+    const onEsc = e => { if (e.key === 'Escape') setViewMode('2d'); };
+    window.addEventListener('keydown', onEsc);
+    return () => window.removeEventListener('keydown', onEsc);
+  }, [immersive]);
 
   // Tracing guide (traceGuide.js): a DOM underlay for this tab only, never in the design, exports or the order.
   const [trace, setTraceState] = useState(() => (REF_PHOTO_TOOLS ? readTrace() : null));
@@ -946,7 +958,8 @@ export default function DesignStudio() {
     if (!orderQueue(snapshotDesign()) && !isCompleteOutfit(cfg.garment)) {
       const role = pieceOf(cfg.garment);
       setTool('type');
-      flashError(role ? `VFRB takes full sets only: add the matching ${otherRole(role)} first.` : 'VFRB takes full sets only: choose a top or a bottom to start a set.');
+      if (role && !uset) changeGarment(); // opens the picker on the matching piece instead of only saying no
+      flashError(role ? `VFRB takes full sets only: pick the matching ${otherRole(role)} to continue.` : 'VFRB takes full sets only: choose a top or a bottom to start a set.');
       return;
     }
     setOrdering(true); // instant feedback — see the state declaration above
@@ -1034,7 +1047,7 @@ export default function DesignStudio() {
     <>
       <DesignStudioStyles/>
 
-      <div className="ds" data-locked={locked || undefined} data-first={!cfg.garment || undefined} style={{ position:'relative' }}>
+      <div className="ds" data-immersive={immersive || undefined} data-locked={locked || undefined} data-first={!cfg.garment || undefined} style={{ position:'relative' }}>
 
         {/* ── TOP BAR ── */}
         <TopBar nav={nav} cfg={cfg} setCfg={locked ? () => {} : setCfg} undo={lock?.warn ? () => setWarnAsk(true) : undo} redo={lock?.warn ? () => setWarnAsk(true) : redo}
@@ -1055,6 +1068,15 @@ export default function DesignStudio() {
           <div role="status" style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 16px', background:'var(--amber-50, #fffbeb)', borderBottom:'1px solid var(--border)', fontSize:13, color:'var(--ink)' }}>
             <NavIcon name="warning" size={15}/>
             <span><strong>Colour changes only on this copy.</strong> Garment, text, logos, shapes, drawing and AI are off. Saves go to the copy in My Designs.</span>
+          </div>
+        )}
+
+        {immersive && (
+          <div className="ds-exit3d">
+            <button type="button" onClick={() => setViewMode('2d')} autoFocus>
+              <X size={18} aria-hidden="true"/><span>Exit 3D</span>
+            </button>
+            {cap3D(cfg) !== 'verified' && <Capability3D kind={cap3D(cfg)} className="ds-view-chip"/>}
           </div>
         )}
 

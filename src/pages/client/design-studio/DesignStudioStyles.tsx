@@ -245,9 +245,9 @@ export default function DesignStudioStyles() {
         .ds-panel-toggle{display:flex;position:absolute;top:8px;right:8px;z-index:3;width:44px;height:44px;align-items:center;justify-content:center;border:1px solid var(--border);border-radius:var(--r-md);background:var(--bg-card);color:var(--text-muted);cursor:pointer;}
         .ds-panel-toggle:hover{color:var(--ink);border-color:var(--teal);}
         .ds-sheet-head .ds-panel-toggle{position:static;flex:none;margin-left:8px;width:auto;padding:0 12px;gap:6px;font:600 12px/1 inherit;}
-        .ds-panel[data-collapsed]{width:56px;}
+        .ds-panel[data-collapsed]{width:0;min-width:0;border:0;background:transparent;overflow:visible;box-shadow:none;}
         .ds-panel[data-collapsed] > :not(.ds-panel-toggle){display:none;}
-        .ds-panel[data-collapsed] .ds-panel-toggle{right:6px;border-color:var(--teal);color:var(--teal);box-shadow:var(--shadow-xs);}
+        .ds-panel[data-collapsed] .ds-panel-toggle{right:8px;z-index:var(--cx-z-popover);background:var(--cx-card,#fff);border-color:var(--teal);color:var(--teal);box-shadow:var(--shadow-xs);}
       }
       @media (min-width:1024px) and (prefers-reduced-motion:reduce){.ds-panel{transition:none;}}
       .ds-sheet-head{
@@ -324,6 +324,15 @@ export default function DesignStudioStyles() {
       .ds[data-expanded=app]{position:fixed;inset:0;z-index:var(--cx-z-modal);}
       .ds[data-expanded] .ds-bar{display:none;}
       .ds[data-expanded] .ds-draft{display:none;}
+      /* Immersive 3D: only the model and one Exit button. */
+      .ds[data-immersive] :is(.ds-bar,.ds-draft,.ds-rail,.ds-panel,.ds-sheet,.ds-lane,.ds-toast,.ds-ruler,.ds-ruler-corner,.ds-pill){display:none !important;}
+      .ds[data-immersive] .ds-cv{padding:0 !important;}
+      .ds[data-immersive] .ds-pane{inset:0 !important;}
+      .ds-exit3d{position:absolute;top:max(12px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));z-index:var(--cx-z-popover);display:flex;align-items:center;gap:8px;}
+      .ds-exit3d button{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border:1px solid var(--cx-line-strong,#7686A6);border-radius:999px;background:#1B2A4A;color:#F4F5F2;font:700 14px/1 inherit;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.25);transition:background .15s,transform .15s;}
+      .ds-exit3d button:hover{background:#028090;}
+      .ds-exit3d button:focus-visible{outline:3px solid #02C39A;outline-offset:2px;}
+      @media (prefers-reduced-motion:reduce){.ds-exit3d button{transition:none;}}
 
       /* The one garment picker (inline on the empty stage, or in the picker modal) */
       .ds-pick{display:flex;flex-direction:column;align-items:center;gap:16px;width:100%;}
@@ -1239,6 +1248,10 @@ export default function DesignStudioStyles() {
       .ds-pick[data-compact] .ds-pick-head{padding:8px 0;box-shadow:0 1px 0 var(--cx-line),0 8px 16px -12px rgb(0 0 0 / .3);}
       .ds-pick[data-compact] .ds-pick-head::before{content:"";position:absolute;left:0;right:0;bottom:100%;height:48px;background:inherit;}
       .ds-pick[data-compact] .ds-pick-head>:is(p,.ds-pick-legend){display:none;}
+      /* Phones: the header is one compact bar from the start, so the grid shows without scrolling past a banner. */
+      @media (max-width:767px){.ds-pick-head>:is(p,.ds-pick-legend){display:none;}.ds-pick-head{gap:6px;padding:6px 0;}.ds-pick-head h2{font-size:20px;}}
+      .ds-cap3d{white-space:nowrap;}
+      @media (max-width:767px){.ds-pick .ds-chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;justify-content:flex-start;padding-bottom:2px;}.ds-pick .ds-chips::-webkit-scrollbar{display:none;}.ds-pick .ds-chips>*{flex:none;}}
       .ds-pick[data-compact] .ds-pick-titlebar{position:absolute;top:8px;right:0;width:auto;display:block;}
       .ds-pick[data-compact] .ds-pick-titlebar h2{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
       .ds-pick[data-compact][data-inline] .ds-pick-titlebar{display:none;}

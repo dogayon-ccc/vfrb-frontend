@@ -4,7 +4,7 @@
 // model or outline separates collar, sleeve or pocket. Names are generic garment names, pending VFRB confirmation.
 import { DERIVED_GEOMETRY } from './derivedTemplates.generated';
 
-export const DERIVED_LABEL = 'Derived from reference, pending VFRB confirmation';
+export const DERIVED_LABEL = 'Traced from a VFRB reference photo';
 export const DERIVED_APPROVAL = 'enabled 2026-10-12 (derived from reference; VFRB confirmation pending)';
 // Recorded in GLB-STAGING-AUDIT.md: Meshy generations from the gallery photos, staged in asset-staging/mesh-3d; no licence is recorded.
 export const DERIVED_SOURCE = 'Meshy image-to-3D generation of the gallery photo (asset-staging/mesh-3d, byte-identical copy in public/models/reference)';

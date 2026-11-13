@@ -26,7 +26,7 @@ export const GLB_STATUSES = ['candidate', 'approx', 'verified'];
 // Full 3D editing needs state 'verified' AND a verification record; anything else is read-only.
 export const slotEditable3D = slot => slot?.state === 'verified' && !!slot.verification?.method && !!slot.verification?.date;
 // The one 3D capability wording: garment cards, the Studio view toggle and order previews all read it (Capability3D.jsx).
-export const CAP3D = { verified: '3D preview available', approx: '3D preview (approximate)', none: '2D design only: 3D coming', reference: 'Reference photo' };
+export const CAP3D = { verified: '3D preview available', approx: '3D preview (approximate)', none: '2D design', reference: 'Reference photo' };
 export const slot3DLabel = slot => slotEditable3D(slot) ? CAP3D.verified : slotLive(slot) ? CAP3D.approx : null;
 // Intake verdict: a failed gate stays 'candidate'; a pass becomes 'verified' only with source, licence and owned photos.
 export const intakeStatus = ({ pass, source, licence, photosOwned }: any) =>
