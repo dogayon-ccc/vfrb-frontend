@@ -451,6 +451,7 @@ export default function CanvasViewport({
   // 3D honesty notes, said in the top lane (never over the model).
   const notes3D = viewMode === '3d' ? [
     !webglOk && { id: 'nogl', text: '3D preview is not available on this device. Showing the 2D design.' },
+    show3D && setCompanion && { id: 'set3d', text: `3D shows one piece at a time: ${cfg.garment}. Switch pieces on the left to see the other.` },
     show3D && canExplode && picked && { id: 'zone', text: `Selected in the editor: ${ZONE_LABEL[picked] ?? picked}` },
     ...(show3D && cfg.garment ? (() => {
       const status = familyFor(cfg.garment)?.status3D;
@@ -480,7 +481,7 @@ export default function CanvasViewport({
           {!initFailed && <GuidesMenu guides={guides} setGuides={setGuides} showGuides={show2D} base={show2D ? status : null} dark={dark} setDark={setStagePick}
             open={viewOpen} onOpenChange={setViewOpen}/>}
           {show2D && !initFailed && !set2D && <ViewToggles guides={guides} setGuides={setGuides}/>}
-          {show2D && rail && !initFailed && <ToolRail rail={rail} hand={hand} setHand={setHand} canPan={canPan} zoomBy={f => setZoom(z => clampZoom(z * f))}/>}
+          {show2D && rail && !initFailed && <ToolRail rail={rail} readOnly={set2D} hand={hand} setHand={setHand} canPan={canPan} zoomBy={f => setZoom(z => clampZoom(z * f))}/>}
           {notes3D.map(n => <div key={n.id} role="status" className="ds-stage-note" data-tone={n.warn ? 'warn' : undefined}>{n.text}</div>)}
         </div>
       )}

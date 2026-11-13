@@ -6,10 +6,13 @@ import { RAIL_TOOLS, PICK_TOOLS, STROKE_SIZES, STROKE_TOOLS, railKey, activeRail
 const ICONS = { move: MousePointer2, hand: Hand, sample: Pipette, fill: PaintBucket, brush: Brush, eraser: Eraser, pen: PenTool, line: Slash, text: Type, shape: Shapes };
 const typing = () => { const a = document.activeElement; return !!a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable); };
 
-export default function ToolRail({ rail, hand, setHand, canPan, zoomBy }: any) {
+export default function ToolRail({ rail, hand, setHand, canPan, zoomBy, readOnly = false }: any) {
   const { tool, setTool, pick, setPick, erasing, setErasing, color, setColor, size, setSize, note, colourOnly } = rail;
   const active = activeRail({ hand, pick, tool, erasing });
-  const off = id => (id === 'hand' && !canPan) || (colourOnly && !RAIL_TOOLS.find(t => t.id === id)?.colour && id !== 'move');
+  const off = id => (readOnly ? id !== 'move' : (id === 'hand' && !canPan) || (colourOnly && !RAIL_TOOLS.find(t => t.id === id)?.colour && id !== 'move'));
+
+  // the set preview has no canvas to act on: leave any pick tool so it cannot linger
+  useEffect(() => { if (readOnly) { setPick(null); setHand(false); if (tool === 'draw') setTool('assets'); } }, [readOnly]);
 
   const choose = (id) => {
     if (off(id)) return;
@@ -41,14 +44,14 @@ export default function ToolRail({ rail, hand, setHand, canPan, zoomBy }: any) {
         const I = ICONS[id];
         return (
           <button key={id} type="button" className="ds-tools-btn" data-tool={id} aria-pressed={active === id} disabled={off(id)}
-            aria-label={label} aria-keyshortcuts={key} data-tip={`${label} (${key}): ${id === 'hand' && !canPan ? 'zoom in to pan' : hint.toLowerCase()}`}
+            aria-label={label} aria-keyshortcuts={key} data-tip={readOnly && id !== 'move' ? `${label}: switch to one piece to use tools` : `${label} (${key}): ${id === 'hand' && !canPan ? 'zoom in to pan' : hint.toLowerCase()}`}
             onClick={() => choose(id)}>
             <I size={17} aria-hidden="true"/>
           </button>
         );
       })}
       <label className="ds-tools-ink" data-tip="Active colour: the brush, pen, line, rectangle, ellipse and paint bucket use it, the eyedropper sets it">
-        <input type="color" value={color} onChange={e => setColor(e.target.value)} aria-label="Active colour"/>
+        <input type="color" value={color} disabled={readOnly} onChange={e => setColor(e.target.value)} aria-label="Active colour"/>
       </label>
       {STROKE_TOOLS.includes(active) && setSize && (
         <div className="ds-tools-size" role="radiogroup" aria-label="Stroke width">
