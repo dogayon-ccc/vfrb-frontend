@@ -4,12 +4,12 @@ import { useEffect, useRef } from 'react';
 import { Minus, Plus, Scan } from 'lucide-react';
 import { visibleFrac } from './navigatorView';
 
-const THUMB_W = 184, REFRESH_MS = 400;
+const THUMB_W = 128, REFRESH_MS = 400;
 
 export default function Navigator({ source, size, view, zoom, shown, min, max, setZoom, onFit, onPanTo, fitted }: any) {
   const thumb = useRef(null), drag = useRef(false);
   const ratio = size.w > 0 ? size.h / size.w : 1.2;
-  const w = THUMB_W, h = Math.round(Math.min(180, THUMB_W * ratio)), tw = Math.round(h / ratio);
+  const w = THUMB_W, h = Math.round(Math.min(140, THUMB_W * ratio)), tw = Math.round(h / ratio);
   // Copies the live canvas a few times a second while the page is visible (grid and guides included, as on the stage).
   useEffect(() => {
     const draw = () => {

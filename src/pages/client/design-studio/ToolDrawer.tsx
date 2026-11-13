@@ -23,6 +23,14 @@ const NAV_LABEL = { type: 'Garment', add: 'Add', layers: 'Layers', ai: 'Ask AI' 
 export const SNAPS = ['peek', 'half', 'full'];
 export const snapStep = (snap, dy) => (Math.abs(dy) < 24 ? snap
   : SNAPS[Math.max(0, Math.min(SNAPS.length - 1, SNAPS.indexOf(snap) + (dy < 0 ? 1 : -1) * (Math.abs(dy) > 160 ? 2 : 1)))]);
+// The Add tab's one row: each item is a tool, or a view of the asset panel.
+const ADD_ITEMS = [
+  { id: 'logo',     label: 'Logo',     icon: 'logo',   tool: 'assets', sub: 'logo' },
+  { id: 'text',     label: 'Text',     icon: 'text',   tool: 'text',   sub: null },
+  { id: 'shapes',   label: 'Shapes',   icon: 'shapes', tool: 'assets', sub: 'shapes' },
+  { id: 'draw',     label: 'Draw',     icon: 'draw',   tool: 'draw',   sub: null },
+  { id: 'starters', label: 'Starters', icon: 'ai',     tool: 'assets', sub: 'templates' },
+];
 const SNAP_NEXT = { peek: ['half', 'Raise the panel'], half: ['full', 'Raise the panel to full height'], full: ['peek', 'Lower the panel'] };
 
 // Raw-material suggestions are made per order, so the Studio only says where they appear. No prices.
@@ -72,6 +80,7 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
   const subs = tab ? tab.tools.filter(allowed) : [];
   const active = TOOLS.find(t => t.id === tool);
   const noGarment = !p.cfg.garment;
+  const isSel = (i: any) => (i.sub ? tool === 'assets' && p.assetsTab === i.sub : tool === i.tool);
   const title = noGarment ? 'Design tools' : tab?.label ?? active.label;
 
   const layersList = () => (
@@ -87,7 +96,7 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
     color:   () => <ColorsPanel cfg={p.cfg} setCfg={p.setCfg} activeZone={p.activeZone} setActiveZone={p.setActiveZone}
                      onDone={partView ? () => setTool('type') : null}/>,
     details: () => <DetailsPanel cfg={p.cfg} setCfg={p.setCfg} focus={p.detailFocus} onColourPocket={() => { p.setActiveZone('pocket'); setTool('color'); }} onAddPocket={p.addPocket}/>,
-    assets:  () => <AssetsPanel tab={p.assetsTab} setTab={p.setAssetsTab} cfg={p.cfg} logo={p.logoUpload}
+    assets:  () => <AssetsPanel tab={p.assetsTab} cfg={p.cfg} logo={p.logoUpload}
                      shapes={{ selObj:p.selObj, onAdd:p.addShape, onUpdate:p.updateSelected }}
                      onInspo={() => p.setShowInspo(true)} onShowcase={() => p.setShowShowcase(true)}/>,
     text:    () => <TextPanel onAdd={p.addText} bodyColor={p.cfg?.colors?.body}/>,
@@ -164,7 +173,7 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
           <nav className="ds-tabs" aria-label="Design sections">
             {tabs.map(t => (
               <button key={t.id} type="button" data-tab={t.id} aria-current={t.id === tab?.id ? 'true' : undefined} onClick={() => pick(t)}>
-                <NavIcon name={t.icon} size={18}/><span>{t.label}</span>
+                <NavIcon name={t.icon} size={18}/><span>{t.label}{t.id === 'layers' && p.layers?.length ? <b className="ds-tabcount">{p.layers.length}</b> : null}</span>
               </button>
             ))}
           </nav>
@@ -199,11 +208,13 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
             {tool === 'type' && garmentExtra && <div className="ds-phone-only">{garmentExtra}</div>}
             {tab?.id === 'type' && !partView && <MaterialNote/>}
             {subs.length > 1 && !partView && (
-              <div className="ds-seg ds-subtabs" role="tablist" aria-label={`${tab.label} sections`}>
-                {subs.map(id => {
-                  const t = TOOLS.find(x => x.id === id);
-                  return <button key={id} type="button" role="tab" aria-selected={id === tool} onClick={() => setTool(id)}><NavIcon name={t.icon} size={14}/>{t.label}</button>;
-                })}
+              <div className="ds-seg ds-subtabs" role="tablist" aria-label={`${tab.label} sections`} data-n={tab.id === 'add' ? ADD_ITEMS.length : undefined}>
+                {(tab.id === 'add' ? ADD_ITEMS.filter(i => allowed(i.tool)) : subs.map(id => ({ id, ...TOOLS.find(x => x.id === id), tool: id, sub: null }))).map((i: any) => (
+                  <button key={i.id} type="button" role="tab" aria-selected={isSel(i)} aria-controls={i.sub ? 'ds-add-panel' : undefined}
+                    onClick={() => { if (i.sub) p.setAssetsTab(i.sub); setTool(i.tool); }}>
+                    <NavIcon name={i.icon} size={16}/><span>{i.label}</span>
+                  </button>
+                ))}
               </div>
             )}
             {/* Enter-only fade: with an exit wait, two quick panel switches (an upload opening Selection) could leave the body empty. */}

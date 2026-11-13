@@ -1,12 +1,11 @@
 // Pieces rail: a card per uniform piece (tap to edit it) and the piece actions. A left column on desktop, with the docked layers
 // and the shortcut card under them; on phones and tablets a strip above the canvas (piece tabs for a set, the add action for one piece).
+import { useEffect, useRef, useState } from 'react';
 import GarmentSilhouette from './GarmentSilhouette';
 import { SET_ROLES, ROLE_LABEL } from './uniformSet';
 import { pieceOf, isCompleteOutfit, COMPLETE_OUTFIT } from './garmentCatalog';
 import { garmentLabel } from '../../../utils/designName';
 import { NavIcon } from '../../../components/ui/icons';
-import { ICON } from './LayersPanel';
-import { SHORTCUTS } from './railTools';
 
 function Card({ role, c, name }: any) {
   return (
@@ -46,7 +45,7 @@ export function PieceActions({ cfg, uset, other = null, onStart, canSet, setView
         </label>
       )}
       {!uset && (
-        <button type="button" className="ds-piece-add" data-card onClick={onStart}>
+        <button type="button" className="ds-piece-add" data-card onClick={onStart} aria-label={addPieceLabel(cfg, uset) ?? undefined}>
           <span className="ds-piece-add-plus" aria-hidden="true">+</span><span>Add<span className="ds-piece-add-x"> a matching</span> {ROLE_LABEL[SET_ROLES.find(r => r !== role)].toLowerCase()}</span>
         </button>
       )}
@@ -54,56 +53,28 @@ export function PieceActions({ cfg, uset, other = null, onStart, canSet, setView
   );
 }
 
-// Desktop only: the layers on this side, always in view (Photoshop's docked Layers panel). Tap a row to select; the eye hides it.
-// Renaming, order, lock and opacity stay in the full Layers tab.
-function LayerDock({ layers = [], selectedId, onSelect, onToggleVisibility, onAdd, onOpenLayers }: any) {
+// One "?" button: the tour, the how-to guides and every shortcut.
+function HelpMenu({ onTour, onKeys, onHowTo }: any) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const off = (e: any) => { if (!ref.current?.contains(e.target)) setOpen(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('pointerdown', off); document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('pointerdown', off); document.removeEventListener('keydown', esc); };
+  }, [open]);
+  const go = (fn) => () => { setOpen(false); fn?.(); };
   return (
-    <section className="ds-dock" aria-labelledby="ds-dock-h">
-      <div className="ds-dock-head">
-        <h3 id="ds-dock-h">Layers <span>{layers.length}</span></h3>
-        {layers.length > 0 && onOpenLayers && <button type="button" className="ds-dock-link" onClick={onOpenLayers}>Edit all</button>}
-      </div>
-      {layers.length === 0 ? (
-        <div className="ds-dock-empty">
-          <p>Nothing on this side yet.</p>
-          {onAdd && <button type="button" className="ds-btn" onClick={onAdd}>Add a logo or text</button>}
-        </div>
-      ) : (
-        <ul className="ds-dock-list" aria-label="Layers on this side, front-most first">
-          {layers.map(l => (
-            <li key={l.id} className="ds-dock-row" data-sel={l.id === selectedId || undefined} data-hidden={!l.visible || undefined}>
-              <button type="button" className="ds-dock-pick" aria-pressed={l.id === selectedId} onClick={() => onSelect?.(l.id)}>
-                <NavIcon name={ICON[l.type] ?? 'text'} size={15}/>
-                <span>{l.name}</span>
-                {l.locked && <NavIcon name="lock" size={13}/>}
-              </button>
-              <button type="button" className="ds-dock-eye" aria-label={`${l.visible ? 'Hide' : 'Show'} ${l.name}`} aria-pressed={!l.visible}
-                onClick={() => onToggleVisibility?.(l.id)}><NavIcon name={l.visible ? 'show' : 'hide'} size={15}/></button>
-            </li>
-          ))}
+    <div className="ds-help" ref={ref}>
+      <button type="button" className="ds-help-btn" aria-haspopup="menu" aria-expanded={open} aria-label="Help" aria-keyshortcuts="?" onClick={() => setOpen(o => !o)}>?</button>
+      {open && (
+        <ul className="ds-help-menu" role="menu" aria-label="Help">
+          {onTour && <li role="none"><button type="button" role="menuitem" onClick={go(onTour)}>Take the tour</button></li>}
+          {onHowTo && <li role="none"><button type="button" role="menuitem" onClick={go(onHowTo)}>How-to guides</button></li>}
+          {onKeys && <li role="none"><button type="button" role="menuitem" onClick={go(onKeys)}>Keyboard shortcuts</button></li>}
         </ul>
       )}
-    </section>
-  );
-}
-
-// Help at the foot of the column: the tour, every shortcut ("?" anywhere) and the keyboard ones in a fold.
-function KeysCard({ onTour, onKeys, onHowTo }: any) {
-  return (
-    <div className="ds-help">
-      {(onTour || onKeys) && (
-        <div className="ds-help-acts">
-          {onTour && <button type="button" className="ds-btn" onClick={onTour}>Take the tour</button>}
-          {onKeys && <button type="button" className="ds-btn" onClick={onKeys} aria-label="All shortcuts" aria-keyshortcuts="?" title="All shortcuts (?)"><kbd>?</kbd></button>}
-          {onHowTo && <button type="button" className="ds-btn ds-help-howto" onClick={onHowTo}>How-to guides</button>}
-        </div>
-      )}
-      <details className="ds-keys">
-        <summary>Keyboard shortcuts</summary>
-        <dl>
-          {SHORTCUTS.filter(g => g.group !== 'Touch').flatMap(g => g.keys).map(([k, label]) => <div key={k + label}><dt><kbd>{k}</kbd></dt><dd>{label}</dd></div>)}
-        </dl>
-      </details>
     </div>
   );
 }
@@ -123,7 +94,7 @@ export default function PiecesRail(props) {
         <ul className="ds-rail-list" role="group" aria-label="Piece to edit">
           {SET_ROLES.map(r => (
             <li key={r}>
-              <button type="button" className="ds-rail-card" aria-pressed={!showSet && r === active} disabled={readOnly}
+              <button type="button" className="ds-rail-card" aria-pressed={!showSet && r === active} disabled={readOnly} title={garmentLabel(r === active ? cfg.garment : uset.pieces[r]?.garment) ?? ROLE_LABEL[r]}
                 onClick={() => { onShowSet(false); onSwitch(r); }}>
                 <Card role={r} c={pieceCfg(r)} name={r === active ? cfg.garment : uset.pieces[r]?.garment}/>
               </button>
@@ -135,8 +106,8 @@ export default function PiecesRail(props) {
       )}
       <PieceActions {...props}/>
       <div id="ds-navigator-slot" className="ds-nav-slot"/>
-      {dock && !readOnly && <LayerDock {...dock}/>}
-      {!readOnly && <KeysCard onTour={help?.onTour} onKeys={help?.onKeys} onHowTo={help?.onHowTo}/>}
+      <div id="ds-tool-slot" className="ds-tool-slot"/>
+      {!readOnly && <HelpMenu onTour={help?.onTour} onKeys={help?.onKeys} onHowTo={help?.onHowTo}/>}
     </aside>
   );
 }

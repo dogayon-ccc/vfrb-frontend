@@ -2,12 +2,6 @@ import { NavIcon } from '../../../components/ui/icons';
 import LogoAssets from './LogoAssets';
 import ShapesPanel from './ShapesPanel';
 
-const TABS = [
-  { id: 'logo',      label: 'Logo',      icon: 'logo' },
-  { id: 'shapes',    label: 'Shapes',    icon: 'shapes' },
-  { id: 'templates', label: 'Templates', icon: 'ai' },
-];
-
 function Templates({ onInspo, onShowcase }: any) {
   return (
     <div className="ds-stack">
@@ -23,17 +17,10 @@ function Templates({ onInspo, onShowcase }: any) {
   );
 }
 
-export default function AssetsPanel({ tab, setTab, cfg, logo, shapes, onInspo, onShowcase }: any) {
+export default function AssetsPanel({ tab, cfg, logo, shapes, onInspo, onShowcase }: any) {
   return (
     <div className="ds-assets">
-      <div className="ds-seg" role="tablist" aria-label="Asset type">
-        {TABS.map((t) => (
-          <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}>
-            <NavIcon name={t.icon} size={14}/>{t.label}
-          </button>
-        ))}
-      </div>
-      <div className="ds-assets-body" role="tabpanel">
+      <div className="ds-assets-body" role="tabpanel" id="ds-add-panel">
         {tab === 'logo' && <LogoAssets cfg={cfg} logo={logo}/>}
         {tab === 'shapes' && <ShapesPanel {...shapes}/>}
         {tab === 'templates' && <Templates onInspo={onInspo} onShowcase={onShowcase}/>}

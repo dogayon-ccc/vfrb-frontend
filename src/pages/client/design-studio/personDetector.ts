@@ -3,7 +3,7 @@
 const MODEL_URL = '/face-detector/ultraface-rfb-320.onnx';
 const W = 320, H = 240;
 const CHECK_TIMEOUT = 30000;
-export const FACE_MIN_SCORE = 0.7; // measured: 10/10 person photos flagged, 1 of the 20 accepted gallery photos refused
+export const FACE_MIN_SCORE = 0.95; // measured: 8/8 person photos peak at 0.995+, the VFRB seal peaks at 0.90 and an embroidered badge at 0.70
 export const PERSON_REFUSED = "We can't use photos with people in them for this.";
 export const PERSON_CHECKING = 'Checking this photo for people…';
 export const PERSON_UNCHECKED_2D = "We couldn't check this photo for people, so Create a 2D garment stays off. Check again, or use another option.";

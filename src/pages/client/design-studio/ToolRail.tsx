@@ -4,6 +4,7 @@ import { MousePointer2, Hand, Pipette, PaintBucket, Brush, Eraser, PenTool, Slas
 import { RAIL_TOOLS, PICK_TOOLS, STROKE_SIZES, STROKE_TOOLS, railKey, activeRail } from './railTools';
 
 const ICONS = { move: MousePointer2, hand: Hand, sample: Pipette, fill: PaintBucket, brush: Brush, eraser: Eraser, pen: PenTool, line: Slash, text: Type, shape: Shapes };
+const SHOWN = ['move', 'hand', 'sample', 'fill', 'brush', 'eraser', 'text'];
 const typing = () => { const a = document.activeElement; return !!a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable); };
 
 export default function ToolRail({ rail, hand, setHand, canPan, zoomBy, readOnly = false }: any) {
@@ -40,7 +41,7 @@ export default function ToolRail({ rail, hand, setHand, canPan, zoomBy, readOnly
 
   return (
     <div className="ds-tools" role="toolbar" aria-label="Tools" data-tip-side="right">
-      {RAIL_TOOLS.map(({ id, key, label, hint }: any) => {
+      {RAIL_TOOLS.filter(t => SHOWN.includes(t.id)).map(({ id, key, label, hint }: any) => {
         const I = ICONS[id];
         return (
           <button key={id} type="button" className="ds-tools-btn" data-tool={id} aria-pressed={active === id} disabled={off(id)}

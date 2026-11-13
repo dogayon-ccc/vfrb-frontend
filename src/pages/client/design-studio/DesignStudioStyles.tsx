@@ -233,7 +233,7 @@ export default function DesignStudioStyles() {
 
       .ds-panel{
         --text-2xs:13px;--text-xs:13px;--text-sm:15px;
-        order:3;width:clamp(340px,30vw,480px);flex-shrink:0;display:flex;flex-direction:column;overflow:hidden;
+        order:3;width:clamp(344px,26vw,392px);flex-shrink:0;display:flex;flex-direction:column;overflow:hidden;
         background:var(--bg-card);border-left:1px solid var(--border);box-shadow:var(--shadow-xs);
       }
       .ds-panel-body{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;}
@@ -1184,6 +1184,21 @@ export default function DesignStudioStyles() {
       }
       .ds-subtabs{margin:12px 12px 0;}
       .ds-subtabs button{flex:1;}
+      .ds-fontgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:276px;overflow-y:auto;padding:2px;flex-shrink:0;}
+      .ds-fonttile{position:relative;height:60px;min-height:60px;padding:6px 8px;border:1px solid var(--border);border-radius:10px;background:var(--bg-surface);color:var(--ink);
+        display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;overflow:hidden;}
+      .ds-fonttile b{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;line-height:1.2;}
+      .ds-fonttile small{font-size:12px;line-height:1;font-weight:600;color:var(--text-muted);}
+      .ds-fonttile:hover{border-color:var(--teal-dark);}
+      .ds-fonttile[aria-checked="true"]{border:2px solid var(--teal-dark);background:var(--bg-card);}
+      .ds-fonttile[aria-checked="true"]::after{content:"✓";position:absolute;top:3px;right:6px;font:700 12px/1 system-ui;color:var(--teal-dark);}
+      .ds-fonttile:focus-visible,.ds-sw:focus-visible{outline:2px solid var(--teal-dark);outline-offset:2px;}
+      .ds-swgrid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;}
+      .ds-sw{position:relative;min-height:44px;border-radius:8px;border:1px solid rgba(15,23,42,.25);cursor:pointer;}
+      .ds-sw[aria-checked="true"]{outline:3px solid var(--ink);outline-offset:2px;}
+      .ds-sw[aria-checked="true"]::after{content:"✓";position:absolute;inset:0;display:grid;place-items:center;font:700 16px/1 system-ui;color:#fff;mix-blend-mode:difference;}
+      .ds-subtabs[data-n] button{flex-direction:column;gap:2px;min-height:52px;padding:6px 2px;font-size:12px;min-width:0;}
+      .ds-subtabs button:focus-visible{outline:2px solid var(--teal-dark);outline-offset:2px;}
       @media (prefers-reduced-motion:reduce){.ds-tabs button{transition:none;}}
 
       /* Details: pockets, buttons, closures (DetailsPanel.jsx) */
@@ -1334,6 +1349,37 @@ export default function DesignStudioStyles() {
       .ds :is(.ds-ftb button,.ds-stage-btn){width:44px;height:44px;}
       .ds .ds-tp-mini{width:44px;height:44px;}
       .ds .ds-tp-sw{width:44px;height:44px;}
+
+      /* Desktop studio: a 76px rail (pieces, one tool column, help), a floating Navigator, Layers only in the right panel */
+      .ds-tabcount{display:inline-grid;place-items:center;min-width:18px;height:18px;margin-left:4px;padding:0 5px;border-radius:9px;background:var(--cx-thread);color:#fff;font:700 11px/1 var(--cx-sans);}
+      .ds-help-btn{width:44px;height:44px;border:1px solid var(--cx-line-strong);border-radius:50%;background:var(--cx-card);color:var(--cx-ink);font:700 18px var(--cx-sans);cursor:pointer;}
+      .ds-help-btn:hover{background:var(--cx-hover);}
+      .ds-help-btn:focus-visible,.ds-help-menu button:focus-visible{outline:2px solid var(--cx-thread-ink);outline-offset:2px;}
+      .ds-help{position:relative;}
+      .ds-help-menu{position:absolute;left:calc(100% + 8px);bottom:0;z-index:30;min-width:200px;margin:0;padding:6px;list-style:none;border:1px solid var(--cx-line-strong);border-radius:12px;background:var(--cx-card);box-shadow:0 12px 32px -12px rgb(15 23 42 / .35);}
+      .ds-help-menu button{width:100%;min-height:44px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:var(--cx-ink);font:600 14px var(--cx-sans);text-align:left;cursor:pointer;}
+      .ds-help-menu button:hover{background:var(--cx-hover);}
+      .ds-tool-slot:empty{display:none;}
+      @media (min-width:1024px){
+        .ds-rail{width:76px;gap:10px;padding:12px 6px;align-items:center;}
+        .ds-rail-h,.ds-rail-txt strong{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);}
+        .ds-rail-list{width:100%;}
+        .ds-rail-card{flex-direction:column;justify-content:center;gap:3px;min-height:0;padding:6px 2px;text-align:center;}
+        .ds-rail-thumb{width:48px;height:56px;}
+        .ds-rail-txt small{font-size:12px;font-weight:700;color:var(--cx-ink);}
+        .ds-rail-acts .ds-btn:not(.ds-piece-add),.ds-rail-acts .ds-switch,.ds-rail-note{display:none;}
+        .ds-rail .ds-piece-add{width:44px;min-height:44px;padding:0;justify-content:center;}
+        .ds-rail .ds-piece-add>span:not(.ds-piece-add-plus){position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);}
+        .ds-rail-acts{align-items:center;}
+        .ds-tool-slot{width:100%;display:flex;justify-content:center;padding-top:10px;border-top:1px solid var(--cx-line);}
+        .ds-tool-slot .ds-tools{flex-direction:column;position:static;max-height:none;box-shadow:none;border:0;padding:0;background:transparent;}
+        .ds-tool-slot .ds-tools-ink{margin:6px 0 0;}
+        .ds-tool-slot .ds-tools-size{flex-direction:column;margin:4px 0 0;padding:4px 0 0;border-left:0;border-top:1px solid var(--cx-line);}
+        .ds-help{margin-top:auto;}
+        .ds-phone-only{display:block;}
+        .ds-nav-slot{position:absolute;left:88px;bottom:96px;z-index:6;width:152px;padding:8px;border:1px solid var(--cx-line);border-radius:14px;background:var(--cx-card);box-shadow:0 8px 24px -12px rgb(15 23 42 / .35);}
+        .ds-nav-slot .ds-navi{padding-top:0;border-top:0;}
+      }
 `}</style>
   );
 }

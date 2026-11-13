@@ -6,34 +6,7 @@ import { personGate } from './personDetector';
 import { CustomControls } from './BuildYourOwn';
 import { customPaths } from './garmentPaths';
 import GarmentThumb from './GarmentThumb';
-import { useObjectUrl } from '../../../hooks/useObjectUrl';
 
-const KINDS = [
-  { id: 'logo',      label: 'Logo',       hint: 'A logo or mark placed on a zone of the garment. Its background is removed; you can resize, rotate and fade it afterwards.' },
-  { id: 'artwork',   label: 'My artwork', hint: 'Your own design or a reference photo. You check it first: background removed or kept, and placed on the garment or sent to VFRB as a reference. It never changes the garment shape, collar, sleeves or pockets.' },
-  { id: 'reference', label: 'Reference',  hint: 'A photo, sketch or PDF that shows VFRB what you have in mind. It goes with your order and is never printed on the garment.' },
-];
-const SESSION_MAX = 3 * 1024 * 1024; // studioHandoff keeps larger files in memory only
-const sizeLabel = (b) => (b >= 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
-
-// The attached reference, wherever it came from (this tab or the artwork review): preview, what happens to it, Replace and Remove.
-function ReferenceCard({ file, onReplace, onRemove }: any) {
-  const url = useObjectUrl(file?.type?.startsWith('image/') ? file : null);
-  if (!file) return null;
-  return (
-    <div className="ds-status ds-ref-card" data-phase="done" role="group" aria-label="Reference for VFRB">
-      <div className="ds-ref-file">
-        <div className="ds-checker">{url ? <img src={url} alt="Your reference"/> : <NavIcon name="attachment" size={24}/>}</div>
-        <p><strong>{file.name}</strong><span>{sizeLabel(file.size)}{url ? '' : ', PDF'}</span></p>
-      </div>
-      <p className="ds-note">Sent with your next order as its reference file. It is not saved with the design{file.size > SESSION_MAX ? ', and reloading this page removes it' : ''}.</p>
-      <div className="ds-status-actions">
-        {onReplace && <button type="button" className="ds-btn" onClick={onReplace}>Replace</button>}
-        <button type="button" className="ds-btn" onClick={onRemove}>Remove</button>
-      </div>
-    </div>
-  );
-}
 
 const MODES = [
   { id: 'auto', label: 'Auto',  hint: 'Instant and offline. Best for logos on a plain background.' },
@@ -167,80 +140,52 @@ function StatusCard({ logo, onBrowse }: any) {
 
 const IMAGE_ACCEPT = 'image/png,image/svg+xml,image/jpeg,image/webp';
 
-// Drop-zone copy per kind: [prompt, accepted types line]. A reference needs no garment; it is never placed.
-const dropCopy = (kind, refLabel) => ({
-  logo: ['Drop a logo or click to browse', 'PNG, JPG, WEBP or SVG, up to 5 MB'],
-  artwork: ['Drop your artwork or click to browse', 'PNG, JPG, WEBP or SVG, up to 5 MB'],
-  reference: ['Drop a reference file or click to browse', refLabel],
-}[kind]);
-
 export default function LogoAssets({ cfg, logo }: any) {
   const fileRef = useRef(null);
   const [drag, setDrag] = useState(false);
-  const isRef = logo.kind === 'reference';
-  const noGarment = !cfg.garment && !isRef;
+  const noGarment = !cfg.garment;
   const working = logo.status.phase === 'working';
   const blocked = noGarment || working;
   const presets = placementsFor(cfg.garment, cfg.sleeve, cfg.fit);
   const placement = presets.some((p) => p.id === logo.placement) ? logo.placement : presets[0].id;
   const modeHint = MODES.find((m) => m.id === logo.mode)?.hint;
-  const kindHint = KINDS.find((k) => k.id === logo.kind)?.hint;
-  const [prompt, types] = dropCopy(logo.kind, logo.refRules.label);
   const browse = () => fileRef.current?.click();
-
-  const pick = (file) => { if (!blocked && file) logo.upload(file); };
+  const pick = (file) => { if (!blocked && file) { if (logo.kind !== 'logo') logo.setKind('logo'); logo.upload(file); } };
 
   return (
     <div className="ds-stack">
-      <section>
-        <h3 className="ds-h3">Add as</h3>
-        <div className="ds-seg ds-seg--sm" role="radiogroup" aria-label="Kind of upload">
-          {KINDS.map((k) => (
-            <button key={k.id} type="button" role="radio" aria-checked={logo.kind === k.id} onClick={() => logo.setKind(k.id)}>{k.label}</button>
-          ))}
-        </div>
-        <p className="ds-note">{kindHint}</p>
-      </section>
-
-      {logo.kind === 'logo' && (
-        <>
-          <section>
-            <h3 className="ds-h3">Zone</h3>
-            <div className="ds-chips">
-              {presets.map((p) => (
-                <button key={p.id} type="button" className="ds-chip" aria-pressed={placement === p.id} onClick={() => logo.setPlacement(p.id)}>{p.label}</button>
-              ))}
-            </div>
-          </section>
-
-          <section>
-            <h3 className="ds-h3">Background removal</h3>
-            <div className="ds-seg ds-seg--sm" role="radiogroup" aria-label="Background removal mode">
-              {MODES.map((m) => (
-                <button key={m.id} type="button" role="radio" aria-checked={logo.mode === m.id} onClick={() => logo.setMode(m.id)}>{m.label}</button>
-              ))}
-            </div>
-            <p className="ds-note">{modeHint}</p>
-          </section>
-        </>
-      )}
-
-      {!(isRef && logo.reference) && (
-        <button type="button" className="ds-drop" data-drag={drag || undefined} disabled={blocked}
-          onClick={browse}
-          onDragOver={(e) => { e.preventDefault(); if (!blocked) setDrag(true); }}
-          onDragLeave={() => setDrag(false)}
-          onDrop={(e) => { e.preventDefault(); setDrag(false); pick(e.dataTransfer.files?.[0]); }}>
-          <NavIcon name={isRef ? 'attachment' : 'dropzone'} size={26}/>
-          <strong>{noGarment ? 'Pick a garment first' : working ? 'Working…' : prompt}</strong>
-          <span>{noGarment ? 'Images are placed relative to the garment.' : types}</span>
-        </button>
-      )}
-      <input ref={fileRef} type="file" hidden accept={isRef ? logo.refRules.accept : IMAGE_ACCEPT} aria-label={prompt}
+      <button type="button" className="ds-drop" data-drag={drag || undefined} disabled={blocked}
+        onClick={browse}
+        onDragOver={(e) => { e.preventDefault(); if (!blocked) setDrag(true); }}
+        onDragLeave={() => setDrag(false)}
+        onDrop={(e) => { e.preventDefault(); setDrag(false); pick(e.dataTransfer.files?.[0]); }}>
+        <NavIcon name="dropzone" size={26}/>
+        <strong>{noGarment ? 'Pick a garment first' : working ? 'Working…' : 'Drop a logo or click to browse'}</strong>
+        <span>{noGarment ? 'Images are placed relative to the garment.' : 'PNG, JPG, WEBP or SVG, up to 5 MB'}</span>
+      </button>
+      <input ref={fileRef} type="file" hidden accept={IMAGE_ACCEPT} aria-label="Drop a logo or click to browse"
         onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ''; }}/>
 
       <StatusCard logo={logo} onBrowse={browse}/>
-      <ReferenceCard file={logo.reference} onReplace={isRef && !working ? browse : null} onRemove={logo.removeReference}/>
+
+      <section>
+        <h3 className="ds-h3">Place on</h3>
+        <div className="ds-chips">
+          {presets.map((p) => (
+            <button key={p.id} type="button" className="ds-chip" aria-pressed={placement === p.id} onClick={() => logo.setPlacement(p.id)}>{p.label}</button>
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <h3 className="ds-h3">Background removal</h3>
+        <div className="ds-seg ds-seg--sm" role="radiogroup" aria-label="Background removal mode">
+          {MODES.map((m) => (
+            <button key={m.id} type="button" role="radio" aria-checked={logo.mode === m.id} onClick={() => logo.setMode(m.id)}>{m.label}</button>
+          ))}
+        </div>
+        <p className="ds-note">{modeHint}</p>
+      </section>
     </div>
   );
 }

@@ -51,7 +51,7 @@ export default function ShapesPanel({ selObj, onAdd, onUpdate }: any) {
       <div>
         <p style={secLabel}>Add shape</p>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8 }}>
-          {SHAPES.map(sh => (
+          {SHAPES.filter(sh => !['rect', 'ellipse', 'line'].includes(sh.id)).map(sh => (
             <button key={sh.id} type="button" className="ds-shape-btn" onClick={() => onAdd(sh.kind)}>
               <ShapeGlyph kind={sh.kind}/>
               <span>{sh.label}</span>

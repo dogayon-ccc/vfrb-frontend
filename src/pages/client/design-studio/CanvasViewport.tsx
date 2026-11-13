@@ -250,6 +250,10 @@ export default function CanvasViewport({
   }, [measure]);
   const canPan = !!view?.canPan && show2D;
   // The Navigator renders here (it needs the stage's pan and zoom) but shows in the Pieces column's slot (desktop only).
+  const [toolSlot, setToolSlot] = useState(null);
+  const [desk, setDesk] = useState(() => window.matchMedia('(min-width:1024px)').matches);
+  useEffect(() => { const m = window.matchMedia('(min-width:1024px)'), f = () => setDesk(m.matches); m.addEventListener('change', f); return () => m.removeEventListener('change', f); }, []);
+  useEffect(() => { const el = document.getElementById('ds-tool-slot'); if (el !== toolSlot) setToolSlot(el); });
   const [navSlot, setNavSlot] = useState(null);
   useEffect(() => { const el = document.getElementById('ds-navigator-slot'); if (el !== navSlot) setNavSlot(el); });
 
@@ -481,7 +485,10 @@ export default function CanvasViewport({
           {!initFailed && <GuidesMenu guides={guides} setGuides={setGuides} showGuides={show2D} base={show2D ? status : null} dark={dark} setDark={setStagePick}
             open={viewOpen} onOpenChange={setViewOpen}/>}
           {show2D && !initFailed && !set2D && <ViewToggles guides={guides} setGuides={setGuides}/>}
-          {show2D && rail && !initFailed && <ToolRail rail={rail} readOnly={set2D} hand={hand} setHand={setHand} canPan={canPan} zoomBy={f => setZoom(z => clampZoom(z * f))}/>}
+          {show2D && rail && !initFailed && (() => {
+            const tools = <ToolRail rail={rail} readOnly={set2D} hand={hand} setHand={setHand} canPan={canPan} zoomBy={f => setZoom(z => clampZoom(z * f))}/>;
+            return desk && toolSlot ? createPortal(tools, toolSlot) : tools;
+          })()}
           {notes3D.map(n => <div key={n.id} role="status" className="ds-stage-note" data-tone={n.warn ? 'warn' : undefined}>{n.text}</div>)}
         </div>
       )}
