@@ -28,7 +28,7 @@ const DESKTOP_STEPS = [
 const PHONE_STEPS = [
   [null, 'Welcome to the Design Studio', 'Colour each part, place logos and text, and check the front and back. This tour takes about a minute.'],
   ['.ds-rail[data-strip],.ds-rail[data-set]', 'Pieces', 'Your piece is here. Add bottom (or Add top) designs the matching piece as a set.'],
-  ['.ds-lane-top>.ds-tools', 'Tools', 'Move, eyedropper, paint bucket, pen and line, plus your active colour. Logos, text and drawing are in Add.'],
+  ['.ds-lane-top>.ds-tools', 'Tools', 'Move, eyedropper, paint bucket, brush, eraser, pen and text, plus your active colour. Logos, text and drawing are in Add.'],
   ['.ds-stage-fit', 'Gestures', 'Pinch to zoom and drag with two fingers to pan. Double-tap the empty stage to fit or zoom in. Tap with two fingers to undo.'],
   ['.ds-bnav', 'Panels', 'Garment colours each part, Add places logos, text and shapes, Layers lists everything, Ask AI previews a described change. More has View, Save a copy and this tour.'],
   ['.ds-bar-primary', 'Review', 'When it looks right, review the design and order it from there. Save now is in the ··· menu.'],

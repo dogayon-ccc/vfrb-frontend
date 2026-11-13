@@ -757,3 +757,6 @@ html[data-theme=dark] .cm-shell .ui-step[data-s=now] .ui-step-dot{color:var(--co
 .aim-pick-row:has(input:focus-visible){outline:2px solid var(--cx-thread);outline-offset:1px}
 .aim-act .ui-btn[data-v=primary]{width:100%;max-width:420px}
 @media(min-width:900px) and (max-width:1199px){.acct-split{grid-template-columns:248px minmax(0,1fr)}}
+
+/* WCAG 1.4.3: small teal link text uses the darker teal (6.3:1 on white, 5.3:1 on the surface tint) */
+.cx-link{color:var(--teal-dark)}

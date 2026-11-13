@@ -7,7 +7,6 @@ export const RAIL_TOOLS = [
   { id: 'brush',  key: 'B', label: 'Brush',        hint: 'Draw freehand in the active colour' },
   { id: 'eraser', key: 'E', label: 'Eraser',       hint: 'Erase your own drawings and uploaded art' },
   { id: 'pen',    key: 'P', label: 'Pen',          hint: 'Click for corners, drag for curves; click the first point to fill a shape; Enter, Esc or double-click to finish' },
-  { id: 'line',   key: 'L', label: 'Line',         hint: 'Drag a straight line; hold Shift for 45° steps' },
   { id: 'text',   key: 'T', label: 'Text',         hint: 'Add names, slogans or numbers' },
   { id: 'shape',  key: 'U', label: 'Shapes',       hint: 'Add a shape' },
 ];

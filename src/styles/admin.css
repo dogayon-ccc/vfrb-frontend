@@ -615,3 +615,6 @@ button.adm-row:focus-visible,.adm-order-card:focus-visible{outline:2px solid var
 @media(prefers-reduced-motion:reduce){.vc-dlist li{transition:none}}
 /* Admin page titles share the customer heading face (DM Serif Display 400). */
 .adm-in .ui-title{font-family:var(--font-display);font-weight:400;letter-spacing:0}
+
+/* WCAG 1.4.3: small teal link text uses the darker teal */
+.adm-link-btn,.adm-order-link,.adm-tab.on{color:var(--teal-dark)}
