@@ -1,0 +1,55 @@
+/* ROG-style sign-in: dark workspace, cut-corner card, slanted tabs, mint action. Applies to the split auth screens (sign in, forgot and reset password). */
+.au--split {
+  --rc: 18px; --au-paper: #050f14; --au-ink: #eaf3f5; --au-line: rgba(234, 243, 245, 0.16);
+  --ink: #eaf3f5; --text-muted: #a9c3ca; --text-faint: #8aa9b1; --text-subtle: #a9c3ca; --text-secondary: #c9e3e6; --bg-card: #0a222b; --bg-surface: #06171e; --border-strong: rgba(234, 243, 245, 0.35); --border: rgba(234, 243, 245, 0.3); --teal: #4fe0bc; --teal-dark: #4fe0bc; --teal-50: rgba(2, 195, 154, 0.14);
+  --danger: #ff9b9b; --danger-bg: rgba(255, 110, 110, 0.12); --danger-border: rgba(255, 130, 130, 0.5);
+  --au-field: #06171e; --au-field-ink: #eaf3f5; --au-ring: #4fe0bc;
+  background: radial-gradient(900px 500px at 85% 0, rgba(2, 195, 154, 0.1), transparent 60%), repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.022) 0 1px, transparent 1px 9px), var(--au-paper);
+}
+.au--split :focus-visible { outline-color: var(--au-ring); }
+
+/* art panel: diagonal cut, scan lines, display type */
+.au--split .au-art--navy { border-radius: 0; background: #031a22; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 22px), calc(100% - 80px) 100%, 0 100%); }
+.au--split .au-art--navy::before { content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.03) 0 1px, transparent 1px 4px); }
+.au--split .au-brand { font: 800 17px/1 ui-sans-serif, system-ui, 'Segoe UI', Roboto, Arial, sans-serif; font-style: italic; letter-spacing: 0.03em; text-transform: uppercase; }
+.au--split .au-art .au-brand img { border-radius: 0; clip-path: polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 9px 100%, 0 calc(100% - 9px)); box-shadow: none; }
+.au--split .au-h { font: 800 clamp(26px, 6vw, 36px)/0.98 ui-sans-serif, system-ui, 'Segoe UI', Roboto, Arial, sans-serif; font-style: italic; text-transform: uppercase; letter-spacing: -0.012em; }
+.au--split .au-steps li::before { font: 800 20px/1 ui-sans-serif, system-ui, 'Segoe UI', Roboto, Arial, sans-serif; font-style: italic; color: var(--au-mint); }
+.au--split .au-steps li { border-top-color: rgba(2, 195, 154, 0.3); }
+
+/* card */
+.au--split .au-card { border: 0; border-radius: 0; background: #0a222b; color: var(--au-ink);
+  box-shadow: inset 0 0 0 1px rgba(2, 195, 154, 0.32);
+  clip-path: polygon(0 0, calc(100% - var(--rc)) 0, 100% var(--rc), 100% 100%, var(--rc) 100%, 0 calc(100% - var(--rc))); }
+.au--split .au-card::before { content: ''; position: absolute; left: 0; top: 0; width: 84px; height: 3px; background: var(--au-mint); clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 100%, 0 100%); }
+.au--split .au-card { position: relative; }
+.au--split .au-title, .au--split .au-card h1 { font: 800 clamp(26px, 3vw, 34px)/1 ui-sans-serif, system-ui, 'Segoe UI', Roboto, Arial, sans-serif; font-style: italic; text-transform: uppercase; letter-spacing: -0.01em; color: #fff; }
+.au--split .au-label { font-size: 12.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #c9e3e6; }
+.au--split .au-card input { border-radius: 0 !important; }
+.au--split .au-eye { border-radius: 0; }
+.au--split .au-formerr { border-radius: 0; }
+
+/* tabs: slanted segments */
+.au--split .au-tabs { gap: 0; padding: 0; border-radius: 0; background: transparent; box-shadow: inset 0 -1px 0 var(--au-line); }
+.au--split .au-tabs button { border-radius: 0; min-height: 46px; font-size: 13px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); position: relative; }
+.au--split .au-tabs button::after { content: ''; position: absolute; left: 12%; right: 12%; bottom: 0; height: 3px; background: var(--au-mint); transform: skewX(-32deg) scaleX(0); transition: transform 160ms ease; }
+.au--split .au-tabs button[aria-selected='true'] { background: rgba(2, 195, 154, 0.1); color: #fff; box-shadow: none; }
+.au--split .au-tabs button[aria-selected='true']::after { transform: skewX(-32deg) scaleX(1); }
+
+/* actions */
+.au--split .au-submit { min-height: 54px; border: 0; border-radius: 0; background: var(--au-mint); color: #04181e; font-size: 14px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px)); }
+.au--split .au-submit:not(:disabled):hover { background: #4fe0bc; }
+.au--split .au-submit--line { background: transparent; color: #eaf3f5; box-shadow: inset 0 0 0 1.5px rgba(234, 243, 245, 0.5); }
+.au--split .au-card .au-submit--line:not(:disabled):hover { background: rgba(2, 195, 154, 0.12); box-shadow: inset 0 0 0 1.5px #4fe0bc; }
+.au--split .au-spin { border-color: rgba(4, 24, 30, 0.3); border-top-color: #04181e; }
+.au--split .au-back { border-radius: 0; background: rgba(4, 17, 23, 0.6); }
+.au--split a { color: #4fe0bc; }
+@media (min-width: 1000px) {
+  .au--split .au-art--navy { clip-path: polygon(0 0, 100% 0, calc(100% - 56px) 100%, 0 100%); }
+}
+@media (prefers-reduced-motion: reduce) { .au--split .au-tabs button::after { transition: none; } }
+.au--split .au-card button[type='button']:not(.au-submit) { border-radius: 0 !important; clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px)); border-color: rgba(234, 243, 245, 0.35) !important; text-transform: uppercase; letter-spacing: 0.08em; font-size: 14px !important; }
+.au--split .au-card button[type='button']:not(.au-submit):hover { border-color: #4fe0bc !important; }
+.au--split legend { color: #c9e3e6 !important; }
+.au--split .au-card p, .au--split .au-card label, .au--split .au-card legend { color: inherit; }

@@ -186,3 +186,21 @@ test.describe('landing 3D is real GLB', () => {
     await ctx.close();
   });
 });
+
+test.describe('no route loaders or transitions', () => {
+  test('landing to login shows no splash and no view transition', async ({ page }) => {
+    await page.addInitScript(() => { (document as any).startViewTransition = () => { (window as any).__vt = true; throw new Error('vt'); }; });
+    await page.goto('/');
+    await page.getByRole('link', { name: /sign in/i }).first().click();
+    await page.waitForURL('**/login');
+    await expect(page.locator('.au-card')).toBeVisible();
+    await expect(page.getByText('Loading…')).toHaveCount(0);
+    expect(await page.evaluate(() => (window as any).__vt)).toBeFalsy();
+  });
+  test('login back to landing shows no splash', async ({ page }) => {
+    await page.goto('/login');
+    await page.getByRole('link', { name: /VFRB Enterprise/i }).first().click();
+    await expect(page.locator('.vs-page')).toBeVisible();
+    await expect(page.getByText('Loading…')).toHaveCount(0);
+  });
+});

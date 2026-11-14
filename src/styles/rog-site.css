@@ -1,0 +1,73 @@
+/* ROG-style language for every public page: hard-cut corners, heavy italic caps display type, slanted mint markers, HUD brackets. Loads after site.css, landing-ink.css and rog-chrome.css. */
+.vs-page {
+  --rc: 14px; --rc-s: 9px; --rg-mint: #02c39a; --rg-mint-hi: #4fe0bc; --rg-void: #041117; --rg-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+.vs-page :is(.vs-btn, .vs-card, .vs-chips li, .vs-jump a, .vs-acc__item, .vs-brand img, .vs-burger, .vs-photo, .vs-footer__brand img) {
+  border-radius: 0 !important;
+  clip-path: polygon(0 0, calc(100% - var(--rc-s)) 0, 100% var(--rc-s), 100% 100%, var(--rc-s) 100%, 0 calc(100% - var(--rc-s)));
+}
+.vs-page :is(.vs-card, .vs-photo, .vs-acc__item) { --rc-s: var(--rc); }
+.vs-page :is(.vs-banner__bg, .vs-cta__bg, .vs-journey__bg) .vs-photo { clip-path: none; }
+
+/* headings */
+.vs-page :is(.vs-h1, .vs-h2) { font-family: var(--rg-sans); font-weight: 800; font-style: italic; text-transform: uppercase; letter-spacing: -0.012em; line-height: 0.98; }
+.vs-page .vs-h1 { font-size: clamp(34px, 6.2vw, 84px); }
+.vs-page.vs-page--ink .lp-hero .vs-h1 { font-size: clamp(36px, 5.4vw, 80px); line-height: 0.98; }
+.vs-page .vs-h2 { font-size: clamp(28px, 4.2vw, 54px); }
+.vs-page .vs-h2::before { content: ''; display: inline-block; width: 0.26em; height: 0.78em; margin-right: 0.28em; background: var(--rg-mint); transform: skewX(-20deg); vertical-align: -0.02em; }
+.vs-page .vs-kicker::before { content: '//'; width: auto; border: 0; font-weight: 800; letter-spacing: -0.04em; }
+.vs-page .vs-quote { font-family: var(--rg-sans); font-style: italic; font-weight: 700; border-left: 0; padding-left: 0; }
+.vs-page .vs-quote::before { content: ''; display: block; width: 56px; height: 4px; margin-bottom: 16px; background: var(--rg-mint); transform: skewX(-30deg); transform-origin: left; }
+
+/* buttons */
+.vs-page .vs-btn { border: 0; min-height: 48px; padding: 0 26px; font: 800 13px/1 var(--rg-sans); letter-spacing: 0.12em; text-transform: uppercase; }
+.vs-page .vs-btn--primary:hover { background: var(--rg-mint); color: #04181e; }
+.vs-page .vs-btn--mint { color: #04181e; }
+.vs-page .vs-btn--line { box-shadow: inset 0 0 0 1.5px currentColor; }
+.vs-page .vs-btn--ghost-light { box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.6); }
+.vs-page .vs-btn--ghost-light:hover { box-shadow: inset 0 0 0 1.5px var(--rg-mint-hi); color: var(--rg-mint-hi); background: rgba(2, 195, 154, 0.08); }
+.vs-page .vs-jump a { border: 0; box-shadow: inset 0 0 0 1.5px var(--vs-ink); font-size: 12.5px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 800; }
+
+/* header */
+.vs-page .vs-header { border-bottom: 0; box-shadow: inset 0 -1px 0 rgba(2, 195, 154, 0.3); }
+.vs-page .vs-header::after { content: ''; position: absolute; left: 0; bottom: 0; width: min(24vw, 280px); height: 3px; background: var(--rg-mint); clip-path: polygon(0 0, 100% 0, calc(100% - 12px) 100%, 0 100%); pointer-events: none; }
+.vs-page .vs-brand b { font: 800 17px/1.05 var(--rg-sans); font-style: italic; letter-spacing: 0.02em; text-transform: uppercase; }
+.vs-page .vs-brand small { letter-spacing: 0.06em; }
+.vs-page .vs-nav a { font-size: 12px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; }
+.vs-page .vs-nav a::after { left: 10px; right: 10px; bottom: 5px; height: 3px; background: var(--rg-mint); transform: skewX(-32deg) scaleX(0); }
+.vs-page .vs-nav a:hover::after, .vs-page .vs-nav a[aria-current='page']::after { transform: skewX(-32deg) scaleX(1); }
+.vs-page .vs-header--dark .vs-nav a[aria-current='page'], .vs-page .vs-header--ink .vs-nav a[aria-current='page'] { background: transparent; color: var(--rg-mint-hi); }
+.vs-page .vs-header__cta .vs-btn { min-height: 42px; padding: 0 20px; background: var(--rg-mint); color: #04181e; }
+.vs-page .vs-header__cta .vs-btn:hover { background: var(--rg-mint-hi); }
+.vs-page .vs-sheet a.vs-sheet__link { font: 800 20px/1 var(--rg-sans); font-style: italic; letter-spacing: 0.02em; text-transform: uppercase; }
+
+/* inner page banner: diagonal bottom edge, scan lines, HUD corners */
+.vs-page .vs-banner { clip-path: polygon(0 0, 100% 0, 100% calc(100% - 28px), calc(100% - 120px) 100%, 0 100%); padding-bottom: 28px; }
+.vs-page .vs-banner::after { background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 4px), linear-gradient(to top, rgba(4, 17, 23, 0.95) 10%, rgba(4, 17, 23, 0.6) 55%, rgba(4, 17, 23, 0.4)); }
+.vs-page .vs-banner::before { content: ''; position: absolute; inset: 84px 20px 48px; z-index: 1; pointer-events: none;
+  background: linear-gradient(var(--rg-mint), var(--rg-mint)) left top / 34px 2px no-repeat, linear-gradient(var(--rg-mint), var(--rg-mint)) left top / 2px 34px no-repeat,
+    linear-gradient(var(--rg-mint), var(--rg-mint)) right bottom / 34px 2px no-repeat, linear-gradient(var(--rg-mint), var(--rg-mint)) right bottom / 2px 34px no-repeat; opacity: 0.8; }
+.vs-page .vs-banner .vs-kicker { font-weight: 800; letter-spacing: 0.06em; }
+@media (max-width: 640px) { .vs-page .vs-banner::before { inset: 76px 12px 40px; } .vs-page .vs-banner { clip-path: polygon(0 0, 100% 0, 100% calc(100% - 18px), calc(100% - 64px) 100%, 0 100%); } }
+
+/* cards and panels: cut corners, a mint tick on the left edge */
+.vs-page .vs-card { border: 0; box-shadow: inset 0 0 0 1px var(--vs-line);
+  background-image: linear-gradient(var(--rg-mint), var(--rg-mint)); background-size: 3px 36%; background-position: left top; background-repeat: no-repeat; }
+.vs-page .vs-chips li, .vs-page .vs-acc__item { border: 0; box-shadow: inset 0 0 0 1px var(--vs-line); }
+.vs-page .vs-cta, .vs-page .vs-journey { clip-path: polygon(0 28px, 120px 0, 100% 0, 100% 100%, 0 100%); }
+
+/* hero panel and 3D stage on Home */
+.vs-page.vs-page--ink .lp-hero__copy { border-radius: 0; border: 0; box-shadow: inset 0 0 0 1px rgba(2, 195, 154, 0.35);
+  clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 22px 100%, 0 calc(100% - 22px)); }
+.vs-page .lp-eyebrow { font-weight: 800; letter-spacing: 0.04em; color: var(--rg-mint-hi); }
+.vs-page .lp-eyebrow::before { content: '//'; letter-spacing: -0.04em; }
+.vs-page :is(.pr-stage, .lp-3d__stage) { border-radius: 0; clip-path: polygon(0 0, calc(100% - 26px) 0, 100% 26px, 100% 100%, 26px 100%, 0 calc(100% - 26px)); }
+.vs-page .lp-facts li, .vs-page .lp-steps li { border-radius: 0; }
+
+/* footer */
+.vs-page .vs-footer { clip-path: polygon(0 26px, 140px 0, 100% 0, 100% 100%, 0 100%); padding-top: clamp(56px, 7vw, 84px); }
+.vs-page .vs-footer h2 { font: 800 12px/1 var(--rg-sans); letter-spacing: 0.18em; text-transform: uppercase; color: var(--rg-mint-hi); }
+.vs-page .vs-footer__brand b { font: 800 20px/1.05 var(--rg-sans); font-style: italic; text-transform: uppercase; }
+
+@media (prefers-reduced-motion: reduce) { .vs-page .vs-nav a::after { transition: none; } }
+.vs-page .vs-banner .vs-kicker, .vs-page .vs-banner [class*='pill'] { border-radius: 0; clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px)); }
