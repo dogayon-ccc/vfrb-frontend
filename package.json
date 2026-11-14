@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "check:glb": "node check-glb-urls.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit"
   },
