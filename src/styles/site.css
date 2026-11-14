@@ -691,3 +691,32 @@ body:has(.vs-page) [data-storage-bar] { display: none; }
 .vs-footer { background: #070e1b; border-top: 1px solid rgba(234,243,245,0.08); }
 .vs-pagehead { background: radial-gradient(ellipse at 80% 0%, #0d3a47 0%, #070e1b 70%); }
 .vs-draftnote { justify-self: start; margin: 4px 0 0; padding: 9px 14px; border-radius: 10px; border: 1px solid rgba(255,138,143,0.6); background: rgba(255,106,85,0.12); color: #ffd5d8; font-size: 14px; font-weight: 600; }
+
+/* Every non-home public page: the landing's dark surface, so About, Gallery, Family, Inside, What We Do, Privacy and Terms read as one site. */
+.vs-page--night {
+  --lp-ink: #0a0b0e; --lp-ink-2: #10141c; --lp-bone: #eaf3f5; --lp-bone-dim: #b4c2cc; --lp-muted: #8ba0b0;
+  --lp-line: rgba(255,255,255,0.12); --lp-line-soft: rgba(255,255,255,0.08);
+  --vs-paper: var(--lp-ink); --vs-ink: var(--lp-bone); --vs-ink-2: var(--lp-bone-dim); --vs-mute: var(--lp-muted); --vs-line: var(--lp-line);
+  --vs-teal-deep: #4fe0bc; --vs-night: #0a0b0e; --vs-mint-soft: rgba(2,195,154,0.10); --vs-teal-soft: rgba(2,195,154,0.14);
+  --vs-card: #10141c; --vs-sun-soft: rgba(246,196,69,0.10); --vs-shadow: none; --vs-shadow-up: 0 18px 40px -24px rgba(0,0,0,0.8);
+  background: var(--lp-ink); color: var(--lp-bone);
+}
+:root:has(.vs-page--night) { background: #0a0b0e; }
+.vs-page--night :where(h1, h2, h3, h4) { color: inherit; }
+.vs-page--night .vs-header--dark { background: #0a0b0e; }
+.vs-page--night .vs-footer { background: #0a0b0e; }
+.vs-page--night .vs-tint, .vs-page--night .vs-sec--tint { background: var(--lp-ink-2); }
+.vs-page--night :is(.vs-card, .vs-owner, .vs-member, .vs-facts li, .vs-types li, .vs-serve li, .vs-chips li, .vs-acc__item, .vs-dl, .vs-svc a, .vs-faqaside) { border-color: var(--lp-line); color: var(--lp-bone); }
+.vs-page--night .vs-serve li:nth-child(4), .vs-page--night .vs-tint .vs-dl { background: var(--vs-card); }
+.vs-page--night .vs-serve li { border-width: 1px; border-color: var(--lp-line); }
+.vs-page--night :is(p, li, dd, dt, small, span) { border-color: var(--lp-line); }
+.vs-page--night .vs-body, .vs-page--night .vs-lede, .vs-page--night .vs-prose p, .vs-page--night .vs-prose li { color: var(--lp-bone-dim); }
+.vs-page--night .vs-prose h2 { color: #fff; padding-top: 28px; border-top: 1px solid var(--lp-line-soft); }
+.vs-page--night .vs-prose section:first-child h2 { border-top: 0; padding-top: 0; }
+.vs-page--night .vs-prose a, .vs-page--night .vs-link { color: #7fe6cf; }
+.vs-page--night .vs-kicker { background: rgba(2,195,154,0.16); color: #7fe6cf; }
+.vs-page--night .vs-filters button { background: transparent; color: var(--lp-bone); border-color: var(--lp-line); }
+.vs-page--night .vs-filters button[aria-pressed='true'] { background: #02c39a; border-color: #02c39a; color: #04231d; }
+.vs-page--night .vs-btn--ghost, .vs-page--night .vs-btn--secondary { background: transparent; color: var(--lp-bone); border-color: var(--lp-line); }
+.vs-page--night .vs-banner, .vs-page--night .vs-journey { border: 1px solid var(--lp-line-soft); }
+@media (hover: hover) { .vs-page--night :is(.vs-card, .vs-member, .vs-svc a):hover { border-color: rgba(2,195,154,0.55); } }

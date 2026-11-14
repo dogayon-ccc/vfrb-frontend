@@ -17,6 +17,7 @@ import PatternReveal from './landing/PatternReveal';
 import MarqueeBand from './landing/MarqueeBand';
 import CategoryCards from './landing/CategoryCards';
 import ProductionLine from './landing/ProductionLine';
+import FabricStage from './landing/FabricStage';
 import { FIND_UNIFORM, PHASES } from '../components/site/content';
 import '../styles/landing.css';
 import '../styles/landing-ink.css';
@@ -101,6 +102,8 @@ export default function Landing() {
           ))}
         </ul>
       </section>
+
+      <FabricStage />
 
       <section className="vs-sec vs-tint" aria-labelledby="lp-cats">
         <div className="vs-wrap">
