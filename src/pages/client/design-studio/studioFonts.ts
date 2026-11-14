@@ -19,6 +19,18 @@ export const WEB_FONTS = [
   { id: 'dancing',    label: 'Dancing Script',   family: 'Dancing Script',   file: 'dancing-script',   cat: 'Script',    weights: [400, 700],      fallback: 'cursive' },
   { id: 'greatvibes', label: 'Great Vibes',      family: 'Great Vibes',      file: 'great-vibes',      cat: 'Script',    weights: [400],           fallback: 'cursive' },
   { id: 'jetbrains',  label: 'JetBrains Mono',   family: 'JetBrains Mono',   file: 'jetbrains-mono',   cat: 'Mono',      weights: [400, 700],      fallback: 'monospace' },
+  { id: 'poppins', label: 'Poppins', family: 'Poppins', file: 'poppins', cat: 'Sans', weights: [400, 700], fallback: 'sans-serif' },
+  { id: 'nunito', label: 'Nunito', family: 'Nunito', file: 'nunito', cat: 'Sans', weights: [400, 700], fallback: 'sans-serif' },
+  { id: 'barlowc', label: 'Barlow Condensed', family: 'Barlow Condensed', file: 'barlow-condensed', cat: 'Condensed', weights: [400, 700], fallback: 'sans-serif' },
+  { id: 'teko', label: 'Teko', family: 'Teko', file: 'teko', cat: 'Condensed', weights: [400, 700], fallback: 'sans-serif' },
+  { id: 'archivo', label: 'Archivo Black', family: 'Archivo Black', file: 'archivo-black', cat: 'Display', weights: [400], fallback: 'sans-serif' },
+  { id: 'bungee', label: 'Bungee', family: 'Bungee', file: 'bungee', cat: 'Display', weights: [400], fallback: 'sans-serif' },
+  { id: 'righteous', label: 'Righteous', family: 'Righteous', file: 'righteous', cat: 'Display', weights: [400], fallback: 'sans-serif' },
+  { id: 'bangers', label: 'Bangers', family: 'Bangers', file: 'bangers', cat: 'Display', weights: [400], fallback: 'cursive' },
+  { id: 'abril', label: 'Abril Fatface', family: 'Abril Fatface', file: 'abril-fatface', cat: 'Display', weights: [400], fallback: 'serif' },
+  { id: 'alfa', label: 'Alfa Slab One', family: 'Alfa Slab One', file: 'alfa-slab-one', cat: 'Slab', weights: [400], fallback: 'serif' },
+  { id: 'cinzel', label: 'Cinzel', family: 'Cinzel', file: 'cinzel', cat: 'Serif', weights: [400, 700], fallback: 'serif' },
+  { id: 'caveat', label: 'Caveat', family: 'Caveat', file: 'caveat', cat: 'Script', weights: [400, 700], fallback: 'cursive' },
 ].map(f => ({ ...f, css: `'${f.family}', ${f.fallback}${EMOJI}` }));
 
 const BY_FAMILY = new Map(WEB_FONTS.map(f => [f.family.toLowerCase(), f]));

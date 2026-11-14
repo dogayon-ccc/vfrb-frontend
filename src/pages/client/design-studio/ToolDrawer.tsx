@@ -23,13 +23,12 @@ const NAV_LABEL = { type: 'Garment', add: 'Add', layers: 'Layers', ai: 'Ask AI' 
 export const SNAPS = ['peek', 'half', 'full'];
 export const snapStep = (snap, dy) => (Math.abs(dy) < 24 ? snap
   : SNAPS[Math.max(0, Math.min(SNAPS.length - 1, SNAPS.indexOf(snap) + (dy < 0 ? 1 : -1) * (Math.abs(dy) > 160 ? 2 : 1)))]);
-// The Add tab's one row: each item is a tool, or a view of the asset panel.
+// The Add tab's one row: each item is a tool, or a view of the asset panel. Starters live in the garment picker, not here.
 const ADD_ITEMS = [
   { id: 'logo',     label: 'Logo',     icon: 'logo',   tool: 'assets', sub: 'logo' },
   { id: 'text',     label: 'Text',     icon: 'text',   tool: 'text',   sub: null },
   { id: 'shapes',   label: 'Shapes',   icon: 'shapes', tool: 'assets', sub: 'shapes' },
   { id: 'draw',     label: 'Draw',     icon: 'draw',   tool: 'draw',   sub: null },
-  { id: 'starters', label: 'Starters', icon: 'ai',     tool: 'assets', sub: 'templates' },
 ];
 const SNAP_NEXT = { peek: ['half', 'Raise the panel'], half: ['full', 'Raise the panel to full height'], full: ['peek', 'Lower the panel'] };
 

@@ -87,6 +87,7 @@ export default function DesignStudio() {
   const [tool,       setTool]       = useState('type');
   const [assetsTab,  setAssetsTab]  = useState('logo');
   const [viewMode,   setViewMode]   = useState('2d');
+  const [showSet, setShowSet] = useState(false); // both pieces drawn together, read-only
   const [snapshot,   setSnapshot]   = useState(null);
   const [overlays,   setOverlays]   = useState(null);
   // FIX (BUG-007): once the 3D view has been requested once, keep it mounted
@@ -240,10 +241,11 @@ export default function DesignStudio() {
   }, [cfg.garment]);
   useEffect(() => { keep3DRef.current = false; }, [viewMode]);
   // 3D takes the whole stage: chrome steps aside, Exit 3D (or Esc) returns to designing.
-  const immersive = viewMode === '3d' && has3DLoaded && has3DFor(cfg) && hasWebGL();
+  const set2DPreview = showSet && viewMode !== '3d';
+  const immersive = (viewMode === '3d' && has3DLoaded && has3DFor(cfg) && hasWebGL()) || set2DPreview;
   useEffect(() => {
     if (!immersive) return undefined;
-    const onEsc = e => { if (e.key === 'Escape') setViewMode('2d'); };
+    const onEsc = e => { if (e.key === 'Escape') { setShowSet(false); setViewMode('2d'); } };
     window.addEventListener('keydown', onEsc);
     return () => window.removeEventListener('keydown', onEsc);
   }, [immersive]);
@@ -692,7 +694,6 @@ export default function DesignStudio() {
 
   // Uniform set preview: the other piece. 2D always draws both on one scale; 3D only while both pieces have their own model for
   // their sleeve and fit (each renders its own GLB with its own colours; no fused set model and no substitute).
-  const [showSet, setShowSet] = useState(false);
   const companion = useMemo(() => {
     const snap = uset && uset.pieces[otherRole(uset.active)];
     return snap?.garment ? { cfg: deserializeDesign(snap).cfg, role: otherRole(uset.active) } : null;
@@ -1075,10 +1076,10 @@ export default function DesignStudio() {
 
         {immersive && (
           <div className="ds-exit3d">
-            <button type="button" onClick={() => setViewMode('2d')} autoFocus>
-              <X size={18} aria-hidden="true"/><span>Exit 3D</span>
+            <button type="button" onClick={() => { setShowSet(false); setViewMode('2d'); }} autoFocus>
+              <X size={18} aria-hidden="true"/><span>{set2DPreview ? 'Exit preview' : 'Exit 3D'}</span>
             </button>
-            {cap3D(cfg) !== 'verified' && <Capability3D kind={cap3D(cfg)} className="ds-view-chip"/>}
+            {!set2DPreview && cap3D(cfg) !== 'verified' && <Capability3D kind={cap3D(cfg)} className="ds-view-chip"/>}
           </div>
         )}
 
@@ -1121,7 +1122,7 @@ export default function DesignStudio() {
             selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected} alignSelected={alignSelected} arrangeSelected={arrangeSelected} garmentRect={garmentRect}
             viewMode={viewMode} has3DLoaded={has3DLoaded} onLogoFile={onLogoFile} onPickZone={setActiveZone}
             onUndo={locked ? null : lock?.warn ? () => setWarnAsk(true) : undo}
-            rail={locked ? null : { onShapes: () => setAssetsTab('shapes'), tool, setTool, pick, setPick, erasing, setErasing, color: brushColor, setColor: changeBrushColor, size: brushSize, setSize: changeBrushSize, note: pickNote, colourOnly: colorOnly }}
+            rail={locked ? null : { history: { undo: lock?.warn ? () => setWarnAsk(true) : undo, redo: lock?.warn ? () => setWarnAsk(true) : redo, canUndo, canRedo }, onShapes: () => setAssetsTab('shapes'), tool, setTool, pick, setPick, erasing, setErasing, color: brushColor, setColor: changeBrushColor, size: brushSize, setSize: changeBrushSize, note: pickNote, colourOnly: colorOnly }}
             zoom={zoom} setZoom={setZoom} snapshot={snapshot} overlays={overlays}
             blank={<GarmentPicker inline cfg={cfg} pieceRole={uset?.active ?? (pendingArt && artScope ? (artScope === 'bottom' ? 'bottom' : 'top') : null)} onPickPhoto={pickPhoto}
               onPick3D={(d, f) => { keep3DRef.current = true; pickPhoto(d, f); setHas3DLoaded(true); setViewMode('3d'); }}

@@ -791,7 +791,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   // back to the original fixed placement (upper-third, centered) when the
   // text was placed via the keyboard-accessible path instead
   // with the canvas center.
-  const addText = useCallback((text, color, fontCss, sizePx, pos = null) => {
+  const addText = useCallback((text, color, fontCss, sizePx, pos = null, style = null) => {
     const canvas = fc.current;
     if (!canvas) return;
     const paths = getGarmentPaths(garment, sleeve);
@@ -805,6 +805,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         __layerId: uid(),
         __layerName: text.length > 20 ? text.slice(0, 20) + '…' : text,
       });
+      if (style) t.set(style); // quick style from the Text panel: outline, shadow, spacing
       canvas.add(t);
       canvas.setActiveObject(t);
       canvas.renderAll();

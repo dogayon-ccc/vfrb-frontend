@@ -91,6 +91,17 @@ export function SelectionInspector({ selObj, updateSelected, alignSelected, togg
     </label>
   );
 
+  // A shape's look (fill, border, opacity) is what its owner came to change, so it leads; other items keep it after position.
+  const appearance = !multi && <section className="ds-ins-sec">
+        <p className="ds-group-label">Appearance</p>
+        {selObj.__shape && <ShapeStyleSection o={selObj} live={live} commit={commit} locked={locked}/>}
+        {selObj.type === 'image' && <ImageStyleSection o={selObj} live={live} commit={commit} locked={locked}/>}
+        {range(`Opacity ${Math.round((selObj.opacity ?? 1) * 100)}%`, Math.round((selObj.opacity ?? 1) * 100), 10, 100,
+          v => live({ opacity: v / 100 }), false)}
+        <BlendRow o={selObj} set={updateSelected} locked={locked}/>
+        <ArrangeRow o={selObj} set={updateSelected} arrangeLayer={arrangeLayer} locked={locked}/>
+      </section>;
+
   return (
     <div className="ds-ins">
       <div className="ds-ins-head">
@@ -119,6 +130,8 @@ export function SelectionInspector({ selObj, updateSelected, alignSelected, togg
           <TextStyleSection o={selObj} set={updateSelected} live={live} commit={commit} locked={locked}/>
         </section>
       )}
+
+      {selObj.__shape && appearance}
 
       <section className="ds-ins-sec">
         <p className="ds-group-label">Position &amp; size · % of garment</p>
@@ -163,15 +176,7 @@ export function SelectionInspector({ selObj, updateSelected, alignSelected, togg
         </section>
       )}
 
-      {!multi && <section className="ds-ins-sec">
-        <p className="ds-group-label">Appearance</p>
-        {selObj.__shape && <ShapeStyleSection o={selObj} live={live} commit={commit} locked={locked}/>}
-        {selObj.type === 'image' && <ImageStyleSection o={selObj} live={live} commit={commit} locked={locked}/>}
-        {range(`Opacity ${Math.round((selObj.opacity ?? 1) * 100)}%`, Math.round((selObj.opacity ?? 1) * 100), 10, 100,
-          v => live({ opacity: v / 100 }), false)}
-        <BlendRow o={selObj} set={updateSelected} locked={locked}/>
-        <ArrangeRow o={selObj} set={updateSelected} arrangeLayer={arrangeLayer} locked={locked}/>
-      </section>}
+      {!selObj.__shape && appearance}
 
       {/* Duplicate and Delete live on the floating toolbar above the selection only (Ctrl+D, Del). */}
       {mirrorSelected && !multi && (

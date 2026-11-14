@@ -1195,6 +1195,21 @@ export default function DesignStudioStyles() {
       .ds-fonttile[aria-checked="true"]::after{content:"✓";position:absolute;top:3px;right:6px;font:700 13px/1 system-ui;color:var(--teal-dark);}
       .ds-fonttile:focus-visible,.ds-sw:focus-visible{outline:2px solid var(--teal-dark);outline-offset:2px;}
       .ds-swgrid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;}
+      .ds-swgrid[data-wide]{grid-template-columns:repeat(8,minmax(0,1fr));}
+      .ds-fontcats{display:flex;gap:6px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:thin;}
+      .ds-fontcats button{flex:none;min-height:36px;padding:0 14px;border:1px solid var(--border-strong,#cbd5e1);border-radius:999px;background:var(--bg-card);color:var(--ink);font:600 13px/1 var(--cx-sans,system-ui);cursor:pointer;}
+      .ds-fontcats button[aria-pressed="true"],.ds-fontcats button[aria-checked="true"]{background:#1b2a4a;border-color:#1b2a4a;color:#fff;}
+      .ds-fontcats button:focus-visible{outline:2px solid var(--teal-dark);outline-offset:2px;}
+      .ds-customclr{display:flex;align-items:center;gap:10px;min-height:44px;font:600 13px/1 var(--cx-sans,system-ui);color:var(--ink);}
+      .ds-customclr input{width:44px;height:44px;padding:0;border:1px solid var(--border-strong,#cbd5e1);border-radius:10px;background:none;cursor:pointer;}
+      .ds-customclr code{margin-left:auto;font:600 13px ui-monospace,monospace;color:var(--text-muted);}
+      .ds-addbar{position:sticky;bottom:0;z-index:2;margin:4px -12px -12px;padding:10px 12px;background:linear-gradient(to top,var(--bg-card) 70%,transparent);}
+      .ds-addbtn{width:100%;min-height:48px;display:flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:12px;background:#028090;color:#fff;font:700 15px/1 var(--cx-sans,system-ui);cursor:pointer;box-shadow:0 6px 16px -6px rgb(2 128 144 / .6);}
+      .ds-addbtn:hover:not(:disabled){background:#016070;}
+      .ds-addbtn:disabled{background:var(--bg-surface-2);color:var(--text-muted);box-shadow:none;cursor:not-allowed;}
+      .ds-addbtn:focus-visible{outline:3px solid #1b2a4a;outline-offset:2px;}
+      .ds-fontgrid{max-height:min(40dvh,300px);}
+      @media (max-width:520px){.ds-swgrid[data-wide]{grid-template-columns:repeat(6,minmax(0,1fr));}}
       .ds-sw{position:relative;min-height:44px;border-radius:8px;border:1px solid rgba(15,23,42,.25);cursor:pointer;}
       .ds-sw[aria-checked="true"]{outline:3px solid var(--ink);outline-offset:2px;}
       .ds-sw[aria-checked="true"]::after{content:"✓";position:absolute;inset:0;display:grid;place-items:center;font:700 16px/1 system-ui;color:#fff;mix-blend-mode:difference;}
@@ -1243,6 +1258,18 @@ export default function DesignStudioStyles() {
       /* Phones: the header is one compact bar from the start, so the grid shows without scrolling past a banner. */
       @media (max-width:767px){.ds-pick-head>:is(p,.ds-pick-legend){display:none;}.ds-pick-head{gap:6px;padding:6px 0;}.ds-pick-head h2{font-size:20px;}}
       .ds-cap3d{white-space:nowrap;}
+      /* Undo and redo ride the phone tool row (they were two taps away in the menu); desktop has them in the top bar. */
+      .ds-tools-hist{display:none;align-items:center;gap:2px;padding-left:4px;margin-left:2px;border-left:1px solid var(--cx-line);}
+      @media (max-width:767px){
+        .ds-tools-hist{display:inline-flex;}
+        .ds-lane .ds-lane-cap{display:none;}
+        /* Picker on phones: only the Reference/Scratch switch stays pinned; the title and legend scroll away so filters are never hidden. */
+        .ds-pick[data-inline] .ds-pick-head{display:contents;}
+        .ds-pick[data-inline] .ds-pick-titlebar{margin:0 calc(-1 * var(--ds-pick-pad));padding:12px var(--ds-pick-pad) 4px;background:#1B2A4A;}
+        .ds-pick[data-inline] .ds-pick-row{position:sticky;top:0;z-index:3;margin:0 calc(-1 * var(--ds-pick-pad));padding:8px var(--ds-pick-pad) 10px;background:#1B2A4A;border-bottom:1px dashed rgb(201 162 122 / .55);box-shadow:0 8px 14px -10px rgb(0 0 0 / .5);}
+        .ds-pick[data-inline] .ds-pick-tabs{flex:1;}
+        .ds-pick[data-inline] .ds-pick-tabs button{min-height:44px;font-weight:700;}
+      }
       @media (max-width:767px){.ds-pick .ds-chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;justify-content:flex-start;padding-bottom:2px;}.ds-pick .ds-chips::-webkit-scrollbar{display:none;}.ds-pick .ds-chips>*{flex:none;}}
       .ds-pick[data-compact] .ds-pick-titlebar{position:absolute;top:8px;right:0;width:auto;display:block;}
       .ds-pick[data-compact] .ds-pick-titlebar h2{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
