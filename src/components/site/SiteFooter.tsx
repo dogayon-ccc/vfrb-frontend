@@ -1,12 +1,9 @@
-import { useLocation } from 'react-router-dom';
 import { ViewLink as Link } from '../ViewLink';
 import '../../styles/site.css';
 import logo from '../../assets/company-logo.jpg';
 import { NAV, CONTACT as C } from './config';
 
 export default function SiteFooter() {
-  // The landing page has its own contact section, so the footer skips repeating it there.
-  const home = useLocation().pathname === '/';
   return (
     <footer className="vs vs-footer vs-dark">
       <div className="vs-wrap">
@@ -16,14 +13,14 @@ export default function SiteFooter() {
               <img src={logo} alt="" width="44" height="44" />
               <span><b>VFRB Enterprise</b><small>Custom Uniforms. Smarter Solutions.</small></span>
             </div>
-            {!home && <><address>
+            <address>
               {C.address[0]}<br />{C.address[1]}<br />Also in {C.other}
             </address>
             <div className="vs-footer__contact">
               <a href={C.phoneHref}>{C.phone}</a><br />
               <a href={`mailto:${C.email}`}>{C.email}</a><br />
               <a href={C.facebook} target="_blank" rel="noopener noreferrer">Facebook page</a>
-            </div></>}
+            </div>
           </div>
           <nav aria-label="Company">
             <h2>Company</h2>

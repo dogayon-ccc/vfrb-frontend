@@ -68,7 +68,7 @@ export default function SiteHeader({ tone = 'paper' }: { tone?: 'paper' | 'ink' 
   }, [open]);
 
   return (
-    <header className={`vs vs-header${stuck || open ? ' is-stuck' : ''}${tone === 'ink' ? ' vs-header--ink' : ''}${away && !open ? ' is-away' : ''}`} ref={root}>
+    <header className={`vs vs-header${stuck || open ? ' is-stuck' : ''}${tone === 'ink' ? ' vs-header--ink' : ' vs-header--dark'}${away && !open ? ' is-away' : ''}`} ref={root}>
       <a href="#main" className="vs-skip" onClick={skipToMain}>Skip to content</a>
       <div className="vs-wrap vs-header__bar">
         <Link to="/" className="vs-brand" aria-label="VFRB Enterprise home" onClick={(e) => { spinMark(mark.current); if (atHome) e.preventDefault(); }}>

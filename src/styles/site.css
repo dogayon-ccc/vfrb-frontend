@@ -677,3 +677,17 @@ button.vs-member:hover { transform: translateY(-3px); box-shadow: 0 14px 28px rg
 
 /* storage-blocked notice only matters where a session does; hide it on marketing pages */
 body:has(.vs-page) [data-storage-bar] { display: none; }
+
+/* One shell on every public page: the dark header and the night footer the landing page uses. */
+.vs-header--dark { --vs-ink: #eaf3f5; --vs-ink-2: #b4c2cc; --vs-mute: #8ba0b0; background: #070e1b; color: #eaf3f5; border-bottom: 1px solid rgba(234,243,245,0.12); }
+.vs-header--dark.is-stuck { box-shadow: 0 8px 24px -16px rgba(0,0,0,0.6); }
+.vs-header--dark .vs-nav a { font-size: 12px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: #b4c2cc; }
+.vs-header--dark .vs-nav a:hover { background: rgba(234,243,245,0.08); color: #eaf3f5; }
+.vs-header--dark .vs-nav a[aria-current='page'] { background: rgba(2,195,154,0.16); color: #7fe6cf; }
+.vs-header--dark .vs-sheet { background: #070e1b; }
+.vs-header--dark .vs-sheet a.vs-sheet__link { color: #eaf3f5; border-color: rgba(234,243,245,0.16); }
+.vs-header--dark .vs-sheet a.vs-sheet__link[aria-current='page'] { color: #7fe6cf; }
+.vs-header--dark :focus-visible { outline-color: var(--vs-mint); }
+.vs-footer { background: #070e1b; border-top: 1px solid rgba(234,243,245,0.08); }
+.vs-pagehead { background: radial-gradient(ellipse at 80% 0%, #0d3a47 0%, #070e1b 70%); }
+.vs-draftnote { justify-self: start; margin: 4px 0 0; padding: 9px 14px; border-radius: 10px; border: 1px solid rgba(255,138,143,0.6); background: rgba(255,106,85,0.12); color: #ffd5d8; font-size: 14px; font-weight: 600; }
