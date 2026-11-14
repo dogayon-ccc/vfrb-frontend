@@ -73,19 +73,6 @@
 .lp-steps h3 { font-size: 18px; font-weight: 700; color: var(--navy); }
 .lp-steps p { font-size: 15px; line-height: 1.65; color: var(--vs-ink-2); max-width: 46ch; }
 
-/* category cards: the Studio template on a tilting card */
-.lp-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr)); gap: 12px; margin-top: clamp(20px, 3vw, 32px); perspective: 1200px; }
-.lp-card { display: grid; justify-items: start; gap: 2px; width: 100%; height: 100%; padding: 12px 14px 16px; text-align: left; cursor: pointer; font: inherit; color: var(--navy);
-  background: #fff; border: 1.5px solid var(--vs-line); border-radius: 12px; transform-style: preserve-3d;
-  transition: transform 200ms var(--vs-ease), border-color 200ms, box-shadow 200ms; }
-.lp-card__art { position: relative; display: grid; place-items: center; width: 100%; aspect-ratio: 5 / 4; margin-bottom: 8px; border-radius: 8px; background: var(--chalk); transition: transform 200ms var(--vs-ease); }
-.lp-card__art svg, .lp-card__art img, .lp-card__art canvas { position: absolute; inset: 8%; width: 84%; height: 84%; object-fit: contain; filter: drop-shadow(0 10px 10px rgba(27, 42, 74, 0.2)); }
-.lp-card__art canvas { width: 84% !important; height: 84% !important; } /* GarmentSilhouette sizes its canvas inline */
-.lp-card b { font: 400 22px/1.2 var(--vs-display); }
-.lp-card small { font-size: 13px; color: var(--vs-mute); }
-.lp-card:hover, .lp-card:focus-visible { border-color: #028090; transform: rotateX(6deg) rotateY(-8deg); box-shadow: 0 24px 40px -24px rgba(27, 42, 74, 0.45); }
-.lp-card:hover .lp-card__art, .lp-card:focus-visible .lp-card__art { transform: translateZ(24px); }
-
 /* own floor: real photos, layered */
 
 /* contact: four large tap targets */
@@ -95,7 +82,6 @@
 .lp-contact__list a:hover { border-color: #028090; }
 .lp-contact__list small { font-size: 13px; font-weight: 600; color: var(--vs-mute); }
 
-@media (max-width: 719px) { .lp-cards li:last-child:nth-child(odd) { grid-column: 1 / -1; } .lp-cards li:last-child:nth-child(odd) .lp-card__art { aspect-ratio: 5 / 2; } }
 @media (min-width: 720px) {
   .lp-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; }
 }
@@ -106,8 +92,8 @@
   .lp-steps span { grid-row: auto; margin-bottom: 10px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .pr-stage, .pr-stage.is-intro, .lp-card, .lp-card__art, .lp-contact__list a, .lp-visual > .pr, .lp-3d, .lp-3d__btn, .lp-switch button { transition: none; }
-  .pr-stage, .lp-card:hover, .lp-card:focus-visible, .lp-card:hover .lp-card__art, .lp-card:focus-visible .lp-card__art { transform: none; }
+  .pr-stage, .pr-stage.is-intro, .lp-contact__list a, .lp-visual > .pr, .lp-3d, .lp-3d__btn, .lp-switch button { transition: none; }
+  .pr-stage { transform: none; }
 }
 
 /* production line: seven stations on one red thread that sews across with scroll (ProductionLine.jsx sets --p and data-on) */
@@ -195,13 +181,11 @@
     @keyframes lp-copy-out { to { opacity: 0.15; translate: 0 -90px; filter: blur(4px); } }
     @keyframes lp-stage-out { to { opacity: 0.3; transform: perspective(1400px) rotateX(18deg) scale(0.86); } }
     @keyframes lp-thread { from { scale: 0 1; } to { scale: 1 1; } }
-    @keyframes lp-card-in { from { opacity: 0; translate: 0 80px; rotate: x 28deg; } to { opacity: 1; translate: 0 0; rotate: x 0deg; } }
     @keyframes lp-marquee-skew { from { translate: 180px 0; } to { translate: -180px 0; } }
     .lp-hero__copy { animation: lp-copy-out linear both; animation-timeline: view(); animation-range: exit 10% exit 90%; }
     .lp-visual { animation: lp-visual-in 300ms var(--mo-out) 120ms both, lp-stage-out linear both; animation-timeline: auto, view(); animation-range: normal, exit 0% exit 100%; }
     .lp-progress { display: block; position: fixed; top: calc(68px + env(safe-area-inset-top, 0px)); left: 0; right: 0; z-index: 299; height: 3px; transform-origin: 0 50%;
       background: repeating-linear-gradient(90deg, #c4313b 0 12px, rgba(196, 49, 59, 0.35) 12px 18px); animation: lp-thread linear both; animation-timeline: scroll(root); }
-    .lp-cards li { animation: lp-card-in linear both; animation-timeline: view(); animation-range: entry calc(var(--i) * 7%) cover calc(30% + var(--i) * 7%); }
     .lp-marquee__row { margin-left: -240px; animation: lp-marquee-skew linear both; animation-timeline: view(); animation-range: cover 0% cover 100%; }
     .lp-marquee__row--alt { animation-direction: reverse; }
     .lp-facts li { view-timeline: --lp-fact; animation: mo-rise linear both; animation-timeline: view(); animation-range: entry 0% cover 30%; }

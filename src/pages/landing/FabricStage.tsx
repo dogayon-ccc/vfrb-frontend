@@ -6,6 +6,7 @@ import { startStudioIn } from '../../utils/studioIntent';
 import '../../styles/landing-stage.css';
 
 const Stage3D = lazy(() => import('./FabricStage3D').catch(() => ({ default: () => null as any })));
+const Poster = lazy(() => import('../client/design-studio/GarmentSilhouette'));
 
 type Colors = { body: string; sleeve: string; collar: string; pocket: string };
 const c = (body: string, collar: string, pocket: string): Colors => ({ body, sleeve: body, collar, pocket });
@@ -57,6 +58,9 @@ export default function FabricStage() {
   const [mode, setMode] = useState<'wait' | '3d' | 'static'>('wait');
   const [near, setNear] = useState(false), [onScreen, setOnScreen] = useState(false);
   const [idx, setIdx] = useState(0);
+  const [ready, setReady] = useState<ReadonlySet<string>>(new Set()), [failed, setFailed] = useState<ReadonlySet<string>>(new Set());
+  const onReady = useCallback((cat: string) => setReady(r => (r.has(cat) ? r : new Set(r).add(cat))), []);
+  const onFail = useCallback((cat: string) => setFailed(r => (r.has(cat) ? r : new Set(r).add(cat))), []);
 
   useEffect(() => {
     const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -82,6 +86,7 @@ export default function FabricStage() {
       if (!el) return;
       const r = el.getBoundingClientRect(), span = Math.max(1, r.height - innerHeight);
       const p = Math.min(0.9999, Math.max(0, -r.top / span));
+      el.style.setProperty('--p', p.toFixed(3));
       setIdx(i => { const n = Math.floor(p * N); return n === i ? i : n; });
     };
     const on = () => { if (!raf) raf = requestAnimationFrame(update); };
@@ -109,6 +114,7 @@ export default function FabricStage() {
   if (!N) return null;
   // The static fallback draws the scrub-top outline, so its copy names that template.
   const s = live ? slides[Math.min(idx, N - 1)] : (slides.find(x => x.garment === 'Scrub Top') ?? slides[0]);
+  const shown3d = live && ready.has(s.cat) && !failed.has(s.cat);
   const open = () => { startStudioIn(s.cat); nav('/design-studio'); };
 
   return (
@@ -119,11 +125,18 @@ export default function FabricStage() {
       <div className="fs__stick">
         <div className="fs__bg" aria-hidden="true" />
         <h2 id="fs-h" className="fs__title">One template for every uniform</h2>
+        {live && <div className="fs__num" aria-hidden="true">{pad(idx + 1)}</div>}
         {live && near && (
           <div className="fs__canvas" ref={wrap} aria-hidden="true">
-            <Boundary onError={fail}><Suspense fallback={null}><Stage3D slides={slides} idx={idx} active={onScreen} onSpeed={onSpeed} onError={fail} /></Suspense></Boundary>
+            <Boundary onError={fail}><Suspense fallback={null}><Stage3D slides={slides} idx={idx} active={onScreen} onSpeed={onSpeed} onError={fail} onReady={onReady} onFail={onFail} /></Suspense></Boundary>
           </div>
         )}
+        {live && (
+          <div className={`fs__poster${shown3d ? ' is-gone' : ''}`} aria-hidden="true">
+            <Suspense fallback={null}><Poster key={s.cat} garment={s.garment} sleeve={s.sleeve ?? 'Short'} fit={s.fit} colors={s.colors} width={420} height={500} /></Suspense>
+          </div>
+        )}
+        {live && <div className="fs__hud" aria-hidden="true"><i /><i /><i /><i /></div>}
         {!live && <div className="fs__flat" aria-hidden="true"><Silhouette colors={s.colors} /></div>}
 
         <div className="fs__copy">
@@ -145,7 +158,7 @@ export default function FabricStage() {
               <button type="button" aria-label="Next slide" disabled={idx === N - 1} onClick={() => go(idx + 1)}>›</button>
             </nav>
             <div className="fs__bar" aria-hidden="true"><i style={{ transform: `scaleX(${(idx + 1) / N})` }} /></div>
-            <p className="fs__note" aria-hidden="true">3D preview, approximate · scroll or use the arrows</p>
+            <p className="fs__note" aria-hidden="true">{shown3d ? '3D preview, approximate' : failed.has(s.cat) ? '2D template' : 'Loading 3D'} · scroll or use the arrows</p>
           </>
         )}
       </div>

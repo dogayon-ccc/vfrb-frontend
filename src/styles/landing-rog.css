@@ -1,0 +1,55 @@
+/* Home chapters 3-4: hard-cut corners and a HUD frame. One accent (mint) plus the thread red, nothing else. */
+.cx { --cx-cut: 18px; list-style: none; margin: clamp(24px, 3vw, 40px) 0 0; padding: 0; display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; padding-bottom: 4px; }
+.cx::-webkit-scrollbar { display: none; }
+.cx > li { flex: 0 0 min(78vw, 300px); scroll-snap-align: center; }
+.cx__btn { position: relative; display: grid; grid-template-rows: auto 1fr auto auto; gap: 10px; width: 100%; height: 100%; min-height: 400px; padding: 18px 18px 16px; text-align: left; cursor: pointer; font: inherit; color: var(--lp-bone, #eaf3f5); border: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015)); clip-path: polygon(0 0, calc(100% - var(--cx-cut)) 0, 100% var(--cx-cut), 100% 100%, var(--cx-cut) 100%, 0 calc(100% - var(--cx-cut)));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14); transition: background 200ms ease, box-shadow 200ms ease; }
+.cx__btn::before { content: ''; position: absolute; left: 0; top: 0; bottom: var(--cx-cut); width: 3px; background: #02c39a; transform: scaleY(0); transform-origin: top; transition: transform 300ms cubic-bezier(.2, .7, .2, 1); }
+.cx > li.is-on .cx__btn::before { transform: scaleY(1); }
+.cx > li.is-on .cx__btn { background: linear-gradient(180deg, rgba(2, 195, 154, 0.16), rgba(255, 255, 255, 0.03)); box-shadow: inset 0 0 0 1px rgba(2, 195, 154, 0.7); }
+.cx__btn:focus-visible { outline: 3px solid #4fe0bc; outline-offset: -3px; }
+.cx__no { font: 400 clamp(44px, 5vw, 64px)/1 var(--vs-display, serif); color: transparent; -webkit-text-stroke: 1px rgba(234, 243, 245, 0.55); letter-spacing: 0.02em; }
+.cx > li.is-on .cx__no { -webkit-text-stroke-color: #02c39a; }
+.cx__art { position: relative; display: grid; place-items: center; min-height: 190px; }
+.cx__art :is(svg, img, canvas) { max-width: 100%; max-height: 230px; width: auto !important; height: auto !important; filter: drop-shadow(0 18px 18px rgba(0, 0, 0, 0.45)); transition: transform 300ms cubic-bezier(.2, .7, .2, 1); }
+.cx > li.is-on .cx__art :is(svg, img, canvas) { transform: translateY(-6px) scale(1.06); }
+.cx__name b { display: block; font: 400 clamp(24px, 2.2vw, 30px)/1.1 var(--vs-display, serif); }
+.cx__name small { display: block; margin-top: 4px; font-size: 13px; color: var(--lp-muted, #a9bbc6); }
+.cx__go { display: inline-flex; align-items: center; gap: 10px; font: 700 13px/1 var(--vs-sans, system-ui); letter-spacing: 0.14em; text-transform: uppercase; color: #02c39a; min-height: 44px; align-self: end; }
+.cx__go i { width: 28px; height: 2px; background: currentColor; position: relative; transition: width 200ms ease; }
+.cx__go i::after { content: ''; position: absolute; right: 0; top: -3px; width: 8px; height: 8px; border-top: 2px solid currentColor; border-right: 2px solid currentColor; transform: rotate(45deg); }
+.cx > li.is-on .cx__go i { width: 44px; }
+
+@media (min-width: 900px) {
+  .cx { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); overflow: visible; scroll-snap-type: none; gap: 10px; }
+  @supports (grid-template-columns: 1fr 2fr) {
+    .cx { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .cx:has(> li:nth-child(1).is-on) { grid-template-columns: 2.4fr 1fr 1fr 1fr 1fr; } .cx:has(> li:nth-child(2).is-on) { grid-template-columns: 1fr 2.4fr 1fr 1fr 1fr; }
+    .cx:has(> li:nth-child(3).is-on) { grid-template-columns: 1fr 1fr 2.4fr 1fr 1fr; } .cx:has(> li:nth-child(4).is-on) { grid-template-columns: 1fr 1fr 1fr 2.4fr 1fr; }
+    .cx:has(> li:nth-child(5).is-on) { grid-template-columns: 1fr 1fr 1fr 1fr 2.4fr; }
+  }
+  .cx { transition: grid-template-columns 420ms cubic-bezier(.2, .7, .2, 1); }
+  .cx > li { flex: none; min-width: 0; }
+  .cx__btn { min-height: 460px; }
+  .cx__name small, .cx__go { opacity: 0.0; transition: opacity 200ms ease; }
+  .cx > li.is-on .cx__name small, .cx > li.is-on .cx__go, .cx__btn:focus-visible .cx__go { opacity: 1; }
+}
+
+/* one-time entrance; the failsafe in CategoryCards guarantees .is-in */
+.cx--arm > li { opacity: 0; transform: translateY(24px); }
+.cx--arm.is-in > li { opacity: 1; transform: none; transition: opacity 400ms ease calc(var(--i) * 70ms), transform 500ms cubic-bezier(.2, .7, .2, 1) calc(var(--i) * 70ms); }
+
+/* stage HUD: corner brackets, outlined numeral, poster that hands over to the 3D model */
+.fs__hud i { position: absolute; width: 28px; height: 28px; border: 0 solid rgba(2, 195, 154, 0.75); pointer-events: none; z-index: 1; }
+.fs__hud i:nth-child(1) { left: clamp(16px, 4vw, 56px); top: 92px; border-width: 2px 0 0 2px; } .fs__hud i:nth-child(2) { right: clamp(16px, 4vw, 56px); top: 92px; border-width: 2px 2px 0 0; }
+.fs__hud i:nth-child(3) { left: clamp(16px, 4vw, 56px); bottom: 104px; border-width: 0 0 2px 2px; } .fs__hud i:nth-child(4) { right: clamp(16px, 4vw, 56px); bottom: 104px; border-width: 0 2px 2px 0; }
+.fs__num { position: absolute; z-index: -1; left: 2vw; top: 50%; translate: calc(var(--p, 0) * -40px) -50%; font: 400 clamp(180px, 34vw, 520px)/0.8 var(--vs-display, serif); color: transparent; -webkit-text-stroke: 1.5px rgba(234, 243, 245, 0.14); pointer-events: none; user-select: none; }
+.fs__poster { position: absolute; z-index: -1; display: grid; place-items: center; inset: 0; pointer-events: none; opacity: 0.9; transition: opacity 400ms ease; }
+.fs__poster :is(svg, img, canvas) { max-height: 56svh; max-width: 80vw; width: auto !important; height: auto !important; filter: drop-shadow(0 24px 30px rgba(0, 0, 0, 0.5)); }
+.fs__poster.is-gone { opacity: 0; }
+@media (min-width: 900px) { .fs__poster { right: 50%; } .fs--live .fs__num { left: 3vw; } }
+@media (max-width: 899px) {
+  .fs__poster { inset: 0 0 52% 0; } .fs__hud i:nth-child(n+3) { display: none; } .fs__num { top: 28%; font-size: clamp(140px, 48vw, 260px); }
+}
+@media (prefers-reduced-motion: reduce) { .cx, .cx__btn, .cx__btn::before, .cx__art :is(svg, img, canvas), .fs__poster { transition: none; } .cx--arm > li { opacity: 1; transform: none; } .fs__num { translate: 0 -50%; } }

@@ -77,9 +77,6 @@
 .vs-page--ink .lp-facts li::after { left: 0; right: 0; }
 .vs-page--ink .lp-facts__n { color: var(--lp-bone); }
 .vs-page--ink .lp-facts li > span { color: var(--lp-bone-dim); }
-.vs-page--ink .lp-card { color: var(--lp-bone); background: var(--lp-ink); border-color: var(--lp-line); }
-.vs-page--ink .lp-card small { color: var(--lp-muted); }
-.vs-page--ink .lp-card:hover, .vs-page--ink .lp-card:focus-visible { border-color: #02c39a; box-shadow: 0 24px 40px -24px rgba(2, 195, 154, 0.35); }
 .vs-page--ink .pl { background: var(--lp-ink-2); border-radius: 0; margin: 0; border-block: 1px solid var(--lp-line-soft); }
 .vs-page--ink .lp-contact__list a { color: var(--lp-bone); background: transparent; border-color: var(--lp-line); }
 .vs-page--ink .lp-contact__list a:hover, .vs-page--ink .lp-contact__list a:focus-visible { border-color: #02c39a; background: rgba(2, 195, 154, 0.06); }

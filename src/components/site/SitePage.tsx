@@ -15,7 +15,7 @@ type SitePageProps = { title?: string; children?: ReactNode; tone?: 'paper' | 'i
 export default function SitePage({ title, children, tone = 'paper', deck = false, lean = false }: SitePageProps) {
   const { hash, pathname } = useLocation();
   const main = useRef<HTMLElement>(null);
-  useTilt(main, '.lp-card, .lp-tile, .vs-tile, .lp-contact__list a', 7, pathname);
+  useTilt(main, '.lp-tile, .vs-tile, .lp-contact__list a', 7, pathname);
   useEffect(() => { if (title) document.title = `${title} | VFRB Enterprise`; }, [title]);
   useEffect(() => { if (!hash) window.scrollTo({ top: 0, behavior: 'instant' }); }, [pathname, hash]);
   useEffect(() => {
