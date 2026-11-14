@@ -27,6 +27,8 @@ function Slot({ slide, i, cur, onReady }: { slide: Slide; i: number; cur: Cur; o
     const g = move.current;
     if (!g) return;
     const d = i - cur.current, focus = 1 - Math.min(1, Math.abs(d));
+    // Only the focused template and the one it is crossing to are drawn, so no stray neighbour sits at the frame edge.
+    g.visible = Math.abs(d) < 1;
     g.position.set(d * GAP, 0, -(1 - focus) * 1.4);
     g.scale.setScalar(mix(0.7, 1, focus));
     g.rotation.y = -d * 1.1 + Math.sin(clock.elapsedTime * 0.6 + i) * 0.28 * focus + pointer.x * 0.18 * focus;

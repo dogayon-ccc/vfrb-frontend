@@ -11,7 +11,7 @@ export const PRODUCTS = ['Company uniforms', 'Polo shirts', 'Campaign shirts', '
 // Mirrors CATEGORIES in design-studio/designGallery.js; restated so the eager landing bundle doesn't pull in the Studio.
 export const UNIFORM_TYPES = ['School', 'Corporate / Business', 'Medical / Healthcare', 'Hospitality / Service', 'Industrial / Work', 'Uniform Dress'];
 // Landing "Find your uniform" tiles: [label, garmentCatalog CATEGORY id]. tools/logic-checks.mjs keeps each id real.
-export const FIND_UNIFORM = [['School', 'School Uniform'], ['Hospital', 'Medical / Scrubs'], ['Corporate', 'Corporate'], ['Hospitality', 'Hospitality / Service'], ['Industrial', 'Industrial / Work']];
+export const FIND_UNIFORM = [['School', 'School Uniform'], ['Medical', 'Medical / Scrubs'], ['Corporate', 'Corporate'], ['Hospitality', 'Hospitality / Service'], ['Industrial', 'Industrial / Work']];
 
 export const PLACES = [
   ['Bayanan, Muntinlupa City', 'Company address'],
