@@ -9,12 +9,12 @@ import { P } from './landing/photos';
 
 export default function Team() {
   return (
-    <SitePage title="VFRB Family">
+    <SitePage title="VFRB Family" tone="ink" deck>
       <Banner kicker="VFRB Family" title="The family behind VFRB Enterprise."
         lede="A medium-scale, family-owned garment industry, specialized in corporate and company uniforms."
         photo={P.familyCourt} pos="center 40%" />
 
-      <section className="vs-sec" aria-labelledby="own">
+      <section className="vs-sec" id="owners" data-slide="Ownership" aria-labelledby="own">
         <div className="vs-wrap">
           <Head kicker="Ownership" id="own" title="Meet the family." />
           <div className="vs-owners">
@@ -28,7 +28,7 @@ export default function Team() {
         </div>
       </section>
 
-      <section className="vs-sec vs-tint" aria-labelledby="tm">
+      <section className="vs-sec vs-tint" id="team" data-slide="The team" aria-labelledby="tm">
         <div className="vs-wrap">
           <Head kicker="The team" id="tm" title="Family, staff and the production floor." />
           <Reveal className="vs-team-grid">
@@ -40,7 +40,7 @@ export default function Team() {
         </div>
       </section>
 
-      <section className="vs-sec vs-sec--tight" aria-labelledby="where">
+      <section className="vs-sec vs-sec--tight" id="where-sec" data-slide="Find us" aria-labelledby="where">
         <div className="vs-wrap vs-split">
           <Reveal className="vs-stack">
             <h2 className="vs-h2" id="where">Where to find us</h2>

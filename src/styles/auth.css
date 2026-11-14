@@ -1,4 +1,5 @@
 @import './fonts.css';
+@import './weave.css';
 
 .au {
   --au-paper: #f7f6f1; --au-ink: #10202b; --au-line: #dcdcd2; --au-night: #0a2029;
@@ -70,7 +71,7 @@
 @media (prefers-reduced-motion: reduce) { .au-skel .sk { animation: none; } }
 
 /* split variant (Login only): navy art 7/5 at >=1024, short navy header below */
-.au--split { --au-paper: #f4f5f2; --au-navy: #1b2a4a; --au-kraft: #c9a27a; --au-tink: #046a78; --teal-dark: #046a78; overflow-x: hidden; overflow-x: clip; }
+.au--split { --au-paper: #f4f5f2; --au-navy: #053640; --au-kraft: #c9a27a; --au-tink: #046a78; --teal-dark: #046a78; overflow-x: hidden; overflow-x: clip; }
 .au-art--navy { flex-direction: column; align-items: stretch; justify-content: flex-start; min-height: 0; background: var(--au-navy); border-radius: 0 0 20px 20px; }
 .au-art--navy::after { content: none; }
 .au-brand { display: inline-flex; align-items: center; gap: 12px; min-height: 44px; margin: max(12px, env(safe-area-inset-top, 0px)) 16px 0; align-self: flex-start;
@@ -151,3 +152,24 @@
 .au-flats.is-drop .f2 { animation-delay: 70ms; } .au-flats.is-drop .f3 { animation-delay: 140ms; } .au-flats.is-drop .f4 { animation-delay: 210ms; }
 @keyframes au-drop { from { opacity: 0; translate: 0 -40px; rotate: x 38deg; } }
 @media (prefers-reduced-motion: reduce) { .au-flats.is-drop .au-flat { animation: none; } }
+
+
+/* Immersive art panel: VFRB teal ink, a faint floor photo, the twill weave, floating flats */
+.au-art--navy { background: radial-gradient(70% 60% at 75% 35%, rgba(2, 128, 144, 0.34), transparent 70%), radial-gradient(45% 40% at 5% 95%, rgba(196, 49, 59, 0.2), transparent 70%), var(--au-navy); }
+.au-art--navy .au-art__photo { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; object-position: center 40%; opacity: 0.16; mix-blend-mode: luminosity; }
+.au-art--navy .vfrb-weave { z-index: -1; opacity: 0.9; }
+.au-art--navy .au-steps { display: none; }
+.au--split .au-title { color: var(--au-ink); }
+@media (min-width: 1024px) {
+  .au-art--navy .au-steps { display: block; max-width: 420px; }
+  .au-art--navy .au-steps li:first-child { border-top: 0; }
+}
+@media (min-width: 1024px) and (max-height: 760px) { .au-art--navy .au-steps { display: none; } }
+
+/* Sign in / Request access switch */
+.au-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 22px; padding: 4px; border-radius: 14px; background: #eef1ee; }
+.au-tabs button { min-height: 44px; border: 0; border-radius: 10px; font: inherit; font-size: 15px; font-weight: 700; color: var(--text-muted); background: transparent; cursor: pointer; transition: background-color 160ms, color 160ms, box-shadow 160ms; }
+.au-tabs button[aria-selected='true'] { color: var(--au-ink); background: #fff; box-shadow: 0 1px 3px rgba(5, 54, 64, 0.16); }
+.au-panel[hidden] { display: none; }
+@media (prefers-reduced-motion: no-preference) { .au-panel { animation: au-panel-in 200ms cubic-bezier(0.2, 0.7, 0.2, 1) both; } @keyframes au-panel-in { from { opacity: 0; translate: 0 8px; } to { opacity: 1; translate: 0 0; } } }
+.au-alt { margin: 20px 0 0; font-size: 15px; line-height: 1.6; text-align: center; color: var(--text-muted); }

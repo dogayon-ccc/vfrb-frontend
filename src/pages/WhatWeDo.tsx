@@ -6,20 +6,15 @@ import { CONTACT as C } from '../components/site/config';
 import { EMBROIDERY, PRODUCTS, SERVE_LINE, SERVICES } from '../components/site/content';
 import { P } from './landing/photos';
 
-const JUMP = [['Uniforms', 'uniforms'], ['Embroidery', 'embroidery'], ['Printing', 'printing'], ['Print Authority', 'print-authority']];
 
 export default function WhatWeDo() {
   return (
-    <SitePage title="What We Do">
+    <SitePage title="What We Do" tone="ink" deck>
       <Banner kicker="What we do" title="Tailoring, embroidery and printing in one place."
         lede={`${SERVICES.slice(0, 3).map(x => x.toLowerCase()).join(", ")}, and more, for ${SERVE_LINE.toLowerCase()}.`}
-        photo={P.sewing2} pos="center">
-        <nav className="vs-jump" aria-label="On this page" style={{ marginTop: 6 }}>
-          {JUMP.map(([l, id]) => <a key={id} href={`#${id}`} style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.6)' }}>{l}</a>)}
-        </nav>
-      </Banner>
+        photo={P.sewing2} pos="center" />
 
-      <section className="vs-sec vs-block" id="uniforms" aria-labelledby="u-t">
+      <section className="vs-sec vs-block" id="uniforms" data-slide="Uniforms" aria-labelledby="u-t">
         <div className="vs-wrap vs-split">
           <Reveal className="vs-stack">
             <p className="vs-kicker">Tailoring and manufacturing</p>
@@ -32,7 +27,7 @@ export default function WhatWeDo() {
         </div>
       </section>
 
-      <section className="vs-sec vs-dark vs-block" id="embroidery" aria-labelledby="e-t">
+      <section className="vs-sec vs-dark vs-block" id="embroidery" data-slide="Embroidery" aria-labelledby="e-t">
         <div className="vs-wrap">
           <div className="vs-split vs-split--wide-media">
             <Reveal><Photo photo={P.embroidery} ratio="4 / 3" hover={false} caption="Rows of computerized embroidery machines" /></Reveal>
@@ -59,7 +54,7 @@ export default function WhatWeDo() {
         </div>
       </section>
 
-      <section className="vs-sec vs-block" id="printing" aria-labelledby="p-t">
+      <section className="vs-sec vs-block" id="printing" data-slide="Printing" aria-labelledby="p-t">
         <div className="vs-wrap">
           <Head kicker="Printing" id="p-t" title="Silk screen printing and full sublimation." />
           <Reveal className="vs-split">
@@ -77,7 +72,7 @@ export default function WhatWeDo() {
         </div>
       </section>
 
-      <section className="vs-sec vs-tint vs-block" id="print-authority" aria-labelledby="pa-t">
+      <section className="vs-sec vs-tint vs-block" id="print-authority" data-slide="Print Authority" aria-labelledby="pa-t">
         <div className="vs-wrap">
           <Reveal className="vs-card vs-card--split">
             <Photo photo={P.printAuthority} ratio="592 / 707" hover={false} style={{ maxWidth: 240, width: '100%' }} />

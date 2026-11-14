@@ -87,13 +87,6 @@
 .lp-card:hover .lp-card__art, .lp-card:focus-visible .lp-card__art { transform: translateZ(24px); }
 
 /* own floor: real photos, layered */
-.lp-floor { background: #14203a; }
-.lp-floor__grid { display: grid; gap: clamp(28px, 4vw, 56px); align-items: center; }
-.lp-floor__copy { display: grid; gap: 16px; justify-items: start; }
-.lp-floor__photos { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.lp-floor__a { grid-column: 1 / -1; aspect-ratio: 16 / 10 !important; }
-.lp-floor__b, .lp-floor__c { aspect-ratio: 4 / 5 !important; }
-.lp-floor .vs-photo { box-shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.7); }
 
 /* contact: four large tap targets */
 .lp-contact__list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 12px; margin-top: clamp(20px, 3vw, 32px); }
@@ -111,11 +104,6 @@
   .lp-steps { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .lp-steps li { grid-template-columns: 1fr; padding-top: 24px; border-top: 2px dashed var(--red); }
   .lp-steps span { grid-row: auto; margin-bottom: 10px; }
-  .lp-floor__grid { grid-template-columns: minmax(0, 4fr) minmax(0, 7fr); }
-  .lp-floor__photos { grid-template-columns: 7fr 5fr; gap: 16px; }
-  .lp-floor__a { grid-column: 1; grid-row: 1 / span 2; aspect-ratio: auto !important; }
-  .lp-floor__b, .lp-floor__c { aspect-ratio: 4 / 3 !important; }
-  .lp-floor__c { transform: translateX(-14%); }
 }
 @media (prefers-reduced-motion: reduce) {
   .pr-stage, .pr-stage.is-intro, .lp-card, .lp-card__art, .lp-contact__list a, .lp-visual > .pr, .lp-3d, .lp-3d__btn, .lp-switch button { transition: none; }
@@ -139,7 +127,7 @@
   color: #eaf3f5; background: var(--navy); box-shadow: inset 0 0 0 2px rgba(244, 245, 242, 0.35); transform: scale(0.86);
   transition: transform 200ms var(--vs-ease), background-color 200ms var(--vs-ease), box-shadow 200ms var(--vs-ease); }
 .pl-st h3 { margin: 10px 0 4px; font: 400 22px/1.15 var(--vs-display); color: #fff; opacity: 0.6; transition: opacity 200ms var(--vs-ease); }
-.pl-st p { margin: 0; font-size: 15px; line-height: 1.55; color: #c7cfdc; opacity: 0.6; transition: opacity 200ms var(--vs-ease); }
+.pl-st p { margin: 0; font-size: 15px; line-height: 1.55; color: #c7cfdc; opacity: 0.82; transition: opacity 200ms var(--vs-ease); }
 .pl-st[data-on] .pl-dot { color: #fff; background: var(--red); box-shadow: 0 0 0 5px rgba(196, 49, 59, 0.25); transform: scale(1); }
 .pl-st[data-on] h3, .pl-st[data-on] p { opacity: 1; }
 @media (min-width: 960px) {

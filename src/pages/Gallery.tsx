@@ -69,11 +69,11 @@ export default function Gallery() {
   const close = useCallback(() => setOpen(null), []);
 
   return (
-    <SitePage title="Gallery">
+    <SitePage title="Gallery" tone="ink" deck>
       <Banner short kicker="Samples and gallery" title="Finished pieces and the floor behind them."
         lede="Embroidery, printing, sublimation, packed orders and the production team, all photographed at VFRB."
         photo={P.printing} pos="35% center" />
-      <section className="vs-sec" aria-label="Photo gallery">
+      <section className="vs-sec" id="photos" data-slide="Photos" aria-label="Photo gallery">
         <div className="vs-wrap">
           <div className="vs-filters" role="group" aria-label="Filter photos">
             {GALLERY_CATS.map(c => (

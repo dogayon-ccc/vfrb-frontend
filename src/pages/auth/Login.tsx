@@ -11,7 +11,7 @@ import AuthShell, { Field, PasswordField, FormError, SubmitBtn } from '../../com
 import { CONTACT } from '../../components/site/config';
 import RequestAccess from './RequestAccess';
 
-const CONTACT_LINK = { display: 'inline', padding: '12px 0', fontWeight: 700, color: 'var(--teal-dark)' }; // inline padding: a 44px tap area that does not stretch the sentence's lines
+const CONTACT_LINK = { display: 'inline', padding: '13px 0', fontWeight: 700, color: 'var(--teal-dark)' }; // inline padding: a 44px tap area that does not stretch the sentence's lines
 
 const VERIFY_DELAY_MS = 1800;
 const GOOGLE_ON = import.meta.env.VITE_GOOGLE_LOGIN !== 'false';
@@ -31,13 +31,13 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [errs, setErrs] = useState({});
-  const [ask, setAsk] = useState(location.hash === '#request-access');
+  const [tab, setTab] = useState<'signin' | 'request'>(location.hash === '#request-access' ? 'request' : 'signin');
   const [notice, setNotice] = useState('');
   const verifyTimer = useRef();
-  const askRef = useRef(null);
   const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setErrs(e => ({ ...e, [k]: '' })); setError(''); };
 
-  useEffect(() => { if (location.hash === '#request-access') askRef.current?.scrollIntoView({ block: 'start' }); }, [location.hash]);
+  useEffect(() => { setTab(location.hash === '#request-access' ? 'request' : 'signin'); }, [location.hash]);
+  const pick = (t: 'signin' | 'request') => { setTab(t); navigate({ pathname: location.pathname, hash: t === 'request' ? '#request-access' : '' }, { replace: true }); };
 
   useEffect(() => {
     const googleError = searchParams.get('google_error');
@@ -83,7 +83,16 @@ export default function Login() {
   };
 
   return (
-    <AuthShell variant="split" maxWidth={440} title="Sign in" subtitle="Sign in to track your orders and manage your account.">
+    <AuthShell title={tab === 'signin' ? 'Sign in' : 'Request access'}
+      subtitle={tab === 'signin' ? 'Track your orders and manage your account.' : 'VFRB sets up accounts for schools, hospitals and companies. Tell us who you are and an administrator will contact you.'}>
+      <div className="au-tabs" role="tablist" aria-label="Account">
+        {([['signin', 'Sign in'], ['request', 'Request access']] as const).map(([id, label]) => (
+          <button key={id} type="button" role="tab" id={`tab-${id}`} aria-selected={tab === id} aria-controls={`panel-${id}`} tabIndex={tab === id ? 0 : -1}
+            onClick={() => pick(id)} onKeyDown={e => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); pick(tab === 'signin' ? 'request' : 'signin'); } }}>{label}</button>
+        ))}
+      </div>
+
+      <div role="tabpanel" id="panel-signin" aria-labelledby="tab-signin" hidden={tab !== 'signin'} className="au-panel">
       <AnimatePresence>
         {resetSuccess && (
           <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
@@ -130,23 +139,15 @@ export default function Login() {
       </button>
       </>}
 
-      <div style={{ textAlign: 'center', fontSize: 15, color: 'var(--text-muted)', marginTop: 28 }}>
-        No account?{' '}
-        <button type="button" onClick={() => setAsk(v => !v)} aria-expanded={ask} aria-controls="request-access"
-          style={{ ...CONTACT_LINK, display: 'inline-flex', alignItems: 'center', minHeight: 44, border: 'none', background: 'none', padding: 0, fontSize: 15, cursor: 'pointer' }}>Request access</button>
-      </div>
-      <div id="request-access" ref={askRef} style={{ scrollMarginTop: 16 }}>
-        <AnimatePresence initial={false}>
-          {ask && <motion.div key="ra" initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: [0.2, 0.7, 0.2, 1] }} style={{ overflow: 'hidden', margin: '0 -6px' }}><div style={{ padding: '12px 6px 6px' }}><RequestAccess/></div></motion.div>}
-        </AnimatePresence>
       </div>
 
-      <p style={{ textAlign: 'center', fontSize: 15, color: 'var(--text-muted)', marginTop: 20 }}>
-        Or{' '}
-        <a href={CONTACT.facebook} target="_blank" rel="noopener noreferrer" style={CONTACT_LINK}>Message us on Facebook</a>
-        {' '}or call <a href={CONTACT.phoneHref} style={{ ...CONTACT_LINK, whiteSpace: 'nowrap' }}>{CONTACT.phone}</a> and we will set one up for you.
-      </p>
+      <div role="tabpanel" id="panel-request" aria-labelledby="tab-request" hidden={tab !== 'request'} className="au-panel">
+        {tab === 'request' && <RequestAccess />}
+        <p className="au-alt">
+          Prefer to talk? <a href={CONTACT.facebook} target="_blank" rel="noopener noreferrer" style={CONTACT_LINK}>Message us on Facebook</a> or call <a href={CONTACT.phoneHref} style={{ ...CONTACT_LINK, whiteSpace: 'nowrap' }}>{CONTACT.phone}</a>.
+        </p>
+      </div>
+
       <nav aria-label="Legal" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', columnGap: 20, marginTop: 12, fontSize: 14 }}>
         <Link to="/privacy" style={{ ...CONTACT_LINK, display: 'inline-flex', alignItems: 'center', minHeight: 44 }}>Privacy Policy</Link>
         <Link to="/terms" style={{ ...CONTACT_LINK, display: 'inline-flex', alignItems: 'center', minHeight: 44 }}>Terms of Service</Link>

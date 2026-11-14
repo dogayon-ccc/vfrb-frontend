@@ -131,7 +131,7 @@ export default function FabricStage() {
             <p className="fs__tag"><span>{pad(live ? idx + 1 : slides.indexOf(s) + 1)}</span>/ {pad(N)} &nbsp;{s.cat}</p>
             <p className="fs__h">{s.label} uniforms,<br />cut for you.</p>
             <p className="fs__p">Start from VFRB&rsquo;s {s.garment} template. Choose colours, add your logo and text, then send it as an order.</p>
-            <button type="button" className="fs__link" onClick={open}>Design a {s.label.toLowerCase()} uniform <span aria-hidden="true">→</span></button>
+            <button type="button" className="fs__link" onClick={open}>Design a {s.label.toLowerCase()} uniform</button>
           </article>
         </div>
 

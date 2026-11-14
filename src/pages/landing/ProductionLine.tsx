@@ -32,9 +32,9 @@ export default function ProductionLine() {
   return (
     <section ref={ref} id="line" className="pl vs-sec" aria-labelledby="pl-title">
       <div className="vs-wrap">
-        <SectionHead n="04" label="On the VFRB floor" aside="Seven stations" />
-        <h2 className="vs-h2" id="pl-title">Seven stations, one thread</h2>
-        <p className="pl-sub">Once you accept VFRB&rsquo;s proposal, your order moves through every station below. VFRB tracks each one; your account shows the order&rsquo;s status.</p>
+        <SectionHead label="On the floor" aside="Bayanan, Muntinlupa" />
+        <h2 className="vs-h2" id="pl-title">Cut, sewn and packed on our own floor</h2>
+        <p className="pl-sub">Every order is made by the VFRB team in Bayanan. Once you accept VFRB&rsquo;s proposal, it moves through the seven stations below. VFRB tracks each one; your account shows the order&rsquo;s status.</p>
         <div className="pl-track">
         <div className="pl-thread" aria-hidden="true"><span /></div>
         <ol className="pl-line">

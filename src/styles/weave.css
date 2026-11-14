@@ -1,0 +1,8 @@
+/* Twill weave drawn in CSS: one texture for the Home hero and the auth art panel. No JS, no network. */
+.vfrb-weave { position: absolute; inset: 0; pointer-events: none;
+  background-image: repeating-linear-gradient(45deg, rgba(2, 195, 154, 0.09) 0 1px, transparent 1px 7px), repeating-linear-gradient(-45deg, rgba(234, 243, 245, 0.06) 0 1px, transparent 1px 7px);
+  -webkit-mask-image: radial-gradient(75% 85% at 70% 45%, #000 25%, transparent 100%); mask-image: radial-gradient(75% 85% at 70% 45%, #000 25%, transparent 100%); }
+@media (prefers-reduced-motion: no-preference) {
+  .vfrb-weave { animation: vfrb-weave 90s linear infinite; }
+  @keyframes vfrb-weave { to { background-position: 140px 140px, -140px 140px; } }
+}

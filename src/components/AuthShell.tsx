@@ -112,6 +112,8 @@ function SplitArt({ calm }: any) {
   useEffect(() => { dropped = true; }, []);
   return (
     <aside className="au-art au-art--navy" ref={ref}>
+      <img className="au-art__photo" src={art} alt="" decoding="async" fetchpriority="low" />
+      <div className="vfrb-weave" aria-hidden="true" />
       <Link to="/" className="au-brand" aria-label="VFRB Enterprise home">
         <img src={logo} alt="" width="44" height="44" />
         <span>VFRB Enterprise</span>
@@ -121,18 +123,18 @@ function SplitArt({ calm }: any) {
       </div>
       <div className="au-art-in">
         <h2 className="au-h">Custom uniforms, made smarter.</h2>
-        <p className="au-line">Design, order and follow your uniforms in one place.</p>
+        <ol className="au-steps">
+          {STEPS.map(t => <li key={t}><b>{t}</b></li>)}
+        </ol>
       </div>
     </aside>
   );
 }
 
-export default function AuthShell({ title, subtitle, maxWidth = 400, variant, children }: any) {
+export default function AuthShell({ title, subtitle, maxWidth = 440, children }: any) {
   const calm = useReducedMotion();
   const rise = calm ? {} : { hidden: { opacity: 0, y: 14 }, show: { opacity: 1, y: 0, transition: { duration: 0.2, ease: [0.2, 0.7, 0.2, 1] } } };
-  const split = variant === 'split';
-
-  if (split) return (
+  return (
     <div className="au au--split">
       <SplitArt calm={calm} />
       <main className="au-main">
@@ -148,33 +150,4 @@ export default function AuthShell({ title, subtitle, maxWidth = 400, variant, ch
     </div>
   );
 
-  return (
-    <div className="au">
-      <aside className="au-art">
-        <img src={art} alt="" decoding="async" fetchpriority="low" />
-        <Link to="/" className="au-back"><span aria-hidden="true">←</span> VFRB Enterprise</Link>
-        <div className="au-art-in">
-          <h2 className="au-h">Custom uniforms, made smarter.</h2>
-          <ol className="au-steps">
-            {STEPS.map(s => <li key={s}><b>{s}</b></li>)}
-          </ol>
-          <p className="au-since">Family-owned since 2000 · Bayanan, Muntinlupa City</p>
-        </div>
-      </aside>
-
-      <main className="au-main">
-        <motion.div className="au-card" style={{ maxWidth }} initial={calm ? false : 'hidden'} animate="show"
-          variants={{ show: { transition: { staggerChildren: 0.07 } } }}>
-          <motion.div variants={rise} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 26 }}>
-            <Link to="/" aria-label="Back to home" style={{ marginBottom: 16, lineHeight: 0 }}>
-              <img className="au-logo" src={logo} alt="VFRB Enterprise" />
-            </Link>
-            {title && <h1 className="au-title">{title}</h1>}
-            {subtitle && <div className="au-sub">{subtitle}</div>}
-          </motion.div>
-          <motion.div variants={rise}>{children}</motion.div>
-        </motion.div>
-      </main>
-    </div>
-  );
 }

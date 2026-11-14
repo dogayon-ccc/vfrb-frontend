@@ -7,12 +7,12 @@ import { P } from './landing/photos';
 
 export default function InsideVFRB() {
   return (
-    <SitePage title="Inside VFRB">
+    <SitePage title="Inside VFRB" tone="ink" deck>
       <Banner kicker="Inside VFRB" title="Where every uniform is made."
         lede="Real people, real machines and a production floor built around tailoring and garment manufacturing."
         photo={P.workers} pos="center 30%" />
 
-      <section className="vs-sec" aria-labelledby="flow">
+      <section className="vs-sec" id="flow-sec" data-slide="Production flow" aria-labelledby="flow">
         <div className="vs-wrap">
           <Head kicker="The production flow" id="flow" title="Seven stages, from pattern to packing."
             lede="An order only moves to the next stage once the required quantity for the current stage is finished." />
@@ -34,7 +34,7 @@ export default function InsideVFRB() {
         </div>
       </section>
 
-      <section className="vs-sec vs-tint" aria-labelledby="people">
+      <section className="vs-sec vs-tint" id="people-sec" data-slide="The people" aria-labelledby="people">
         <div className="vs-wrap">
           <Head kicker="The people" id="people" title="A floor run by a family and its team." />
           <Reveal className="vs-team-grid">

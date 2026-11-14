@@ -122,7 +122,7 @@ export default function VerifyEmail() {
         <div style={{ marginBottom: 10 }}>
           <PrimaryBtn onClick={resend} disabled={sending}>{sending ? 'Sending…' : <><NavIcon name="redo" size={13} color="currentColor" style={{verticalAlign:'-2px',marginRight:5}}/>Resend Verification Email</>}</PrimaryBtn>
         </div>
-        <button onClick={logout} style={{ background: 'none', border: 'none', color: 'var(--text-faint)', fontSize: 13, cursor: 'pointer', fontFamily: FONT, padding: '10px 4px' }}>
+        <button onClick={logout} style={{ background: 'none', border: 'none', color: 'var(--text-faint)', fontSize: 13, cursor: 'pointer', fontFamily: FONT, padding: '0 8px', minHeight: 44 }}>
           ← Back to login
         </button>
       </Shell>
@@ -163,7 +163,7 @@ export default function VerifyEmail() {
               <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/></svg>Sending…</>
           ) : '↺ Resend verification email'}
         </motion.button>
-        <button onClick={logout} style={{ background: 'none', border: 'none', color: 'var(--text-faint)', fontSize: 13, cursor: 'pointer', fontFamily: FONT, marginTop: 4, padding: '10px 4px' }}>
+        <button onClick={logout} style={{ background: 'none', border: 'none', color: 'var(--text-faint)', fontSize: 13, cursor: 'pointer', fontFamily: FONT, marginTop: 4, padding: '0 8px', minHeight: 44 }}>
           ← Back to login
         </button>
       </div>

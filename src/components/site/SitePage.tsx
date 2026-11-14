@@ -2,11 +2,15 @@ import { useEffect, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import SiteHeader from './SiteHeader';
 import SiteFooter from './SiteFooter';
+import DeckNav from '../../pages/landing/DeckNav';
+import InkLayers from '../landing/InkLayers';
 import '../../styles/motion.css';
+import '../../styles/landing-ink.css';
 
-type SitePageProps = { title?: string; children?: ReactNode; tone?: 'paper' | 'ink' };
+// deck: inner pages tag sections with data-slide and get the Home dots and bar; lean drops the footer contact block that Home already shows.
+type SitePageProps = { title?: string; children?: ReactNode; tone?: 'paper' | 'ink'; deck?: boolean; lean?: boolean };
 
-export default function SitePage({ title, children, tone = 'paper' }: SitePageProps) {
+export default function SitePage({ title, children, tone = 'paper', deck = false, lean = false }: SitePageProps) {
   const { hash, pathname } = useLocation();
   useEffect(() => { if (title) document.title = `${title} | VFRB Enterprise`; }, [title]);
   useEffect(() => { if (!hash) window.scrollTo({ top: 0, behavior: 'instant' }); }, [pathname, hash]);
@@ -19,7 +23,8 @@ export default function SitePage({ title, children, tone = 'paper' }: SitePagePr
     <div className={`vs vs-page${tone === 'ink' ? ' vs-page--ink' : ''}`}>
       <SiteHeader tone={tone} />
       <main id="main" key={pathname} className="vs-enter">{children}</main>
-      <SiteFooter />
+      <SiteFooter lean={lean} />
+      {deck && <><InkLayers /><DeckNav /></>}
     </div>
   );
 }

@@ -31,7 +31,7 @@ export function Head({ kicker, title, lede, id }: any) {
 
 export function Banner({ kicker, title, lede, photo, pos = 'center', short = false, children }: any) {
   return (
-    <header className={`vs-banner${short ? ' vs-banner--short' : ''}`}>
+    <header id="top" data-slide="Overview" className={`vs-banner${short ? ' vs-banner--short' : ''}`}>
       <div className="vs-banner__bg"><Photo photo={photo} instant hover={false} pos={pos} ratio="auto" radius={0} /></div>
       <div className="vs-wrap">
         {kicker && <p className="vs-kicker">{kicker}</p>}
@@ -71,7 +71,7 @@ export function Journey({ current }: any) {
   const next = JOURNEY[(i + 1) % JOURNEY.length];
   const last = i === JOURNEY.length - 1;
   return (
-    <section className="vs-journey vs-dark" aria-labelledby="journey-next">
+    <section id="next" data-slide="Next page" className="vs-journey vs-dark" aria-labelledby="journey-next">
       {next.photo && <div className="vs-journey__bg"><Photo photo={next.photo} pos={next.pos} hover={false} ratio="auto" radius={0} style={{ height: '100%' }} /></div>}
       <div className="vs-wrap vs-journey__in">
         <Reveal>
@@ -81,14 +81,6 @@ export function Journey({ current }: any) {
             <span className="vs-journey__blurb">{next.blurb}</span>
           </Link>
         </Reveal>
-        <div className="vs-btns">
-          <Btn to="/login" variant="mint">Sign in</Btn>
-        </div>
-        <nav className="vs-rail" aria-label="Site journey">
-          {JOURNEY.map((j, k) => k === i
-            ? <span key={j.to} aria-current="step">{j.label}</span>
-            : <Link key={j.to} to={j.to}>{j.label}</Link>)}
-        </nav>
       </div>
     </section>
   );

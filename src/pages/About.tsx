@@ -2,18 +2,18 @@ import Photo from '../components/landing/Photo';
 import Reveal from '../components/landing/Reveal';
 import MapCard from '../components/site/MapCard';
 import SitePage from '../components/site/SitePage';
-import { Banner, Btn, Head, TextLink, Journey } from '../components/site/parts';
+import { Banner, Head, Journey } from '../components/site/parts';
 import { CONTACT as C } from '../components/site/config';
-import { SERVE, SERVE_LINE } from '../components/site/content';
+import { SERVE } from '../components/site/content';
 import { P } from './landing/photos';
 
 export default function About() {
   return (
-    <SitePage title="About">
+    <SitePage title="About" tone="ink" deck>
       <Banner kicker="About VFRB Enterprise" title="A family garment company, specialized in uniforms."
         lede="Serving offices, schools and institutions since 2000." photo={P.familyCourt} pos="center 40%" />
 
-      <section className="vs-sec" aria-labelledby="story">
+      <section className="vs-sec" id="story-sec" data-slide="Who we are" aria-labelledby="story">
         <div className="vs-wrap vs-split">
           <Reveal className="vs-stack">
             <h2 className="vs-h2" id="story">Who we are</h2>
@@ -24,7 +24,8 @@ export default function About() {
             </p>
             <p className="vs-body">The company is a sole proprietorship led by its owner, Fe Tiama Boitizon.</p>
           </Reveal>
-          <Reveal delay={0.06}>
+          <Reveal delay={0.06} className="vs-stack">
+            <Photo photo={P.familyDinner} ratio="4 / 3" caption="The VFRB family and team" />
             <blockquote className="vs-quote">
               Our company caters all kinds of tailoring service and garments needs from local to international market
               ensuring high quality products and services.
@@ -33,23 +34,8 @@ export default function About() {
         </div>
       </section>
 
-      <section className="vs-sec vs-tint" aria-labelledby="glance">
-        <div className="vs-wrap vs-split vs-split--wide-media">
-          <Reveal><Photo photo={P.familyDinner} ratio="4 / 3" caption="The VFRB family and team" /></Reveal>
-          <Reveal delay={0.06}>
-            <h2 className="vs-h2" id="glance" style={{ marginBottom: 24 }}>At a glance</h2>
-            <dl className="vs-dl">
-              <div><dt>Also known as</dt><dd>Tailor Centre VFRB Manila</dd></div>
-              <div><dt>Since</dt><dd>2000</dd></div>
-              <div><dt>Ownership</dt><dd>Sole proprietorship, family-owned</dd></div>
-              <div><dt>We serve</dt><dd>{SERVE_LINE}</dd></div>
-              <div><dt>Locations</dt><dd>Bayanan, Muntinlupa City, and {C.other}</dd></div>
-            </dl>
-          </Reveal>
-        </div>
-      </section>
 
-      <section className="vs-sec" id="contact" aria-labelledby="contact-title">
+      <section className="vs-sec vs-tint" id="contact" data-slide="Visit us" aria-labelledby="contact-title">
         <div className="vs-wrap">
           <Head kicker="Contact" id="contact-title" title="Visit or reach VFRB." />
           <Reveal className="vs-split">
@@ -62,12 +48,6 @@ export default function About() {
             </dl>
             <div className="vs-stack">
               <MapCard />
-              <p className="vs-body">Ready to order? Sign in to design your uniform, or message us directly.</p>
-              <div className="vs-btns">
-                <Btn to="/login">Sign in</Btn>
-                <Btn href={C.map} variant="line" target="_blank" rel="noopener noreferrer">Open in Google Maps</Btn>
-              </div>
-              <TextLink to="/what-we-do">See what we make</TextLink>
             </div>
           </Reveal>
         </div>
