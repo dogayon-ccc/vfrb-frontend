@@ -1,10 +1,11 @@
 // Tool rail in the stage's top lane: Photoshop-style tools and single-letter shortcuts (railTools.js), plus the active colour.
+import { haptic } from '../../../utils/haptics';
 import { useEffect } from 'react';
 import { MousePointer2, Hand, Pipette, PaintBucket, Brush, Eraser, PenTool, Slash, Type, Shapes } from 'lucide-react';
 import { RAIL_TOOLS, PICK_TOOLS, STROKE_SIZES, STROKE_TOOLS, railKey, activeRail } from './railTools';
 
 const ICONS = { move: MousePointer2, hand: Hand, sample: Pipette, fill: PaintBucket, brush: Brush, eraser: Eraser, pen: PenTool, line: Slash, text: Type, shape: Shapes };
-const SHOWN = ['move', 'hand', 'sample', 'fill', 'brush', 'eraser', 'text'];
+const SHOWN = ['move', 'hand', 'sample', 'fill', 'brush', 'eraser', 'pen', 'text', 'shape'];
 const typing = () => { const a = document.activeElement; return !!a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable); };
 
 export default function ToolRail({ rail, hand, setHand, canPan, zoomBy, readOnly = false }: any) {
@@ -17,6 +18,7 @@ export default function ToolRail({ rail, hand, setHand, canPan, zoomBy, readOnly
 
   const choose = (id) => {
     if (off(id)) return;
+    haptic('tick');
     const leaveDraw = () => { if (tool === 'draw') setTool('assets'); };
     setHand(id === 'hand');
     setPick(PICK_TOOLS.includes(id) ? id : null);

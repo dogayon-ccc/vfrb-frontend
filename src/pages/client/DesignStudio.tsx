@@ -7,6 +7,7 @@
 //            zone hover glow, garment card grid, logo placement presets,
 //            font selector, Pollinations.ai texture, Save Design
 
+import { haptic } from '../../utils/haptics';
 import { stashStudioConfig, draftFingerprint, clearStudioHandoff, discardDraft } from '../../utils/studioHandoff';
 import { useRovingGroups } from './design-studio/rovingKeys';
 import { analyzeImageFile, REF_NOT_FULL_SET } from './design-studio/referenceSketch';
@@ -817,6 +818,7 @@ export default function DesignStudio() {
 
   // ── Manual save: sessionStorage + DB ─────────────────────────────────────
   const saveDesign = useCallback(async () => {
+    haptic('success');
     if (!cfg.garment || saving || locked) return;
     if (swapping.current) { flashError(STILL_LOADING); return; }
     setSaving(true); setSaveErr(false);

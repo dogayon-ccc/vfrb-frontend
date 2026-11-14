@@ -80,8 +80,8 @@ export function PartStyles({ cfg, setCfg, zone }: any) {
   if (zone === 'body' && fits.length) {
     return (
       <section className="ds-part-sec">
-        <p className="ds-h3">Fit</p>
-        <div className="ds-seg ds-seg--sm" role="radiogroup" aria-label="Garment fit">
+        <p className="ds-h3">Pattern fit <small className="ds-note">sizing only, not a different 3D model</small></p>
+        <div className="ds-seg ds-seg--sm" role="radiogroup" aria-label="Pattern fit">
           {fits.map(id => (
             <button key={id} type="button" role="radio" aria-checked={resolveFit(family.id, cfg.fit) === id}
               onClick={() => setCfg(p => ({ ...p, fit: id }))}>{id[0].toUpperCase() + id.slice(1)}</button>

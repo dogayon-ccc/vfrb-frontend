@@ -23,7 +23,7 @@ import { PinnedRulers, GuideLine } from './StageRulers';
 import StudioTip from './StudioTip';
 import SetView2D from './SetView2D';
 import FloatingToolbar from './FloatingToolbar';
-import GuidesMenu, { ViewToggles, UNITS_NOTE } from './GuidesMenu';
+import GuidesMenu, { ViewToggles } from './GuidesMenu';
 import { viewKey } from './railTools';
 import ToolRail from './ToolRail';
 import Navigator from './Navigator';
@@ -597,12 +597,12 @@ export default function CanvasViewport({
             {ctrl(full ? 'Exit full screen' : 'Full screen', full ? <Minimize2 size={16} aria-hidden="true"/> : <Maximize2 size={16} aria-hidden="true"/>, toggleFull,
               { 'aria-pressed': !!full, title: full ? 'Exit full screen (Esc)' : 'The design takes the whole screen', 'data-act': 'full' })}
           </div>
-          <p className="ds-stage-hint">
+          <p className="ds-stage-hint" role="status">
             {show2D
-              ? <><output aria-label="Zoom level" title={photo ? 'A photo base never goes above its full resolution' : undefined}>{Math.round(scale * 100)}%</output> · Tap a part of the garment to colour it</>
-              : canExplode ? 'Drag to rotate, tap a part to select it' : 'Drag to rotate, pinch or scroll to zoom'}
+              ? <><output aria-label="Zoom level" title={photo ? 'A photo base never goes above its full resolution' : undefined}>{Math.round(scale * 100)}%</output><span>Tap a part to colour it</span></>
+              : <span>{canExplode ? 'Drag to rotate, tap a part to select it' : 'Drag to rotate, pinch or scroll to zoom'}</span>}
+            {rulersOn && <span className="ds-stage-scale">Rulers are template units, not cm</span>}
           </p>
-          {rulersOn && <p className="ds-units-note" role="note">{UNITS_NOTE}</p>}
         </div>
       )}
       {navSlot && stage2D && view && canvasSize.w > 0 && createPortal(

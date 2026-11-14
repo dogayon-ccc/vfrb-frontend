@@ -99,7 +99,7 @@ export default function DesignStudioStyles() {
       /* Small desktops: a narrower Pieces column so the garment keeps its share of the stage */
       @media (min-width:1024px) and (max-width:1279px){.ds-rail{width:184px;padding:12px;}.ds-rail .ds-rail-thumb{width:36px;}.ds-rail .ds-rail-card{gap:8px;padding:6px;}.ds-rail .ds-rail-txt strong{font-size:14px;}}
       /* Short desktop screens: the zoom hint row gives its height to the garment, as on phones */
-      @media (min-width:1024px) and (max-height:820px){.ds-lane-bottom .ds-stage-hint{display:none;}}
+      
       .ds-rail-h{font:400 18px/1.2 var(--cx-serif);color:var(--cx-ink);}
       .ds-rail-list{list-style:none;display:flex;flex-direction:column;gap:8px;margin:0;padding:0;}
       .ds-rail-card{width:100%;min-height:72px;display:flex;align-items:center;gap:12px;padding:8px;border:1px solid var(--cx-line);border-radius:var(--cx-r-md);
@@ -299,7 +299,7 @@ export default function DesignStudioStyles() {
       .ds-ctrl:focus-visible{outline:2px solid var(--cx-thread-ink);outline-offset:2px;}
       .ds-ctrl--lane{border-color:var(--cx-line);background:var(--cx-card);}
       .ds-lane-bottom{flex-direction:column;gap:4px;}
-      .ds-lane-bottom .ds-stage-hint output{font-variant-numeric:tabular-nums;font-weight:700;color:var(--cx-stage-ink);}
+      .ds-lane-bottom .ds-stage-hint output{font-variant-numeric:tabular-nums;font-weight:700;color:#fff;}
       @media (max-width:599px){
         .ds-ctrlbar{width:100%;}
         .ds-ctrlbar .ds-ctrl{flex:1 1 0;min-width:0;flex-direction:column;gap:2px;padding:4px 2px;font-size:13px;white-space:normal;text-align:center;}
@@ -317,7 +317,9 @@ export default function DesignStudioStyles() {
       .ds-stage-note{max-width:100%;padding:4px 12px;border-radius:var(--cx-r-md);background:var(--cx-ink);color:var(--cx-paper);
         font-size:13px;font-weight:700;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
       .ds-stage-note[data-tone=warn]{background:var(--warning-text);color:var(--text-on-accent);}
-      .ds-stage-hint{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--cx-stage-ink-2);}
+      .ds-stage-hint{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px 10px;max-width:min(100%,640px);margin:0 auto;padding:6px 14px;border-radius:999px;background:rgb(15 23 42 / .72);color:#fff;font-size:14px;line-height:1.35;font-weight:600;text-align:center;}
+      .ds-stage-hint output{color:#fff;}
+      .ds-stage-hint .ds-stage-scale{font-weight:500;opacity:.92;}
       .ds-stage-text{color:var(--cx-stage-ink-2);font-size:13px;line-height:1.6;}
       /* Full screen (native) or the expanded stage (app-level fallback): the top bar steps aside so the canvas gains its height. */
       .ds[data-expanded]{height:100dvh;}
@@ -411,7 +413,7 @@ export default function DesignStudioStyles() {
       .ds-pick-img{display:grid;place-items:center;aspect-ratio:3/4;border-radius:var(--cx-r-md);background:var(--cx-paper);overflow:hidden;color:var(--cx-thread-ink);}
       .ds-pick-img img{width:100%;height:100%;object-fit:contain;}
       .ds-pick-card strong{font-size:13px;font-weight:700;line-height:1.3;}
-      .ds-cap3d{display:inline-flex;align-items:center;gap:5px;max-width:100%;padding:3px 8px;border-radius:999px;border:1px solid var(--cx-line);background:var(--cx-card);color:var(--cx-ink);font:700 12px/16px var(--cx-sans);}
+      .ds-cap3d{display:inline-flex;align-items:center;gap:5px;max-width:100%;padding:4px 10px;border-radius:999px;border:1px solid var(--cx-line);background:var(--cx-card);color:var(--cx-ink);font:700 13px/18px var(--cx-sans);}
       .ds-cap3d[data-cap=verified]{color:#046A78;border-color:currentColor;}
       .ds-cap3d[data-cap=none],.ds-cap3d[data-cap=reference]{color:var(--cx-ink-2);}
       .ds-pick-card .ds-cap3d{align-self:flex-start;margin-top:auto;}
@@ -1031,7 +1033,7 @@ export default function DesignStudioStyles() {
       @media (max-width:599px){
         .ds-bar-save{padding:0 4px;border:0;background:none;}
         .ds-bar-save-txt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
-        .ds-lane-bottom .ds-stage-hint{display:none;}
+        .ds-lane-bottom .ds-stage-hint{font-size:13px;padding:5px 12px;}
         /* The garment gets the height: one-row top bar (3D status moves to the stage corner), tighter lanes, a shorter sheet */
         .ds-bar .ds-view-chip{display:none;}
         .ds-lane-top{padding:4px 8px 0;}
@@ -1317,10 +1319,10 @@ export default function DesignStudioStyles() {
       @media (max-width:1023px){
         .ds-bar .ds-bar-save{display:none;}
         .ds-bar .ds-view-chip{display:none;}
-        .ds-stage-badge{display:inline-flex;align-items:center;gap:6px;position:absolute;bottom:8px;left:8px;z-index:3;padding:2px 8px;border-radius:8px;pointer-events:none;
+        .ds-stage-badge{display:inline-flex;align-items:center;gap:6px;position:absolute;top:8px;left:8px;z-index:3;padding:4px 10px;font-size:13px;border-radius:8px;pointer-events:none;
           background:var(--warning-bg,#fff4d6);color:var(--warning-text,#7a4b00);font:700 13px/18px var(--cx-sans);white-space:nowrap;}
         .ds-stage-badge[data-cap=none]{background:var(--bg-surface);color:var(--text-muted);}
-        .ds-cv[data-rulers] .ds-stage-badge{left:42px;}
+        .ds-cv[data-rulers] .ds-stage-badge{left:42px;top:34px;}
       }
       @media (min-width:768px) and (max-width:1023px){.ds-bar-name{min-width:120px;}}
       @media (min-width:1024px) and (max-width:1279px){
@@ -1367,6 +1369,7 @@ export default function DesignStudioStyles() {
       .ds-tabcount{display:inline-grid;place-items:center;min-width:18px;height:18px;margin-left:4px;padding:0 5px;border-radius:9px;background:var(--cx-thread);color:#fff;font:700 11px/1 var(--cx-sans);}
       .ds-help-btn{width:44px;height:44px;border:1px solid var(--cx-line-strong);border-radius:50%;background:var(--cx-card);color:var(--cx-ink);font:700 18px var(--cx-sans);cursor:pointer;}
       .ds-help-btn:hover{background:var(--cx-hover);}
+      .ds-help-btn{flex:none;box-shadow:0 0 0 1px var(--cx-card);}
       .ds-help-btn:focus-visible,.ds-help-menu button:focus-visible{outline:2px solid var(--cx-thread-ink);outline-offset:2px;}
       .ds-help{position:relative;}
       .ds-help-menu{position:absolute;left:calc(100% + 8px);bottom:0;z-index:30;min-width:200px;margin:0;padding:6px;list-style:none;border:1px solid var(--cx-line-strong);border-radius:12px;background:var(--cx-card);box-shadow:0 12px 32px -12px rgb(15 23 42 / .35);}
@@ -1388,9 +1391,10 @@ export default function DesignStudioStyles() {
         .ds-tool-slot .ds-tools{flex-direction:column;position:static;max-height:none;box-shadow:none;border:0;padding:0;background:transparent;}
         .ds-tool-slot .ds-tools-ink{margin:6px 0 0;}
         .ds-tool-slot .ds-tools-size{flex-direction:column;margin:4px 0 0;padding:4px 0 0;border-left:0;border-top:1px solid var(--cx-line);}
-        .ds-help{margin-top:auto;}
+        .ds-help{margin-top:auto;padding-bottom:max(12px,env(safe-area-inset-bottom,0px));}
+        .ds-rail{overflow-x:visible;}
         .ds-phone-only{display:block;}
-        .ds-nav-slot{position:absolute;left:88px;bottom:96px;z-index:6;width:152px;padding:8px;border:1px solid var(--cx-line);border-radius:14px;background:var(--cx-card);box-shadow:0 8px 24px -12px rgb(15 23 42 / .35);}
+        .ds-nav-slot{position:absolute;left:128px;bottom:96px;z-index:6;width:152px;padding:8px;border:1px solid var(--cx-line);border-radius:14px;background:var(--cx-card);box-shadow:0 8px 24px -12px rgb(15 23 42 / .35);}
         .ds-nav-slot .ds-navi{padding-top:0;border-top:0;}
       }
 `}</style>

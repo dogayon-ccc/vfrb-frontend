@@ -1,0 +1,8 @@
+numpy>=1.26
+pillow>=10
+opencv-python-headless>=4.9
+scipy>=1.11
+trimesh>=4.4
+fast-simplification>=0.1.7
+rembg[cpu]>=2.0.57
+# optional, GPU or patient CPU: pip install torch torchvision, then TripoSR from https://github.com/VAST-AI-Research/TripoSR
