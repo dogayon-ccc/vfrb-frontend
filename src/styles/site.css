@@ -266,11 +266,13 @@
   font: 600 14.5px var(--vs-sans); cursor: pointer; transition: background-color var(--vs-t-fast), color var(--vs-t-fast); }
 .vs-filters button:hover { background: rgba(16,32,43,0.08); }
 .vs-filters button[aria-pressed='true'] { background: var(--vs-ink); color: #fff; }
-.vs-masonry { column-count: 2; column-gap: 12px; }
-.vs-masonry li { break-inside: avoid; margin-bottom: 12px; }
+/* justified rows: width follows aspect ratio so every row shares one height */
+.vs-masonry { display: flex; flex-wrap: wrap; gap: 12px; }
+.vs-masonry::after { content: ''; flex-grow: 1000; }
+.vs-masonry li { flex: calc(var(--ar, 1.5) * 100) 1 calc(var(--ar, 1.5) * 150px); min-width: 0; }
 .vs-tile { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: zoom-in; text-align: left; border-radius: 6px; font: inherit; color: inherit; }
 .vs-tile .vs-photo { width: 100%; }
-@media (min-width: 720px) { .vs-masonry { column-count: 3; column-gap: 16px; } .vs-masonry li { margin-bottom: 16px; } }
+@media (min-width: 720px) { .vs-masonry { gap: 16px; } .vs-masonry li { flex-basis: calc(var(--ar, 1.5) * 200px); } }
 .vs-count { font-size: 14px; color: var(--vs-mute); margin-bottom: 14px; }
 
 /* lightbox */
@@ -643,7 +645,8 @@ button.vs-member:hover { transform: translateY(-3px); box-shadow: 0 14px 28px rg
 
 /* gallery on phones: one column so every caption is fully readable; filter row fades to hint at scroll */
 @media (max-width: 559px) {
-  .vs-masonry { column-count: 1; }
+  .vs-masonry li { flex: 1 1 100%; }
+  .vs-masonry::after { display: none; }
   .vs-filters { -webkit-mask-image: linear-gradient(to right, #000 88%, transparent); mask-image: linear-gradient(to right, #000 88%, transparent); padding-right: 24px; }
 }
 

@@ -2,7 +2,7 @@
 // Reads Laravel's ?status= redirect (verified/already_verified/invalid/none=waiting).
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { signOut } from '../../utils/session';
 import { readUser } from '../../utils/authRoute';
@@ -11,10 +11,11 @@ import { NavIcon } from '../../components/ui/icons';
 
 const TEAL = 'var(--teal)';
 const FONT = 'var(--font)';
+const CUT = 'polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px))';
 const globalStyles = `@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
   @keyframes pulse-ring{0%{transform:scale(1);opacity:.6}100%{transform:scale(1.5);opacity:0}}
   @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-  .ve{text-align:center}
+  .ve{text-align:left}
   @media(prefers-reduced-motion:reduce){.ve *{animation:none !important}}`;
 
 function Shell({ children }: any) {
@@ -28,14 +29,7 @@ function Shell({ children }: any) {
 }
 
 function PrimaryBtn({ onClick, disabled, children }: any) {
-  return (
-    <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: .98 }} onClick={onClick} disabled={disabled}
-      style={{ width: '100%', padding: 13, borderRadius: 12, border: 'none', cursor: disabled ? 'not-allowed' : 'pointer',
-        background: `linear-gradient(135deg, ${TEAL}, var(--teal-dark))`, color: '#fff', fontWeight: 600, fontSize: 15, minHeight: 48,
-        fontFamily: FONT, boxShadow: '0 4px 20px rgba(2,128,144,.3)', opacity: disabled ? .6 : 1 }}>
-      {children}
-    </motion.button>
-  );
+  return <button type="button" className="au-submit" onClick={onClick} disabled={disabled}>{children}</button>;
 }
 
 // Reuses the exact colors theme.css's own .alert-success/.alert-danger classes use —
@@ -92,8 +86,8 @@ export default function VerifyEmail() {
     const first = verifyStatus === 'verified';
     return (
       <Shell>
-        <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--success-bg)',
-          border: '2px solid var(--success-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+        <div style={{ width: 72, height: 72, borderRadius: 0, clipPath: CUT, background: 'var(--success-bg)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 0 24px' }}>
           <NavIcon name="success" size={30} color="var(--success)"/>
         </div>
         <h1 className="au-title">
@@ -132,11 +126,9 @@ export default function VerifyEmail() {
   return (
     <Shell>
       <div style={{ marginBottom: 28, position: 'relative', display: 'inline-block' }}>
-        <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1.5px solid rgba(2,195,154,.35)',
-          animation: 'pulse-ring 2s ease-out infinite', transform: 'scale(1.5)' }}/>
-        <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(2,195,154,.12)', border: '2px solid rgba(2,195,154,.3)',
+        <div style={{ width: 72, height: 72, borderRadius: 0, clipPath: CUT, background: 'rgba(2,195,154,.14)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'float 3s ease-in-out infinite',
-          margin: '0 auto', position: 'relative', zIndex: 1 }}>
+          margin: 0, position: 'relative', zIndex: 1 }}>
           <NavIcon name="notifications" size={30} color="var(--teal-2)"/>
         </div>
       </div>
@@ -152,17 +144,13 @@ export default function VerifyEmail() {
       </AnimatePresence>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <PrimaryBtn onClick={goToDashboard}>I've verified my email</PrimaryBtn>
-        <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: .98 }} onClick={resend} disabled={sending}
-          style={{ width: '100%', padding: 12, borderRadius: 12, cursor: sending ? 'not-allowed' : 'pointer',
-            background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-muted)',
-            fontSize: 14, fontWeight: 500, fontFamily: FONT, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            gap: 8, opacity: sending ? .6 : 1 }}>
+        <button type="button" className="au-submit au-submit--line" onClick={resend} disabled={sending}>
           {sending ? (
             <><svg style={{ animation: 'spin .8s linear infinite', width: 14, height: 14 }} viewBox="0 0 24 24" fill="none">
               <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeOpacity=".3"/>
               <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/></svg>Sending…</>
-          ) : '↺ Resend verification email'}
-        </motion.button>
+          ) : 'Resend verification email'}
+        </button>
         <button onClick={logout} style={{ background: 'none', border: 'none', color: 'var(--text-faint)', fontSize: 13, cursor: 'pointer', fontFamily: FONT, marginTop: 4, padding: '0 8px', minHeight: 44 }}>
           ← Back to login
         </button>

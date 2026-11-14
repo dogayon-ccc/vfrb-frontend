@@ -86,3 +86,30 @@
 .vs-page .fs__link { font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
 .vs-page .fs__nav button[aria-pressed='true'], .vs-page .fs__nav button[aria-selected='true'] { font-weight: 800; }
 @media (max-width: 640px) { .vs-page .vs-h2::before { width: 0.22em; } }
+
+/* About quote: dark panel (cream fill + light text failed contrast); cut corners replace rounded cards. */
+.vs-page .vs-quote { --rg-cut: 18px; padding: clamp(22px, 3vw, 34px); background: var(--rg-void); color: #fff; border-radius: 0;
+  clip-path: polygon(0 0, calc(100% - var(--rg-cut)) 0, 100% var(--rg-cut), 100% 100%, var(--rg-cut) 100%, 0 calc(100% - var(--rg-cut))); }
+.vs-page .vs-quote::before { top: auto; left: auto; position: static; }
+.vs-page :is(.vs-owner, .vs-member, .vs-cv, .vs-faqaside, .vs-facts li, .vs-types li, .vs-svc a, .vs-tile, .vs-draftnote) { --rg-cut: 14px; border-radius: 0;
+  clip-path: polygon(0 0, calc(100% - var(--rg-cut)) 0, 100% var(--rg-cut), 100% 100%, var(--rg-cut) 100%, 0 calc(100% - var(--rg-cut))); }
+.vs-page :is(.vs-tile, .vs-svc a):focus-visible { outline-offset: -3px; }
+.vs-page .vs-tile .vs-photo { border-radius: 0; }
+
+/* Round markers become chamfered tiles; border-less because clip-path would cut an outline. */
+.vs-page .vs-acc__icon { --rg-cut: 8px; border: 0; border-radius: 0; background: rgba(2, 128, 144, 0.14);
+  clip-path: polygon(0 0, calc(100% - var(--rg-cut)) 0, 100% var(--rg-cut), 100% 100%, var(--rg-cut) 100%, 0 calc(100% - var(--rg-cut))); }
+.vs-page .vs-guide li::before { --rg-cut: 10px; border-radius: 0; box-shadow: none; font: 800 italic 22px/1 var(--rg-sans);
+  clip-path: polygon(0 0, calc(100% - var(--rg-cut)) 0, 100% var(--rg-cut), 100% 100%, var(--rg-cut) 100%, 0 calc(100% - var(--rg-cut))); }
+
+/* Outlined buttons: the chamfer clips the outline at two corners, so draw the diagonal strokes explicitly. */
+.vs-page :is(.vs-btn--line, .vs-btn--ghost-light, .vs-burger) {
+  --e: currentColor; --c: var(--rc-s);
+  --d: linear-gradient(to top right, transparent calc(50% - 1.5px), var(--e) calc(50% - 1.5px) 50%, transparent 50%);
+  --d2: linear-gradient(to top right, transparent 50%, var(--e) 50% calc(50% + 1.5px), transparent calc(50% + 1.5px));
+  background-image: var(--d), var(--d2); background-repeat: no-repeat; background-origin: border-box;
+  background-size: var(--c) var(--c); background-position: right top, left bottom;
+}
+.vs-page .vs-btn--ghost-light { --e: rgba(255, 255, 255, 0.6); }
+.vs-page .vs-btn--ghost-light:hover { --e: var(--rg-mint-hi); }
+.vs-page .vs-burger { --e: var(--vs-line); }

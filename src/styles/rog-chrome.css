@@ -22,3 +22,13 @@
 .lp-3d__dot[aria-pressed='true'] i { transform: scale(1.25); box-shadow: 0 0 0 2px #02c39a; }
 .lp-3d__dot:focus-visible { outline: 3px solid #4fe0bc; outline-offset: -3px; }
 @media (prefers-reduced-motion: reduce) { .lp-3d__dot i { transition: none; } }
+
+/* Phones: flush opaque dock so slides scroll under it instead of being covered. */
+@media (max-width: 640px) {
+  .lp-bar { left: 0; right: 0; bottom: 0; translate: none; justify-content: space-between; padding: 4px 12px max(4px, env(safe-area-inset-bottom, 0px));
+    background: #051014; clip-path: none; box-shadow: inset 0 1px 0 rgba(2, 195, 154, 0.45); backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .lp-bar.is-hidden { translate: 0 12px; }
+  .lp-bar__l { display: inline; }
+  .vs-page, .lp-deck { scroll-padding-bottom: 64px; }
+  .vs-page { padding-bottom: 64px; }
+}

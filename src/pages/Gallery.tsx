@@ -83,7 +83,7 @@ export default function Gallery() {
           <p className="vs-count" aria-live="polite">{items.length} photos</p>
           <ul className="vs-masonry">
             {items.map((g, i) => (
-              <li key={g.photo.src}>
+              <li key={g.photo.src} style={{ '--ar': g.photo.w && g.photo.h ? g.photo.w / g.photo.h : 1.5 } as React.CSSProperties}>
                 <button type="button" className="vs-tile" onClick={() => setOpen(i)} aria-label={`View larger: ${g.caption}`}>
                   <Photo as="span" photo={{ ...g.photo, alt: '' }} pos={g.pos} caption={g.caption} />
                 </button>
