@@ -1,4 +1,4 @@
-// Landing hero 3D: the VFRB-authored Scrub Top drawn by the Studio's own mesh and light rig. Display only; lazy-loaded after first paint.
+// Landing hero 3D: the real scrub-top GLB (female fit) drawn by the Studio's own mesh and light rig. Display only; lazy-loaded after first paint.
 import { Component, type ReactNode, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Bounds, Center, ContactShadows, OrbitControls } from '@react-three/drei';
@@ -7,11 +7,11 @@ import ScannedGarmentMesh from '../client/design-studio/ScannedGarmentMesh';
 import { scannedEntryFor } from '../client/design-studio/garmentCapabilities';
 import { LIGHT, KEY_POS, RIM_POS } from '../client/design-studio/lightRig';
 
-const ENTRY = scannedEntryFor('Scrub Top', 'Short', 'unisex');
+const ENTRY = scannedEntryFor('Scrub Top', 'Short', 'female');
 // Institutional colours VFRB's clients order in; the first is the template's own.
 const SWATCHES = [['Teal', '#028090'], ['Navy blue', '#1B2A4A'], ['Royal blue', '#2952A3'], ['Bottle green', '#006A4E'], ['Maroon', '#800000'], ['Gray', '#808080']] as const;
-const paint = (hex: string) => ({ body: hex, sleeve: hex, collar: '#1B2A4A', pocket: `#${new THREE.Color(hex).multiplyScalar(0.8).getHexString()}` });
-const INTRO = 2.2, ASSEMBLE_AT = 1100;
+const paint = (hex: string) => ({ body: hex, sleeve: hex, collar: hex, pocket: hex });
+const INTRO = 2.2;
 const ease = t => 1 - (1 - t) ** 3;
 
 class Boundary extends Component<{ onError: () => void; children?: ReactNode }, { err: boolean }> {
@@ -32,7 +32,7 @@ function Turn({ children }: any) {
   return <group ref={ref} rotation-y={-Math.PI * 1.2}>{children}</group>;
 }
 
-function Model({ exploded, colors, onReady }: any) {
+function Model({ colors, onReady }: any) {
   const ref = useRef(null);
   const [floor, setFloor] = useState(null);
   useEffect(() => {
@@ -43,7 +43,7 @@ function Model({ exploded, colors, onReady }: any) {
     <>
       <Bounds fit clip margin={1.45}>
         <Turn><Center><group ref={ref}>
-          <ScannedGarmentMesh manifest={ENTRY} colors={colors} fit="unisex" garment="Scrub Top" sleeve="Short" exploded={exploded} />
+          <ScannedGarmentMesh manifest={ENTRY} colors={colors} fit="female" garment="Scrub Top" sleeve="Short" />
         </group></Center></Turn>
       </Bounds>
       {floor !== null && <ContactShadows position={[0, floor, 0] as [number, number, number]} frames={1} opacity={0.38} scale={2.4} blur={2.6} far={1.2} />}
@@ -52,10 +52,9 @@ function Model({ exploded, colors, onReady }: any) {
 }
 
 export default function HeroTurntable({ visible, onReady, onError }: any) {
-  const [exploded, setExploded] = useState(true);
   const [awake, setAwake] = useState(true);
   const [swatch, setSwatch] = useState(0), [live, setLive] = useState(false);
-  const gl = useRef<any>(null), sleep = useRef<ReturnType<typeof setTimeout>>(), assemble = useRef<ReturnType<typeof setTimeout>>();
+  const gl = useRef<any>(null), sleep = useRef<ReturnType<typeof setTimeout>>();
   // Render every frame only while something moves; otherwise on demand.
   const wake = useCallback((ms) => { clearTimeout(sleep.current); setAwake(true); if (ms) sleep.current = setTimeout(() => setAwake(false), ms); }, []);
   const once = useRef(false);
@@ -65,15 +64,13 @@ export default function HeroTurntable({ visible, onReady, onError }: any) {
     setLive(true);
     onReady();
     wake(INTRO * 1000 + 600);
-    assemble.current = setTimeout(() => setExploded(false), ASSEMBLE_AT);
   }, [onReady, wake]);
   useEffect(() => () => {
-    clearTimeout(sleep.current); clearTimeout(assemble.current);
+    clearTimeout(sleep.current);
     try { const g = gl.current; if (g && !g.getContext().isContextLost()) { g.dispose(); g.forceContextLoss(); } } catch { /* already lost */ }
   }, []);
   useEffect(() => { if (!ENTRY) onError(); }, [onError]);
   const pick = (i: number) => { setSwatch(i); wake(700); };
-  const toggle = () => { clearTimeout(assemble.current); setExploded(v => !v); wake(900); };
   if (!ENTRY) return null;
   return (
     <figure className="lp-3d" aria-hidden={!visible || undefined}>
@@ -85,15 +82,12 @@ export default function HeroTurntable({ visible, onReady, onError }: any) {
             <hemisphereLight intensity={LIGHT.fill} />
             <directionalLight position={KEY_POS as [number, number, number]} intensity={LIGHT.key} />
             <directionalLight position={RIM_POS as [number, number, number]} intensity={LIGHT.rim} />
-            <Suspense fallback={null}><Model exploded={exploded} colors={paint(SWATCHES[swatch][1])} onReady={ready} /></Suspense>
+            <Suspense fallback={null}><Model colors={paint(SWATCHES[swatch][1])} onReady={ready} /></Suspense>
             <OrbitControls makeDefault enablePan={false} enableZoom={false} enableDamping dampingFactor={0.08}
               minPolarAngle={Math.PI / 3} maxPolarAngle={Math.PI * 0.62} onStart={() => wake(0)} onEnd={() => wake(1200)} />
           </Canvas>
         </Boundary>
         <span className="pr-tag lp-3d__chip">3D preview, approximate</span>
-        <button type="button" className="lp-3d__btn" aria-pressed={exploded} onClick={toggle} tabIndex={visible ? 0 : -1}>
-          {exploded ? 'Put it together' : 'Take it apart'}
-        </button>
       </div>
       {live && (
         <div className="lp-3d__sw" role="group" aria-label="Preview colour, approximate">
@@ -103,7 +97,7 @@ export default function HeroTurntable({ visible, onReady, onError }: any) {
           ))}
         </div>
       )}
-      <figcaption>Scrub top, VFRB&rsquo;s own 3D model of the Studio template. The shape is approximate. Drag to turn it.</figcaption>
+      <figcaption>Scrub top, 3D model. The shape and colour are approximate. Drag to turn it.</figcaption>
     </figure>
   );
 }

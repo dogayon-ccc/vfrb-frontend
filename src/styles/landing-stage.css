@@ -9,7 +9,7 @@
 .fs__canvas { position: absolute; inset: 0; z-index: -1; }
 .fs__canvas canvas { display: block; width: 100% !important; height: 100% !important; }
 .fs__flat { position: absolute; inset: 0; z-index: -1; display: grid; place-items: center; padding: 24px; }
-.fs__sil { width: min(70vw, 360px); filter: drop-shadow(0 24px 40px rgba(0,0,0,0.5)); }
+.fs__flat > * { max-width: min(70vw, 360px); height: auto; filter: drop-shadow(0 24px 40px rgba(0,0,0,0.5)); }
 .fs__copy { position: relative; display: grid; gap: 28px; width: min(100%, 1240px); margin-inline: auto; padding: clamp(72px, 10vh, 120px) clamp(16px, 5vw, 48px); pointer-events: none; }
 .fs__copy a, .fs__copy button { pointer-events: auto; }
 .fs__title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

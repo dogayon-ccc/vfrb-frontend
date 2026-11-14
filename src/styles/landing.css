@@ -51,9 +51,6 @@
 .lp-3d__stage:active { cursor: grabbing; }
 .lp-3d__stage canvas { display: block; }
 .lp-3d__chip { top: 12px; bottom: auto; left: 12px; background: var(--navy); color: #fff; }
-.lp-3d__btn { position: absolute; right: 12px; bottom: 12px; min-height: 44px; padding: 0 16px; border: 0; border-radius: 22px; font: 700 14px/1 var(--vs-sans);
-  color: #fff; background: var(--navy); cursor: pointer; transition: background-color 200ms var(--vs-ease); }
-.lp-3d__btn:hover { background: var(--tink); }
 .lp-3d figcaption { justify-self: center; width: min(100%, 640px); font-size: 14px; line-height: 1.5; color: #c7cfdc; }
 .lp-switch { display: flex; justify-self: center; gap: 4px; padding: 4px; border-radius: 26px; background: rgba(255, 255, 255, 0.08); }
 .lp-switch button { min-height: 44px; padding: 0 18px; border: 0; border-radius: 22px; font: 600 14px/1 var(--vs-sans); color: #e3e8f0; background: transparent; cursor: pointer;
@@ -92,7 +89,7 @@
   .lp-steps span { grid-row: auto; margin-bottom: 10px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .pr-stage, .pr-stage.is-intro, .lp-contact__list a, .lp-visual > .pr, .lp-3d, .lp-3d__btn, .lp-switch button { transition: none; }
+  .pr-stage, .pr-stage.is-intro, .lp-contact__list a, .lp-visual > .pr, .lp-3d, .lp-switch button { transition: none; }
   .pr-stage { transform: none; }
 }
 

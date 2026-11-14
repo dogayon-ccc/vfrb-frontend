@@ -14,7 +14,7 @@ const c = (body: string, collar: string, pocket: string): Colors => ({ body, sle
 // tries: [sleeve, fit] pairs, first one with a real 3D model wins. A category whose template has no model is left out, never faked.
 const DEFS = [
   { cat: 'School Uniform', label: 'School', garment: 'Polo Shirt', tries: [['Short', 'unisex'], ['Short', 'male']], colors: c('#1B2A4A', '#028090', '#24365C') },
-  { cat: 'Medical / Scrubs', label: 'Medical', garment: 'Scrub Top', tries: [['Short', 'unisex']], colors: c('#028090', '#1B2A4A', '#046A78') },
+  { cat: 'Medical / Scrubs', label: 'Medical', garment: 'Scrub Top', tries: [['Short', 'female'], ['Short', 'male']], colors: c('#028090', '#1B2A4A', '#046A78') },
   { cat: 'Corporate', label: 'Corporate', garment: 'Blazer', tries: [['Long', 'female'], ['Three-Quarter', 'female']], colors: c('#1B2A4A', '#1B2A4A', '#24365C') },
   { cat: 'Hospitality / Service', label: 'Hospitality', garment: 'Mandarin Collar', tries: [['Long', 'male'], ['Long', 'female']], colors: c('#7A1F3D', '#EFE9DA', '#8C2A4B') },
   { cat: 'Industrial / Work', label: 'Industrial', garment: 'Lab Coverall', tries: [['Long', 'unisex'], ['Short', 'unisex'], [undefined, undefined]], colors: c('#1F5D46', '#EFE9DA', '#2A7059') },
@@ -112,7 +112,6 @@ export default function FabricStage() {
   const fail = useCallback(() => setMode('static'), []);
   const live = mode === '3d';
   if (!N) return null;
-  // The static fallback draws the scrub-top outline, so its copy names that template.
   const s = live ? slides[Math.min(idx, N - 1)] : (slides.find(x => x.garment === 'Scrub Top') ?? slides[0]);
   const shown3d = live && ready.has(s.cat) && !failed.has(s.cat);
   const open = () => { startStudioIn(s.cat); nav('/design-studio'); };
@@ -137,7 +136,7 @@ export default function FabricStage() {
           </div>
         )}
         {live && <div className="fs__hud" aria-hidden="true"><i /><i /><i /><i /></div>}
-        {!live && <div className="fs__flat" aria-hidden="true"><Silhouette colors={s.colors} /></div>}
+        {!live && <div className="fs__flat" aria-hidden="true"><Suspense fallback={null}><Poster key={s.cat} garment={s.garment} sleeve={s.sleeve ?? 'Short'} fit={s.fit} colors={s.colors} width={360} height={430} /></Suspense></div>}
 
         <div className="fs__copy">
           <article key={s.cat} className="fs__slide" aria-live="polite">
@@ -163,15 +162,5 @@ export default function FabricStage() {
         )}
       </div>
     </section>
-  );
-}
-
-function Silhouette({ colors }: { colors: Colors }) {
-  return (
-    <svg className="fs__sil" viewBox="0 0 200 240" role="img" aria-label="Uniform top template">
-      <path d="M70 20 L100 44 L130 20 L168 40 L190 88 L160 100 L148 76 L148 220 L52 220 L52 76 L40 100 L10 88 L32 40 Z" fill={colors.body} stroke="rgba(255,255,255,0.28)" strokeWidth="1.5" strokeLinejoin="round" />
-      <path d="M70 20 L100 58 L130 20" fill="none" stroke={colors.collar} strokeWidth="7" strokeLinejoin="round" />
-      <rect x="62" y="132" width="28" height="32" rx="2" fill={colors.pocket} /><rect x="110" y="132" width="28" height="32" rx="2" fill={colors.pocket} />
-    </svg>
   );
 }
