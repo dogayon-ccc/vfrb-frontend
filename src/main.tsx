@@ -13,6 +13,7 @@ import './styles/refresh.css';    // UI refresh: type scale, serif titles, solid
 import './styles/tokens-v2.css';   // L4 foundation tokens + fonts (new names only)
 import './styles/enterprise.css';  // layout fixes, quieter elevation, print
 import './styles/motion-app.css';  // spring tokens + overlay entrances
+import './styles/rog-app.css';     // ROG tokens and cut-corner skin for customer and admin (loads last)
 import App from './App';
 import { isChunkLoadError } from './components/PageErrorBoundary';
 import BrandedStatus from './components/BrandedStatus';

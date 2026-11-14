@@ -13,7 +13,7 @@ export default function BrandedStatus({ code, title, body, action, onAction, inl
         textAlign: 'center', borderTop: `4px solid ${inline ? TEAL : KRAFT}` }}>
         <img src="/pwa-192x192.png" alt="VFRB Enterprise seal" width="64" height="64" style={{ borderRadius: '50%', display: 'block', margin: '0 auto 12px' }} />
         {code && <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700, letterSpacing: '.08em', color: '#046A78' }}>{code}</p>}
-        <h1 style={{ margin: '0 0 8px', fontFamily: "'DM Serif Display',Georgia,serif", fontWeight: 400, fontSize: 28, lineHeight: 1.15, color: NAVY }}>{title}</h1>
+        <h1 style={{ margin: '0 0 8px', fontFamily: 'var(--rg-sans, ui-sans-serif, system-ui, sans-serif)', fontStyle: 'italic', fontWeight: 800, fontSize: 28, lineHeight: 1.15, color: NAVY }}>{title}</h1>
         <p style={{ margin: '0 0 20px', fontSize: 15, lineHeight: 1.55, color: '#3D4A63', overflowWrap: 'anywhere' }}>{body}</p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
           {action && <button type="button" onClick={onAction} style={{ ...btn, border: 0, background: TEAL, color: '#fff' }}>{action}</button>}

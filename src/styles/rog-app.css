@@ -1,0 +1,52 @@
+/* ROG language for the signed-in apps. One token set; loads last so it wins over theme.css and main.css.
+   Customer (.cm-shell): premium and visual, one cut corner per card. Admin (.adm-*): dense and operational. */
+:root {
+  --rg-mint: #02c39a; --rg-mint-hi: #4fe0bc; --rg-void: #041117; --rg-teal: #028090;
+  --rg-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --rg-cut: 14px; --rg-cut-s: 9px;
+  --font-display: var(--rg-sans);
+}
+
+/* Cut-corner card: clip-path removes two corners, the gradients redraw the outline across the cut. */
+.cm-shell .ui-card:not(.mx-card):not(.subtle), .cm-shell .ui-table-card,
+.adm-in .ui-card, .adm-in .ui-table-card {
+  --c: var(--rg-cut); --e: var(--cx-line-strong, var(--border-strong));
+  --d: linear-gradient(to top right, transparent calc(50% - 1px), var(--e) calc(50% - 1px) 50%, transparent 50%);
+  --d2: linear-gradient(to top right, transparent 50%, var(--e) 50% calc(50% + 1px), transparent calc(50% + 1px));
+  border: 0; border-radius: 0; box-shadow: inset 0 0 0 1px var(--border);
+  clip-path: polygon(0 0, calc(100% - var(--c)) 0, 100% var(--c), 100% 100%, var(--c) 100%, 0 calc(100% - var(--c)));
+  background-image: var(--d), var(--d2); background-repeat: no-repeat; background-origin: border-box;
+  background-size: var(--c) var(--c); background-position: right top, left bottom;
+}
+.adm-in .ui-card, .adm-in .ui-table-card { --c: var(--rg-cut-s); }
+.cm-shell .ui-card.attention, .adm-in .ui-card.attention { box-shadow: inset 4px 0 0 var(--attention), inset 0 0 0 1px var(--border); }
+.cm-shell .ui-card.interactive:hover { --e: var(--rg-mint); box-shadow: inset 0 0 0 1px var(--rg-mint); }
+
+/* Customer display type: heavy italic sans. Titles keep sentence case for readability; page h1 goes caps. */
+.cm-shell :is(.cx-head h1, .dx-hero .dx-title, .dsh-hero-txt h1) { font-weight: 800; font-style: italic; text-transform: uppercase; letter-spacing: -0.01em; line-height: 1.02; }
+.dsh-hero-txt h1 { font-weight: 800 !important; font-style: italic; text-transform: uppercase; }
+.cm-shell :is(.cx-sec-h h2, .cx-state h3, .ui-card-title, .dx-order-name strong, .ox-txt strong, .od-sum-t, .aim-cta h2, .aim-dlg-h h2, .cx-brand b, .cx-sheet h2, .st-panel-t, .cx-kpi b) { font-weight: 800; font-style: italic; letter-spacing: -0.005em; }
+.cx-kpi b { font-weight: 800; font-style: italic; }
+/* Slanted mint marker before section titles, as on the public pages. */
+.cm-shell .cx-sec-h h2::before { content: ''; display: inline-block; width: 7px; height: 0.85em; margin-right: 10px; background: var(--rg-mint); transform: skewX(-18deg); vertical-align: -0.05em; }
+
+/* Customer navigation: mint edge on the active item. */
+.cm-shell .cx-rail-link { border-radius: 0; }
+.cm-shell .cx-rail-link[aria-current=page] { box-shadow: inset 3px 0 0 var(--rg-mint), 0 0 0 1px var(--cx-line); }
+.cx-nav-item[aria-current=page] { color: var(--cx-thread-ink); }
+.cx-nav-item[aria-current=page]::after { content: ''; position: absolute; left: 22%; right: 22%; top: 0; height: 3px; background: var(--rg-mint); transform: skewX(-18deg); }
+
+/* Admin: dense operational skin. Sans, small caps labels, mint active state, no italics in data. */
+.adm-sb-brand.adm-sb-brand b, .adm-notif-head.adm-notif-head b { font-weight: 800; font-style: italic; text-transform: uppercase; letter-spacing: 0.02em; }
+.adm-crumbs.adm-crumbs [aria-current="page"] { font-weight: 800; font-style: italic; letter-spacing: -0.005em; }
+.adm-in .ui-title, .adm-in .ui-card-title { font-weight: 800; letter-spacing: -0.005em; }
+.vc-fig b, .vc-hole b { font-weight: 800; font-style: italic; }
+.adm-link.adm-link[aria-current="page"] { background: rgb(2 195 154 / 0.14); }
+.adm-link.adm-link[aria-current="page"]::before { background: var(--rg-mint); border-radius: 0; width: 3px; }
+.adm-link.adm-link[aria-current="page"] .nav-ico-wrap { color: var(--rg-mint-hi); }
+.adm-in .ui-table th, .adm-in .adm-table th { font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.adm-in .ui-table tbody tr:hover > td:first-child, .adm-in .adm-table tbody tr:hover > td:first-child { box-shadow: inset 3px 0 0 var(--rg-mint); }
+.adm-in .ui-table tbody tr[aria-selected="true"] { background: rgb(2 195 154 / 0.1); }
+.adm-in .ui-table tbody tr[aria-selected="true"] > td:first-child { box-shadow: inset 3px 0 0 var(--rg-mint); }
+
+@media (prefers-reduced-motion: reduce) { .cm-shell .ui-card.interactive { transition: none; } }
