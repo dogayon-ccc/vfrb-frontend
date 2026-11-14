@@ -45,7 +45,7 @@ export function ViewToggle({ cfg, viewMode, setViewMode, setHas3DLoaded }: any) 
           </button>
         ))}
       </div>
-      {cfg.garment && <Capability3D kind={cap3D(cfg)} className={`ds-view-chip${no3D ? ' is-off' : ''}`} title={view3DTitle(cfg, no3D)}/>}
+      {cfg.garment && <Capability3D short kind={cap3D(cfg)} className={`ds-view-chip${no3D ? ' is-off' : ''}`} title={view3DTitle(cfg, no3D)}/>}
     </div>
   );
 }
@@ -73,7 +73,7 @@ export default function TopBar({ nav, cfg, setCfg, undo, redo, canUndo, canRedo,
       </button>
       <h1 className="ds-bar-title">Design Studio</h1>
       {/* Design name feeds cfg.name, carried into studio_config on every save */}
-      <input className="ds-bar-name" value={cfg.name ?? ''} maxLength={80} placeholder="Untitled design" aria-label="Design name"
+      <input className="ds-bar-name" value={cfg.name ?? ''} maxLength={80} placeholder={phone ? 'Untitled' : 'Untitled design'} aria-label="Design name"
         readOnly={!!lock} onChange={e => setCfg(p => ({ ...p, name: e.target.value.slice(0, 80) }))} />
       <div className="ds-bar-sp" />
       {lock

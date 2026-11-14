@@ -489,14 +489,13 @@ export default function CanvasViewport({
             const tools = <ToolRail rail={rail} readOnly={set2D} hand={hand} setHand={setHand} canPan={canPan} zoomBy={f => setZoom(z => clampZoom(z * f))}/>;
             return desk && toolSlot ? createPortal(tools, toolSlot) : tools;
           })()}
+          <Capability3D short kind={cap3D(cfg)} className="ds-lane-cap"/>
           {notes3D.map(n => <div key={n.id} role="status" className="ds-stage-note" data-tone={n.warn ? 'warn' : undefined}>{n.text}</div>)}
         </div>
       )}
 
       <div ref={fitRef} className="ds-stage-fit">
-        {/* Phones: the 3D status sits in the stage corner instead of under the 2D | 3D switch, so the top bar stays one row. */}
         {gesture && <div className="ds-gesture" role="status">{gesture}</div>}
-        {cfg.garment && <Capability3D kind={cap3D(cfg)} className="ds-stage-badge"/>}
         {/* Skeleton until the garment base has drawn, so the stage is never blank while a photo or template loads. */}
         {show2D && cfg.garment && !garmentRect && !initFailed && <div className="ds-ref3d-skel" role="status"><span aria-hidden="true"/>Loading your design…</div>}
         {/* Set view: both pieces on one scale (2D). */}
@@ -529,7 +528,7 @@ export default function CanvasViewport({
                 <NavIcon name="warning" size={32} color="var(--cx-stage-ink-2)"/>
                 <p style={{ color:'var(--cx-stage-ink-2)',fontSize:13,lineHeight:1.6 }}>
                   The design canvas failed to load.<br/>This is usually a stale cached
-                  version — reloading the page fixes it.
+                  version, and reloading the page fixes it.
                 </p>
                 <button type="button" onClick={()=>window.location.reload()} className="ds-btn ds-btn--primary">Reload</button>
               </div>

@@ -1,11 +1,10 @@
 // Pieces rail: a card per uniform piece (tap to edit it) and the piece actions. A left column on desktop, with the docked layers
 // and the shortcut card under them; on phones and tablets a strip above the canvas (piece tabs for a set, the add action for one piece).
-import { useEffect, useRef, useState } from 'react';
 import GarmentSilhouette from './GarmentSilhouette';
 import { SET_ROLES, ROLE_LABEL } from './uniformSet';
 import { pieceOf, isCompleteOutfit, COMPLETE_OUTFIT } from './garmentCatalog';
 import { garmentLabel } from '../../../utils/designName';
-import { NavIcon } from '../../../components/ui/icons';
+import HelpMenu from './HelpMenu';
 
 function Card({ role, c, name }: any) {
   return (
@@ -48,32 +47,6 @@ export function PieceActions({ cfg, uset, other = null, onStart, canSet, setView
         <button type="button" className="ds-piece-add" data-card onClick={onStart} aria-label={addPieceLabel(cfg, uset) ?? undefined}>
           <span className="ds-piece-add-plus" aria-hidden="true">+</span><span>Add<span className="ds-piece-add-x"> a matching</span> {ROLE_LABEL[SET_ROLES.find(r => r !== role)].toLowerCase()}</span>
         </button>
-      )}
-    </div>
-  );
-}
-
-// One "?" button: the tour, the how-to guides and every shortcut.
-function HelpMenu({ onTour, onKeys, onHowTo }: any) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    const off = (e: any) => { if (!ref.current?.contains(e.target)) setOpen(false); };
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
-    document.addEventListener('pointerdown', off); document.addEventListener('keydown', esc);
-    return () => { document.removeEventListener('pointerdown', off); document.removeEventListener('keydown', esc); };
-  }, [open]);
-  const go = (fn) => () => { setOpen(false); fn?.(); };
-  return (
-    <div className="ds-help" ref={ref}>
-      <button type="button" className="ds-help-btn" aria-haspopup="menu" aria-expanded={open} aria-label="Help" aria-keyshortcuts="?" onClick={() => setOpen(o => !o)}>?</button>
-      {open && (
-        <ul className="ds-help-menu" role="menu" aria-label="Help">
-          {onTour && <li role="none"><button type="button" role="menuitem" onClick={go(onTour)}>Take the tour</button></li>}
-          {onHowTo && <li role="none"><button type="button" role="menuitem" onClick={go(onHowTo)}>How-to guides</button></li>}
-          {onKeys && <li role="none"><button type="button" role="menuitem" onClick={go(onKeys)}>Keyboard shortcuts</button></li>}
-        </ul>
       )}
     </div>
   );

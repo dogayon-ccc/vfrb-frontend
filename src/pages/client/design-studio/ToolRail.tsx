@@ -49,7 +49,7 @@ export default function ToolRail({ rail, hand, setHand, canPan, zoomBy, readOnly
           <button key={id} type="button" className="ds-tools-btn" data-tool={id} aria-pressed={active === id} disabled={off(id)}
             aria-label={label} aria-keyshortcuts={key} data-tip={readOnly && id !== 'move' ? `${label}: switch to one piece to use tools` : `${label} (${key}): ${id === 'hand' && !canPan ? 'zoom in to pan' : hint.toLowerCase()}`}
             onClick={() => choose(id)}>
-            <I size={17} aria-hidden="true"/>
+            <I size={20} aria-hidden="true"/>
           </button>
         );
       })}

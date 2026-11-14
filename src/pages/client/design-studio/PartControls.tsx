@@ -103,7 +103,7 @@ export function PartStyles({ cfg, setCfg, zone }: any) {
               const only2D = !!in3D && !in3D.includes(sv);
               return (
                 <button key={sv} type="button" className="ds-chip" aria-pressed={cfg.sleeve === sv}
-                  title={only2D ? `${sv} sleeve is 2D only — the 3D model has ${in3D.join(' / ').toLowerCase()} sleeves` : undefined}
+                  title={only2D ? `${sv} sleeve is 2D only. The 3D model has ${in3D.join(' / ').toLowerCase()} sleeves` : undefined}
                   onClick={() => setCfg(p => withSleeve(p, sv, family, photoOf(cfg)))}>
                   {sv}{only2D && <span className="ds-chip-note"> · 2D</span>}
                 </button>

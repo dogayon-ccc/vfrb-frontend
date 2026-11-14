@@ -77,7 +77,7 @@ export default function MaterialsReveal({ order, onDone }: any) {
         const { data } = await requestRecs(order.order_id);
         if (live) setRecs(data?.materials ?? []);
       } catch (e) {
-        if (live) setGenErr(e.response?.data?.message ?? 'AI is unavailable right now — you can still pick materials yourself below.');
+        if (live) setGenErr(e.response?.data?.message ?? 'AI is unavailable right now. You can still pick materials yourself below.');
       } finally {
         if (live) setGenerating(false);
       }

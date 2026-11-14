@@ -27,7 +27,7 @@ export default function FeedbackSection() {
   if (done) return (
     <Card>
       <div role="status" style={{ textAlign: 'center', padding: '12px 0' }}>
-        <p style={{ fontWeight: 800, fontSize: 15, margin: '0 0 6px', color: 'var(--ink)' }}>Thank you — feedback sent</p>
+        <p style={{ fontWeight: 800, fontSize: 15, margin: '0 0 6px', color: 'var(--ink)' }}>Thanks, feedback sent</p>
         <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '0 0 16px' }}>The VFRB team will review it.</p>
         <Button variant="ghost" onClick={() => setDone(false)}>Send another</Button>
       </div>

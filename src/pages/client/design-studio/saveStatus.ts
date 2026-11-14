@@ -10,8 +10,8 @@ export function confirmedSave(data, idKey) {
 export function saveStatus({ saving = false, saveErr = false, auto = null, draftSaved = false, saved = false }: any) {
   if (saving || auto === 'saving') return { tone: 'busy', short: 'Saving…', long: 'Saving…' };
   if (saveErr === 'local') return { tone: 'err', short: 'Saved on this device', long: 'Saved on this device. Account save failed, retry' };
-  if (saveErr) return { tone: 'err', short: 'Not saved', long: 'Not saved — retry' };
-  if (auto === 'dirty') return { tone: 'idle', short: 'Unsaved', long: 'Unsaved changes — autosaves shortly' };
+  if (saveErr) return { tone: 'err', short: 'Not saved', long: 'Not saved. Retry' };
+  if (auto === 'dirty') return { tone: 'idle', short: 'Unsaved', long: 'Unsaved changes, autosaves shortly' };
   if (draftSaved || auto === 'saved') return { tone: 'ok', short: 'Saved', long: 'All changes saved to your account' };
   if (saved) return { tone: 'ok', short: 'Saved on this device', long: 'Saved on this device' };
   return { tone: 'idle', short: 'Unsaved', long: 'Not saved to your account yet' };

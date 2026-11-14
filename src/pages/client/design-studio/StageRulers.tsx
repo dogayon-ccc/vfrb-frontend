@@ -35,8 +35,8 @@ export function PinnedRulers({ view, g, fitRef, onGuide, gridPct = 0, sel = null
     window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up);
   };
   const tick = (t, axis) => (axis === 'x'
-    ? <g key={t.v} data-v={t.v} data-key={t.key || undefined}><line x1={t.at} y1={t.key ? 4 : t.major ? 9 : 14} x2={t.at} y2={RULER_H}/>{t.label && <text x={t.at + 3} y={13} fontSize={11}>{t.v}</text>}</g>
-    : <g key={t.v} data-v={t.v} data-key={t.key || undefined}><line x1={t.key ? 4 : t.major ? RULER_W - 9 : RULER_W - 5} y1={t.at} x2={RULER_W} y2={t.at}/>{t.label && <text x={2} y={t.at - 3} fontSize={11}>{t.v}</text>}</g>);
+    ? <g key={t.v} data-v={t.v} data-key={t.key || undefined}><line x1={t.at} y1={t.key ? 4 : t.major ? 9 : 14} x2={t.at} y2={RULER_H}/>{t.label && <text x={t.at + 3} y={15} fontSize={13}>{t.v}</text>}</g>
+    : <g key={t.v} data-v={t.v} data-key={t.key || undefined}><line x1={t.key ? 4 : t.major ? RULER_W - 9 : RULER_W - 5} y1={t.at} x2={RULER_W} y2={t.at}/>{t.label && <text x={2} y={t.at - 3} fontSize={13}>{t.v}</text>}</g>);
   const gx0 = Math.max(0, fromPct(0, ox, s, g.left, g.width)), gx1 = Math.min(pw, fromPct(100, ox, s, g.left, g.width));
   const gy0 = Math.max(0, fromPct(0, oy, s, g.top, g.height)), gy1 = Math.min(ph, fromPct(100, oy, s, g.top, g.height));
   return (

@@ -111,7 +111,8 @@ export function previewSentence(p, offRole = null) {
 export function previewChips(p, offRole = null) {
   const three = !p.editable2D || offRole ? (p.ref3D ? '3D reference only' : 'No 3D') : p.has3D ? (p.base?.[3] && slotEditable3D(glbSlotFor(p.base[3])) ? CAP3D.verified : `${CAP3D.approx}, one body colour`)
     : p.familyApprox3D ? `3D is the generic ${p.garmentFamily} model` : CAP3D.none;
-  return [offRole ? TIER_LABEL.reference.label : TIER_LABEL[p.tier].label, CAT_LABEL[p.category], PIECE_LABEL[p.piece], GENDER_LABEL[p.gender], p.sleeve && `${p.sleeve} sleeve`, three,
+  const tier = offRole ? TIER_LABEL.reference.label : TIER_LABEL[p.tier].label;
+  return [three.startsWith(tier) ? null : tier, CAT_LABEL[p.category], PIECE_LABEL[p.piece], GENDER_LABEL[p.gender], p.sleeve && `${p.sleeve} sleeve`, three,
     p.pieces?.derived && !offRole && DERIVED_LABEL].filter(Boolean);
 }
 // Filters for "See editable garments like this": the photo's category and piece, relaxed only when nothing editable matches.

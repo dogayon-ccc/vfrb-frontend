@@ -100,7 +100,7 @@ export function SelectionInspector({ selObj, updateSelected, alignSelected, togg
           <NavIcon name="lock" size={15}/>
         </button>}
       </div>
-      {locked && <p className="ds-ins-note">Locked — unlock to move, resize or delete.</p>}
+      {locked && <p className="ds-ins-note">Locked. Unlock to move, resize or delete.</p>}
 
       {isText && !multi && (
         <section className="ds-ins-sec">

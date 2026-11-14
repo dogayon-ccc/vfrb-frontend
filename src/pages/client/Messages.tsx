@@ -299,7 +299,7 @@ export default function CustomerMessages() {
             <button onClick={() => setMobileView('list')} className="cust-msg-back cx-btn cx-btn-s" aria-label="Back to conversation list" style={{ minWidth: 44, padding: 0 }}><NavIcon name="back" size={18} /></button>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', margin: 0, fontFamily: FONT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {selOrder ? `Order #${selId} — ${title(selOrder)}` : 'Select a conversation'}
+                {selOrder ? `Order #${selId}: ${title(selOrder)}` : 'Select a conversation'}
               </p>
               {selOrder && <div style={{ marginTop: 4 }}><StatusPill status={selOrder.status}/></div>}
             </div>
@@ -344,7 +344,7 @@ export default function CustomerMessages() {
                 initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
                 style={{ margin: 0, padding: '8px 16px', fontSize: 13, color: 'var(--danger-text)', background: 'var(--danger-bg)',
                   borderTop: '1px solid var(--danger-border)', fontFamily: FONT, flexShrink: 0 }}>
-                Message didn't send — check your connection. Your draft is back in the box.
+                Message didn't send. Check your connection; your draft is back in the box.
               </motion.p>
             )}
           </AnimatePresence>
