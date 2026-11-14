@@ -1,0 +1,15 @@
+/* Bento tiles and deck bar: same hard-cut corners and mint edge as the category panels. No pills. */
+.lp-bento .lp-tile, .lp-tile { --rg-cut: 16px; border: 0; border-radius: 0; clip-path: polygon(0 0, calc(100% - var(--rg-cut)) 0, 100% var(--rg-cut), 100% 100%, var(--rg-cut) 100%, 0 calc(100% - var(--rg-cut))); }
+.lp-tile::before { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+  background: linear-gradient(#02c39a, #02c39a) left top / 3px 0 no-repeat; transition: background-size 300ms cubic-bezier(.2, .7, .2, 1), box-shadow 200ms ease; }
+.lp-tile:hover::before, .lp-tile:focus-visible::before { background-size: 3px calc(100% - var(--rg-cut)); box-shadow: inset 0 0 0 1px rgba(2, 195, 154, 0.6); }
+.lp-tile:focus-visible { outline: 3px solid #4fe0bc; outline-offset: -3px; }
+.lp-tile__go { border-radius: 0; clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px)); }
+.lp-tile__chips i { border-radius: 0; }
+
+.lp-bar { padding: 4px 10px; border: 0; border-radius: 0; background: rgba(5, 16, 20, 0.78); box-shadow: inset 0 0 0 1px rgba(2, 195, 154, 0.45);
+  clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px); }
+.lp-bar__b { border-radius: 0; clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px)); }
+.lp-bar__b:focus-visible { outline-offset: -4px; }
+.lp-bar__t b { color: #4fe0bc; font-size: 15px; }
+@media (prefers-reduced-motion: reduce) { .lp-tile::before { transition: none; } }

@@ -8,6 +8,7 @@ import '../../styles/motion.css';
 import useTilt from '../../hooks/useTilt';
 import '../../styles/landing-ink.css';
 import '../../styles/depth.css';
+import '../../styles/rog-chrome.css';
 
 // deck: inner pages tag sections with data-slide and get the Home dots and bar; lean drops the footer contact block that Home already shows.
 type SitePageProps = { title?: string; children?: ReactNode; tone?: 'paper' | 'ink'; deck?: boolean; lean?: boolean };

@@ -21,6 +21,7 @@ import DeckNav, { type DeckSlide } from './landing/DeckNav';
 import { FIND_UNIFORM, PHASES } from '../components/site/content';
 import '../styles/landing.css';
 import '../styles/landing-ink.css';
+import '../styles/rog-chrome.css';
 
 type Step = readonly [title: string, text: string];
 
