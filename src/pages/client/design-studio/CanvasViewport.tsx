@@ -60,7 +60,7 @@ const paneFade = on => ({ opacity: on ? 1 : 0, transition: CALM ? 'none' : on ? 
 // Fit the artboard so the garment fills ~72% of the visible stage (above any bottom sheet), never past the fit area between the lanes or its width.
 // The artboard holds the garment with a margin: the garment's measured share of it (GARMENT_SHARE until the base has drawn) converts
 // garment height to artboard height; MAX_FIT keeps the raster canvas crisp.
-const STAGE_FILL = 0.72, GARMENT_SHARE = 0.9, MAX_FIT = 2;
+const STAGE_FILL = 0.72, GARMENT_SHARE = 0.9, MAX_FIT = 2, PHOTO_UPSCALE = 1.5; // low-res photos may show up to 1.5x native before they soften
 function useFit(paneRef, wrapRef, garmentH = 0) {
   const [fit, setFit] = useState(1);
   useEffect(() => {
@@ -167,9 +167,9 @@ export default function CanvasViewport({
     ro.observe(el);
     return () => ro.disconnect();
   }, [canvasEl, initFailed]);
-  // A raster photo base is never shown above its native resolution: fit x zoom is capped so the photo is at most 1:1 on screen.
+  // A raster photo base is capped at PHOTO_UPSCALE x its native resolution: fit x zoom never exceeds it.
   const photo = cfg.garment ? assetFor(cfg.garment, cfg.sleeve, face, cfg.fit) : null;
-  const cap = photoMaxScale(photo, canvasSize);
+  const cap = photoMaxScale(photo, canvasSize) * PHOTO_UPSCALE;
   const base = Math.min(fit, cap); // the fitted size, never above the photo's native resolution; zoom scales from here
   const scale = Math.min(zoom * base, cap); // canvas logical px -> screen px
   const atCap = zoom * base >= cap - 1e-6;

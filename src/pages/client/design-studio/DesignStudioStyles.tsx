@@ -1209,6 +1209,7 @@ export default function DesignStudioStyles() {
       .ds-addbar{position:sticky;bottom:0;z-index:3;display:flex;flex-direction:column;gap:8px;margin:4px -12px 0;padding:10px 12px max(12px,env(safe-area-inset-bottom));background:var(--bg-card);border-top:1px solid var(--border);box-shadow:0 -8px 16px -12px rgb(15 23 42 / .25);}
       .ds-txt-preview{display:grid;place-items:center;min-height:44px;padding:6px 10px;border-radius:10px;overflow:hidden;}
       .ds-txt-preview span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+      .ds-txt-warn{margin:0;padding:6px 10px;border-radius:8px;background:var(--warn-bg,#fffbeb);color:var(--warn-text,#92400e);font:700 13px/1.3 var(--cx-sans,system-ui);}
       .ds-compose{display:flex;gap:8px;align-items:stretch;}
       .ds-compose input{flex:1;min-width:0;min-height:48px;padding:0 12px;border:1px solid var(--border-strong,#cbd5e1);border-radius:12px;background:var(--bg-card);color:var(--ink);font:500 15px/1 var(--cx-sans,system-ui);}
       .ds-compose input:focus-visible{outline:2px solid var(--teal-dark);outline-offset:1px;}
