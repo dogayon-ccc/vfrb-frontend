@@ -53,7 +53,7 @@ export default function DeckNav({ slides }: { slides: readonly DeckSlide[] }) {
           </button>
         ))}
       </nav>
-      <div className="lp-bar" role="group" aria-label="Slide controls">
+      <div className={`lp-bar${active === 0 ? ' is-hidden' : ''}`} {...(active === 0 ? ({ inert: '' } as Record<string, string>) : {})} role="group" aria-label="Slide controls">
         <button type="button" className="lp-bar__b" onClick={() => go(active - 1)} disabled={active === 0} aria-label="Previous section">&larr;</button>
         <span className="lp-bar__t" aria-live="polite"><b>{String(active + 1).padStart(2, '0')}</b> / {String(slides.length).padStart(2, '0')} &middot; {slides[active].label}</span>
         <button type="button" className="lp-bar__b" onClick={() => go(active + 1)} disabled={active === last} aria-label="Next section">&rarr;</button>

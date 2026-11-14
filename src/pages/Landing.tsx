@@ -18,6 +18,7 @@ import MarqueeBand from './landing/MarqueeBand';
 import CategoryCards from './landing/CategoryCards';
 import ProductionLine from './landing/ProductionLine';
 import FabricStage from './landing/FabricStage';
+import BentoGrid from './landing/BentoGrid';
 import DeckNav, { type DeckSlide } from './landing/DeckNav';
 import WovenBackdrop from './landing/WovenBackdrop';
 import { FIND_UNIFORM, PHASES } from '../components/site/content';
@@ -51,7 +52,7 @@ const CONTACTS: [string, string, string][] = [
 
 const SLIDES: readonly DeckSlide[] = [
   { id: 'home', label: 'Welcome' }, { id: 'how', label: 'How it works' }, { id: 'stage', label: 'Templates in 3D' },
-  { id: 'teams', label: 'Your team' }, { id: 'floor', label: 'The floor' }, { id: 'line', label: 'Seven stations' }, { id: 'contact', label: 'Contact' },
+  { id: 'teams', label: 'Your team' }, { id: 'floor', label: 'The floor' }, { id: 'line', label: 'Seven stations' }, { id: 'explore', label: 'Explore VFRB' }, { id: 'contact', label: 'Contact' },
 ];
 
 // The pattern renders first and stays the fallback; on wide screens without reduced motion HeroLive runs the full 3D gate.
@@ -141,6 +142,12 @@ export default function Landing() {
       </section>
 
       <ProductionLine />
+
+      <section className="vs-sec vs-wrap lp-explore" id="explore" aria-labelledby="lp-explore">
+        <SectionHead n="04" label="Explore" aside="Gallery, family, services" />
+        <h2 className="vs-h2 lp-h2" id="lp-explore">See the work, meet the family</h2>
+        <BentoGrid />
+      </section>
 
       <section className="vs-sec vs-wrap lp-contact" id="contact" aria-labelledby="lp-contact">
         <SectionHead n="05" label="Contact" aside="Talk first" />
