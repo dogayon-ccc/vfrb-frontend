@@ -1,0 +1,32 @@
+From b56443058ca6563434c13c489e219980f768d052 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 14 Nov 2026 17:51:08 +0000
+Subject: [PATCH] fix(ui): visible phone menu button, marquee pause strip, void
+ backdrop on dark pages
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+---
+ src/styles/rog-site.css | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/src/styles/rog-site.css b/src/styles/rog-site.css
+index 91d93b5..c81ea9e 100644
+--- a/src/styles/rog-site.css
++++ b/src/styles/rog-site.css
+@@ -119,3 +119,13 @@
+ .lp-tile__tx b { font-family: var(--rg-sans, ui-sans-serif, system-ui, sans-serif); font-style: italic; font-weight: 800; text-transform: uppercase; letter-spacing: -0.01em; }
+ /* Legal hero (Terms, Privacy) had rounded bottom corners; ROG uses a cut corner. */
+ .vs-page .vs-pagehead { border-radius: 0 !important; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 28px), calc(100% - 28px) 100%, 0 100%); }
++
++/* Phone menu button: the header is dark but the burger inherited dark ink, so the bars and X vanished. */
++.vs-page .vs-burger { color: #eaf3f5; --e: rgba(234, 243, 245, 0.55); border-color: transparent; }
++.vs-page .vs-burger:hover, .vs-page .vs-burger[aria-expanded='true'] { --e: var(--rg-mint-hi); color: #fff; }
++.vs-page .vs-burger span { height: 2.5px; }
++/* Marquee pause control gets its own strip under the words instead of sitting on top of them. */
++.vs-page .lp-marquee { padding-bottom: 60px; }
++.vs-page .lp-marquee-toggle { right: 12px; bottom: 8px; border: 0; border-radius: 0; clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px)); }
++/* Mitigation only: any sliver beside the dark pages paints void, not cream. Root cause of the ~7px strip is UNVERIFIED. */
++html:has(.vs-page--ink), html:has(.vs-page--ink) body, html:has(.au--split), html:has(.au--split) body { background: var(--rg-void, #041117); }
+-- 
+2.43.0
+
