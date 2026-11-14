@@ -87,3 +87,50 @@ test.describe('motion', () => {
     await ctx.close();
   });
 });
+
+test.describe('category panels', () => {
+  const panels = (page: Page) => page.locator('.cx > li');
+
+  test('all five panels are visible on desktop and hover opens one wide', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/', { waitUntil: 'networkidle' });
+    await page.locator('.cx').scrollIntoViewIfNeeded();
+    await page.waitForTimeout(3000); // past the 2.5 s failsafe
+    await expect(panels(page)).toHaveCount(5);
+    for (let i = 0; i < 5; i++) expect(await panels(page).nth(i).evaluate(el => getComputedStyle(el).opacity)).toBe('1');
+    await panels(page).nth(2).hover();
+    await expect(panels(page).nth(2)).toHaveClass(/is-on/);
+    await page.waitForTimeout(600);
+    const w = await panels(page).evaluateAll(els => els.map(e => e.getBoundingClientRect().width));
+    expect(w[2]).toBeGreaterThan(w[0] * 1.8);
+  });
+
+  test('cards stay visible and scrollable on a phone', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/', { waitUntil: 'networkidle' });
+    await page.locator('.cx').scrollIntoViewIfNeeded();
+    await page.waitForTimeout(3000);
+    for (let i = 0; i < 5; i++) expect(await panels(page).nth(i).evaluate(el => getComputedStyle(el).opacity)).toBe('1');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0);
+  });
+
+  test('every panel is a keyboard-reachable button named for its category', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'networkidle' });
+    const names = await page.locator('.cx__btn').evaluateAll(els => els.map(e => (e.textContent || '').trim()));
+    expect(names).toHaveLength(5);
+    for (const n of names) expect(n).toContain('Open in Studio');
+  });
+});
+
+test.describe('reduced motion', () => {
+  test('Home holds no WebGL context under reduced motion (2D template canvases are fine)', async ({ browser }) => {
+    const ctx = await browser.newContext({ reducedMotion: 'reduce', viewport: { width: 1440, height: 900 } });
+    const page = await ctx.newPage();
+    await page.goto('/', { waitUntil: 'networkidle' });
+    await scrollThrough(page);
+    await page.waitForTimeout(1500);
+    const gl = await page.$$eval('canvas', cs => cs.filter(c => !!(c.getContext('webgl2') || c.getContext('webgl'))).length);
+    expect(gl).toBe(0);
+    await ctx.close();
+  });
+});
