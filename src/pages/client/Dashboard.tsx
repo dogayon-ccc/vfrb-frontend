@@ -14,7 +14,7 @@ import { savedDesignName, garmentLabel } from '../../utils/designName';
 import { openDesign, reorderDesign, duplicateDesign } from '../../utils/designActions';
 import { setStudioLock } from '../../utils/studioLock';
 import { Palette } from 'lucide-react';
-import heroPhoto from '../../assets/brand/uniforms.jpg';
+import heroPhoto from '../../assets/brand/uniforms.webp';
 import {
   StatusPill, OrderThumb, DesignThumb, LIFECYCLE, lifecycleIndex, nextStep,
   orderTitle, fmtDate, reltime, IN_PRODUCTION, setMateLine,
