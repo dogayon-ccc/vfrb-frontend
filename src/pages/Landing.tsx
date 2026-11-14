@@ -18,6 +18,8 @@ import MarqueeBand from './landing/MarqueeBand';
 import CategoryCards from './landing/CategoryCards';
 import ProductionLine from './landing/ProductionLine';
 import FabricStage from './landing/FabricStage';
+import DeckNav, { type DeckSlide } from './landing/DeckNav';
+import WovenBackdrop from './landing/WovenBackdrop';
 import { FIND_UNIFORM, PHASES } from '../components/site/content';
 import '../styles/landing.css';
 import '../styles/landing-ink.css';
@@ -47,6 +49,11 @@ const CONTACTS: [string, string, string][] = [
   ['Visit', C.map, `${C.address[0]}, ${C.address[1]}`],
 ];
 
+const SLIDES: readonly DeckSlide[] = [
+  { id: 'home', label: 'Welcome' }, { id: 'how', label: 'How it works' }, { id: 'stage', label: 'Templates in 3D' },
+  { id: 'teams', label: 'Your team' }, { id: 'floor', label: 'The floor' }, { id: 'line', label: 'Seven stations' }, { id: 'contact', label: 'Contact' },
+];
+
 // The pattern renders first and stays the fallback; on wide screens without reduced motion HeroLive runs the full 3D gate.
 const HeroLive = lazy(() => import('./landing/HeroLive').catch(() => ({ default: () => null })));
 
@@ -59,7 +66,8 @@ export default function Landing() {
       {createPortal(<div className="lp-progress lp-progress--ink" aria-hidden="true" />, document.body)}
       <InkLayers />
 
-      <div className="lp-top">
+      <div className="lp-top" id="home">
+        <WovenBackdrop />
         <section ref={hero} className="lp-hero vs-wrap" aria-labelledby="lp-title">
           <div className="lp-hero__copy">
             <p className="lp-eyebrow"><span className="lp-eyebrow__dot" aria-hidden="true" />Family-made in Muntinlupa since 2000</p>
@@ -105,7 +113,7 @@ export default function Landing() {
 
       <FabricStage />
 
-      <section className="vs-sec vs-tint" aria-labelledby="lp-cats">
+      <section className="vs-sec vs-tint" id="teams" aria-labelledby="lp-cats">
         <div className="vs-wrap">
           <SectionHead n="02" label="Your team" aside="Studio templates" />
           <h2 className="vs-h2 lp-h2" id="lp-cats">Start from your kind of team</h2>
@@ -114,7 +122,7 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="vs-sec vs-dark lp-floor" aria-labelledby="lp-floor">
+      <section className="vs-sec vs-dark lp-floor" id="floor" aria-labelledby="lp-floor">
         <div className="vs-wrap">
           <SectionHead n="03" label="The floor" aside="Bayanan, Muntinlupa" />
           <div className="lp-floor__grid">
@@ -144,6 +152,8 @@ export default function Landing() {
           ))}
         </ul>
       </section>
+
+      <DeckNav slides={SLIDES} />
     </SitePage>
   );
 }

@@ -112,7 +112,7 @@ export default function FabricStage() {
   const open = () => { startStudioIn(s.cat); nav('/design-studio'); };
 
   return (
-    <section ref={root} className={`fs${live ? ' fs--live' : ' fs--static'}`} aria-labelledby="fs-h" style={live ? { height: `${(N + 1) * 85}svh` } : undefined}>
+    <section ref={root} id="stage" className={`fs${live ? ' fs--live' : ' fs--static'}`} aria-labelledby="fs-h" style={live ? { height: `${(N + 1) * 85}svh` } : undefined}>
       <svg width="0" height="0" aria-hidden="true" focusable="false" style={{ position: 'absolute' }}>
         <filter id="fs-mb" x="-20%" y="-5%" width="140%" height="110%" colorInterpolationFilters="sRGB"><feGaussianBlur ref={fe} stdDeviation="0 0" /></filter>
       </svg>

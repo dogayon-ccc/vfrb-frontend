@@ -30,7 +30,7 @@ export default function ProductionLine() {
     return () => { io.disconnect(); cancelAnimationFrame(raf); window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); };
   }, []);
   return (
-    <section ref={ref} className="pl vs-sec" aria-labelledby="pl-title">
+    <section ref={ref} id="line" className="pl vs-sec" aria-labelledby="pl-title">
       <div className="vs-wrap">
         <SectionHead n="04" label="On the VFRB floor" aside="Seven stations" />
         <h2 className="vs-h2" id="pl-title">Seven stations, one thread</h2>

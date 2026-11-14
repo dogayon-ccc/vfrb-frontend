@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@designcodeio/threeui": "^1.2.0",
     "@huggingface/transformers": "3.0.0-alpha.15",
     "@react-three/drei": "^9.58.5",
     "@react-three/fiber": "^8.12.0",
