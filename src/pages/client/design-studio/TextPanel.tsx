@@ -1,19 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import { T2, secLabel, FONTS, EMOJIS } from './dsShared';
+import { bestInk, contrastRatio } from './colorRules';
 import { loadFontPreviews, defaultWeight } from './studioFonts';
 
 // EMOJIS contains repeats (e.g. 🦺) which made React warn about duplicate keys and
 // could drop/duplicate buttons — de-dupe once at module load.
 const UNIQUE_EMOJIS = [...new Set(EMOJIS)];
 
-// Readable default: white on a dark garment, near-black on a light one, until the customer picks a color themselves.
-const readableOn = (hex) => {
-  const m = /^#?([0-9a-f]{6})$/i.exec(hex ?? '');
-  if (!m) return '#ffffff';
-  const n = parseInt(m[1], 16), lin = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
-  const L = 0.2126 * lin((n >> 16) & 255) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255);
-  return L > 0.4 ? '#111827' : '#ffffff';
-};
+const HEX = /^#[0-9a-f]{6}$/i;
+const ink = hex => (HEX.test(hex ?? '') ? bestInk(hex).ink : '#ffffff');
+// A halo that contrasts with the letter colour, so the shadow reads on light and dark cloth alike.
+const halo = c => (ink(c) === '#ffffff' ? 'rgba(0,0,0,.6)' : 'rgba(255,255,255,.8)');
 
 // Text colours: neutrals, the Philippine uniform colours, then brights and golds. Any other colour comes from the custom picker.
 const TEXT_COLOURS = ['#ffffff', '#f4f5f2', '#c9a27a', '#94a3b8', '#475569', '#000000',
@@ -23,11 +20,11 @@ const TEXT_COLOURS = ['#ffffff', '#f4f5f2', '#c9a27a', '#94a3b8', '#475569', '#0
 // Quick styles use the same Fabric props as the Selection inspector's Outline & shadow, so each can be tuned after it is placed.
 const STYLES = [
   { id: 'plain',   label: 'Plain',   make: () => ({}),                                                                      css: () => ({}) },
-  { id: 'outline', label: 'Outline', make: c => ({ strokeWidth: 2, stroke: readableOn(c), paintFirst: 'stroke', strokeLineJoin: 'round' }),
-    css: c => ({ WebkitTextStroke: `1.5px ${readableOn(c)}`, paintOrder: 'stroke fill' }) },
-  { id: 'shadow',  label: 'Shadow',  make: () => ({ shadow: { color: 'rgba(0,0,0,.45)', blur: 8, offsetX: 0, offsetY: 3 } }), css: () => ({ textShadow: '0 3px 8px rgba(0,0,0,.45)' }) },
-  { id: 'varsity', label: 'Varsity', make: c => ({ strokeWidth: 3, stroke: readableOn(c), paintFirst: 'stroke', strokeLineJoin: 'round', shadow: { color: 'rgba(0,0,0,.6)', blur: 0, offsetX: 2, offsetY: 2 } }),
-    css: c => ({ WebkitTextStroke: `2px ${readableOn(c)}`, paintOrder: 'stroke fill', textShadow: '2px 2px 0 rgba(0,0,0,.6)' }) },
+  { id: 'outline', label: 'Outline', make: c => ({ strokeWidth: 2, stroke: ink(c), paintFirst: 'stroke', strokeLineJoin: 'round' }),
+    css: c => ({ WebkitTextStroke: `1.5px ${ink(c)}`, paintOrder: 'stroke fill' }) },
+  { id: 'shadow',  label: 'Shadow',  make: c => ({ shadow: { color: halo(c), blur: 2, offsetX: 2, offsetY: 2 } }), css: c => ({ textShadow: `2px 2px 2px ${halo(c)}` }) },
+  { id: 'varsity', label: 'Varsity', make: c => ({ strokeWidth: 3, stroke: ink(c), paintFirst: 'stroke', strokeLineJoin: 'round', shadow: { color: 'rgba(0,0,0,.6)', blur: 0, offsetX: 2, offsetY: 2 } }),
+    css: c => ({ WebkitTextStroke: `2px ${ink(c)}`, paintOrder: 'stroke fill', textShadow: '2px 2px 0 rgba(0,0,0,.6)' }) },
   { id: 'spaced',  label: 'Spaced',  make: () => ({ charSpacing: 240 }),                                                    css: () => ({ letterSpacing: '.24em' }) },
 ];
 const ALL = 'All';
@@ -36,7 +33,9 @@ const CATS = [ALL, ...new Set(FONTS.map(f => f.cat))];
 export default function TextPanel({ onAdd, bodyColor }: any) {
   const [val,  setVal]  = useState('');
   const [picked, setClr] = useState(null);
-  const clr = picked ?? readableOn(bodyColor);
+  const clr = picked ?? ink(bodyColor);
+  const ratio = HEX.test(bodyColor ?? '') && HEX.test(clr) ? contrastRatio(clr, bodyColor) : 21;
+  const lowContrast = ratio < 3;
   const fonts = FONTS;
   const [font, setFont] = useState(fonts[0].id);
   // Self-hosted faces load on first use; the panel opening is the first use of their previews.
@@ -106,6 +105,7 @@ export default function TextPanel({ onAdd, bodyColor }: any) {
             <span style={{ color:clr, fontSize:Math.min(size, 28), fontFamily:fontCss, fontWeight:defaultWeight(fontDef), ...lookDef.css(clr) }}>{val}</span>
           </div>
         )}
+        {lowContrast && <p className="ds-txt-warn" role="status">Low contrast ({ratio.toFixed(1)}:1). Pick another colour.</p>}
         <div className="ds-compose">
           <input ref={inputRef} value={val} onChange={e => setVal(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') add(); }}
             placeholder="Type a name, slogan or number" aria-label="Text, name or number" maxLength={32}/>

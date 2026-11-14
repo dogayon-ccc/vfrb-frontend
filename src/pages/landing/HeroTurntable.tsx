@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import ScannedGarmentMesh from '../client/design-studio/ScannedGarmentMesh';
 import { scannedEntryFor } from '../client/design-studio/garmentCapabilities';
 import { LIGHT, KEY_POS, RIM_POS } from '../client/design-studio/lightRig';
+import { releaseGL } from '../client/design-studio/webglSupport';
 
 const ENTRY = scannedEntryFor('Scrub Top', '3/4', 'female');
 // Institutional colours VFRB's clients order in; the first is the template's own.
@@ -66,8 +67,13 @@ export default function HeroTurntable({ visible, onReady, onError }: any) {
     wake(INTRO * 1000 + 600);
   }, [onReady, wake]);
   useEffect(() => () => {
+<<<<<<< HEAD
     clearTimeout(sleep.current);
     try { const g = gl.current; if (g && !g.getContext().isContextLost()) { g.dispose(); g.forceContextLoss(); } } catch { /* already lost */ }
+=======
+    clearTimeout(sleep.current); clearTimeout(assemble.current);
+    releaseGL(gl.current);
+>>>>>>> origin/ts-migration
   }, []);
   useEffect(() => { if (!ENTRY) onError(); }, [onError]);
   const pick = (i: number) => { setSwatch(i); wake(700); };

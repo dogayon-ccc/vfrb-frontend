@@ -946,7 +946,7 @@ export default function DesignStudioStyles() {
           border-radius:16px 16px 0 0;box-shadow:0 -4px 16px rgb(15 23 42 / .06);}
         /* Peek shows the bar only; the stage refits (ResizeObserver) whenever the sheet changes height */
         .ds-sheet[data-snap=peek]>:not(.ds-sheet-bar){display:none;}
-        .ds-sheet[data-snap=half]{height:clamp(240px,34dvh,320px);}
+        .ds-sheet[data-snap=half]{height:clamp(264px,37dvh,360px);}
         .ds-sheet[data-snap=full]{height:min(85dvh,calc(100dvh - 56px - var(--ds-nav-h) - 64px));}
         .ds-sheet-bar{position:relative;display:flex;flex:none;align-items:center;gap:8px;min-height:52px;padding:6px 4px 2px 16px;touch-action:none;cursor:grab;}
         .ds-sheet-grip{position:absolute;top:6px;left:50%;width:36px;height:4px;margin-left:-18px;border-radius:2px;background:var(--cx-line-strong);}
@@ -1209,6 +1209,7 @@ export default function DesignStudioStyles() {
       .ds-addbar{position:sticky;bottom:0;z-index:3;display:flex;flex-direction:column;gap:8px;margin:4px -12px 0;padding:10px 12px max(12px,env(safe-area-inset-bottom));background:var(--bg-card);border-top:1px solid var(--border);box-shadow:0 -8px 16px -12px rgb(15 23 42 / .25);}
       .ds-txt-preview{display:grid;place-items:center;min-height:44px;padding:6px 10px;border-radius:10px;overflow:hidden;}
       .ds-txt-preview span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+      .ds-txt-warn{margin:0;padding:6px 10px;border-radius:8px;background:var(--warn-bg,#fffbeb);color:var(--warn-text,#92400e);font:700 13px/1.3 var(--cx-sans,system-ui);}
       .ds-compose{display:flex;gap:8px;align-items:stretch;}
       .ds-compose input{flex:1;min-width:0;min-height:48px;padding:0 12px;border:1px solid var(--border-strong,#cbd5e1);border-radius:12px;background:var(--bg-card);color:var(--ink);font:500 15px/1 var(--cx-sans,system-ui);}
       .ds-compose input:focus-visible{outline:2px solid var(--teal-dark);outline-offset:1px;}
@@ -1436,6 +1437,13 @@ export default function DesignStudioStyles() {
       .ds-pick[data-inline]>*{flex-shrink:0;}
       @media (max-width:767px){
         .ds-fontcats-stick{position:static;margin:0;padding:2px;border:0;}
+        .ds-txt{gap:6px;}
+        .ds-txt>p:first-child{display:none;}
+        .ds-fontgrid,.ds-swgrid[data-wide],.ds-fontcats[data-wrap]{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:8px;padding:2px 2px 6px;scroll-snap-type:x proximity;scrollbar-width:none;-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent);}
+        .ds-fontgrid::-webkit-scrollbar,.ds-swgrid::-webkit-scrollbar,.ds-fontcats::-webkit-scrollbar{display:none;}
+        .ds-fonttile{flex:0 0 132px;scroll-snap-align:start;}
+        .ds-swgrid[data-wide] .ds-sw{flex:0 0 44px;scroll-snap-align:start;}
+        .ds-fontcats[data-wrap] button{scroll-snap-align:start;}
         .ds-lane-top>.ds-tools{flex-wrap:wrap;max-width:100%;justify-content:center;}
         .ds-lane-top>.ds-tools .ds-tools-size{flex:1 0 100%;justify-content:center;margin:2px 0 0;padding:2px 0 0;border-left:0;border-top:1px solid var(--cx-line);}
         .ds-sheet[data-snap=half] .ds-txt-preview{display:none;}

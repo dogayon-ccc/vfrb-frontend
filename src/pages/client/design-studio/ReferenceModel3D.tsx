@@ -9,6 +9,7 @@ import { ensureZoneMask, createZoneUniforms, setZoneUniforms, patchZoneMaterial 
 import { partMaterial } from './ScannedGarmentMesh';
 import { refZoneOf } from './referenceColour';
 import { LIGHT, KEY_POS, RIM_POS } from './lightRig';
+import { releaseGL } from './webglSupport';
 import { modelUrl } from '../../../lib/modelUrl';
 
 const DPR = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches ? [1, 1.5] : [1, 2];
@@ -59,7 +60,7 @@ export default function ReferenceModel3D({ url, height = 320, onError = null, fa
   const gl = useRef(null);
   useEffect(() => { setReady(false); }, [url]);
   // Release the GPU context with the preview, not when the browser gets round to it.
-  useEffect(() => () => { try { const g = gl.current; if (g && !g.getContext().isContextLost()) { g.dispose(); g.forceContextLoss(); } } catch { /* already lost */ } }, []);
+  useEffect(() => () => releaseGL(gl.current), []);
   const failed = fallback ?? <p className="ds-note" style={{ textAlign: 'center' }}>The 3D reference could not load. The photo is the reference.</p>;
   return (
     <Boundary fallback={failed} onError={onError}>

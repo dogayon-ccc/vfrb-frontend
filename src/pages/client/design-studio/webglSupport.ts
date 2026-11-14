@@ -11,3 +11,11 @@ export function hasWebGL() {
   } catch { cached = false; }
   return cached;
 }
+
+// Frees the GPU context now. r3f calls forceContextLoss again on unmount, so that second call is made a no-op.
+export function releaseGL(g) {
+  try {
+    if (!g || g.getContext().isContextLost()) return;
+    g.dispose(); g.forceContextLoss(); g.forceContextLoss = () => {};
+  } catch { /* already lost */ }
+}

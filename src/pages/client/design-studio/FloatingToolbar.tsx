@@ -31,7 +31,10 @@ export default function FloatingToolbar({ selObj, at, duplicateSelected, deleteS
   const n = at.n ?? 1, multi = n > 1;
   // Clear of Fabric's rotate handle, which sits 40 canvas px above the object.
   const gap = 10 + Math.round(40 * at.k);
-  const above = at.top - gap - size.h >= 8;
+  // Stay below the tool lane that overlays the top of the stage.
+  const lane = ref.current?.closest('.ds-cv')?.querySelector('.ds-lane-top'), host = ref.current?.offsetParent;
+  const clear = lane && host ? Math.max(8, lane.getBoundingClientRect().bottom - host.getBoundingClientRect().top + 8) : 8;
+  const above = at.top - gap - size.h >= clear;
   const left = Math.max(8, Math.min(at.w - size.w - 8, at.x - size.w / 2));
   const top = above ? at.top - gap - size.h : Math.min(at.h - size.h - 8, at.bottom + 12);
   const label = multi ? `${n} selected` : kindLabel(selObj);
