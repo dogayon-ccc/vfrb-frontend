@@ -13,3 +13,12 @@
 .lp-bar__b:focus-visible { outline-offset: -4px; }
 .lp-bar__t b { color: #4fe0bc; font-size: 15px; }
 @media (prefers-reduced-motion: reduce) { .lp-tile::before { transition: none; } }
+
+/* Hero 3D recolor: shown only once the real model is on screen. */
+.lp-3d__sw { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; margin-top: 8px; font-size: 13px; color: var(--lp-muted, #a9bbc6); }
+.lp-3d__sw > span { margin-right: 10px; }
+.lp-3d__dot { width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.lp-3d__dot i { width: 24px; height: 24px; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35); clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px)); transition: transform 150ms ease; }
+.lp-3d__dot[aria-pressed='true'] i { transform: scale(1.25); box-shadow: 0 0 0 2px #02c39a; }
+.lp-3d__dot:focus-visible { outline: 3px solid #4fe0bc; outline-offset: -3px; }
+@media (prefers-reduced-motion: reduce) { .lp-3d__dot i { transition: none; } }

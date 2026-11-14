@@ -122,6 +122,16 @@ test.describe('category panels', () => {
   });
 });
 
+test.describe('hero recolor', () => {
+  test('no colour swatches are offered when the 3D model fails to load', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.route('**/*.glb', r => r.abort());
+    await page.goto('/', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(4000);
+    expect(await page.locator('.lp-3d__sw').count()).toBe(0);
+  });
+});
+
 test.describe('reduced motion', () => {
   test('Home holds no WebGL context under reduced motion (2D template canvases are fine)', async ({ browser }) => {
     const ctx = await browser.newContext({ reducedMotion: 'reduce', viewport: { width: 1440, height: 900 } });
