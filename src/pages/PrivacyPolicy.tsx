@@ -85,7 +85,10 @@ const SECTIONS = [
     queue of actions saved while you are offline.
 
     If you choose "Continue with Google", Google may set its own cookies
-    on its own sites under Google's privacy policy. You can remove
+    on its own sites under Google's privacy policy. The same applies to
+    the Google Map on our About and VFRB Family pages: it is loaded from
+    Google, which may set its own cookies, and VFRB does not receive that
+    data. You can remove
     everything VFRB keeps in your browser by signing out and clearing
     this site's data in your browser settings. The Studio still works
     if your browser blocks storage; your preferences are just not

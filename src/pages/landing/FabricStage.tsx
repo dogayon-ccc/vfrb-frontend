@@ -1,30 +1,36 @@
-// Home chapters 2 and 3: a sticky 3D stage whose camera and turn are driven by scroll progress.
-// Copy is limited to what VFRB's own pages already state; colourways are samples, not a stock list.
-import { Component, Suspense, lazy, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { ViewLink as Link } from '../../components/ViewLink';
+// Home slide show: one sticky stage, one real VFRB 3D template per uniform category. Scroll (or the arrows) changes slide; the camera slides along x with directional motion blur.
+import { Component, Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { scannedEntryFor } from '../client/design-studio/garmentCapabilities';
+import { startStudioIn } from '../../utils/studioIntent';
 import '../../styles/landing-stage.css';
 
 const Stage3D = lazy(() => import('./FabricStage3D').catch(() => ({ default: () => null as any })));
 
-const CHAPTERS = [
-  { n: '01', tag: 'The template', h: 'Your uniform, before it is cut.', p: 'Every VFRB Studio template is drawn in 2D and, where VFRB has a model, previewed in 3D. Turn it, change its colours, add your logo and text.' },
-  { n: '02', tag: 'Made to size', h: 'Pattern, cut, checked.', p: 'The details that make a uniform fit.' },
-  { n: '03', tag: 'Your colours', h: 'Turn it. Then make it yours.', p: 'These are sample colourways. In the Studio you choose the colours for the body, sleeves, collar and pocket.' },
+type Colors = { body: string; sleeve: string; collar: string; pocket: string };
+const c = (body: string, collar: string, pocket: string): Colors => ({ body, sleeve: body, collar, pocket });
+
+// tries: [sleeve, fit] pairs, first one with a real 3D model wins. A category whose template has no model is left out, never faked.
+const DEFS = [
+  { cat: 'School Uniform', label: 'School', garment: 'Polo Shirt', tries: [['Short', 'unisex'], ['Short', 'male']], colors: c('#1B2A4A', '#028090', '#24365C') },
+  { cat: 'Medical / Scrubs', label: 'Medical', garment: 'Scrub Top', tries: [['Short', 'unisex']], colors: c('#028090', '#1B2A4A', '#046A78') },
+  { cat: 'Corporate', label: 'Corporate', garment: 'Blazer', tries: [['Long', 'female'], ['Three-Quarter', 'female']], colors: c('#1B2A4A', '#1B2A4A', '#24365C') },
+  { cat: 'Hospitality / Service', label: 'Hospitality', garment: 'Mandarin Collar', tries: [['Long', 'male'], ['Long', 'female']], colors: c('#7A1F3D', '#EFE9DA', '#8C2A4B') },
+  { cat: 'Industrial / Work', label: 'Industrial', garment: 'Lab Coverall', tries: [['Long', 'unisex'], ['Short', 'unisex'], [undefined, undefined]], colors: c('#1F5D46', '#EFE9DA', '#2A7059') },
 ] as const;
 
-const CARDS = [
-  ['Pattern for each size', 'Every order starts from a pattern made for each size.'],
-  ['Checked at QC', 'Finished pieces are checked against the measurements for their size. Pieces that fail go back for alteration.'],
-  ['Embroidery and printing in-house', 'Computerized embroidery, printing and sublimation, photographed at VFRB.'],
-] as const;
+export type Slide = { cat: string; label: string; garment: string; colors: Colors; entry: any; sleeve?: string; fit?: string };
 
-export const WAYS = [
-  { id: 'teal', label: 'Teal and navy', body: '#028090', collar: '#1B2A4A', pocket: '#046A78' },
-  { id: 'navy', label: 'Navy and teal', body: '#1B2A4A', collar: '#02C39A', pocket: '#24365C' },
-  { id: 'wine', label: 'Wine and navy', body: '#7A1F3D', collar: '#1B2A4A', pocket: '#8C2A4B' },
-  { id: 'forest', label: 'Forest and cream', body: '#1F5D46', collar: '#EFE9DA', pocket: '#2A7059' },
-] as const;
-export type Way = typeof WAYS[number];
+function resolve(): Slide[] {
+  const out: Slide[] = [];
+  for (const d of DEFS) {
+    for (const [sleeve, fit] of d.tries as readonly (readonly [string | undefined, string | undefined])[]) {
+      const entry = scannedEntryFor(d.garment, sleeve, fit);
+      if (entry) { out.push({ cat: d.cat, label: d.label, garment: d.garment, colors: d.colors, entry, sleeve, fit }); break; }
+    }
+  }
+  return out;
+}
 
 class Boundary extends Component<{ onError: () => void; children?: ReactNode }, { err: boolean }> {
   state = { err: false };
@@ -35,36 +41,28 @@ class Boundary extends Component<{ onError: () => void; children?: ReactNode }, 
 
 function canGL() {
   try {
-    const c = document.createElement('canvas'), gl = c.getContext('webgl2') || c.getContext('webgl');
+    const cv = document.createElement('canvas'), gl = cv.getContext('webgl2') || cv.getContext('webgl');
     gl?.getExtension('WEBGL_lose_context')?.loseContext();
     return !!gl;
   } catch { return false; }
 }
 
-function Silhouette({ way }: { way: Way }) {
-  return (
-    <svg className="fs__sil" viewBox="0 0 200 240" role="img" aria-label={`Scrub top in ${way.label}`}>
-      <path d="M70 20 L100 44 L130 20 L168 40 L190 88 L160 100 L148 76 L148 220 L52 220 L52 76 L40 100 L10 88 L32 40 Z" fill={way.body} stroke="rgba(255,255,255,0.28)" strokeWidth="1.5" strokeLinejoin="round" />
-      <path d="M70 20 L100 58 L130 20" fill="none" stroke={way.collar} strokeWidth="7" strokeLinejoin="round" />
-      <rect x="62" y="132" width="28" height="32" rx="2" fill={way.pocket} /><rect x="110" y="132" width="28" height="32" rx="2" fill={way.pocket} />
-    </svg>
-  );
-}
+const pad = (n: number) => String(n).padStart(2, '0');
 
 export default function FabricStage() {
-  const root = useRef<HTMLElement>(null);
-  const progress = useRef(0);
+  const nav = useNavigate();
+  const slides = useMemo(resolve, []);
+  const N = slides.length;
+  const root = useRef<HTMLElement>(null), wrap = useRef<HTMLDivElement>(null), fe = useRef<SVGFEGaussianBlurElement>(null);
   const [mode, setMode] = useState<'wait' | '3d' | 'static'>('wait');
-  const [near, setNear] = useState(false);
-  const [onScreen, setOnScreen] = useState(false);
-  const [ch, setCh] = useState(0);
-  const [way, setWay] = useState<Way>(WAYS[0]);
+  const [near, setNear] = useState(false), [onScreen, setOnScreen] = useState(false);
+  const [idx, setIdx] = useState(0);
 
   useEffect(() => {
     const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const save = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
-    setMode(calm || save || !canGL() ? 'static' : '3d');
-  }, []);
+    setMode(!N || calm || save || !canGL() ? 'static' : '3d');
+  }, [N]);
 
   useEffect(() => {
     const el = root.current;
@@ -83,76 +81,84 @@ export default function FabricStage() {
       const el = root.current;
       if (!el) return;
       const r = el.getBoundingClientRect(), span = Math.max(1, r.height - innerHeight);
-      const p = Math.min(1, Math.max(0, -r.top / span));
-      progress.current = p;
-      setCh(c => { const n = p < 0.3 ? 0 : p < 0.66 ? 1 : 2; return n === c ? c : n; });
+      const p = Math.min(0.9999, Math.max(0, -r.top / span));
+      setIdx(i => { const n = Math.floor(p * N); return n === i ? i : n; });
     };
     const on = () => { if (!raf) raf = requestAnimationFrame(update); };
     update();
     addEventListener('scroll', on, { passive: true }); addEventListener('resize', on);
     return () => { removeEventListener('scroll', on); removeEventListener('resize', on); cancelAnimationFrame(raf); };
-  }, [mode]);
+  }, [mode, N]);
 
-  const jump = (i: number) => {
+  const go = (i: number) => {
     const el = root.current;
     if (!el) return;
-    const span = el.offsetHeight - innerHeight, top = el.getBoundingClientRect().top + scrollY;
-    scrollTo({ top: top + span * [0.05, 0.48, 0.88][i], behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+    const k = Math.min(N - 1, Math.max(0, i)), span = el.offsetHeight - innerHeight, top = el.getBoundingClientRect().top + scrollY;
+    scrollTo({ top: top + span * ((k + 0.5) / N), behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
   };
+
+  // Directional blur: the 3D side reports camera speed (slides per second); a horizontal-only SVG blur on the canvas wrapper does the rest.
+  const onSpeed = useCallback((v: number) => {
+    const sd = Math.min(20, Math.abs(v) * 9), w = wrap.current;
+    if (!w) return;
+    fe.current?.setAttribute('stdDeviation', `${sd.toFixed(2)} 0`);
+    w.style.filter = sd > 0.4 ? 'url(#fs-mb)' : 'none';
+  }, []);
   const fail = useCallback(() => setMode('static'), []);
   const live = mode === '3d';
-
-  const swatches = (
-    <div className="fs__ways" role="group" aria-label="Sample colourways">
-      {WAYS.map(w => (
-        <button key={w.id} type="button" aria-pressed={way.id === w.id} onClick={() => setWay(w)} title={w.label}>
-          <span style={{ background: `linear-gradient(135deg, ${w.body} 55%, ${w.collar} 55%)` }} /><b>{w.label}</b>
-        </button>
-      ))}
-    </div>
-  );
+  if (!N) return null;
+  // The static fallback draws the scrub-top outline, so its copy names that template.
+  const s = live ? slides[Math.min(idx, N - 1)] : (slides.find(x => x.garment === 'Scrub Top') ?? slides[0]);
+  const open = () => { startStudioIn(s.cat); nav('/design-studio'); };
 
   return (
-    <section ref={root} className={`fs${live ? ' fs--live' : ' fs--static'}`} aria-labelledby="fs-h" data-ch={ch}>
+    <section ref={root} className={`fs${live ? ' fs--live' : ' fs--static'}`} aria-labelledby="fs-h" style={live ? { height: `${(N + 1) * 85}svh` } : undefined}>
+      <svg width="0" height="0" aria-hidden="true" focusable="false" style={{ position: 'absolute' }}>
+        <filter id="fs-mb" x="-20%" y="-5%" width="140%" height="110%" colorInterpolationFilters="sRGB"><feGaussianBlur ref={fe} stdDeviation="0 0" /></filter>
+      </svg>
       <div className="fs__stick">
         <div className="fs__bg" aria-hidden="true" />
+        <h2 id="fs-h" className="fs__title">One template for every uniform</h2>
         {live && near && (
-          <div className="fs__canvas" aria-hidden="true">
-            <Boundary onError={fail}><Suspense fallback={null}><Stage3D progress={progress} way={way} active={onScreen} onError={fail} /></Suspense></Boundary>
+          <div className="fs__canvas" ref={wrap} aria-hidden="true">
+            <Boundary onError={fail}><Suspense fallback={null}><Stage3D slides={slides} idx={idx} active={onScreen} onSpeed={onSpeed} onError={fail} /></Suspense></Boundary>
           </div>
         )}
-        {!live && <div className="fs__flat"><Silhouette way={way} /></div>}
+        {!live && <div className="fs__flat" aria-hidden="true"><Silhouette colors={s.colors} /></div>}
 
         <div className="fs__copy">
-          <h2 id="fs-h" className="fs__title">From template to finished uniform</h2>
-          <article className={`fs__ch fs__ch--a${ch === 0 || !live ? ' is-on' : ''}`}>
-            <p className="fs__tag"><span>{CHAPTERS[0].n}</span>{CHAPTERS[0].tag}</p>
-            <p className="fs__h">{CHAPTERS[0].h}</p>
-            <p className="fs__p">{CHAPTERS[0].p}</p>
-            <Link className="fs__link" to="/login">Open the Studio <span aria-hidden="true">→</span></Link>
-          </article>
-          <article className={`fs__ch fs__ch--b${ch === 1 || !live ? ' is-on' : ''}`}>
-            <p className="fs__tag"><span>{CHAPTERS[1].n}</span>{CHAPTERS[1].tag}</p>
-            <p className="fs__h">{CHAPTERS[1].h}</p>
-            <ul className="fs__cards">{CARDS.map(([t, d]) => <li key={t}><b>{t}</b><span>{d}</span></li>)}</ul>
-          </article>
-          <article className={`fs__ch fs__ch--c${ch === 2 || !live ? ' is-on' : ''}`}>
-            <p className="fs__tag"><span>{CHAPTERS[2].n}</span>{CHAPTERS[2].tag}</p>
-            <p className="fs__h">{CHAPTERS[2].h}</p>
-            <p className="fs__p">{CHAPTERS[2].p}</p>
-            {swatches}
+          <article key={s.cat} className="fs__slide" aria-live="polite">
+            <p className="fs__tag"><span>{pad(live ? idx + 1 : slides.indexOf(s) + 1)}</span>/ {pad(N)} &nbsp;{s.cat}</p>
+            <p className="fs__h">{s.label} uniforms,<br />cut for you.</p>
+            <p className="fs__p">Start from VFRB&rsquo;s {s.garment} template. Choose colours, add your logo and text, then send it as an order.</p>
+            <button type="button" className="fs__link" onClick={open}>Design a {s.label.toLowerCase()} uniform <span aria-hidden="true">→</span></button>
           </article>
         </div>
 
         {live && (
-          <ol className="fs__dots" aria-label="Story chapters">
-            {CHAPTERS.map((c, i) => (
-              <li key={c.n}><button type="button" aria-current={ch === i || undefined} aria-label={`${c.n} ${c.tag}`} onClick={() => jump(i)}><i /><span>{c.n}</span></button></li>
-            ))}
-          </ol>
+          <>
+            <nav className="fs__nav" aria-label="Slides">
+              <button type="button" aria-label="Previous slide" disabled={idx === 0} onClick={() => go(idx - 1)}>‹</button>
+              <ol>{slides.map((x, i) => (
+                <li key={x.cat}><button type="button" aria-current={i === idx || undefined} onClick={() => go(i)}><i /><span>{x.label}</span></button></li>
+              ))}</ol>
+              <button type="button" aria-label="Next slide" disabled={idx === N - 1} onClick={() => go(idx + 1)}>›</button>
+            </nav>
+            <div className="fs__bar" aria-hidden="true"><i style={{ transform: `scaleX(${(idx + 1) / N})` }} /></div>
+            <p className="fs__note" aria-hidden="true">3D preview, approximate · scroll or use the arrows</p>
+          </>
         )}
-        {live && <p className="fs__note" aria-hidden="true">3D preview, approximate · scroll to move the camera</p>}
       </div>
     </section>
+  );
+}
+
+function Silhouette({ colors }: { colors: Colors }) {
+  return (
+    <svg className="fs__sil" viewBox="0 0 200 240" role="img" aria-label="Uniform top template">
+      <path d="M70 20 L100 44 L130 20 L168 40 L190 88 L160 100 L148 76 L148 220 L52 220 L52 76 L40 100 L10 88 L32 40 Z" fill={colors.body} stroke="rgba(255,255,255,0.28)" strokeWidth="1.5" strokeLinejoin="round" />
+      <path d="M70 20 L100 58 L130 20" fill="none" stroke={colors.collar} strokeWidth="7" strokeLinejoin="round" />
+      <rect x="62" y="132" width="28" height="32" rx="2" fill={colors.pocket} /><rect x="110" y="132" width="28" height="32" rx="2" fill={colors.pocket} />
+    </svg>
   );
 }
