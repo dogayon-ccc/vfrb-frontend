@@ -16,11 +16,7 @@ export default function Photo({ as: Tag = 'figure', photo, caption, ratio, pos =
       style={{ aspectRatio: aspect, borderRadius: radius, ...style }}>
       {state !== 'fail' && (
         <img ref={img} src={photo.src} alt={photo.alt} width={photo.w} height={photo.h} sizes={sizes}
-<<<<<<< HEAD
           loading={instant ? 'eager' : 'lazy'} decoding="async" {...(instant ? ({ fetchpriority: 'high' } as Record<string, string>) : {})}
-=======
-          loading={instant ? 'eager' : 'lazy'} decoding="async" {...(instant ? { fetchpriority: 'high' } : {})}
->>>>>>> origin/ts-migration
           onLoad={() => setState('ready')} onError={() => setState('fail')} style={{ objectPosition: pos }} />
       )}
       {state === 'fail' && <div className="vs-photo__fail" role="img" aria-label={photo.alt}>Photo unavailable</div>}

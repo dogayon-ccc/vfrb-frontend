@@ -67,13 +67,8 @@ export default function HeroTurntable({ visible, onReady, onError }: any) {
     wake(INTRO * 1000 + 600);
   }, [onReady, wake]);
   useEffect(() => () => {
-<<<<<<< HEAD
     clearTimeout(sleep.current);
-    try { const g = gl.current; if (g && !g.getContext().isContextLost()) { g.dispose(); g.forceContextLoss(); } } catch { /* already lost */ }
-=======
-    clearTimeout(sleep.current); clearTimeout(assemble.current);
     releaseGL(gl.current);
->>>>>>> origin/ts-migration
   }, []);
   useEffect(() => { if (!ENTRY) onError(); }, [onError]);
   const pick = (i: number) => { setSwatch(i); wake(700); };
