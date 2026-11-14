@@ -3,6 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 
 const PUBLIC = ['/', '/about', '/what-we-do', '/inside-vfrb', '/gallery', '/our-team', '/guide', '/faq', '/privacy', '/terms'];
 const AUTH = ['/login', '/login#request-access', '/forgot-password'];
+const AUTH_TOKEN = ['/verify-email', '/reset-password?token=test'];
 
 // Reveal-on-scroll content stays hidden until seen, so axe must run after a full pass.
 async function scrollThrough(page: Page) {
@@ -24,7 +25,7 @@ test.describe('360px viewport', () => {
 
 test.describe('axe', () => {
   test.use({ reducedMotion: 'reduce', viewport: { width: 1280, height: 800 } });
-  for (const path of [...PUBLIC, ...AUTH]) {
+  for (const path of [...PUBLIC, ...AUTH, ...AUTH_TOKEN]) {
     test(`wcag a/aa: ${path}`, async ({ page }) => {
       await page.goto(path, { waitUntil: 'networkidle' });
       await scrollThrough(page);
@@ -141,6 +142,47 @@ test.describe('reduced motion', () => {
     await page.waitForTimeout(1500);
     const gl = await page.$$eval('canvas', cs => cs.filter(c => !!(c.getContext('webgl2') || c.getContext('webgl'))).length);
     expect(gl).toBe(0);
+    await ctx.close();
+  });
+});
+
+test.describe('deck bar', () => {
+  for (const [width, height] of [[768, 1024], [1024, 768], [1440, 900]]) {
+    test(`bar covers no Explore tile at slide start, ${width}x${height}`, async ({ browser }) => {
+      const ctx = await browser.newContext({ reducedMotion: 'reduce', viewport: { width, height } });
+      const page = await ctx.newPage();
+      await page.goto('/', { waitUntil: 'networkidle' });
+      await page.evaluate(() => document.getElementById('explore')!.scrollIntoView({ block: 'start', behavior: 'instant' }));
+      await page.waitForTimeout(400);
+      const bar = (await page.locator('.lp-bar').boundingBox())!;
+      for (const t of await page.locator('#explore .lp-tile').all()) {
+        const b = (await t.boundingBox())!;
+        expect(b.y + b.height, 'tile bottom above the bar').toBeLessThanOrEqual(bar.y);
+      }
+      await ctx.close();
+    });
+  }
+});
+
+test.describe('landing 3D is real GLB', () => {
+  test('hero asks for the scrub-top scan, never the authored procedural model, and has no explode control', async ({ page }) => {
+    const glbs: string[] = [];
+    page.on('request', r => { if (r.url().toLowerCase().includes('.glb')) glbs.push(decodeURI(r.url())); });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(4000);
+    expect(glbs.some(u => u.includes('scrub-top-women-short.glb'))).toBe(true);
+    expect(glbs.filter(u => u.includes('/authored/'))).toEqual([]);
+    expect(await page.locator('.lp-3d__btn').count()).toBe(0);
+  });
+
+  test('static fallback draws the Studio template, not a hand-drawn shirt', async ({ browser }) => {
+    const ctx = await browser.newContext({ reducedMotion: 'reduce', viewport: { width: 1440, height: 900 } });
+    const page = await ctx.newPage();
+    await page.goto('/', { waitUntil: 'networkidle' });
+    await scrollThrough(page);
+    expect(await page.locator('.fs__sil').count()).toBe(0);
+    await expect(page.locator('.fs__flat canvas, .fs__flat svg, .fs__flat img').first()).toBeAttached();
     await ctx.close();
   });
 });
