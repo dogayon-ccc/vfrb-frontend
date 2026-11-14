@@ -9,6 +9,7 @@ import useTilt from '../../hooks/useTilt';
 import '../../styles/landing-ink.css';
 import '../../styles/depth.css';
 import '../../styles/rog-chrome.css';
+import '../../styles/rog-site.css';
 
 // deck: inner pages tag sections with data-slide and get the Home dots and bar; lean drops the footer contact block that Home already shows.
 type SitePageProps = { title?: string; children?: ReactNode; tone?: 'paper' | 'ink'; deck?: boolean; lean?: boolean };
@@ -27,7 +28,7 @@ export default function SitePage({ title, children, tone = 'paper', deck = false
   return (
     <div className={`vs vs-page${tone === 'ink' ? ' vs-page--ink' : ''}`}>
       <SiteHeader tone={tone} />
-      <main ref={main} id="main" key={pathname} className="vs-enter">{children}</main>
+      <main ref={main} id="main" key={pathname}>{children}</main>
       <SiteFooter lean={lean} />
       {deck && <><InkLayers /><DeckNav /></>}
     </div>

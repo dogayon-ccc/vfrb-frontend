@@ -333,7 +333,6 @@
 /* motion */
 @keyframes vs-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
 @keyframes vs-wipe { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0); } }
-.vs-enter { animation: vs-rise 260ms var(--vs-ease) both; }
 .vs-hero__copy > * { animation: vs-rise 320ms var(--vs-ease) both; }
 .vs-hero__copy > :nth-child(2) { animation-delay: 70ms; }
 .vs-hero__copy > :nth-child(3) { animation-delay: 140ms; }

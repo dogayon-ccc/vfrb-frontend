@@ -11,15 +11,16 @@ import flatB from '../assets/flats/scrub-top-vneck-short/back.svg';
 import flatC from '../assets/flats/scrub-top-vneck-three-quarter/front.svg';
 import flatD from '../assets/flats/scrub-top-vneck-three-quarter/back.svg';
 import '../styles/auth.css';
+import '../styles/rog-auth.css';
 
 const FONT = "ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif";
 
 // 16px stops iOS Safari from zooming the page on focus.
 export const authInput = (focusedKey, current, error) => ({
   width: '100%', padding: '14px 16px', minHeight: 54, borderRadius: 14, fontSize: 16,
-  color: 'var(--ink)', background: '#fff', boxSizing: 'border-box',
+  color: 'var(--au-field-ink, var(--ink))', background: 'var(--au-field, #fff)', boxSizing: 'border-box',
   // Focus: 2px teal ring (#028090 is 4.5:1 on the white card) outside the border, not just a faint glow.
-  outline: focusedKey === current ? '2px solid #028090' : 'none', outlineOffset: 2,
+  outline: focusedKey === current ? '2px solid var(--au-ring, #028090)' : 'none', outlineOffset: 2,
   fontFamily: FONT, transition: 'border-color .18s, box-shadow .18s',
   border: `1.5px solid ${error ? 'var(--danger)' : focusedKey === current ? 'var(--teal)' : 'var(--border)'}`,
   boxShadow: error ? '0 0 0 3px rgba(229,62,62,.10)' : focusedKey === current ? '0 0 0 3px rgba(2,128,144,.12)' : 'none',
@@ -142,7 +143,7 @@ export default function AuthShell({ title, subtitle, maxWidth = 440, children }:
     <div className="au au--split">
       <SplitArt calm={calm} />
       <main className="au-main">
-        <motion.div className="au-card" style={{ maxWidth }} initial={calm ? false : 'hidden'} animate="show"
+        <motion.div className="au-card" style={{ maxWidth }} initial={false} animate="show"
           variants={{ show: { transition: { staggerChildren: 0.07 } } }}>
           <motion.div variants={rise} style={{ marginBottom: 24 }}>
             {title && <h1 className="au-title">{title}</h1>}

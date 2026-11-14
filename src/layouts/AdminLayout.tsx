@@ -6,7 +6,6 @@ import { enqueue, flushQueue, queueSize } from '../utils/offlineQueue';
 import { signOut, USER_CHANGE_EVENT } from '../utils/session';
 import PageErrorBoundary from '../components/PageErrorBoundary';
 import { useAppearance } from '../hooks/useAppearance';
-import PageLoader from '../components/ui/PageLoader';
 import IconBox from '../components/ui/IconBox';
 import NavBadge from '../components/ui/NavBadge';
 import { MESSAGES_READ_EVENT } from '../hooks/useUnreadMessages';
@@ -694,7 +693,7 @@ export default function AdminLayout() {
               </AlertBanner>
             )}
             <PageErrorBoundary resetKey={path}>
-              <div key={path} className="adm-page vfrb-page thread-page"><Suspense fallback={<PageLoader/>}>{!canOpen(path, me) ? <AccessDenied what="This page"/> : <Outlet/>}</Suspense><ThreadPull/></div>
+              <div key={path} className="adm-page vfrb-page thread-page"><Suspense fallback={null}>{!canOpen(path, me) ? <AccessDenied what="This page"/> : <Outlet/>}</Suspense><ThreadPull/></div>
             </PageErrorBoundary>
           </div>
         </main>

@@ -7,7 +7,6 @@ import { useVisiblePoll } from '../hooks/useVisiblePoll';
 import { useHideOnScroll } from '../hooks/useHideOnScroll';
 import { asList } from '../utils/asList';
 import PageErrorBoundary from '../components/PageErrorBoundary';
-import { AppPageSkeleton } from '../components/PageSkeletons';
 import { signOut, USER_CHANGE_EVENT } from '../utils/session';
 import logo from '../assets/company-logo.jpg';
 import { useAppearance } from '../hooks/useAppearance';
@@ -15,7 +14,6 @@ import { useUnreadMessages } from '../hooks/useUnreadMessages';
 import NavBadge from '../components/ui/NavBadge';
 import useDialogFocus from '../hooks/useDialogFocus';
 import { Button } from '../components/ui';
-import ThreadPull from '../components/ui/ThreadPull';
 import '../styles/customer-shell.css';
 import { LayoutDashboard, ClipboardList, MessageSquare, Settings, Palette, LogOut, Shirt, MoreHorizontal, Bell, Megaphone } from 'lucide-react';
 
@@ -195,19 +193,12 @@ export default function CustomerLayout() {
 
       <main id="cm-main" tabIndex={-1} className="cm-main">
         <div className="cm-content" data-fab={fab || undefined}>
-          <AnimatePresence mode="wait" initial={false}>
-            {/* Entrance is the CSS thread-pull; framer only handles the quick exit fade. */}
-            <motion.div key={location.pathname} className="vfrb-page thread-page"
-              initial={false}
-              animate={{ opacity:1 }}
-              exit={still ? { opacity:1 } : { opacity:0, transition:{ duration:.1, ease:[.4, 0, 1, 1] } }}>
+          <div key={location.pathname} className="vfrb-page thread-page">
               {/* Keyed on pathname, so a page crash resets with navigation and never takes the shell down. */}
               <PageErrorBoundary resetKey={location.pathname}>
-                <Suspense fallback={<AppPageSkeleton/>}><Outlet/></Suspense>
+                <Suspense fallback={null}><Outlet/></Suspense>
               </PageErrorBoundary>
-              <ThreadPull/>
-            </motion.div>
-          </AnimatePresence>
+          </div>
         </div>
       </main>
 

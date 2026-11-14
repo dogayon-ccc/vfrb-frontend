@@ -946,7 +946,7 @@ input:focus, textarea:focus, select:focus {
 
 /* ThreadPull route transition (motion token 200 ms): stitch runs 0→150ms, page unrolls over 200ms. Fill is backwards only so no clip-path stays on (it would clip fixed popovers). */
 .thread-page { position: relative; }
-.thread-page.vfrb-page { animation: thread-unroll 200ms var(--ease-snap) backwards; }
+.thread-page.vfrb-page { animation: none; }
 .thread-page > .thread-pull {
   position: absolute; z-index: 5; top: 0; left: 0; right: 0; height: 2px; pointer-events: none;
   background: repeating-linear-gradient(90deg, var(--teal) 0 8px, transparent 8px 13px);

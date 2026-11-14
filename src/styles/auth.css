@@ -142,20 +142,6 @@
 .au-done p { margin: 0 0 10px; font-size: 15px; line-height: 1.6; color: var(--text-muted); }
 @media (prefers-reduced-motion: reduce) { .au-submit, .au-card .au-submit { transition: none; } }
 
-/* page-to-page morph (View Transitions via ViewLink): seal and art panel hold still, the card swaps */
-.au-art .au-brand img { view-transition-name: vfrb-seal; }
-.au-art--navy { view-transition-name: au-art; }
-.au--split .au-card { view-transition-name: au-card; }
-@media (prefers-reduced-motion: no-preference) {
-  ::view-transition-group(vfrb-seal), ::view-transition-group(au-card) { animation-duration: 200ms; animation-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1); }
-}
-
-/* first visit: flats fall onto the table in depth (individual translate/rotate leave the parallax transform alone) */
-.au-flats { perspective: 1100px; }
-.au-flats.is-drop .au-flat { animation: au-drop 520ms cubic-bezier(0.2, 0.7, 0.2, 1) both; }
-.au-flats.is-drop .f2 { animation-delay: 70ms; } .au-flats.is-drop .f3 { animation-delay: 140ms; } .au-flats.is-drop .f4 { animation-delay: 210ms; }
-@keyframes au-drop { from { opacity: 0; translate: 0 -40px; rotate: x 38deg; } }
-@media (prefers-reduced-motion: reduce) { .au-flats.is-drop .au-flat { animation: none; } }
 
 
 /* Immersive art panel: VFRB teal ink, a faint floor photo, the twill weave, floating flats */

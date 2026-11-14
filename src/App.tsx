@@ -42,10 +42,7 @@ import Landing      from './pages/Landing';
 
 // ── Auth — eager (small, always needed for login flow) ───────────────────────
 import CustomerLogin    from './pages/auth/Login';
-import AuthSkeleton, { useAuthReady } from './components/AuthSkeleton';
-import { AppShellSkeleton, SiteSkeleton, StudioSkeleton } from './components/PageSkeletons';
 import UpdatePrompt from './components/UpdatePrompt';
-import { useAfter } from './components/ui/PageLoader';
 import { areaOf } from './utils/routeArea';
 import VerifyEmail      from './pages/auth/VerifyEmail';
 import GoogleComplete   from './pages/auth/GoogleComplete';
@@ -117,21 +114,8 @@ const GalleryPage  = lazy(PUBLIC.gallery);
 const PrivacyPage  = lazy(PUBLIC.privacy);
 const TermsPage    = lazy(PUBLIC.terms);
 
-// Skeletons appear only when a load takes longer than 150 ms; quicker loads show nothing.
-const Late = ({ children }: any) => (useAfter(150) ? children : null);
-
-// ── Page loader — skeleton shaped like the page whose bundle is downloading ──
-function Loader() {
-  const { pathname } = useLocation();
-  const area = areaOf(pathname);
-  const late = useAfter(150);
-  if (!late) return null;
-  if (area === 'auth') return <AuthSkeleton variant={SPLIT_AUTH.includes(pathname) ? 'split' : undefined}/>;
-  if (area === 'studio') return <StudioSkeleton/>;
-  if (area === 'admin') return <AppShellSkeleton/>;
-  if (area === 'app') return <AppShellSkeleton customer/>;
-  return <SiteSkeleton/>;
-}
+// The signed-in shells load while the sign-in page is open, so signing in opens the dashboard without a wait.
+const SHELLS = [() => import('./layouts/CustomerLayout'), () => import('./layouts/AdminLayout'), () => import('./pages/client/Dashboard'), () => import('./pages/admin/Dashboard')];
 
 // Warm the public and auth chunks once the browser is idle, so page hops skip the skeleton.
 function Prefetch() {
@@ -140,7 +124,7 @@ function Prefetch() {
     if ((area !== 'site' && area !== 'auth') || navigator.connection?.saveData) return undefined;
     const idle = window.requestIdleCallback ?? ((f) => setTimeout(f, 1200));
     const cancel = window.cancelIdleCallback ?? clearTimeout;
-    const id = idle(() => Object.values(PUBLIC).forEach(load => load().catch(() => {})));
+    const id = idle(() => [...Object.values(PUBLIC), ...(area === 'auth' ? SHELLS : [])].forEach(load => load().catch(() => {})));
     return () => cancel(id);
   }, [area]);
   return null;
@@ -148,10 +132,10 @@ function Prefetch() {
 
 // Each route gets its own boundary: router navigations run as transitions, which
 // keep the old page on screen instead of showing an already-mounted fallback.
-const SiteLoad  = ({ children }: any) => <Suspense fallback={<Late><SiteSkeleton/></Late>}>{children}</Suspense>;
+const SiteLoad  = ({ children }: any) => <Suspense fallback={null}>{children}</Suspense>;
 const SPLIT_AUTH = ['/login', '/forgot-password', '/reset-password'];
-const AuthLoad  = ({ children }: any) => <Suspense fallback={<Late><AuthSkeleton variant="split"/></Late>}>{children}</Suspense>;
-const ShellLoad = ({ customer, children }: any) => <Suspense fallback={<Late><AppShellSkeleton customer={customer}/></Late>}>{children}</Suspense>;
+const AuthLoad  = ({ children }: any) => <Suspense fallback={null}>{children}</Suspense>;
+const ShellLoad = ({ children }: any) => <Suspense fallback={null}>{children}</Suspense>;
 
 // ── Auth guards ───────────────────────────────────────────────────────────────
 function RequireAuth({ children, role }: any) {
@@ -236,9 +220,9 @@ function GuestOnly({ children }: any) {
   return isSignedIn(auth) ? <Navigate to={homeFor(auth.user)} replace/> : children;
 }
 
-// Skeleton first, so every auth screen (incl. home → login, logout → login) opens on a placeholder.
+// Auth screens render at once; there is no waiting screen.
 function AuthGate({ children }: any) {
-  return useAuthReady() ? children : <Late><AuthSkeleton/></Late>;
+  return children;
 }
 
 
@@ -258,7 +242,7 @@ export default function App() {
         copyDescription="Add VFRB to your home screen for faster access and a full-screen app view — no browser address bar."
         appIconPath="/apple-touch-icon.png"
       />
-      <Suspense fallback={<Loader/>}>
+      <Suspense fallback={null}>
         <Routes>
 
           {/* ── ROOT ──────────────────────────────────────────────────────── */}
@@ -331,7 +315,7 @@ export default function App() {
 
           {/* ── CUSTOMER PORTAL — root-level paths, no /client or /customer prefix ── */}
           <Route element={
-            <RequireAuth role="customer"><ShellLoad customer><CustomerLayout/></ShellLoad></RequireAuth>
+            <RequireAuth role="customer"><ShellLoad><CustomerLayout/></ShellLoad></RequireAuth>
           }>
             <Route path="dashboard"   element={<CustomerDashboard/>}/>
             <Route path="my-designs"  element={<CustomerMyDesigns/>}/>
@@ -349,7 +333,7 @@ export default function App() {
           {/* ── DESIGN STUDIO — full-screen, outside CustomerLayout ───────── */}
           <Route path="/design-studio" element={
             <RequireAuth role="customer">
-              <Suspense fallback={<Late><StudioSkeleton/></Late>}><DesignStudio/></Suspense>
+              <Suspense fallback={null}><DesignStudio/></Suspense>
             </RequireAuth>
           }/>
 
