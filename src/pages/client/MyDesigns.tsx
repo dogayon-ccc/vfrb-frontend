@@ -213,10 +213,10 @@ export default function MyDesigns() {
       {error && <EmptyState illustration="error" headline="Couldn't load your designs" sub="Check your connection and try again." cta={{ label: 'Retry', onClick: load }} />}
       {empty && tab !== 'inspo' && (
         <Card padding="lg" className="mx-start" title="Create your first uniform design" subtitle="Designs you save appear here, ready to edit or order in bulk.">
+          <Button variant="primary" size="lg" icon="designStudio" onClick={openStudioBlank}>Open Design Studio</Button>
           <ol className="mx-steps">
             {STEPS.map(([t, d], n) => <li key={t}><span aria-hidden="true">{n + 1}</span><strong>{t}</strong><p>{d}</p></li>)}
           </ol>
-          <Button variant="primary" size="lg" icon="designStudio" onClick={openStudioBlank}>Open Design Studio</Button>
         </Card>
       )}
       {tabEmpty && <EmptyState illustration="order" headline={tab === 'draft' ? 'No drafts right now' : tab === 'inspo' ? 'No inspiration yet' : 'No past orders yet'}

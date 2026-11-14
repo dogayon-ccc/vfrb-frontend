@@ -101,7 +101,7 @@ export default function CustomerOrders() {
         <Button variant="primary" icon="add" onClick={() => nav('/order/create')}>New order</Button>
       </PageHeader>
 
-      <div className="ox-tools">
+      {orders.length > 0 && <div className="ox-tools">
         <div className="ox-search-row">
           <div className="ox-search">
             <label htmlFor="ord-q" className="sr-only">Search orders</label>
@@ -114,7 +114,7 @@ export default function CustomerOrders() {
           </select>
         </div>
         <Chips items={chips} value={group} onChange={setGroup} label="Filter orders by status" />
-      </div>
+      </div>}
 
       {actErr && <p role="alert" className="mx-err">{actErr}</p>}
       {loading ? (

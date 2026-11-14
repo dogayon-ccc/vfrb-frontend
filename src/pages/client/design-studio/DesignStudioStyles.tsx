@@ -1450,6 +1450,18 @@ export default function DesignStudioStyles() {
         .ds-sheet[data-snap=full]{height:min(72dvh,calc(100dvh - 56px - var(--ds-nav-h) - 64px));}
         .ds-addbar{padding-block:8px max(8px,env(safe-area-inset-bottom));}
       }
+      .ds :is(.ds-bar-title,.ds-rail-h,.ds-dock-head h3,.ds-tour-card h2,.ds-keysdlg h2,.ds-pick-head h2,.ds-pick-preview h3,.ds-wu-head h3,.ds-pieces-h,.ds-contrast-demo){font-weight:800;font-style:italic;letter-spacing:-.01em;}
+      .ds .ds-bar-title{font-size:16px;text-transform:uppercase;letter-spacing:.02em;}
+      .ds .ds-bar .ds-cap3d{border-color:transparent;background:transparent;padding:4px 6px;}
+      @media (min-width:768px){.ds-rail .ds-tools-size{display:none;}}
+      @media (min-width:768px) and (max-height:800px) and (pointer:fine){
+        .ds .ds-rail{gap:6px;padding-block:8px;}
+        .ds .ds-rail .ds-tools-btn{min-height:36px;height:36px;}
+        .ds .ds-rail .ds-rail-card{min-height:60px;}
+        .ds .ds-rail .ds-rail-thumb{height:46px;width:40px;}
+        .ds .ds-rail .ds-help-btn{min-height:52px;}
+      }
+      @media (min-width:768px) and (max-height:740px) and (pointer:fine){.ds .ds-rail .ds-tools-btn{min-height:32px;height:32px;}}
 `}</style>
   );
 }

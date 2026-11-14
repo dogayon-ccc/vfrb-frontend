@@ -271,10 +271,12 @@ export default function CustomerMessages() {
 
       <div className={`cust-msg-wrap ${mobileView === 'thread' ? 'in-thread' : ''}`}>
         <div className={`cust-msg-list ${mobileView !== 'list' ? 'hide-mobile' : ''}`}>
-          <div style={{ padding: '4px 4px 8px' }}>
-            <label htmlFor="msg-q" className="sr-only">Search conversations</label>
-            <input id="msg-q" type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search conversations…" className="cx-in"/>
-          </div>
+          {orders.length > 0 && (
+            <div style={{ padding: '4px 4px 8px' }}>
+              <label htmlFor="msg-q" className="sr-only">Search conversations</label>
+              <input id="msg-q" type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search conversations…" className="cx-in"/>
+            </div>
+          )}
           {loading && [1, 2, 3].map(i => <div key={i} style={{ display: 'flex', gap: 12, padding: 12 }}><Skeleton h={44} w={44}/><div style={{ flex: 1 }}><Skeleton h={12} w="50%"/><Skeleton h={10} w="80%" style={{ marginTop: 8 }}/></div></div>)}
           {!loading && !ordersError && orders.length > 0 && shown.length === 0 && (
             <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-subtle)', padding: 20 }}>No conversations match "{q}".</p>
