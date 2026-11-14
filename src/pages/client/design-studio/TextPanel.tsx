@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { NavIcon } from '../../../components/ui/icons';
-import { T, T2, secLabel, inputStyle, FONTS, EMOJIS } from './dsShared';
+import { T2, secLabel, FONTS, EMOJIS } from './dsShared';
 import { loadFontPreviews, defaultWeight } from './studioFonts';
 
 // EMOJIS contains repeats (e.g. 🦺) which made React warn about duplicate keys and
@@ -53,6 +52,8 @@ export default function TextPanel({ onAdd, bodyColor }: any) {
 
   const fontDef = fonts.find(f=>f.id===font) ?? fonts[0], fontCss = fontDef.css;
 
+  const add = () => { if (val.trim()) onAdd(val.trim(), clr, fontCss, size, null, lookDef.make(clr)); };
+
   const insertEmoji = (e) => {
     const input = inputRef.current;
     const pos = input?.selectionStart ?? val.length;
@@ -61,45 +62,22 @@ export default function TextPanel({ onAdd, bodyColor }: any) {
   };
 
   return (
-    <div style={{ padding:'12px', display:'flex', flexDirection:'column', gap:10, flex:1, overflowY:'auto' }}>
-      <p style={secLabel}>Text / Name / Number</p>
-      <div style={{ display:'flex', gap:6 }}>
-        <input ref={inputRef} value={val} onChange={e=>setVal(e.target.value)}
-          placeholder="e.g. VFRB Enterprise" maxLength={32} style={{ ...inputStyle, flex:1 }}/>
-        <button type="button" onClick={()=>setShowEmoji(s=>!s)} aria-label="Insert emoji"
-          style={{ width:38, borderRadius:9, border:`1px solid ${showEmoji?T2:'var(--border-strong)'}`,
-            background: showEmoji ? 'var(--teal-50)' : 'var(--bg-card)', fontSize:15, cursor:'pointer' }}>
-          🙂
-        </button>
-      </div>
-
-      {showEmoji && (
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(8,1fr)', gap:2,
-          padding:8, borderRadius:9, background:'rgba(15,23,42,.04)' }}>
-          {UNIQUE_EMOJIS.map(e => (
-            <button key={e} type="button" onClick={()=>insertEmoji(e)}
-              style={{ fontSize:15, padding:4, border:'none', background:'none', cursor:'pointer', borderRadius:6 }}>
-              {e}
-            </button>
-          ))}
-        </div>
-      )}
-
+    <div className="ds-txt">
       <p style={secLabel}>Font · {fontDef.label}</p>
-      <div className="ds-fontcats" role="group" aria-label="Font style">
+      <div className="ds-fontcats ds-fontcats-stick" role="group" aria-label="Font style">
         {CATS.map(c => <button key={c} type="button" aria-pressed={cat === c} onClick={() => setCat(c)}>{c}</button>)}
       </div>
       <div className="ds-fontgrid" role="radiogroup" aria-label="Font">
         {shown.map(f => (
           <button key={f.id} type="button" role="radio" aria-checked={font === f.id} className="ds-fonttile" onClick={() => setFont(f.id)}>
-            <b style={{ fontFamily: f.css, fontWeight: defaultWeight(f) }}>{val.trim() || f.label}</b>
+            <b style={{ fontFamily: f.css, fontWeight: defaultWeight(f) }}>{val.trim() || 'Aa Bb 123'}</b>
             <small>{f.label}</small>
           </button>
         ))}
       </div>
 
       <p style={secLabel}>Style</p>
-      <div className="ds-fontcats" role="radiogroup" aria-label="Text style">
+      <div className="ds-fontcats" data-wrap role="radiogroup" aria-label="Text style">
         {STYLES.map(x => <button key={x.id} type="button" role="radio" aria-checked={look === x.id} aria-pressed={look === x.id} onClick={() => setLook(x.id)}>{x.label}</button>)}
       </div>
 
@@ -117,21 +95,24 @@ export default function TextPanel({ onAdd, bodyColor }: any) {
       <p style={secLabel}>Size: {size}px</p>
       <input type="range" min="10" max="72" value={size}
         onChange={e=>setSize(Number(e.target.value))} style={{ width:'100%', accentColor:T2 }}/>
-
       <div className="ds-addbar">
-        <button type="button" className="ds-addbtn" onClick={() => { if (val.trim()) onAdd(val.trim(), clr, fontCss, size, null, lookDef.make(clr)); }} disabled={!val.trim()}>
-          <NavIcon name="edit" size={16}/> {val.trim() ? 'Add to canvas' : 'Type your text first'}
-        </button>
-      </div>
-
-      {val && (
-        <div style={{ padding:'10px', borderRadius:9, background: bodyColor ?? 'rgba(0,0,0,.3)', textAlign:'center' }}>
-          <p style={{ color:clr, fontSize:size>32?22:size, fontFamily:fontCss, fontWeight:defaultWeight(fontDef), margin:0, ...lookDef.css(clr),
-            overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-            {val}
-          </p>
+        {showEmoji && (
+          <div className="ds-emoji" role="group" aria-label="Emoji">
+            {UNIQUE_EMOJIS.map(e => <button key={e} type="button" onClick={() => insertEmoji(e)}>{e}</button>)}
+          </div>
+        )}
+        {val.trim() && (
+          <div className="ds-txt-preview" style={{ background: bodyColor ?? 'rgba(0,0,0,.3)' }}>
+            <span style={{ color:clr, fontSize:Math.min(size, 28), fontFamily:fontCss, fontWeight:defaultWeight(fontDef), ...lookDef.css(clr) }}>{val}</span>
+          </div>
+        )}
+        <div className="ds-compose">
+          <input ref={inputRef} value={val} onChange={e => setVal(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') add(); }}
+            placeholder="Type a name, slogan or number" aria-label="Text, name or number" maxLength={32}/>
+          <button type="button" className="ds-compose-emoji" aria-label="Insert emoji" aria-pressed={showEmoji} onClick={() => setShowEmoji(v => !v)}>🙂</button>
+          <button type="button" className="ds-addbtn" disabled={!val.trim()} onClick={add}>Add text</button>
         </div>
-      )}
+      </div>
     </div>
   );
 }

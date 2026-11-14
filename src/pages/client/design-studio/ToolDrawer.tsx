@@ -124,6 +124,8 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
   const [snap, setSnap] = useState('peek');
   const raise = () => setSnap(s => (s === 'peek' ? 'half' : s));
   const [moreOpen, setMoreOpen] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { scrollRef.current?.scrollTo({ top: 0 }); }, [tool, partView, moreOpen]);
   const moreBtn = useRef(null);
   // The More list unmounts as a dialog opens, so the More tab takes focus first and becomes the dialog's opener.
   const fromMore = fn => () => { moreBtn.current?.focus({ preventScroll: true }); setMoreOpen(false); fn(); };
@@ -199,7 +201,7 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
             <NavIcon name="chevronRight" size={18}/><span className="ds-panel-toggle-t">Hide</span>
           </button>
         </header>
-        <div className="ds-panel-scroll">
+        <div className="ds-panel-scroll" ref={scrollRef}>
         {noGarment ? (
           <p className="ds-panel-prompt">Choose a garment on the canvas to start designing.</p>
         ) : moreOpen ? moreList : (
