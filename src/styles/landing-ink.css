@@ -1,14 +1,14 @@
 /* Landing "ink" theme: dark editorial layer ported from the Kage template (threeui.com): masked headline reveal, numbered chapter rules,
    chapter chips, film grain + vignette, trailing cursor ring, hide-on-scroll nav. VFRB colours, fonts and photos only; no remote assets. */
 .vs-page--ink {
-  --lp-ink: #070e1b; --lp-ink-2: #0c1830; --lp-bone: #eaf3f5; --lp-bone-dim: #b4c2cc; --lp-muted: #8ba0b0;
+  --lp-ink: #053640; --lp-ink-2: #07454f; --lp-bone: #eaf3f5; --lp-bone-dim: #b4c2cc; --lp-muted: #8ba0b0;
   --lp-line: rgba(234, 243, 245, 0.16); --lp-line-soft: rgba(234, 243, 245, 0.08);
   --lp-hot: #ff6a55; --lp-out: cubic-bezier(0.16, 1, 0.3, 1);
   --vs-paper: var(--lp-ink); --vs-ink: var(--lp-bone); --vs-ink-2: var(--lp-bone-dim); --vs-mute: var(--lp-muted); --vs-line: var(--lp-line);
   --vs-teal-deep: #4fe0bc; --vs-night: var(--lp-ink);
   background: var(--lp-ink); color: var(--lp-bone);
 }
-:root:has(.vs-page--ink) { background: #070e1b; }
+:root:has(.vs-page--ink) { background: #053640; }
 .vs-page--ink :where(h1, h2, h3) { color: inherit; }
 .vs-page--ink :focus-visible { outline-color: var(--vs-mint); }
 

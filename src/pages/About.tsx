@@ -1,5 +1,6 @@
 import Photo from '../components/landing/Photo';
 import Reveal from '../components/landing/Reveal';
+import MapCard from '../components/site/MapCard';
 import SitePage from '../components/site/SitePage';
 import { Banner, Btn, Head, TextLink, Journey } from '../components/site/parts';
 import { CONTACT as C } from '../components/site/config';
@@ -60,6 +61,7 @@ export default function About() {
               <div><dt>Facebook</dt><dd><a href={C.facebook} target="_blank" rel="noopener noreferrer">Tailor Centre VFRB Manila</a></dd></div>
             </dl>
             <div className="vs-stack">
+              <MapCard />
               <p className="vs-body">Ready to order? Sign in to design your uniform, or message us directly.</p>
               <div className="vs-btns">
                 <Btn to="/login">Sign in</Btn>

@@ -1,7 +1,7 @@
 @import './fonts.css';
 
 .vs {
-  --vs-paper: #f7f6f1;
+  --vs-paper: #f6fbfa;
   --vs-card: #ffffff;
   --vs-ink: #10202b;
   --vs-ink-2: #3b4a56;
@@ -10,8 +10,8 @@
   --vs-teal: #028090;
   --vs-teal-deep: #015a67;
   --vs-mint: #02c39a;
-  --vs-night: #0a2029;
-  --vs-night-2: #123240;
+  --vs-night: #053640;
+  --vs-night-2: #0a4a57;
   --vs-display: 'DM Serif Display', Georgia, 'Times New Roman', serif;
   --vs-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --vs-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
@@ -679,17 +679,19 @@ button.vs-member:hover { transform: translateY(-3px); box-shadow: 0 14px 28px rg
 body:has(.vs-page) [data-storage-bar] { display: none; }
 
 /* One shell on every public page: the dark header and the night footer the landing page uses. */
-.vs-header--dark { --vs-ink: #eaf3f5; --vs-ink-2: #b4c2cc; --vs-mute: #8ba0b0; background: #070e1b; color: #eaf3f5; border-bottom: 1px solid rgba(234,243,245,0.12); }
+.vs-header--dark { --vs-ink: #eaf3f5; --vs-ink-2: #c9e3e6; --vs-mute: #9cc3c8; background: var(--vs-night); color: #eaf3f5; border-bottom: 1px solid rgba(234,243,245,0.12); }
 .vs-header--dark.is-stuck { box-shadow: 0 8px 24px -16px rgba(0,0,0,0.6); }
-.vs-header--dark .vs-nav a { font-size: 12px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: #b4c2cc; }
+.vs-header--dark .vs-nav a { font-size: 12px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: #c9e3e6; }
 .vs-header--dark .vs-nav a:hover { background: rgba(234,243,245,0.08); color: #eaf3f5; }
-.vs-header--dark .vs-nav a[aria-current='page'] { background: rgba(2,195,154,0.16); color: #7fe6cf; }
-.vs-header--dark .vs-sheet { background: #070e1b; }
+.vs-header--dark .vs-nav a[aria-current='page'] { background: #ffffff; color: #015a67; }
+.vs-header--dark .vs-sheet { background: var(--vs-night); }
 .vs-header--dark .vs-sheet a.vs-sheet__link { color: #eaf3f5; border-color: rgba(234,243,245,0.16); }
 .vs-header--dark .vs-sheet a.vs-sheet__link[aria-current='page'] { color: #7fe6cf; }
 .vs-header--dark :focus-visible { outline-color: var(--vs-mint); }
-.vs-footer { background: #070e1b; border-top: 1px solid rgba(234,243,245,0.08); }
-.vs-pagehead { background: radial-gradient(ellipse at 80% 0%, #0d3a47 0%, #070e1b 70%); }
+.vs-footer { background: var(--vs-night); border-top: 1px solid rgba(234,243,245,0.08); }
+.vs-pagehead { background: radial-gradient(ellipse at 82% 0%, #0b8798 0%, rgba(5,54,64,0) 62%), linear-gradient(160deg, #0a5563 0%, #053640 100%); }
+.vs-draftnote { justify-self: start; margin: 4px 0 0; padding: 9px 14px; border-radius: 10px; border: 1px solid rgba(255,138,143,0.6); background: rgba(255,106,85,0.12); color: #ffd5d8; font-size: 14px; font-weight: 600; }
+
 .vs-draftnote { justify-self: start; margin: 4px 0 0; padding: 9px 14px; border-radius: 10px; border: 1px solid rgba(255,138,143,0.6); background: rgba(255,106,85,0.12); color: #ffd5d8; font-size: 14px; font-weight: 600; }
 
 /* Every non-home public page: the landing's dark surface, so About, Gallery, Family, Inside, What We Do, Privacy and Terms read as one site. */
@@ -720,3 +722,16 @@ body:has(.vs-page) [data-storage-bar] { display: none; }
 .vs-page--night .vs-btn--ghost, .vs-page--night .vs-btn--secondary { background: transparent; color: var(--lp-bone); border-color: var(--lp-line); }
 .vs-page--night .vs-banner, .vs-page--night .vs-journey { border: 1px solid var(--lp-line-soft); }
 @media (hover: hover) { .vs-page--night :is(.vs-card, .vs-member, .vs-svc a):hover { border-color: rgba(2,195,154,0.55); } }
+
+/* Map card: the Google embed loads only after the visitor presses the button. */
+.vs-map { margin: 0; position: relative; overflow: hidden; border-radius: var(--vs-r); border: 1px solid var(--vs-line); background: #fff; box-shadow: var(--vs-shadow); min-height: 320px; aspect-ratio: 16 / 11; }
+.vs-map iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.vs-map__idle { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 6px; padding: 24px; text-align: center;
+  background: linear-gradient(rgba(2,128,144,0.07) 1px, transparent 1px) 0 0 / 100% 36px, linear-gradient(90deg, rgba(2,128,144,0.07) 1px, transparent 1px) 0 0 / 36px 100%, linear-gradient(160deg, #e3f5ef, #ffffff); }
+.vs-map__pin { width: 46px; height: 46px; margin-bottom: 6px; color: #fff; background: var(--vs-teal); border-radius: 50% 50% 50% 0; transform: rotate(-45deg); display: grid; place-items: center; box-shadow: 0 10px 20px -8px rgba(2,128,144,0.7); }
+.vs-map__pin svg { transform: rotate(45deg); }
+.vs-map__idle b { font-family: var(--vs-display); font-weight: 400; font-size: 22px; color: var(--vs-ink); }
+.vs-map__idle span { color: var(--vs-ink-2); font-size: 15px; }
+.vs-map__btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 14px; }
+.vs-map__idle small { margin-top: 10px; max-width: 34ch; font-size: 12.5px; line-height: 1.45; color: var(--vs-mute); }
+.vs-split:has(.vs-map) { align-items: start; }

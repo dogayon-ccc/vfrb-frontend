@@ -16,7 +16,7 @@ export default function SitePage({ title, children, tone = 'paper' }: SitePagePr
     return () => clearTimeout(t);
   }, [hash, pathname]);
   return (
-    <div className={`vs vs-page ${tone === 'ink' ? 'vs-page--ink' : 'vs-page--night'}`}>
+    <div className={`vs vs-page${tone === 'ink' ? ' vs-page--ink' : ''}`}>
       <SiteHeader tone={tone} />
       <main id="main" key={pathname} className="vs-enter">{children}</main>
       <SiteFooter />

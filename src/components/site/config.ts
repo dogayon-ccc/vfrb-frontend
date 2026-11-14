@@ -14,6 +14,7 @@ export const CONTACT = {
   email: "vfrb.enterprise@gmail.com",
   facebook: "https://www.facebook.com/tailorcentrevfrbmanila",
   map: "https://www.google.com/maps/search/?api=1&query=31+San+Guillermo+St+Bayanan+Muntinlupa+City",
+  embed: "https://www.google.com/maps?q=31+San+Guillermo+St+Bayanan+Muntinlupa+City&output=embed",
   printEmail: "print.vfrb@gmail.com",
   printPhone: "0949 085 5568",
 };

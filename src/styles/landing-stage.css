@@ -1,11 +1,11 @@
 /* Home chapters 2-3: sticky 3D stage with scroll-driven copy. Mobile (<900px) and reduced motion get a plain stacked section. */
-.fs { position: relative; background: #0a0b0e; color: var(--lp-bone, #eaf3f5); }
+.fs { position: relative; background: #053640; color: var(--lp-bone, #eaf3f5); }
 .fs--live { height: 340svh; }
 .fs__stick { position: relative; display: grid; align-items: center; min-height: 100svh; overflow: hidden; isolation: isolate; }
 .fs--live .fs__stick { position: sticky; top: 0; height: 100svh; }
 .fs__bg { position: absolute; inset: 0; z-index: -2; background:
-  radial-gradient(60% 70% at 72% 46%, rgba(2,128,144,0.28), transparent 70%),
-  radial-gradient(40% 50% at 82% 20%, rgba(255,106,85,0.14), transparent 70%), #0a0b0e; }
+  radial-gradient(60% 70% at 72% 46%, rgba(11,135,152,0.42), transparent 70%),
+  radial-gradient(40% 50% at 82% 20%, rgba(255,106,85,0.14), transparent 70%), #053640; }
 .fs__canvas { position: absolute; inset: 0; z-index: -1; }
 .fs__canvas canvas { display: block; width: 100% !important; height: 100% !important; }
 .fs__flat { position: absolute; inset: 0; z-index: -1; display: grid; place-items: center; padding: 24px; }

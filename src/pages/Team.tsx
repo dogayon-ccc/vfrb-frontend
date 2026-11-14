@@ -1,5 +1,6 @@
 import Photo from '../components/landing/Photo';
 import Reveal from '../components/landing/Reveal';
+import MapCard from '../components/site/MapCard';
 import SitePage from '../components/site/SitePage';
 import { Banner, Head, TextLink, Journey } from '../components/site/parts';
 import { CONTACT as C } from '../components/site/config';
@@ -49,6 +50,7 @@ export default function Team() {
             </dl>
           </Reveal>
           <Reveal className="vs-stack" delay={0.06}>
+            <MapCard />
             <p className="vs-body">Questions about an order or a visit? Contact details are on the About page.</p>
             <TextLink to="/about#contact">Contact VFRB</TextLink>
           </Reveal>
