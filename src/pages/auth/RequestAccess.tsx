@@ -1,4 +1,4 @@
-// Public "request access" form on the Login page. Creates no account; an Administrator follows up.
+// Public "request access" form on the Login page. Creates no account; an Administrator follows up. Email is checked on blur once it has text.
 import { useState } from 'react';
 import axios from 'axios';
 import { Field, FormError, SubmitBtn } from '../../components/AuthShell';
@@ -22,7 +22,7 @@ const failText = (err) => {
   return 'Something went wrong. Please try again.';
 };
 
-export default function RequestAccess() {
+export default function RequestAccess({ onBack }: { onBack?: () => void }) {
   const [form, setForm] = useState(EMPTY);
   const [errs, setErrs] = useState({});
   const [status, setStatus] = useState('idle');
@@ -43,25 +43,31 @@ export default function RequestAccess() {
   };
 
   if (status === 'sent') {
-    return <p role="status" style={{ borderRadius: 12, padding: '14px 16px', background: 'var(--teal-50)', color: 'var(--ink)', fontSize: 15, lineHeight: 1.5 }}>
-      Thank you. A VFRB administrator will contact you about your account.</p>;
+    return (
+      <div role="status" className="au-sent">
+        <h2>Request sent</h2>
+        <p>A VFRB administrator will contact you about your account.</p>
+        {onBack && <button type="button" className="au-submit au-submit--line" onClick={onBack}>Back to sign in</button>}
+      </div>
+    );
   }
 
   const field = (k, label, props = {}) => <Field key={k} id={`ra-${k}`} label={label} value={form[k]} onChange={e => set(k, e.target.value)} error={errs[k]} {...props}/>;
-  const group = (legend, help, ...fields) => (
-    <fieldset className="au-group" aria-describedby={`ra-${legend}-help`}>
+  const group = (id, legend, help, ...fields) => (
+    <fieldset className="au-group" aria-describedby={`ra-${id}-help`}>
       <legend>{legend}</legend>
-      <p id={`ra-${legend}-help`} className="au-help">{help}</p>
+      <p id={`ra-${id}-help`} className="au-help">{help}</p>
       {fields}
     </fieldset>
   );
 
   return (
     <form onSubmit={submit} noValidate style={{ position: 'relative', display: 'flex', flexDirection: 'column', gap: 18, textAlign: 'left' }}>
-      {group('You', 'So the administrator knows who to call back.', field('name', 'Full name', { autoComplete: 'name', required: true }))}
-      {group('Organization', 'The school, hospital or company the uniforms are for.', field('organization', 'Organization (optional)', { autoComplete: 'organization' }))}
-      {group('Contact', 'Used only to set up your account and reply to this request.',
-        field('email', 'Email', { type: 'email', autoComplete: 'email', autoCapitalize: 'none', spellCheck: false, required: true }),
+      {group('you', 'About you', 'So the administrator knows who to call back, and which school, hospital or company the uniforms are for.',
+        field('name', 'Full name', { autoComplete: 'name', required: true }),
+        field('organization', 'Organization (optional)', { autoComplete: 'organization' }))}
+      {group('contact', 'Contact', 'Used only to set up your account and reply to this request.',
+        field('email', 'Email', { type: 'email', autoComplete: 'email', autoCapitalize: 'none', spellCheck: false, required: true, onBlur: () => form.email.trim() && setErrs(x => ({ ...x, email: EMAIL.test(form.email.trim()) ? '' : 'Enter a valid email address.' })) }),
         field('mobile', 'Mobile (optional)', { type: 'tel', autoComplete: 'tel', inputMode: 'tel' }))}
       <div style={HONEYPOT_STYLE} aria-hidden="true">
         <label htmlFor="ra-website">Website</label>

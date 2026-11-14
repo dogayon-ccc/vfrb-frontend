@@ -15,9 +15,14 @@ export const PUBLIC_META = {
   '/inside-vfrb': ['Inside VFRB', 'Real people, real machines and a production floor built around tailoring and garment manufacturing.'],
   '/gallery':     ['Gallery', 'Embroidery, printing, sublimation, packed orders and the production team, all photographed at VFRB.'],
   '/our-team':    ['VFRB Family', 'A medium-scale, family-owned garment business specialized in corporate and company uniforms.'],
-  '/group-60':    ['Group 60', 'The City College of Calamba BSIT 2026 capstone team behind the VFRB Enterprise system.'],
   '/privacy':     ['Privacy Policy', 'How VFRB Enterprise collects, uses and protects personal data under the Data Privacy Act of 2012.'],
   '/terms':       ['Terms of Service', 'The terms for bulk uniform orders placed through the VFRB Enterprise customer portal.'],
+};
+
+const setCanonical = (href) => {
+  let el = document.head.querySelector('link[rel="canonical"]');
+  if (!el) { el = document.createElement('link'); el.setAttribute('rel', 'canonical'); document.head.appendChild(el); }
+  el.setAttribute('href', href);
 };
 
 const setMeta = (attr, key, content) => {
@@ -40,6 +45,7 @@ export default function RouteMeta() {
     setMeta('property', 'og:title', title);
     setMeta('property', 'og:description', desc);
     setMeta('property', 'og:url', SITE_URL + path);
+    setCanonical(SITE_URL + path);
     setMeta('name', 'twitter:title', title);
     setMeta('name', 'twitter:description', desc);
   }, [pathname]);

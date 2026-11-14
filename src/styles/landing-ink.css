@@ -28,7 +28,7 @@
 .vs-header--ink .vs-brand small { color: var(--lp-muted); }
 .vs-page--ink .vs-sheet { background: var(--lp-ink); }
 .vs-page--ink .vs-sheet a.vs-sheet__link { color: var(--lp-bone); border-color: var(--lp-line); }
-.vs-page--ink .vs-footer { border-top: 1px solid var(--lp-line-soft); }
+.vs-page--ink .vs-footer { border-top: 1px solid var(--lp-line-soft); padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); } /* clears the fixed deck bar */
 
 /* overlays (portalled) */
 .lp-vignette { position: fixed; inset: 0; z-index: 55; pointer-events: none; background: radial-gradient(125% 95% at 50% 42%, transparent 48%, rgba(2, 4, 8, 0.5) 100%); }

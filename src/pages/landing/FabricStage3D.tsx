@@ -55,7 +55,8 @@ function Rig({ slides, idx, cur, onSpeed }: { slides: Slide[]; idx: number; cur:
     cur.current += (target.current - prev) * (1 - Math.exp(-d * 3.2));
     if (Math.abs(target.current - cur.current) < 0.0005) cur.current = target.current;
     onSpeed(d > 0 ? (cur.current - prev) / d : 0);
-    const wide = size.width / size.height > 1.15;
+    // Matches the 900px CSS breakpoint where copy sits right; canvas aspect is wrong on phones (the canvas is only the top half).
+    const wide = size.width >= 900;
     camera.position.x += ((wide ? -1.05 : 0) - camera.position.x) * 0.1;
     camera.position.y = 0.15; camera.position.z = wide ? 5 : 5.8;
     camera.lookAt(camera.position.x, 0.05, 0);

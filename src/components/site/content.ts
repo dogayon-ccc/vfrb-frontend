@@ -78,5 +78,4 @@ export const JOURNEY = [
   { to: '/inside-vfrb', label: 'Inside VFRB', title: 'Inside VFRB', blurb: 'The production floor, stage by stage.', photo: P.sewing4, pos: 'center' },
   { to: '/gallery', label: 'Gallery', title: 'The gallery', blurb: 'Finished pieces and the floor behind them.', photo: P.tees, pos: 'center' },
   { to: '/our-team', label: 'VFRB Family', title: 'The VFRB Family', blurb: 'The family and team behind the company.', photo: P.familyDinner, pos: 'center 40%' },
-  { to: '/group-60', label: 'Group 60', title: 'Group 60', blurb: 'The researchers who built this system.', photo: null },
 ];

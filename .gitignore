@@ -36,3 +36,7 @@ docs/qa/
 
 # flat-from-glb intermediate masks
 tools/out/
+
+# Playwright output
+test-results/
+playwright-report/

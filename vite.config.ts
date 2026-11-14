@@ -81,7 +81,8 @@ export default defineConfig(({ mode }) => {
         // -> ~2.1MB. Runtime correctness is unaffected — dynamic import()
         // doesn't depend on SW precache.
         // Studio fonts (public/fonts, ~580 KB) load on first use and are cached by the rule below, not precached.
-        globIgnores: ["**/three-*.js", "**/fabric-*.js", "**/bg-remove-*.js", "**/charts-*.js", "fonts/**"],
+        // garments2d/source holds 4 MB of reference masters that no screen loads.
+        globIgnores: ["**/three-*.js", "**/fabric-*.js", "**/bg-remove-*.js", "**/charts-*.js", "fonts/**", "garments2d/source/**"],
         runtimeCaching: [
           {
             urlPattern: /\/fonts\/[^/]+\.woff2$/,

@@ -102,7 +102,7 @@ const PUBLIC = {
   forgot: () => import('./pages/auth/ForgotPassword'), reset: () => import('./pages/auth/ResetPassword'),
   guide: () => import('./pages/Guide'), faq: () => import('./pages/FAQ'), team: () => import('./pages/Team'),
   about: () => import('./pages/About'), whatWeDo: () => import('./pages/WhatWeDo'), inside: () => import('./pages/InsideVFRB'),
-  gallery: () => import('./pages/Gallery'), group60: () => import('./pages/Group60'),
+  gallery: () => import('./pages/Gallery'),
   privacy: () => import('./pages/PrivacyPolicy'), terms: () => import('./pages/TermsOfService'),
 };
 const ForgotPassword = lazy(PUBLIC.forgot);
@@ -114,7 +114,6 @@ const AboutPage    = lazy(PUBLIC.about);
 const WhatWeDoPage = lazy(PUBLIC.whatWeDo);
 const InsidePage   = lazy(PUBLIC.inside);
 const GalleryPage  = lazy(PUBLIC.gallery);
-const Group60Page  = lazy(PUBLIC.group60);
 const PrivacyPage  = lazy(PUBLIC.privacy);
 const TermsPage    = lazy(PUBLIC.terms);
 
@@ -288,7 +287,6 @@ export default function App() {
           <Route path="/gallery"     element={<SiteLoad><GalleryPage/></SiteLoad>}/>
           <Route path="/our-team" element={<SiteLoad><TeamPage/></SiteLoad>}/>
           <Route path="/vfrb-family" element={<Navigate to="/our-team" replace/>}/>
-          <Route path="/group-60" element={<SiteLoad><Group60Page/></SiteLoad>}/>
           <Route path="/privacy"  element={<SiteLoad><PrivacyPage/></SiteLoad>}/>
           <Route path="/terms"    element={<SiteLoad><TermsPage/></SiteLoad>}/>
 

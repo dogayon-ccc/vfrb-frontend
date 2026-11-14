@@ -38,7 +38,7 @@ export default function SiteFooter({ lean = false }: { lean?: boolean }) {
           </nav>
         </div>
         <div className="vs-footer__legal">
-          <p>© {new Date().getFullYear()} VFRB Enterprise · Created by <Link to="/group-60">Group 60</Link></p>
+          <p>© {new Date().getFullYear()} VFRB Enterprise</p>
           <nav aria-label="Legal"><Link to="/privacy">Privacy Policy</Link><Link to="/terms">Terms of Service</Link></nav>
         </div>
       </div>

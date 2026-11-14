@@ -64,17 +64,18 @@ export function AuthDone({ icon, title, action, onAction, children }: any) {
   );
 }
 
-export function Field({ id, label, error, aside, trailing, ...input }: any) {
+export function Field({ id, label, error, aside, trailing, hint, onBlur, ...input }: any) {
   const [on, setOn] = useState(false);
   return (
     <div>
       <label htmlFor={id} className="au-label">{label}</label>
       <div className="au-inputwrap">
-        <input id={id} {...input} {...fieldA11y(id, error)} onFocus={() => setOn(true)} onBlur={() => setOn(false)}
+        <input id={id} {...input} {...fieldA11y(id, error)} onFocus={() => setOn(true)} onBlur={e => { setOn(false); onBlur?.(e); }}
           style={{ ...authInput(on ? id : '', id, error), ...(trailing && { paddingRight: 52 }) }} />
         {trailing}
       </div>
       <FieldError id={id} msg={error} />
+      {hint && !error && <p role="status" className="au-hint">{hint}</p>}
       {aside && <div className="au-asiderow">{aside}</div>}
     </div>
   );
@@ -82,7 +83,10 @@ export function Field({ id, label, error, aside, trailing, ...input }: any) {
 
 export function PasswordField(props) {
   const [show, setShow] = useState(false);
-  return <Field {...props} type={show ? 'text' : 'password'} trailing={
+  const [caps, setCaps] = useState(false);
+  const sync = (e: KeyboardEvent | any) => setCaps(!!e.getModifierState?.('CapsLock'));
+  return <Field {...props} type={show ? 'text' : 'password'} hint={caps ? 'Caps Lock is on.' : undefined}
+    onKeyDown={sync} onKeyUp={sync} onBlur={e => { setCaps(false); props.onBlur?.(e); }} trailing={
     <button type="button" className="au-eye" onClick={() => setShow(v => !v)} aria-label="Show password" aria-pressed={show}>
       <NavIcon name={show ? 'hide' : 'show'} size={18} />
     </button>} />;

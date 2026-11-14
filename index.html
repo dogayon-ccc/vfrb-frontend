@@ -31,6 +31,7 @@
          and instead needs these apple-* tags read directly, plus its own
          icon link (apple-touch-icon.png, already shipped in /public since
          the Aug 24 2026 PWA commit) — this is the missing half. -->
+    <link rel="preload" href="/src/assets/fonts/dm-serif-display-latin-400.woff2" as="font" type="font/woff2" crossorigin />
     <meta name="theme-color" content="#028090" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -39,6 +40,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
     <title>VFRB Enterprise</title>
+      <!-- LocalBusiness data: address, phone and email mirror src/components/site/config.ts. -->
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "LocalBusiness", "name": "VFRB Enterprise", "url": "https://vfrb-frontend.vercel.app/", "foundingDate": "2000", "image": "https://vfrb-frontend.vercel.app/pwa-512x512.png", "telephone": "0921 791 6259", "email": "vfrb.enterprise@gmail.com", "address": {"@type": "PostalAddress", "streetAddress": "31 San Guillermo St., Bayanan", "addressLocality": "Muntinlupa City", "postalCode": "1772", "addressCountry": "PH"}, "sameAs": ["https://www.facebook.com/tailorcentrevfrbmanila"]}</script>
   </head>
   <body>
     <div id="root"></div>

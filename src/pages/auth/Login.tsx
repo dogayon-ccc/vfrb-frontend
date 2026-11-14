@@ -88,7 +88,12 @@ export default function Login() {
       <div className="au-tabs" role="tablist" aria-label="Account">
         {([['signin', 'Sign in'], ['request', 'Request access']] as const).map(([id, label]) => (
           <button key={id} type="button" role="tab" id={`tab-${id}`} aria-selected={tab === id} aria-controls={`panel-${id}`} tabIndex={tab === id ? 0 : -1}
-            onClick={() => pick(id)} onKeyDown={e => { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); pick(tab === 'signin' ? 'request' : 'signin'); } }}>{label}</button>
+            onClick={() => pick(id)} onKeyDown={e => {
+              const to = e.key === 'Home' ? 'signin' : e.key === 'End' ? 'request' : e.key === 'ArrowRight' || e.key === 'ArrowLeft' ? (tab === 'signin' ? 'request' : 'signin') : null;
+              if (!to) return;
+              e.preventDefault(); pick(to);
+              document.getElementById(`tab-${to}`)?.focus();
+            }}>{label}</button>
         ))}
       </div>
 
@@ -142,7 +147,7 @@ export default function Login() {
       </div>
 
       <div role="tabpanel" id="panel-request" aria-labelledby="tab-request" hidden={tab !== 'request'} className="au-panel">
-        {tab === 'request' && <RequestAccess />}
+        {tab === 'request' && <RequestAccess onBack={() => pick('signin')} />}
         <p className="au-alt">
           Prefer to talk? <a href={CONTACT.facebook} target="_blank" rel="noopener noreferrer" style={CONTACT_LINK}>Message us on Facebook</a> or call <a href={CONTACT.phoneHref} style={{ ...CONTACT_LINK, whiteSpace: 'nowrap' }}>{CONTACT.phone}</a>.
         </p>
