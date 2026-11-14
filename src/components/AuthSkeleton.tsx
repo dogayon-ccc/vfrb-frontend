@@ -1,6 +1,6 @@
 // Placeholder in the AuthShell layout, shown while the login screen gets ready.
 import { useEffect, useState } from 'react';
-import art from '../assets/brand/sewing-2.jpg';
+import art from '../assets/brand/sewing-2.webp';
 import '../styles/auth.css';
 
 let artLoaded = false;

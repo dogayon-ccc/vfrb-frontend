@@ -5,7 +5,7 @@ import { ViewLink as Link } from './ViewLink';
 import { NavIcon } from './ui/icons';
 import useParallax from '../hooks/useParallax';
 import logo from '../assets/company-logo.jpg';
-import art from '../assets/brand/sewing-2.jpg';
+import art from '../assets/brand/sewing-2.webp';
 import flatA from '../assets/flats/scrub-top-vneck-short/front.svg';
 import flatB from '../assets/flats/scrub-top-vneck-short/back.svg';
 import flatC from '../assets/flats/scrub-top-vneck-three-quarter/front.svg';
