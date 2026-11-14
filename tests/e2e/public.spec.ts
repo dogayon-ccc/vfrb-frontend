@@ -165,13 +165,13 @@ test.describe('deck bar', () => {
 });
 
 test.describe('landing 3D is real GLB', () => {
-  test('hero asks for the scrub-top scan, never the authored procedural model, and has no explode control', async ({ page }) => {
+  test('hero asks for the real scrub-top GLB, never the authored procedural model, and has no explode control', async ({ page }) => {
     const glbs: string[] = [];
     page.on('request', r => { if (r.url().toLowerCase().includes('.glb')) glbs.push(decodeURI(r.url())); });
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/', { waitUntil: 'networkidle' });
     await page.waitForTimeout(4000);
-    expect(glbs.some(u => u.includes('scrub-top-women-short.glb'))).toBe(true);
+    expect(glbs.some(u => u.includes('scrub-top-women-three-quarter.glb'))).toBe(true);
     expect(glbs.filter(u => u.includes('/authored/'))).toEqual([]);
     expect(await page.locator('.lp-3d__btn').count()).toBe(0);
   });

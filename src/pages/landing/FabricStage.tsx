@@ -14,7 +14,7 @@ const c = (body: string, collar: string, pocket: string): Colors => ({ body, sle
 // tries: [sleeve, fit] pairs, first one with a real 3D model wins. A category whose template has no model is left out, never faked.
 const DEFS = [
   { cat: 'School Uniform', label: 'School', garment: 'Polo Shirt', tries: [['Short', 'unisex'], ['Short', 'male']], colors: c('#1B2A4A', '#028090', '#24365C') },
-  { cat: 'Medical / Scrubs', label: 'Medical', garment: 'Scrub Top', tries: [['Short', 'female'], ['Short', 'male']], colors: c('#028090', '#1B2A4A', '#046A78') },
+  { cat: 'Medical / Scrubs', label: 'Medical', garment: 'Scrub Top', tries: [['3/4', 'female'], ['Short', 'female'], ['Short', 'male']], colors: c('#028090', '#1B2A4A', '#046A78') },
   { cat: 'Corporate', label: 'Corporate', garment: 'Blazer', tries: [['Long', 'female'], ['Three-Quarter', 'female']], colors: c('#1B2A4A', '#1B2A4A', '#24365C') },
   { cat: 'Hospitality / Service', label: 'Hospitality', garment: 'Mandarin Collar', tries: [['Long', 'male'], ['Long', 'female']], colors: c('#7A1F3D', '#EFE9DA', '#8C2A4B') },
   { cat: 'Industrial / Work', label: 'Industrial', garment: 'Lab Coverall', tries: [['Long', 'unisex'], ['Short', 'unisex'], [undefined, undefined]], colors: c('#1F5D46', '#EFE9DA', '#2A7059') },

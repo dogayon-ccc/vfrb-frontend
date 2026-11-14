@@ -1,4 +1,4 @@
-// Landing hero 3D: the real scrub-top GLB (female fit) drawn by the Studio's own mesh and light rig. Display only; lazy-loaded after first paint.
+// Landing hero 3D: the real scrub-top GLB (female, 3/4 sleeve) drawn by the Studio's own mesh and light rig. Display only; lazy-loaded after first paint.
 import { Component, type ReactNode, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Bounds, Center, ContactShadows, OrbitControls } from '@react-three/drei';
@@ -7,7 +7,7 @@ import ScannedGarmentMesh from '../client/design-studio/ScannedGarmentMesh';
 import { scannedEntryFor } from '../client/design-studio/garmentCapabilities';
 import { LIGHT, KEY_POS, RIM_POS } from '../client/design-studio/lightRig';
 
-const ENTRY = scannedEntryFor('Scrub Top', 'Short', 'female');
+const ENTRY = scannedEntryFor('Scrub Top', '3/4', 'female');
 // Institutional colours VFRB's clients order in; the first is the template's own.
 const SWATCHES = [['Teal', '#028090'], ['Navy blue', '#1B2A4A'], ['Royal blue', '#2952A3'], ['Bottle green', '#006A4E'], ['Maroon', '#800000'], ['Gray', '#808080']] as const;
 const paint = (hex: string) => ({ body: hex, sleeve: hex, collar: hex, pocket: hex });
@@ -43,7 +43,7 @@ function Model({ colors, onReady }: any) {
     <>
       <Bounds fit clip margin={1.45}>
         <Turn><Center><group ref={ref}>
-          <ScannedGarmentMesh manifest={ENTRY} colors={colors} fit="female" garment="Scrub Top" sleeve="Short" />
+          <ScannedGarmentMesh manifest={ENTRY} colors={colors} fit="female" garment="Scrub Top" sleeve="3/4" />
         </group></Center></Turn>
       </Bounds>
       {floor !== null && <ContactShadows position={[0, floor, 0] as [number, number, number]} frames={1} opacity={0.38} scale={2.4} blur={2.6} far={1.2} />}

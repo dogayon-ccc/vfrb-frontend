@@ -13,6 +13,9 @@ const paths = new Set();
 for (const f of walk('src').filter(f => /\.(jsx?|tsx?|mjs)$/.test(f)))
   for (const m of fs.readFileSync(f, 'utf8').matchAll(/\/models\/[^'"`]+?\.glb/gi)) !/[${<]/.test(m[0]) && paths.add(m[0]);
 
+const slots = fs.readFileSync('src/pages/client/design-studio/glbSlots.ts', 'utf8');
+for (const m of slots.matchAll(/slot\('([^']+)'[^\n]*?state: '(?:approx|verified)'/g)) paths.add(`/models/garments/${m[1]}.glb`);
+
 const toUrl = (p) => BASE + decodeURI(p.slice('/models'.length)).replace(/ /g, '-'); // same rule as src/lib/modelUrl.ts
 const bad = [];
 for (const p of [...paths].sort()) {
