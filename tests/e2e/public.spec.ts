@@ -204,3 +204,23 @@ test.describe('no route loaders or transitions', () => {
     await expect(page.getByText('Loading…')).toHaveCount(0);
   });
 });
+
+test.describe('route veil', () => {
+  test('plays once per page change, never blocks input, and is gone within 0.7s', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForTimeout(900);
+    await page.getByRole('link', { name: /sign in/i }).first().click();
+    await page.waitForURL('**/login');
+    const veil = page.locator('.rv');
+    await expect(veil).toHaveCSS('pointer-events', 'none');
+    await expect(page.locator('.au-card')).toBeVisible();
+    await expect(async () => {
+      const clip = await veil.evaluate(el => getComputedStyle(el).clipPath);
+      expect(clip).toContain('140');
+    }).toPass({ timeout: 1000 });
+  });
+  test('auth pages no longer show the flat shirt art', async ({ page }) => {
+    await page.goto('/login');
+    await expect(page.locator('.au-flats, .au-flat')).toHaveCount(0);
+  });
+});

@@ -1,0 +1,23 @@
+/* One 0.7s slanted wipe. It never blocks input and never waits on a network request. */
+.rv { position: fixed; inset: 0; z-index: 9990; pointer-events: none; overflow: hidden; display: grid; place-items: center;
+  background: linear-gradient(115deg, #041117 0 62%, #028090 62% 64%, #02c39a 64% 65.5%, #041117 65.5%);
+  clip-path: polygon(-30% 0, -30% 0, -45% 100%, -45% 100%); animation: rv-wipe 700ms cubic-bezier(0.7, 0, 0.2, 1) both; }
+.rv--boot { clip-path: polygon(0 0, 130% 0, 130% 100%, 0 100%); animation-name: rv-boot; animation-duration: 700ms; }
+.rv__mark { position: relative; display: block; width: 56px; height: 56px; opacity: 0; animation: rv-mark 700ms ease both;
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px)); }
+.rv__mark img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.rv__bar { position: absolute; left: 50%; top: calc(50% + 50px); width: 120px; height: 3px; margin-left: -60px; background: rgba(2, 195, 154, 0.25); overflow: hidden; transform: skewX(-30deg); }
+.rv__bar::after { content: ''; position: absolute; inset: 0; background: #02c39a; transform: translateX(-100%); animation: rv-bar 560ms 70ms ease-out both; }
+@keyframes rv-wipe {
+  0% { clip-path: polygon(-30% 0, -30% 0, -45% 100%, -45% 100%); }
+  42% { clip-path: polygon(-30% 0, 140% 0, 125% 100%, -45% 100%); }
+  58% { clip-path: polygon(-30% 0, 140% 0, 125% 100%, -45% 100%); }
+  100% { clip-path: polygon(140% 0, 140% 0, 125% 100%, 125% 100%); }
+}
+@keyframes rv-boot {
+  0%, 22% { clip-path: polygon(-30% 0, 140% 0, 125% 100%, -45% 100%); }
+  100% { clip-path: polygon(140% 0, 140% 0, 125% 100%, 125% 100%); }
+}
+@keyframes rv-mark { 0%, 100% { opacity: 0; transform: scale(0.92); } 30%, 62% { opacity: 1; transform: scale(1); } }
+@keyframes rv-bar { to { transform: translateX(0); } }
+@media (prefers-reduced-motion: reduce) { .rv { display: none; } }

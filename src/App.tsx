@@ -44,6 +44,7 @@ import Landing      from './pages/Landing';
 import CustomerLogin    from './pages/auth/Login';
 import UpdatePrompt from './components/UpdatePrompt';
 import { areaOf } from './utils/routeArea';
+import RouteVeil from './components/RouteVeil';
 import VerifyEmail      from './pages/auth/VerifyEmail';
 import GoogleComplete   from './pages/auth/GoogleComplete';
 
@@ -231,6 +232,7 @@ export default function App() {
     <MotionConfig reducedMotion="user">
     <BrowserRouter>
       <ScrollTop/>
+      <RouteVeil/>
       <RouteMeta/>
       <Prefetch/>
       <StorageNotice/>

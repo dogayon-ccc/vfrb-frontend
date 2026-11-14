@@ -6,10 +6,6 @@ import { NavIcon } from './ui/icons';
 import useParallax from '../hooks/useParallax';
 import logo from '../assets/company-logo.jpg';
 import art from '../assets/brand/sewing-2.webp';
-import flatA from '../assets/flats/scrub-top-vneck-short/front.svg';
-import flatB from '../assets/flats/scrub-top-vneck-short/back.svg';
-import flatC from '../assets/flats/scrub-top-vneck-three-quarter/front.svg';
-import flatD from '../assets/flats/scrub-top-vneck-three-quarter/back.svg';
 import '../styles/auth.css';
 import '../styles/rog-auth.css';
 
@@ -99,22 +95,9 @@ const STEPS = [
   'Follow your order and message the VFRB team',
 ];
 
-// Flat garment layers: d = parallax depth, r = fixed tilt (never above 8°).
-const FLATS = [
-  { src: flatD, cls: 'f1', d: 4, r: -8 },
-  { src: flatB, cls: 'f2', d: 7, r: 6 },
-  { src: flatC, cls: 'f3', d: 11, r: -3 },
-  { src: flatA, cls: 'f4', d: 16, r: 4 },
-];
-
-let dropped = false;
-
 function SplitArt({ calm }: any) {
   const ref = useRef(null);
   useParallax(ref, calm);
-  // Flats drop onto the panel once per visit, not again on every auth page hop.
-  const [drop] = useState(() => !calm && !dropped);
-  useEffect(() => { dropped = true; }, []);
   return (
     <aside className="au-art au-art--navy" ref={ref}>
       <img className="au-art__photo" src={art} alt="" decoding="async" fetchpriority="low" />
@@ -123,9 +106,6 @@ function SplitArt({ calm }: any) {
         <img src={logo} alt="" width="44" height="44" />
         <span>VFRB Enterprise</span>
       </Link>
-      <div className={`au-flats${drop ? ' is-drop' : ''}`} aria-hidden="true">
-        {FLATS.map(f => <img key={f.cls} src={f.src} alt="" className={`au-flat ${f.cls}`} style={{ '--d': f.d, '--r': `${f.r}deg` }} />)}
-      </div>
       <div className="au-art-in">
         <h2 className="au-h">Custom uniforms, made smarter.</h2>
         <ol className="au-steps">

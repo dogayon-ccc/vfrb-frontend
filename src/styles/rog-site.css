@@ -71,3 +71,18 @@
 
 @media (prefers-reduced-motion: reduce) { .vs-page .vs-nav a::after { transition: none; } }
 .vs-page .vs-banner .vs-kicker, .vs-page .vs-banner [class*='pill'] { border-radius: 0; clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px)); }
+
+/* display type: one heavy italic sans across every page, replacing the serif */
+.vs-page, .au--split { --vs-display: var(--rg-sans, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif); }
+.vs-page :is(.fs__h, .cx__name b, .lp-tile__tx b, .pl-st h3, .lp-steps span, .lp-facts__n, .vs-h3, .vs-owner h3, .vs-journey__title, .vs-cv__top h2, .vs-faqaside h2, .vs-guide h2, .vs-prose h2, .vs-sticker b, .cx__no, .fs__num, .vs-flow em) { font-weight: 800; font-style: italic; letter-spacing: -0.01em; }
+.vs-page :is(.fs__h, .cx__name b, .vs-journey__title) { text-transform: uppercase; line-height: 1; }
+.vs-page :is(.vs-steps li, .vs-stagelist li, .vs-proc li)::before { font-weight: 800; font-style: italic; }
+
+/* remaining pills and rounded panels */
+.vs-page :is(.vs-filters button, .vs-serve li, .vs-kicker, .fs__link, .fs__nav, .fs__nav button, .vs-rail a, .vs-rail span, .lp-tile__chips i, .vs-uses li, .vs-nav a, .vs-header .vs-btn--primary) {
+  border-radius: 0; clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px)); }
+.vs-page :is(.vs-cta, .vs-journey, .vs-banner, .vs-footer) { border-radius: 0; }
+.vs-page .vs-filters button { box-shadow: inset 0 0 0 1.5px currentColor; border-color: transparent; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; font-size: 12.5px; }
+.vs-page .fs__link { font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+.vs-page .fs__nav button[aria-pressed='true'], .vs-page .fs__nav button[aria-selected='true'] { font-weight: 800; }
+@media (max-width: 640px) { .vs-page .vs-h2::before { width: 0.22em; } }

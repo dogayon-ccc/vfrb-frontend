@@ -53,3 +53,6 @@
 .au--split .au-card button[type='button']:not(.au-submit):hover { border-color: #4fe0bc !important; }
 .au--split legend { color: #c9e3e6 !important; }
 .au--split .au-card p, .au--split .au-card label, .au--split .au-card legend { color: inherit; }
+.au--split .au-art--navy { display: flex; flex-direction: column; }
+.au--split .au-art--navy .au-art-in { margin-top: auto; padding-bottom: clamp(24px, 6vh, 64px); }
+.au--split .au-art--navy .au-h { font-size: clamp(34px, 4.2vw, 64px); }
