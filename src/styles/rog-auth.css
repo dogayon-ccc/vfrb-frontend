@@ -66,3 +66,9 @@
   background-size: var(--c) var(--c); background-position: right top, left bottom;
 }
 .au--split .au-card :is(.au-submit--line, button[type='button']:not(.au-submit)):not(:disabled):hover { --e: #4fe0bc; }
+
+/* Auth: sans italic display everywhere (group legends, sent/done headings), no serif. */
+.au--split { --au-display: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; }
+.au--split :is(.au-group legend, .au-sent h2, .au-done h2) { font-weight: 800; font-style: italic; text-transform: uppercase; letter-spacing: -0.005em; font-size: 16px; }
+/* The password eye is a plain icon button: no chamfer clip or drawn diagonals (they leaked as stray lines). */
+.au--split .au-card button.au-eye[type='button']:not(.au-submit):not(:disabled) { clip-path: none; background-image: none; border: 0 !important; font-size: inherit !important; }

@@ -113,3 +113,9 @@
 .vs-page .vs-btn--ghost-light { --e: rgba(255, 255, 255, 0.6); }
 .vs-page .vs-btn--ghost-light:hover { --e: var(--rg-mint-hi); }
 .vs-page .vs-burger { --e: var(--vs-line); }
+
+/* Display faces that line 77 italicised but left on the serif: force the ROG sans, no serif on public pages. */
+.vs-page :is(.fs__h, .cx__name b, .lp-tile__tx b, .pl-st h3, .lp-steps span, .lp-facts__n, .vs-h3, .vs-owner h3, .vs-journey__title, .vs-cv__top h2, .vs-faqaside h2, .vs-guide h2, .vs-prose h2, .vs-sticker b, .cx__no, .fs__num, .vs-flow em) { font-family: var(--rg-sans); text-transform: uppercase; }
+.lp-tile__tx b { font-family: var(--rg-sans, ui-sans-serif, system-ui, sans-serif); font-style: italic; font-weight: 800; text-transform: uppercase; letter-spacing: -0.01em; }
+/* Legal hero (Terms, Privacy) had rounded bottom corners; ROG uses a cut corner. */
+.vs-page .vs-pagehead { border-radius: 0 !important; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 28px), calc(100% - 28px) 100%, 0 100%); }
