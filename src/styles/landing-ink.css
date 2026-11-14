@@ -148,6 +148,12 @@
   .lp-bento__c { grid-column: span 3; } .lp-bento__d { grid-column: span 3; }
   .lp-bento__e { grid-column: span 6; }
 }
+@media (min-width: 720px) and (min-height: 700px) {
+  .lp-explore { padding-block: clamp(16px, 3svh, 28px) calc(96px + env(safe-area-inset-bottom, 0px)); }
+  .lp-bento { grid-auto-rows: minmax(132px, calc((100svh - var(--vs-header) - 280px) / 3)); }
+  .lp-bento .lp-tile { min-height: 0; }
+  .lp-bento__c, .lp-bento__d, .lp-bento__e { grid-column: span 2; }
+}
 @media (prefers-reduced-motion: reduce) { .lp-tile, .lp-tile__ph img, .lp-tile__go { transition: none; } .lp-tile:hover { transform: none; } }
 
 /* Chapter 1 hero: pointer tilt on the visual (independent rotate/translate so the entrance animation keeps transform), glass copy panel, bigger headline */
