@@ -1,4 +1,4 @@
-// GLB intake gate: node tools/glb-intake.mjs <file.glb> --source "<photo owner>" --licence "<plan and terms>" [--photos-owned yes] [--no-register]
+// GLB intake gate: node tools/glb-intake.mjs <file.glb> --source "<photo owner>" --licence "<plan and terms>" [--photos-owned yes] [--capabilities colour,decals,uv-regions,components] [--no-register]
 // Read-only on the GLB. Prints a PASS/FAIL report and appends one line to docs/glb-register.md. Never edits glbSlots.ts.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -98,12 +98,40 @@ export function inspectGlb(buf) {
   };
 }
 
-export function gate(r) {
+// What a candidate is being assessed for. Only `uv-regions` reads UVs (regionOf -> regionTexture.getIslands); projected decals and zone colour do not.
+// No --capabilities flag = the full gate exactly as before (UVs required). A named list checks only what those capabilities need.
+export const CAPABILITIES = {
+  colour: 'whole-garment / zone colour (zoneOf vertex mask, no UVs)',
+  decals: 'projected front and back logos and text (DecalGeometry, no UVs)',
+  'uv-regions': 'colour and pattern per UV island (regionOf: needs TEXCOORD_0 and islands that match the garment panels)',
+  components: 'independently editable components (two or more named parts)',
+};
+export function parseCapabilities(s) {
+  const caps = String(s ?? '').split(',').map(x => x.trim()).filter(Boolean), bad = caps.filter(c => !(c in CAPABILITIES));
+  if (!caps.length || bad.length) throw new Error(`--capabilities takes ${Object.keys(CAPABILITIES).join(',')}${bad.length ? ` (unknown: ${bad.join(', ')})` : ''}`);
+  return caps;
+}
+// Informational only: never changes pass/fail. "unverified" means a file check cannot prove it; it needs a render.
+export function capabilityReport(r) {
+  return {
+    colour: r.tris > 0 ? 'structurally ok (render check needed)' : 'no geometry',
+    decals: r.tris > 0 ? 'structurally ok (placement unverified: front must face +z; checked in a render)' : 'no geometry',
+    'uv-regions': r.uvSets.includes('TEXCOORD_0') ? 'UV present (panel alignment unverified)' : 'no: no TEXCOORD_0',
+    components: r.meshNames.length >= 2 ? `${r.meshNames.length} named meshes (zone mapping unverified)` : 'no: one fused mesh',
+  };
+}
+
+export function gate(r, caps = null) {
   const fail = [], warn = [];
   if (r.bytes > LIMITS.bytes) fail.push(`file ${(r.bytes / 1048576).toFixed(2)} MB > 3 MB`);
   if (r.tris === 0) fail.push('no triangles');
   if (r.maxMeshTris > LIMITS.trisPerMesh) fail.push(`a mesh has ${r.maxMeshTris} triangles > ${LIMITS.trisPerMesh}`);
-  if (!r.uvSets.includes('TEXCOORD_0')) fail.push('no UV set (TEXCOORD_0): decals cannot land');
+  if (!caps) { if (!r.uvSets.includes('TEXCOORD_0')) fail.push('no UV set (TEXCOORD_0): decals cannot land'); }
+  else {
+    if (caps.includes('uv-regions') && !r.uvSets.includes('TEXCOORD_0')) fail.push('no UV set (TEXCOORD_0): uv-regions needs UV islands (regionOf)');
+    if (caps.includes('uv-regions') && r.uvSets.includes('TEXCOORD_0')) warn.push('uv-regions: UV islands must match the garment panels; presence of TEXCOORD_0 does not prove that');
+    if (caps.includes('components') && r.meshNames.length < 2) fail.push('components: one fused mesh, no independently editable parts');
+  }
   if (r.skinned) fail.push('skinned / armature data present (body rig)');
   if (r.bodyNames.length) fail.push(`body-like names (human body fused?): ${r.bodyNames.join(', ')}`);
   const big = r.textures.filter(t => t.size && Math.max(t.size.w, t.size.h) > LIMITS.texture);
@@ -122,11 +150,11 @@ export const registerLine = ({ date, file, result, source, licence }) => `| ${da
 const HEADER = '# GLB intake register\n\nAppended by `node tools/glb-intake.mjs`. One line per intake run. PASS = intake gate only (status gate-pass); slot verification still needs a manual record in `glbSlots.ts`.\n\n| Date | File | Result | Source | Licence |\n|---|---|---|---|---|\n';
 
 function args(argv) {
-  const o = { file: null, source: '', licence: '', photosOwned: '', register: true };
+  const o = { file: null, source: '', licence: '', photosOwned: '', register: true, caps: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--source') o.source = argv[++i] ?? ''; else if (a === '--licence' || a === '--license') o.licence = argv[++i] ?? '';
-    else if (a === '--photos-owned') o.photosOwned = (argv[++i] ?? '').toLowerCase(); else if (a === '--no-register') o.register = false;
+    else if (a === '--photos-owned') o.photosOwned = (argv[++i] ?? '').toLowerCase(); else if (a === '--no-register') o.register = false; else if (a === '--capabilities') o.caps = parseCapabilities(argv[++i]);
     else if (!a.startsWith('--') && !o.file) o.file = a;
   }
   return o;
@@ -134,10 +162,10 @@ function args(argv) {
 
 function main() {
   const o = args(process.argv.slice(2));
-  if (!o.file) { console.error('usage: node tools/glb-intake.mjs <file.glb> --source "<photo owner>" --licence "<plan and terms>" [--photos-owned yes] [--no-register]'); process.exit(2); }
+  if (!o.file) { console.error('usage: node tools/glb-intake.mjs <file.glb> --source "<photo owner>" --licence "<plan and terms>" [--photos-owned yes] [--capabilities colour,decals,uv-regions,components] [--no-register]'); process.exit(2); }
   let r;
   try { r = inspectGlb(fs.readFileSync(o.file)); } catch (e) { console.error(`FAIL ${o.file}: ${e.message}`); process.exit(1); }
-  const g = gate(r), slotStatus = intakeStatus({ pass: g.pass, ...o });
+  const g = gate(r, o.caps), slotStatus = intakeStatus({ pass: g.pass, ...o });
   const label = g.pass ? 'PASS (gate only)' : 'FAIL', status = g.pass ? 'gate-pass' : slotStatus;
   const missing = [!o.source.trim() && '--source', !o.licence.trim() && '--licence', o.photosOwned !== 'yes' && '--photos-owned yes'].filter(Boolean);
   const f = n => n.toFixed(3), list = a => a.length ? a.join(', ') : '(none)';
@@ -146,6 +174,8 @@ function main() {
     `  size         ${(r.bytes / 1048576).toFixed(2)} MB`,
     `  triangles    ${r.tris} total, ${r.maxMeshTris} max per mesh`,
     `  UV sets      ${list(r.uvSets)}`,
+    `  assessed for ${o.caps ? o.caps.join(', ') : '(no --capabilities: full gate, UVs required)'}`,
+    ...Object.entries(capabilityReport(r)).map(([k, v]) => `  capability   ${k.padEnd(10)} ${v}`),
     `  materials    ${list(r.materials)}`,
     `  meshes       ${list(r.meshNames)}`,
     `  nodes        ${list(r.nodes)}`,
@@ -155,12 +185,13 @@ function main() {
     `  textures     ${list(r.textures.map(t => t.size ? `${t.size.kind} ${t.size.w}x${t.size.h}` : t.external ? 'external' : 'unknown'))}`,
     `  compression  draco ${r.compression.draco ? 'yes' : 'no'}, meshopt ${r.compression.meshopt ? 'yes' : 'no'}`,
     ...g.fail.map(x => `  FAIL  ${x}`), ...g.warn.map(x => `  WARN  ${x}`),
+    g.pass && o.caps ? `  NOTE: gate-pass covers [${o.caps.join(', ')}] only; nothing is claimed for the other capabilities` : '',
     g.pass ? (slotStatus === 'verified' ? '  slot record may be marked verified (manual step)' : `  NOT VERIFIED: missing ${missing.join(', ')}`) : '',
   ].filter(Boolean).join('\n'));
   if (o.register) {
     const reg = fileURLToPath(new URL('../docs/glb-register.md', import.meta.url));
     if (!fs.existsSync(reg)) fs.writeFileSync(reg, HEADER);
-    const result = g.pass ? `${label}${slotStatus !== 'verified' ? ` (missing ${missing.join(', ')})` : ''}` : `FAIL / ${status}`;
+    const result = g.pass ? `${label}${o.caps ? ` [${o.caps.join('+')}]` : ''}${slotStatus !== 'verified' ? ` (missing ${missing.join(', ')})` : ''}` : `FAIL / ${status}`;
     fs.appendFileSync(reg, registerLine({ date: new Date().toISOString().slice(0, 10), file: path.basename(o.file), result, source: o.source, licence: o.licence }) + '\n');
     console.log(`  registered in docs/glb-register.md`);
   }

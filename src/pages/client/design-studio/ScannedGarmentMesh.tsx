@@ -166,7 +166,7 @@ function ScannedPart({ geometry, part, colors, patterns, patternParams, decals, 
   return (
     <group ref={ref}>
       <mesh geometry={geometry} material={material} onClick={pick} onPointerOver={pick && hover(true)} onPointerOut={pick && hover(false)}>
-        {placed.map((p, i) => <Decal key={p.key} position={p.position} rotation={p.rotation} scale={p.scale} map={p.tex} roughness={0.75} depthWrite={false} renderOrder={i + 1} polygonOffsetFactor={-10 - i} />)}
+        {placed.map((p, i) => <Decal key={p.key} position={p.position} rotation={p.rotation} scale={p.scale} map={p.tex} roughness={0.75} depthTest depthWrite={false} renderOrder={i + 1} polygonOffsetFactor={-10 - i} />)}
       </mesh>
     </group>
   );
