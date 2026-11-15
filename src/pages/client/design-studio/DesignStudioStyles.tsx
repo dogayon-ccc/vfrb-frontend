@@ -416,7 +416,10 @@ export default function DesignStudioStyles() {
       .ds-pick-card:focus-within{outline:2px solid var(--cx-thread-ink);outline-offset:2px;}
       .ds-pick-img{display:grid;place-items:center;aspect-ratio:3/4;border-radius:var(--cx-r-md);background:var(--cx-paper);overflow:hidden;color:var(--cx-thread-ink);}
       .ds-pick-img img{width:100%;height:100%;object-fit:contain;}
-      .ds-pick-card strong{font-size:13px;font-weight:700;line-height:1.3;}
+      .ds-pick-card strong{font-size:13px;font-weight:700;line-height:1.3;min-height:2.6em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+      .ds-pick-card .ds-pick-meta{margin-top:auto;min-height:26px;display:flex;align-items:center;}
+      .ds-pick-card .ds-pick-meta .ds-cap3d{margin-top:0;padding:2px 8px;font-size:12px;line-height:18px;}
+      .ds-cap3d[data-cap=approx]{color:#6b3f00;background:#fde9c7;border-color:#e8c58a;}
       .ds-cap3d{display:inline-flex;align-items:center;gap:5px;max-width:100%;padding:4px 10px;border-radius:999px;border:1px solid var(--cx-line);background:var(--cx-card);color:var(--cx-ink);font:700 13px/18px var(--cx-sans);}
       .ds-cap3d[data-cap=verified]{color:#046A78;border-color:currentColor;}
       .ds-cap3d[data-cap=none],.ds-cap3d[data-cap=reference]{color:var(--cx-ink-2);}
