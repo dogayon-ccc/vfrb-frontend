@@ -207,3 +207,16 @@
   .ds .ds-pick[data-inline] .ds-pick-media .ds-pick-photo img{height:min(64vh,560px)}
   .ds .ds-pick[data-inline] .ds-pick-preview .ds-pick-status{justify-content:flex-start}
 }
+
+/* ── Studio chrome, ROG pass: mint hairline under the bar, chamfered primary action, mint-underlined italic tabs, wider inspector on big screens ── */
+.ds .ds-bar.ds-chrome{box-shadow:inset 0 -2px 0 var(--rg-teal)}
+.ds .ds-chrome .ds-bar-primary{border-radius:0;font:800 italic 14px/1 var(--rg-sans);letter-spacing:.04em;text-transform:uppercase;
+  clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px))}
+.ds .ds-bar-primary:focus-visible{outline:0;box-shadow:inset 0 0 0 2px #fff}
+@media(min-width:1024px){
+  .ds .ds-tabs button{font:800 italic 12px/1.15 var(--rg-sans);letter-spacing:.05em;text-transform:uppercase;border-radius:0}
+  .ds .ds-tabs button[aria-current]{border-bottom-color:var(--rg-mint);color:var(--cx-ink)}
+  .ds .ds-tabs button[aria-current] svg{color:var(--rg-teal)}
+}
+@media(min-width:1536px){.ds .ds-panel{width:clamp(392px,22vw,460px)}}
+@media(min-width:1024px) and (max-width:1279px){.ds .ds-panel{width:clamp(320px,29vw,360px)}}
