@@ -12,7 +12,7 @@ Status as of 2026-11-09, branch `release/nov9b`. Generated from the registry cod
 |---|---|---|
 | verified | 3D preview available | model with a `verification: { method, date }` record (none today) |
 | approx | 3D preview (approximate) | any registered model without a verification record |
-| none | 2D design only: 3D coming | no garment-only model for this garment, sleeve and fit |
+| none | 2D design | no garment-only model for this garment, sleeve and fit |
 
 Pants: the Meshy trousers file is gated off (`GATED_3D.pants`). Pants is served by the VFRB-authored `authored/pants-straight.glb`, so "3D preview (approximate)" is correct and there is no inconsistency.
 
@@ -35,13 +35,13 @@ Sleeve- and fit-specific results can differ (for example, Polo Long has no model
 | Mandarin Collar | Corporate, Hospitality / Service | vector template | 3D preview (approximate) | no | mandarin-tunic-housekeeping.glb | Meshy |
 | T-Shirt | Corporate, Industrial / Work | vector template | 3D preview (approximate) | no | t-shirt-male.glb | Meshy |
 | Dress | Corporate, Hospitality / Service | vector template | 3D preview (approximate) | no | dress-bir-green-yellow-collar.glb | Meshy |
-| Pantsuit Trousers | Corporate | vector template | 2D design only: 3D coming | no | no garment-only GLB | - |
-| Men's Slacks | Corporate | vector template | 2D design only: 3D coming | no | no garment-only GLB | - |
-| Creased Trousers | Corporate | vector template | 2D design only: 3D coming | no | no garment-only GLB | - |
-| Midi Pencil Skirt | Corporate | vector template | 2D design only: 3D coming | no | no garment-only GLB | - |
-| Short-Sleeve Notch Jacket | Corporate | vector template | 2D design only: 3D coming | no | no garment-only GLB | - |
-| Peplum Top | Corporate | vector template | 2D design only: 3D coming | no | no garment-only GLB | - |
-| Barong Shirt | Corporate | vector template | 2D design only: 3D coming | no | no garment-only GLB | - |
+| Pantsuit Trousers | Corporate | vector template | 2D design | no | no garment-only GLB | - |
+| Men's Slacks | Corporate | vector template | 2D design | no | no garment-only GLB | - |
+| Creased Trousers | Corporate | vector template | 2D design | no | no garment-only GLB | - |
+| Midi Pencil Skirt | Corporate | vector template | 2D design | no | no garment-only GLB | - |
+| Short-Sleeve Notch Jacket | Corporate | vector template | 2D design | no | no garment-only GLB | - |
+| Peplum Top | Corporate | vector template | 2D design | no | no garment-only GLB | - |
+| Barong Shirt | Corporate | vector template | 2D design | no | no garment-only GLB | - |
 | Open-Front Blazer | Corporate | vector template (derived) | 3D preview (approximate) | no | blazer-open-front-black.glb | Meshy (derived) |
 | Asymmetric Collar Blouse | Corporate | vector template (derived) | 3D preview (approximate) | no | blouse-asymmetric-blue.glb | Meshy (derived) |
 | Belted Tunic Blouse | Corporate | vector template (derived) | 3D preview (approximate) | no | blouse-tunic-roundneck-blue.glb | Meshy (derived) |
@@ -51,7 +51,7 @@ Sleeve- and fit-specific results can differ (for example, Polo Long has no model
 | Jogger Scrub Pants | Medical / Scrubs | vector template | 3D preview (approximate) | no | pants-jogger.glb | VFRB-authored |
 | Lab Coat | Medical / Scrubs | vector template | 3D preview (approximate) | no | lab-coat-long.glb | Meshy |
 | Lab Coverall | Medical / Scrubs, Industrial / Work | vector template | 3D preview (approximate) | no | lab-coverall-garment.glb | Meshy |
-| Mandarin Blouse | Hospitality / Service | vector template | 2D design only: 3D coming | no | no garment-only GLB | - |
+| Mandarin Blouse | Hospitality / Service | vector template | 2D design | no | no garment-only GLB | - |
 | Jack Shirt | Industrial / Work | vector template (derived) | 3D preview (approximate) | no | jack-shirt-two-tone.glb | Meshy (derived) |
 
 Totals: 31 families. 0 verified, 23 approximate (3 VFRB-authored, 14 Meshy, 6 Meshy-derived), 8 "2D design only".

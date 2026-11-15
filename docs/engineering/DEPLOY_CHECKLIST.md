@@ -117,7 +117,7 @@
 - [x] Pushed `release/nov9b`; fast-forwarded and pushed `main` (Preview check skipped). Live bundle contains the new code (DEPLOYMENT-VERIFIED by bundle content).
 
 ## Smoke (production, read-only)
-- [ ] Studio picker: every card shows "3D preview (approximate)" or "2D design only: 3D coming"; the 2D/3D chip matches the card.
+- [ ] Studio picker: every card shows "3D preview (approximate)" or "2D design"; the 2D/3D chip matches the card.
 - [ ] Order Detail of a set: top drawn shorter than the trousers.
 - [ ] Landing: "Pause moving text" stops the marquee; hero settles within 0.3 s.
 

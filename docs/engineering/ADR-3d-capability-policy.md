@@ -10,7 +10,7 @@ The Studio offers 31 garment families. 23 have a registered GLB: 3 are VFRB-auth
 ## Decision
 Routing comes from one source and the label from one source:
 - `scannedEntryFor` decides whether a model renders, and `cap3D` returns `verified | approx | none`.
-- `CAP3D` holds the only wording: "3D preview available", "3D preview (approximate)", "2D design only: 3D coming".
+- `CAP3D` holds the only wording: "3D preview available", "3D preview (approximate)", "2D design".
 - `Capability3D.jsx` is the only badge component.
 - A model counts as verified only with a `verification: { method, date }` record from the GLB intake gate.
 - No model is registered without a garment-only mesh, a UV or region mapping, and a recorded licence and source.
