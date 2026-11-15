@@ -395,7 +395,7 @@ const authoredTrousers = (id, match, file, extra) => ({
 const AUTHORED_GARMENTS = [
   authoredScrubTop('Short', '/models/authored/scrub-top-vneck-short.glb'),
   authoredScrubTop('3/4', '/models/authored/scrub-top-vneck-three-quarter.glb'),
-  authoredTrousers('pants-straight-authored', /^pants$/i, '/models/authored/pants-straight.glb', [
+  authoredTrousers('pants-straight-authored', /^(pants|pantsuit trousers|straight trousers|creased trousers)$/i, '/models/authored/pants-straight.glb', [
     { node: 'fly', colorKey: 'body', decals: false, zoneOf: zoneIs('body') },
     { node: 'back_pockets', colorKey: 'body', decals: false, zoneOf: zoneIs('body'), detail: 'backPockets' },
   ]),
