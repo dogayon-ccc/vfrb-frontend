@@ -126,13 +126,18 @@
 .ds .ds-pick[data-inline] .ds-pick-tabs button[aria-checked=true]{background:#16213f;color:#fff}
 .ds .ds-pick[data-inline] .ds-pick-head h2{color:#16213f}
 
-/* ── Customer shell, desktop: slim icon rail that opens over the page on hover or focus ── */
-@media(min-width:768px){
+/* ── Customer shell: slim icon rail that opens over the page on hover or focus (tablet and small laptops) ── */
+@media(min-width:768px) and (max-width:1279px){
   html[data-cx] .cm-shell{--cx-rail-w:76px}
   .cm-shell .cx-rail{justify-self:start;width:var(--cx-rail-w);z-index:150;overflow-x:hidden;transition:width .2s var(--cx-ease,ease),box-shadow .2s}
   .cm-shell .cx-rail:is(:hover,:focus-within){width:232px;box-shadow:8px 0 24px rgba(22,33,63,.14)}
   .cm-shell .cx-rail:not(:hover):not(:focus-within) .cx-rail-link{justify-content:center;padding:0}
   .cm-shell .cx-rail:not(:hover):not(:focus-within) .cx-rail-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+}
+/* Wide screens: labelled rail stays open and owns its column, so it never covers page content */
+@media(min-width:1280px){
+  html[data-cx] .cm-shell{--cx-rail-w:232px}
+  .cm-shell .cx-rail{justify-self:start;width:var(--cx-rail-w);z-index:150;overflow-x:hidden}
 }
 @media(prefers-reduced-motion:reduce){.cm-shell .cx-rail{transition:none}}
 
@@ -178,3 +183,15 @@
 .ds .ds-pick-card .ds-pick-meta .ds-cap3d{margin-top:0}
 .ds .ds-pick-img{aspect-ratio:3/4;width:100%}
 .ds .ds-pick-img img{object-fit:contain;object-position:center}
+
+/* ── My Designs: the new-design tile leads the grid as a real card; the grid grows with the screen ── */
+.cm-shell .cx-newtile{min-height:200px;border:0;border-radius:0;gap:10px;background:var(--bg-card);color:var(--cx-ink);box-shadow:inset 0 0 0 1px var(--border);
+  clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px))}
+.cm-shell .cx-newtile::before{content:"+";display:grid;place-items:center;width:56px;height:56px;border-radius:50%;background:var(--rg-mint);color:var(--rg-void);font:700 32px/1 var(--rg-sans)}
+.cm-shell .cx-newtile svg{display:none}
+.cm-shell .cx-newtile strong{font:900 italic 17px/1.15 var(--rg-sans);text-transform:uppercase;color:var(--cx-ink)}
+.cm-shell .cx-newtile span{color:var(--cx-ink-2)}
+.cm-shell .cx-newtile:hover{background:color-mix(in srgb,var(--rg-mint) 10%,var(--bg-card));transform:none}
+.cm-shell .cx-newtile:focus-visible{outline:3px solid var(--cx-thread-ink);outline-offset:-3px}
+@media(min-width:1100px){.cm-shell .cx-dgrid{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}}
+@media(max-width:767px){.cm-shell .cx-dgrid:has(.mx-card) .cx-newtile{min-height:96px;flex-direction:row}.cm-shell .cx-newtile::before{width:40px;height:40px;font-size:24px}}

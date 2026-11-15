@@ -229,6 +229,9 @@ export default function MyDesigns() {
 
       {!loading && !error && (total > 0 || (tab === 'inspo' && nInspo > 0)) && !noMatch && (
         <div className="cx-dgrid">
+          {tab !== 'inspo' && <button type="button" className="cx-newtile" onClick={openStudioBlank}>
+            <Palette size={22} aria-hidden="true" /> <strong>Start a new design</strong><span>Pick a garment and make it yours</span>
+          </button>}
           {showDraft && (
             <DesignCard i={0} img={draft.preview_dataurl} garment={cfg.garment} colors={cfg.colors} pieces={draftPieces(cfg, draft.preview_dataurl)}
               title={draftTitle} meta={`${cfg.category ?? 'Design'} · edited ${reltime(draft.updated_at)}`}
@@ -272,9 +275,6 @@ export default function MyDesigns() {
               title={garmentLabel(d.label || d.garment) || 'Inspiration'} meta={[d.category, sleeveText(d.sleeve)].filter(Boolean).join(' · ') || 'Starter design'}
               badge="Inspiration" tone={INSPO} what="Starter design photo" primary={{ label: 'Use as starting point', onClick: () => useTemplate(d) }} />
           ))}
-          {tab !== 'inspo' && <button type="button" className="cx-newtile" onClick={openStudioBlank}>
-            <Palette size={22} aria-hidden="true" /> <strong>Start a new design</strong><span>Pick a garment and make it yours</span>
-          </button>}
         </div>
       )}
     </div>
