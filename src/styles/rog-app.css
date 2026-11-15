@@ -142,7 +142,7 @@
 @media(prefers-reduced-motion:reduce){.cm-shell .cx-rail{transition:none}}
 
 /* ── Home: big visual design tiles (Canva-style), one tap opens the design ── */
-.dz-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:16px;margin:0;padding:0;list-style:none}
+.dz-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:16px;margin:0;padding:0;list-style:none}
 .dz-tile{display:flex;flex-direction:column;gap:2px;width:100%;height:100%;padding:0 0 14px;border:0;cursor:pointer;text-align:left;font:inherit;color:var(--cx-ink);background:var(--bg-card);
   clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px));box-shadow:inset 0 0 0 1px var(--border);transition:transform .18s}
 .dz-art{display:grid;place-items:center;aspect-ratio:4/3;margin-bottom:10px;background:#dfe7e6;overflow:hidden}
@@ -195,3 +195,15 @@
 .cm-shell .cx-newtile:focus-visible{outline:3px solid var(--cx-thread-ink);outline-offset:-3px}
 @media(min-width:1100px){.cm-shell .cx-dgrid{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}}
 @media(max-width:767px){.cm-shell .cx-dgrid:has(.mx-card) .cx-newtile{min-height:96px;flex-direction:row}.cm-shell .cx-newtile::before{width:40px;height:40px;font-size:24px}}
+
+.dz-row>li{display:flex}.dz-row .cx-newtile{width:100%}
+
+/* ── Studio start screen: reference preview fills the width (media left, details right) on desktop ── */
+@media(min-width:1100px){
+  .ds .ds-pick[data-inline] .ds-pick-preview,.ds .ds-pick[data-inline] .ds-pick-preview:has(.ds-pick-media){max-width:1320px;grid-template-columns:minmax(0,1.5fr) minmax(280px,1fr);gap:8px 48px;align-content:center;justify-items:start;text-align:left}
+  .ds .ds-pick[data-inline] .ds-pick-preview>*{grid-column:2}
+  .ds .ds-pick[data-inline] .ds-pick-preview>:first-child{grid-column:1;grid-row:1 / span 6;justify-self:stretch}
+  .ds .ds-pick[data-inline] .ds-pick-preview>img{justify-self:center;max-height:min(64vh,620px)}
+  .ds .ds-pick[data-inline] .ds-pick-media .ds-pick-photo img{height:min(64vh,560px)}
+  .ds .ds-pick[data-inline] .ds-pick-preview .ds-pick-status{justify-content:flex-start}
+}

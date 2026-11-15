@@ -215,7 +215,7 @@ export default function CustomerDashboard() {
 
       {!loading && (draft || designs.length > 0) && (
         <section className="dx-sec" aria-labelledby="dz-h">
-          <div className="cx-sec-h"><h2 id="dz-h">Your designs</h2><Link to="/my-designs" className="cx-link">View all</Link></div>
+          <div className="cx-sec-h"><h2 id="dz-h">Recent designs</h2><Link to="/my-designs" className="cx-link">View all</Link></div>
           <ul className="dz-row">
             {draft && (
               <li><button type="button" className="dz-tile" data-draft="" onClick={openStudio} aria-label={`Continue your draft, ${draftTitle}`}>
@@ -223,7 +223,7 @@ export default function CustomerDashboard() {
                 <strong>{draftTitle}</strong><small>Draft · edited {reltime(draft.updated_at)}</small>
               </button></li>
             )}
-            {designs.slice(0, draft ? 3 : 4).map((d: any) => {
+            {designs.slice(0, draft ? 4 : 5).map((d: any) => {
               const name = garmentLabel(savedDesignName(d.config) || d.label || humanize(d.garment));
               return (
                 <li key={d.id}><button type="button" className="dz-tile" onClick={() => openDesign(d, nav)} aria-label={`${d.locked ? 'View' : 'Open'} ${name}`}>
@@ -232,6 +232,9 @@ export default function CustomerDashboard() {
                 </button></li>
               );
             })}
+            <li><button type="button" className="cx-newtile" onClick={() => { try { sessionStorage.removeItem('studio_config'); } catch { /* storage unavailable */ } nav('/design-studio'); }}>
+              <strong>Start a new design</strong><span>Pick a garment and make it yours</span>
+            </button></li>
           </ul>
         </section>
       )}
