@@ -1419,7 +1419,9 @@ export default function DesignStudioStyles() {
         .ds-rail-card{flex-direction:column;justify-content:center;gap:3px;min-height:0;padding:6px 2px;text-align:center;}
         .ds-rail-thumb{width:48px;height:56px;}
         .ds-rail-txt small{font-size:13px;font-weight:700;color:var(--cx-ink);}
-        .ds-rail-acts .ds-btn:not(.ds-piece-add),.ds-rail-acts .ds-switch,.ds-rail-note{display:none;}
+        .ds-rail-acts .ds-btn:not(.ds-piece-add):not([aria-pressed]),.ds-rail-note{display:none;}
+        .ds-rail .ds-rail-acts .ds-btn[aria-pressed]{padding:6px 2px;min-height:44px;font-size:12px;line-height:1.2;white-space:normal;text-align:center;}
+        .ds-rail .ds-rail-acts .ds-switch{display:flex;flex-direction:column;align-items:center;gap:4px;min-height:44px;font-size:12px;line-height:1.2;text-align:center;}
         .ds-rail .ds-piece-add{width:44px;min-height:44px;padding:0;justify-content:center;}
         .ds-rail .ds-piece-add>span:not(.ds-piece-add-plus){position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);}
         .ds-rail-acts{align-items:center;}
