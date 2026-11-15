@@ -11,6 +11,7 @@ import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
 import { Button, Stepper, Skeleton, EmptyState, AlertBanner, ConfirmDialog } from '../../components/ui';
 import { discardDraft, DISCARD_DRAFT } from '../../utils/studioHandoff';
 import { savedDesignName, garmentLabel } from '../../utils/designName';
+import { openDesign } from '../../utils/designActions';
 import { setStudioLock } from '../../utils/studioLock';
 import heroPhoto from '../../assets/brand/uniforms.webp';
 import {
@@ -77,6 +78,7 @@ export default function CustomerDashboard() {
   };
   const openStudio = () => { try { if (draft?.studio_config) sessionStorage.setItem('studio_config', JSON.stringify(draft.studio_config)); else sessionStorage.removeItem('studio_config'); } catch { /* private mode */ } nav('/design-studio'); };
   const startNew = () => { try { sessionStorage.removeItem('studio_config'); } catch { /* storage blocked */ } setStudioLock(null); nav('/design-studio'); };
+  const [designs, setDesigns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [confetti, setConfetti] = useState(false);
@@ -96,15 +98,17 @@ export default function CustomerDashboard() {
     const cs = cacheGet('customer_dashboard'), co = cacheGet('orders_list');
     if (cs) setStats(cs); if (co) setOrders(asList(co));
     if (cs && co) { setLoading(false); }
-    const [s, o, d] = await Promise.allSettled([
+    const [s, o, d, g] = await Promise.allSettled([
       cs ? null : axios.get('/api/customer/dashboard'),
       co ? null : fetchAllPages('/api/customer/orders'),
       axios.get('/api/customer/drafts/latest'),
+      axios.get('/api/customer/designs'),
     ]);
     if (s.status === 'fulfilled' && s.value) { setStats(s.value.data); cacheSet('customer_dashboard', s.value.data, TTL.DASHBOARD); }
     if (o.status === 'fulfilled' && o.value) { const l = o.value; setOrders(l); cacheSet('orders_list', l, TTL.ORDERS); }
     else if (o.status === 'rejected' && !co) setError(true);
     if (d.status === 'fulfilled' && d.value.data?.draft?.studio_config?.garment) setDraft(d.value.data.draft);
+    if (g.status === 'fulfilled' && Array.isArray(g.value.data)) setDesigns(g.value.data.filter((x: any) => x.config?.garment).slice(0, 4));
     setLoading(false);
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -209,6 +213,28 @@ export default function CustomerDashboard() {
           )}
       </section>
 
+      {!loading && (draft || designs.length > 0) && (
+        <section className="dx-sec" aria-labelledby="dz-h">
+          <div className="cx-sec-h"><h2 id="dz-h">Your designs</h2><Link to="/my-designs" className="cx-link">View all</Link></div>
+          <ul className="dz-row">
+            {draft && (
+              <li><button type="button" className="dz-tile" data-draft="" onClick={openStudio} aria-label={`Continue your draft, ${draftTitle}`}>
+                <span className="dz-art"><DesignThumb src={draft.preview_dataurl} garment={draft.studio_config.garment} colors={draft.studio_config.colors} name={draftTitle} scale={1.6} /></span>
+                <strong>{draftTitle}</strong><small>Draft · edited {reltime(draft.updated_at)}</small>
+              </button></li>
+            )}
+            {designs.slice(0, draft ? 3 : 4).map((d: any) => {
+              const name = garmentLabel(savedDesignName(d.config) || d.label || humanize(d.garment));
+              return (
+                <li key={d.id}><button type="button" className="dz-tile" onClick={() => openDesign(d, nav)} aria-label={`${d.locked ? 'View' : 'Open'} ${name}`}>
+                  <span className="dz-art"><DesignThumb src={d.is_copy ? null : d.photo_path} garment={d.garment} colors={d.config?.colors} name={name} scale={1.6} /></span>
+                  <strong>{name}</strong><small>{d.locked ? 'Ordered · view only' : 'Saved design'}</small>
+                </button></li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

@@ -125,3 +125,26 @@
 .ds .ds-pick[data-inline] .ds-pick-head .ds-note:not(.ds-status *),.ds .ds-pick[data-inline] .ds-pick-head .ds-pick-frow>span{color:#3a4668}
 .ds .ds-pick[data-inline] .ds-pick-tabs button[aria-checked=true]{background:#16213f;color:#fff}
 .ds .ds-pick[data-inline] .ds-pick-head h2{color:#16213f}
+
+/* ── Customer shell, desktop: slim icon rail that opens over the page on hover or focus ── */
+@media(min-width:768px){
+  html[data-cx] .cm-shell{--cx-rail-w:76px}
+  .cm-shell .cx-rail{justify-self:start;width:var(--cx-rail-w);z-index:150;overflow-x:hidden;transition:width .2s var(--cx-ease,ease),box-shadow .2s}
+  .cm-shell .cx-rail:is(:hover,:focus-within){width:232px;box-shadow:8px 0 24px rgba(22,33,63,.14)}
+  .cm-shell .cx-rail:not(:hover):not(:focus-within) .cx-rail-link{justify-content:center;padding:0}
+  .cm-shell .cx-rail:not(:hover):not(:focus-within) .cx-rail-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+}
+@media(prefers-reduced-motion:reduce){.cm-shell .cx-rail{transition:none}}
+
+/* ── Home: big visual design tiles (Canva-style), one tap opens the design ── */
+.dz-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:16px;margin:0;padding:0;list-style:none}
+.dz-tile{display:flex;flex-direction:column;gap:2px;width:100%;height:100%;padding:0 0 14px;border:0;cursor:pointer;text-align:left;font:inherit;color:var(--cx-ink);background:var(--bg-card);
+  clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px));box-shadow:inset 0 0 0 1px var(--border);transition:transform .18s}
+.dz-art{display:grid;place-items:center;aspect-ratio:4/3;margin-bottom:10px;background:#dfe7e6;overflow:hidden}
+.dz-tile strong,.dz-tile small{padding-inline:14px}
+.dz-tile strong{font:900 italic 17px/1.15 var(--rg-sans);text-transform:uppercase;overflow-wrap:anywhere}
+.dz-tile small{font-size:13px;color:var(--cx-ink-2)}
+.dz-tile[data-draft] small{color:var(--teal-ink,#01707e);font-weight:700}
+@media(hover:hover){.dz-tile:hover{transform:translateY(-3px)}}
+.dz-tile:active{transform:scale(.98)}
+@media(prefers-reduced-motion:reduce){.dz-tile{transition:none}.dz-tile:hover,.dz-tile:active{transform:none}}
