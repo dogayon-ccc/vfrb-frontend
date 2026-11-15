@@ -67,6 +67,7 @@ export default function DesignStudioStyles() {
       .ds-bar-text{border-color:var(--cx-line);}
       .ds-bar-menu{flex-shrink:0;}
       .ds-bar-menu .ui-menu-btn{width:44px;height:44px;}
+      .ds-bar-menu .ui-menu-list{max-height:calc(100dvh - 72px);max-width:calc(100vw - 16px);overflow-y:auto;overscroll-behavior:contain;}
       .ds-rail-acts .ds-btn[aria-pressed=true]{background:var(--cx-thread-tint);border-color:var(--cx-thread);color:var(--cx-thread-ink);}
       .ds-bar-save{display:inline-flex;align-items:center;gap:8px;min-height:28px;padding:0 10px;border:1px solid var(--cx-line);border-radius:14px;background:var(--cx-paper);font-size:13px;font-weight:700;color:var(--text-subtle);white-space:nowrap;}
       .ds-bar-save-dot{width:8px;height:8px;border-radius:50%;background:currentColor;}
