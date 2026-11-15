@@ -11,16 +11,16 @@ export function useAfter(ms = 150) {
   return on;
 }
 
-// Suspense fallback: stays blank for 150 ms, then plays one 0.7 s pulse + stitch fill. Styles: admin.css (.pl-*).
+// Suspense fallback: blank for 120 ms, then the VFRB mark in HUD brackets with a looping mint scan bar. Styles: rog-app.css (.pl-*).
 export default function PageLoader({ label = 'Loading page' }: any) {
-  const show = useAfter(150);
+  const show = useAfter(120);
   return (
     <div className="pl" role="status" aria-live="polite">
       <span className="sr-only">{label}</span>
       {show && (
         <div className="pl-box" aria-hidden="true">
           <img src={logo} alt="" className="pl-mark"/>
-          <span className="pl-stitch"/>
+          <span className="pl-bar"><i/></span>
         </div>
       )}
     </div>

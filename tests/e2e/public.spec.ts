@@ -215,7 +215,7 @@ test.describe('route veil', () => {
     await expect(veil).toHaveCSS('pointer-events', 'none');
     await expect(page.locator('.au-card')).toBeVisible();
     const anim = await veil.evaluate(el => el.getAnimations().map(a => Number(a.effect?.getComputedTiming().duration)));
-    expect(anim.length === 0 || anim.includes(700)).toBe(true);
+    expect(anim.length === 0 || anim.includes(480)).toBe(true);
     await expect.poll(() => veil.evaluate(el => el.getAnimations().every(a => a.playState === 'finished')), { timeout: 4000 }).toBe(true);
   });
   test('auth pages no longer show the flat shirt art', async ({ page }) => {

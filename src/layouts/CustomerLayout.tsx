@@ -11,6 +11,8 @@ import { signOut, USER_CHANGE_EVENT } from '../utils/session';
 import logo from '../assets/company-logo.jpg';
 import { useAppearance } from '../hooks/useAppearance';
 import { useUnreadMessages } from '../hooks/useUnreadMessages';
+import PageLoader from '../components/ui/PageLoader';
+import { haptic } from '../utils/haptics';
 import NavBadge from '../components/ui/NavBadge';
 import useDialogFocus from '../hooks/useDialogFocus';
 import { Button } from '../components/ui';
@@ -114,8 +116,15 @@ export default function CustomerLayout() {
   const bellLabel = unread > 0 ? `Notifications, ${unread} unread` : 'Notifications';
   const fab = FAB_ROUTES.includes(location.pathname);
 
+  // One delegated handler: a tick on nav links, tabs and buttons, a snap on primary actions.
+  const onTap = (e: React.PointerEvent) => {
+    const t = (e.target as HTMLElement).closest?.('a,button,[role=tab]') as HTMLElement | null;
+    if (!t || (t as HTMLButtonElement).disabled) return;
+    haptic(t.matches('.ui-btn[data-v=primary],.btn-primary,.cx-fab') ? 'snap' : 'tick', t);
+  };
+
   return (
-    <div className="cm-shell">
+    <div className="cm-shell" onPointerDown={onTap}>
       <a href="#cm-main" className="skip-link" onClick={e => { e.preventDefault(); document.getElementById('cm-main')?.focus(); }}>Skip to content</a>
       <header className="cx-bar" data-hidden={barHidden}>
         <Link to="/dashboard" className="cx-brand" aria-label="VFRB Enterprise, back to dashboard">
@@ -196,7 +205,7 @@ export default function CustomerLayout() {
           <div key={location.pathname} className="vfrb-page thread-page">
               {/* Keyed on pathname, so a page crash resets with navigation and never takes the shell down. */}
               <PageErrorBoundary resetKey={location.pathname}>
-                <Suspense fallback={null}><Outlet/></Suspense>
+                <Suspense fallback={<PageLoader label="Loading page"/>}><Outlet/></Suspense>
               </PageErrorBoundary>
           </div>
         </div>

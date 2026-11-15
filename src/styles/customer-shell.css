@@ -18,7 +18,7 @@ html[data-cx] .cm-shell{--cx-bar-h:64px;--topbar-h:64px;--cx-rail:220px;--cx-nav
 .cx-bar{grid-column:1/-1;position:sticky;top:0;z-index:100;height:calc(var(--cx-bar-h) + env(safe-area-inset-top,0px));padding:env(safe-area-inset-top,0px) max(12px,env(safe-area-inset-right)) 0 max(12px,env(safe-area-inset-left));display:flex;align-items:center;gap:8px;background:var(--cx-card);border-bottom:1px solid var(--cx-line);transition:transform var(--cx-dur-2) var(--cx-ease)}
 .cx-brand{display:flex;align-items:center;gap:10px;min-height:44px;min-width:0;padding-right:6px;color:inherit;text-decoration:none;border-radius:var(--cx-r-md)}
 .cx-brand img{width:38px;height:38px;border-radius:50%;object-fit:cover;flex-shrink:0;box-shadow:0 0 0 1px var(--cx-line)}
-.cx-brand b{display:block;font:400 21px/1 var(--cx-serif);color:var(--cx-ink)}
+.cx-brand b{display:block;font:900 italic 21px/1 var(--rg-sans);text-transform:uppercase;letter-spacing:.02em;color:var(--cx-ink)}
 .cx-brand small{display:block;margin-top:2px;font-size:var(--text-meta);font-weight:600;color:var(--cx-ink-3)}
 .cx-bar-sp{flex:1}
 .cx-icon-btn{position:relative;display:grid;place-items:center;width:44px;height:44px;flex-shrink:0;border-radius:var(--cx-r-md);color:var(--cx-ink-2);text-decoration:none;transition:background var(--cx-dur-1)}
@@ -85,7 +85,7 @@ html[data-cx] .cm-shell{--cx-bar-h:64px;--topbar-h:64px;--cx-rail:220px;--cx-nav
 /* More sheet (phone) */
 .cx-scrim{position:fixed;inset:0;z-index:280;background:var(--cx-scrim)}
 .cx-sheet{position:fixed;left:0;right:0;bottom:calc(var(--cx-nav-h) + env(safe-area-inset-bottom,0px));z-index:290;padding:16px max(16px,env(safe-area-inset-right)) 10px max(16px,env(safe-area-inset-left));background:var(--cx-card);border-radius:var(--cx-r-xl) var(--cx-r-xl) 0 0;border-top:1px solid var(--cx-line);box-shadow:var(--cx-elev-2)}
-.cx-sheet h2{margin:0 0 8px 4px;font:400 19px/1.2 var(--cx-serif);color:var(--cx-ink)}
+.cx-sheet h2{margin:0 0 8px 4px;font:900 italic 19px/1.2 var(--rg-sans);text-transform:uppercase;color:var(--cx-ink)}
 .cx-sheet .cx-rail-link{min-height:48px}
 .cx-sheet .cx-rail-sep{margin:6px 4px}
 
