@@ -253,6 +253,11 @@ t('GLB slots: a slot never changes 3D status', G.resolveTarget('Mandarin Collar'
       !GI.gate(GI.inspectGlb(glb({ skins: [{ joints: [0] }] }, { POSITION: 0 })), cd).pass && !GI.gate(GI.inspectGlb(glb({ nodes: [{ name: 'Human_Head', mesh: 0 }] }, { POSITION: 0 })), cd).pass
       && !GI.gate({ ...noUV, maxMeshTris: 20001 }, cd).pass && !GI.gate({ ...noUV, bytes: 4 * 1048576 }, cd).pass && !GI.gate({ ...noUV, tris: 0 }, cd).pass
       && GI.parseCapabilities('colour, decals').join() === 'colour,decals' && ['', 'sparkle', 'colour,sparkle'].every(x => { try { GI.parseCapabilities(x); return false; } catch { return true; } })); }
+{ const full = { source: 'VFRB', licence: 'Meshy Pro, private', photosOwned: 'yes' }, g = { pass: true, fail: [], warn: [] }, fused = GI.inspectGlb(glb({}, { POSITION: 0 }));
+  t('GLB intake: a capability-scoped pass is never production verification, even with source, licence and owned photos; only the full gate can reach verified; a failed gate stays candidate',
+    GI.gate(fused, ['colour', 'decals']).pass && GI.intakeVerdict(g, { ...full, caps: ['colour', 'decals'] }).slot === 'candidate' && GI.intakeVerdict(g, { ...full, caps: ['colour', 'decals'] }).status === 'capability-pass'
+    && GI.intakeVerdict(g, { ...full, caps: null }).slot === 'verified' && GI.intakeVerdict(g, { ...full, caps: null }).status === 'gate-pass'
+    && GI.intakeVerdict({ pass: false }, { ...full, caps: ['colour'] }).slot === 'candidate' && GI.intakeVerdict({ pass: false }, { ...full, caps: null }).slot === 'candidate'
   t('GLB intake: VERIFIED only with a pass plus --source, --licence and --photos-owned yes; anything less stays candidate',
     GS.intakeStatus({ pass: true, source: 'VFRB', licence: 'Meshy Pro, private', photosOwned: 'yes' }) === 'verified'
     && [{ pass: false, source: 'a', licence: 'b', photosOwned: 'yes' }, { pass: true, source: ' ', licence: 'b', photosOwned: 'yes' }, { pass: true, source: 'a', licence: '', photosOwned: 'yes' }, { pass: true, source: 'a', licence: 'b', photosOwned: 'no' }, { pass: true }].every(x => GS.intakeStatus(x) === 'candidate'));

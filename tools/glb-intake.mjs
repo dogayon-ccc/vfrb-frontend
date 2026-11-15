@@ -145,6 +145,13 @@ export function gate(r, caps = null) {
   return { pass: fail.length === 0, fail, warn };
 }
 
+// Slot verdict for one intake run. Only the full gate (no --capabilities) may reach 'verified'; a capability-scoped pass checks only what was named
+// (a fused mesh passes colour+decals), so it is an assessment, never production verification, even with source, licence and photo ownership given.
+export function intakeVerdict(g, o) {
+  const scoped = !!o.caps, slot = scoped ? 'candidate' : intakeStatus({ pass: g.pass, ...o });
+  return { scoped, slot, status: !g.pass ? slot : scoped ? 'capability-pass' : 'gate-pass' };
+}
+
 const cell = s => String(s ?? '').replace(/[|\r\n]+/g, ' ').trim() || '-';
 export const registerLine = ({ date, file, result, source, licence }) => `| ${date} | ${cell(file)} | ${cell(result)} | ${cell(source)} | ${cell(licence)} |`;
 const HEADER = '# GLB intake register\n\nAppended by `node tools/glb-intake.mjs`. One line per intake run. PASS = intake gate only (status gate-pass); slot verification still needs a manual record in `glbSlots.ts`.\n\n| Date | File | Result | Source | Licence |\n|---|---|---|---|---|\n';
@@ -165,8 +172,8 @@ function main() {
   if (!o.file) { console.error('usage: node tools/glb-intake.mjs <file.glb> --source "<photo owner>" --licence "<plan and terms>" [--photos-owned yes] [--capabilities colour,decals,uv-regions,components] [--no-register]'); process.exit(2); }
   let r;
   try { r = inspectGlb(fs.readFileSync(o.file)); } catch (e) { console.error(`FAIL ${o.file}: ${e.message}`); process.exit(1); }
-  const g = gate(r, o.caps), slotStatus = intakeStatus({ pass: g.pass, ...o });
-  const label = g.pass ? 'PASS (gate only)' : 'FAIL', status = g.pass ? 'gate-pass' : slotStatus;
+  const g = gate(r, o.caps), v = intakeVerdict(g, o), slotStatus = v.slot;
+  const label = g.pass ? (v.scoped ? 'PASS (scoped assessment only)' : 'PASS (gate only)') : 'FAIL', status = v.status;
   const missing = [!o.source.trim() && '--source', !o.licence.trim() && '--licence', o.photosOwned !== 'yes' && '--photos-owned yes'].filter(Boolean);
   const f = n => n.toFixed(3), list = a => a.length ? a.join(', ') : '(none)';
   console.log([
@@ -185,13 +192,13 @@ function main() {
     `  textures     ${list(r.textures.map(t => t.size ? `${t.size.kind} ${t.size.w}x${t.size.h}` : t.external ? 'external' : 'unknown'))}`,
     `  compression  draco ${r.compression.draco ? 'yes' : 'no'}, meshopt ${r.compression.meshopt ? 'yes' : 'no'}`,
     ...g.fail.map(x => `  FAIL  ${x}`), ...g.warn.map(x => `  WARN  ${x}`),
-    g.pass && o.caps ? `  NOTE: gate-pass covers [${o.caps.join(', ')}] only; nothing is claimed for the other capabilities` : '',
-    g.pass ? (slotStatus === 'verified' ? '  slot record may be marked verified (manual step)' : `  NOT VERIFIED: missing ${missing.join(', ')}`) : '',
+    g.pass && v.scoped ? `  NOTE: assessed for [${o.caps.join(', ')}] only; nothing is claimed for the other capabilities` : '',
+    g.pass ? (v.scoped ? '  NOT VERIFIED: a capability-scoped pass is never production verification. Run the full gate (no --capabilities) with --source, --licence and --photos-owned yes, then review geometry, render and catalog mapping' : slotStatus === 'verified' ? '  slot record may be marked verified (manual step)' : `  NOT VERIFIED: missing ${missing.join(', ')}`) : '',
   ].filter(Boolean).join('\n'));
   if (o.register) {
     const reg = fileURLToPath(new URL('../docs/glb-register.md', import.meta.url));
     if (!fs.existsSync(reg)) fs.writeFileSync(reg, HEADER);
-    const result = g.pass ? `${label}${o.caps ? ` [${o.caps.join('+')}]` : ''}${slotStatus !== 'verified' ? ` (missing ${missing.join(', ')})` : ''}` : `FAIL / ${status}`;
+    const result = g.pass ? `${label}${o.caps ? ` [${o.caps.join('+')}]` : ''}${v.scoped ? ' (scoped: not verifiable)' : slotStatus !== 'verified' ? ` (missing ${missing.join(', ')})` : ''}` : `FAIL / ${status}`;
     fs.appendFileSync(reg, registerLine({ date: new Date().toISOString().slice(0, 10), file: path.basename(o.file), result, source: o.source, licence: o.licence }) + '\n');
     console.log(`  registered in docs/glb-register.md`);
   }
