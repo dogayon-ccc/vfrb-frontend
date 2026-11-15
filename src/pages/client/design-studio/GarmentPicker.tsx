@@ -511,7 +511,7 @@ export default function GarmentPicker({ tab = 'inspiration', inline = false, cfg
           </div>
         )}
         {onSketchArt && !artRefused && <p><button type="button" className="ds-btn" onClick={onSketchArt} disabled={artChecking}><PencilRuler size={15} aria-hidden="true"/>Create a 2D garment from this photo</button> <span className="ds-note" role="status">{artChecking ? PERSON_CHECKING : 'Reads the outline into an editable sketch you confirm (2D only).'}</span></p>}</>
-    : <><p>Real uniforms we have made, or a VFRB template.</p>{referenceName && <p className="ds-note">Reference photo attached: {referenceName}. It goes with your order.</p>}</>;
+    : <><p>VFRB makes full sets: choose a top or a bottom, then add the matching piece. Start from a real uniform we made, or a VFRB template.</p>{referenceName && <p className="ds-note">Reference photo attached: {referenceName}. It goes with your order.</p>}</>;
   const head = legend => <Head title={title} sub={sub} onClose={onClose} view={view} setView={setView} legend={legend} onUpload={pendingArt ? null : onUpload}/>;
   // Compact header once the picker's scroll box (the inline stage or the modal) has scrolled. The gap between the two thresholds, with
   // scroll anchoring off (CSS), keeps the header's own height change from flipping it back.

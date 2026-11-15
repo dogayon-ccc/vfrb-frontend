@@ -1,4 +1,4 @@
-// src/pages/client/Dashboard.jsx — Customer home: navy hero, current order thread, other orders, recent designs.
+// src/pages/client/Dashboard.jsx — Customer home: navy hero, current order thread, other orders.
 import { humanize } from '../../utils/humanize';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import usePageTitle from '../../hooks/usePageTitle';
@@ -11,10 +11,7 @@ import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
 import { Button, Stepper, Skeleton, EmptyState, AlertBanner, ConfirmDialog } from '../../components/ui';
 import { discardDraft, DISCARD_DRAFT } from '../../utils/studioHandoff';
 import { savedDesignName, garmentLabel } from '../../utils/designName';
-import { openDesign, reorderDesign, duplicateDesign } from '../../utils/designActions';
 import { setStudioLock } from '../../utils/studioLock';
-import { Palette } from 'lucide-react';
-import QuickCreate from '../../components/customer/QuickCreate';
 import heroPhoto from '../../assets/brand/uniforms.webp';
 import {
   StatusPill, OrderThumb, DesignThumb, LIFECYCLE, lifecycleIndex, nextStep,
@@ -79,14 +76,7 @@ export default function CustomerDashboard() {
     try { await discardDraft(); setDraft(null); setAskDiscard(false); } catch { setDiscardErr('Could not discard the draft. Check your connection and try again.'); }
   };
   const openStudio = () => { try { if (draft?.studio_config) sessionStorage.setItem('studio_config', JSON.stringify(draft.studio_config)); else sessionStorage.removeItem('studio_config'); } catch { /* private mode */ } nav('/design-studio'); };
-  const [designs, setDesigns] = useState([]);
-  const [copying, setCopying] = useState(null);
-  const [designErr, setDesignErr] = useState('');
   const startNew = () => { try { sessionStorage.removeItem('studio_config'); } catch { /* storage blocked */ } setStudioLock(null); nav('/design-studio'); };
-  const duplicate = async (d) => {
-    setCopying(d.id); setDesignErr('');
-    try { openDesign(await duplicateDesign(d), nav); } catch { setDesignErr('Could not make a copy. Check your connection and try again.'); setCopying(null); }
-  };
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [confetti, setConfetti] = useState(false);
@@ -106,17 +96,15 @@ export default function CustomerDashboard() {
     const cs = cacheGet('customer_dashboard'), co = cacheGet('orders_list');
     if (cs) setStats(cs); if (co) setOrders(asList(co));
     if (cs && co) { setLoading(false); }
-    const [s, o, d, g] = await Promise.allSettled([
+    const [s, o, d] = await Promise.allSettled([
       cs ? null : axios.get('/api/customer/dashboard'),
       co ? null : fetchAllPages('/api/customer/orders'),
       axios.get('/api/customer/drafts/latest'),
-      axios.get('/api/customer/designs'),
     ]);
     if (s.status === 'fulfilled' && s.value) { setStats(s.value.data); cacheSet('customer_dashboard', s.value.data, TTL.DASHBOARD); }
     if (o.status === 'fulfilled' && o.value) { const l = o.value; setOrders(l); cacheSet('orders_list', l, TTL.ORDERS); }
     else if (o.status === 'rejected' && !co) setError(true);
     if (d.status === 'fulfilled' && d.value.data?.draft?.studio_config?.garment) setDraft(d.value.data.draft);
-    if (g.status === 'fulfilled' && Array.isArray(g.value.data)) setDesigns(g.value.data.filter(x => x.is_archived && x.config?.garment).slice(0, 3));
     setLoading(false);
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -176,16 +164,13 @@ export default function CustomerDashboard() {
       {/* Outside the navy hero: it must not inherit the hero's light-on-dark colours or be clipped by it. */}
       <ConfirmDialog open={askDiscard} {...DISCARD_DRAFT} body={discardErr || DISCARD_DRAFT.body} onCancel={() => setAskDiscard(false)} onConfirm={confirmDiscard}/>
 
-      <QuickCreate />
-
       <section className="dx-sec" aria-labelledby="ord-h">
         <div className="cx-sec-h"><h2 id="ord-h">{loading || openStatus(featured) ? 'Your orders' : featured ? 'Latest order' : 'How ordering works'}</h2>
-          {total > 0 && <Link to="/orders" className="cx-link">All orders</Link>}</div>
+          {total > 0 && <Link to="/orders" className="cx-link">All {total} orders</Link>}</div>
         {!loading && total > 0 && (
-          <nav className="dx-summary" aria-label="Orders by status">
-            <Link to="/orders" className="dx-chip">{total} order{total === 1 ? '' : 's'}</Link>
-            {[['pending', pending, 'pending'], ['confirmed', confirmed, 'confirmed'], ['prod', inProd, 'in production'], ['done', completed, 'completed']]
-              .filter(([, n]) => n > 0).map(([id, n, label]) => <Link key={id} to={`/orders?status=${id}`} className="dx-chip">{n} {label}</Link>)}
+          <nav className="dx-stats" aria-label="Orders by status">
+            {[['pending', pending, 'Pending'], ['confirmed', confirmed, 'Confirmed'], ['prod', inProd, 'In production'], ['done', completed, 'Completed']]
+              .map(([id, n, label]) => <Link key={id} to={`/orders?status=${id}`} className="dx-stat"><b>{n}</b><span>{label}</span></Link>)}
           </nav>
         )}
         {loading ? <Skeleton variant="block" count={2} height={88} gap={12} label="Loading orders" />
@@ -193,7 +178,7 @@ export default function CustomerDashboard() {
             <EmptyState compact tone="error" title="Couldn’t load your orders"
               action={<Button onClick={() => { setLoading(true); load(true); }}>Retry</Button>}>Check your connection and try again.</EmptyState>
           ) : featured ? (
-            <>
+            <div className="dx-board">
               <article className="dx-order">
                 <button type="button" className="dx-order-main" onClick={() => nav(`/orders/${featured.order_id}`)}
                   aria-label={`Open order ${featured.order_id}, ${orderTitle(featured)}`}>
@@ -215,7 +200,7 @@ export default function CustomerDashboard() {
                   {[...moreActive, ...recent].map(o => <OrderRow key={o.order_id} order={o} meta={pcs(o)} setLine={setMateLine(o, orders)} />)}
                 </ul>
               )}
-            </>
+            </div>
           ) : (
             <div className="dx-order">
               <Stepper className="dx-steps" steps={LIFECYCLE} label="Order steps" current={0} />
@@ -224,32 +209,6 @@ export default function CustomerDashboard() {
           )}
       </section>
 
-      {!loading && (
-        <section className="dx-sec" aria-labelledby="rd-h">
-          <div className="cx-sec-h"><h2 id="rd-h">Recent designs</h2>{designs.length > 0 && <Link to="/my-designs" className="cx-link">View all</Link>}</div>
-          <div className="dx-rd">
-            {designs.map(d => {
-              const name = garmentLabel(savedDesignName(d.config) || d.label || humanize(d.garment));
-              return (
-                <div key={d.id} className="dx-rd-item">
-                  <button type="button" className="dx-rd-open" aria-label={`${d.locked ? 'View' : 'Open'} ${name} in the Studio`} onClick={() => openDesign(d, nav)}>
-                    <span className="dx-rd-thumb"><DesignThumb src={d.is_copy ? null : d.photo_path} garment={d.garment} colors={d.config?.colors} name={name} scale={1.5} /></span>
-                    <strong>{name}</strong><em>{d.locked ? 'Ordered · view only' : d.is_copy ? 'Copy, colours only' : 'Ordered before'}</em>
-                  </button>
-                  <div className="dx-rd-acts">
-                    <Button variant="primary" fullWidth onClick={() => reorderDesign(d, nav)}>Reorder</Button>
-                    <Button fullWidth disabled={!!copying} onClick={() => duplicate(d)}>{copying === d.id ? 'Copying…' : 'Duplicate to edit'}</Button>
-                  </div>
-                </div>
-              );
-            })}
-            <button type="button" className="cx-newtile" onClick={startNew}>
-              <span className="dx-new-ico"><Palette size={22} aria-hidden="true" /></span><strong>Start a new design</strong><span>Pick a garment and make it yours</span>
-            </button>
-          </div>
-          {designErr && <p role="alert" className="dx-err">{designErr}</p>}
-        </section>
-      )}
     </div>
   );
 }

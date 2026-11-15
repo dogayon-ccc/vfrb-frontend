@@ -91,7 +91,7 @@ export function groupSets(items) {
   });
 }
 
-const sleeveText = s => (s ? `${String(s)[0].toUpperCase()}${String(s).slice(1).toLowerCase()} sleeve` : null); // 'short' -> 'Short sleeve'
+const sleeveText = s => (s ? `${String(s)[0].toUpperCase()}${String(s).slice(1).toLowerCase()}${/sleeve/i.test(String(s)) ? '' : ' sleeve'}` : null); // 'short' -> 'Short sleeve'
 const DRAFT = 'warning';
 const ORDERED = 'success';
 const INSPO = 'info';
