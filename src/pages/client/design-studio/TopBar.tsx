@@ -78,7 +78,11 @@ export default function TopBar({ nav, cfg, setCfg, undo, redo, canUndo, canRedo,
       <div className="ds-bar-sp" />
       {lock
         ? <span className="ds-bar-save" role="status" title="Final designs are read-only"><span className="ds-bar-save-txt">{phone ? 'Final' : lock.orderId ? `Final for order #${lock.orderId}` : 'Final for its order'}</span></span>
-        : status && <span className="ds-bar-save" role="status" aria-live="polite" data-tone={status.tone} title={status.long}><span className="ds-bar-save-dot" aria-hidden="true"/><span className="ds-bar-save-txt">{status.tone === 'err' && !phone ? status.long : status.short}</span></span>}
+        : status && (status.tone === 'err'
+          ? <button type="button" className="ds-bar-save" data-tone="err" onClick={saveDesign} disabled={saving} title={`${status.why ? `${status.why}. ` : ''}Select to retry`} aria-label={`${status.long}${status.why ? `. ${status.why}` : ''}. Retry save`}>
+              <span className="ds-bar-save-dot" aria-hidden="true"/><span className="ds-bar-save-txt">{phone ? status.short : status.why ? `Not saved to your account: ${status.why}. Retry` : status.long}</span>
+            </button>
+          : <span className="ds-bar-save" role="status" aria-live="polite" data-tone={status.tone} title={status.long}><span className="ds-bar-save-dot" aria-hidden="true"/><span className="ds-bar-save-txt">{status.short}</span></span>)}
 
       {!phone && !lock && has && (
         <div className="ds-bar-group" role="group" aria-label="History">

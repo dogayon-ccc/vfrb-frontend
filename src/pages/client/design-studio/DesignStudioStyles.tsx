@@ -72,6 +72,9 @@ export default function DesignStudioStyles() {
       .ds-bar-save-dot{width:8px;height:8px;border-radius:50%;background:currentColor;}
       .ds-bar-save[data-tone="ok"]{color:var(--cx-thread-ink);}
       .ds-bar-save[data-tone="err"]{color:var(--danger-text);}
+      button.ds-bar-save{font:inherit;font-weight:700;cursor:pointer;}
+      button.ds-bar-save:hover:not(:disabled){border-color:var(--danger-text);}
+      @media (pointer:coarse){button.ds-bar-save{min-height:44px;min-width:44px;}}
       .ds-bar-group{display:flex;gap:2px;flex-shrink:0;}
       .ds-bar-view{display:flex;flex-shrink:0;gap:2px;padding:4px;border-radius:var(--cx-r-md);background:var(--cx-paper-2);}
       .ds-bar-view button{min-width:44px;height:44px;border:0;border-radius:12px;background:transparent;color:var(--cx-ink-2);

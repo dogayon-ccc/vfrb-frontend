@@ -40,7 +40,7 @@ import { T2, INIT_CFG, FONTS, PATTERNS, zonesFor, REF_PHOTO_TOOLS } from './desi
 import { templateFacts, checkEdit, applyStateEdits } from './design-studio/designEdits';
 import { describePatterns } from './design-studio/wovenPatterns';
 import { deserializeDesign, serializeDesign, draftLabel } from './design-studio/designSerialization';
-import { saveStatus, confirmedSave } from './design-studio/saveStatus';
+import { saveStatus, confirmedSave, saveErrorReason } from './design-studio/saveStatus';
 import { applyGarment, pieceOf, isCompleteOutfit } from './design-studio/garmentCatalog';
 import { openTarget } from './design-studio/designGallery';
 import { withPhotoColour } from './design-studio/photoColours';
@@ -165,6 +165,7 @@ export default function DesignStudio() {
   }, [saved, draftSaved]);
   const [saving, setSaving] = useState(false);
   const [saveErr, setSaveErr] = useState(false);
+  const [saveWhy, setSaveWhy] = useState('');
   const [ordering, setOrdering] = useState(false); // optimistic "Order This" in-flight state
   const [railHold, setRailCfg] = useState(null); // renderOtherPiece only: the active piece's cfg while the canvas draws the other
   const railCfg = railHold ?? cfg;
@@ -772,13 +773,13 @@ export default function DesignStudio() {
       let local = false;
       try { if (sessionStorage.getItem('studio_config')) { sessionStorage.setItem('studio_config', JSON.stringify(snap)); setStudioLock(lockRef.current); local = true; } } catch { /* quota: the account draft still saves */ }
       setAutoState('saving');
-      try { await persist(snap); setSaveErr(false); setAutoState('saved'); }
-      catch { setSaveErr(local ? 'local' : 'none'); setAutoState('dirty'); } // shown as a retry state, never silently dropped
+      try { await persist(snap); setSaveErr(false); setSaveWhy(''); setAutoState('saved'); }
+      catch (e) { setSaveWhy(saveErrorReason(e)); setSaveErr(local ? 'local' : 'none'); setAutoState('dirty'); } // shown as a retry state, never silently dropped
     };
     autoSaveTimer.current = setTimeout(autosave, saveSoon.current ? 1500 : 30_000); // soon: after the kept piece has drawn, for the thumbnail
     return () => { clearTimeout(dirtyCheck); clearTimeout(autoSaveTimer.current); };
   }, [cfg, locked, editTick]);
-  const status = cfg.garment ? saveStatus({ saving, saveErr, auto: autoState, draftSaved, saved }) : null;
+  const status = cfg.garment ? { ...saveStatus({ saving, saveErr, auto: autoState, draftSaved, saved }), why: saveErr ? saveWhy : '' } : null;
 
   // Back to a blank Studio: canvas, browser copy and, only when it holds this design, the account draft. A saved design's row is never touched.
   const [askRemove, setAskRemove] = useState(false);
@@ -822,7 +823,7 @@ export default function DesignStudio() {
     haptic('success');
     if (!cfg.garment || saving || locked) return;
     if (swapping.current) { flashError(STILL_LOADING); return; }
-    setSaving(true); setSaveErr(false);
+    setSaving(true); setSaveErr(false); setSaveWhy('');
     const snap = snapshotDesign();
     let local = false;
     try {
@@ -837,9 +838,9 @@ export default function DesignStudio() {
       setAutoState('saved');
       setDraftSaved(true);
       setTimeout(() => setDraftSaved(false), 2500);
-    } catch {
+    } catch (e) {
       // The account copy is what My Designs and other devices read; a browser-only copy must not look like a full save.
-      setSaveErr(local ? 'local' : 'none'); // 'local': the browser copy exists, only the account save failed
+      setSaveWhy(saveErrorReason(e)); setSaveErr(local ? 'local' : 'none'); // 'local': the browser copy exists, only the account save failed
       flashError(local ? 'Saved in this browser only: your account could not store the design. Try Save again.' : 'Could not save your design. Check your connection and try again.');
     } finally { setSaving(false); }
   }, [cfg, saving, locked, snapshotDesign, persistDraft, flashError]);
