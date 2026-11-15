@@ -70,7 +70,7 @@
 @media(hover:hover){
   .cm-shell .ui-btn[data-v=primary]:hover,.cm-shell .btn-primary:hover{filter:drop-shadow(0 0 8px rgba(2,195,154,.55))}
   .cm-shell .ui-btn[data-v=primary]:hover::after,.cm-shell .btn-primary:hover::after{transform:translateX(120%);transition:transform .55s ease}
-  .cm-shell .ui-card:not(.mx-card):not(.subtle):hover{filter:drop-shadow(0 6px 14px rgba(2,128,144,.22));transform:translateY(-2px);transition:transform .18s,filter .18s}
+  .cm-shell .ui-card:not(.mx-card):not(.subtle):hover{transform:translateY(-2px);transition:transform .18s}
 }
 .cm-shell .ui-btn:active,.cm-shell .cx-fab:active{transform:scale(.97)}
 .cx-rail-link{border-radius:0;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));min-height:44px}
@@ -93,9 +93,10 @@
 .qc-tile strong{font:900 italic 16px/1.1 var(--rg-sans);text-transform:uppercase}
 .qc-tile small{font-size:13px;color:var(--cx-ink-2)}
 .qc-art{display:grid;place-items:center;min-height:146px}
-@media(hover:hover){.qc-tile:hover{transform:translateY(-3px);filter:drop-shadow(0 8px 16px rgba(2,128,144,.28))}}
+@media(hover:hover){.qc-tile:hover{transform:translateY(-3px)}}
 .qc-tile:active{transform:scale(.97)}
-@media(min-width:1100px){.qc-row{grid-auto-flow:row;grid-template-columns:repeat(5,minmax(0,1fr));overflow:visible}}
+@media(min-width:600px){.qc-row{grid-auto-flow:row;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));overflow:visible}}
+@media(min-width:1100px){.qc-row{grid-template-columns:repeat(5,minmax(0,1fr))}}
 /* use the full viewport on wide screens */
 @media(min-width:1280px){.cm-shell .cx-page{padding-inline:clamp(16px,2.5vw,40px)}}
 .dx .dx-rd{grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr))}
