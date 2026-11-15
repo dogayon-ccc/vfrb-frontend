@@ -395,6 +395,14 @@ export default function DesignStudioStyles() {
       .ds-car-thumb .ds-sketch{display:none;}
       .ds-car-go{min-height:44px;width:min(100%,320px);}
       @media (prefers-reduced-motion: reduce){.ds-car-hero .ds-pick-img{animation:none;}}
+      @media (min-width:1100px){
+        .ds-car{max-width:1120px;margin-inline:auto;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);grid-template-areas:"stage colour" "stage strip" "stage go";align-content:center;align-items:start;gap:16px 56px;}
+        .ds-car-stage{grid-area:stage;}
+        .ds-car-colour{grid-area:colour;}
+        .ds-car-strip{grid-area:strip;flex-wrap:wrap;overflow:visible;scroll-snap-type:none;}
+        .ds-car-go{grid-area:go;justify-self:start;}
+        .ds-car-hero .ds-pick-img{width:min(100%,480px);}
+      }
       .ds-pick-card{position:relative;width:100%;height:100%;display:flex;flex-direction:column;gap:8px;padding:8px 8px 8px;border:1px solid var(--cx-line);border-radius:var(--cx-r-lg);
         background:var(--cx-card);color:var(--cx-ink);text-align:left;cursor:pointer;box-shadow:var(--cx-elev-0);
         transition:transform var(--cx-dur-2) var(--cx-ease),box-shadow var(--cx-dur-2) var(--cx-ease),border-color var(--cx-dur-2);}
