@@ -1198,7 +1198,8 @@ export default function DesignStudioStyles() {
         .ds-tabs button[aria-current]{background:none;border-color:transparent;border-bottom:3px solid var(--cx-thread);color:var(--cx-ink);font-weight:700;}
         .ds-tabs button:focus-visible{outline:2px solid var(--cx-thread-ink);outline-offset:2px;}
       }
-      .ds-subtabs{margin:12px 12px 0;position:sticky;top:8px;z-index:3;flex:none;background:var(--cx-card);box-shadow:0 0 0 8px var(--cx-card);}
+      .ds-subtabs{margin:12px 12px 0;position:sticky;top:0;z-index:3;flex:none;background:var(--cx-card);box-shadow:0 -12px 0 var(--cx-card),0 8px 0 var(--cx-card),0 10px 12px -8px rgb(15 23 42 / .18);}
+      .ds-panel-scroll{scroll-padding-top:72px;}
       .ds-subtabs button{flex:1;}
       .ds-txt{display:flex;flex-direction:column;gap:10px;padding:12px 12px 0;}
       .ds-fontgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:2px;}
