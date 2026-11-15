@@ -14,6 +14,7 @@ import { savedDesignName, garmentLabel } from '../../utils/designName';
 import { openDesign, reorderDesign, duplicateDesign } from '../../utils/designActions';
 import { setStudioLock } from '../../utils/studioLock';
 import { Palette } from 'lucide-react';
+import QuickCreate from '../../components/customer/QuickCreate';
 import heroPhoto from '../../assets/brand/uniforms.webp';
 import {
   StatusPill, OrderThumb, DesignThumb, LIFECYCLE, lifecycleIndex, nextStep,
@@ -174,6 +175,8 @@ export default function CustomerDashboard() {
       </motion.section>
       {/* Outside the navy hero: it must not inherit the hero's light-on-dark colours or be clipped by it. */}
       <ConfirmDialog open={askDiscard} {...DISCARD_DRAFT} body={discardErr || DISCARD_DRAFT.body} onCancel={() => setAskDiscard(false)} onConfirm={confirmDiscard}/>
+
+      <QuickCreate />
 
       <section className="dx-sec" aria-labelledby="ord-h">
         <div className="cx-sec-h"><h2 id="ord-h">{loading || openStatus(featured) ? 'Your orders' : featured ? 'Latest order' : 'How ordering works'}</h2>
