@@ -151,12 +151,13 @@
 
 /* ── Studio garment picker: category-first tiles, bigger chamfered garment cards ── */
 .ds .ds-pick[data-inline] .ds-chips[aria-label="Uniform category"]{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
-.ds .ds-cat-tile{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:168px;padding:12px 10px;border:0;border-radius:0;text-align:center;background:#fff;color:#16213f;
+.ds .ds-cat-tile{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:128px;padding:10px 10px;border:0;border-radius:0;text-align:center;background:#fff;color:#16213f;
   clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px));box-shadow:inset 0 0 0 1px var(--border)}
 .ds .ds-cat-tile[aria-checked=true]{background:#16213f;color:#fff}
 .ds .ds-cat-tile[aria-checked=true] small{color:#d5dbea}
-.ds .ds-cat-art{display:grid;place-items:center;width:100%;height:96px;overflow:hidden}
-.ds .ds-cat-art>*{max-height:96px;max-width:100%}
+.ds .ds-cat-art{display:grid;place-items:center;width:100%;height:72px;overflow:hidden}
+.ds .ds-cat-art>*{max-height:72px;max-width:100%}
+@media(max-height:820px){.ds .ds-cat-tile{min-height:104px}.ds .ds-cat-art{height:52px}.ds .ds-cat-art>*{max-height:52px}}
 .ds .ds-cat-tile[aria-checked=true] .ds-cat-all{color:#4fe0bc}
 .ds .ds-cat-all{font:900 italic 30px/1 var(--rg-sans);text-transform:uppercase;color:#028090}
 .ds .ds-cat-tile strong{font:900 italic 15px/1.1 var(--rg-sans);text-transform:uppercase}
@@ -170,3 +171,10 @@
 /* My Designs: one loud action per card, the rest quiet ink outlines */
 .cm-shell .mx-card .ui-btn:not([data-v=primary]){color:var(--cx-ink);border-color:var(--cx-line-strong);background:transparent}
 .cm-shell .mx-card .ui-btn:not([data-v=primary]):hover{background:color-mix(in srgb,var(--rg-mint) 12%,transparent)}
+
+/* Picker cards: one height per row. Two-line name, a reserved chip row, the same chip position on every card. */
+.ds .ds-pick-card strong{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;min-height:calc(2*1.3em)}
+.ds .ds-pick-meta{display:flex;align-items:flex-end;min-height:30px;margin-top:auto}
+.ds .ds-pick-card .ds-pick-meta .ds-cap3d{margin-top:0}
+.ds .ds-pick-img{aspect-ratio:3/4;width:100%}
+.ds .ds-pick-img img{object-fit:contain;object-position:center}

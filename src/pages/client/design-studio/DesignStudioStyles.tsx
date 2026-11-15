@@ -142,6 +142,10 @@ export default function DesignStudioStyles() {
       /* Help foot of the Pieces column: tour and "?" shortcuts */
       .ds-help{flex:none;margin-top:auto;display:flex;flex-direction:column;gap:8px;}
       .ds-nav-slot:empty{display:none;}
+      #ds-navi-body{display:flex;flex-direction:column;gap:8px;}
+      #ds-navi-body[hidden]{display:none;}
+      .ds-navi-toggle{margin-left:auto;min-width:44px;min-height:44px;}
+      .ds-navi[data-collapsed] .ds-dock-head{margin:0;}
       /* Navigator (desktop Pieces column): live thumbnail, the stage's view framed, zoom slider */
       .ds-navi{flex:none;display:flex;flex-direction:column;gap:8px;padding-top:16px;border-top:1px solid var(--cx-line);}
       .ds-navi-pct{font:700 13px var(--cx-sans);color:var(--cx-ink-2);font-variant-numeric:tabular-nums;}
@@ -1194,7 +1198,7 @@ export default function DesignStudioStyles() {
         .ds-tabs button[aria-current]{background:none;border-color:transparent;border-bottom:3px solid var(--cx-thread);color:var(--cx-ink);font-weight:700;}
         .ds-tabs button:focus-visible{outline:2px solid var(--cx-thread-ink);outline-offset:2px;}
       }
-      .ds-subtabs{margin:12px 12px 0;}
+      .ds-subtabs{margin:12px 12px 0;position:sticky;top:8px;z-index:3;flex:none;background:var(--cx-card);box-shadow:0 0 0 8px var(--cx-card);}
       .ds-subtabs button{flex:1;}
       .ds-txt{display:flex;flex-direction:column;gap:10px;padding:12px 12px 0;}
       .ds-fontgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:2px;}
@@ -1444,6 +1448,8 @@ export default function DesignStudioStyles() {
         .ds-phone-only{display:block;}
         .ds-nav-slot{position:absolute;left:128px;bottom:108px;z-index:6;width:152px;padding:8px;border:1px solid var(--cx-line);border-radius:14px;background:var(--cx-card);box-shadow:0 8px 24px -12px rgb(15 23 42 / .35);}
         .ds-nav-slot .ds-navi{padding-top:0;border-top:0;}
+        .ds-nav-slot:has(.ds-navi[data-collapsed]){width:auto;padding:0 0 0 10px;}
+        @media (max-height:760px){.ds-nav-slot{bottom:96px;}}
       }
       .ds-fontcats:not([data-wrap]){-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent);}
       @media (pointer:coarse){.ds-fontcats button{min-height:44px;}}

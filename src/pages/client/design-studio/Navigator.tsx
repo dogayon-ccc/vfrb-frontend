@@ -1,13 +1,16 @@
 // Navigator (Photoshop-style), docked in the Pieces column on desktop: a live thumbnail of the 2D canvas with the part the stage
 // shows framed; drag or click the frame to move the view, arrow keys step it, and the slider zooms. Display only: nothing is saved.
-import { useEffect, useRef } from 'react';
-import { Minus, Plus, Scan } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ChevronDown, ChevronUp, Minus, Plus, Scan } from 'lucide-react';
 import { visibleFrac } from './navigatorView';
 
 const THUMB_W = 128, REFRESH_MS = 400;
 
 export default function Navigator({ source, size, view, zoom, shown, min, max, setZoom, onFit, onPanTo, fitted }: any) {
   const thumb = useRef(null), drag = useRef(false);
+  // Fitted means the whole design is already in view, so there is nothing to navigate: collapse to a pill instead of covering the canvas.
+  const [manual, setManual] = useState<boolean | null>(null);
+  const open = manual ?? !fitted;
   const ratio = size.w > 0 ? size.h / size.w : 1.2;
   const w = THUMB_W, h = Math.round(Math.min(140, THUMB_W * ratio)), tw = Math.round(h / ratio);
   // Copies the live canvas a few times a second while the page is visible (grid and guides included, as on the stage).
@@ -21,10 +24,11 @@ export default function Navigator({ source, size, view, zoom, shown, min, max, s
       x.clearRect(0, 0, c.width, c.height);
       x.drawImage(src, 0, 0, c.width, c.height);
     };
+    if (!open) return undefined;
     draw();
     const t = setInterval(draw, REFRESH_MS);
     return () => clearInterval(t);
-  }, [source, tw, h]);
+  }, [source, tw, h, open]);
 
   const f = visibleFrac(view, size);
   const at = (e) => { const r = thumb.current.getBoundingClientRect(); onPanTo((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height); };
@@ -41,11 +45,15 @@ export default function Navigator({ source, size, view, zoom, shown, min, max, s
   const pct = Math.round(zoom * 100); // slider units: 100 = Fit; `shown` is the scale the stage reads out
 
   return (
-    <section className="ds-navi" aria-labelledby="ds-navi-h">
+    <section className="ds-navi" aria-labelledby="ds-navi-h" data-collapsed={open ? undefined : ''}>
       <div className="ds-dock-head">
         <h3 id="ds-navi-h">Navigator</h3>
         <output className="ds-navi-pct" aria-live="off">{shown}%</output>
+        <button type="button" className="ds-dock-eye ds-navi-toggle" aria-expanded={open} aria-controls="ds-navi-body" aria-label={open ? 'Collapse Navigator' : 'Expand Navigator'} onClick={() => setManual(!open)}>
+          {open ? <ChevronDown size={15} aria-hidden="true"/> : <ChevronUp size={15} aria-hidden="true"/>}
+        </button>
       </div>
+      <div id="ds-navi-body" hidden={!open}>
       <div className="ds-navi-box" style={{ width: w, height: h }}>
         <div className="ds-navi-art" style={{ width: tw, height: h }} tabIndex={0} role="group" onKeyDown={key}
           aria-label="Navigator: drag the frame or use the arrow keys to move the view" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
@@ -60,6 +68,7 @@ export default function Navigator({ source, size, view, zoom, shown, min, max, s
           onChange={e => setZoom(Number(e.target.value) / 100)}/>
         <button type="button" className="ds-dock-eye" aria-label="Zoom in" onClick={() => setZoom(z => Math.min(max, +(z + 0.15).toFixed(2)))}><Plus size={15} aria-hidden="true"/></button>
         <button type="button" className="ds-dock-eye" aria-label="Fit" aria-pressed={fitted} title="Fit (Ctrl+0)" onClick={onFit}><Scan size={15} aria-hidden="true"/></button>
+      </div>
       </div>
     </section>
   );

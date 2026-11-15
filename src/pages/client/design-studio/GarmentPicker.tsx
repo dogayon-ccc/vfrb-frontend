@@ -245,7 +245,7 @@ function Photos({ head, onClose, cfg, pieceRole, onPickPhoto, onPick3D, onPickFa
             <button type="button" className="ds-pick-card" onClick={() => setPreview(d)} title={TIER_LABEL[tierOf(d)].note} aria-label={`${d.label}, ${PHOTO_LABEL[tierOf(d)]}`}>
               <span className="ds-pick-img"><img src={d.thumb} alt="" loading="lazy" decoding="async"/></span>
               <strong>{garmentLabel(d.label)}</strong>
-              {TIER_CAP[tierOf(d)] !== 'approx' && <Capability3D kind={TIER_CAP[tierOf(d)]}/>}
+              <span className="ds-pick-meta">{TIER_CAP[tierOf(d)] !== 'approx' && <Capability3D kind={TIER_CAP[tierOf(d)]}/>}</span>
             </button>
           </li>
         ))}
@@ -303,7 +303,7 @@ function FamilyCard({ fam, cfg, fitsRole, pieceRole, onPick, i }: any) {
         onClick={() => onPick(fam)} aria-label={`${fam.id}, ${PHOTO_LABEL[tier]}`}>
         <span className="ds-pick-img"><TemplateImage fam={fam} cfg={cfg} pick={combosFor(fam, VECTOR)[0] ?? {}}/></span>
         <strong>{garmentLabel(fam.id)}</strong>
-        {TIER_CAP[tier] !== 'approx' && <Capability3D kind={TIER_CAP[tier]}/>}
+        <span className="ds-pick-meta">{TIER_CAP[tier] !== 'approx' && <Capability3D kind={TIER_CAP[tier]}/>}</span>
       </button>
     </li>
   );
