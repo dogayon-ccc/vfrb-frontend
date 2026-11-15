@@ -20,8 +20,8 @@ export const TUTORIALS = [
   ] },
   { id: 'draw', title: 'Draw lines and shapes', summary: 'Pen, line, rectangle, ellipse and brush.', steps: [
     ['[data-tool=pen]', 'Pen', 'Click for corners, drag for curves; click the first point to close the shape.'],
-    ['[data-tool=line]', 'Line', 'Drag a straight line. Hold Shift for 45° steps.'],
-    ['[data-tool=rect],[data-tool=ellipse],[data-tool=shape]', 'Shapes', 'Drag out a rectangle or an ellipse in the active colour; hold Shift for a square or a circle.'],
+    ['[data-tool=shape]', 'Line', 'Drag a straight line. Hold Shift for 45° steps.'],
+    ['[data-tool=shape]', 'Shapes', 'Drag out a rectangle or an ellipse in the active colour; hold Shift for a square or a circle.'],
     ['[data-tool=brush],[data-tool=eraser]', 'Brush and eraser', 'Draw freehand with the brush (B); the eraser (E) removes your own drawings and uploaded art, never the garment.'],
   ] },
   { id: 'layers', title: 'Arrange with layers', summary: 'Select, hide, lock and reorder items.', steps: [
