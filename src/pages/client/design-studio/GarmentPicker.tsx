@@ -440,11 +440,16 @@ function Templates({ head, onClose, cfg, pieceRole, onPickFamily, onPairFamily =
       {extra}
       <div className="ds-chips" role="radiogroup" aria-label="Uniform category">
         <RoleChip pieceRole={pieceRole} on={roleOn} setOn={setRoleOn} count={OWN_FAMILIES.filter(fitsRole).length} total={OWN_FAMILIES.length}/>
-        {[{ id: ALL }, ...CATALOG].map(c => (
-          <button key={c.id} type="button" role="radio" className="ds-chip" aria-checked={cat === c.id} onClick={() => setCat(c.id)}>
-            {c.id === ALL ? 'All' : CAT_SHORT[c.id] ?? c.id} ({inCat(c.id).length})
-          </button>
-        ))}
+        {[{ id: ALL }, ...CATALOG].map(c => {
+          const first = c.id === ALL ? null : inCat(c.id)[0];
+          return (
+            <button key={c.id} type="button" role="radio" className="ds-chip ds-cat-tile" aria-checked={cat === c.id} onClick={() => setCat(c.id)}>
+              <span className="ds-cat-art" aria-hidden="true">{first ? <TemplateImage fam={first} cfg={cfg} pick={combosFor(first, VECTOR)[0] ?? {}}/> : <span className="ds-cat-all">All</span>}</span>
+              <strong>{c.id === ALL ? 'All uniforms' : CAT_SHORT[c.id] ?? c.id}</strong>
+              <small>{inCat(c.id).length} garments</small>
+            </button>
+          );
+        })}
       </div>
       <div className="ds-pick-facets">
         <div className="ds-pick-frow" role="group" aria-label="Piece">
