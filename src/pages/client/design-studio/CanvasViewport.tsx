@@ -5,7 +5,7 @@ import { Minus, Plus, Scan, Maximize2, Minimize2, Expand, Shrink, Lightbulb, Rot
 import { NavIcon } from '../../../components/ui/icons';
 import { familyFor, cap3D } from './garmentCatalog';
 import Capability3D from './Capability3D';
-import { get3DCapabilities, hemNote3D, detailParts3D, explodableFor } from './garmentCapabilities';
+import { get3DCapabilities, hemNote3D, detailParts3D, explodableFor, has3DFor } from './garmentCapabilities';
 import { LIGHT_PRESETS } from './lightRig';
 import { ZONE_LABEL } from './dsShared';
 import { ENTRIES as GALLERY } from './designGallery';
@@ -147,7 +147,9 @@ export default function CanvasViewport({
   const on3DLost = () => { setWebglOk(false); setViewMode?.('2d'); setLostNote(true); };
   useEffect(() => { if (!lostNote) return undefined; const t = setTimeout(() => setLostNote(false), 8000); return () => clearTimeout(t); }, [lostNote]);
   // Exploded view, part picking and lighting presets: explodable models only.
-  const canExplode = explodableFor(cfg);
+  // A set shows in 3D only when both pieces have their own model; otherwise the active piece shows alone and the note says why.
+  const set3D = show3D && setCompanion && has3DFor(cfg) && has3DFor(setCompanion.cfg) ? setCompanion : null;
+  const canExplode = explodableFor(cfg) && !set3D;
   const [explode, setExplode] = useState(false);
   const [lighting, setLighting] = useState('studio');
   const [spin, setSpin] = useState(false); // the turntable starts off: no motion the customer did not ask for
@@ -455,7 +457,8 @@ export default function CanvasViewport({
   // 3D honesty notes, said in the top lane (never over the model).
   const notes3D = viewMode === '3d' ? [
     !webglOk && { id: 'nogl', text: '3D preview is not available on this device. Showing the 2D design.' },
-    show3D && setCompanion && { id: 'set3d', text: `3D shows one piece at a time: ${cfg.garment}. Switch pieces on the left to see the other.` },
+    set3D && { id: 'set3d', text: 'Both pieces shown in 3D at their real relative length. Logos and text show in 2D on each piece.' },
+    show3D && setCompanion && !set3D && { id: 'set3d', text: `3D shows ${cfg.garment} only: ${setCompanion.cfg.garment} has no 3D model yet and stays in 2D. Use Preview the set in 2D to see both.` },
     show3D && canExplode && picked && { id: 'zone', text: `Selected in the editor: ${ZONE_LABEL[picked] ?? picked}` },
     ...(show3D && cfg.garment ? (() => {
       const status = familyFor(cfg.garment)?.status3D;
@@ -562,6 +565,7 @@ export default function CanvasViewport({
             <ThreeEB>
               <Suspense fallback={<div className="ds-ref3d-skel" role="status"><span aria-hidden="true"/>Loading the 3D preview…</div>}>
                 <Scene3D cfg={cfg} overlayDataUrl={snapshot} overlays={overlays} onContextLost={on3DLost}
+                  companion={set3D ? set3D.cfg : null} companionRole={set3D ? set3D.role : null}
                   exploded={canExplode && explode} lighting={canExplode ? lighting : 'studio'} onPickZone={canExplode ? pickZone : null} turntable={spin}/>
               </Suspense>
             </ThreeEB>
