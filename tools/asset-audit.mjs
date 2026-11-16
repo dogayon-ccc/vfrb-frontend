@@ -27,6 +27,11 @@ const A = await L('/src/pages/client/design-studio/garmentAssets.ts');
 const GS = await L('/src/pages/client/design-studio/glbSlots.ts');
 const C = await L('/src/pages/client/design-studio/garmentCapabilities.ts');
 const D = await L('/src/pages/client/design-studio/designGallery.ts');
+const DF = await L('/src/pages/client/design-studio/derivedFamilies.ts');
+for (const id of Object.keys(DF.REMOVED_DERIVED)) for (const f of ['front', 'back']) UNREFERENCED_OK[`/models/vfrb-derived/shade/${id}-${f}.png`] =
+  'Shade map of a derived piece removed 2026-10-16 (derivedFamilies.ts REMOVED_DERIVED); generator output kept as source, never rendered.';
+for (const ref of Object.keys(DF.REUSED_TOPS)) for (const f of ['front', 'back']) UNREFERENCED_OK[`/models/vfrb-derived/shade/${ref}-top-${f}.png`] =
+  'Shade map of a reused set top (derivedFamilies.ts REUSED_TOPS): the exact template of the same photo renders, so the derived top is written but not registered.';
 await v.close();
 // GLBs are on Cloudinary now: a model counts as present when public/ or the downloaded cache holds it (tools/modelFiles.mjs).
 await fetchModels(studioModelPaths({ GS, C, D }));
@@ -49,6 +54,7 @@ for (const e of C.PENDING_3D_MODELS ?? []) for (const m of Object.values(e.model
 for (const s of Object.values(GS.GLB_SLOTS)) if (GS.slotLive(s) || exists(s.file)) add(s.file, `GLB slot ${s.id} (${s.state})`);
 for (const e of C.SCANNED_GARMENTS) for (const m of Object.values(e.models)) add(m, `3D entry ${e.id}`);
 for (const m of C.UNSUPPORTED_3D_MODELS ?? []) if (m?.path) add(m.path, `unsupported model (${m.reason ?? 'rejected'})`);
+for (const d of DF.DERIVED_FAMILIES) for (const p of Object.values(d.geo.shade ?? {})) add(p, `derived template ${d.id} (2D lighting)`);
 for (const d of D.ENTRIES) { add(d.image, `gallery photo ${d.id}`); if (d.ref3D) add(d.ref3D.file, `gallery 3D reference ${d.id}`); }
 
 // Literal paths anywhere in src (thumbnails, previews, fallbacks).

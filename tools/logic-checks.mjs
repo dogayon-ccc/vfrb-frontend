@@ -512,9 +512,9 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && !/<StudioDock/.test(get('ToolDrawer.tsx')) && !/FINAL DESIGN/.test(dsx) && /<PiecesRail /.test(dsx) && !/ds-bar-cat|cfg\.category/.test(bar));
   const CATd = await L('/src/pages/client/design-studio/garmentCatalog.ts');
   t('dock and order preview 3D labels agree: an unverified model (supported or partial) reads "3D preview (approximate)", "3D preview available" only with a verification record',
-    /<Capability3D kind=\{cap3D\(cfg\)\}/.test(get('TopBar.tsx')) && /<Capability3D kind=\{cap3D\(cfg\)\}/.test(get('CanvasViewport.tsx')) && !/Approx\. 3D</.test(get('TopBar.tsx'))
+    /<Capability3D (?:short )?kind=\{cap3D\(cfg\)\}/.test(get('TopBar.tsx')) && /<Capability3D (?:short )?kind=\{cap3D\(cfg\)\}/.test(get('CanvasViewport.tsx')) && !/Approx\. 3D</.test(get('TopBar.tsx'))
     && /\{label3D\(design\)\}/.test(rd('src/components/DesignPreview.tsx')) && !/status3D === 'partial'/.test(rd('src/components/DesignPreview.tsx'))
-    && ['Pants', 'Jogger Scrub Pants', 'Skirt'].every(g => { const f = CATd.familyFor(g); return f && f.status3D !== 'none' && !f.verified3D && CATd.label3D({ garment: g }) === '3D preview (approximate)'; }));
+    && CATd.label3D({ garment: 'Jogger Scrub Pants' }) === '2D design' && ['Pants', 'Skirt'].every(g => { const f = CATd.familyFor(g); return f && f.status3D !== 'none' && !f.verified3D && CATd.label3D({ garment: g }) === '3D preview (approximate)'; }));
 }
 // Studio visual quality: photo bases never above native resolution; a new design starts with one base colour.
 {
@@ -654,9 +654,9 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   // 6. Rulers: relative units only.
   const rul = src('../src/pages/client/design-studio/StageRulers.tsx');
   const ticks = CG.relativeTicks(10, 1.5, 600, 40, 200), t0 = ticks.find(x => x.v === 0), t100 = ticks.find(x => x.v === 100);
-  t('rulers: % of the garment only (whole-number labels, never units or sizes), horizontal 11 px labels, ink-2 on paper; 0 and 100 sit on the garment edges',
+  t('rulers: % of the garment only (whole-number labels, never units or sizes), horizontal 13 px labels, ink-2 on paper; 0 and 100 sit on the garment edges',
     ticks.every(x => Number.isInteger(x.v)) && !!t0 && !!t100 && Math.abs(t0.at - (10 + 40 * 1.5)) < 1e-9 && Math.abs(t100.at - (10 + 240 * 1.5)) < 1e-9
-    && /fontSize=\{11\}/.test(rul) && !/rotate\(-90/.test(cv + rul) && !/\b(cm|mm|inch|inches)\b/i.test(cv + layers + rul) && /\.ds-ruler text\{fill:var\(--cx-ink-2\)/.test(css) && /relativeTicks\(/.test(rul) && !/pinnedTicks|rulerSteps/.test(cv + rul));
+    && /fontSize=\{13\}/.test(rul) && !/rotate\(-90/.test(cv + rul) && !/\b(cm|mm|inch|inches)\b/i.test((cv + layers + rul).replace('Rulers are template units, not cm', '')) && /\.ds-ruler text\{fill:var\(--cx-ink-2\)/.test(css) && /relativeTicks\(/.test(rul) && !/pinnedTicks|rulerSteps/.test(cv + rul));
   // 7. Alignment and distribution.
   const bs = [{ left: 10, top: 10, width: 20, height: 10 }, { left: 50, top: 40, width: 40, height: 20 }, { left: 30, top: 100, width: 10, height: 10 }];
   const L0 = CG.alignDeltas(bs, 'left'), C0 = CG.alignDeltas(bs, 'hcenter'), D0 = CG.distributeDeltas(bs, 'v');
@@ -770,8 +770,8 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && !RT.RAIL_TOOLS.some(x => x.key === 'R') && /viewKey\(e\)/.test(cv) && /isContentEditable/.test(cv.slice(cv.indexOf('Shift+G grid, R rulers'))));
   t('view toggles: Grid, Rulers, Snap, Guides are 44px aria-pressed buttons (lane on desktop, View panel everywhere); the units note is shown with the rulers and in the panel; no cm or inches',
     /aria-pressed=\{!!guides\[k\]\}/.test(gm) && /\.ds-vt-btn\{min-width:44px;min-height:44px;/.test(css) && /<ViewToggles guides=\{guides\} setGuides=\{setGuides\}\/>/.test(cv) && /<ViewToggles guides=\{guides\} setGuides=\{setGuides\} labelled\/>/.test(gm)
-    && gm.includes("'Rulers show template units, not centimetres. Real sizes appear only after VFRB confirms a scale.'") && /\{rulersOn && <p className="ds-units-note" role="note">\{UNITS_NOTE\}<\/p>\}/.test(cv)
-    && !/\b(cm|mm|inch|inches)\b/i.test(gm + cv + rul) && /transition:background \.15s,color \.15s,border-color \.15s;/.test(css) && /prefers-reduced-motion:reduce\)\{\.ds-vt-btn\{transition:none;\}\}/.test(css));
+    && gm.includes("'Rulers show template units, not centimetres. Real sizes appear only after VFRB confirms a scale.'") && /\{rulersOn && <span className="ds-stage-scale">Rulers are template units, not cm<\/span>\}/.test(cv)
+    && !/\b(cm|mm|inch|inches)\b/i.test((gm + cv + rul).replace('Rulers are template units, not cm', '')) && /transition:background \.15s,color \.15s,border-color \.15s;/.test(css) && /prefers-reduced-motion:reduce\)\{\.ds-vt-btn\{transition:none;\}\}/.test(css));
   t('view prefs are per user in localStorage inside try/catch (browser key as fallback); the Studio works without storage',
     CG.guidePrefsKey(7) === 'ds_guides:7' && CG.guidePrefsKey(null) === 'ds_guides' && CG.guidePrefsKey(undefined) === 'ds_guides' && JSON.stringify(CG.readGuidePrefs(null)) === JSON.stringify(CG.guideDefaults())
     && /try \{ localStorage\.setItem\(guidesKey\(\), JSON\.stringify\(guides\)\); \} catch/.test(cv) && /catch \{ return readGuidePrefs\(null, phone\); \}/.test(cv) && /catch \{ return guidePrefsKey\(null\); \}/.test(cv));
@@ -783,10 +783,10 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const cvx = src('../src/pages/client/design-studio/CanvasViewport.tsx'), tdx = src('../src/pages/client/design-studio/ToolDrawer.tsx');
   const bar2D = cvx.slice(cvx.indexOf('{show2D ? (<>'), cvx.indexOf('</>) : (<>')), bar3D = cvx.slice(cvx.indexOf('</>) : (<>'), cvx.indexOf("ctrl(full ? 'Exit full screen'"));
   const snapH = k => css.match(new RegExp(`\\.ds-sheet\\[data-snap=${k}\\]\\{height:([^;]+);\\}`))?.[1] ?? '';
-  t('phone/tablet layout: the stage fills the column; the sheet opens at peek (its bar only) with half (45%) and full (<= 85%) heights, a 44px bar button and a drag; five-item bottom nav; stage bar of at most five labelled controls with hints outside it',
+  t('phone/tablet layout: the stage fills the column; the sheet opens at peek (its bar only) with half (clamp 264 to 360 px, 37% of the height) and full (<= 85%) heights, a 44px bar button and a drag; five-item bottom nav; stage bar of at most five labelled controls with hints outside it',
     /\.ds-lane-top:not\(\[data-notes\]\)\{flex-wrap:nowrap;/.test(css) && !/text-overflow:ellipsis/.test(css.match(/\.ds-ctx-chip\{[^}]*\}/)?.[0] ?? 'text-overflow:ellipsis')
     && /\.ds-cv\{flex:1 1 auto;min-height:0;\}/.test(css) && /\.ds-sheet\[data-snap=peek\]>:not\(\.ds-sheet-bar\)\{display:none;\}/.test(css)
-    && snapH('half') === '45dvh' && /^min\(85dvh,/.test(snapH('full')) && /useState\('peek'\)/.test(tdx) && /className="ds-sheet-toggle"[^>]*aria-expanded=\{snap !== 'peek'\}/.test(tdx)
+    && snapH('half') === 'clamp(264px,37dvh,360px)' && /^min\(85dvh,/.test(snapH('full')) && /useState\('peek'\)/.test(tdx) && /className="ds-sheet-toggle"[^>]*aria-expanded=\{snap !== 'peek'\}/.test(tdx)
     && /\.ds-sheet-toggle\{flex:none;width:44px;height:44px;/.test(css) && /onPointerDown=\{dragDown\}/.test(tdx) && /className="ds-sheet-status"/.test(tdx)
     && /\.ds-bnav\{display:grid;flex:none;grid-template-columns:repeat\(5,/.test(css)
     && (bar2D.match(/ctrl\('/g) ?? []).length + 1 <= 5 && (bar3D.match(/ctrl\(/g) ?? []).length + 1 <= 5 && /className="ds-stage-hint"/.test(cvx) && !/ds-stage-hint[^]*?<\/div>\s*<\/div>\s*\)\}\s*$/.test('')
@@ -798,11 +798,11 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     !!snapStep && snapStep('peek', -10) === 'peek' && snapStep('peek', -60) === 'half' && snapStep('peek', -200) === 'full' && snapStep('half', -60) === 'full'
     && snapStep('full', -300) === 'full' && snapStep('full', 60) === 'half' && snapStep('full', 200) === 'peek' && snapStep('half', 300) === 'peek' && snapStep('peek', 100) === 'peek');
   const tbx = src('../src/pages/client/design-studio/TopBar.tsx'), dsm = src('../src/pages/client/DesignStudio.tsx');
-  t('phone stage: zoom out/in/fit are round 44px buttons in the stage corner, Back view and Full screen move to the top bar ⋯ menu (with "Add a matching …" when one piece has a partner), the 3D chip sits bottom-left; desktop keeps its labelled bar and a solid teal tab underline',
+  t('phone stage: zoom out/in/fit are round 44px buttons in the stage corner, Back view and Full screen move to the top bar ⋯ menu (with "Add a matching …" when one piece has a partner), the lane 3D chip is hidden on phones (the Studio keeps one 3D badge); desktop keeps its labelled bar and a solid teal tab underline',
     /\.ds-lane-bottom \.ds-ctrlbar \.ds-ctrl\{flex:none;width:44px;height:44px;/.test(css) && /\.ds-lane-bottom \.ds-ctrl:is\(\[data-act=back\],\[data-act=full\]:not\(\[aria-pressed=true\]\)\)\{display:none;\}/.test(css)
     && /'data-act': 'back'/.test(cvx) && /'data-act': 'full'/.test(cvx) && /fullRef\.current = toggleFull/.test(cvx)
     && /\.\.\.\(phone && has \? phoneItems : \[\]\)/.test(tbx) && /label: 'Full screen', onClick: \(\) => fullRef\.current\?\.\(\)/.test(dsm) && /addLabel && \{ label: addLabel, onClick: startSet \}/.test(dsm)
-    && /\.ds-stage-badge\{display:inline-flex;align-items:center;gap:6px;position:absolute;bottom:8px;left:8px;/.test(css) && /\.ds-rail\[data-strip\]\{display:none;\}/.test(css)
+    && /\.ds-lane \.ds-lane-cap\{display:none;\}/.test(css) && /<Capability3D kind=\{cap3D\(cfg\)\} className="ds-view-chip"\/>/.test(dsm) && /\.ds-rail\[data-strip\]\{display:none;\}/.test(css)
     && /\.ds-tabs button\[aria-current\]\{[^}]*border-bottom:3px solid var\(--cx-thread\);/.test(css) && !/dashed #C4313B/.test(css.match(/\.ds-tabs button\[aria-current\]\{[^}]*\}/)?.[0] ?? 'dashed #C4313B'));
   t('phone top lane wider than the screen (Guides + uniform set switch) scrolls from its start instead of centring past both edges: no Guides button off-screen',
     /\.ds-lane-top:not\(\[data-notes\]\)\{[^}]*justify-content:flex-start;overflow-x:auto;/.test(css) && /\.ds-lane-top:not\(\[data-notes\]\)>:first-child\{margin-left:auto;\}/.test(css) && /\.ds-lane-top:not\(\[data-notes\]\)>:last-child\{margin-right:auto;\}/.test(css));
@@ -845,11 +845,13 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const exeAsLogo = UG.sniffBytes(B([0x4d, 0x5a, 0x90, 0]), 'MZ');
   t('executables are rejected by content whatever their name: a Windows .exe renamed logo.png fails the reference check and the logo/artwork sniff; a real PDF passes as a reference',
     /whatever its name says/.test(exe) && exeAsLogo === null && await FC.checkUpload(fakeFile([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0, 0, 0, 0, 0, 0], 'brief.pdf'), refR) === '');
-  const php = fsx.readFileSync('C:/laragon/www/vfrb-capstone/app/Support/UploadRules.php', 'utf8');
+  const phpPath = `${process.env.VFRB_BACKEND ?? 'C:/laragon/www/vfrb-capstone'}/app/Support/UploadRules.php`;
+  const php = fsx.existsSync(phpPath) ? fsx.readFileSync(phpPath, 'utf8') : null;
+  if (!php) console.log(`NOTE backend UploadRules.php not found at ${phpPath}: the server-rule source atoms will FAIL, not pass silently (set VFRB_BACKEND)`);
   t('reference types come from the server rule (App\\Support\\UploadRules, served at /api/customer/upload-rules); the fallback mirrors it; jpeg folds into jpg',
     JSON.stringify(refR.kinds) === '["jpg","png","pdf"]' && refR.maxBytes === 5120 * 1024 && refR.label === 'JPG, PNG or PDF, up to 5 MB'
     && /REFERENCE_MIMES = \['jpg', 'jpeg', 'png', 'pdf'\]/.test(php) && /REFERENCE_MAX_KB = 5120/.test(php)
-    && /\/api\/customer\/upload-rules/.test(src('../src/utils/uploadRules.ts')) && /accept=\{rules\.accept\}/.test(wiz) && /refRules\.accept/.test(la));
+    && /\/api\/customer\/upload-rules/.test(src('../src/utils/uploadRules.ts')) && /accept=\{rules\.accept\}/.test(wiz) && /useReferenceRules\(\)/.test(up) && /checkUpload\(file, refRules\)/.test(up));
   t('Studio reference: its own kind, preview (image) or file tile (PDF), Remove and Replace; never placed on the garment',
     /id: 'reference'/.test(la) && /function ReferenceCard/.test(la) && /onRemove=\{logo\.removeReference\}/.test(la) && /if \(kind === 'reference'\)[\s\S]*?attachReference\(file\);[\s\S]*?return;/.test(up));
   t('logo upload: background removal fetched only when used; placed images capped in size so a save fits; a placed logo can be moved to a zone',
@@ -1376,9 +1378,9 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('set thumbnails: pieceFits gives both pieces one px-per-cm in equal boxes (largest 1; Polo drawn at 70/100 of Pants), null when a piece is unknown',
     !!pf && Math.max(...pf) === 1 && Math.abs(drawn('Polo Shirt', pf[0]) / drawn('Pants', pf[1]) - 0.7) < 0.01 && SS.pieceFits([{ garment: 'Polo Shirt' }, {}]) === null);
   const cvp = src('src/pages/client/design-studio/CanvasViewport.tsx'), psel = src('src/pages/client/design-studio/PiecesRail.tsx');
-  t('set view is 2D only: 3D shows one piece at a time (no companion model), rulers step aside for the 2D set, the Set button is hidden in 3D, and a single garment shows only "Add a matching ..."',
+  t('set view: 3D shows both pieces only when both have a model, otherwise one piece and a note, rulers step aside for the 2D set, the Set button is hidden in 3D, and a single garment shows only "Add a matching ..."',
     /<SetView2D /.test(cvp) && /!!garmentRect && !set2D/.test(cvp) && /const set2D = showSet && !!setCompanion && viewMode !== '3d';/.test(cvp)
-    && !/companion=/.test(cvp) && !/needs a 3D model for both pieces/.test(cvp)
+    && /const set3D = show3D && setCompanion && has3DFor\(cfg\) && has3DFor\(setCompanion\.cfg\) \? setCompanion : null;/.test(cvp) && /companion=\{set3D \? set3D\.cfg : null\}/.test(cvp) && /has no 3D model yet and stays in 2D/.test(cvp) && !/needs a 3D model for both pieces/.test(cvp)
     && /\{uset && setView && \(/.test(psel) && /if \(readOnly \|\| !role\) return null;/.test(psel) && /\{!uset && \(/.test(psel) && /<span>Add<span className="ds-piece-add-x"> a matching<\/span> \{ROLE_LABEL\[/.test(psel));
   const fams = Object.values(CT.FAMILY_BY_NAME);
   t('details: a control exists only where the 2D template draws that part; photo bases and derived templates get none',
@@ -1546,8 +1548,10 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const glbJ = f => { const b = fsx.readFileSync(MF.modelFile(urlx.fileURLToPath(new URL('../public' + f, import.meta.url)))), n = b.readUInt32LE(12); return JSON.parse(b.subarray(20, 20 + n).toString('utf8')); };
   const TOPP = ['body', 'chest_pocket', 'lower_pockets', 'neck_band', 'sleeve_l', 'sleeve_r'];
   const authored = { 'Scrub Top|Short|unisex': TOPP, 'Scrub Top|3/4|unisex': TOPP,
-    'Pants|null|null': ['back_pockets', 'fly', 'leg_l', 'leg_r', 'side_pockets', 'waistband'], 'Jogger Scrub Pants|null|null': ['cuffs', 'drawstring', 'leg_l', 'leg_r', 'side_pockets', 'waistband'] };
-  t('authored meshes: Scrub Top sketch (Short, 3/4), Pants and Jogger Scrub Pants each load a GLB of named parts, every part with UVs and normals, about 1.9 units tall; parts map to 2D zones and pockets follow the 2D details',
+    'Pants|null|null': ['back_pockets', 'fly', 'leg_l', 'leg_r', 'side_pockets', 'waistband'] };
+  t('Jogger Scrub Pants has no 3D model: no scanned entry and no model (the hosted file is kept, unrouted)',
+    !Cp.scannedEntryFor('Jogger Scrub Pants', null, null) && !Cp.has3DModel('Jogger Scrub Pants', null, null));
+  t('authored meshes: Scrub Top sketch (Short, 3/4), Pants each load a GLB of named parts (Jogger Scrub Pants has no model and stays 2D), every part with UVs and normals, about 1.9 units tall; parts map to 2D zones and pockets follow the 2D details',
     Object.entries(authored).every(([k, parts]) => { const [g, s0, f0] = k.split('|'); const e = Cp.scannedEntryFor(g, s0 === 'null' ? null : s0, f0 === 'null' ? null : f0); if (!e || !/^\/models\/authored\//.test(Object.values(e.models)[0])) return false;
       const j = glbJ(Object.values(e.models)[0]), pos = j.meshes.map(m => j.accessors[m.primitives[0].attributes.POSITION]);
       return JSON.stringify(j.nodes.map(n => n.name).sort()) === JSON.stringify(parts) && j.meshes.every(m => ['POSITION', 'NORMAL', 'TEXCOORD_0'].every(a => a in m.primitives[0].attributes))
@@ -1771,8 +1775,8 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const R = await L('/src/pages/client/design-studio/railTools.ts');
   const CR = await L('/src/pages/client/design-studio/colorRules.ts');
   const k = (key, m = {}) => R.railKey({ key, ...m });
-  t('tool rail: V H I G B E P L T U M O pick their tools, Z / Alt+Z zoom, Ctrl or Cmd letters and held keys are left alone',
-    ['V', 'H', 'I', 'G', 'B', 'E', 'P', 'L', 'T', 'U', 'M', 'O'].map(x => k(x.toLowerCase())).join() === 'move,hand,sample,fill,brush,eraser,pen,line,text,shape,rect,ellipse'
+  t('tool rail: V H I G B E P T U pick their tools (Line, Rectangle and Ellipse are Shapes modes, so L, M and O are unbound), Z / Alt+Z zoom, Ctrl or Cmd letters and held keys are left alone',
+    ['V', 'H', 'I', 'G', 'B', 'E', 'P', 'T', 'U'].map(x => k(x.toLowerCase())).join() === 'move,hand,sample,fill,brush,eraser,pen,text,shape' && R.RAIL_TOOLS.length === 9 && ['l', 'm', 'o'].every(x => k(x) === null)
     && new Set(R.RAIL_TOOLS.map(x => x.key)).size === R.RAIL_TOOLS.length
     && k('z') === 'zoom-in' && k('z', { altKey: true }) === 'zoom-out' && k('z', { ctrlKey: true }) === null && k('d', { metaKey: true }) === null
     && k('v', { repeat: true }) === null && k('Escape') === 'move' && k('q') === null
@@ -1881,8 +1885,8 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     io.length === 1 && io[0].order_id === 1 && io[0].config.garment === 'Pants');
   const PS = await L('/src/components/PageSkeletons.tsx'), app = rd('src/App.tsx');
   const cSk = renderToString(React.createElement(PS.AppShellSkeleton, { customer: true })), aSk = renderToString(React.createElement(PS.AppShellSkeleton));
-  t('customers load on a light, customer-shaped skeleton, never the dark admin shell',
-    cSk.includes('data-light') && !cSk.includes('skx-dark') && aSk.includes('skx-dark') && /<ShellLoad customer><CustomerLayout\/>/.test(app) && /area === 'app'\) return <AppShellSkeleton customer\/>/.test(app));
+  t('the customer skeleton stays light and never reuses the dark admin one; the customer shell loads through the generic lazy fallback (route-veil ADR)',
+    cSk.includes('data-light') && !cSk.includes('skx-dark') && aSk.includes('skx-dark') && /<RequireAuth role="customer"><ShellLoad><CustomerLayout\/><\/ShellLoad>/.test(app) && /const ShellLoad = \(\{ children \}: any\) => <Suspense fallback=\{null\}>/.test(app));
   const TU = await L('/src/pages/client/design-studio/studioTutorials.ts'), RT = await L('/src/pages/client/design-studio/railTools.ts'), DSx = await L('/src/pages/client/design-studio/dsShared.ts');
   const dsSrc = fsx.readdirSync('src/pages/client/design-studio').filter(f => /\.tsx?$/.test(f) && f !== 'studioTutorials.ts').map(f => rd(`src/pages/client/design-studio/${f}`)).join('\n');
   const toolIds = new Set(RT.RAIL_TOOLS.map(x => x.id)), tabIds = new Set(DSx.TABS.map(x => x.id));
@@ -1897,10 +1901,10 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && /get\('help'\) === 'howto'/.test(rd('src/pages/client/DesignStudio.tsx')) && /help=howto/.test(rd('src/pages/client/settings/HelpSection.tsx'))
     && /onHowTo=\{\(\) => setMode\('howto'\)\}/.test(sh) && /Nothing to point at yet/.test(sh));
   const css = n => rd(`src/styles/${n}.css`), cvx = rd('src/pages/client/design-studio/CanvasViewport.tsx');
-  t('motion tokens: skeletons stay hidden 150 ms then shimmer on a 0.7 s cycle; route entrance 200 ms; 2D/3D crossfade 200 ms, off under reduced motion',
+  t('motion tokens: skeletons stay hidden 150 ms then shimmer on a 0.7 s cycle; route veil 480 ms; 2D/3D crossfade 200 ms, off under reduced motion',
     /animation: vfrb-sk-show 0s \.15s both, vfrb-shimmer \.7s \.15s/.test(css('theme')) && /skx-show 0s \.15s both, skx-shimmer \.7s \.15s/.test(css('skeleton'))
     && /cx-sk-show 0s \.15s both,cx-sk \.7s \.15s/.test(css('customer')) && /cx-sk-show 0s \.15s both,pm-shim \.7s \.15s/.test(css('premium'))
-    && /thread-unroll 200ms/.test(css('theme')) && /thread-run 200ms/.test(css('theme'))
+    && /animation: rv-wipe 480ms/.test(css('route-veil')) && /pointer-events: none/.test(css('route-veil')) && /prefers-reduced-motion: reduce\) \{ \.rv \{ display: none; \}/.test(css('route-veil')) && /thread-run 200ms/.test(css('theme'))
     && /transition: CALM \? 'none' : on \? 'opacity \.2s ease-out' : 'opacity \.2s ease-out, visibility 0s linear \.2s'/.test(cvx) && (cvx.match(/\.\.\.paneFade\(/g) ?? []).length === 2);
   t('an empty order thread never tells the customer to ask "before you submit" (every thread belongs to a placed order)', !/before you submit/.test(rd('src/pages/client/Messages.tsx')));
   { const MDs = await L('/src/pages/client/MyDesigns.tsx'), u = (id, role) => ({ uniformSet: { id, role }, garment: role === 'top' ? 'Polo Shirt' : 'Pants' });
@@ -1963,8 +1967,8 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('landing facts: stations, minimum order and categories come from PHASES, MIN_ORDER_QTY and FIND_UNIFORM; years from 2000; each count finishes once its card is fully in view; the number stays readable as text',
     /\[new Date\(\)\.getFullYear\(\) - 2000,/.test(lp) && /\[PHASES\.flatMap\(p => p\.stages\)\.length,/.test(lp) && /\[MIN_ORDER_QTY,/.test(lp) && /\[FIND_UNIFORM\.length,/.test(lp)
     && /<span>\{n\}<\/span>/.test(lp) && /mo-count linear both; animation-timeline: --lp-fact; animation-range: entry 0% entry 100%/.test(lc) && /content: counter\(n\) \/ ''/.test(lc));
-  t('page transitions: a shallower path or home slides back, deeper slides forward; reduced motion skips the transition entirely',
-    /dataset\.nav = to === '\/' \|\| depth\(to\) < depth\(location\.pathname\) \? 'back' : 'forward'/.test(vl) && /prefers-reduced-motion: reduce/.test(vl) && /html\[data-nav="back"\]::view-transition-new\(root\)/.test(tr)); }
+  t('route veil: plays on every public or auth page change and when the area changes, never on a dashboard page change; ViewLink navigates instantly',
+    /WIPE_EVERY_PAGE = new Set\(\['site', 'auth'\]\)/.test(rdm('src/components/RouteVeil.tsx')) && /last\.area !== area \|\| WIPE_EVERY_PAGE\.has\(area\)/.test(rdm('src/components/RouteVeil.tsx')) && /if \(last\.path === pathname\) return;/.test(rdm('src/components/RouteVeil.tsx')) && /<RouteVeil\/>/.test(rdm('src/App.tsx')) && /Navigation is instant/.test(vl)); }
 { const AN = await L('/src/layouts/adminNav.ts'), rd = q => fsx.readFileSync(urlx.fileURLToPath(new URL(q, import.meta.url)), 'utf8'), app = rd('../src/App.tsx');
   const block = app.slice(app.indexOf('<Route path="/admin/*"'), app.indexOf('<Route path="*" element={<AdminNotFound/>}/>'));
   const paths = [...block.matchAll(/<Route path="([^"*]+)"/g)].map(m => `/admin/${m[1].replace(/:[^/]+/g, '1')}`);
