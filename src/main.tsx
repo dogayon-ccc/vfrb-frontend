@@ -15,6 +15,7 @@ import './styles/enterprise.css';  // layout fixes, quieter elevation, print
 import './styles/motion-app.css';  // spring tokens + overlay entrances
 import './styles/vfrb-tokens.css'; // VFRB brand tokens (--vf-*), single source for the green identity
 import './styles/rog-app.css';     // ROG tokens and cut-corner skin for customer and admin (loads last)
+import './styles/vfrb-shell.css';  // signed-in chrome on the VFRB teal frame
 import App from './App';
 import { isChunkLoadError } from './components/PageErrorBoundary';
 import BrandedStatus from './components/BrandedStatus';

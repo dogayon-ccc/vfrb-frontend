@@ -19,8 +19,22 @@
   --vf-line-strong: #c9c1b0;
   --vf-art-bg: #dfe7e6;
 
+  --vf-chrome: #072226;
+  --vf-chrome-2: #0b3a41;
+  --vf-chrome-line: rgb(var(--vf-mint-rgb) / .24);
+  --vf-on-chrome: #eaf6f4;
+  --vf-on-chrome-2: #b9d3cf;
+  --vf-on-chrome-3: #8fb0ab;
+  --vf-danger-on-chrome: #ff9a94;
+
   --vf-font: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 
+  --vf-clip-6: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+  --vf-clip-7: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px));
+  --vf-clip-8: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+  --vf-clip-9: polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 9px 100%, 0 calc(100% - 9px));
+  --vf-clip-22: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 22px 100%, 0 calc(100% - 22px));
+  --vf-clip-26: polygon(0 0, calc(100% - 26px) 0, 100% 26px, 100% 100%, 26px 100%, 0 calc(100% - 26px));
   --vf-clip-10: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));
   --vf-clip-12: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
   --vf-clip-16: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px));
