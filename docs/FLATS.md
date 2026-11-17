@@ -17,6 +17,12 @@
 - Fit `female` narrows the shoulders by 4% and shapes the waist, but only on an unshaped top; Blouse and Dress keep their own cut.
 - Proportions only: no cm value is drawn or shown to anyone.
 
+## Pants (GLB flat)
+- `node tools/flat-from-glb.mjs` also traces `authored/pants-straight.glb` (Draco, decoded with the decoder in `node_modules/three`, no CDN) into `src/assets/flats/pants-straight/{front,back}.svg`: one path per mesh part, every island kept, plus `silhouette`, the outer shape rendered without the fly and pockets so welts never poke past the legs. Trace logic is `tools/flatTrace.mjs`.
+- `flatPaths.ts` `buildTrousers` warps that flat onto the sized `trousers()` template: GLB top, band, widest row, crotch and hem land on the template's waist, band, hip, crotch and hem rows; waist, hip and hem widths follow the size chart; the body box (control points included) equals the template's, so `bodyBounds` and saved overlays do not move.
+- The GLB fly and pocket islands replace the template's `closure`, `sidePockets` and `backPockets` lines (same part ids, so show/hide still works). Belt loops, crease, button, hem stitch and the waist seam are the sized template's own: the GLB has no geometry for them.
+- Only the catalog name `Pants` uses it. Pantsuit Trousers, Creased Trousers, Men's Slacks, Shorts, Jogger and Custom Bottom keep their templates.
+
 ## 3D label
 - `label3D(cfg)` in `garmentCatalog.js` is built from `has3DFor`: "3D (approx.)" when a model exists, otherwise "3D not available". No model is verified yet.
 

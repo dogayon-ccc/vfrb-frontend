@@ -5,6 +5,8 @@ import { Card, Button, Field, Badge, NavIcon, Skeleton } from '../../../componen
 import { useToast, fmtDate } from '../../../components/customer/kit';
 import { phPhoneError, compactPhone } from '../../../utils/phPhone';
 import LoadError from './LoadError';
+import ProfilePhotoField from '../../../components/ProfilePhotoField';
+import { readUser } from '../../../utils/authRoute';
 import { PASSWORD_RULE_TEXT, passwordOk, passwordLevel, levelLabel } from '../../../utils/passwordRules';
 
 
@@ -15,6 +17,7 @@ export function ProfileSection() {
   const [saving, setSaving] = useState(false);
   const [toast, show] = useToast();
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const [photo, setPhoto] = useState(() => readUser()?.avatar ?? null);
 
   // A failed load must not leave a blank, saveable form: saving it would overwrite the stored profile with empty fields.
   const load = useCallback(() => {
@@ -55,6 +58,8 @@ export function ProfileSection() {
           <Skeleton variant="block" count={4} height={44} gap={14} label="Loading profile" />
         ) : (
           <div className="st-stack">
+            <ProfilePhotoField avatar={photo} name={form.name} onChange={setPhoto} />
+            <div style={{ borderTop: '1px solid var(--border)' }} />
             <div className="st-2col">
               <Field label="Full name" value={form.name ?? ''} onChange={e => set('name', e.target.value)} placeholder="Your full name" />
               <Field label="Email address" value={form.email ?? ''} disabled />

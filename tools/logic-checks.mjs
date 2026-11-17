@@ -1115,8 +1115,10 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     PR.passwordOk('Abcdef1!') && !PR.passwordOk('abcdef1!') && !PR.passwordOk('Abcdefg!') && !PR.passwordOk('Abcdefg1') && !PR.passwordOk('Ab1!') && PR.passwordLevel('') === 1 && PR.passwordLevel('Abcdef1!') === 4
     && /axios\.put\('\/api\/account\/password', pw\)/.test(as) && /passwordOk\(pw\.password\)/.test(as) && /passwordOk\(pw\.password\)/.test(ps) && /autoComplete="current-password"/.test(as)
     && !/admin\/profile'|logout-other|other-sessions/.test(as));
-  t('email preference copy: admin says "test inbox", the customer is told emails are not sent yet (no "test inbox"); no provider name; docs no longer name Mailtrap',
-    /test inbox/.test(as) && /Emails aren't sent yet/.test(rd('../src/pages/client/AccountSettings.tsx')) && !/test inbox/.test(rd('../src/pages/client/AccountSettings.tsx')) && !/mailtrap/i.test(as + rd('../docs/validation/SURVEY-EVIDENCE-MATRIX.md') + rd('../docs/validation/VALIDATOR-RUNBOOK.md')));
+  const cust = [rd('../src/pages/client/AccountSettings.tsx'), ...fsx.readdirSync(urlx.fileURLToPath(new URL('../src/pages/client/settings/', import.meta.url))).filter(f => /\.tsx$/.test(f)).map(f => rd(`../src/pages/client/settings/${f}`))].join('\n');
+  t('email preference: only the admin owns it (email_enabled, email_provider_live, "test inbox" warning, no provider name, docs no longer name Mailtrap); the customer settings have no email opt-out and no client-only "not sent yet" copy',
+    /email_enabled/.test(as) && /email_provider_live/.test(as) && /test inbox/.test(as) && !/mailtrap/i.test(as + rd('../docs/validation/SURVEY-EVIDENCE-MATRIX.md') + rd('../docs/validation/VALIDATOR-RUNBOOK.md'))
+    && !/email_enabled|email notifications|Emails aren't sent yet|test inbox/i.test(cust));
   t('dead code removed: no unused SK style const in Delivery, Physical Count, Purchase Orders, Users; no unused TTL import in Users',
     ['DeliveryTracking', 'PhysicalCount', 'PurchaseOrders', 'UserManagement'].every(f => !/\bconst SK\b/.test(rd(`../src/pages/admin/${f}.tsx`))) && !/\bTTL\b/.test(rd('../src/pages/admin/UserManagement.tsx')));
   const um = rd('../src/pages/admin/UserManagement.tsx'), umRoles = um.match(/const ROLE_CFG = \{([\s\S]*?)\n\};/)?.[1] ?? '';
@@ -1717,6 +1719,36 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     Object.entries(colors).every(([k, v]) => old.colors[k] === v) && !!shown.flat && !shown.details.some(d => d.part === 'lowerPockets') && !!shown.pocket
     && GD.detailsFor('Scrub Top', 'Short', 'unisex').map(o => o.id).join() === 'patchPocket,lowerPockets');
   console.log(`flats: body h/w ${['Short', '3/4'].map(sl => `${sl} flat ${GP.getGarmentPaths('Scrub Top', sl).flatRatio}`).join(', ')}, template ${(c => ((c[3] - c[2]) / (c[1] - c[0])).toFixed(2))(corners(T.body))}`);
+}
+{ // Pants flat from the authored GLB (flatPaths.ts buildTrousers): same parts as the 3D model, both pocket islands, fly front only, template body box at every size, template details kept
+  const GP = await L('/src/pages/client/design-studio/garmentPaths.ts'), GD = await L('/src/pages/client/design-studio/garmentDetails.ts'), CG = await L('/src/pages/client/design-studio/customGarment.ts');
+  const svg = f => [...fsx.readFileSync(urlx.fileURLToPath(new URL(`../src/assets/flats/pants-straight/${f}.svg`, import.meta.url)), 'utf8').matchAll(/<path id="([^"]+)"[^>]*?\sd="([^"]+)"/g)].map(m => [m[1], m[2]]);
+  const flat = Object.fromEntries(['front', 'back'].map(f => [f, Object.fromEntries(svg(f))])), nodes = (Cp.scannedEntryFor('Pants', undefined, 'unisex')?.parts ?? []).map(p => p.node);
+  const ids = new Set(['front', 'back'].flatMap(f => Object.keys(flat[f])));
+  t(`flats: pants-straight SVG zones match every 3D part (${nodes.join(', ')}) plus the outer silhouette`, nodes.length === 6 && nodes.every(n => ids.has(n)) && [...ids].every(n => n === 'silhouette' || nodes.includes(n)));
+  t('flats: pants fly is front only, back pockets back only, each pocket pair keeps both islands, the silhouette is one loop',
+    !flat.back.fly && !flat.front.back_pockets && flat.front.fly && flat.back.back_pockets && flat.front.side_pockets.match(/M/g).length === 2 && flat.back.back_pockets.match(/M/g).length === 2
+    && ['front', 'back'].every(f => flat[f].silhouette.match(/M/g).length === 1));
+  const nums = d => d.match(/-?\d+(\.\d+)?/g).map(Number), corners = d => (n => [Math.min(...n.filter((_, i) => !(i % 2))), Math.max(...n.filter((_, i) => !(i % 2))), Math.min(...n.filter((_, i) => i % 2)), Math.max(...n.filter((_, i) => i % 2))])(nums(d));
+  let shift = 0, ok = true, kinds = true;
+  for (const size of [null, 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL']) for (const face of ['front', 'back']) {
+    const p = GP.getGarmentPaths('Pants', 'Short', face, size && { size }), s = CG.sizeBottom({ w: 250, h: 420, waist: 76, waistY: 28, hip: 84, hipY: 132, crotchY: 176, hemY: 392, hemOut: 66 }, { size: size ?? 'M' });
+    const want = [s.w / 2 - s.hip - 3, s.w / 2 + s.hip + 3, 28, s.hemY], got = corners(p.body);
+    shift = Math.max(shift, ...got.map((v, i) => Math.abs(v - want[i])));
+    ok = ok && p.flat === 'pants-straight' && p.w === s.w && [p.body, ...p.details.map(d => d.d)].every(d => nums(d).every((v, i) => Number.isFinite(v) && v >= 0 && v <= (i % 2 ? p.h : p.w)));
+    const kinds_ = new Set(p.details.map(d => d.kind)), parts = p.details.filter(d => d.part).map(d => d.part);
+    kinds = kinds && ['seam', 'fold', 'line'].every(k => kinds_.has(k)) && (face === 'front' ? kinds_.has('button') && parts.filter(x => x === 'sidePockets').length === 2 && parts.includes('closure') && !parts.includes('backPockets')
+      : parts.filter(x => x === 'backPockets').length === 2 && !parts.includes('closure') && !parts.includes('sidePockets'));
+  }
+  t(`flats: pants flat body box equals the sized trousers() box at XS-3XL and unsized, so overlays and bodyBounds hold (${shift.toFixed(2)}px, max 0.1)`, shift <= 0.1);
+  t('flats: pants flat at every size stays on the canvas with finite numbers; belt loops, crease, hem stitch, button, GLB fly and both pocket pairs are drawn', ok && kinds);
+  const hid = GD.detailedPaths('Pants', 'Short', 'front', { sidePockets: { show: false }, closure: { show: false } });
+  t('flats: hiding the side pockets or the closure removes the GLB contours and keeps the template details',
+    !hid.details.some(d => d.part === 'sidePockets' || d.part === 'closure') && hid.details.some(d => d.part === 'buttons') && hid.details.some(d => d.kind === 'fold') && !!hid.flat);
+  const old = S.deserializeDesign({ garment: 'Pants', category: 'School', sleeve: 'Short', fit: 'unisex', colors: { body: '#112233' }, details: { backPockets: { show: false } } }).cfg;
+  t('flats: a Pants saved before the flat opens with its colour and its hidden back pockets stay hidden',
+    old.colors.body === '#112233' && !GD.detailedPaths('Pants', 'Short', 'back', old.details).details.some(d => d.part === 'backPockets') && GD.detailedPaths('Pants', 'Short', 'back', old.details).details.some(d => d.kind === 'fold'));
+  t('flats: other bottoms are unchanged (no flat)', ['Shorts', 'Jogger Scrub Pants', 'Pantsuit Trousers', "Men's Slacks", 'Creased Trousers', 'Skirt'].every(g => !GP.getGarmentPaths(g, 'Short', 'front').flat));
 }
 { // Size chart to generator settings, the 12 program garments, their 3D labels and zone parity (docs/FLATS.md)
   const GP = await L('/src/pages/client/design-studio/garmentPaths.ts'), CG = await L('/src/pages/client/design-studio/customGarment.ts');

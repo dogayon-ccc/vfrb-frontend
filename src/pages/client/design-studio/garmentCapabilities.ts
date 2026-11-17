@@ -375,6 +375,8 @@ const authoredScrubTop = (sleeve, file) => ({
   },
 });
 const BOTTOM_T = { rotation: [0, 0, 0], scale: 0.509, position: [0, -0.05, 0] };
+// The authored trousers' UV islands differ ~100x in texel density per part, so only stripes tile cleanly; other patterns stay 2D only.
+const TROUSER_PATTERNS = ['hstripes', 'vstripes'];
 const authoredTrousers = (id, match, file, extra) => ({
   id, match, label: '3D (approx.)', approval: 'enabled 2026-10-15', license: AUTHORED_LICENCE,
   models: { unisex: file }, torso: { unisex: 0.445 }, transform: BOTTOM_T,
@@ -387,9 +389,9 @@ const authoredTrousers = (id, match, file, extra) => ({
   ],
   capabilities: {
     regionMethod: 'vertex-mask', regionAccuracy: 'per part (legs, waistband and pockets are separate parts, all in the body colour)',
-    zones: ['body'], patterns: { zones: ['body'], ids: ALL_PATTERNS.filter(p => p !== 'geometric') }, sleeves: [],
+    zones: ['body'], patterns: { zones: ['body'], ids: TROUSER_PATTERNS }, sleeves: [],
     text: false, logo: false, frontBack: false, fit: ['unisex'],
-    limitations: ['authored trousers, not a scan of a VFRB garment: shape and drape are approximate', 'one body colour', 'pockets follow the 2D show/hide; pocket layers you add are 2D only', 'no text or logos in 3D'],
+    limitations: ['authored trousers, not a scan of a VFRB garment: shape and drape are approximate', 'one body colour', 'pockets follow the 2D show/hide; pocket layers you add are 2D only', 'no text or logos in 3D', 'stripe patterns only: other patterns stay 2D only'],
   },
 });
 const AUTHORED_GARMENTS = [

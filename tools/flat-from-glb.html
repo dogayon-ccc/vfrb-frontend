@@ -1,8 +1,10 @@
 <!doctype html><html><head><meta charset="utf-8"><title>flat from GLB</title></head>
 <body><script type="module">
-// Dev-only, driven by tools/flat-from-glb.mjs: orthographic front/back renders with one flat label colour per mesh part.
+// Dev-only, driven by tools/flat-from-glb.mjs: orthographic front/back renders with one flat label colour per mesh part, plus an outer-shape
+// mask rendered without the job's surface parts (pocket welts and fly) when it names any.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 
 const LONG = 1024, PAD = 8;
 const PALETTE = ['#ffffff', '#3a6ea5', '#e07a5f', '#81b29a', '#f2cc8f', '#9b5de5', '#2a9d8f', '#e63946', '#577590'];
@@ -32,8 +34,11 @@ function render(scene, box, W, H, scale, face) {
   return labels;
 }
 
-async function flats(id) {
-  const { scene } = await new GLTFLoader().loadAsync(`/__flats/glb/${id}.glb`);
+async function flats({ id, draco, hide }) {
+  const loader = new GLTFLoader(), decoder = draco ? new DRACOLoader().setDecoderPath('/__flats/draco/') : null;
+  if (decoder) loader.setDRACOLoader(decoder);
+  const { scene } = await loader.loadAsync(`/__flats/glb/${id}.glb`);
+  decoder?.dispose();
   const parts = [];
   scene.traverse(o => { if (o.isMesh) { parts.push(o.name); o.material = new THREE.MeshBasicMaterial({ color: new THREE.Color().setRGB(parts.length / 255, 0, 0), side: THREE.DoubleSide }); } });
   scene.updateMatrixWorld(true);
@@ -41,12 +46,18 @@ async function flats(id) {
   const scale = (LONG - 2 * PAD) / Math.max(size.x, size.y), W = Math.round(size.x * scale) + 2 * PAD, H = Math.round(size.y * scale) + 2 * PAD;
   for (const face of ['front', 'back']) {
     const labels = render(scene, box, W, H, scale, face);
-    await post('/__flats/result', { id, face, W, H, parts, labels: b64(labels), png: maskPng(labels, W, H) });
+    let sil;
+    if (hide.length) {
+      scene.traverse(o => { if (o.isMesh && hide.includes(o.name)) o.visible = false; });
+      sil = b64(render(scene, box, W, H, scale, face).map(l => (l ? 1 : 0)));
+      scene.traverse(o => { if (o.isMesh) o.visible = true; });
+    }
+    await post('/__flats/result', { id, face, W, H, parts, labels: b64(labels), sil, png: maskPng(labels, W, H) });
   }
 }
 
 try {
-  for (const id of await (await fetch('/__flats/jobs')).json()) await flats(id);
+  for (const job of await (await fetch('/__flats/jobs')).json()) await flats(job);
   await post('/__flats/done', {});
 } catch (e) { await post('/__flats/done', { error: String(e?.stack ?? e) }); }
 </script></body></html>
