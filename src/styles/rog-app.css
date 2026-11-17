@@ -1,8 +1,8 @@
 /* ROG language for the signed-in apps. One token set; loads last so it wins over theme.css and main.css.
    Customer (.cm-shell): premium and visual, one cut corner per card. Admin (.adm-*): dense and operational. */
 :root {
-  --rg-mint: #02c39a; --rg-mint-hi: #4fe0bc; --rg-void: #041117; --rg-teal: #028090;
-  --rg-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --rg-mint: var(--vf-mint); --rg-mint-hi: var(--vf-mint-hi); --rg-void: var(--vf-void); --rg-teal: var(--vf-teal);
+  --rg-sans: var(--vf-font);
   --rg-cut: 14px; --rg-cut-s: 9px;
   --font-display: var(--rg-sans);
 }
@@ -41,12 +41,12 @@
 .adm-crumbs.adm-crumbs [aria-current="page"] { font-weight: 800; font-style: italic; letter-spacing: -0.005em; }
 .adm-in .ui-title, .adm-in .ui-card-title { font-weight: 800; letter-spacing: -0.005em; }
 .vc-fig b, .vc-hole b { font-weight: 800; font-style: italic; }
-.adm-link.adm-link[aria-current="page"] { background: rgb(2 195 154 / 0.14); }
+.adm-link.adm-link[aria-current="page"] { background: rgb(var(--vf-mint-rgb) / 0.14); }
 .adm-link.adm-link[aria-current="page"]::before { background: var(--rg-mint); border-radius: 0; width: 3px; }
 .adm-link.adm-link[aria-current="page"] .nav-ico-wrap { color: var(--rg-mint-hi); }
 .adm-in .ui-table th, .adm-in .adm-table th { font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
 .adm-in .ui-table tbody tr:hover > td:first-child, .adm-in .adm-table tbody tr:hover > td:first-child { box-shadow: inset 3px 0 0 var(--rg-mint); }
-.adm-in .ui-table tbody tr[aria-selected="true"] { background: rgb(2 195 154 / 0.1); }
+.adm-in .ui-table tbody tr[aria-selected="true"] { background: rgb(var(--vf-mint-rgb) / 0.1); }
 .adm-in .ui-table tbody tr[aria-selected="true"] > td:first-child { box-shadow: inset 3px 0 0 var(--rg-mint); }
 
 @media (prefers-reduced-motion: reduce) { .cm-shell .ui-card.interactive { transition: none; } }
@@ -57,8 +57,8 @@
 .pl-box::before,.pl-box::after{content:'';position:absolute;width:16px;height:16px;border:2px solid var(--rg-mint)}
 .pl-box::before{left:0;top:0;border-right:0;border-bottom:0}
 .pl-box::after{right:0;bottom:0;border-left:0;border-top:0}
-.pl-mark{width:56px;height:56px;border-radius:0;object-fit:cover;animation:plGlow 1s ease-in-out infinite;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px))}
-.pl-bar{display:block;width:132px;height:4px;overflow:hidden;background:rgba(2,195,154,.22);transform:skewX(-30deg)}
+.pl-mark{width:56px;height:56px;border-radius:0;object-fit:cover;animation:plGlow 1s ease-in-out infinite;clip-path:var(--vf-clip-12)}
+.pl-bar{display:block;width:132px;height:4px;overflow:hidden;background:rgb(var(--vf-mint-rgb) / .22);transform:skewX(-30deg)}
 .pl-bar i{display:block;width:45%;height:100%;background:var(--rg-mint);animation:plScan .7s cubic-bezier(.5,0,.5,1) infinite}
 @keyframes plIn{from{opacity:0;transform:scale(.96)}}
 @keyframes plGlow{50%{filter:drop-shadow(0 0 10px var(--rg-mint))}}
@@ -68,12 +68,12 @@
 .cm-shell .ui-btn[data-v=primary],.cm-shell .btn-primary,.cm-shell .cx-fab{position:relative;overflow:hidden;isolation:isolate;transition:filter .18s,transform .12s}
 .cm-shell .ui-btn[data-v=primary]::after,.cm-shell .btn-primary::after{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(105deg,transparent 35%,rgba(79,224,188,.55) 50%,transparent 65%);transform:translateX(-120%)}
 @media(hover:hover){
-  .cm-shell .ui-btn[data-v=primary]:hover,.cm-shell .btn-primary:hover{filter:drop-shadow(0 0 8px rgba(2,195,154,.55))}
+  .cm-shell .ui-btn[data-v=primary]:hover,.cm-shell .btn-primary:hover{filter:drop-shadow(0 0 8px rgb(var(--vf-mint-rgb) / .55))}
   .cm-shell .ui-btn[data-v=primary]:hover::after,.cm-shell .btn-primary:hover::after{transform:translateX(120%);transition:transform .55s ease}
   .cm-shell .ui-card:not(.mx-card):not(.subtle):hover{transform:translateY(-2px);transition:transform .18s}
 }
 .cm-shell .ui-btn:active,.cm-shell .cx-fab:active{transform:scale(.97)}
-.cx-rail-link{border-radius:0;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));min-height:44px}
+.cx-rail-link{border-radius:0;clip-path:var(--vf-clip-10);min-height:44px}
 .cx-rail-link:hover{background:color-mix(in srgb,var(--rg-mint) 12%,transparent)}
 .cx-rail-link[aria-current=page]{animation:cxEdge .35s ease-out}
 @keyframes cxEdge{from{box-shadow:inset 0 0 0 0 var(--rg-mint)}}
@@ -87,7 +87,7 @@
 /* ── Customer dashboard: order overview first, board layout, one line per set note ── */
 .dx-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:16px}
 .dx-stat{display:flex;flex-direction:column;gap:2px;min-height:44px;padding:14px 18px;text-decoration:none;color:var(--cx-ink);background:var(--bg-card);
-  clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px));box-shadow:inset 0 0 0 1px var(--border)}
+  clip-path:var(--vf-clip-12);box-shadow:inset 0 0 0 1px var(--border)}
 .dx-stat b{font:900 italic 34px/1 var(--rg-sans)}
 .dx-stat span{font-size:14px;color:var(--cx-ink-2)}
 .dx-stat:hover{background:color-mix(in srgb,var(--rg-mint) 12%,var(--bg-card))}
@@ -104,33 +104,33 @@
 .ds-pick-titlebar{grid-template-columns:1fr auto}
 .ds-pick-titlebar h2{grid-column:1}
 .ds-pick[data-inline] .ds-pick-head{background:var(--bg-card);box-shadow:inset 0 -1px 0 var(--border);padding-inline:clamp(0px,1vw,12px);
-  --cx-stage-ink:#16213f;--cx-stage-ink-2:#3a4668;--cx-card:#fff;--cx-paper:#f4f1ea;--cx-paper-2:#ebe6dc;--cx-line:#e3ddd0;--cx-line-strong:#c9c1b0;--cx-ink:#16213f;--cx-ink-2:#3a4668;--cx-ink-3:#566080;--cx-hover:#ebe6dc;--cx-thread:#028090;--cx-thread-ink:#01707e;--cx-on-thread:#fff;--cx-thread-tint:rgb(2 128 144 / .12)}
+  --cx-stage-ink:var(--vf-navy);--cx-stage-ink-2:var(--vf-navy-2);--cx-card:#fff;--cx-paper:var(--vf-paper);--cx-paper-2:var(--vf-paper-2);--cx-line:var(--vf-line);--cx-line-strong:var(--vf-line-strong);--cx-ink:var(--vf-navy);--cx-ink-2:var(--vf-navy-2);--cx-ink-3:var(--vf-navy-3);--cx-hover:var(--vf-paper-2);--cx-thread:var(--vf-teal);--cx-thread-ink:var(--vf-teal-ink);--cx-on-thread:#fff;--cx-thread-tint:rgb(2 128 144 / .12)}
 .ds-pick-head h2{font:900 italic clamp(24px,3vw,34px)/1.1 var(--rg-sans);text-transform:uppercase}
 .ds-pick-tabs{align-self:flex-start}
 
 /* ── Specificity pass: customer-shell.css and the Studio styles load after this file, so these carry .cm-shell / .ds ── */
-.cm-shell .cx-rail-link{border-radius:0;min-height:48px;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px))}
-.cm-shell .cx-rail-link[aria-current=page]{background:#16213f;color:#fff;box-shadow:none}
+.cm-shell .cx-rail-link{border-radius:0;min-height:48px;clip-path:var(--vf-clip-12)}
+.cm-shell .cx-rail-link[aria-current=page]{background:var(--vf-navy);color:#fff;box-shadow:none}
 .cm-shell .cx-rail-link[aria-current=page] svg{color:var(--rg-mint-hi)}
-.cm-shell .cx-rail .cx-rail-studio{min-height:56px;margin-top:10px;font:900 italic 15px/1 var(--rg-sans);letter-spacing:.06em;text-transform:uppercase;clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px))}
-.cm-shell .dx-order,.cm-shell .dx-olist{border-radius:0;box-shadow:inset 0 0 0 1px var(--border);clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px))}
-.cm-shell .dx-hero{border-radius:0;clip-path:polygon(0 0,calc(100% - 28px) 0,100% 28px,100% 100%,28px 100%,0 calc(100% - 28px))}
+.cm-shell .cx-rail .cx-rail-studio{min-height:56px;margin-top:10px;font:900 italic 15px/1 var(--rg-sans);letter-spacing:.06em;text-transform:uppercase;clip-path:var(--vf-clip-16)}
+.cm-shell .dx-order,.cm-shell .dx-olist{border-radius:0;box-shadow:inset 0 0 0 1px var(--border);clip-path:var(--vf-clip-18)}
+.cm-shell .dx-hero{border-radius:0;clip-path:var(--vf-clip-28)}
 
 /* Studio starter: light header, no 1240px cap, header and grid share one left edge */
 .ds .ds-pick[data-inline]{--ds-pick-pad:clamp(16px,2.5vw,40px)}
 .ds .ds-pick[data-inline]>:is(.ds-pick-tools,.ds-pick-grid,.ds-pick-foot,.ds-pick-past,.ds-chips,.ds-pick-facets,.ds-pick-subh,.ds-pick-viewsw,.ds-pick-sec){max-width:none}
 .ds .ds-pick[data-inline] .ds-pick-grid{grid-template-columns:repeat(auto-fill,minmax(clamp(160px,13vw,220px),1fr))}
 .ds .ds-pick[data-inline] .ds-pick-head{padding-inline:var(--ds-pick-pad);background:#fff;border-bottom:1px solid var(--border);
-  --cx-stage-ink:#16213f;--cx-stage-ink-2:#3a4668;--cx-card:#fff;--cx-paper:#f4f1ea;--cx-paper-2:#ebe6dc;--cx-line:#e3ddd0;--cx-line-strong:#c9c1b0;--cx-ink:#16213f;--cx-ink-2:#3a4668;--cx-ink-3:#566080;--cx-hover:#ebe6dc;--cx-thread:#028090;--cx-thread-ink:#01707e;--cx-on-thread:#fff;--cx-thread-tint:rgb(2 128 144 / .12)}
-.ds .ds-pick[data-inline] .ds-pick-head .ds-note:not(.ds-status *),.ds .ds-pick[data-inline] .ds-pick-head .ds-pick-frow>span{color:#3a4668}
-.ds .ds-pick[data-inline] .ds-pick-tabs button[aria-checked=true]{background:#16213f;color:#fff}
-.ds .ds-pick[data-inline] .ds-pick-head h2{color:#16213f}
+  --cx-stage-ink:var(--vf-navy);--cx-stage-ink-2:var(--vf-navy-2);--cx-card:#fff;--cx-paper:var(--vf-paper);--cx-paper-2:var(--vf-paper-2);--cx-line:var(--vf-line);--cx-line-strong:var(--vf-line-strong);--cx-ink:var(--vf-navy);--cx-ink-2:var(--vf-navy-2);--cx-ink-3:var(--vf-navy-3);--cx-hover:var(--vf-paper-2);--cx-thread:var(--vf-teal);--cx-thread-ink:var(--vf-teal-ink);--cx-on-thread:#fff;--cx-thread-tint:rgb(2 128 144 / .12)}
+.ds .ds-pick[data-inline] .ds-pick-head .ds-note:not(.ds-status *),.ds .ds-pick[data-inline] .ds-pick-head .ds-pick-frow>span{color:var(--vf-navy-2)}
+.ds .ds-pick[data-inline] .ds-pick-tabs button[aria-checked=true]{background:var(--vf-navy);color:#fff}
+.ds .ds-pick[data-inline] .ds-pick-head h2{color:var(--vf-navy)}
 
 /* ── Customer shell: slim icon rail that opens over the page on hover or focus (tablet and small laptops) ── */
 @media(min-width:768px) and (max-width:1279px){
   html[data-cx] .cm-shell{--cx-rail-w:76px}
   .cm-shell .cx-rail{justify-self:start;width:var(--cx-rail-w);z-index:150;overflow-x:hidden;transition:width .2s var(--cx-ease,ease),box-shadow .2s}
-  .cm-shell .cx-rail:is(:hover,:focus-within){width:232px;box-shadow:8px 0 24px rgba(22,33,63,.14)}
+  .cm-shell .cx-rail:is(:hover,:focus-within){width:232px;box-shadow:8px 0 24px rgb(var(--vf-navy-rgb) / .14)}
   .cm-shell .cx-rail:not(:hover):not(:focus-within) .cx-rail-link{justify-content:center;padding:0}
   .cm-shell .cx-rail:not(:hover):not(:focus-within) .cx-rail-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 }
@@ -144,31 +144,31 @@
 /* ── Home: big visual design tiles (Canva-style), one tap opens the design ── */
 .dz-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:16px;margin:0;padding:0;list-style:none}
 .dz-tile{display:flex;flex-direction:column;gap:2px;width:100%;height:100%;padding:0 0 14px;border:0;cursor:pointer;text-align:left;font:inherit;color:var(--cx-ink);background:var(--bg-card);
-  clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px));box-shadow:inset 0 0 0 1px var(--border);transition:transform .18s}
-.dz-art{display:grid;place-items:center;aspect-ratio:4/3;margin-bottom:10px;background:#dfe7e6;overflow:hidden}
+  clip-path:var(--vf-clip-18);box-shadow:inset 0 0 0 1px var(--border);transition:transform .18s}
+.dz-art{display:grid;place-items:center;aspect-ratio:4/3;margin-bottom:10px;background:var(--vf-art-bg);overflow:hidden}
 .dz-tile strong,.dz-tile small{padding-inline:14px}
 .dz-tile strong{font:900 italic 17px/1.15 var(--rg-sans);text-transform:uppercase;overflow-wrap:anywhere}
 .dz-tile small{font-size:13px;color:var(--cx-ink-2)}
-.dz-tile[data-draft] small{color:var(--teal-ink,#01707e);font-weight:700}
+.dz-tile[data-draft] small{color:var(--teal-ink,var(--vf-teal-ink));font-weight:700}
 @media(hover:hover){.dz-tile:hover{transform:translateY(-3px)}}
 .dz-tile:active{transform:scale(.98)}
 @media(prefers-reduced-motion:reduce){.dz-tile{transition:none}.dz-tile:hover,.dz-tile:active{transform:none}}
 
 /* ── Studio garment picker: category-first tiles, bigger chamfered garment cards ── */
 .ds .ds-pick[data-inline] .ds-chips[aria-label="Uniform category"]{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
-.ds .ds-cat-tile{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:128px;padding:10px 10px;border:0;border-radius:0;text-align:center;background:#fff;color:#16213f;
-  clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px));box-shadow:inset 0 0 0 1px var(--border)}
-.ds .ds-cat-tile[aria-checked=true]{background:#16213f;color:#fff}
-.ds .ds-cat-tile[aria-checked=true] small{color:#d5dbea}
+.ds .ds-cat-tile{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:128px;padding:10px 10px;border:0;border-radius:0;text-align:center;background:#fff;color:var(--vf-navy);
+  clip-path:var(--vf-clip-16);box-shadow:inset 0 0 0 1px var(--border)}
+.ds .ds-cat-tile[aria-checked=true]{background:var(--vf-navy);color:#fff}
+.ds .ds-cat-tile[aria-checked=true] small{color:var(--vf-on-navy-2)}
 .ds .ds-cat-art{display:grid;place-items:center;width:100%;height:72px;overflow:hidden}
 .ds .ds-cat-art>*{max-height:72px;max-width:100%}
 @media(max-height:820px){.ds .ds-cat-tile{min-height:104px}.ds .ds-cat-art{height:52px}.ds .ds-cat-art>*{max-height:52px}}
-.ds .ds-cat-tile[aria-checked=true] .ds-cat-all{color:#4fe0bc}
-.ds .ds-cat-all{font:900 italic 30px/1 var(--rg-sans);text-transform:uppercase;color:#028090}
+.ds .ds-cat-tile[aria-checked=true] .ds-cat-all{color:var(--vf-mint-hi)}
+.ds .ds-cat-all{font:900 italic 30px/1 var(--rg-sans);text-transform:uppercase;color:var(--vf-teal)}
 .ds .ds-cat-tile strong{font:900 italic 15px/1.1 var(--rg-sans);text-transform:uppercase}
-.ds .ds-cat-tile small{font-size:13px;color:#3a4668}
-.ds .ds-pick[data-inline] .ds-pick-card{border-radius:0;clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px))}
-.ds .ds-pick[data-inline] .ds-pick-card[aria-pressed=true]{background:#16213f;color:#fff}
+.ds .ds-cat-tile small{font-size:13px;color:var(--vf-navy-2)}
+.ds .ds-pick[data-inline] .ds-pick-card{border-radius:0;clip-path:var(--vf-clip-16)}
+.ds .ds-pick[data-inline] .ds-pick-card[aria-pressed=true]{background:var(--vf-navy);color:#fff}
 @media(hover:hover){.ds .ds-pick[data-inline] .ds-pick-card:not(:disabled):hover,.ds .ds-cat-tile:hover{transform:translateY(-3px)}}
 .ds .ds-pick-card,.ds .ds-cat-tile{transition:transform .18s}
 @media(prefers-reduced-motion:reduce){.ds .ds-pick-card,.ds .ds-cat-tile{transition:none}.ds .ds-pick-card:hover,.ds .ds-cat-tile:hover{transform:none}}
@@ -186,7 +186,7 @@
 
 /* ── My Designs: the new-design tile leads the grid as a real card; the grid grows with the screen ── */
 .cm-shell .cx-newtile{min-height:200px;border:0;border-radius:0;gap:10px;background:var(--bg-card);color:var(--cx-ink);box-shadow:inset 0 0 0 1px var(--border);
-  clip-path:polygon(0 0,calc(100% - 18px) 0,100% 18px,100% 100%,18px 100%,0 calc(100% - 18px))}
+  clip-path:var(--vf-clip-18)}
 .cm-shell .cx-newtile::before{content:"+";display:grid;place-items:center;width:56px;height:56px;border-radius:50%;background:var(--rg-mint);color:var(--rg-void);font:700 32px/1 var(--rg-sans)}
 .cm-shell .cx-newtile svg{display:none}
 .cm-shell .cx-newtile strong{font:900 italic 17px/1.15 var(--rg-sans);text-transform:uppercase;color:var(--cx-ink)}
@@ -211,7 +211,7 @@
 /* ── Studio chrome, ROG pass: mint hairline under the bar, chamfered primary action, mint-underlined italic tabs, wider inspector on big screens ── */
 .ds .ds-bar.ds-chrome{box-shadow:inset 0 -2px 0 var(--rg-teal)}
 .ds .ds-chrome .ds-bar-primary{border-radius:0;font:800 italic 14px/1 var(--rg-sans);letter-spacing:.04em;text-transform:uppercase;
-  clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px))}
+  clip-path:var(--vf-clip-10)}
 .ds .ds-bar-primary:focus-visible{outline:0;box-shadow:inset 0 0 0 2px #fff}
 @media(min-width:1024px){
   .ds .ds-tabs button{font:800 italic 12px/1.15 var(--rg-sans);letter-spacing:.05em;text-transform:uppercase;border-radius:0}

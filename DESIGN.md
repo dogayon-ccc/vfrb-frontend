@@ -1,4 +1,5 @@
 # VFRB Client Design Brief
+Superseded in part: see `docs/DESIGN_SYSTEM.md` (Nov 17 2026). The green ROG direction replaces "never gamer/neon".
 Concept: a tailor's atelier workroom, not a SaaS dashboard. Family workshop since 2000. Serves hospitals, schools, government: credible, warm, never gamer/neon/cyberpunk.
 Feel: warm paper, ink text, teal thread accent, real fabric photography, stitch details.
 Type: DM Serif Display for headings; ONE self-hosted characterful sans for UI (woff2, OFL license verified, no CDN; not Inter/Arial/system as the identity).
