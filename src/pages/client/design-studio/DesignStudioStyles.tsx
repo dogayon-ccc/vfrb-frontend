@@ -22,18 +22,18 @@ export default function DesignStudioStyles() {
         background:var(--cx-paper);color:var(--cx-ink);font-family:var(--cx-sans);
       }
       .ds button:focus-visible,.ds [role=button]:focus-visible{outline:2px solid var(--cx-thread-ink);outline-offset:2px;}
-      /* Navy chrome (bar, Pieces rail) on the pattern table, chalk panel: navy bases; customer.css derives the rest */
+      /* Teal chrome (bar, Pieces rail) on the pattern table, chalk panel: --vf-chrome bases; customer.css derives the rest */
       .ds .ds-chrome{color-scheme:dark;${CHROME_ACCENT}
-        --color-page:#16233F;--color-surface:#16233F;--color-surface-2:#2B3E66;--color-card:#1B2A4A;--color-line:#46587F;--color-line-strong:#7686A6;
-        --color-ink:#F4F5F2;--color-ink-2:#D8DCE4;--color-ink-3:#B4BDCC;
+        --color-page:var(--vf-chrome);--color-surface:var(--vf-chrome);--color-surface-2:var(--vf-chrome-2);--color-card:var(--vf-chrome);--color-line:var(--vf-chrome-line);--color-line-strong:rgb(var(--vf-mint-rgb) / .45);
+        --color-ink:var(--vf-on-chrome);--color-ink-2:var(--vf-on-chrome-2);--color-ink-3:var(--vf-on-chrome-3);
         --cx-shade:0 0 0;--cx-weave-light:rgb(255 255 255 / .05);--cx-weave-dark:rgb(0 0 0 / .25);--cx-scrim:rgb(0 0 0 / .55);
         --shadow-1:0 1px 2px rgba(0,0,0,.45);--shadow-2:0 2px 6px rgba(0,0,0,.4),0 18px 40px -14px rgba(0,0,0,.7);
         color:var(--cx-ink);}
-      .ds-bar.ds-chrome{border-bottom:1px dashed rgb(201 162 122 / .55);}
-      .ds-rail.ds-chrome{border-right:1px dashed rgb(201 162 122 / .55);}
-      .ds-chrome .ds-bar-primary{background:#028090;color:#fff;}
-      .ds-chrome .ds-bar-primary:hover:not(:disabled){background:#046A78;}
-      .ds-chrome .ds-bar-view button[aria-checked=true]{background:#C9A27A;color:#1B2A4A;}
+      .ds-bar.ds-chrome{border-bottom:1px solid var(--vf-chrome-line);}
+      .ds-rail.ds-chrome{border-right:1px solid var(--vf-chrome-line);}
+      .ds-chrome .ds-bar-primary{background:var(--vf-mint);color:var(--vf-void);}
+      .ds-chrome .ds-bar-primary:hover:not(:disabled){background:var(--vf-mint-hi);}
+      .ds-chrome .ds-bar-view button[aria-checked=true]{background:var(--vf-mint);color:var(--vf-void);}
       .ds-matnote{display:grid;grid-template-columns:auto minmax(0,1fr) 44px;align-items:start;gap:8px;margin:12px 12px 0;padding:8px 0 8px 12px;
         border:1px solid var(--cx-line);border-radius:var(--cx-r-md);background:var(--cx-paper-2);font-size:13px;line-height:1.45;color:var(--cx-ink-2);}
       .ds-matnote > svg{margin-top:2px;color:var(--cx-thread-ink);}
