@@ -29,3 +29,11 @@
 .cm-shell .cx-rail .cx-rail-out, .cm-shell .cx-rail .cx-rail-out:hover { color: var(--vf-danger-on-chrome); }
 .cm-shell .cx-rail .cx-rail-out:hover { background: rgb(255 154 148 / .12); }
 .cm-shell .cx-bar .cx-brand img { box-shadow: 0 0 0 1px var(--vf-chrome-line); }
+
+/* All-clear banner: the note was squeezed into a 260px column and wrapped to four lines. */
+.ui-attn.clear .ui-attn-head { flex: 1 1 100%; }
+
+/* One page-title voice in both portals: heavy upright sans. Italic stays on in-card section titles. */
+.cm-shell .ui-title { font-weight: 800; letter-spacing: -0.015em; }
+
+/* Cards that hold an overflow menu keep their rounded edge: clip-path would cut the open menu. */

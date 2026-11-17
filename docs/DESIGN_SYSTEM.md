@@ -19,8 +19,8 @@ Direction (Nov 17 2026): one green VFRB identity across public, auth, client and
 
 ## Known debt (not yet migrated)
 - Remaining one-off polygons in `rog-site.css`, `rog-chrome.css`, `rog-auth.css` (asymmetric or variable-size cuts): leave unless a page needs them.
-- `.ui-stat` and other tiles keep a 14px round corner; the cut-corner skin only matches `.adm-in .ui-card`. Fix with the Dashboard batch.
-- Client page titles (`My Designs`) are light-weight sans while section titles are heavy italic: unify in the page-header component.
+- Admin cards and KPI tiles take the cut corner through `.adm-shell` selectors. Cards and tables that hold an overflow menu (`.ui-menu`) stay rounded, because `clip-path` would cut an open menu. Moving menus to a portal would remove that exception.
+- Page titles are heavy upright sans in both portals; italic is kept for in-card section titles.
 - `customer.css` has 10 raw hex values; `theme.css` has 182 custom properties, many duplicating `main.css`.
 - `rog-app.css` has no dark-theme values; `data-theme=dark` is handled only by `tokens-v2.css`.
 - Specificity: skin rules rely on `.cm-shell` / `.adm-in` prefixes and repeats to beat later files.
