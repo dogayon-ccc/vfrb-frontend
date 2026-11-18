@@ -11,7 +11,7 @@ import { signOut, USER_CHANGE_EVENT } from '../utils/session';
 import logo from '../assets/company-logo.jpg';
 import { useAppearance } from '../hooks/useAppearance';
 import { useUnreadMessages } from '../hooks/useUnreadMessages';
-import PageLoader from '../components/ui/PageLoader';
+import { CustomerPageSkeleton, Late } from '../components/PageSkeletons';
 import { haptic } from '../utils/haptics';
 import NavBadge from '../components/ui/NavBadge';
 import useDialogFocus from '../hooks/useDialogFocus';
@@ -205,7 +205,7 @@ export default function CustomerLayout() {
           <div key={location.pathname} className="vfrb-page thread-page">
               {/* Keyed on pathname, so a page crash resets with navigation and never takes the shell down. */}
               <PageErrorBoundary resetKey={location.pathname}>
-                <Suspense fallback={<PageLoader label="Loading page"/>}><Outlet/></Suspense>
+                <Suspense fallback={<Late><CustomerPageSkeleton/></Late>}><Outlet/></Suspense>
               </PageErrorBoundary>
           </div>
         </div>

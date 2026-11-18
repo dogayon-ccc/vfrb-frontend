@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { NavIcon } from '../../../components/ui/icons';
+import { useObjectUrl } from '../../../hooks/useObjectUrl';
 import { placementsFor, revealAlert } from './dsShared';
 import { REF_KINDS, REF_SKETCH_LABEL, REF_SKETCH_NOTE, REF_3D_NOTE, REF_UNIFORM_CONFIRM } from './referenceSketch';
 import { personGate } from './personDetector';
@@ -138,10 +139,36 @@ function StatusCard({ logo, onBrowse }: any) {
   return null;
 }
 
+// A reference is its own kind of file: a photo, sketch or PDF that shows VFRB what the customer has in mind. It rides with the order
+// (never saved with the design, never a layer, never drawn on the garment).
+const REFERENCE = { id: 'reference', label: 'Reference for VFRB', hint: 'A photo, sketch or PDF that shows VFRB what you have in mind. It goes with your order and is never printed on the garment.' };
+const SESSION_MAX = 3 * 1024 * 1024; // studioHandoff keeps larger files in memory only
+const sizeLabel = (b) => (b >= 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
+
+// Image preview or PDF file tile, with Replace and Remove.
+function ReferenceCard({ file, onReplace, onRemove }: any) {
+  const url = useObjectUrl(file?.type?.startsWith('image/') ? file : null);
+  if (!file) return null;
+  return (
+    <div className="ds-status ds-ref-card" data-phase="done" role="group" aria-label={REFERENCE.label}>
+      <div className="ds-ref-file">
+        <div className="ds-checker">{url ? <img src={url} alt="Your reference"/> : <NavIcon name="attachment" size={24}/>}</div>
+        <p><strong>{file.name}</strong><span>{sizeLabel(file.size)}{url ? '' : ', PDF'}</span></p>
+      </div>
+      <p className="ds-note">Sent with your next order as its reference file. It is not saved with the design{file.size > SESSION_MAX ? ', and reloading this page removes it' : ''}.</p>
+      <div className="ds-status-actions">
+        {onReplace && <button type="button" className="ds-btn" onClick={onReplace}>Replace</button>}
+        <button type="button" className="ds-btn" onClick={onRemove}>Remove</button>
+      </div>
+    </div>
+  );
+}
+
 const IMAGE_ACCEPT = 'image/png,image/svg+xml,image/jpeg,image/webp';
 
 export default function LogoAssets({ cfg, logo }: any) {
   const fileRef = useRef(null);
+  const refInput = useRef(null);
   const [drag, setDrag] = useState(false);
   const noGarment = !cfg.garment;
   const working = logo.status.phase === 'working';
@@ -150,6 +177,7 @@ export default function LogoAssets({ cfg, logo }: any) {
   const placement = presets.some((p) => p.id === logo.placement) ? logo.placement : presets[0].id;
   const modeHint = MODES.find((m) => m.id === logo.mode)?.hint;
   const browse = () => fileRef.current?.click();
+  const browseRef = () => refInput.current?.click();
   const pick = (file) => { if (!blocked && file) { if (logo.kind !== 'logo') logo.setKind('logo'); logo.upload(file); } };
 
   return (
@@ -185,6 +213,16 @@ export default function LogoAssets({ cfg, logo }: any) {
           ))}
         </div>
         <p className="ds-note">{modeHint}</p>
+      </section>
+
+      <section aria-label={REFERENCE.label}>
+        <h3 className="ds-h3">{REFERENCE.label}</h3>
+        <p className="ds-note">{REFERENCE.hint}</p>
+        {logo.reference
+          ? <ReferenceCard file={logo.reference} onReplace={working ? null : browseRef} onRemove={logo.removeReference}/>
+          : <button type="button" className="ds-btn" onClick={browseRef} disabled={working}><NavIcon name="attachment" size={14}/> Attach a reference ({logo.refRules.label})</button>}
+        <input ref={refInput} type="file" hidden accept={logo.refRules.accept} aria-label="Attach a reference file"
+          onChange={(e) => { logo.uploadReference(e.target.files?.[0]); e.target.value = ''; }}/>
       </section>
     </div>
   );

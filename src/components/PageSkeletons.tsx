@@ -1,5 +1,9 @@
 // Loading placeholders for every page family: app body, app shell, public site, design studio.
 import '../styles/skeleton.css';
+import { useAfter } from './ui/PageLoader';
+
+// A skeleton appears only when a load takes longer than 150 ms; quicker loads show nothing, so there is never a loading flash.
+export const Late = ({ children }: any) => (useAfter(150) ? children : null);
 
 const B = ({ w = '100%', h = 14, r, dark, style }: any) => (
   <i className={dark ? 'skx skx-dark' : 'skx'} style={{ width: w, height: h, borderRadius: r, ...style }} />
@@ -37,7 +41,7 @@ export function AppPageSkeleton() {
 }
 
 // customer: the light customer sidebar and a hero-and-cards page, so a customer never sees the admin shell while loading.
-function CustomerPageSkeleton() {
+export function CustomerPageSkeleton() {
   return (
     <div className="skx-page" {...busy('Loading page')}>
       <B h={220} r={20} />

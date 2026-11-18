@@ -11,7 +11,9 @@ import { useReferenceRules } from '../../../utils/uploadRules';
 import { analyzeImageFile, sketchFromAnalysis, REF_NOT_FULL_SET } from './referenceSketch';
 import { checkPerson, personGate, PERSON_REFUSED } from './personDetector';
 
-const IDLE = { phase: 'idle' };
+// phase: idle | working | error | review | sketch | trace | done; the other fields depend on the phase.
+type UploadStatus = { phase: string; [field: string]: any };
+const IDLE: UploadStatus = { phase: 'idle' };
 // Background removal is fetched on first use, not with the Studio.
 const processLogo = (file, opts) => import('../../../lib/logoBackground').then(m => m.processLogo(file, opts));
 
@@ -27,7 +29,7 @@ export function useLogoUpload(addLogo, { onTrace = null, onSketch = null, onAban
   const [mode, setMode] = useState('auto');            // auto | ai | off (logos)
   const [placement, setPlacement] = useState('left_chest');
   const [kind, setKind] = useState('logo');              // logo | artwork (a personal design) | reference (a file for VFRB)
-  const [status, setStatus] = useState(IDLE);
+  const [status, setStatus] = useState<UploadStatus>(IDLE);
   const [reference, setReference] = useState(peekDesignRef);
   const refRules = useReferenceRules();
   const nextUseAs = useRef('artwork'); // the review's preselected choice (the picker's "Create a 2D garment from this photo" presets 'sketch')
@@ -39,6 +41,16 @@ export function useLogoUpload(addLogo, { onTrace = null, onSketch = null, onAban
 
   const attachReference = useCallback((file) => { setDesignRef(file); setReference(file); }, []);
   const removeReference = useCallback(() => attachReference(null), [attachReference]);
+
+  // The Reference tile's own entry point: the file is checked by content against the server rule, then rides the session to the
+  // Order Wizard. It never reaches the logo/artwork path, so it can never be placed on the garment.
+  const uploadReference = useCallback(async (file) => {
+    if (!file) return;
+    const bad = await checkUpload(file, refRules);
+    if (bad) { setStatus({ phase: 'error', code: 'TYPE', message: bad, fileName: file.name }); return; }
+    attachReference(file);
+    setStatus(IDLE);
+  }, [refRules, attachReference]);
 
   const place = useCallback(async (file, info, art = kind === 'artwork') => {
     const dataUrl = await toDataUrl(await fitForCanvas(file, art ? 'artwork' : 'logo'));
@@ -184,6 +196,6 @@ export function useLogoUpload(addLogo, { onTrace = null, onSketch = null, onAban
     dismiss();
   }, [status, attachReference, dismiss]);
 
-  return { mode, setMode, kind, setKind, placement, setPlacement, status, upload: run, reference, refRules, removeReference, attachPhoto, attachRefused, addOriginal, retry, dismiss, setRemoveBg, setUseAs, tryAi, confirm,
+  return { mode, setMode, kind, setKind, placement, setPlacement, status, upload: run, reference, refRules, uploadReference, removeReference, attachPhoto, attachRefused, addOriginal, retry, dismiss, setRemoveBg, setUseAs, tryAi, confirm,
     setSketchKind, setSketchDraft, createSketch, setUniformOk, recheckPerson, preferUseAs: (v) => { nextUseAs.current = v; }, canTrace: !!onTrace, canSketch: !!onSketch };
 }

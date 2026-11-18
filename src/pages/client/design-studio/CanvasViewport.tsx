@@ -5,7 +5,7 @@ import { Minus, Plus, Scan, Maximize2, Minimize2, Expand, Shrink, Lightbulb, Rot
 import { NavIcon } from '../../../components/ui/icons';
 import { familyFor, cap3D } from './garmentCatalog';
 import Capability3D from './Capability3D';
-import { get3DCapabilities, hemNote3D, detailParts3D, explodableFor, has3DFor } from './garmentCapabilities';
+import { get3DCapabilities, hemNote3D, detailParts3D, explodableFor } from './garmentCapabilities';
 import { LIGHT_PRESETS } from './lightRig';
 import { BACKDROPS, useScene, setScene } from './sceneStore';
 import { ZONE_LABEL } from './dsShared';
@@ -151,8 +151,8 @@ export default function CanvasViewport({
   useEffect(() => { if (!lostNote) return undefined; const t = setTimeout(() => setLostNote(false), 8000); return () => clearTimeout(t); }, [lostNote]);
   // Exploded view, part picking and lighting presets: explodable models only.
   // A set shows in 3D only when both pieces have their own model; otherwise the active piece shows alone and the note says why.
-  const set3D = show3D && setCompanion && has3DFor(cfg) && has3DFor(setCompanion.cfg) ? setCompanion : null;
-  const canExplode = explodableFor(cfg) && !set3D;
+  // A full set is 2D only (SetView2D). 3D always shows the one piece being edited, never a companion model.
+  const canExplode = explodableFor(cfg);
   const { explode, lighting, backdrop, spin } = useScene(); // one source of truth shared with the Scene tab
   const nextBackdrop = () => setScene({ backdrop: (backdrop + 1) % BACKDROPS.length });
   useEffect(() => { setScene({ has3D: show3D, canExplode: show3D && canExplode, ...(show3D && canExplode ? null : { explode: false }) }); }, [show3D, canExplode]);
@@ -207,7 +207,7 @@ export default function CanvasViewport({
   const wideSplit = useMedia('(min-width:1280px)'); // side by side; below it the panes stack and rulers step aside
   const show2D = viewMode !== '3d' || !show3D;
   // The set view shows both pieces (2D only; 3D shows one piece at a time); rulers, guides and grid step aside while it is open.
-  const set2D = showSet && !!setCompanion && viewMode === '2d';
+  const set2D = showSet && !!setCompanion && viewMode !== '3d';
   const flat = cfg.garment && !photo && show2D && !set2D ? getGarmentPaths(cfg.garment, cfg.sleeve, face) : null;
   const [opening, setOpening] = useState(false);
   const endOpening = useCallback(() => setOpening(false), []);
@@ -463,8 +463,7 @@ export default function CanvasViewport({
   // 3D honesty notes, said in the top lane (never over the model).
   const notes3D = view3D ? [
     !webglOk && { id: 'nogl', text: '3D preview is not available on this device. Showing the 2D design.' },
-    set3D && { id: 'set3d', text: 'Both pieces shown in 3D at their real relative length. Logos and text show in 2D on each piece.' },
-    show3D && setCompanion && !set3D && { id: 'set3d', text: split ? `${setCompanion.cfg.garment} has no 3D model yet` : `3D shows ${cfg.garment} only: ${setCompanion.cfg.garment} has no 3D model yet and stays in 2D. Use Preview the set in 2D to see both.` },
+    show3D && setCompanion && { id: 'set3d', text: `3D shows ${cfg.garment} only, one piece at a time. Use Preview the set in 2D to see both pieces together.` },
     show3D && canExplode && picked && { id: 'zone', text: `Selected in the editor: ${ZONE_LABEL[picked] ?? picked}` },
     ...(show3D && cfg.garment ? (() => {
       const status = familyFor(cfg.garment)?.status3D;
@@ -573,7 +572,6 @@ export default function CanvasViewport({
             <ThreeEB>
               <Suspense fallback={<div className="ds-ref3d-skel" role="status"><span aria-hidden="true"/>Loading the 3D preview…</div>}>
                 <Scene3D cfg={cfg} overlayDataUrl={snapshot} overlays={overlays} onContextLost={on3DLost}
-                  companion={set3D ? set3D.cfg : null} companionRole={set3D ? set3D.role : null}
                   exploded={canExplode && explode} lighting={canExplode ? lighting : 'studio'} onPickZone={canExplode ? pickZone : null} turntable={spin}/>
               </Suspense>
             </ThreeEB>
@@ -590,6 +588,7 @@ export default function CanvasViewport({
       {/* Bottom lane: one bar of at most five labelled controls, then the zoom level and hints on their own row (never inside the bar) */}
       {cfg.garment && (
         <div className="ds-lane ds-lane-bottom" data-split={split ? '1' : undefined}>
+          <Capability3D short kind={cap3D(cfg)} className="ds-stage-badge"/>
           <div className="ds-ctrlbar" role="toolbar" aria-label="Stage controls" data-view-only>
             {show2D && (<>
               {ctrl('Zoom out', <Minus size={16} aria-hidden="true"/>, () => setZoom(z => Math.max(ZOOM_MIN, +(z - 0.15).toFixed(2))))}

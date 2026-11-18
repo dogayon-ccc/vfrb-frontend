@@ -8,6 +8,7 @@ import { installResponseGuards, watchCrossTabSession } from './utils/session';
 // iOS has no native install prompt (Android gets one from the manifest); this fills that gap.
 import PWAPrompt from 'react-ios-pwa-prompt';
 import { MotionConfig } from 'framer-motion';
+import { AppShellSkeleton, Late } from './components/PageSkeletons';
 import StorageNotice from './components/StorageNotice';
 import RouteMeta from './components/RouteMeta';
 import BrandedStatus from './components/BrandedStatus';
@@ -136,7 +137,9 @@ function Prefetch() {
 const SiteLoad  = ({ children }: any) => <Suspense fallback={null}>{children}</Suspense>;
 const SPLIT_AUTH = ['/login', '/forgot-password', '/reset-password'];
 const AuthLoad  = ({ children }: any) => <Suspense fallback={null}>{children}</Suspense>;
-const ShellLoad = ({ children }: any) => <Suspense fallback={null}>{children}</Suspense>;
+// Only the signed-in shell's first (cold) load shows a skeleton, after 150 ms: dark for the admin shell, light and customer-shaped for customers.
+// Route-to-route hops and the top-level boundary stay empty, so there is no full-page route loading screen.
+const ShellLoad = ({ customer = false, children }: any) => <Suspense fallback={<Late><AppShellSkeleton customer={customer}/></Late>}>{children}</Suspense>;
 
 // ── Auth guards ───────────────────────────────────────────────────────────────
 function RequireAuth({ children, role }: any) {
@@ -317,7 +320,7 @@ export default function App() {
 
           {/* ── CUSTOMER PORTAL — root-level paths, no /client or /customer prefix ── */}
           <Route element={
-            <RequireAuth role="customer"><ShellLoad><CustomerLayout/></ShellLoad></RequireAuth>
+            <RequireAuth role="customer"><ShellLoad customer><CustomerLayout/></ShellLoad></RequireAuth>
           }>
             <Route path="dashboard"   element={<CustomerDashboard/>}/>
             <Route path="my-designs"  element={<CustomerMyDesigns/>}/>

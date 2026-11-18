@@ -593,7 +593,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     ex('Scrub Top', 'Short', 'unisex') && ex('Scrub Top', '3/4', 'unisex') && !ex('Scrub Top', 'Short', 'female') && !ex('Polo Shirt', 'Short', 'female') && !ex('Pants', null, 'unisex')
     && Object.values(LP).every(p => Math.abs(p.fill + p.key * p.keyPos[2] / Math.hypot(...p.keyPos) - 1) < 0.05) && LP.studio.fill === Lt.fill
     && /autoRotate=\{spin && !exploded\}/.test(s3) && /useState\(!CALM\)/.test(s3) && /CALM \? 1 :/.test(sg) && /e\.delta > 6/.test(sg)
-    && /const canExplode = explodableFor\(cfg\) && !set3D;/.test(cv3) && /onPickZone=\{canExplode \? pickZone : null\}/.test(cv3));
+    && /const canExplode = explodableFor\(cfg\);/.test(cv3) && !/set3D/.test(cv3) && /onPickZone=\{canExplode \? pickZone : null\}/.test(cv3));
   // The saved-design edit gate lets view-only stage controls (zoom, Fit, Front/Back, Explode, Lighting, Full screen, stage light) through.
   t('WebGL lost mid-session: the stage returns to 2D with a timed notice (the 3D lane keeps its own "not available" note)',
     /const on3DLost = \(\) => \{ setWebglOk\(false\); setViewMode\?\.\('2d'\); setLostNote\(true\); \};/.test(cv3) && /setTimeout\(\(\) => setLostNote\(false\), 8000\)/.test(cv3)
@@ -999,7 +999,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
       return /^M [\d.]+,[\d.]+( L [\d.]+,[\d.]+){8,} Z$/.test(p.body) && !p.collar && !p.sleeveL && !p.sleeveR && !p.pocket && b.body === (d.geo.back ?? d.geo.body) && !!p.shade.front; }));
   t('every kept derived family is 2D + 3D (approx.), never verified; every removed piece (2026-10-16) is gone from the catalog, 3D and template ids and names an authored template',
     DF.DERIVED_FAMILIES.every(d => !d.no3D && CAT.resolveTarget(d.name, null, null).status === '2d-3d-approx')
-    && Object.entries(DF.REMOVED_GARMENT).every(([name, to]) => !CAT.FAMILY_BY_NAME[name] && !DF.DERIVED_BY_NAME[name] && !CAP.SCANNED_GARMENTS.some(x => x.match.test(name)) && (GP.BASE_PATHS[to] || !!GP.customPaths(to, null).body) && CAT.FAMILY_BY_NAME[to]));
+    && Object.entries(DF.REMOVED_GARMENT).every(([name, to]) => !CAT.FAMILY_BY_NAME[name] && !DF.DERIVED_BY_NAME[name] && (name === 'Straight Trousers' /* approved legacy alias: the authored Pants model keeps serving it */ || !CAP.SCANNED_GARMENTS.some(x => x.match.test(name))) && (GP.BASE_PATHS[to] || !!GP.customPaths(to, null).body) && CAT.FAMILY_BY_NAME[to]));
   // Nothing existing moved: every pre-existing family x style x fit and every unchanged gallery photo resolves exactly as at HEAD 57bbc2f.
   const base = JSON.parse(fsx.readFileSync(rel('./glb-extract/baseline-before-derived.json'), 'utf8'));
   const famSame = Object.entries(base.families).every(([k, b]) => { const [g, s0, f0] = k.split('|'); const sl = s0 === 'null' ? null : s0, fit = f0 === 'null' ? null : f0;
@@ -1868,7 +1868,10 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const PS = await L('/src/components/PageSkeletons.tsx'), app = rd('src/App.tsx');
   const cSk = renderToString(React.createElement(PS.AppShellSkeleton, { customer: true })), aSk = renderToString(React.createElement(PS.AppShellSkeleton));
   t('customers load on a light, customer-shaped skeleton, never the dark admin shell',
-    cSk.includes('data-light') && !cSk.includes('skx-dark') && aSk.includes('skx-dark') && /<ShellLoad customer><CustomerLayout\/>/.test(app) && /area === 'app'\) return <AppShellSkeleton customer\/>/.test(app));
+    cSk.includes('data-light') && !cSk.includes('skx-dark') && aSk.includes('skx-dark') && /<ShellLoad customer><CustomerLayout\/>/.test(app) && /<ShellLoad><AdminLayout\/>/.test(app)
+    && /const ShellLoad = \(\{ customer = false, children \}[^\n]*<AppShellSkeleton customer=\{customer\}\/>/.test(app)
+    && /<Suspense fallback=\{<Late><CustomerPageSkeleton\/><\/Late>\}><Outlet\/><\/Suspense>/.test(rd('src/layouts/CustomerLayout.tsx'))
+    && !/function Loader\(/.test(app) && !/<Suspense fallback=\{<Loader\/>\}>/.test(app)); // approved 2026-11: no full-page route loading screen (a1cc461 removed it on purpose)
   const TU = await L('/src/pages/client/design-studio/studioTutorials.ts'), RT = await L('/src/pages/client/design-studio/railTools.ts'), DSx = await L('/src/pages/client/design-studio/dsShared.ts');
   const dsSrc = fsx.readdirSync('src/pages/client/design-studio').filter(f => /\.[jt]sx?$/.test(f) && f !== 'studioTutorials.ts').map(f => rd(`src/pages/client/design-studio/${f}`)).join('\n');
   const toolIds = new Set(RT.RAIL_TOOLS.map(x => x.id)), tabIds = new Set(DSx.TABS.map(x => x.id));

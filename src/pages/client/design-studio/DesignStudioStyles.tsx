@@ -1037,6 +1037,7 @@ export default function DesignStudioStyles() {
       }
       /* Phones: the save state is its dot (the words stay for screen readers); the zoom hint row gives its height to the garment */
       .ds-lane-cap{display:none;}
+      .ds-stage-badge{display:none;}
       @media (max-width:599px){
         .ds-bar-save{padding:0 4px;border:0;background:none;}
         .ds-bar-save-txt{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
@@ -1056,6 +1057,10 @@ export default function DesignStudioStyles() {
         .ds-rail[data-set] .ds-rail-thumb{display:none;}
         /* Zoom: three round buttons in the stage's bottom-right corner; Back view and Full screen are in the ⋯ menu */
         .ds-lane-bottom{position:relative;}
+        /* The 3D status chip sits bottom-left of the stage (the top-bar chip is hidden on phones). */
+        .ds-lane-bottom .ds-stage-badge{display:inline-flex;align-items:center;gap:6px;position:absolute;bottom:8px;left:8px;z-index:2;}
+        .ds-lane-bottom .ds-stage-badge{pointer-events:none;background:var(--warning-bg,#fff4d6);color:var(--warning-text,#7a4b00);border-color:transparent;}
+        .ds-lane-bottom .ds-stage-badge[data-cap=none]{background:var(--bg-surface);color:var(--text-muted);}
         .ds-lane-bottom .ds-ctrlbar{position:absolute;right:8px;bottom:calc(100% + 8px);width:auto;gap:8px;padding:0;border:0;background:none;box-shadow:none;}
         .ds-lane-bottom .ds-ctrlbar .ds-ctrl{flex:none;width:44px;height:44px;padding:0;border:1px solid var(--cx-line);border-radius:50%;background:var(--cx-card);box-shadow:var(--cx-elev-1);}
         .ds-lane-bottom .ds-ctrlbar .ds-ctrl[aria-pressed=true]{background:var(--cx-thread-tint);border-color:var(--cx-thread);}
