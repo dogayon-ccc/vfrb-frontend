@@ -605,6 +605,19 @@ t('new families route to their own models per sleeve; no model for a sleeve they
       /className="ds-body"/.test(sl) && /locked \? \{ inert: '' \} : \{\}/.test(sl) && /aria-disabled=\{locked \|\| undefined\}/.test(sl) && /onPointerDownCapture=\{onGate\}[\s\S]*onKeyDownCapture=\{onGate\}/.test(sl) && /className="ds-toast"/.test(sl)
       && /<StudioLayout locked=\{locked\} onGate=\{gateEdit\}/.test(ds0) && /rail=\{\s*<PiecesRail/.test(ds0) && /drawer=\{\s*<ToolDrawer/.test(ds0) && /canvas=\{\s*<CanvasViewport/.test(ds0)
       && !/className="ds-body"/.test(ds0) && !/className="ds-toast"/.test(ds0)); }
+  { const to = src('../src/pages/client/design-studio/ToolOptions.tsx'), hk = src('../src/pages/client/design-studio/useGarmentCanvas.ts'), tr = src('../src/pages/client/design-studio/ToolRail.tsx'), dp = src('../src/pages/client/design-studio/DrawPanel.tsx'), dsx = src('../src/pages/client/DesignStudio.tsx');
+    t('tool options flyout: the active brush / eraser / pen / line shows its own size, opacity, smoothing and colour beside the rail (portaled into .ds-body, full width under the row on phones); the rail renders it only when editable',
+      /createPortal\([\s\S]*host,\s*\)/.test(to) && /closest\('\.ds-body'\)/.test(to) && /window\.innerWidth < 768/.test(to)
+      && /brush:\s*\{ title: 'Brush'/.test(to) && /eraser:\s*\{ title: 'Eraser'/.test(to) && /pen:\s*\{ title: 'Curved line'/.test(to) && /line:\s*\{ title: 'Straight line'/.test(to)
+      && /aria-label="Opacity in percent"/.test(to) && /aria-label="Stroke smoothing in percent"/.test(to) && /aria-label="Size in pixels"/.test(to)
+      && /<ToolOptions active=\{active\}[^>]*onDone=\{\(\) => choose\('move'\)\}/.test(tr) && /!readOnly && !colourOnly && <ToolOptions/.test(tr)); 
+    t('freehand brush: opacity becomes an rgba stroke colour, smoothing raises decimate (0.4 to 4), strokes have round caps and joins, and size/colour/opacity/smoothing change live without leaving draw mode',
+      /decimate = 0\.4 \+ o\.smooth \* 3\.6/.test(hk) && /strokeLineCap = 'round'/.test(hk) && /strokeLineJoin = 'round'/.test(hk) && /rgba\(\$\{\(n >> 16\) & 255\}/.test(hk)
+      && /const setBrushStyle = useCallback\(\(size, color, opts = \{\}\)/.test(hk)
+      && /changeBrushOpacity[\s\S]*setBrushStyle\(undefined, undefined, \{ opacity \}\)/.test(dsx) && /changeBrushSmooth[\s\S]*setBrushStyle\(undefined, undefined, \{ smooth \}\)/.test(dsx)
+      && /opacity: brushOpacity, setOpacity: changeBrushOpacity, smooth: brushSmooth, setSmooth: changeBrushSmooth/.test(dsx));
+    t('Draw panel brush dots stay visible on the dark panel: theme tokens, not hard-coded light-theme greys',
+      !/rgba\(15,23,42/.test(dp) && /var\(--cx-ink-2\)/.test(dp) && /var\(--cx-line-strong\)/.test(dp)); }
 }
 // Canvas, grid, guides, alignment, navigation and eraser.
 {

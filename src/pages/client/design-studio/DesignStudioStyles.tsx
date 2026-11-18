@@ -801,6 +801,25 @@ export default function DesignStudioStyles() {
       .ds-tools-ink input::-webkit-color-swatch{border:0;border-radius:50%;}
       .ds-tools-ink input::-moz-color-swatch{border:0;border-radius:50%;}
       .ds-tools-size{display:flex;gap:2px;margin-left:4px;padding-left:4px;border-left:1px solid var(--cx-line);}
+      /* Tool options flyout: the active tool's settings, portaled into .ds-body beside the rail (full width under it on phones) */
+      .ds-opts{position:absolute;z-index:var(--z-dropdown);width:260px;max-width:calc(100% - 16px);display:flex;flex-direction:column;gap:10px;padding:12px 14px 14px;border:1px solid var(--cx-line-strong);border-radius:var(--cx-r-md);background:var(--cx-card);color:var(--cx-ink);box-shadow:0 12px 32px -12px rgb(0 0 0 / .45);}
+      .ds-opts-head{display:flex;align-items:center;justify-content:space-between;font-size:15px;}
+      .ds-opts-x{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;margin:-10px -10px -10px 0;border:0;border-radius:50%;background:transparent;color:var(--cx-ink-2);cursor:pointer;}
+      .ds-opts-x:hover{background:rgb(var(--vf-mint-rgb) / .14);}
+      .ds-opts-hint{margin:0;font-size:12px;line-height:1.4;color:var(--cx-ink-2);}
+      .ds-opts-row{display:flex;flex-direction:column;gap:6px;font-size:13px;}
+      .ds-opts-row>span{display:flex;justify-content:space-between;color:var(--cx-ink-2);}
+      .ds-opts-row>span b{color:var(--cx-ink);font-weight:600;}
+      .ds-opts-row input[type=range]{width:100%;height:28px;accent-color:var(--vf-mint,#02C39A);}
+      .ds-opts-preview{display:flex;align-items:center;justify-content:center;height:52px;border:1px dashed var(--cx-line-strong);border-radius:var(--cx-r-md);}
+      .ds-opts-preview i{display:block;border-radius:50%;}
+      .ds-opts-sw{display:flex;flex-wrap:wrap;gap:8px;}
+      .ds-opts-dot{position:relative;width:32px;height:32px;padding:0;border:2px solid var(--cx-line-strong);border-radius:50%;cursor:pointer;}
+      .ds-opts-dot[aria-pressed=true]{border-color:var(--vf-mint,#02C39A);box-shadow:0 0 0 2px var(--cx-card),0 0 0 4px var(--vf-mint,#02C39A);}
+      .ds-opts-custom{overflow:hidden;background:conic-gradient(#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00);}
+      .ds-opts-custom input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;}
+      @media (max-width:767px){.ds-opts{width:auto;}}
+
       .ds-tools-size button{width:44px;height:44px;display:grid;place-items:center;border:0;border-radius:var(--cx-r-md);background:transparent;cursor:pointer;}
       .ds-tools-size button[aria-checked=true]{background:var(--cx-thread-tint);}
       .ds-tools-size i{display:block;border-radius:50%;background:var(--cx-ink);}

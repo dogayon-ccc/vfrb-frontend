@@ -60,13 +60,13 @@ export default function DrawPanel({ size, color, onSizeChange, onColorChange, er
                 style={{
                   width:40, height:40, borderRadius:'50%', cursor:'pointer',
                   display:'flex', alignItems:'center', justifyContent:'center',
-                  background: active ? 'rgba(2,195,154,.15)' : 'rgba(15,23,42,.05)',
-                  border: `1.5px solid ${active ? 'rgba(2,195,154,.5)' : 'rgba(15,23,42,.14)'}`,
+                  background: active ? 'rgba(2,195,154,.22)' : 'var(--cx-card)',
+                  border: `1.5px solid ${active ? 'rgba(2,195,154,.7)' : 'var(--cx-line-strong)'}`,
                   transition:'background 140ms, border-color 140ms',
                 }}>
                 <div style={{
                   width: s * 1.6, height: s * 1.6, borderRadius:'50%',
-                  background: active ? T2 : 'rgba(15,23,42,.5)',
+                  background: active ? T2 : 'var(--cx-ink-2)',
                   transition:'background 140ms',
                 }}/>
               </button>
@@ -87,7 +87,7 @@ export default function DrawPanel({ size, color, onSizeChange, onColorChange, er
                 style={{
                   width:30, height:30, borderRadius:'50%', cursor:'pointer',
                   background:c.hex,
-                  border: active ? `2.5px solid ${T2}` : '1.5px solid rgba(15,23,42,.18)',
+                  border: active ? `2.5px solid ${T2}` : '1.5px solid var(--cx-line-strong)',
                   boxShadow: active ? '0 0 0 3px rgba(2,195,154,.2)' : 'none',
                   transition:'box-shadow 140ms, border-color 140ms',
                 }}/>

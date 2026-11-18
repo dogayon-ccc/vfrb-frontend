@@ -1,6 +1,7 @@
 // Tool rail in the stage's top lane: Photoshop-style tools and single-letter shortcuts (railTools.js), plus the active colour.
 import { haptic } from '../../../utils/haptics';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import ToolOptions from './ToolOptions';
 import { MousePointer2, Undo2, Redo2, Hand, Pipette, PaintBucket, Brush, Eraser, PenTool, Slash, Type, Shapes } from 'lucide-react';
 import { RAIL_TOOLS, PICK_TOOLS, STROKE_SIZES, STROKE_TOOLS, railKey, activeRail } from './railTools';
 
@@ -9,7 +10,8 @@ const SHOWN = ['move', 'hand', 'fill', 'brush', 'eraser', 'pen', 'text', 'shape'
 const typing = () => { const a = document.activeElement; return !!a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable); };
 
 export default function ToolRail({ rail, hand, setHand, canPan, zoomBy, readOnly = false }: any) {
-  const { tool, setTool, pick, setPick, erasing, setErasing, color, setColor, size, setSize, colourOnly, onShapes, history = null } = rail;
+  const { tool, setTool, pick, setPick, erasing, setErasing, color, setColor, size, setSize, opacity = 1, setOpacity, smooth = 0.5, setSmooth, colourOnly, onShapes, history = null } = rail;
+  const rootRef = useRef(null);
   const active = activeRail({ hand, pick, tool, erasing });
   const off = id => (readOnly ? id !== 'move' : (id === 'hand' && !canPan) || (colourOnly && !RAIL_TOOLS.find(t => t.id === id)?.colour && id !== 'move'));
 
@@ -42,7 +44,8 @@ export default function ToolRail({ rail, hand, setHand, canPan, zoomBy, readOnly
   });
 
   return (
-    <div className="ds-tools" role="toolbar" aria-label="Tools" data-tip-side="right">
+    <>
+    <div className="ds-tools" role="toolbar" aria-label="Tools" data-tip-side="right" ref={rootRef}>
       {RAIL_TOOLS.filter(t => SHOWN.includes(t.id)).map(({ id, key, label, hint }: any) => {
         const I = ICONS[id];
         return (
@@ -72,5 +75,7 @@ export default function ToolRail({ rail, hand, setHand, canPan, zoomBy, readOnly
         </div>
       )}
     </div>
+    {!readOnly && !colourOnly && <ToolOptions active={active} rootRef={rootRef} size={size} setSize={setSize} color={color} setColor={setColor} opacity={opacity} setOpacity={setOpacity} smooth={smooth} setSmooth={setSmooth} onDone={() => choose('move')}/>}
+    </>
   );
 }

@@ -1025,17 +1025,31 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
 
   // Toggles Fabric's PencilBrush. Caller must setDrawMode(false) on tab-exit
   // to restore normal selection.
-  const setDrawMode = useCallback((enabled, size = 4, color = '#02C39A', erase = false) => {
+  // Freehand brush: the one place that turns the options (size, colour, opacity, smoothing) into Fabric's PencilBrush.
+  // Smoothing raises `decimate` (points closer than that are dropped before the path is curve-fitted), so a shaky hand gives a clean line.
+  const brushOpts = useRef({ size: 4, color: '#02C39A', opacity: 1, smooth: 0.5, erase: false });
+  const toRgba = (hex, a) => { const m = /^#([0-9a-f]{6})$/i.exec(hex ?? ''); if (!m || a >= 1) return hex; const n = parseInt(m[1], 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`; };
+  const styleBrush = (brush) => {
+    const o = brushOpts.current;
+    brush.width = o.erase ? Math.max(o.size * 3, 12) : o.size;
+    brush.color = o.erase ? 'rgba(27,36,40,.28)' : toRgba(o.color, o.opacity); // the eraser stroke shows as a soft trail while drawn
+    brush.decimate = 0.4 + o.smooth * 3.6;
+    brush.strokeLineCap = 'round';
+    brush.strokeLineJoin = 'round';
+  };
+
+  // Toggles Fabric's PencilBrush. Caller must setDrawMode(false) on tab-exit to restore normal selection.
+  const setDrawMode = useCallback((enabled, size = 4, color = '#02C39A', erase = false, opts = {}) => {
     const canvas = fc.current;
     if (!canvas) return;
     eraser.current = enabled && erase;
+    brushOpts.current = { ...brushOpts.current, size, color, erase, ...opts };
     import('fabric').then((mod) => { const fabric = mod.fabric ?? mod.default ?? mod;
       if (enabled) {
         if (!canvas.freeDrawingBrush || !(canvas.freeDrawingBrush instanceof fabric.PencilBrush)) {
           canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
         }
-        canvas.freeDrawingBrush.width = erase ? Math.max(size * 3, 12) : size;
-        canvas.freeDrawingBrush.color = erase ? 'rgba(27,36,40,.28)' : color; // the eraser stroke shows as a soft trail while drawn
+        styleBrush(canvas.freeDrawingBrush);
         canvas.discardActiveObject();
         canvas.selection = false;
         canvas.isDrawingMode = true;
@@ -1073,11 +1087,10 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     canvas.requestRenderAll();
   }, []);
 
-  const setBrushStyle = useCallback((size, color) => {
+  const setBrushStyle = useCallback((size, color, opts = {}) => {
     const canvas = fc.current;
-    if (!canvas?.freeDrawingBrush) return;
-    if (size  != null) canvas.freeDrawingBrush.width = size;
-    if (color != null) canvas.freeDrawingBrush.color = color;
+    brushOpts.current = { ...brushOpts.current, ...(size != null ? { size } : {}), ...(color != null ? { color } : {}), ...opts };
+    if (canvas?.freeDrawingBrush) styleBrush(canvas.freeDrawingBrush);
   }, []);
 
   const exportOverlays = useCallback(() => (fc.current ? overlayJSON(fc.current) : []), []);
