@@ -428,7 +428,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const err = html(K.ErrorState, { onRetry: () => {} }), sw = html(K.SwatchChip, { color: '#800000', name: 'Maroon', selected: true, onSelect: () => {} });
   t('ErrorState announces itself and offers a retry; SwatchChip exposes its selection as aria-pressed', /role="alert"/.test(err) && /<button[^>]*>.*Try again<\/button>/.test(err) && /aria-pressed="true"/.test(sw) && /--sw:#800000/.test(sw) && !/<button/.test(html(K.SwatchChip, { color: '#fff', name: 'White' })));
   const src = p => fsx.readFileSync(urlx.fileURLToPath(new URL(p, import.meta.url)), 'utf8');
-  const walk = d => fsx.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(`${d}/${e.name}`) : /\.(jsx?|css)$/.test(e.name) ? [`${d}/${e.name}`] : []);
+  const walk = d => fsx.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(`${d}/${e.name}`) : /\.([jt]sx?|css)$/.test(e.name) ? [`${d}/${e.name}`] : []);
   const root = urlx.fileURLToPath(new URL('../src', import.meta.url));
   const admin = [`${root}/layouts/AdminLayout.tsx`, ...walk(`${root}/pages/admin`), ...(fsx.existsSync(`${root}/components/admin`) ? walk(`${root}/components/admin`) : [])];
   const leaks = admin.filter(f => /customer(-shell)?\.css|premium\.css|components\/customer\/|layouts\/CustomerLayout|--cx-/.test(fsx.readFileSync(f, 'utf8')));
@@ -467,12 +467,12 @@ t('new families route to their own models per sleeve; no model for a sleeve they
 {
   const dir = urlx.fileURLToPath(new URL('../src/pages/client/design-studio', import.meta.url));
   const rd = f => fsx.readFileSync(f, 'utf8');
-  const all = [...fsx.readdirSync(dir).filter(f => /\.jsx?$/.test(f)).map(f => [f, rd(`${dir}/${f}`)]), ['DesignStudio.tsx', rd(urlx.fileURLToPath(new URL('../src/pages/client/DesignStudio.tsx', import.meta.url)))]];
+  const all = [...fsx.readdirSync(dir).filter(f => /\.[jt]sx?$/.test(f)).map(f => [f, rd(`${dir}/${f}`)]), ['DesignStudio.tsx', rd(urlx.fileURLToPath(new URL('../src/pages/client/DesignStudio.tsx', import.meta.url)))]];
   const get = n => all.find(([f]) => f === n)?.[1] ?? '';
   const pickers = all.filter(([f, s]) => f.endsWith('.tsx') && /CATALOG\.map|\.families\.map|filterDesigns\(/.test(s)).map(([f]) => f); // UI components only; data modules may map the catalog
   const users = all.filter(([f, s]) => f !== 'GarmentPicker.tsx' && /<GarmentPicker\b/.test(s)).map(([f]) => f).sort();
   t('one garment picker component: only GarmentPicker lists garments or photos; used inline on the canvas (DesignStudio) and in the picker modal (InspoGallery)',
-    pickers.length === 1 && pickers[0] === 'GarmentPicker.tsx' && users.join() === 'DesignStudio.tsx,InspoGallery.tsx' && !all.some(([f]) => f === 'FirstRunGallery.jsx')
+    pickers.length === 1 && pickers[0] === 'GarmentPicker.tsx' && users.join() === 'DesignStudio.tsx,InspoGallery.tsx' && !all.some(([f]) => /^FirstRunGallery\./.test(f))
     && /tab=\{pickerTab\}/.test(get('DesignStudio.tsx')) && /setPickerTab\('templates'\)/.test(get('DesignStudio.tsx')) && /setPickerTab\('inspiration'\)/.test(get('DesignStudio.tsx')) && !/CATALOG|selectFamily/.test(get('TypePanel.tsx')));
   const undoUi = all.filter(([f, s]) => f !== 'TopBar.tsx' && /Undo2|Redo2|aria-label="(Undo|Redo)"|onClick=\{(history\.)?(undo|redo)\}/.test(s)).map(([f]) => f);
   t('undo/redo controls exist only in the top bar', undoUi.length === 0 && /aria-label="Undo"/.test(get('TopBar.tsx')) && /aria-label="Redo"/.test(get('TopBar.tsx')));
@@ -827,10 +827,11 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const exeAsLogo = UG.sniffBytes(B([0x4d, 0x5a, 0x90, 0]), 'MZ');
   t('executables are rejected by content whatever their name: a Windows .exe renamed logo.png fails the reference check and the logo/artwork sniff; a real PDF passes as a reference',
     /whatever its name says/.test(exe) && exeAsLogo === null && await FC.checkUpload(fakeFile([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0, 0, 0, 0, 0, 0], 'brief.pdf'), refR) === '');
-  const php = fsx.readFileSync('C:/laragon/www/vfrb-capstone/app/Support/UploadRules.php', 'utf8');
+  const phpFile = `${process.env.VFRB_BACKEND || 'C:/laragon/www/vfrb-capstone'}/app/Support/UploadRules.php`, php = fsx.existsSync(phpFile) ? fsx.readFileSync(phpFile, 'utf8') : null;
+  if (php === null) console.log(`NOTE backend repo not found at ${phpFile}: the UploadRules source check was not run`);
   t('reference types come from the server rule (App\\Support\\UploadRules, served at /api/customer/upload-rules); the fallback mirrors it; jpeg folds into jpg',
     JSON.stringify(refR.kinds) === '["jpg","png","pdf"]' && refR.maxBytes === 5120 * 1024 && refR.label === 'JPG, PNG or PDF, up to 5 MB'
-    && /REFERENCE_MIMES = \['jpg', 'jpeg', 'png', 'pdf'\]/.test(php) && /REFERENCE_MAX_KB = 5120/.test(php)
+    && (php === null || (/REFERENCE_MIMES = \['jpg', 'jpeg', 'png', 'pdf'\]/.test(php) && /REFERENCE_MAX_KB = 5120/.test(php)))
     && /\/api\/customer\/upload-rules/.test(src('../src/utils/uploadRules.ts')) && /accept=\{rules\.accept\}/.test(wiz) && /refRules\.accept/.test(la));
   t('Studio reference: its own kind, preview (image) or file tile (PDF), Remove and Replace; never placed on the garment',
     /id: 'reference'/.test(la) && /function ReferenceCard/.test(la) && /onRemove=\{logo\.removeReference\}/.test(la) && /if \(kind === 'reference'\)[\s\S]*?attachReference\(file\);[\s\S]*?return;/.test(up));
@@ -1088,8 +1089,8 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('order ids in Delivery, Incidents and Reports are real links to /admin/orders/:id (react-router Link, keyboard focus ring, 44px on touch, row click not triggered)',
     /export const OrderLink = \(\{ id, prefix = '#' \}\) => \(\s*<Link className="adm-order-link" to=\{`\/admin\/orders\/\$\{id\}`\} onClick=\{e => e\.stopPropagation\(\)\}>/.test(ui)
     && /\.adm-order-link:focus-visible\{outline:2px solid var\(--teal\)/.test(css) && /@media\(pointer:coarse\)\{\.adm-order-link\{min-height:44px;min-width:44px/.test(css)
-    && ['DeliveryTracking', 'Reports'].every(f => /<OrderLink id=\{/.test(rd(`../src/pages/admin/${f}.jsx`)))
-    && !/#\{d\.order_id\}<\/td>|Order #\{item\.order_id\}<\/span>|#\{affected\.slice/.test(['DeliveryTracking', 'Reports'].map(f => rd(`../src/pages/admin/${f}.jsx`)).join('\n')));
+    && ['DeliveryTracking', 'Reports'].every(f => /<OrderLink id=\{/.test(rd(`../src/pages/admin/${f}.tsx`)))
+    && !/#\{d\.order_id\}<\/td>|Order #\{item\.order_id\}<\/span>|#\{affected\.slice/.test(['DeliveryTracking', 'Reports'].map(f => rd(`../src/pages/admin/${f}.tsx`)).join('\n')));
   const PR = await L('/src/utils/passwordRules.ts'), as = rd('../src/pages/admin/Settings.tsx'), ps = rd('../src/pages/client/settings/ProfileSection.tsx');
   t('one password rule for customer and admin panels (8+, upper and lower case, number, symbol), admin Settings has its own Password panel calling PUT /api/account/password; no profile edit or session logout',
     PR.passwordOk('Abcdef1!') && !PR.passwordOk('abcdef1!') && !PR.passwordOk('Abcdefg!') && !PR.passwordOk('Abcdefg1') && !PR.passwordOk('Ab1!') && PR.passwordLevel('') === 1 && PR.passwordLevel('Abcdef1!') === 4
@@ -1098,7 +1099,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('email preference copy: admin says "test inbox", the customer is told emails are not sent yet (no "test inbox"); no provider name; docs no longer name Mailtrap',
     /test inbox/.test(as) && /Emails aren't sent yet/.test(rd('../src/pages/client/AccountSettings.tsx')) && !/test inbox/.test(rd('../src/pages/client/AccountSettings.tsx')) && !/mailtrap/i.test(as + rd('../docs/validation/SURVEY-EVIDENCE-MATRIX.md') + rd('../docs/validation/VALIDATOR-RUNBOOK.md')));
   t('dead code removed: no unused SK style const in Delivery, Physical Count, Purchase Orders, Users; no unused TTL import in Users',
-    ['DeliveryTracking', 'PhysicalCount', 'PurchaseOrders', 'UserManagement'].every(f => !/\bconst SK\b/.test(rd(`../src/pages/admin/${f}.jsx`))) && !/\bTTL\b/.test(rd('../src/pages/admin/UserManagement.tsx')));
+    ['DeliveryTracking', 'PhysicalCount', 'PurchaseOrders', 'UserManagement'].every(f => !/\bconst SK\b/.test(rd(`../src/pages/admin/${f}.tsx`))) && !/\bTTL\b/.test(rd('../src/pages/admin/UserManagement.tsx')));
   const um = rd('../src/pages/admin/UserManagement.tsx'), umRoles = um.match(/const ROLE_CFG = \{([\s\S]*?)\n\};/)?.[1] ?? '';
   t('User Management roles: one ROLE_CFG of Administrator (Manager), Administrator (Station) and Owner drives the tabs and the edit-role list; Create adds Customer as the only extra option',
     /manager: \{[^}]*l:'Administrator \(Manager\)'/.test(umRoles) && /staff:\s+\{[^}]*l:'Administrator \(Station\)'/.test(umRoles) && /owner:\s+\{[^}]*l:'Owner'/.test(umRoles) && !/customer/.test(umRoles)
@@ -1137,7 +1138,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('owner dashboard: tiles and rows link only to pages canOpen allows (plain tiles otherwise), no RFQ/delivery fetches; the owner reads revenue like the manager',
     /const go = \(path\) => \(canOpen\(path, user\) \? \(\) => nav\(path\) : undefined\);/.test(dash) && /const isManager = isAdmin\(user\) \|\| isOwner\(user\);/.test(dash)
     && !/onClick: \(\) => nav\(/.test(dash) && !/axios\.get\('\/api\/admin\/(rfq|delivery)/.test(dash) && /action=\{canLog && go\('\/admin\/output-log'\) \? <Link/.test(dash) && /if \(!go\('\/admin\/production'\)\) return <div/.test(dash));
-  const pg = f => rdo(`../src/pages/admin/${f}.jsx`);
+  const pg = f => rdo(`../src/pages/admin/${f}.tsx`);
   t('owner and station write controls hidden: payment, stock in/out, Create PO, order confirm, Communication and fabric verdicts are manager-only; owner sees no add/edit material or digest; Invoice and Activity Log never write',
     /function getIsManager\(\) \{\s*return isAdmin\(\);/.test(pg('SalesTransactions')) && (pg('SalesTransactions').match(/isManager && <button[^\n]*onClick=\{\(\) => setModal\(true\)\}/g) ?? []).length === 2
     && /\{isAdmin\(\) && <>[\s\S]*?setModal\('in'\)/.test(pg('Inventory')) && /action=\{isAdmin\(\) \? <button[^\n]*\/admin\/procurement/.test(pg('Inventory'))
@@ -1400,7 +1401,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('B5 3D: the preview is the one DesignState, so 3D shows it; "See it in 3D" only when a model exists, otherwise it says so',
     /view3D: viewAI3D, has3D: has3DFor\(cfg\)/.test(ds) && /No 3D model for this garment; the 2D design is the preview\./.test(chat));
   t('AI scope: one Studio AI panel of strict B5 operations; no free chat, no sizing, quantity, yardage or price prompts',
-    /<AIDesignChat cfg=\{p\.cfg\}/.test(drawer) && !/AIPanel|AIEditPanel/.test(drawer) && !fsx.existsSync('src/pages/client/design-studio/AIPanel.jsx')
+    /<AIDesignChat cfg=\{p\.cfg\}/.test(drawer) && !/AIPanel|AIEditPanel/.test(drawer) && !['jsx', 'tsx'].some(x => fsx.existsSync('src/pages/client/design-studio/AIPanel.' + x))
     && !/\byards?\b|(?<!box-)\bsizing\b|mode:\s*'chat'|chat_context|QUICK/i.test(chat.replace(/^\s*\/\/.*$/gm, '')) &&!/applyAI\b|applyAIEdits/.test(ds));
   const ai = fsx.existsSync(`${BE}/app/Http/Controllers/Api/AIController.php`) ? src(`${BE}/app/Http/Controllers/Api/AIController.php`) : null;
   if (ai) t('AI scope (backend): describe-design has no free chat branch (no client-supplied prompt is passed to the model)', !/describeDesignChat|chat_context|chat_response/.test(ai));
@@ -1838,8 +1839,8 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && CP.SCANNED_GARMENTS.every(e => !e.verification && (!e.label || e.label === '3D (approx.)'))
     && GS.slot3DLabel({ state: 'verified' }) === '3D preview (approximate)' && GS.slot3DLabel({ state: 'verified', verification: { method: 'render-compare', date: '2026-11-02' } }) === '3D preview available' && GS.slot3DLabel({ state: 'none' }) === null);
   const ds = rd('src/pages/client/DesignStudio.tsx'), d3 = rd('src/pages/client/DesignStudio3D.tsx'), sm = rd('src/pages/client/design-studio/ScannedGarmentMesh.tsx'), cv = rd('src/pages/client/design-studio/CanvasViewport.tsx');
-  const srcDir = urlx.fileURLToPath(new URL('../src', import.meta.url)), walk = d => fsx.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(`${d}/${e.name}`) : /\.jsx?$/.test(e.name) ? [`${d}/${e.name}`] : []);
-  const graph3D = /(DesignStudio3D|ScannedGarmentMesh|ReferenceModel3D|garmentMeshManifest|regionShader|regionTexture|StageTowers3D|GarmentPreview3D|HeroTurntable)\.jsx?$/;
+  const srcDir = urlx.fileURLToPath(new URL('../src', import.meta.url)), walk = d => fsx.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(`${d}/${e.name}`) : /\.[jt]sx?$/.test(e.name) ? [`${d}/${e.name}`] : []);
+  const graph3D = /(DesignStudio3D|ScannedGarmentMesh|ReferenceModel3D|garmentMeshManifest|regionShader|regionTexture|StageTowers3D|GarmentPreview3D|HeroTurntable)\.[jt]sx?$/;
   const staticThree = walk(srcDir).filter(f => !graph3D.test(f) && /^import [^;]*from '(three|@react-three\/[a-z]+)'|^import [^;]*from '[./]+[^']*(DesignStudio3D|ScannedGarmentMesh|ReferenceModel3D|garmentMeshManifest|regionShader)'/m.test(rd(f)));
   t('three, R3F and the 3D scene load only through lazy imports (no static import outside the 3D modules)', staticThree.length === 0
     && /lazy\(\(\) => import\('\.\.\/DesignStudio3D'\)\)/.test(cv) && /lazy\(\(\) => import\('\.\/ReferenceModel3D'\)\)/.test(rd('src/pages/client/design-studio/GarmentPicker.tsx')));
@@ -1866,7 +1867,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('customers load on a light, customer-shaped skeleton, never the dark admin shell',
     cSk.includes('data-light') && !cSk.includes('skx-dark') && aSk.includes('skx-dark') && /<ShellLoad customer><CustomerLayout\/>/.test(app) && /area === 'app'\) return <AppShellSkeleton customer\/>/.test(app));
   const TU = await L('/src/pages/client/design-studio/studioTutorials.ts'), RT = await L('/src/pages/client/design-studio/railTools.ts'), DSx = await L('/src/pages/client/design-studio/dsShared.ts');
-  const dsSrc = fsx.readdirSync('src/pages/client/design-studio').filter(f => /\.jsx?$/.test(f) && f !== 'studioTutorials.ts').map(f => rd(`src/pages/client/design-studio/${f}`)).join('\n');
+  const dsSrc = fsx.readdirSync('src/pages/client/design-studio').filter(f => /\.[jt]sx?$/.test(f) && f !== 'studioTutorials.ts').map(f => rd(`src/pages/client/design-studio/${f}`)).join('\n');
   const toolIds = new Set(RT.RAIL_TOOLS.map(x => x.id)), tabIds = new Set(DSx.TABS.map(x => x.id));
   const hookOk = sel => sel.split(',').every(part => [...part.matchAll(/\[data-tool=([a-z]+)\]/g)].every(m => toolIds.has(m[1])) && [...part.matchAll(/\[data-tab=([a-z]+)\]/g)].every(m => tabIds.has(m[1]))
     && [...part.matchAll(/\.(ds-[a-z0-9-]+)/g)].every(m => dsSrc.includes(m[1])) && [...part.matchAll(/\[data-(strip|set)\]/g)].every(m => dsSrc.includes(`data-${m[1]}`)));
@@ -1904,14 +1905,14 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     const all = await FP.fetchAllPages('/x', { get }), flat = await FP.fetchAllPages('/x', { get: () => Promise.resolve({ data: [1, 2] }) });
     t('fetchAllPages follows last_page at the backend max per_page, stops at 10 pages, and passes a plain array through',
       all.length === 10 && all[9] === 100 && seen.every(p => p.per_page === 100) && flat.length === 2
-      && ['Orders', 'MyDesigns', 'Messages', 'AIMaterials', 'Dashboard'].every(p => /fetchAllPages\('\/api\/customer\/orders'\)/.test(rd(`src/pages/client/${p}.jsx`)) && !/axios\.get\('\/api\/customer\/orders'\)/.test(rd(`src/pages/client/${p}.jsx`)))); }
+      && ['Orders', 'MyDesigns', 'Messages', 'AIMaterials', 'Dashboard'].every(p => /fetchAllPages\('\/api\/customer\/orders'\)/.test(rd(`src/pages/client/${p}.tsx`)) && !/axios\.get\('\/api\/customer\/orders'\)/.test(rd(`src/pages/client/${p}.jsx`)))); }
   { const UID = await L('/src/utils/uid.ts'), real = crypto.randomUUID, re = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/; let fb;
     try { crypto.randomUUID = undefined; fb = [UID.uid(), UID.uid()]; } finally { crypto.randomUUID = real; }
     t('uid: v4 format with or without crypto.randomUUID (plain-http LAN test); no raw randomUUID call left in src',
       re.test(UID.uid()) && fb.every(x => re.test(x)) && fb[0] !== fb[1]
       && ['src/utils/offlineQueue.ts', 'src/pages/client/DesignStudio.tsx', 'src/pages/client/design-studio/uniformSet.ts', 'src/pages/client/design-studio/useGarmentCanvas.ts'].every(f => !/randomUUID/.test(rd(f)))); }
   t('a11y: each customer page sets its own tab title; order buttons name their order; My Designs cards are h2 under the h1',
-    ['Dashboard', 'MyDesigns', 'Orders', 'OrderDetail', 'OrderWizard', 'Messages', 'AccountSettings', 'AIMaterials'].every(p => /usePageTitle\(/.test(rd(`src/pages/client/${p}.jsx`)))
+    ['Dashboard', 'MyDesigns', 'Orders', 'OrderDetail', 'OrderWizard', 'Messages', 'AccountSettings', 'AIMaterials'].every(p => /usePageTitle\(/.test(rd(`src/pages/client/${p}.tsx`)))
     && /aria-label=\{`Details for order #\$\{o\.order_id\}`\}/.test(rd('src/pages/client/Orders.tsx')) && /<h2 title=\{title\}>/.test(rd('src/pages/client/MyDesigns.tsx')));
   const mqb = rd('src/pages/landing/MarqueeBand.tsx'), lcss = rd('src/styles/landing.css'), mapp = rd('src/styles/motion-app.css');
   t('motion caps and pause: every landing animation and app overlay runs <= 300ms; the marquee has a 44px aria-pressed pause button; overflow-x: clip keeps a hidden fallback',
