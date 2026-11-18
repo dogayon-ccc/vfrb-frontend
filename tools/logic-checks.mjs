@@ -785,7 +785,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     /\.ds-lane-bottom \.ds-ctrlbar \.ds-ctrl\{flex:none;width:44px;height:44px;/.test(css) && /\.ds-lane-bottom \.ds-ctrl:is\(\[data-act=back\],\[data-act=full\]:not\(\[aria-pressed=true\]\)\)\{display:none;\}/.test(css)
     && /'data-act': 'back'/.test(cvx) && /'data-act': 'full'/.test(cvx) && /fullRef\.current = toggleFull/.test(cvx)
     && /\.\.\.\(phone && has \? phoneItems : \[\]\)/.test(tbx) && /label: 'Full screen', onClick: \(\) => fullRef\.current\?\.\(\)/.test(dsm) && /addLabel && \{ label: addLabel, onClick: startSet \}/.test(dsm)
-    && /\.ds-stage-badge\{display:inline-flex;align-items:center;gap:6px;position:absolute;bottom:8px;left:8px;/.test(css) && /\.ds-rail\[data-strip\]\{display:none;\}/.test(css)
+    && /\.ds-stage-badge\{display:inline-flex;align-items:center;gap:6px;position:absolute;bottom:calc\(100% \+ 8px\);left:8px;/.test(css) /* above the lane, level with the zoom buttons: at bottom:8px it sat on the hint line (phone screenshots 2026-11-18) */ && /\.ds-rail\[data-strip\]\{display:none;\}/.test(css)
     && /\.ds-tabs button\[aria-current\]\{[^}]*border-bottom:3px solid var\(--cx-thread\);/.test(css) && !/dashed #C4313B/.test(css.match(/\.ds-tabs button\[aria-current\]\{[^}]*\}/)?.[0] ?? 'dashed #C4313B'));
   t('phone top lane wider than the screen (Guides + uniform set switch) scrolls from its start instead of centring past both edges: no Guides button off-screen',
     /\.ds-lane-top:not\(\[data-notes\]\)\{[^}]*justify-content:flex-start;overflow-x:auto;/.test(css) && /\.ds-lane-top:not\(\[data-notes\]\)>:first-child\{margin-left:auto;\}/.test(css) && /\.ds-lane-top:not\(\[data-notes\]\)>:last-child\{margin-right:auto;\}/.test(css));

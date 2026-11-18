@@ -1058,7 +1058,10 @@ export default function DesignStudioStyles() {
         /* Zoom: three round buttons in the stage's bottom-right corner; Back view and Full screen are in the ⋯ menu */
         .ds-lane-bottom{position:relative;}
         /* The 3D status chip sits bottom-left of the stage (the top-bar chip is hidden on phones). */
-        .ds-lane-bottom .ds-stage-badge{display:inline-flex;align-items:center;gap:6px;position:absolute;bottom:8px;left:8px;z-index:2;}
+        .ds-lane-bottom .ds-stage-badge{display:inline-flex;align-items:center;gap:6px;position:absolute;bottom:calc(100% + 8px);left:8px;z-index:2;}
+        /* Phones: only warnings stay on the stage; informational notes would stack over the 2D pane (the guidance is in the panel). */
+        .ds-lane-top .ds-stage-note:not([data-tone=warn]){display:none;}
+        .ds-lane-top .ds-stage-note{font-size:13px;line-height:1.3;padding:3px 10px;}
         .ds-lane-bottom .ds-stage-badge{pointer-events:none;background:var(--warning-bg,#fff4d6);color:var(--warning-text,#7a4b00);border-color:transparent;}
         .ds-lane-bottom .ds-stage-badge[data-cap=none]{background:var(--bg-surface);color:var(--text-muted);}
         .ds-lane-bottom .ds-ctrlbar{position:absolute;right:8px;bottom:calc(100% + 8px);width:auto;gap:8px;padding:0;border:0;background:none;box-shadow:none;}
