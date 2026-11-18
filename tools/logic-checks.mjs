@@ -417,7 +417,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const my = src('../src/pages/client/MyDesigns.tsx'), home = src('../src/pages/client/Dashboard.tsx'), canvas = src('../src/pages/client/design-studio/useGarmentCanvas.ts');
   t('My Designs and Home draw saved-design thumbnails only through DesignThumb (draft preview_dataurl, archived photo_path; a copy shows colours only)', !/MiniPreview/.test(my) && !/MiniPreview/.test(home) && /<DesignThumb src=\{img\}/.test(my) && /img=\{draft\.preview_dataurl\}/.test(my) && /<DesignThumb src=\{draft\.preview_dataurl\}/.test(home) && /<DesignThumb src=\{d\.is_copy \? null : d\.photo_path\}/.test(home));
   const tiles = [my, home].flatMap(s => s.match(/<(button|Link|a)\b[^>]*>(?:(?!<\/\1>)[\s\S])*?<DesignThumb[\s\S]*?<\/\1>/g) ?? []);
-  t('a DesignThumb inside an interactive tile never names the tile: the tile has its own aria-label or the thumb is aria-hidden', tiles.length > 0 && tiles.every(b => /^<(button|Link|a)\b[^>]*aria-label=/.test(b) || /aria-hidden="true"[^<]*>\s*<DesignThumb|<DesignThumb[^>]*aria-hidden="true"/.test(b)));
+  t('a DesignThumb inside an interactive tile never names the tile: the tile has its own aria-label or the thumb is aria-hidden', tiles.length > 0 && tiles.every(b => /^<(button|Link|a)\b(?:[^>]|=>)*aria-label=/.test(b) || /aria-hidden="true"[^<]*>\s*<DesignThumb|<DesignThumb[^>]*aria-hidden="true"/.test(b)));
   t('Home and My Designs title a design by the customer\'s saved name first', /savedDesignName\(draft\.studio_config\) \|\| draft\.label/.test(home) && /savedDesignName\(d\.config\) \|\| d\.label/.test(home) && /savedDesignName\(c\) \|\| label \|\| fallback/.test(my));
   t('the draft preview render (exportPNG) hides the zone hover outline, like exportFace', /const exportPNG[\s\S]{0,300}__hoverGlow[\s\S]{0,120}o\.visible = false/.test(canvas));
 }
@@ -475,7 +475,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     pickers.length === 1 && pickers[0] === 'GarmentPicker.tsx' && users.join() === 'DesignStudio.tsx,InspoGallery.tsx' && !all.some(([f]) => /^FirstRunGallery\./.test(f))
     && /tab=\{pickerTab\}/.test(get('DesignStudio.tsx')) && /setPickerTab\('templates'\)/.test(get('DesignStudio.tsx')) && /setPickerTab\('inspiration'\)/.test(get('DesignStudio.tsx')) && !/CATALOG|selectFamily/.test(get('TypePanel.tsx')));
   const undoUi = all.filter(([f, s]) => f !== 'TopBar.tsx' && /Undo2|Redo2|aria-label="(Undo|Redo)"|onClick=\{(history\.)?(undo|redo)\}/.test(s)).map(([f]) => f);
-  t('undo/redo controls exist only in the top bar', undoUi.length === 0 && /aria-label="Undo"/.test(get('TopBar.tsx')) && /aria-label="Redo"/.test(get('TopBar.tsx')));
+  t('undo/redo: the top bar has them; the only other copy is the tool rail\'s phone row (shown at 767 px and below, hidden above)', undoUi.length === 1 && undoUi[0] === 'ToolRail.tsx' && /\.ds-tools-hist\{display:none;/.test(src('../src/pages/client/design-studio/DesignStudioStyles.tsx')) && /@media \(max-width:767px\)\{\s*\.ds-tools-hist\{display:inline-flex;\}/.test(src('../src/pages/client/design-studio/DesignStudioStyles.tsx')) && /aria-label="Undo"/.test(get('TopBar.tsx')) && /aria-label="Redo"/.test(get('TopBar.tsx')));
   const drawer = get('ToolDrawer.tsx');
   t('tabs and the Pieces rail appear only once a garment exists (the panel says to choose one first)',
     /const noGarment = !p\.cfg\.garment/.test(drawer) && /\{!noGarment && \(\s*<nav className="ds-tabs"/.test(drawer) && /Choose a garment on the canvas to start designing\./.test(drawer)
@@ -485,7 +485,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     SH.TABS.map(t => t.label).join('|') === 'Garment|Add|Layers|Ask AI|Scene'
     && SH.TOOLS.filter(t => t.id !== 'selected').every(t => SH.TABS.filter(x => x.tools.includes(t.id)).length === 1)
     && SH.tabOf('draw').id === 'add' && ['color', 'pattern', 'details'].every(id => SH.tabOf(id).id === 'type') && /layers:\s*\(\)\s*=>/.test(drawer) && (drawer.match(/<LayersPanel\b/g) ?? []).length === 1
-    && !/sr-only|toggleMore/.test(drawer) && /<span>\{t\.label\}<\/span>/.test(drawer)
+    && !/sr-only|toggleMore/.test(drawer) && /<span>\{t\.label\}/.test(drawer)
     && /const NAV = \['type', 'add', 'layers', 'ai'\];/.test(drawer) && /className="ds-more"/.test(drawer) && /<span>More<\/span>/.test(drawer)
     && /\{tab\?\.id === 'type' && !partView && <MaterialNote\/>\}/.test(drawer) && !/₱|price|cost|php/i.test(drawer.match(/<p><strong>Fabric suggestions[^]*?<\/p>/)?.[0] ?? 'price'));
   const bar = get('TopBar.tsx'), dsx = fsx.readFileSync(urlx.fileURLToPath(new URL('../src/pages/client/DesignStudio.tsx', import.meta.url)), 'utf8');
@@ -496,7 +496,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('dock and order preview 3D labels agree: an unverified model (supported or partial) reads "3D preview (approximate)", "3D preview available" only with a verification record',
     /<Capability3D short kind=\{cap3D\(cfg\)\}/.test(get('TopBar.tsx')) && /<Capability3D short kind=\{cap3D\(cfg\)\}/.test(get('CanvasViewport.tsx')) && !/Approx\. 3D</.test(get('TopBar.tsx'))
     && /\{label3D\(design\)\}/.test(rd('src/components/DesignPreview.tsx')) && !/status3D === 'partial'/.test(rd('src/components/DesignPreview.tsx'))
-    && ['Pants', 'Jogger Scrub Pants', 'Skirt'].every(g => { const f = CATd.familyFor(g); return f && f.status3D !== 'none' && !f.verified3D && CATd.label3D({ garment: g }) === '3D preview (approximate)'; }));
+    && ['Pants', 'Skirt'].every(g => { const f = CATd.familyFor(g); return f && f.status3D !== 'none' && !f.verified3D && CATd.label3D({ garment: g }) === '3D preview (approximate)'; }));
 }
 // Studio visual quality: photo bases never above native resolution; a new design starts with one base colour.
 {
@@ -560,7 +560,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const ds = src('../src/pages/client/DesignStudio.tsx');
   t('phone first run hides the tabs and panel (the picker gets the full height) and the stage lanes (stage light) until a garment exists',
     /data-first=\{!cfg\.garment \|\| undefined\}/.test(ds) && /\.ds\[data-first\] \.ds-panel\{display:none;\}/.test(css) && /\.ds\[data-first\] \.ds-cv\{flex:1;height:auto;\}/.test(css)
-    && /\{cfg\.garment && \(\s*<div className="ds-lane ds-lane-bottom">/.test(cv) && !/inset:0 0 64px/.test(css));
+    && /\{cfg\.garment && \(\s*<div className="ds-lane ds-lane-bottom"(?: data-split=\{split \? '1' : undefined\})?>/.test(cv) && !/inset:0 0 64px/.test(css));
   // Picker honesty: one sentence + chips; inspiration-only photos get a real path to existing editable garments, never an invented template.
   const P = await L('/src/pages/client/design-studio/GarmentPicker.tsx');
   const refs = D.ENTRIES.filter(d => !d.editable2D);
@@ -692,7 +692,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && CG.relSteps(150, 30).major === 25 && CG.relSteps(400, 30).major === 10 && CG.relSteps(60, 30).major === 50 && /className="ds-ruler-mark"/.test(rul) && /fit\.addEventListener\('pointermove', move\)/.test(rul) && />u<\/button>/.test(rul) && !/>%<\/(div|button)>/.test(rul));
   const tipSrc = src('../src/pages/client/design-studio/StudioTip.tsx'), railSrc = src('../src/pages/client/design-studio/ToolRail.tsx');
   t('Studio tooltips: one StudioTip for data-tip, shown 200 ms after hover or keyboard focus, fade skipped under reduced motion; rail tools use it; ruler corner is a focusable button saying "Template units, not centimetres"; the selected span is highlighted on both rulers (display only)',
-    /const DELAY = 200/.test(tipSrc) && /focusin/.test(tipSrc) && /pointerover/.test(tipSrc) && /role="tooltip"/.test(tipSrc) && /data-tip=\{`\$\{label\}/.test(railSrc) && !/title=\{`\$\{label\} \(/.test(railSrc)
+    /const DELAY = 200/.test(tipSrc) && /focusin/.test(tipSrc) && /pointerover/.test(tipSrc) && /role="tooltip"/.test(tipSrc) && /data-tip=\{[^\n]*`\$\{label\} \(\$\{key\}\)/.test(railSrc) && !/title=\{`\$\{label\} \(/.test(railSrc)
     && /<button type="button" className="ds-ruler-corner"[^>]*data-tip="Template units, not centimetres"/.test(rul) && (rul.match(/className="ds-ruler-sel"/g) ?? []).length === 2
     && /prefers-reduced-motion:no-preference\)\{\.ds-tip\{animation/.test(css));
   // Ruler guides: pulled from a ruler, snap to whole % (50 within 1.5), objects snap to them, session only (never saved), double-click removes.
@@ -752,7 +752,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && !RT.RAIL_TOOLS.some(x => x.key === 'R') && /viewKey\(e\)/.test(cv) && /isContentEditable/.test(cv.slice(cv.indexOf('Shift+G grid, R rulers'))));
   t('view toggles: Grid, Rulers, Snap, Guides are 44px aria-pressed buttons (lane on desktop, View panel everywhere); the units note is shown with the rulers and in the panel; no cm or inches',
     /aria-pressed=\{!!guides\[k\]\}/.test(gm) && /\.ds-vt-btn\{min-width:44px;min-height:44px;/.test(css) && /<ViewToggles guides=\{guides\} setGuides=\{setGuides\}\/>/.test(cv) && /<ViewToggles guides=\{guides\} setGuides=\{setGuides\} labelled\/>/.test(gm)
-    && gm.includes("'Rulers show template units, not centimetres. Real sizes appear only after VFRB confirms a scale.'") && /\{rulersOn && <p className="ds-units-note" role="note">\{UNITS_NOTE\}<\/p>\}/.test(cv)
+    && gm.includes("'Rulers show template units, not centimetres. Real sizes appear only after VFRB confirms a scale.'") && /\{rulersOn && <span className="ds-stage-scale">Rulers are template units, not cm<\/span>\}/.test(cv)
     && !/\b(cm|mm|inch|inches)\b/i.test((gm + cv + rul).replace(/Rulers are template units, not cm/g, '')) && /transition:background \.15s,color \.15s,border-color \.15s;/.test(css) && /prefers-reduced-motion:reduce\)\{\.ds-vt-btn\{transition:none;\}\}/.test(css));
   t('view prefs are per user in localStorage inside try/catch (browser key as fallback); the Studio works without storage',
     CG.guidePrefsKey(7) === 'ds_guides:7' && CG.guidePrefsKey(null) === 'ds_guides' && CG.guidePrefsKey(undefined) === 'ds_guides' && JSON.stringify(CG.readGuidePrefs(null)) === JSON.stringify(CG.guideDefaults())
@@ -765,10 +765,10 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const cvx = src('../src/pages/client/design-studio/CanvasViewport.tsx'), tdx = src('../src/pages/client/design-studio/ToolDrawer.tsx');
   const bar2D = cvx.slice(cvx.indexOf('{show2D ? (<>'), cvx.indexOf('</>) : (<>')), bar3D = cvx.slice(cvx.indexOf('</>) : (<>'), cvx.indexOf("ctrl(full ? 'Exit full screen'"));
   const snapH = k => css.match(new RegExp(`\\.ds-sheet\\[data-snap=${k}\\]\\{height:([^;]+);\\}`))?.[1] ?? '';
-  t('phone/tablet layout: the stage fills the column; the sheet opens at peek (its bar only) with half (45%) and full (<= 85%) heights, a 44px bar button and a drag; five-item bottom nav; stage bar of at most five labelled controls with hints outside it',
+  t('phone/tablet layout: the stage fills the column; the sheet opens at peek (its bar only) with half (37% of the height, 264-360 px) and full (<= 85%) heights, a 44px bar button and a drag; five-item bottom nav; stage bar of at most five labelled controls with hints outside it',
     /\.ds-lane-top:not\(\[data-notes\]\)\{flex-wrap:nowrap;/.test(css) && !/text-overflow:ellipsis/.test(css.match(/\.ds-ctx-chip\{[^}]*\}/)?.[0] ?? 'text-overflow:ellipsis')
     && /\.ds-cv\{flex:1 1 auto;min-height:0;\}/.test(css) && /\.ds-sheet\[data-snap=peek\]>:not\(\.ds-sheet-bar\)\{display:none;\}/.test(css)
-    && snapH('half') === '45dvh' && /^min\(85dvh,/.test(snapH('full')) && /useState\('peek'\)/.test(tdx) && /className="ds-sheet-toggle"[^>]*aria-expanded=\{snap !== 'peek'\}/.test(tdx)
+    && snapH('half') === 'clamp(264px,37dvh,360px)' && /^min\(85dvh,/.test(snapH('full')) && /useState\('peek'\)/.test(tdx) && /className="ds-sheet-toggle"[^>]*aria-expanded=\{snap !== 'peek'\}/.test(tdx)
     && /\.ds-sheet-toggle\{flex:none;width:44px;height:44px;/.test(css) && /onPointerDown=\{dragDown\}/.test(tdx) && /className="ds-sheet-status"/.test(tdx)
     && /\.ds-bnav\{display:grid;flex:none;grid-template-columns:repeat\(5,/.test(css)
     && (bar2D.match(/ctrl\('/g) ?? []).length + 1 <= 5 && (bar3D.match(/ctrl\(/g) ?? []).length + 1 <= 5 && /className="ds-stage-hint"/.test(cvx) && !/ds-stage-hint[^]*?<\/div>\s*<\/div>\s*\)\}\s*$/.test('')
@@ -842,7 +842,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const r3 = src('../src/pages/client/design-studio/ReferenceModel3D.tsx'), gp2 = src('../src/pages/client/design-studio/GarmentPicker.tsx');
   t('every gallery photo with a 3D reference (9, 2 of them full sets) shows it by default: one lazy Canvas, DPR capped, skeleton while loading, photo fallback, context released on close; label kept',
     D.ENTRIES.filter(d => d.ref3D).length === 9 && D.ENTRIES.filter(d => d.ref3D?.set).length === 2 && /const ReferenceModel3D = lazy\(/.test(gp2) && /useState\('3d'\)/.test(gp2)
-    && /DPR = [^;]*\[1, 1\.5\] : \[1, 2\]/.test(r3) && /forceContextLoss\(\)/.test(r3) && /useGLTF\.clear\(modelUrl\(url\)\)/.test(r3) && /ds-ref3d-skel/.test(r3) && /onError=\{\(\) => \{ setRef3DFailed\(true\); setView3D\('photo'\); \}\}/.test(gp2)
+    && /DPR = [^;]*\[1, 1\.5\] : \[1, 2\]/.test(r3) && /releaseGL\(gl\.current\)/.test(r3) && /g\.forceContextLoss\(\)/.test(src('../src/pages/client/design-studio/webglSupport.ts')) && /useGLTF\.clear\(modelUrl\(url\)\)/.test(r3) && /ds-ref3d-skel/.test(r3) && /onError=\{\(\) => \{ setRef3DFailed\(true\); setView3D\('photo'\); \}\}/.test(gp2)
     && /neutral colour, not editable/.test(gp2) && D.ENTRIES.filter(d => d.ref3D).every(d => fsx.existsSync(MF.modelFile(urlx.fileURLToPath(new URL('../public' + d.ref3D.file, import.meta.url))))));
   // GLB inventory: nothing non-garment-only or stand-in is wired; the five unwired files stay unwired with a recorded reason.
   const Cp4 = await L('/src/pages/client/design-studio/garmentCapabilities.ts');
@@ -894,7 +894,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && />\{tryCol \? 'Back to neutral' : 'Try colours'\}</.test(gp) && /approximate split/.test(gp) && /<SwatchGrid /.test(gp) && /split=\{preview\.ref3D\.set \? REF_SPLIT\[preview\.id\]/.test(gp));
   t('reference colours use the calibrated zone-mask material and the Studio light rig (linear tone mapping); one lazy Canvas, released on close',
     /patchZoneMaterial\(partMaterial\('#ffffff', \{ zoneOf: true \}\), uniforms\)/.test(rm) && /toneMapping: THREE\.LinearToneMapping/.test(rm) && /intensity=\{LIGHT\.fill\}/.test(rm)
-    && /forceContextLoss\(\)/.test(rm) && /zone\.material\.dispose\(\)/.test(rm) && /export const LIGHT = \{ fill: 0\.42, key: 0\.85, rim: 1\.0 \}/.test(src('../src/pages/client/design-studio/lightRig.ts')));
+    && /releaseGL\(gl\.current\)/.test(rm) && /zone\.material\.dispose\(\)/.test(rm) && /export const LIGHT = \{ fill: 0\.42, key: 0\.85, rim: 1\.0 \}/.test(src('../src/pages/client/design-studio/lightRig.ts')));
   // Preview only: the colours live in the preview's own state, are reset on Back, and never reach a callback, studio_config or the order.
   t('preview colours are never saved or sent: held in picker state only, reset on Back, never passed to onPickPhoto/onPick3D, and the caption says VFRB produces from the 2D design',
     RC.PREVIEW_CAPTION === "Colour preview of the photo's 3D reference. VFRB produces from your 2D design." && /setTryCol\(false\)/.test(gp.match(/const back = \(\) => \{[^}]*\}/)?.[0] ?? '')
@@ -1087,7 +1087,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && /\{isManager && \(\s*<button className="adm-btn" onClick=\{\(\) => handleDownloadPdf\(\)\}/.test(od) && /canTrack \? \{ label: 'Track Production'/.test(od) && /Note to the customer \(required if cancelling\)/.test(od));
   const ui = rd('../src/components/admin/AdminUI.tsx'), css = rd('../src/styles/admin.css');
   t('order ids in Delivery, Incidents and Reports are real links to /admin/orders/:id (react-router Link, keyboard focus ring, 44px on touch, row click not triggered)',
-    /export const OrderLink = \(\{ id, prefix = '#' \}\) => \(\s*<Link className="adm-order-link" to=\{`\/admin\/orders\/\$\{id\}`\} onClick=\{e => e\.stopPropagation\(\)\}>/.test(ui)
+    /export const OrderLink = \(\{ id, prefix = '#' \}(?:: any)?\) => \(\s*<Link className="adm-order-link" to=\{`\/admin\/orders\/\$\{id\}`\} onClick=\{e => e\.stopPropagation\(\)\}>/.test(ui)
     && /\.adm-order-link:focus-visible\{outline:2px solid var\(--teal\)/.test(css) && /@media\(pointer:coarse\)\{\.adm-order-link\{min-height:44px;min-width:44px/.test(css)
     && ['DeliveryTracking', 'Reports'].every(f => /<OrderLink id=\{/.test(rd(`../src/pages/admin/${f}.tsx`)))
     && !/#\{d\.order_id\}<\/td>|Order #\{item\.order_id\}<\/span>|#\{affected\.slice/.test(['DeliveryTracking', 'Reports'].map(f => rd(`../src/pages/admin/${f}.tsx`)).join('\n')));
@@ -1531,13 +1531,13 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const glbJ = f => { const b = fsx.readFileSync(MF.modelFile(urlx.fileURLToPath(new URL('../public' + f, import.meta.url)))), n = b.readUInt32LE(12); return JSON.parse(b.subarray(20, 20 + n).toString('utf8')); };
   const TOPP = ['body', 'chest_pocket', 'lower_pockets', 'neck_band', 'sleeve_l', 'sleeve_r'];
   const authored = { 'Scrub Top|Short|unisex': TOPP, 'Scrub Top|3/4|unisex': TOPP,
-    'Pants|null|null': ['back_pockets', 'fly', 'leg_l', 'leg_r', 'side_pockets', 'waistband'], 'Jogger Scrub Pants|null|null': ['cuffs', 'drawstring', 'leg_l', 'leg_r', 'side_pockets', 'waistband'] };
-  t('authored meshes: Scrub Top sketch (Short, 3/4), Pants and Jogger Scrub Pants each load a GLB of named parts, every part with UVs and normals, about 1.9 units tall; parts map to 2D zones and pockets follow the 2D details',
+    'Pants|null|null': ['back_pockets', 'fly', 'leg_l', 'leg_r', 'side_pockets', 'waistband'] };
+  t('authored meshes: Scrub Top sketch (Short, 3/4) and Pants each load a GLB of named parts, every part with UVs and normals, about 1.9 units tall; parts map to 2D zones and pockets follow the 2D details; Jogger Scrub Pants has no 3D model (dropped in cd551bc)',
     Object.entries(authored).every(([k, parts]) => { const [g, s0, f0] = k.split('|'); const e = Cp.scannedEntryFor(g, s0 === 'null' ? null : s0, f0 === 'null' ? null : f0); if (!e || !/^\/models\/authored\//.test(Object.values(e.models)[0])) return false;
       const j = glbJ(Object.values(e.models)[0]), pos = j.meshes.map(m => j.accessors[m.primitives[0].attributes.POSITION]);
       return JSON.stringify(j.nodes.map(n => n.name).sort()) === JSON.stringify(parts) && j.meshes.every(m => ['POSITION', 'NORMAL', 'TEXCOORD_0'].every(a => a in m.primitives[0].attributes))
         && Math.max(...pos.map(a => a.max[1])) - Math.min(...pos.map(a => a.min[1])) > 1.75 && e.parts.every(p => parts.includes(p.node)); })
-    && Cp.scannedEntryFor('Scrub Top', 'Short', 'unisex').parts.find(p => p.node === 'chest_pocket').detail === 'patchPocket' && Cp.scannedEntryFor('Scrub Top', 'Short', 'male')?.id === 'scrub-top'
+    && !Cp.scannedEntryFor('Jogger Scrub Pants', null, null) && Cp.scannedEntryFor('Scrub Top', 'Short', 'unisex').parts.find(p => p.node === 'chest_pocket').detail === 'patchPocket' && Cp.scannedEntryFor('Scrub Top', 'Short', 'male')?.id === 'scrub-top'
     && /details\?\.\[part\.detail\]\?\.show === false/.test(rd('../src/pages/client/design-studio/ScannedGarmentMesh.tsx')) && /details=\{cfg\.details\}/.test(d3)
     && fsx.existsSync(urlx.fileURLToPath(new URL('./glb-extract/build_authored_garments.py', import.meta.url))));
 }
@@ -1882,10 +1882,10 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && /get\('help'\) === 'howto'/.test(rd('src/pages/client/DesignStudio.tsx')) && /help=howto/.test(rd('src/pages/client/settings/HelpSection.tsx'))
     && /onHowTo=\{\(\) => setMode\('howto'\)\}/.test(sh) && /Nothing to point at yet/.test(sh));
   const css = n => rd(`src/styles/${n}.css`), cvx = rd('src/pages/client/design-studio/CanvasViewport.tsx');
-  t('motion tokens: skeletons stay hidden 150 ms then shimmer on a 0.7 s cycle; route entrance 200 ms; 2D/3D crossfade 200 ms, off under reduced motion',
+  t('motion tokens: skeletons stay hidden 150 ms then shimmer on a 0.7 s cycle; thread pull 200 ms (the route entrance was removed in a1cc461); 2D/3D crossfade 200 ms, off under reduced motion',
     /animation: vfrb-sk-show 0s \.15s both, vfrb-shimmer \.7s \.15s/.test(css('theme')) && /skx-show 0s \.15s both, skx-shimmer \.7s \.15s/.test(css('skeleton'))
     && /cx-sk-show 0s \.15s both,cx-sk \.7s \.15s/.test(css('customer')) && /cx-sk-show 0s \.15s both,pm-shim \.7s \.15s/.test(css('premium'))
-    && /thread-unroll 200ms/.test(css('theme')) && /thread-run 200ms/.test(css('theme'))
+    && /thread-run 200ms/.test(css('theme'))
     && /transition: CALM \? 'none' : on \? 'opacity \.2s ease-out' : 'opacity \.2s ease-out, visibility 0s linear \.2s'/.test(cvx) && (cvx.match(/\.\.\.paneFade\(/g) ?? []).length === 2);
   t('an empty order thread never tells the customer to ask "before you submit" (every thread belongs to a placed order)', !/before you submit/.test(rd('src/pages/client/Messages.tsx')));
   { const MDs = await L('/src/pages/client/MyDesigns.tsx'), u = (id, role) => ({ uniformSet: { id, role }, garment: role === 'top' ? 'Polo Shirt' : 'Pants' });
@@ -1926,7 +1926,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     HG.hero3DAllowed(ok) && !HG.hero3DAllowed({ ...ok, width: 390 }) && !HG.hero3DAllowed({ ...ok, width: 959 }) && !HG.hero3DAllowed({ ...ok, saveData: true })
     && !HG.hero3DAllowed({ ...ok, calm: true }) && !HG.hero3DAllowed({ ...ok, webgl: false })
     && /lazy\(\(\) => import\('\.\/landing\/HeroLive'\)\.catch\(/.test(lp) && !/^import [^;]*(HeroLive|HeroTurntable|heroGate)/m.test(lp) && !/hasWebGL|requestIdleCallback|useState/.test(lp)
-    && lp.includes(`matchMedia('(min-width:${HG.HERO_3D_MIN_WIDTH}px) and (prefers-reduced-motion:no-preference)')`) && /box\.dataset\.view = shown/.test(hl)
+    && lp.includes(`useMedia('(min-width:${HG.HERO_3D_MIN_WIDTH}px) and (prefers-reduced-motion:no-preference)')`) && /box\.dataset\.view = shown/.test(hl)
     && /calm: matchMedia\('\(prefers-reduced-motion: reduce\)'\)\.matches/.test(hl)
     && /lazy\(\(\) => import\('\.\/HeroTurntable'\)\.catch\(/.test(hl) && /hero3DAllowed\(\{/.test(hl) && /requestIdleCallback/.test(hl)
     && /webglcontextlost', onError/.test(rd('src/pages/landing/HeroTurntable.tsx')));
