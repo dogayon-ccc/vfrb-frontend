@@ -1907,7 +1907,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     const all = await FP.fetchAllPages('/x', { get }), flat = await FP.fetchAllPages('/x', { get: () => Promise.resolve({ data: [1, 2] }) });
     t('fetchAllPages follows last_page at the backend max per_page, stops at 10 pages, and passes a plain array through',
       all.length === 10 && all[9] === 100 && seen.every(p => p.per_page === 100) && flat.length === 2
-      && ['Orders', 'MyDesigns', 'Messages', 'AIMaterials', 'Dashboard'].every(p => /fetchAllPages\('\/api\/customer\/orders'\)/.test(rd(`src/pages/client/${p}.tsx`)) && !/axios\.get\('\/api\/customer\/orders'\)/.test(rd(`src/pages/client/${p}.jsx`)))); }
+      && ['Orders', 'MyDesigns', 'Messages', 'AIMaterials', 'Dashboard'].every(p => /fetchAllPages\('\/api\/customer\/orders'\)/.test(rd(`src/pages/client/${p}.tsx`)) && !/axios\.get\('\/api\/customer\/orders'\)/.test(rd(`src/pages/client/${p}.tsx`)))); }
   { const UID = await L('/src/utils/uid.ts'), real = crypto.randomUUID, re = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/; let fb;
     try { crypto.randomUUID = undefined; fb = [UID.uid(), UID.uid()]; } finally { crypto.randomUUID = real; }
     t('uid: v4 format with or without crypto.randomUUID (plain-http LAN test); no raw randomUUID call left in src',
