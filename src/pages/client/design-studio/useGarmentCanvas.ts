@@ -50,27 +50,6 @@ function zoneAt(canvas, e) {
     .find(o => o.containsPoint(scene) && !canvas.isTargetTransparent(o, vp.x, vp.y));
 }
 
-// Eyedropper: the exact fill of a shape or text, else the on-screen pixel of art, else the garment part (its saved colour wins over shading).
-function sampleAt(canvas, e) {
-  const scene = canvas.getScenePoint?.(e) ?? canvas.getPointer(e);
-  const vp = canvas.getViewportPoint?.(e) ?? scene;
-  const top = canvas.getObjects().filter(o => !o.__garmentBase && !o.__hoverGlow && o.visible !== false).reverse()
-    .find(o => o.containsPoint(scene) && !canvas.isTargetTransparent(o, vp.x, vp.y));
-  if (typeof top?.fill === 'string' && /^#|^rgb/.test(top.fill)) return { hex: toHex(top.fill) };
-  return { zone: top ? null : zoneAt(canvas, e)?.__zoneKey ?? null, hex: pixelAt(canvas.lowerCanvasEl, e) };
-}
-function pixelAt(el, e) {
-  const pt = e.changedTouches?.[0] ?? e.touches?.[0] ?? e, r = el.getBoundingClientRect();
-  try {
-    const d = el.getContext('2d').getImageData(Math.floor((pt.clientX - r.left) * el.width / r.width), Math.floor((pt.clientY - r.top) * el.height / r.height), 1, 1).data;
-    return d[3] < 8 ? null : toHex(`rgb(${d[0]},${d[1]},${d[2]})`);
-  } catch { return null; } // a cross-origin image without CORS taints the canvas: nothing to read
-}
-const toHex = c => {
-  const m = c.match(/\d+/g);
-  return c.startsWith('#') ? c.slice(0, 7).toLowerCase() : '#' + m.slice(0, 3).map(v => (+v).toString(16).padStart(2, '0')).join('');
-};
-
 const OVERLAY_PROPS = ['__logo','__artwork','__text','__draw','__shape','__layerId','__layerName','__locked','__erase','__curve','__shapeKind','__clip','__pocket','__pocketPanels','__pocketColor','lockMovementX','lockMovementY','lockRotation','lockScalingX','lockScalingY','hasControls'];
 // The customer's overlays as saved JSON, in canvas coordinates (plainObject decomposes active-selection members). One serialiser
 // for history, saves and exports.
@@ -146,7 +125,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     setGarmentRect(p => (p && g && ['left', 'top', 'width', 'height'].every(k => Math.abs(p[k] - g[k]) < 0.5) ? p : g));
   }, []);
   const eraser = useRef(false); // Draw tool in eraser mode: a stroke cuts the customer's drawings and art, never the garment
-  const pick = useRef(null); // Eyedropper ('sample'), paint bucket ('fill'), Pen or Line: taps never select or move a design item
+  const pick = useRef(null); // Paint bucket ('fill'), Pen or Line: taps never select or move a design item
   // Pen/Line work in progress; previewed on the interaction layer only, so nothing unfinished is saved or undoable.
   const vec = useRef({ anchors: [], drag: false, cursor: null, line: null, box: null });
   const vecApi = useRef(null); // { finish, back, cancel, busy } bound inside the canvas setup
@@ -176,7 +155,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       const paths = getGarmentPaths(garment, sleeve, face);
 
       installTouchHandles(fabric);
-      canvasRef.current.getContext('2d', { willReadFrequently: true }); // the eyedropper and hit tests read pixels back
+      canvasRef.current.getContext('2d', { willReadFrequently: true }); // hit tests read pixels back
       fc.current = new fabric.Canvas(canvasRef.current, {
         width: paths.w, height: paths.h,
         backgroundColor: 'transparent',
@@ -262,7 +241,6 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       // handle or the first finger of a pinch, which on a phone used to open the colour sheet under the second finger).
       let tap = null;
       fc.current.on('mouse:down', (opt) => {
-        if (pick.current?.mode === 'sample') { tap = null; pick.current.onSample(sampleAt(fc.current, opt.e)); return; }
         if (vecDown(opt)) { tap = null; return; }
         tap = opt.target && !opt.target.__zoneKey ? null : { p: fc.current.getViewportPoint(opt.e), zone: zoneAt(fc.current, opt.e)?.__zoneKey };
       });
@@ -1070,9 +1048,9 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   }, []);
 
   // `style` (Pen/Line) returns the active { color, width } when a path is drawn.
-  const setPickMode = useCallback((mode, onSample = null, style = null) => {
+  const setPickMode = useCallback((mode, style = null) => {
     if (pick.current?.mode !== mode) vecApi.current?.cancel();
-    pick.current = mode ? { mode, onSample, style } : null;
+    pick.current = mode ? { mode, style } : null;
     if (penKeys.current) { window.removeEventListener('keydown', penKeys.current, true); penKeys.current = null; }
     if (mode === 'pen') { // captured first, so Esc keeps the Pen and Backspace never deletes a selected item mid-path
       penKeys.current = (e) => {

@@ -309,17 +309,12 @@ export default function DesignStudio() {
   const changeBrushSize = (size) => { setBrushSize(size); setBrushStyle(size, undefined); };
   const changeBrushColor = (color) => { setBrushColorState(color); setBrushStyle(undefined, color); };
 
-  // Tool rail: eyedropper and paint bucket share the brush colour as the active colour; drawing turns them off.
+  // Tool rail: paint bucket, Pen and Line use the brush colour; drawing turns them off.
   const [pick, setPick] = useState(null);
-  const [pickNote, setPickNote] = useState('');
   pickRef.current = { pick, color: brushColor, size: brushSize, colors: cfg.colors, final: locked };
   useEffect(() => { if (tool === 'draw') setPick(null); }, [tool]);
   useEffect(() => {
-    setPickMode(pick, (r) => {
-      const hex = (r?.zone && pickRef.current.colors?.[r.zone]) || r?.hex;
-      if (hex) changeBrushColor(hex);
-      setPickNote(hex ? `Active colour ${hex.toUpperCase()}` : 'No colour to pick there');
-    }, () => ({ color: pickRef.current.color, width: pickRef.current.size }));
+    setPickMode(pick, () => ({ color: pickRef.current.color, width: pickRef.current.size }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pick, setPickMode, cfg.garment, face]);
 
@@ -1123,7 +1118,7 @@ export default function DesignStudio() {
             selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected} alignSelected={alignSelected} arrangeSelected={arrangeSelected} garmentRect={garmentRect}
             viewMode={viewMode} has3DLoaded={has3DLoaded} onLogoFile={onLogoFile} onPickZone={setActiveZone}
             onUndo={locked ? null : lock?.warn ? () => setWarnAsk(true) : undo}
-            rail={locked ? null : { history: { undo: lock?.warn ? () => setWarnAsk(true) : undo, redo: lock?.warn ? () => setWarnAsk(true) : redo, canUndo, canRedo }, onShapes: () => setAssetsTab('shapes'), tool, setTool, pick, setPick, erasing, setErasing, color: brushColor, setColor: changeBrushColor, size: brushSize, setSize: changeBrushSize, note: pickNote, colourOnly: colorOnly }}
+            rail={locked ? null : { history: { undo: lock?.warn ? () => setWarnAsk(true) : undo, redo: lock?.warn ? () => setWarnAsk(true) : redo, canUndo, canRedo }, onShapes: () => setAssetsTab('shapes'), tool, setTool, pick, setPick, erasing, setErasing, color: brushColor, setColor: changeBrushColor, size: brushSize, setSize: changeBrushSize, colourOnly: colorOnly }}
             zoom={zoom} setZoom={setZoom} snapshot={snapshot} overlays={overlays}
             blank={<GarmentPicker inline cfg={cfg} pieceRole={uset?.active ?? (pendingArt && artScope ? (artScope === 'bottom' ? 'bottom' : 'top') : null)} onPickPhoto={pickPhoto}
               onPick3D={(d, f) => { keep3DRef.current = true; pickPhoto(d, f); setHas3DLoaded(true); setViewMode('3d'); }}

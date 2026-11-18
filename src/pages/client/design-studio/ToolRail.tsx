@@ -9,7 +9,7 @@ const SHOWN = ['move', 'hand', 'fill', 'brush', 'eraser', 'pen', 'text', 'shape'
 const typing = () => { const a = document.activeElement; return !!a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable); };
 
 export default function ToolRail({ rail, hand, setHand, canPan, zoomBy, readOnly = false }: any) {
-  const { tool, setTool, pick, setPick, erasing, setErasing, color, setColor, size, setSize, note, colourOnly, onShapes, history = null } = rail;
+  const { tool, setTool, pick, setPick, erasing, setErasing, color, setColor, size, setSize, colourOnly, onShapes, history = null } = rail;
   const active = activeRail({ hand, pick, tool, erasing });
   const off = id => (readOnly ? id !== 'move' : (id === 'hand' && !canPan) || (colourOnly && !RAIL_TOOLS.find(t => t.id === id)?.colour && id !== 'move'));
 
@@ -71,7 +71,6 @@ export default function ToolRail({ rail, hand, setHand, canPan, zoomBy, readOnly
           ))}
         </div>
       )}
-      <span className="sr-only" role="status" aria-live="polite">{note}</span>
     </div>
   );
 }
