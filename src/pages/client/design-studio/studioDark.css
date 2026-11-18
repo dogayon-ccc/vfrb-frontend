@@ -1,0 +1,39 @@
+/* The right panel and the phone/tablet sheet share the stage's deep-teal chrome: one dark workspace, mint as the only accent. */
+.ds .ds-panel,
+.ds .ds-sheet {
+  --cx-card: var(--vf-chrome);
+  --cx-paper: var(--vf-chrome);
+  --cx-paper-2: var(--vf-chrome-2);
+  --cx-ink: var(--vf-on-chrome);
+  --cx-ink-2: var(--vf-on-chrome-2);
+  --cx-ink-3: var(--vf-on-chrome-3);
+  --cx-line: var(--vf-chrome-line);
+  --cx-line-strong: rgb(var(--vf-mint-rgb) / .45);
+  --cx-hover: rgb(var(--vf-mint-rgb) / .12);
+  --cx-thread: var(--vf-mint);
+  --cx-thread-ink: var(--vf-mint-hi);
+  --cx-on-thread: var(--vf-void);
+  --cx-thread-tint: rgb(var(--vf-mint-rgb) / .16);
+  --bg-card: var(--vf-chrome);
+  --bg-surface: var(--vf-chrome-2);
+  --border: var(--vf-chrome-line);
+  --border-strong: rgb(var(--vf-mint-rgb) / .45);
+  --ink: var(--vf-on-chrome);
+  --text: var(--vf-on-chrome);
+  --text-muted: var(--vf-on-chrome-2);
+  --text-subtle: var(--vf-on-chrome-3);
+  --teal: var(--vf-mint);
+  --teal-dark: var(--vf-mint-hi);
+  --teal-50: rgb(var(--vf-mint-rgb) / .16);
+  --on-teal: var(--vf-void);
+  --danger-text: var(--vf-danger-on-chrome);
+  color: var(--vf-on-chrome);
+  color-scheme: dark;
+}
+/* Fields sit one step above the panel so they read as inputs, not as text. */
+.ds .ds-panel :is(input:not([type=range]):not([type=color]):not([type=checkbox]):not([type=radio]), select, textarea),
+.ds .ds-sheet :is(input:not([type=range]):not([type=color]):not([type=checkbox]):not([type=radio]), select, textarea) {
+  background: var(--vf-chrome-2);
+  color: var(--vf-on-chrome);
+  border-color: var(--vf-chrome-line);
+}

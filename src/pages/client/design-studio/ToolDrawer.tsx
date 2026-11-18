@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { MoreHorizontal, Eye, Copy, X, Compass, BookOpen, ChevronUp, ChevronDown } from 'lucide-react';
 import { NavIcon } from '../../../components/ui/icons';
+import './studioDark.css';
 import LayersPanel from './LayersPanel';
 import AssetsPanel from './AssetsPanel';
 import PatternPanel from './PatternPanel';
