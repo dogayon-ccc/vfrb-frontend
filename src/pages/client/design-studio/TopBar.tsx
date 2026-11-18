@@ -10,6 +10,7 @@ import Capability3D from './Capability3D';
 import { isCustom, CUSTOM_3D_NOTE } from './customGarment';
 import { VIEW_MODES, type ViewMode } from './studioView';
 import { garmentLabel } from '../../../utils/designName';
+import './studioBar.css';
 
 const view3DTitle = (cfg, no3D) => (no3D
   ? (isCustom(cfg.garment) ? CUSTOM_3D_NOTE
@@ -56,12 +57,18 @@ export default function TopBar({ nav, cfg, setCfg, undo, redo, canUndo, canRedo,
   saveDesign, saving, saved, draftSaved, orderThis, ordering, downloadImage, downloadPdf, exporting, lock = null, onReorder, onDuplicate, copying = false, phoneItems = [] }: any) {
   const phone = usePhone();
   const has = !!cfg.garment;
+  // Phones: the name field leaves the bar (it truncated to 'Untit…'), so renaming lives in the menu.
+  const renameDesign = () => {
+    const next = window.prompt('Design name', cfg.name ?? '');
+    if (next !== null) setCfg(p => ({ ...p, name: next.slice(0, 80) }));
+  };
   // phoneItems: stage actions that leave the stage on phones (back view, full screen, add a matching piece).
   const menu = [
     ...(phone && has ? phoneItems : []),
     phone && !lock && { label: 'Undo', onClick: undo, disabled: !canUndo },
     phone && !lock && { label: 'Redo', onClick: redo, disabled: !canRedo },
     phone && !lock && has && { label: saving ? 'Saving…' : 'Save now', onClick: saveDesign, disabled: !!saving },
+    phone && !lock && has && { label: 'Rename design', onClick: renameDesign },
     phone && lock && { label: copying ? 'Copying…' : 'Duplicate to edit', onClick: onDuplicate, disabled: copying },
     has && downloadImage && { label: exporting === 'png' ? 'Exporting PNG…' : 'Export PNG image', onClick: downloadImage, disabled: !!exporting },
     has && downloadPdf && { label: exporting === 'pdf' ? 'Exporting PDF…' : 'Export PDF spec sheet', onClick: downloadPdf, disabled: !!exporting },
@@ -74,8 +81,8 @@ export default function TopBar({ nav, cfg, setCfg, undo, redo, canUndo, canRedo,
       </button>
       <h1 className="ds-bar-title">Design Studio</h1>
       {/* Design name feeds cfg.name, carried into studio_config on every save */}
-      <input className="ds-bar-name" value={cfg.name ?? ''} maxLength={80} placeholder={phone ? 'Untitled' : 'Untitled design'} aria-label="Design name"
-        readOnly={!!lock} onChange={e => setCfg(p => ({ ...p, name: e.target.value.slice(0, 80) }))} />
+      {!phone && <input className="ds-bar-name" value={cfg.name ?? ''} maxLength={80} placeholder="Untitled design" aria-label="Design name"
+        readOnly={!!lock} onChange={e => setCfg(p => ({ ...p, name: e.target.value.slice(0, 80) }))} />}
       <div className="ds-bar-sp" />
       {lock
         ? <span className="ds-bar-save" role="status" title="Final designs are read-only"><span className="ds-bar-save-txt">{phone ? 'Final' : lock.orderId ? `Final for order #${lock.orderId}` : 'Final for its order'}</span></span>

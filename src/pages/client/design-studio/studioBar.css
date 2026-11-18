@@ -1,0 +1,6 @@
+/* Phones: the name leaves the bar (Rename is in the menu), so Back, 2D | SPLIT | 3D, More and Review keep full-size targets. */
+@media (max-width: 599px) {
+  .ds-bar .ds-view { margin-left: auto; }
+  /* The stage note may take two lines instead of cutting the reason off with an ellipsis. */
+  .ds-lane-top .ds-stage-note { white-space: normal; overflow: visible; text-overflow: clip; text-align: center; line-height: 1.3; }
+}

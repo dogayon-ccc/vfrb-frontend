@@ -126,6 +126,7 @@
 .ds .ds-pick[data-inline] .ds-pick-head .ds-note:not(.ds-status *),.ds .ds-pick[data-inline] .ds-pick-head .ds-pick-frow>span{color:var(--vf-navy-2)}
 .ds .ds-pick[data-inline] .ds-pick-tabs button[aria-checked=true]{background:var(--vf-navy);color:#fff}
 .ds .ds-pick[data-inline] .ds-pick-head h2{color:var(--vf-navy)}
+@media (max-width:767px){.ds .ds-pick[data-inline] .ds-pick-head .ds-pick-titlebar h2{color:var(--vf-on-chrome)}}
 
 /* ── Customer shell: slim icon rail that opens over the page on hover or focus (tablet and small laptops) ── */
 @media(min-width:768px) and (max-width:1279px){
