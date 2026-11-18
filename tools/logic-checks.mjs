@@ -1757,7 +1757,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const R = await L('/src/pages/client/design-studio/railTools.ts');
   const CR = await L('/src/pages/client/design-studio/colorRules.ts');
   const k = (key, m = {}) => R.railKey({ key, ...m });
-  t('tool rail: V H I G B E P L T U M O pick their tools, Z / Alt+Z zoom, Ctrl or Cmd letters and held keys are left alone',
+  t('tool rail: V H G B E P L T U M O pick their tools, Z / Alt+Z zoom, Ctrl or Cmd letters and held keys are left alone',
     ['V', 'H', 'G', 'B', 'E', 'P', 'L', 'T', 'U', 'M', 'O'].map(x => k(x.toLowerCase())).join() === 'move,hand,fill,brush,eraser,pen,line,text,shape,rect,ellipse'
     && new Set(R.RAIL_TOOLS.map(x => x.key)).size === R.RAIL_TOOLS.length
     && k('z') === 'zoom-in' && k('z', { altKey: true }) === 'zoom-out' && k('z', { ctrlKey: true }) === null && k('d', { metaKey: true }) === null
