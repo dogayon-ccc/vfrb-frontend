@@ -99,6 +99,7 @@ const ICON_MAP = {
   ai:               Sparkles,
   pattern:          Ruler,
   layersPanel:      Layers,
+  scene:            Lightbulb,
   draw:             Pencil,
   eraser:           Eraser,
   shapes:           Square,

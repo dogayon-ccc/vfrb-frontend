@@ -15,6 +15,7 @@ import { SelectionInspector, isEditableSelection } from './RightInfoPanel';
 import AIDesignChat from '../AIDesignChat';
 import { TOOLS, TABS, tabOf, zonesFor, ZONE_LABEL, placementsFor } from './dsShared';
 import { assetFor } from './garmentAssets';
+import ScenePanel from './ScenePanel';
 
 
 // Phones and tablets: the four tabs plus More (View, Save a copy).
@@ -103,6 +104,7 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
     draw:    () => <DrawPanel size={p.brushSize} color={p.brushColor} onSizeChange={p.changeBrushSize} onColorChange={p.changeBrushColor} erasing={p.erasing} setErasing={p.setErasing}/>,
     ai:      () => <div className="ds-sum"><AIDesignChat cfg={p.cfg} textItems={p.textItems} ai={p.ai}/></div>,
     layers:  () => layersList(),
+    scene:   () => <ScenePanel/>,
     pattern: () => (assetFor(p.cfg.garment, p.cfg.sleeve, 'front', p.cfg.fit)
       ? <p className="ds-note" style={{ padding:'20px 4px', textAlign:'center' }}>Patterns need a drawn garment, not a photo base.</p>
       : <PatternPanel cfg={p.cfg} setCfg={p.setCfg} activeZone={p.activeZone}/>),

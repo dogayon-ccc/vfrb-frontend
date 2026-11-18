@@ -811,8 +811,8 @@ export default function DesignStudioStyles() {
         .ds-lane-top>.ds-tools{position:absolute;left:-52px;top:8px;flex-direction:column;gap:2px;max-height:calc(100dvh - 148px);overflow-y:auto;scrollbar-width:none;
           box-shadow:0 1px 2px rgb(15 23 42 / .08),0 8px 24px -12px rgb(15 23 42 / .28);}
         .ds-lane-top>.ds-tools::-webkit-scrollbar{display:none;}
-        .ds-lane-top>.ds-tools .ds-tools-btn:is([data-tool=sample],[data-tool=brush],[data-tool=text]){margin-top:5px;position:relative;}
-        .ds-lane-top>.ds-tools .ds-tools-btn:is([data-tool=sample],[data-tool=brush],[data-tool=text])::before{content:"";position:absolute;top:-4px;left:10px;right:10px;border-top:1px solid var(--cx-line);}
+        .ds-lane-top>.ds-tools .ds-tools-btn:is([data-tool=fill],[data-tool=brush],[data-tool=text]){margin-top:5px;position:relative;}
+        .ds-lane-top>.ds-tools .ds-tools-btn:is([data-tool=fill],[data-tool=brush],[data-tool=text])::before{content:"";position:absolute;top:-4px;left:10px;right:10px;border-top:1px solid var(--cx-line);}
         .ds-lane-top>.ds-tools .ds-tools-ink{margin:6px 0 2px;flex:none;}
         .ds-lane-top>.ds-tools .ds-tools-size{flex-direction:column;margin:4px 0 0;padding:4px 0 0;border-left:0;border-top:1px solid var(--cx-line);}
       }
@@ -1194,7 +1194,7 @@ export default function DesignStudioStyles() {
 
       /* Desktop right panel: one row of six labelled tabs, icon above text (ToolDrawer.jsx); phones use the bottom nav */
       @media (min-width:1024px){
-        .ds-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px;padding:8px 6px;border-bottom:1px solid var(--cx-line);}
+        .ds-tabs{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:2px;padding:8px 6px;border-bottom:1px solid var(--cx-line);}
         .ds-tabs button{min-width:0;min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:4px 2px;border:1px solid transparent;white-space:nowrap;
           border-radius:var(--cx-r-md);background:none;font:600 13px/1.15 var(--cx-sans);color:var(--cx-ink-2);cursor:pointer;
           transition:background .15s,color .15s,border-color .15s;}

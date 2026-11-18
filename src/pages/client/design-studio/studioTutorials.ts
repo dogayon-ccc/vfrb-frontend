@@ -5,7 +5,6 @@ export const TUTORIALS = [
     ['[data-tab=type]', 'Open Garment', 'Garment holds the colours, patterns and details of every part.'],
     ['.ds-stage-fit', 'Tap a part', 'Tap the body, collar or a sleeve on the garment. Its colour choices open in the panel.'],
     ['[data-tool=fill]', 'Paint bucket', 'Or pick the paint bucket (G) and tap parts to fill them with the active colour.'],
-    ['[data-tool=sample]', 'Eyedropper', 'The eyedropper (I) picks a colour from the design, so trims can match the body exactly.'],
   ] },
   { id: 'logo', title: 'Add your logo', summary: 'Upload, place, resize and adjust a logo.', steps: [
     ['[data-tab=add]', 'Open Add', 'Add holds logos, text and drawing.'],

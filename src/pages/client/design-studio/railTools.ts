@@ -2,7 +2,6 @@
 export const RAIL_TOOLS = [
   { id: 'move',   key: 'V', label: 'Move',         hint: 'Select and move design items' },
   { id: 'hand',   key: 'H', label: 'Hand',         hint: 'Pan the zoomed design (or hold Space and drag)' },
-  { id: 'sample', key: 'I', label: 'Eyedropper',   hint: 'Pick a colour from the design', colour: true },
   { id: 'fill',   key: 'G', label: 'Paint bucket', hint: 'Fill a garment part with the active colour', colour: true },
   { id: 'brush',  key: 'B', label: 'Brush',        hint: 'Draw freehand in the active colour' },
   { id: 'eraser', key: 'E', label: 'Eraser',       hint: 'Erase your own drawings and uploaded art' },
@@ -39,7 +38,7 @@ export const STROKE_SIZES = [2, 5, 10];
 export const STROKE_TOOLS = ['brush', 'pen', 'line'];
 
 // Rail tools that work through canvas taps instead of selecting items.
-export const PICK_TOOLS = ['sample', 'fill', 'pen', 'line', 'rect', 'ellipse'];
+export const PICK_TOOLS = ['fill', 'pen', 'line', 'rect', 'ellipse'];
 // Rail tools that drag out a box: the shape kinds overlayTools.makeShape builds.
 export const BOX_TOOLS = ['rect', 'ellipse'];
 

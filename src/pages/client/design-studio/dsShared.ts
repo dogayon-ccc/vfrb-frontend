@@ -257,6 +257,7 @@ export const TOOLS = [
   { id:'draw',     icon:'draw',        label:'Draw',    hint:'Sketch freehand on the garment' },
   { id:'layers',   icon:'layersPanel', label:'Layers',  hint:'Reorder, hide or rename items' },
   { id:'ai',       icon:'ai',          label:'Ask AI',  hint:'Describe a change; it becomes design edits you preview first' },
+  { id:'scene',    icon:'scene',       label:'Scene',   hint:'Backdrop, lighting and turntable for the 3D preview' },
   { id:'selected', icon:'cursor',      label:'Selection', hint:'Adjust the item you picked' },
 ];
 // The panel's labelled tabs. Each owns one or more tools; the first is where the tab opens.
@@ -265,6 +266,7 @@ export const TABS = [
   { id:'add',      icon:'logo',        label:'Add',         tools:['assets', 'text', 'draw'] },
   { id:'layers',   icon:'layersPanel', label:'Layers',      tools:['layers'] },
   { id:'ai',       icon:'ai',          label:'Ask AI',      tools:['ai'] },
+  { id:'scene',    icon:'scene',       label:'Scene',       tools:['scene'] },
 ];
 export const tabOf = tool => TABS.find(t => t.tools.includes(tool)) ?? null;
 

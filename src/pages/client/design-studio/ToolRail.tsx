@@ -5,7 +5,7 @@ import { MousePointer2, Undo2, Redo2, Hand, Pipette, PaintBucket, Brush, Eraser,
 import { RAIL_TOOLS, PICK_TOOLS, STROKE_SIZES, STROKE_TOOLS, railKey, activeRail } from './railTools';
 
 const ICONS = { move: MousePointer2, hand: Hand, sample: Pipette, fill: PaintBucket, brush: Brush, eraser: Eraser, pen: PenTool, line: Slash, text: Type, shape: Shapes };
-const SHOWN = ['move', 'hand', 'sample', 'fill', 'brush', 'eraser', 'pen', 'text', 'shape'];
+const SHOWN = ['move', 'hand', 'fill', 'brush', 'eraser', 'pen', 'text', 'shape'];
 const typing = () => { const a = document.activeElement; return !!a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable); };
 
 export default function ToolRail({ rail, hand, setHand, canPan, zoomBy, readOnly = false }: any) {
@@ -59,7 +59,7 @@ export default function ToolRail({ rail, hand, setHand, canPan, zoomBy, readOnly
           <button type="button" className="ds-tools-btn" aria-label="Redo" disabled={!history.canRedo} onClick={() => { haptic('tick'); history.redo(); }}><Redo2 size={20} aria-hidden="true"/></button>
         </span>
       )}
-      <label className="ds-tools-ink" data-tip="Active colour: the brush, pen, line, rectangle, ellipse and paint bucket use it, the eyedropper sets it">
+      <label className="ds-tools-ink" data-tip="Active colour: the brush, pen, line, rectangle, ellipse and paint bucket use it">
         <input type="color" value={color} disabled={readOnly} onChange={e => setColor(e.target.value)} aria-label="Active colour"/>
       </label>
       {STROKE_TOOLS.includes(active) && setSize && (

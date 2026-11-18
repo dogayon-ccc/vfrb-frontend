@@ -7,6 +7,7 @@ import { familyFor, cap3D } from './garmentCatalog';
 import Capability3D from './Capability3D';
 import { get3DCapabilities, hemNote3D, detailParts3D, explodableFor, has3DFor } from './garmentCapabilities';
 import { LIGHT_PRESETS } from './lightRig';
+import { BACKDROPS, useScene, setScene } from './sceneStore';
 import { ZONE_LABEL } from './dsShared';
 import { ENTRIES as GALLERY } from './designGallery';
 import { hasWebGL } from './webglSupport';
@@ -136,13 +137,6 @@ class ThreeEB extends Component {
   }
 }
 
-const BACKDROPS = [
-  { label: 'Stage', bg: null },
-  { label: 'White', bg: '#FFFFFF' },
-  { label: 'Light grey', bg: '#E6E9E4' },
-  { label: 'Charcoal', bg: '#232826' },
-];
-
 export default function CanvasViewport({
   cfg, setCfg, canvasWrapRef, canvasEl, aiPulse, face, switchFace, initFailed,
   selObj, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, garmentRect = null, viewMode, has3DLoaded, onLogoFile, zoom, setZoom, snapshot, overlays,
@@ -159,15 +153,12 @@ export default function CanvasViewport({
   // A set shows in 3D only when both pieces have their own model; otherwise the active piece shows alone and the note says why.
   const set3D = show3D && setCompanion && has3DFor(cfg) && has3DFor(setCompanion.cfg) ? setCompanion : null;
   const canExplode = explodableFor(cfg) && !set3D;
-  const [explode, setExplode] = useState(false);
-  const [lighting, setLighting] = useState('studio');
-  // Scene backdrop: display only (the 3D PNG capture stays transparent). null keeps the stage's own colour.
-  const [backdrop, setBackdrop] = useState(() => { try { const i = Number(localStorage.getItem('ds_backdrop')); return i >= 0 && i < BACKDROPS.length ? i : 0; } catch { return 0; } });
-  const nextBackdrop = () => setBackdrop(i => { const n = (i + 1) % BACKDROPS.length; try { localStorage.setItem('ds_backdrop', String(n)); } catch { /* storage blocked */ } return n; });
-  const [spin, setSpin] = useState(false); // the turntable starts off: no motion the customer did not ask for
+  const { explode, lighting, backdrop, spin } = useScene(); // one source of truth shared with the Scene tab
+  const nextBackdrop = () => setScene({ backdrop: (backdrop + 1) % BACKDROPS.length });
+  useEffect(() => { setScene({ has3D: show3D, canExplode: show3D && canExplode, ...(show3D && canExplode ? null : { explode: false }) }); }, [show3D, canExplode]);
   const [picked, setPicked] = useState(null);
   const pickZone = useCallback(z => { setPicked(z); onPickZone?.(z); }, [onPickZone]);
-  useEffect(() => { setExplode(false); setPicked(null); }, [cfg.garment, cfg.sleeve, cfg.fit]);
+  useEffect(() => { setScene({ explode: false }); setPicked(null); }, [cfg.garment, cfg.sleeve, cfg.fit]);
   const fit = useFit(paneRef, canvasWrapRef, garmentRect?.height ?? 0);
   const at = useSelectionAnchor(selObj, canvasEl, paneRef);
   // The artboard's real logical size, read from the Fabric canvas (photo bases and templates differ), not assumed.
@@ -610,13 +601,13 @@ export default function CanvasViewport({
             </>)}
             {split && <span className="ds-ctrl-sep" aria-hidden="true"/>}
             {view3D && (<>
-              {ctrl(spin ? 'Stop turning' : 'Turntable', <RotateCw size={16} aria-hidden="true"/>, () => setSpin(x => !x),
+              {ctrl(spin ? 'Stop turning' : 'Turntable', <RotateCw size={16} aria-hidden="true"/>, () => setScene({ spin: !spin }),
                 { 'data-pane': '3d', 'aria-pressed': spin, disabled: CALM, title: CALM ? 'Off while your device asks for reduced motion; drag to rotate' : undefined })}
-              {canExplode && ctrl(explode ? 'Assemble' : 'Explode', explode ? <Shrink size={16} aria-hidden="true"/> : <Expand size={16} aria-hidden="true"/>, () => setExplode(x => !x),
+              {canExplode && ctrl(explode ? 'Assemble' : 'Explode', explode ? <Shrink size={16} aria-hidden="true"/> : <Expand size={16} aria-hidden="true"/>, () => setScene({ explode: !explode }),
                 { 'data-pane': '3d', 'aria-pressed': explode, title: explode ? 'Put the parts back together' : 'Pull the collar, sleeves and pockets apart' })}
               {ctrl(`Backdrop: ${BACKDROPS[backdrop].label}`, <Palette size={16} aria-hidden="true"/>, nextBackdrop,
                 { 'data-pane': '3d', title: 'Change the 3D backdrop (the design and exports are not affected)' })}
-              {canExplode && ctrl(LIGHT_PRESETS[lighting].label, <Lightbulb size={16} aria-hidden="true"/>, () => setLighting(l => (l === 'studio' ? 'daylight' : 'studio')),
+              {canExplode && ctrl(LIGHT_PRESETS[lighting].label, <Lightbulb size={16} aria-hidden="true"/>, () => setScene({ lighting: lighting === 'studio' ? 'daylight' : 'studio' }),
                 { 'data-pane': '3d', title: 'Switch the 3D lighting (colours stay calibrated in both)' })}
             </>)}
             {ctrl(full ? 'Exit full screen' : 'Full screen', full ? <Minimize2 size={16} aria-hidden="true"/> : <Maximize2 size={16} aria-hidden="true"/>, toggleFull,
