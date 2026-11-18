@@ -17,7 +17,7 @@ import {
   useState, useEffect, useRef, useCallback, useMemo,
 } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { useReducedMotion } from 'framer-motion';
 import axios from 'axios';
 import { NavIcon } from '../../components/ui/icons';
 import { ConfirmDialog } from '../../components/ui';
@@ -52,6 +52,7 @@ import { X } from 'lucide-react';
 import { has3DFor } from './design-studio/garmentCapabilities';
 import { hasWebGL } from './design-studio/webglSupport';
 import Capability3D from './design-studio/Capability3D';
+import StudioLayout from './design-studio/StudioLayout';
 import { cap3D } from './design-studio/garmentCatalog';
 import { describeDetails } from './design-studio/garmentDetails';
 import { describePockets } from './design-studio/pocketTools';
@@ -1079,55 +1080,42 @@ export default function DesignStudio() {
           </div>
         )}
 
-        {/* ── BODY ── */}
-        <div className="ds-body" inert={locked ? '' : undefined} aria-disabled={locked || undefined}
-          onPointerDownCapture={gateEdit} onMouseDownCapture={gateEdit} onClickCapture={gateEdit} onKeyDownCapture={gateEdit}>
-          <AnimatePresence>
-            {toast && (
-              <motion.div key="toast" className="ds-toast" role="status"
-                initial={reduceMotion ? false : { opacity:0, y:12, scale:.96 }} animate={{ opacity:1, y:0, scale:1 }} exit={reduceMotion ? { opacity:0 } : { opacity:0, y:8 }}
-                transition={{ duration: reduceMotion ? 0 : .2 }}>
-                <NavIcon name={toastErr ? 'warning' : 'success'} size={16}/> {toast}
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <PiecesRail {...pieceProps} other={railCompanion} readOnly={colorOnly}
-            dock={{ layers, selectedId: selObj?.__layerId, onSelect: selectLayer, onToggleVisibility: toggleLayerVisibility, onAdd: () => setTool('assets'), onOpenLayers: () => setTool('layers') }}
-            help={{ onTour: () => setHelp('tour'), onKeys: () => setHelp('keys'), onHowTo: () => setHelp('howto') }}/>
-
-          {/* ── TOOL STRIP + PANEL DRAWER ── */}
-          <ToolDrawer onlyTools={colorOnly ? ['color'] : null} tool={tool} setTool={setTool} onOpenTool={setTool} cfg={cfg} setCfg={setCfg}
-            activeZone={zone} setActiveZone={setActiveZone} detailFocus={detailFocus}
-            addText={addText} addShape={addShape} addPocket={addPocket} setPocketColor={setPocketColor} mirrorSelected={mirrorSelected} updateSelected={updateSelected} arrangeLayer={arrangeLayer}
-            assetsTab={assetsTab} setAssetsTab={setAssetsTab} logoUpload={logoUpload}
-            setShowInspo={openInspo} setShowShowcase={toggleShowcase} onChangeGarment={changeGarment}
-            brushSize={brushSize} brushColor={brushColor} erasing={erasing} setErasing={setErasing} garmentRect={garmentRect}
-            changeBrushSize={changeBrushSize} changeBrushColor={changeBrushColor}
-            ai={{ preview: previewAI, undo: undoAI, keep: keepAI, previewing: !!aiPreview, editedSince: aiEditedSince, view3D: viewAI3D, has3D: has3DFor(cfg) }} textItems={textItems} layers={layers} selObj={selObj} alignSelected={alignSelected}
-            selectLayer={selectLayer} toggleLayerVisibility={toggleLayerVisibility}
-            toggleLayerLock={toggleLayerLock} toggleSelectedLock={toggleSelectedLock} setLayerOpacity={setLayerOpacity}
-            pushHistory={pushHistory} presetPos={presetPos} nudgeSelected={nudgeSelected}
-            renameLayer={renameLayer} deleteLayer={deleteLayer} reorderLayers={reorderLayers} pieceRole={uset?.active ?? null} trace={trace} setTrace={setTrace} status={locked ? null : status} onRemoveGarment={() => setAskRemove(true)}
-            garmentExtra={<PieceActions {...pieceProps} other={railCompanion} readOnly={colorOnly} inSheet/>} sheetPing={sheetPing}
-            more={{ onView: () => setViewOpen(true), onCopy: duplicateToEdit, canCopy: !!lock?.designId, copying, onTour: () => setHelp('tour'), onHowTo: () => setHelp('howto') }}/>
-
-          {/* ── CANVAS AREA ── */}
-          <CanvasViewport cfg={cfg} setCfg={setCfg} canvasWrapRef={canvasWrapRef} canvasEl={canvasEl} initFailed={initFailed}
-            aiPulse={aiPulse} face={face} switchFace={switchFace} fullRef={fullRef}
-            selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected} alignSelected={alignSelected} arrangeSelected={arrangeSelected} garmentRect={garmentRect}
-            viewMode={viewMode} has3DLoaded={has3DLoaded} onLogoFile={onLogoFile} onPickZone={setActiveZone}
-            onUndo={locked ? null : lock?.warn ? () => setWarnAsk(true) : undo}
-            rail={locked ? null : { history: { undo: lock?.warn ? () => setWarnAsk(true) : undo, redo: lock?.warn ? () => setWarnAsk(true) : redo, canUndo, canRedo }, onShapes: () => setAssetsTab('shapes'), tool, setTool, pick, setPick, erasing, setErasing, color: brushColor, setColor: changeBrushColor, size: brushSize, setSize: changeBrushSize, colourOnly: colorOnly }}
-            zoom={zoom} setZoom={setZoom} snapshot={snapshot} overlays={overlays}
-            blank={<GarmentPicker inline cfg={cfg} pieceRole={uset?.active ?? (pendingArt && artScope ? (artScope === 'bottom' ? 'bottom' : 'top') : null)} onPickPhoto={pickPhoto}
-              onPick3D={(d, f) => { keep3DRef.current = true; pickPhoto(d, f); setHas3DLoaded(true); setViewMode('3d'); }}
-              onPickFamily={(fam, category, pick) => selectFamily(setCfg, fam, category, pick)}
-              onUpload={null} pendingArt={pendingArt} onCancelArt={() => { setPendingArt(null); setArtRefused(null); }} onSketchArt={REF_PHOTO_TOOLS ? sketchPending : null}
-              artRefused={artRefused} artChecking={artChecking} onAttachRefused={attachRefusedArt} referenceName={logoUpload.reference?.name}
-              artScope={artScope} onArtScope={uset ? null : setArtScope}/>} setViewMode={setViewMode}
-            viewOpen={viewOpen} setViewOpen={setViewOpen} setCompanion={setCompanion} showSet={showSet} setSnapOptions={setSnapOptions} trace={trace} clearSelection={clearSelection}/>
-        </div>
+        {/* ── BODY ── the shell owns the grid; the three zones are slots */}
+        <StudioLayout locked={locked} onGate={gateEdit} toast={toast} toastErr={toastErr} reduceMotion={reduceMotion}
+          rail={
+            <PiecesRail {...pieceProps} other={railCompanion} readOnly={colorOnly}
+              dock={{ layers, selectedId: selObj?.__layerId, onSelect: selectLayer, onToggleVisibility: toggleLayerVisibility, onAdd: () => setTool('assets'), onOpenLayers: () => setTool('layers') }}
+              help={{ onTour: () => setHelp('tour'), onKeys: () => setHelp('keys'), onHowTo: () => setHelp('howto') }}/>}
+          drawer={
+            <ToolDrawer onlyTools={colorOnly ? ['color'] : null} tool={tool} setTool={setTool} onOpenTool={setTool} cfg={cfg} setCfg={setCfg}
+              activeZone={zone} setActiveZone={setActiveZone} detailFocus={detailFocus}
+              addText={addText} addShape={addShape} addPocket={addPocket} setPocketColor={setPocketColor} mirrorSelected={mirrorSelected} updateSelected={updateSelected} arrangeLayer={arrangeLayer}
+              assetsTab={assetsTab} setAssetsTab={setAssetsTab} logoUpload={logoUpload}
+              setShowInspo={openInspo} setShowShowcase={toggleShowcase} onChangeGarment={changeGarment}
+              brushSize={brushSize} brushColor={brushColor} erasing={erasing} setErasing={setErasing} garmentRect={garmentRect}
+              changeBrushSize={changeBrushSize} changeBrushColor={changeBrushColor}
+              ai={{ preview: previewAI, undo: undoAI, keep: keepAI, previewing: !!aiPreview, editedSince: aiEditedSince, view3D: viewAI3D, has3D: has3DFor(cfg) }} textItems={textItems} layers={layers} selObj={selObj} alignSelected={alignSelected}
+              selectLayer={selectLayer} toggleLayerVisibility={toggleLayerVisibility}
+              toggleLayerLock={toggleLayerLock} toggleSelectedLock={toggleSelectedLock} setLayerOpacity={setLayerOpacity}
+              pushHistory={pushHistory} presetPos={presetPos} nudgeSelected={nudgeSelected}
+              renameLayer={renameLayer} deleteLayer={deleteLayer} reorderLayers={reorderLayers} pieceRole={uset?.active ?? null} trace={trace} setTrace={setTrace} status={locked ? null : status} onRemoveGarment={() => setAskRemove(true)}
+              garmentExtra={<PieceActions {...pieceProps} other={railCompanion} readOnly={colorOnly} inSheet/>} sheetPing={sheetPing}
+              more={{ onView: () => setViewOpen(true), onCopy: duplicateToEdit, canCopy: !!lock?.designId, copying, onTour: () => setHelp('tour'), onHowTo: () => setHelp('howto') }}/>}
+          canvas={
+            <CanvasViewport cfg={cfg} setCfg={setCfg} canvasWrapRef={canvasWrapRef} canvasEl={canvasEl} initFailed={initFailed}
+              aiPulse={aiPulse} face={face} switchFace={switchFace} fullRef={fullRef}
+              selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected} alignSelected={alignSelected} arrangeSelected={arrangeSelected} garmentRect={garmentRect}
+              viewMode={viewMode} has3DLoaded={has3DLoaded} onLogoFile={onLogoFile} onPickZone={setActiveZone}
+              onUndo={locked ? null : lock?.warn ? () => setWarnAsk(true) : undo}
+              rail={locked ? null : { history: { undo: lock?.warn ? () => setWarnAsk(true) : undo, redo: lock?.warn ? () => setWarnAsk(true) : redo, canUndo, canRedo }, onShapes: () => setAssetsTab('shapes'), tool, setTool, pick, setPick, erasing, setErasing, color: brushColor, setColor: changeBrushColor, size: brushSize, setSize: changeBrushSize, colourOnly: colorOnly }}
+              zoom={zoom} setZoom={setZoom} snapshot={snapshot} overlays={overlays}
+              blank={<GarmentPicker inline cfg={cfg} pieceRole={uset?.active ?? (pendingArt && artScope ? (artScope === 'bottom' ? 'bottom' : 'top') : null)} onPickPhoto={pickPhoto}
+                onPick3D={(d, f) => { keep3DRef.current = true; pickPhoto(d, f); setHas3DLoaded(true); setViewMode('3d'); }}
+                onPickFamily={(fam, category, pick) => selectFamily(setCfg, fam, category, pick)}
+                onUpload={null} pendingArt={pendingArt} onCancelArt={() => { setPendingArt(null); setArtRefused(null); }} onSketchArt={REF_PHOTO_TOOLS ? sketchPending : null}
+                artRefused={artRefused} artChecking={artChecking} onAttachRefused={attachRefusedArt} referenceName={logoUpload.reference?.name}
+                artScope={artScope} onArtScope={uset ? null : setArtScope}/>} setViewMode={setViewMode}
+              viewOpen={viewOpen} setViewOpen={setViewOpen} setCompanion={setCompanion} showSet={showSet} setSnapOptions={setSnapOptions} trace={trace} clearSelection={clearSelection}/>}/>
 
         <StudioHelp mode={help} setMode={setHelp} ready={!!cfg.garment && !locked && !initFailed && !showInspo && !showShowcase}/>
 

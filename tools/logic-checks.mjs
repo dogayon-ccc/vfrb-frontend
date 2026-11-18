@@ -600,6 +600,11 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && /: lostNote \? \[\{ id: 'gllost', text: '3D stopped working on this device\. Showing the 2D design\.', warn: true \}\] : \[\];/.test(cv3));
   t('saved-design edit gate: the stage controls bar is view-only and the gate skips [data-view-only] targets',
     /className="ds-ctrlbar" role="toolbar" aria-label="Stage controls" data-view-only>/.test(cv3) && /gateEdit = lock\?\.warn \? \(e\) => \{ if \(e\.target\.closest\?\.\('\[data-view-only\]'\)\) return;/.test(src('../src/pages/client/DesignStudio.tsx')));
+  { const sl = src('../src/pages/client/design-studio/StudioLayout.tsx'), ds0 = src('../src/pages/client/DesignStudio.tsx');
+    t('Studio shell: StudioLayout owns the .ds-body grid, the toast and the locked (inert + gate) state; DesignStudio passes the rail, drawer and canvas as slots and no longer builds the grid itself',
+      /className="ds-body"/.test(sl) && /locked \? \{ inert: '' \} : \{\}/.test(sl) && /aria-disabled=\{locked \|\| undefined\}/.test(sl) && /onPointerDownCapture=\{onGate\}[\s\S]*onKeyDownCapture=\{onGate\}/.test(sl) && /className="ds-toast"/.test(sl)
+      && /<StudioLayout locked=\{locked\} onGate=\{gateEdit\}/.test(ds0) && /rail=\{\s*<PiecesRail/.test(ds0) && /drawer=\{\s*<ToolDrawer/.test(ds0) && /canvas=\{\s*<CanvasViewport/.test(ds0)
+      && !/className="ds-body"/.test(ds0) && !/className="ds-toast"/.test(ds0)); }
 }
 // Canvas, grid, guides, alignment, navigation and eraser.
 {
