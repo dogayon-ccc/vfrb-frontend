@@ -13,14 +13,16 @@ import DetailsPanel from './DetailsPanel';
 import TextPanel from './TextPanel';
 import { SelectionInspector, isEditableSelection } from './RightInfoPanel';
 import AIDesignChat from '../AIDesignChat';
-import { TOOLS, TABS, tabOf, zonesFor, ZONE_LABEL, placementsFor } from './dsShared';
+import { TOOLS, TABS, tabOf, zonesFor, ZONE_LABEL, placementsFor, RIGHT_TOOLS, isFlyoutTool } from './dsShared';
 import { assetFor } from './garmentAssets';
 import ScenePanel from './ScenePanel';
+import StudioFlyout from './StudioFlyout';
+import useMedia from '../../../hooks/useMedia';
 
 
 // Phones and tablets: the four tabs plus More (View, Save a copy).
 const NAV = ['type', 'add', 'layers', 'ai'];
-const NAV_LABEL = { type: 'Garment', add: 'Add', layers: 'Layers', ai: 'Ask AI' };
+const NAV_LABEL = { type: 'Garment', add: 'Add', layers: 'Layers', ai: 'AI Design' };
 // Phone/tablet sheet heights: peek (its bar only), half, full. The bar's button steps through them; a drag moves one or two steps.
 export const SNAPS = ['peek', 'half', 'full'];
 export const snapStep = (snap, dy) => (Math.abs(dy) < 24 ? snap
@@ -66,22 +68,30 @@ function SpecSummary({ cfg, layers = [], status = null }: any) {
   );
 }
 
-// Panel: four labelled tabs (Garment, Add, Layers, Ask AI), the active tab's tool, then a spec summary (desktop); a canvas
+// Desktop (>=1024px): the right panel has two tabs only (Layers, AI Design); Garment, Add, Text, Scene and the Selection inspector open in
+// StudioFlyout beside the left tool rail (`flyOpen`/`setFlyOpen`/`drawing` come from DesignStudio). Below 1024px and in colour-only designs
+// this is still one panel/bottom sheet with every tab.
+// Panel: labelled tabs (Garment, Add, Layers, AI Design), the active tab's tool, then a spec summary (desktop); a canvas
 // selection swaps in the Selection inspector. Save and order live in TopBar.
 // A tab holding several tools (Garment: type/colours/pattern/details; Add: logo/text/draw) switches them with a labelled segment.
-// Phones and tablets: a bottom nav (Garment, Add, Layers, Ask AI, More) under a sheet of at most 40% of the screen that folds to
+// Phones and tablets: a bottom nav (Garment, Add, Layers, AI Design, More) under a sheet of at most 40% of the screen that folds to
 // a handle; the spec summary is one line there. `garmentExtra` (piece actions) shows in the Garment sheet there; `more` = { onView, onCopy, canCopy, copying }.
 // `onlyTools`: the tools a restricted design may use (a colour-only copy passes ['color']); everything else is hidden.
-export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, onlyTools = null, garmentExtra = null, more = null, ...p }: any) {
+export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, onlyTools = null, garmentExtra = null, more = null, flyOpen = false, setFlyOpen = null, drawing = false, ...p }: any) {
   const hasSelection = isEditableSelection(p.selObj);
   const allowed = id => !onlyTools || onlyTools.includes(id);
-  const tool = onlyTools && !onlyTools.includes(pickedTool) ? onlyTools[0] : pickedTool;
-  const tabs = TABS.filter(t => t.tools.some(allowed));
-  const tab = tabOf(tool); // null while the Selection inspector is open
+  const split = useMedia('(min-width:1024px)') && !onlyTools && !!setFlyOpen;
+  // Split mode: the right panel keeps its own section (Layers or AI Design); asking for either from anywhere (dock, Add layer...) switches it.
+  const [rightTab, setRightTab] = useState('layers');
+  useEffect(() => { if (split && RIGHT_TOOLS.includes(pickedTool)) setRightTab(pickedTool); }, [split, pickedTool]);
+  const shown = split ? rightTab : pickedTool;
+  const tool = onlyTools && !onlyTools.includes(shown) ? onlyTools[0] : shown;
+  const tabs = TABS.filter(t => t.tools.some(allowed) && (!split || t.tools.every(x => RIGHT_TOOLS.includes(x))));
+  const tab = tabOf(tool); // null while the Selection inspector is open (sheet mode)
   const subs = tab ? tab.tools.filter(allowed) : [];
   const active = TOOLS.find(t => t.id === tool);
   const noGarment = !p.cfg.garment;
-  const isSel = (i: any) => (i.sub ? tool === 'assets' && p.assetsTab === i.sub : tool === i.tool);
+  const isSel = (i: any, t = tool) => (i.sub ? t === 'assets' && p.assetsTab === i.sub : t === i.tool);
   const title = noGarment ? 'Design tools' : tab?.label ?? active.label;
 
   const layersList = () => (
@@ -90,12 +100,15 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
       onRename={p.renameLayer} onDelete={p.deleteLayer} onReorder={p.reorderLayers} onAdd={() => setTool('assets')}/>
   );
   const partView = tool === 'color' && allowed('type'); // a part is open; Done returns to the whole uniform
+  const flyTool = pickedTool;
+  const flyPart = flyTool === 'color' && allowed('type');
+  const flyShown = split && !!flyOpen && !drawing && isFlyoutTool(flyTool) && !!p.cfg.garment;
 
   const PANELS = {
     type:    () => <TypePanel cfg={p.cfg} setCfg={p.setCfg} onPickPart={z => { p.setActiveZone(z); setTool('color'); }} onOpenTool={onOpenTool}
                      onChangeGarment={p.onChangeGarment} onRemove={p.onRemoveGarment} trace={p.trace} setTrace={p.setTrace} layers={layersList()}/>,
     color:   () => <ColorsPanel cfg={p.cfg} setCfg={p.setCfg} activeZone={p.activeZone} setActiveZone={p.setActiveZone}
-                     onDone={partView ? () => setTool('type') : null}/>,
+                     onDone={(split ? flyPart : partView) ? () => setTool('type') : null}/>,
     details: () => <DetailsPanel cfg={p.cfg} setCfg={p.setCfg} focus={p.detailFocus} onColourPocket={() => { p.setActiveZone('pocket'); setTool('color'); }} onAddPocket={p.addPocket}/>,
     assets:  () => <AssetsPanel tab={p.assetsTab} cfg={p.cfg} logo={p.logoUpload}
                      shapes={{ selObj:p.selObj, onAdd:p.addShape, onUpdate:p.updateSelected }}
@@ -119,6 +132,32 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
       </div>
     ),
   };
+  // A tool's panel body: the segment for tabs that own several tools, then the tool's panel. Used by the right panel / sheet and by the left flyout.
+  const bodyFor = (t: string) => {
+    const tb = tabOf(t), sb = tb ? tb.tools.filter(allowed) : [], pv = t === 'color' && allowed('type');
+    return (
+      <>
+            {tb?.id === 'type' && !pv && <MaterialNote/>}
+            {sb.length > 1 && !pv && (
+              <div className="ds-seg ds-subtabs" role="tablist" aria-label={`${tb.label} sections`} data-n={tb.id === 'add' ? ADD_ITEMS.length : undefined}>
+                {(tb.id === 'add' ? ADD_ITEMS.filter(i => allowed(i.tool)) : sb.map(id => ({ id, ...TOOLS.find(x => x.id === id), tool: id, sub: null }))).map((i: any) => (
+                  <button key={i.id} type="button" role="tab" aria-selected={isSel(i, t)} aria-controls={i.sub ? 'ds-add-panel' : undefined}
+                    onClick={() => { if (i.sub) p.setAssetsTab(i.sub); setTool(i.tool); }}>
+                    <NavIcon name={i.icon} size={16}/><span>{i.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {/* Enter-only fade: with an exit wait, two quick panel switches (an upload opening Selection) could leave the body empty. */}
+            <motion.div key={pv ? `color:${p.activeZone}` : t}
+              initial={reduce ? false : { opacity:0 }}
+              animate={{ opacity:1, transition:{ duration: reduce ? 0 : .18, ease:[.22, 1, .36, 1] } }}
+              className="ds-panel-body" role={sb.length > 1 ? 'tabpanel' : undefined}>
+              {PANELS[t]()}
+            </motion.div>
+      </>
+    );
+  };
   const reduce = useReducedMotion();
   // Desktop: the right panel folds to a thin rail so the canvas gets the width; remembered per browser.
   const [collapsed, setCollapsedState] = useState(() => { try { return localStorage.getItem('ds_panel_collapsed') === '1'; } catch { return false; } });
@@ -141,7 +180,7 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
   }, []);
   useEffect(() => { setMoreOpen(false); if (performance.now() - tapAt.current < 1500) raise(); }, [pickedTool, p.activeZone]);
   useEffect(() => { if (p.sheetPing) raise(); }, [p.sheetPing]);
-  const pick = t => { if (collapsed) setCollapsed(false); raise(); setMoreOpen(false); setTool(t.tools.find(allowed)); };
+  const pick = t => { if (collapsed) setCollapsed(false); raise(); setMoreOpen(false); if (split) setRightTab(t.tools.find(allowed)); else setTool(t.tools.find(allowed)); };
   const drag = useRef(null);
   const dragDown = e => { if (e.target.closest('button')) return; drag.current = e.clientY; e.currentTarget.setPointerCapture(e.pointerId); };
   const dragUp = e => { if (drag.current === null) return; const dy = e.clientY - drag.current; drag.current = null; setSnap(s => snapStep(s, dy)); };
@@ -210,24 +249,7 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
         ) : moreOpen ? moreList : (
           <>
             {tool === 'type' && garmentExtra && <div className="ds-phone-only">{garmentExtra}</div>}
-            {tab?.id === 'type' && !partView && <MaterialNote/>}
-            {subs.length > 1 && !partView && (
-              <div className="ds-seg ds-subtabs" role="tablist" aria-label={`${tab.label} sections`} data-n={tab.id === 'add' ? ADD_ITEMS.length : undefined}>
-                {(tab.id === 'add' ? ADD_ITEMS.filter(i => allowed(i.tool)) : subs.map(id => ({ id, ...TOOLS.find(x => x.id === id), tool: id, sub: null }))).map((i: any) => (
-                  <button key={i.id} type="button" role="tab" aria-selected={isSel(i)} aria-controls={i.sub ? 'ds-add-panel' : undefined}
-                    onClick={() => { if (i.sub) p.setAssetsTab(i.sub); setTool(i.tool); }}>
-                    <NavIcon name={i.icon} size={16}/><span>{i.label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-            {/* Enter-only fade: with an exit wait, two quick panel switches (an upload opening Selection) could leave the body empty. */}
-            <motion.div key={partView ? `color:${p.activeZone}` : tool}
-              initial={reduce ? false : { opacity:0 }}
-              animate={{ opacity:1, transition:{ duration: reduce ? 0 : .18, ease:[.22, 1, .36, 1] } }}
-              className="ds-panel-body" role={subs.length > 1 ? 'tabpanel' : undefined}>
-              {PANELS[tool]()}
-            </motion.div>
+            {bodyFor(tool)}
           </>
         )}
         </div>
@@ -247,6 +269,12 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
           </nav>
         )}
       </section>
+      {flyShown && (
+        <StudioFlyout title={TOOLS.find(x => x.id === flyTool)?.label ?? 'Options'} icon={TOOLS.find(x => x.id === flyTool)?.icon ?? 'cursor'} hint={TOOLS.find(x => x.id === flyTool)?.hint}
+          onClose={() => setFlyOpen(false)}>
+          {bodyFor(flyTool)}
+        </StudioFlyout>
+      )}
     </>
   );
 }

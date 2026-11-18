@@ -819,6 +819,17 @@ export default function DesignStudioStyles() {
       .ds-opts-custom{overflow:hidden;background:conic-gradient(#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00);}
       .ds-opts-custom input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;}
       @media (max-width:767px){.ds-opts{width:auto;}}
+      /* Left flyout (desktop): Garment, Add, Text, Scene and the Selection inspector beside the tool rail; the right panel is Layers + AI Design only */
+      .ds-tools-dock{display:none;}
+      .ds-panel.ds-fly,.ds-fly{display:none;}
+      @media (min-width:1024px){
+        .ds-lane-top>.ds-tools .ds-tools-dock{display:inline-flex;}
+        .ds-lane-top>.ds-tools .ds-tools-dock[data-last]{margin-bottom:5px;position:relative;}
+        .ds-lane-top>.ds-tools .ds-tools-dock[data-last]::after{content:"";position:absolute;bottom:-4px;left:10px;right:10px;border-top:1px solid var(--cx-line);}
+        .ds-panel.ds-fly{position:absolute;order:0;display:flex;flex-direction:column;width:360px;max-width:calc(100% - 24px);height:auto;max-height:calc(100% - 16px);
+          z-index:var(--z-dropdown);border:1px solid var(--cx-line-strong);border-radius:var(--cx-r-md);background:var(--cx-card);box-shadow:0 12px 32px -12px rgb(0 0 0 / .45);overflow:hidden;transition:none;}
+        .ds-fly .ds-sheet-head .ds-opts-x{flex:none;margin:0 -8px 0 8px;}
+      }
 
       .ds-tools-size button{width:44px;height:44px;display:grid;place-items:center;border:0;border-radius:var(--cx-r-md);background:transparent;cursor:pointer;}
       .ds-tools-size button[aria-checked=true]{background:var(--cx-thread-tint);}

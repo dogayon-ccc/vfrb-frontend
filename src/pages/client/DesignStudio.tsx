@@ -36,7 +36,7 @@ import { isEditableSelection } from './design-studio/RightInfoPanel';
 import { useLogoUpload } from './design-studio/useLogoUpload';
 import InspoGallery from './design-studio/InspoGallery';
 import ShowcaseGallery from './design-studio/ShowcaseGallery';
-import { T2, INIT_CFG, FONTS, PATTERNS, zonesFor, REF_PHOTO_TOOLS } from './design-studio/dsShared';
+import { T2, INIT_CFG, FONTS, PATTERNS, zonesFor, REF_PHOTO_TOOLS, isFlyoutTool } from './design-studio/dsShared';
 import { templateFacts, checkEdit, applyStateEdits } from './design-studio/designEdits';
 import { describePatterns } from './design-studio/wovenPatterns';
 import { deserializeDesign, serializeDesign, draftLabel } from './design-studio/designSerialization';
@@ -87,6 +87,8 @@ export default function DesignStudio() {
   const [zoom,       setZoom]       = useState(1);
   const [tool,       setTool]       = useState('type');
   const [assetsTab,  setAssetsTab]  = useState('logo');
+  // Desktop: the left flyout (Garment, Add, Text, Scene, Selection) is open or not; the right panel is Layers / AI Design only (ToolDrawer).
+  const [flyOpen, setFlyOpen] = useState(false);
   const [viewMode,   setViewMode]   = useState<ViewMode>('2d');
   const [showSet, setShowSet] = useState(false); // both pieces drawn together, read-only
   const [snapshot,   setSnapshot]   = useState(null);
@@ -224,11 +226,22 @@ export default function DesignStudio() {
   useEffect(() => {
     if (isEditableSelection(selObj)) {
       if (tool === 'selected' || tool === 'draw') return;
-      priorTool.current = tool;
+      priorTool.current = tool; flyBeforeSel.current = flyOpen;
       setTool('selected');
-    } else if (tool === 'selected') setTool(priorTool.current);
+    } else if (tool === 'selected') { quietFly.current = true; setFlyOpen(flyBeforeSel.current); setTool(priorTool.current); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selObj]);
+
+  // Picking a flyout tool (from the rail, the canvas or code) opens the flyout; leaving Draw or deselecting an item does not reopen it by itself.
+  const flyBeforeSel = useRef(false), quietFly = useRef(false), prevTool = useRef(tool), firstTool = useRef(true);
+  useEffect(() => {
+    const prev = prevTool.current; prevTool.current = tool;
+    if (firstTool.current) { firstTool.current = false; return; }
+    if (quietFly.current) { quietFly.current = false; return; }
+    if (prev === 'draw') return;
+    if (isFlyoutTool(tool)) setFlyOpen(true);
+  }, [tool]);
+  const openFly = (t: string, sub?: string) => { if (sub) setAssetsTab(sub); setTool(t); setFlyOpen(true); };
 
   useEffect(() => {
     if (viewMode !== '2d' && !has3DFor(cfg)) setViewMode('2d');
@@ -1092,6 +1105,7 @@ export default function DesignStudio() {
               help={{ onTour: () => setHelp('tour'), onKeys: () => setHelp('keys'), onHowTo: () => setHelp('howto') }}/>}
           drawer={
             <ToolDrawer onlyTools={colorOnly ? ['color'] : null} tool={tool} setTool={setTool} onOpenTool={setTool} cfg={cfg} setCfg={setCfg}
+              flyOpen={flyOpen} setFlyOpen={setFlyOpen} drawing={tool === 'draw' || pick === 'pen' || pick === 'line'}
               activeZone={zone} setActiveZone={setActiveZone} detailFocus={detailFocus}
               addText={addText} addShape={addShape} addPocket={addPocket} setPocketColor={setPocketColor} mirrorSelected={mirrorSelected} updateSelected={updateSelected} arrangeLayer={arrangeLayer}
               assetsTab={assetsTab} setAssetsTab={setAssetsTab} logoUpload={logoUpload}
@@ -1111,7 +1125,7 @@ export default function DesignStudio() {
               selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected} alignSelected={alignSelected} arrangeSelected={arrangeSelected} garmentRect={garmentRect}
               viewMode={viewMode} has3DLoaded={has3DLoaded} onLogoFile={onLogoFile} onPickZone={setActiveZone}
               onUndo={locked ? null : lock?.warn ? () => setWarnAsk(true) : undo}
-              rail={locked ? null : { history: { undo: lock?.warn ? () => setWarnAsk(true) : undo, redo: lock?.warn ? () => setWarnAsk(true) : redo, canUndo, canRedo }, onShapes: () => setAssetsTab('shapes'), tool, setTool, pick, setPick, erasing, setErasing, color: brushColor, setColor: changeBrushColor, size: brushSize, setSize: changeBrushSize, opacity: brushOpacity, setOpacity: changeBrushOpacity, smooth: brushSmooth, setSmooth: changeBrushSmooth, colourOnly: colorOnly }}
+              rail={locked ? null : { history: { undo: lock?.warn ? () => setWarnAsk(true) : undo, redo: lock?.warn ? () => setWarnAsk(true) : redo, canUndo, canRedo }, onShapes: () => setAssetsTab('shapes'), tool, setTool, flyTool: flyOpen && tool !== 'draw' ? tool : null, openFly, closeFly: () => setFlyOpen(false), pick, setPick, erasing, setErasing, color: brushColor, setColor: changeBrushColor, size: brushSize, setSize: changeBrushSize, opacity: brushOpacity, setOpacity: changeBrushOpacity, smooth: brushSmooth, setSmooth: changeBrushSmooth, colourOnly: colorOnly }}
               zoom={zoom} setZoom={setZoom} snapshot={snapshot} overlays={overlays}
               blank={<GarmentPicker inline cfg={cfg} pieceRole={uset?.active ?? (pendingArt && artScope ? (artScope === 'bottom' ? 'bottom' : 'top') : null)} onPickPhoto={pickPhoto}
                 onPick3D={(d, f) => { keep3DRef.current = true; pickPhoto(d, f); setHas3DLoaded(true); setViewMode('3d'); }}

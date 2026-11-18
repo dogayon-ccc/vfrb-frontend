@@ -256,7 +256,7 @@ export const TOOLS = [
   { id:'text',     icon:'text',        label:'Text',    hint:'Add names, slogans or numbers' },
   { id:'draw',     icon:'draw',        label:'Draw',    hint:'Sketch freehand on the garment' },
   { id:'layers',   icon:'layersPanel', label:'Layers',  hint:'Reorder, hide or rename items' },
-  { id:'ai',       icon:'ai',          label:'Ask AI',  hint:'Describe a change; it becomes design edits you preview first' },
+  { id:'ai',       icon:'ai',          label:'AI Design', hint:'Describe a change; it becomes design edits you preview first' },
   { id:'scene',    icon:'scene',       label:'Scene',   hint:'Backdrop, lighting and turntable for the 3D preview' },
   { id:'selected', icon:'cursor',      label:'Selection', hint:'Adjust the item you picked' },
 ];
@@ -265,10 +265,15 @@ export const TABS = [
   { id:'type',     icon:'garmentType', label:'Garment',     tools:['type', 'color', 'pattern', 'details'] },
   { id:'add',      icon:'logo',        label:'Add',         tools:['assets', 'text', 'draw'] },
   { id:'layers',   icon:'layersPanel', label:'Layers',      tools:['layers'] },
-  { id:'ai',       icon:'ai',          label:'Ask AI',      tools:['ai'] },
+  { id:'ai',       icon:'ai',          label:'AI Design',   tools:['ai'] },
   { id:'scene',    icon:'scene',       label:'Scene',       tools:['scene'] },
 ];
 export const tabOf = tool => TABS.find(t => t.tools.includes(tool)) ?? null;
+// Desktop (>=1024px) split: the right sidebar holds only these two sections; every other tool opens in the left flyout beside the tool rail.
+// Phones and tablets keep one bottom sheet with all tabs.
+export const RIGHT_TOOLS = ['layers', 'ai'];
+export const FLYOUT_TOOLS = ['type', 'color', 'pattern', 'details', 'assets', 'text', 'scene', 'selected'];
+export const isFlyoutTool = tool => FLYOUT_TOOLS.includes(tool);
 
 // 6 starter designs from VFRB's common garment types (PH institutional palette).
 // Blank-canvas start: garment is null until the customer actually drags one

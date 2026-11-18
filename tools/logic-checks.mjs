@@ -482,17 +482,34 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     /const noGarment = !p\.cfg\.garment/.test(drawer) && /\{!noGarment && \(\s*<nav className="ds-tabs"/.test(drawer) && /Choose a garment on the canvas to start designing\./.test(drawer)
     && /if \(!cfg\.garment\) return null;/.test(get('PiecesRail.tsx')));
   const SH = await L('/src/pages/client/design-studio/dsShared.ts');
-  t('four labelled tabs (Garment, Add, Layers, Ask AI): every tool belongs to exactly one tab, Colours/Pattern/Details sit in Garment, Draw in Add; phones and tablets add More (View, Save a copy); the Garment tab carries the price-free fabric note, hidden in the one-part view',
-    SH.TABS.map(t => t.label).join('|') === 'Garment|Add|Layers|Ask AI|Scene'
+  t('four labelled tabs (Garment, Add, Layers, AI Design): every tool belongs to exactly one tab, Colours/Pattern/Details sit in Garment, Draw in Add; phones and tablets add More (View, Save a copy); the Garment tab carries the price-free fabric note, hidden in the one-part view',
+    SH.TABS.map(t => t.label).join('|') === 'Garment|Add|Layers|AI Design|Scene'
     && SH.TOOLS.filter(t => t.id !== 'selected').every(t => SH.TABS.filter(x => x.tools.includes(t.id)).length === 1)
     && SH.tabOf('draw').id === 'add' && ['color', 'pattern', 'details'].every(id => SH.tabOf(id).id === 'type') && /layers:\s*\(\)\s*=>/.test(drawer) && (drawer.match(/<LayersPanel\b/g) ?? []).length === 1
     && !/sr-only|toggleMore/.test(drawer) && /<span>\{t\.label\}/.test(drawer)
     && /const NAV = \['type', 'add', 'layers', 'ai'\];/.test(drawer) && /className="ds-more"/.test(drawer) && /<span>More<\/span>/.test(drawer)
-    && /\{tab\?\.id === 'type' && !partView && <MaterialNote\/>\}/.test(drawer) && !/₱|price|cost|php/i.test(drawer.match(/<p><strong>Fabric suggestions[^]*?<\/p>/)?.[0] ?? 'price'));
+    && /\{tb\?\.id === 'type' && !pv && <MaterialNote\/>\}/.test(drawer) && !/₱|price|cost|php/i.test(drawer.match(/<p><strong>Fabric suggestions[^]*?<\/p>/)?.[0] ?? 'price'));
   const bar = get('TopBar.tsx'), dsx = fsx.readFileSync(urlx.fileURLToPath(new URL('../src/pages/client/DesignStudio.tsx', import.meta.url)), 'utf8');
   t('top bar holds the one primary action: Review & order (Review on phones), Reorder when final; Save, export and the save state live there; no dock, no inline lock banner',
     /'Review & order'/.test(bar) && /className="ds-bar-primary" onClick=\{onReorder\}/.test(bar) && /onClick=\{saveDesign\}/.test(bar) && /Export PDF spec sheet/.test(bar)
     && !/<StudioDock/.test(get('ToolDrawer.tsx')) && !/FINAL DESIGN/.test(dsx) && /<PiecesRail /.test(dsx) && !/ds-bar-cat|cfg\.category/.test(bar));
+  t('desktop split: the right sidebar is Layers and AI Design only; Garment, Add, Text, Scene and the Selection inspector open in the left StudioFlyout beside the tool rail (one panel body shared by both, so no function is dropped)',
+    SH.RIGHT_TOOLS.join() === 'layers,ai' && SH.FLYOUT_TOOLS.join() === 'type,color,pattern,details,assets,text,scene,selected'
+    && SH.TOOLS.every(x => (SH.RIGHT_TOOLS.includes(x.id) ? 1 : 0) + (SH.isFlyoutTool(x.id) ? 1 : 0) + (x.id === 'draw' ? 1 : 0) === 1)
+    && SH.TOOLS.find(x => x.id === 'ai').label === 'AI Design'
+    && /const split = useMedia\('\(min-width:1024px\)'\) && !onlyTools && !!setFlyOpen;/.test(drawer)
+    && /\(!split \|\| t\.tools\.every\(x => RIGHT_TOOLS\.includes\(x\)\)\)/.test(drawer) && /const flyShown = split && !!flyOpen && !drawing && isFlyoutTool\(flyTool\)/.test(drawer)
+    && /<StudioFlyout /.test(drawer) && (drawer.match(/\{bodyFor\(/g) ?? []).length === 2 && (drawer.match(/<LayersPanel\b/g) ?? []).length === 1
+    && /if \(split\) setRightTab\(t\.tools\.find\(allowed\)\); else setTool/.test(drawer)
+    && /RIGHT_TOOLS\.includes\(pickedTool\)\) setRightTab\(pickedTool\)/.test(drawer));
+  const rail0 = get('ToolRail.tsx'), fly0 = get('StudioFlyout.tsx');
+  t('left rail: Garment, Add and Scene dock buttons open the flyout (data-tab keeps the tour targets), Text and Shapes open it too, a drawing tool closes it, and below 1024px the dock is hidden (the sheet has the tabs); Escape and the close button dismiss it',
+    /const DOCK = \[/.test(rail0) && /data-tab=\{tab\}/.test(rail0) && /openFly\('text'\)/.test(rail0) && /openFly\('assets', 'shapes'\)/.test(rail0) && /closeFly\?\.\(\); \/\/ a drawing tool/.test(rail0)
+    && /\.ds-tools-dock\{display:none;\}/.test(dsCss) && /@media \(min-width:1024px\)\{\s*\.ds-lane-top>\.ds-tools \.ds-tools-dock\{display:inline-flex;\}/.test(dsCss)
+    && /e\.key === 'Escape'/.test(fly0) && /aria-label=\{`Close \$\{title\}`\}/.test(fly0) && /className="ds-panel ds-fly"/.test(fly0));
+  t('Studio opens the flyout when a flyout tool is picked (not on first render, not when leaving Draw, not when a deselect returns to the prior tool) and passes the drawing state so Pen/Line/Brush options never overlap it',
+    /const \[flyOpen, setFlyOpen\] = useState\(false\)/.test(dsx) && /if \(prev === 'draw'\) return;/.test(dsx) && /if \(isFlyoutTool\(tool\)\) setFlyOpen\(true\)/.test(dsx)
+    && /quietFly\.current = true; setFlyOpen\(flyBeforeSel\.current\)/.test(dsx) && /drawing=\{tool === 'draw' \|\| pick === 'pen' \|\| pick === 'line'\}/.test(dsx) && /closeFly: \(\) => setFlyOpen\(false\)/.test(dsx));
   const CATd = await L('/src/pages/client/design-studio/garmentCatalog.ts');
   t('dock and order preview 3D labels agree: an unverified model (supported or partial) reads "3D preview (approximate)", "3D preview available" only with a verification record',
     /<Capability3D short kind=\{cap3D\(cfg\)\}/.test(get('TopBar.tsx')) && /<Capability3D short kind=\{cap3D\(cfg\)\}/.test(get('CanvasViewport.tsx')) && !/Approx\. 3D</.test(get('TopBar.tsx'))

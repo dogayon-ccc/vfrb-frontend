@@ -20,7 +20,7 @@ const DESKTOP_STEPS = [
   ['.ds-navi', 'Navigator', 'A live map of your design. Zoom in, then drag the frame to move around; the slider zooms.'],
   ['.ds-dock', 'Layers', 'Everything you placed, front-most first. Tap a row to select it, use the eye to hide it. Edit all opens rename, order, lock and opacity.'],
   ['.ds-lane-top .ds-vt', 'View', 'Grid, rulers, snap and guides help you place things. They never reach your saved design or its picture.'],
-  ['.ds-tabs', 'Panels', 'Garment holds colours, patterns and details. Add places logos, text and shapes. Ask AI turns a described change into edits you preview before keeping.'],
+  ['.ds-tabs', 'Panels', 'Layers lists everything you placed. AI Design turns a described change into edits you preview before keeping. Garment, Add, Text and Scene open beside the tool rail on the left.'],
   ['.ds-bar-save-btn', 'Save', 'Saves the design to your account. Open it again any time from My Designs.'],
   ['.ds-bar-primary', 'Review & order', 'When it looks right, review the design and order it from there.'],
   [null, 'Shortcuts', 'Press ? any time for every shortcut. Replay this tour from Take the tour at the foot of the left column.'],
@@ -30,7 +30,7 @@ const PHONE_STEPS = [
   ['.ds-rail[data-strip],.ds-rail[data-set]', 'Pieces', 'Your piece is here. Add bottom (or Add top) designs the matching piece as a set.'],
   ['.ds-lane-top>.ds-tools', 'Tools', 'Move, paint bucket, brush, eraser, pen and text, plus your active colour. Logos, text and drawing are in Add.'],
   ['.ds-stage-fit', 'Gestures', 'Pinch to zoom and drag with two fingers to pan. Double-tap the empty stage to fit or zoom in. Tap with two fingers to undo.'],
-  ['.ds-bnav', 'Panels', 'Garment colours each part, Add places logos, text and shapes, Layers lists everything, Ask AI previews a described change. More has View, Save a copy and this tour.'],
+  ['.ds-bnav', 'Panels', 'Garment colours each part, Add places logos, text and shapes, Layers lists everything, AI Design previews a described change. More has View, Save a copy and this tour.'],
   ['.ds-bar-primary', 'Review', 'When it looks right, review the design and order it from there. Save now is in the ··· menu.'],
 ];
 
