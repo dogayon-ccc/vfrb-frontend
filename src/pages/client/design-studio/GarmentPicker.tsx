@@ -24,6 +24,7 @@ const ReferenceModel3D = lazy(() => import('./ReferenceModel3D'));
 const CAT_SHORT = { 'School Uniform': 'School', 'Medical / Scrubs': 'Medical', 'Hospitality / Service': 'Hospitality', 'Industrial / Work': 'Industrial' };
 
 import Capability3D, { TIER_CAP } from './Capability3D';
+import './studioPicker.css';
 
 const PHOTO_BADGE = { reference: Eye, 'editable-2d': Square, '2d-3d-approx': Box, '2d-3d': CheckCircle2 };
 const PHOTO_LABEL = Object.fromEntries(Object.entries(TIER_LABEL).map(([k, t]) => [k, t.label]));

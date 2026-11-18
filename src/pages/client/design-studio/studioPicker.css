@@ -1,0 +1,4 @@
+/* Phone picker: the title sits on the dark bar, so it takes light ink whatever the stage colour. */
+@media (max-width: 767px) {
+  .ds-pick[data-inline] .ds-pick-titlebar h2 { color: var(--vf-paper, #f4f1ea); }
+}

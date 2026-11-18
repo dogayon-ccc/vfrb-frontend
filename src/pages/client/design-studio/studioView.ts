@@ -14,8 +14,11 @@ export function claimOpening(storage, reduced, memo = openingMemo) {
   return true;
 }
 
-export const landingView = (status, current = '2d') => (status === '2d-3d' ? current : '2d');
-export const landingViewFor = (cfg, current = '2d') =>
+export type ViewMode = '2d' | '3d' | 'split';
+export const VIEW_MODES: readonly ViewMode[] = ['2d', 'split', '3d'];
+
+export const landingView = (status, current: ViewMode = '2d'): ViewMode => (status === '2d-3d' ? current : '2d');
+export const landingViewFor = (cfg, current: ViewMode = '2d'): ViewMode =>
   landingView(cfg?.garment ? resolveTarget(cfg.garment, cfg.sleeve, cfg.fit)?.status ?? null : null, current);
 
 // A raster photo base is never shown above its native resolution: the largest artboard scale that keeps it at or under 1:1 on screen.

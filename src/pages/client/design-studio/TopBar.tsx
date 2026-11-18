@@ -8,6 +8,7 @@ import { has3DFor, NO_FAMILY_3D, standIn3D, no3DReason } from './garmentCapabili
 import { cap3D } from './garmentCatalog';
 import Capability3D from './Capability3D';
 import { isCustom, CUSTOM_3D_NOTE } from './customGarment';
+import { VIEW_MODES, type ViewMode } from './studioView';
 import { garmentLabel } from '../../../utils/designName';
 
 const view3DTitle = (cfg, no3D) => (no3D
@@ -34,13 +35,13 @@ function usePhone() {
 // The chip beside the switch says what 3D this exact design has (cap3D, shared Capability3D badge).
 export function ViewToggle({ cfg, viewMode, setViewMode, setHas3DLoaded }: any) {
   const no3D = !has3DFor(cfg);
-  const pickView = (m) => { if (m === '3d') setHas3DLoaded(true); setViewMode(m); };
+  const pickView = (m: ViewMode) => { if (m !== '2d') setHas3DLoaded(true); setViewMode(m); };
   return (
     <div className="ds-view">
-      <div className="ds-bar-view" role="radiogroup" aria-label="2D or 3D view">
-        {['2d', '3d'].map(m => (
-          <button key={m} type="button" role="radio" aria-checked={viewMode === m} disabled={m === '3d' && no3D}
-            title={m === '3d' ? view3DTitle(cfg, no3D) : 'Exact 2D design view'} onClick={() => pickView(m)}>
+      <div className="ds-bar-view" role="radiogroup" aria-label="2D, split or 3D view">
+        {VIEW_MODES.map(m => (
+          <button key={m} type="button" role="radio" aria-checked={viewMode === m} disabled={m !== '2d' && no3D}
+            title={m === '2d' ? 'Exact 2D design view' : m === 'split' && !no3D ? 'Edit in 2D while the 3D preview follows' : view3DTitle(cfg, no3D)} onClick={() => pickView(m)}>
             {m.toUpperCase()}
           </button>
         ))}

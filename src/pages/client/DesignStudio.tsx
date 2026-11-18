@@ -44,7 +44,7 @@ import { saveStatus, confirmedSave, saveErrorReason } from './design-studio/save
 import { applyGarment, pieceOf, isCompleteOutfit } from './design-studio/garmentCatalog';
 import { openTarget } from './design-studio/designGallery';
 import { withPhotoColour } from './design-studio/photoColours';
-import { landingViewFor } from './design-studio/studioView';
+import { landingViewFor, type ViewMode } from './design-studio/studioView';
 import DraftStrip from './design-studio/DraftStrip';
 import GarmentPicker from './design-studio/GarmentPicker';
 import { selectFamily } from './design-studio/selectGarment';
@@ -63,7 +63,7 @@ import StudioHelp from './design-studio/StudioHelp';
 import { paintZone } from './design-studio/colorRules';
 import { uid } from '../../utils/uid';
 
-const SYNC_3D_MS = 300; // 2D -> 3D refresh window while the 3D view is open
+const SYNC_3D_MS = 300; // 2D -> 3D refresh window while a 3D pane (3D or Split) is open
 
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────
@@ -86,7 +86,7 @@ export default function DesignStudio() {
   const [zoom,       setZoom]       = useState(1);
   const [tool,       setTool]       = useState('type');
   const [assetsTab,  setAssetsTab]  = useState('logo');
-  const [viewMode,   setViewMode]   = useState('2d');
+  const [viewMode,   setViewMode]   = useState<ViewMode>('2d');
   const [showSet, setShowSet] = useState(false); // both pieces drawn together, read-only
   const [snapshot,   setSnapshot]   = useState(null);
   const [overlays,   setOverlays]   = useState(null);
@@ -230,7 +230,7 @@ export default function DesignStudio() {
   }, [selObj]);
 
   useEffect(() => {
-    if (viewMode === '3d' && !has3DFor(cfg)) setViewMode('2d');
+    if (viewMode !== '2d' && !has3DFor(cfg)) setViewMode('2d');
   // eslint-disable-next-line react-hooks/exhaustive-deps -- has3DFor reads exactly these fields
   }, [cfg.garment, cfg.sleeve, cfg.fit, cfg.inspirationId, viewMode]);
   // A garment lands in 2D unless its 3D is verified (studioView.js); the customer can opt into 3D.
@@ -242,7 +242,7 @@ export default function DesignStudio() {
   }, [cfg.garment]);
   useEffect(() => { keep3DRef.current = false; }, [viewMode]);
   // 3D takes the whole stage: chrome steps aside, Exit 3D (or Esc) returns to designing.
-  const set2DPreview = showSet && viewMode !== '3d';
+  const set2DPreview = showSet && viewMode === '2d';
   const immersive = (viewMode === '3d' && has3DLoaded && has3DFor(cfg) && hasWebGL()) || set2DPreview;
   useEffect(() => {
     if (!immersive) return undefined;
@@ -274,7 +274,7 @@ export default function DesignStudio() {
   // Throttled (trailing, SYNC_3D_MS): a colour drag in 3D re-encodes and re-uploads at most once per window, and unchanged overlays keep their decals.
   const last3D = useRef({ at: 0, json: '' });
   useEffect(() => {
-    if (viewMode !== '3d') return undefined;
+    if (viewMode === '2d') return undefined;
     const push = () => {
       faceJSON.current[face] = getCanvasJSON() ?? [];
       setSnapshot(exportPNG(cfg.colors.body));
@@ -286,7 +286,7 @@ export default function DesignStudio() {
     if (wait <= 0) { push(); return undefined; }
     const t = setTimeout(push, wait);
     return () => clearTimeout(t);
-  }, [viewMode, exportPNG, getCanvasJSON, face, cfg.colors.body]);
+  }, [viewMode, editTick, exportPNG, getCanvasJSON, face, cfg.colors.body]);
 
   // ── FREEFORM DRAWING state (Sept 9 2026) ─────────────────────
   const [brushSize,  setBrushSize]  = useState(5);
@@ -708,7 +708,7 @@ export default function DesignStudio() {
   const [help, setHelp] = useState(() => (new URLSearchParams(location.search).get('help') === 'howto' ? 'howto' : null));
 
   const pieceProps = { cfg: railCfg, uset, onSwitch: switchPiece, onStart: startSet, applyBoth, onApplyBoth: setApplyBoth,
-    canSet: !!railCompanion, setView: viewMode !== '3d', showSet: showSet && viewMode !== '3d', onShowSet: setShowSet };
+    canSet: !!railCompanion, setView: viewMode === '2d', showSet: showSet && viewMode === '2d', onShowSet: setShowSet };
   // Phones: stage actions that left the stage go in the top bar's ⋯ menu.
   const fullRef = useRef(null);
   const addLabel = locked || colorOnly ? null : addPieceLabel(cfg, uset);

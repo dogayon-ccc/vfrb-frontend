@@ -1,0 +1,18 @@
+/* Split: side by side from 1280px; below that the 3D preview stacks above the editor so the controls stay under the thumb. */
+.ds-cv .ds-stage-fit[data-split] { --ds-3d: 42%; }
+.ds-cv .ds-stage-fit[data-split] > .ds-pane--3d { inset: 0 0 calc(100% - var(--ds-3d)) 0; border-bottom: 1px solid var(--cx-line, #46587f); }
+.ds-cv .ds-stage-fit[data-split] > .ds-pane--2d { inset: var(--ds-3d) 0 0 0; }
+.ds-ctrl-sep { align-self: center; width: 1px; height: 20px; background: var(--cx-line-strong, #7686a6); }
+.ds-pane-tag { position: absolute; top: 8px; right: 8px; z-index: 2; padding: 2px 10px; border-radius: var(--cx-r-md, 8px); background: rgb(15 23 42 / .72); color: #fff; font: 600 13px/1.5 var(--cx-sans, inherit); pointer-events: none; }
+.ds-cv[data-rulers] .ds-pane--2d .ds-pane-tag { top: 28px; }
+
+@media (min-width: 1280px) {
+  .ds-cv .ds-stage-fit[data-split] > .ds-pane--2d { inset: 0 50% 0 0; }
+  .ds-cv .ds-stage-fit[data-split] > .ds-pane--3d { inset: 0 0 0 50%; border-bottom: 0; border-left: 1px solid var(--cx-line, #46587f); }
+  .ds-cv[data-rulers] .ds-stage-fit[data-split] > .ds-pane--2d { top: 20px; left: 34px; }
+}
+
+/* Phones: the floating zoom buttons belong to the 2D pane, so the 3D controls step aside (the 3D view rotates by touch). */
+@media (max-width: 599px) {
+  .ds-lane-bottom[data-split] :is(.ds-ctrl[data-pane="3d"], .ds-ctrl-sep) { display: none; }
+}
