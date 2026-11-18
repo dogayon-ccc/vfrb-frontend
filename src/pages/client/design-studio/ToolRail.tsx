@@ -2,11 +2,11 @@
 import { haptic } from '../../../utils/haptics';
 import { useEffect, useRef } from 'react';
 import ToolOptions from './ToolOptions';
-import { MousePointer2, Undo2, Redo2, Hand, Pipette, PaintBucket, Brush, Eraser, PenTool, Slash, Type, Shapes, Shirt, ImagePlus, Sun } from 'lucide-react';
+import { MousePointer2, Undo2, Redo2, Hand, Pipette, PaintBucket, Brush, Eraser, PenTool, Slash, Type, Shapes, Shirt, ImagePlus, Sun, Square, Circle } from 'lucide-react';
 import { RAIL_TOOLS, PICK_TOOLS, STROKE_SIZES, STROKE_TOOLS, railKey, activeRail } from './railTools';
 
-const ICONS = { move: MousePointer2, hand: Hand, sample: Pipette, fill: PaintBucket, brush: Brush, eraser: Eraser, pen: PenTool, line: Slash, text: Type, shape: Shapes };
-const SHOWN = ['move', 'hand', 'fill', 'brush', 'eraser', 'pen', 'text', 'shape'];
+const ICONS = { move: MousePointer2, hand: Hand, sample: Pipette, fill: PaintBucket, brush: Brush, eraser: Eraser, pen: PenTool, line: Slash, rect: Square, ellipse: Circle, text: Type, shape: Shapes };
+const SHOWN = ['move', 'hand', 'fill', 'brush', 'eraser', 'pen', 'line', 'rect', 'ellipse', 'text', 'shape'];
 // Desktop only (CSS hides these below 1024px, where the bottom sheet has the tabs): the panels that open in the left flyout.
 // data-tab keeps the how-to tour's [data-tab=type] / [data-tab=add] targets pointing at a real control.
 const DOCK = [

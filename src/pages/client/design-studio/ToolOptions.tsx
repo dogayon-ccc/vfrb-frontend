@@ -12,6 +12,8 @@ const COPY: Record<string, { title: string; hint: string }> = {
   eraser: { title: 'Eraser', hint: 'Rubs out your drawings and uploaded art only, never the garment, text or shapes.' },
   pen:    { title: 'Curved line', hint: 'Click to place points, drag a point to curve the line. Enter finishes, Backspace removes the last point.' },
   line:   { title: 'Straight line', hint: 'Drag from one point to another. Hold Shift to snap to 45°.' },
+  rect:   { title: 'Rectangle', hint: 'Drag on the garment. Hold Shift for a square. Each shape is its own layer.' },
+  ellipse: { title: 'Ellipse', hint: 'Drag on the garment. Hold Shift for a circle. Each shape is its own layer.' },
 };
 
 export default function ToolOptions({ active, rootRef, size, setSize, color, setColor, opacity, setOpacity, smooth, setSmooth, onDone }: any) {
@@ -35,7 +37,7 @@ export default function ToolOptions({ active, rootRef, size, setSize, color, set
   }, [active, spec, rootRef]);
 
   if (!spec || !pos || !host) return null;
-  const eraser = active === 'eraser', ink = active === 'pen' || active === 'line', brush = active === 'brush';
+  const eraser = active === 'eraser', ink = active === 'pen' || active === 'line', box = active === 'rect' || active === 'ellipse', brush = active === 'brush';
   const max = eraser ? 30 : brush ? 40 : 20;
   return createPortal(
     <div className="ds-opts" role="group" aria-label={`${spec.title} options`} style={pos}>
@@ -44,9 +46,9 @@ export default function ToolOptions({ active, rootRef, size, setSize, color, set
         <button type="button" className="ds-opts-x" aria-label="Close options (back to Move)" onClick={onDone}><X size={16} aria-hidden="true"/></button>
       </div>
       <p className="ds-opts-hint">{spec.hint}</p>
-      <label className="ds-opts-row"><span>Size <b>{size}px</b></span>
-        <input type="range" min={1} max={max} value={Math.min(size, max)} onChange={e => setSize(Number(e.target.value))} aria-label="Size in pixels"/></label>
-      <div className="ds-opts-preview" aria-hidden="true"><i style={{ width: Math.max(2, Math.min(size, 40)), height: Math.max(2, Math.min(size, 40)), background: eraser ? 'var(--cx-ink-2)' : color, opacity: brush ? opacity : 1 }}/></div>
+      {!box && <label className="ds-opts-row"><span>Size <b>{size}px</b></span>
+        <input type="range" min={1} max={max} value={Math.min(size, max)} onChange={e => setSize(Number(e.target.value))} aria-label="Size in pixels"/></label>}
+      {!box && <div className="ds-opts-preview" aria-hidden="true"><i style={{ width: Math.max(2, Math.min(size, 40)), height: Math.max(2, Math.min(size, 40)), background: eraser ? 'var(--cx-ink-2)' : color, opacity: brush ? opacity : 1 }}/></div>}
       {brush && (<>
         <label className="ds-opts-row"><span>Opacity <b>{Math.round(opacity * 100)}%</b></span>
           <input type="range" min={10} max={100} value={Math.round(opacity * 100)} onChange={e => setOpacity(Number(e.target.value) / 100)} aria-label="Opacity in percent"/></label>
@@ -62,6 +64,7 @@ export default function ToolOptions({ active, rootRef, size, setSize, color, set
           </div>
         </div>
       )}
+      {box && <p className="ds-opts-hint">Fills with the colour above. Change fill, border and corners afterwards in the Selection panel.</p>}
       {ink && <p className="ds-opts-hint">Width and colour apply to the next line you draw.</p>}
     </div>,
     host,
