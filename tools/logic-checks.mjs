@@ -1754,12 +1754,12 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const CR = await L('/src/pages/client/design-studio/colorRules.ts');
   const k = (key, m = {}) => R.railKey({ key, ...m });
   t('tool rail: V H I G B E P L T U M O pick their tools, Z / Alt+Z zoom, Ctrl or Cmd letters and held keys are left alone',
-    ['V', 'H', 'I', 'G', 'B', 'E', 'P', 'L', 'T', 'U', 'M', 'O'].map(x => k(x.toLowerCase())).join() === 'move,hand,sample,fill,brush,eraser,pen,line,text,shape,rect,ellipse'
+    ['V', 'H', 'G', 'B', 'E', 'P', 'L', 'T', 'U', 'M', 'O'].map(x => k(x.toLowerCase())).join() === 'move,hand,fill,brush,eraser,pen,line,text,shape,rect,ellipse'
     && new Set(R.RAIL_TOOLS.map(x => x.key)).size === R.RAIL_TOOLS.length
     && k('z') === 'zoom-in' && k('z', { altKey: true }) === 'zoom-out' && k('z', { ctrlKey: true }) === null && k('d', { metaKey: true }) === null
     && k('v', { repeat: true }) === null && k('Escape') === 'move' && k('q') === null
-    && R.activeRail({ hand: true, pick: 'fill', tool: 'draw' }) === 'hand' && R.activeRail({ pick: 'sample', tool: 'draw' }) === 'sample'
-    && R.activeRail({ pick: 'pen' }) === 'pen' && R.PICK_TOOLS.join() === 'sample,fill,pen,line,rect,ellipse' && R.BOX_TOOLS.every(b => R.PICK_TOOLS.includes(b))
+    && R.activeRail({ hand: true, pick: 'fill', tool: 'draw' }) === 'hand'
+    && R.activeRail({ pick: 'pen' }) === 'pen' && R.PICK_TOOLS.join() === 'fill,pen,line,rect,ellipse' && R.BOX_TOOLS.every(b => R.PICK_TOOLS.includes(b))
     && R.activeRail({ pick: 'ellipse' }) === 'ellipse'
     && R.activeRail({ tool: 'draw', erasing: true }) === 'eraser' && R.activeRail({ tool: 'color' }) === 'move');
   const V = await L('/src/pages/client/design-studio/vectorTools.ts');
