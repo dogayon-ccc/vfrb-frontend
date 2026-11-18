@@ -1,7 +1,7 @@
 import { Component, Suspense, lazy, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence } from 'framer-motion';
-import { Minus, Plus, Scan, Maximize2, Minimize2, Expand, Shrink, Lightbulb, RotateCw, FlipHorizontal2 } from 'lucide-react';
+import { Minus, Plus, Scan, Maximize2, Minimize2, Expand, Shrink, Lightbulb, RotateCw, FlipHorizontal2, Palette } from 'lucide-react';
 import { NavIcon } from '../../../components/ui/icons';
 import { familyFor, cap3D } from './garmentCatalog';
 import Capability3D from './Capability3D';
@@ -136,6 +136,13 @@ class ThreeEB extends Component {
   }
 }
 
+const BACKDROPS = [
+  { label: 'Stage', bg: null },
+  { label: 'White', bg: '#FFFFFF' },
+  { label: 'Light grey', bg: '#E6E9E4' },
+  { label: 'Charcoal', bg: '#232826' },
+];
+
 export default function CanvasViewport({
   cfg, setCfg, canvasWrapRef, canvasEl, aiPulse, face, switchFace, initFailed,
   selObj, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, garmentRect = null, viewMode, has3DLoaded, onLogoFile, zoom, setZoom, snapshot, overlays,
@@ -154,6 +161,9 @@ export default function CanvasViewport({
   const canExplode = explodableFor(cfg) && !set3D;
   const [explode, setExplode] = useState(false);
   const [lighting, setLighting] = useState('studio');
+  // Scene backdrop: display only (the 3D PNG capture stays transparent). null keeps the stage's own colour.
+  const [backdrop, setBackdrop] = useState(() => { try { const i = Number(localStorage.getItem('ds_backdrop')); return i >= 0 && i < BACKDROPS.length ? i : 0; } catch { return 0; } });
+  const nextBackdrop = () => setBackdrop(i => { const n = (i + 1) % BACKDROPS.length; try { localStorage.setItem('ds_backdrop', String(n)); } catch { /* storage blocked */ } return n; });
   const [spin, setSpin] = useState(false); // the turntable starts off: no motion the customer did not ask for
   const [picked, setPicked] = useState(null);
   const pickZone = useCallback(z => { setPicked(z); onPickZone?.(z); }, [onPickZone]);
@@ -567,6 +577,7 @@ export default function CanvasViewport({
               visibility: view3D ? 'visible' : 'hidden',
               pointerEvents: view3D ? 'auto' : 'none',
               zIndex: view3D ? 1 : 0, ...paneFade(view3D),
+              ...(BACKDROPS[backdrop].bg ? { background: BACKDROPS[backdrop].bg } : null),
             }}>
             <ThreeEB>
               <Suspense fallback={<div className="ds-ref3d-skel" role="status"><span aria-hidden="true"/>Loading the 3D preview…</div>}>
@@ -603,6 +614,8 @@ export default function CanvasViewport({
                 { 'data-pane': '3d', 'aria-pressed': spin, disabled: CALM, title: CALM ? 'Off while your device asks for reduced motion; drag to rotate' : undefined })}
               {canExplode && ctrl(explode ? 'Assemble' : 'Explode', explode ? <Shrink size={16} aria-hidden="true"/> : <Expand size={16} aria-hidden="true"/>, () => setExplode(x => !x),
                 { 'data-pane': '3d', 'aria-pressed': explode, title: explode ? 'Put the parts back together' : 'Pull the collar, sleeves and pockets apart' })}
+              {ctrl(`Backdrop: ${BACKDROPS[backdrop].label}`, <Palette size={16} aria-hidden="true"/>, nextBackdrop,
+                { 'data-pane': '3d', title: 'Change the 3D backdrop (the design and exports are not affected)' })}
               {canExplode && ctrl(LIGHT_PRESETS[lighting].label, <Lightbulb size={16} aria-hidden="true"/>, () => setLighting(l => (l === 'studio' ? 'daylight' : 'studio')),
                 { 'data-pane': '3d', title: 'Switch the 3D lighting (colours stay calibrated in both)' })}
             </>)}
