@@ -806,6 +806,12 @@ export default function DesignStudioStyles() {
       .ds-opts-head{display:flex;align-items:center;justify-content:space-between;font-size:15px;}
       .ds-opts-x{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;margin:-10px -10px -10px 0;border:0;border-radius:50%;background:transparent;color:var(--cx-ink-2);cursor:pointer;}
       .ds-opts-x:hover{background:rgb(var(--vf-mint-rgb) / .14);}
+      .ds-opts{max-height:calc(100% - 80px);overflow-y:auto;overscroll-behavior:contain;}
+      .ds-opts-tools{display:grid;grid-template-columns:repeat(6,1fr);gap:2px;padding:3px;border:1px solid var(--cx-line);border-radius:var(--cx-r-md);background:var(--cx-hover);}
+      .ds-opts-tools button{min-height:44px;display:grid;place-items:center;border:0;border-radius:var(--cx-r-sm,6px);background:transparent;color:var(--cx-ink-2);cursor:pointer;}
+      .ds-opts-tools button:hover{color:var(--cx-ink);}
+      .ds-opts-tools button[aria-checked=true]{background:var(--vf-mint,#02C39A);color:var(--vf-void,#04120f);}
+      .ds-opts-tools button:focus-visible{outline:2px solid var(--vf-mint,#02C39A);outline-offset:2px;}
       .ds-opts-hint{margin:0;font-size:12px;line-height:1.4;color:var(--cx-ink-2);}
       .ds-opts-row{display:flex;flex-direction:column;gap:6px;font-size:13px;}
       .ds-opts-row>span{display:flex;justify-content:space-between;color:var(--cx-ink-2);}
@@ -1240,7 +1246,7 @@ export default function DesignStudioStyles() {
         .ds-tabs button[aria-current]{background:none;border-color:transparent;border-bottom:3px solid var(--cx-thread);color:var(--cx-ink);font-weight:700;}
         .ds-tabs button:focus-visible{outline:2px solid var(--cx-thread-ink);outline-offset:2px;}
       }
-      .ds-subtabs{margin:12px 12px 0;position:sticky;top:0;z-index:3;flex:none;background:var(--cx-card);box-shadow:0 -12px 0 var(--cx-card),0 8px 0 var(--cx-card),0 10px 12px -8px rgb(15 23 42 / .18);}
+      .ds-subtabs{margin:12px 12px 0;position:sticky;top:0;z-index:3;flex:none;background:var(--cx-card);box-shadow:0 0 0 12px var(--cx-card),0 16px 12px -8px rgb(15 23 42 / .18);}
       .ds-panel-scroll{scroll-padding-top:72px;}
       .ds-subtabs button{flex:1;}
       .ds-txt{display:flex;flex-direction:column;gap:10px;padding:12px 12px 0;}

@@ -1,12 +1,13 @@
-import { useLayoutEffect, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import { X, Brush, Eraser, PenTool, Slash, Square, Circle } from 'lucide-react';
 
 // The active tool's own options, in a flyout beside the left tool rail (Canva/Photoshop style): pick a tool, its settings appear next to it.
 //   brush : size, opacity, smoothing, colour      pen / line : width, colour      eraser : size
 // Text and shapes keep their panels for now. The flyout is portaled into .ds-body (the rail scrolls, so a child would be clipped)
 // and anchored to the active rail button; on phones the rail is a row, so the flyout opens full width under it.
 const PALETTE = ['#02C39A', '#028090', '#1B2428', '#E63946', '#F4A261', '#FFD166', '#FFFFFF', '#000000'];
+const SWITCH = [['brush', Brush], ['eraser', Eraser], ['pen', PenTool], ['line', Slash], ['rect', Square], ['ellipse', Circle]] as const;
 const COPY: Record<string, { title: string; hint: string }> = {
   brush:  { title: 'Brush', hint: 'Drag on the garment. Each stroke is its own layer and one undo step.' },
   eraser: { title: 'Eraser', hint: 'Rubs out your drawings and uploaded art only, never the garment, text or shapes.' },
@@ -16,7 +17,8 @@ const COPY: Record<string, { title: string; hint: string }> = {
   ellipse: { title: 'Ellipse', hint: 'Drag on the garment. Hold Shift for a circle. Each shape is its own layer.' },
 };
 
-export default function ToolOptions({ active, rootRef, size, setSize, color, setColor, opacity, setOpacity, smooth, setSmooth, onDone }: any) {
+export default function ToolOptions({ active, rootRef, size, setSize, color, setColor, opacity, setOpacity, smooth, setSmooth, onDone, onPick }: any) {
+  const boxRef = useRef<HTMLDivElement>(null);
   const spec = COPY[active];
   const [pos, setPos] = useState<{ left?: number; right?: number; top: number } | null>(null);
   const host = typeof document !== 'undefined' ? (rootRef.current?.closest('.ds-body') as HTMLElement | null) : null;
@@ -28,23 +30,31 @@ export default function ToolOptions({ active, rootRef, size, setSize, color, set
       const btn = rootRef.current?.querySelector(`[data-tool="${active}"]`) as HTMLElement | null;
       if (!body || !btn) { setPos(null); return; }
       const b = body.getBoundingClientRect(), r = btn.getBoundingClientRect(), bar = rootRef.current.getBoundingClientRect();
-      if (window.innerWidth < 768) setPos({ left: 8, right: 8, top: bar.bottom - b.top + 6 });
-      else setPos({ left: r.right - b.left + 12, top: Math.max(8, r.top - b.top - 6) });
+      if (window.innerWidth < 768) { setPos({ left: 8, right: 8, top: bar.bottom - b.top + 6 }); return; }
+      const h = boxRef.current?.offsetHeight ?? 0;
+      setPos({ left: r.right - b.left + 12, top: Math.max(8, Math.min(r.top - b.top - 6, b.height - h - 72)) });
     };
     place();
     window.addEventListener('resize', place);
     return () => window.removeEventListener('resize', place);
-  }, [active, spec, rootRef]);
+  }, [active, spec, rootRef, size]);
 
   if (!spec || !pos || !host) return null;
   const eraser = active === 'eraser', ink = active === 'pen' || active === 'line', box = active === 'rect' || active === 'ellipse', brush = active === 'brush';
   const max = eraser ? 30 : brush ? 40 : 20;
   return createPortal(
-    <div className="ds-opts" role="group" aria-label={`${spec.title} options`} style={pos}>
+    <div ref={boxRef} className="ds-opts" role="group" aria-label={`${spec.title} options`} style={pos}>
       <div className="ds-opts-head">
         <strong>{spec.title}</strong>
         <button type="button" className="ds-opts-x" aria-label="Close options (back to Move)" onClick={onDone}><X size={16} aria-hidden="true"/></button>
       </div>
+      {onPick && (
+        <div className="ds-opts-tools" role="radiogroup" aria-label="Drawing tool">
+          {SWITCH.map(([id, I]) => (
+            <button key={id} type="button" role="radio" aria-checked={active === id} aria-label={COPY[id].title} data-tip={COPY[id].title} onClick={() => onPick(id)}><I size={18} aria-hidden="true"/></button>
+          ))}
+        </div>
+      )}
       <p className="ds-opts-hint">{spec.hint}</p>
       {!box && <label className="ds-opts-row"><span>Size <b>{size}px</b></span>
         <input type="range" min={1} max={max} value={Math.min(size, max)} onChange={e => setSize(Number(e.target.value))} aria-label="Size in pixels"/></label>}

@@ -92,7 +92,7 @@ export default function ToolRail({ rail, hand, setHand, canPan, zoomBy, readOnly
         </div>
       )}
     </div>
-    {!readOnly && !colourOnly && <ToolOptions active={active} rootRef={rootRef} size={size} setSize={setSize} color={color} setColor={setColor} opacity={opacity} setOpacity={setOpacity} smooth={smooth} setSmooth={setSmooth} onDone={() => choose('move')}/>}
+    {!readOnly && !colourOnly && <ToolOptions active={active} rootRef={rootRef} size={size} setSize={setSize} color={color} setColor={setColor} opacity={opacity} setOpacity={setOpacity} smooth={smooth} setSmooth={setSmooth} onDone={() => choose('move')} onPick={choose}/>}
     </>
   );
 }
