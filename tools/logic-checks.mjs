@@ -1,6 +1,6 @@
 // Run: node tools/logic-checks.mjs   (garment state rules, photo gallery data, photo base, shared preview SSR render)
 import { createServer } from 'vite';
-const v = await createServer({ server: { middlewareMode: true }, appType: 'custom', logLevel: 'error' });
+const v = await createServer({ server: { middlewareMode: true, ws: false }, appType: 'custom', logLevel: 'error' }); // ws: false so a running dev server's HMR port (24678) is never contended
 const L = p => v.ssrLoadModule(p);
 const G = await L('/src/pages/client/design-studio/garmentCatalog.ts');
 const S = await L('/src/pages/client/design-studio/designSerialization.ts');
@@ -1405,7 +1405,9 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && !/\byards?\b|(?<!box-)\bsizing\b|mode:\s*'chat'|chat_context|QUICK/i.test(chat.replace(/^\s*\/\/.*$/gm, '')) &&!/applyAI\b|applyAIEdits/.test(ds));
   const ai = fsx.existsSync(`${BE}/app/Http/Controllers/Api/AIController.php`) ? src(`${BE}/app/Http/Controllers/Api/AIController.php`) : null;
   if (ai) t('AI scope (backend): describe-design has no free chat branch (no client-supplied prompt is passed to the model)', !/describeDesignChat|chat_context|chat_response/.test(ai));
-  t('CLAUDE.md states the approved AI scope', /AI is restricted to raw-material recommendation and strict, deterministic Studio B5 design editing/.test(src('CLAUDE.md')));
+  const claudeMd = fsx.existsSync('CLAUDE.md') ? src('CLAUDE.md') : null; // CLAUDE.md is git-ignored (local only), so a fresh clone has none
+  if (claudeMd === null) console.log('NOTE CLAUDE.md is git-ignored and not in this checkout: the approved-AI-scope check was not run');
+  t('CLAUDE.md states the approved AI scope', claudeMd === null || /AI is restricted to raw-material recommendation and strict, deterministic Studio B5 design editing/.test(claudeMd));
 }
 // Showcase: explicit opt-in with withdraw, manager approval, allowlisted publishing, safe open.
 {

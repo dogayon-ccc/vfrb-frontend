@@ -21,7 +21,7 @@ export const UNREFERENCED_OK = {
   '/models/processed/shorts-textured.glb': 'Superseded for Shorts by /models/vfrb-staged/shorts.glb (garment-only model of the gallery shorts photo); kept as the output of tools/glb-extract/build_processed.py.',
 };
 
-const v = await createServer({ root: ROOT, server: { middlewareMode: true }, appType: 'custom', logLevel: 'error' });
+const v = await createServer({ root: ROOT, server: { middlewareMode: true, ws: false }, appType: 'custom', logLevel: 'error' });
 const L = p => v.ssrLoadModule(p);
 const A = await L('/src/pages/client/design-studio/garmentAssets.ts');
 const GS = await L('/src/pages/client/design-studio/glbSlots.ts');
