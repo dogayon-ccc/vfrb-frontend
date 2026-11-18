@@ -98,12 +98,13 @@ export function inspectGlb(buf) {
   };
 }
 
-export function gate(r) {
+export function gate(r, parts = []) {
   const fail = [], warn = [];
   if (r.bytes > LIMITS.bytes) fail.push(`file ${(r.bytes / 1048576).toFixed(2)} MB > 3 MB`);
   if (r.tris === 0) fail.push('no triangles');
   if (r.maxMeshTris > LIMITS.trisPerMesh) fail.push(`a mesh has ${r.maxMeshTris} triangles > ${LIMITS.trisPerMesh}`);
   if (!r.uvSets.includes('TEXCOORD_0')) fail.push('no UV set (TEXCOORD_0): decals cannot land');
+  const lost = parts.filter(n => !r.nodes.includes(n)); if (lost.length) fail.push(`missing named parts: ${lost.join(', ')}`);
   if (r.skinned) fail.push('skinned / armature data present (body rig)');
   if (r.bodyNames.length) fail.push(`body-like names (human body fused?): ${r.bodyNames.join(', ')}`);
   const big = r.textures.filter(t => t.size && Math.max(t.size.w, t.size.h) > LIMITS.texture);
@@ -122,11 +123,11 @@ export const registerLine = ({ date, file, result, source, licence }) => `| ${da
 const HEADER = '# GLB intake register\n\nAppended by `node tools/glb-intake.mjs`. One line per intake run. PASS = intake gate only (status gate-pass); slot verification still needs a manual record in `glbSlots.ts`.\n\n| Date | File | Result | Source | Licence |\n|---|---|---|---|---|\n';
 
 function args(argv) {
-  const o = { file: null, source: '', licence: '', photosOwned: '', register: true };
+  const o = { file: null, source: '', licence: '', photosOwned: '', parts: [], register: true };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--source') o.source = argv[++i] ?? ''; else if (a === '--licence' || a === '--license') o.licence = argv[++i] ?? '';
-    else if (a === '--photos-owned') o.photosOwned = (argv[++i] ?? '').toLowerCase(); else if (a === '--no-register') o.register = false;
+    else if (a === '--photos-owned') o.photosOwned = (argv[++i] ?? '').toLowerCase(); else if (a === '--parts') o.parts = (argv[++i] ?? '').split(',').filter(Boolean); else if (a === '--no-register') o.register = false;
     else if (!a.startsWith('--') && !o.file) o.file = a;
   }
   return o;
@@ -134,10 +135,10 @@ function args(argv) {
 
 function main() {
   const o = args(process.argv.slice(2));
-  if (!o.file) { console.error('usage: node tools/glb-intake.mjs <file.glb> --source "<photo owner>" --licence "<plan and terms>" [--photos-owned yes] [--no-register]'); process.exit(2); }
+  if (!o.file) { console.error('usage: node tools/glb-intake.mjs <file.glb> --source "<photo owner>" --licence "<plan and terms>" [--photos-owned yes] [--parts a,b,c] [--no-register]'); process.exit(2); }
   let r;
   try { r = inspectGlb(fs.readFileSync(o.file)); } catch (e) { console.error(`FAIL ${o.file}: ${e.message}`); process.exit(1); }
-  const g = gate(r), slotStatus = intakeStatus({ pass: g.pass, ...o });
+  const g = gate(r, o.parts), slotStatus = intakeStatus({ pass: g.pass, ...o });
   const label = g.pass ? 'PASS (gate only)' : 'FAIL', status = g.pass ? 'gate-pass' : slotStatus;
   const missing = [!o.source.trim() && '--source', !o.licence.trim() && '--licence', o.photosOwned !== 'yes' && '--photos-owned yes'].filter(Boolean);
   const f = n => n.toFixed(3), list = a => a.length ? a.join(', ') : '(none)';

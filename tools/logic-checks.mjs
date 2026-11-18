@@ -469,13 +469,14 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const rd = f => fsx.readFileSync(f, 'utf8');
   const all = [...fsx.readdirSync(dir).filter(f => /\.[jt]sx?$/.test(f)).map(f => [f, rd(`${dir}/${f}`)]), ['DesignStudio.tsx', rd(urlx.fileURLToPath(new URL('../src/pages/client/DesignStudio.tsx', import.meta.url)))]];
   const get = n => all.find(([f]) => f === n)?.[1] ?? '';
+  const dsCss = rd(`${dir}/DesignStudioStyles.tsx`);
   const pickers = all.filter(([f, s]) => f.endsWith('.tsx') && /CATALOG\.map|\.families\.map|filterDesigns\(/.test(s)).map(([f]) => f); // UI components only; data modules may map the catalog
   const users = all.filter(([f, s]) => f !== 'GarmentPicker.tsx' && /<GarmentPicker\b/.test(s)).map(([f]) => f).sort();
   t('one garment picker component: only GarmentPicker lists garments or photos; used inline on the canvas (DesignStudio) and in the picker modal (InspoGallery)',
     pickers.length === 1 && pickers[0] === 'GarmentPicker.tsx' && users.join() === 'DesignStudio.tsx,InspoGallery.tsx' && !all.some(([f]) => /^FirstRunGallery\./.test(f))
     && /tab=\{pickerTab\}/.test(get('DesignStudio.tsx')) && /setPickerTab\('templates'\)/.test(get('DesignStudio.tsx')) && /setPickerTab\('inspiration'\)/.test(get('DesignStudio.tsx')) && !/CATALOG|selectFamily/.test(get('TypePanel.tsx')));
   const undoUi = all.filter(([f, s]) => f !== 'TopBar.tsx' && /Undo2|Redo2|aria-label="(Undo|Redo)"|onClick=\{(history\.)?(undo|redo)\}/.test(s)).map(([f]) => f);
-  t('undo/redo: the top bar has them; the only other copy is the tool rail\'s phone row (shown at 767 px and below, hidden above)', undoUi.length === 1 && undoUi[0] === 'ToolRail.tsx' && /\.ds-tools-hist\{display:none;/.test(src('../src/pages/client/design-studio/DesignStudioStyles.tsx')) && /@media \(max-width:767px\)\{\s*\.ds-tools-hist\{display:inline-flex;\}/.test(src('../src/pages/client/design-studio/DesignStudioStyles.tsx')) && /aria-label="Undo"/.test(get('TopBar.tsx')) && /aria-label="Redo"/.test(get('TopBar.tsx')));
+  t('undo/redo: the top bar has them; the only other copy is the tool rail\'s phone row (shown at 767 px and below, hidden above)', undoUi.length === 1 && undoUi[0] === 'ToolRail.tsx' && /\.ds-tools-hist\{display:none;/.test(dsCss) && /@media \(max-width:767px\)\{\s*\.ds-tools-hist\{display:inline-flex;\}/.test(dsCss) && /aria-label="Undo"/.test(get('TopBar.tsx')) && /aria-label="Redo"/.test(get('TopBar.tsx')));
   const drawer = get('ToolDrawer.tsx');
   t('tabs and the Pieces rail appear only once a garment exists (the panel says to choose one first)',
     /const noGarment = !p\.cfg\.garment/.test(drawer) && /\{!noGarment && \(\s*<nav className="ds-tabs"/.test(drawer) && /Choose a garment on the canvas to start designing\./.test(drawer)

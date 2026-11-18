@@ -53,7 +53,7 @@ for (const d of D.ENTRIES) { add(d.image, `gallery photo ${d.id}`); if (d.ref3D)
 
 // Literal paths anywhere in src (thumbnails, previews, fallbacks).
 const walk = dir => fs.readdirSync(dir, { withFileTypes: true }).flatMap(f => f.isDirectory() ? walk(path.join(dir, f.name)) : [path.join(dir, f.name)]);
-for (const file of walk(path.join(ROOT, 'src')).filter(f => /\.(jsx?|css)$/.test(f))) {
+for (const file of walk(path.join(ROOT, 'src')).filter(f => /\.([jt]sx?|css)$/.test(f))) {
   const text = fs.readFileSync(file, 'utf8');
   for (const m of text.matchAll(/['"`](\/(?:models|garments2d|gallery)\/[^'"`$]+?\.(?:glb|webp|png|jpe?g|svg))['"`]/g)) add(m[1], `literal in ${path.relative(ROOT, file).replace(/\\/g, '/')}`);
 }
