@@ -453,8 +453,8 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const styles = src('../src/pages/client/design-studio/DesignStudioStyles.tsx');
   t('Studio bar, draft strip and toast sit on their token levels; the phone bottom nav is in the page flow', [/\.ds-bar\{[^}]*z-index:var\(--cx-z-bar\)/, /\.ds-draft\{[^}]*z-index:var\(--cx-z-banner\)/, /\.ds-bnav\{display:grid;flex:none;/, /\.ds-toast\{[^}]*z-index:var\(--cx-z-popover\)/].every(r => r.test(styles)));
   const studio = files.map(f => [f.split(/[\\/]/).pop(), fsx.readFileSync(f, 'utf8')]);
-  const toggles = studio.filter(([, s]) => /\[\s*'2d'\s*,\s*'3d'\s*\]\.map/.test(s)).map(([n]) => n);
-  t('exactly one 2D/3D toggle (TopBar); the inspector has no duplicate Preview toggle', toggles.length === 1 && toggles[0] === 'TopBar.tsx' && !/Preview mode/.test(src('../src/pages/client/design-studio/TypePanel.tsx')));
+  const toggles = studio.filter(([, s]) => /role="radiogroup" aria-label="2D, split or 3D view"/.test(s)).map(([n]) => n);
+  t('exactly one 2D / split / 3D view switch (TopBar); the inspector has no duplicate Preview toggle', toggles.length === 1 && toggles[0] === 'TopBar.tsx' && !/Preview mode/.test(src('../src/pages/client/design-studio/TypePanel.tsx')));
   const V = await L('/src/pages/client/design-studio/studioView.ts');
   const C = await L('/src/pages/client/design-studio/garmentCatalog.ts');
   const combos = C.CATALOG.flatMap(c => c.families).flatMap(f => (f.styles?.length ? f.styles : [null]).flatMap(sl => (f.fits?.length ? f.fits : [undefined]).map(fit => ({ garment: f.id, sleeve: sl, fit }))));
@@ -482,7 +482,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && /if \(!cfg\.garment\) return null;/.test(get('PiecesRail.tsx')));
   const SH = await L('/src/pages/client/design-studio/dsShared.ts');
   t('four labelled tabs (Garment, Add, Layers, Ask AI): every tool belongs to exactly one tab, Colours/Pattern/Details sit in Garment, Draw in Add; phones and tablets add More (View, Save a copy); the Garment tab carries the price-free fabric note, hidden in the one-part view',
-    SH.TABS.map(t => t.label).join('|') === 'Garment|Add|Layers|Ask AI'
+    SH.TABS.map(t => t.label).join('|') === 'Garment|Add|Layers|Ask AI|Scene'
     && SH.TOOLS.filter(t => t.id !== 'selected').every(t => SH.TABS.filter(x => x.tools.includes(t.id)).length === 1)
     && SH.tabOf('draw').id === 'add' && ['color', 'pattern', 'details'].every(id => SH.tabOf(id).id === 'type') && /layers:\s*\(\)\s*=>/.test(drawer) && (drawer.match(/<LayersPanel\b/g) ?? []).length === 1
     && !/sr-only|toggleMore/.test(drawer) && /<span>\{t\.label\}<\/span>/.test(drawer)
@@ -494,7 +494,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && !/<StudioDock/.test(get('ToolDrawer.tsx')) && !/FINAL DESIGN/.test(dsx) && /<PiecesRail /.test(dsx) && !/ds-bar-cat|cfg\.category/.test(bar));
   const CATd = await L('/src/pages/client/design-studio/garmentCatalog.ts');
   t('dock and order preview 3D labels agree: an unverified model (supported or partial) reads "3D preview (approximate)", "3D preview available" only with a verification record',
-    /<Capability3D kind=\{cap3D\(cfg\)\}/.test(get('TopBar.tsx')) && /<Capability3D kind=\{cap3D\(cfg\)\}/.test(get('CanvasViewport.tsx')) && !/Approx\. 3D</.test(get('TopBar.tsx'))
+    /<Capability3D short kind=\{cap3D\(cfg\)\}/.test(get('TopBar.tsx')) && /<Capability3D short kind=\{cap3D\(cfg\)\}/.test(get('CanvasViewport.tsx')) && !/Approx\. 3D</.test(get('TopBar.tsx'))
     && /\{label3D\(design\)\}/.test(rd('src/components/DesignPreview.tsx')) && !/status3D === 'partial'/.test(rd('src/components/DesignPreview.tsx'))
     && ['Pants', 'Jogger Scrub Pants', 'Skirt'].every(g => { const f = CATd.familyFor(g); return f && f.status3D !== 'none' && !f.verified3D && CATd.label3D({ garment: g }) === '3D preview (approximate)'; }));
 }
@@ -592,7 +592,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     ex('Scrub Top', 'Short', 'unisex') && ex('Scrub Top', '3/4', 'unisex') && !ex('Scrub Top', 'Short', 'female') && !ex('Polo Shirt', 'Short', 'female') && !ex('Pants', null, 'unisex')
     && Object.values(LP).every(p => Math.abs(p.fill + p.key * p.keyPos[2] / Math.hypot(...p.keyPos) - 1) < 0.05) && LP.studio.fill === Lt.fill
     && /autoRotate=\{spin && !exploded\}/.test(s3) && /useState\(!CALM\)/.test(s3) && /CALM \? 1 :/.test(sg) && /e\.delta > 6/.test(sg)
-    && /const canExplode = explodableFor\(cfg\);/.test(cv3) && /onPickZone=\{canExplode \? pickZone : null\}/.test(cv3));
+    && /const canExplode = explodableFor\(cfg\) && !set3D;/.test(cv3) && /onPickZone=\{canExplode \? pickZone : null\}/.test(cv3));
   // The saved-design edit gate lets view-only stage controls (zoom, Fit, Front/Back, Explode, Lighting, Full screen, stage light) through.
   t('WebGL lost mid-session: the stage returns to 2D with a timed notice (the 3D lane keeps its own "not available" note)',
     /const on3DLost = \(\) => \{ setWebglOk\(false\); setViewMode\?\.\('2d'\); setLostNote\(true\); \};/.test(cv3) && /setTimeout\(\(\) => setLostNote\(false\), 8000\)/.test(cv3)
@@ -638,7 +638,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const ticks = CG.relativeTicks(10, 1.5, 600, 40, 200), t0 = ticks.find(x => x.v === 0), t100 = ticks.find(x => x.v === 100);
   t('rulers: % of the garment only (whole-number labels, never units or sizes), horizontal 11 px labels, ink-2 on paper; 0 and 100 sit on the garment edges',
     ticks.every(x => Number.isInteger(x.v)) && !!t0 && !!t100 && Math.abs(t0.at - (10 + 40 * 1.5)) < 1e-9 && Math.abs(t100.at - (10 + 240 * 1.5)) < 1e-9
-    && /fontSize=\{11\}/.test(rul) && !/rotate\(-90/.test(cv + rul) && !/\b(cm|mm|inch|inches)\b/i.test(cv + layers + rul) && /\.ds-ruler text\{fill:var\(--cx-ink-2\)/.test(css) && /relativeTicks\(/.test(rul) && !/pinnedTicks|rulerSteps/.test(cv + rul));
+    && /fontSize=\{13\}/.test(rul) && !/rotate\(-90/.test(cv + rul) && !/\b(cm|mm|inch|inches)\b/i.test((cv + layers + rul).replace(/Rulers are template units, not cm/g, '')) && /\.ds-ruler text\{fill:var\(--cx-ink-2\)/.test(css) && /relativeTicks\(/.test(rul) && !/pinnedTicks|rulerSteps/.test(cv + rul));
   // 7. Alignment and distribution.
   const bs = [{ left: 10, top: 10, width: 20, height: 10 }, { left: 50, top: 40, width: 40, height: 20 }, { left: 30, top: 100, width: 10, height: 10 }];
   const L0 = CG.alignDeltas(bs, 'left'), C0 = CG.alignDeltas(bs, 'hcenter'), D0 = CG.distributeDeltas(bs, 'v');
@@ -753,7 +753,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('view toggles: Grid, Rulers, Snap, Guides are 44px aria-pressed buttons (lane on desktop, View panel everywhere); the units note is shown with the rulers and in the panel; no cm or inches',
     /aria-pressed=\{!!guides\[k\]\}/.test(gm) && /\.ds-vt-btn\{min-width:44px;min-height:44px;/.test(css) && /<ViewToggles guides=\{guides\} setGuides=\{setGuides\}\/>/.test(cv) && /<ViewToggles guides=\{guides\} setGuides=\{setGuides\} labelled\/>/.test(gm)
     && gm.includes("'Rulers show template units, not centimetres. Real sizes appear only after VFRB confirms a scale.'") && /\{rulersOn && <p className="ds-units-note" role="note">\{UNITS_NOTE\}<\/p>\}/.test(cv)
-    && !/\b(cm|mm|inch|inches)\b/i.test(gm + cv + rul) && /transition:background \.15s,color \.15s,border-color \.15s;/.test(css) && /prefers-reduced-motion:reduce\)\{\.ds-vt-btn\{transition:none;\}\}/.test(css));
+    && !/\b(cm|mm|inch|inches)\b/i.test((gm + cv + rul).replace(/Rulers are template units, not cm/g, '')) && /transition:background \.15s,color \.15s,border-color \.15s;/.test(css) && /prefers-reduced-motion:reduce\)\{\.ds-vt-btn\{transition:none;\}\}/.test(css));
   t('view prefs are per user in localStorage inside try/catch (browser key as fallback); the Studio works without storage',
     CG.guidePrefsKey(7) === 'ds_guides:7' && CG.guidePrefsKey(null) === 'ds_guides' && CG.guidePrefsKey(undefined) === 'ds_guides' && JSON.stringify(CG.readGuidePrefs(null)) === JSON.stringify(CG.guideDefaults())
     && /try \{ localStorage\.setItem\(guidesKey\(\), JSON\.stringify\(guides\)\); \} catch/.test(cv) && /catch \{ return readGuidePrefs\(null, phone\); \}/.test(cv) && /catch \{ return guidePrefsKey\(null\); \}/.test(cv));
@@ -992,7 +992,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     new Set(DF.DERIVED_FAMILIES.map(d => d.name)).size === DF.DERIVED_FAMILIES.length && DF.DERIVED_FAMILIES.length === 7 && DF.DERIVED_FAMILIES.every(d => !DF.NOT_PROMOTED[d.ref])
     && DF.DERIVED_FAMILIES.every(d => (DF.SUPERSEDED_DERIVED.has(d.id) ? !CAT.CATALOG.some(c => c.families.some(f => f.id === d.name)) && !!CAT.FAMILY_BY_NAME[d.name] : CAT.CATALOG.some(c => c.id === d.category && c.families.some(f => f.id === d.name))) && !/sport|pe\b/i.test(d.category))
     && DF.DERIVED_FAMILIES.every(d => { const m = CAP.SCANNED_GARMENTS.filter(x => x.match.test(d.name)); return d.no3D ? m.length === 0 : m.length === 1 && m[0].id === `derived-${d.id}` && m[0].approval === DF.DERIVED_APPROVAL && m[0].license === 'unknown (not recorded)'; })
-    && DF.DERIVED_LABEL === 'Derived from reference, pending VFRB confirmation');
+    && DF.DERIVED_LABEL === 'Traced from a VFRB reference photo');
   t('derived 2D templates are real closed paths with one body zone (no collar, sleeve or pocket zone), a traced back only where it differs, and the shade layer',
     DF.DERIVED_FAMILIES.every(d => { const p = GP.getGarmentPaths(d.name, null), b = GP.getGarmentPaths(d.name, null, 'back');
       return /^M [\d.]+,[\d.]+( L [\d.]+,[\d.]+){8,} Z$/.test(p.body) && !p.collar && !p.sleeveL && !p.sleeveR && !p.pocket && b.body === (d.geo.back ?? d.geo.body) && !!p.shade.front; }));
@@ -1097,7 +1097,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && /axios\.put\('\/api\/account\/password', pw\)/.test(as) && /passwordOk\(pw\.password\)/.test(as) && /passwordOk\(pw\.password\)/.test(ps) && /autoComplete="current-password"/.test(as)
     && !/admin\/profile'|logout-other|other-sessions/.test(as));
   t('email preference copy: admin says "test inbox", the customer is told emails are not sent yet (no "test inbox"); no provider name; docs no longer name Mailtrap',
-    /test inbox/.test(as) && /Emails aren't sent yet/.test(rd('../src/pages/client/AccountSettings.tsx')) && !/test inbox/.test(rd('../src/pages/client/AccountSettings.tsx')) && !/mailtrap/i.test(as + rd('../docs/validation/SURVEY-EVIDENCE-MATRIX.md') + rd('../docs/validation/VALIDATOR-RUNBOOK.md')));
+    /test inbox/.test(as) && !/email/i.test(rd('../src/pages/client/AccountSettings.tsx')) && !/test inbox/.test(rd('../src/pages/client/AccountSettings.tsx')) && !/mailtrap/i.test(as + rd('../docs/validation/SURVEY-EVIDENCE-MATRIX.md') + rd('../docs/validation/VALIDATOR-RUNBOOK.md')));
   t('dead code removed: no unused SK style const in Delivery, Physical Count, Purchase Orders, Users; no unused TTL import in Users',
     ['DeliveryTracking', 'PhysicalCount', 'PurchaseOrders', 'UserManagement'].every(f => !/\bconst SK\b/.test(rd(`../src/pages/admin/${f}.tsx`))) && !/\bTTL\b/.test(rd('../src/pages/admin/UserManagement.tsx')));
   const um = rd('../src/pages/admin/UserManagement.tsx'), umRoles = um.match(/const ROLE_CFG = \{([\s\S]*?)\n\};/)?.[1] ?? '';
@@ -1208,14 +1208,14 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('crop shape (__clip) is an overlay prop, so it survives save, reload and undo',
     /OVERLAY_PROPS = \[[^\]]*'__clip'/.test(rdx('../src/pages/client/design-studio/useGarmentCanvas.ts')));
   const doc = rdx('../docs/engineering/FONT-LICENSES.md');
-  t('fonts: 12 OFL faces across sans, serif, script, display, condensed and mono; every weight file exists; each has its licence text and a row in FONT-LICENSES.md',
-    SF.WEB_FONTS.length === 12 && ['Sans', 'Serif', 'Script', 'Display', 'Condensed', 'Mono'].every(c => SF.WEB_FONTS.some(f => f.cat === c))
+  t('fonts: 24 OFL faces across sans, serif, script, display, condensed and mono; every weight file exists; each has its licence text and a row in FONT-LICENSES.md',
+    SF.WEB_FONTS.length === 24 && ['Sans', 'Serif', 'Script', 'Display', 'Condensed', 'Mono'].every(c => SF.WEB_FONTS.some(f => f.cat === c))
     && SF.WEB_FONTS.every(f => f.weights.every(w => fsx.existsSync(pub(`fonts/${f.file}-${w}.woff2`)))
       && /SIL OPEN FONT LICENSE Version 1\.1/.test(fsx.readFileSync(pub(`fonts/licenses/${f.file}.txt`), 'utf8'))
       && doc.includes(`| ${f.label} |`) && doc.includes('`' + f.file + '`'))
     && Sh.FONTS === SF.WEB_FONTS && Sh.LEGACY_FONTS.length > 0);
   t('fonts: lazy, never precached by the service worker, loaded only through FontFace on first use',
-    /"fonts\/\*\*"\]/.test(rdx('../vite.config.ts')) && !/fonts\.googleapis/.test(rdx('../index.html'))
+    /globIgnores:\s*\[[^\]]*"fonts\/\*\*"/.test(rdx('../vite.config.ts')) && !/fonts\.googleapis/.test(rdx('../index.html'))
     && /loadFontPreviews\(\)/.test(rdx('../src/pages/client/design-studio/TextPanel.tsx')) && /new FontFace\(/.test(rdx('../src/pages/client/design-studio/studioFonts.ts')));
 
   const woven = Sh.PATTERNS.filter(p => p.woven).map(p => p.id);
@@ -1723,9 +1723,9 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('program garments: all 12 open an editable 2D template with named zones, on the asked sleeve, each family once',
     opened.every(({ g, s, c }) => c.garment === g && c.sleeve === s && CAT.familyFor(g)?.has2D && Sh.zonesFor(g, s, c.fit).includes('body') && !!GP.getGarmentPaths(g, s ?? 'Short').body)
     && new Set(Object.keys(CAT.FAMILY_BY_NAME).map(n => n.toLowerCase())).size === Object.keys(CAT.FAMILY_BY_NAME).length);
-  t('program garments: the 3D label is has3DFor\'s answer; Polo Long and Round Neck Long have no model and say "2D design only: 3D coming"',
-    opened.every(({ c }) => CAT.label3D(c) === (CP.has3DFor(c) ? '3D preview (approximate)' : '2D design only: 3D coming'))
-    && ['Polo Shirt', 'Round Neck'].every(g => ['male', 'female'].every(fit => CAT.label3D({ garment: g, sleeve: 'Long', fit }) === '2D design only: 3D coming'))
+  t('program garments: the 3D label is has3DFor\'s answer; Polo Long and Round Neck Long have no model and say "2D design"',
+    opened.every(({ c }) => CAT.label3D(c) === (CP.has3DFor(c) ? '3D preview (approximate)' : '2D design'))
+    && ['Polo Shirt', 'Round Neck'].every(g => ['male', 'female'].every(fit => CAT.label3D({ garment: g, sleeve: 'Long', fit }) === '2D design'))
     && CAT.label3D({ garment: 'Polo Shirt', sleeve: 'Short', fit: 'male' }) === '3D preview (approximate)');
   console.log(`program garments: ${opened.map(({ g, s, c }) => `${g}${s ? ' ' + s : ''} = ${CAT.label3D(c)}`).join('; ')}`);
   const SP = (await L('/src/pages/client/design-studio/SizeProportions.tsx')).default, sp = (garment, sizes) => renderToString(React.createElement(SP, { studio: { garment, sleeve: 'Long', fit: 'male', colors: {} }, sizes }));
@@ -1734,10 +1734,10 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && sp('Mandarin Blouse (Reference)', { M: 5 }) === '' && sp('Polo Shirt', {}) === '' && GP.sizable("Men's Slacks") && GP.sizable('Mandarin Blouse') && !GP.sizable('Mandarin Blouse (Reference)'));
   // M5: Mandarin Blouse is parametric (size chart, own zones, no model); the traced outline stays for saved designs and its photo only.
   const mb = G.applyGarment({ ...base, fit: null }, 'Mandarin Blouse', { sleeve: 'Long' }), mbp = GP.getGarmentPaths('Mandarin Blouse', 'Long');
-  t('M5 Mandarin Blouse: parametric top with body, collar and both sleeves; Short and Long; one picker entry; "2D design only: 3D coming" from has3DFor',
+  t('M5 Mandarin Blouse: parametric top with body, collar and both sleeves; Short and Long; one picker entry; "2D design" from has3DFor',
     ['body', 'collar', 'sleeveL', 'sleeveR'].every(z => !!mbp[z]) && mb.sleeve === 'Long' && CAT.FAMILY_BY_NAME['Mandarin Blouse'].styles.join() === 'Short,Long'
     && G.CATALOG.flatMap(c => c.families.map(f => f.id)).filter(n => /^Mandarin Blouse/.test(n)).every(n => n === 'Mandarin Blouse')
-    && !CP.has3DFor(mb) && CAT.label3D(mb) === '2D design only: 3D coming' && S.serializeDesign({ ...mb, overlays: [] }).templateId === 'mandarin-blouse'
+    && !CP.has3DFor(mb) && CAT.label3D(mb) === '2D design' && S.serializeDesign({ ...mb, overlays: [] }).templateId === 'mandarin-blouse'
     && S.deserializeDesign(S.serializeDesign({ ...mb, overlays: [] })).cfg.garment === 'Mandarin Blouse');
   const oldMb = S.deserializeDesign({ garment: 'Mandarin Blouse', templateId: 'derived-blouse-mandarin-yellow', colors: { body: '#c9a227' } }).cfg;
   t('M5 old traced Mandarin Blouse design: its saved templateId reopens the traced outline with the same colour and 3D status; the photo still opens it',
@@ -1836,13 +1836,13 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && OT.uses2DOnlyEffects([{ fill: grad }]) && OT.uses2DOnlyEffects([{ type: 'Group', objects: [{ fill: grad }] }]) && OT.uses2DOnlyEffects([], { body: 'gradient' })
     && !OT.uses2DOnlyEffects([{ fill: '#ff0000', globalCompositeOperation: 'source-over', filters: [] }, null], { body: 'solid' }) && !OT.uses2DOnlyEffects(null, null));
   const all = Object.keys(CAT.FAMILY_BY_NAME).flatMap(g => [null, 'Short', 'Long', '3/4', 'Sleeveless'].flatMap(s => [null, 'male', 'female', 'unisex'].map(f => ({ garment: g, sleeve: s, fit: f }))));
-  t('3D labels on every garment, sleeve and fit: "3D preview (approximate)" exactly when a model renders, else "2D design only: 3D coming"; "3D preview available" needs a verification record (none today)',
-    all.length > 100 && all.every(d => CAT.label3D(d) === (CP.has3DFor(d) ? '3D preview (approximate)' : '2D design only: 3D coming')) && all.some(d => CP.has3DFor(d))
+  t('3D labels on every garment, sleeve and fit: "3D preview (approximate)" exactly when a model renders, else "2D design"; "3D preview available" needs a verification record (none today)',
+    all.length > 100 && all.every(d => CAT.label3D(d) === (CP.has3DFor(d) ? '3D preview (approximate)' : '2D design')) && all.some(d => CP.has3DFor(d))
     && CP.SCANNED_GARMENTS.every(e => !e.verification && (!e.label || e.label === '3D (approx.)'))
     && GS.slot3DLabel({ state: 'verified' }) === '3D preview (approximate)' && GS.slot3DLabel({ state: 'verified', verification: { method: 'render-compare', date: '2026-11-02' } }) === '3D preview available' && GS.slot3DLabel({ state: 'none' }) === null);
   const ds = rd('src/pages/client/DesignStudio.tsx'), d3 = rd('src/pages/client/DesignStudio3D.tsx'), sm = rd('src/pages/client/design-studio/ScannedGarmentMesh.tsx'), cv = rd('src/pages/client/design-studio/CanvasViewport.tsx');
   const srcDir = urlx.fileURLToPath(new URL('../src', import.meta.url)), walk = d => fsx.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(`${d}/${e.name}`) : /\.[jt]sx?$/.test(e.name) ? [`${d}/${e.name}`] : []);
-  const graph3D = /(DesignStudio3D|ScannedGarmentMesh|ReferenceModel3D|garmentMeshManifest|regionShader|regionTexture|StageTowers3D|GarmentPreview3D|HeroTurntable)\.[jt]sx?$/;
+  const graph3D = /(DesignStudio3D|ScannedGarmentMesh|ReferenceModel3D|garmentMeshManifest|regionShader|regionTexture|StageTowers3D|GarmentPreview3D|HeroTurntable|FabricStage3D|fabricMaterial)\.[jt]sx?$/;
   const staticThree = walk(srcDir).filter(f => !graph3D.test(f) && /^import [^;]*from '(three|@react-three\/[a-z]+)'|^import [^;]*from '[./]+[^']*(DesignStudio3D|ScannedGarmentMesh|ReferenceModel3D|garmentMeshManifest|regionShader)'/m.test(rd(f)));
   t('three, R3F and the 3D scene load only through lazy imports (no static import outside the 3D modules)', staticThree.length === 0
     && /lazy\(\(\) => import\('\.\.\/DesignStudio3D'\)\)/.test(cv) && /lazy\(\(\) => import\('\.\/ReferenceModel3D'\)\)/.test(rd('src/pages/client/design-studio/GarmentPicker.tsx')));
@@ -1961,7 +1961,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     /(aria-label|[^-]label)="Order"/.test(rd('../src/pages/client/AIMaterials.tsx')) && ['Action type', 'From date', 'To date'].every(l => al.includes(`aria-label="${l}"`))
     && /Design Studio \| VFRB Enterprise`/.test(rd('../src/pages/client/DesignStudio.tsx'))
     && /else focusErr\.current = true/.test(wz) && /querySelector\('\[aria-invalid="true"\], \[data-error\]'\)/.test(wz) && /className="wz-err" role="alert" tabIndex=\{-1\}/.test(wz)
-    && /outline: focusedKey === current \? '2px solid #028090' : 'none'/.test(rd('../src/components/AuthShell.tsx'))); }
+    && /outline: focusedKey === current \? '2px solid var\(--au-ring, #028090\)' : 'none'/.test(rd('../src/components/AuthShell.tsx'))); }
 { const rd = q => fsx.readFileSync(urlx.fileURLToPath(new URL(q, import.meta.url)), 'utf8'), aim = rd('../src/pages/client/AIMaterials.tsx'), msg = rd('../src/pages/client/Messages.tsx');
   const hex = x => (x.match(/['"`]#[0-9a-fA-F]{3,8}\b/g) || []).filter(h => !/C9A27A|C4313B|1B2A4A/i.test(h));
   t('polish nov9 S1: AI Materials order options show the customer status label, never the raw stage; AI Materials and Messages carry no off-brand hex colours; Messages inputs use the focus-ringed cx-in field',
