@@ -17,10 +17,10 @@ export const TUTORIALS = [
     [null, 'Edit the words', 'Type the words, then set the font, size and colour in the panel. The Garment panel says whether black or white text reads best on each part colour.'],
     ['.ds-stage-fit', 'Place it', 'Drag the text into place. Arrow keys nudge it one grid step; hold Shift for five.'],
   ] },
-  { id: 'draw', title: 'Draw lines and shapes', summary: 'Pen, line, rectangle, ellipse and brush.', steps: [
+  { id: 'draw', title: 'Draw lines and shapes', summary: 'Brush, eraser, pen, line and shapes.', steps: [
     ['[data-tool=pen]', 'Pen', 'Click for corners, drag for curves; click the first point to close the shape.'],
     ['[data-tool=line]', 'Line', 'Drag a straight line. Hold Shift for 45° steps.'],
-    ['[data-tool=rect],[data-tool=ellipse],[data-tool=shape]', 'Shapes', 'Drag out a rectangle or an ellipse in the active colour; hold Shift for a square or a circle.'],
+    ['[data-tool=shape]', 'Shape', 'Drag out a shape in the active colour. Pick rectangle, ellipse, triangle, star, polygon or arrow in its options; hold Shift to keep it even.'],
     ['[data-tool=brush],[data-tool=eraser]', 'Brush and eraser', 'Draw freehand with the brush (B); the eraser (E) removes your own drawings and uploaded art, never the garment.'],
   ] },
   { id: 'layers', title: 'Arrange with layers', summary: 'Select, hide, lock and reorder items.', steps: [

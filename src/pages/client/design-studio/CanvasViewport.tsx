@@ -202,7 +202,7 @@ export default function CanvasViewport({
   // ── Pan + pinned rulers ──
   // The wrapper is flex-centred in the pane's content box and transformed by translate(pan) scale(scale) about its centre, so
   // canvas (0, 0) lands at content centre + pan - size * scale / 2. Computed, not measured, so rulers never lag the canvas.
-  const split = viewMode === 'split' && show3D; // 2D stays editable beside the 3D preview
+  const split = false; // the split view is retired (2D edits do not render in 3D); the layout branches below stay inert
   const view3D = show3D && (viewMode === '3d' || split);
   const wideSplit = useMedia('(min-width:1280px)'); // side by side; below it the panes stack and rulers step aside
   const show2D = viewMode !== '3d' || !show3D;

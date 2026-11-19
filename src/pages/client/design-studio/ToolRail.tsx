@@ -2,11 +2,12 @@
 import { haptic } from '../../../utils/haptics';
 import { useEffect, useRef } from 'react';
 import ToolOptions from './ToolOptions';
-import { MousePointer2, Undo2, Redo2, Hand, Pipette, PaintBucket, Brush, Eraser, PenTool, Slash, Type, Shapes, Shirt, ImagePlus, Sun, Square, Circle } from 'lucide-react';
-import { RAIL_TOOLS, PICK_TOOLS, STROKE_SIZES, STROKE_TOOLS, railKey, activeRail } from './railTools';
+import { MousePointer2, Undo2, Redo2, Hand, Pipette, PaintBucket, Brush, Eraser, PenTool, Slash, Type, Shapes, Shirt, ImagePlus, Sun } from 'lucide-react';
+import { useState } from 'react';
+import { RAIL_TOOLS, PICK_TOOLS, railKey, activeRail, railOf } from './railTools';
 
-const ICONS = { move: MousePointer2, hand: Hand, sample: Pipette, fill: PaintBucket, brush: Brush, eraser: Eraser, pen: PenTool, line: Slash, rect: Square, ellipse: Circle, text: Type, shape: Shapes };
-const SHOWN = ['move', 'hand', 'fill', 'brush', 'eraser', 'pen', 'line', 'rect', 'ellipse', 'text', 'shape'];
+const ICONS = { move: MousePointer2, hand: Hand, sample: Pipette, fill: PaintBucket, brush: Brush, eraser: Eraser, pen: PenTool, line: Slash, text: Type, shape: Shapes };;
+const SHOWN = ['move', 'hand', 'fill', 'brush', 'eraser', 'pen', 'line', 'text', 'shape'];
 // Desktop only (CSS hides these below 1024px, where the bottom sheet has the tabs): the panels that open in the left flyout.
 // data-tab keeps the how-to tour's [data-tab=type] / [data-tab=add] targets pointing at a real control.
 const DOCK = [
@@ -17,9 +18,10 @@ const DOCK = [
 const typing = () => { const a = document.activeElement; return !!a && (/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) || a.isContentEditable); };
 
 export default function ToolRail({ rail, hand, setHand, canPan, zoomBy, readOnly = false }: any) {
-  const { tool, setTool, pick, setPick, erasing, setErasing, color, setColor, size, setSize, opacity = 1, setOpacity, smooth = 0.5, setSmooth, colourOnly, onShapes, history = null, flyTool = null, openFly = null, closeFly = null } = rail;
+  const { tool, setTool, pick, setPick, erasing, setErasing, color, setColor, size, setSize, opacity = 1, setOpacity, smooth = 0.5, setSmooth, brushKind, setBrushKind, sides, setSides, colourOnly, onShapes, history = null, flyTool = null, openFly = null, closeFly = null } = rail;
   const rootRef = useRef(null);
-  const active = activeRail({ hand, pick, tool, erasing });
+  const [shapeKind, setShapeKind] = useState('rect');
+  const active = activeRail({ hand, pick, tool, erasing }), lit = railOf(active);
   const off = id => (readOnly ? id !== 'move' : (id === 'hand' && !canPan) || (colourOnly && !RAIL_TOOLS.find(t => t.id === id)?.colour && id !== 'move'));
 
   // the set preview has no canvas to act on: leave any pick tool so it cannot linger
@@ -29,12 +31,12 @@ export default function ToolRail({ rail, hand, setHand, canPan, zoomBy, readOnly
     if (off(id)) return;
     haptic('tick');
     const leaveDraw = () => { if (tool === 'draw') setTool('assets'); };
-    if (id !== 'text' && id !== 'shape') closeFly?.(); // a drawing tool has its own options; the flyout steps aside
+    if (id !== 'text') closeFly?.(); // a drawing tool has its own options; the flyout steps aside
     setHand(id === 'hand');
-    setPick(PICK_TOOLS.includes(id) ? id : null);
+    setPick(id === 'shape' ? shapeKind : PICK_TOOLS.includes(id) ? id : null);
     if (id === 'brush' || id === 'eraser') { setErasing(id === 'eraser'); setTool('draw'); return; }
     if (id === 'text') { openFly ? openFly('text') : setTool('text'); return; }
-    if (id === 'shape') { onShapes?.(); openFly ? openFly('assets', 'shapes') : setTool('assets'); return; }
+    if (id === 'shape') { leaveDraw(); return; }
     leaveDraw();
   };
 
@@ -66,7 +68,7 @@ export default function ToolRail({ rail, hand, setHand, canPan, zoomBy, readOnly
       {RAIL_TOOLS.filter(t => SHOWN.includes(t.id)).map(({ id, key, label, hint }: any) => {
         const I = ICONS[id];
         return (
-          <button key={id} type="button" className="ds-tools-btn" data-tool={id} aria-pressed={active === id} disabled={off(id)}
+          <button key={id} type="button" className="ds-tools-btn" data-tool={id} aria-pressed={lit === id} disabled={off(id)}
             aria-label={label} aria-keyshortcuts={key} data-tip={readOnly && id !== 'move' ? `${label}: switch to one piece to use tools` : `${label} (${key}): ${id === 'hand' && !canPan ? 'zoom in to pan' : hint.toLowerCase()}`}
             onClick={() => choose(id)}>
             <I size={20} aria-hidden="true"/>
@@ -79,20 +81,11 @@ export default function ToolRail({ rail, hand, setHand, canPan, zoomBy, readOnly
           <button type="button" className="ds-tools-btn" aria-label="Redo" disabled={!history.canRedo} onClick={() => { haptic('tick'); history.redo(); }}><Redo2 size={20} aria-hidden="true"/></button>
         </span>
       )}
-      <label className="ds-tools-ink" data-tip="Active colour: the brush, pen, line, rectangle, ellipse and paint bucket use it">
+      <label className="ds-tools-ink" data-tip="Active colour: the brush, pen, line, shapes and paint bucket use it">
         <input type="color" value={color} disabled={readOnly} onChange={e => setColor(e.target.value)} aria-label="Active colour"/>
       </label>
-      {STROKE_TOOLS.includes(active) && setSize && (
-        <div className="ds-tools-size" role="radiogroup" aria-label="Stroke width">
-          {STROKE_SIZES.map(s => (
-            <button key={s} type="button" role="radio" aria-checked={size === s} aria-label={`${s} px stroke`} data-tip={`${s} px stroke`} onClick={() => setSize(s)}>
-              <i style={{ width: s + 2, height: s + 2 }} aria-hidden="true"/>
-            </button>
-          ))}
-        </div>
-      )}
     </div>
-    {!readOnly && !colourOnly && <ToolOptions active={active} rootRef={rootRef} size={size} setSize={setSize} color={color} setColor={setColor} opacity={opacity} setOpacity={setOpacity} smooth={smooth} setSmooth={setSmooth} onDone={() => choose('move')} onPick={choose}/>}
+    {!readOnly && !colourOnly && <ToolOptions active={active} rootRef={rootRef} size={size} setSize={setSize} color={color} setColor={setColor} opacity={opacity} setOpacity={setOpacity} smooth={smooth} setSmooth={setSmooth} brushKind={brushKind} setBrushKind={setBrushKind} sides={sides} setSides={setSides} onKind={k => { setShapeKind(k); setPick(k); }} onLibrary={() => { onShapes?.(); openFly ? openFly('assets', 'shapes') : setTool('assets'); setPick(null); }} onDone={() => choose('move')} onPick={choose}/>}
     </>
   );
 }

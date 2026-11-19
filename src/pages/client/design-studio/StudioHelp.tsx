@@ -14,7 +14,7 @@ const DESKTOP = '(min-width:1024px)';
 // [selector or null, title, body]. Copy describes what the Studio really does; no sizes, prices or 3D promises.
 const DESKTOP_STEPS = [
   [null, 'Welcome to the Design Studio', 'Design a uniform the way you would in a photo editor: colour each part, place logos and text, and check the front and back. This tour takes about a minute.'],
-  ['.ds-lane-top>.ds-tools', 'Tools', 'Pick a tool here or press its letter: V moves, B draws, M and O drag out a rectangle or an ellipse, G fills a part. The circle at the foot is your active colour.'],
+  ['.ds-lane-top>.ds-tools', 'Tools', 'Pick a tool here or press its letter: V moves, B draws, U drags out a shape, G fills a part. The circle at the foot is your active colour.'],
   ['.ds-stage-fit', 'Your garment', 'Tap a part to colour it. Drag an item to move it; it snaps to the grid and the centre and chest lines. Scroll to pan, Z or Ctrl+scroll to zoom, double-click the empty stage to fit.'],
   ['.ds-rail-card', 'Pieces', 'Each uniform piece has a card. Add a matching top or bottom to design the set together.'],
   ['.ds-navi', 'Navigator', 'A live map of your design. Zoom in, then drag the frame to move around; the slider zooms.'],

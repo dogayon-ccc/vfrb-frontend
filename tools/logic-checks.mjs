@@ -453,8 +453,8 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const styles = src('../src/pages/client/design-studio/DesignStudioStyles.tsx');
   t('Studio bar, draft strip and toast sit on their token levels; the phone bottom nav is in the page flow', [/\.ds-bar\{[^}]*z-index:var\(--cx-z-bar\)/, /\.ds-draft\{[^}]*z-index:var\(--cx-z-banner\)/, /\.ds-bnav\{display:grid;flex:none;/, /\.ds-toast\{[^}]*z-index:var\(--cx-z-popover\)/].every(r => r.test(styles)));
   const studio = files.map(f => [f.split(/[\\/]/).pop(), fsx.readFileSync(f, 'utf8')]);
-  const toggles = studio.filter(([, s]) => /role="radiogroup" aria-label="2D, split or 3D view"/.test(s)).map(([n]) => n);
-  t('exactly one 2D / split / 3D view switch (TopBar); the inspector has no duplicate Preview toggle', toggles.length === 1 && toggles[0] === 'TopBar.tsx' && !/Preview mode/.test(src('../src/pages/client/design-studio/TypePanel.tsx')));
+  const toggles = studio.filter(([, s]) => /role="radiogroup" aria-label="2D or 3D view"/.test(s)).map(([n]) => n);
+  t('exactly one 2D / 3D view switch (TopBar); the inspector has no duplicate Preview toggle', toggles.length === 1 && toggles[0] === 'TopBar.tsx' && !/Preview mode/.test(src('../src/pages/client/design-studio/TypePanel.tsx')));
   const V = await L('/src/pages/client/design-studio/studioView.ts');
   const C = await L('/src/pages/client/design-studio/garmentCatalog.ts');
   const combos = C.CATALOG.flatMap(c => c.families).flatMap(f => (f.styles?.length ? f.styles : [null]).flatMap(sl => (f.fits?.length ? f.fits : [undefined]).map(fit => ({ garment: f.id, sleeve: sl, fit }))));
@@ -622,19 +622,19 @@ t('new families route to their own models per sleeve; no model for a sleeve they
       /className="ds-body"/.test(sl) && /locked \? \{ inert: '' \} : \{\}/.test(sl) && /aria-disabled=\{locked \|\| undefined\}/.test(sl) && /onPointerDownCapture=\{onGate\}[\s\S]*onKeyDownCapture=\{onGate\}/.test(sl) && /className="ds-toast"/.test(sl)
       && /<StudioLayout locked=\{locked\} onGate=\{gateEdit\}/.test(ds0) && /rail=\{\s*<PiecesRail/.test(ds0) && /drawer=\{\s*<ToolDrawer/.test(ds0) && /canvas=\{\s*<CanvasViewport/.test(ds0)
       && !/className="ds-body"/.test(ds0) && !/className="ds-toast"/.test(ds0)); }
-  { const to = src('../src/pages/client/design-studio/ToolOptions.tsx'), hk = src('../src/pages/client/design-studio/useGarmentCanvas.ts'), tr = src('../src/pages/client/design-studio/ToolRail.tsx'), dp = src('../src/pages/client/design-studio/DrawPanel.tsx'), dsx = src('../src/pages/client/DesignStudio.tsx');
+  { const to = src('../src/pages/client/design-studio/ToolOptions.tsx'), hk = src('../src/pages/client/design-studio/useGarmentCanvas.ts'), tr = src('../src/pages/client/design-studio/ToolRail.tsx'), dsx = src('../src/pages/client/DesignStudio.tsx');
     t('tool options flyout: the active brush / eraser / pen / line shows its own size, opacity, smoothing and colour beside the rail (portaled into .ds-body, full width under the row on phones); the rail renders it only when editable',
       /createPortal\([\s\S]*host,\s*\)/.test(to) && /closest\('\.ds-body'\)/.test(to) && /window\.innerWidth < 768/.test(to)
-      && /brush:\s*\{ title: 'Brush'/.test(to) && /eraser:\s*\{ title: 'Eraser'/.test(to) && /pen:\s*\{ title: 'Curved line'/.test(to) && /line:\s*\{ title: 'Straight line'/.test(to)
+      && /brush:\s*\{ title: 'Brush'/.test(to) && /eraser:\s*\{ title: 'Eraser'/.test(to) && /pen:\s*\{ title: 'Pen'/.test(to) && /line:\s*\{ title: 'Line'/.test(to)
       && /aria-label="Opacity in percent"/.test(to) && /aria-label="Stroke smoothing in percent"/.test(to) && /aria-label="Size in pixels"/.test(to)
-      && /<ToolOptions active=\{active\}[^>]*onDone=\{\(\) => choose\('move'\)\}/.test(tr) && /!readOnly && !colourOnly && <ToolOptions/.test(tr)); 
+      && /<ToolOptions active=\{active\}[\s\S]*onDone=\{\(\) => choose\('move'\)\}/.test(tr) && /!readOnly && !colourOnly && <ToolOptions/.test(tr)); 
     t('freehand brush: opacity becomes an rgba stroke colour, smoothing raises decimate (0.4 to 4), strokes have round caps and joins, and size/colour/opacity/smoothing change live without leaving draw mode',
-      /decimate = 0\.4 \+ o\.smooth \* 3\.6/.test(hk) && /strokeLineCap = 'round'/.test(hk) && /strokeLineJoin = 'round'/.test(hk) && /rgba\(\$\{\(n >> 16\) & 255\}/.test(hk)
+      /decimate = 0\.4 \+ o\.smooth \* 3\.6/.test(hk) && /strokeLineCap = BRUSH_KINDS\[brushKind\(o\.kind\)\]\.cap/.test(hk) && /strokeLineJoin = 'round'/.test(hk) && /rgba\(\$\{\(n >> 16\) & 255\}/.test(hk)
       && /const setBrushStyle = useCallback\(\(size, color, opts = \{\}\)/.test(hk)
       && /changeBrushOpacity[\s\S]*setBrushStyle\(undefined, undefined, \{ opacity \}\)/.test(dsx) && /changeBrushSmooth[\s\S]*setBrushStyle\(undefined, undefined, \{ smooth \}\)/.test(dsx)
       && /opacity: brushOpacity, setOpacity: changeBrushOpacity, smooth: brushSmooth, setSmooth: changeBrushSmooth/.test(dsx));
-    t('Draw panel brush dots stay visible on the dark panel: theme tokens, not hard-coded light-theme greys',
-      !/rgba\(15,23,42/.test(dp) && /var\(--cx-ink-2\)/.test(dp) && /var\(--cx-line-strong\)/.test(dp)); }
+    t('no second drawing panel: the Add sheet has no Draw tab and DrawPanel is gone; the rail owns tool choice and ToolOptions only its own settings',
+      !/DrawPanel/.test(src('../src/pages/client/design-studio/ToolDrawer.tsx')) && !fsx.existsSync('src/pages/client/design-studio/DrawPanel.tsx') && !/SWITCH/.test(to)); }
 }
 // Canvas, grid, guides, alignment, navigation and eraser.
 {
@@ -1792,15 +1792,35 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const R = await L('/src/pages/client/design-studio/railTools.ts');
   const CR = await L('/src/pages/client/design-studio/colorRules.ts');
   const k = (key, m = {}) => R.railKey({ key, ...m });
-  t('tool rail: V H G B E P L T U M O pick their tools, Z / Alt+Z zoom, Ctrl or Cmd letters and held keys are left alone',
-    ['V', 'H', 'G', 'B', 'E', 'P', 'L', 'T', 'U', 'M', 'O'].map(x => k(x.toLowerCase())).join() === 'move,hand,fill,brush,eraser,pen,line,text,shape,rect,ellipse'
+  t('tool rail: V H G B E P L T U pick their tools, Z / Alt+Z zoom, Ctrl or Cmd letters and held keys are left alone',
+    ['V', 'H', 'G', 'B', 'E', 'P', 'L', 'T', 'U'].map(x => k(x.toLowerCase())).join() === 'move,hand,fill,brush,eraser,pen,line,text,shape' && ['m', 'o', 'y', 's', 'k', 'a'].every(x => k(x) === null) && R.RAIL_TOOLS.length === 9
     && new Set(R.RAIL_TOOLS.map(x => x.key)).size === R.RAIL_TOOLS.length
     && k('z') === 'zoom-in' && k('z', { altKey: true }) === 'zoom-out' && k('z', { ctrlKey: true }) === null && k('d', { metaKey: true }) === null
     && k('v', { repeat: true }) === null && k('Escape') === 'move' && k('q') === null
     && R.activeRail({ hand: true, pick: 'fill', tool: 'draw' }) === 'hand'
-    && R.activeRail({ pick: 'pen' }) === 'pen' && R.PICK_TOOLS.join() === 'fill,pen,line,rect,ellipse' && R.BOX_TOOLS.every(b => R.PICK_TOOLS.includes(b))
-    && R.activeRail({ pick: 'ellipse' }) === 'ellipse'
+    && R.activeRail({ pick: 'pen' }) === 'pen' && R.PICK_TOOLS.join() === 'fill,pen,line,rect,ellipse,triangle,star,polygon,arrow' && R.BOX_TOOLS.every(b => R.PICK_TOOLS.includes(b))
+    && R.activeRail({ pick: 'ellipse' }) === 'ellipse' && R.railOf('star') === 'shape' && R.railOf('brush') === 'brush' && R.SHAPE_KINDS.length === 6
     && R.activeRail({ tool: 'draw', erasing: true }) === 'eraser' && R.activeRail({ tool: 'color' }) === 'move');
+  {
+    const OT = await L('/src/pages/client/design-studio/overlayTools.ts');
+    const inBox = ps => ps.every(p => p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1);
+    const spans = ps => { const x = ps.map(p => p.x), y = ps.map(p => p.y); return Math.min(...x) === 0 && Math.max(...x) === 1 && Math.min(...y) === 0 && Math.max(...y) === 1; };
+    t('drag shapes: star has 10 points, arrow 7, polygon follows its side count (3 to 12, clamped); each fills the unit box',
+      OT.shapePoints('star').length === 10 && OT.shapePoints('arrow').length === 7 && OT.shapePoints('polygon', 5).length === 5 && OT.shapePoints('polygon', 99).length === 12
+      && OT.shapePoints('polygon', 1).length === 3 && OT.shapePoints('polygon', 'x').length === 6 && ['star', 'arrow', 'polygon'].every(k => inBox(OT.shapePoints(k)) && spans(OT.shapePoints(k))));
+    t('drag shapes: polygon labels name the side count; hexagon keeps its old name', OT.polygonLabel(6) === 'Hexagon' && OT.polygonLabel(8) === '8-sided polygon' && OT.shapeLabel({ __shapeKind: 'polygon', __sides: 5 }) === '5-sided polygon'
+      && OT.shapeLabel({ __shapeKind: 'polygon' }) === 'Hexagon' && OT.shapeLabel({ __shapeKind: 'star' }) === 'Star');
+    t('outline dash: solid is none, dashed scales with width, dotted is zero-length dashes with round caps; reading returns the same kind',
+      OT.dashFor('solid', 4) === null && OT.dashFor('dashed', 2).join() === '6,4' && OT.dashFor('dotted', 2)[0] === 0 && OT.dashProps('dotted', 3).strokeLineCap === 'round' && !('strokeLineCap' in OT.dashProps('dashed', 3))
+      && ['solid', 'dashed', 'dotted'].every(k => OT.readDash({ strokeDashArray: OT.dashFor(k, 3) }) === k) && OT.readDash({}) === 'solid');
+    t('brush presets: pencil is fine, marker broad, highlighter translucent with flat ends; unknown kinds fall back to brush; sizes sit inside each max',
+      R.BRUSH_KINDS.pencil.size < R.BRUSH_KINDS.brush.size && R.BRUSH_KINDS.marker.size > R.BRUSH_KINDS.brush.size && R.BRUSH_KINDS.highlighter.opacity < 1 && R.BRUSH_KINDS.highlighter.cap === 'square'
+      && R.brushKind('nope') === 'brush' && R.brushKind('marker') === 'marker' && Object.values(R.BRUSH_KINDS).every(b => b.size <= b.max && b.smooth >= 0 && b.smooth <= 1));
+    const rdf = f => fsx.readFileSync(f, 'utf8');
+    t('drag shapes and brushes are wired: the canvas draws every box tool, the options panel lists them, the stroke is saved opaque with its own opacity, __sides is saved',
+      /BOX_TOOLS\.includes\(m\)/.test(rdf('src/pages/client/design-studio/useGarmentCanvas.ts')) && /makeDragShape/.test(rdf('src/pages/client/design-studio/useGarmentCanvas.ts')) && /'__sides'/.test(rdf('src/pages/client/design-studio/useGarmentCanvas.ts'))
+      && /stroke: o\.color, opacity: o\.opacity/.test(rdf('src/pages/client/design-studio/useGarmentCanvas.ts')) && R.SHAPE_KINDS.every(([k]) => k in { rect: 1, ellipse: 1, triangle: 1, star: 1, polygon: 1, arrow: 1 }) && /SHAPE_KINDS\.map/.test(rdf('src/pages/client/design-studio/ToolOptions.tsx')) && !/ds-opts-tools/.test(rdf('src/pages/client/design-studio/ToolOptions.tsx')));
+  }
   const V = await L('/src/pages/client/design-studio/vectorTools.ts');
   const pt = (x, y, hx = 0, hy = 0) => ({ x, y, hx, hy });
   const s45 = V.constrain45({ x: 0, y: 0 }, { x: 10, y: 9 });

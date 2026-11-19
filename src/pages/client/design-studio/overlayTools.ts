@@ -69,7 +69,7 @@ export const SHAPE_PATHS = {
   ribbon: 'M1 8H6V6H18V8H23L20 12L23 16H18V18H6V16H1L4 12Z',
 };
 const TYPE_LABEL = { rect: 'Rectangle', circle: 'Circle', triangle: 'Triangle', ellipse: 'Ellipse', line: 'Line', polygon: 'Star' };
-export const shapeLabel = o => SHAPE_KIND_LABEL[o?.__shapeKind] ?? TYPE_LABEL[o?.type] ?? 'Shape';
+export const shapeLabel = o => (o?.__shapeKind === 'polygon' && o.__sides ? polygonLabel(o.__sides) : SHAPE_KIND_LABEL[o?.__shapeKind] ?? TYPE_LABEL[o?.type] ?? 'Shape');
 
 const ring = (n, r, inner = null, start = -Math.PI / 2) => Array.from({ length: inner ? n * 2 : n }, (_, i) => {
   const rr = inner && i % 2 ? inner : r, a = start + (i * Math.PI * 2) / (inner ? n * 2 : n);
@@ -93,6 +93,34 @@ export function makeShape(fabric, kind, common, color) {
     default:          return new fabric.Rect({ ...c, width: 64, height: 64 });
   }
 }
+
+// Polygon kinds as points in a 0..1 box (stretched to the drag box), so the live preview and the finished shape share one outline.
+export const POLY_KINDS = ['star', 'polygon', 'arrow'];
+export const SIDES = { min: 3, max: 12, def: 6 };
+export const clampSides = n => Math.max(SIDES.min, Math.min(SIDES.max, Math.round(Number(n)) || SIDES.def));
+export function shapePoints(kind, sides = SIDES.def) {
+  const n = clampSides(sides), pts = kind === 'star' ? ring(5, 32, 13) : kind === 'arrow' ? ARROW : ring(n, 32, null, -Math.PI / 2 + (n % 2 ? 0 : Math.PI / n));
+  const xs = pts.map(p => p.x), ys = pts.map(p => p.y), x0 = Math.min(...xs), y0 = Math.min(...ys), w = Math.max(...xs) - x0, h = Math.max(...ys) - y0;
+  return pts.map(p => ({ x: (p.x - x0) / w, y: (p.y - y0) / h }));
+}
+export const polygonLabel = n => (clampSides(n) === 6 ? 'Hexagon' : `${clampSides(n)}-sided polygon`);
+
+// A shape sized to a drag box b = { width, height }; common carries position, colour and tags.
+export function makeDragShape(fabric, kind, b, common, color, sides = SIDES.def) {
+  if (!POLY_KINDS.includes(kind)) {
+    const s = makeShape(fabric, kind, common, color);
+    s.set(kind === 'ellipse' ? { rx: b.width / 2, ry: b.height / 2 } : { width: b.width, height: b.height });
+    return s;
+  }
+  const n = clampSides(sides), name = kind === 'polygon' ? polygonLabel(n) : SHAPE_KIND_LABEL[kind];
+  return new fabric.Polygon(shapePoints(kind, n).map(p => ({ x: p.x * b.width, y: p.y * b.height })),
+    { ...common, strokeUniform: true, __shapeKind: kind, __layerName: name, ...(kind === 'polygon' && { __sides: n }) });
+}
+
+// Dash, cap and join for outlines. Dashes scale with the stroke width; dots are zero-length dashes with round caps.
+export const dashFor = (kind, w) => { const u = Math.max(1, w); return kind === 'dashed' ? [u * 3, u * 2] : kind === 'dotted' ? [0, u * 2.2] : null; };
+export const readDash = o => { const d = o?.strokeDashArray; return !d?.length ? 'solid' : d[0] === 0 ? 'dotted' : 'dashed'; };
+export const dashProps = (kind, w) => ({ strokeDashArray: dashFor(kind, w), ...(kind === 'dotted' && { strokeLineCap: 'round' }) });
 
 // Two-colour linear fill in the element's own box (percentage units), so it follows resize, flip and rotation.
 export const gradientSpec = (from, to, dir = 'v') => ({ type: 'linear', gradientUnits: 'percentage',

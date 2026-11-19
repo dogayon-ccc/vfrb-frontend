@@ -14,8 +14,9 @@ export function claimOpening(storage, reduced, memo = openingMemo) {
   return true;
 }
 
-export type ViewMode = '2d' | '3d' | 'split';
-export const VIEW_MODES: readonly ViewMode[] = ['2d', 'split', '3d'];
+// 2D is the editor; 3D is a separate preview. No split: 2D edits do not render in 3D yet, so showing both would mislead.
+export type ViewMode = '2d' | '3d';
+export const VIEW_MODES: readonly ViewMode[] = ['2d', '3d'];
 
 export const landingView = (status, current: ViewMode = '2d'): ViewMode => (status === '2d-3d' ? current : '2d');
 export const landingViewFor = (cfg, current: ViewMode = '2d'): ViewMode =>

@@ -91,10 +91,9 @@ export default function TextPanel({ onAdd, bodyColor }: any) {
         <span>Custom colour</span><code>{clr}</code>
       </label>
 
-      <p style={secLabel}>Size: {size}px</p>
-      <input type="range" min="10" max="72" value={size}
-        onChange={e=>setSize(Number(e.target.value))} style={{ width:'100%', accentColor:T2 }}/>
       <div className="ds-addbar">
+        <label className="ds-txt-size"><span>Size <b>{size}px</b></span>
+          <input type="range" min="10" max="72" value={size} onChange={e=>setSize(Number(e.target.value))} style={{ width:'100%', accentColor:T2 }} aria-label="Text size in pixels"/></label>
         {showEmoji && (
           <div className="ds-emoji" role="group" aria-label="Emoji">
             {UNIQUE_EMOJIS.map(e => <button key={e} type="button" onClick={() => insertEmoji(e)}>{e}</button>)}

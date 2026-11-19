@@ -9,7 +9,7 @@ type Props = { title: string; icon: string; hint?: string; onClose: () => void; 
 
 export default function StudioFlyout({ title, icon, hint, onClose, children }: Props) {
   const ref = useRef<HTMLElement>(null);
-  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+  const [pos, setPos] = useState<{ left: number; top: number; maxHeight: number } | null>(null);
 
   useLayoutEffect(() => {
     const body = ref.current?.closest('.ds-body') as HTMLElement | null;
@@ -17,7 +17,8 @@ export default function StudioFlyout({ title, icon, hint, onClose, children }: P
     if (!body || !bar) return undefined;
     const place = () => {
       const b = body.getBoundingClientRect(), r = bar.getBoundingClientRect();
-      setPos({ left: r.right - b.left + 12, top: Math.max(8, r.top - b.top) });
+      const top = Math.max(8, r.top - b.top);
+      setPos({ left: r.right - b.left + 12, top, maxHeight: Math.max(240, b.height - top - 8) });
     };
     place();
     const ro = new ResizeObserver(place);

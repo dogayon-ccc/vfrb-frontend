@@ -63,6 +63,8 @@ import PiecesRail, { PieceActions, addPieceLabel } from './design-studio/PiecesR
 import StudioHelp from './design-studio/StudioHelp';
 import { paintZone } from './design-studio/colorRules';
 import { uid } from '../../utils/uid';
+import { BRUSH_KINDS, BOX_TOOLS } from './design-studio/railTools';
+import { SIDES } from './design-studio/overlayTools';
 
 const SYNC_3D_MS = 300; // 2D -> 3D refresh window while a 3D pane (3D or Split) is open
 
@@ -307,6 +309,9 @@ export default function DesignStudio() {
   const [brushOpacity, setBrushOpacity] = useState(1);
   const [brushSmooth, setBrushSmooth] = useState(0.5);
   const [brushColor, setBrushColorState] = useState(T2);
+  const [brushKind, setBrushKindState] = useState('brush');
+  const [shapeSides, setShapeSides] = useState(SIDES.def);
+  const kindMemo = useRef({});
   const [erasing, setErasing] = useState(false); // Draw tool: pen or eraser (the eraser cuts the customer's strokes and art only)
 
   // Enter/exit drawing mode as the user switches tabs — only 'draw' should
@@ -314,7 +319,7 @@ export default function DesignStudio() {
   // normal selection back (this is what makes clicking a garment zone,
   // dragging a logo, etc. keep working once the user leaves the Draw tab).
   useEffect(() => {
-    setDrawMode(tool === 'draw', brushSize, brushColor, erasing, { opacity: brushOpacity, smooth: brushSmooth });
+    setDrawMode(tool === 'draw', brushSize, brushColor, erasing, { opacity: brushOpacity, smooth: brushSmooth, kind: brushKind });
     // Only re-run on tab change — brushSize/brushColor changes while
     // already drawing are pushed live via setBrushStyle below instead of
     // re-toggling isDrawingMode (which would interrupt an in-progress
@@ -326,13 +331,19 @@ export default function DesignStudio() {
   const changeBrushColor = (color) => { setBrushColorState(color); setBrushStyle(undefined, color); };
   const changeBrushOpacity = (opacity) => { setBrushOpacity(opacity); setBrushStyle(undefined, undefined, { opacity }); };
   const changeBrushSmooth = (smooth) => { setBrushSmooth(smooth); setBrushStyle(undefined, undefined, { smooth }); };
+  const changeBrushKind = (kind) => {
+    kindMemo.current[brushKind] = { size: brushSize, opacity: brushOpacity, smooth: brushSmooth };
+    const next = kindMemo.current[kind] ?? BRUSH_KINDS[kind];
+    setBrushKindState(kind); setBrushSize(next.size); setBrushOpacity(next.opacity); setBrushSmooth(next.smooth);
+    setBrushStyle(next.size, undefined, { opacity: next.opacity, smooth: next.smooth, kind });
+  };
 
   // Tool rail: paint bucket, Pen and Line use the brush colour; drawing turns them off.
   const [pick, setPick] = useState(null);
-  pickRef.current = { pick, color: brushColor, size: brushSize, colors: cfg.colors, final: locked };
+  pickRef.current = { pick, color: brushColor, size: brushSize, sides: shapeSides, colors: cfg.colors, final: locked };
   useEffect(() => { if (tool === 'draw') setPick(null); }, [tool]);
   useEffect(() => {
-    setPickMode(pick, () => ({ color: pickRef.current.color, width: pickRef.current.size }));
+    setPickMode(pick, () => ({ color: pickRef.current.color, width: pickRef.current.size, sides: pickRef.current.sides }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pick, setPickMode, cfg.garment, face]);
 
@@ -1106,6 +1117,7 @@ export default function DesignStudio() {
           drawer={
             <ToolDrawer onlyTools={colorOnly ? ['color'] : null} tool={tool} setTool={setTool} onOpenTool={setTool} cfg={cfg} setCfg={setCfg}
               flyOpen={flyOpen} setFlyOpen={setFlyOpen} drawing={tool === 'draw' || pick === 'pen' || pick === 'line'}
+              optsOpen={tool === 'draw' || pick === 'pen' || pick === 'line' || BOX_TOOLS.includes(pick)} endOpts={() => { setPick(null); if (tool === 'draw') setTool('assets'); }}
               activeZone={zone} setActiveZone={setActiveZone} detailFocus={detailFocus}
               addText={addText} addShape={addShape} addPocket={addPocket} setPocketColor={setPocketColor} mirrorSelected={mirrorSelected} updateSelected={updateSelected} arrangeLayer={arrangeLayer}
               assetsTab={assetsTab} setAssetsTab={setAssetsTab} logoUpload={logoUpload}
@@ -1125,7 +1137,7 @@ export default function DesignStudio() {
               selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected} alignSelected={alignSelected} arrangeSelected={arrangeSelected} garmentRect={garmentRect}
               viewMode={viewMode} has3DLoaded={has3DLoaded} onLogoFile={onLogoFile} onPickZone={setActiveZone}
               onUndo={locked ? null : lock?.warn ? () => setWarnAsk(true) : undo}
-              rail={locked ? null : { history: { undo: lock?.warn ? () => setWarnAsk(true) : undo, redo: lock?.warn ? () => setWarnAsk(true) : redo, canUndo, canRedo }, onShapes: () => setAssetsTab('shapes'), tool, setTool, flyTool: flyOpen && tool !== 'draw' ? tool : null, openFly, closeFly: () => setFlyOpen(false), pick, setPick, erasing, setErasing, color: brushColor, setColor: changeBrushColor, size: brushSize, setSize: changeBrushSize, opacity: brushOpacity, setOpacity: changeBrushOpacity, smooth: brushSmooth, setSmooth: changeBrushSmooth, colourOnly: colorOnly }}
+              rail={locked ? null : { history: { undo: lock?.warn ? () => setWarnAsk(true) : undo, redo: lock?.warn ? () => setWarnAsk(true) : redo, canUndo, canRedo }, onShapes: () => setAssetsTab('shapes'), tool, setTool, flyTool: flyOpen && tool !== 'draw' ? tool : null, openFly, closeFly: () => setFlyOpen(false), pick, setPick, erasing, setErasing, color: brushColor, setColor: changeBrushColor, size: brushSize, setSize: changeBrushSize, opacity: brushOpacity, setOpacity: changeBrushOpacity, smooth: brushSmooth, setSmooth: changeBrushSmooth, brushKind, setBrushKind: changeBrushKind, sides: shapeSides, setSides: setShapeSides, colourOnly: colorOnly }}
               zoom={zoom} setZoom={setZoom} snapshot={snapshot} overlays={overlays}
               blank={<GarmentPicker inline cfg={cfg} pieceRole={uset?.active ?? (pendingArt && artScope ? (artScope === 'bottom' ? 'bottom' : 'top') : null)} onPickPhoto={pickPhoto}
                 onPick3D={(d, f) => { keep3DRef.current = true; pickPhoto(d, f); setHas3DLoaded(true); setViewMode('3d'); }}

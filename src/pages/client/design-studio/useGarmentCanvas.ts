@@ -8,7 +8,8 @@ import { assetFor, tintedCanvas } from './garmentAssets';
 import { snapTargets, computeSnap, snapThreshold, computeResizeSnap, movingEdges, snapAngle } from './snapGuides';
 import { placementTargets, readoutPct, alignDeltas, distributeDeltas, gridSpec, guideLines, fixedGuides, nudgePct } from './canvasGuides';
 import { installStageLayers, drawPlacementGhosts, applyErase, garmentBox, plainObject } from './canvasLayers';
-import { reviveOverlays, restyleText, changesLayout, makeShape, shapeLabel, moveInStack, installTouchHandles, makePocket, recolorPocket } from './overlayTools';
+import { reviveOverlays, restyleText, changesLayout, makeShape, makeDragShape, shapePoints, POLY_KINDS, shapeLabel, moveInStack, installTouchHandles, makePocket, recolorPocket } from './overlayTools';
+import { BOX_TOOLS, BRUSH_KINDS, brushKind } from './railTools';
 import { pocketSpot, mirroredX, pocketLabel } from './pocketTools';
 import { pieceOf } from './garmentCatalog';
 import { wovenFill } from './wovenPatterns';
@@ -50,7 +51,7 @@ function zoneAt(canvas, e) {
     .find(o => o.containsPoint(scene) && !canvas.isTargetTransparent(o, vp.x, vp.y));
 }
 
-const OVERLAY_PROPS = ['__logo','__artwork','__text','__draw','__shape','__layerId','__layerName','__locked','__erase','__curve','__shapeKind','__clip','__pocket','__pocketPanels','__pocketColor','lockMovementX','lockMovementY','lockRotation','lockScalingX','lockScalingY','hasControls'];
+const OVERLAY_PROPS = ['__logo','__artwork','__text','__draw','__shape','__layerId','__layerName','__locked','__erase','__curve','__shapeKind','__sides','__clip','__pocket','__pocketPanels','__pocketColor','lockMovementX','lockMovementY','lockRotation','lockScalingX','lockScalingY','hasControls'];
 // The customer's overlays as saved JSON, in canvas coordinates (plainObject decomposes active-selection members). One serialiser
 // for history, saves and exports.
 const overlayJSON = canvas => canvas.getObjects()
@@ -391,7 +392,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
 
       // Pen: click = corner, drag = curve, first point closes, Enter / double-click / Esc finishes. Line: drag; Shift = 45 deg.
       // Rectangle and Ellipse: drag a box; Shift = square or circle.
-      const VEC_MODES = ['pen', 'line', 'rect', 'ellipse'], isBox = m => m === 'rect' || m === 'ellipse';
+      const VEC_MODES = ['pen', 'line', ...BOX_TOOLS], isBox = m => BOX_TOOLS.includes(m);
       const vecMode = () => (VEC_MODES.includes(pick.current?.mode) ? pick.current.mode : null);
       const vecStyle = () => pick.current?.style?.() ?? { color: T2, width: 4 };
       const onePx = () => 1 / (fc.current.viewportTransform[0] * (snapOpts.current.scale || 1));
@@ -409,7 +410,10 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         if (v.line) stroke([corner(v.line.from), corner(v.line.to)], width, color);
         if (v.box) {
           const b = dragBox(v.box.from, v.box.to, v.box.square), outline = new Path2D();
-          if (vecMode() === 'ellipse') outline.ellipse(b.left + b.width / 2, b.top + b.height / 2, b.width / 2, b.height / 2, 0, 0, Math.PI * 2);
+          const m = vecMode();
+          if (m === 'ellipse') outline.ellipse(b.left + b.width / 2, b.top + b.height / 2, b.width / 2, b.height / 2, 0, 0, Math.PI * 2);
+          else if (m === 'triangle') { outline.moveTo(b.left + b.width / 2, b.top); outline.lineTo(b.left + b.width, b.top + b.height); outline.lineTo(b.left, b.top + b.height); outline.closePath(); }
+          else if (POLY_KINDS.includes(m)) shapePoints(m, vecStyle().sides).forEach((q, i) => (i ? outline.lineTo : outline.moveTo).call(outline, b.left + q.x * b.width, b.top + q.y * b.height)), outline.closePath();
           else outline.rect(b.left, b.top, b.width, b.height);
           ctx.globalAlpha = 0.55; ctx.fillStyle = color; ctx.fill(outline); ctx.globalAlpha = 1;
           ctx.setLineDash([4 * px, 3 * px]); ctx.lineWidth = px; ctx.strokeStyle = '#e11d74'; ctx.stroke(outline);
@@ -447,10 +451,9 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         import('fabric').then((mod) => {
           const fabric = mod.fabric ?? mod.default ?? mod, c = fc.current;
           if (!c) return;
-          const { color } = vecStyle();
-          const shape = makeShape(fabric, kind, { left: b.left + b.width / 2, top: b.top + b.height / 2, originX: 'center', originY: 'center',
-            fill: color, stroke: 'rgba(0,0,0,.25)', strokeWidth: 1, __shape: true, __layerId: uid() }, color);
-          shape.set(kind === 'ellipse' ? { rx: b.width / 2, ry: b.height / 2 } : { width: b.width, height: b.height });
+          const { color, sides } = vecStyle();
+          const shape = makeDragShape(fabric, kind, b, { left: b.left + b.width / 2, top: b.top + b.height / 2, originX: 'center', originY: 'center',
+            fill: color, stroke: 'rgba(0,0,0,.25)', strokeWidth: 1, __shape: true, __layerId: uid() }, color, sides);
           shape.setCoords();
           c.add(shape);
           c.renderAll();
@@ -518,7 +521,9 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
           if (n) { pushHistory(); bumpLayers(); }
           return;
         }
-        keepDrawing(path, 'Drawing');
+        const o = brushOpts.current, k = BRUSH_KINDS[brushKind(o.kind)];
+        path.set({ stroke: o.color, opacity: o.opacity }); // the live trail is translucent; the layer is opaque ink with its own opacity
+        keepDrawing(path, k.layer);
       });
     }).catch(err => { console.error('[DesignStudio] fabric load error:', err); if (!cancelled) setInitFailed(true); });
 
@@ -1027,14 +1032,14 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   // to restore normal selection.
   // Freehand brush: the one place that turns the options (size, colour, opacity, smoothing) into Fabric's PencilBrush.
   // Smoothing raises `decimate` (points closer than that are dropped before the path is curve-fitted), so a shaky hand gives a clean line.
-  const brushOpts = useRef({ size: 4, color: '#02C39A', opacity: 1, smooth: 0.5, erase: false });
+  const brushOpts = useRef({ size: 4, color: '#02C39A', opacity: 1, smooth: 0.5, erase: false, kind: 'brush' });
   const toRgba = (hex, a) => { const m = /^#([0-9a-f]{6})$/i.exec(hex ?? ''); if (!m || a >= 1) return hex; const n = parseInt(m[1], 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`; };
   const styleBrush = (brush) => {
     const o = brushOpts.current;
     brush.width = o.erase ? Math.max(o.size * 3, 12) : o.size;
     brush.color = o.erase ? 'rgba(27,36,40,.28)' : toRgba(o.color, o.opacity); // the eraser stroke shows as a soft trail while drawn
     brush.decimate = 0.4 + o.smooth * 3.6;
-    brush.strokeLineCap = 'round';
+    brush.strokeLineCap = BRUSH_KINDS[brushKind(o.kind)].cap;
     brush.strokeLineJoin = 'round';
   };
 

@@ -8,9 +8,7 @@ export const RAIL_TOOLS = [
   { id: 'pen',    key: 'P', label: 'Pen',          hint: 'Click for corners, drag for curves; click the first point to fill a shape; Enter, Esc or double-click to finish' },
   { id: 'line',   key: 'L', label: 'Line',         hint: 'Drag a straight line; hold Shift for 45° steps' },
   { id: 'text',   key: 'T', label: 'Text',         hint: 'Add names, slogans or numbers' },
-  { id: 'shape',  key: 'U', label: 'Shapes',       hint: 'Add a shape' },
-  { id: 'rect',   key: 'M', label: 'Rectangle',    hint: 'Drag to draw a rectangle in the active colour; hold Shift for a square' },
-  { id: 'ellipse', key: 'O', label: 'Ellipse',     hint: 'Drag to draw an ellipse in the active colour; hold Shift for a circle' },
+  { id: 'shape',  key: 'U', label: 'Shape',        hint: 'Drag to draw a shape in the active colour; pick the kind in its options' },
 ];
 // WCAG 2.1.4: single-key shortcuts can be turned off (speech input presses letters); on by default, remembered in this browser.
 const KEYS_PREF = 'ds_letter_keys';
@@ -41,9 +39,19 @@ export const STROKE_SIZES = [2, 5, 10];
 export const STROKE_TOOLS = ['brush', 'pen', 'line'];
 
 // Rail tools that work through canvas taps instead of selecting items.
-export const PICK_TOOLS = ['fill', 'pen', 'line', 'rect', 'ellipse'];
-// Rail tools that drag out a box: the shape kinds overlayTools.makeShape builds.
-export const BOX_TOOLS = ['rect', 'ellipse'];
+// The Shape tool's kinds: modes of one rail tool (picked in its options), each drawn by drag.
+export const SHAPE_KINDS = [['rect', 'Rectangle'], ['ellipse', 'Ellipse'], ['triangle', 'Triangle'], ['star', 'Star'], ['polygon', 'Polygon'], ['arrow', 'Arrow']] as const;
+export const BOX_TOOLS = SHAPE_KINDS.map(k => k[0]) as string[];
+export const railOf = (mode: string) => (BOX_TOOLS.includes(mode) ? 'shape' : mode); // the rail button a mode belongs to
+export const PICK_TOOLS = ['fill', 'pen', 'line', ...BOX_TOOLS];
+// Freehand presets: each remembers its own size, opacity and smoothing. Highlighter has flat ends and a translucent stroke.
+export const BRUSH_KINDS = {
+  brush:       { label: 'Brush',       layer: 'Drawing',     size: 5,  max: 40, opacity: 1,   smooth: 0.5,  cap: 'round'  },
+  pencil:      { label: 'Pencil',      layer: 'Pencil',      size: 2,  max: 8,  opacity: 1,   smooth: 0.25, cap: 'round'  },
+  marker:      { label: 'Marker',      layer: 'Marker',      size: 12, max: 40, opacity: 1,   smooth: 0.6,  cap: 'round'  },
+  highlighter: { label: 'Highlighter', layer: 'Highlighter', size: 20, max: 60, opacity: 0.4, smooth: 0.6,  cap: 'square' },
+};
+export const brushKind = k => (k in BRUSH_KINDS ? k : 'brush');
 
 // View toggles on the stage: Shift+G grid (G alone stays the paint bucket), R rulers. Ctrl, Cmd, Alt and held keys are left alone.
 export function viewKey(e) {

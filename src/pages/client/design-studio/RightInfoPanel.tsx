@@ -94,7 +94,7 @@ export function SelectionInspector({ selObj, updateSelected, alignSelected, togg
   // A shape's look (fill, border, opacity) is what its owner came to change, so it leads; other items keep it after position.
   const appearance = !multi && <section className="ds-ins-sec">
         <p className="ds-group-label">Appearance</p>
-        {selObj.__shape && <ShapeStyleSection o={selObj} live={live} commit={commit} locked={locked}/>}
+        {(selObj.__shape || selObj.__draw) && <ShapeStyleSection o={selObj} live={live} commit={commit} locked={locked}/>}
         {selObj.type === 'image' && <ImageStyleSection o={selObj} live={live} commit={commit} locked={locked}/>}
         {range(`Opacity ${Math.round((selObj.opacity ?? 1) * 100)}%`, Math.round((selObj.opacity ?? 1) * 100), 10, 100,
           v => live({ opacity: v / 100 }), false)}

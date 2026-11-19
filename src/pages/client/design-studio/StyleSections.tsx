@@ -4,7 +4,7 @@
 import { FlipHorizontal2, FlipVertical2, BringToFront, ArrowUp, ArrowDown, SendToBack } from 'lucide-react';
 import { FONTS, LEGACY_FONTS } from './dsShared';
 import { webFontFor, nearestWeight, numericWeight } from './studioFonts';
-import { clampCurve, gradientSpec, readGradient, readAdjust, adjustFilters, CLIP_KINDS, clipFor, TRIM_MAX, readTrim, applyTrim, BLENDS, blendOf } from './overlayTools';
+import { clampCurve, gradientSpec, readGradient, readAdjust, adjustFilters, CLIP_KINDS, clipFor, TRIM_MAX, readTrim, applyTrim, BLENDS, blendOf, readDash, dashProps } from './overlayTools';
 
 // Fabric is already loaded once a selection exists; this resolves from the module cache.
 const withFabric = fn => import('fabric').then(m => fn(m.fabric ?? m.default ?? m));
@@ -26,26 +26,30 @@ function Range({ label, value, min, max, step = 1, onLive, onCommit, disabled }:
   );
 }
 
-function Seg({ label, items, value, onPick, disabled }: any) {
+function Seg({ label, items, value, onPick, disabled, showLabel = false }: any) {
   return (
+    <>
+    {showLabel && <p className="ds-ins-cap">{label}</p>}
     <div className="ds-seg ds-seg--sm" role="radiogroup" aria-label={label}>
       {items.map(([id, text, title]) => (
         <button key={id} type="button" role="radio" aria-checked={value === id} title={title} aria-label={title ?? text} disabled={disabled}
           onClick={() => onPick(id)}>{text}</button>
       ))}
     </div>
+    </>
   );
 }
 
 // Solid or two-colour gradient fill, for shapes and text. Solid returns to the gradient's first colour.
-function FillSection({ o, live, commit, locked, fallback }: any) {
+function FillSection({ o, live, commit, locked, fallback, allowNone = false }: any) {
   const g = readGradient(o.fill), from = g?.from ?? hexOr(o.fill, fallback);
   const paint = (f, t, d) => withFabric(fabric => live({ fill: new fabric.Gradient(gradientSpec(f, t, d)) }));
   return (
     <>
-      <Seg label="Fill style" value={g ? g.dir : 'solid'} disabled={locked}
-        onPick={k => (k === 'solid' ? (live({ fill: from }), commit()) : paint(from, g?.to ?? '#ffffff', k).then(commit))}
-        items={[['solid', 'Solid'], ['v', 'Gradient ↓', 'Vertical gradient'], ['h', 'Gradient →', 'Horizontal gradient']]}/>
+      <Seg label="Fill style" value={allowNone && !o.fill ? 'none' : g ? g.dir : 'solid'} disabled={locked}
+        onPick={k => (k === 'none' ? (live({ fill: null, ...(!(o.strokeWidth > 0) && { strokeWidth: 2, stroke: '#000000' }) }), commit())
+          : k === 'solid' ? (live({ fill: from }), commit()) : paint(from, g?.to ?? '#ffffff', k).then(commit))}
+        items={[...(allowNone ? [['none', 'None', 'No fill']] : []), ['solid', 'Solid'], ['v', '↓ Fade', 'Vertical gradient'], ['h', '→ Fade', 'Horizontal gradient']]}/>
       {g && <Colour label="Gradient end" value={hexOr(g.to, '#ffffff')} disabled={locked} onLive={c => paint(g.from, c, g.dir)} onCommit={commit}/>}
     </>
   );
@@ -145,18 +149,33 @@ export function TextStyleSection({ o, set, live, commit, locked }: any) {
   );
 }
 
+const DASHES = [['solid', 'Solid'], ['dashed', 'Dashed'], ['dotted', 'Dotted']];
+const CAPS = [['round', 'Round', 'Round ends'], ['butt', 'Flat', 'Flat ends'], ['square', 'Square', 'Square ends']];
+const JOINS = [['round', 'Round', 'Round corners'], ['miter', 'Sharp', 'Sharp corners'], ['bevel', 'Bevel', 'Bevelled corners']];
+
+// Shapes and drawings: fill (solid, gradient or none), outline colour and width, dash, line ends and corners. Only what the object has.
 export function ShapeStyleSection({ o, live, commit, locked }: any) {
-  const isLine = o.type === 'line', rounded = o.type === 'rect';
-  const stroke = o.strokeWidth ?? 0;
+  const open = !!o.__draw && !o.fill, isLine = o.type === 'line' || open, rounded = o.type === 'rect', hasFill = !isLine && !!o.fill;
+  const stroke = o.strokeWidth ?? 0, dash = readDash(o), corners = !isLine || o.type === 'path';
+  const set = patch => { live(patch); commit(); };
+  const width = v => live({ strokeWidth: v, ...(!HEX.test(o.stroke ?? '') && !/^rgb/.test(o.stroke ?? '') && { stroke: '#000000' }), ...(dash !== 'solid' && dashProps(dash, v)) });
   return (
     <>
-      {!isLine && <Colour label={readGradient(o.fill) ? 'Gradient start' : 'Fill'} value={readGradient(o.fill)?.from ?? hexOr(o.fill, '#02c39a')} disabled={locked}
-        onLive={c => { const g = readGradient(o.fill); g ? withFabric(f => live({ fill: new f.Gradient(gradientSpec(c, g.to, g.dir)) })) : live({ fill: c }); }} onCommit={commit}/>}
-      {!isLine && <FillSection o={o} live={live} commit={commit} locked={locked} fallback="#02c39a"/>}
+      {!isLine && <FillSection o={o} live={live} commit={commit} locked={locked} fallback="#02c39a" allowNone/>}
+      {hasFill && !readGradient(o.fill) && <Colour label="Fill" value={hexOr(o.fill, '#02c39a')} disabled={locked} onLive={c => live({ fill: c })} onCommit={commit}/>}
+      {hasFill && readGradient(o.fill) && <Colour label="Gradient start" value={readGradient(o.fill).from} disabled={locked}
+        onLive={c => { const g = readGradient(o.fill); withFabric(f => live({ fill: new f.Gradient(gradientSpec(c, g.to, g.dir)) })); }} onCommit={commit}/>}
       <Colour label={isLine ? 'Colour' : 'Border colour'} value={hexOr(o.stroke, '#000000')} disabled={locked}
         onLive={c => live({ stroke: c, ...(!isLine && !stroke && { strokeWidth: 2 }) })} onCommit={commit}/>
-      <Range label={`${isLine ? 'Thickness' : 'Border'} ${stroke ? `${stroke}px` : 'none'}`} value={stroke} min={isLine ? 1 : 0} max={isLine ? 24 : 12} step={0.5}
-        disabled={locked} onLive={v => live({ strokeWidth: v, ...(!HEX.test(o.stroke ?? '') && { stroke: '#000000' }) })} onCommit={commit}/>
+      <Range label={`${isLine ? 'Thickness' : 'Border'} ${stroke ? `${stroke}px` : 'none'}`} value={stroke} min={isLine ? 1 : 0} max={isLine ? 40 : 12} step={0.5}
+        disabled={locked} onLive={width} onCommit={commit}/>
+      {stroke > 0 && (
+        <>
+          <Seg showLabel label="Dash" value={dash} disabled={locked} onPick={k => set(dashProps(k, stroke))} items={DASHES}/>
+          <Seg showLabel label="Line ends" value={dash === 'dotted' ? 'round' : o.strokeLineCap ?? 'butt'} disabled={locked || dash === 'dotted'} onPick={c => set({ strokeLineCap: c })} items={CAPS}/>
+          {corners && <Seg showLabel label="Corners" value={o.strokeLineJoin ?? 'miter'} disabled={locked} onPick={j => set({ strokeLineJoin: j })} items={JOINS}/>}
+        </>
+      )}
       {rounded && (
         <Range label={`Corner radius ${Math.round(o.rx ?? 0)}`} value={Math.round(o.rx ?? 0)} min={0} max={Math.round(Math.min(o.width, o.height) / 2)}
           disabled={locked} onLive={v => live({ rx: v, ry: v })} onCommit={commit}/>

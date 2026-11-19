@@ -6,7 +6,6 @@ import './studioDark.css';
 import LayersPanel from './LayersPanel';
 import AssetsPanel from './AssetsPanel';
 import PatternPanel from './PatternPanel';
-import DrawPanel from './DrawPanel';
 import TypePanel from './TypePanel';
 import ColorsPanel from './ColorsPanel';
 import DetailsPanel from './DetailsPanel';
@@ -32,7 +31,6 @@ const ADD_ITEMS = [
   { id: 'logo',     label: 'Logo',     icon: 'logo',   tool: 'assets', sub: 'logo' },
   { id: 'text',     label: 'Text',     icon: 'text',   tool: 'text',   sub: null },
   { id: 'shapes',   label: 'Shapes',   icon: 'shapes', tool: 'assets', sub: 'shapes' },
-  { id: 'draw',     label: 'Draw',     icon: 'draw',   tool: 'draw',   sub: null },
 ];
 const SNAP_NEXT = { peek: ['half', 'Raise the panel'], half: ['full', 'Raise the panel to full height'], full: ['peek', 'Lower the panel'] };
 
@@ -77,7 +75,7 @@ function SpecSummary({ cfg, layers = [], status = null }: any) {
 // Phones and tablets: a bottom nav (Garment, Add, Layers, AI Design, More) under a sheet of at most 40% of the screen that folds to
 // a handle; the spec summary is one line there. `garmentExtra` (piece actions) shows in the Garment sheet there; `more` = { onView, onCopy, canCopy, copying }.
 // `onlyTools`: the tools a restricted design may use (a colour-only copy passes ['color']); everything else is hidden.
-export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, onlyTools = null, garmentExtra = null, more = null, flyOpen = false, setFlyOpen = null, drawing = false, ...p }: any) {
+export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, onlyTools = null, garmentExtra = null, more = null, flyOpen = false, setFlyOpen = null, drawing = false, optsOpen = false, endOpts = null, ...p }: any) {
   const hasSelection = isEditableSelection(p.selObj);
   const allowed = id => !onlyTools || onlyTools.includes(id);
   const split = useMedia('(min-width:1024px)') && !onlyTools && !!setFlyOpen;
@@ -114,7 +112,7 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
                      shapes={{ selObj:p.selObj, onAdd:p.addShape, onUpdate:p.updateSelected }}
                      onInspo={() => p.setShowInspo(true)} onShowcase={() => p.setShowShowcase(true)}/>,
     text:    () => <TextPanel onAdd={p.addText} bodyColor={p.cfg?.colors?.body}/>,
-    draw:    () => <DrawPanel size={p.brushSize} color={p.brushColor} onSizeChange={p.changeBrushSize} onColorChange={p.changeBrushColor} erasing={p.erasing} setErasing={p.setErasing}/>,
+    draw:    () => <div className="ds-sum"><p className="ds-note">Brush and eraser options are in the panel on the canvas. Pick another tool from the tool bar, or finish here.</p><button type="button" className="ds-btn" onClick={() => endOpts?.()}>Done drawing</button></div>,
     ai:      () => <div className="ds-sum"><AIDesignChat cfg={p.cfg} textItems={p.textItems} ai={p.ai}/></div>,
     layers:  () => layersList(),
     scene:   () => <ScenePanel/>,
@@ -164,7 +162,10 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
   const setCollapsed = v => { setCollapsedState(v); try { localStorage.setItem('ds_panel_collapsed', v ? '1' : '0'); } catch { /* storage blocked */ } };
   // A tab opens on its first tool (Draw never reopens by itself: it takes over the canvas).
   const [snap, setSnap] = useState('peek');
-  const raise = () => setSnap(s => (s === 'peek' ? 'half' : s));
+  // Phones: a drawing tool's options float over the stage, so the sheet stays on its bar while they are open. Raising the sheet,
+  // by its button, a drag or a tab, ends the drawing tool first; so only one of the two is ever showing.
+  const narrow = useMedia('(max-width:767px)'), phoneOpts = optsOpen && narrow, shownSnap = phoneOpts ? 'peek' : snap;
+  const raise = () => { if (phoneOpts) return; setSnap(s => (s === 'peek' ? 'half' : s)); };
   const [moreOpen, setMoreOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => { scrollRef.current?.scrollTo({ top: 0 }); }, [tool, partView, moreOpen]);
@@ -180,10 +181,10 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
   }, []);
   useEffect(() => { setMoreOpen(false); if (performance.now() - tapAt.current < 1500) raise(); }, [pickedTool, p.activeZone]);
   useEffect(() => { if (p.sheetPing) raise(); }, [p.sheetPing]);
-  const pick = t => { if (collapsed) setCollapsed(false); raise(); setMoreOpen(false); if (split) setRightTab(t.tools.find(allowed)); else setTool(t.tools.find(allowed)); };
+  const pick = t => { if (phoneOpts) endOpts?.(); if (collapsed) setCollapsed(false); raise(); setMoreOpen(false); if (split) setRightTab(t.tools.find(allowed)); else setTool(t.tools.find(allowed)); };
   const drag = useRef(null);
   const dragDown = e => { if (e.target.closest('button')) return; drag.current = e.clientY; e.currentTarget.setPointerCapture(e.pointerId); };
-  const dragUp = e => { if (drag.current === null) return; const dy = e.clientY - drag.current; drag.current = null; setSnap(s => snapStep(s, dy)); };
+  const dragUp = e => { if (drag.current === null) return; const dy = e.clientY - drag.current; drag.current = null; if (phoneOpts) { if (dy < -24) { endOpts?.(); setSnap('half'); } return; } setSnap(s => snapStep(s, dy)); };
   const inMore = !NAV.includes(tab?.id);
   const navTabs = tabs.filter(t => NAV.includes(t.id));
   const moreTabs = tabs.filter(t => !NAV.includes(t.id));
@@ -221,15 +222,15 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
             ))}
           </nav>
         )}
-        <div className="ds-sheet" data-snap={snap}>
+        <div className="ds-sheet" data-snap={shownSnap}>
         {/* Phones and tablets: the sheet's bar (drag it, or use its button), with the panel name and the save state. */}
         {!noGarment && (
           <div className="ds-sheet-bar" onPointerDown={dragDown} onPointerUp={dragUp} onPointerCancel={() => { drag.current = null; }}>
             <span className="ds-sheet-grip" aria-hidden="true"/>
             <h2 className="ds-sheet-name">{moreOpen ? 'More' : title}</h2>
             {p.status && <span className="ds-sheet-status" data-tone={p.status.tone}>{p.status.short}</span>}
-            <button type="button" className="ds-sheet-toggle" aria-expanded={snap !== 'peek'} aria-label={SNAP_NEXT[snap][1]} onClick={() => setSnap(SNAP_NEXT[snap][0])}>
-              {snap === 'full' ? <ChevronDown size={20} aria-hidden="true"/> : <ChevronUp size={20} aria-hidden="true"/>}
+            <button type="button" className="ds-sheet-toggle" aria-expanded={shownSnap !== 'peek'} aria-label={SNAP_NEXT[shownSnap][1]} onClick={() => { if (phoneOpts) { endOpts?.(); setSnap('half'); } else setSnap(SNAP_NEXT[snap][0]); }}>
+              {shownSnap === 'full' ? <ChevronDown size={20} aria-hidden="true"/> : <ChevronUp size={20} aria-hidden="true"/>}
             </button>
           </div>
         )}

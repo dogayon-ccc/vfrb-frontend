@@ -9,7 +9,7 @@ export default function ScenePanel() {
   const off = !s.has3D;
   return (
     <div className="ds-scene">
-      {off && <p className="ds-note ds-scene-note" role="status">Scene settings apply to the 3D preview. Switch to Split or 3D, or pick a garment that has a 3D model.</p>}
+      {off && <p className="ds-note ds-scene-note" role="status">Scene settings apply to the 3D preview. Switch to 3D, or pick a garment that has a 3D model.</p>}
       <section className="ds-scene-sec" aria-labelledby="sc-bd">
         <h3 id="sc-bd">Backdrop</h3>
         <div className="ds-scene-grid" role="radiogroup" aria-labelledby="sc-bd">
