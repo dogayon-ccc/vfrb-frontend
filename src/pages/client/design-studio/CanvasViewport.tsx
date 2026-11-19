@@ -476,7 +476,7 @@ export default function CanvasViewport({
       return [label && { id: 'approx', text: label, warn: true }, hem && { id: 'hem', text: hem, warn: true },
         placed.some(o => o?.__pocket) && { id: 'pockets', text: 'Pockets are shown in 2D only' },
         uses2DOnlyEffects(placed, cfg.patterns) && { id: 'fx2d', text: 'Some effects appear in 2D only' },
-        placed.some(o => o && !o.__pocket) && c3.supported && !(c3.logo && c3.text) && { id: 'decals', text: 'Logos and text are 2D only on this model' },
+        placed.some(o => o && !o.__pocket) && c3.supported && !(c3.logo && c3.text) && { id: 'decals', text: 'Logos and text show in 2D and in the order only; this 3D model has no verified print area' },
         Object.keys(cfg.details ?? {}).length > 0 && { id: 'details', text: detailParts3D(cfg.garment, cfg.sleeve, cfg.fit) ? 'Button and closure colours are shown in 2D only' : 'Pocket, button and closure changes are shown in 2D only' }];
     })() : []),
   ].filter(Boolean) : lostNote ? [{ id: 'gllost', text: '3D stopped working on this device. Showing the 2D design.', warn: true }] : [];

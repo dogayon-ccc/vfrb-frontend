@@ -1891,6 +1891,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     OT.uses2DOnlyEffects([{ globalCompositeOperation: 'multiply' }]) && OT.uses2DOnlyEffects([{ type: 'Image', filters: [{ type: 'Brightness', brightness: 0.2 }] }])
     && OT.uses2DOnlyEffects([{ fill: grad }]) && OT.uses2DOnlyEffects([{ type: 'Group', objects: [{ fill: grad }] }]) && OT.uses2DOnlyEffects([], { body: 'gradient' })
     && !OT.uses2DOnlyEffects([{ fill: '#ff0000', globalCompositeOperation: 'source-over', filters: [] }, null], { body: 'solid' }) && !OT.uses2DOnlyEffects(null, null));
+  t('3D note for artwork on garments without decals names the cause', /print area/.test(rdf('src\/pages\/client\/design-studio\/CanvasViewport.tsx')) && /logo: false/.test(rdf('src\/pages\/client\/design-studio\/garmentCapabilities.ts')));
   const all = Object.keys(CAT.FAMILY_BY_NAME).flatMap(g => [null, 'Short', 'Long', '3/4', 'Sleeveless'].flatMap(s => [null, 'male', 'female', 'unisex'].map(f => ({ garment: g, sleeve: s, fit: f }))));
   t('3D labels on every garment, sleeve and fit: "3D preview (approximate)" exactly when a model renders, else "2D design"; "3D preview available" needs a verification record (none today)',
     all.length > 100 && all.every(d => CAT.label3D(d) === (CP.has3DFor(d) ? '3D preview (approximate)' : '2D design')) && all.some(d => CP.has3DFor(d))
