@@ -557,7 +557,7 @@ export default function CanvasViewport({
 
           {split && <span className="ds-pane-tag" aria-hidden="true">Edit · 2D</span>}
           <AnimatePresence>
-            {selObj && at && show2D && <FloatingToolbar key="ftb" selObj={selObj} at={at} duplicateSelected={duplicateSelected} deleteSelected={deleteSelected}
+            {selObj && at && show2D && cfg.garment && <FloatingToolbar key="ftb" selObj={selObj} at={at} duplicateSelected={duplicateSelected} deleteSelected={deleteSelected}
               alignSelected={alignSelected} arrangeSelected={arrangeSelected}/>}
           </AnimatePresence>
         </div>

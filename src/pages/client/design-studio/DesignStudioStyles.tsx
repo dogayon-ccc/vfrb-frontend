@@ -852,6 +852,11 @@ export default function DesignStudioStyles() {
         .ds-lane-top>.ds-tools .ds-tools-ink{margin:6px 0 2px;flex:none;}
         .ds-lane-top>.ds-tools .ds-tools-size{flex-direction:column;margin:4px 0 0;padding:4px 0 0;border-left:0;border-top:1px solid var(--cx-line);}
       }
+      @media (min-width:1024px) and (max-height:820px){
+        .ds-lane-top>.ds-tools .ds-tools-btn{min-height:36px;min-width:40px;}
+        .ds-lane-top>.ds-tools .ds-tools-ink,.ds-lane-top>.ds-tools .ds-tools-size button{width:36px;height:36px;}
+        .ds-lane-top>.ds-tools{max-height:calc(100dvh - 120px);scrollbar-width:thin;}
+      }
       @media (max-width:767px){.ds-tools-btn[data-tool=hand]{display:none;}}
       .ds-guides-n{min-width:18px;height:18px;display:grid;place-items:center;padding:0 4px;border-radius:var(--cx-r-md);background:var(--cx-thread);color:var(--cx-on-thread);font-size:13px;}
       .ds-guides-pop{z-index:var(--cx-z-popover);width:min(300px,calc(100vw - 24px));padding:8px;display:flex;flex-direction:column;gap:2px;overflow-y:auto;overscroll-behavior:contain;
@@ -1274,8 +1279,9 @@ export default function DesignStudioStyles() {
       .ds-txt-size span{display:flex;justify-content:space-between;}
       .ds-txt-size b{color:var(--cx-ink);font-weight:600;}
       .ds-ins-cap{margin:8px 0 4px;font-size:12px;font-weight:600;color:var(--cx-ink-2);}
-      .ds-opts .ds-seg{display:flex;}
-      .ds-opts .ds-seg button{flex:1;min-width:0;padding-inline:4px;font-size:12px;white-space:nowrap;}
+      .ds-opts .ds-seg{display:flex;flex-wrap:wrap;gap:4px;padding:4px;}
+      .ds-opts .ds-seg button{flex:1 1 0;min-width:max-content;min-height:36px;padding-inline:10px;font-size:12px;white-space:nowrap;border:1px solid var(--cx-line);}
+      .ds-opts .ds-seg button[aria-checked="true"]{border-color:var(--cx-thread);}
       .ds-addbar{position:sticky;bottom:0;z-index:3;display:flex;flex-direction:column;gap:8px;margin:4px -12px 0;padding:10px 12px max(12px,env(safe-area-inset-bottom));background:var(--bg-card);border-top:1px solid var(--border);box-shadow:0 -8px 16px -12px rgb(15 23 42 / .25);}
       .ds-txt-preview{display:grid;place-items:center;min-height:44px;padding:6px 10px;border-radius:10px;overflow:hidden;}
       .ds-txt-preview span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
