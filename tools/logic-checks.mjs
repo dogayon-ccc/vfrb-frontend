@@ -1152,7 +1152,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const rdo = q => fsx.readFileSync(urlx.fileURLToPath(new URL(q, import.meta.url)), 'utf8');
   const owner = { role: 'owner' };
   t('owner pages: the backend read-only areas (invoice = the page over the orders API) plus Settings for their own account; everything else is closed',
-    JA.OWNER_PAGES.join() === 'dashboard,orders,reports,transactions,invoice,inventory,materials,activity-log,audit-logs,settings'
+    JA.OWNER_PAGES.join() === 'dashboard,orders,reports,transactions,invoice,inventory,materials,set-review,activity-log,audit-logs,settings'
     && ['/admin', '/admin/dashboard', '/admin/orders/12', '/admin/reports', '/admin/transactions', '/admin/invoice?x=1', '/admin/inventory', '/admin/materials', '/admin/activity-log', '/admin/audit-logs'].every(JA.ownerCanOpen)
     && !['/admin/users', '/admin/production', '/admin/procurement', '/admin/physical-count', '/admin/delivery', '/admin/messages', '/admin/customers', '/admin/suppliers', '/admin/qc'].some(JA.ownerCanOpen)
     && JA.isOwner(owner) && !JA.isOwner({ role: 'manager' }) && JA.canAccessArea(owner, 'inventory') && !JA.canAccessArea(owner, 'production'));
@@ -1961,8 +1961,8 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('Order Detail: the sticky aside spans both desktop rows, so it never slides over the full-width materials section',
     /grid-template-areas:"main aside" "mat aside"/.test(rd('src/styles/customer.css')) && !/"mat mat"/.test(rd('src/styles/customer.css')));
   { const dh = rd('src/pages/client/Dashboard.tsx');
-    t('Home hero is one first action: Continue my draft when a draft exists, else Create a design; no extra API call',
-      /draft \? \(<>[\s\S]*?onClick=\{openStudio\}>Continue my draft<[\s\S]*?\) : \(<>[\s\S]*?onClick=\{startNew\}>Create a design</.test(dh) && (dh.match(/axios\.get\(|fetchAllPages\(/g) ?? []).length === 4); }
+    t('Home hero: Upload uniform reference (to /order/create) is the dominant action; Design Studio is a separate secondary action (Continue draft / Open Design Studio); no extra API call',
+      /dx-cta[^>]*onClick=\{\(\) => nav\('\/order\/create'\)\}>Upload uniform reference</.test(dh) && /onClick=\{draft \? openStudio : startNew\}>\{draft \? 'Continue my design draft' : 'Open Design Studio'\}</.test(dh) && !/dx-stats/.test(dh) && (dh.match(/axios\.get\(|fetchAllPages\(/g) ?? []).length === 4); }
   { const FP = await L('/src/utils/fetchAllPages.ts'), seen = [];
     const get = (u, { params }) => { seen.push(params); return Promise.resolve({ data: { data: [params.page * 10], last_page: 30 } }); };
     const all = await FP.fetchAllPages('/x', { get }), flat = await FP.fetchAllPages('/x', { get: () => Promise.resolve({ data: [1, 2] }) });
@@ -1976,7 +1976,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
       && ['src/utils/offlineQueue.ts', 'src/pages/client/DesignStudio.tsx', 'src/pages/client/design-studio/uniformSet.ts', 'src/pages/client/design-studio/useGarmentCanvas.ts'].every(f => !/randomUUID/.test(rd(f)))); }
   t('a11y: each customer page sets its own tab title; order buttons name their order; My Designs cards are h2 under the h1',
     ['Dashboard', 'MyDesigns', 'Orders', 'OrderDetail', 'OrderWizard', 'Messages', 'AccountSettings', 'AIMaterials'].every(p => /usePageTitle\(/.test(rd(`src/pages/client/${p}.tsx`)))
-    && /aria-label=\{`Details for order #\$\{o\.order_id\}`\}/.test(rd('src/pages/client/Orders.tsx')) && /<h2 title=\{title\}>/.test(rd('src/pages/client/MyDesigns.tsx')));
+    && /aria-label=\{`View order \$\{o\.order_id\}, \$\{orderTitle\(o\)\}`\}/.test(rd('src/pages/client/Orders.tsx')) && /<h2 title=\{title\}>/.test(rd('src/pages/client/MyDesigns.tsx')));
   const mqb = rd('src/pages/landing/MarqueeBand.tsx'), lcss = rd('src/styles/landing.css'), mapp = rd('src/styles/motion-app.css');
   t('motion caps and pause: every landing animation and app overlay runs <= 300ms; the marquee has a 44px aria-pressed pause button; overflow-x: clip keeps a hidden fallback',
     [...(lcss + mapp).matchAll(/(?:animation|transition):[^;]*?(\d+)ms/g)].every(m => +m[1] <= 300) && /aria-pressed=\{paused\}/.test(mqb) && /data-paused\] \.lp-marquee__row > span/.test(lcss)
