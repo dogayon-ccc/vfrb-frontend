@@ -1,4 +1,5 @@
 // src/pages/client/AIMaterials.jsx — AI raw-material recommendation (Layer 1, Gemini Flash).
+import { specFitLines } from '../../utils/specFit';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import usePageTitle from '../../hooks/usePageTitle';
@@ -183,7 +184,7 @@ export async function withCatalogFacts(orderId, recArr) {
     const facts = data?.recommendation?.materials_json ?? {};
     return recArr.map(r => {
       const f = facts[r.material_name];
-      return f ? { ...r, material_code: f.material_code ?? null, in_stock: f.in_stock ?? null, colour_match: f.colour_match ?? null, image_url: f.image_url ?? null, description: f.description ?? null } : r;
+      return f ? { ...r, material_code: f.material_code ?? null, in_stock: f.in_stock ?? null, colour_match: f.colour_match ?? null, image_url: f.image_url ?? null, description: f.description ?? null, spec_fit: f.spec_fit ?? null } : r;
     });
   } catch { return recArr; }
 }
@@ -229,6 +230,7 @@ export function RecCard({ rec }: any) {
   const name = stripCodes(rec.material_name);
   const desc = stripCodes(rec.description)?.replace(/\s+/g, ' ');
   const label = rec.category || 'Material';
+  const specLines = specFitLines(rec.spec_fit);
   const kind = /thread/i.test(rec.category ?? '') ? 'spool' : /fabric|lining/i.test(rec.category ?? '') ? 'swatch' : null;
   return (
     <article className="vfrb-card flush overflow-hidden aim-rec">
@@ -247,6 +249,13 @@ export function RecCard({ rec }: any) {
         {/* Catalog colour fit from the server: a neighbouring colour family, offered but not exact. */}
         {rec.colour_match === 'near' && <span className="aim-near" title="Close to your colour, not an exact match">Near match</span>}
         {desc && <p title={desc}>{desc}</p>}
+        {/* VFRB's technical-fit status, written by the server: status sentences only, never values, thresholds or a score. */}
+        {specLines.length > 0 && (
+          <div className="aim-spec">
+            <p className="aim-spec-h">Technical check</p>
+            <ul>{specLines.map((t) => <li key={t}>{t}</li>)}</ul>
+          </div>
+        )}
       </div>
     </article>
   );
@@ -317,7 +326,7 @@ export default function AIMaterials() {
       setOrder(o);
       // The fresh rows carry the catalog facts the recommend call returned (code, stock, colour fit, image, description).
       const facts = Object.fromEntries((data?.materials ?? []).map(m => [m.material_id, m]));
-      setRecs(recArr.map(r => { const f = facts[r.material_id]; return f ? { ...r, material_code: f.material_code, in_stock: f.in_stock, colour_match: f.colour_match, image_url: f.image_url ?? null, description: f.description ?? null } : r; }));
+      setRecs(recArr.map(r => { const f = facts[r.material_id]; return f ? { ...r, material_code: f.material_code, in_stock: f.in_stock, colour_match: f.colour_match, image_url: f.image_url ?? null, description: f.description ?? null, spec_fit: f.spec_fit ?? null } : r; }));
       setSource(data?.source ?? null);
       setAccepted(o?.ai_recommendation_status === 'accepted');
     } catch(e) {

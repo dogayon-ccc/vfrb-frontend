@@ -764,3 +764,7 @@ html[data-theme=dark] .cm-shell .ui-step[data-s=now] .ui-step-dot{color:var(--co
 /* WCAG 1.4.3: small teal link text uses the darker teal (6.3:1 on white, 5.3:1 on the surface tint) */
 .cx-link{color:var(--teal-dark)}
 @media(max-width:767px){.cx-page.dx{padding-bottom:calc(120px + env(safe-area-inset-bottom,0px))}}
+
+.aim-spec{margin-top:8px;font-size:13px;color:var(--text-muted)}
+.aim-spec-h{margin:0 0 2px;font-weight:700;color:var(--ink)}
+.aim-spec ul{margin:0;padding-left:18px;display:grid;gap:2px}

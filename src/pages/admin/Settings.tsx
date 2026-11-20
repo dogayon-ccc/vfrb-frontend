@@ -5,6 +5,7 @@ import { NavIcon } from '../../components/ui/icons';
 import { checkUpload } from '../../utils/fileCheck';
 import { PageHeader, Panel, Banner, Toast, useToast, SkeletonRows, Meter } from '../../components/admin/AdminUI';
 import RecommendationGuidancePanel from '../../components/admin/RecommendationGuidancePanel';
+import MaterialRequirementsPanel from '../../components/admin/MaterialRequirementsPanel';
 import AiQualityPanel from '../../components/admin/AiQualityPanel';
 import { PASSWORD_RULE_TEXT, passwordOk, passwordLevel, levelLabel } from '../../utils/passwordRules';
 import ProfilePhotoField from '../../components/ProfilePhotoField';
@@ -19,8 +20,8 @@ const NOTIFY = [
     warn: 'The mail server is a test inbox, so no real email is sent yet. Your preference is saved for when VFRB connects its mail provider.' },
 ];
 
-// The owner cannot read company, AI or user settings from the API; these three are their own account.
-const OWNER_TABS = ['profile', 'notify', 'password'];
+// The owner cannot read company, AI or user settings from the API; the first three are their own account. Fabric requirements are read-only for the owner (GET only).
+const OWNER_TABS = ['profile', 'notify', 'password', 'requirements'];
 
 const Field = ({ label, id, children }: any) => (<div><label className="adm-field" htmlFor={id}>{label}</label>{children}</div>);
 
@@ -184,7 +185,7 @@ export default function Settings() {
 
   const sections = [
     ['company', 'settings', 'Company'], ['profile', 'profile', 'Your profile'], ['notify', 'notifications', 'Notifications'],
-    ['password', 'lock', 'Sign-in & security'], ['ai', 'ai', 'AI guidance'], ['users', 'users', 'User Management'],
+    ['password', 'lock', 'Sign-in & security'], ['ai', 'ai', 'AI guidance'], ['requirements', 'ai', 'Fabric requirements'], ['users', 'users', 'User Management'],
   ].filter(([k]) => !station || STATION_SETTINGS.includes(k)).filter(([k]) => !owner || OWNER_TABS.includes(k)).filter(([k]) => k !== 'users' || isAdmin());
   // One section at a time; ?tab= keeps it linkable and Back-able.
   const [params, setParams] = useSearchParams();
@@ -313,6 +314,7 @@ export default function Settings() {
 
           {tab === 'ai' && <RecommendationGuidancePanel setToast={setToast} />}
           {tab === 'ai' && <AiQualityPanel />}
+          {tab === 'requirements' && <MaterialRequirementsPanel readOnly={owner} setToast={setToast} />}
 
           {tab === 'users' && <Suspense fallback={<SkeletonRows rows={5} h={48} />}><UserManagement embedded /></Suspense>}
         </div>
