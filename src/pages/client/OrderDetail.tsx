@@ -31,7 +31,7 @@ import LoadError                             from './settings/LoadError';
 import { getStorageUrl, isImageFile }        from '../../utils/fileUrl';
 import { NavIcon }                           from '../../components/ui/icons';
 import { announceMessagesRead }              from '../../hooks/useUnreadMessages';
-import { RecCard, AI_OPTIONAL_LINE, stripCodes } from './AIMaterials';
+import { RecCard, AI_OPTIONAL_LINE, STANDARD_OPTIONAL_LINE, stripCodes } from './AIMaterials';
 import { OrderThumb, StatusPill, LIFECYCLE, lifecycleIndex, orderTitle, parseCfg, fmtDate } from '../../components/customer/kit';
 import { Card, Button, Badge, PageHeader, Stepper, Skeleton, StatusChip, AlertBanner, EmptyState } from '../../components/ui';
 import { setOrders, ROLE_LABEL } from './design-studio/uniformSet';
@@ -583,7 +583,7 @@ export default function CustomerOrderDetail() {
 
           {recDone && secState.materials && <SectionState id="materials" state={secState.materials} onRetry={() => retrySection('materials')}/>}
           {aiRec && recDone && !secState.materials && (
-            <Card className="od-card" title="AI material recommendation" subtitle="Based on VFRB production standards"
+            <Card className="od-card" title={aiRec.source === 'catalog_default' ? 'Standard material recommendation' : 'AI material recommendation'} subtitle={aiRec.source === 'catalog_default' ? 'From VFRB\'s standard catalogue' : 'Based on VFRB production standards'}
               action={order.ai_recommendation_status === 'accepted' ? <Badge tone="success" icon="success">Accepted</Badge>
                 : order.ai_recommendation_status === 'rejected' ? <Badge tone="danger">Declined</Badge> : null}>
               {order.ai_recommendation_status === 'rejected' && (
@@ -596,7 +596,7 @@ export default function CustomerOrderDetail() {
                 const mats = recMaterials(aiRec);
                 return Object.keys(mats).length > 0 && (
                   <div className="od-gap-b">
-                    <p className="od-label">{AI_OPTIONAL_LINE}</p>
+                    <p className="od-label">{aiRec.source === 'catalog_default' ? STANDARD_OPTIONAL_LINE : AI_OPTIONAL_LINE}</p>
                     <div className="od-rec-grid">{Object.entries(mats).map(([mat, info]) => <RecCard key={mat} rec={{ ...info, material_name: mat }}/>)}</div>
                   </div>
                 );

@@ -14,6 +14,7 @@ import { STEPS, INIT, SHARED, prefillFrom, validateStep, orderFields, garmentKin
 import { StepDesign, StepSizes, StepDelivery, StepReview } from './order-wizard/WizardSteps';
 import { SummaryPanel, SummaryBar } from './order-wizard/OrderSummary';
 import { garmentLabel } from '../../utils/designName';
+import SetUploadOrder from './order-wizard/SetUploadOrder';
 
 // Pieces of a set already placed, so a retry or refresh after a part-failed submit never places one twice.
 const PLACED_KEY = 'set_orders_placed';
@@ -40,7 +41,13 @@ const apiMessage = e => {
   return (fe && Object.values(fe)[0]?.[0]) ?? e.response?.data?.message ?? (e.response ? 'The order could not be submitted.' : 'No connection. Check your internet and submit again.');
 };
 
+// Upload-first orders are a complete top + bottom set with two size matrices; Studio designs keep the piece-by-piece wizard.
 export default function OrderWizard() {
+  const [studioOrder] = useState(() => { try { return !!sessionStorage.getItem('studio_config') || !!peekDesignRef(); } catch { return false; } });
+  return studioOrder ? <StudioOrderWizard /> : <SetUploadOrder />;
+}
+
+function StudioOrderWizard() {
   usePageTitle('Place an order');
   const nav = useNavigate();
   const [init] = useState(readHandoff);

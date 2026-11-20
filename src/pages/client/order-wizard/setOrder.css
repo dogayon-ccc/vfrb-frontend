@@ -1,0 +1,26 @@
+.so-page .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.so-file { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+.so-file img { width: 72px; height: 72px; object-fit: cover; border-radius: 6px; }
+.so-file p { flex: 1 1 10rem; margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.so-detected { display: grid; gap: .5rem; padding: .75rem; border: 1px solid currentColor; border-radius: 8px; }
+.so-detected dl { display: flex; gap: 1.5rem; margin: 0; }
+.so-detected dt { font-size: .75rem; opacity: .7; }
+.so-detected dd { margin: 0; font-weight: 600; }
+.so-confirm { display: flex; align-items: center; gap: .5rem; min-height: 44px; }
+.so-confirm input { width: 20px; height: 20px; }
+.so-scroll { overflow-x: auto; }
+.so-matrix { border-collapse: collapse; width: 100%; min-width: 34rem; }
+.so-matrix th, .so-matrix td { padding: .25rem; text-align: center; }
+.so-matrix th[scope='row'] { text-align: left; white-space: nowrap; }
+.so-matrix th[scope='row'] span { display: block; font-weight: 400; font-size: .75rem; opacity: .7; }
+.so-matrix input { width: 100%; min-width: 3.25rem; min-height: 44px; text-align: center; font: inherit; }
+.so-total { font-weight: 600; font-variant-numeric: tabular-nums; }
+.so-tools { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
+.so-sum { display: inline-flex; align-items: center; gap: .375rem; margin: 0; font-weight: 600; }
+.so-msgs { margin: 0; padding-left: 1.25rem; }
+.so-actions { position: static; }
+.so-page { padding-bottom: 1.5rem; }
+@media (prefers-reduced-motion: reduce) { .so-page * { transition: none !important; } }
+
+.so-held ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+.so-held li { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; min-height: 44px; }
