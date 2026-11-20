@@ -161,7 +161,7 @@ t('zonesFor honours fit: Button-Down Long unisex has collar/pocket, female BIR i
   t('order snapshot (previewPng stripped by the backend) keeps the hero templateId', (o => o.templateId === HID && S.deserializeDesign(o).cfg.garment === 'Button-Down')((({ previewPng, ...rest }) => rest)(JSON.parse(JSON.stringify(S.serializeDesign({ ...base, garment: 'Button-Down', sleeve: 'Short', fit: 'unisex' }, {}, 'data:image/png;base64,AA==')))))); }
 // ---- new worn-photo assets + GLB slots
 const GS = await import(new URL('../src/pages/client/design-studio/glbSlots.ts', import.meta.url));
-const fsx = await import('node:fs'); const pathx = await import('node:path'); const urlx = await import('node:url');
+const fsx = await import('node:fs'); const rdf = f => fsx.readFileSync(f, 'utf8'); const pathx = await import('node:path'); const urlx = await import('node:url');
 const pub = f => MF.modelFile(pathx.join(urlx.fileURLToPath(new URL('../public/', import.meta.url)), f));
 t('all 15 worn photos have a cutout file', D.ENTRIES.filter(d => d.source === 'worn').every(d => fsx.existsSync(pub(d.image.slice(1)))));
 t('every registered photo base and trim mask exists, ids are unique', (bases => bases.length === 6 && new Set(bases.map(a => a.id)).size === bases.length && bases.every(a => fsx.existsSync(pub(a.src.slice(1))) && (!a.trim || fsx.existsSync(pub(a.trim.mask.slice(1))))))(Object.values(A.ASSET_2D).flatMap(g => Object.values(g)).flatMap(s => Object.values(s)).flatMap(f => Object.values(f))));
@@ -804,7 +804,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('phone/tablet layout: the stage fills the column; the sheet opens at peek (its bar only) with half (37% of the height, 264-360 px) and full (<= 85%) heights, a 44px bar button and a drag; five-item bottom nav; stage bar of at most five labelled controls with hints outside it',
     /\.ds-lane-top:not\(\[data-notes\]\)\{flex-wrap:nowrap;/.test(css) && !/text-overflow:ellipsis/.test(css.match(/\.ds-ctx-chip\{[^}]*\}/)?.[0] ?? 'text-overflow:ellipsis')
     && /\.ds-cv\{flex:1 1 auto;min-height:0;\}/.test(css) && /\.ds-sheet\[data-snap=peek\]>:not\(\.ds-sheet-bar\)\{display:none;\}/.test(css)
-    && snapH('half') === 'clamp(264px,37dvh,360px)' && /^min\(85dvh,/.test(snapH('full')) && /useState\('peek'\)/.test(tdx) && /className="ds-sheet-toggle"[^>]*aria-expanded=\{snap !== 'peek'\}/.test(tdx)
+    && snapH('half') === 'clamp(264px,37dvh,360px)' && /^min\(85dvh,/.test(snapH('full')) && /useState\('peek'\)/.test(tdx) && /className="ds-sheet-toggle"[^>]*aria-expanded=\{(?:shownSnap|snap) !== 'peek'\}/.test(tdx)
     && /\.ds-sheet-toggle\{flex:none;width:44px;height:44px;/.test(css) && /onPointerDown=\{dragDown\}/.test(tdx) && /className="ds-sheet-status"/.test(tdx)
     && /\.ds-bnav\{display:grid;flex:none;grid-template-columns:repeat\(5,/.test(css)
     && (bar2D.match(/ctrl\('/g) ?? []).length + 1 <= 5 && (bar3D.match(/ctrl\(/g) ?? []).length + 1 <= 5 && /className="ds-stage-hint"/.test(cvx) && !/ds-stage-hint[^]*?<\/div>\s*<\/div>\s*\)\}\s*$/.test('')
@@ -1816,7 +1816,6 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     t('brush presets: pencil is fine, marker broad, highlighter translucent with flat ends; unknown kinds fall back to brush; sizes sit inside each max',
       R.BRUSH_KINDS.pencil.size < R.BRUSH_KINDS.brush.size && R.BRUSH_KINDS.marker.size > R.BRUSH_KINDS.brush.size && R.BRUSH_KINDS.highlighter.opacity < 1 && R.BRUSH_KINDS.highlighter.cap === 'square'
       && R.brushKind('nope') === 'brush' && R.brushKind('marker') === 'marker' && Object.values(R.BRUSH_KINDS).every(b => b.size <= b.max && b.smooth >= 0 && b.smooth <= 1));
-    const rdf = f => fsx.readFileSync(f, 'utf8');
     t('drag shapes and brushes are wired: the canvas draws every box tool, the options panel lists them, the stroke is saved opaque with its own opacity, __sides is saved',
       /BOX_TOOLS\.includes\(m\)/.test(rdf('src/pages/client/design-studio/useGarmentCanvas.ts')) && /makeDragShape/.test(rdf('src/pages/client/design-studio/useGarmentCanvas.ts')) && /'__sides'/.test(rdf('src/pages/client/design-studio/useGarmentCanvas.ts'))
       && /stroke: o\.color, opacity: o\.opacity/.test(rdf('src/pages/client/design-studio/useGarmentCanvas.ts')) && R.SHAPE_KINDS.every(([k]) => k in { rect: 1, ellipse: 1, triangle: 1, star: 1, polygon: 1, arrow: 1 }) && /SHAPE_KINDS\.map/.test(rdf('src/pages/client/design-studio/ToolOptions.tsx')) && !/ds-opts-tools/.test(rdf('src/pages/client/design-studio/ToolOptions.tsx')));

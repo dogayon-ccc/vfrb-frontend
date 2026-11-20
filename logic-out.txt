@@ -1,0 +1,581 @@
+models: fetched 0 GLB(s) into node_modules/.cache/vfrb-models; 16 not on Cloudinary
+NOTE CLAUDE.md is git-ignored and not in this checkout: the approved-AI-scope check was not run
+removed derived ids: blazer-double-breasted-gray-bottom, blazer-pinstripe-navy-bottom, bir-blouse-trousers-blue-bottom, blouse-roundneck-fuchsia-bottom, blouse-roundneck-mustard-bottom, pantsuit-notch-short-gray-bottom, peplum-set-navy-bottom, polo-barong-brown-bottom, scrub-set-housekeeping-bottom, scrub-set-men-vneck-bottom, scrub-set-women-vneck-bottom, set-pinstripe-pants-bottom, set-pinstripe-skirt-bottom, shirt-two-tone-gpc-bottom, blazer-double-breasted-gray-top, blazer-pinstripe-navy-top, blouse-roundneck-mustard-top, pantsuit-notch-short-gray-top, peplum-set-navy-top, polo-barong-brown-top, shirt-two-tone-gpc-top, set-pinstripe-pants-top, set-pinstripe-skirt-top, blouse-pleated-bib-white, blouse-scarf-cream
+flats: body h/w Short flat 1.78, 3/4 flat 1.78, template 1.56
+program garments: Scrub Top Short = 3D preview (approximate); Scrub Top 3/4 = 3D preview (approximate); Jogger Scrub Pants = 2D design; Polo Shirt Short = 3D preview (approximate); Polo Shirt Long = 2D design; Lab Coat Long = 3D preview (approximate); Mandarin Blouse Short = 2D design; Round Neck Long = 2D design; Barong Shirt Short = 2D design; Barong Shirt Long = 2D design; Men's Slacks = 2D design; Pantsuit Trousers = 2D design
+PASS history: undo then redo returns the same snapshots; nothing past either end
+PASS history: a new step after an undo drops the redo branch; the stack is capped
+PASS history: an applied AI preview folds into exactly one undo step back to the mark
+PASS history: switching sides parks one history and resumes the other (front keeps its undo, back starts at what loaded)
+PASS history: colour and pattern changes are undo steps, and undo paints the previous look back
+PASS history: a garment change re-keys the entry (no step), and undo never paints one garment’s colours onto another
+PASS save status: only an account save reads "Saved"; a browser-only copy, failures and unsaved edits each read differently; there is always a state (never blank)
+PASS save confirmation: only a JSON object with the saved id and updated_at and no errors counts; HTML-wrapped or validation bodies never do
+PASS pants null sleeve/fit
+PASS Pants 2D has no photo base; a selected valid pattern is supported by its vector design
+PASS switching to a pattern-free photo base clears saved pattern and slider state
+PASS photo-base stale patterns are removed on Save and Reload
+PASS Pants pattern and color survive Save -> Reload -> Order Wizard snapshot
+PASS polo keeps Short and Long (Long is 2D only); a sleeve it does not offer falls back to Short
+PASS gallery = 39 photos only (19 original; Pleated Bib Blouse retired 2026-10-16 + 15 worn cutouts + 5 v3 product photos)
+PASS no template names as entries
+PASS metadata shape
+PASS only exact slot-backed photos, photos their family model was generated from, or reference photos with derived pieces have 3D (the Dress Slacks photo lost its gated Meshy model on 2026-10-15)
+PASS statuses are reference/editable-2d/2d-3d-approx, 3D tier only with a live GLB
+PASS search blazer = 8; the short-sleeve pantsuit opens the rebuilt Short-Sleeve Notch Jacket and is found by "jacket"
+PASS search mandarin >= 3
+PASS filter medical = 2 scrub sets
+PASS unisex has 1 photo (the embroidered polo)
+PASS 33 editable photos: every reference photo with derived pieces opens its own template (yellow blouse included); the two held-back pinstripe suits stay reference-only; polka-dot, red polo, pleated skirt, notch blouse, four blazers and the shirt-dress open their own families
+PASS BIR photo opens Button-Down Long + Female on its own template
+PASS scrub-set-women-vneck: opens Scrub Top
+PASS scrub-set-men-vneck: opens Scrub Top
+PASS scrub-set-housekeeping: opens Mandarin Collar
+PASS blouse-mandarin-yellow: opens Mandarin Blouse (Reference)
+PASS blouse-scarf-cream: opens Blouse
+PASS blouse-asymmetric-blue: opens Asymmetric Collar Blouse
+PASS blouse-tunic-roundneck-blue: opens Belted Tunic Blouse
+PASS shirt-utility-beige-long: opens Button-Down
+PASS shirt-mandarin-polkadot: opens Mandarin Collar
+PASS blazer-collarless-tan: opens Collarless Blazer
+PASS blazer-pinstripe-royal: opens Collarless Blazer
+PASS blazer-white-notch: opens Blazer
+PASS blazer-tweed-herringbone: opens Blazer
+PASS blazer-open-front-black: opens Open-Front Blazer
+PASS set-pinstripe-pants: reference-only
+PASS set-pinstripe-skirt: reference-only
+PASS set-vest-blouse: reference-only
+PASS dress-shift-geometric: reference-only
+PASS dress-tunic-maternity-navy: opens Maternity Tunic Dress
+PASS bir-blouse-trousers-blue: opens Button-Down
+PASS pantsuit-notch-short-gray: opens Short-Sleeve Notch Jacket
+PASS polo-barong-brown: opens Barong Shirt
+PASS jack-shirt-two-tone: opens Jack Shirt
+PASS blazer-double-breasted-gray: opens Blazer
+PASS dress-butter-belted: opens Belted Shift Dress
+PASS dress-bir-green-yellow-collar: opens Dress
+PASS dress-sheath-denim-blue: reference-only
+PASS blazer-pinstripe-navy: opens Blazer
+PASS blazer-blouse-blue-short: reference-only
+PASS blouse-roundneck-fuchsia: opens Round Neck
+PASS blouse-roundneck-mustard: opens Blouse
+PASS polo-red-claremont: opens Polo Shirt
+PASS shirt-two-tone-gpc: opens Button-Down
+PASS peplum-set-navy: opens Peplum Top
+PASS pants: opens Pants
+PASS shorts: opens Shorts
+PASS corporate-skirt: opens Skirt
+PASS school-skirt: opens Pleated Skirt
+PASS blazer-blouse-blue: opens Blouse
+PASS assetFor Scrub Top Short front
+PASS no asset for 3/4, back, T-Shirt
+PASS zonesFor photo base = [body]
+PASS zonesFor 3/4 keeps vector zones
+PASS assetFor Mandarin Collar Short front = photo, 2 zones
+PASS Mandarin Collar Long is the BIR blouse photo; any back stays vector
+PASS zonesFor mandarin photo = body,collar
+PASS mandarin fits: female (tunic and BIR photo bases) and male (polka-dot shirt model, Long only)
+PASS housekeeping photo opens Mandarin Collar Short
+PASS housekeeping photo lands on the housekeeping asset
+PASS yellow mandarin blouse opens its own traced Mandarin Blouse (Reference) (never the housekeeping tunic base)
+PASS polka-dot mandarin shirt opens Mandarin Collar / Long / male (vector template, its own model), never the female BIR blouse base
+PASS women scrub photo -> women asset
+PASS men scrub photo -> men asset
+PASS sleeve filter the photo does not have is ignored, base unchanged
+PASS unknown asset id -> null
+PASS photo bases are front-only
+PASS resolveTarget mandarin: exact tunic photo + its own GLB, approx, no fake fit
+PASS mandarin routing: Long male -> polka-dot shirt model on the vector template; Long female (BIR photo) and Short male have no model
+PASS resolveTarget Mandarin Collar Long: band-collar BIR photo, 2D only
+PASS resolveTarget polo: 2D+3D approx, never verified
+PASS resolveTarget Button-Down Long (unisex, default) keeps the vector template and gets the utility-shirt 3D model
+PASS resolveTarget Button-Down Long + Female -> separate BIR photo template + its own GLB, approx
+PASS Button-Down offers Unisex and Female fits; unisex keeps the vector back view, female BIR is front-only
+PASS resolveTarget Button-Down Short: the work-shirt scan, no photo
+PASS Button-Down Short + Female: no photo base, the work-shirt scan (no fake women's photo)
+PASS Pants has no generated 3D pattern without a 2D pattern selection
+PASS Pants cannot receive unknown or 2D-only stale pattern state in 3D
+PASS photo-backed GLB ignores stale pattern state even if the model could shade it
+PASS 3D selector: BIR entry only for Long + female; unisex Long -> utility shirt; Short -> work shirt; Mandarin Long -> none
+PASS sleeve 3D labels are per fit: Button-Down unisex and female both Short+Long
+PASS explicit men/women never lands on the other gender photo
+PASS resolveTarget unknown -> null
+PASS no current garment is verified (honest zero)
+PASS statusFor supports a future verified asset
+PASS mandarin preview: one photo (front only), no vector svg
+PASS studio cfg -> 2 silhouettes, no 3D toggle without WebGL
+PASS previewUrl -> img
+PASS null cfg no crash
+PASS legacy garmentType no crash
+PASS unknown garment no crash
+PASS reference image
+PASS roundtrip Pants
+PASS roundtrip Skirt
+PASS roundtrip Polo Shirt
+PASS roundtrip T-Shirt
+PASS roundtrip Scrub Top
+PASS selectFamily passes the browsed category
+PASS selectFamily without a category keeps the current one
+PASS artwork tag survives save/restore
+PASS artwork does not alter garment, sleeve or fit
+PASS studio fonts: a saved stack resolves to its web face; legacy system stacks do not
+PASS studio fonts: weights snap to an existing cut
+PASS hero serializes explicit vector templateId
+PASS hero templateKeyById resolves
+PASS hero restores same garment/sleeve/fit
+PASS hero resolveTarget carries templateId, work-shirt GLB, approx status
+PASS hero 3D zones are body/sleeve/collar/pocket, tipping is 2D only
+PASS hero is not verified
+PASS old record without templateId still loads by garment/sleeve/fit
+PASS unknown templateId is ignored
+PASS BIR Button-Down Long female keeps its photo id
+PASS Button-Down Long unisex and Short female stay templateId null
+PASS zonesFor honours fit: Button-Down Long unisex has collar/pocket, female BIR is body only
+PASS polo serializes per-fit vector templateId
+PASS polo templateId restores garment/sleeve/fit
+PASS legacy School Polo record still maps to Polo Shirt
+PASS polo resolveTarget: templateId, per-fit GLB, approx status
+PASS polo pocket is 2D only, collar is 3D
+PASS hero 3D entry is the work-shirt scan
+PASS hero 3D paints body/sleeve patterns, pocket/collar/geometric stay solid
+PASS a photo-base scan (no 3D patterns) paints every zone solid
+PASS no 3D entry gives solid, never undefined
+PASS pattern3D flags 2D-only combinations on the hero
+PASS picking Button-Down from the default design lands on the hero template
+PASS order snapshot (previewPng stripped by the backend) keeps the hero templateId
+PASS all 15 worn photos have a cutout file
+PASS every registered photo base and trim mask exists, ids are unique
+PASS product bottoms open their exact family with no sleeve or photo base
+PASS pleated skirt opens Pleated Skirt (never the pencil Skirt); notch blouse opens Blouse; blazers open Blazer on their own sleeve
+PASS lower-body filter lists the four single bottoms
+PASS bottoms have canonical template ids that round-trip to (family, null, null)
+PASS gallery photo id survives Save -> Reload -> Order snapshot as inspirationId; templateId is the Pants template
+PASS switching garment drops the photo id; a mismatched or unknown photo id is never saved
+PASS person gate: a person blocks Create a 2D garment and Add my logo; reference and tracing are never gated
+PASS person gate: 2D fails closed while checking or failed; a failed check only warns on Add my logo; a clear photo passes
+PASS person refusal copy is honest and never claims the photo is not a uniform
+PASS face score: softmax over [background, face] pairs, the best pair wins; the crops cover the image at half size
+PASS face input: planar RGB scaled by (x - 127) / 128, alpha dropped
+PASS the face runtime is imported only on demand, and the tick box stays as the second guard
+PASS dresses and the coverall are a complete outfit; set pieces and "Dress Slacks" never are
+PASS every family is a set top or bottom except the full-length ones (Lab Coverall, Dress and the two derived dresses)
+PASS a set orders top first, each piece keeps its own garment, colour, template and overlays
+PASS each set piece is ordered with its own rendered preview (text and logos included); the renders never change the draft identity or survive a reopen
+PASS a set has one name: saved and ordered on every piece, and an older set with one named piece still orders named
+PASS a piece in the wrong role is dropped, a one-piece set is not orderable
+PASS set survives Save -> Reload (deserialize ignores it, normalize restores it)
+PASS set orders group by set id, top first, string or parsed studio_config, single order stays alone
+PASS order lists name each set piece and its partner order (garment label, no "(Reference)"); a single garment gets no set line
+PASS My Designs "Order this" on a set goes through the Studio (every piece rendered); the Studio clears that route state before ordering, so Back never re-orders
+PASS wizard prefill notes name the garment as the customer sees it (no internal "(Reference)" suffix), while garment_type stays the Studio id
+PASS wizard: a single-piece order posts the size total as quantity and drops empty fields
+PASS wizard: custom measurements use the backend column keys, in inches, and say so to VFRB
+PASS wizard: an upload-only order needs a file, a garment and a description; a Studio design needs nothing re-entered
+PASS wizard: the preferred date is optional but never under a week out; a Studio colour skips the colour field
+PASS wizard: a Studio design prefills garment, implied collar, sleeve, colour and a description that clears the 15-character rule
+PASS wizard: bottoms are told apart by set role first, then by name
+PASS order quantity = size total (custom: piece count); minimum 100 shown as pieces still needed
+PASS Apply to Both: colours and patterns copy only into zones the other garment has, no patterns onto a photo base
+PASS Apply to Both: an added logo or text lands on the other piece at the same relative place, as a new layer on the same face
+PASS staff note names the set, the part and the linked order
+PASS BIR blouse photo -> Button-Down Long + Female base
+PASS fuchsia blouse photo -> Round Neck Short base
+PASS kept derived singles open their derived template; sets that lost a derived piece open authored or rebuilt pieces (Pants, Skirt, Jogger Scrub Pants for scrub photos, or a rebuilt parametric trouser) with no 3D reference; the mislabelled denim dress stays reference-only
+PASS Round Neck Long stays vector; Short resolves to its photo GLB
+PASS GLB slots: live files exist; empty/candidate slots never render
+PASS GLB slots: every photo base has a slot, resolveTarget exposes it
+PASS GLB slots: a slot never changes 3D status
+PASS GLB intake: a clean garment GLB passes (100 tris, TEXCOORD_0, Y-up, 0.7 tall, no rig)
+PASS GLB intake: skinned, body-like names, no UVs or > 20k tris per mesh each FAIL; "body" alone is a garment zone
+PASS GLB intake: VERIFIED only with a pass plus --source, --licence and --photos-owned yes; anything less stays candidate
+PASS GLB statuses: only verified + a { method, date } record enables 3D editing; approx stays read-only "3D preview (approximate)"; candidate shows nothing
+PASS GLB intake: register line escapes pipes and blanks
+PASS resolveTarget: no target enables 3D editing today; any 3D target is labelled "3D preview (approximate)", never status 2d-3d
+PASS picker chips and the Studio 3D label follow the verified-only rule: no photo says "3D, editable" and no garment says "3D preview available" today
+PASS 15 worn photos each have a photo: slot
+PASS capped Hero GLB exists at its runtime path
+PASS asset audit: every referenced asset exists, every kept file is explained
+PASS Pants exposes only enumerated procedural patterns, no arbitrary fabric upload
+PASS Pants GLB has no UVs or baked material; only its enumerated procedural patterns are supported
+PASS Shorts renders the garment-only model of its gallery photo; Pants renders the authored trousers (the Meshy pants file is gated, never routed), both lit with the shader zone mask
+PASS gallery shorts photo exposes its real 3D model; the pants and corporate-skirt photos are labelled family-level approximations (2D tier, no photo GLB)
+PASS routing: a selection gets 3D only from a model with that exact sleeve; no short-sleeve substitute for 3/4 or Long
+PASS gallery 3D references: 23 read-only models, each file present, sets flagged; mismatched photos have none; a derived editable model never replaces the reference file
+PASS new families route to their own models per sleeve; no model for a sleeve they lack
+PASS Lab Coat + Long resolves to the garment-only lab coat GLB
+PASS Lab Coverall resolves to the garment-only coverall (never the legacy hooded figure) and stays full-body (no set piece)
+PASS Scrub Top Female 3/4 -> new 3/4 model; Female and Male Short keep their photo-base models; Male 3/4 has none
+PASS lab garments keep their 2D pocket colour (2D only in 3D); new models have no text, logo or extra 3D zones
+PASS unisex exact-sleeve models serve male, female, unisex and no-fit selections (Lab Coat, Lab Coverall)
+PASS an exact-fit model still wins over a unisex one; unisex never unlocks a missing sleeve or a single-fit model
+PASS a carried-over default fit never lands a new garment on a variant with no photo base or model (Mandarin -> female tunic); explicit fits are kept; other defaults unchanged
+PASS Polo: male and female keep their own scans; unisex (and the red polo photo) gets the unisex polo model; no Long polo
+PASS Collarless Blazer is its own family: Long -> tan model, Short -> royal model, 3/4 none; never the notch-lapel Blazer
+PASS full-set previews: exactly 2 sets and 7 solo references, each its own file; every other reference file belongs to a photo that lost a derived piece and is documented as kept source
+PASS a fused set file is never the editable model: sets open a separately cut piece (an exact cut, or a derived top), and the two held-back pinstripe sets have none
+PASS rejected or mismatched sources have no 3D viewer at all (vest set with mannequin, worn blouse photo, corporate skirt)
+PASS gallery: one entry per public/gallery image (39), every image file present
+PASS gallery paths are explicit: 33 open an editable template, 6 are reference-only (2 held-back sets with a read-only 3D viewer, 4 photo-only)
+PASS all 19 editable gallery photos survive Save -> Reopen -> Order payload with garment, sleeve, fit, template, gallery id, colour and the same 3D model (photo GLB when the photo has one)
+PASS 3D coverage kinds (2026-10-16): 23 photos with their own model, 7 labelled family-level approximations, 3 2D only (the sets that open a rebuilt top), 2 full-set previews, 6 reference-only
+PASS tunic photo: a design saved on the old T-Shirt route keeps 3D withheld (the T-Shirt model is a V-neck tee); a plain T-Shirt keeps 3D; changing garment drops the photo and the block; the photo itself now opens its own derived model
+PASS Skirt offers 3D again through the authored pencil skirt (never the withheld stand-in); the corporate-skirt photo is labelled a family approximation; every NO_FAMILY_3D id is now an editable photo with its own derived model (the block only guards old T-Shirt designs)
+PASS My Designs fallback thumbnail and Order previews have a 2D shape for every catalog family (build-your-own garments draw from their saved spec)
+PASS every 3D runtime model path exists under public/
+PASS snap: centre within 6px jumps to the canvas/garment centre line, with one vertical guide
+PASS snap: an element edge snaps to another element edge before a grid line
+PASS snap: no target within the threshold -> no move, no guides; grid lines only when the grid is on
+PASS snap grid is the rulers' grid: lines from the garment top-left every pct of its width/height, plus the 50% centre on BOTH axes
+PASS rotation snap: locks within 3deg of a 15deg step, wraps negatives, leaves other angles alone
+PASS snap threshold is ~6 screen px at any zoom (logical px = 6 / scale), clamped to 2..12 logical px
+PASS zoom-aware threshold: a 5 px gap snaps at 100% and on a phone (scale 0.5) but not at 270% (13.5 screen px away)
+PASS resize: each control moves only its own sides (tl/tr/bl/br/ml/mr/mt/mb); unknown controls move nothing
+PASS resize snap: the right handle 3 px from an element edge widens to it (ratio 100/97), height untouched, one vertical guide
+PASS resize snap: the left handle grows leftwards onto the centre line (width 43/40)
+PASS proportional corner resize uses one ratio from the closer side and shows only that side's guide (no false guide for the other)
+PASS resize snap never collapses or flips an element, and far from any line changes nothing
+PASS pan limits: only where the zoomed artboard overflows (by overflow + margin), zero when it fits
+PASS pan clamp keeps the artboard reachable and never returns -0
+PASS draft label is the customer's design name (Unicode, punctuation and spacing kept; runs of whitespace collapsed)
+PASS draft label falls back to "<garment> — <category>" for unnamed or blank-named designs, never "undefined"
+PASS draft label fits the 120-character backend limit
+PASS design name rides the serialized snapshot and reads back unchanged
+PASS design fingerprint matches the same design after the backend JSON round trip, and ignores the preview image
+PASS an unnamed design (and unnamed set piece) matches its saved copy: Laravel stores empty strings as null
+PASS design fingerprint: the piece on the canvas is a view, not a change; a change inside a piece still counts
+PASS design fingerprint differs for any real design change (colour, name, overlay text, overlay position)
+PASS Studio: every account draft write goes through one payload that always carries a preview and the design-name label
+PASS Order and save never delete the account draft; only an explicit Remove does, and only when it holds this design
+PASS removing a set piece keeps the other one; nothing stays when the other has no garment yet
+PASS Order this on a draft always goes through the Studio full-set rule; a complete outfit passes that rule
+PASS Remove resets the whole design after clearing the browser copy, so a name or colour never carries over
+PASS order and save refuse to read the canvas while overlays are still loading, so a slow load never drops a layer
+PASS a refused photo never creates a garment: the picker reads it before opening the custom top
+PASS Discard uses one helper on My Designs, the Dashboard and the Studio strip
+PASS Wizard deletes the draft only after the order POST succeeds, and only when the draft is still the ordered design
+PASS order title is the saved design name from studio_config (decoded object on detail, JSON string on the list endpoint)
+PASS legacy/unnamed orders fall back to the humanized garment, then "Custom Order"; never undefined, null or empty
+PASS saved design name helper is shared by the draft label (one rule for drafts and orders)
+PASS DesignThumb with a saved preview renders that image (loading until it decodes) and no silhouette or fallback note
+PASS DesignThumb without a preview shows the colour silhouette as a labelled fallback ("Colours only"), never an <img>
+PASS compact DesignThumb fallback keeps the framed silhouette and an accessible label, without the caption that would not fit
+PASS starter-design photos are labelled as starter photos, not as the customer's saved preview
+PASS My Designs and Home draw saved-design thumbnails only through DesignThumb (draft preview_dataurl, archived photo_path; a copy shows colours only)
+PASS a DesignThumb inside an interactive tile never names the tile: the tile has its own aria-label or the thumb is aria-hidden
+PASS Home and My Designs title a design by the customer's saved name first
+PASS the draft preview render (exportPNG) hides the zone hover outline, like exportFace
+PASS ErrorState announces itself and offers a retry; SwatchChip exposes its selection as aria-pressed
+PASS admin routes import no customer tokens, shell styles or customer kit
+PASS customer tokens are defined only on customer roots (html[data-cx], .cm-shell, the Studio .ds and its .ds-chrome frame; dark mode re-points the same roots, never .ds; .cx-navy re-points ink on navy surfaces), never on :root or shared stylesheets
+PASS every customer shell rule is scoped to the customer root, so admin is untouched after the shell has loaded
+PASS the customer shell sets data-cx on mount and removes it on unmount; shell CSS is imported only by the layout
+PASS z-index tokens order bar < banner < popover < sheet < modal, with stage controls below the bar
+PASS Studio overlays use the z-index tokens: no literal z-index of 10 or more in Studio files
+PASS Studio bar, draft strip and toast sit on their token levels; the phone bottom nav is in the page flow
+PASS exactly one 2D / 3D view switch (TopBar); the inspector has no duplicate Preview toggle
+PASS a garment lands in 2D unless its 3D is verified (every catalog garment/sleeve/fit today; a verified one keeps the current view)
+PASS the draft offer is an in-flow strip shown only on an empty canvas; restoring over existing work asks first
+PASS one garment picker component: only GarmentPicker lists garments or photos; used inline on the canvas (DesignStudio) and in the picker modal (InspoGallery)
+PASS undo/redo: the top bar has them; the only other copy is the tool rail's phone row (shown at 767 px and below, hidden above)
+PASS tabs and the Pieces rail appear only once a garment exists (the panel says to choose one first)
+PASS four labelled tabs (Garment, Add, Layers, AI Design): every tool belongs to exactly one tab, Colours/Pattern/Details sit in Garment, Draw in Add; phones and tablets add More (View, Save a copy); the Garment tab carries the price-free fabric note, hidden in the one-part view
+PASS top bar holds the one primary action: Review & order (Review on phones), Reorder when final; Save, export and the save state live there; no dock, no inline lock banner
+PASS desktop split: the right sidebar is Layers and AI Design only; Garment, Add, Text, Scene and the Selection inspector open in the left StudioFlyout beside the tool rail (one panel body shared by both, so no function is dropped)
+PASS left rail: Garment, Add and Scene dock buttons open the flyout (data-tab keeps the tour targets), Text and Shapes open it too, a drawing tool closes it, and below 1024px the dock is hidden (the sheet has the tabs); Escape and the close button dismiss it
+PASS Studio opens the flyout when a flyout tool is picked (not on first render, not when leaving Draw, not when a deselect returns to the prior tool) and passes the drawing state so Pen/Line/Brush options never overlap it
+PASS dock and order preview 3D labels agree: an unverified model (supported or partial) reads "3D preview (approximate)", "3D preview available" only with a verification record
+PASS every photo base is capped at 1:1 on screen (in-canvas scale x max viewport scale <= 1)
+PASS the viewport applies the photo cap to fit x zoom and disables zoom-in at it
+PASS photo cut-out edges are anti-aliased at runtime without fringes (alpha never rises; edges soften; interior opaque)
+PASS a new design starts with one base colour on every zone
+PASS picking the first garment starts single-colour (body colour on every zone, carousel colour included), never the previous sleeves
+PASS picking a garment keeps one colour, except a real garment trim (housekeeping tunic keeps its photo trim); leaving it follows the body again
+PASS a new base colour moves the zones that follow it, not a zone coloured on purpose
+PASS "Use as template": the photo colour reaches the pocket and a following collar; a real trim stays
+PASS stage lane contract: top lane (chip, guides, stage light, 3D notes) and bottom lane (stage bar, zoom level and hints) are outside the fit area that holds the garment panes; none of them is absolutely positioned over it
+PASS the garment is fitted to ~72% of the visible stage, never past the area between the lanes (fit is capped by the pane, and the pane fills only that area)
+PASS picker header (title, close, tabs, badge key) and action footer stick to the scroll box; the close lives in the header, never over a card
+PASS every picker card shows its status badge (no hidden default) and the key lists the badges present; template cards and the carousel hero use the same four tiers as photos
+PASS top bar has no Inspo button and no overflow menu; Showcase is a direct button shown only with designs
+PASS phone first run hides the tabs and panel (the picker gets the full height) and the stage lanes (stage light) until a garment exists
+PASS every inspiration-only photo offers "See editable garments like this": its category/piece filter (relaxed only when empty) lists existing editable photos only
+PASS preview says one sentence and puts status in chips; a photo with a 3D reference shows it by default (photo + 3D on desktop, Photo | 3D switch on phones)
+PASS a uniform set limits the picker to its active piece (bottom = 4 editable photos of 40) and says so with a removable chip; templates default to All (or a landing tile's real category)
+PASS generic stand-in 3D models are never served: the bucket cut of the peplum-dress figure stays withheld, no served entry uses a stand-in file, and the stand-in only blocks a garment no real model serves
+PASS 3D lighting is calibrated: linear tone mapping, front panel irradiance within 5% of 1x, cloth sheen follows the zone colour and specular stays low
+PASS exploded view: only the authored scrub tops (separate collar, sleeve and pocket parts) explode; fused scans do not; both lighting presets stay within 5% of 1x; reduced motion stops auto-rotate
+PASS WebGL lost mid-session: the stage returns to 2D with a timed notice (the 3D lane keeps its own "not available" note)
+PASS saved-design edit gate: the stage controls bar is view-only and the gate skips [data-view-only] targets
+PASS Studio shell: StudioLayout owns the .ds-body grid, the toast and the locked (inert + gate) state; DesignStudio passes the rail, drawer and canvas as slots and no longer builds the grid itself
+PASS tool options flyout: the active brush / eraser / pen / line shows its own size, opacity, smoothing and colour beside the rail (portaled into .ds-body, full width under the row on phones); the rail renders it only when editable
+PASS freehand brush: opacity becomes an rgba stroke colour, smoothing raises decimate (0.4 to 4), strokes have round caps and joins, and size/colour/opacity/smoothing change live without leaving draw mode
+PASS no second drawing panel: the Add sheet has no Draw tab and DrawPanel is gone; the rail owns tool choice and ToolOptions only its own settings
+PASS guides: View popover with Grid, Rulers, Snap, Guides toggles, grid size and Smart guides; grid, rulers and guides off by default (smart guides on desktop only); old prefs and the v2 centre line carried over
+PASS grid: neutral (no teal), minor and 0/50/100 lines from GRID_ALPHA, fades from 12 to 6 screen px, drawn over the garment box only with a difference blend (reads on light and dark cloth)
+PASS grid and guides are painted over the design on the live canvas only (contextContainer); exports, previews and thumbnails render to their own canvas without them
+PASS centre line: dashed garment-centre line drawn on the live canvas, and the garment centre is a snap line even without smart guides; smart guides add edges and other elements
+PASS placement ghosts show only the existing logo presets for the garment and face (no back centre on the front, no arm targets without sleeves)
+PASS rulers: % of the garment only (whole-number labels, never units or sizes), horizontal 11 px labels, ink-2 on paper; 0 and 100 sit on the garment edges
+PASS align left/centre/right/top/middle/bottom to the selection bounds; distribute 3+ with equal gaps (ends fixed); fewer elements do nothing
+PASS alignment lives in the toolbar slot: align for 2+, distribute for 3+, centre-on-garment for one; one undo step each; arrow keys move between buttons; 44 px on touch
+PASS a multi-selection is saved, autosaved and put in history in canvas coordinates (members of an active selection are decomposed), never relative to the selection
+PASS navigation: Fit button and Ctrl+0, Space-drag pan kept, two-finger pinch zoom clamped to the zoom range, pan limits re-applied; a zone opens its colours on a tap, not on the first finger of a pinch
+PASS eraser cuts only free drawings and uploaded art (never the garment, text, shapes, locked or hidden layers), samples the stroke without gaps, one undo step
+PASS grid lines coincide with ruler ticks (garment top-left origin; Fine 2 / Medium 5 / Coarse 10 template units; every zoom and pan tried) and the 50 centre is a grid line at every size
+PASS the canvas grid and the snapping grid share gridSpec(); with Snap on, a drag snaps to the grid step whether or not the grid is shown
+PASS rulers run the full stage edge in template units (ticks before 0 and past 100), label only 0 to 100 (every 10 when it fits, else 25/50/100), emphasise 0, 50 and 100, show a live pointer marker
+PASS Studio tooltips: one StudioTip for data-tip, shown 200 ms after hover or keyboard focus, fade skipped under reduced motion; rail tools use it; ruler corner is a focusable button saying "Template units, not centimetres"; the selected span is highlighted on both rulers (display only)
+PASS ruler guides: drag from a ruler creates one, it snaps to whole % (and 50%), elements snap to it, double-click or Delete removes it, kept for the session only
+PASS metrics are % of the garment from its top-left (X, Y, W, H) plus rotation, while moving/resizing and in the inspector; a multi-selection shows its bounds and "N elements"; never units
+PASS old guide prefs migrate once (v3): v1 px 10/20/40 and v2 % 5/10/20 both become 2/5/10 template units, and stay put after
+PASS the table contrasts with the garment: navy and black get the chalk ground, white and yellow the navy one
+PASS radio groups and tab lists: arrows wrap, Home and End jump, other keys do nothing
+PASS single-key shortcuts can be turned off (WCAG 2.1.4): letters, view keys and ? stop, Escape and Alt+Z stay
+PASS the Studio opening plays once per session, never under reduced motion, and survives blocked storage
+PASS snap rounding: snapToStep rounds to the nearest grid step (halves up), keeps float steps exact and leaves a zero step alone
+PASS nudge clamps to 0..100: 1 step or 5 (Shift), with Snap it lands on the next grid line first; never past either edge
+PASS arrow keys nudge the selection 1 grid step (Shift = 5) through nudgePct in template units, one undo step per nudge; locked or editing text is left alone
+PASS guides: dashed centre line and chest line (25 from the top) in thread red #C4313B, display only, snap lines only while Guides are on
+PASS keys: Shift+G toggles the grid and R the rulers; G alone stays the paint bucket; no other rail letter, Ctrl/Cmd/Alt or held key is taken
+PASS view toggles: Grid, Rulers, Snap, Guides are 44px aria-pressed buttons (lane on desktop, View panel everywhere); the units note is shown with the rulers and in the panel; no cm or inches
+PASS view prefs are per user in localStorage inside try/catch (browser key as fallback); the Studio works without storage
+PASS live "x, y" readout in template units with Up/Down/Left/Right nudge buttons in the inspector; nothing about grid, rulers or guides reaches DesignState serialization
+PASS phone/tablet layout: the stage fills the column; the sheet opens at peek (its bar only) with half (37% of the height, 264-360 px) and full (<= 85%) heights, a 44px bar button and a drag; five-item bottom nav; stage bar of at most five labelled controls with hints outside it
+PASS phone sheet drag steps: a short drag keeps the height, up raises one step (two past 160 px), down lowers, clamped to peek..full
+PASS phone stage: zoom out/in/fit are round 44px buttons in the stage corner, Back view and Full screen move to the top bar ⋯ menu (with "Add a matching …" when one piece has a partner), the 3D chip sits bottom-left; desktop keeps its labelled bar and a solid teal tab underline
+PASS phone top lane wider than the screen (Guides + uniform set switch) scrolls from its start instead of centring past both edges: no Guides button off-screen
+PASS Guides panel is rendered at the Studio root (above rulers and sheet): modal dialog with backdrop, close button and Escape up to 1023px; desktop popover capped to the stage height with internal scroll
+PASS uploads are typed by their bytes (PNG, JPG, WEBP, SVG with prolog/comments/doctype); text, PDF or HTML named .png is rejected
+PASS SVG is only ever decoded as an image and rasterised to PNG (no scripts or links survive; never put in the DOM as markup); 5 MB cap; minimum size message; original kept
+PASS artwork goes through the existing lazy background removal with a review: before/after, "Remove background" on by default (a toggle back to the original), AI on request
+PASS "Use as: artwork | reference photo": both accepted; a reference rides the order's existing design_ref_file field (no new field), within the server's JPG/PNG 5 MB rule
+PASS first-run "Upload my design" is no longer cancelled by its own effect (the file is cleared only when its timer fires)
+PASS executables are rejected by content whatever their name: a Windows .exe renamed logo.png fails the reference check and the logo/artwork sniff; a real PDF passes as a reference
+PASS reference types come from the server rule (App\Support\UploadRules, served at /api/customer/upload-rules); the fallback mirrors it; jpeg folds into jpg
+PASS Studio reference: its own kind, preview (image) or file tile (PDF), Remove and Replace; never placed on the garment
+PASS logo upload: background removal fetched only when used; placed images capped in size so a save fits; a placed logo can be moved to a zone
+PASS every gallery photo with a 3D reference (9, 2 of them full sets) shows it by default: one lazy Canvas, DPR capped, skeleton while loading, photo fallback, context released on close; label kept
+PASS GLB inventory: the five unwired files (fused figure, superseded cuts with hand stubs/notches, stand-in, uncapped build input) are not served and each has a recorded reason
+PASS Skirt 2D: one body zone; pencil silhouette with curved waistband, side darts (front and back), centre-back zip and a lapped back vent on the back only
+PASS authored pencil-skirt GLB: two named parts (skirt_body, waistband), both with UVs and normals, <= 20k triangles, y up and 1.9 units tall, built by tools/glb-extract/build_pencil_skirt.py
+PASS the authored skirt is Skirt's editable "3D (approx.)" (the Downloads corporate skirt is the rejected file): licence recorded, calibrated zone-mask path, nothing left pending
+PASS every 3D reference offers "Try colours": 7 single garments take one body colour, 2 full sets a Top/Bottom colour split per model (waist height, or the gap between flat-lay pieces), labelled "approximate split"
+PASS reference colours use the calibrated zone-mask material and the Studio light rig (linear tone mapping); one lazy Canvas, released on close
+PASS preview colours are never saved or sent: held in picker state only, reset on Back, never passed to onPickPhoto/onPick3D, and the caption says VFRB produces from the 2D design
+PASS UV paint path (T-shirt): sheen takes the painted colour instead of white (measured dE mean 11.0 -> 6.2, max 20.4 -> 10.4)
+PASS no reference is promoted to editable 3D: none has UVs (constitution), 14 are fused sets, and singles have no 2D template of their cut (or a different one)
+PASS the re-supplied Downloads corporate skirt is recorded as the rejected staging file (same SHA-256) and the authored pencil skirt as Skirt's 3D
+PASS PH mobile: 09XXXXXXXXX or +639XXXXXXXXX accepted with spaces/dashes, short, long and landline numbers rejected, empty allowed unless required
+PASS SMS line: "your number is saved" only for a stored PH mobile number; display format 0917 123 4567 / +63 917 123 4567
+PASS Profile: a failed load shows a retryable error instead of a blank form that could be saved over the real profile
+PASS Order Detail: a network or server failure is a retryable error, never "Order not found", and is not cached; 404/403 stay "not found"
+PASS 3D hem note: every model whose registry limitation says another garment shows at the hem or waist says so on the stage; models without it say nothing
+PASS admin OrderDetail renders OrderDesignDetails under the design (reference photo, notes, origin, colours); the reference image has skeleton and error states; no edit controls
+PASS originals unchanged: all 23 reference GLBs hash to the values recorded before and after derivation, or are the verified served copy of them (no derived file is written outside public/models/vfrb-derived)
+PASS every derived piece is on disk exactly as recorded (GLB SHA-256), with front/back shade maps, and every piece is at most 50k triangles unless a decimation gate kept it whole (reported)
+PASS decimated pieces passed every gate: front IoU >= 0.98, all five views >= 0.97, and the neckline / waist opening did not close (top-view cover +0.02 at most)
+PASS garment-only: the two mannequin necks were removed by the measured cylinder cut (faces removed, neckline open afterwards) and no floating fragment remains in any piece
+PASS sets keep top AND bottom: every REF_SPLIT set has both pieces written; each promoted set registers as two pieces (top + bottom roles); the two not-promoted sets register nothing
+PASS one data table: every derived family is unique by name, in a constitution category (no Sports/PE), matched by exactly one capability entry (its own), labelled pending VFRB confirmation
+PASS derived 2D templates are real closed paths with one body zone (no collar, sleeve or pocket zone), a traced back only where it differs, and the shade layer
+PASS every kept derived family is 2D + 3D (approx.), never verified; every removed piece (2026-10-16) is gone from the catalog, 3D and template ids and names an authored template
+PASS every existing family still resolves to the same template, 3D model and status (136 family x style x fit cases vs the HEAD baseline); only reference photos with derived pieces open somewhere new, and they open their own derived family
+PASS a design saved before this change opens unchanged (garment, sleeve, fit, templateId and 3D availability, incl. the tunic photo saved on the T-Shirt template)
+PASS "Start from scratch": every listed family offers only combinations that open an editable template (Category -> Garment -> Fit/Cut -> Style -> Studio); derived families are listed under "Start from a reference" (Traced from reference photos); no family is the default
+PASS "Start from scratch" lists vector templates only: no photo base is shown or opened (Scrub Top and Mandarin Collar open their vector sketch), and every own family keeps at least one
+PASS "Start from a reference": every reference photo with derived pieces opens its template (Use as template), sets open their top with the bottom waiting as the other set piece, in the photo's measured colours
+PASS 2D realism layers are decorative only: no zone key, never selectable or evented, so they never reach history or the saved design
+PASS print-through: ink light only darkens (folds below the photo reference), clamps to 0..255 and survives a missing reference
+PASS print-through: the five lighting layers are tagged __light, it runs for exports too (before the live-only grid) and only touches the design, never the saved JSON
+PASS fast colour change: feather, bounds, luminance, light map and trim mask are cached per photo; a new colour runs only the recolour loop; thumbnails draw the shared canvas (no PNG encode)
+PASS landing production line: thread is 0 before the station track, 1 once its end passes 70% of the screen, clamped, a short row takes 35% of a screen; stations come from PHASES and reduced motion paints it fully sewn
+PASS stock-out/wastage larger than the stock is refused inside the locked transaction (422 "Only X unit in stock; cannot remove Y."), with no clamp and no log row; cache and low-stock handling unchanged
+PASS admin order update: status, total, negotiated delivery date, review notes and order type are manager-only; the manager note goes to the customer message and never overwrites orders.notes (the customer's own notes)
+PASS email_provider_live comes from the mail config: false for log/array mailers and sandbox hosts (mailtrap, sandbox, mailhog, mailpit, localhost), true otherwise; no hard-coded false
+PASS admin password change: PUT /api/admin/profile/password in the shared admin group (manager, owner, staff; owner.readonly applies), customer and admin routes share one method (current password check + the same strength rule)
+PASS admin OrderDetail: "Order Summary (PDF)" only for managers (manager-only endpoint); "Track Production" (button and next-step action) only with the production area
+PASS order ids in Delivery, Incidents and Reports are real links to /admin/orders/:id (react-router Link, keyboard focus ring, 44px on touch, row click not triggered)
+PASS one password rule for customer and admin panels (8+, upper and lower case, number, symbol), admin Settings has its own Password panel calling PUT /api/account/password; no profile edit or session logout
+PASS email preference copy: admin says "test inbox", the customer is told emails are not sent yet (no "test inbox"); no provider name; docs no longer name Mailtrap
+PASS dead code removed: no unused SK style const in Delivery, Physical Count, Purchase Orders, Users; no unused TTL import in Users
+PASS User Management roles: one ROLE_CFG of Administrator (Manager), Administrator (Station) and Owner drives the tabs and the edit-role list; Create adds Customer as the only extra option
+PASS owner pages: the backend read-only areas (invoice = the page over the orders API) plus Settings for their own account; everything else is closed
+PASS owner routing: signs in to the admin portal and lands on the shared dashboard; the shell gates every admin page with canOpen; reports/activity-log/audit-logs/invoice open to owner through RequireManager, feedback/suppliers/users do not
+PASS owner shell: sidebar and page search list only pages canOpen allows, the role chip says read-only, no notification bell, polling or Quick add
+PASS audit log: read-only GET /api/admin/audit-logs with action/date filters and pages; listed in the manager Admin group
+PASS owner dashboard: tiles and rows link only to pages canOpen allows (plain tiles otherwise), no RFQ/delivery fetches; the owner reads revenue like the manager
+PASS owner and station write controls hidden: payment, stock in/out, Create PO, order confirm, Communication and fabric verdicts are manager-only; owner sees no add/edit material or digest; Invoice and Activity Log never write
+PASS details: an older design (no details key) opens unchanged: empty details, and every template draws exactly as before
+PASS details: hidden pocket and recoloured buttons survive Save -> My Designs reload -> Order Wizard snapshot -> Order Detail, and print on the spec sheet and admin view
+PASS details: no control for a garment that cannot draw it: every listed option is drawn by that template; photo bases and derived templates list none; unsupported keys are dropped on save
+PASS shapes: every panel shape has a layer label; path shapes (heart, badge, speech, ribbon) have a closed 24-unit path
+PASS gradient fill: spec is a percentage-unit linear gradient, and reading it back gives the same colours and direction
+PASS image adjust: reads brightness/contrast/greyscale off Fabric filters (defaults 0, 0, off); crop shapes are none, circle, rounded, heart
+PASS image adjust: saturation and blur read back from Fabric filters (defaults 0); an all-zero adjust adds no filter
+PASS trim edges: % per side clamps to 0..45 and maps to cropX/cropY/width/height; reading the crop back gives the same %
+PASS blend: Normal, Multiply, Screen, Overlay as Fabric globalCompositeOperation; anything else reads as Normal; shown for every single element
+PASS crop shape (__clip) is an overlay prop, so it survives save, reload and undo
+PASS fonts: 24 OFL faces across sans, serif, script, display, condensed and mono; every weight file exists; each has its licence text and a row in FONT-LICENSES.md
+PASS fonts: lazy, never precached by the service worker, loaded only through FontFace on first use
+PASS patterns: at least 12 procedural woven/printed patterns (no image assets), each with a bounded tile
+PASS patterns: params are clamped (scale, rotation, colour 2) so a bad record cannot break rendering
+PASS patterns: woven zones are 2D only (the 3D path paints them solid and the panel says so)
+PASS 1B round trip: woven pattern + params, curved/outlined/shadowed text, shape kind, lock, hide and flip survive Save -> reload -> order
+PASS 1B: the overlay props that carry the new tools are saved with every overlay, and every load path revives fonts and arcs
+PASS old designs unchanged: legacy stripes, params, system-font text and an untagged star re-save identically and keep their labels
+PASS curved text: off at 0, an arc as long as the straight text otherwise, clamped to -100..100
+PASS shapes: all nine (rectangle, rounded, circle, ellipse, triangle, star, hexagon, line, arrow) are offered and labelled
+PASS editing tools: contextual text/shape controls, flip, z-order, shortcuts and 44px touch handles are wired
+PASS undo/redo: text restyles commit after the async relayout; z-order goes through history
+PASS history: starts at an empty baseline (the first action is undoable); a design load restarts it, a side switch parks it, the export face swap keeps it; only the newest overlay load lands
+PASS 2D realism layers are decorative only: built from deco (never selectable, never saved)
+PASS previews and specs: shared preview passes woven patterns; PDF and admin list them; SSR renders without a DOM
+PASS crop: a landscape photo covers the square stage and starts centred, so the crop is the middle square
+PASS crop: panning past an edge is clamped so no gap shows
+PASS crop: zooming keeps the stage centre on the same image point and shrinks the square
+PASS crop: the source rectangle never leaves the image
+PASS accent: light default teal leaves theme.css alone; other presets set the accent tokens
+PASS accent: every preset in dark mode reads at 4.5:1 as text on both dark cards, on its tint, and carries dark button text at 4.5:1
+PASS accent: server ids and preset hexes round-trip
+PASS mode: system follows the device, light and dark are fixed
+PASS appearance is painted only by the portal layouts (Design Studio and auth keep the default look)
+PASS settings records: addresses and billing share one kit; no hard-coded status colours left in either
+PASS QC: Daily Output Log shows the checklist inline at the QC stage and says Pressing is blocked until it passes
+PASS QC: the inline form writes to the same endpoint Reports read (POST /api/admin/orders/{id}/qc)
+PASS QC: the QC page is read-only history (GET /api/admin/qc-checklists, no writes, no form)
+PASS QC: the form previews pass/fail by the server rule (an optional check answered Fail also fails)
+PASS recorded-by name and date: Sales & Pay, Activity Log, QC history and today's output use one RecordedBy
+PASS QC gate (backend): one rule for output logging and the manager override, latest checklist must have passed
+PASS QC (backend): a passing checklist releases a held QC order once every QC piece is logged; history endpoint is read-only
+PASS Activity Log (backend): payments appear with who recorded them, without amounts
+PASS rulers origin: a photo with a transparent border measures from its opaque pixels (6 px border = 0% sits on the cloth)
+PASS rulers origin: garmentBox uses the opaque box for a photo base and the plain box for a vector path
+PASS grid units: major grid lines are exactly the always-labelled ruler values (multiples of 50%) at every grid size
+PASS one unit system: the pixel-unit ruler/readout helpers are gone; rulers, grid, snap and readout are % of the garment
+PASS set scale: anchored to the PH size chart (size M top body length 70, bottom length 100), not to each template's framing
+PASS set scale: base templates keep their drawn ratio within a role (shorts shorter than pants); derived pieces are flagged approximate
+PASS set scale: a photo-base piece takes its template length, not the fitted photo height, and is drawn at that length
+PASS 2D set layout: one px-per-cm for both pieces, bottom waist tucked 10% of the top's length under its hem, pieces centred
+PASS set thumbnails: pieceFits gives both pieces one px-per-cm in equal boxes (largest 1; Polo drawn at 70/100 of Pants), null when a piece is unknown
+PASS set view is 2D only: 3D shows one piece at a time (no companion model), rulers step aside for the 2D set, the Set button is hidden in 3D, and a single garment shows only "Add a matching ..."
+PASS details: a control exists only where the 2D template draws that part; photo bases and derived templates get none
+PASS garments with real paths already in the catalog: Mandarin Collar (vector + derived blouse), Pants, Jogger Scrub Pants; derived trousers and slacks are gone; Track Pants stays out (no PE)
+PASS AI from scratch: a brief maps to one real catalog template by fixed rules, an unoffered sleeve is corrected and said, ops are checked
+PASS AI from scratch: a bottom starts on Pants; an accent with no collar zone is reported, never forced onto another zone
+PASS AI from scratch: a pattern the template cannot show (photo base) is listed as not applied, with the reason
+PASS B5 client re-check: unknown zones, placements, texts and operations are refused with a plain reason
+PASS landing "Find your uniform": five tiles, each a real garmentCatalog category with garments; the picker ignores unknown ids
+PASS B5 preview: re-checks every op, snapshots design + overlays + history; Apply folds it into one undo step, Cancel restores all three and leaves no step
+PASS B5 3D: the preview is the one DesignState, so 3D shows it; "See it in 3D" only when a model exists, otherwise it says so
+PASS AI scope: one Studio AI panel of strict B5 operations; no free chat, no sizing, quantity, yardage or price prompts
+PASS AI scope (backend): describe-design has no free chat branch (no client-supplied prompt is passed to the model)
+PASS CLAUDE.md states the approved AI scope
+PASS showcase open: another client's look changes garment and colours only; the customer keeps their own name; no overlays or set are taken
+PASS showcase gallery: never loads another client's overlays, shows a load failure honestly, lucide icons and tokens only
+PASS showcase opt-in: says what is and is never shared before sharing; pending, published and rejected (with reason) shown; withdraw offered; no emoji
+PASS showcase moderation: manager sees pending and published, can take a published design down, and is told the label is public
+PASS showcase (backend): public list = approved AND active, through the allowlist with no photo; withdraw and delete end consent
+PASS scratch: Scrub Top (unisex) and Mandarin Collar (male) open vector sketches with pocket, button and zip controls; Scrub Top has two lower pockets
+PASS scratch template cards never draw a photo base (GarmentPicker has no assetFor); Build your own is the first Scratch card
+PASS Jogger Scrub Pants: a vector template under Medical / Scrubs (no PE category), a bottom, with cuffs, drawstring and side pockets and no fly
+PASS build your own: values are clamped (unknown neckline/hem fall back, sliders 0-100, cuffs and drawstring only on joggers)
+PASS build your own: the choices change the drawn sketch, survive Save -> Reload (cfg.custom, templateId custom-top, sleeve); 2D only (no 3D model)
+PASS pockets: five presets with panels and stitching, tagged and saved like any overlay, listed per face for the spec sheet and admin order view, excluded from 3D decals
+PASS tracing guide: only image data URLs, values clamped; never a Fabric object, never serialised, never in an export; uploads pass the upload guard
+PASS reference to 2D: two legs read as trousers, a T outline as a sleeved top, a flared outline as a skirt; an empty image is not read; the proposal is a clamped build-your-own spec
+PASS reference to 2D accepts only a full uniform set: two-piece and dress pass; trousers, a top or a skirt alone and an unread photo are refused; the customer must tick "no person" first
+PASS set "Apply to: Both": every added logo, text, shape, drawing and pocket is offered to the other piece; the 3D set view renders each piece with its own overlays
+PASS layer tools: the inspector never traps the wheel (inner panels inside the panel scroller do not scroll themselves); the floating toolbar respects a lock
+PASS rulers, grid and centre line measure the garment's own zones, never its drop shadow or edge shading
+PASS full screen: the Fullscreen API on the Studio root with an app-level expanded fallback, the view restored on exit, a labelled toggle; Fit has its own icon
+PASS 3D gating: no derived bottom remains (removed 2026-10-16); Straight Slacks has no model of its own and reopens the rebuilt Men's Slacks; Men's Slacks is rebuilt (parametric 2D, keeps its name, no 3D); the Meshy pants file is never routed
+PASS authored meshes: Scrub Top sketch (Short, 3/4) and Pants each load a GLB of named parts, every part with UVs and normals, about 1.9 units tall; parts map to 2D zones and pockets follow the 2D details; Jogger Scrub Pants has no 3D model (dropped in cd551bc)
+PASS sketch line: light ink over dark fills, dark ink over light fills and patterns; canvas, GarmentSilhouette, GarmentThumb and pocket layers all use it; the CSS token mirrors it
+PASS 3/4 and long sleeves taper to the cuff (hem narrower than the shoulder width, never a bell) and stay on the template
+PASS build your own: cuffs add a rib band and the drawstring its cords, so the preview shows exactly what was chosen
+PASS details panel shows one note; the custom note no longer repeats the "Custom sketch" badge
+PASS stage bar: Fit is pressed only while fitted; full screen, stage light, turntable, exploded view and 3D lighting carry visible labels
+PASS order 3D preview: logos/text ride as decals, turntable is off under reduced motion, a lost context drops to 2D, the snapshot is a PNG upload
+PASS a saved design on a removed derived garment opens its nearest authored template, never crashes; a uniform set keeps the piece in its role
+PASS Pantsuit Trousers spec drives 2D: belt loops off removes the 2D loop lines; length changes the sketch
+PASS Pantsuit Trousers spec: clamped, unknown keys dropped, family defaults (full length, crease, belt loops), never a jogger option
+PASS Pantsuit Trousers: a catalog bottom (Corporate, female), 2D only, a template id, and its spec survives Save -> Reopen
+PASS Pantsuit Trousers: old designs keep the name (no remap to Pants); the gallery set photo opens it as the bottom; the removed derived cut stays unregistered
+PASS Pantsuit Trousers Details: side/back pockets, buttons and fly trim are offered
+PASS Men's Slacks and Creased Trousers: rebuilt tailored families (male / female), own template ids, 2D only; their set photos open them
+PASS Midi Pencil Skirt: rebuilt parametric skirt (midi default, length slider), 2D only, opened by the peplum set photo
+PASS peplum flare drives 2D: a fuller flare changes the sketch, and the 2D draws the back zip
+PASS rebuilt tops: construction is fixed (neckline/hem cannot be changed), sleeves are the family's own
+PASS rebuilt tops are catalog tops, 2D only, own template ids
+PASS 7 gallery sets open their top and the rebuilt bottom, and Save -> Reopen -> Order (uniform set queue) keeps garment, measurements, colours, gallery id, template and model for both pieces
+PASS station: Inventory hides Export CSV/PDF and the Transaction log tab; Order detail hides Client materials
+PASS station: can open /admin/settings for the Password section only (no settings fetches); owner gets their own-account tabs only and no company fetch
+PASS station: sidebar footer role label wraps in full
+PASS request access: the "website" honeypot sits off-screen in an aria-hidden wrapper with tabIndex -1
+PASS request access: the submit sends no credentials (no cookies, no token, fresh axios instance) and only name/organization/email/mobile/website
+PASS flats: scrub-top-vneck-short front/back SVG zones match every 3D part (body, sleeve_l, sleeve_r, neck_band, chest_pocket, lower_pockets)
+PASS flats: scrub-top-vneck-three-quarter front/back SVG zones match every 3D part (body, sleeve_l, sleeve_r, neck_band, chest_pocket, lower_pockets)
+PASS flats: Scrub Top Short front uses the flat with every zone (pocket front only), stitches dashed
+PASS flats: Scrub Top Short back uses the flat with every zone (pocket front only), stitches dashed
+PASS flats: Scrub Top 3/4 front uses the flat with every zone (pocket front only), stitches dashed
+PASS flats: Scrub Top 3/4 back uses the flat with every zone (pocket front only), stitches dashed
+PASS flats: body box equals the top() template, so a logo at any body corner moves 0px (max 0.1)
+PASS flats: other garments, other sleeves and the canvas size are unchanged
+PASS flats: a Scrub Top saved before the flats opens with the same zone colours and its hidden lower pockets stay hidden
+PASS size chart: size M (and an unknown size) redraws every template exactly as before, so saved designs keep their shapes and zones
+PASS size chart: XS < M < 3XL in body width and length for tops, trousers and skirts; ratios come from the chart (3XL body length 78/70)
+PASS size chart: the women's cut narrows an unshaped top; an already-shaped Blouse keeps its own cut
+PASS size chart: every sized drawing stays inside its canvas
+PASS program garments: all 12 open an editable 2D template with named zones, on the asked sleeve, each family once
+PASS program garments: the 3D label is has3DFor's answer; Polo Long and Round Neck Long have no model and say "2D design"
+PASS Order Wizard size row: one drawing per ordered size in chart order, on one shared frame; none for a traced template or no sizes; no cm anywhere
+PASS M5 Mandarin Blouse: parametric top with body, collar and both sleeves; Short and Long; one picker entry; "2D design" from has3DFor
+PASS M5 old traced Mandarin Blouse design: its saved templateId reopens the traced outline with the same colour and 3D status; the photo still opens it
+PASS zone parity: 10 Tier 2 garments draw the generator's zone keys, unchanged by size and fit
+PASS tool rail: V H G B E P L T U pick their tools, Z / Alt+Z zoom, Ctrl or Cmd letters and held keys are left alone
+PASS drag shapes: star has 10 points, arrow 7, polygon follows its side count (3 to 12, clamped); each fills the unit box
+PASS drag shapes: polygon labels name the side count; hexagon keeps its old name
+PASS outline dash: solid is none, dashed scales with width, dotted is zero-length dashes with round caps; reading returns the same kind
+PASS brush presets: pencil is fine, marker broad, highlighter translucent with flat ends; unknown kinds fall back to brush; sizes sit inside each max
+PASS drag shapes and brushes are wired: the canvas draws every box tool, the options panel lists them, the stroke is saved opaque with its own opacity, __sides is saved
+PASS pen and line geometry: corners are straight, a dragged anchor curves, closing returns to the start, Shift snaps to 45°
+PASS rectangle and ellipse tools: the box is the drag in any direction; Shift makes a square on the longer side toward the drag
+PASS twin-needle hem: a second row 2.4 px toward the garment centre on each straight or curved hem and cuff run; never on shoulder or side seams, polylines or ticks
+PASS paint bucket and Colours panel share paintZone: the body carries following parts, any other part changes alone
+PASS colour guide: WCAG ratio (white/black 21:1, same colour 1:1), labels at 3 and 1.6, best text ink, design palette and recent list
+PASS shortcut list: tool letters come from RAIL_TOOLS, every listed edit/view key is handled in code, "?" opens it only without modifiers
+PASS navigator: a fitted view frames the whole canvas, a zoomed one the visible part; centring a point gives the pan the stage uses
+PASS touch: pinch also pans, a quick still two-finger tap undoes, double-tap the empty stage fits or zooms in; the tour waits for a garment and reads storage in try/catch
+PASS panel body never waits on an exit animation (an upload switching to Selection used to leave it blank)
+PASS 2D-only effects: blend modes, image filters, gradient fills (also inside groups) and gradient zone patterns flag; plain overlays do not
+PASS 3D note for artwork on garments without decals names the cause
+PASS 3D labels on every garment, sleeve and fit: "3D preview (approximate)" exactly when a model renders, else "2D design"; "3D preview available" needs a verification record (none today)
+PASS three, R3F and the 3D scene load only through lazy imports (no static import outside the 3D modules)
+PASS 2D -> 3D sync is throttled (trailing timer, unchanged overlays keep their decals); textures and primitive materials are disposed; DPR capped on touch; no auto-rotate under reduced motion; fx note shown
+PASS design thumbnails draw the garment itself: a blouse is not the polo fallback, and no garment draws no outline
+PASS a preview or reference image that fails to load falls back to the template render, never a broken image
+PASS My Designs lists a submitted Studio design from its order until it is archived: never cancelled, never twice, never without a config
+PASS customers load on a light, customer-shaped skeleton, never the dark admin shell
+PASS Studio how-to guides: every step that points at a control names a real tool, tab or Studio class; each guide has a title, summary and steps
+PASS How to opens from the Pieces column, phone More, the shortcut list and Settings > Help (?help=howto); an empty guide never crashes
+PASS motion tokens: skeletons stay hidden 150 ms then shimmer on a 0.7 s cycle; thread pull 200 ms (the route entrance was removed in a1cc461); 2D/3D crossfade 200 ms, off under reduced motion
+PASS an empty order thread never tells the customer to ask "before you submit" (every thread belongs to a placed order)
+PASS My Designs: a uniform set's orders become one card with both pieces (top first, each its own preview); a lone piece or single garment stays its own card; a draft set shows both pieces
+PASS Order Detail: the sticky aside spans both desktop rows, so it never slides over the full-width materials section
+PASS Home hero is one first action: Continue my draft when a draft exists, else Create a design; no extra API call
+PASS fetchAllPages follows last_page at the backend max per_page, stops at 10 pages, and passes a plain array through
+PASS uid: v4 format with or without crypto.randomUUID (plain-http LAN test); no raw randomUUID call left in src
+PASS a11y: each customer page sets its own tab title; order buttons name their order; My Designs cards are h2 under the h1
+PASS motion caps and pause: every landing animation and app overlay runs <= 300ms; the marquee has a 44px aria-pressed pause button; overflow-x: clip keeps a hidden fallback
+PASS landing hero 3D: only >= 960px with WebGL, no Save-Data, no reduced motion (390, Save-Data, reduced motion, no WebGL keep the 2D pattern); the entry keeps only a width check, HeroLive and HeroTurntable are lazy-only and failures fall back
+PASS draft "edited" time: a zone-less DB timestamp is read as UTC (saved seconds ago reads "just now", not "8h ago"); ISO with a zone is unchanged
+PASS motion layer: site, app and landing animations run only with no-preference for reduced motion; scroll timelines only inside @supports (animation-timeline: view())
+PASS landing facts: stations, minimum order and categories come from PHASES, MIN_ORDER_QTY and FIND_UNIFORM; years from 2000; each count finishes once its card is fully in view; the number stays readable as text
+PASS page transitions: a shallower path or home slides back, deeper slides forward; reduced motion skips the transition entirely
+PASS admin tab titles: every admin route in App.tsx (24) has a nav title entry
+PASS a11y nov9: AI Materials order picker and the three Activity Log filters are labelled; Studio tab title ends "| VFRB Enterprise"; a failed Next focuses the first problem and a submit error takes focus; sign-in fields show a 2px teal focus ring
+PASS polish nov9 S1: AI Materials order options show the customer status label, never the raw stage; AI Materials and Messages carry no off-brand hex colours; Messages inputs use the focus-ringed cx-in field
+PASS polish nov9 S2: tablets (768+) get the two-column dashboard hero and three recent designs; Settings menu narrows to 248px at 900-1199 so the form keeps its width
+PASS polish nov9 S3: Delete copy only for an unlocked copy with orders loaded and no live order using it (pending, confirmed, in production or completed all block; cancelled does not); originals never; goes through ConfirmDialog and DELETE /api/customer/designs/{id}
+PASS Scrub Top part contract: every part id in the authored front/back flats (both sleeves) is a named node of the 3D model, and the 2D builder emits a path for each zone part
+575/575 passed

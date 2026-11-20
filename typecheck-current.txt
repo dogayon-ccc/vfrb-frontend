@@ -1,0 +1,844 @@
+
+> client@0.0.0 typecheck
+> tsc --noEmit
+
+src/App.tsx(126,59): error TS2339: Property 'connection' does not exist on type 'Navigator'.
+src/components/admin/AdminUI.tsx(181,51): error TS2339: Property 'connection' does not exist on type 'Navigator'.
+src/components/admin/AdminUI.tsx(207,31): error TS2339: Property 'addEventListener' does not exist on type 'string | (Window & typeof globalThis) | Document'.
+  Property 'addEventListener' does not exist on type 'string'.
+src/components/admin/AdminUI.tsx(209,83): error TS2339: Property 'removeEventListener' does not exist on type 'string | (Window & typeof globalThis) | Document'.
+  Property 'removeEventListener' does not exist on type 'string'.
+src/components/admin/OrderDesignDetails.tsx(72,91): error TS2322: Type 'unknown' is not assignable to type 'Background<string | number>'.
+src/components/admin/OrderDesignDetails.tsx(73,67): error TS2339: Property 'toUpperCase' does not exist on type 'unknown'.
+src/components/admin/OrderDesignDetails.tsx(82,15): error TS2322: Type '{ margin: number; paddingLeft: number; padding: number; background: string; borderRadius: string; fontSize: number; color: string; lineHeight: number; overflowWrap: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'overflowWrap' are incompatible.
+    Type 'string' is not assignable to type 'OverflowWrap'.
+src/components/admin/OrderDesignDetails.tsx(88,15): error TS2322: Type '{ margin: number; paddingLeft: number; padding: number; background: string; borderRadius: string; fontSize: number; color: string; lineHeight: number; overflowWrap: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'overflowWrap' are incompatible.
+    Type 'string' is not assignable to type 'OverflowWrap'.
+src/components/admin/OrderDesignDetails.tsx(98,14): error TS2322: Type '{ padding: number; background: string; borderRadius: string; fontSize: number; color: string; lineHeight: number; overflowWrap: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'overflowWrap' are incompatible.
+    Type 'string' is not assignable to type 'OverflowWrap'.
+src/components/AuthShell.tsx(103,72): error TS2322: Type '{ className: string; src: string; alt: string; decoding: "async"; fetchpriority: string; }' is not assignable to type 'DetailedHTMLProps<ImgHTMLAttributes<HTMLImageElement>, HTMLImageElement>'.
+  Property 'fetchpriority' does not exist on type 'DetailedHTMLProps<ImgHTMLAttributes<HTMLImageElement>, HTMLImageElement>'. Did you mean 'fetchPriority'?
+src/components/AuthSkeleton.tsx(52,125): error TS2322: Type 'string | number' is not assignable to type 'JustifyContent'.
+  Type 'number' is not assignable to type 'JustifyContent'.
+src/components/AuthSkeleton.tsx(53,78): error TS2365: Operator '>' cannot be applied to types 'string | number' and 'number'.
+src/components/customer/kit.tsx(69,47): error TS2769: No overload matches this call.
+  Overload 1 of 3, '(locales?: LocalesArgument, options?: DateTimeFormatOptions): string', gave the following error.
+    Argument of type '{ month: string; day: string; year: string; }' is not assignable to parameter of type 'DateTimeFormatOptions'.
+      Types of property 'year' are incompatible.
+        Type 'string' is not assignable to type '"numeric" | "2-digit"'.
+  Overload 2 of 3, '(locales?: string | string[], options?: DateTimeFormatOptions): string', gave the following error.
+    Argument of type '{ month: string; day: string; year: string; }' is not assignable to parameter of type 'DateTimeFormatOptions'.
+      Types of property 'year' are incompatible.
+        Type 'string' is not assignable to type '"numeric" | "2-digit"'.
+src/components/customer/kit.tsx(93,22): error TS2345: Argument of type '{ month: string; day: string; }' is not assignable to parameter of type '{ month: string; day: string; year: string; }'.
+  Property 'year' is missing in type '{ month: string; day: string; }' but required in type '{ month: string; day: string; year: string; }'.
+src/components/DesignPreview.tsx(14,63): error TS2339: Property 'resetKey' does not exist on type 'Readonly<{}>'.
+src/components/DesignPreview.tsx(15,49): error TS2339: Property 'fallback' does not exist on type 'Readonly<{}>'.
+src/components/DesignPreview.tsx(15,71): error TS2339: Property 'children' does not exist on type 'Readonly<{}>'.
+src/components/DesignPreview.tsx(57,51): error TS2322: Type '{ display: string; width: string; height: string; maxHeight: number; objectFit: string; maxWidth?: undefined; } | { maxHeight: string; maxWidth: string; objectFit: string; display?: undefined; width?: undefined; height?: undefined; }' is not assignable to type 'CSSProperties'.
+  Type '{ display: string; width: string; height: string; maxHeight: number; objectFit: string; maxWidth?: undefined; }' is not assignable to type 'CSSProperties'.
+    Types of property 'objectFit' are incompatible.
+      Type 'string' is not assignable to type 'ObjectFit'.
+src/components/DesignPreview.tsx(58,61): error TS2322: Type '{ display: string; width: string; height: string; maxHeight: number; objectFit: string; maxWidth?: undefined; } | { maxHeight: string; maxWidth: string; objectFit: string; display?: undefined; width?: undefined; height?: undefined; }' is not assignable to type 'CSSProperties'.
+  Type '{ display: string; width: string; height: string; maxHeight: number; objectFit: string; maxWidth?: undefined; }' is not assignable to type 'CSSProperties'.
+    Types of property 'objectFit' are incompatible.
+      Type 'string' is not assignable to type 'ObjectFit'.
+src/components/DesignPreview.tsx(61,265): error TS2339: Property 'details' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
+src/components/DesignPreview.tsx(61,289): error TS2339: Property 'custom' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
+src/components/DesignPreview.tsx(77,10): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: {}): Boundary', gave the following error.
+    Type '{ children: Element[]; resetKey: string; fallback: Element; }' is not assignable to type 'IntrinsicAttributes & IntrinsicClassAttributes<Boundary> & Readonly<{}>'.
+      Property 'children' does not exist on type 'IntrinsicAttributes & IntrinsicClassAttributes<Boundary> & Readonly<{}>'.
+  Overload 2 of 2, '(props: {}, context: any): Boundary', gave the following error.
+    Type '{ children: Element[]; resetKey: string; fallback: Element; }' is not assignable to type 'IntrinsicAttributes & IntrinsicClassAttributes<Boundary> & Readonly<{}>'.
+      Property 'children' does not exist on type 'IntrinsicAttributes & IntrinsicClassAttributes<Boundary> & Readonly<{}>'.
+src/components/OrderBilling.tsx(141,93): error TS2554: Expected 1 arguments, but got 0.
+src/components/PageErrorBoundary.tsx(79,43): error TS2339: Property 'resetKey' does not exist on type 'Readonly<{}>'.
+src/components/PageErrorBoundary.tsx(79,66): error TS2339: Property 'hasError' does not exist on type 'Readonly<{}>'.
+src/components/PageErrorBoundary.tsx(85,20): error TS2339: Property 'hasError' does not exist on type 'Readonly<{}>'.
+src/components/PageErrorBoundary.tsx(86,32): error TS2339: Property 'isChunkError' does not exist on type 'Readonly<{}>'.
+src/components/PageErrorBoundary.tsx(93,23): error TS2339: Property 'children' does not exist on type 'Readonly<{}>'.
+src/components/ProfilePhotoField.tsx(31,39): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/components/ProfilePhotoField.tsx(53,53): error TS2322: Type '{ position: string; left: number; top: number; width: number; height: number; maxWidth: string; userSelect: string; pointerEvents: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'pointerEvents' are incompatible.
+    Type 'string' is not assignable to type 'PointerEvents'.
+src/components/ProfilePhotoField.tsx(57,79): error TS2322: Type '{ position: string; left: number; top: number; width: number; height: number; maxWidth: string; userSelect: string; pointerEvents: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'pointerEvents' are incompatible.
+    Type 'string' is not assignable to type 'PointerEvents'.
+src/components/ProfilePhotoField.tsx(94,22): error TS2339: Property 'naturalWidth' does not exist on type 'unknown'.
+src/components/ProfilePhotoField.tsx(94,38): error TS2339: Property 'naturalHeight' does not exist on type 'unknown'.
+src/components/ui/BottomSheet.tsx(44,25): error TS2353: Object literal may only specify known properties, and 'onClose' does not exist in type '{ active?: boolean; }'.
+src/components/ui/ConfirmDialog.tsx(9,25): error TS2353: Object literal may only specify known properties, and 'onClose' does not exist in type '{ active?: boolean; }'.
+src/components/ui/Drawer.tsx(13,25): error TS2353: Object literal may only specify known properties, and 'onClose' does not exist in type '{ active?: boolean; }'.
+src/hooks/useCachedResource.ts(9,78): error TS2339: Property 'onError' does not exist on type '{ transform?: (x: any) => any; }'.
+src/hooks/useDialogFocus.ts(7,62): error TS2339: Property 'onClose' does not exist on type '{ active?: boolean; }'.
+src/hooks/useDialogFocus.ts(7,71): error TS2339: Property 'initial' does not exist on type '{ active?: boolean; }'.
+src/hooks/useDialogFocus.ts(36,49): error TS2339: Property 'focus' does not exist on type 'Element'.
+src/layouts/AdminLayout.tsx(249,43): error TS2353: Object literal may only specify known properties, and 'onClose' does not exist in type '{ active?: boolean; }'.
+src/layouts/AdminLayout.tsx(695,14): error TS2322: Type '{ children: Element; resetKey: string; }' is not assignable to type 'IntrinsicAttributes & IntrinsicClassAttributes<PageErrorBoundary> & Readonly<{}>'.
+  Property 'children' does not exist on type 'IntrinsicAttributes & IntrinsicClassAttributes<PageErrorBoundary> & Readonly<{}>'.
+src/layouts/CustomerLayout.tsx(44,47): error TS2353: Object literal may only specify known properties, and 'onClose' does not exist in type '{ active?: boolean; }'.
+src/layouts/CustomerLayout.tsx(207,16): error TS2322: Type '{ children: Element; resetKey: string; }' is not assignable to type 'IntrinsicAttributes & IntrinsicClassAttributes<PageErrorBoundary> & Readonly<{}>'.
+  Property 'children' does not exist on type 'IntrinsicAttributes & IntrinsicClassAttributes<PageErrorBoundary> & Readonly<{}>'.
+src/lib/bgRemove.ts(90,25): error TS2339: Property 'gpu' does not exist on type 'Navigator'.
+src/lib/bgRemove.ts(207,42): error TS2339: Property 'gpu' does not exist on type 'Navigator'.
+src/lib/bgRemove.ts(264,22): error TS2322: Type 'unknown' is not assignable to type 'BlobPart'.
+src/lib/bgRemove.ts(287,50): error TS2339: Property 'onProgress' does not exist on type '{}'.
+src/lib/bgRemove.ts(290,23): error TS2554: Expected 1 arguments, but got 0.
+src/lib/logoBackground.ts(37,68): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/lib/logoBackground.ts(37,72): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/lib/logoBackground.ts(61,28): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/lib/logoBackground.ts(61,56): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/lib/logoBackground.ts(61,84): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/lib/logoBackground.ts(109,58): error TS2339: Property 'onProgress' does not exist on type '{ mode?: string; }'.
+src/main.tsx(63,20): error TS2339: Property 'hasError' does not exist on type 'Readonly<{}>'.
+src/main.tsx(67,23): error TS2339: Property 'children' does not exist on type 'Readonly<{}>'.
+src/pages/admin/ActivityLog.tsx(64,32): error TS2339: Property 'action' does not exist on type '{ page: number; per_page: number; }'.
+src/pages/admin/ActivityLog.tsx(65,32): error TS2339: Property 'date_from' does not exist on type '{ page: number; per_page: number; }'.
+src/pages/admin/ActivityLog.tsx(66,32): error TS2339: Property 'date_to' does not exist on type '{ page: number; per_page: number; }'.
+src/pages/admin/AuditLog.tsx(30,26): error TS2339: Property 'action' does not exist on type '{ page: number; per_page: number; }'.
+src/pages/admin/AuditLog.tsx(31,26): error TS2339: Property 'date_from' does not exist on type '{ page: number; per_page: number; }'.
+src/pages/admin/AuditLog.tsx(32,26): error TS2339: Property 'date_to' does not exist on type '{ page: number; per_page: number; }'.
+src/pages/admin/CustomersMaster.tsx(36,28): error TS2353: Object literal may only specify known properties, and 'onClose' does not exist in type '{ active?: boolean; }'.
+src/pages/admin/DailyOutputLog.tsx(32,29): error TS2339: Property 'completed' does not exist on type 'unknown'.
+src/pages/admin/DailyOutputLog.tsx(33,23): error TS2339: Property 'total_ordered' does not exist on type 'unknown'.
+src/pages/admin/DailyOutputLog.tsx(33,63): error TS2339: Property 'total_ordered' does not exist on type 'unknown'.
+src/pages/admin/DailyOutputLog.tsx(391,185): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+src/pages/admin/Dashboard.tsx(72,30): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'number'.
+src/pages/admin/Inventory.tsx(148,26): error TS2339: Property 'search' does not exist on type '{ format: any; }'.
+src/pages/admin/Inventory.tsx(149,41): error TS2339: Property 'category' does not exist on type '{ format: any; }'.
+src/pages/admin/Inventory.tsx(216,44): error TS2339: Property 'focus' does not exist on type 'Element'.
+src/pages/admin/Materials.tsx(55,10): error TS2554: Expected 3 arguments, but got 2.
+src/pages/admin/Materials.tsx(57,12): error TS2554: Expected 3 arguments, but got 2.
+src/pages/admin/Materials.tsx(58,12): error TS2554: Expected 3 arguments, but got 2.
+src/pages/admin/Materials.tsx(76,23): error TS2554: Expected 3 arguments, but got 2.
+src/pages/admin/Messages.tsx(20,28): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/pages/admin/Messages.tsx(20,66): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/pages/admin/OrderDetail.tsx(187,108): error TS2322: Type '{ width: string; minHeight: number; padding: string; borderRadius: string; border: string; fontSize: number; boxSizing: string; fontFamily: string; background: string; color: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/OrderDetail.tsx(195,133): error TS2322: Type '{ width: string; minHeight: number; padding: string; borderRadius: string; border: string; fontSize: number; boxSizing: string; fontFamily: string; background: string; color: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/OrderDetail.tsx(199,104): error TS2322: Type '{ resize: "vertical"; width: string; minHeight: number; padding: string; borderRadius: string; border: string; fontSize: number; boxSizing: string; fontFamily: string; background: string; color: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/OrderDetail.tsx(216,55): error TS2322: Type '{ marginBottom: number; width: string; minHeight: number; padding: string; borderRadius: string; border: string; fontSize: number; boxSizing: string; fontFamily: string; background: string; color: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/OrderDetail.tsx(237,75): error TS2322: Type '{ width: string; flex: string; minHeight: number; padding: string; borderRadius: string; border: string; fontSize: number; boxSizing: string; fontFamily: string; background: string; color: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/OrderDetail.tsx(262,49): error TS2322: Type '{ resize: "vertical"; flex: number; width: string; minHeight: number; padding: string; borderRadius: string; border: string; fontSize: number; boxSizing: string; fontFamily: string; background: string; color: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/OrderDetail.tsx(366,118): error TS2322: Type '{ children: Element[]; className: string; "data-show": true; "data-solo": true; "aria-hidden": boolean; inert: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  Property 'inert' does not exist on type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+src/pages/admin/OrderDetail.tsx(420,23): error TS2345: Argument of type 'string' is not assignable to parameter of type 'SetStateAction<boolean>'.
+src/pages/admin/OrderDetail.tsx(519,18): error TS2367: This comparison appears to be unintentional because the types 'boolean' and 'string' have no overlap.
+src/pages/admin/OrderDetail.tsx(525,18): error TS2367: This comparison appears to be unintentional because the types 'boolean' and 'string' have no overlap.
+src/pages/admin/Orders.tsx(43,28): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/pages/admin/Orders.tsx(43,32): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/pages/admin/PhysicalCount.tsx(94,17): error TS2322: Type '{ cursor: "pointer"; width: string; padding: string; borderRadius: number; border: string; background: string; color: string; fontSize: number; outline: string; fontFamily: string; boxSizing: string; transition: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/PhysicalCount.tsx(114,19): error TS2322: Type '{ width: string; padding: string; borderRadius: number; border: string; background: string; color: string; fontSize: number; outline: string; fontFamily: string; boxSizing: string; transition: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/PhysicalCount.tsx(120,59): error TS2322: Type '{ width: string; padding: string; borderRadius: number; border: string; background: string; color: string; fontSize: number; outline: string; fontFamily: string; boxSizing: string; transition: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/PhysicalCount.tsx(165,26): error TS2322: Type '{ resize: "none"; minHeight: number; width: string; padding: string; borderRadius: number; border: string; background: string; color: string; fontSize: number; outline: string; fontFamily: string; boxSizing: string; transition: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/PhysicalCount.tsx(290,15): error TS2322: Type '{ resize: "none"; width: string; padding: string; borderRadius: number; border: string; background: string; color: string; fontSize: number; outline: string; fontFamily: string; boxSizing: string; transition: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/PhysicalCount.tsx(434,27): error TS2339: Property 'overdue_materials' does not exist on type '{}'.
+src/pages/admin/PhysicalCount.tsx(467,54): error TS2339: Property 'flagged_variances' does not exist on type '{}'.
+src/pages/admin/PhysicalCount.tsx(467,93): error TS2339: Property 'flagged_variances' does not exist on type '{}'.
+src/pages/admin/PhysicalCount.tsx(468,57): error TS2339: Property 'unreconciled_counts' does not exist on type '{}'.
+src/pages/admin/PhysicalCount.tsx(469,129): error TS2339: Property 'count_week_start' does not exist on type '{}'.
+src/pages/admin/PhysicalCount.tsx(470,47): error TS2339: Property 'last_count_date' does not exist on type '{}'.
+src/pages/admin/PhysicalCount.tsx(526,31): error TS2339: Property 'count_week_start' does not exist on type '{}'.
+src/pages/admin/ProductionTracking.tsx(58,28): error TS2554: Expected 3 arguments, but got 2.
+src/pages/admin/PurchaseOrders.tsx(176,15): error TS2322: Type '{ cursor: "pointer"; width: string; padding: string; borderRadius: number; border: string; background: string; color: string; fontSize: number; outline: string; fontFamily: string; boxSizing: string; transition: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/PurchaseOrders.tsx(195,17): error TS2322: Type '{ width: string; padding: string; borderRadius: number; border: string; background: string; color: string; fontSize: number; outline: string; fontFamily: string; boxSizing: string; transition: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/PurchaseOrders.tsx(201,57): error TS2322: Type '{ width: string; padding: string; borderRadius: number; border: string; background: string; color: string; fontSize: number; outline: string; fontFamily: string; boxSizing: string; transition: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/PurchaseOrders.tsx(208,15): error TS2322: Type '{ resize: "none"; width: string; padding: string; borderRadius: number; border: string; background: string; color: string; fontSize: number; outline: string; fontFamily: string; boxSizing: string; transition: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/PurchaseOrders.tsx(278,15): error TS2322: Type '{ cursor: "pointer"; width: string; padding: string; borderRadius: number; border: string; background: string; color: string; fontSize: number; outline: string; fontFamily: string; boxSizing: string; transition: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/PurchaseOrders.tsx(297,17): error TS2322: Type '{ width: string; padding: string; borderRadius: number; border: string; background: string; color: string; fontSize: number; outline: string; fontFamily: string; boxSizing: string; transition: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/PurchaseOrders.tsx(303,17): error TS2322: Type '{ width: string; padding: string; borderRadius: number; border: string; background: string; color: string; fontSize: number; outline: string; fontFamily: string; boxSizing: string; transition: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/PurchaseOrders.tsx(311,17): error TS2322: Type '{ width: string; padding: string; borderRadius: number; border: string; background: string; color: string; fontSize: number; outline: string; fontFamily: string; boxSizing: string; transition: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/PurchaseOrders.tsx(331,15): error TS2322: Type '{ resize: "none"; width: string; padding: string; borderRadius: number; border: string; background: string; color: string; fontSize: number; outline: string; fontFamily: string; boxSizing: string; transition: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/PurchaseOrders.tsx(534,24): error TS2322: Type '{ resize: "none"; width: string; padding: string; borderRadius: number; border: string; background: string; color: string; fontSize: number; outline: string; fontFamily: string; boxSizing: string; transition: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/PurchaseOrders.tsx(736,104): error TS2554: Expected 3 arguments, but got 2.
+src/pages/admin/Reports.tsx(274,17): error TS2554: Expected 2 arguments, but got 1.
+src/pages/admin/Reports.tsx(289,86): error TS2339: Property 'count' does not exist on type 'unknown'.
+src/pages/admin/SalesTransactions.tsx(71,48): error TS2339: Property 'amount_total' does not exist on type '{ order_id: number; amount_paid: number; payment_method: string; payment_terms: string; or_number: string; notes: string; }'.
+src/pages/admin/Settings.tsx(317,101): error TS2322: Type '{ embedded: true; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'embedded' does not exist on type 'IntrinsicAttributes'.
+src/pages/admin/UserManagement.tsx(94,106): error TS2322: Type '{ width: string; padding: string; borderRadius: number; border: string; background: string; color: string; fontSize: number; outline: string; fontFamily: string; transition: string; boxSizing: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/UserManagement.tsx(98,102): error TS2322: Type '{ cursor: "pointer"; width: string; padding: string; borderRadius: number; border: string; background: string; color: string; fontSize: number; outline: string; fontFamily: string; transition: string; boxSizing: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/UserManagement.tsx(108,149): error TS2322: Type '{ width: string; padding: string; borderRadius: number; border: string; background: string; color: string; fontSize: number; outline: string; fontFamily: string; transition: string; boxSizing: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/UserManagement.tsx(112,100): error TS2322: Type '{ cursor: "pointer"; width: string; padding: string; borderRadius: number; border: string; background: string; color: string; fontSize: number; outline: string; fontFamily: string; transition: string; boxSizing: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/UserManagement.tsx(124,125): error TS2322: Type '{ width: string; padding: string; borderRadius: number; border: string; background: string; color: string; fontSize: number; outline: string; fontFamily: string; transition: string; boxSizing: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/UserManagement.tsx(129,182): error TS2322: Type '{ width: string; padding: string; borderRadius: number; border: string; background: string; color: string; fontSize: number; outline: string; fontFamily: string; transition: string; boxSizing: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/UserManagement.tsx(133,161): error TS2322: Type '{ width: string; padding: string; borderRadius: number; border: string; background: string; color: string; fontSize: number; outline: string; fontFamily: string; transition: string; boxSizing: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/UserManagement.tsx(157,118): error TS2322: Type '{ width: string; padding: string; borderRadius: number; border: string; background: string; color: string; fontSize: number; outline: string; fontFamily: string; transition: string; boxSizing: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/UserManagement.tsx(161,137): error TS2322: Type '{ width: string; padding: string; borderRadius: number; border: string; background: string; color: string; fontSize: number; outline: string; fontFamily: string; transition: string; boxSizing: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/UserManagement.tsx(219,126): error TS2322: Type '{ width: string; padding: string; borderRadius: number; border: string; background: string; color: string; fontSize: number; outline: string; fontFamily: string; transition: string; boxSizing: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/UserManagement.tsx(223,72): error TS2322: Type '{ cursor: "pointer"; width: string; padding: string; borderRadius: number; border: string; background: string; color: string; fontSize: number; outline: string; fontFamily: string; transition: string; boxSizing: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/UserManagement.tsx(229,76): error TS2322: Type '{ cursor: "pointer"; width: string; padding: string; borderRadius: number; border: string; background: string; color: string; fontSize: number; outline: string; fontFamily: string; transition: string; boxSizing: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/UserManagement.tsx(240,203): error TS2322: Type '{ width: string; padding: string; borderRadius: number; border: string; background: string; color: string; fontSize: number; outline: string; fontFamily: string; transition: string; boxSizing: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/UserManagement.tsx(241,239): error TS2322: Type '{ width: string; padding: string; borderRadius: number; border: string; background: string; color: string; fontSize: number; outline: string; fontFamily: string; transition: string; boxSizing: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'boxSizing' are incompatible.
+    Type 'string' is not assignable to type 'BoxSizing'.
+src/pages/admin/UserManagement.tsx(462,63): error TS2339: Property 'legacy' does not exist on type '{ c: string; bg: string; l: string; tab: string; } | { c: string; bg: string; l: string; tab: string; } | { c: string; bg: string; l: string; tab: string; }'.
+  Property 'legacy' does not exist on type '{ c: string; bg: string; l: string; tab: string; }'.
+src/pages/admin/UserManagement.tsx(484,48): error TS2554: Expected 0 arguments, but got 1.
+src/pages/admin/UserManagement.tsx(519,112): error TS2554: Expected 0 arguments, but got 1.
+src/pages/admin/UserManagement.tsx(543,30): error TS2554: Expected 0 arguments, but got 1.
+src/pages/auth/Login.tsx(62,9): error TS2322: Type 'Timeout' is not assignable to type 'undefined'.
+src/pages/auth/Login.tsx(119,129): error TS2339: Property 'login' does not exist on type '{}'.
+src/pages/auth/Login.tsx(121,105): error TS2339: Property 'password' does not exist on type '{}'.
+src/pages/auth/RequestAccess.tsx(72,12): error TS2322: Type '{ position: string; left: string; top: string; width: number; height: number; overflow: string; }' is not assignable to type 'CSSProperties'.
+  Types of property 'position' are incompatible.
+    Type 'string' is not assignable to type 'Position'.
+src/pages/auth/ResetPassword.tsx(51,212): error TS2339: Property 'password' does not exist on type '{}'.
+src/pages/auth/ResetPassword.tsx(52,247): error TS2339: Property 'password_confirmation' does not exist on type '{}'.
+src/pages/client/AccountSettings.tsx(52,163): error TS2339: Property 'label' does not exist on type '{}'.
+src/pages/client/AccountSettings.tsx(54,171): error TS2339: Property 'recipient_name' does not exist on type '{}'.
+src/pages/client/AccountSettings.tsx(57,25): error TS2339: Property 'contact_number' does not exist on type '{}'.
+src/pages/client/AccountSettings.tsx(59,220): error TS2339: Property 'address_line' does not exist on type '{}'.
+src/pages/client/AccountSettings.tsx(61,167): error TS2339: Property 'city' does not exist on type '{}'.
+src/pages/client/AccountSettings.tsx(62,163): error TS2339: Property 'province' does not exist on type '{}'.
+src/pages/client/AccountSettings.tsx(65,47): error TS2339: Property 'postal_code' does not exist on type '{}'.
+src/pages/client/AccountSettings.tsx(84,57): error TS2349: This expression is not callable.
+  Not all constituents of type 'string | ((m: any) => void)' are callable.
+    Type 'string' has no call signatures.
+src/pages/client/AccountSettings.tsx(87,116): error TS2349: This expression is not callable.
+  Not all constituents of type 'string | ((m: any) => void)' are callable.
+    Type 'string' has no call signatures.
+src/pages/client/AccountSettings.tsx(93,84): error TS2349: This expression is not callable.
+  Not all constituents of type 'string | ((m: any) => void)' are callable.
+    Type 'string' has no call signatures.
+src/pages/client/AIMaterials.tsx(57,25): error TS2353: Object literal may only specify known properties, and 'onClose' does not exist in type '{ active?: boolean; }'.
+src/pages/client/AIMaterials.tsx(161,19): error TS2339: Property 'map' does not exist on type 'unknown'.
+src/pages/client/AIMaterials.tsx(324,7): error TS2349: This expression is not callable.
+  Not all constituents of type 'Element | ((msg: any, type?: string) => void)' are callable.
+    Type 'Element' has no call signatures.
+src/pages/client/Dashboard.tsx(61,37): error TS2345: Argument of type '{ month: string; day: string; }' is not assignable to parameter of type '{ month: string; day: string; year: string; }'.
+  Property 'year' is missing in type '{ month: string; day: string; }' but required in type '{ month: string; day: string; year: string; }'.
+src/pages/client/Dashboard.tsx(116,59): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/pages/client/Dashboard.tsx(116,89): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/pages/client/Dashboard.tsx(165,140): error TS2322: Type '{ src: string; alt: string; className: string; width: string; height: string; fetchpriority: string; }' is not assignable to type 'DetailedHTMLProps<ImgHTMLAttributes<HTMLImageElement>, HTMLImageElement>'.
+  Property 'fetchpriority' does not exist on type 'DetailedHTMLProps<ImgHTMLAttributes<HTMLImageElement>, HTMLImageElement>'. Did you mean 'fetchPriority'?
+src/pages/client/design-studio/BuildYourOwn.tsx(51,36): error TS2339: Property 'label' does not exist on type 'unknown'.
+src/pages/client/design-studio/BuildYourOwn.tsx(51,65): error TS2339: Property 'range' does not exist on type 'unknown'.
+src/pages/client/design-studio/BuildYourOwn.tsx(51,80): error TS2339: Property 'ends' does not exist on type 'unknown'.
+src/pages/client/design-studio/canvasLayers.ts(48,71): error TS2488: Type 'boolean | any[]' must have a '[Symbol.iterator]()' method that returns an iterator.
+src/pages/client/design-studio/CanvasViewport.tsx(117,57): error TS2339: Property 'fails' does not exist on type 'Readonly<{}>'.
+src/pages/client/design-studio/CanvasViewport.tsx(118,58): error TS2339: Property 'key' does not exist on type 'Readonly<{}>'.
+src/pages/client/design-studio/CanvasViewport.tsx(120,20): error TS2339: Property 'err' does not exist on type 'Readonly<{}>'.
+src/pages/client/design-studio/CanvasViewport.tsx(126,23): error TS2339: Property 'load' does not exist on type 'Readonly<{}>'.
+src/pages/client/design-studio/CanvasViewport.tsx(126,142): error TS2339: Property 'load' does not exist on type 'Readonly<{}>'.
+src/pages/client/design-studio/CanvasViewport.tsx(128,44): error TS2339: Property 'fails' does not exist on type 'Readonly<{}>'.
+src/pages/client/design-studio/CanvasViewport.tsx(130,23): error TS2339: Property 'fails' does not exist on type 'Readonly<{}>'.
+src/pages/client/design-studio/CanvasViewport.tsx(134,33): error TS2339: Property 'key' does not exist on type 'Readonly<{}>'.
+src/pages/client/design-studio/CanvasViewport.tsx(135,19): error TS2339: Property 'children' does not exist on type 'Readonly<{}>'.
+src/pages/client/design-studio/CanvasViewport.tsx(192,132): error TS2339: Property 'isContentEditable' does not exist on type 'Element'.
+src/pages/client/design-studio/CanvasViewport.tsx(299,63): error TS2339: Property 'isContentEditable' does not exist on type 'Element'.
+src/pages/client/design-studio/CanvasViewport.tsx(470,69): error TS2339: Property 'familyApprox3D' does not exist on type '{ id: any; templateId: any; name: any; label: any; pieces: { single: string; derived: boolean; category: string; sleeve?: undefined; } | { single: string; derived: boolean; category: string; sleeve: string; } | { ...; }; ... 27 more ...; status: string; }'.
+src/pages/client/design-studio/CanvasViewport.tsx(479,68): error TS2339: Property 'logo' does not exist on type '{ supported: boolean; model: any; reason: string; } | { regionMethod: string; regionAccuracy: string; zones: string[]; patterns: { zones: string[]; ids: string[]; }; sleeves: string[]; text: boolean; logo: boolean; ... 7 more ...; reason?: undefined; } | { ...; } | { ...; } | { ...; }'.
+  Property 'logo' does not exist on type '{ supported: boolean; model: any; reason: string; }'.
+src/pages/client/design-studio/CanvasViewport.tsx(479,79): error TS2339: Property 'text' does not exist on type '{ supported: boolean; model: any; reason: string; } | { regionMethod: string; regionAccuracy: string; zones: string[]; patterns: { zones: string[]; ids: string[]; }; sleeves: string[]; text: boolean; logo: boolean; ... 7 more ...; reason?: undefined; } | { ...; } | { ...; } | { ...; }'.
+  Property 'text' does not exist on type '{ supported: boolean; model: any; reason: string; }'.
+src/pages/client/design-studio/CanvasViewport.tsx(501,98): error TS2339: Property 'warn' does not exist on type '{ id: string; text: string; warn: boolean; } | { id: string; text: string; }'.
+  Property 'warn' does not exist on type '{ id: string; text: string; }'.
+src/pages/client/design-studio/customGarment.ts(91,86): error TS2339: Property 'range' does not exist on type 'unknown'.
+src/pages/client/design-studio/customGarment.ts(184,82): error TS2339: Property 'label' does not exist on type 'unknown'.
+src/pages/client/design-studio/customGarment.ts(184,106): error TS2339: Property 'ends' does not exist on type 'unknown'.
+src/pages/client/design-studio/customGarment.ts(184,138): error TS2339: Property 'ends' does not exist on type 'unknown'.
+src/pages/client/design-studio/designExport.ts(17,44): error TS2339: Property 'naturalWidth' does not exist on type 'unknown'.
+src/pages/client/design-studio/designExport.ts(17,102): error TS2339: Property 'naturalHeight' does not exist on type 'unknown'.
+src/pages/client/design-studio/designExport.ts(18,36): error TS2769: No overload matches this call.
+  Overload 1 of 6, '(image: CanvasImageSource, dx: number, dy: number, dw: number, dh: number): void', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'CanvasImageSource'.
+  Overload 2 of 6, '(image: CanvasImageSource, dx: number, dy: number, dw: number, dh: number): void', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'CanvasImageSource'.
+src/pages/client/design-studio/designGallery.ts(65,118): error TS2538: Type '{ single: string; derived: boolean; category: string; sleeve: string; }' cannot be used as an index type.
+src/pages/client/design-studio/designGallery.ts(65,118): error TS2538: Type '{ single: string; derived: boolean; category: string; sleeve?: undefined; }' cannot be used as an index type.
+src/pages/client/design-studio/designGallery.ts(65,118): error TS2538: Type '{ sleeve: string; top: any; bottom: string; derived: boolean; category: string; single?: undefined; }' cannot be used as an index type.
+src/pages/client/design-studio/designGallery.ts(66,33): error TS2339: Property 'category' does not exist on type 'string | { single: string; derived: boolean; category: string; sleeve?: undefined; } | { single: string; derived: boolean; category: string; sleeve: string; } | { sleeve: string; top: any; bottom: string; derived: boolean; category: string; single?: undefined; }'.
+  Property 'category' does not exist on type 'string'.
+src/pages/client/design-studio/designGallery.ts(66,45): error TS2339: Property 'single' does not exist on type 'string | { single: string; derived: boolean; category: string; sleeve?: undefined; } | { single: string; derived: boolean; category: string; sleeve: string; } | { sleeve: string; top: any; bottom: string; derived: boolean; category: string; single?: undefined; }'.
+  Property 'single' does not exist on type 'string'.
+src/pages/client/design-studio/designGallery.ts(66,57): error TS2339: Property 'top' does not exist on type 'string | { single: string; derived: boolean; category: string; sleeve?: undefined; } | { single: string; derived: boolean; category: string; sleeve: string; } | { sleeve: string; top: any; bottom: string; derived: boolean; category: string; single?: undefined; }'.
+  Property 'top' does not exist on type 'string'.
+src/pages/client/design-studio/designGallery.ts(66,64): error TS2339: Property 'sleeve' does not exist on type 'string | { single: string; derived: boolean; category: string; sleeve?: undefined; } | { single: string; derived: boolean; category: string; sleeve: string; } | { sleeve: string; top: any; bottom: string; derived: boolean; category: string; single?: undefined; }'.
+  Property 'sleeve' does not exist on type 'string'.
+src/pages/client/design-studio/designGallery.ts(93,13): error TS2339: Property 'familyApprox3D' does not exist on type '{ id: any; templateId: any; name: any; label: any; pieces: { single: string; derived: boolean; category: string; sleeve?: undefined; } | { single: string; derived: boolean; category: string; sleeve: string; } | { ...; }; ... 27 more ...; status: string; }'.
+src/pages/client/design-studio/designGallery.ts(94,37): error TS2339: Property 'family3DOff' does not exist on type '{ id: any; templateId: any; name: any; label: any; pieces: { single: string; derived: boolean; category: string; sleeve?: undefined; } | { single: string; derived: boolean; category: string; sleeve: string; } | { ...; }; ... 27 more ...; status: string; }'.
+src/pages/client/design-studio/designGallery.ts(175,52): error TS2339: Property 'top' does not exist on type '{ single: string; derived: boolean; category: string; sleeve?: undefined; } | { single: string; derived: boolean; category: string; sleeve: string; } | { sleeve: string; top: any; bottom: string; derived: boolean; category: string; single?: undefined; }'.
+  Property 'top' does not exist on type '{ single: string; derived: boolean; category: string; sleeve?: undefined; }'.
+src/pages/client/design-studio/designGallery.ts(175,67): error TS2339: Property 'bottom' does not exist on type '{ single: string; derived: boolean; category: string; sleeve?: undefined; } | { single: string; derived: boolean; category: string; sleeve: string; } | { sleeve: string; top: any; bottom: string; derived: boolean; category: string; single?: undefined; }'.
+  Property 'bottom' does not exist on type '{ single: string; derived: boolean; category: string; sleeve?: undefined; }'.
+src/pages/client/design-studio/designGallery.ts(205,56): error TS2339: Property 'category' does not exist on type '{}'.
+src/pages/client/design-studio/designGallery.ts(205,70): error TS2339: Property 'category' does not exist on type '{}'.
+src/pages/client/design-studio/designGallery.ts(210,34): error TS2339: Property 'sleeve' does not exist on type '{}'.
+src/pages/client/design-studio/designGallery.ts(210,46): error TS2339: Property 'sleeve' does not exist on type '{}'.
+src/pages/client/design-studio/designGallery.ts(211,31): error TS2339: Property 'gender' does not exist on type '{}'.
+src/pages/client/design-studio/designGallery.ts(211,43): error TS2339: Property 'gender' does not exist on type '{}'.
+src/pages/client/design-studio/designSerialization.ts(76,11): error TS2339: Property 'overlays' does not exist on type '{}'.
+src/pages/client/design-studio/designSerialization.ts(76,26): error TS2339: Property 'frontOverlays' does not exist on type '{}'.
+src/pages/client/design-studio/designSerialization.ts(76,46): error TS2339: Property 'backOverlays' does not exist on type '{}'.
+src/pages/client/design-studio/designSerialization.ts(136,7): error TS2339: Property 'custom' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
+src/pages/client/design-studio/designSerialization.ts(137,34): error TS2339: Property 'custom' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
+src/pages/client/design-studio/designSerialization.ts(138,7): error TS2339: Property 'details' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
+src/pages/client/design-studio/designSerialization.ts(139,7): error TS2339: Property 'inspirationId' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
+src/pages/client/design-studio/dsShared.ts(128,15): error TS2554: Expected 3 arguments, but got 1.
+src/pages/client/design-studio/dsShared.ts(131,59): error TS2339: Property 'zones' does not exist on type '{ supported: boolean; model: any; reason: string; } | { regionMethod: string; regionAccuracy: string; zones: string[]; patterns: { zones: string[]; ids: string[]; }; sleeves: string[]; text: boolean; logo: boolean; ... 7 more ...; reason?: undefined; } | { ...; } | { ...; } | { ...; }'.
+  Property 'zones' does not exist on type '{ supported: boolean; model: any; reason: string; }'.
+src/pages/client/design-studio/dsShared.ts(131,100): error TS2339: Property 'pocket2D' does not exist on type '{ supported: boolean; model: any; reason: string; } | { regionMethod: string; regionAccuracy: string; zones: string[]; patterns: { zones: string[]; ids: string[]; }; sleeves: string[]; text: boolean; logo: boolean; ... 7 more ...; reason?: undefined; } | { ...; } | { ...; } | { ...; }'.
+  Property 'pocket2D' does not exist on type '{ supported: boolean; model: any; reason: string; }'.
+src/pages/client/design-studio/dsShared.ts(131,117): error TS2339: Property 'zones' does not exist on type '{ supported: boolean; model: any; reason: string; } | { regionMethod: string; regionAccuracy: string; zones: string[]; patterns: { zones: string[]; ids: string[]; }; sleeves: string[]; text: boolean; logo: boolean; ... 7 more ...; reason?: undefined; } | { ...; } | { ...; } | { ...; }'.
+  Property 'zones' does not exist on type '{ supported: boolean; model: any; reason: string; }'.
+src/pages/client/design-studio/dsShared.ts(139,31): error TS2339: Property 'zones' does not exist on type '{ supported: boolean; model: any; reason: string; } | { regionMethod: string; regionAccuracy: string; zones: string[]; patterns: { zones: string[]; ids: string[]; }; sleeves: string[]; text: boolean; logo: boolean; ... 7 more ...; reason?: undefined; } | { ...; } | { ...; } | { ...; }'.
+  Property 'zones' does not exist on type '{ supported: boolean; model: any; reason: string; }'.
+src/pages/client/design-studio/dsShared.ts(145,31): error TS2339: Property 'patterns' does not exist on type '{ supported: boolean; model: any; reason: string; } | { regionMethod: string; regionAccuracy: string; zones: string[]; patterns: { zones: string[]; ids: string[]; }; sleeves: string[]; text: boolean; logo: boolean; ... 7 more ...; reason?: undefined; } | { ...; } | { ...; } | { ...; }'.
+  Property 'patterns' does not exist on type '{ supported: boolean; model: any; reason: string; }'.
+src/pages/client/design-studio/dsShared.ts(145,77): error TS2339: Property 'patterns' does not exist on type '{ supported: boolean; model: any; reason: string; } | { regionMethod: string; regionAccuracy: string; zones: string[]; patterns: { zones: string[]; ids: string[]; }; sleeves: string[]; text: boolean; logo: boolean; ... 7 more ...; reason?: undefined; } | { ...; } | { ...; } | { ...; }'.
+  Property 'patterns' does not exist on type '{ supported: boolean; model: any; reason: string; }'.
+src/pages/client/design-studio/dsShared.ts(159,17): error TS2554: Expected 3 arguments, but got 2.
+src/pages/client/design-studio/FloatingToolbar.tsx(50,45): error TS2322: Type 'string | ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'Key'.
+  Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'Key'.
+src/pages/client/design-studio/FloatingToolbar.tsx(50,126): error TS2322: Type 'string | ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'string'.
+  Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'string'.
+src/pages/client/design-studio/FloatingToolbar.tsx(51,60): error TS2322: Type 'string | ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'Key'.
+  Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'Key'.
+src/pages/client/design-studio/FloatingToolbar.tsx(51,146): error TS2322: Type 'string | ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'string'.
+  Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'string'.
+src/pages/client/design-studio/garmentAssets.ts(75,77): error TS2339: Property 'sleeves' does not exist on type '{ kind: string; category: string; role: string; fit: string; ref: string; templateId: string; defaults: { length: number; rise: number; width: number; crease: boolean; beltLoops: boolean; turnUp: boolean; }; } | ... 6 more ... | { ...; }'.
+  Property 'sleeves' does not exist on type '{ kind: string; category: string; role: string; fit: string; ref: string; templateId: string; defaults: { length: number; rise: number; width: number; crease: boolean; beltLoops: boolean; turnUp: boolean; }; }'.
+src/pages/client/design-studio/garmentAssets.ts(84,159): error TS2339: Property 'id' does not exist on type 'unknown'.
+src/pages/client/design-studio/garmentAssets.ts(97,52): error TS2554: Expected 4 arguments, but got 2.
+src/pages/client/design-studio/garmentAssets.ts(98,92): error TS2339: Property 'front' does not exist on type 'unknown'.
+src/pages/client/design-studio/garmentAssets.ts(216,5): error TS2339: Property '__content' does not exist on type 'HTMLCanvasElement'.
+src/pages/client/design-studio/garmentAssets.ts(217,5): error TS2339: Property '__light' does not exist on type 'HTMLCanvasElement'.
+src/pages/client/design-studio/garmentCapabilities.ts(440,66): error TS2339: Property 'sourcePhoto' does not exist on type '{ id: string; match: RegExp; models: { male: string; female: string; unisex?: undefined; }; torso: { male: number; female: number; unisex?: undefined; }; transform: { rotation: number[]; scale: number; position: number[]; }; parts: { ...; }[]; capabilities: { ...; }; sourcePhoto?: undefined; } | ... 12 more ... | { ...'.
+  Property 'sourcePhoto' does not exist on type '{ id: string; match: RegExp; models: { [k: string]: any; }; torso: { female: number; male: number; }; transform: { rotation: number[]; scale: number; position: number[]; }; parts: { node: string; decals: boolean; zoneOf: () => string; }[]; capabilities: { ...; }; }'.
+src/pages/client/design-studio/garmentCapabilities.ts(461,53): error TS2339: Property 'exactSleeve' does not exist on type '{ id: string; match: RegExp; models: { male: string; female: string; unisex?: undefined; }; torso: { male: number; female: number; unisex?: undefined; }; transform: { rotation: number[]; scale: number; position: number[]; }; parts: { ...; }[]; capabilities: { ...; }; sourcePhoto?: undefined; } | ... 12 more ... | { ...'.
+  Property 'exactSleeve' does not exist on type '{ id: string; match: RegExp; models: { male: string; female: string; unisex?: undefined; }; torso: { male: number; female: number; unisex?: undefined; }; transform: { rotation: number[]; scale: number; position: number[]; }; parts: { ...; }[]; capabilities: { ...; }; sourcePhoto?: undefined; }'.
+src/pages/client/design-studio/garmentCapabilities.ts(462,39): error TS2339: Property 'exactSleeve' does not exist on type '{ id: string; match: RegExp; models: { male: string; female: string; unisex?: undefined; }; torso: { male: number; female: number; unisex?: undefined; }; transform: { rotation: number[]; scale: number; position: number[]; }; parts: { ...; }[]; capabilities: { ...; }; sourcePhoto?: undefined; } | ... 12 more ... | { ...'.
+  Property 'exactSleeve' does not exist on type '{ id: string; match: RegExp; models: { male: string; female: string; unisex?: undefined; }; torso: { male: number; female: number; unisex?: undefined; }; transform: { rotation: number[]; scale: number; position: number[]; }; parts: { ...; }[]; capabilities: { ...; }; sourcePhoto?: undefined; }'.
+src/pages/client/design-studio/garmentCapabilities.ts(464,39): error TS2339: Property 'exactSleeve' does not exist on type '{ id: string; match: RegExp; models: { male: string; female: string; unisex?: undefined; }; torso: { male: number; female: number; unisex?: undefined; }; transform: { rotation: number[]; scale: number; position: number[]; }; parts: { ...; }[]; capabilities: { ...; }; sourcePhoto?: undefined; } | ... 12 more ... | { ...'.
+  Property 'exactSleeve' does not exist on type '{ id: string; match: RegExp; models: { male: string; female: string; unisex?: undefined; }; torso: { male: number; female: number; unisex?: undefined; }; transform: { rotation: number[]; scale: number; position: number[]; }; parts: { ...; }[]; capabilities: { ...; }; sourcePhoto?: undefined; }'.
+src/pages/client/design-studio/garmentCapabilities.ts(464,91): error TS2339: Property 'exactSleeve' does not exist on type '{ id: string; match: RegExp; models: { male: string; female: string; unisex?: undefined; }; torso: { male: number; female: number; unisex?: undefined; }; transform: { rotation: number[]; scale: number; position: number[]; }; parts: { ...; }[]; capabilities: { ...; }; sourcePhoto?: undefined; } | ... 12 more ... | { ...'.
+  Property 'exactSleeve' does not exist on type '{ id: string; match: RegExp; models: { male: string; female: string; unisex?: undefined; }; torso: { male: number; female: number; unisex?: undefined; }; transform: { rotation: number[]; scale: number; position: number[]; }; parts: { ...; }[]; capabilities: { ...; }; sourcePhoto?: undefined; }'.
+src/pages/client/design-studio/garmentCatalog.ts(62,84): error TS2339: Property 'sleeves' does not exist on type '{ kind: string; category: string; role: string; fit: string; ref: string; templateId: string; defaults: { length: number; rise: number; width: number; crease: boolean; beltLoops: boolean; turnUp: boolean; }; } | ... 6 more ... | { ...; }'.
+  Property 'sleeves' does not exist on type '{ kind: string; category: string; role: string; fit: string; ref: string; templateId: string; defaults: { length: number; rise: number; width: number; crease: boolean; beltLoops: boolean; turnUp: boolean; }; }'.
+src/pages/client/design-studio/garmentCatalog.ts(79,15): error TS2554: Expected 3 arguments, but got 1.
+src/pages/client/design-studio/garmentCatalog.ts(85,50): error TS2339: Property 'regionAccuracy' does not exist on type '{ supported: boolean; model: any; reason: string; } | { regionMethod: string; regionAccuracy: string; zones: string[]; patterns: { zones: string[]; ids: string[]; }; sleeves: string[]; text: boolean; logo: boolean; ... 7 more ...; reason?: undefined; } | { ...; } | { ...; } | { ...; }'.
+  Property 'regionAccuracy' does not exist on type '{ supported: boolean; model: any; reason: string; }'.
+src/pages/client/design-studio/garmentCatalog.ts(100,32): error TS2554: Expected 2 arguments, but got 1.
+src/pages/client/design-studio/garmentCatalog.ts(103,42): error TS2339: Property 'verification' does not exist on type '{ supported: boolean; model: any; reason: string; } | { regionMethod: string; regionAccuracy: string; zones: string[]; patterns: { zones: string[]; ids: string[]; }; sleeves: string[]; text: boolean; logo: boolean; ... 7 more ...; reason?: undefined; } | { ...; } | { ...; } | { ...; }'.
+  Property 'verification' does not exist on type '{ supported: boolean; model: any; reason: string; }'.
+src/pages/client/design-studio/garmentCatalog.ts(106,36): error TS2339: Property 'patterns' does not exist on type '{ supported: boolean; model: any; reason: string; } | { regionMethod: string; regionAccuracy: string; zones: string[]; patterns: { zones: string[]; ids: string[]; }; sleeves: string[]; text: boolean; logo: boolean; ... 7 more ...; reason?: undefined; } | { ...; } | { ...; } | { ...; }'.
+  Property 'patterns' does not exist on type '{ supported: boolean; model: any; reason: string; }'.
+src/pages/client/design-studio/garmentCatalog.ts(107,41): error TS2339: Property 'text' does not exist on type '{ supported: boolean; model: any; reason: string; } | { regionMethod: string; regionAccuracy: string; zones: string[]; patterns: { zones: string[]; ids: string[]; }; sleeves: string[]; text: boolean; logo: boolean; ... 7 more ...; reason?: undefined; } | { ...; } | { ...; } | { ...; }'.
+  Property 'text' does not exist on type '{ supported: boolean; model: any; reason: string; }'.
+src/pages/client/design-studio/garmentCatalog.ts(108,41): error TS2339: Property 'logo' does not exist on type '{ supported: boolean; model: any; reason: string; } | { regionMethod: string; regionAccuracy: string; zones: string[]; patterns: { zones: string[]; ids: string[]; }; sleeves: string[]; text: boolean; logo: boolean; ... 7 more ...; reason?: undefined; } | { ...; } | { ...; } | { ...; }'.
+  Property 'logo' does not exist on type '{ supported: boolean; model: any; reason: string; }'.
+src/pages/client/design-studio/garmentCatalog.ts(109,38): error TS2339: Property 'frontBack' does not exist on type '{ supported: boolean; model: any; reason: string; } | { regionMethod: string; regionAccuracy: string; zones: string[]; patterns: { zones: string[]; ids: string[]; }; sleeves: string[]; text: boolean; logo: boolean; ... 7 more ...; reason?: undefined; } | { ...; } | { ...; } | { ...; }'.
+  Property 'frontBack' does not exist on type '{ supported: boolean; model: any; reason: string; }'.
+src/pages/client/design-studio/garmentCatalog.ts(192,45): error TS2339: Property 'sleeve' does not exist on type '{}'.
+src/pages/client/design-studio/garmentCatalog.ts(193,37): error TS2339: Property 'fit' does not exist on type '{}'.
+src/pages/client/design-studio/garmentCatalog.ts(197,13): error TS2339: Property 'fit' does not exist on type '{}'.
+src/pages/client/design-studio/garmentCatalog.ts(204,20): error TS2339: Property 'category' does not exist on type '{}'.
+src/pages/client/design-studio/garmentCatalog.ts(210,25): error TS2339: Property 'inspirationId' does not exist on type '{}'.
+src/pages/client/design-studio/garmentCatalog.ts(212,57): error TS2339: Property 'custom' does not exist on type '{}'.
+src/pages/client/design-studio/garmentDetails.ts(39,35): error TS2339: Property 'show' does not exist on type 'object'.
+src/pages/client/design-studio/garmentDetails.ts(40,45): error TS2339: Property 'color' does not exist on type 'object'.
+src/pages/client/design-studio/garmentDetails.ts(40,80): error TS2339: Property 'color' does not exist on type 'object'.
+src/pages/client/design-studio/garmentDetails.ts(61,58): error TS2554: Expected 4 arguments, but got 1.
+src/pages/client/design-studio/garmentDetails.ts(62,46): error TS2339: Property 'show' does not exist on type 'unknown'.
+src/pages/client/design-studio/garmentDetails.ts(62,74): error TS2339: Property 'color' does not exist on type 'unknown'.
+src/pages/client/design-studio/GarmentMeshErrorBoundary.tsx(7,52): error TS2339: Property 'fallback' does not exist on type 'Readonly<{}>'.
+src/pages/client/design-studio/GarmentMeshErrorBoundary.tsx(7,74): error TS2339: Property 'children' does not exist on type 'Readonly<{}>'.
+src/pages/client/design-studio/garmentMeshManifest.ts(11,32): error TS2339: Property 'preload' does not exist on type '{ id: string; match: RegExp; models: { male: string; female: string; unisex?: undefined; }; torso: { male: number; female: number; unisex?: undefined; }; transform: { rotation: number[]; scale: number; position: number[]; }; parts: { ...; }[]; capabilities: { ...; }; sourcePhoto?: undefined; } | ... 12 more ... | { ...'.
+  Property 'preload' does not exist on type '{ id: string; match: RegExp; models: { male: string; female: string; unisex?: undefined; }; torso: { male: number; female: number; unisex?: undefined; }; transform: { rotation: number[]; scale: number; position: number[]; }; parts: { ...; }[]; capabilities: { ...; }; sourcePhoto?: undefined; }'.
+src/pages/client/design-studio/garmentPaths.ts(43,21): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(43,35): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(43,49): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(43,63): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(43,77): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(43,89): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(46,27): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(46,50): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(47,24): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(47,48): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(81,34): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(81,71): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(81,104): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(81,141): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(82,26): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(82,76): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(82,113): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(82,157): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(83,24): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(83,68): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(83,105): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(83,155): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(86,25): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(86,53): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(87,46): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(87,91): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(89,24): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(89,70): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(90,27): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(90,73): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(90,157): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(98,28): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(98,74): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(103,21): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(103,68): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(104,15): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(104,61): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(108,21): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(108,56): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(109,15): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(109,61): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(118,22): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(118,36): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(118,48): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(118,62): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(118,76): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(118,88): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(126,85): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(126,101): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(128,108): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(128,154): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(139,102): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(139,148): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(167,18): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(167,33): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(167,61): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(167,76): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(168,18): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(168,93): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(169,31): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(169,65): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(169,104): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(169,138): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(170,32): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(170,93): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/design-studio/garmentPaths.ts(234,94): error TS2353: Object literal may only specify known properties, and 'face' does not exist in type '{ d: string; kind: string; }'.
+src/pages/client/design-studio/garmentPaths.ts(240,202): error TS2353: Object literal may only specify known properties, and 'face' does not exist in type '{ d: string; kind: string; }'.
+src/pages/client/design-studio/garmentPaths.ts(242,68): error TS2353: Object literal may only specify known properties, and 'face' does not exist in type '{ d: string; kind: string; }'.
+src/pages/client/design-studio/garmentPaths.ts(247,238): error TS2353: Object literal may only specify known properties, and 'face' does not exist in type '{ d: string; kind: string; }'.
+src/pages/client/design-studio/garmentPaths.ts(248,177): error TS2353: Object literal may only specify known properties, and 'face' does not exist in type '{ d: string; kind: string; }'.
+src/pages/client/design-studio/garmentPaths.ts(253,19): error TS2353: Object literal may only specify known properties, and 'face' does not exist in type '{ d: string; kind: string; }'.
+src/pages/client/design-studio/garmentPaths.ts(257,174): error TS2353: Object literal may only specify known properties, and 'face' does not exist in type '{ d: string; kind: string; }'.
+src/pages/client/design-studio/garmentPaths.ts(368,84): error TS2349: This expression is not callable.
+  Not all constituents of type '((o: any) => { w: any; h: any; body: string; collar: any; pocket: string; sleeveL: string; sleeveR: string; sleeveSpec: { A: any[][]; B: any[][]; shape: any; }; details: any[]; back: { collar: string; }; }) | { collar: string; frontDrop: number; placket: { ...; }; vents: boolean; pocket: { ...; }; } | ... 14 more .....' are callable.
+    Type '{ collar: string; frontDrop: number; placket: { bottom: number; buttons: number; }; vents: boolean; pocket: { x: number; y: number; w: number; h: number; }; }' has no call signatures.
+src/pages/client/design-studio/GarmentPicker.tsx(149,50): error TS2538: Type '{ id: string; label: string; }[]' cannot be used as an index type.
+src/pages/client/design-studio/GarmentPicker.tsx(219,26): error TS2339: Property 'q' does not exist on type '{}'.
+src/pages/client/design-studio/GarmentPicker.tsx(229,34): error TS2339: Property 'filter' does not exist on type 'string | { id: string; label: string; }[]'.
+  Property 'filter' does not exist on type 'string'.
+src/pages/client/design-studio/GarmentPicker.tsx(229,53): error TS2538: Type '{ id: string; label: string; }[]' cannot be used as an index type.
+src/pages/client/design-studio/GarmentPicker.tsx(231,20): error TS2322: Type 'string | { id: string; label: string; }[]' is not assignable to type 'Key'.
+  Type '{ id: string; label: string; }[]' is not assignable to type 'Key'.
+src/pages/client/design-studio/GarmentPicker.tsx(232,23): error TS2322: Type 'string | { id: string; label: string; }[]' is not assignable to type 'ReactNode'.
+  Type '{ id: string; label: string; }[]' is not assignable to type 'ReactNode'.
+    Type '{ id: string; label: string; }[]' is not assignable to type 'Iterable<ReactNode>'.
+      The types returned by '[Symbol.iterator]().next(...)' are incompatible between these types.
+        Type 'IteratorResult<{ id: string; label: string; }, any>' is not assignable to type 'IteratorResult<ReactNode, any>'.
+          Type 'IteratorYieldResult<{ id: string; label: string; }>' is not assignable to type 'IteratorResult<ReactNode, any>'.
+            Type 'IteratorYieldResult<{ id: string; label: string; }>' is not assignable to type 'IteratorYieldResult<ReactNode>'.
+              Type '{ id: string; label: string; }' is not assignable to type 'ReactNode'.
+src/pages/client/design-studio/GarmentPicker.tsx(234,94): error TS2538: Type '{ id: string; label: string; }[]' cannot be used as an index type.
+src/pages/client/design-studio/GarmentPicker.tsx(234,127): error TS2538: Type '{ id: string; label: string; }[]' cannot be used as an index type.
+src/pages/client/design-studio/GarmentPicker.tsx(234,152): error TS2538: Type '{ id: string; label: string; }[]' cannot be used as an index type.
+src/pages/client/design-studio/GarmentPicker.tsx(235,61): error TS2464: A computed property name must be of type 'string', 'number', 'symbol', or 'any'.
+src/pages/client/design-studio/GarmentPicker.tsx(235,70): error TS2538: Type '{ id: string; label: string; }[]' cannot be used as an index type.
+src/pages/client/design-studio/GarmentPicker.tsx(235,122): error TS2538: Type '{ id: string; label: string; }[]' cannot be used as an index type.
+src/pages/client/design-studio/GarmentPicker.tsx(240,106): error TS2339: Property 'q' does not exist on type '{}'.
+src/pages/client/design-studio/GuidesMenu.tsx(25,17): error TS2322: Type 'string | ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'Key'.
+  Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'Key'.
+src/pages/client/design-studio/GuidesMenu.tsx(25,84): error TS2538: Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' cannot be used as an index type.
+src/pages/client/design-studio/GuidesMenu.tsx(26,130): error TS2464: A computed property name must be of type 'string', 'number', 'symbol', or 'any'.
+src/pages/client/design-studio/GuidesMenu.tsx(26,138): error TS2538: Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' cannot be used as an index type.
+src/pages/client/design-studio/GuidesMenu.tsx(27,66): error TS2322: Type 'string | ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'ReactNode'.
+  Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'ReactNode'.
+src/pages/client/design-studio/GuidesMenu.tsx(56,41): error TS2353: Object literal may only specify known properties, and 'onClose' does not exist in type '{ active?: boolean; }'.
+src/pages/client/design-studio/InspoGallery.tsx(103,44): error TS2353: Object literal may only specify known properties, and 'onClose' does not exist in type '{ active?: boolean; }'.
+src/pages/client/design-studio/LayersPanel.tsx(104,79): error TS2339: Property 'value' does not exist on type 'EventTarget'.
+src/pages/client/design-studio/LayersPanel.tsx(105,75): error TS2339: Property 'value' does not exist on type 'EventTarget'.
+src/pages/client/design-studio/overlayDecals.ts(15,22): error TS2339: Property 'fabric' does not exist on type '{ default: typeof import("C:/Users/Dave/Projects/VFRB/vfrb-frontend/node_modules/fabric/dist/index"); getEnv: () => TFabricEnv; getFabricDocument: () => Document; ... 69 more ...; isPutImageFaster: (width: number, height: number) => boolean; }'.
+src/pages/client/design-studio/overlayTools.ts(7,48): error TS2339: Property 'fabric' does not exist on type '{ default: typeof import("C:/Users/Dave/Projects/VFRB/vfrb-frontend/node_modules/fabric/dist/index"); getEnv: () => TFabricEnv; getFabricDocument: () => Document; ... 69 more ...; isPutImageFaster: (width: number, height: number) => boolean; }'.
+src/pages/client/design-studio/PatternPanel.tsx(83,61): error TS2339: Property 'defaultParams' does not exist on type '{ icon: string; woven: boolean; svg: any; id: string; label: string; } | { id: string; label: string; icon: string; parametric: boolean; defaultParams: { width: number; spacing: number; }; svg: (c: any, w?: number, s?: number) => string; } | { ...; }'.
+  Property 'defaultParams' does not exist on type '{ icon: string; woven: boolean; svg: any; id: string; label: string; }'.
+src/pages/client/design-studio/PatternPanel.tsx(128,20): error TS2339: Property 'woven' does not exist on type '{ icon: string; woven: boolean; svg: any; id: string; label: string; } | { id: string; label: string; icon: string; parametric: boolean; defaultParams: { width: number; spacing: number; }; svg: (c: any, w?: number, s?: number) => string; } | { ...; }'.
+  Property 'woven' does not exist on type '{ id: string; label: string; icon: string; parametric: boolean; defaultParams: { width: number; spacing: number; }; svg: (c: any, w?: number, s?: number) => string; }'.
+src/pages/client/design-studio/PatternPanel.tsx(144,30): error TS2339: Property 'woven' does not exist on type '{ icon: string; woven: boolean; svg: any; id: string; label: string; } | { id: string; label: string; icon: string; parametric: boolean; defaultParams: { width: number; spacing: number; }; svg: (c: any, w?: number, s?: number) => string; } | { ...; }'.
+  Property 'woven' does not exist on type '{ id: string; label: string; icon: string; parametric: boolean; defaultParams: { width: number; spacing: number; }; svg: (c: any, w?: number, s?: number) => string; }'.
+src/pages/client/design-studio/PatternPanel.tsx(146,30): error TS2339: Property 'parametric' does not exist on type '{ icon: string; woven: boolean; svg: any; id: string; label: string; } | { id: string; label: string; icon: string; parametric: boolean; defaultParams: { width: number; spacing: number; }; svg: (c: any, w?: number, s?: number) => string; } | { ...; }'.
+  Property 'parametric' does not exist on type '{ icon: string; woven: boolean; svg: any; id: string; label: string; }'.
+src/pages/client/design-studio/PatternPanel.tsx(162,79): error TS2339: Property 'defaultParams' does not exist on type '{ icon: string; woven: boolean; svg: any; id: string; label: string; } | { id: string; label: string; icon: string; parametric: boolean; defaultParams: { width: number; spacing: number; }; svg: (c: any, w?: number, s?: number) => string; } | { ...; }'.
+  Property 'defaultParams' does not exist on type '{ icon: string; woven: boolean; svg: any; id: string; label: string; }'.
+src/pages/client/design-studio/personDetector.ts(50,56): error TS2339: Property 'dims' does not exist on type 'unknown'.
+src/pages/client/design-studio/personDetector.ts(50,71): error TS2339: Property 'data' does not exist on type 'unknown'.
+src/pages/client/design-studio/ReferenceModel3D.tsx(20,36): error TS2339: Property 'onError' does not exist on type 'Readonly<{}>'.
+src/pages/client/design-studio/ReferenceModel3D.tsx(21,49): error TS2339: Property 'fallback' does not exist on type 'Readonly<{}>'.
+src/pages/client/design-studio/ReferenceModel3D.tsx(21,71): error TS2339: Property 'children' does not exist on type 'Readonly<{}>'.
+src/pages/client/design-studio/ReferenceModel3D.tsx(27,11): error TS2339: Property 'scene' does not exist on type '(GLTF & ObjectMap) | (GLTF & ObjectMap)[]'.
+src/pages/client/design-studio/ReferenceModel3D.tsx(66,6): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: {}): Boundary', gave the following error.
+    Type '{ children: Element; fallback: any; onError: any; }' is not assignable to type 'IntrinsicAttributes & IntrinsicClassAttributes<Boundary> & Readonly<{}>'.
+      Property 'children' does not exist on type 'IntrinsicAttributes & IntrinsicClassAttributes<Boundary> & Readonly<{}>'.
+  Overload 2 of 2, '(props: {}, context: any): Boundary', gave the following error.
+    Type '{ children: Element; fallback: any; onError: any; }' is not assignable to type 'IntrinsicAttributes & IntrinsicClassAttributes<Boundary> & Readonly<{}>'.
+      Property 'children' does not exist on type 'IntrinsicAttributes & IntrinsicClassAttributes<Boundary> & Readonly<{}>'.
+src/pages/client/design-studio/ReferenceModel3D.tsx(69,61): error TS2322: Type 'number[]' is not assignable to type 'Dpr'.
+  Type 'number[]' is not assignable to type '[min: number, max: number]'.
+    Target requires 2 element(s) but source may have fewer.
+src/pages/client/design-studio/ReferenceModel3D.tsx(72,29): error TS2322: Type 'number[]' is not assignable to type 'Vector3'.
+  Type 'number[]' is not assignable to type 'Vector3 | [x: number, y: number, z: number] | readonly [x: number, y: number, z: number]'.
+    Type 'number[]' is not assignable to type '[x: number, y: number, z: number]'.
+      Target requires 3 element(s) but source may have fewer.
+src/pages/client/design-studio/ReferenceModel3D.tsx(73,29): error TS2322: Type 'number[]' is not assignable to type 'Vector3'.
+  Type 'number[]' is not assignable to type 'Vector3 | [x: number, y: number, z: number] | readonly [x: number, y: number, z: number]'.
+    Type 'number[]' is not assignable to type '[x: number, y: number, z: number]'.
+      Target requires 3 element(s) but source may have fewer.
+src/pages/client/design-studio/referenceSketch.ts(169,34): error TS2339: Property 'naturalWidth' does not exist on type 'unknown'.
+src/pages/client/design-studio/referenceSketch.ts(169,52): error TS2339: Property 'naturalHeight' does not exist on type 'unknown'.
+src/pages/client/design-studio/referenceSketch.ts(169,99): error TS2339: Property 'naturalWidth' does not exist on type 'unknown'.
+src/pages/client/design-studio/referenceSketch.ts(169,150): error TS2339: Property 'naturalHeight' does not exist on type 'unknown'.
+src/pages/client/design-studio/referenceSketch.ts(172,19): error TS2769: No overload matches this call.
+  Overload 1 of 6, '(image: CanvasImageSource, dx: number, dy: number, dw: number, dh: number): void', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'CanvasImageSource'.
+  Overload 2 of 6, '(image: CanvasImageSource, dx: number, dy: number, dw: number, dh: number): void', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'CanvasImageSource'.
+src/pages/client/design-studio/regionShader.ts(52,71): error TS2339: Property 'defaultParams' does not exist on type '{ icon: string; woven: boolean; svg: any; id: string; label: string; } | { id: string; label: string; icon: string; parametric: boolean; defaultParams: { width: number; spacing: number; }; svg: (c: any, w?: number, s?: number) => string; } | { ...; }'.
+  Property 'defaultParams' does not exist on type '{ icon: string; woven: boolean; svg: any; id: string; label: string; }'.
+src/pages/client/design-studio/regionTexture.ts(155,42): error TS2339: Property 'body' does not exist on type '{}'.
+src/pages/client/design-studio/regionTexture.ts(162,56): error TS2339: Property 'defaultParams' does not exist on type '{ icon: string; woven: boolean; svg: any; id: string; label: string; } | { id: string; label: string; icon: string; parametric: boolean; defaultParams: { width: number; spacing: number; }; svg: (c: any, w?: number, s?: number) => string; } | { ...; }'.
+  Property 'defaultParams' does not exist on type '{ icon: string; woven: boolean; svg: any; id: string; label: string; }'.
+src/pages/client/design-studio/regionTexture.ts(163,77): error TS2339: Property 'defaultParams' does not exist on type '{ icon: string; woven: boolean; svg: any; id: string; label: string; } | { id: string; label: string; icon: string; parametric: boolean; defaultParams: { width: number; spacing: number; }; svg: (c: any, w?: number, s?: number) => string; } | { ...; }'.
+  Property 'defaultParams' does not exist on type '{ icon: string; woven: boolean; svg: any; id: string; label: string; }'.
+src/pages/client/design-studio/regionTexture.ts(163,127): error TS2339: Property 'defaultParams' does not exist on type '{ icon: string; woven: boolean; svg: any; id: string; label: string; } | { id: string; label: string; icon: string; parametric: boolean; defaultParams: { width: number; spacing: number; }; svg: (c: any, w?: number, s?: number) => string; } | { ...; }'.
+  Property 'defaultParams' does not exist on type '{ icon: string; woven: boolean; svg: any; id: string; label: string; }'.
+src/pages/client/design-studio/RightInfoPanel.tsx(51,19): error TS2322: Type 'string | number | ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'Key'.
+  Type 'ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not assignable to type 'Key'.
+src/pages/client/design-studio/RightInfoPanel.tsx(51,76): error TS2339: Property 'toLowerCase' does not exist on type 'string | number | ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>'.
+  Property 'toLowerCase' does not exist on type 'number'.
+src/pages/client/design-studio/RightInfoPanel.tsx(51,116): error TS2339: Property 'toLowerCase' does not exist on type 'string | number | ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>'.
+  Property 'toLowerCase' does not exist on type 'number'.
+src/pages/client/design-studio/RightInfoPanel.tsx(51,153): error TS2339: Property 'toLowerCase' does not exist on type 'string | number | ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>'.
+  Property 'toLowerCase' does not exist on type 'number'.
+src/pages/client/design-studio/RightInfoPanel.tsx(52,73): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/pages/client/design-studio/RightInfoPanel.tsx(52,81): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/pages/client/design-studio/RightInfoPanel.tsx(52,94): error TS2604: JSX element type 'Icon' does not have any construct or call signatures.
+src/pages/client/design-studio/RightInfoPanel.tsx(52,94): error TS2786: 'Icon' cannot be used as a JSX component.
+  Its type 'string | number | ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>' is not a valid JSX element type.
+    Type 'number' is not assignable to type 'ElementType'.
+src/pages/client/design-studio/RightInfoPanel.tsx(83,59): error TS2339: Property 'blur' does not exist on type 'EventTarget'.
+src/pages/client/design-studio/ScannedGarmentMesh.tsx(169,122): error TS2322: Type '{ key: any; position: any; rotation: any; scale: any; map: any; roughness: number; depthWrite: boolean; renderOrder: number; polygonOffsetFactor: number; }' is not assignable to type 'IntrinsicAttributes & Omit<DecalProps, "ref"> & RefAttributes<Mesh<BufferGeometry, Material | Material[]>>'.
+  Property 'roughness' does not exist on type 'IntrinsicAttributes & Omit<DecalProps, "ref"> & RefAttributes<Mesh<BufferGeometry, Material | Material[]>>'.
+src/pages/client/design-studio/ScannedGarmentMesh.tsx(179,11): error TS2339: Property 'nodes' does not exist on type '(GLTF & ObjectMap) | (GLTF & ObjectMap)[]'.
+src/pages/client/design-studio/ScannedGarmentMesh.tsx(180,61): error TS2339: Property 'geometry' does not exist on type 'unknown'.
+src/pages/client/design-studio/selectGarment.ts(7,55): error TS2339: Property 'bodyColor' does not exist on type '{}'.
+src/pages/client/design-studio/ShowcaseGallery.tsx(19,101): error TS2339: Property 'details' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
+src/pages/client/design-studio/ShowcaseGallery.tsx(26,47): error TS2353: Object literal may only specify known properties, and 'onClose' does not exist in type '{ active?: boolean; }'.
+src/pages/client/design-studio/StudioHelp.tsx(72,26): error TS2353: Object literal may only specify known properties, and 'onClose' does not exist in type '{ active?: boolean; }'.
+src/pages/client/design-studio/StudioHelp.tsx(122,25): error TS2353: Object literal may only specify known properties, and 'onClose' does not exist in type '{ active?: boolean; }'.
+src/pages/client/design-studio/StudioHelp.tsx(193,82): error TS2339: Property 'isContentEditable' does not exist on type 'Element'.
+src/pages/client/design-studio/StudioTip.tsx(19,7): error TS2322: Type 'Timeout' is not assignable to type 'number'.
+src/pages/client/design-studio/StyleSections.tsx(10,58): error TS2339: Property 'fabric' does not exist on type '{ default: typeof import("C:/Users/Dave/Projects/VFRB/vfrb-frontend/node_modules/fabric/dist/index"); getEnv: () => TFabricEnv; getFabricDocument: () => Document; ... 69 more ...; isPutImageFaster: (width: number, height: number) => boolean; }'.
+src/pages/client/design-studio/StyleSections.tsx(199,10): error TS2554: Expected 5 arguments, but got 4.
+src/pages/client/design-studio/StyleSections.tsx(200,10): error TS2554: Expected 5 arguments, but got 4.
+src/pages/client/design-studio/StyleSections.tsx(201,10): error TS2554: Expected 5 arguments, but got 4.
+src/pages/client/design-studio/StyleSections.tsx(202,10): error TS2554: Expected 5 arguments, but got 4.
+src/pages/client/design-studio/ToolRail.tsx(18,122): error TS2339: Property 'isContentEditable' does not exist on type 'Element'.
+src/pages/client/design-studio/traceGuide.ts(13,31): error TS2345: Argument of type 'number[]' is not assignable to parameter of type '[any, any]'.
+  Target requires 2 element(s) but source may have fewer.
+src/pages/client/design-studio/traceGuide.ts(13,80): error TS2345: Argument of type 'number[]' is not assignable to parameter of type '[any, any]'.
+  Target requires 2 element(s) but source may have fewer.
+src/pages/client/design-studio/traceGuide.ts(14,19): error TS2345: Argument of type 'number[]' is not assignable to parameter of type '[any, any]'.
+  Target requires 2 element(s) but source may have fewer.
+src/pages/client/design-studio/traceGuide.ts(14,53): error TS2345: Argument of type 'number[]' is not assignable to parameter of type '[any, any]'.
+  Target requires 2 element(s) but source may have fewer.
+src/pages/client/design-studio/uniformSet.ts(34,91): error TS2698: Spread types may only be created from object types.
+src/pages/client/design-studio/uploadGuard.ts(57,36): error TS2769: No overload matches this call.
+  Overload 1 of 6, '(image: CanvasImageSource, dx: number, dy: number, dw: number, dh: number): void', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'CanvasImageSource'.
+  Overload 2 of 6, '(image: CanvasImageSource, dx: number, dy: number, dw: number, dh: number): void', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'CanvasImageSource'.
+src/pages/client/design-studio/uploadGuard.ts(58,29): error TS2322: Type 'unknown' is not assignable to type 'BlobPart'.
+src/pages/client/design-studio/uploadGuard.ts(58,35): error TS2554: Expected 3 arguments, but got 2.
+src/pages/client/design-studio/uploadGuard.ts(66,19): error TS2339: Property 'naturalWidth' does not exist on type 'unknown'.
+src/pages/client/design-studio/uploadGuard.ts(66,41): error TS2339: Property 'naturalHeight' does not exist on type 'unknown'.
+src/pages/client/design-studio/uploadGuard.ts(81,63): error TS2339: Property 'naturalWidth' does not exist on type 'unknown'.
+src/pages/client/design-studio/uploadGuard.ts(81,92): error TS2339: Property 'naturalHeight' does not exist on type 'unknown'.
+src/pages/client/design-studio/uploadGuard.ts(82,51): error TS2769: No overload matches this call.
+  Overload 1 of 6, '(image: CanvasImageSource, dx: number, dy: number): void', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'CanvasImageSource'.
+  Overload 2 of 6, '(image: CanvasImageSource, dx: number, dy: number): void', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'CanvasImageSource'.
+src/pages/client/design-studio/uploadGuard.ts(83,22): error TS2554: Expected 3 arguments, but got 2.
+src/pages/client/design-studio/uploadGuard.ts(84,14): error TS2339: Property 'size' does not exist on type 'unknown'.
+src/pages/client/design-studio/uploadGuard.ts(84,50): error TS2322: Type 'unknown' is not assignable to type 'BlobPart'.
+src/pages/client/design-studio/uploadGuard.ts(87,22): error TS2322: Type 'unknown' is not assignable to type 'BlobPart'.
+src/pages/client/design-studio/uploadGuard.ts(100,26): error TS2339: Property 'naturalWidth' does not exist on type 'unknown'.
+src/pages/client/design-studio/uploadGuard.ts(100,44): error TS2339: Property 'naturalHeight' does not exist on type 'unknown'.
+src/pages/client/design-studio/uploadGuard.ts(104,44): error TS2339: Property 'naturalWidth' does not exist on type 'unknown'.
+src/pages/client/design-studio/uploadGuard.ts(104,102): error TS2339: Property 'naturalHeight' does not exist on type 'unknown'.
+src/pages/client/design-studio/uploadGuard.ts(105,36): error TS2769: No overload matches this call.
+  Overload 1 of 6, '(image: CanvasImageSource, dx: number, dy: number, dw: number, dh: number): void', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'CanvasImageSource'.
+  Overload 2 of 6, '(image: CanvasImageSource, dx: number, dy: number, dw: number, dh: number): void', gave the following error.
+    Argument of type 'unknown' is not assignable to parameter of type 'CanvasImageSource'.
+src/pages/client/design-studio/uploadGuard.ts(108,18): error TS2339: Property 'size' does not exist on type 'unknown'.
+src/pages/client/design-studio/uploadGuard.ts(108,57): error TS2322: Type 'unknown' is not assignable to type 'BlobPart'.
+src/pages/client/design-studio/uploadGuard.ts(108,95): error TS2339: Property 'type' does not exist on type 'unknown'.
+src/pages/client/design-studio/uploadGuard.ts(108,150): error TS2339: Property 'type' does not exist on type 'unknown'.
+src/pages/client/design-studio/useGarmentCanvas.ts(153,63): error TS2339: Property 'fabric' does not exist on type '{ default: typeof import("C:/Users/Dave/Projects/VFRB/vfrb-frontend/node_modules/fabric/dist/index"); getEnv: () => TFabricEnv; getFabricDocument: () => Document; ... 69 more ...; isPutImageFaster: (width: number, height: number) => boolean; }'.
+src/pages/client/design-studio/useGarmentCanvas.ts(437,9): error TS2741: Property 'box' is missing in type '{ anchors: undefined[]; drag: false; cursor: null; line: null; }' but required in type '{ anchors: any[]; drag: boolean; cursor: any; line: any; box: any; }'.
+src/pages/client/design-studio/useGarmentCanvas.ts(441,30): error TS2339: Property 'fabric' does not exist on type '{ default: typeof import("C:/Users/Dave/Projects/VFRB/vfrb-frontend/node_modules/fabric/dist/index"); getEnv: () => TFabricEnv; getFabricDocument: () => Document; ... 69 more ...; isPutImageFaster: (width: number, height: number) => boolean; }'.
+src/pages/client/design-studio/useGarmentCanvas.ts(452,30): error TS2339: Property 'fabric' does not exist on type '{ default: typeof import("C:/Users/Dave/Projects/VFRB/vfrb-frontend/node_modules/fabric/dist/index"); getEnv: () => TFabricEnv; getFabricDocument: () => Document; ... 69 more ...; isPutImageFaster: (width: number, height: number) => boolean; }'.
+src/pages/client/design-studio/useGarmentCanvas.ts(508,25): error TS2741: Property 'box' is missing in type '{ anchors: undefined[]; drag: false; cursor: null; line: null; }' but required in type '{ anchors: any[]; drag: boolean; cursor: any; line: any; box: any; }'.
+src/pages/client/design-studio/useGarmentCanvas.ts(556,57): error TS2339: Property 'fabric' does not exist on type '{ default: typeof import("C:/Users/Dave/Projects/VFRB/vfrb-frontend/node_modules/fabric/dist/index"); getEnv: () => TFabricEnv; getFabricDocument: () => Document; ... 69 more ...; isPutImageFaster: (width: number, height: number) => boolean; }'.
+src/pages/client/design-studio/useGarmentCanvas.ts(594,21): error TS2339: Property 'woven' does not exist on type '{ icon: string; woven: boolean; svg: any; id: string; label: string; } | { id: string; label: string; icon: string; parametric: boolean; defaultParams: { width: number; spacing: number; }; svg: (c: any, w?: number, s?: number) => string; } | { ...; }'.
+  Property 'woven' does not exist on type '{ id: string; label: string; icon: string; parametric: boolean; defaultParams: { width: number; spacing: number; }; svg: (c: any, w?: number, s?: number) => string; }'.
+src/pages/client/design-studio/useGarmentCanvas.ts(598,65): error TS2339: Property 'defaultParams' does not exist on type '{ icon: string; woven: boolean; svg: any; id: string; label: string; } | { id: string; label: string; icon: string; parametric: boolean; defaultParams: { width: number; spacing: number; }; svg: (c: any, w?: number, s?: number) => string; } | { ...; }'.
+  Property 'defaultParams' does not exist on type '{ icon: string; woven: boolean; svg: any; id: string; label: string; }'.
+src/pages/client/design-studio/useGarmentCanvas.ts(714,57): error TS2339: Property 'fabric' does not exist on type '{ default: typeof import("C:/Users/Dave/Projects/VFRB/vfrb-frontend/node_modules/fabric/dist/index"); getEnv: () => TFabricEnv; getFabricDocument: () => Document; ... 69 more ...; isPutImageFaster: (width: number, height: number) => boolean; }'.
+src/pages/client/design-studio/useGarmentCanvas.ts(752,57): error TS2339: Property 'fabric' does not exist on type '{ default: typeof import("C:/Users/Dave/Projects/VFRB/vfrb-frontend/node_modules/fabric/dist/index"); getEnv: () => TFabricEnv; getFabricDocument: () => Document; ... 69 more ...; isPutImageFaster: (width: number, height: number) => boolean; }'.
+src/pages/client/design-studio/useGarmentCanvas.ts(782,101): error TS2339: Property 'fabric' does not exist on type '{ default: typeof import("C:/Users/Dave/Projects/VFRB/vfrb-frontend/node_modules/fabric/dist/index"); getEnv: () => TFabricEnv; getFabricDocument: () => Document; ... 69 more ...; isPutImageFaster: (width: number, height: number) => boolean; }'.
+src/pages/client/design-studio/useGarmentCanvas.ts(807,57): error TS2339: Property 'fabric' does not exist on type '{ default: typeof import("C:/Users/Dave/Projects/VFRB/vfrb-frontend/node_modules/fabric/dist/index"); getEnv: () => TFabricEnv; getFabricDocument: () => Document; ... 69 more ...; isPutImageFaster: (width: number, height: number) => boolean; }'.
+src/pages/client/design-studio/useGarmentCanvas.ts(829,57): error TS2339: Property 'fabric' does not exist on type '{ default: typeof import("C:/Users/Dave/Projects/VFRB/vfrb-frontend/node_modules/fabric/dist/index"); getEnv: () => TFabricEnv; getFabricDocument: () => Document; ... 69 more ...; isPutImageFaster: (width: number, height: number) => boolean; }'.
+src/pages/client/design-studio/useGarmentCanvas.ts(977,57): error TS2339: Property 'fabric' does not exist on type '{ default: typeof import("C:/Users/Dave/Projects/VFRB/vfrb-frontend/node_modules/fabric/dist/index"); getEnv: () => TFabricEnv; getFabricDocument: () => Document; ... 69 more ...; isPutImageFaster: (width: number, height: number) => boolean; }'.
+src/pages/client/design-studio/useGarmentCanvas.ts(1052,57): error TS2339: Property 'fabric' does not exist on type '{ default: typeof import("C:/Users/Dave/Projects/VFRB/vfrb-frontend/node_modules/fabric/dist/index"); getEnv: () => TFabricEnv; getFabricDocument: () => Document; ... 69 more ...; isPutImageFaster: (width: number, height: number) => boolean; }'.
+src/pages/client/design-studio/useGarmentCanvas.ts(1152,57): error TS2339: Property 'fabric' does not exist on type '{ default: typeof import("C:/Users/Dave/Projects/VFRB/vfrb-frontend/node_modules/fabric/dist/index"); getEnv: () => TFabricEnv; getFabricDocument: () => Document; ... 69 more ...; isPutImageFaster: (width: number, height: number) => boolean; }'.
+src/pages/client/design-studio/useGarmentCanvas.ts(1316,39): error TS2339: Property 'text' does not exist on type '{}'.
+src/pages/client/design-studio/useGarmentCanvas.ts(1316,45): error TS2339: Property 'presetId' does not exist on type '{}'.
+src/pages/client/design-studio/useGarmentCanvas.ts(1333,57): error TS2339: Property 'fabric' does not exist on type '{ default: typeof import("C:/Users/Dave/Projects/VFRB/vfrb-frontend/node_modules/fabric/dist/index"); getEnv: () => TFabricEnv; getFabricDocument: () => Document; ... 69 more ...; isPutImageFaster: (width: number, height: number) => boolean; }'.
+src/pages/client/design-studio/useLogoUpload.ts(72,36): error TS2339: Property 'file' does not exist on type '{ status: string; method: string; file: any; message: string; } | { status: string; message: string; }'.
+  Property 'file' does not exist on type '{ status: string; message: string; }'.
+src/pages/client/design-studio/useLogoUpload.ts(72,69): error TS2339: Property 'file' does not exist on type '{ status: string; method: string; file: any; message: string; } | { status: string; message: string; }'.
+  Property 'file' does not exist on type '{ status: string; message: string; }'.
+src/pages/client/design-studio/useLogoUpload.ts(73,69): error TS2339: Property 'code' does not exist on type '{ status: string; method: string; file: any; message: string; } | { status: string; message: string; }'.
+  Property 'code' does not exist on type '{ status: string; method: string; file: any; message: string; }'.
+src/pages/client/design-studio/useLogoUpload.ts(73,99): error TS2339: Property 'code' does not exist on type '{ status: string; method: string; file: any; message: string; } | { status: string; message: string; }'.
+  Property 'code' does not exist on type '{ status: string; method: string; file: any; message: string; }'.
+src/pages/client/design-studio/useLogoUpload.ts(103,76): error TS2339: Property 'code' does not exist on type '{ status: string; method: string; file: any; message: string; } | { code: any; message: string; status: string; method: string; file: any; }'.
+  Property 'code' does not exist on type '{ status: string; method: string; file: any; message: string; }'.
+src/pages/client/design-studio/wovenPatterns.ts(141,77): error TS2339: Property 'body' does not exist on type '{}'.
+src/pages/client/DesignStudio.tsx(186,34): error TS2339: Property 'custom' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
+src/pages/client/DesignStudio.tsx(187,25): error TS2339: Property 'custom' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
+src/pages/client/DesignStudio.tsx(187,53): error TS2339: Property 'custom' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
+src/pages/client/DesignStudio.tsx(212,11): error TS2339: Property 'details' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
+src/pages/client/DesignStudio.tsx(224,84): error TS2339: Property 'details' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
+src/pages/client/DesignStudio.tsx(251,45): error TS2339: Property 'inspirationId' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
+src/pages/client/DesignStudio.tsx(376,50): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/DesignStudio.tsx(585,22): error TS2554: Expected 3 arguments, but got 2.
+src/pages/client/DesignStudio.tsx(627,73): error TS2554: Expected 3 arguments, but got 2.
+src/pages/client/DesignStudio.tsx(664,89): error TS2339: Property 'inspirationId' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
+src/pages/client/DesignStudio.tsx(688,59): error TS2554: Expected 1 arguments, but got 0.
+src/pages/client/DesignStudio.tsx(689,15): error TS2554: Expected 3 arguments, but got 2.
+src/pages/client/DesignStudio.tsx(695,118): error TS2554: Expected 1 arguments, but got 0.
+src/pages/client/DesignStudio.tsx(801,62): error TS2345: Argument of type '"none" | "local"' is not assignable to parameter of type 'SetStateAction<boolean>'.
+  Type '"none"' is not assignable to type 'SetStateAction<boolean>'.
+src/pages/client/DesignStudio.tsx(851,18): error TS2554: Expected 1 arguments, but got 0.
+src/pages/client/DesignStudio.tsx(867,50): error TS2345: Argument of type '"none" | "local"' is not assignable to parameter of type 'SetStateAction<boolean>'.
+  Type '"none"' is not assignable to type 'SetStateAction<boolean>'.
+src/pages/client/DesignStudio.tsx(888,51): error TS2339: Property 'inspirationId' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
+src/pages/client/DesignStudio.tsx(959,142): error TS2339: Property 'details' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
+src/pages/client/DesignStudio.tsx(960,52): error TS2339: Property 'inspirationId' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
+src/pages/client/DesignStudio.tsx(967,133): error TS2339: Property 'custom' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
+src/pages/client/DesignStudio.tsx(968,41): error TS2339: Property 'details' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
+src/pages/client/DesignStudio.tsx(986,21): error TS2554: Expected 1 arguments, but got 0.
+src/pages/client/DesignStudio.tsx(1045,56): error TS2554: Expected 1 arguments, but got 0.
+src/pages/client/DesignStudio.tsx(1056,34): error TS2554: Expected 1 arguments, but got 0.
+src/pages/client/DesignStudio3D.tsx(90,21): error TS2554: Expected 4 arguments, but got 1.
+src/pages/client/DesignStudio3D.tsx(91,21): error TS2554: Expected 4 arguments, but got 1.
+src/pages/client/DesignStudio3D.tsx(92,21): error TS2554: Expected 4 arguments, but got 2.
+src/pages/client/DesignStudio3D.tsx(93,21): error TS2554: Expected 4 arguments, but got 2.
+src/pages/client/DesignStudio3D.tsx(213,19): error TS2554: Expected 4 arguments, but got 2.
+src/pages/client/DesignStudio3D.tsx(254,19): error TS2554: Expected 4 arguments, but got 2.
+src/pages/client/DesignStudio3D.tsx(290,19): error TS2554: Expected 4 arguments, but got 2.
+src/pages/client/DesignStudio3D.tsx(341,8): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: {}): GarmentMeshErrorBoundary', gave the following error.
+    Type '{ children: Element; key: string; fallback: Element; }' is not assignable to type 'IntrinsicAttributes & IntrinsicClassAttributes<GarmentMeshErrorBoundary> & Readonly<{}>'.
+      Property 'children' does not exist on type 'IntrinsicAttributes & IntrinsicClassAttributes<GarmentMeshErrorBoundary> & Readonly<{}>'.
+  Overload 2 of 2, '(props: {}, context: any): GarmentMeshErrorBoundary', gave the following error.
+    Type '{ children: Element; key: string; fallback: Element; }' is not assignable to type 'IntrinsicAttributes & IntrinsicClassAttributes<GarmentMeshErrorBoundary> & Readonly<{}>'.
+      Property 'children' does not exist on type 'IntrinsicAttributes & IntrinsicClassAttributes<GarmentMeshErrorBoundary> & Readonly<{}>'.
+src/pages/client/DesignStudio3D.tsx(360,7): error TS2339: Property 'scale' does not exist on type 'never'.
+src/pages/client/DesignStudio3D.tsx(360,29): error TS2339: Property 'position' does not exist on type 'never'.
+src/pages/client/DesignStudio3D.tsx(360,54): error TS2339: Property 'scale' does not exist on type 'never'.
+src/pages/client/DesignStudio3D.tsx(360,76): error TS2339: Property 'scale' does not exist on type 'never'.
+src/pages/client/DesignStudio3D.tsx(360,98): error TS2339: Property 'position' does not exist on type 'never'.
+src/pages/client/DesignStudio3D.tsx(360,123): error TS2339: Property 'updateMatrixWorld' does not exist on type 'never'.
+src/pages/client/DesignStudio3D.tsx(365,45): error TS2339: Property 'scale' does not exist on type 'never'.
+src/pages/client/DesignStudio3D.tsx(365,82): error TS2339: Property 'updateMatrixWorld' does not exist on type 'never'.
+src/pages/client/DesignStudio3D.tsx(367,7): error TS2339: Property 'position' does not exist on type 'never'.
+src/pages/client/DesignStudio3D.tsx(368,7): error TS2339: Property 'updateMatrixWorld' does not exist on type 'never'.
+src/pages/client/DesignStudio3D.tsx(370,7): error TS2339: Property 'scale' does not exist on type 'never'.
+src/pages/client/DesignStudio3D.tsx(371,7): error TS2339: Property 'position' does not exist on type 'never'.
+src/pages/client/DesignStudio3D.tsx(469,7): error TS2322: Type 'number[]' is not assignable to type 'Dpr'.
+  Type 'number[]' is not assignable to type '[min: number, max: number]'.
+    Target requires 2 element(s) but source may have fewer.
+src/pages/client/DesignStudio3D.tsx(534,38): error TS2339: Property 'decline' does not exist on type 'ViteHotContext'.
+src/pages/client/Messages.tsx(25,28): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/pages/client/Messages.tsx(25,41): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/pages/client/MyDesigns.tsx(185,81): error TS2554: Expected 3 arguments, but got 2.
+src/pages/client/MyDesigns.tsx(186,42): error TS2554: Expected 3 arguments, but got 2.
+src/pages/client/MyDesigns.tsx(188,53): error TS2554: Expected 3 arguments, but got 1.
+src/pages/client/order-wizard/orderForm.ts(68,28): error TS2339: Property 'garment_type' does not exist on type '{}'.
+src/pages/client/order-wizard/orderForm.ts(69,31): error TS2339: Property 'design_ref_file' does not exist on type '{}'.
+src/pages/client/order-wizard/orderForm.ts(71,19): error TS2339: Property 'client_design_notes' does not exist on type '{}'.
+src/pages/client/order-wizard/orderForm.ts(74,53): error TS2339: Property 'color' does not exist on type '{}'.
+src/pages/client/order-wizard/orderForm.ts(76,18): error TS2339: Property 'sizes' does not exist on type '{}'.
+src/pages/client/order-wizard/orderForm.ts(79,27): error TS2339: Property 'fabric_type' does not exist on type '{}'.
+src/pages/client/order-wizard/orderForm.ts(80,73): error TS2339: Property 'delivery_address' does not exist on type '{}'.
+src/pages/client/order-wizard/orderForm.ts(81,58): error TS2339: Property 'deadline' does not exist on type '{}'.
+src/pages/client/OrderDetail.tsx(119,47): error TS2339: Property 'note' does not exist on type 'unknown'.
+src/pages/client/OrderDetail.tsx(236,38): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(message?: string, options?: ErrorOptions): Error', gave the following error.
+    Argument of type 'number' is not assignable to parameter of type 'string'.
+  Overload 2 of 2, '(message?: string): Error', gave the following error.
+    Argument of type 'number' is not assignable to parameter of type 'string'.
+src/pages/client/OrderDetail.tsx(320,35): error TS2538: Type 'any' cannot be used as an index type.
+src/pages/client/OrderDetail.tsx(324,35): error TS2538: Type 'any' cannot be used as an index type.
+src/pages/client/OrderDetail.tsx(527,54): error TS2367: This comparison appears to be unintentional because the types 'boolean' and 'string' have no overlap.
+src/pages/client/OrderDetail.tsx(528,24): error TS2367: This comparison appears to be unintentional because the types 'boolean' and 'string' have no overlap.
+src/pages/client/OrderDetail.tsx(532,54): error TS2367: This comparison appears to be unintentional because the types 'boolean' and 'string' have no overlap.
+src/pages/client/OrderDetail.tsx(534,24): error TS2367: This comparison appears to be unintentional because the types 'boolean' and 'string' have no overlap.
+src/pages/client/OrderDetail.tsx(584,32): error TS2339: Property 'materials' does not exist on type '{}'.
+src/pages/client/OrderDetail.tsx(584,90): error TS2339: Property 'materials' does not exist on type '{}'.
+src/pages/client/OrderDetail.tsx(585,42): error TS2339: Property 'materials' does not exist on type '{}'.
+src/pages/client/OrderDetail.tsx(600,119): error TS2698: Spread types may only be created from object types.
+src/pages/client/OrderDetail.tsx(628,21): error TS2339: Property 'delivery' does not exist on type '{}'.
+src/pages/client/OrderDetail.tsx(628,76): error TS2339: Property 'delivery' does not exist on type '{}'.
+src/pages/client/OrderDetail.tsx(636,21): error TS2339: Property 'messages' does not exist on type '{}'.
+src/pages/client/OrderDetail.tsx(636,76): error TS2339: Property 'messages' does not exist on type '{}'.
+src/pages/client/Orders.tsx(34,116): error TS2345: Argument of type '{ month: string; day: string; }' is not assignable to parameter of type '{ month: string; day: string; year: string; }'.
+  Property 'year' is missing in type '{ month: string; day: string; }' but required in type '{ month: string; day: string; year: string; }'.
+src/pages/client/settings/BillingSection.tsx(27,38): error TS2339: Property 'billing_name' does not exist on type '{}'.
+src/pages/client/settings/BillingSection.tsx(28,41): error TS2339: Property 'billing_address' does not exist on type '{}'.
+src/pages/client/settings/BillingSection.tsx(29,31): error TS2339: Property 'tin' does not exist on type '{}'.
+src/pages/client/settings/BillingSection.tsx(30,73): error TS2339: Property 'billing_email' does not exist on type '{}'.
+src/pages/client/settings/BillingSection.tsx(49,106): error TS2339: Property 'billing_name' does not exist on type '{}'.
+src/pages/client/settings/BillingSection.tsx(51,81): error TS2339: Property 'billing_address' does not exist on type '{}'.
+src/pages/client/settings/BillingSection.tsx(55,55): error TS2339: Property 'tin' does not exist on type '{}'.
+src/pages/client/settings/BillingSection.tsx(57,80): error TS2339: Property 'billing_email' does not exist on type '{}'.
+src/pages/client/settings/BillingSection.tsx(57,107): error TS2339: Property 'billing_email' does not exist on type '{}'.
+src/pages/client/settings/BillingSection.tsx(77,57): error TS2349: This expression is not callable.
+  Not all constituents of type 'string | ((m: any) => void)' are callable.
+    Type 'string' has no call signatures.
+src/pages/client/settings/BillingSection.tsx(80,109): error TS2349: This expression is not callable.
+  Not all constituents of type 'string | ((m: any) => void)' are callable.
+    Type 'string' has no call signatures.
+src/pages/client/settings/BillingSection.tsx(86,81): error TS2349: This expression is not callable.
+  Not all constituents of type 'string | ((m: any) => void)' are callable.
+    Type 'string' has no call signatures.
+src/pages/client/settings/ProfileSection.tsx(29,38): error TS2339: Property 'contact_number' does not exist on type '{}'.
+src/pages/client/settings/ProfileSection.tsx(33,21): error TS2349: This expression is not callable.
+  Not all constituents of type 'Element | ((msg: any, type?: string) => void)' are callable.
+    Type 'Element' has no call signatures.
+src/pages/client/settings/ProfileSection.tsx(36,39): error TS2339: Property 'contact_number' does not exist on type '{}'.
+src/pages/client/settings/ProfileSection.tsx(38,20): error TS2339: Property 'name' does not exist on type '{}'.
+src/pages/client/settings/ProfileSection.tsx(38,63): error TS2339: Property 'address' does not exist on type '{}'.
+src/pages/client/settings/ProfileSection.tsx(39,33): error TS2339: Property 'organization_name' does not exist on type '{}'.
+src/pages/client/settings/ProfileSection.tsx(39,70): error TS2339: Property 'client_type' does not exist on type '{}'.
+src/pages/client/settings/ProfileSection.tsx(42,75): error TS2339: Property 'name' does not exist on type '{}'.
+src/pages/client/settings/ProfileSection.tsx(43,7): error TS2349: This expression is not callable.
+  Not all constituents of type 'Element | ((msg: any, type?: string) => void)' are callable.
+    Type 'Element' has no call signatures.
+src/pages/client/settings/ProfileSection.tsx(45,7): error TS2349: This expression is not callable.
+  Not all constituents of type 'Element | ((msg: any, type?: string) => void)' are callable.
+    Type 'Element' has no call signatures.
+src/pages/client/settings/ProfileSection.tsx(59,52): error TS2339: Property 'name' does not exist on type '{}'.
+src/pages/client/settings/ProfileSection.tsx(60,56): error TS2339: Property 'email' does not exist on type '{}'.
+src/pages/client/settings/ProfileSection.tsx(61,56): error TS2339: Property 'contact_number' does not exist on type '{}'.
+src/pages/client/settings/ProfileSection.tsx(64,68): error TS2339: Property 'organization_name' does not exist on type '{}'.
+src/pages/client/settings/ProfileSection.tsx(65,48): error TS2339: Property 'address' does not exist on type '{}'.
+src/pages/client/settings/ProfileSection.tsx(73,47): error TS2339: Property 'created_at' does not exist on type '{}'.
+src/pages/client/settings/ProfileSection.tsx(74,17): error TS2339: Property 'email_verified_at' does not exist on type '{}'.
+src/pages/client/settings/ProfileSection.tsx(79,7): error TS2322: Type 'Element | ((msg: any, type?: string) => void)' is not assignable to type 'ReactNode'.
+  Type '(msg: any, type?: string) => void' is not assignable to type 'ReactNode'.
+src/pages/client/settings/ProfileSection.tsx(104,58): error TS2349: This expression is not callable.
+  Not all constituents of type 'Element | ((msg: any, type?: string) => void)' are callable.
+    Type 'Element' has no call signatures.
+src/pages/client/settings/ProfileSection.tsx(105,42): error TS2349: This expression is not callable.
+  Not all constituents of type 'Element | ((msg: any, type?: string) => void)' are callable.
+    Type 'Element' has no call signatures.
+src/pages/client/settings/ProfileSection.tsx(109,21): error TS2349: This expression is not callable.
+  Not all constituents of type 'Element | ((msg: any, type?: string) => void)' are callable.
+    Type 'Element' has no call signatures.
+src/pages/client/settings/ProfileSection.tsx(111,7): error TS2349: This expression is not callable.
+  Not all constituents of type 'Element | ((msg: any, type?: string) => void)' are callable.
+    Type 'Element' has no call signatures.
+src/pages/client/settings/ProfileSection.tsx(146,7): error TS2322: Type 'Element | ((msg: any, type?: string) => void)' is not assignable to type 'ReactNode'.
+  Type '(msg: any, type?: string) => void' is not assignable to type 'ReactNode'.
+src/pages/Gallery.tsx(22,66): error TS2339: Property 'focus' does not exist on type 'Element'.
+src/pages/WhatWeDo.tsx(88,30): error TS2551: Property 'printPhoneHref' does not exist on type '{ address: string[]; other: string; phone: string; phoneHref: string; email: string; facebook: string; map: string; embed: string; printEmail: string; printPhone: string; }'. Did you mean 'printPhone'?
+src/utils/adminResources.ts(36,59): error TS2339: Property 'connection' does not exist on type 'Navigator'.
+src/utils/materialColour.ts(21,42): error TS2339: Property 'test' does not exist on type 'string | RegExp'.
+  Property 'test' does not exist on type 'string'.
+src/utils/safeStorage.ts(14,35): error TS2339: Property 'setItem' does not exist on type 'Window'.
+src/utils/safeStorage.ts(14,62): error TS2339: Property 'removeItem' does not exist on type 'Window'.
+src/utils/session.ts(70,106): error TS2345: Argument of type 'string' is not assignable to parameter of type 'InternalAxiosRequestConfig<any, any>'.
+src/utils/uploadRules.ts(10,129): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.

@@ -5,7 +5,8 @@ import { NavIcon } from '../../components/ui';
 import BottomSheet from '../../components/ui/BottomSheet';
 import MaterialCode from '../../components/admin/MaterialCode';
 import Badge from '../../components/ui/Badge';
-import { isOwner } from '../../utils/jobAccess';
+import { isOwner, isAdmin } from '../../utils/jobAccess';
+import MaterialSpecSection, { SpecStateBadge } from '../../components/admin/MaterialSpecSection';
 import { PageHeader, Panel, Banner, SearchBox, ErrorBlock, SkeletonRows, Toast, useToast, useIsMobile } from '../../components/admin/AdminUI';
 
 // Material master data: what a material is and how it is planned and valued. Quantities live in Inventory.
@@ -16,17 +17,21 @@ const MASTER = ['material_name', 'material_code', 'unit', 'category', 'reorder_t
 const peso  = (v) => (v ? `₱${Number(v).toLocaleString('en-PH', { minimumFractionDigits: 2 })}` : '—');
 const errMsg = (e, fb) => e.response?.data?.message ?? Object.values(e.response?.data?.errors ?? {})[0]?.[0] ?? fb;
 const isClient = (m) => m?.ownership === 'client';
+// Technical specs apply to VFRB-owned fabrics only; client-supplied fabric stays unknown (the AI never offers it).
+const hasSpecs = (m) => m?.category === 'Fabric' && !isClient(m);
 
 // ownershipReady: the backend has materials.ownership (client-material ledger migration has run).
-function MaterialModal({ item, categories = [], ownershipReady, onClose, onDone, isMobile }: any) {
+function MaterialModal({ item, categories = [], ownershipReady, onClose, onDone, onSpecSaved, isMobile }: any) {
   const isEdit = !!item;
   const [form, setForm] = useState(isEdit ? { ...INIT, ...item } : { ...INIT });
   const [busy, setBusy] = useState(false);
   const [err,  setErr]  = useState('');
+  const [specDirty, setSpecDirty] = useState(false);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   const client = ownershipReady && isClient(form);
 
   const submit = async () => {
+    if (specDirty) { setErr('Save or discard the specification changes first.'); return; }
     if (!form.material_name?.trim()) { setErr('Material name required.'); return; }
     if (!client && (form.unit_cost === '' || Number(form.unit_cost) < 0)) { setErr('Enter the unit cost (₱).'); return; }
     setBusy(true); setErr('');
@@ -79,6 +84,9 @@ function MaterialModal({ item, categories = [], ownershipReady, onClose, onDone,
         {isEdit && !client && <p className="mat-hint" style={{ margin: 0 }}>
           On hand: <b>{item.quantity_in_stock ?? 0} {item.unit}</b>. Stock changes are recorded in <Link to="/admin/inventory">Inventory</Link>, not here.
         </p>}
+        {isEdit && hasSpecs(item) && (
+          <MaterialSpecSection item={item} canEdit={isAdmin()} onDirty={setSpecDirty} onSaved={(_, msg) => onSpecSaved(msg)} />
+        )}
         {err && <ErrorBlock msg={err} />}
         <div className="adm-sheet-foot">
           <button className="adm-btn" onClick={onClose}>Cancel</button>
@@ -96,6 +104,7 @@ export default function AdminMaterials() {
   const [search,  setSearch]  = useState('');
   const [cat,     setCat]     = useState('all');
   const [modal,   setModal]   = useState(null);
+  const [viewSpecs, setViewSpecs] = useState(null);
   const [toast,   setToast]   = useToast();
   const isMobile = useIsMobile();
 
@@ -124,7 +133,9 @@ export default function AdminMaterials() {
         : !isOwner() && <button className="adm-link-btn" onClick={() => setModal('add')}>Add the first material</button>}
     </div>
   );
-  const editBtn = (m, label = 'Edit') => isOwner() ? null : <button className="adm-btn" onClick={() => setModal(m)} aria-label={`Edit ${m.material_name}`}><NavIcon name="edit" size={13} color="currentColor" /> {label}</button>;
+  const editBtn = (m, label = 'Edit') => isOwner()
+    ? (hasSpecs(m) ? <button className="adm-btn" onClick={() => setViewSpecs(m)} aria-label={`View specifications of ${m.material_name}`}>View specs</button> : null)
+    : <button className="adm-btn" onClick={() => setModal(m)} aria-label={`Edit ${m.material_name}`}><NavIcon name="edit" size={13} color="currentColor" /> {label}</button>;
 
   return (
     <>
@@ -140,7 +151,13 @@ export default function AdminMaterials() {
         .mat-own button:focus-visible{outline:2px solid var(--teal-2);outline-offset:2px}
       `}</style>
       <Toast toast={toast} />
+      {viewSpecs && (
+        <BottomSheet title={`${viewSpecs.material_name} specifications`} onClose={() => setViewSpecs(null)} isMobile={isMobile} maxWidth={540}>
+          <MaterialSpecSection item={viewSpecs} canEdit={false} />
+        </BottomSheet>
+      )}
       {modal && <MaterialModal item={modal === 'add' ? null : modal} categories={cats} ownershipReady={ownershipReady} onClose={() => setModal(null)} isMobile={isMobile}
+        onSpecSaved={(msg) => { setToast({ msg, type: 'success' }); load(); }}
         onDone={(msg) => { setModal(null); setToast({ msg, type: 'success' }); load(); }} />}
 
       <PageHeader title="Materials" sub={loading ? 'Master data' : `Master data · ${mats.length} material${mats.length === 1 ? '' : 's'}`}>
@@ -167,7 +184,7 @@ export default function AdminMaterials() {
           {loading ? <SkeletonRows rows={6} h={44} /> : loadErr ? null : filtered.length === 0 ? empty : (
             <div className="adm-tbl-scroll">
               <table className="adm-table">
-                <thead><tr><th>Material</th><th>Category</th>{ownershipReady && <th>Owned by</th>}<th>Unit</th><th className="num">Reorder point</th><th className="num">Unit cost</th><th style={{ textAlign: 'right' }}>Action</th></tr></thead>
+                <thead><tr><th>Material</th><th>Category</th>{ownershipReady && <th>Owned by</th>}<th>Unit</th><th>Specs</th><th className="num">Reorder point</th><th className="num">Unit cost</th><th style={{ textAlign: 'right' }}>Action</th></tr></thead>
                 <tbody>
                   {filtered.map((m) => (
                     <tr key={m.material_id}>
@@ -175,6 +192,7 @@ export default function AdminMaterials() {
                       <td style={{ color: 'var(--text-subtle)' }}>{m.category ?? '—'}</td>
                       {ownershipReady && <td>{ownerTag(m)}</td>}
                       <td style={{ color: 'var(--text-subtle)' }}>{m.unit}</td>
+                      <td>{hasSpecs(m) ? <SpecStateBadge row={m} /> : <span style={{ color: 'var(--text-faint)' }}>—</span>}</td>
                       <td className="num">{isClient(m) ? '—' : <>{m.reorder_threshold ?? 0} <span style={{ color: 'var(--text-faint)', fontSize: 12 }}>{m.unit}</span></>}</td>
                       <td className="num">{isClient(m) ? '—' : peso(m.unit_cost)}</td>
                       <td style={{ textAlign: 'right' }}>{editBtn(m)}</td>
@@ -191,7 +209,7 @@ export default function AdminMaterials() {
         {loading ? <SkeletonRows rows={3} h={96} /> : loadErr ? null : filtered.length === 0 ? empty : filtered.map((m, i) => (
           <div key={m.material_id} className="adm-mcard" style={{ '--i': Math.min(i, 8) }}>
             <div style={{ fontSize: 14, fontWeight: 800 }}>{m.material_name}<MaterialCode code={m.material_code} /></div>
-            <div style={{ fontSize: 12, color: 'var(--text-subtle)', marginTop: 2, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>{m.category ?? '—'} · {m.unit} {ownerTag(m)}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-subtle)', marginTop: 2, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>{m.category ?? '—'} · {m.unit} {ownerTag(m)} {hasSpecs(m) && <SpecStateBadge row={m} />}</div>
             {!isClient(m) && <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 8, fontSize: 13, color: 'var(--text-subtle)' }}>
               <span>Reorder at <b style={{ color: 'var(--ink)' }}>{m.reorder_threshold ?? 0} {m.unit}</b></span>
               <span>Cost <b style={{ color: 'var(--ink)' }}>{peso(m.unit_cost)}</b></span>
