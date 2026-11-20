@@ -37,7 +37,7 @@ export const colorName = hex => (hex ? HEX_NAME[hex.toUpperCase()] ?? hex.toUppe
 export const INIT = {
   garment_type: '', collar_type: '', sleeve_type: '', client_design_notes: '', extra_notes: '', design_ref_file: null, color: '',
   fabric_type: '', delivery_method: 'vfrb_deliver', delivery_address: '', po_reference: '', special_notes: '', deadline: '',
-  sizing_type: 'standard', sizes: {}, measurements: {}, custom_qty: '',
+  sizing_type: 'standard', sizes: {}, measurements: {}, custom_qty: '', ref_check: null,
 };
 // Delivery fields belong to the whole order, so a set writes them to every piece.
 export const SHARED = ['fabric_type', 'delivery_method', 'delivery_address', 'po_reference', 'special_notes', 'deadline'];
@@ -63,12 +63,15 @@ export function minDeadline(now = new Date()) {
 
 // Errors for one piece at one step; an empty object means the step is complete.
 export function validateStep(step, f, studio, today = new Date()) {
-  const e = {};
+  const e: Record<string, string> = {};
   if (step === 0 && !studio) {
     if (!f.garment_type) e.garment_type = 'Choose the garment in your reference.';
     if (!f.design_ref_file) e.design_ref_file = 'Upload a reference image or PDF, or design it in the Studio.';
     const n = f.client_design_notes.trim().length;
     if (n < 15) e.client_design_notes = n ? 'Add a little more detail (at least 15 characters).' : 'Describe what VFRB should make.';
+    const rc = f.ref_check;
+    if (rc?.verdict === 'checking') e.design_ref_file = 'Wait for the file check to finish.';
+    else if (rc?.verdict === 'rejected' && !rc.override) e.design_ref_file = 'This does not look like a uniform reference. Choose another file, or send it for staff review.';
   }
   if (step === 1) {
     if (!studio?.colors?.body && !f.color.trim()) e.color = 'Enter the main color.';
@@ -88,7 +91,9 @@ export function orderFields(f, studioCfg, setLine = '') {
   const custom = f.sizing_type === 'custom';
   const sizes = Object.fromEntries(STD_SIZES.filter(s => Number(f.sizes[s]) > 0).map(s => [s, Number(f.sizes[s])]));
   const meas = Object.fromEntries(Object.entries(f.measurements).filter(([, v]) => Number(v) > 0).map(([k, v]) => [k, Number(v)]));
-  const notes = [setLine, custom && Object.keys(meas).length ? 'Custom measurements are in inches.' : '', f.special_notes.trim()].filter(Boolean).join('\n');
+  const rc = f.ref_check;
+  const review = rc && (rc.verdict === 'needs_review' || rc.override) ? 'Reference file needs staff review.' : '';
+  const notes = [setLine, review, custom && Object.keys(meas).length ? 'Custom measurements are in inches.' : '', f.special_notes.trim()].filter(Boolean).join('\n');
   const design = [f.client_design_notes.trim(), f.extra_notes.trim()].filter(Boolean).join('\n');
   return Object.fromEntries(Object.entries({
     garment_type: f.garment_type, collar_type: f.collar_type, sleeve_type: f.sleeve_type, color: f.color.trim(),

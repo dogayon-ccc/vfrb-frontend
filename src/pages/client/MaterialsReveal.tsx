@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
-import { RecCard, AcceptModal, SelfPickModal, ConfettiBurst, AI_OPTIONAL_LINE } from './AIMaterials';
+import { RecCard, AcceptModal, SelfPickModal, ConfettiBurst, AI_OPTIONAL_LINE, STANDARD_OPTIONAL_LINE } from './AIMaterials';
 import { NavIcon } from '../../components/ui/icons';
 import { garmentLabel } from '../../utils/designName';
 
@@ -63,6 +63,7 @@ function requestRecs(orderId) {
 
 export default function MaterialsReveal({ order, onDone }: any) {
   const [recs, setRecs] = useState([]);
+  const [source, setSource] = useState(null);
   const [generating, setGenerating] = useState(true);
   const [genErr, setGenErr] = useState('');
   const [showAccept, setShowAccept] = useState(false);
@@ -75,7 +76,7 @@ export default function MaterialsReveal({ order, onDone }: any) {
     (async () => {
       try {
         const { data } = await requestRecs(order.order_id);
-        if (live) setRecs(data?.materials ?? []);
+        if (live) { setRecs(data?.materials ?? []); setSource(data?.source ?? null); }
       } catch (e) {
         if (live) setGenErr(e.response?.data?.message ?? 'AI is unavailable right now. You can still pick materials yourself below.');
       } finally {
@@ -132,7 +133,7 @@ export default function MaterialsReveal({ order, onDone }: any) {
 
         {!generating && recs.length > 0 && (
           <>
-          <p className="mr-opt">{AI_OPTIONAL_LINE}</p>
+          <p className="mr-opt">{source === 'catalog_default' ? STANDARD_OPTIONAL_LINE : AI_OPTIONAL_LINE}</p>
           <div className="mr-grid">
             {recs.map((r, i) => <RecCard key={i} rec={r}/>)}
           </div>

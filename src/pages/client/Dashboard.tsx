@@ -170,7 +170,7 @@ export default function CustomerDashboard() {
 
       <section className="dx-sec" aria-labelledby="ord-h">
         <div className="cx-sec-h"><h2 id="ord-h">{loading || openStatus(featured) ? 'Your orders' : featured ? 'Latest order' : 'How ordering works'}</h2>
-          {total > 0 && <Link to="/orders" className="cx-link">All {total} orders</Link>}</div>
+          <span className="cx-sec-act">{total > 0 && <Link to="/orders" className="cx-link">All {total} orders</Link>}<Link to="/order/create" className="cx-link">New order</Link></span></div>
         {!loading && total > 0 && (
           <nav className="dx-stats" aria-label="Orders by status">
             {[['pending', pending, 'Pending'], ['confirmed', confirmed, 'Confirmed'], ['prod', inProd, 'In production'], ['done', completed, 'Completed']]

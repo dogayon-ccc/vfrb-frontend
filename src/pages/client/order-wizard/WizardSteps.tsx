@@ -4,7 +4,8 @@ import axios from 'axios';
 import DesignPreview from '../../../components/DesignPreview';
 import SizeChartTable from '../../../components/SizeChartTable';
 import SizeProportions from '../design-studio/SizeProportions';
-import { Badge, Button, Field, NavIcon } from '../../../components/ui';
+import { AlertBanner, Badge, Button, Field, NavIcon } from '../../../components/ui';
+import { checkReference, referenceNotes } from '../../../utils/referenceCheck';
 import { isCompleteOutfit, COMPLETE_OUTFIT } from '../design-studio/garmentCatalog';
 import { checkUpload } from '../../../utils/fileCheck';
 import { useReferenceRules } from '../../../utils/uploadRules';
@@ -62,25 +63,85 @@ export function StepDesign({ form, set, errors, studio, onOpenStudio, title, uid
         onChange={e => set('extra_notes', e.target.value)} placeholder="e.g. embroider the logo instead of printing it"/>
     </div>
   );
+  return <UploadDesign form={form} set={set} errors={errors} onOpenStudio={onOpenStudio}/>;
+}
+
+function UploadDesign({ form, set, errors, onOpenStudio }: any) {
+  const run = useRef(0);
+  const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+  const chooseGarment = (g: string, r = form.ref_check) => {
+    set('garment_type', g);
+    if (!form.color && r?.colors?.length) set('color', cap(r.colors[0]));
+    if (!form.client_design_notes.trim()) set('client_design_notes', referenceNotes(g, r?.colors ?? []));
+  };
+  const pickRef = async (f: File) => {
+    const id = ++run.current;
+    set('design_ref_file', f);
+    set('ref_check', { verdict: 'checking', garments: [], colors: [], unknown: [] });
+    const r = await checkReference(f);
+    if (id !== run.current) return;
+    set('ref_check', r);
+    if (r.verdict === 'accepted' && r.garments.length === 1) chooseGarment(r.garments[0], r);
+  };
+  const dropRef = () => { run.current++; set('design_ref_file', null); set('ref_check', null); };
+  const has = !!form.design_ref_file;
   return (
     <div className="wz-stack">
-      <div className="wz-choice">
-        <p><strong>No design yet?</strong><span>Design it in the Studio and it comes back here ready to order.</span></p>
-        <Button variant="primary" icon="designStudio" onClick={onOpenStudio}>Open Design Studio</Button>
-      </div>
-      <p className="wz-or"><span>or order from your own file</span></p>
-      <RefFile file={form.design_ref_file} error={errors.design_ref_file} onPick={f => set('design_ref_file', f)} onRemove={() => set('design_ref_file', null)}/>
-      <Field as="select" label="Garment" value={form.garment_type} error={errors.garment_type} onChange={e => set('garment_type', e.target.value)}>
-        <option value="">Choose a garment</option>
-        <optgroup label="Tops">{GARMENTS.top.map(g => <option key={g}>{g}</option>)}</optgroup>
-        <optgroup label="Bottoms">{GARMENTS.bottom.map(g => <option key={g}>{g}</option>)}</optgroup>
-        <optgroup label="Complete outfits">{GARMENTS.outfit.map(g => <option key={g}>{g}</option>)}</optgroup>
-      </Field>
-      {isCompleteOutfit(form.garment_type) && <p className="wz-lead">{COMPLETE_OUTFIT}: one piece covers the whole uniform, so no matching top or bottom is needed.</p>}
-      <Field as="textarea" rows={4} label="Describe the design" value={form.client_design_notes} error={errors.client_design_notes}
-        onChange={e => set('client_design_notes', e.target.value)} placeholder="Colors, logo placement, collar and sleeve style, anything the file doesn't show"/>
+      <RefFile file={form.design_ref_file} error={errors.design_ref_file} onPick={pickRef} onRemove={dropRef}/>
+      {has && <RefResult check={form.ref_check} garment={form.garment_type} onPick={chooseGarment} onOverride={() => set('ref_check', { ...form.ref_check, override: true })}/>}
+      {!has && <>
+        <p className="wz-or"><span>or</span></p>
+        <div className="wz-choice">
+          <p><strong>No design yet?</strong><span>Design it in the Studio and it comes back here ready to order.</span></p>
+          <Button variant="primary" icon="designStudio" onClick={onOpenStudio}>Open Design Studio</Button>
+        </div>
+      </>}
+      {has && <>
+        <Field as="select" label="Garment" value={form.garment_type} error={errors.garment_type} onChange={e => set('garment_type', e.target.value)}>
+          <option value="">Choose a garment</option>
+          <optgroup label="Tops">{GARMENTS.top.map(g => <option key={g}>{g}</option>)}</optgroup>
+          <optgroup label="Bottoms">{GARMENTS.bottom.map(g => <option key={g}>{g}</option>)}</optgroup>
+          <optgroup label="Complete outfits">{GARMENTS.outfit.map(g => <option key={g}>{g}</option>)}</optgroup>
+        </Field>
+        {isCompleteOutfit(form.garment_type) && <p className="wz-lead">{COMPLETE_OUTFIT}: one piece covers the whole uniform, so no matching top or bottom is needed.</p>}
+        <Field as="textarea" rows={4} label="Describe the design" value={form.client_design_notes} error={errors.client_design_notes}
+          onChange={e => set('client_design_notes', e.target.value)} placeholder="Colors, logo placement, collar and sleeve style, anything the file doesn't show"/>
+      </>}
     </div>
   );
+}
+
+const REASON_COPY: Record<string, string> = {
+  ai_unavailable: 'The automatic check is not available right now.',
+  ai_unreadable: 'The automatic check could not read this file.',
+  no_supported_garment: 'We could not match this to a garment VFRB makes.',
+  uncertain: 'We are not sure what this shows.',
+};
+
+function RefResult({ check, garment, onPick, onOverride }: any) {
+  if (!check) return null;
+  if (check.verdict === 'checking') return <p className="wz-check" role="status">Checking your file…</p>;
+  const seen = check.colors.length ? ` Colours seen: ${check.colors.join(', ')}.` : '';
+  if (check.verdict === 'accepted' && check.garments.length === 1)
+    return <AlertBanner tone="success" title={`Looks like a ${check.garments[0]}`}>{`${seen} Wrong? Change the garment below.`.trim()}</AlertBanner>;
+  if (check.verdict === 'accepted')
+    return (
+      <AlertBanner tone="info" title="This file shows more than one piece">
+        <span className="wz-pick" role="group" aria-label="Piece for this order">
+          {check.garments.map((g: string) => <button key={g} type="button" className="cx-btn cx-btn-s" aria-pressed={garment === g} onClick={() => onPick(g)}>{g}</button>)}
+        </span>
+        Each order is for one piece. To order the other, place a second order with the same file.
+      </AlertBanner>
+    );
+  if (check.verdict === 'rejected')
+    return (
+      <AlertBanner tone="warning" title="This does not look like a uniform reference">
+        {check.override
+          ? 'It will go to VFRB staff for review with your order.'
+          : <>Choose another file, or <button type="button" className="wz-link" onClick={onOverride}>send it for staff review anyway</button>.</>}
+      </AlertBanner>
+    );
+  return <AlertBanner tone="info" title="Staff will review this file">{`${REASON_COPY[check.reason] ?? 'We could not confirm it automatically.'} Choose the garment below.`}</AlertBanner>;
 }
 
 function Stepper({ label, value, onChange }: any) {

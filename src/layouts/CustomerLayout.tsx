@@ -17,7 +17,7 @@ import NavBadge from '../components/ui/NavBadge';
 import useDialogFocus from '../hooks/useDialogFocus';
 import { Button } from '../components/ui';
 import '../styles/customer-shell.css';
-import { LayoutDashboard, ClipboardList, MessageSquare, Settings, Palette, LogOut, Shirt, MoreHorizontal, Bell, Megaphone } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, MessageSquare, Settings, Palette, LogOut, Shirt, MoreHorizontal, Bell, Megaphone, FilePlus2 } from 'lucide-react';
 
 const NAV = [
   { to:'/dashboard',  icon:LayoutDashboard, label:'Dashboard',  short:'Home',    end:true  },
@@ -186,6 +186,9 @@ export default function CustomerLayout() {
             </NavLink>
           ))}
           <div className="cx-rail-sep" />
+          <Link to="/order/create" className="cx-rail-link" title="New order">
+            <FilePlus2 size={18} strokeWidth={1.9} aria-hidden="true" /><span className="cx-rail-label">New order</span>
+          </Link>
           <button type="button" className="cx-rail-link cx-rail-studio" onClick={openStudio} title="Design Studio">
             <Palette size={18} strokeWidth={1.9} aria-hidden="true" /><span className="cx-rail-label">Design Studio</span>
           </button>

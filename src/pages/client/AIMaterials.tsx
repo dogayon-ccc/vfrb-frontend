@@ -263,6 +263,7 @@ export function RecCard({ rec }: any) {
 
 // Shown once above any list of RecCards.
 export const AI_OPTIONAL_LINE = 'Suggested by AI. Optional.';
+export const STANDARD_OPTIONAL_LINE = 'Standard VFRB materials. Optional.';
 
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function AIMaterials() {
@@ -419,7 +420,7 @@ export default function AIMaterials() {
                   </AlertBanner>
                 )}
 
-                <p className="aim-optional">{AI_OPTIONAL_LINE}</p>
+                <p className="aim-optional">{source === 'catalog_default' ? STANDARD_OPTIONAL_LINE : AI_OPTIONAL_LINE}</p>
                 <div className="aim-grid">{recs.map((r, i) => <RecCard key={r.rec_id ?? i} rec={r}/>)}</div>
 
                 {!accepted && (

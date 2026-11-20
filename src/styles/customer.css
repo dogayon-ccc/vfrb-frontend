@@ -166,6 +166,10 @@ button.wz-dot:focus-visible{outline:2.5px solid var(--teal);outline-offset:2px}
 .wz-design-row p,.wz-choice p{flex:1 1 200px;min-width:0;margin:0;display:flex;flex-direction:column;gap:2px;font-size:13px;color:var(--text-muted)}
 .wz-design-row strong,.wz-choice strong{font-size:15px;color:var(--ink);overflow-wrap:anywhere}
 .wz-choice{padding:14px 16px;border-radius:12px;border:1.5px dashed var(--teal);background:var(--teal-50)}
+.wz-check{margin:0;padding:10px 12px;border-radius:8px;background:var(--bg-surface);font-size:13px;color:var(--text-muted)}
+.wz-pick{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}
+.wz-pick [aria-pressed=true]{background:var(--teal);border-color:var(--teal);color:#fff}
+.wz-link{padding:0;border:0;background:none;color:inherit;font:inherit;text-decoration:underline;cursor:pointer}
 .wz-or{display:flex;align-items:center;gap:10px;margin:0;font-size:13px;color:var(--text-faint)}
 .wz-or::before,.wz-or::after{content:"";flex:1;height:1px;background:var(--border)}
 .wz-drop{width:100%;min-height:112px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:16px;border:2px dashed var(--border);border-radius:12px;background:var(--bg-surface);color:var(--text-subtle);font:inherit;font-size:13px;cursor:pointer}
@@ -768,3 +772,5 @@ html[data-theme=dark] .cm-shell .ui-step[data-s=now] .ui-step-dot{color:var(--co
 .aim-spec{margin-top:8px;font-size:13px;color:var(--text-muted)}
 .aim-spec-h{margin:0 0 2px;font-weight:700;color:var(--ink)}
 .aim-spec ul{margin:0;padding-left:18px;display:grid;gap:2px}
+
+.cx-sec-act{display:flex;gap:16px;align-items:center}
