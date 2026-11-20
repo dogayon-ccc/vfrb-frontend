@@ -79,6 +79,7 @@ const AdminProductionTracking= lazy(() => import('./pages/admin/ProductionTracki
 const AdminProductionList    = lazy(() => import('./pages/admin/ProductionList'));      // BUG-FIX: list before detail
 const AdminPhysicalCount     = lazy(() => import('./pages/admin/PhysicalCount'));
 const AdminDailyOutputLog    = lazy(() => import('./pages/admin/DailyOutputLog'));
+const AdminSetReview         = lazy(() => import('./pages/admin/SetReview'));
 const AdminQCChecklist       = lazy(() => import('./pages/admin/QCChecklist'));
 
 // ── Customer Pages — all lazy ─────────────────────────────────────────────────
@@ -302,6 +303,7 @@ export default function App() {
             {/* Month 2 operational */}
             <Route path="physical-count" element={<RequireArea area="inventory"><AdminPhysicalCount/></RequireArea>}/>
             <Route path="output-log"     element={<RequireArea area="production"><AdminDailyOutputLog/></RequireArea>}/>
+            <Route path="set-review"     element={<RequireManager><AdminSetReview/></RequireManager>}/>
             <Route path="qc"             element={<RequireArea area="production"><AdminQCChecklist/></RequireArea>}/>
 
             <Route path="settings"  element={<AdminSettings/>}/>

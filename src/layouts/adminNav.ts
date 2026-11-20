@@ -3,7 +3,7 @@ import {
   LayoutDashboard, ClipboardList, Package, MessageSquare, ShoppingCart,
   Truck, Layers, Factory, FileText, ShieldCheck, ScanLine,
   Wallet, BarChart3, Receipt, Building2, Users, MessageCircle, Settings,
-  Trophy, Contact, ScrollText, Activity, PackagePlus,
+  Trophy, Contact, ScrollText, Activity, PackagePlus, ClipboardCheck,
 } from 'lucide-react';
 
 export const NAV_GROUPS = ['Operate', 'Materials', 'Money', 'People', 'System'];
@@ -13,6 +13,7 @@ export const NAV = [
   { to:'/admin/orders',                 icon:ClipboardList,   label:'Orders',            group:'Operate',   short:'Orders' },
   { to:'/admin/production',             icon:Factory,         label:'Production Orders', group:'Operate',   short:'Production' },
   { to:'/admin/output-log',             icon:FileText,        label:'Output Log',        group:'Operate' },
+  { to:'/admin/set-review',            icon:ClipboardCheck,  label:'Set Review',        group:'Operate' },
   { to:'/admin/qc',                     icon:ShieldCheck,     label:'QC Checklist',      group:'Operate' },
   { to:'/admin/delivery',               icon:Truck,           label:'Delivery',          group:'Operate' },
   { to:'/admin/messages',               icon:MessageSquare,   label:'Messages',          group:'Operate' },

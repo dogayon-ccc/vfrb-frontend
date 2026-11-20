@@ -13,10 +13,11 @@ import { discardDraft, DISCARD_DRAFT } from '../../utils/studioHandoff';
 import { savedDesignName, garmentLabel } from '../../utils/designName';
 import { openDesign } from '../../utils/designActions';
 import { setStudioLock } from '../../utils/studioLock';
+import '../../styles/customer-home.css';
 import heroPhoto from '../../assets/brand/uniforms.webp';
 import {
   StatusPill, OrderThumb, DesignThumb, LIFECYCLE, lifecycleIndex, nextStep,
-  orderTitle, fmtDate, reltime, IN_PRODUCTION, setMateLine,
+  orderTitle, fmtDate, reltime, setMateLine,
 } from '../../components/customer/kit';
 
 function greeting(name) {
@@ -115,12 +116,7 @@ export default function CustomerDashboard() {
 
   const sorted = useMemo(() => [...orders].sort((a, b) => new Date(b.created_at ?? 0) - new Date(a.created_at ?? 0)), [orders]);
   const active = sorted.filter(o => !['completed', 'cancelled'].includes(o.status));
-  // All tiles count the same list with disjoint statuses (backend in_production also counted confirmed).
   const total = orders.length;
-  const inProd = orders.filter(o => IN_PRODUCTION.includes(o.status)).length;
-  const confirmed = orders.filter(o => o.status === 'confirmed').length;
-  const completed = orders.filter(o => o.status === 'completed').length;
-  const pending = orders.filter(o => o.status === 'pending').length;
   // Same title as My Designs: the customer's design name, else the draft label, else the garment.
   const draftTitle = draft ? garmentLabel(savedDesignName(draft.studio_config) || draft.label || humanize(draft.studio_config.garment)) : '';
 
@@ -137,32 +133,21 @@ export default function CustomerDashboard() {
 
       <motion.section initial={still ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .2 }}
         className="dx-hero cx-navy" aria-labelledby="dash-hero-t">
-        {/* First action: continue the draft when there is one, else create a design. */}
+        {/* Primary action: order a complete uniform set from an uploaded reference. Design Studio stays a separate, secondary entry. */}
         <div className="dx-hero-txt">
-          {/* The greeting is the page heading; the hero's own title (the draft or the prompt) sits under it. */}
           <h1 className="dx-hello">{greeting(user.name)}</h1>
-          {draft ? (<>
-            <p className="dx-kicker">Your draft</p>
-            <h2 id="dash-hero-t" className="dx-title">{draftTitle}</h2>
-            <p className="dx-hero-sub">Edited {reltime(draft.updated_at)}. Pick up where you left off, then review and order.</p>
-            <div className="dx-hero-acts">
-              <Button variant="primary" size="lg" icon="designStudio" onClick={openStudio}>Continue my draft</Button>
-              <Button size="lg" onClick={startNew}>Start a new design</Button>
-            </div>
-            <button type="button" className="dx-discard" onClick={() => setAskDiscard(true)}>Discard draft</button>
-          </>) : (<>
-            <h2 id="dash-hero-t" className="dx-title">Design your team’s uniform</h2>
-            <p className="dx-hero-sub">Pick a garment, set the colours and add your logo. Quantity and sizes come after.</p>
-            <div className="dx-hero-acts">
-              <Button variant="primary" size="lg" icon="designStudio" onClick={startNew}>Create a design</Button>
-              <Button size="lg" onClick={() => nav('/my-designs')}>My designs</Button>
-            </div>
-          </>)}
+          <p className="dx-kicker">New uniform-set order</p>
+          <h2 id="dash-hero-t" className="dx-title">Order a complete uniform</h2>
+          <p className="dx-hero-sub">Upload a picture or drawing of the top and the bottom. VFRB checks the file, then you enter sizes for each piece.</p>
+          <div className="dx-hero-acts">
+            <Button variant="primary" size="lg" icon="add" className="dx-cta" onClick={() => nav('/order/create')}>Upload uniform reference</Button>
+            <Button size="lg" icon="designStudio" onClick={draft ? openStudio : startNew}>{draft ? 'Continue my design draft' : 'Open Design Studio'}</Button>
+          </div>
+          {draft && <p className="dx-draft-line">Draft: <b>{draftTitle}</b> · edited {reltime(draft.updated_at)}
+            <button type="button" className="dx-discard" onClick={() => setAskDiscard(true)}>Discard draft</button></p>}
         </div>
-        <div className={`dx-stage${draft ? ' dx-stage-table' : ''}`}>
-          {draft
-            ? <span className="dx-stage-draft"><DesignThumb src={draft.preview_dataurl} garment={draft.studio_config.garment} colors={draft.studio_config.colors} name={draftTitle} scale={2} /></span>
-            : <img src={heroPhoto} alt="Finished VFRB uniforms on the workshop table" className="dx-stage-photo" width="1600" height="720" fetchpriority="high" />}
+        <div className="dx-stage">
+          <img src={heroPhoto} alt="Finished VFRB uniforms on the workshop table" className="dx-stage-photo" width="1600" height="720" fetchpriority="high" />
         </div>
       </motion.section>
       {/* Outside the navy hero: it must not inherit the hero's light-on-dark colours or be clipped by it. */}
@@ -170,13 +155,7 @@ export default function CustomerDashboard() {
 
       <section className="dx-sec" aria-labelledby="ord-h">
         <div className="cx-sec-h"><h2 id="ord-h">{loading || openStatus(featured) ? 'Your orders' : featured ? 'Latest order' : 'How ordering works'}</h2>
-          <span className="cx-sec-act">{total > 0 && <Link to="/orders" className="cx-link">All {total} orders</Link>}<Link to="/order/create" className="cx-link">New order</Link></span></div>
-        {!loading && total > 0 && (
-          <nav className="dx-stats" aria-label="Orders by status">
-            {[['pending', pending, 'Pending'], ['confirmed', confirmed, 'Confirmed'], ['prod', inProd, 'In production'], ['done', completed, 'Completed']]
-              .map(([id, n, label]) => <Link key={id} to={`/orders?status=${id}`} className="dx-stat"><b>{n}</b><span>{label}</span></Link>)}
-          </nav>
-        )}
+          {total > 0 && <Link to="/orders" className="cx-link cx-link-lg">View all {total} {total === 1 ? 'order' : 'orders'}</Link>}</div>
         {loading ? <Skeleton variant="block" count={2} height={88} gap={12} label="Loading orders" />
           : error ? (
             <EmptyState compact tone="error" title="Couldn’t load your orders"
@@ -188,7 +167,8 @@ export default function CustomerDashboard() {
                   aria-label={`Open order ${featured.order_id}, ${orderTitle(featured)}`}>
                   <OrderThumb order={featured} size={64} />
                   <span className="dx-order-name"><strong>{orderTitle(featured)}</strong>
-                    {featured.status === 'pending' && featured.created_at && <small>Waiting for VFRB since {shortDate(featured.created_at)}</small>}</span>
+                    {featured.status === 'pending' && featured.created_at && <small>Waiting for VFRB since {shortDate(featured.created_at)}</small>}
+                    {setMateLine(featured, orders) && <small>{setMateLine(featured, orders)}</small>}</span>
                   <StatusPill status={featured.status} />
                 </button>
                 <dl className="dx-facts">

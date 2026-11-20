@@ -189,6 +189,7 @@ export default function MyDesigns() {
   const shownTpl = tab === 'inspo' ? tpl.filter(d => hit(d.label, d.garment, d.category)) : [];
   const noMatch = q.trim() && !showDraft && !shownCopies.length && !(showPast && (shownPast.length || shownInOrder.length)) && !shownTpl.length;
   const empty = !loading && !error && total === 0;
+  
   const tabEmpty = !loading && !error && total > 0 && ((tab === 'draft' && !nDraft) || (tab === 'ordered' && !nOrdered) || (tab === 'inspo' && !nInspo));
 
   return (

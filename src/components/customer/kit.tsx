@@ -56,13 +56,25 @@ export function lifecycleIndex(status) {
 // "What happens next" copy for an order, from its real status and proposal state only.
 export function nextStep(order) {
   const s = order?.status;
-  if (!order) return { title: 'Design, then order', body: 'Save a design in the Studio, then add quantity and sizes to place an order. VFRB reviews every order before production.' };
+  if (!order) return { title: 'Design, then order', body: 'Upload a picture or drawing of the complete uniform, the top and the bottom, then add sizes for each. VFRB reviews every order before production.' };
   if (s === 'cancelled') return { title: 'This order was cancelled', body: 'Open the order to see the reason, or message VFRB if you have questions.' };
   if (s === 'completed') return { title: 'Your order is complete', body: 'Delivery details are on the order page. You can reorder the same design from My Designs.' };
   if (IN_PRODUCTION.includes(s)) return { title: 'Your uniforms are being made', body: 'Nothing is needed from you right now. This page updates when the order is complete.' };
   if (s === 'confirmed') return { title: 'Your order is confirmed', body: 'Production begins once VFRB receives the down payment. This page shows Completed when your uniforms are done.' };
   if (order.proposal_status === 'pending') return { title: 'VFRB is waiting for your reply', body: 'Open the order to review the proposed delivery date, then accept or send a message.' };
   return { title: 'VFRB is reviewing your order', body: 'The VFRB team checks your design, sizes and quantity, then proposes a delivery date for you to accept.' };
+}
+
+// Orders grouped for display: pieces of one legacy uniform set (shared uniformSet.id) sit together; every order keeps its own record and link.
+export function groupOrders(orders) {
+  const seen = new Set(), out = [];
+  for (const o of orders) {
+    if (seen.has(o.order_id)) continue;
+    const pieces = setOrders(o, orders);
+    pieces.forEach(p => seen.add(p.order_id));
+    out.push({ key: pieces.map(p => p.order_id).join('-'), pieces });
+  }
+  return out;
 }
 
 export const fmtDate = (d, o = { month: 'short', day: 'numeric', year: 'numeric' }) =>
@@ -104,11 +116,15 @@ export function StatusPill({ status }: any) {
 export function OrderThumb({ order, size = 52, fit = 1 }: any) {
   const cfg = parseCfg(order);
   const scale = size / 66 * fit;
+  // Upload orders carry no Studio design: show the ordered garment's own silhouette (colour from order.color when valid), never a blank swatch.
+  const typed = !cfg.garment && order?.garment_type && BASE_PATHS[order.garment_type] ? order.garment_type : null;
+  const shown = cfg.garment || typed;
+  const tint = /^#[0-9a-f]{3,8}$/i.test(order?.color ?? '') ? { body: order.color } : {};
   return (
     <div className="cx-thumb" style={{ width: size, height: size }} aria-hidden="true">
-      {cfg.garment ? (
+      {shown ? (
         <div style={{ transform: `scale(${scale * 0.9})`, transformOrigin: 'center', lineHeight: 0 }}>
-          <MiniPreview garment={thumbGarment(cfg.garment)} colors={cfg.colors ?? {}} />
+          <MiniPreview garment={thumbGarment(shown)} colors={cfg.garment ? (cfg.colors ?? {}) : tint} />
         </div>
       ) : (
         <div style={{ width: '55%', height: '55%', borderRadius: 8,

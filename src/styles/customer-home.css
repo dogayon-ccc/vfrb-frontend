@@ -1,0 +1,31 @@
+/* Customer Dashboard + My Orders (batch 1). Uses customer tokens only; loaded by those two pages. */
+.dx-hero-acts .dx-cta{flex:2 1 280px;min-height:56px;font-size:17px}
+.dx-draft-line{margin:6px 0 0;font-size:14px;color:var(--cx-ink-2);display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
+.dx-draft-line b{font-weight:700}
+.dx-draft-line .dx-discard{min-height:44px;padding:0 4px}
+.dx-sec .cx-link-lg{display:inline-flex;align-items:center;min-height:44px;padding:0 4px;font-size:15px;font-weight:700}
+@media(min-width:1024px){.cm-shell .dx-hero{min-height:300px}}
+
+.ox-list{display:flex;flex-direction:column;gap:10px}
+.ox-card{list-style:none;margin:0;padding:0;background:var(--cx-card);border:1px solid var(--cx-line);border-radius:12px;overflow:hidden}
+.ox-card ul{list-style:none;margin:0;padding:0}
+.ox-row{display:flex;align-items:center;gap:10px;padding-right:12px}
+.ox-row+.ox-row{border-top:1px dashed var(--cx-line-strong)}
+.ox-row-open{flex:1;min-width:0;display:grid;grid-template-columns:52px minmax(0,1fr) 92px 170px auto;align-items:center;gap:6px 14px;padding:12px 12px 12px 14px;background:none;border:0;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.ox-row-open:hover{background:color-mix(in srgb,var(--rg-mint,#02c39a) 8%,transparent)}
+.ox-row-open:focus-visible{outline:2px solid var(--teal);outline-offset:-2px}
+.ox-main{display:flex;flex-direction:column;gap:2px;min-width:0}
+.ox-main strong{font-size:16px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ox-main small,.ox-due small,.ox-prog small{font-size:13px;color:var(--cx-ink-2)}
+.ox-due{display:flex;flex-direction:column;font-weight:700;font-size:14px}
+.ox-prog{display:flex;flex-direction:column;gap:4px}
+.ox-prog-bar{display:block;height:6px;border-radius:3px;background:var(--cx-line)}
+.ox-prog-bar i{display:block;height:100%;border-radius:3px;background:var(--teal)}
+.ox-set-card>header{display:flex;align-items:center;flex-wrap:wrap;gap:4px 12px;padding:10px 14px;background:color-mix(in srgb,var(--teal) 7%,var(--cx-card));border-bottom:1px solid var(--cx-line)}
+.ox-set-card>header small{color:var(--cx-ink-2);font-size:13px;margin-right:auto}
+@media(max-width:899px){
+  .ox-row{flex-wrap:wrap;padding:0 12px 10px}
+  .ox-row-open{grid-template-columns:52px minmax(0,1fr) auto;padding:12px 0}
+  .ox-due,.ox-prog{grid-column:2 / -1}
+  .ox-row-open .status-chip{grid-column:3;grid-row:1}
+}

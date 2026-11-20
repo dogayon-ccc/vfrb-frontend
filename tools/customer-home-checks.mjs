@@ -1,0 +1,20 @@
+// Source checks for the Dashboard / My Orders batch. Run: node tools/customer-home-checks.mjs
+import fs from 'node:fs';
+const rd = p => fs.readFileSync(new URL('../' + p, import.meta.url), 'utf8');
+const dash = rd('src/pages/client/Dashboard.tsx'), ord = rd('src/pages/client/Orders.tsx'), kit = rd('src/components/customer/kit.tsx'), css = rd('src/styles/customer-home.css');
+let pass = 0, fail = 0;
+const t = (n, ok) => { ok ? pass++ : (fail++, console.log('FAIL', n)); };
+t('dashboard: Upload uniform reference is a large primary action to /order/create', /className="dx-cta"[^>]*onClick=\{\(\) => nav\('\/order\/create'\)\}>Upload uniform reference</.test(dash) && /\.dx-cta\{[^}]*min-height:56px/.test(css));
+t('dashboard: Design Studio stays a separate action', /Open Design Studio/.test(dash) && /Continue my design draft/.test(dash));
+t('dashboard: no KPI tiles, no tiny New order link', !/dx-stats|dx-stat\b/.test(dash) && !/className="cx-link">New order/.test(dash));
+t('dashboard: View all orders link has a 44px target', /cx-link-lg/.test(dash) && /\.cx-link-lg\{[^}]*min-height:44px/.test(css));
+t('thumb: upload orders use the ordered garment silhouette, not a teal swatch, when garment_type is known', /BASE_PATHS\[order\.garment_type\]/.test(kit) && /MiniPreview garment=\{thumbGarment\(shown\)\}/.test(kit));
+t('thumb: no studio_config AND unknown garment still falls back to the order colour swatch', /var\(--teal\)/.test(kit));
+t('orders: legacy set pieces are grouped for display only, each keeps its own link and record', /groupOrders\(orders\)/.test(ord) && /onOpen=\{\(\) => onOpen\(p\)\}/.test(ord) && /nav\(`\/orders\/\$\{o\.order_id\}`\)/.test(ord));
+t('orders: one slim progress line, no five-step Stepper per card', !/Stepper/.test(ord) && /ox-prog/.test(ord));
+t('orders: status shown once per set when all pieces share it', /const same = g\.pieces\.every/.test(ord));
+t('orders: a set stays whole if any piece matches the filter or search', /x\.pieces\.some\(hit\)/.test(ord));
+t('orders: reorder rule unchanged (not for pending, needs a design config)', /o\.status !== 'pending'/.test(ord) && /Object\.keys\(cfg\)\.length > 0/.test(ord));
+t('orders: no payment/proposal fields touched', !/payment|proposal|invoice/i.test(ord));
+t('copy: nextStep no longer tells a first-time customer to start in the Studio', !/Save a design in the Studio/.test(kit));
+console.log(`${pass}/${pass + fail} passed`); process.exit(fail ? 1 : 0);

@@ -1,16 +1,17 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import usePageTitle from '../../hooks/usePageTitle';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import { asList } from '../../utils/asList';
 import { fetchAllPages } from '../../utils/fetchAllPages';
 import { cacheGet, cacheSet, cacheClear, TTL } from '../../utils/cache';
 import EmptyState from '../../components/EmptyState';
-import { Card, Button, PageHeader, Stepper, Skeleton } from '../../components/ui';
+import { Button, PageHeader, Skeleton } from '../../components/ui';
 import {
-  Chips, StatusPill, OrderThumb, LIFECYCLE, lifecycleIndex, GROUPS, orderTitle, fmtDate, parseCfg, setMateLine,
+  Chips, StatusPill, OrderThumb, LIFECYCLE, lifecycleIndex, GROUPS, orderTitle, fmtDate, parseCfg, groupOrders,
 } from '../../components/customer/kit';
+import { ROLE_LABEL } from './design-studio/uniformSet';
 import { reorderDesign } from '../../utils/designActions';
+import '../../styles/customer-home.css';
 
 const SORTS = [
   { id: 'new', label: 'Newest first' },
@@ -18,34 +19,49 @@ const SORTS = [
   { id: 'due', label: 'Due date' },
 ];
 
-function OrderCard({ o, onOpen, onReorder, setLine }: any) {
-  const done = o.status === 'completed' || o.status === 'cancelled';
+const isOpen = (o: any) => o.status !== 'completed' && o.status !== 'cancelled';
+
+// One slim progress line instead of a five-step tracker per order.
+function Progress({ o }: any) {
+  if (!isOpen(o)) return null;
+  const i = lifecycleIndex(o.status);
+  return (
+    <span className="ox-prog" role="img" aria-label={`Order ${o.order_id}: step ${i + 1} of ${LIFECYCLE.length}, ${LIFECYCLE[i]}`}>
+      <span className="ox-prog-bar"><i style={{ width: `${((i + 1) / LIFECYCLE.length) * 100}%` }} /></span>
+      <small>{LIFECYCLE[i]}</small>
+    </span>
+  );
+}
+
+function Row({ o, onOpen, onReorder, showStatus = true, role }: any) {
   const cfg = parseCfg(o);
   const canReorder = Object.keys(cfg).length > 0 && o.status !== 'pending'; // a pending order is still under VFRB review
   return (
-    <Card as={motion.article} layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-      interactive padding="none" className="ox-card">
-      <button type="button" className="ox-open" onClick={onOpen} aria-label={`View order ${o.order_id}, ${orderTitle(o)}`}>
-        <div className="ox-top">
-          <span className="ox-thumb"><OrderThumb order={o} size={64} /></span>
-          <span className="ox-txt">
-            <small>Order #{o.order_id}</small>
-            <strong>{orderTitle(o)}</strong>
-            <span>{o.quantity_ordered ?? 0} pcs{o.target_delivery_date ? ` · Due ${fmtDate(o.target_delivery_date, { month: 'short', day: 'numeric' })}` : ''}</span>
-            {setLine && <span className="ox-set">{setLine}</span>}
-          </span>
-          <StatusPill status={o.status} />
-        </div>
-        {!done && <div className="ox-steps"><Stepper steps={LIFECYCLE} current={lifecycleIndex(o.status)} label={`Order ${o.order_id} progress`} /></div>}
-      </button>
-      <div className="ox-foot">
-        <span>Ordered {fmtDate(o.created_at)}</span>
-        <span className="ox-acts">
-          <Button size="sm" onClick={onOpen} aria-label={`Details for order #${o.order_id}`}>Details</Button>
-          {canReorder && <Button size="sm" variant="primary" onClick={() => onReorder({ config: cfg })} aria-label={`Reorder order #${o.order_id}`}>Reorder</Button>}
+    <li className="ox-row">
+      <button type="button" className="ox-row-open" onClick={onOpen} aria-label={`View order ${o.order_id}, ${orderTitle(o)}`}>
+        <span className="ox-thumb"><OrderThumb order={o} size={52} /></span>
+        <span className="ox-main">
+          <strong>{role ? `${role}: ` : ''}{orderTitle(o)}</strong>
+          <small>Order #{o.order_id} · {o.quantity_ordered ?? 0} pcs · Ordered {fmtDate(o.created_at)}</small>
         </span>
-      </div>
-    </Card>
+        <span className="ox-due">{o.target_delivery_date ? <><small>Due</small>{fmtDate(o.target_delivery_date)}</> : <small>No due date yet</small>}</span>
+        <Progress o={o} />
+        {showStatus && <StatusPill status={o.status} />}
+      </button>
+      {canReorder && <Button size="sm" onClick={() => onReorder({ config: cfg })} aria-label={`Reorder order #${o.order_id}`}>Reorder</Button>}
+    </li>
+  );
+}
+
+function Group({ g, onOpen, onReorder }: any) {
+  if (g.pieces.length === 1) return <ul className="ox-card"><Row o={g.pieces[0]} onOpen={() => onOpen(g.pieces[0])} onReorder={onReorder} /></ul>;
+  // Legacy uniform set: the pieces were placed as separate orders. They stay separate records; only the display is joined.
+  const same = g.pieces.every((p: any) => p.status === g.pieces[0].status);
+  return (
+    <section className="ox-card ox-set-card" aria-label={`Uniform set, orders ${g.pieces.map((p: any) => `#${p.order_id}`).join(' and ')}`}>
+      <header><b>Uniform set</b><small>{g.pieces.length} orders, one per piece</small>{same && <StatusPill status={g.pieces[0].status} />}</header>
+      <ul>{g.pieces.map((p: any) => <Row key={p.order_id} o={p} showStatus={!same} role={ROLE_LABEL[parseCfg(p).uniformSet?.role]} onOpen={() => onOpen(p)} onReorder={onReorder} />)}</ul>
+    </section>
   );
 }
 
@@ -55,7 +71,7 @@ export default function CustomerOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [sp] = useSearchParams(); // ?status=<group id> from the dashboard chips
+  const [sp] = useSearchParams(); // ?status=<group id>
   const [group, setGroup] = useState(() => (GROUPS.some(g => g.id === sp.get('status')) ? sp.get('status') : 'all'));
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('new');
@@ -79,16 +95,18 @@ export default function CustomerOrders() {
   const list = useMemo(() => {
     const g = GROUPS.find(x => x.id === group) ?? GROUPS[0];
     const q = search.toLowerCase().trim();
-    const out = orders.filter(o => g.test(o.status) && (!q
+    const hit = (o: any) => g.test(o.status) && (!q
       || String(o.order_id).includes(q)
       || orderTitle(o).toLowerCase().includes(q)
       || o.garment_type?.toLowerCase().includes(q)
       || o.color?.toLowerCase().includes(q)
-      || o.client_design_notes?.toLowerCase().includes(q)));
+      || o.client_design_notes?.toLowerCase().includes(q));
     const t = (d, miss = 0) => (d ? new Date(d).getTime() : miss);
-    return out.sort((a, b) => sort === 'old' ? t(a.created_at) - t(b.created_at)
-      : sort === 'due' ? t(a.target_delivery_date, 8.64e15) - t(b.target_delivery_date, 8.64e15)
-      : t(b.created_at) - t(a.created_at));
+    const key = (x: any, f) => Math[f === 'max' ? 'max' : 'min'](...x.pieces.map((p: any) => t(p.created_at)));
+    const due = (x: any) => Math.min(...x.pieces.map((p: any) => t(p.target_delivery_date, 8.64e15)));
+    // A set stays whole if any of its pieces matches the filter or search.
+    return groupOrders(orders).filter(x => x.pieces.some(hit)).sort((a, b) => sort === 'old' ? key(a, 'min') - key(b, 'min')
+      : sort === 'due' ? due(a) - due(b) : key(b, 'max') - key(a, 'max'));
   }, [orders, group, search, sort]);
 
   const chips = GROUPS.map(g => ({ id: g.id, label: g.label, count: counts[g.id] }));
@@ -98,7 +116,7 @@ export default function CustomerOrders() {
     <div className="cx-page">
       <PageHeader title="My Orders"
         subtitle={loading ? 'Loading your orders…' : orders.length ? `${orders.length} order${orders.length !== 1 ? 's' : ''} total` : 'No orders yet'}>
-        <Button variant="primary" icon="add" onClick={() => nav('/order/create')}>New order</Button>
+        <Button variant="primary" icon="add" onClick={() => nav('/order/create')}>New uniform-set order</Button>
       </PageHeader>
 
       {orders.length > 0 && <div className="ox-tools">
@@ -118,9 +136,7 @@ export default function CustomerOrders() {
 
       {actErr && <p role="alert" className="mx-err">{actErr}</p>}
       {loading ? (
-        <div className="ox-grid">
-          {[1, 2, 3].map(i => <Card key={i} padding="sm"><Skeleton variant="text" count={3} label="Loading orders" /></Card>)}
-        </div>
+        <div className="ox-list">{[1, 2, 3].map(i => <Skeleton key={i} variant="block" height={76} label="Loading orders" />)}</div>
       ) : error ? (
         <EmptyState illustration="error" headline="Couldn't load your orders"
           sub="Check your connection and try again."
@@ -128,12 +144,10 @@ export default function CustomerOrders() {
       ) : list.length === 0 ? (
         <EmptyState illustration="order"
           headline={search ? `No results for "${search}"` : blank ? "You haven't placed an order yet" : 'No orders in this filter'}
-          sub={blank ? 'Design your uniform and place your first order.' : 'Try a different filter or clear your search.'}
-          cta={blank ? { label: 'Start a design', onClick: () => nav('/design-studio') } : { label: 'Clear filters', onClick: () => { setSearch(''); setGroup('all'); } }} />
+          sub={blank ? 'Upload a picture or drawing of the complete uniform to place your first order.' : 'Try a different filter or clear your search.'}
+          cta={blank ? { label: 'Start a uniform-set order', onClick: () => nav('/order/create') } : { label: 'Clear filters', onClick: () => { setSearch(''); setGroup('all'); } }} />
       ) : (
-        <AnimatePresence mode="popLayout">
-          <div className="ox-grid">{list.map(o => <OrderCard key={o.order_id} o={o} setLine={setMateLine(o, orders)} onOpen={() => nav(`/orders/${o.order_id}`)} onReorder={reorder} />)}</div>
-        </AnimatePresence>
+        <div className="ox-list">{list.map(g => <Group key={g.key} g={g} onOpen={(o) => nav(`/orders/${o.order_id}`)} onReorder={reorder} />)}</div>
       )}
     </div>
   );
