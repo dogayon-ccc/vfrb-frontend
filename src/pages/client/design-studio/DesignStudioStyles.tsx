@@ -855,6 +855,9 @@ export default function DesignStudioStyles() {
         .ds-panel.ds-fly{position:absolute;order:0;display:flex;flex-direction:column;width:360px;max-width:calc(100% - 24px);height:auto;max-height:calc(100% - 16px);
           z-index:var(--z-dropdown);border:1px solid var(--cx-line-strong);border-radius:var(--cx-r-md);background:var(--cx-card);box-shadow:0 12px 32px -12px rgb(0 0 0 / .45);overflow:hidden;transition:none;}
         .ds-fly .ds-sheet-head .ds-opts-x{flex:none;margin:0 -8px 0 8px;}
+        /* An open flyout floats over the stage's left edge, so the garment is fitted into the space beside it instead of sitting half under it. */
+        .ds-body:has(.ds-fly) .ds-stage-fit,.ds-body:has(.ds-fly) .ds-lane-bottom{margin-left:min(384px,38%);transition:margin-left .2s ease-out;}
+        @media (prefers-reduced-motion:reduce){.ds-body:has(.ds-fly) .ds-stage-fit,.ds-body:has(.ds-fly) .ds-lane-bottom{transition:none;}}
       }
 
       .ds-tools-size button{width:44px;height:44px;display:grid;place-items:center;border:0;border-radius:var(--cx-r-md);background:transparent;cursor:pointer;}
