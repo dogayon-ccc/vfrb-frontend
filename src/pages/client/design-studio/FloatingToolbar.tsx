@@ -1,9 +1,9 @@
 // Contextual toolbar above the selection (below it when there is no room). Its slot holds alignment: centre one element on the
 // garment centre line, align 2+ to their shared bounds, distribute 3+. Each action is one undo step; arrow keys move between buttons.
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState, useMemo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Copy, Trash2, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal,
-  AlignHorizontalDistributeCenter, AlignVerticalDistributeCenter, FlipHorizontal2, ArrowUp, ArrowDown, Lock, LockOpen, EyeOff } from 'lucide-react';
+  AlignHorizontalDistributeCenter, AlignVerticalDistributeCenter, FlipHorizontal2, ArrowUp, ArrowDown, Lock, LockOpen, EyeOff, MapPin } from 'lucide-react';
 import { shapeLabel } from './overlayTools';
 import { pocketLabel } from './pocketTools';
 
@@ -23,7 +23,7 @@ function roving(e) {
   bs[d === -Infinity ? 0 : d === Infinity ? bs.length - 1 : (i + d + bs.length) % bs.length].focus();
 }
 
-export default function FloatingToolbar({ selObj, at, duplicateSelected, deleteSelected, alignSelected, arrangeSelected, arrangeLayer = null, mirrorSelected = null, toggleSelectedLock = null, toggleLayerVisibility = null }: any) {
+export default function FloatingToolbar({ selObj, at, duplicateSelected, deleteSelected, alignSelected, spotsForSelected = null, placeAtSelected = null, arrangeSelected, arrangeLayer = null, mirrorSelected = null, toggleSelectedLock = null, toggleLayerVisibility = null }: any) {
   const ref = useRef(null);
   const reduce = useReducedMotion();
   const [size, setSize] = useState({ w: 0, h: 0 });
@@ -37,6 +37,8 @@ export default function FloatingToolbar({ selObj, at, duplicateSelected, deleteS
   const above = at.top - gap - size.h >= clear;
   const left = Math.max(8, Math.min(at.w - size.w - 8, at.x - size.w / 2));
   const top = above ? at.top - gap - size.h : Math.min(at.h - size.h - 8, at.bottom + 12);
+  const [placeOpen, setPlaceOpen] = useState(false);
+  const spots = useMemo(() => (placeOpen && spotsForSelected && !multi ? spotsForSelected() : []), [placeOpen, spotsForSelected, multi, selObj, at?.x, at?.top]);
   const label = multi ? `${n} selected` : kindLabel(selObj);
   const locked = !multi && !!selObj.__locked; // a locked item keeps its place: no align, duplicate or delete until it is unlocked
   return (
@@ -62,6 +64,13 @@ export default function FloatingToolbar({ selObj, at, duplicateSelected, deleteS
         {toggleLayerVisibility && selObj.__layerId && <button type="button" onClick={() => toggleLayerVisibility(selObj.__layerId)} aria-label="Hide" title="Hide (Ctrl+Shift+H)"><EyeOff size={17} aria-hidden="true"/></button>}
         {toggleSelectedLock && <button type="button" aria-pressed={locked} onClick={toggleSelectedLock} aria-label={locked ? 'Unlock' : 'Lock'} title={locked ? 'Unlock (Ctrl+Shift+L)' : 'Lock in place (Ctrl+Shift+L)'}>{locked ? <LockOpen size={17} aria-hidden="true"/> : <Lock size={17} aria-hidden="true"/>}</button>}
       </>)}
+      {!multi && placeAtSelected && !selObj.__pocket && <span className="ds-ftb-place">
+        <button type="button" disabled={locked} aria-expanded={placeOpen} aria-haspopup="true" onClick={() => setPlaceOpen(o => !o)} aria-label="Place at a spot on the garment" title="Place at"><MapPin size={17} aria-hidden="true"/></button>
+        {placeOpen && <div className="ds-ftb-spots" role="group" aria-label="Place at">
+          {spots.length === 0 && <span className="ds-ftb-spots-empty">No named spots on this view.</span>}
+          {spots.map(s => <button key={s.id} type="button" disabled={!s.ok} title={s.reason || `Place at ${s.label}`} onClick={() => { placeAtSelected(s.id); setPlaceOpen(false); }}>{s.label}</button>)}
+        </div>}
+      </span>}
       {!multi && <button type="button" disabled={locked} onClick={duplicateSelected} aria-label="Duplicate" title="Duplicate (Ctrl+D)"><Copy size={17} aria-hidden="true"/></button>}
       <button type="button" className="ds-ftb-danger" disabled={locked} onClick={deleteSelected} aria-label="Delete" title="Delete (Del)"><Trash2 size={17} aria-hidden="true"/></button>
     </motion.div>

@@ -14,6 +14,7 @@ const R = await v.ssrLoadModule('/src/pages/client/design-studio/overlayRemap.ts
 const P = await v.ssrLoadModule('/src/pages/client/design-studio/garmentPaths.ts');
 const PT = await v.ssrLoadModule('/src/pages/client/design-studio/pickerTab.ts');
 
+const PA = await v.ssrLoadModule('/src/pages/client/design-studio/placeAt.ts');
 let pass = 0, fail = 0;
 const t = (name, fn) => { try { fn(); pass++; console.log('PASS', name); } catch (e) { fail++; console.log('FAIL', name, '\n    ', e.message.split('\n')[0]); } };
 
@@ -148,6 +149,37 @@ t('group ids survive a garment switch and return (zone-aware remap keeps every m
   assert.deepEqual(home.map(x => x.__layerId), ['m1', 'm2']); assert.ok(home.every(x => x.__groupId === 'grp' && !x.__unmapped));
 });
 
+
+t('place-at: spots exist only for drawn zones, are blocked by closures, and keep artwork on the cloth', () => {
+  let polo = 0, sleeves = 0;
+  for (const g of names) {
+    for (const face of ['front', 'back']) {
+      const zones = zonesResolver(`${g}|Short|female`, face); if (!zones) continue;
+      for (const s of PA.spotsFor(zones, face)) {
+        assert.equal(s.face, face); assert.ok(zones[s.zone]);
+        if (s.zone.startsWith('sleeve')) sleeves++;
+        const st = PA.checkSpot(zones, s, 40, 40);
+        if (st.ok) { const p = PA.placeAtPatch({ width: 40, height: 40, scaleX: 1, scaleY: 1, originX: 'left', originY: 'top' }, s);
+          assert.ok(Math.abs(p.left + (40 * p.scaleX) / 2 - s.cx) < 1e-6 && p.scaleX <= 1); polo++; }
+        else assert.ok(st.reason);
+      }
+    }
+  }
+  assert.ok(polo > 0, 'no usable spots');
+});
+t('place-at: front/back/sleeve rules', () => {
+  const box = { l: 0, t: 0, w: 200, h: 300 }, poly = [[0,0],[200,0],[200,300],[0,300]];
+  const zones = { body: { key: 'body', poly, box }, sleeveR: { key: 'sleeveR', poly: [[200,0],[260,0],[260,100],[200,100]], box: { l: 200, t: 0, w: 60, h: 100 } } };
+  const f = PA.spotsFor(zones, 'front').map(x => x.id), b = PA.spotsFor(zones, 'back').map(x => x.id);
+  assert.deepEqual(f, ['chest', 'left-chest', 'front-bottom', 'right-sleeve']);
+  assert.deepEqual(b, ['back', 'back-neck', 'right-sleeve']);
+  assert.equal(PA.spotsFor(null, 'front').length, 0);
+  zones.body.avoid = [{ l: 90, t: 0, w: 20, h: 300 }];
+  const chest = PA.spotsFor(zones, 'front')[0];
+  assert.equal(PA.checkSpot(zones, chest, 30, 30).ok, false);
+  const huge = PA.placeAtPatch({ width: 500, height: 500, scaleX: 1, scaleY: 1, originX: 'center', originY: 'center' }, chest);
+  assert.ok(500 * huge.scaleX <= chest.maxW + 1e-6);
+});
 console.log(`\n${pass} passed, ${fail} failed`);
 await v.close();
 process.exit(fail ? 1 : 0);

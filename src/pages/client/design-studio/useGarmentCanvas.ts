@@ -2,6 +2,7 @@
 import { useRef, useState, useCallback, useEffect, useLayoutEffect, useMemo } from 'react';
 import { remapOverlays, remapPlain, stampArtboard } from './overlayRemap';
 import { zonesResolver } from './zoneResolver';
+import { spotsFor, checkSpot, placeAtPatch } from './placeAt';
 import { placeInZone, snapInside, ZONE_LABEL } from './zoneMap';
 import { layoutPlacement, layoutsFor } from './layoutLibrary';
 import { T2, LOGO_PRESETS, PATTERNS } from './dsShared';
@@ -990,6 +991,27 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     bumpLayers();
   }, [pushHistory, bumpLayers]);
 
+  // "Place at": named spots on the drawn garment for the selected element (zones of the current template; blocked spots say why).
+  const spotsForSelected = useCallback(() => {
+    const obj = fc.current?.getActiveObject(), ab = artboard.current;
+    if (!obj || !ab || obj.type === 'activeselection' || obj.__garmentBase || obj.__pocket) return [];
+    const zones = zonesResolver(ab.key, ab.face ?? 'front');
+    if (!zones) return [];
+    const w = (obj.width ?? 1) * (obj.scaleX ?? 1), h = (obj.height ?? 1) * (obj.scaleY ?? 1);
+    return spotsFor(zones, ab.face ?? 'front').map(s => checkSpot(zones, s, w, h));
+  }, []);
+  const placeAtSelected = useCallback((id) => {
+    const canvas = fc.current, obj = canvas?.getActiveObject();
+    if (!obj || obj.__garmentBase || obj.__locked || obj.type === 'activeselection') return;
+    const spot = spotsForSelected().find(s => s.id === id);
+    if (!spot || !spot.ok) return;
+    obj.set(placeAtPatch(obj, spot));
+    obj.setCoords();
+    canvas.renderAll();
+    pushHistory();
+    bumpLayers();
+  }, [pushHistory, bumpLayers, spotsForSelected]);
+
   // Several selected elements: align to the selection's bounds, or distribute 3+ with equal gaps. The selection is dissolved so
   // each member is moved in canvas px, then re-made; one undo step.
   const arrangeSelected = useCallback((kind, where) => {
@@ -1458,7 +1480,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   }, []);
 
   return {
-    onAdded, addLogo, addText, addShape, addPocket, setPocketColor, mirrorSelected, updateSelected, arrangeLayer, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getFaceMetrics, getCanvasJSON, loadCanvasJSON,
+    onAdded, addLogo, addText, addShape, addPocket, setPocketColor, mirrorSelected, updateSelected, arrangeLayer, deleteSelected, duplicateSelected, alignSelected, spotsForSelected, placeAtSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getFaceMetrics, getCanvasJSON, loadCanvasJSON,
     pushHistory, markHistory, settleHistory, undo, redo, canUndo, canRedo, editTick, resizeCanvas,
     layers, unmapped, zoneChoices, reassignUnmapped, layoutList, placeLayout, duplicateLayer, setLayerBlend, selectLayer, groupSelected, ungroupSelected, selectionState, selectedLayerIds, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
     setDrawMode, setPickMode, setBrushStyle, initFailed,
