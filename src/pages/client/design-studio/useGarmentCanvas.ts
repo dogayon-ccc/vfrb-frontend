@@ -1,5 +1,5 @@
 // Fabric.js canvas hook for Design Studio. Extracted from DesignStudio.jsx.
-import { useRef, useState, useCallback, useEffect, useLayoutEffect } from 'react';
+import { useRef, useState, useCallback, useEffect, useLayoutEffect, useMemo } from 'react';
 import { remapOverlays, remapPlain, stampArtboard } from './overlayRemap';
 import { zonesResolver } from './zoneResolver';
 import { placeInZone, snapInside, ZONE_LABEL } from './zoneMap';
@@ -788,7 +788,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     if (!canvas) return;
     const paths = getGarmentPaths(garment, sleeve);
     const web = webFontFor(fontCss), weight = web ? defaultWeight(web) : 'bold';
-    Promise.all([import('fabric'), loadFont(fontCss, weight)]).then(([mod]) => { const fabric = mod.fabric ?? mod.default ?? mod;
+    return Promise.all([import('fabric'), loadFont(fontCss, weight)]).then(([mod]) => { const fabric = mod.fabric ?? mod.default ?? mod;
       const t = new fabric.IText(text, {
         left: pos ? pos.x : paths.w / 2, top: pos ? pos.y : paths.h * 0.4,
         originX: 'center', originY: 'center', fontSize: sizePx ?? 18,
@@ -813,7 +813,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     const canvas = fc.current;
     if (!canvas) return;
     const paths = getGarmentPaths(garment, sleeve);
-    import('fabric').then((mod) => { const fabric = mod.fabric ?? mod.default ?? mod;
+    return import('fabric').then((mod) => { const fabric = mod.fabric ?? mod.default ?? mod;
       const common = {
         left: pos ? pos.x : paths.w / 2, top: pos ? pos.y : paths.h / 2,
         originX: 'center', originY: 'center',
@@ -823,6 +823,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       const shape = makeShape(fabric, kind, common, color); // overlayTools.js
       if (opts?.w) { shape.set({ scaleX: opts.w / (shape.width || 1) }); shape.set({ scaleY: opts.h && shape.height ? opts.h / shape.height : kind === 'line' ? 1 : shape.scaleX }); }
       if (opts?.name) shape.set({ __layerName: opts.name });
+      if (opts?.angle) shape.set({ angle: opts.angle });
       canvas.add(shape);
       canvas.setActiveObject(shape);
       canvas.renderAll();
@@ -1216,19 +1217,26 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     canvas.requestRenderAll(); pushHistory(); bumpLayers();
     return true;
   }, [findLayer, pushHistory, bumpLayers]);
-  const layoutList = (() => { const a = artboard.current; return layoutsFor(a ? zonesResolver(a.key, a.face ?? 'front') : null, a?.face ?? 'front'); })();
-  // Applies a ready-made layout: each part becomes its own editable layer, named after the layout, placed by the zone it belongs to.
-  const placeLayout = useCallback((layout) => {
+  const ab = artboard.current, layoutKey = ab ? `${ab.key}|${ab.face ?? 'front'}` : '';
+  const layoutList = useMemo(() => layoutsFor(ab ? zonesResolver(ab.key, ab.face ?? 'front') : null, ab?.face ?? 'front'), [layoutKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Places a ready-made layout: each part becomes its own editable layer, in order (back to front), and the whole thing is ONE undo step.
+  const placeLayout = useCallback(async (layout) => {
     const a = artboard.current, zones = a ? zonesResolver(a.key, a.face ?? 'front') : null;
     if (!zones) return 0;
     const items = layoutPlacement(layout, zones, snapInside);
-    items.forEach((it) => {
-      const name = `${layout.name} · ${it.name}`;
-      if (it.kind === 'shape') addShape(it.shape, it.color, { x: it.x, y: it.y }, { w: it.width, h: it.height, name });
-      else addText(it.text, it.color, webFontFamilyCss(it.font), Math.max(8, Math.round(it.width)), { x: it.x, y: it.y });
-    });
+    if (!items.length) return 0;
+    const wasLocked = historyLock.current;
+    historyLock.current = true;
+    try {
+      for (const it of items) {
+        const name = `${layout.name} · ${it.name}`;
+        if (it.kind === 'shape') await addShape(it.shape, it.color, { x: it.x, y: it.y }, { w: it.width, h: it.height, name, angle: it.angle });
+        else await addText(it.text, it.color, webFontFamilyCss(it.font), it.size, { x: it.x, y: it.y }, { __layerName: name, angle: it.angle ?? 0 });
+      }
+    } finally { historyLock.current = wasLocked; }
+    pushHistory();
     return items.length;
-  }, [addShape, addText]);
+  }, [addShape, addText, pushHistory]);
   const duplicateLayer = useCallback((id) => {
     const canvas = fc.current, obj = findLayer(id);
     if (!canvas || !obj) return;

@@ -643,6 +643,18 @@ export default function DesignStudioStyles() {
       .ds-stack{display:flex;flex-direction:column;gap:16px;}
       .ds-h3{font-size:var(--text-2xs);font-weight:800;color:var(--text-muted);margin-bottom:8px;}
       .ds-note{font-size:var(--text-2xs);line-height:1.45;color:var(--text-muted);margin-top:8px;}
+      .ds-lay-search input{width:100%;min-height:44px;padding:0 12px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--bg-surface);color:var(--text);font:inherit;font-size:14px;}
+      .ds-lay-search input:focus-visible{outline:2px solid var(--teal);outline-offset:1px;}
+      .ds-lay-cats{display:flex;flex-wrap:wrap;gap:8px;}
+      .ds-lay-grid{list-style:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:12px;}
+      .ds-lay-card{width:100%;display:flex;flex-direction:column;align-items:stretch;gap:4px;padding:8px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--bg-surface);color:var(--text);text-align:left;cursor:pointer;transition:border-color .15s,transform .15s;}
+      .ds-lay-card:hover{border-color:var(--teal);}
+      .ds-lay-card:focus-visible{outline:2px solid var(--teal);outline-offset:2px;}
+      .ds-lay-card:disabled{opacity:.6;cursor:progress;}
+      .ds-lay-card strong{font-size:13px;line-height:1.25;}
+      .ds-lay-card small{font-size:11px;color:var(--text-muted);}
+      .ds-lay-prev{width:100%;height:104px;border-radius:8px;background:#F7F5F0;}
+      @media (prefers-reduced-motion:reduce){.ds-lay-card{transition:none;}}
       .ds-seg{display:flex;gap:2px;margin:12px 16px 0;padding:4px;border-radius:var(--r-md);background:var(--bg-surface);border:1px solid var(--border);}
       .ds-seg--sm{margin:0;}
       .ds-seg button{

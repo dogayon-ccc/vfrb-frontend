@@ -147,6 +147,58 @@ t('layouts are offered only where their zone exists, and every placed item lands
   }
 });
 
+const OT = await v.ssrLoadModule('/src/pages/client/design-studio/overlayTools.ts');
+const SF = await v.ssrLoadModule('/src/pages/client/design-studio/studioFonts.ts');
+const FAMILIES = [...new Set(G.CATALOG.flatMap(c => c.families).map(f => f.id))];
+const corners = (it) => { const a = (it.angle ?? 0) * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a); return [[-1,-1],[0,-1],[1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0]].map(([u, w]) => [it.x + (u * it.width * c - w * it.drawH * sn) / 2, it.y + (u * it.width * sn + w * it.drawH * c) / 2]); };
+
+t('layout library: unique ids, only shapes the factory draws, only fonts the Studio loads, all 12 categories present', () => {
+  const kinds = new Set(['rect', 'roundrect', 'circle', 'ellipse', 'triangle', 'line', 'star', 'polygon', 'arrow', ...Object.keys(OT.SHAPE_PATHS)]);
+  const fonts = new Set(SF.WEB_FONTS.map(f => f.family));
+  assert.equal(new Set(LL.LAYOUTS.map(l => l.id)).size, LL.LAYOUTS.length);
+  for (const l of LL.LAYOUTS) for (const it of l.items) { if (it.kind === 'shape') assert.ok(kinds.has(it.shape), `${l.id}: unknown shape ${it.shape}`); else assert.ok(fonts.has(it.font), `${l.id}: unknown font ${it.font}`); }
+  assert.deepEqual([...new Set(LL.LAYOUTS.map(l => l.cat))].sort(), [...LL.CATEGORIES].sort());
+});
+
+t('layout fit: on every garment and face, EVERY offered layout has every item\'s rotated bounds fully on the cloth', () => {
+  let offered = 0, items = 0;
+  for (const id of FAMILIES) for (const face of ['front', 'back']) {
+    const zs = zonesResolver(`${id}|Short|female`, face); if (!zs) continue;
+    for (const l of LL.layoutsFor(zs, face)) { offered++; assert.ok(zs[l.zone], `${id} ${l.id}: zone offered but missing`); assert.ok(l.view.k >= 0.5 && l.view.k <= 1);
+      for (const it of l.view.items) { items++; for (const pt of corners(it)) assert.ok(Z.inPoly(zs[l.zone].poly, pt), `${id}/${face} ${l.id}: ${it.name} hangs off the cloth`); } }
+  }
+  console.log('     ', offered, 'layouts offered,', items, 'items verified');
+  assert.ok(offered > 400);
+});
+
+t('layout fit: refuses a composition that cannot fit (a 3 px sliver cannot hold a ring monogram) and relocates one that can (diamond, hem band)', () => {
+  const sliver = { body: { key: 'body', poly: [[0, 0], [100, 0], [100, 3], [0, 3]], box: { l: 0, t: 0, w: 100, h: 3 } } };
+  assert.ok(!LL.layoutsFor(sliver, 'front').some(x => x.id === 'monogram'));
+  assert.equal(LL.layoutPlacement(LL.LAYOUTS.find(l => l.id === 'monogram'), sliver).length, 0);
+  const diamond = { body: { key: 'body', poly: [[50, 0], [100, 100], [50, 200], [0, 100]], box: { l: 0, t: 0, w: 100, h: 200 } } };
+  const hem = LL.layoutFit(LL.LAYOUTS.find(l => l.id === 'hem-band'), diamond);
+  assert.ok(hem && hem.k < 1, 'hem band moves to the diamond\'s wide row and shrinks, never hangs off');
+  for (const it of hem.items) for (const pt of corners(it)) assert.ok(Z.inPoly(diamond.body.poly, pt));
+});
+
+t('layout categories: every one is offered on some garment; Polo front offers collar, sleeve (both sides, mirrored) and body layouts', () => {
+  const seen = new Set();
+  for (const id of FAMILIES) for (const face of ['front', 'back']) { const zs = zonesResolver(`${id}|Short|female`, face); if (zs) LL.layoutsFor(zs, face).forEach(l => seen.add(l.cat)); }
+  assert.deepEqual([...seen].sort(), [...LL.CATEGORIES].sort());
+  const polo = LL.layoutsFor(poloZ, 'front'), by = Object.fromEntries(polo.map(l => [l.id, l]));
+  assert.ok(by['collar-trim'] && by['sleeve-band'] && by['sleeve-band-right']);
+  assert.equal(by['sleeve-band-right'].zone, 'sleeveR');
+  const L = LL.LAYOUTS.find(l => l.id === 'sleeve-badge'), R = by['sleeve-badge-right'];
+  R.items.forEach((it, i) => near(it.fx + L.items[i].fx, 1, 'mirrored fx'));
+  assert.ok(!LL.layoutsFor(zonesResolver('Pants|Short|female', 'front'), 'front').some(l => l.id.endsWith('-right')));
+});
+
+t('layout search matches name, category, shape and text', () => {
+  const find = q => LL.LAYOUTS.filter(l => LL.matchesLayout(l, q)).map(l => l.id);
+  assert.ok(find('floral').includes('floral-bloom') && find('star').includes('left-chest-star') && find('ribbon banner').includes('center-chest-ribbon') && find('ACADEMY').includes('full-front-hex'));
+  assert.equal(find('').length, LL.LAYOUTS.length);
+});
+
 await v.close();
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
