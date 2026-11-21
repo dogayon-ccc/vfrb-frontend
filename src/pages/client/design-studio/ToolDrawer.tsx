@@ -93,7 +93,7 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
   const title = noGarment ? 'Design tools' : tab?.label ?? active.label;
 
   const layersList = () => (
-    <LayersPanel layers={p.layers} selectedId={p.selObj?.__layerId} garment={p.cfg.garment} onSelect={p.selectLayer}
+    <LayersPanel layers={p.layers} unmapped={p.unmapped} zoneChoices={p.zoneChoices} onReassign={p.reassignUnmapped} selectedId={p.selObj?.__layerId} garment={p.cfg.garment} onSelect={p.selectLayer}
       onToggleVisibility={p.toggleLayerVisibility} onToggleLock={p.toggleLayerLock} onOpacity={p.setLayerOpacity}
       onRename={p.renameLayer} onDelete={p.deleteLayer} onReorder={p.reorderLayers} onAdd={() => setTool('assets')}/>
   );

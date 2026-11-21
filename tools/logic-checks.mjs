@@ -21,6 +21,15 @@ const base = { category: 'School Uniform', garment: 'Polo Shirt', sleeve: 'Short
   const u = H.stepHistory(h, -1), r = u && H.stepHistory(u.history, 1);
   t('history: undo then redo returns the same snapshots; nothing past either end', u.snapshot.join() === 'a' && r.snapshot.join() === 'a,b' && H.stepHistory(H.emptyHistory(), -1) === null && H.stepHistory(h, 1) === null);
   t('history: a new step after an undo drops the redo branch; the stack is capped', (x => x.stack.length === 3 && !H.canStep(x, 1))(H.pushStep(u.history, ['c'])) && Array.from({ length: 60 }).reduce(x => H.pushStep(x, []), H.emptyHistory()).stack.length === H.HISTORY_LIMIT);
+  { // history and parked sides survive a garment switch: overlays remap by the artboard they were drawn on
+    const R = await L('/src/pages/client/design-studio/overlayRemap.ts');
+    const A = { w: 400, h: 500, key: 'Polo Shirt|Short|female' }, B = { w: 600, h: 500, key: 'Lab Coat|Long|female' };
+    const drawn = R.stampArtboard({ left: 100, top: 250, scaleX: 1, scaleY: 1, angle: 15, __logo: true }, A);
+    const onB = R.remapPlain([drawn], B)[0];
+    t('remapPlain: a pre-switch snapshot lands on the new artboard (position per axis, size by the smaller ratio, rotation untouched)', onB.left === 150 && onB.top === 250 && onB.scaleX === 1 && onB.angle === 15 && onB.__ab.key === B.key);
+    t('remapPlain: same garment (front/back), legacy unstamped and no-artboard objects are returned as they are; no objects are dropped', R.remapPlain([drawn], A)[0] === drawn && R.remapPlain([{ left: 7 }], B)[0].left === 7 && R.remapPlain([drawn, { left: 1 }], null).length === 2 && R.remapPlain([drawn, { left: 1 }], B).length === 2);
+    t('remapPlain: switching back restores the original position', Math.abs(R.remapPlain([onB], A)[0].left - 100) < 1e-9);
+  }
   const fm = H.pushStep(h, ['x']), fd = H.pushStep(H.pushStep(H.pushStep(fm, ['x', 'y']), ['x', 'y', 'z']), ['x', 'y', 'z', 'w']), fo = H.foldSince(fd, fm);
   t('history: an applied AI preview folds into exactly one undo step back to the mark', fo.stack.length === fm.stack.length + 1 && H.stepHistory(fo, -1).snapshot === fm.stack[fm.idx] && fo.stack[fo.idx].join() === 'x,y,z,w' && H.foldSince(fm, fm) === fm && H.foldSince(fd, H.emptyHistory()) === fd);
   const f = H.switchSide({}, 'front', h, 'back', ['logo']), b = H.switchSide(f.parked, 'back', H.pushStep(f.history, ['logo', 'text']), 'front', []);

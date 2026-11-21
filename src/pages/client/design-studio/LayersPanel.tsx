@@ -5,7 +5,7 @@ import { familyFor } from './garmentCatalog';
 export const ICON = { logo: 'image', artwork: 'image', drawing: 'draw', shape: 'shapes', text: 'text', pocket: 'shapes' };
 const KIND = { logo: 'Logo', artwork: 'Artwork image', drawing: 'Drawing', shape: 'Shape', text: 'Text' };
 
-export default function LayersPanel({ layers, selectedId, garment, onSelect, onToggleVisibility, onToggleLock, onOpacity, onRename, onDelete, onReorder, onAdd = null }: any) {
+export default function LayersPanel({ layers, unmapped = [], zoneChoices = [], onReassign = null, selectedId, garment, onSelect, onToggleVisibility, onToggleLock, onOpacity, onRename, onDelete, onReorder, onAdd = null }: any) {
   const [dragId, setDragId] = useState(null);
   const [overId, setOverId] = useState(null);
   const [editingId, setEditingId] = useState(null);
@@ -43,6 +43,30 @@ export default function LayersPanel({ layers, selectedId, garment, onSelect, onT
     [ids[i], ids[j]] = [ids[j], ids[i]];
     onReorder(ids);
   };
+
+  const parked = unmapped.length > 0 && (
+    <section className="ds-lay-unmapped" aria-label="Unmapped artwork">
+      <p className="ds-lay-count">Unmapped artwork · {unmapped.length}</p>
+      <p className="ds-lay-note">This garment has no matching part for these. They are saved, hidden, and come back in place when you return to their garment.</p>
+      <ul className="ds-lay-list">
+        {unmapped.map(u => (
+          <li key={u.id} className="ds-lay-row" data-hidden>
+            <span className="ds-lay-name">{u.name}<em>{[u.homeGarment, u.homeZone, u.homeFace].filter(Boolean).join(' · ') || 'Previous garment'}</em></span>
+            {onReassign && zoneChoices.length > 0 && (
+              <label className="ds-lay-op">
+                <span>Place on</span>
+                <select value="" aria-label={`Place ${u.name} on a part of this garment`} onChange={e => e.target.value && onReassign(u.id, e.target.value)}>
+                  <option value="">Choose part…</option>
+                  {zoneChoices.map(z => <option key={z.key} value={z.key}>{z.label}</option>)}
+                </select>
+              </label>
+            )}
+            <button type="button" className="ds-lay-btn ds-lay-del" aria-label={`Delete ${u.name}`} onClick={() => onDelete(u.id)}><NavIcon name="delete" size={14}/></button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
 
   return (
     <div className="ds-lay">
@@ -133,6 +157,7 @@ export default function LayersPanel({ layers, selectedId, garment, onSelect, onT
           </div>
         )}
       </>)}
+      {parked}
     </div>
   );
 }

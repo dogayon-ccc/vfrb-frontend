@@ -192,7 +192,7 @@ export default function DesignStudio() {
   // BUG 2 FIX: pass canvasEl (ref object), not canvasEl.current (null at render)
   const { onAdded, addLogo, addText, addShape, addPocket, setPocketColor, mirrorSelected, updateSelected, arrangeLayer, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getFaceMetrics, getCanvasJSON, loadCanvasJSON,
           pushHistory, markHistory, settleHistory, undo, redo, canUndo, canRedo, editTick, initFailed,
-          layers, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
+          layers, unmapped, zoneChoices, reassignUnmapped, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
           setDrawMode, setPickMode, setBrushStyle, setSnapOptions, garmentRect, clearSelection, setOverlaysFrozen, presetPos, textItems, editText, showZoneOutline } =
     useGarmentCanvas(
       canvasEl,
@@ -1154,7 +1154,7 @@ export default function DesignStudio() {
               setShowInspo={openInspo} setShowShowcase={toggleShowcase} onChangeGarment={changeGarment}
               brushSize={brushSize} brushColor={brushColor} erasing={erasing} setErasing={setErasing} garmentRect={garmentRect}
               changeBrushSize={changeBrushSize} changeBrushColor={changeBrushColor}
-              ai={{ preview: previewAI, undo: undoAI, keep: keepAI, previewing: !!aiPreview, editedSince: aiEditedSince, view3D: viewAI3D, has3D: has3DFor(cfg) }} textItems={textItems} layers={layers} selObj={selObj} alignSelected={alignSelected}
+              ai={{ preview: previewAI, undo: undoAI, keep: keepAI, previewing: !!aiPreview, editedSince: aiEditedSince, view3D: viewAI3D, has3D: has3DFor(cfg) }} textItems={textItems} layers={layers} unmapped={unmapped} zoneChoices={zoneChoices} reassignUnmapped={reassignUnmapped} selObj={selObj} alignSelected={alignSelected}
               selectLayer={selectLayer} toggleLayerVisibility={toggleLayerVisibility}
               toggleLayerLock={toggleLayerLock} toggleSelectedLock={toggleSelectedLock} setLayerOpacity={setLayerOpacity}
               pushHistory={pushHistory} presetPos={presetPos} nudgeSelected={nudgeSelected}

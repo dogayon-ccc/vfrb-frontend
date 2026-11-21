@@ -1,6 +1,8 @@
 // Fabric.js canvas hook for Design Studio. Extracted from DesignStudio.jsx.
 import { useRef, useState, useCallback, useEffect, useLayoutEffect } from 'react';
-import { remapOverlays } from './overlayRemap';
+import { remapOverlays, remapPlain, stampArtboard } from './overlayRemap';
+import { zonesResolver } from './zoneResolver';
+import { placeInZone, ZONE_LABEL } from './zoneMap';
 import { T2, LOGO_PRESETS, PATTERNS } from './dsShared';
 import { getGarmentPaths } from './garmentPaths';
 import { detailedPaths } from './garmentDetails';
@@ -52,13 +54,13 @@ function zoneAt(canvas, e) {
     .find(o => o.containsPoint(scene) && !canvas.isTargetTransparent(o, vp.x, vp.y));
 }
 
-const OVERLAY_PROPS = ['__logo','__artwork','__text','__draw','__shape','__layerId','__layerName','__locked','__erase','__curve','__shapeKind','__sides','__clip','__pocket','__pocketPanels','__pocketColor','lockMovementX','lockMovementY','lockRotation','lockScalingX','lockScalingY','hasControls'];
+const OVERLAY_PROPS = ['__logo','__artwork','__text','__draw','__shape','__layerId','__layerName','__locked','__erase','__curve','__shapeKind','__sides','__clip','__pocket','__pocketPanels','__pocketColor','__zone','__unmapped','__origin','lockMovementX','lockMovementY','lockRotation','lockScalingX','lockScalingY','hasControls'];
 // The customer's overlays as saved JSON, in canvas coordinates (plainObject decomposes active-selection members). One serialiser
 // for history, saves and exports.
-const overlayJSON = canvas => canvas.getObjects()
+const overlayJSON = (canvas, ab = null) => canvas.getObjects()
   .filter(o => !o.__garmentBase && !o.__hoverGlow)
   .filter(o => typeof o.toObject === 'function')
-  .map(o => plainObject(o, OVERLAY_PROPS));
+  .map(o => stampArtboard(plainObject(o, OVERLAY_PROPS), ab));
 
 // Composites front+back PNGs side by side; falls back to one side if the other fails to load.
 const FRONT_BACK_GAP = 36;
@@ -122,7 +124,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   latest.current = { garment, sleeve, face, fit };
   // The garment's box in canvas px, published after each base draw (the rulers measure 0-100 % of it).
   const [garmentRect, setGarmentRect] = useState(null);
-  const artboard = useRef<{ w: number; h: number; key: string } | null>(null); // last artboard size, for the garment-switch remap
+  const artboard = useRef<{ w: number; h: number; key: string; face?: string } | null>(null); // last artboard size, for the garment-switch remap
   const publishGarment = useCallback((c) => {
     const g = c ? garmentBox(c) : null;
     setGarmentRect(p => (p && g && ['left', 'top', 'width', 'height'].every(k => Math.abs(p[k] - g[k]) < 0.5) ? p : g));
@@ -558,8 +560,8 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     import('fabric').then((mod) => { const fabric = mod.fabric ?? mod.default ?? mod;
       const paths = detailedPaths(garment, sleeve, face, details);
       const key = `${garment}|${sleeve}|${fit}`; // front/back keep their overlays untouched; only a different garment moves them
-      if (artboard.current && artboard.current.key !== key) remapOverlays(canvas, artboard.current, paths);
-      artboard.current = { w: paths.w, h: paths.h, key };
+      if (artboard.current && artboard.current.key !== key) remapOverlays(canvas, artboard.current, { w: paths.w, h: paths.h, key, face }, zonesResolver);
+      artboard.current = { w: paths.w, h: paths.h, key, face };
       canvas.getObjects().filter(o => o.__garmentBase || o.__hoverGlow).forEach(o => canvas.remove(o));
 
       // Photo base: one recoloured cut-out in the body zone, same canvas size as the vector template so logo/text placement is unchanged.
@@ -658,7 +660,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     if (historyLock.current) return;
     const canvas = fc.current;
     if (!canvas) return;
-    const snapshot = overlayJSON(canvas);
+    const snapshot = overlayJSON(canvas, artboard.current);
     // A colour change still waiting on its debounce becomes its own step first, so it never merges into this one.
     const h = history.current.stack.length ? syncLook(history.current, liveLook.current) : history.current;
     history.current = pushStep(h, entry(snapshot, liveLook.current));
@@ -703,10 +705,10 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     const look = lookToApply(target, liveLook.current);
     if (look && restoreLook.current) { awaitLook.current = look; restoreLook.current(look); }
     const canvas = fc.current;
-    const snapshot = target?.o ?? [];
+    const snapshot = remapPlain(target?.o ?? [], artboard.current, zonesResolver); // history keeps the artboard each step was drawn on
     if (!canvas) return;
     // A colour-only step leaves the overlays alone (no rebuild, no flicker, the selection stays).
-    if (!historyLock.current && JSON.stringify(overlayJSON(canvas)) === JSON.stringify(snapshot)) return;
+    if (!historyLock.current && JSON.stringify(overlayJSON(canvas, artboard.current)) === JSON.stringify(snapshot)) return;
     historyLock.current = true;
     // Undo/redo rebuilds every overlay; keep the same element selected (by layer id) so editing continues.
     const activeId = canvas.getActiveObject()?.__layerId ?? null;
@@ -1107,7 +1109,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     if (canvas?.freeDrawingBrush) styleBrush(canvas.freeDrawingBrush);
   }, []);
 
-  const exportOverlays = useCallback(() => (fc.current ? overlayJSON(fc.current) : []), []);
+  const exportOverlays = useCallback(() => (fc.current ? overlayJSON(fc.current, artboard.current) : []), []);
 
   // opaqueBg: hex color to temporarily paint behind the export, or null to
   // keep transparent (Download Image button). The 2D canvas is always
@@ -1140,14 +1142,15 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   const getCanvasJSON = useCallback(() => {
     const canvas = fc.current;
     if (!canvas) return [];
-    return overlayJSON(canvas);
+    return overlayJSON(canvas, artboard.current);
   }, []);
 
   // keepHistory: the export's temporary face swap, which must not cost the customer their undo history.
   // side { from, to }: the customer switching garment sides; each side resumes its own history.
-  const loadCanvasJSON = useCallback((objects, { keepHistory = false, side = null } = {}) => {
+  const loadCanvasJSON = useCallback((rawObjects, { keepHistory = false, side = null } = {}) => {
     const canvas = fc.current;
-    if (!canvas || !Array.isArray(objects)) return;
+    if (!canvas || !Array.isArray(rawObjects)) return;
+    const objects = remapPlain(rawObjects, artboard.current, zonesResolver); // the other side's JSON may predate a garment switch
     if (side) {
       const s = switchSide(parkedHistory.current, side.from, history.current, side.to, entry(objects, liveLook.current));
       parkedHistory.current = s.parked;
@@ -1191,9 +1194,26 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     fc.current?.getObjects().find(o => o.__layerId === id) ?? null
   , []);
 
-  const layers = (fc.current?.getObjects() ?? [])
-    .filter(o => !o.__garmentBase && !o.__hoverGlow)
-    .filter(o => typeof o.toObject === 'function')
+  const overlayObjs = (fc.current?.getObjects() ?? []).filter(o => !o.__garmentBase && !o.__hoverGlow && typeof o.toObject === 'function');
+  const layerRow = o => {
+    if (!o.__layerId) o.__layerId = uid();
+    const kind = o.__pocket ? 'pocket' : o.__shape ? 'shape' : o.__draw ? 'drawing' : o.__artwork ? 'artwork' : (o.__logo ? 'logo' : 'text');
+    return { id: o.__layerId, type: kind, name: o.__layerName || (kind === 'pocket' ? pocketLabel(o.__pocket) : kind === 'drawing' ? 'Drawing' : kind === 'artwork' ? 'Artwork' : kind === 'logo' ? 'Logo' : kind === 'shape' ? shapeLabel(o) : 'Text'),
+      visible: o.visible !== false, locked: !!o.__locked, opacity: o.opacity ?? 1 };
+  };
+  // Artwork parked by a garment switch: still saved, hidden, listed apart from the layers until it is reassigned or its garment returns.
+  const unmapped = overlayObjs.filter(o => o.__unmapped).map(o => ({ ...layerRow(o), homeGarment: String(o.__origin?.key ?? '').split('|')[0] || null, homeZone: o.__origin?.zone ? (ZONE_LABEL[o.__origin.zone] ?? o.__origin.zone) : null, homeFace: o.__origin?.face ?? null }));
+  const zoneChoices = (() => { const a = artboard.current; const z = a ? zonesResolver(a.key, a.face ?? 'front') : null; return z ? Object.keys(z).map(k => ({ key: k, label: ZONE_LABEL[k] ?? k })) : []; })();
+  const reassignUnmapped = useCallback((id, zoneKey) => {
+    const canvas = fc.current, obj = findLayer(id), a = artboard.current;
+    const zone = a ? zonesResolver(a.key, a.face ?? 'front')?.[zoneKey] : null;
+    if (!canvas || !obj || !obj.__unmapped || !zone) return false;
+    obj.set(placeInZone(obj, zone)); obj.setCoords();
+    canvas.requestRenderAll(); pushHistory(); bumpLayers();
+    return true;
+  }, [findLayer, pushHistory, bumpLayers]);
+  const layers = overlayObjs
+    .filter(o => !o.__unmapped)
     .map(o => {
       if (!o.__layerId) o.__layerId = uid(); // lazy-assign for legacy objects
       const kind = o.__pocket ? 'pocket' : o.__shape ? 'shape' : o.__draw ? 'drawing' : o.__artwork ? 'artwork' : (o.__logo ? 'logo' : 'text');
@@ -1357,7 +1377,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   return {
     onAdded, addLogo, addText, addShape, addPocket, setPocketColor, mirrorSelected, updateSelected, arrangeLayer, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getFaceMetrics, getCanvasJSON, loadCanvasJSON,
     pushHistory, markHistory, settleHistory, undo, redo, canUndo, canRedo, editTick, resizeCanvas,
-    layers, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
+    layers, unmapped, zoneChoices, reassignUnmapped, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
     setDrawMode, setPickMode, setBrushStyle, initFailed,
     setSnapOptions, garmentRect, clearSelection, setOverlaysFrozen,
     presetPos, textItems, editText, showZoneOutline,
