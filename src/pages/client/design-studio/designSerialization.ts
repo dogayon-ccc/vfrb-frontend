@@ -21,6 +21,7 @@
 // deserializeDesign(raw) -> { cfg, overlays, frontOverlays, backOverlays },
 //   never throws, always returns a fully-defaulted cfg.
 
+import { normalizeLook, DEFAULT_LOOK } from './fabricLooks';
 import { resolveSleeve, resolveFit, LEGACY_GARMENT } from './garmentCatalog';
 import { startColors } from './colorRules';
 import { assetFor, templateIdFor, templateKeyById } from './garmentAssets';
@@ -102,6 +103,7 @@ export function serializeDesign(cfg, overlaysBundle = {}, previewPng) {
   // Customer-entered print widths (cm) per overlay layer id, for production print files. Only usable numbers are kept.
   const ps = cleanPrintSizes((cfg as any).printSizes);
   if (Object.keys(ps).length) (out as any).printSizes = ps;
+  if (normalizeLook((cfg as any).fabricLook) !== DEFAULT_LOOK) (out as any).fabricLook = normalizeLook((cfg as any).fabricLook);
   // Canonical template identity: photo-base id or registered vector-template id for (garment, sleeve, fit), else null.
   out.templateId = out.garment ? templateIdFor(out.garment, out.sleeve, out.fit) : null;
   out.inspirationId = inspirationFor(cfg.inspirationId, out.garment);
@@ -144,6 +146,7 @@ export function deserializeDesign(raw) {
     patternParams: { ...(sc.patternParams && typeof sc.patternParams === 'object' ? sc.patternParams : {}) },
   };
   (cfg as any).printSizes = cleanPrintSizes(sc.printSizes);
+  (cfg as any).fabricLook = normalizeLook(sc.fabricLook);
   cfg.custom = normalizeCustom(sc.custom, cfg.garment);
   setCustomSpec(cfg.garment, cfg.custom); // the shape must be known before its paths are read (details below, any preview)
   cfg.details = normalizeDetails(sc.details, cfg.garment, cfg.sleeve, cfg.fit);

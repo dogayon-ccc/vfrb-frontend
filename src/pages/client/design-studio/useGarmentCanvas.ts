@@ -97,7 +97,7 @@ export function compositeFrontBack(frontUrl, backUrl) {
 }
 
 // customKey: the build-your-own shape (cfg.custom) as a string, so a slider change redraws the base like a garment change does.
-export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patterns, patternParams, onSelect, onZoneClick, fit, details, customKey = '', onRestoreLook = null) {
+export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patterns, patternParams, onSelect, onZoneClick, fit, details, customKey = '', onRestoreLook = null, fabricLook = 'plain') {
   const fc = useRef(null);
   // Called with (overlay JSON, garment canvas size) after the customer adds a logo or text; the uniform set's "Apply to: Both" mirrors it.
   const onAdded = useRef(null);
@@ -208,7 +208,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         draw(initPaths.sleeveR, colors.sleeve ?? colors.body,    'sleeve');
         draw(initPaths.pocket,  colors.pocket  ?? colors.collar ?? colors.body, 'pocket');
         insertDetails(fabric, c, initPaths.details, zi, colors.body);
-        addFabricShading(fabric, c, initPaths, face, zones, () => fc.current === c && redrawToken.current === 0);
+        addFabricShading(fabric, c, initPaths, face, zones, () => fc.current === c && redrawToken.current === 0, fabricLook);
         c.setWidth(initPaths.w);
         c.setHeight(initPaths.h);
         c.renderAll();
@@ -666,14 +666,14 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       }
 
       // Fabric realism (drop shadow, woven grain, edge shading or the derived model's own lighting): fabricShading.js.
-      addFabricShading(fabric, canvas, paths, face, zones, () => fc.current === canvas && redrawToken.current === vectorToken);
+      addFabricShading(fabric, canvas, paths, face, zones, () => fc.current === canvas && redrawToken.current === vectorToken, fabricLook);
 
       canvas.setWidth(paths.w);
       canvas.setHeight(paths.h);
       canvas.renderAll();
       publishGarment(canvas);
     }).catch(() => {});
-  }, [garment, sleeve, face, colors, patterns, patternParams, fit, details, customKey, ready, publishGarment]);
+  }, [garment, sleeve, face, colors, patterns, patternParams, fit, details, customKey, ready, publishGarment, fabricLook]);
 
   // History helpers — declared before addLogo/addText/deleteSelected, which depend on pushHistory
   const pushHistory = useCallback(() => {

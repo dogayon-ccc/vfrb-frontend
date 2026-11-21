@@ -42,3 +42,13 @@
 .ds-ftb-spots button { min-height: 44px; padding: 0 12px; border-radius: 999px; font-size: 13px; width: auto; height: auto; }
 .ds-ftb-spots button:disabled { opacity: .45; cursor: not-allowed; }
 .ds-ftb-spots-empty { font-size: 13px; padding: 8px; }
+
+.ds-fab { display: grid; gap: 8px; padding: 12px 0 4px; }
+.ds-fab-h { margin: 0; font-size: 13px; font-weight: 800; }
+.ds-fab-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+.ds-fab-opt { display: grid; justify-items: center; gap: 4px; min-height: 44px; padding: 6px; border-radius: 12px; border: 1.5px solid var(--vf-chrome-line, rgb(15 23 42 / .15)); background: transparent; color: inherit; font-size: 12px; cursor: pointer; transition: border-color .15s, background-color .15s; }
+.ds-fab-opt[aria-checked="true"] { border-color: var(--teal, #028090); background: color-mix(in srgb, var(--teal, #028090) 10%, transparent); font-weight: 700; }
+.ds-fab-opt:focus-visible { outline: 2px solid var(--teal, #028090); outline-offset: 2px; }
+.ds-fab-sw { width: 100%; aspect-ratio: 1.6; border-radius: 8px; background: #c9d3df center / cover no-repeat; image-rendering: pixelated; }
+.ds-fab-note { margin: 0; font-size: 12px; color: var(--cx-ink-2, #64748b); }
+@media (prefers-reduced-motion: reduce) { .ds-fab-opt { transition: none; } }

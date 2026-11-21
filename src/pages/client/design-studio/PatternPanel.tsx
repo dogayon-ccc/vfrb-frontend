@@ -15,6 +15,7 @@ import { T2, secLabel, ZONE_LABEL, PATTERNS, pattern3D, ONLY_2D_TAG } from './ds
 import { assetFor } from './garmentAssets';
 import { wovenParams, wovenTileUrl, tileSize, SCALE_RANGE } from './wovenPatterns';
 import TextilePanel from './TextilePanel';
+import FabricLookPanel from './FabricLookPanel';
 
 // Universal slider ranges across all 3 parametric pattern types. Not
 // per-type-tuned (diagonal's useful range genuinely differs a bit from
@@ -169,6 +170,7 @@ export default function PatternPanel({ cfg, setCfg, activeZone }: any) {
           </button>
         </motion.div>
       )}
+      {!photoBase && <FabricLookPanel cfg={cfg} setCfg={setCfg}/>}
       {!photoBase && <TextilePanel cfg={cfg} setCfg={setCfg} zone={activeZone}/>}
     </div>
   );

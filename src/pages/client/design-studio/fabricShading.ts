@@ -11,6 +11,8 @@
 //  Woven patterns carry their own thread shading in the tile (wovenPatterns.js).
 //  Lighting layers are tagged __light: canvasLayers.printThrough lays the same light over logos and text so they read as printed.
 
+import { lookTile } from './fabricLooks';
+
 let grainTile = null;
 // 96px tile of soft two-scale noise around white: multiply darkens by at most ~7%, so colours stay true.
 function grain() {
@@ -118,14 +120,14 @@ function innerShade(Img, shape, d) {
 
 // Inserts the layers around the `zones` already drawn ([{ obj, d }], bottom-most first). `current()` is false once a newer redraw
 // started, so a late-loading shade image never lands on the wrong garment. The caller renders.
-export function addFabricShading(fabric, canvas, paths, face, zones, current) {
+export function addFabricShading(fabric, canvas, paths, face, zones, current, look = 'plain') {
   if (!paths.body || !zones.length) return;
   const at = o => canvas.getObjects().indexOf(o);
   const Img = fabric.FabricImage ?? fabric.Image;
   // Drop shadow: an opaque body-shaped copy under everything (a canvas shadow scales with fill alpha); the zones cover it exactly.
   canvas.insertAt(0, new fabric.Path(paths.body, { ...deco, fill: '#ffffff', stroke: null,
     shadow: new fabric.Shadow({ color: 'rgba(15,23,42,.22)', blur: 22, offsetX: 0, offsetY: 8 }) }));
-  const tile = grain();
+  const tile = lookTile(look) ?? grain(); // a chosen weave replaces the standard grain; both are multiply layers around white
   // Grain over each zone (sleeves and collar are separate paths), directly above that zone.
   if (tile) for (const z of zones) {
     canvas.insertAt(at(z.obj) + 1, new fabric.Path(z.d, { ...deco, fill: new fabric.Pattern({ source: tile, repeat: 'repeat' }), stroke: null, opacity: 0.85, globalCompositeOperation: 'multiply', __light: true }));

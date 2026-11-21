@@ -15,6 +15,8 @@ const P = await v.ssrLoadModule('/src/pages/client/design-studio/garmentPaths.ts
 const PT = await v.ssrLoadModule('/src/pages/client/design-studio/pickerTab.ts');
 
 const PA = await v.ssrLoadModule('/src/pages/client/design-studio/placeAt.ts');
+const FL = await v.ssrLoadModule('/src/pages/client/design-studio/fabricLooks.ts');
+const SER = await v.ssrLoadModule('/src/pages/client/design-studio/designSerialization.ts');
 let pass = 0, fail = 0;
 const t = (name, fn) => { try { fn(); pass++; console.log('PASS', name); } catch (e) { fail++; console.log('FAIL', name, '\n    ', e.message.split('\n')[0]); } };
 
@@ -179,6 +181,32 @@ t('place-at: front/back/sleeve rules', () => {
   assert.equal(PA.checkSpot(zones, chest, 30, 30).ok, false);
   const huge = PA.placeAtPatch({ width: 500, height: 500, scaleX: 1, scaleY: 1, originX: 'center', originY: 'center' }, chest);
   assert.ok(500 * huge.scaleX <= chest.maxW + 1e-6);
+});
+
+t('fabric looks: unique ids, unknown ids fall back, tiles are periodic and stay light enough to keep colours true', () => {
+  assert.equal(new Set(FL.LOOK_IDS).size, FL.LOOK_IDS.length);
+  assert.equal(FL.normalizeLook('<script>'), 'plain'); assert.equal(FL.normalizeLook(undefined), 'plain'); assert.equal(FL.normalizeLook('twill'), 'twill');
+  const sig = new Set();
+  for (const l of FL.FABRIC_LOOKS) {
+    for (const [i, j] of [[0, 0], [5, 9], [40, 71]]) assert.equal(FL.weaveBase(l.id, i, j), FL.weaveBase(l.id, i + FL.TILE, j), l.id + ' x'), assert.equal(FL.weaveBase(l.id, i, j), FL.weaveBase(l.id, i, j + FL.TILE), l.id + ' y');
+    if (l.id === 'plain') continue;
+    const px = FL.lookPixels(l.id, 96); let min = 255, sum = 0;
+    for (let k = 0; k < px.length; k += 4) { min = Math.min(min, px[k]); sum += px[k]; assert.ok(px[k] === px[k + 1] && px[k + 3] === 255); }
+    assert.ok(min >= 255 * (1 - l.amp / 100) - 1, l.id + ' too dark');
+    assert.ok(sum / (px.length / 4) > 255 * 0.7, l.id + ' mean too dark');
+    assert.ok(max(px) - min > 4, l.id + ' flat');
+    sig.add(Array.from(px.slice(0, 400)).join());
+  }
+  assert.equal(sig.size, FL.FABRIC_LOOKS.length - 1, 'every weave must differ');
+  function max(a) { let m = 0; for (let k = 0; k < a.length; k += 4) m = Math.max(m, a[k]); return m; }
+});
+t('fabric look saves only when chosen, restores, and hostile values reset to standard', () => {
+  const base = { garment: 'Polo Shirt', fit: 'female' };
+  const plain = SER.serializeDesign({ ...base }, {}); assert.equal(plain.fabricLook, undefined);
+  const saved = SER.serializeDesign({ ...base, fabricLook: 'pique' }, {}); assert.equal(saved.fabricLook, 'pique');
+  assert.equal(SER.deserializeDesign(saved).cfg.fabricLook, 'pique');
+  assert.equal(SER.deserializeDesign({ ...saved, fabricLook: { x: 1 } }).cfg.fabricLook, 'plain');
+  assert.equal(SER.deserializeDesign(null).cfg.fabricLook, 'plain');
 });
 console.log(`\n${pass} passed, ${fail} failed`);
 await v.close();

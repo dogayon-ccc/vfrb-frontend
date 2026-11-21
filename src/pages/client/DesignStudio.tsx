@@ -216,6 +216,8 @@ export default function DesignStudio() {
       customKey,
       // Undo/redo of a colour, pattern or detail step puts that look back on the same garment.
       (look) => setCfg(p => ({ ...p, colors: look.colors, patterns: look.patterns, patternParams: look.patternParams, details: look.details }))
+      ,
+      (cfg as any).fabricLook
     );
 
   const zone = zonesFor(cfg.garment, cfg.sleeve, cfg.fit).includes(activeZone) ? activeZone : 'body';
