@@ -8,6 +8,7 @@ import { buildPrintPdf } from '../src/pages/client/design-studio/print/printPdf.
 
 import { deflateSync } from 'node:zlib';
 import { remapBox, remapOverlays } from '../src/pages/client/design-studio/overlayRemap.ts';
+import { setFolders, ROLE_TITLE } from '../src/pages/client/design-studio/print/printSet.ts';
 let n = 0;
 const t = (name, fn) => { fn(); n++; console.log('ok', name); };
 
@@ -116,4 +117,23 @@ t('pdf: header, trailer, 1 diagram page + 2 table pages, xref offsets exact', ()
   assert.ok(!/NaN|undefined/.test(s.replace(/[\x80-\xff]/g, '')));
 });
 if (outDir) { writeFileSync(`${outDir}/sample.zip`, zip); writeFileSync(`${outDir}/sample.pdf`, pdf); }
+
+t('set folders: one per piece, unique, ASCII-safe', () => {
+  assert.deepEqual(setFolders([{ role: 'top', garment: 'Polo Shirt' }, { role: 'bottom', garment: 'Pants' }]), ['top-polo-shirt', 'bottom-pants']);
+  assert.deepEqual(setFolders([{ role: 'top', garment: 'Polo' }, { role: 'top', garment: 'Polo' }]), ['top-polo', 'top-polo-2']);
+  assert.equal(ROLE_TITLE.bottom, 'Bottom');
+});
+t('set ZIP keeps piece folders and one sheet', () => {
+  const z = Buffer.from(makeZip([{ name: 'top-polo-shirt/01-front-a_8p0x4p0cm_300dpi.png', data: new Uint8Array([1]) }, { name: 'bottom-pants/01-front-a_8p0x4p0cm_300dpi.png', data: new Uint8Array([2]) }, { name: 'production-sheet.pdf', data: new Uint8Array([3]) }]));
+  const txt = z.toString('latin1');
+  assert.ok(txt.includes('top-polo-shirt/01-front') && txt.includes('bottom-pants/01-front') && txt.includes('production-sheet.pdf'));
+});
+t('combined sheet: faces and rows of two pieces in one PDF', () => {
+  const jpeg = new Uint8Array([255, 216, 255, 217]);
+  const pdf = Buffer.from(buildPrintPdf({ title: 't', subtitle: 's', notes: ['n'], skipped: [] },
+    [{ label: 'Top Front', jpeg, w: 4, h: 4, boxes: [] }, { label: 'Bottom Front', jpeg, w: 4, h: 4, boxes: [] }],
+    [{ n: 1, view: 'Top Front', item: 'a', size: '8 x 4', px: '945 x 472', position: 'centre', quality: 'ok', low: false }, { n: 2, view: 'Bottom Front', item: 'b', size: '6 x 3', px: '709 x 354', position: 'centre', quality: 'ok', low: false }]));
+  const txt = pdf.toString('latin1');
+  assert.ok(txt.includes('Top Front view') && txt.includes('Bottom Front view') && txt.includes('(Bottom Front)') && /\/Count 3/.test(txt));
+});
 console.log(`${n} passed`);

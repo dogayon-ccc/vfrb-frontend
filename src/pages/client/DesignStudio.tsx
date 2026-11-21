@@ -906,6 +906,34 @@ export default function DesignStudio() {
     }
   }), [cfg, face, getCanvasJSON, loadCanvasJSON, settleOverlays, whileSwapping, exportFace]);
 
+  // Print capture of the set's other piece: the same draw-swap-restore pass as renderOtherPiece, but it keeps each face's transparent
+  // render, its overlay JSON and its metrics (what the print files are cut from) instead of one composite preview.
+  const capturePieceForPrint = useCallback(piece => whileSwapping(async () => {
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    const keep = { cfg, face, faces: { ...faceJSON.current, [face]: getCanvasJSON() ?? [] } };
+    const { cfg: c, frontOverlays, backOverlays } = deserializeDesign(piece);
+    const out = { faces: [] as any[], facesJSON: { front: [...(frontOverlays ?? [])], back: [...(backOverlays ?? [])] }, metrics: {} as any };
+    const shoot = async (f, want) => {
+      setFace(f); await wait(150);
+      loadCanvasJSON(want, { keepHistory: true }); await settleOverlays(want);
+      const url = await exportFace(f, EXPORT_FACE_HEIGHT);
+      out.metrics[f] = getFaceMetrics(f);
+      return url;
+    };
+    try {
+      keep3DRef.current = true; setRailCfg(keep.cfg);
+      setCfg(p => ({ ...p, ...c, inspirationId: (c as any).inspirationId ?? null }));
+      const fu = await shoot('front', frontOverlays ?? []);
+      if (fu) out.faces.push({ face: 'front', label: 'Front', url: fu });
+      if (fu && hasBackView(c.garment, c.sleeve, c.fit)) { const bu = await shoot('back', backOverlays ?? []); if (bu) out.faces.push({ face: 'back', label: 'Back', url: bu }); }
+      return out.faces.length && out.faces.length === (hasBackView(c.garment, c.sleeve, c.fit) ? 2 : 1) ? { capture: out, printSizes: (c as any).printSizes ?? {}, garment: c.garment } : null;
+    } catch { return null; } finally {
+      keep3DRef.current = true; setCfg(keep.cfg); faceJSON.current = keep.faces; setFace(keep.face); await wait(150);
+      const back = keep.faces[keep.face] ?? []; loadCanvasJSON(back, { keepHistory: true }); await settleOverlays(back);
+      await exportFace(keep.face, 1); setRailCfg(null);
+    }
+  }), [cfg, face, getCanvasJSON, loadCanvasJSON, settleOverlays, whileSwapping, exportFace, getFaceMetrics]);
+
   // Order This → pass design to OrderWizard
   // Export files: each face is rendered at EXPORT_FACE_HEIGHT after it has fully drawn (exportFace), then the
   // live canvas returns to the face the customer was on. Photo bases have no back, so they export front only.
@@ -986,6 +1014,7 @@ export default function DesignStudio() {
   // is read-only, so its sizes live only in this dialog.
   const [printDlg, setPrintDlg] = useState(null);
   const [localSizes, setLocalSizes] = useState({});
+  const [otherPrint, setOtherPrint] = useState<null | { role: string; garment: string; capture: any; sizes: Record<string, number> }>(null);
   const openPrintFiles = useCallback(async () => {
     if (!cfg.garment || exporting) return;
     setExporting('print');
@@ -994,6 +1023,13 @@ export default function DesignStudio() {
       if (!faces) throw new Error('render');
       const tagged = faces.map((f, i) => ({ ...f, face: i === 0 ? 'front' : 'back' }));
       setLocalSizes((cfg as any).printSizes ?? {});
+      setOtherPrint(null);
+      const otherSnap = uset?.pieces?.[otherRole(uset.active)];
+      if (otherSnap?.garment) {
+        const cap = await capturePieceForPrint(otherSnap);
+        if (!cap) throw new Error('render');
+        setOtherPrint({ role: otherRole(uset.active), garment: cap.garment, capture: cap.capture, sizes: cap.printSizes });
+      }
       setPrintDlg({
         faces: tagged,
         facesJSON: { front: [...(faceJSON.current.front ?? [])], back: [...(faceJSON.current.back ?? [])] },
@@ -1002,10 +1038,15 @@ export default function DesignStudio() {
     } catch { flashError('Could not prepare the print files. Please try again.'); }
     finally { setExporting(null); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [captureExportFaces, cfg, exporting, flashError, getFaceMetrics]);
-  const onPrintSizes = useCallback((fn) => {
+  }, [captureExportFaces, capturePieceForPrint, uset, cfg, exporting, flashError, getFaceMetrics]);
+  const onPrintSizes = useCallback((role, fn) => {
+    if (otherPrint && role === otherPrint.role) {
+      // The other piece keeps its sizes inside the set snapshot, so they come back with the saved design.
+      setOtherPrint(o => { if (!o) return o; const next = fn(o.sizes); if (!locked) setUset(u => (u ? { ...u, pieces: { ...u.pieces, [role]: u.pieces[role] && { ...u.pieces[role], printSizes: next } } } : u)); return { ...o, sizes: next }; });
+      return;
+    }
     setLocalSizes(prev => { const next = fn(prev); if (!locked) setCfg(p => ({ ...p, printSizes: next })); return next; });
-  }, [locked]);
+  }, [locked, otherPrint]);
 
   const orderThis = useCallback(async () => {
     if (!cfg.garment || ordering || locked) return;
@@ -1102,7 +1143,7 @@ export default function DesignStudio() {
   return (
     <>
       <DesignStudioStyles/>
-      {printDlg && <PrintFilesDialog capture={printDlg} sizes={localSizes} onSizes={onPrintSizes} onClose={() => setPrintDlg(null)}
+      {printDlg && <PrintFilesDialog pieces={[{ role: pieceOf(cfg.garment) === 'bottom' ? 'bottom' : 'top', garment: cfg.garment, capture: printDlg, sizes: localSizes } as any, ...(otherPrint ? [otherPrint as any] : [])].sort((a, b) => (a.role === 'top' ? -1 : 1) - (b.role === 'top' ? -1 : 1))} onSizes={onPrintSizes} onClose={() => { setPrintDlg(null); setOtherPrint(null); }}
         meta={{ name: cfg.name?.trim() ?? '', garment: cfg.garment, date: new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) }}
         fileBase={exportName('png').replace(/\.png$/, '')}/>}
 
