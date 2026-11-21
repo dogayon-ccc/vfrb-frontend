@@ -41,3 +41,10 @@ tools/out/
 # Playwright output
 test-results/
 playwright-report/
+
+# Generated check output
+/intake-report.txt
+/logic-out.txt
+/typecheck-current.txt
+/logic-base.txt
+/logic-checks-*.txt
