@@ -12,6 +12,7 @@
 import { assetFor } from './garmentAssets';
 import { WEB_FONTS } from './studioFonts';
 import { WOVEN_PATTERNS } from './wovenPatterns';
+import { TEXTILES } from './textiles';
 import { getGarmentPaths } from './garmentPaths';
 import { deserializeDesign } from './designSerialization';
 // Pure-data capability lookup only — NOT garmentMeshManifest.js. That file also calls
@@ -43,7 +44,9 @@ export const secLabel = {
 // every other pattern is unaffected structurally, just relocated.
 export const ZONE_LABEL = { body:'Body', collar:'Collar', sleeve:'Sleeve', pocket:'Pocket/Trim', tipping:'Tipping' };
 
-export const PATTERNS = [
+// One loose shape for every pattern family (flat, parametric SVG, woven, textile) so callers can test any flag.
+export interface PatternDef { id: string; label: string; icon?: string; svg?: any; parametric?: boolean; woven?: boolean; textile?: boolean; cat?: string; defaultParams?: any; [k: string]: any }
+export const PATTERNS: PatternDef[] = [
   { id:'solid',      label:'Solid',       icon:'patternSolid', svg: null },
   { id:'hstripes',   label:'H-Stripes',   icon:'patternStripes', parametric: true,
     defaultParams: { width: 5, spacing: 5 },
@@ -63,6 +66,8 @@ export const PATTERNS = [
   { id:'gradient',   label:'Gradient',    icon:'patternGradient', svg: null }, // handled specially
   // Woven and printed patterns (wovenPatterns.js): colour 2, scale and rotation per zone, 2D only.
   ...WOVEN_PATTERNS.map(p => ({ ...p, icon: 'pattern', woven: true, svg: null })),
+  // Vector textile library (textiles.ts): original repeats with colours, scale, rotation, offset, repeat and opacity per zone, 2D only.
+  ...TEXTILES.map(t => ({ id: t.id, label: t.label, icon: 'pattern', textile: true, cat: t.cat, svg: null })),
 ];
 
 // Used by both LogoPanel (preset picker UI) and DesignStudio.jsx's

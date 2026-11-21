@@ -3,7 +3,9 @@
 // but still saved, as Unmapped Artwork, and returns exactly when its home garment comes back. Nothing is ever deleted here.
 // Zones are the template's own approximate pixel artboards: no physical scale is implied.
 export type Pt = [number, number];
-export interface Zone { key: string; poly: Pt[]; box: { l: number; t: number; w: number; h: number } }
+export interface Box { l: number; t: number; w: number; h: number }
+// avoid: closure hardware drawn on the zone (placket band, buttons) that ready-made layouts must keep clear of. Only the body carries it.
+export interface Zone { key: string; poly: Pt[]; box: Box; avoid?: Box[] }
 export type ZoneSet = Record<string, Zone>;
 export interface Place { left: number; top: number; scaleX: number; scaleY: number }
 export interface Origin { key: string; face: string; zone: string | null; pos: Place; visible: boolean; applied: Place; ab: { w: number; h: number } }
@@ -56,8 +58,26 @@ export function zonesOf(paths: any): ZoneSet {
     const box = boxOf(poly);
     if (box.w > 0 && box.h > 0) out[key] = { key, poly, box };
   }
+  if (out.body) { const avoid = closureBoxes(paths?.details, out.body.box); if (avoid.length) out.body.avoid = avoid; }
   return out;
 }
+
+// Placket and buttons from the template's own detail strokes: every button, plus any tall narrow line shape near the centre line
+// (the placket outline). Padded a little so artwork never touches the stitching. Nothing is invented: no detail, no keep-out.
+const PAD = 3;
+export function closureBoxes(details: any, body: Box): Box[] {
+  if (!Array.isArray(details)) return [];
+  const out: Box[] = [];
+  for (const d of details) {
+    if (!d || typeof d.d !== 'string' || (d.kind !== 'button' && d.kind !== 'line')) continue;
+    const poly = flattenPath(d.d); if (poly.length < 2) continue;
+    const b = boxOf(poly), cx = b.l + b.w / 2;
+    const placket = d.kind === 'line' && b.h > 0 && b.h >= Math.max(b.w, 1) * 2.5 && b.w <= body.w * 0.2 && cx > body.l + body.w * 0.35 && cx < body.l + body.w * 0.65;
+    if (d.kind === 'button' || placket) out.push({ l: b.l - PAD, t: b.t - PAD, w: b.w + PAD * 2, h: b.h + PAD * 2 });
+  }
+  return out;
+}
+export const boxesOverlap = (a: Box, b: Box) => a.l < b.l + b.w && b.l < a.l + a.w && a.t < b.t + b.h && b.t < a.t + a.h;
 
 export function inPoly(poly: Pt[], [px, py]: Pt): boolean {
   let inside = false;

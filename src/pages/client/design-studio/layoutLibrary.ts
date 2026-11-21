@@ -1,8 +1,8 @@
 // Ready-made layouts: original compositions of ordinary shape and text layers, placed by garment zone (fractions of the zone's box, so they
 // fit any template that draws the zone). Every part lands as its own editable layer. A layout is offered only when its zone exists on the
 // current garment and face AND the whole composition fits on the cloth (layoutFit); there is no cuff zone in any VFRB template, so no cuff layout.
-import { inPoly, snapInside } from './zoneMap';
-import type { Pt, Zone, ZoneSet } from './zoneMap';
+import { inPoly, snapInside, boxesOverlap } from './zoneMap';
+import type { Pt, Zone, ZoneSet, Box } from './zoneMap';
 
 export const CATEGORIES = ['Left chest', 'Center chest', 'Full front', 'Back', 'Sleeve', 'Collar', 'Hem', 'Monogram', 'Badge', 'Woven bands', 'Floral', 'Geometric'] as const;
 export type Category = (typeof CATEGORIES)[number];
@@ -95,6 +95,8 @@ export const LAYOUTS: Layout[] = [
 const ASPECT: Record<string, number> = { ellipse: 0.63, triangle: 0.875, star: 0.95, arrow: 0.57, heart: 0.97, badge: 1.25, bubble: 0.85, ribbon: 0.545, roundrect: 0.78 };
 const LINE_PX = 4, TEXT_W = 0.6, TEXT_H = 1.2, MIN_K = 0.5;
 
+// Axis-aligned bounds of a rotated item's probe points.
+export const aabb = (pts: Pt[]): Box => { const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]), l = Math.min(...xs), t = Math.min(...ys); return { l, t, w: Math.max(...xs) - l, h: Math.max(...ys) - t }; };
 const unitH = (l: Layout, b: Zone['box']) => (l.uw ? b.w : b.h);
 function extent(it: LayoutItem, l: Layout, b: Zone['box']) {
   if (it.kind === 'text') { const fs = Math.max(8, it.w * b.w); return { w: Math.max(1, it.text?.length ?? 1) * TEXT_W * fs, h: TEXT_H * fs, fs }; }
@@ -102,7 +104,7 @@ function extent(it: LayoutItem, l: Layout, b: Zone['box']) {
   return { w, h: it.h != null ? it.h * unitH(l, b) : it.shape === 'line' ? LINE_PX : w * (ASPECT[it.shape ?? ''] ?? 1), fs: 0 };
 }
 // Corners and edge midpoints of a rotated rectangle: every one must be on the cloth.
-function probe(cx: number, cy: number, w: number, h: number, deg: number): Pt[] {
+export function probe(cx: number, cy: number, w: number, h: number, deg: number): Pt[] {
   const a = (deg * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a), pts: Pt[] = [];
   for (const [u, v] of [[-1, -1], [0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0]]) pts.push([cx + (u * w * c - v * h * s) / 2, cy + (u * w * s + v * h * c) / 2]);
   return pts;
@@ -121,8 +123,10 @@ export function layoutFit(layout: Layout, zones: ZoneSet, snap: (z: Zone, c: Pt)
   const o: Pt = [(Math.min(...rects.map(p => p[0])) + Math.max(...rects.map(p => p[0]))) / 2, (Math.min(...rects.map(p => p[1])) + Math.max(...rects.map(p => p[1]))) / 2];
   const at = (a: Pt, k: number): Placed[] | null => {
     const items: Placed[] = base.map(({ it, e, cx, cy }) => ({ ...it, x: a[0] + k * (cx - o[0]), y: a[1] + k * (cy - o[1]), width: e.w * k, height: it.h != null ? it.h * uh * k : undefined, drawH: e.h * k, size: it.kind === 'text' ? Math.max(8, Math.round(e.fs * k)) : 0 }));
-    return items.every(p => probe(p.x, p.y, p.width, p.drawH, p.angle ?? 0).every(pt => inPoly(z.poly, pt))) ? items : null;
+    return items.every(p => fits(p)) ? items : null;
   };
+  // Every item's whole rotated bounds must be on the cloth AND clear of the placket and buttons (never just its centre point).
+  const fits = (p: Placed) => { const pts = probe(p.x, p.y, p.width, p.drawH, p.angle ?? 0); return pts.every(pt => inPoly(z.poly, pt)) && !(z.avoid?.length && z.avoid.some(a => boxesOverlap(a, aabb(pts)))); };
   const ks: number[] = []; for (let k = 1; k >= MIN_K - 1e-9; k = Math.round((k - 0.05) * 100) / 100) ks.push(k);
   const a0 = snap(z, o);
   let best: { k: number; items: Placed[]; cost: number } | null = null;

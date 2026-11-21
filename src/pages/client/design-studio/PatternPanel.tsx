@@ -14,6 +14,7 @@ import { NavIcon } from '../../../components/ui/icons';
 import { T2, secLabel, ZONE_LABEL, PATTERNS, pattern3D, ONLY_2D_TAG } from './dsShared';
 import { assetFor } from './garmentAssets';
 import { wovenParams, wovenTileUrl, tileSize, SCALE_RANGE } from './wovenPatterns';
+import TextilePanel from './TextilePanel';
 
 // Universal slider ranges across all 3 parametric pattern types. Not
 // per-type-tuned (diagonal's useful range genuinely differs a bit from
@@ -111,7 +112,7 @@ export default function PatternPanel({ cfg, setCfg, activeZone }: any) {
       <p style={secLabel}>Active Zone: <span style={{ color:'var(--cx-thread-ink)' }}>{ZONE_LABEL[activeZone]}</span></p>
 
       <div role="group" aria-label={`Pattern for ${ZONE_LABEL[activeZone]}`} style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6 }}>
-        {PATTERNS.map(pat => {
+        {PATTERNS.filter(pat => !pat.textile).map(pat => {
           const sel = zonePattern === pat.id;
           return (
             <motion.button key={pat.id} type="button" aria-pressed={sel}
@@ -168,6 +169,7 @@ export default function PatternPanel({ cfg, setCfg, activeZone }: any) {
           </button>
         </motion.div>
       )}
+      {!photoBase && <TextilePanel cfg={cfg} setCfg={setCfg} zone={activeZone}/>}
     </div>
   );
 }

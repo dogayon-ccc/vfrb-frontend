@@ -3,6 +3,8 @@
 // gingham or denim come out of the same rule cloth does. Colour 1 is the zone's own colour (cfg.colors, the source of truth);
 // colour 2, scale and rotation live in cfg.patternParams[zone]. 2D only: the 3D path paints these zones as solid colour.
 
+import { isTextile, describeTextile } from './textiles';
+
 const A = 0, B = 1, M = 2, D = 3, L = 4;  // colour 1, colour 2, light mix, dark mix, lighter colour 1
 const run = (...pairs) => pairs.flatMap(([c, n]) => Array(n).fill(c));
 const twill = (x, y) => ((x + y) & 3) < 2;          // 2/2 twill: diagonal rib
@@ -134,9 +136,10 @@ export function wovenTileUrl(id, c1, c2, scale = 1) {
 }
 
 // "Body: Houndstooth (colour 2 #F8FAFC, scale 1.5x, 45°)" lines for the PDF spec and the admin order view.
-export function describePatterns(patterns, patternParams, colors = {}, labelOf = id => id) {
+export function describePatterns(patterns, patternParams, colors: any = {}, labelOf = id => id) {
   return Object.entries(patterns ?? {}).filter(([, id]) => id && id !== 'solid').map(([zone, id]) => {
     const name = `${zone[0].toUpperCase()}${zone.slice(1)}: ${labelOf(id)}`;
+    if (isTextile(id)) return describeTextile(`${zone[0].toUpperCase()}${zone.slice(1)}`, id, patternParams?.[zone], colors[zone] ?? colors.body);
     if (!isWoven(id)) return name;
     const p = wovenParams(id, patternParams?.[zone], colors[zone] ?? colors.body);
     return `${name} (colour 2 ${p.c2.toUpperCase()}, scale ${p.scale}x${p.rotation ? `, ${p.rotation}°` : ''})`;

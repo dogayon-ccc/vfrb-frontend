@@ -17,6 +17,7 @@ import { BOX_TOOLS, BRUSH_KINDS, brushKind } from './railTools';
 import { pocketSpot, mirroredX, pocketLabel } from './pocketTools';
 import { pieceOf } from './garmentCatalog';
 import { wovenFill } from './wovenPatterns';
+import { textileFill } from './textiles';
 import { loadFont, webFontFor, defaultWeight, WEB_FONTS } from './studioFonts';
 const webFontFamilyCss = (label) => WEB_FONTS.find(f => f.family === label)?.css ?? undefined;
 import { sketchInk } from './sketchLine';
@@ -603,6 +604,9 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         if (patDef?.woven) {
           const woven = wovenFill(fabric, patDef.id, fill, patternParams?.[zoneKey]);
           if (woven) zonePath.set('fill', woven);
+        } else if (patDef?.textile) {
+          const textile = textileFill(fabric, patDef.id, fill, patternParams?.[zoneKey]);
+          if (textile) zonePath.set('fill', textile);
         } else if (patDef?.svg) {
           const zoneParams = patternParams?.[zoneKey] ?? patDef.defaultParams;
           const svgStr = patDef.svg(fill, zoneParams?.width, zoneParams?.spacing);

@@ -4,6 +4,7 @@ import { customPaths } from './garmentPaths';
 import { isParametric } from './customGarment';
 import { assetFor, tintedCanvas } from './garmentAssets';
 import { isWoven, wovenParams, wovenTileUrl, tileSize } from './wovenPatterns';
+import { isTextile, textileById, textileParams, textileTileUrl, tileSketchSize } from './textiles';
 import { sketchInk } from './sketchLine';
 
 // Photo-based garments render the real recoloured photo (same compositor as the Studio canvas); everything else keeps the vector template.
@@ -57,8 +58,14 @@ export default function GarmentSilhouette({ garment, sleeve = 'Short', colors = 
     { d: p.pocket,  fill: colors.pocket ?? colors.collar ?? colors.body, z: 'pocket' },
   ];
   // Woven patterns (wovenPatterns.js) as SVG pattern fills, same tile and transform as the Studio canvas; none during SSR.
-  const woven = Object.fromEntries([...new Set(zones.map(z => z.z))].map(z => {
+  const woven: Record<string, any> = Object.fromEntries([...new Set(zones.map(z => z.z))].map(z => {
     const id = patterns?.[z], fill = zones.find(x => x.z === z).fill;
+    if (isTextile(id) && fill) {
+      const prm = textileParams(patternParams?.[z], fill), url = textileTileUrl(id, patternParams?.[z], fill);
+      if (!url) return [z, null];
+      const sz = tileSketchSize(textileById(id)!, prm.scale);
+      return [z, { pid: `w${uid}${z}`, url, ...sz, rot: prm.rotation, tx: prm.ox * sz.w, ty: prm.oy * sz.h }];
+    }
     if (!isWoven(id) || !fill) return [z, null];
     const prm = wovenParams(id, patternParams?.[z], fill), url = wovenTileUrl(id, fill, prm.c2, prm.scale);
     if (!url) return [z, null];
@@ -73,7 +80,7 @@ export default function GarmentSilhouette({ garment, sleeve = 'Short', colors = 
   return (
     <svg width={width} height={height} viewBox={`0 0 ${p.w} ${p.h}`} xmlns="http://www.w3.org/2000/svg">
       <defs>{Object.values(woven).filter(Boolean).map(w => (
-        <pattern key={w.pid} id={w.pid} patternUnits="userSpaceOnUse" width={w.w} height={w.h} patternTransform={w.rot ? `rotate(${w.rot})` : undefined}>
+        <pattern key={w.pid} id={w.pid} patternUnits="userSpaceOnUse" width={w.w} height={w.h} patternTransform={w.rot || w.tx || w.ty ? `translate(${w.tx ?? 0} ${w.ty ?? 0}) rotate(${w.rot})` : undefined}>
           <image href={w.url} width={w.w} height={w.h} preserveAspectRatio="none"/>
         </pattern>))}</defs>
       {zones.slice(0, 1).map(({ d, fill, z }: any, i) => d &&

@@ -48,6 +48,7 @@ import { withPhotoColour } from './design-studio/photoColours';
 import { landingViewFor, type ViewMode } from './design-studio/studioView';
 import DraftStrip from './design-studio/DraftStrip';
 import GarmentPicker from './design-studio/GarmentPicker';
+import { pickerTabFor } from './design-studio/pickerTab';
 import { selectFamily } from './design-studio/selectGarment';
 import { X } from 'lucide-react';
 import { has3DFor } from './design-studio/garmentCapabilities';
@@ -134,7 +135,7 @@ export default function DesignStudio() {
   // One picker, two doors: the Inspo button opens it on Inspiration, "Change garment" on Templates.
   const [pickerTab, setPickerTab] = useState('inspiration');
   const openInspo = useCallback((v) => { setPickerTab('inspiration'); toggleInspo(v); }, [toggleInspo]);
-  const changeGarment = useCallback(() => { setPickerTab('templates'); toggleInspo(true); }, [toggleInspo]);
+  const changeGarment = useCallback(() => { setPickerTab(pickerTabFor(cfg as any)); toggleInspo(true); }, [toggleInspo, (cfg as any).inspirationId]);
   const toggleShowcase = useCallback((v) => {
     setShowShowcase(prev => { const next = typeof v === 'function' ? v(prev) : v; if (next) setShowInspo(false); return next; });
   }, []);
