@@ -54,7 +54,7 @@ export function ViewToggle({ cfg, viewMode, setViewMode, setHas3DLoaded }: any) 
 
 export default function TopBar({ nav, cfg, setCfg, undo, redo, canUndo, canRedo, viewMode, setViewMode, setHas3DLoaded,
   showShowcase, setShowShowcase, showcaseCount = 0, status = null,
-  saveDesign, saving, saved, draftSaved, orderThis, ordering, downloadImage, downloadPdf, exporting, lock = null, onReorder, onDuplicate, copying = false, phoneItems = [] }: any) {
+  saveDesign, saving, saved, draftSaved, orderThis, ordering, downloadImage, downloadPdf, openPrintFiles, exporting, lock = null, onReorder, onDuplicate, copying = false, phoneItems = [] }: any) {
   const phone = usePhone();
   const has = !!cfg.garment;
   // Phones: the name field leaves the bar (it truncated to 'Untit…'), so renaming lives in the menu.
@@ -71,6 +71,7 @@ export default function TopBar({ nav, cfg, setCfg, undo, redo, canUndo, canRedo,
     phone && !lock && has && { label: 'Rename design', onClick: renameDesign },
     phone && lock && { label: copying ? 'Copying…' : 'Duplicate to edit', onClick: onDuplicate, disabled: copying },
     has && downloadImage && { label: exporting === 'png' ? 'Exporting PNG…' : 'Export PNG image', onClick: downloadImage, disabled: !!exporting },
+    has && openPrintFiles && { label: exporting === 'print' ? 'Preparing print files…' : 'Print files (300 DPI)…', onClick: openPrintFiles, disabled: !!exporting },
     has && downloadPdf && { label: exporting === 'pdf' ? 'Exporting PDF…' : 'Export PDF spec sheet', onClick: downloadPdf, disabled: !!exporting },
   ];
 

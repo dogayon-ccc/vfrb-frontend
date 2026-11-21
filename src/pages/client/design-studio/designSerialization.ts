@@ -29,6 +29,13 @@ import { normalizeDetails } from './garmentDetails';
 import { normalizeCustom } from './customGarment';
 import { setCustomSpec } from './garmentPaths';
 import { savedDesignName } from '../../../utils/designName';
+import { parsePrintWidth } from './print/printSpec.ts';
+
+export function cleanPrintSizes(raw) {
+  const out = {};
+  if (raw && typeof raw === 'object') for (const [id, v] of Object.entries(raw).slice(0, 200)) { const w = parsePrintWidth(v); if (w != null && /^[\w-]{1,64}$/.test(id)) out[id] = w; }
+  return out;
+}
 
 // A gallery photo id is kept only while the design is on a family that photo opens (reference, never geometry): designGallery.photoFamilies.
 const inspirationFor = (id, garment) => (typeof id === 'string' && photoFamilies(id).includes(garment) ? id : null);
@@ -92,6 +99,9 @@ export function serializeDesign(cfg, overlaysBundle = {}, previewPng) {
     frontOverlays,
     backOverlays,
   });
+  // Customer-entered print widths (cm) per overlay layer id, for production print files. Only usable numbers are kept.
+  const ps = cleanPrintSizes((cfg as any).printSizes);
+  if (Object.keys(ps).length) (out as any).printSizes = ps;
   // Canonical template identity: photo-base id or registered vector-template id for (garment, sleeve, fit), else null.
   out.templateId = out.garment ? templateIdFor(out.garment, out.sleeve, out.fit) : null;
   out.inspirationId = inspirationFor(cfg.inspirationId, out.garment);
@@ -133,6 +143,7 @@ export function deserializeDesign(raw) {
     patterns:      { ...DEFAULT_CFG.patterns, ...(sc.patterns && typeof sc.patterns === 'object' ? sc.patterns : {}) },
     patternParams: { ...(sc.patternParams && typeof sc.patternParams === 'object' ? sc.patternParams : {}) },
   };
+  (cfg as any).printSizes = cleanPrintSizes(sc.printSizes);
   cfg.custom = normalizeCustom(sc.custom, cfg.garment);
   setCustomSpec(cfg.garment, cfg.custom); // the shape must be known before its paths are read (details below, any preview)
   cfg.details = normalizeDetails(sc.details, cfg.garment, cfg.sleeve, cfg.fit);

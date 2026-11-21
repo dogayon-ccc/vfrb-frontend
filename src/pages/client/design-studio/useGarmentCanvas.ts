@@ -1002,6 +1002,9 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   // Renders one face for export at a fixed output height once that face has finished drawing: the canvas is on
   // `targetFace`, sized for it, every garment image has loaded and the object list is stable. Hover glow and the
   // selection box are never part of the file. Returns a transparent PNG data URL, or null if the face never settles.
+  // Canvas size and the drawn garment's box per face, captured as each face is exported (print placement is a share of that box).
+  const faceMetrics = useRef({});
+  const getFaceMetrics = useCallback(face => faceMetrics.current[face] ?? null, []);
   const exportFace = useCallback(async (targetFace, outHeight = 1600) => {
     const sig = c => c.getObjects().map(o => (o.__garmentBase ? 'g' : o.__hoverGlow ? 'h' : 'o') + (o._element && !o._element.complete ? '!' : '')).join('');
     let prev = null;
@@ -1016,6 +1019,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     }
     const canvas = fc.current;
     if (!canvas || latest.current.face !== targetFace) return null;
+    faceMetrics.current[targetFace] = { canvas: { w: canvas.getWidth(), h: canvas.getHeight() }, box: garmentBox(canvas) };
     const active = canvas.getActiveObject();
     const glow = canvas.getObjects().filter(o => o.__hoverGlow);
     if (active) canvas.discardActiveObject();
@@ -1346,7 +1350,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   }, []);
 
   return {
-    onAdded, addLogo, addText, addShape, addPocket, setPocketColor, mirrorSelected, updateSelected, arrangeLayer, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
+    onAdded, addLogo, addText, addShape, addPocket, setPocketColor, mirrorSelected, updateSelected, arrangeLayer, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getFaceMetrics, getCanvasJSON, loadCanvasJSON,
     pushHistory, markHistory, settleHistory, undo, redo, canUndo, canRedo, editTick, resizeCanvas,
     layers, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
     setDrawMode, setPickMode, setBrushStyle, initFailed,

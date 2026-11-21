@@ -28,6 +28,7 @@ import { useGarmentCanvas, compositeFrontBack } from './design-studio/useGarment
 import { hasBackView, templateIdFor, assetFor } from './design-studio/garmentAssets';
 import { getGarmentPaths, setCustomSpec } from './design-studio/garmentPaths';
 import { EXPORT_FACE_HEIGHT, designPng, designPdf, downloadBlobOrUrl, fitDraftPreview } from './design-studio/designExport';
+import PrintFilesDialog from './design-studio/PrintFilesDialog';
 import { ENTRIES as GALLERY } from './design-studio/designGallery';
 import CanvasViewport from './design-studio/CanvasViewport';
 import TopBar from './design-studio/TopBar';
@@ -189,7 +190,7 @@ export default function DesignStudio() {
   const pickRef = useRef(null); // tool rail state read by the canvas tap handler, which is bound once
   const [sheetPing, setSheetPing] = useState(0);
   // BUG 2 FIX: pass canvasEl (ref object), not canvasEl.current (null at render)
-  const { onAdded, addLogo, addText, addShape, addPocket, setPocketColor, mirrorSelected, updateSelected, arrangeLayer, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getCanvasJSON, loadCanvasJSON,
+  const { onAdded, addLogo, addText, addShape, addPocket, setPocketColor, mirrorSelected, updateSelected, arrangeLayer, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getFaceMetrics, getCanvasJSON, loadCanvasJSON,
           pushHistory, markHistory, settleHistory, undo, redo, canUndo, canRedo, editTick, initFailed,
           layers, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
           setDrawMode, setPickMode, setBrushStyle, setSnapOptions, garmentRect, clearSelection, setOverlaysFrozen, presetPos, textItems, editText, showZoneOutline } =
@@ -980,6 +981,31 @@ export default function DesignStudio() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [captureExportFaces, cfg, exporting, flashError]);
 
+  // Production print files (300 DPI PNGs + production sheet). The dialog edits cfg.printSizes (saved with the design); a final design
+  // is read-only, so its sizes live only in this dialog.
+  const [printDlg, setPrintDlg] = useState(null);
+  const [localSizes, setLocalSizes] = useState({});
+  const openPrintFiles = useCallback(async () => {
+    if (!cfg.garment || exporting) return;
+    setExporting('print');
+    try {
+      const faces = await captureExportFaces();
+      if (!faces) throw new Error('render');
+      const tagged = faces.map((f, i) => ({ ...f, face: i === 0 ? 'front' : 'back' }));
+      setLocalSizes((cfg as any).printSizes ?? {});
+      setPrintDlg({
+        faces: tagged,
+        facesJSON: { front: [...(faceJSON.current.front ?? [])], back: [...(faceJSON.current.back ?? [])] },
+        metrics: { front: getFaceMetrics('front'), back: getFaceMetrics('back') },
+      });
+    } catch { flashError('Could not prepare the print files. Please try again.'); }
+    finally { setExporting(null); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [captureExportFaces, cfg, exporting, flashError, getFaceMetrics]);
+  const onPrintSizes = useCallback((fn) => {
+    setLocalSizes(prev => { const next = fn(prev); if (!locked) setCfg(p => ({ ...p, printSizes: next })); return next; });
+  }, [locked]);
+
   const orderThis = useCallback(async () => {
     if (!cfg.garment || ordering || locked) return;
     if (swapping.current) { flashError(STILL_LOADING); return; } // the canvas is not the design yet: reading it now would drop layers
@@ -1075,6 +1101,9 @@ export default function DesignStudio() {
   return (
     <>
       <DesignStudioStyles/>
+      {printDlg && <PrintFilesDialog capture={printDlg} sizes={localSizes} onSizes={onPrintSizes} onClose={() => setPrintDlg(null)}
+        meta={{ name: cfg.name?.trim() ?? '', garment: cfg.garment, date: new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) }}
+        fileBase={exportName('png').replace(/\.png$/, '')}/>}
 
       <div className="ds" data-immersive={immersive || undefined} data-locked={locked || undefined} data-first={!cfg.garment || undefined} style={{ position:'relative' }}>
 
@@ -1084,7 +1113,7 @@ export default function DesignStudio() {
           viewMode={viewMode} setViewMode={setViewMode} setHas3DLoaded={setHas3DLoaded}
           showShowcase={showShowcase} setShowShowcase={toggleShowcase} showcaseCount={locked || colorOnly ? 0 : showcaseCount}
           saveDesign={saveDesign} saving={saving} saved={saved} draftSaved={draftSaved} orderThis={orderThis} ordering={ordering}
-          downloadImage={downloadImage} downloadPdf={downloadPdf} exporting={exporting}
+          downloadImage={downloadImage} downloadPdf={downloadPdf} openPrintFiles={openPrintFiles} exporting={exporting}
           lock={locked ? lock : null} onReorder={reorderThis} onDuplicate={duplicateToEdit} copying={copying} phoneItems={phoneItems}/>
 
         {/* ── DRAFT OFFER ── in the page flow under the bar, so it can never cover menus or stage controls */}
