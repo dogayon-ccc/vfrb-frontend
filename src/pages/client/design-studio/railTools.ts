@@ -2,6 +2,7 @@
 export const RAIL_TOOLS = [
   { id: 'move',   key: 'V', label: 'Move',         hint: 'Select and move design items' },
   { id: 'hand',   key: 'H', label: 'Hand',         hint: 'Pan the zoomed design (or hold Space and drag)' },
+  { id: 'sample', key: 'I', label: 'Eyedropper',   hint: 'Tap a garment part to take its colour as the active colour', colour: true },
   { id: 'fill',   key: 'G', label: 'Paint bucket', hint: 'Fill a garment part with the active colour', colour: true },
   { id: 'brush',  key: 'B', label: 'Brush',        hint: 'Draw freehand in the active colour' },
   { id: 'eraser', key: 'E', label: 'Eraser',       hint: 'Erase your own drawings and uploaded art' },
@@ -43,7 +44,7 @@ export const STROKE_TOOLS = ['brush', 'pen', 'line'];
 export const SHAPE_KINDS = [['rect', 'Rectangle'], ['ellipse', 'Ellipse'], ['triangle', 'Triangle'], ['star', 'Star'], ['polygon', 'Polygon'], ['arrow', 'Arrow']] as const;
 export const BOX_TOOLS = SHAPE_KINDS.map(k => k[0]) as string[];
 export const railOf = (mode: string) => (BOX_TOOLS.includes(mode) ? 'shape' : mode); // the rail button a mode belongs to
-export const PICK_TOOLS = ['fill', 'pen', 'line', ...BOX_TOOLS];
+export const PICK_TOOLS = ['sample', 'fill', 'pen', 'line', ...BOX_TOOLS];
 // Freehand presets: each remembers its own size, opacity and smoothing. Highlighter has flat ends and a translucent stroke.
 export const BRUSH_KINDS = {
   brush:       { label: 'Brush',       layer: 'Drawing',     size: 5,  max: 40, opacity: 1,   smooth: 0.5,  cap: 'round'  },

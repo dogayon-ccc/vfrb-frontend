@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { RAIL_TOOLS, PICK_TOOLS, railKey, activeRail, railOf } from './railTools';
 
 const ICONS = { move: MousePointer2, hand: Hand, sample: Pipette, fill: PaintBucket, brush: Brush, eraser: Eraser, pen: PenTool, line: Slash, text: Type, shape: Shapes };;
-const SHOWN = ['move', 'hand', 'fill', 'brush', 'eraser', 'pen', 'line', 'text', 'shape'];
+const SHOWN = ['move', 'hand', 'sample', 'fill', 'brush', 'eraser', 'pen', 'line', 'text', 'shape'];
 // Desktop only (CSS hides these below 1024px, where the bottom sheet has the tabs): the panels that open in the left flyout.
 // data-tab keeps the how-to tour's [data-tab=type] / [data-tab=add] targets pointing at a real control.
 const DOCK = [

@@ -1555,7 +1555,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   // Layer tools: the inspector is reachable (no inner scroll trap); locked items cannot be aligned, duplicated or deleted from the toolbar.
   t('layer tools: the inspector never traps the wheel (inner panels inside the panel scroller do not scroll themselves); the floating toolbar respects a lock',
     /\.ds-panel-scroll \.ds-sum,\.ds-panel-scroll \.ds-ins\{overflow:visible;overscroll-behavior:auto;min-height:auto;\}/.test(rd('../src/pages/client/design-studio/DesignStudioStyles.tsx'))
-    && (rd('../src/pages/client/design-studio/FloatingToolbar.tsx').match(/disabled=\{locked\}/g) ?? []).length === 3);
+    && (rd('../src/pages/client/design-studio/FloatingToolbar.tsx').match(/disabled=\{locked\}/g) ?? []).length === 6); // align, duplicate, delete, forward, backward, mirror; Lock/Unlock and Hide stay enabled
   t("rulers, grid and centre line measure the garment's own zones, never its drop shadow or edge shading",
     /export const isGarmentZone = o => !!o\.__garmentBase && o\.visible !== false && typeof o\.__zoneKey === 'string'/.test(rd('../src/pages/client/design-studio/canvasLayers.ts')) && /filter\(isGarmentZone\)/.test(rd('../src/pages/client/design-studio/canvasLayers.ts')));
   const cv2 = rd('../src/pages/client/design-studio/CanvasViewport.tsx');
@@ -1794,13 +1794,13 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const R = await L('/src/pages/client/design-studio/railTools.ts');
   const CR = await L('/src/pages/client/design-studio/colorRules.ts');
   const k = (key, m = {}) => R.railKey({ key, ...m });
-  t('tool rail: V H G B E P L T U pick their tools, Z / Alt+Z zoom, Ctrl or Cmd letters and held keys are left alone',
-    ['V', 'H', 'G', 'B', 'E', 'P', 'L', 'T', 'U'].map(x => k(x.toLowerCase())).join() === 'move,hand,fill,brush,eraser,pen,line,text,shape' && ['m', 'o', 'y', 's', 'k', 'a'].every(x => k(x) === null) && R.RAIL_TOOLS.length === 9
+  t('tool rail: V H I G B E P L T U pick their tools, Z / Alt+Z zoom, Ctrl or Cmd letters and held keys are left alone',
+    ['V', 'H', 'I', 'G', 'B', 'E', 'P', 'L', 'T', 'U'].map(x => k(x.toLowerCase())).join() === 'move,hand,sample,fill,brush,eraser,pen,line,text,shape' && ['m', 'o', 'y', 's', 'k', 'a'].every(x => k(x) === null) && R.RAIL_TOOLS.length === 10
     && new Set(R.RAIL_TOOLS.map(x => x.key)).size === R.RAIL_TOOLS.length
     && k('z') === 'zoom-in' && k('z', { altKey: true }) === 'zoom-out' && k('z', { ctrlKey: true }) === null && k('d', { metaKey: true }) === null
     && k('v', { repeat: true }) === null && k('Escape') === 'move' && k('q') === null
     && R.activeRail({ hand: true, pick: 'fill', tool: 'draw' }) === 'hand'
-    && R.activeRail({ pick: 'pen' }) === 'pen' && R.PICK_TOOLS.join() === 'fill,pen,line,rect,ellipse,triangle,star,polygon,arrow' && R.BOX_TOOLS.every(b => R.PICK_TOOLS.includes(b))
+    && R.activeRail({ pick: 'pen' }) === 'pen' && R.PICK_TOOLS.join() === 'sample,fill,pen,line,rect,ellipse,triangle,star,polygon,arrow' && R.BOX_TOOLS.every(b => R.PICK_TOOLS.includes(b))
     && R.activeRail({ pick: 'ellipse' }) === 'ellipse' && R.railOf('star') === 'shape' && R.railOf('brush') === 'brush' && R.SHAPE_KINDS.length === 6
     && R.activeRail({ tool: 'draw', erasing: true }) === 'eraser' && R.activeRail({ tool: 'color' }) === 'move');
   {

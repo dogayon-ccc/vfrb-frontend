@@ -3,15 +3,18 @@ import { createPortal } from 'react-dom';
 import { X, Square, Circle, Triangle, Star, Hexagon, MoveUpRight } from 'lucide-react';
 import { BOX_TOOLS, SHAPE_KINDS, railOf, BRUSH_KINDS, brushKind as kindOf } from './railTools';
 import { SIDES } from './overlayTools';
+import { PH_SWATCHES } from './dsShared';
+import { hasScreenEyedropper, pickScreenColour } from './eyedropper';
 
 // The active tool's own options, in a flyout beside the left tool rail (Canva/Photoshop style): pick a tool, its settings appear next to it.
 //   brush : size, opacity, smoothing, colour      pen / line : width, colour      eraser : size
 // Text and shapes keep their panels for now. The flyout is portaled into .ds-body (the rail scrolls, so a child would be clipped)
 // and anchored to the active rail button; on phones the rail is a row, so the flyout opens full width under it.
-const PALETTE = ['#02C39A', '#028090', '#1B2428', '#E63946', '#F4A261', '#FFD166', '#FFFFFF', '#000000'];
+const PALETTE = PH_SWATCHES.slice(0, 10); // the same Philippine colours as the Colours panel, so one palette everywhere
 const KIND_ICON = { rect: Square, ellipse: Circle, triangle: Triangle, star: Star, polygon: Hexagon, arrow: MoveUpRight };
 const COPY: Record<string, { title: string; hint: string }> = {
   brush:  { title: 'Brush', hint: 'Drag on the garment. Each stroke is its own layer and one undo step.' },
+  sample: { title: 'Eyedropper', hint: 'Tap a garment part to take its colour as the active colour. The brush, pen, shapes and paint bucket then use it.' },
   eraser: { title: 'Eraser', hint: 'Rubs out your drawings and uploaded art only, never the garment, text or shapes.' },
   pen:    { title: 'Pen', hint: 'Click to place points, drag a point to curve the line. Enter finishes, Backspace removes the last point.' },
   line:   { title: 'Line', hint: 'Drag from one point to another. Hold Shift to snap to 45°.' },
@@ -94,9 +97,10 @@ export default function ToolOptions({ active, rootRef, size, setSize, color, set
         <div className="ds-opts-row" role="group" aria-label="Colour">
           <span>Colour</span>
           <div className="ds-opts-sw">
-            {PALETTE.map(c => <button key={c} type="button" className="ds-opts-dot" style={{ background: c }} aria-label={`Colour ${c}`} aria-pressed={color.toLowerCase() === c.toLowerCase()} onClick={() => setColor(c)}/>)}
+            {PALETTE.map(s => <button key={s.hex} type="button" className="ds-opts-dot" style={{ background: s.hex }} aria-label={`Colour ${s.name}`} title={s.name} aria-pressed={color.toLowerCase() === s.hex.toLowerCase()} onClick={() => setColor(s.hex)}/>)}
             <label className="ds-opts-dot ds-opts-custom" aria-label="Custom colour"><input type="color" value={/^#[0-9a-f]{6}$/i.test(color) ? color : '#02C39A'} onChange={e => setColor(e.target.value)}/></label>
           </div>
+          {hasScreenEyedropper() && <button type="button" className="ds-btn ds-eyedrop" onClick={async () => { const hex = await pickScreenColour(); if (hex) setColor(hex); }}>Pick from screen</button>}
         </div>
       )}
       {box && <p className="ds-opts-hint">Fills with the colour above. Change fill, border and corners afterwards in the Selection panel.</p>}

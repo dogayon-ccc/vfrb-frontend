@@ -205,6 +205,7 @@ export default function DesignStudio() {
       // A tapped zone opens Colours on it; a tapped pocket, button or closure detail ('detail:<part>') opens Details on that part.
       (zone) => {
         const pk = pickRef.current; // paint bucket: the tapped part takes the active colour, one undo step like the Colours panel
+        if (pk?.pick === 'sample' && !zone.startsWith('detail:')) { const c = pk.colors?.[zone]; if (/^#[0-9a-f]{6}$/i.test(c ?? '')) pk.setColor(c.toLowerCase()); return; } // eyedropper: the part's colour becomes the active colour
         if (pk?.pick === 'fill' && !zone.startsWith('detail:')) { if (!pk.final) setCfg(p => ({ ...p, colors: paintZone(p.colors, zone, pk.color) })); return; }
         setSheetPing(n => n + 1); // phones: a tapped part raises the sheet, even when that part was already open
         if (zone.startsWith('detail:')) { setDetailFocus(zone.slice(7)); setTool('details'); } else { setActiveZone(zone); setTool('color'); } },
@@ -340,7 +341,7 @@ export default function DesignStudio() {
 
   // Tool rail: paint bucket, Pen and Line use the brush colour; drawing turns them off.
   const [pick, setPick] = useState(null);
-  pickRef.current = { pick, color: brushColor, size: brushSize, sides: shapeSides, colors: cfg.colors, final: locked };
+  pickRef.current = { pick, color: brushColor, setColor: changeBrushColor, size: brushSize, sides: shapeSides, colors: cfg.colors, final: locked };
   useEffect(() => { if (tool === 'draw') setPick(null); }, [tool]);
   useEffect(() => {
     setPickMode(pick, () => ({ color: pickRef.current.color, width: pickRef.current.size, sides: pickRef.current.sides }));
@@ -1134,7 +1135,7 @@ export default function DesignStudio() {
           canvas={
             <CanvasViewport cfg={cfg} setCfg={setCfg} canvasWrapRef={canvasWrapRef} canvasEl={canvasEl} initFailed={initFailed}
               aiPulse={aiPulse} face={face} switchFace={switchFace} fullRef={fullRef}
-              selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected} alignSelected={alignSelected} arrangeSelected={arrangeSelected} garmentRect={garmentRect}
+              selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected} alignSelected={alignSelected} arrangeSelected={arrangeSelected} arrangeLayer={arrangeLayer} mirrorSelected={mirrorSelected} toggleSelectedLock={toggleSelectedLock} toggleLayerVisibility={toggleLayerVisibility} garmentRect={garmentRect}
               viewMode={viewMode} has3DLoaded={has3DLoaded} onLogoFile={onLogoFile} onPickZone={setActiveZone}
               onUndo={locked ? null : lock?.warn ? () => setWarnAsk(true) : undo}
               rail={locked ? null : { history: { undo: lock?.warn ? () => setWarnAsk(true) : undo, redo: lock?.warn ? () => setWarnAsk(true) : redo, canUndo, canRedo }, onShapes: () => setAssetsTab('shapes'), tool, setTool, flyTool: flyOpen && tool !== 'draw' ? tool : null, openFly, closeFly: () => setFlyOpen(false), pick, setPick, erasing, setErasing, color: brushColor, setColor: changeBrushColor, size: brushSize, setSize: changeBrushSize, opacity: brushOpacity, setOpacity: changeBrushOpacity, smooth: brushSmooth, setSmooth: changeBrushSmooth, brushKind, setBrushKind: changeBrushKind, sides: shapeSides, setSides: setShapeSides, colourOnly: colorOnly }}

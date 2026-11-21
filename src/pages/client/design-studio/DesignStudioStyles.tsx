@@ -555,6 +555,14 @@ export default function DesignStudioStyles() {
       .ds-part:hover{border-color:var(--cx-thread);}
       .ds-part[aria-pressed=true]{border-color:var(--cx-thread);background:var(--cx-thread-tint);}
       .ds-part--link{min-height:44px;width:100%;grid-template-columns:auto 1fr auto;grid-template-rows:auto;}
+      .ds-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+      .ds-chip{min-height:44px;display:inline-flex;align-items:center;gap:8px;padding:0 14px;border:1px solid var(--cx-line-strong);border-radius:999px;background:var(--cx-card);color:var(--cx-ink);font:700 14px var(--cx-sans);cursor:pointer;}
+      .ds-chip:hover{border-color:var(--cx-thread);}
+      .ds-chip[aria-pressed=true]{border-color:var(--cx-thread);background:var(--cx-thread-tint);}
+      .ds-chip-dot{width:16px;height:16px;border-radius:50%;box-shadow:inset 0 0 0 1px var(--cx-line-strong);}
+      .ds-chip-dot[data-off]{background:repeating-linear-gradient(-45deg,var(--cx-line) 0 2px,transparent 2px 5px);}
+      .ds-eyedrop{min-height:44px;margin-top:8px;}
+      .ds-ftb button[aria-pressed=true]{background:var(--cx-thread-tint);}
       .ds-part-head{display:flex;align-items:stretch;gap:8px;margin-bottom:12px;}
       .ds-part-head .ds-zone-now{flex:1;min-width:0;margin:0;}
       .ds-part-done{min-width:72px;justify-content:center;}
@@ -1542,6 +1550,17 @@ export default function DesignStudioStyles() {
         .ds .ds-rail .ds-help-btn{min-height:52px;}
       }
       @media (min-width:768px) and (max-height:740px) and (pointer:fine){.ds .ds-rail .ds-tools-btn{min-height:32px;height:32px;}}
+      .ds-opts{--cx-card:var(--vf-chrome);--cx-paper:var(--vf-chrome);--cx-line:var(--vf-chrome-line);--cx-line-strong:rgb(var(--vf-mint-rgb) / .45);--cx-ink:var(--vf-on-chrome);--cx-ink-2:var(--vf-on-chrome-2);--cx-ink-3:var(--vf-on-chrome-3);--cx-hover:rgb(255 255 255 / .08);}
+      @media (max-width:767px){
+        .ds-lane-top>.ds-tools{flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;scrollbar-width:none;overscroll-behavior-x:contain;}
+        .ds-lane-top>.ds-tools::-webkit-scrollbar{display:none;}
+        .ds-lane-top>.ds-tools>*{flex:none;}
+        .ds-lane-top>.ds-tools .ds-tools-ink{position:sticky;right:0;margin-left:auto;background:var(--cx-card);box-shadow:-8px 0 8px var(--cx-card);}
+        .ds-opts{max-height:min(44dvh,360px);gap:8px;}
+        .ds-opts-hint{display:none;}
+        .ds-opts-preview{height:36px;}
+      }
+      .ds-part-bar{position:sticky;top:0;z-index:2;padding-bottom:4px;background:var(--cx-card);}
 `}</style>
   );
 }

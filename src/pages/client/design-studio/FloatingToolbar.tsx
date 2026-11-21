@@ -3,7 +3,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Copy, Trash2, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal,
-  AlignHorizontalDistributeCenter, AlignVerticalDistributeCenter } from 'lucide-react';
+  AlignHorizontalDistributeCenter, AlignVerticalDistributeCenter, FlipHorizontal2, ArrowUp, ArrowDown, Lock, LockOpen, EyeOff } from 'lucide-react';
 import { shapeLabel } from './overlayTools';
 import { pocketLabel } from './pocketTools';
 
@@ -23,7 +23,7 @@ function roving(e) {
   bs[d === -Infinity ? 0 : d === Infinity ? bs.length - 1 : (i + d + bs.length) % bs.length].focus();
 }
 
-export default function FloatingToolbar({ selObj, at, duplicateSelected, deleteSelected, alignSelected, arrangeSelected }: any) {
+export default function FloatingToolbar({ selObj, at, duplicateSelected, deleteSelected, alignSelected, arrangeSelected, arrangeLayer = null, mirrorSelected = null, toggleSelectedLock = null, toggleLayerVisibility = null }: any) {
   const ref = useRef(null);
   const reduce = useReducedMotion();
   const [size, setSize] = useState({ w: 0, h: 0 });
@@ -53,6 +53,15 @@ export default function FloatingToolbar({ selObj, at, duplicateSelected, deleteS
           <button type="button" disabled={locked} onClick={() => alignSelected('hcenter')} aria-label="Centre on the garment centre line" title="Centre on the garment centre line"><AlignCenterVertical size={17} aria-hidden="true"/></button>
         )}
       </span>
+      {!multi && (<>
+        {arrangeLayer && <>
+          <button type="button" disabled={locked} onClick={() => arrangeLayer('forward')} aria-label="Bring forward" title="Bring forward (Ctrl+])"><ArrowUp size={17} aria-hidden="true"/></button>
+          <button type="button" disabled={locked} onClick={() => arrangeLayer('backward')} aria-label="Send backward" title="Send backward (Ctrl+[)"><ArrowDown size={17} aria-hidden="true"/></button>
+        </>}
+        {mirrorSelected && !selObj.__pocket && <button type="button" disabled={locked} onClick={mirrorSelected} aria-label="Add a mirrored copy" title="Add a mirrored copy"><FlipHorizontal2 size={17} aria-hidden="true"/></button>}
+        {toggleLayerVisibility && selObj.__layerId && <button type="button" onClick={() => toggleLayerVisibility(selObj.__layerId)} aria-label="Hide" title="Hide (Ctrl+Shift+H)"><EyeOff size={17} aria-hidden="true"/></button>}
+        {toggleSelectedLock && <button type="button" aria-pressed={locked} onClick={toggleSelectedLock} aria-label={locked ? 'Unlock' : 'Lock'} title={locked ? 'Unlock (Ctrl+Shift+L)' : 'Lock in place (Ctrl+Shift+L)'}>{locked ? <LockOpen size={17} aria-hidden="true"/> : <Lock size={17} aria-hidden="true"/>}</button>}
+      </>)}
       {!multi && <button type="button" disabled={locked} onClick={duplicateSelected} aria-label="Duplicate" title="Duplicate (Ctrl+D)"><Copy size={17} aria-hidden="true"/></button>}
       <button type="button" className="ds-ftb-danger" disabled={locked} onClick={deleteSelected} aria-label="Delete" title="Delete (Del)"><Trash2 size={17} aria-hidden="true"/></button>
     </motion.div>

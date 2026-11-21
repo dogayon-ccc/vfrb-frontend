@@ -2,7 +2,8 @@ import { secLabel, zone3D, ONLY_2D_TAG } from './dsShared';
 import { useEffect, useRef, useState } from 'react';
 import { paintZone, designPalette, pushRecent, contrastRatio, contrastLabel, bestInk } from './colorRules';
 import { SwatchGrid, CustomColor, colourName } from './SwatchGrid';
-import { PartButtons, PartStyles, partLabel } from './PartControls';
+import { PartButtons, PartChips, PartStyles, partLabel } from './PartControls';
+import { hasScreenEyedropper, pickScreenColour } from './eyedropper';
 
 // Recent colours are per user, like ds_guides:<user_id>; signOut clears them.
 const recentKey = () => { try { const id = JSON.parse(localStorage.getItem('vfrb_user') || '{}')?.user_id; return id ? `ds_recent_colours:${id}` : 'ds_recent_colours'; } catch { return 'ds_recent_colours'; } };
@@ -63,6 +64,7 @@ export default function ColorsPanel({ cfg, setCfg, activeZone, setActiveZone, on
 
   return (
     <div className="ds-colors">
+      <div className="ds-part-bar">
       {cfg.garment && (
         <div className="ds-part-head">
           <div className="ds-zone-now">
@@ -74,7 +76,8 @@ export default function ColorsPanel({ cfg, setCfg, activeZone, setActiveZone, on
           {onDone && <button type="button" className="ds-btn ds-part-done" onClick={onDone}>Done</button>}
         </div>
       )}
-      {!onDone && <PartButtons cfg={cfg} active={activeZone} onPick={setActiveZone}/>}
+      {onDone ? <PartChips cfg={cfg} active={activeZone} onPick={setActiveZone}/> : <PartButtons cfg={cfg} active={activeZone} onPick={setActiveZone}/>}
+      </div>
 
       <PartStyles cfg={cfg} setCfg={setCfg} zone={activeZone}/>
 
@@ -86,6 +89,7 @@ export default function ColorsPanel({ cfg, setCfg, activeZone, setActiveZone, on
           <SwatchGrid label={label} current={cur} onPick={hex => setColor(activeZone, hex)}/>
           <p style={secLabel}>Custom</p>
           <CustomColor label={label} current={cur} onPick={hex => { setColor(activeZone, hex); remember(hex); }}/>
+          {hasScreenEyedropper() && <button type="button" className="ds-btn ds-eyedrop" onClick={async () => { const hex = await pickScreenColour(); if (hex) { setColor(activeZone, hex); remember(hex); } }}>Pick a colour from the screen</button>}
           {activeZone === 'tipping' && <button type="button" className="ds-link" onClick={() => setColor('tipping', null)}>Turn off tipping</button>}
           {palette.length > 1 && <QuickRow title="In this design" colours={palette} current={cur} label={label} onPick={hex => setColor(activeZone, hex)}/>}
           {recent.length > 0 && <QuickRow title="Recent" colours={recent} current={cur} label={label} onPick={hex => setColor(activeZone, hex)}/>}

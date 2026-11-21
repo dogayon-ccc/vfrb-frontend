@@ -43,12 +43,32 @@ const PIECE_PATH = { body: 'body', collar: 'collar', sleeve: 'sleeveL', pocket: 
 
 // One cut piece cropped to its own shape; the box comes from the rendered path, so any path command works.
 function PieceThumb({ d, fill }: any) {
-  const ref = useRef(null);
-  const [box, setBox] = useState(null);
+  const ref = useRef<SVGPathElement>(null), svg = useRef<SVGSVGElement>(null);
+  const [box, setBox] = useState<string | null>(null);
   useLayoutEffect(() => {
-    try { const b = ref.current.getBBox(); if (b.width) setBox(`${b.x} ${b.y} ${b.width} ${b.height}`); } catch { setBox(null); }
+    const measure = () => { try { const b = ref.current!.getBBox(); if (b.width) setBox(`${b.x} ${b.y} ${b.width} ${b.height}`); } catch { /* hidden: measured when shown */ } };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(svg.current!);
+    return () => ro.disconnect();
   }, [d]);
-  return <svg className="ds-piece" viewBox={box ?? undefined} aria-hidden="true"><path ref={ref} d={d} style={{ fill }}/></svg>;
+  return <svg ref={svg} className="ds-piece" viewBox={box ?? undefined} style={box ? undefined : { visibility: 'hidden' }} aria-hidden="true"><path ref={ref} d={d} style={{ fill }}/></svg>;
+}
+
+// Compact part switcher for the Colours flyout: change collar, sleeve or body at any time without leaving the panel.
+export function PartChips({ cfg, active, onPick }: any) {
+  return (
+    <div className="ds-chips" role="group" aria-label="Garment part to colour">
+      {partsFor(cfg).map(z => {
+        const off = z === 'tipping' && !cfg.colors?.tipping;
+        return (
+          <button key={z} type="button" className="ds-chip" aria-pressed={active === z} onClick={() => onPick(z)}>
+            <i className="ds-chip-dot" data-off={off || undefined} style={off ? undefined : { background: partDot(cfg, z) }} aria-hidden="true"/>{partLabel(cfg, z)}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 export function PartButtons({ cfg, active = null, onPick }: any) {

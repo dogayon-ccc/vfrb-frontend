@@ -2,7 +2,7 @@
 > client@0.0.0 typecheck
 > tsc --noEmit
 
-src/App.tsx(126,59): error TS2339: Property 'connection' does not exist on type 'Navigator'.
+src/App.tsx(127,59): error TS2339: Property 'connection' does not exist on type 'Navigator'.
 src/components/admin/AdminUI.tsx(181,51): error TS2339: Property 'connection' does not exist on type 'Navigator'.
 src/components/admin/AdminUI.tsx(207,31): error TS2339: Property 'addEventListener' does not exist on type 'string | (Window & typeof globalThis) | Document'.
   Property 'addEventListener' does not exist on type 'string'.
@@ -24,7 +24,7 @@ src/components/AuthShell.tsx(103,72): error TS2322: Type '{ className: string; s
 src/components/AuthSkeleton.tsx(52,125): error TS2322: Type 'string | number' is not assignable to type 'JustifyContent'.
   Type 'number' is not assignable to type 'JustifyContent'.
 src/components/AuthSkeleton.tsx(53,78): error TS2365: Operator '>' cannot be applied to types 'string | number' and 'number'.
-src/components/customer/kit.tsx(69,47): error TS2769: No overload matches this call.
+src/components/customer/kit.tsx(81,47): error TS2769: No overload matches this call.
   Overload 1 of 3, '(locales?: LocalesArgument, options?: DateTimeFormatOptions): string', gave the following error.
     Argument of type '{ month: string; day: string; year: string; }' is not assignable to parameter of type 'DateTimeFormatOptions'.
       Types of property 'year' are incompatible.
@@ -33,7 +33,7 @@ src/components/customer/kit.tsx(69,47): error TS2769: No overload matches this c
     Argument of type '{ month: string; day: string; year: string; }' is not assignable to parameter of type 'DateTimeFormatOptions'.
       Types of property 'year' are incompatible.
         Type 'string' is not assignable to type '"numeric" | "2-digit"'.
-src/components/customer/kit.tsx(93,22): error TS2345: Argument of type '{ month: string; day: string; }' is not assignable to parameter of type '{ month: string; day: string; year: string; }'.
+src/components/customer/kit.tsx(105,22): error TS2345: Argument of type '{ month: string; day: string; }' is not assignable to parameter of type '{ month: string; day: string; year: string; }'.
   Property 'year' is missing in type '{ month: string; day: string; }' but required in type '{ month: string; day: string; year: string; }'.
 src/components/DesignPreview.tsx(14,63): error TS2339: Property 'resetKey' does not exist on type 'Readonly<{}>'.
 src/components/DesignPreview.tsx(15,49): error TS2339: Property 'fallback' does not exist on type 'Readonly<{}>'.
@@ -81,7 +81,7 @@ src/layouts/AdminLayout.tsx(249,43): error TS2353: Object literal may only speci
 src/layouts/AdminLayout.tsx(695,14): error TS2322: Type '{ children: Element; resetKey: string; }' is not assignable to type 'IntrinsicAttributes & IntrinsicClassAttributes<PageErrorBoundary> & Readonly<{}>'.
   Property 'children' does not exist on type 'IntrinsicAttributes & IntrinsicClassAttributes<PageErrorBoundary> & Readonly<{}>'.
 src/layouts/CustomerLayout.tsx(44,47): error TS2353: Object literal may only specify known properties, and 'onClose' does not exist in type '{ active?: boolean; }'.
-src/layouts/CustomerLayout.tsx(207,16): error TS2322: Type '{ children: Element; resetKey: string; }' is not assignable to type 'IntrinsicAttributes & IntrinsicClassAttributes<PageErrorBoundary> & Readonly<{}>'.
+src/layouts/CustomerLayout.tsx(210,16): error TS2322: Type '{ children: Element; resetKey: string; }' is not assignable to type 'IntrinsicAttributes & IntrinsicClassAttributes<PageErrorBoundary> & Readonly<{}>'.
   Property 'children' does not exist on type 'IntrinsicAttributes & IntrinsicClassAttributes<PageErrorBoundary> & Readonly<{}>'.
 src/lib/bgRemove.ts(90,25): error TS2339: Property 'gpu' does not exist on type 'Navigator'.
 src/lib/bgRemove.ts(207,42): error TS2339: Property 'gpu' does not exist on type 'Navigator'.
@@ -199,7 +199,7 @@ src/pages/admin/PurchaseOrders.tsx(736,104): error TS2554: Expected 3 arguments,
 src/pages/admin/Reports.tsx(274,17): error TS2554: Expected 2 arguments, but got 1.
 src/pages/admin/Reports.tsx(289,86): error TS2339: Property 'count' does not exist on type 'unknown'.
 src/pages/admin/SalesTransactions.tsx(71,48): error TS2339: Property 'amount_total' does not exist on type '{ order_id: number; amount_paid: number; payment_method: string; payment_terms: string; or_number: string; notes: string; }'.
-src/pages/admin/Settings.tsx(317,101): error TS2322: Type '{ embedded: true; }' is not assignable to type 'IntrinsicAttributes'.
+src/pages/admin/Settings.tsx(319,101): error TS2322: Type '{ embedded: true; }' is not assignable to type 'IntrinsicAttributes'.
   Property 'embedded' does not exist on type 'IntrinsicAttributes'.
 src/pages/admin/UserManagement.tsx(94,106): error TS2322: Type '{ width: string; padding: string; borderRadius: number; border: string; background: string; color: string; fontSize: number; outline: string; fontFamily: string; transition: string; boxSizing: string; }' is not assignable to type 'CSSProperties'.
   Types of property 'boxSizing' are incompatible.
@@ -272,16 +272,16 @@ src/pages/client/AccountSettings.tsx(87,116): error TS2349: This expression is n
 src/pages/client/AccountSettings.tsx(93,84): error TS2349: This expression is not callable.
   Not all constituents of type 'string | ((m: any) => void)' are callable.
     Type 'string' has no call signatures.
-src/pages/client/AIMaterials.tsx(57,25): error TS2353: Object literal may only specify known properties, and 'onClose' does not exist in type '{ active?: boolean; }'.
-src/pages/client/AIMaterials.tsx(161,19): error TS2339: Property 'map' does not exist on type 'unknown'.
-src/pages/client/AIMaterials.tsx(324,7): error TS2349: This expression is not callable.
+src/pages/client/AIMaterials.tsx(58,25): error TS2353: Object literal may only specify known properties, and 'onClose' does not exist in type '{ active?: boolean; }'.
+src/pages/client/AIMaterials.tsx(162,19): error TS2339: Property 'map' does not exist on type 'unknown'.
+src/pages/client/AIMaterials.tsx(334,7): error TS2349: This expression is not callable.
   Not all constituents of type 'Element | ((msg: any, type?: string) => void)' are callable.
     Type 'Element' has no call signatures.
-src/pages/client/Dashboard.tsx(61,37): error TS2345: Argument of type '{ month: string; day: string; }' is not assignable to parameter of type '{ month: string; day: string; year: string; }'.
+src/pages/client/Dashboard.tsx(62,37): error TS2345: Argument of type '{ month: string; day: string; }' is not assignable to parameter of type '{ month: string; day: string; year: string; }'.
   Property 'year' is missing in type '{ month: string; day: string; }' but required in type '{ month: string; day: string; year: string; }'.
-src/pages/client/Dashboard.tsx(116,59): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
-src/pages/client/Dashboard.tsx(116,89): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
-src/pages/client/Dashboard.tsx(165,140): error TS2322: Type '{ src: string; alt: string; className: string; width: string; height: string; fetchpriority: string; }' is not assignable to type 'DetailedHTMLProps<ImgHTMLAttributes<HTMLImageElement>, HTMLImageElement>'.
+src/pages/client/Dashboard.tsx(117,59): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/pages/client/Dashboard.tsx(117,89): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/pages/client/Dashboard.tsx(150,136): error TS2322: Type '{ src: string; alt: string; className: string; width: string; height: string; fetchpriority: string; }' is not assignable to type 'DetailedHTMLProps<ImgHTMLAttributes<HTMLImageElement>, HTMLImageElement>'.
   Property 'fetchpriority' does not exist on type 'DetailedHTMLProps<ImgHTMLAttributes<HTMLImageElement>, HTMLImageElement>'. Did you mean 'fetchPriority'?
 src/pages/client/design-studio/BuildYourOwn.tsx(51,36): error TS2339: Property 'label' does not exist on type 'unknown'.
 src/pages/client/design-studio/BuildYourOwn.tsx(51,65): error TS2339: Property 'range' does not exist on type 'unknown'.
@@ -688,29 +688,29 @@ src/pages/client/design-studio/wovenPatterns.ts(141,77): error TS2339: Property 
 src/pages/client/DesignStudio.tsx(186,34): error TS2339: Property 'custom' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
 src/pages/client/DesignStudio.tsx(187,25): error TS2339: Property 'custom' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
 src/pages/client/DesignStudio.tsx(187,53): error TS2339: Property 'custom' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
-src/pages/client/DesignStudio.tsx(212,11): error TS2339: Property 'details' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
-src/pages/client/DesignStudio.tsx(224,84): error TS2339: Property 'details' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
-src/pages/client/DesignStudio.tsx(251,45): error TS2339: Property 'inspirationId' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
-src/pages/client/DesignStudio.tsx(376,50): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
-src/pages/client/DesignStudio.tsx(585,22): error TS2554: Expected 3 arguments, but got 2.
-src/pages/client/DesignStudio.tsx(627,73): error TS2554: Expected 3 arguments, but got 2.
-src/pages/client/DesignStudio.tsx(664,89): error TS2339: Property 'inspirationId' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
-src/pages/client/DesignStudio.tsx(688,59): error TS2554: Expected 1 arguments, but got 0.
-src/pages/client/DesignStudio.tsx(689,15): error TS2554: Expected 3 arguments, but got 2.
-src/pages/client/DesignStudio.tsx(695,118): error TS2554: Expected 1 arguments, but got 0.
-src/pages/client/DesignStudio.tsx(801,62): error TS2345: Argument of type '"none" | "local"' is not assignable to parameter of type 'SetStateAction<boolean>'.
+src/pages/client/DesignStudio.tsx(213,11): error TS2339: Property 'details' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
+src/pages/client/DesignStudio.tsx(225,84): error TS2339: Property 'details' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
+src/pages/client/DesignStudio.tsx(252,45): error TS2339: Property 'inspirationId' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
+src/pages/client/DesignStudio.tsx(377,50): error TS2556: A spread argument must either have a tuple type or be passed to a rest parameter.
+src/pages/client/DesignStudio.tsx(586,22): error TS2554: Expected 3 arguments, but got 2.
+src/pages/client/DesignStudio.tsx(628,73): error TS2554: Expected 3 arguments, but got 2.
+src/pages/client/DesignStudio.tsx(665,89): error TS2339: Property 'inspirationId' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
+src/pages/client/DesignStudio.tsx(689,59): error TS2554: Expected 1 arguments, but got 0.
+src/pages/client/DesignStudio.tsx(690,15): error TS2554: Expected 3 arguments, but got 2.
+src/pages/client/DesignStudio.tsx(696,118): error TS2554: Expected 1 arguments, but got 0.
+src/pages/client/DesignStudio.tsx(802,62): error TS2345: Argument of type '"none" | "local"' is not assignable to parameter of type 'SetStateAction<boolean>'.
   Type '"none"' is not assignable to type 'SetStateAction<boolean>'.
-src/pages/client/DesignStudio.tsx(851,18): error TS2554: Expected 1 arguments, but got 0.
-src/pages/client/DesignStudio.tsx(867,50): error TS2345: Argument of type '"none" | "local"' is not assignable to parameter of type 'SetStateAction<boolean>'.
+src/pages/client/DesignStudio.tsx(852,18): error TS2554: Expected 1 arguments, but got 0.
+src/pages/client/DesignStudio.tsx(868,50): error TS2345: Argument of type '"none" | "local"' is not assignable to parameter of type 'SetStateAction<boolean>'.
   Type '"none"' is not assignable to type 'SetStateAction<boolean>'.
-src/pages/client/DesignStudio.tsx(888,51): error TS2339: Property 'inspirationId' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
-src/pages/client/DesignStudio.tsx(959,142): error TS2339: Property 'details' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
-src/pages/client/DesignStudio.tsx(960,52): error TS2339: Property 'inspirationId' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
-src/pages/client/DesignStudio.tsx(967,133): error TS2339: Property 'custom' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
-src/pages/client/DesignStudio.tsx(968,41): error TS2339: Property 'details' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
-src/pages/client/DesignStudio.tsx(986,21): error TS2554: Expected 1 arguments, but got 0.
-src/pages/client/DesignStudio.tsx(1045,56): error TS2554: Expected 1 arguments, but got 0.
-src/pages/client/DesignStudio.tsx(1056,34): error TS2554: Expected 1 arguments, but got 0.
+src/pages/client/DesignStudio.tsx(889,51): error TS2339: Property 'inspirationId' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
+src/pages/client/DesignStudio.tsx(960,142): error TS2339: Property 'details' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
+src/pages/client/DesignStudio.tsx(961,52): error TS2339: Property 'inspirationId' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
+src/pages/client/DesignStudio.tsx(968,133): error TS2339: Property 'custom' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
+src/pages/client/DesignStudio.tsx(969,41): error TS2339: Property 'details' does not exist on type '{ name: any; category: any; garment: any; fit: any; sleeve: any; colors: any; patterns: any; patternParams: any; }'.
+src/pages/client/DesignStudio.tsx(987,21): error TS2554: Expected 1 arguments, but got 0.
+src/pages/client/DesignStudio.tsx(1046,56): error TS2554: Expected 1 arguments, but got 0.
+src/pages/client/DesignStudio.tsx(1057,34): error TS2554: Expected 1 arguments, but got 0.
 src/pages/client/DesignStudio3D.tsx(90,21): error TS2554: Expected 4 arguments, but got 1.
 src/pages/client/DesignStudio3D.tsx(91,21): error TS2554: Expected 4 arguments, but got 1.
 src/pages/client/DesignStudio3D.tsx(92,21): error TS2554: Expected 4 arguments, but got 2.
@@ -746,14 +746,6 @@ src/pages/client/Messages.tsx(25,41): error TS2363: The right-hand side of an ar
 src/pages/client/MyDesigns.tsx(185,81): error TS2554: Expected 3 arguments, but got 2.
 src/pages/client/MyDesigns.tsx(186,42): error TS2554: Expected 3 arguments, but got 2.
 src/pages/client/MyDesigns.tsx(188,53): error TS2554: Expected 3 arguments, but got 1.
-src/pages/client/order-wizard/orderForm.ts(68,28): error TS2339: Property 'garment_type' does not exist on type '{}'.
-src/pages/client/order-wizard/orderForm.ts(69,31): error TS2339: Property 'design_ref_file' does not exist on type '{}'.
-src/pages/client/order-wizard/orderForm.ts(71,19): error TS2339: Property 'client_design_notes' does not exist on type '{}'.
-src/pages/client/order-wizard/orderForm.ts(74,53): error TS2339: Property 'color' does not exist on type '{}'.
-src/pages/client/order-wizard/orderForm.ts(76,18): error TS2339: Property 'sizes' does not exist on type '{}'.
-src/pages/client/order-wizard/orderForm.ts(79,27): error TS2339: Property 'fabric_type' does not exist on type '{}'.
-src/pages/client/order-wizard/orderForm.ts(80,73): error TS2339: Property 'delivery_address' does not exist on type '{}'.
-src/pages/client/order-wizard/orderForm.ts(81,58): error TS2339: Property 'deadline' does not exist on type '{}'.
 src/pages/client/OrderDetail.tsx(119,47): error TS2339: Property 'note' does not exist on type 'unknown'.
 src/pages/client/OrderDetail.tsx(236,38): error TS2769: No overload matches this call.
   Overload 1 of 2, '(message?: string, options?: ErrorOptions): Error', gave the following error.
@@ -774,8 +766,6 @@ src/pages/client/OrderDetail.tsx(628,21): error TS2339: Property 'delivery' does
 src/pages/client/OrderDetail.tsx(628,76): error TS2339: Property 'delivery' does not exist on type '{}'.
 src/pages/client/OrderDetail.tsx(636,21): error TS2339: Property 'messages' does not exist on type '{}'.
 src/pages/client/OrderDetail.tsx(636,76): error TS2339: Property 'messages' does not exist on type '{}'.
-src/pages/client/Orders.tsx(34,116): error TS2345: Argument of type '{ month: string; day: string; }' is not assignable to parameter of type '{ month: string; day: string; year: string; }'.
-  Property 'year' is missing in type '{ month: string; day: string; }' but required in type '{ month: string; day: string; year: string; }'.
 src/pages/client/settings/BillingSection.tsx(27,38): error TS2339: Property 'billing_name' does not exist on type '{}'.
 src/pages/client/settings/BillingSection.tsx(28,41): error TS2339: Property 'billing_address' does not exist on type '{}'.
 src/pages/client/settings/BillingSection.tsx(29,31): error TS2339: Property 'tin' does not exist on type '{}'.

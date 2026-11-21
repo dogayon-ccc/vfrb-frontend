@@ -139,7 +139,7 @@ class ThreeEB extends Component {
 
 export default function CanvasViewport({
   cfg, setCfg, canvasWrapRef, canvasEl, aiPulse, face, switchFace, initFailed,
-  selObj, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, garmentRect = null, viewMode, has3DLoaded, onLogoFile, zoom, setZoom, snapshot, overlays,
+  selObj, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, arrangeLayer = null, mirrorSelected = null, toggleSelectedLock = null, toggleLayerVisibility = null, garmentRect = null, viewMode, has3DLoaded, onLogoFile, zoom, setZoom, snapshot, overlays,
   blank = null, setViewMode, viewOpen, setViewOpen, setCompanion = null, showSet = false, setSnapOptions = null, trace = null, clearSelection = null, onPickZone = null, rail = null, onUndo = null, fullRef = null,
 }: any) {
   const paneRef = useRef(null);
@@ -558,7 +558,8 @@ export default function CanvasViewport({
           {split && <span className="ds-pane-tag" aria-hidden="true">Edit · 2D</span>}
           <AnimatePresence>
             {selObj && at && show2D && cfg.garment && <FloatingToolbar key="ftb" selObj={selObj} at={at} duplicateSelected={duplicateSelected} deleteSelected={deleteSelected}
-              alignSelected={alignSelected} arrangeSelected={arrangeSelected}/>}
+              alignSelected={alignSelected} arrangeSelected={arrangeSelected}
+              arrangeLayer={arrangeLayer} mirrorSelected={mirrorSelected} toggleSelectedLock={toggleSelectedLock} toggleLayerVisibility={toggleLayerVisibility}/>}
           </AnimatePresence>
         </div>
 
