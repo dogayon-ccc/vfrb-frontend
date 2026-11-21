@@ -1523,6 +1523,9 @@ export default function DesignStudioStyles() {
         .ds-rail-acts{align-items:center;}
         .ds-tool-slot{width:100%;display:flex;justify-content:center;padding-top:10px;border-top:1px solid var(--cx-line);}
         .ds-tool-slot .ds-tools{flex-direction:column;position:static;max-height:none;box-shadow:none;border:0;padding:0;background:transparent;}
+        .ds-tool-slot .ds-tools .ds-tools-dock{display:inline-flex;}
+        .ds-tool-slot .ds-tools .ds-tools-dock[data-last]{margin-bottom:5px;position:relative;}
+        .ds-tool-slot .ds-tools .ds-tools-dock[data-last]::after{content:"";position:absolute;bottom:-4px;left:10px;right:10px;border-top:1px solid var(--cx-line);}
         .ds-tool-slot .ds-tools-ink{margin:6px 0 0;}
         .ds-tool-slot .ds-tools-size{flex-direction:column;margin:4px 0 0;padding:4px 0 0;border-left:0;border-top:1px solid var(--cx-line);}
         .ds-help{position:sticky;bottom:0;z-index:2;margin-top:auto;padding-bottom:max(12px,env(safe-area-inset-bottom,0px));background:var(--cx-card);box-shadow:0 -10px 10px -8px rgb(0 0 0 / .45);}
