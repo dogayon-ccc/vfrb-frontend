@@ -133,6 +133,20 @@ t('every garment pair, sleeve and face: nothing disappears, parked + shown = tot
   console.log('     ', combos, 'garment/face combinations');
 });
 
+const LL = await v.ssrLoadModule('/src/pages/client/design-studio/layoutLibrary.ts');
+t('layouts are offered only where their zone exists, and every placed item lands on the cloth', () => {
+  const pz = zonesResolver(polo.key, 'front'), pants = zonesResolver('Pants|Short|female', 'front');
+  const names = l => LL.layoutsFor(l, 'front').map(x => x.id);
+  assert.ok(names(pz).includes('left-chest-emblem') && names(pz).includes('sleeve-badge') && names(pz).includes('collar-trim'));
+  assert.ok(!names(pants).includes('sleeve-badge') && !names(pants).includes('collar-trim') && names(pants).includes('hem-band'));
+  assert.ok(!LL.LAYOUTS.some(l => /cuff/i.test(l.id)), 'no cuff layout: no template draws a cuff zone');
+  assert.ok(LL.layoutsFor(pz, 'back').every(l => l.face !== 'front') && LL.layoutsFor(pz, 'back').some(l => l.id === 'back-name-number'));
+  for (const l of LL.LAYOUTS) for (const [id, zs] of [['polo', pz], ['blazer', zonesResolver('Blazer|Short|female', 'front')]]) {
+    if (!zs[l.zone]) continue;
+    for (const it of LL.layoutPlacement(l, zs, Z.snapInside)) assert.ok(Z.inPoly(zs[l.zone].poly, [it.x, it.y]), `${l.id} on ${id}: ${it.name}`);
+  }
+});
+
 await v.close();
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

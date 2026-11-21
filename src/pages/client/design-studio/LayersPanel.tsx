@@ -5,7 +5,7 @@ import { familyFor } from './garmentCatalog';
 export const ICON = { logo: 'image', artwork: 'image', drawing: 'draw', shape: 'shapes', text: 'text', pocket: 'shapes' };
 const KIND = { logo: 'Logo', artwork: 'Artwork image', drawing: 'Drawing', shape: 'Shape', text: 'Text' };
 
-export default function LayersPanel({ layers, unmapped = [], zoneChoices = [], onReassign = null, selectedId, garment, onSelect, onToggleVisibility, onToggleLock, onOpacity, onRename, onDelete, onReorder, onAdd = null }: any) {
+export default function LayersPanel({ layers, unmapped = [], zoneChoices = [], onReassign = null, onDuplicate = null, onBlend = null, selectedId, garment, onSelect, onToggleVisibility, onToggleLock, onOpacity, onRename, onDelete, onReorder, onAdd = null }: any) {
   const [dragId, setDragId] = useState(null);
   const [overId, setOverId] = useState(null);
   const [editingId, setEditingId] = useState(null);
@@ -128,6 +128,13 @@ export default function LayersPanel({ layers, unmapped = [], zoneChoices = [], o
                         onPointerUp={e => onOpacity(layer.id, Number(e.target.value) / 100, true)}
                         onKeyUp={e => onOpacity(layer.id, Number(e.target.value) / 100, true)}/>
                     </label>
+                    {onBlend && (
+                      <label className="ds-lay-op"><span>Blend</span>
+                        <select value={layer.blend ?? 'normal'} disabled={layer.locked} onChange={e => onBlend(layer.id, e.target.value)}>
+                          <option value="normal">Normal</option><option value="multiply">Multiply</option><option value="screen">Screen</option><option value="overlay">Overlay</option>
+                        </select>
+                      </label>
+                    )}
                     <div className="ds-lay-tools">
                       <button type="button" className="ds-lay-btn" aria-label="Bring forward" disabled={i === 0} onClick={() => move(layer.id, -1)}>
                         <NavIcon name="chevronUp" size={14}/>
@@ -135,6 +142,7 @@ export default function LayersPanel({ layers, unmapped = [], zoneChoices = [], o
                       <button type="button" className="ds-lay-btn" aria-label="Send backward" disabled={i === layers.length - 1} onClick={() => move(layer.id, 1)}>
                         <NavIcon name="chevronDown" size={14}/>
                       </button>
+                      {onDuplicate && <button type="button" className="ds-lay-btn" aria-label="Duplicate layer" onClick={() => onDuplicate(layer.id)}><NavIcon name="duplicate" size={14}/></button>}
                       <button type="button" className="ds-lay-btn" aria-label="Rename layer" onClick={() => { setEditingId(layer.id); setEditVal(layer.name); }}>
                         <NavIcon name="edit" size={14}/>
                       </button>

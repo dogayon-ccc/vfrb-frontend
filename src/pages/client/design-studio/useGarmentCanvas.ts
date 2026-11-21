@@ -2,7 +2,8 @@
 import { useRef, useState, useCallback, useEffect, useLayoutEffect } from 'react';
 import { remapOverlays, remapPlain, stampArtboard } from './overlayRemap';
 import { zonesResolver } from './zoneResolver';
-import { placeInZone, ZONE_LABEL } from './zoneMap';
+import { placeInZone, snapInside, ZONE_LABEL } from './zoneMap';
+import { layoutPlacement, layoutsFor } from './layoutLibrary';
 import { T2, LOGO_PRESETS, PATTERNS } from './dsShared';
 import { getGarmentPaths } from './garmentPaths';
 import { detailedPaths } from './garmentDetails';
@@ -16,7 +17,8 @@ import { BOX_TOOLS, BRUSH_KINDS, brushKind } from './railTools';
 import { pocketSpot, mirroredX, pocketLabel } from './pocketTools';
 import { pieceOf } from './garmentCatalog';
 import { wovenFill } from './wovenPatterns';
-import { loadFont, webFontFor, defaultWeight } from './studioFonts';
+import { loadFont, webFontFor, defaultWeight, WEB_FONTS } from './studioFonts';
+const webFontFamilyCss = (label) => WEB_FONTS.find(f => f.family === label)?.css ?? undefined;
 import { sketchInk } from './sketchLine';
 import { pathData, constrain45, closesAt, trimDoubleClick, dragBox } from './vectorTools';
 import { emptyHistory, entry, pushStep, stepHistory, canStep, switchSide, lookOf, sameLook, syncLook, lookToApply, foldSince } from './editHistory';
@@ -807,7 +809,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
 
   // pos: optional {x,y} in canvas-logical space from a drag-drop; falls
   // back to dead-center when placed via the keyboard-accessible path.
-  const addShape = useCallback((kind, color = T2, pos = null) => {
+  const addShape = useCallback((kind, color = T2, pos = null, opts = null) => {
     const canvas = fc.current;
     if (!canvas) return;
     const paths = getGarmentPaths(garment, sleeve);
@@ -819,6 +821,8 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         __shape: true, __layerId: uid(),
       };
       const shape = makeShape(fabric, kind, common, color); // overlayTools.js
+      if (opts?.w) { shape.set({ scaleX: opts.w / (shape.width || 1) }); shape.set({ scaleY: opts.h && shape.height ? opts.h / shape.height : kind === 'line' ? 1 : shape.scaleX }); }
+      if (opts?.name) shape.set({ __layerName: opts.name });
       canvas.add(shape);
       canvas.setActiveObject(shape);
       canvas.renderAll();
@@ -1199,7 +1203,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     if (!o.__layerId) o.__layerId = uid();
     const kind = o.__pocket ? 'pocket' : o.__shape ? 'shape' : o.__draw ? 'drawing' : o.__artwork ? 'artwork' : (o.__logo ? 'logo' : 'text');
     return { id: o.__layerId, type: kind, name: o.__layerName || (kind === 'pocket' ? pocketLabel(o.__pocket) : kind === 'drawing' ? 'Drawing' : kind === 'artwork' ? 'Artwork' : kind === 'logo' ? 'Logo' : kind === 'shape' ? shapeLabel(o) : 'Text'),
-      visible: o.visible !== false, locked: !!o.__locked, opacity: o.opacity ?? 1 };
+      visible: o.visible !== false, locked: !!o.__locked, opacity: o.opacity ?? 1, blend: ['multiply', 'screen', 'overlay'].includes(o.globalCompositeOperation) ? o.globalCompositeOperation : 'normal' };
   };
   // Artwork parked by a garment switch: still saved, hidden, listed apart from the layers until it is reassigned or its garment returns.
   const unmapped = overlayObjs.filter(o => o.__unmapped).map(o => ({ ...layerRow(o), homeGarment: String(o.__origin?.key ?? '').split('|')[0] || null, homeZone: o.__origin?.zone ? (ZONE_LABEL[o.__origin.zone] ?? o.__origin.zone) : null, homeFace: o.__origin?.face ?? null }));
@@ -1211,6 +1215,30 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     obj.set(placeInZone(obj, zone)); obj.setCoords();
     canvas.requestRenderAll(); pushHistory(); bumpLayers();
     return true;
+  }, [findLayer, pushHistory, bumpLayers]);
+  const layoutList = (() => { const a = artboard.current; return layoutsFor(a ? zonesResolver(a.key, a.face ?? 'front') : null, a?.face ?? 'front'); })();
+  // Applies a ready-made layout: each part becomes its own editable layer, named after the layout, placed by the zone it belongs to.
+  const placeLayout = useCallback((layout) => {
+    const a = artboard.current, zones = a ? zonesResolver(a.key, a.face ?? 'front') : null;
+    if (!zones) return 0;
+    const items = layoutPlacement(layout, zones, snapInside);
+    items.forEach((it) => {
+      const name = `${layout.name} · ${it.name}`;
+      if (it.kind === 'shape') addShape(it.shape, it.color, { x: it.x, y: it.y }, { w: it.width, h: it.height, name });
+      else addText(it.text, it.color, webFontFamilyCss(it.font), Math.max(8, Math.round(it.width)), { x: it.x, y: it.y });
+    });
+    return items.length;
+  }, [addShape, addText]);
+  const duplicateLayer = useCallback((id) => {
+    const canvas = fc.current, obj = findLayer(id);
+    if (!canvas || !obj) return;
+    canvas.setActiveObject(obj); duplicateSelected();
+  }, [findLayer, duplicateSelected]);
+  const setLayerBlend = useCallback((id, mode) => {
+    const canvas = fc.current, obj = findLayer(id);
+    if (!canvas || !obj || obj.__locked) return;
+    obj.set('globalCompositeOperation', mode === 'multiply' || mode === 'screen' || mode === 'overlay' ? mode : 'source-over');
+    canvas.requestRenderAll(); pushHistory(); bumpLayers();
   }, [findLayer, pushHistory, bumpLayers]);
   const layers = overlayObjs
     .filter(o => !o.__unmapped)
@@ -1224,6 +1252,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         visible: o.visible !== false,
         locked: !!o.__locked,
         opacity: o.opacity ?? 1,
+        blend: ['multiply', 'screen', 'overlay'].includes(o.globalCompositeOperation) ? o.globalCompositeOperation : 'normal',
       };
     })
     .reverse(); // canvas array is back→front; panel shows front-most first
@@ -1377,7 +1406,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   return {
     onAdded, addLogo, addText, addShape, addPocket, setPocketColor, mirrorSelected, updateSelected, arrangeLayer, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getFaceMetrics, getCanvasJSON, loadCanvasJSON,
     pushHistory, markHistory, settleHistory, undo, redo, canUndo, canRedo, editTick, resizeCanvas,
-    layers, unmapped, zoneChoices, reassignUnmapped, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
+    layers, unmapped, zoneChoices, reassignUnmapped, layoutList, placeLayout, duplicateLayer, setLayerBlend, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
     setDrawMode, setPickMode, setBrushStyle, initFailed,
     setSnapOptions, garmentRect, clearSelection, setOverlaysFrozen,
     presetPos, textItems, editText, showZoneOutline,

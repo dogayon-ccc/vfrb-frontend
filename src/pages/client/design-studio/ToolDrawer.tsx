@@ -31,6 +31,7 @@ const ADD_ITEMS = [
   { id: 'logo',     label: 'Logo',     icon: 'logo',   tool: 'assets', sub: 'logo' },
   { id: 'text',     label: 'Text',     icon: 'text',   tool: 'text',   sub: null },
   { id: 'shapes',   label: 'Shapes',   icon: 'shapes', tool: 'assets', sub: 'shapes' },
+  { id: 'layouts',  label: 'Layouts',  icon: 'image',  tool: 'assets', sub: 'layouts' },
 ];
 const SNAP_NEXT = { peek: ['half', 'Raise the panel'], half: ['full', 'Raise the panel to full height'], full: ['peek', 'Lower the panel'] };
 
@@ -93,7 +94,7 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
   const title = noGarment ? 'Design tools' : tab?.label ?? active.label;
 
   const layersList = () => (
-    <LayersPanel layers={p.layers} unmapped={p.unmapped} zoneChoices={p.zoneChoices} onReassign={p.reassignUnmapped} selectedId={p.selObj?.__layerId} garment={p.cfg.garment} onSelect={p.selectLayer}
+    <LayersPanel layers={p.layers} unmapped={p.unmapped} zoneChoices={p.zoneChoices} onReassign={p.reassignUnmapped} onDuplicate={p.duplicateLayer} onBlend={p.setLayerBlend} selectedId={p.selObj?.__layerId} garment={p.cfg.garment} onSelect={p.selectLayer}
       onToggleVisibility={p.toggleLayerVisibility} onToggleLock={p.toggleLayerLock} onOpacity={p.setLayerOpacity}
       onRename={p.renameLayer} onDelete={p.deleteLayer} onReorder={p.reorderLayers} onAdd={() => setTool('assets')}/>
   );
@@ -109,7 +110,7 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
                      onDone={(split ? flyPart : partView) ? () => setTool('type') : null}/>,
     details: () => <DetailsPanel cfg={p.cfg} setCfg={p.setCfg} focus={p.detailFocus} onColourPocket={() => { p.setActiveZone('pocket'); setTool('color'); }} onAddPocket={p.addPocket}/>,
     assets:  () => <AssetsPanel tab={p.assetsTab} cfg={p.cfg} logo={p.logoUpload}
-                     shapes={{ selObj:p.selObj, onAdd:p.addShape, onUpdate:p.updateSelected }}
+                     shapes={{ selObj:p.selObj, onAdd:p.addShape, onUpdate:p.updateSelected }} layouts={{ list:p.layoutList, onPlace:p.placeLayout }}
                      onInspo={() => p.setShowInspo(true)} onShowcase={() => p.setShowShowcase(true)}/>,
     text:    () => <TextPanel onAdd={p.addText} bodyColor={p.cfg?.colors?.body}/>,
     draw:    () => <div className="ds-sum"><p className="ds-note">Brush and eraser options are in the panel on the canvas. Pick another tool from the tool bar, or finish here.</p><button type="button" className="ds-btn" onClick={() => endOpts?.()}>Done drawing</button></div>,
