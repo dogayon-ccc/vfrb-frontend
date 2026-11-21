@@ -9,6 +9,9 @@ const Z = await v.ssrLoadModule('/src/pages/client/design-studio/zoneMap.ts');
 const LL = await v.ssrLoadModule('/src/pages/client/design-studio/layoutLibrary.ts');
 const G = await v.ssrLoadModule('/src/pages/client/design-studio/garmentCatalog.ts');
 const { zonesResolver } = await v.ssrLoadModule('/src/pages/client/design-studio/zoneResolver.ts');
+const LG = await v.ssrLoadModule('/src/pages/client/design-studio/layerGroups.ts');
+const R = await v.ssrLoadModule('/src/pages/client/design-studio/overlayRemap.ts');
+const P = await v.ssrLoadModule('/src/pages/client/design-studio/garmentPaths.ts');
 const PT = await v.ssrLoadModule('/src/pages/client/design-studio/pickerTab.ts');
 
 let pass = 0, fail = 0;
@@ -100,6 +103,49 @@ t('Polo left-chest layouts are all still offered and sit on the wearer-left (vie
 t('garment chip: scratch designs open the scratch templates, reference designs reopen References', () => {
   assert.equal(PT.pickerTabFor({ inspirationId: null }), 'templates'); assert.equal(PT.pickerTabFor({}), 'templates'); assert.equal(PT.pickerTabFor(undefined), 'templates');
   assert.equal(PT.pickerTabFor({ inspirationId: 'ref-12' }), 'inspiration');
+});
+
+// ---- layer groups ----
+const o = (id, extra = {}) => ({ __layerId: id, __shape: true, ...extra });
+t('group: needs two groupable layers; locked, base and unmapped objects never join', () => {
+  const all = [o('a'), o('b'), o('c', { __locked: true }), o('d', { __garmentBase: true }), o('e', { __unmapped: true })];
+  assert.equal(LG.canGroup(all, [all[0]]), false); assert.equal(LG.canGroup(all, [all[0], all[1]]), true);
+  assert.equal(LG.canGroup(all, [all[0], all[2]]), false); assert.equal(LG.canGroup(all, [all[0], all[3], all[4]]), false);
+});
+t('group assigns one id, keeps every member\'s own layer id and zone, and a whole group is not groupable again', () => {
+  const all = [o('a', { __zone: 'body' }), o('b', { __zone: 'sleeveL' }), o('c')];
+  const ch = LG.groupObjects(all, [all[0], all[1]], 'g1');
+  assert.deepEqual(ch.map(x => x.__layerId), ['a', 'b']); assert.deepEqual(all.map(x => x.__groupId), ['g1', 'g1', undefined]);
+  assert.equal(all[0].__zone, 'body'); assert.equal(all[1].__zone, 'sleeveL');
+  assert.equal(LG.canGroup(all, [all[0], all[1]]), false); assert.equal(LG.canGroup(all, [all[0], all[2]]), true);
+});
+t('picking one member selects the whole group in stack order', () => {
+  const all = [o('a', { __groupId: 'g' }), o('x'), o('b', { __groupId: 'g' }), o('y')];
+  assert.deepEqual(LG.expandSelection(all, [all[2]]).map(x => x.__layerId), ['a', 'b']);
+  assert.deepEqual(LG.expandSelection(all, [all[1]]).map(x => x.__layerId), ['x']);
+});
+t('grouping across an existing group absorbs it (no nested groups)', () => {
+  const all = [o('a', { __groupId: 'g1' }), o('b', { __groupId: 'g1' }), o('c')];
+  LG.groupObjects(all, [all[0], all[2]], 'g2'); assert.deepEqual(all.map(x => x.__groupId), ['g2', 'g2', 'g2']);
+});
+t('ungroup clears every member of the touched group and nothing else', () => {
+  const all = [o('a', { __groupId: 'g1' }), o('b', { __groupId: 'g1' }), o('c', { __groupId: 'g2' }), o('d', { __groupId: 'g2' })];
+  const ch = LG.ungroupObjects(all, [all[0]]); assert.equal(ch.length, 2);
+  assert.deepEqual(all.map(x => x.__groupId), [undefined, undefined, 'g2', 'g2']); assert.equal(LG.canUngroup([all[0]]), false); assert.equal(LG.canUngroup([all[2]]), true);
+});
+t('panel helpers: group-wide layer ids and stable group names', () => {
+  const rows = [{ id: 'a', groupId: 'g9' }, { id: 'b', groupId: null }, { id: 'c', groupId: 'g9' }, { id: 'd', groupId: 'g3' }];
+  assert.deepEqual(LG.layerIdsFor(rows, 'a'), ['a', 'c']); assert.deepEqual(LG.layerIdsFor(rows, 'b'), ['b']);
+  const n = LG.groupLabels(rows); assert.equal(n.get('g9'), 'Group 1'); assert.equal(n.get('g3'), 'Group 2');
+});
+t('group ids survive a garment switch and return (zone-aware remap keeps every member and its group)', () => {
+  const ab = (g) => { const p = P.getGarmentPaths(g, 'Short', 'front'); return { w: p.w, h: p.h, key: `${g}|Short|female`, face: 'front' }; };
+  const polo = ab('Polo Shirt'), zs = zonesResolver(polo.key, 'front'), c = zs.body.box;
+  const mk = (id, x) => R.stampArtboard({ __layerId: id, __groupId: 'grp', __artwork: true, originX: 'center', originY: 'center', left: x, top: c.t + c.h * 0.3, width: 20, height: 20, scaleX: 1, scaleY: 1, visible: true }, polo);
+  const list = [mk('m1', c.l + c.w * 0.4), mk('m2', c.l + c.w * 0.6)];
+  const away = R.remapPlain(list, ab('Pants'), zonesResolver), home = R.remapPlain(away, polo, zonesResolver);
+  assert.equal(away.length, 2); assert.ok(away.every(x => x.__groupId === 'grp'));
+  assert.deepEqual(home.map(x => x.__layerId), ['m1', 'm2']); assert.ok(home.every(x => x.__groupId === 'grp' && !x.__unmapped));
 });
 
 console.log(`\n${pass} passed, ${fail} failed`);

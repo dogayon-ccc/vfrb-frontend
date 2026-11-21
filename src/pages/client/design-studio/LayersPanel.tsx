@@ -1,16 +1,19 @@
 import { useRef, useState } from 'react';
 import { NavIcon } from '../../../components/ui/icons';
 import { familyFor } from './garmentCatalog';
+import { groupLabels } from './layerGroups';
+import './textilePanel.css';
 
 export const ICON = { logo: 'image', artwork: 'image', drawing: 'draw', shape: 'shapes', text: 'text', pocket: 'shapes' };
 const KIND = { logo: 'Logo', artwork: 'Artwork image', drawing: 'Drawing', shape: 'Shape', text: 'Text' };
 
-export default function LayersPanel({ layers, unmapped = [], zoneChoices = [], onReassign = null, onDuplicate = null, onBlend = null, selectedId, garment, onSelect, onToggleVisibility, onToggleLock, onOpacity, onRename, onDelete, onReorder, onAdd = null }: any) {
+export default function LayersPanel({ layers, unmapped = [], zoneChoices = [], onReassign = null, onDuplicate = null, onBlend = null, selectedId, garment, onSelect, onToggleVisibility, onToggleLock, onOpacity, onRename, onDelete, onReorder, onAdd = null, onGroup = null, onUngroup = null, selection = null, selectedIds = null }: any) {
   const [dragId, setDragId] = useState(null);
   const [overId, setOverId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editVal, setEditVal] = useState('');
   const grip = useRef(null);
+  const gnames = groupLabels(layers);
 
   const commitRename = () => {
     if (editingId && editVal.trim()) onRename(editingId, editVal.trim());
@@ -77,11 +80,18 @@ export default function LayersPanel({ layers, unmapped = [], zoneChoices = [], o
         </div>
       ) : (<>
         <p className="ds-lay-count">Layers on this side · {layers.length}</p>
+        {onGroup && onUngroup && (
+          <div className="ds-lay-groupbar" role="group" aria-label="Group layers">
+            <button type="button" className="ds-lay-gbtn" disabled={!selection?.canGroup} onClick={onGroup} title="Select two or more layers (Shift or Ctrl-click), then group them to move as one">Group</button>
+            <button type="button" className="ds-lay-gbtn" disabled={!selection?.canUngroup} onClick={onUngroup}>Ungroup</button>
+            <span className="ds-lay-ghint" role="status">{selection?.count > 1 ? `${selection.count} selected` : 'Shift-click layers to select several'}</span>
+          </div>
+        )}
         <ul className="ds-lay-list" aria-label="Layers, front-most first">
           {layers.map((layer, i) => {
-            const sel = layer.id === selectedId;
+            const sel = layer.id === selectedId, multi = !!selectedIds?.has(layer.id), gname = layer.groupId ? gnames.get(layer.groupId) : null;
             return (
-              <li key={layer.id} data-layer-id={layer.id} className="ds-lay-row" data-sel={sel || undefined} data-hidden={!layer.visible || undefined}
+              <li key={layer.id} data-layer-id={layer.id} className="ds-lay-row" data-sel={sel || multi || undefined} data-group={layer.groupId ? ((gnames.size && [...gnames.keys()].indexOf(layer.groupId)) % 4) : undefined} data-hidden={!layer.visible || undefined}
                 data-locked={layer.locked || undefined} data-over={(overId === layer.id && dragId && dragId !== layer.id) || undefined}
                 style={{ opacity: dragId === layer.id ? .4 : undefined }}
                 draggable={editingId !== layer.id}
@@ -95,12 +105,12 @@ export default function LayersPanel({ layers, unmapped = [], zoneChoices = [], o
                     onPointerDown={e => gripDown(e, layer.id)} onPointerMove={gripMove} onPointerUp={gripUp} onPointerCancel={() => { grip.current = null; setDragId(null); setOverId(null); }}>
                     <NavIcon name="dragHandle" size={14}/>
                   </span>
-                  <button type="button" className="ds-lay-pick" aria-pressed={sel} onClick={() => onSelect(layer.id)}>
+                  <button type="button" className="ds-lay-pick" aria-pressed={sel || multi} onClick={e => onSelect(layer.id, e.shiftKey || e.ctrlKey || e.metaKey)}>
                     <span className="ds-lay-type" aria-hidden="true"><NavIcon name={ICON[layer.type] ?? 'text'} size={14}/></span>
                     {editingId === layer.id ? null : (
                       <span className="ds-lay-name" title={`${layer.name} â€” double-click to rename`}
                         onDoubleClick={e => { e.stopPropagation(); setEditingId(layer.id); setEditVal(layer.name); }}>
-                        {layer.name}<em>{KIND[layer.type]}</em>
+                        {layer.name}<em>{gname ? `${gname} · ` : ''}{KIND[layer.type]}</em>
                       </span>
                     )}
                   </button>

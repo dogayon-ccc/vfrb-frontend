@@ -8,6 +8,7 @@ import { T2, LOGO_PRESETS, PATTERNS } from './dsShared';
 import { getGarmentPaths } from './garmentPaths';
 import { detailedPaths } from './garmentDetails';
 import { addFabricShading } from './fabricShading';
+import { membersOf, expandSelection, canGroup as canGroupObjs, canUngroup as canUngroupObjs, groupObjects, ungroupObjects, groupIdOf, layerIdsFor } from './layerGroups';
 import { assetFor, tintedCanvas } from './garmentAssets';
 import { snapTargets, computeSnap, snapThreshold, computeResizeSnap, movingEdges, snapAngle } from './snapGuides';
 import { placementTargets, readoutPct, alignDeltas, distributeDeltas, gridSpec, guideLines, fixedGuides, nudgePct } from './canvasGuides';
@@ -17,7 +18,7 @@ import { BOX_TOOLS, BRUSH_KINDS, brushKind } from './railTools';
 import { pocketSpot, mirroredX, pocketLabel } from './pocketTools';
 import { pieceOf } from './garmentCatalog';
 import { wovenFill } from './wovenPatterns';
-import { textileFill } from './textiles';
+import { textileFill, textileParams } from './textiles';
 import { loadFont, webFontFor, defaultWeight, WEB_FONTS } from './studioFonts';
 const webFontFamilyCss = (label) => WEB_FONTS.find(f => f.family === label)?.css ?? undefined;
 import { sketchInk } from './sketchLine';
@@ -57,7 +58,7 @@ function zoneAt(canvas, e) {
     .find(o => o.containsPoint(scene) && !canvas.isTargetTransparent(o, vp.x, vp.y));
 }
 
-const OVERLAY_PROPS = ['__logo','__artwork','__text','__draw','__shape','__layerId','__layerName','__locked','__erase','__curve','__shapeKind','__sides','__clip','__pocket','__pocketPanels','__pocketColor','__zone','__unmapped','__origin','lockMovementX','lockMovementY','lockRotation','lockScalingX','lockScalingY','hasControls'];
+const OVERLAY_PROPS = ['__logo','__artwork','__text','__draw','__shape','__layerId','__layerName','__locked','__erase','__curve','__shapeKind','__sides','__clip','__pocket','__pocketPanels','__pocketColor','__zone','__unmapped','__origin','__groupId','lockMovementX','lockMovementY','lockRotation','lockScalingX','lockScalingY','hasControls'];
 // The customer's overlays as saved JSON, in canvas coordinates (plainObject decomposes active-selection members). One serialiser
 // for history, saves and exports.
 const overlayJSON = (canvas, ab = null) => canvas.getObjects()
@@ -101,6 +102,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   const onAdded = useRef(null);
   const hoverEl = useRef(null);
   const fabricReady = useRef(false);
+  const fabricRef = useRef<any>(null); // the loaded fabric namespace, for callbacks declared outside the init effect
   const disposePending = useRef(null); // in-flight dispose() Promise, guards StrictMode double-mount
 
   // Starts at an empty baseline so the first action can be undone; a design load restarts it (resetHistory), a side switch parks it.
@@ -157,7 +159,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     if (!canvasRef.current) return;
     let cancelled = false;
 
-    import('fabric').then(async (mod) => { const fabric = mod.fabric ?? mod.default ?? mod;
+    import('fabric').then(async (mod) => { const fabric = mod.fabric ?? mod.default ?? mod; fabricRef.current = fabric;
       if (disposePending.current) { try { await disposePending.current; } catch {} }
       if (cancelled || !canvasRef.current) return;
       const paths = getGarmentPaths(garment, sleeve, face);
@@ -382,8 +384,17 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         if (isOverlay(obj)) { pushHistory(); bumpLayers(); }
       });
 
-      fc.current.on('selection:created', e => onSelect(e.selected?.[0] ?? null));
-      fc.current.on('selection:updated', e => onSelect(e.selected?.[0] ?? null));
+      // Clicking one member of a group selects the whole group as one multi-selection (layerGroups.ts).
+      const growing = { on: false };
+      const growGroup = () => {
+        const c = fc.current; if (!c || growing.on) return;
+        const sel = c.getActiveObjects(), want = expandSelection(c.getObjects(), sel);
+        if (want.length === sel.length || !want.some(o => groupIdOf(o))) return;
+        growing.on = true;
+        try { c.discardActiveObject(); c.setActiveObject(new fabric.ActiveSelection(want, { canvas: c })); c.requestRenderAll(); } finally { growing.on = false; }
+      };
+      fc.current.on('selection:created', e => { growGroup(); onSelect(e.selected?.[0] ?? null); });
+      fc.current.on('selection:updated', e => { growGroup(); onSelect(e.selected?.[0] ?? null); });
       fc.current.on('selection:cleared',  () => onSelect(null));
       fc.current.on('object:added', e => freezeObj(e.target));
 
@@ -599,6 +610,8 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
           strokeDashArray: zoneKey === 'pocket' ? [3, 2] : undefined,
           selectable:false, evented:true, __garmentBase:true, __zoneKey:zoneKey,
         });
+        // A textile that does not repeat both ways leaves the rest of the zone unpainted: a solid base underneath keeps it cloth-coloured.
+        if (patDef?.textile) { const tp = textileParams(patternParams?.[zoneKey], fill); if (!(tp.rx && tp.ry)) canvas.insertAt(zi++, new fabric.Path(d, { fill: tp.bg, stroke: 'transparent', selectable: false, evented: false, __garmentBase: true })); }
         canvas.insertAt(zi++, zonePath);
         zones.push({ obj: zonePath, d });
         if (patDef?.woven) {
@@ -1195,6 +1208,23 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   // regardless of whether an overlay was covering the canvas. Real bug:
   // confirmed from screenshots — dismissing onboarding left a tiny
   // garment stranded in the corner of a hugely oversized blank canvas.
+  // Group / ungroup the current selection: one undo step each; members keep their own layer ids and zones.
+  const [selTick, setSelTick] = useState(0);
+  const groupSelected = useCallback(() => {
+    const c = fc.current; if (!c) return false;
+    const changed = groupObjects(c.getObjects(), c.getActiveObjects(), uid());
+    if (!changed.length) return false;
+    pushHistory(); bumpLayers(); setSelTick(n => n + 1); return true;
+  }, [pushHistory, bumpLayers]);
+  const ungroupSelected = useCallback(() => {
+    const c = fc.current; if (!c) return false;
+    const changed = ungroupObjects(c.getObjects(), c.getActiveObjects());
+    if (!changed.length) return false;
+    pushHistory(); bumpLayers(); setSelTick(n => n + 1); return true;
+  }, [pushHistory, bumpLayers]);
+  const selectedLayerIds = new Set<string>((fc.current?.getActiveObjects?.() ?? []).map(o => o.__layerId).filter(Boolean));
+  const selectionState = (() => { void selTick; const c = fc.current; const sel = c?.getActiveObjects?.() ?? []; return { count: sel.length, canGroup: !!c && canGroupObjs(c.getObjects(), sel), canUngroup: canUngroupObjs(sel) }; })();
+
   const resizeCanvas = useCallback(() => {
     fc.current?.renderAll();
   }, []);
@@ -1208,7 +1238,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     if (!o.__layerId) o.__layerId = uid();
     const kind = o.__pocket ? 'pocket' : o.__shape ? 'shape' : o.__draw ? 'drawing' : o.__artwork ? 'artwork' : (o.__logo ? 'logo' : 'text');
     return { id: o.__layerId, type: kind, name: o.__layerName || (kind === 'pocket' ? pocketLabel(o.__pocket) : kind === 'drawing' ? 'Drawing' : kind === 'artwork' ? 'Artwork' : kind === 'logo' ? 'Logo' : kind === 'shape' ? shapeLabel(o) : 'Text'),
-      visible: o.visible !== false, locked: !!o.__locked, opacity: o.opacity ?? 1, blend: ['multiply', 'screen', 'overlay'].includes(o.globalCompositeOperation) ? o.globalCompositeOperation : 'normal' };
+      visible: o.visible !== false, locked: !!o.__locked, opacity: o.opacity ?? 1, blend: ['multiply', 'screen', 'overlay'].includes(o.globalCompositeOperation) ? o.globalCompositeOperation : 'normal', groupId: groupIdOf(o) };
   };
   // Artwork parked by a garment switch: still saved, hidden, listed apart from the layers until it is reassigned or its garment returns.
   const unmapped = overlayObjs.filter(o => o.__unmapped).map(o => ({ ...layerRow(o), homeGarment: String(o.__origin?.key ?? '').split('|')[0] || null, homeZone: o.__origin?.zone ? (ZONE_LABEL[o.__origin.zone] ?? o.__origin.zone) : null, homeFace: o.__origin?.face ?? null }));
@@ -1265,23 +1295,32 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         locked: !!o.__locked,
         opacity: o.opacity ?? 1,
         blend: ['multiply', 'screen', 'overlay'].includes(o.globalCompositeOperation) ? o.globalCompositeOperation : 'normal',
+        groupId: groupIdOf(o),
       };
     })
     .reverse(); // canvas array is back→front; panel shows front-most first
 
-  const selectLayer = useCallback((id) => {
+  // additive (Shift/Ctrl-click in the panel) adds the layer, and its whole group, to the current selection.
+  const selectLayer = useCallback((id, additive = false) => {
     const canvas = fc.current;
     const obj = findLayer(id);
     if (!canvas || !obj) return;
-    canvas.setActiveObject(obj);
+    if (additive) {
+      const cur = canvas.getActiveObjects(), next = cur.includes(obj) ? cur.filter(o => o !== obj) : [...cur, obj];
+      canvas.discardActiveObject();
+      if (next.length === 1) canvas.setActiveObject(next[0]);
+      else if (next.length > 1) canvas.setActiveObject(new fabricRef.current.ActiveSelection(expandSelection(canvas.getObjects(), next), { canvas }));
+    } else canvas.setActiveObject(obj);
     canvas.renderAll();
+    setSelTick(n => n + 1);
   }, [findLayer]);
 
   const toggleLayerVisibility = useCallback((id) => {
     const canvas = fc.current;
     const obj = findLayer(id);
     if (!canvas || !obj) return;
-    obj.set('visible', !(obj.visible !== false));
+    const show = !(obj.visible !== false), gid = groupIdOf(obj);
+    (gid ? membersOf(canvas.getObjects(), gid) : [obj]).forEach(m => m.set('visible', show)); // a group hides and shows as one
     canvas.renderAll();
     pushHistory();
     bumpLayers();
@@ -1299,9 +1338,10 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     const canvas = fc.current;
     const obj = findLayer(id);
     if (!canvas || !obj) return;
-    if (obj.__locked) return;
-    if (canvas.getActiveObject() === obj) canvas.discardActiveObject();
-    canvas.remove(obj);
+    const gid = groupIdOf(obj), gone = (gid ? membersOf(canvas.getObjects(), gid) : [obj]).filter(m => !m.__locked);
+    if (!gone.length || obj.__locked) return;
+    canvas.discardActiveObject();
+    gone.forEach(m => canvas.remove(m));
     canvas.renderAll();
     pushHistory();
     bumpLayers();
@@ -1326,9 +1366,11 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
     const canvas = fc.current;
     const obj = findLayer(id);
     if (!canvas || !obj) return;
-    const lock = !obj.__locked;
-    obj.__locked = lock;
-    obj.set({ lockMovementX: lock, lockMovementY: lock, lockRotation: lock, lockScalingX: lock, lockScalingY: lock, hasControls: !lock });
+    const lock = !obj.__locked, gid = groupIdOf(obj);
+    for (const m of gid ? membersOf(canvas.getObjects(), gid) : [obj]) {
+      m.__locked = lock;
+      m.set({ lockMovementX: lock, lockMovementY: lock, lockRotation: lock, lockScalingX: lock, lockScalingY: lock, hasControls: !lock });
+    }
     canvas.renderAll();
     pushHistory();
     bumpLayers();
@@ -1418,7 +1460,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   return {
     onAdded, addLogo, addText, addShape, addPocket, setPocketColor, mirrorSelected, updateSelected, arrangeLayer, deleteSelected, duplicateSelected, alignSelected, arrangeSelected, nudgeSelected, exportOverlays, exportPNG, exportFace, getFaceMetrics, getCanvasJSON, loadCanvasJSON,
     pushHistory, markHistory, settleHistory, undo, redo, canUndo, canRedo, editTick, resizeCanvas,
-    layers, unmapped, zoneChoices, reassignUnmapped, layoutList, placeLayout, duplicateLayer, setLayerBlend, selectLayer, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
+    layers, unmapped, zoneChoices, reassignUnmapped, layoutList, placeLayout, duplicateLayer, setLayerBlend, selectLayer, groupSelected, ungroupSelected, selectionState, selectedLayerIds, toggleLayerVisibility, toggleLayerLock, toggleSelectedLock, setLayerOpacity, renameLayer, deleteLayer, reorderLayers,
     setDrawMode, setPickMode, setBrushStyle, initFailed,
     setSnapOptions, garmentRect, clearSelection, setOverlaysFrozen,
     presetPos, textItems, editText, showZoneOutline,

@@ -96,7 +96,8 @@ export default function ToolDrawer({ tool: pickedTool, setTool, onOpenTool, only
   const layersList = () => (
     <LayersPanel layers={p.layers} unmapped={p.unmapped} zoneChoices={p.zoneChoices} onReassign={p.reassignUnmapped} onDuplicate={p.duplicateLayer} onBlend={p.setLayerBlend} selectedId={p.selObj?.__layerId} garment={p.cfg.garment} onSelect={p.selectLayer}
       onToggleVisibility={p.toggleLayerVisibility} onToggleLock={p.toggleLayerLock} onOpacity={p.setLayerOpacity}
-      onRename={p.renameLayer} onDelete={p.deleteLayer} onReorder={p.reorderLayers} onAdd={() => setTool('assets')}/>
+      onRename={p.renameLayer} onDelete={p.deleteLayer} onReorder={p.reorderLayers} onAdd={() => setTool('assets')}
+      onGroup={p.groupSelected} onUngroup={p.ungroupSelected} selection={p.selectionState} selectedIds={p.selectedLayerIds}/>
   );
   const partView = tool === 'color' && allowed('type'); // a part is open; Done returns to the whole uniform
   const flyTool = pickedTool;
