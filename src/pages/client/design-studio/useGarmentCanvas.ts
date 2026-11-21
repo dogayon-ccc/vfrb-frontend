@@ -1,5 +1,6 @@
 // Fabric.js canvas hook for Design Studio. Extracted from DesignStudio.jsx.
 import { useRef, useState, useCallback, useEffect, useLayoutEffect } from 'react';
+import { remapOverlays } from './overlayRemap';
 import { T2, LOGO_PRESETS, PATTERNS } from './dsShared';
 import { getGarmentPaths } from './garmentPaths';
 import { detailedPaths } from './garmentDetails';
@@ -121,6 +122,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   latest.current = { garment, sleeve, face, fit };
   // The garment's box in canvas px, published after each base draw (the rulers measure 0-100 % of it).
   const [garmentRect, setGarmentRect] = useState(null);
+  const artboard = useRef<{ w: number; h: number; key: string } | null>(null); // last artboard size, for the garment-switch remap
   const publishGarment = useCallback((c) => {
     const g = c ? garmentBox(c) : null;
     setGarmentRect(p => (p && g && ['left', 'top', 'width', 'height'].every(k => Math.abs(p[k] - g[k]) < 0.5) ? p : g));
@@ -555,6 +557,9 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
 
     import('fabric').then((mod) => { const fabric = mod.fabric ?? mod.default ?? mod;
       const paths = detailedPaths(garment, sleeve, face, details);
+      const key = `${garment}|${sleeve}|${fit}`; // front/back keep their overlays untouched; only a different garment moves them
+      if (artboard.current && artboard.current.key !== key) remapOverlays(canvas, artboard.current, paths);
+      artboard.current = { w: paths.w, h: paths.h, key };
       canvas.getObjects().filter(o => o.__garmentBase || o.__hoverGlow).forEach(o => canvas.remove(o));
 
       // Photo base: one recoloured cut-out in the body zone, same canvas size as the vector template so logo/text placement is unchanged.
