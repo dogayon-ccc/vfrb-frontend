@@ -1112,7 +1112,7 @@ export default function DesignStudio() {
           canUndo={canUndo && !locked} canRedo={canRedo && !locked} status={locked ? null : status}
           viewMode={viewMode} setViewMode={setViewMode} setHas3DLoaded={setHas3DLoaded}
           showShowcase={showShowcase} setShowShowcase={toggleShowcase} showcaseCount={locked || colorOnly ? 0 : showcaseCount}
-          saveDesign={saveDesign} saving={saving} saved={saved} draftSaved={draftSaved} orderThis={orderThis} ordering={ordering}
+          onChangeGarment={changeGarment} saveDesign={saveDesign} saving={saving} saved={saved} draftSaved={draftSaved} orderThis={orderThis} ordering={ordering}
           downloadImage={downloadImage} downloadPdf={downloadPdf} openPrintFiles={openPrintFiles} exporting={exporting}
           lock={locked ? lock : null} onReorder={reorderThis} onDuplicate={duplicateToEdit} copying={copying} phoneItems={phoneItems}/>
 

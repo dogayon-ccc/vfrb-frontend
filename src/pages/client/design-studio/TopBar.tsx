@@ -2,7 +2,7 @@
 // Save and PNG/PDF export live here too (phones fold Save and undo/redo into the "..." menu). A final design shows Reorder and Duplicate to edit.
 // The garment picker is reached from "Change garment" and the empty canvas; Showcase appears only while it has designs.
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Undo2, Redo2, Sparkles, Save, Check, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Undo2, Redo2, Sparkles, Save, Check, ChevronRight, ChevronDown, Shirt } from 'lucide-react';
 import ActionMenu from '../../../components/ui/ActionMenu';
 import { has3DFor, NO_FAMILY_3D, standIn3D, no3DReason } from './garmentCapabilities';
 import { cap3D } from './garmentCatalog';
@@ -54,7 +54,7 @@ export function ViewToggle({ cfg, viewMode, setViewMode, setHas3DLoaded }: any) 
 
 export default function TopBar({ nav, cfg, setCfg, undo, redo, canUndo, canRedo, viewMode, setViewMode, setHas3DLoaded,
   showShowcase, setShowShowcase, showcaseCount = 0, status = null,
-  saveDesign, saving, saved, draftSaved, orderThis, ordering, downloadImage, downloadPdf, openPrintFiles, exporting, lock = null, onReorder, onDuplicate, copying = false, phoneItems = [] }: any) {
+  onChangeGarment, saveDesign, saving, saved, draftSaved, orderThis, ordering, downloadImage, downloadPdf, openPrintFiles, exporting, lock = null, onReorder, onDuplicate, copying = false, phoneItems = [] }: any) {
   const phone = usePhone();
   const has = !!cfg.garment;
   // Phones: the name field leaves the bar (it truncated to 'Untit…'), so renaming lives in the menu.
@@ -69,6 +69,7 @@ export default function TopBar({ nav, cfg, setCfg, undo, redo, canUndo, canRedo,
     phone && !lock && { label: 'Redo', onClick: redo, disabled: !canRedo },
     phone && !lock && has && { label: saving ? 'Saving…' : 'Save now', onClick: saveDesign, disabled: !!saving },
     phone && !lock && has && { label: 'Rename design', onClick: renameDesign },
+    phone && !lock && has && onChangeGarment && { label: 'Change garment', onClick: onChangeGarment },
     phone && lock && { label: copying ? 'Copying…' : 'Duplicate to edit', onClick: onDuplicate, disabled: copying },
     has && downloadImage && { label: exporting === 'png' ? 'Exporting PNG…' : 'Export PNG image', onClick: downloadImage, disabled: !!exporting },
     has && openPrintFiles && { label: exporting === 'print' ? 'Preparing print files…' : 'Print files (300 DPI)…', onClick: openPrintFiles, disabled: !!exporting },
@@ -84,6 +85,13 @@ export default function TopBar({ nav, cfg, setCfg, undo, redo, canUndo, canRedo,
       {/* Design name feeds cfg.name, carried into studio_config on every save */}
       {!phone && <input className="ds-bar-name" value={cfg.name ?? ''} maxLength={80} placeholder="Untitled design" aria-label="Design name"
         readOnly={!!lock} onChange={e => setCfg(p => ({ ...p, name: e.target.value.slice(0, 80) }))} />}
+      {!phone && !lock && has && onChangeGarment && (
+        <button type="button" className="ds-bar-garment" onClick={onChangeGarment} aria-haspopup="dialog" title="Change garment: your artwork stays on the design">
+          <Shirt size={18} aria-hidden="true"/>
+          <span className="ds-bar-garment-txt"><strong>{garmentLabel(cfg.garment)}</strong>{[cfg.fit, cfg.sleeve].filter(Boolean).join(' · ') && <small>{[cfg.fit, cfg.sleeve].filter(Boolean).join(' · ')}</small>}</span>
+          <ChevronDown size={14} aria-hidden="true"/>
+        </button>
+      )}
       <div className="ds-bar-sp" />
       {lock
         ? <span className="ds-bar-save" role="status" title="Final designs are read-only"><span className="ds-bar-save-txt">{phone ? 'Final' : lock.orderId ? `Final for order #${lock.orderId}` : 'Final for its order'}</span></span>
