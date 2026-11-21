@@ -3,9 +3,11 @@
 import assert from 'node:assert/strict';
 import { writeFileSync } from 'node:fs';
 import { pxForCm, cmForPx, parsePrintWidth, buildPrintPlan, printFileNames, kindOf, zoneLabel, qualityNote } from '../src/pages/client/design-studio/print/printSpec.ts';
-import { makeZip, crc32 } from '../src/pages/client/design-studio/print/zipStore.ts';
+import { makeZip, crc32, pngWithDpi } from '../src/pages/client/design-studio/print/zipStore.ts';
 import { buildPrintPdf } from '../src/pages/client/design-studio/print/printPdf.ts';
 
+import { deflateSync } from 'node:zlib';
+import { remapBox, remapOverlays } from '../src/pages/client/design-studio/overlayRemap.ts';
 let n = 0;
 const t = (name, fn) => { fn(); n++; console.log('ok', name); };
 
@@ -15,6 +17,31 @@ const pocket = { type: 'Group', __pocket: true, __layerId: 'P1' };
 const hidden = { ...logo, __layerId: 'H1', visible: false };
 const metrics = { front: { canvas: { w: 400, h: 800 }, box: { left: 50, top: 100, width: 300, height: 600 } } };
 
+t('stroke width is part of the printed size, so dialog height equals the rendered height', () => {
+  const hl = { type: 'Path', __draw: true, __layerId: 'D1', width: 100, height: 40, scaleX: 1, scaleY: 1, stroke: '#0f0', strokeWidth: 20, left: 0, top: 0 };
+  const it = buildPrintPlan({ front: [hl] }, { D1: 6 }, metrics).items[0];
+  assert.equal(it.bboxPx.w, 120); assert.equal(it.bboxPx.h, 60); assert.equal(it.heightCm, 3); // 6 cm * 60/120
+});
+t('PNG gets a valid pHYs chunk of 300 DPI (11811 px/m)', () => {
+  const crc = b => crc32(b), ch = (ty, d) => { const b = Buffer.alloc(12 + d.length); b.writeUInt32BE(d.length, 0); b.write(ty, 4, 'latin1'); d.copy(b, 8); b.writeUInt32BE(crc(b.subarray(4, 8 + d.length)), 8 + d.length); return b; };
+  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(1, 0); ihdr.writeUInt32BE(1, 4); ihdr[8] = 8; ihdr[9] = 6;
+  const png = Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), ch('IHDR', ihdr), ch('IDAT', deflateSync(Buffer.from([0, 0, 0, 0, 0]))), ch('IEND', Buffer.alloc(0))]);
+  const o = Buffer.from(pngWithDpi(new Uint8Array(png), 300));
+  assert.equal(o.subarray(37, 41).toString(), 'pHYs'); assert.equal(o.readUInt32BE(41), 11811); assert.equal(o.readUInt32BE(45), 11811);
+  assert.equal(o.readUInt32BE(50), crc32(new Uint8Array(o.subarray(37, 50)))); assert.equal(o.length, png.length + 21);
+});
+t('garment switch keeps the share of the artboard and never stretches artwork', () => {
+  const r = remapBox({ left: 180, top: 235, scaleX: 1, scaleY: 1 }, { w: 360, h: 470 }, { w: 320, h: 380 });
+  assert.equal(r.left, 160); assert.equal(r.top, 190); assert.equal(r.scaleX, 380 / 470); assert.equal(r.scaleX, r.scaleY); // the smaller ratio
+  assert.deepEqual(remapBox({}, { w: 100, h: 100 }, { w: 100, h: 100 }), { left: 0, top: 0, scaleX: 1, scaleY: 1 });
+});
+t('remapOverlays moves artwork but not the garment base or hover glow', () => {
+  const mk = p => ({ left: 100, top: 100, scaleX: 1, scaleY: 1, ...p, set(v) { Object.assign(this, v); }, setCoords() {} });
+  const objs = [mk({ __garmentBase: true }), mk({ __hoverGlow: true }), mk({ __logo: true })];
+  assert.equal(remapOverlays({ getObjects: () => objs }, { w: 400, h: 400 }, { w: 200, h: 400 }), 1);
+  assert.equal(objs[0].left, 100); assert.equal(objs[1].left, 100); assert.equal(objs[2].left, 50); assert.equal(objs[2].scaleX, 0.5);
+  assert.equal(remapOverlays({ getObjects: () => objs }, { w: 200, h: 400 }, { w: 200, h: 400 }), 0);
+});
 t('2.54 cm is exactly 300 px; 8 cm is 945 px', () => { assert.equal(pxForCm(2.54), 300); assert.equal(pxForCm(8), 945); });
 t('px and cm convert back within a pixel', () => assert.ok(Math.abs(cmForPx(pxForCm(12.7)) - 12.7) < 0.01));
 t('print width accepts a comma decimal and rejects junk and out-of-range sizes', () => {

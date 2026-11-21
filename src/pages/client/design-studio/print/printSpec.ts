@@ -40,6 +40,13 @@ export interface PrintItem {
   placement: { xPct: number; yPct: number; zone: string } | null;
 }
 
+// Drawn size including the stroke, matching Fabric's getBoundingRect (a path's width/height exclude it).
+export function outerSize(o: any): { w: number; h: number } {
+  const sx = Math.abs(o.scaleX ?? 1), sy = Math.abs(o.scaleY ?? 1), sw = o.stroke ? Math.max(0, o.strokeWidth ?? 0) : 0;
+  return o.strokeUniform ? { w: Math.max(1, (o.width ?? 0) * sx + sw), h: Math.max(1, (o.height ?? 0) * sy + sw) }
+    : { w: Math.max(1, ((o.width ?? 0) + sw) * sx), h: Math.max(1, ((o.height ?? 0) + sw) * sy) };
+}
+
 export function kindOf(o: any): PrintKind | null {
   if (!o || o.__garmentBase || o.__hoverGlow || o.__pocket || o.__erase) return null;
   if (o.visible === false) return null;
@@ -80,8 +87,7 @@ export function buildPrintPlan(facesJSON: Record<string, any[]>, sizes: Record<s
       const kind = kindOf(o);
       if (!kind) continue;
       n++;
-      const sx = Math.abs(o.scaleX ?? 1), sy = Math.abs(o.scaleY ?? 1);
-      const bw = Math.max(1, (o.width ?? 0) * sx), bh = Math.max(1, (o.height ?? 0) * sy);
+      const { w: bw, h: bh } = outerSize(o);
       const cx = o.originX === 'center' ? o.left ?? 0 : (o.left ?? 0) + bw / 2;
       const cy = o.originY === 'center' ? o.top ?? 0 : (o.top ?? 0) + bh / 2;
       const id = String(o.__layerId ?? `${face}-${n}`);

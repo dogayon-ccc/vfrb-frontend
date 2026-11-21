@@ -1,6 +1,8 @@
 // Renders ONE saved overlay (image, text, shape or drawing) alone onto a transparent canvas at an exact pixel width, un-rotated and
 // cropped to its own bounds: that file is what goes to the print shop. Browser only (Fabric + canvas).
 import { reviveOverlays } from '../overlayTools';
+import { pngWithDpi } from './zipStore.ts';
+import { PRINT_DPI } from './printSpec.ts';
 
 const MAX_SIDE = 16000; // browsers refuse larger canvases
 
@@ -25,5 +27,5 @@ export async function renderPrintPng(json: any, widthPx: number): Promise<{ byte
   canvas.add(o); canvas.renderAll();
   const url = canvas.toDataURL({ format: 'png', multiplier: 1 });
   canvas.dispose?.();
-  return { bytes: bytesOf(url), w, h };
+  return { bytes: pngWithDpi(bytesOf(url), PRINT_DPI), w, h };
 }

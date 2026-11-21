@@ -23,3 +23,15 @@ export function makeZip(files: Array<{ name: string; data: Uint8Array }>, when: 
   let p = 0; for (const c of [...chunks, dir, end]) { out.set(c, p); p += c.length; }
   return out;
 }
+
+// Writes a pHYs chunk (pixels per metre) right after IHDR so print software reads the real DPI.
+export function pngWithDpi(png: Uint8Array, dpi: number): Uint8Array {
+  const ppm = Math.round(dpi / 0.0254), at = 33; // 8-byte signature + 25-byte IHDR chunk
+  if (png.length < at || png[1] !== 0x50) return png;
+  const c = new Uint8Array(21), v = new DataView(c.buffer);
+  v.setUint32(0, 9); c.set([0x70, 0x48, 0x59, 0x73], 4); v.setUint32(8, ppm); v.setUint32(12, ppm); c[16] = 1;
+  v.setUint32(17, crc32(c.subarray(4, 17)));
+  const out = new Uint8Array(png.length + 21);
+  out.set(png.subarray(0, at)); out.set(c, at); out.set(png.subarray(at), at + 21);
+  return out;
+}
