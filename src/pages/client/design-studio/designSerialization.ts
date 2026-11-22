@@ -24,6 +24,7 @@
 import { normalizeLook, DEFAULT_LOOK } from './fabricLooks';
 import { resolveSleeve, resolveFit, LEGACY_GARMENT } from './garmentCatalog';
 import { startColors } from './colorRules';
+import { get3DCapabilities } from './garmentCapabilities';
 import { assetFor, templateIdFor, templateKeyById } from './garmentAssets';
 import { photoFamilies } from './designGallery';
 import { normalizeDetails } from './garmentDetails';
@@ -80,6 +81,13 @@ function withLegacyAliases(cfg) {
 //   JSON arrays already exported by the caller (this module doesn't touch
 //   Fabric/canvas APIs, keeping it framework-agnostic and testable).
 // previewPng: optional data-URL, only ever set by orderThis().
+// sleeveR is only meaningful on a model with a separate right-sleeve part; elsewhere it would be a stale leftover.
+const dropUnsupportedSleeveR = (colors, garment, sleeve, fit) => {
+  if (!('sleeveR' in colors) || (garment && ((get3DCapabilities(garment, fit, sleeve) as any).zones ?? []).includes('sleeveR'))) return colors;
+  const { sleeveR, ...rest } = colors;
+  return rest;
+};
+
 export function serializeDesign(cfg, overlaysBundle = {}, previewPng) {
   const { overlays = [], frontOverlays = [], backOverlays = [] } = overlaysBundle;
   setCustomSpec(cfg.garment, cfg.custom);
@@ -92,7 +100,7 @@ export function serializeDesign(cfg, overlaysBundle = {}, previewPng) {
     garment:       cfg.garment ?? null,
     fit,
     sleeve,
-    colors:        { ...DEFAULT_CFG.colors,   ...cfg.colors },
+    colors:        dropUnsupportedSleeveR({ ...DEFAULT_CFG.colors,   ...cfg.colors }, cfg.garment, sleeve, fit),
     patterns:      photoBase ? { ...DEFAULT_CFG.patterns } : { ...DEFAULT_CFG.patterns, ...cfg.patterns },
     patternParams: photoBase ? {} : { ...cfg.patternParams },
     details:       normalizeDetails(cfg.details, cfg.garment ?? null, sleeve, fit),

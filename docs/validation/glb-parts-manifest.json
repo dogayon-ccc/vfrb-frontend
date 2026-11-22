@@ -1,0 +1,443 @@
+[
+  {
+    "source": "authored/scrub-top-vneck-short.glb",
+    "sourceSha256": "d7e052e4b11de1f7f180ae29df91dada94603d30f0454b3457cb1dd0ee9a0f23",
+    "sourceBytes": 756532,
+    "decodedSha256": "aad24d486435debebe5d6ae5db867d9bd99acc859dba35accd3cf6049e84a500",
+    "blender": "5.3.0",
+    "triangles": 27838,
+    "parts": [
+      {
+        "object": "body",
+        "semantic": "body",
+        "triangles": 18176,
+        "materials": [
+          "body"
+        ],
+        "uvLayer": "UVMap",
+        "uvIslands": 1,
+        "uvInUnitSquare": true,
+        "centerX": 0.0,
+        "uvDensity": 0.455
+      },
+      {
+        "object": "chest_pocket",
+        "semantic": "pocket",
+        "triangles": 234,
+        "materials": [
+          "chest_pocket"
+        ],
+        "uvLayer": "UVMap",
+        "uvIslands": 2,
+        "uvInUnitSquare": true,
+        "centerX": -0.245,
+        "uvDensity": 5.5128
+      },
+      {
+        "object": "lower_pockets",
+        "semantic": "pocket",
+        "triangles": 468,
+        "materials": [
+          "lower_pockets"
+        ],
+        "uvLayer": "UVMap",
+        "uvIslands": 4,
+        "uvInUnitSquare": true,
+        "centerX": 0.0,
+        "uvDensity": 4.4427
+      },
+      {
+        "object": "neck_band",
+        "semantic": "collar",
+        "triangles": 2560,
+        "materials": [
+          "neck_band"
+        ],
+        "uvLayer": "UVMap",
+        "uvIslands": 1,
+        "uvInUnitSquare": true,
+        "centerX": 0.0,
+        "uvDensity": 2.5854
+      },
+      {
+        "object": "sleeve_l",
+        "semantic": "sleeveL",
+        "triangles": 3200,
+        "materials": [
+          "sleeve_l"
+        ],
+        "uvLayer": "UVMap",
+        "uvIslands": 1,
+        "uvInUnitSquare": true,
+        "centerX": -0.5336,
+        "uvDensity": 1.475
+      },
+      {
+        "object": "sleeve_r",
+        "semantic": "sleeveR",
+        "triangles": 3200,
+        "materials": [
+          "sleeve_r"
+        ],
+        "uvLayer": "UVMap",
+        "uvIslands": 1,
+        "uvInUnitSquare": true,
+        "centerX": 0.5336,
+        "uvDensity": 1.475
+      }
+    ],
+    "unmappedObjects": []
+  },
+  {
+    "source": "authored/scrub-top-vneck-three-quarter.glb",
+    "sourceSha256": "68b796f1232624c25edb3471fc0d1fada870db53746c0a2611f1cf8c60fece86",
+    "sourceBytes": 756528,
+    "decodedSha256": "9dc0e1f667db88af9d76c4b76b4426774bff07bdaf5492a4e58f4ec681bfc3fd",
+    "blender": "5.3.0",
+    "triangles": 27838,
+    "parts": [
+      {
+        "object": "body",
+        "semantic": "body",
+        "triangles": 18176,
+        "materials": [
+          "body"
+        ],
+        "uvLayer": "UVMap",
+        "uvIslands": 1,
+        "uvInUnitSquare": true,
+        "centerX": 0.0,
+        "uvDensity": 0.455
+      },
+      {
+        "object": "chest_pocket",
+        "semantic": "pocket",
+        "triangles": 234,
+        "materials": [
+          "chest_pocket"
+        ],
+        "uvLayer": "UVMap",
+        "uvIslands": 2,
+        "uvInUnitSquare": true,
+        "centerX": -0.245,
+        "uvDensity": 5.5128
+      },
+      {
+        "object": "lower_pockets",
+        "semantic": "pocket",
+        "triangles": 468,
+        "materials": [
+          "lower_pockets"
+        ],
+        "uvLayer": "UVMap",
+        "uvIslands": 4,
+        "uvInUnitSquare": true,
+        "centerX": 0.0,
+        "uvDensity": 4.4427
+      },
+      {
+        "object": "neck_band",
+        "semantic": "collar",
+        "triangles": 2560,
+        "materials": [
+          "neck_band"
+        ],
+        "uvLayer": "UVMap",
+        "uvIslands": 1,
+        "uvInUnitSquare": true,
+        "centerX": 0.0,
+        "uvDensity": 2.5854
+      },
+      {
+        "object": "sleeve_l",
+        "semantic": "sleeveL",
+        "triangles": 3200,
+        "materials": [
+          "sleeve_l"
+        ],
+        "uvLayer": "UVMap",
+        "uvIslands": 1,
+        "uvInUnitSquare": true,
+        "centerX": -0.6735,
+        "uvDensity": 1.1452
+      },
+      {
+        "object": "sleeve_r",
+        "semantic": "sleeveR",
+        "triangles": 3200,
+        "materials": [
+          "sleeve_r"
+        ],
+        "uvLayer": "UVMap",
+        "uvIslands": 1,
+        "uvInUnitSquare": true,
+        "centerX": 0.6735,
+        "uvDensity": 1.1452
+      }
+    ],
+    "unmappedObjects": []
+  },
+  {
+    "source": "authored/pants-straight.glb",
+    "sourceSha256": "f737cde41517226d7a42b68b5edeaa7cfb1d1b263f53a7edb8c2bf8a36e0abe2",
+    "sourceBytes": 63688,
+    "decodedSha256": "01402dbf61fdc6a5985cdc15cecaa167bfe7b344cb41a0dd759dd09f2206a377",
+    "blender": "5.3.0",
+    "triangles": 30828,
+    "parts": [
+      {
+        "object": "back_pockets",
+        "semantic": "pocket",
+        "triangles": 468,
+        "materials": [
+          "back_pockets"
+        ],
+        "uvLayer": "UVMap",
+        "uvIslands": 4,
+        "uvInUnitSquare": true,
+        "centerX": 0.0,
+        "uvDensity": 6.0443
+      },
+      {
+        "object": "fly",
+        "semantic": "fly",
+        "triangles": 312,
+        "materials": [
+          "fly"
+        ],
+        "uvLayer": "UVMap",
+        "uvIslands": 1,
+        "uvInUnitSquare": true,
+        "centerX": -0.035,
+        "uvDensity": 5.2602
+      },
+      {
+        "object": "leg_l",
+        "semantic": "leftLeg",
+        "triangles": 13632,
+        "materials": [
+          "leg_l"
+        ],
+        "uvLayer": "UVMap",
+        "uvIslands": 1,
+        "uvInUnitSquare": true,
+        "centerX": -0.2223,
+        "uvDensity": 0.6282
+      },
+      {
+        "object": "leg_r",
+        "semantic": "rightLeg",
+        "triangles": 13632,
+        "materials": [
+          "leg_r"
+        ],
+        "uvLayer": "UVMap",
+        "uvIslands": 1,
+        "uvInUnitSquare": true,
+        "centerX": 0.2223,
+        "uvDensity": 0.6282
+      },
+      {
+        "object": "side_pockets",
+        "semantic": "pocket",
+        "triangles": 480,
+        "materials": [
+          "side_pockets"
+        ],
+        "uvLayer": "UVMap",
+        "uvIslands": 2,
+        "uvInUnitSquare": true,
+        "centerX": 0.0,
+        "uvDensity": 8.542
+      },
+      {
+        "object": "waistband",
+        "semantic": "waistband",
+        "triangles": 2304,
+        "materials": [
+          "waistband"
+        ],
+        "uvLayer": "UVMap",
+        "uvIslands": 1,
+        "uvInUnitSquare": true,
+        "centerX": 0.0,
+        "uvDensity": 1.484
+      }
+    ],
+    "unmappedObjects": []
+  },
+  {
+    "source": "authored/pants-jogger.glb",
+    "sourceSha256": "8229b48bf5cc80acc94789ba3536af41b8629a232eb85e63a41b4b8b745ed030",
+    "sourceBytes": 67056,
+    "decodedSha256": "3047812c1820c770a02181dcc68fa862f7dddbd258f123f1eba182a7be1fb9fb",
+    "blender": "5.3.0",
+    "triangles": 32128,
+    "parts": [
+      {
+        "object": "cuffs",
+        "semantic": "cuff",
+        "triangles": 1536,
+        "materials": [
+          "cuffs"
+        ],
+        "uvLayer": "UVMap",
+        "uvIslands": 2,
+        "uvInUnitSquare": true,
+        "centerX": 0.0,
+        "uvDensity": 2.5931
+      },
+      {
+        "object": "drawstring",
+        "semantic": "drawstring",
+        "triangles": 544,
+        "materials": [
+          "drawstring"
+        ],
+        "uvLayer": "UVMap",
+        "uvIslands": 2,
+        "uvInUnitSquare": true,
+        "centerX": -0.0,
+        "uvDensity": 9.3454
+      },
+      {
+        "object": "leg_l",
+        "semantic": "leftLeg",
+        "triangles": 13632,
+        "materials": [
+          "leg_l"
+        ],
+        "uvLayer": "UVMap",
+        "uvIslands": 1,
+        "uvInUnitSquare": true,
+        "centerX": -0.2223,
+        "uvDensity": 0.6562
+      },
+      {
+        "object": "leg_r",
+        "semantic": "rightLeg",
+        "triangles": 13632,
+        "materials": [
+          "leg_r"
+        ],
+        "uvLayer": "UVMap",
+        "uvIslands": 1,
+        "uvInUnitSquare": true,
+        "centerX": 0.2223,
+        "uvDensity": 0.6562
+      },
+      {
+        "object": "side_pockets",
+        "semantic": "pocket",
+        "triangles": 480,
+        "materials": [
+          "side_pockets"
+        ],
+        "uvLayer": "UVMap",
+        "uvIslands": 2,
+        "uvInUnitSquare": true,
+        "centerX": 0.0,
+        "uvDensity": 8.5608
+      },
+      {
+        "object": "waistband",
+        "semantic": "waistband",
+        "triangles": 2304,
+        "materials": [
+          "waistband"
+        ],
+        "uvLayer": "UVMap",
+        "uvIslands": 1,
+        "uvInUnitSquare": true,
+        "centerX": 0.0,
+        "uvDensity": 1.484
+      }
+    ],
+    "unmappedObjects": []
+  },
+  {
+    "source": "authored/skirt-pencil-lofted.glb",
+    "sourceSha256": "e8595bbcd5171c3aa51191d544485dce731648ba6d68c40c309efdc4b6a02cbb",
+    "sourceBytes": 37384,
+    "decodedSha256": "bf9efed553062d2de4b788de9a7ec4df4f31037a12cc1902aedf2c985892b568",
+    "blender": "5.3.0",
+    "triangles": 19040,
+    "parts": [
+      {
+        "object": "skirt_body",
+        "semantic": "body",
+        "triangles": 16352,
+        "materials": [
+          "skirt_body"
+        ],
+        "uvLayer": "UVMap",
+        "uvIslands": 1,
+        "uvInUnitSquare": true,
+        "centerX": 0.0,
+        "uvDensity": 0.4664
+      },
+      {
+        "object": "waistband",
+        "semantic": "waistband",
+        "triangles": 2688,
+        "materials": [
+          "waistband"
+        ],
+        "uvLayer": "UVMap",
+        "uvIslands": 1,
+        "uvInUnitSquare": true,
+        "centerX": 0.0,
+        "uvDensity": 1.3332
+      }
+    ],
+    "unmappedObjects": []
+  },
+  {
+    "source": "t-shirt-male.glb",
+    "sourceSha256": "66e7cddc9a5d65598de1de16d46ff1849937dbd90981f57d4fb53c43e38358b8",
+    "sourceBytes": 44440,
+    "decodedSha256": "862445f2d787124ca5f7180cb85e71de698fa1b5db04b7f6f17a6a38720ba6b0",
+    "blender": "5.3.0",
+    "triangles": 12904,
+    "parts": [
+      {
+        "object": "body",
+        "semantic": "body",
+        "triangles": 12904,
+        "materials": [
+          "Material_0"
+        ],
+        "uvLayer": "UVMap",
+        "uvIslands": 5,
+        "uvInUnitSquare": true,
+        "centerX": 0.0,
+        "uvDensity": 1.0303
+      }
+    ],
+    "unmappedObjects": []
+  },
+  {
+    "source": "t-shirt-female.glb",
+    "sourceSha256": "caf489c6519598e79e0a17697e0766502f01c3f08e02a10430845515d0d72893",
+    "sourceBytes": 30168,
+    "decodedSha256": "f6ee37ba2b0700841f70d34dd81c1a6a99fe67bf460fc3acf4780c004192133d",
+    "blender": "5.3.0",
+    "triangles": 8362,
+    "parts": [
+      {
+        "object": "body",
+        "semantic": "body",
+        "triangles": 8362,
+        "materials": [
+          "Material_0"
+        ],
+        "uvLayer": "UVMap",
+        "uvIslands": 55,
+        "uvInUnitSquare": true,
+        "centerX": -0.0,
+        "uvDensity": 1.1419
+      }
+    ],
+    "unmappedObjects": []
+  }
+]

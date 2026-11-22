@@ -143,7 +143,11 @@ function useZoneMaterial(geometry, part, colors, patterns, patternParams, pxToMo
   return state?.material ?? null;
 }
 
-function ScannedPart({ geometry, part, colors, patterns, patternParams, decals, frame, torso, exploded = false, onPick = null }: any) {
+// A part with `zoneAlias` { from, to } paints its `to` zone from the `from` entry, falling back to `to` (right sleeve: sleeveR, else sleeve).
+const aliasZone = ({ from, to }, c, p, pp) => ({ colors: { ...c, [to]: c?.[from] ?? c?.[to] }, patterns: { ...p, [to]: p?.[from] ?? p?.[to] }, patternParams: { ...pp, [to]: pp?.[from] ?? pp?.[to] } });
+
+function ScannedPart({ geometry, part, colors: allColors, patterns: allPatterns, patternParams: allParams, decals, frame, torso, exploded = false, onPick = null }: any) {
+  const { colors, patterns, patternParams } = useMemo(() => (part.zoneAlias ? aliasZone(part.zoneAlias, allColors, allPatterns, allParams) : { colors: allColors, patterns: allPatterns, patternParams: allParams }), [part, allColors, allPatterns, allParams]);
   const color = part.fixedColor ?? colors[part.colorKey] ?? colors[part.fallbackKey] ?? colors.body ?? DEFAULT_GARMENT_COLOR;
   const pxToModel = (2 * torso) / (frame.x1 - frame.x0);
   const zoneMap = useRegionTexture(geometry, part, colors, patterns, patternParams, pxToModel);

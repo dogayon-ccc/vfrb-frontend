@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import { ZONE_LABEL, zonesFor } from './dsShared';
+import { ZONE_LABEL, zonesFor, splitSleeves } from './dsShared';
 import { getGarmentPaths } from './garmentPaths';
 import { assetFor } from './garmentAssets';
 import { familyFor, resolveFit } from './garmentCatalog';
@@ -14,10 +14,14 @@ export const partsFor = cfg => (cfg.garment ? zonesFor(cfg.garment, cfg.sleeve, 
 const photoOf = cfg => (cfg.garment ? assetFor(cfg.garment, cfg.sleeve, 'front', cfg.fit) : null);
 
 // On a photo base with a trim mask the collar zone recolours the whole trim (band, cuffs, welts), so it is called Trim.
-export const partLabel = (cfg, z) => (photoOf(cfg)?.trim && z === 'collar' ? 'Trim' : ZONE_LABEL[z] ?? z);
+export { shownColour };
+export const partLabel = (cfg, z) => (photoOf(cfg)?.trim && z === 'collar' ? 'Trim' : z === 'sleeve' && cfg.garment && splitSleeves(cfg.garment, cfg.sleeve, cfg.fit) ? 'Left sleeve' : ZONE_LABEL[z] ?? z);
+
+// The right sleeve shows the left sleeve's colour until it is set on its own.
+const shownColour = (cfg, z) => cfg.colors?.[z] ?? (z === 'sleeveR' ? cfg.colors?.sleeve : undefined);
 
 function partDot(cfg, z) {
-  const photo = photoOf(cfg), cur = cfg.colors?.[z];
+  const photo = photoOf(cfg), cur = shownColour(cfg, z);
   if (photo?.trim && z === 'collar' && (cur ?? '').toLowerCase() === photo.trimUnset) return '#3c3c3c';
   return cur ?? 'var(--cx-paper-2)';
 }
@@ -39,7 +43,7 @@ const withSleeve = (p, sv, family, photo) => {
   return { ...p, sleeve: sv, ...(toPhoto ? { fit: family.fits.find(f => !assetFor(p.garment, sv, 'front', f)) ?? p.fit } : {}) };
 };
 
-const PIECE_PATH = { body: 'body', collar: 'collar', sleeve: 'sleeveL', pocket: 'pocket' };
+const PIECE_PATH = { body: 'body', collar: 'collar', sleeve: 'sleeveL', sleeveR: 'sleeveR', pocket: 'pocket' };
 
 // One cut piece cropped to its own shape; the box comes from the rendered path, so any path command works.
 function PieceThumb({ d, fill }: any) {
@@ -85,7 +89,7 @@ export function PartButtons({ cfg, active = null, onPick }: any) {
             {d ? <PieceThumb d={d} fill={partDot(cfg, z)}/>
               : <span className="ds-zone-sw" data-off={off || undefined} style={off ? undefined : { background: partDot(cfg, z) }} aria-hidden="true"/>}
             <span className="ds-part-name">{partLabel(cfg, z)}</span>
-            <span className="ds-part-val">{off ? 'Off' : colourName(cfg.colors?.[z])}</span>
+            <span className="ds-part-val">{off ? 'Off' : colourName(shownColour(cfg, z))}</span>
           </button>
         );
       })}

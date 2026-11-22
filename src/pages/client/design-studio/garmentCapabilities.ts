@@ -357,7 +357,7 @@ const AUTHORED_LICENCE = 'VFRB-authored procedural geometry (no third-party mesh
 const AUTHORED_TOP_PARTS = [
   { node: 'body', colorKey: 'body', decals: true, zoneOf: zoneIs('body') },
   { node: 'sleeve_l', colorKey: 'sleeve', decals: false, zoneOf: zoneIs('sleeve'), explode: [-0.45, 0, 0] },
-  { node: 'sleeve_r', colorKey: 'sleeve', decals: false, zoneOf: zoneIs('sleeve'), explode: [0.45, 0, 0] },
+  { node: 'sleeve_r', colorKey: 'sleeveR', fallbackKey: 'sleeve', zoneAlias: { from: 'sleeveR', to: 'sleeve' }, decals: false, zoneOf: zoneIs('sleeve'), explode: [0.45, 0, 0] },
   { node: 'neck_band', colorKey: 'collar', decals: false, zoneOf: zoneIs('collar'), explode: [0, 0.35, 0] },
   { node: 'chest_pocket', colorKey: 'pocket', decals: false, zoneOf: zoneIs('pocket'), detail: 'patchPocket', explode: [0, 0, 0.3] },
   { node: 'lower_pockets', colorKey: 'body', decals: false, zoneOf: zoneIs('body'), detail: 'lowerPockets', explode: [0, 0, 0.3] },
@@ -367,8 +367,8 @@ const authoredScrubTop = (sleeve, file) => ({
   approval: 'enabled 2026-10-15 for the Scrub Top sketch (unisex fit)', license: AUTHORED_LICENCE,
   models: { unisex: file }, torso: { unisex: 0.52 }, transform: TOP_T, parts: AUTHORED_TOP_PARTS,
   capabilities: {
-    regionMethod: 'vertex-mask', regionAccuracy: 'per part (body, sleeves, neck band and chest pocket are separate parts)',
-    zones: ['body', 'sleeve', 'collar', 'pocket'], patterns: { zones: ['body', 'sleeve', 'pocket'], ids: ALL_PATTERNS.filter(p => p !== 'geometric') },
+    regionMethod: 'vertex-mask', regionAccuracy: 'per part (body, left sleeve, right sleeve, neck band and chest pocket are separate parts; the right sleeve follows the left until set)',
+    zones: ['body', 'sleeve', 'sleeveR', 'collar', 'pocket'], patterns: { zones: ['body', 'sleeve', 'sleeveR', 'pocket'], ids: ALL_PATTERNS.filter(p => p !== 'geometric') },
     sleeves: [sleeve], text: true, logo: true, frontBack: true, fit: ['unisex'],
     limitations: ['authored V-neck scrub top, not a scan of a VFRB garment: shape and drape are approximate', 'chest and lower pockets follow the 2D show/hide; pocket layers you add are 2D only',
       'logos and text are projected onto the body panel (not the sleeves)', 'no arbitrary fabric-texture upload'],

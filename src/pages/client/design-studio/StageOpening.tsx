@@ -33,7 +33,7 @@ export default function StageOpening({ paths, colors, onEnd }: any) {
       window.removeEventListener('keydown', onEnd, opts);
     };
   }, [onEnd]);
-  const pieces = [['sl', paths.sleeveL, colors?.sleeve], ['sr', paths.sleeveR, colors?.sleeve], ['bd', paths.body, colors?.body],
+  const pieces = [['sl', paths.sleeveL, colors?.sleeve], ['sr', paths.sleeveR, colors?.sleeveR ?? colors?.sleeve], ['bd', paths.body, colors?.body],
     ['pk', paths.pocket, colors?.pocket], ['cl', paths.collar, colors?.collar]];
   return sized(paths, pieces.filter(p => p[1]).map(([k, d, fill]) => <path key={k} className={`ds-open ds-open-${k}`} d={d} style={{ fill: fill ?? 'none' }}/>));
 }

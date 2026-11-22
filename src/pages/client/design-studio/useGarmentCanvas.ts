@@ -5,7 +5,8 @@ import { zonesResolver } from './zoneResolver';
 import { spotsFor, checkSpot, placeAtPatch } from './placeAt';
 import { placeInZone, snapInside, ZONE_LABEL } from './zoneMap';
 import { layoutPlacement, layoutsFor } from './layoutLibrary';
-import { T2, LOGO_PRESETS, PATTERNS } from './dsShared';
+import { T2, LOGO_PRESETS, PATTERNS, splitSleeves } from './dsShared';
+import { withRightSleeve } from './colorRules';
 import { getGarmentPaths } from './garmentPaths';
 import { detailedPaths } from './garmentDetails';
 import { addFabricShading } from './fabricShading';
@@ -204,8 +205,9 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         };
         draw(initPaths.body,    colors.body,                     'body');
         draw(initPaths.collar,  colors.collar ?? colors.body,    'collar');
+        const split = splitSleeves(garment, sleeve, fit);
         draw(initPaths.sleeveL, colors.sleeve ?? colors.body,    'sleeve');
-        draw(initPaths.sleeveR, colors.sleeve ?? colors.body,    'sleeve');
+        draw(initPaths.sleeveR, split ? withRightSleeve(colors, colors.body).sleeveR : colors.sleeve ?? colors.body, split ? 'sleeveR' : 'sleeve');
         draw(initPaths.pocket,  colors.pocket  ?? colors.collar ?? colors.body, 'pocket');
         insertDetails(fabric, c, initPaths.details, zi, colors.body);
         addFabricShading(fabric, c, initPaths, face, zones, () => fc.current === c && redrawToken.current === 0, fabricLook);
@@ -603,7 +605,8 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
       const zones = [];
       const makeZone = (d, fill, zoneKey) => {
         if (!d) return;
-        const patDef = PATTERNS.find(p => p.id === (patterns?.[zoneKey] ?? 'solid'));
+        const pick = o => (zoneKey === 'sleeveR' ? o?.sleeveR ?? o?.sleeve : o?.[zoneKey]);
+        const patDef = PATTERNS.find(p => p.id === (pick(patterns) ?? 'solid'));
         const zonePath = new fabric.Path(d, {
           fill,
           stroke: zoneKey === 'body' ? 'rgba(0,0,0,.14)' : sketchInk(fill),
@@ -612,17 +615,17 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
           selectable:false, evented:true, __garmentBase:true, __zoneKey:zoneKey,
         });
         // A textile that does not repeat both ways leaves the rest of the zone unpainted: a solid base underneath keeps it cloth-coloured.
-        if (patDef?.textile) { const tp = textileParams(patternParams?.[zoneKey], fill); if (!(tp.rx && tp.ry)) canvas.insertAt(zi++, new fabric.Path(d, { fill: tp.bg, stroke: 'transparent', selectable: false, evented: false, __garmentBase: true })); }
+        if (patDef?.textile) { const tp = textileParams(pick(patternParams), fill); if (!(tp.rx && tp.ry)) canvas.insertAt(zi++, new fabric.Path(d, { fill: tp.bg, stroke: 'transparent', selectable: false, evented: false, __garmentBase: true })); }
         canvas.insertAt(zi++, zonePath);
         zones.push({ obj: zonePath, d });
         if (patDef?.woven) {
-          const woven = wovenFill(fabric, patDef.id, fill, patternParams?.[zoneKey]);
+          const woven = wovenFill(fabric, patDef.id, fill, pick(patternParams));
           if (woven) zonePath.set('fill', woven);
         } else if (patDef?.textile) {
-          const textile = textileFill(fabric, patDef.id, fill, patternParams?.[zoneKey]);
+          const textile = textileFill(fabric, patDef.id, fill, pick(patternParams));
           if (textile) zonePath.set('fill', textile);
         } else if (patDef?.svg) {
-          const zoneParams = patternParams?.[zoneKey] ?? patDef.defaultParams;
+          const zoneParams = pick(patternParams) ?? patDef.defaultParams;
           const svgStr = patDef.svg(fill, zoneParams?.width, zoneParams?.spacing);
           const blob = new Blob([svgStr], { type:'image/svg+xml' });
           const url = URL.createObjectURL(blob);
@@ -644,8 +647,9 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
 
       makeZone(paths.body,    colors.body,                    'body');
       makeZone(paths.collar,  colors.collar ?? colors.body,   'collar');
+      const split = splitSleeves(garment, sleeve, fit);
       makeZone(paths.sleeveL, colors.sleeve ?? colors.body,   'sleeve');
-      makeZone(paths.sleeveR, colors.sleeve ?? colors.body,   'sleeve');
+      makeZone(paths.sleeveR, split ? withRightSleeve(colors, colors.body).sleeveR : colors.sleeve ?? colors.body, split ? 'sleeveR' : 'sleeve');
       makeZone(paths.pocket,  colors.pocket ?? colors.collar ?? colors.body, 'pocket');
       const baseEnd = insertDetails(fabric, canvas, paths.details, zi, colors.body);
 

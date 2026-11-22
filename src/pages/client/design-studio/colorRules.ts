@@ -3,6 +3,8 @@ import { assetFor } from './garmentAssets';
 import { luma } from './sketchLine';
 
 export const FOLLOWS_BODY = ['collar', 'sleeve', 'pocket'];
+// Optional right-sleeve override: old designs and orders carry no sleeveR, so the right sleeve follows `sleeve`.
+export const withRightSleeve = (o, body) => ({ ...o, sleeveR: o?.sleeveR ?? o?.sleeve ?? body });
 const same = (a, b) => typeof a === 'string' && typeof b === 'string' && a.toLowerCase() === b.toLowerCase();
 
 // The real garment's own trim colour (kept until the customer picks one), or null when the garment has no real trim.
@@ -41,6 +43,6 @@ export const contrastLabel = r => (r >= 3 ? 'Stands out' : r >= 1.6 ? 'Soft cont
 export const darkStageFor = body => (/^#[0-9a-f]{6}$/i.test(body ?? '') ? contrastRatio(body, '#0b3a41') >= contrastRatio(body, '#F4F5F2') : true);
 export const bestInk = hex => { const w = contrastRatio(hex, '#ffffff'), k = contrastRatio(hex, '#000000'); return w >= k ? { ink: '#ffffff', name: 'White', r: w } : { ink: '#000000', name: 'Black', r: k }; };
 // Distinct solid colours already on the design, body first, lower-cased.
-export const designPalette = colors => [...new Set(['body', 'collar', 'sleeve', 'pocket', 'tipping'].map(z => colors?.[z]).filter(c => /^#[0-9a-f]{6}$/i.test(c ?? '')).map(c => c.toLowerCase()))];
+export const designPalette = colors => [...new Set(['body', 'collar', 'sleeve', 'sleeveR', 'pocket', 'tipping'].map(z => colors?.[z]).filter(c => /^#[0-9a-f]{6}$/i.test(c ?? '')).map(c => c.toLowerCase()))];
 // Recent custom colours: newest first, no repeats, at most `max`.
 export const pushRecent = (list, hex, max = 8) => (/^#[0-9a-f]{6}$/i.test(hex ?? '') ? [hex.toLowerCase(), ...(list ?? []).filter(c => c !== hex.toLowerCase())].slice(0, max) : list ?? []);

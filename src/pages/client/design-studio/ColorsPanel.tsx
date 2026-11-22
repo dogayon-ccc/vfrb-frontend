@@ -2,7 +2,7 @@ import { secLabel, zone3D, ONLY_2D_TAG } from './dsShared';
 import { useEffect, useRef, useState } from 'react';
 import { paintZone, designPalette, pushRecent, contrastRatio, contrastLabel, bestInk } from './colorRules';
 import { SwatchGrid, CustomColor, colourName } from './SwatchGrid';
-import { PartButtons, PartChips, PartStyles, partLabel } from './PartControls';
+import { PartButtons, PartChips, PartStyles, partLabel, shownColour } from './PartControls';
 import { hasScreenEyedropper, pickScreenColour } from './eyedropper';
 
 // Recent colours are per user, like ds_guides:<user_id>; signOut clears them.
@@ -50,7 +50,7 @@ function ContrastNote({ zone, cur, body, label }: any) {
 export default function ColorsPanel({ cfg, setCfg, activeZone, setActiveZone, onDone = null }: any) {
   const setColor = (zone, c) => setCfg(p => ({ ...p, colors: paintZone(p.colors, zone, c) }));
   const label = partLabel(cfg, activeZone);
-  const cur = cfg.colors[activeZone];
+  const cur = shownColour(cfg, activeZone);
   const only2D = zone3D(cfg.garment, cfg.sleeve, cfg.fit, activeZone) === false;
   const palette = designPalette(cfg.colors);
   const [recent, setRecent] = useState(readRecent);

@@ -54,6 +54,8 @@ export function twinStitch(cmds, { w, h }, gap = 2.4) {
 // Cloth turning round the body: darker at both sides, a soft highlight left of centre (light from the top left, as the sheen).
 export const ROLL = [[0, 'rgba(15,23,42,.10)'], [0.3, 'rgba(255,255,255,.08)'], [0.55, 'rgba(255,255,255,0)'], [0.85, 'rgba(15,23,42,.05)'], [1, 'rgba(15,23,42,.12)']];
 const ROLL_ZONES = ['body', 'sleeve'];
+// The right sleeve (sleeveR) is lit like the left one.
+const shadeKey = k => (k === 'sleeveR' ? 'sleeve' : k);
 
 // Detail lines are tagged by useGarmentCanvas insertDetails (__detailKind, __detailPart). New layers go directly under or over
 // the detail they belong to, so the template's own stacking (under-collar vs over-everything) is kept.
@@ -93,8 +95,8 @@ function detailRealism(fabric, canvas, box) {
 // colour so its edge leaves no dark fringe. [alpha, blur, offsetY]; collar and sleeves only on vector templates (a shade map has its own).
 const CAST = { pocket: [0.3, 5, 2], collar: [0.26, 7, 2], sleeve: [0.16, 9, 1] };
 function castShadows(fabric, canvas, zones, keys) {
-  for (const z of zones.filter(x => keys.includes(x.obj.__zoneKey))) {
-    const [a, blur, offsetY] = CAST[z.obj.__zoneKey];
+  for (const z of zones.filter(x => keys.includes(shadeKey(x.obj.__zoneKey)))) {
+    const [a, blur, offsetY] = CAST[shadeKey(z.obj.__zoneKey)];
     canvas.insertAt(canvas.getObjects().indexOf(z.obj), new fabric.Path(z.d, { ...deco, objectCaching: true, stroke: null,
       fill: typeof z.obj.fill === 'string' ? z.obj.fill : '#ffffff',
       shadow: new fabric.Shadow({ color: `rgba(15,23,42,${a})`, blur, offsetX: 0, offsetY }) }));
@@ -155,7 +157,7 @@ export function addFabricShading(fabric, canvas, paths, face, zones, current, lo
       type: 'linear', coords: { x1: -sheen.left, y1: -sheen.top, x2: paths.w - sheen.left, y2: paths.h - sheen.top },
       colorStops: [{ offset: 0, color: 'rgba(255,255,255,.18)' }, { offset: 0.45, color: 'rgba(255,255,255,0)' }, { offset: 0.72, color: 'rgba(0,0,0,0)' }, { offset: 1, color: 'rgba(0,0,0,.12)' }],
     }));
-    const above = at(z.obj) + (tile ? 2 : 1), rolls = ROLL_ZONES.includes(z.obj.__zoneKey);
+    const above = at(z.obj) + (tile ? 2 : 1), rolls = ROLL_ZONES.includes(shadeKey(z.obj.__zoneKey));
     canvas.insertAt(above, edge);
     if (rolls) {
       const roll = new fabric.Path(z.d, { ...deco, stroke: null, __light: true });

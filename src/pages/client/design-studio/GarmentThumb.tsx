@@ -5,7 +5,7 @@ import { sketchInk } from './sketchLine';
 // box ({ w, h }): a shared frame, so thumbnails of one garment at different sizes keep one scale (drawn centred in it).
 export default function GarmentThumb({ paths, colors, size = 56, box = null }: any) {
   const fw = box?.w ?? paths.w, fh = box?.h ?? paths.h;
-  const body = colors.body ?? '#1e3a5f', collar = colors.collar ?? '#c8a96e', sleeve = colors.sleeve ?? body, pocket = colors.pocket ?? collar;
+  const body = colors.body ?? '#1e3a5f', collar = colors.collar ?? '#c8a96e', sleeve = colors.sleeve ?? body, sleeveR = colors.sleeveR ?? sleeve, pocket = colors.pocket ?? collar;
   const lines = (paths.details ?? []).filter(d => d.kind === 'seam' || d.kind === 'line');
   const line = (over) => lines.filter(d => !!d.over === over).map((d, i) => (
     <path key={`${over}${i}`} d={d.d} fill="none" stroke={sketchInk(body)} strokeWidth={d.kind === 'line' ? 1.4 : 1.2} strokeDasharray={d.kind === 'seam' ? '3 2.5' : undefined}/>
@@ -17,7 +17,7 @@ export default function GarmentThumb({ paths, colors, size = 56, box = null }: a
       {line(false)}
       {paths.collar  && <path d={paths.collar}  fill={collar} stroke={sketchInk(collar)} strokeWidth="1.5"/>}
       {paths.sleeveL && <path d={paths.sleeveL} fill={sleeve} stroke={sketchInk(sleeve)} strokeWidth="1.5"/>}
-      {paths.sleeveR && <path d={paths.sleeveR} fill={sleeve} stroke={sketchInk(sleeve)} strokeWidth="1.5"/>}
+      {paths.sleeveR && <path d={paths.sleeveR} fill={sleeveR} stroke={sketchInk(sleeveR)} strokeWidth="1.5"/>}
       {paths.pocket  && <path d={paths.pocket}  fill={pocket} stroke={sketchInk(pocket)} strokeWidth="1.2" strokeDasharray="3 2"/>}
       {line(true)}
     </svg>

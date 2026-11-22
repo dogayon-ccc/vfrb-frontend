@@ -42,7 +42,7 @@ export const secLabel = {
 // actually be imported without this. `parametric`/`defaultParams` are new
 // fields on hstripes/vstripes/diagonal specifically for that feature —
 // every other pattern is unaffected structurally, just relocated.
-export const ZONE_LABEL = { body:'Body', collar:'Collar', sleeve:'Sleeve', pocket:'Pocket/Trim', tipping:'Tipping' };
+export const ZONE_LABEL = { body:'Body', collar:'Collar', sleeve:'Sleeve', sleeveR:'Right sleeve', pocket:'Pocket/Trim', tipping:'Tipping' };
 
 // One loose shape for every pattern family (flat, parametric SVG, woven, textile) so callers can test any flag.
 export interface PatternDef { id: string; label: string; icon?: string; svg?: any; parametric?: boolean; woven?: boolean; textile?: boolean; cat?: string; defaultParams?: any; [k: string]: any }
@@ -110,7 +110,10 @@ export const PH_SWATCHES = [
   { hex: '#FFB6C1', name: 'Pink'         }, { hex: '#808000', name: 'Olive'        },
 ];
 
-export const ZONE_KEYS = ['body','collar','sleeve','pocket','tipping'];
+export const ZONE_KEYS = ['body','collar','sleeve','sleeveR','pocket','tipping'];
+
+// True when the exact 3D model has a separate right-sleeve part, so the right sleeve can differ from the left in 2D and 3D.
+export const splitSleeves = (garment, sleeve, fit) => ((get3DCapabilities(garment, fit, sleeve) as any).zones ?? []).includes('sleeveR');
 
 // Zones a garment really has, read from its 2D sketch so 2D, summary and 3D agree.
 export function zonesFor(garment, sleeve, fit) {
@@ -134,7 +137,7 @@ export function zonesFor(garment, sleeve, fit) {
   const own = get3DCapabilities(garment, fit, sleeve); // this exact selection's model: the Scrub Top sketch's authored model has a real pocket part
   // `pocket2D`: the model's pockets are modelled shapes, but the 2D pocket colour stays offered (tagged "2D only" in the Colors panel).
   const hasPocket = !!p.pocket && (!cap.supported || (cap.zones ?? []).includes('pocket') || !!cap.pocket2D || (own.zones ?? []).includes('pocket'));
-  const has = { body: true, collar: hasCollar, sleeve: !!(p.sleeveL || p.sleeveR), pocket: hasPocket, tipping: !!p.collar };
+  const has = { body: true, collar: hasCollar, sleeve: !!(p.sleeveL || p.sleeveR), sleeveR: !!p.sleeveR && splitSleeves(garment, sleeve, fit), pocket: hasPocket, tipping: !!p.collar };
   return ZONE_KEYS.filter(z => has[z]);
 }
 
