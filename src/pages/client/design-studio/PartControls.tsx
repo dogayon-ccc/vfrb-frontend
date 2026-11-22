@@ -18,7 +18,7 @@ export { shownColour };
 export const partLabel = (cfg, z) => (photoOf(cfg)?.trim && z === 'collar' ? 'Trim' : z === 'sleeve' && cfg.garment && splitSleeves(cfg.garment, cfg.sleeve, cfg.fit) ? 'Left sleeve' : ZONE_LABEL[z] ?? z);
 
 // The right sleeve shows the left sleeve's colour until it is set on its own.
-const shownColour = (cfg, z) => cfg.colors?.[z] ?? (z === 'sleeveR' ? cfg.colors?.sleeve : undefined);
+const shownColour = (cfg, z) => cfg.colors?.[z] ?? (z === 'sleeveR' ? cfg.colors?.sleeve : z === 'waistband' ? cfg.colors?.body : undefined);
 
 function partDot(cfg, z) {
   const photo = photoOf(cfg), cur = shownColour(cfg, z);
@@ -43,7 +43,7 @@ const withSleeve = (p, sv, family, photo) => {
   return { ...p, sleeve: sv, ...(toPhoto ? { fit: family.fits.find(f => !assetFor(p.garment, sv, 'front', f)) ?? p.fit } : {}) };
 };
 
-const PIECE_PATH = { body: 'body', collar: 'collar', sleeve: 'sleeveL', sleeveR: 'sleeveR', pocket: 'pocket' };
+const PIECE_PATH = { body: 'body', collar: 'collar', sleeve: 'sleeveL', sleeveR: 'sleeveR', waistband: 'waistband', pocket: 'pocket' };
 
 // One cut piece cropped to its own shape; the box comes from the rendered path, so any path command works.
 function PieceThumb({ d, fill }: any) {

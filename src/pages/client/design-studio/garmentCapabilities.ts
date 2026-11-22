@@ -381,15 +381,15 @@ const authoredTrousers = (id, match, file, extra) => ({
   parts: [
     { node: 'leg_l', colorKey: 'body', decals: false, zoneOf: zoneIs('body') },
     { node: 'leg_r', colorKey: 'body', decals: false, zoneOf: zoneIs('body') },
-    { node: 'waistband', colorKey: 'body', decals: false, zoneOf: zoneIs('body') },
+    { node: 'waistband', colorKey: 'waistband', fallbackKey: 'body', zoneAlias: { from: 'waistband', to: 'body' }, decals: false, zoneOf: zoneIs('body') },
     { node: 'side_pockets', colorKey: 'body', decals: false, zoneOf: zoneIs('body'), detail: 'sidePockets' },
     ...extra,
   ],
   capabilities: {
-    regionMethod: 'vertex-mask', regionAccuracy: 'per part (legs, waistband and pockets are separate parts, all in the body colour)',
-    zones: ['body'], patterns: { zones: ['body'], ids: ALL_PATTERNS.filter(p => p !== 'geometric') }, sleeves: [],
+    regionMethod: 'vertex-mask', regionAccuracy: 'per part (legs, waistband and pockets are separate parts; the waistband follows the body until set)',
+    zones: ['body', 'waistband'], patterns: { zones: ['body', 'waistband'], ids: ALL_PATTERNS.filter(p => p !== 'geometric') }, sleeves: [],
     text: false, logo: false, frontBack: false, fit: ['unisex'],
-    limitations: ['authored trousers, not a scan of a VFRB garment: shape and drape are approximate', 'one body colour', 'pockets follow the 2D show/hide; pocket layers you add are 2D only', 'no text or logos in 3D'],
+    limitations: ['authored trousers, not a scan of a VFRB garment: shape and drape are approximate', 'legs, fly and pockets share the body colour', 'pockets follow the 2D show/hide; pocket layers you add are 2D only', 'no text or logos in 3D'],
   },
 });
 const AUTHORED_GARMENTS = [

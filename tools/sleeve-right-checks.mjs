@@ -1,4 +1,4 @@
-// Run: node tools/sleeve-right-checks.mjs   (optional right-sleeve colour: fallback, 3D support, save/restore, old designs)
+// Run: node tools/sleeve-right-checks.mjs   (optional right-sleeve and waistband colours: fallback, 3D support, save/restore, old designs)
 import assert from 'node:assert/strict';
 import { createServer } from 'vite';
 const v = await createServer({ server: { middlewareMode: true, ws: false }, appType: 'custom', logLevel: 'error' });
@@ -7,6 +7,7 @@ const { withRightSleeve } = await L('colorRules');
 const { splitSleeves, zonesFor } = await L('dsShared');
 const { serializeDesign, deserializeDesign } = await L('designSerialization');
 const { get3DCapabilities } = await L('garmentCapabilities');
+const { getGarmentPaths } = await L('garmentPaths');
 
 let pass = 0, fail = 0;
 const t = (name, fn) => { try { fn(); pass++; console.log('PASS', name); } catch (e) { fail++; console.log('FAIL', name, '\n    ', e.message.split('\n')[0]); } };
@@ -40,6 +41,20 @@ t('sleeveR survives save and restore on the scrub top', () => {
 t('a stale sleeveR is dropped when saving a garment that cannot show it', () => {
   const saved = serializeDesign({ garment: 'Polo Shirt', sleeve: 'Short', colors: { body: '#1B2A4A', sleeveR: '#CC0000' } });
   assert.equal('sleeveR' in saved.colors, false);
+});
+t('Pants: the authored trousers offer a waistband zone cut from the sketch, and the 3D waistband part is aliased to it', () => {
+  assert.ok(zonesFor('Pants', null, 'unisex').includes('waistband'));
+  assert.match(getGarmentPaths('Pants', null).waistband, /^M .* Z$/);
+  assert.ok(get3DCapabilities('Pants', 'unisex', null).patterns.zones.includes('waistband'));
+});
+t('a garment with a waistband sketch but no 3D waistband part does not offer the zone', () => {
+  assert.equal(zonesFor('Scrub Top', 'Short', 'unisex').includes('waistband'), false);
+});
+t('waistband colour survives save and restore on Pants and is dropped on a top', () => {
+  const pants = serializeDesign({ garment: 'Pants', fit: 'unisex', colors: { body: '#1B2A4A', waistband: '#CC0000' } });
+  assert.equal(pants.colors.waistband, '#CC0000');
+  assert.equal(deserializeDesign(JSON.parse(JSON.stringify(pants))).cfg.colors.waistband, '#CC0000');
+  assert.equal('waistband' in serializeDesign({ garment: 'Scrub Top', sleeve: 'Short', fit: 'unisex', colors: { body: '#1B2A4A', waistband: '#CC0000' } }).colors, false);
 });
 console.log(`\n${pass} passed, ${fail} failed`);
 await v.close();

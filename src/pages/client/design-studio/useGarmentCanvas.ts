@@ -5,7 +5,7 @@ import { zonesResolver } from './zoneResolver';
 import { spotsFor, checkSpot, placeAtPatch } from './placeAt';
 import { placeInZone, snapInside, ZONE_LABEL } from './zoneMap';
 import { layoutPlacement, layoutsFor } from './layoutLibrary';
-import { T2, LOGO_PRESETS, PATTERNS, splitSleeves } from './dsShared';
+import { T2, LOGO_PRESETS, PATTERNS, splitSleeves, hasZone3D } from './dsShared';
 import { withRightSleeve } from './colorRules';
 import { getGarmentPaths } from './garmentPaths';
 import { detailedPaths } from './garmentDetails';
@@ -205,6 +205,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         };
         draw(initPaths.body,    colors.body,                     'body');
         draw(initPaths.collar,  colors.collar ?? colors.body,    'collar');
+        if (hasZone3D(garment, sleeve, fit, 'waistband')) draw(initPaths.waistband, colors.waistband ?? colors.body, 'waistband');
         const split = splitSleeves(garment, sleeve, fit);
         draw(initPaths.sleeveL, colors.sleeve ?? colors.body,    'sleeve');
         draw(initPaths.sleeveR, split ? withRightSleeve(colors, colors.body).sleeveR : colors.sleeve ?? colors.body, split ? 'sleeveR' : 'sleeve');
@@ -647,6 +648,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
 
       makeZone(paths.body,    colors.body,                    'body');
       makeZone(paths.collar,  colors.collar ?? colors.body,   'collar');
+      if (hasZone3D(garment, sleeve, fit, 'waistband')) makeZone(paths.waistband, colors.waistband ?? colors.body, 'waistband');
       const split = splitSleeves(garment, sleeve, fit);
       makeZone(paths.sleeveL, colors.sleeve ?? colors.body,   'sleeve');
       makeZone(paths.sleeveR, split ? withRightSleeve(colors, colors.body).sleeveR : colors.sleeve ?? colors.body, split ? 'sleeveR' : 'sleeve');

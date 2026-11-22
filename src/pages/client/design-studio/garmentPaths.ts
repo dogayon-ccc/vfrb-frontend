@@ -258,7 +258,9 @@ function trousers({ w = 250, h = 420, waist = 76, waistY = 28, band = 15, hip = 
     { d: `M ${pt(cx, waistY)} L ${pt(cx, crotchY - 2)}`, kind: 'seam', face: 'back' },
   );
   if (crease) details.push({ d: `M ${pt(cx - legMid - 2, hipY + 10)} L ${pt(cx - legMid, hemY - 10)} M ${pt(cx + legMid + 2, hipY + 10)} L ${pt(cx + legMid, hemY - 10)}`, kind: 'fold' });
-  return { w, h, body, collar: null, sleeveL: null, sleeveR: null, pocket: null, details };
+  // The waistband is the top strip above the band seam, cut from the body outline's own points.
+  const waistband = `M ${pt(cx - waist, waistY)} L ${pt(cx + waist, waistY)} L ${pt(cx + waist + 2, by)} L ${pt(cx - waist - 2, by)} Z`;
+  return { w, h, body, collar: null, sleeveL: null, sleeveR: null, pocket: null, waistband, details };
 }
 
 // Pleated skirt: fitted waistband, then knife pleats flaring to a wide hem. One body zone; pleats are lines.

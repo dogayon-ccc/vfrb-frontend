@@ -16,6 +16,7 @@ export default function GarmentThumb({ paths, colors, size = 56, box = null }: a
       {paths.body    && <path d={paths.body}    fill={body}   stroke="rgba(15,23,42,.18)" strokeWidth="1.5"/>}
       {line(false)}
       {paths.collar  && <path d={paths.collar}  fill={collar} stroke={sketchInk(collar)} strokeWidth="1.5"/>}
+      {paths.waistband && colors.waistband && <path d={paths.waistband} fill={colors.waistband} stroke={sketchInk(colors.waistband)} strokeWidth="1.5"/>}
       {paths.sleeveL && <path d={paths.sleeveL} fill={sleeve} stroke={sketchInk(sleeve)} strokeWidth="1.5"/>}
       {paths.sleeveR && <path d={paths.sleeveR} fill={sleeveR} stroke={sketchInk(sleeveR)} strokeWidth="1.5"/>}
       {paths.pocket  && <path d={paths.pocket}  fill={pocket} stroke={sketchInk(pocket)} strokeWidth="1.2" strokeDasharray="3 2"/>}

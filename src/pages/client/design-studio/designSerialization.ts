@@ -81,11 +81,11 @@ function withLegacyAliases(cfg) {
 //   JSON arrays already exported by the caller (this module doesn't touch
 //   Fabric/canvas APIs, keeping it framework-agnostic and testable).
 // previewPng: optional data-URL, only ever set by orderThis().
-// sleeveR is only meaningful on a model with a separate right-sleeve part; elsewhere it would be a stale leftover.
-const dropUnsupportedSleeveR = (colors, garment, sleeve, fit) => {
-  if (!('sleeveR' in colors) || (garment && ((get3DCapabilities(garment, fit, sleeve) as any).zones ?? []).includes('sleeveR'))) return colors;
-  const { sleeveR, ...rest } = colors;
-  return rest;
+// sleeveR and waistband are only meaningful on a model with that separate part; elsewhere they would be stale leftovers.
+const OPTIONAL_ZONES = ['sleeveR', 'waistband'];
+const dropUnsupportedZones = (colors, garment, sleeve, fit) => {
+  const zones = garment ? (get3DCapabilities(garment, fit, sleeve) as any).zones ?? [] : [];
+  return Object.fromEntries(Object.entries(colors).filter(([k]) => !OPTIONAL_ZONES.includes(k) || zones.includes(k)));
 };
 
 export function serializeDesign(cfg, overlaysBundle = {}, previewPng) {
@@ -100,7 +100,7 @@ export function serializeDesign(cfg, overlaysBundle = {}, previewPng) {
     garment:       cfg.garment ?? null,
     fit,
     sleeve,
-    colors:        dropUnsupportedSleeveR({ ...DEFAULT_CFG.colors,   ...cfg.colors }, cfg.garment, sleeve, fit),
+    colors:        dropUnsupportedZones({ ...DEFAULT_CFG.colors,   ...cfg.colors }, cfg.garment, sleeve, fit),
     patterns:      photoBase ? { ...DEFAULT_CFG.patterns } : { ...DEFAULT_CFG.patterns, ...cfg.patterns },
     patternParams: photoBase ? {} : { ...cfg.patternParams },
     details:       normalizeDetails(cfg.details, cfg.garment ?? null, sleeve, fit),

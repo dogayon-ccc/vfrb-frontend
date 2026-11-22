@@ -55,6 +55,7 @@ export default function GarmentSilhouette({ garment, sleeve = 'Short', colors = 
     { d: p.collar,  fill: colors.collar ?? colors.body,   z: 'collar' },
     { d: p.sleeveL, fill: colors.sleeve ?? colors.body,   z: 'sleeve' },
     { d: p.sleeveR, fill: colors.sleeveR ?? colors.sleeve ?? colors.body, z: colors.sleeveR ? 'sleeveR' : 'sleeve' },
+    { d: colors.waistband ? p.waistband : null, fill: colors.waistband, z: 'waistband' },
     { d: p.pocket,  fill: colors.pocket ?? colors.collar ?? colors.body, z: 'pocket' },
   ];
   // Woven patterns (wovenPatterns.js) as SVG pattern fills, same tile and transform as the Studio canvas; none during SSR.
