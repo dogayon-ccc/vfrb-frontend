@@ -1213,7 +1213,7 @@ export default function DesignStudio() {
               onUndo={locked ? null : lock?.warn ? () => setWarnAsk(true) : undo}
               rail={locked ? null : { history: { undo: lock?.warn ? () => setWarnAsk(true) : undo, redo: lock?.warn ? () => setWarnAsk(true) : redo, canUndo, canRedo }, onShapes: () => setAssetsTab('shapes'), tool, setTool, flyTool: flyOpen && tool !== 'draw' ? tool : null, openFly, closeFly: () => setFlyOpen(false), pick, setPick, erasing, setErasing, color: brushColor, setColor: changeBrushColor, size: brushSize, setSize: changeBrushSize, opacity: brushOpacity, setOpacity: changeBrushOpacity, smooth: brushSmooth, setSmooth: changeBrushSmooth, brushKind, setBrushKind: changeBrushKind, sides: shapeSides, setSides: setShapeSides, colourOnly: colorOnly }}
               zoom={zoom} setZoom={setZoom} snapshot={snapshot} overlays={overlays}
-              blank={<GarmentPicker inline cfg={cfg} pieceRole={uset?.active ?? (pendingArt && artScope ? (artScope === 'bottom' ? 'bottom' : 'top') : null)} onPickPhoto={pickPhoto}
+              blank={<GarmentPicker inline onExit={() => nav('/dashboard')} cfg={cfg} pieceRole={uset?.active ?? (pendingArt && artScope ? (artScope === 'bottom' ? 'bottom' : 'top') : null)} onPickPhoto={pickPhoto}
                 onPick3D={(d, f) => { keep3DRef.current = true; pickPhoto(d, f); setHas3DLoaded(true); setViewMode('3d'); }}
                 onPickFamily={(fam, category, pick) => selectFamily(setCfg, fam, category, pick)}
                 onUpload={null} pendingArt={pendingArt} onCancelArt={() => { setPendingArt(null); setArtRefused(null); }} onSketchArt={REF_PHOTO_TOOLS ? sketchPending : null}

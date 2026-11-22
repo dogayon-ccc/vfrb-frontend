@@ -1,7 +1,7 @@
 // The one garment picker: Inspiration (real VFRB photos with their honest status) and Templates (the catalog).
 // Used inline on the empty canvas and inside the picker modal ("Change garment"). Header and action footer stay in view while it scrolls.
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
-import { Upload, SlidersHorizontal, Eye, Square, CheckCircle2, Box, X, PencilRuler } from 'lucide-react';
+import { Upload, SlidersHorizontal, Eye, Square, CheckCircle2, Box, X, PencilRuler, ArrowLeft, LayoutGrid, List, Search } from 'lucide-react';
 import { BASE_PATHS, getGarmentPaths, customPaths } from './garmentPaths';
 import GarmentThumb from './GarmentThumb';
 import { CATALOG, pieceOf, applyGarment, resolveTarget, PIECE_FACETS, GENDER_FACETS, pieceFacet, genderFacets, counterpartsFor } from './garmentCatalog';
@@ -25,9 +25,42 @@ const CAT_SHORT = { 'School Uniform': 'School', 'Medical / Scrubs': 'Medical', '
 
 import Capability3D, { TIER_CAP } from './Capability3D';
 import './studioPicker.css';
+import './studioGallery.css';
 
 const PHOTO_BADGE = { reference: Eye, 'editable-2d': Square, '2d-3d-approx': Box, '2d-3d': CheckCircle2 };
 const PHOTO_LABEL = Object.fromEntries(Object.entries(TIER_LABEL).map(([k, t]) => [k, t.label]));
+
+// True at desktop width: the gallery then shows its filters as an always-open left rail instead of a collapsed block.
+function useWide() {
+  const q = '(min-width:1024px)';
+  const [wide, setWide] = useState(() => typeof window !== 'undefined' && !!window.matchMedia?.(q).matches);
+  useEffect(() => {
+    const m = window.matchMedia?.(q); if (!m) return undefined;
+    const on = () => setWide(m.matches);
+    m.addEventListener('change', on);
+    return () => m.removeEventListener('change', on);
+  }, []);
+  return wide;
+}
+
+// The tier of a card as a corner chip on its picture (BlankBuilder-style), so the badge no longer costs a row under the title.
+const TIER_SHORT: any = { reference: 'Inspiration', 'editable-2d': '2D design', '2d-3d-approx': '2D + 3D', '2d-3d': '2D + 3D' };
+const TierChip = ({ tier }: any) => <span className="ds-pick-tier" data-tier={tier} title={PHOTO_LABEL[tier]} aria-hidden="true">{TIER_SHORT[tier] ?? PHOTO_LABEL[tier]}</span>;
+
+// Results bar over the cards: how many are shown and how to browse them (grid, list, or the carousel where it exists).
+function ResultsBar({ count, noun, layout, setLayout, modes }: any) {
+  const ICON: any = { grid: LayoutGrid, list: List };
+  return (
+    <div className="ds-pick-bar">
+      <span className="ds-pick-count" role="status">{count} {noun}{count === 1 ? '' : 's'}</span>
+      <div className="ds-seg ds-seg--sm ds-pick-viewsw" role="radiogroup" aria-label="Browse as">
+        {modes.map(([v, l]: any) => { const I = ICON[v]; return (
+          <button key={v} type="button" role="radio" aria-checked={layout === v} onClick={() => setLayout(v)}>{I && <I size={14} aria-hidden="true"/>}{l}</button>
+        ); })}
+      </div>
+    </div>
+  );
+}
 
 function Badge({ icon: Icon, label }: any) {
   return <span className="ds-pick-badge" title={label}><Icon size={13} strokeWidth={2.2} aria-hidden="true"/><span className="sr-only">{label}</span></span>;
@@ -44,26 +77,30 @@ function Legend({ labels, icons, present }: any) {
 
 // Header (title, close, tabs + Upload, badge key) and footer (actions) stick to the picker's scroll box. Once the grid scrolls, the
 // header collapses to one opaque row: the tabs and Upload (the picker sets data-compact).
-function Head({ title, sub, onClose, view, setView, legend, onUpload }: any) {
+function Head({ title, sub, onClose, onExit, view, setView, legend, onUpload, side }: any) {
   return (
-    <header className="ds-pick-head">
-      <div className="ds-pick-titlebar">
-        <h2 id="ds-pick-h">{title}</h2>
-        {onClose && <button type="button" className="ds-pick-close" aria-label="Close" onClick={onClose}><X size={18} aria-hidden="true"/></button>}
-      </div>
-      {sub}
-      <div className="ds-pick-row">
-        <div className="ds-pick-tabs" role="radiogroup" aria-label="Garment source">
-          {[['inspiration', 'Start from a reference', 'Reference'], ['templates', 'Start from scratch', 'Scratch']].map(([id, label, short]) => (
-            <button key={id} type="button" role="radio" aria-checked={view === id} aria-label={label} onClick={() => setView(id)}>
-              <span className="ds-tab-long">{label}</span><span className="ds-tab-short" aria-hidden="true">{short}</span>
-            </button>
-          ))}
+    <div className="ds-pick-rail">
+      <header className="ds-pick-head">
+        <div className="ds-pick-titlebar">
+          {onExit && !onClose && <button type="button" className="ds-pick-exit" aria-label="Back to dashboard" title="Back to dashboard" onClick={onExit}><ArrowLeft size={18} aria-hidden="true"/></button>}
+          <h2 id="ds-pick-h">{title}</h2>
+          {onClose && <button type="button" className="ds-pick-close" aria-label="Close" onClick={onClose}><X size={18} aria-hidden="true"/></button>}
         </div>
-        {onUpload && <UploadButton onUpload={onUpload}/>}
-      </div>
-      {legend}
-    </header>
+        {sub}
+        <div className="ds-pick-row">
+          <div className="ds-pick-tabs" role="radiogroup" aria-label="Garment source">
+            {[['inspiration', 'Start from a reference', 'Reference'], ['templates', 'Start from scratch', 'Scratch']].map(([id, label, short]) => (
+              <button key={id} type="button" role="radio" aria-checked={view === id} aria-label={label} onClick={() => setView(id)}>
+                <span className="ds-tab-long">{label}</span><span className="ds-tab-short" aria-hidden="true">{short}</span>
+              </button>
+            ))}
+          </div>
+          {onUpload && <UploadButton onUpload={onUpload}/>}
+        </div>
+        {legend}
+      </header>
+      {side && <aside className="ds-pick-side" aria-label="Filters">{side}</aside>}
+    </div>
   );
 }
 const Foot = ({ children }: any) => (children ? <footer className="ds-pick-foot">{children}</footer> : null);
@@ -130,6 +167,8 @@ function Photos({ head, onClose, cfg, pieceRole, onPickPhoto, onPick3D, onPickFa
   const [filters, setFilters] = useState({});
   const [kind, setKind] = useState('editable');
   const [preview, setPreview] = useState(null);
+  const wide = useWide();
+  const [layout, setLayout] = useState('grid');
   const [view3D, setView3D] = useState('3d'); // phone: Photo | 3D switch, 3D first; desktop shows both
   // "Try colours" on the 3D reference: a preview held only here, never saved or sent with an order (VFRB produces from the 2D design).
   const [tryCol, setTryCol] = useState(false);
@@ -210,41 +249,46 @@ function Photos({ head, onClose, cfg, pieceRole, onPickPhoto, onPick3D, onPickFa
     );
   }
 
+  const side = (
+    <>
+      <label className="ds-pick-searchbox"><Search size={15} aria-hidden="true"/>
+        <input type="search" className="ds-pick-search" placeholder="Search photos (blazer, mandarin, scrub…)" aria-label="Search photos"
+          value={filters.q ?? ''} onChange={e => setFilters(f => ({ ...f, q: e.target.value }))}/></label>
+      <div className="ds-chips" role="group" aria-label="Photo type">
+        <RoleChip pieceRole={pieceRole} on={roleOn} setOn={setRoleOn} count={FULL_SETS.filter(canEdit).length} total={FULL_SETS.length}/>
+        {[['editable', 'Editable in Studio'], ['reference', 'Inspiration only'], ['all', 'All']].map(([id, lbl]) => (
+          <button key={id} type="button" className="ds-chip" aria-pressed={kind === id} onClick={() => setKind(id)}>{lbl} ({kindCount[id]})</button>
+        ))}
+      </div>
+      <details className="ds-pick-filters" open={wide || active > 0 || undefined}>
+        <summary><SlidersHorizontal size={15} aria-hidden="true"/>Filters{active ? ` (${active})` : ''}</summary>
+        {FILTERS.map(([key, label, options]) => {
+          const opts = options.filter(o => TOTALS[key][o.id] > 0);
+          return opts.length < 2 ? null : (
+            <div key={key} className="ds-pick-frow" role="group" aria-label={label}>
+              <span>{label}</span>
+              {opts.map(o => (
+                <button key={o.id} type="button" className="ds-chip" aria-pressed={filters[key] === o.id} disabled={filters[key] !== o.id && !counts[key][o.id]}
+                  onClick={() => setFilters(f => ({ ...f, [key]: f[key] === o.id ? null : o.id }))}>{o.label} ({counts[key][o.id]})</button>
+              ))}
+            </div>
+          );
+        })}
+        {active > 0 && <button type="button" className="ds-btn" onClick={() => setFilters(f => ({ q: f.q }))}>Clear filters</button>}
+      </details>
+    </>
+  );
   return (
     <>
-      {head(legend)}
+      {head(legend, side)}
+      <div className="ds-pick-main">
       {extra}
-      <div className="ds-pick-tools">
-        <input type="search" className="ds-pick-search" placeholder="Search photos (blazer, mandarin, scrub…)" aria-label="Search photos"
-          value={filters.q ?? ''} onChange={e => setFilters(f => ({ ...f, q: e.target.value }))}/>
-        <div className="ds-chips" role="group" aria-label="Photo type">
-          <RoleChip pieceRole={pieceRole} on={roleOn} setOn={setRoleOn} count={FULL_SETS.filter(canEdit).length} total={FULL_SETS.length}/>
-          {[['editable', 'Editable in Studio'], ['reference', 'Inspiration only'], ['all', 'All']].map(([id, lbl]) => (
-            <button key={id} type="button" className="ds-chip" aria-pressed={kind === id} onClick={() => setKind(id)}>{lbl} ({kindCount[id]})</button>
-          ))}
-        </div>
-        <details className="ds-pick-filters" open={active > 0 || undefined}>
-          <summary><SlidersHorizontal size={15} aria-hidden="true"/>Filters{active ? ` (${active})` : ''}</summary>
-          {FILTERS.map(([key, label, options]) => {
-            const opts = options.filter(o => TOTALS[key][o.id] > 0);
-            return opts.length < 2 ? null : (
-              <div key={key} className="ds-pick-frow" role="group" aria-label={label}>
-                <span>{label}</span>
-                {opts.map(o => (
-                  <button key={o.id} type="button" className="ds-chip" aria-pressed={filters[key] === o.id} disabled={filters[key] !== o.id && !counts[key][o.id]}
-                    onClick={() => setFilters(f => ({ ...f, [key]: f[key] === o.id ? null : o.id }))}>{o.label} ({counts[key][o.id]})</button>
-                ))}
-              </div>
-            );
-          })}
-          {active > 0 && <button type="button" className="ds-btn" onClick={() => setFilters(f => ({ q: f.q }))}>Clear filters</button>}
-        </details>
-      </div>
-      <ul className="ds-pick-grid">
+      <ResultsBar count={shown.length} noun="photo" layout={layout} setLayout={setLayout} modes={[['grid', 'Grid'], ['list', 'List']]}/>
+      <ul className="ds-pick-grid" data-layout={layout}>
         {shown.map((d, i) => (
           <li key={d.id} style={{ '--i': Math.min(i, 8) }}>
             <button type="button" className="ds-pick-card" onClick={() => setPreview(d)} title={TIER_LABEL[tierOf(d)].note} aria-label={`${d.label}, ${PHOTO_LABEL[tierOf(d)]}`}>
-              <span className="ds-pick-img"><img src={d.thumb} alt="" loading="lazy" decoding="async"/></span>
+              <span className="ds-pick-img"><img src={d.thumb} alt="" loading="lazy" decoding="async"/><TierChip tier={tierOf(d)}/></span>
               <strong>{garmentLabel(d.label)}</strong>
               <span className="ds-pick-meta"><Capability3D kind={TIER_CAP[tierOf(d)]} short/></span>
             </button>
@@ -260,6 +304,7 @@ function Photos({ head, onClose, cfg, pieceRole, onPickPhoto, onPick3D, onPickFa
         </section>
       )}
       {onClose && <Foot><span className="ds-pick-count">{shown.length} shown</span><button type="button" className="ds-btn" onClick={onClose}>Keep current garment</button></Foot>}
+      </div>
     </>
   );
 }
@@ -302,7 +347,7 @@ function FamilyCard({ fam, cfg, fitsRole, pieceRole, onPick, i }: any) {
       <button type="button" className="ds-pick-card" aria-pressed={cfg.garment === fam.id} disabled={!fitsRole(fam)}
         title={fitsRole(fam) ? TIER_LABEL[tier].note : `Your set needs a ${ROLE_LABEL[pieceRole].toLowerCase()} here`}
         onClick={() => onPick(fam)} aria-label={`${fam.id}, ${PHOTO_LABEL[tier]}`}>
-        <span className="ds-pick-img"><TemplateImage fam={fam} cfg={cfg} pick={combosFor(fam, VECTOR)[0] ?? {}}/></span>
+        <span className="ds-pick-img"><TemplateImage fam={fam} cfg={cfg} pick={combosFor(fam, VECTOR)[0] ?? {}}/><TierChip tier={tier}/></span>
         <strong>{garmentLabel(fam.id)}</strong>
         <span className="ds-pick-meta"><Capability3D kind={TIER_CAP[tier]} short/></span>
       </button>
@@ -435,10 +480,8 @@ function Templates({ head, onClose, cfg, pieceRole, onPickFamily, onPairFamily =
   if (pairFam) return <>{head(null)}<FamilySteps fam={pairFam} cfg={cfg} backLabel="Back to garments" onBack={() => setPairFam(null)} onOpen={pick => onPairFamily(pairFam, homeOf(pairFam.id, cfg.category), pick)}/></>;
   if (fam) return <>{head(null)}<FamilySteps fam={fam} cfg={pcfg} onBack={() => setFam(null)} onOpen={pick => onPickFamily(fam, cat === ALL ? homeOf(fam.id, cfg.category) : cat, withColour(pick))}/></>;
   const card = (f, i) => <FamilyCard key={f.id} fam={f} cfg={cfg} fitsRole={fitsRole} pieceRole={pieceRole} onPick={setFam} i={i}/>;
-  return (
+  const side = (
     <>
-      {head(legend)}
-      {extra}
       <div className="ds-chips" role="radiogroup" aria-label="Uniform category">
         <RoleChip pieceRole={pieceRole} on={roleOn} setOn={setRoleOn} count={OWN_FAMILIES.filter(fitsRole).length} total={OWN_FAMILIES.length}/>
         {[{ id: ALL }, ...CATALOG].map(c => {
@@ -463,24 +506,30 @@ function Templates({ head, onClose, cfg, pieceRole, onPickFamily, onPairFamily =
           {gender && gender !== 'unisex' && <span className="ds-note">Unisex templates stay listed: any garment can be made in any size.</span>}
         </div>
       </div>
+    </>
+  );
+  return (
+    <>
+      {head(legend, side)}
+      <div className="ds-pick-main">
+      {extra}
       {pairing && <PairSection cfg={cfg} onPair={setPairFam}/>}
       {pairing && <h3 className="ds-pick-subh">Or replace your garment</h3>}
-      <div className="ds-seg ds-seg--sm ds-pick-viewsw" role="radiogroup" aria-label="Browse as">
-        {[['grid', 'Grid'], ['carousel', 'Carousel']].map(([v, l]) => <button key={v} type="button" role="radio" aria-checked={view === v} onClick={() => setView(v)}>{l}</button>)}
-      </div>
+      <ResultsBar count={families.length} noun="template" layout={view} setLayout={setView} modes={[['grid', 'Grid'], ['list', 'List'], ['carousel', 'Carousel']]}/>
       {view === 'carousel' && families.length > 0 ? (
         <GarmentCarousel families={families} index={carIdx} setIndex={setCarIdx} colour={colour} setColour={setColour}
           renderImage={f => <TemplateImage fam={f} cfg={pcfg} pick={combosFor(f, VECTOR)[0] ?? {}}/>}
           renderBadge={f => <span className="ds-car-tier"><Badge icon={PHOTO_BADGE[tierOfFamily(f)]} label={PHOTO_LABEL[tierOfFamily(f)]}/><span aria-hidden="true">{PHOTO_LABEL[tierOfFamily(f)]}</span></span>}
           isDisabled={f => !fitsRole(f)} onChoose={setFam}/>
       ) : (
-        <ul className="ds-pick-grid">
+        <ul className="ds-pick-grid" data-layout={view}>
           <BuildYourOwnCard onPick={() => setByo(true)}/>
           {families.map((f, i) => card(f, i + 1))}
         </ul>
       )}
       {families.length === 0 && <p className="ds-note">No template matches these filters. Clear a filter or pick another category.</p>}
       {onClose && <Foot><span className="ds-pick-count">{families.length} templates</span><button type="button" className="ds-btn" onClick={onClose}>Keep current garment</button></Foot>}
+      </div>
     </>
   );
 }
@@ -497,7 +546,7 @@ function ArtScope({ value, onChange }: any) {
   );
 }
 
-export default function GarmentPicker({ tab = 'inspiration', inline = false, cfg, pieceRole = null, onPickPhoto, onPick3D, onPickFamily, onPairFamily = null, onUpload, pendingArt, onCancelArt, onSketchArt = null, artRefused = null, artChecking = false, onAttachRefused = null, referenceName = null, artScope = null, onArtScope = null, onClose = null, extra = null }: any) {
+export default function GarmentPicker({ tab = 'inspiration', inline = false, onExit = null, cfg, pieceRole = null, onPickPhoto, onPick3D, onPickFamily, onPairFamily = null, onUpload, pendingArt, onCancelArt, onSketchArt = null, artRefused = null, artChecking = false, onAttachRefused = null, referenceName = null, artScope = null, onArtScope = null, onClose = null, extra = null }: any) {
   // A landing tile's category (studioIntent.js) opens the scratch list filtered to it; an unknown id is ignored.
   const [startCat] = useState(() => { const c = inline && !cfg.garment ? peekStudioCategory() : null; return CATALOG.some(x => x.id === c) ? c : null; });
   useEffect(clearStudioCategory, []);
@@ -518,7 +567,7 @@ export default function GarmentPicker({ tab = 'inspiration', inline = false, cfg
         )}
         {onSketchArt && !artRefused && <p><button type="button" className="ds-btn" onClick={onSketchArt} disabled={artChecking}><PencilRuler size={15} aria-hidden="true"/>Create a 2D garment from this photo</button> <span className="ds-note" role="status">{artChecking ? PERSON_CHECKING : 'Reads the outline into an editable sketch you confirm (2D only).'}</span></p>}</>
     : <><p>VFRB makes full sets: choose a top or a bottom, then add the matching piece. Start from a real uniform we made, or a VFRB template.</p>{referenceName && <p className="ds-note">Reference photo attached: {referenceName}. It goes with your order.</p>}</>;
-  const head = legend => <Head title={title} sub={sub} onClose={onClose} view={view} setView={setView} legend={legend} onUpload={pendingArt ? null : onUpload}/>;
+  const head = (legend, side = null) => <Head title={title} sub={sub} onClose={onClose} onExit={onExit} view={view} setView={setView} legend={legend} side={side} onUpload={pendingArt ? null : onUpload}/>;
   // Compact header once the picker's scroll box (the inline stage or the modal) has scrolled. The gap between the two thresholds, with
   // scroll anchoring off (CSS), keeps the header's own height change from flipping it back.
   const root = useRef(null);

@@ -1,0 +1,119 @@
+/* Garment gallery: one workspace instead of a centred brochure. A left rail holds source, search and filters (BlankBuilder's models
+   browser); the cards fill the rest in dense, corner-badged tiles (TailorNova's pick-a-style catalogue). Phones and modals keep the
+   single column: the rail simply flows above the cards (display: contents). */
+
+/* The studio bar is not needed before a garment exists; the gallery has its own back arrow. */
+.ds[data-first] > .ds-bar { display: none; }
+.ds[data-first] .ds-body { height: 100dvh; }
+@media (max-width: 1023px) { .ds[data-first] .ds-body { height: 100dvh; } }
+
+.ds-pick-rail { display: contents; }
+.ds-pick-side { width: 100%; max-width: 1040px; display: flex; flex-direction: column; gap: 10px; }
+.ds-pick-main { width: 100%; max-width: 1040px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+
+.ds-pick-exit { grid-column: 1; width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid var(--cx-line-strong); border-radius: 999px;
+  background: var(--cx-card); color: var(--cx-ink); cursor: pointer; transition: background-color .15s, border-color .15s; }
+.ds-pick-exit:hover { background: var(--cx-paper-2); }
+.ds-pick-exit:focus-visible, .ds-pick-tabs button:focus-visible, .ds-pick-bar button:focus-visible { outline: 2px solid var(--cx-thread-ink); outline-offset: 2px; }
+
+.ds-pick-searchbox { position: relative; display: block; }
+.ds-pick-searchbox > svg { position: absolute; left: 14px; top: 50%; translate: 0 -50%; color: var(--cx-ink-2); pointer-events: none; }
+.ds-pick-searchbox .ds-pick-search { padding-left: 38px; }
+
+.ds-pick-bar { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ds-pick-bar .ds-pick-count { margin: 0; color: var(--cx-stage-ink-2); }
+.ds-pick-bar .ds-pick-viewsw { margin: 0; align-self: auto; }
+.ds-pick-bar .ds-pick-viewsw button { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; }
+
+/* Corner tier chip on the picture */
+.ds-pick-tier { position: absolute; top: 8px; right: 8px; padding: 3px 9px; border-radius: 999px; font: 700 11px/16px var(--cx-sans); background: rgb(255 255 255 / .94);
+  color: #0f3d44; box-shadow: 0 1px 2px rgb(0 0 0 / .18); }
+.ds-pick-tier[data-tier="2d-3d-approx"], .ds-pick-tier[data-tier="2d-3d"] { background: #0e7c86; color: #fff; }
+.ds-pick-tier[data-tier="reference"] { background: #f3e3b2; color: #5a4300; }
+.ds-pick-card .ds-pick-img { position: relative; }
+
+/* List mode: one row per garment, picture left */
+.ds-pick-grid[data-layout="list"] { grid-template-columns: 1fr; gap: 8px; }
+.ds-pick-grid[data-layout="list"] .ds-pick-card { flex-direction: row; align-items: center; gap: 14px; text-align: left; padding: 8px 14px 8px 8px; }
+.ds-pick-grid[data-layout="list"] .ds-pick-img { width: 84px; flex: none; aspect-ratio: 1; }
+.ds-pick-grid[data-layout="list"] .ds-pick-card strong { min-height: 0; font-size: 14px; -webkit-line-clamp: 1; }
+.ds-pick-grid[data-layout="list"] .ds-pick-tier { top: 4px; right: 4px; font-size: 10px; padding: 1px 7px; }
+.ds-pick-grid[data-layout="list"] .ds-pick-meta { margin: 0 0 0 auto; }
+
+@media (min-width: 1024px) {
+  /* Inline gallery: rail (sticky, own scroll) + cards */
+  .ds-pick[data-inline] { display: grid; grid-template-columns: 316px minmax(0, 1fr); grid-auto-rows: min-content; align-items: start; column-gap: clamp(20px, 2.4vw, 40px);
+    row-gap: 14px; padding: 16px clamp(16px, 2vw, 32px) 0; }
+  .ds-pick[data-inline] > .ds-pick-rail { display: flex; flex-direction: column; gap: 10px; grid-column: 1; grid-row: 1 / span 40; position: sticky; top: 0; align-self: start;
+    max-height: calc(100dvh - 16px); overflow-y: auto; padding: 0 4px 16px 0; overscroll-behavior: contain; scrollbar-width: thin; }
+  .ds-pick[data-inline] > :not(.ds-pick-rail) { grid-column: 2; width: 100%; max-width: none; }
+  .ds-pick[data-inline] .ds-pick-main { max-width: none; align-items: stretch; }
+  .ds-pick[data-inline] .ds-pick-head { position: static; max-width: none; align-items: stretch; text-align: left; padding: 0; background: transparent; gap: 10px; }
+  .ds-pick[data-inline] .ds-pick-titlebar { grid-template-columns: 44px 1fr; gap: 10px; }
+  .ds-pick[data-inline] .ds-pick-titlebar h2 { grid-column: 2; font-size: 20px; }
+  .ds-pick[data-inline] .ds-pick-head p { font-size: 12.5px; }
+  .ds-pick[data-inline] .ds-pick-row { flex-direction: column; align-items: stretch; justify-content: flex-start; margin: 0; }
+  .ds-pick[data-inline] .ds-pick-tabs { display: grid; grid-template-columns: 1fr 1fr; }
+  .ds-pick[data-inline] .ds-pick-tabs button { padding: 0 8px; }
+  .ds-pick[data-inline] .ds-pick-upbtn { justify-content: center; }
+  .ds-pick[data-inline] .ds-pick-legend { justify-content: flex-start; max-width: none; }
+  .ds-pick[data-inline] .ds-pick-side { max-width: none; }
+  .ds-pick[data-inline] .ds-chips { justify-content: flex-start; }
+  .ds-pick[data-inline] .ds-pick-filters > summary { display: none; }
+  .ds-pick[data-inline] .ds-pick-filters { border: 0; background: transparent; padding: 0; }
+  .ds-pick[data-inline] .ds-pick-frow { padding: 6px 0; }
+  .ds-pick[data-inline] .ds-pick-frow > span { flex: 0 0 100%; }
+  /* Category tiles become a compact two-column list in the rail */
+  .ds-pick[data-inline] .ds-pick-side .ds-chips[aria-label="Uniform category"] { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .ds-pick[data-inline] .ds-cat-tile { min-height: 44px; width: 100%; }
+  .ds-pick[data-inline][data-compact] .ds-pick-head > :is(p, .ds-pick-legend) { display: revert; }
+  .ds-pick[data-inline][data-compact] .ds-pick-head { padding: 0; box-shadow: none; }
+  /* Cards: denser, picture-led */
+  .ds-pick[data-inline] .ds-pick-grid { max-width: none; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); gap: 14px; }
+  .ds-pick[data-inline] .ds-pick-grid[data-layout="list"] { grid-template-columns: 1fr; gap: 8px; }
+  .ds-pick[data-inline] .ds-pick-img { aspect-ratio: 4/5; }
+  .ds-pick[data-inline] .ds-pick-grid:not([data-layout="list"]) .ds-pick-meta { display: none; }
+  .ds-pick[data-inline] .ds-pick-card { padding: 6px 6px 10px; transition: transform .18s ease-out, box-shadow .18s, border-color .18s; }
+  .ds-pick[data-inline] .ds-pick-card:hover { transform: translateY(-2px); }
+  .ds-pick[data-inline] .ds-pick-card strong { padding: 0 4px; }
+  .ds-pick[data-inline] .ds-pick-sec { max-width: none; }
+  .ds-pick[data-inline] .ds-pick-foot { max-width: none; }
+}
+@media (min-width: 1440px) { .ds-pick[data-inline] { grid-template-columns: 340px minmax(0, 1fr); } .ds-pick[data-inline] .ds-pick-grid { grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); } }
+@media (max-width: 1023px) {
+  .ds-pick-bar { position: sticky; top: 0; z-index: 1; padding: 4px 0; background: var(--cx-stage); }
+  .ds-pick-main { max-width: none; }
+}
+@media (prefers-reduced-motion: reduce) { .ds-pick[data-inline] .ds-pick-card, .ds-pick-exit { transition: none; } .ds-pick[data-inline] .ds-pick-card:hover { transform: none; } }
+
+/* The tier is now a chip on the picture, so the badge key and the meta row under the title are redundant. */
+.ds-pick[data-inline] .ds-pick-legend { display: none; }
+.ds-pick[data-inline] .ds-pick-grid .ds-pick-card .ds-pick-meta { display: none; }
+.ds-pick[data-inline] .ds-pick-grid[data-layout="list"] .ds-pick-card .ds-pick-meta { display: none; }
+.ds-pick-tier { white-space: nowrap; }
+/* Phones and tablets: a light, full-width header (the studio bar it used to sit under is gone). */
+@media (max-width: 1023px) {
+  .ds-pick[data-inline] { padding-left: 0; padding-right: 0; padding-top: 0; gap: 12px; }
+  .ds-pick[data-inline] > :not(.ds-pick-rail):not(.ds-pick-head) { padding-left: clamp(12px, 3vw, 24px); padding-right: clamp(12px, 3vw, 24px); }
+  .ds-pick[data-inline] .ds-pick-side, .ds-pick[data-inline] .ds-pick-main { padding-left: clamp(12px, 3vw, 24px); padding-right: clamp(12px, 3vw, 24px); width: 100%; }
+  .ds-pick[data-inline] .ds-pick-head { max-width: none; background: var(--cx-paper, #f4f1ea); padding: 8px clamp(12px, 3vw, 24px); align-items: stretch; text-align: left; border-bottom: 1px solid var(--cx-line); }
+  .ds-pick[data-inline] .ds-pick-titlebar { grid-template-columns: 44px 1fr; gap: 10px; }
+  .ds-pick[data-inline] .ds-pick-titlebar h2, .ds-pick[data-inline] .ds-pick-head h2 { grid-column: 2; color: var(--cx-ink); font-size: clamp(18px, 4.6vw, 24px); }
+  .ds-pick[data-inline] .ds-pick-head p { color: var(--cx-ink-2); }
+  .ds-pick[data-inline] .ds-pick-row { justify-content: flex-start; }
+  .ds-pick[data-inline] .ds-pick-tabs { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+  .ds-pick[data-inline] .ds-chips { justify-content: flex-start; }
+  .ds-pick[data-inline] .ds-pick-bar { background: var(--cx-paper, #f4f1ea); }
+}
+/* Phone fix: the legacy navy header used negative margins sized by --ds-pick-pad; with zero side padding they pushed the page 28px short. */
+@media (max-width: 1023px) {
+  .ds .ds-pick[data-inline] { --ds-pick-pad: 0px; }
+  .ds .ds-pick[data-inline] .ds-pick-titlebar { margin: 0; padding: 10px clamp(12px, 3vw, 24px) 2px; background: var(--cx-paper, #f4f1ea); }
+  .ds .ds-pick[data-inline] .ds-pick-row { margin: 0; padding: 8px clamp(12px, 3vw, 24px) 10px; background: var(--cx-paper, #f4f1ea); border-bottom: 1px solid var(--cx-line); box-shadow: 0 6px 12px -10px rgb(0 0 0 / .25); }
+  .ds .ds-pick[data-inline] .ds-pick-tabs button[aria-checked=true] { background: var(--vf-chrome); color: var(--vf-on-chrome, #fff); }
+}
+@media (max-width: 1023px) {
+  .ds .ds-pick[data-inline] .ds-pick-head { --cx-ink: #14213d; --cx-ink-2: #4a5568; --cx-stage-ink: #14213d; --cx-stage-ink-2: #4a5568; }
+  .ds .ds-pick[data-inline] .ds-pick-head h2, .ds .ds-pick[data-inline] .ds-pick-titlebar h2 { color: #14213d !important; }
+  .ds .ds-pick[data-inline] .ds-pick-head p { color: #4a5568; }
+}
