@@ -194,23 +194,32 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
       const init = initialArtRef.current;
       if (init && (init.front.length || init.back.length)) {
         loading.current = true;
+        let restored = true;
         try {
+          // Text is measured when it is created, so every face the saved art uses must be loaded first or it is laid out in the fallback font.
+          const faces = new Set<string>();
+          for (const s of SIDES) for (const o of (init[s] ?? []) as any[]) if (typeof o?.fontFamily === 'string') faces.add(`${o.fontWeight ?? 'normal'} ${o.fontStyle ?? 'normal'} 64px ${o.fontFamily}`);
+          await Promise.all([...faces].map(f => document.fonts.load(f).catch(() => [])));
+          if (cancelled) return;
           for (const s of SIDES) {
-            const objs = init[s], c = fcs.current[s];
+            const objs = init[s] ?? [], c = fcs.current[s];
             if (!objs.length || !c) continue;
             await c.loadFromJSON({ objects: objs });
             if (cancelled) return;
-            c.getObjects().forEach(styleControls); c.requestRenderAll();
+            c.getObjects().forEach(o => { styleControls(o); o.setCoords(); }); c.requestRenderAll();
           }
           setCounts({ front: fcs.current.front?.getObjects().length ?? 0, back: fcs.current.back?.getObjects().length ?? 0 });
           paintTex(); setPanelsVersion(v => v + 1);
         } catch (e) {
           if (cancelled) return;
+          restored = false;
           console.error('PanelWorkspace: saved artwork could not be restored', e);
           setNotice('The saved artwork could not be opened and was left untouched.');
         }
         if (cancelled) return;
         loading.current = false;
+        // A failed restore leaves the canvases empty: autosave stays off so it cannot replace the saved artwork with nothing.
+        if (!restored) return;
       }
       if (!cancelled) hydrated.current = true;
     })();

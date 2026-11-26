@@ -21,8 +21,8 @@ export const UV_BAKED_ASSETS: readonly UvBakedAsset[] = [{
   manifest: `${BASE}/mapping_manifest.json`, mappingSha256: 'c59c80d7c7f9c7590a233b0a299a54774078022379a77216c938ee8941878bfa', mappingVersion: '1.0.0',
   rights: 'rights_pending', xMirror: true,
   panelSvg: {
-    front: { url: `${BASE}/panels_front.svg`, sha256: 'd305540b3d3e023adaf1e6932f1b33499c370b02216bcf8b48f316be0c676553' },
-    back: { url: `${BASE}/panels_back.svg`, sha256: '92040ac9fe8171be8968279cf517f21f74b118e88985e3db316bc0b4ebf2f3ad' },
+    front: { url: `${BASE}/panels_front.svg`, sha256: '5c3228212bf2b404d82ebb3f79fdb284be0acf3976c8b8d0220c8f163eb7afbc' },
+    back: { url: `${BASE}/panels_back.svg`, sha256: 'd4d62bbf9398f6f1bde7c76f367f1a5833dc04e7e0ca16b8a07098f71b61496a' },
   },
   frames: {
     front: { x0: -0.61592, x1: 0.61855, y0: -0.72734, y1: 0.71677 },
