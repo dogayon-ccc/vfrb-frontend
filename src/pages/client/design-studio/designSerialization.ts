@@ -32,6 +32,7 @@ import { normalizeCustom } from './customGarment';
 import { setCustomSpec } from './garmentPaths';
 import { savedDesignName } from '../../../utils/designName';
 import { parsePrintWidth } from './print/printSpec.ts';
+import { uvBakedAssetFor, assetRefFor, cleanAssetRef, cleanPanelArt } from './studioAssets';
 
 export function cleanPrintSizes(raw) {
   const out = {};
@@ -118,6 +119,13 @@ export function serializeDesign(cfg, overlaysBundle = {}, previewPng) {
   // Build-your-own shape (customGarment.js), clamped; only a custom garment carries one.
   const custom = normalizeCustom(cfg.custom, out.garment);
   if (custom) out.custom = custom;
+  // Baked-asset identity (studioAssets.ts): written only for a garment that has one, so every other record keeps its old shape.
+  const baked = uvBakedAssetFor(out.garment, out.sleeve, out.fit), savedRef = cleanAssetRef(cfg);
+  const assetRef = baked ? (savedRef?.assetId === baked.id ? savedRef : assetRefFor(baked)) : null;
+  if (assetRef) Object.assign(out, assetRef);
+  // Panel artwork exists only for a garment with baked panels; any other record keeps its old shape.
+  const panelArt = baked ? cleanPanelArt((cfg as any).panelArt) : null;
+  if (panelArt) (out as any).panelArt = panelArt;
   if (previewPng) out.previewPng = previewPng;
   return out;
 }
@@ -159,6 +167,8 @@ export function deserializeDesign(raw) {
   setCustomSpec(cfg.garment, cfg.custom); // the shape must be known before its paths are read (details below, any preview)
   cfg.details = normalizeDetails(sc.details, cfg.garment, cfg.sleeve, cfg.fit);
   cfg.inspirationId = inspirationFor(sc.inspirationId, cfg.garment);
+  const savedAsset = cleanAssetRef(sc);
+  if (savedAsset) Object.assign(cfg, savedAsset);
   if (assetFor(cfg.garment, cfg.sleeve, 'front', cfg.fit)) {
     cfg.patterns = { ...DEFAULT_CFG.patterns };
     cfg.patternParams = {};
@@ -173,5 +183,7 @@ export function deserializeDesign(raw) {
   const frontOverlays = asArray(sc.frontOverlays).length ? asArray(sc.frontOverlays) : overlays;
   const backOverlays  = asArray(sc.backOverlays);
 
-  return { cfg, overlays, frontOverlays, backOverlays };
+  const panelArt = uvBakedAssetFor(cfg.garment, cfg.sleeve, cfg.fit) ? cleanPanelArt(sc.panelArt) : null;
+
+  return { cfg, overlays, frontOverlays, backOverlays, panelArt };
 }

@@ -52,7 +52,7 @@ export function ViewToggle({ cfg, viewMode, setViewMode, setHas3DLoaded }: any) 
   );
 }
 
-export default function TopBar({ nav, cfg, setCfg, undo, redo, canUndo, canRedo, viewMode, setViewMode, setHas3DLoaded,
+export default function TopBar({ nav, cfg, setCfg, undo, redo, canUndo, canRedo, viewMode, setViewMode, setHas3DLoaded, hideViewToggle = false,
   showShowcase, setShowShowcase, showcaseCount = 0, status = null,
   onChangeGarment, saveDesign, saving, saved, draftSaved, orderThis, ordering, downloadImage, downloadPdf, openPrintFiles, exporting, lock = null, onReorder, onDuplicate, copying = false, phoneItems = [] }: any) {
   const phone = usePhone();
@@ -108,7 +108,7 @@ export default function TopBar({ nav, cfg, setCfg, undo, redo, canUndo, canRedo,
         </div>
       )}
 
-      {has && <ViewToggle cfg={cfg} viewMode={viewMode} setViewMode={setViewMode} setHas3DLoaded={setHas3DLoaded}/>}
+      {has && !hideViewToggle && <ViewToggle cfg={cfg} viewMode={viewMode} setViewMode={setViewMode} setHas3DLoaded={setHas3DLoaded}/>}
 
       {showcaseCount > 0 && !phone && (
         <button type="button" className="ds-bar-btn ds-bar-text" aria-pressed={showShowcase} aria-label="Showcase" title="Designs other customers chose to share" onClick={() => setShowShowcase(p => !p)}>

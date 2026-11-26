@@ -13,8 +13,11 @@ import { useRovingGroups } from './design-studio/rovingKeys';
 import { analyzeImageFile, REF_NOT_FULL_SET } from './design-studio/referenceSketch';
 import { checkPerson, personGate } from './design-studio/personDetector';
 import { garmentLabel } from '../../utils/designName';
+import { uvBakedAssetFor, panelArtBytes, PANEL_ART_MAX_BYTES, type PanelArt } from './design-studio/studioAssets';
+import type { PanelWorkspaceHandle } from './design-studio/PanelWorkspace';
+const PanelWorkspace = lazy(() => import('./design-studio/PanelWorkspace'));
 import {
-  useState, useEffect, useRef, useCallback, useMemo,
+  useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense,
 } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useReducedMotion } from 'framer-motion';
@@ -83,6 +86,8 @@ export default function DesignStudio() {
   const canvasWrapRef = useRef(null);
 
   const [cfg,        setCfg]        = useState(INIT_CFG);
+  const baked = useMemo(() => uvBakedAssetFor(cfg.garment, cfg.sleeve, cfg.fit), [cfg.garment, cfg.sleeve, cfg.fit]);
+  const bakedRef = useRef(baked); bakedRef.current = baked;
   useRovingGroups();
   useEffect(() => {
     document.title = `${cfg.name?.trim() || 'New design'} · Design Studio | VFRB Enterprise`;
@@ -94,6 +99,7 @@ export default function DesignStudio() {
   // Desktop: the left flyout (Garment, Add, Text, Scene, Selection) is open or not; the right panel is Layers / AI Design only (ToolDrawer).
   const [flyOpen, setFlyOpen] = useState(false);
   const [viewMode,   setViewMode]   = useState<ViewMode>('2d');
+  useEffect(() => { if (baked && viewMode !== '2d') setViewMode('2d'); }, [baked, viewMode]); // a baked garment has its own Panels/Split/3D switch in the workspace
   const [showSet, setShowSet] = useState(false); // both pieces drawn together, read-only
   const [snapshot,   setSnapshot]   = useState(null);
   const [overlays,   setOverlays]   = useState(null);
@@ -104,6 +110,12 @@ export default function DesignStudio() {
   const [has3DLoaded, setHas3DLoaded] = useState(false);
   const [face,       setFace]       = useState('front');   // front / back
   const faceJSON = useRef({ front: [], back: [] }); // TASK O: per-face canvas state
+  // Baked-panel garments (studioAssets.ts): artwork lives on the flat panels in PanelWorkspace, not on the silhouette canvas.
+  const panelArtRef = useRef<PanelArt | null>(null);
+  const panelApi = useRef<PanelWorkspaceHandle>(null);
+  const [panelTick, setPanelTick] = useState(0);   // artwork changed: re-run the save checks
+  const [panelKey, setPanelKey] = useState(0);     // artwork restored from a draft or saved design: reopen the panels with it
+  const restorePanelArt = useCallback((art: PanelArt | null) => { panelArtRef.current = art; setPanelKey(k => k + 1); }, []);
   // Uniform set (top + bottom). The active piece lives in cfg + canvas; the other piece is a serialized snapshot.
   const [uset, setUset] = useState(() => {
     try { return normalizeSet(JSON.parse(sessionStorage.getItem('studio_config') || 'null')?.uniformSet); } catch { return null; }
@@ -417,6 +429,11 @@ export default function DesignStudio() {
   // re-add objects onto whatever face we've since moved to. Real bug, caught
   // via screenshot: an emoji added on front leaked onto the back export.
   const exportFrontBack = useCallback(() => whileSwapping(async () => {
+    // Baked-panel garment: the picture is drawn from the panels, so no face swap on the hidden silhouette canvas is needed.
+    if (bakedRef.current && panelApi.current) {
+      const f = panelApi.current.preview('front');
+      if (f) return compositeFrontBack(f, panelApi.current.preview('back'));
+    }
     const originalFace = face;
     let activeFace = originalFace;
     faceJSON.current[activeFace] = getCanvasJSON() ?? [];
@@ -524,8 +541,9 @@ export default function DesignStudio() {
     let raw = null;
     try { raw = sessionStorage.getItem('studio_config'); } catch { /* private mode */ }
     if (!raw) return;
-    const { frontOverlays, backOverlays } = deserializeDesign(raw);
+    const { frontOverlays, backOverlays, panelArt } = deserializeDesign(raw);
     faceJSON.current = { front: frontOverlays, back: backOverlays };
+    restorePanelArt(panelArt);
     const toLoad = faceJSON.current[face] ?? [];
     const loaded = whileSwapping(async () => {
       if (!toLoad.length) return;
@@ -557,10 +575,11 @@ export default function DesignStudio() {
   // save time (deserializeDesign falls back frontOverlays -> overlays for older drafts).
   const restoreDraft = useCallback(() => {
     if (!pendingDraft) return;
-    const { cfg: restored, frontOverlays, backOverlays } = deserializeDesign(pendingDraft.studio_config);
+    const { cfg: restored, frontOverlays, backOverlays, panelArt } = deserializeDesign(pendingDraft.studio_config);
     setCfg(p => ({ ...p, ...restored }));
     setUset(normalizeSet(pendingDraft.studio_config?.uniformSet));
     faceJSON.current = { front: frontOverlays, back: backOverlays };
+    restorePanelArt(panelArt);
     const toLoad = faceJSON.current[face] ?? [];
     if (toLoad.length > 0) whileSwapping(async () => {
       await new Promise(r => setTimeout(r, 350));
@@ -655,7 +674,7 @@ export default function DesignStudio() {
   // goes through it, and no save can lose the face you're not looking at.
   const pieceSnapshot = useCallback((previewPng) => {
     faceJSON.current[face] = getCanvasJSON() ?? [];
-    return serializeDesign(cfg, {
+    return serializeDesign({ ...cfg, panelArt: panelArtRef.current }, {
       overlays:      faceJSON.current.front,
       frontOverlays: faceJSON.current.front,
       backOverlays:  faceJSON.current.back,
@@ -665,9 +684,10 @@ export default function DesignStudio() {
 
   // Put a piece (serialized snapshot, or a fresh default garment for that role) on the canvas, front view.
   const loadPiece = useCallback((snap, role) => {
-    const { cfg: c, frontOverlays, backOverlays } = deserializeDesign(snap ?? { garment: DEFAULT_PIECE[role], category: cfg.category });
+    const { cfg: c, frontOverlays, backOverlays, panelArt } = deserializeDesign(snap ?? { garment: DEFAULT_PIECE[role], category: cfg.category });
     setCfg(p => ({ ...p, ...c, name: p.name?.trim() ? p.name : c.name, inspirationId: c.inspirationId ?? null }));
     faceJSON.current = { front: frontOverlays, back: backOverlays };
+    restorePanelArt(panelArt);
     // Already on the front: swap the overlays at once (the base redraw keeps them), so the previous piece's
     // text and logos never sit on the new garment. A face change still waits for the front to draw.
     const want = faceJSON.current.front ?? [];
@@ -764,7 +784,7 @@ export default function DesignStudio() {
     }
     const { data } = await axios.post('/api/customer/drafts', {
       studio_config,
-      preview_dataurl: await fitDraftPreview(exportPNG()),
+      preview_dataurl: await fitDraftPreview(panelApi.current?.preview('front') ?? exportPNG()),
       label:           draftLabel(cfg),
     });
     if (!confirmedSave(data, 'draft_id')) throw new Error('save not confirmed'); // a 200 the server did not really store is a failure
@@ -807,7 +827,7 @@ export default function DesignStudio() {
     };
     autoSaveTimer.current = setTimeout(autosave, saveSoon.current ? 1500 : 30_000); // soon: after the kept piece has drawn, for the thumbnail
     return () => { clearTimeout(dirtyCheck); clearTimeout(autoSaveTimer.current); };
-  }, [cfg, locked, editTick]);
+  }, [cfg, locked, editTick, panelTick]);
   const status = cfg.garment ? { ...saveStatus({ saving, saveErr, auto: autoState, draftSaved, saved }), why: saveErr ? saveWhy : '' } : null;
 
   // Back to a blank Studio: canvas, browser copy and, only when it holds this design, the account draft. A saved design's row is never touched.
@@ -1142,6 +1162,28 @@ export default function DesignStudio() {
   // "in progress" immediately rather than waiting on the async work to resolve.
 
 
+  // A baked-panel garment edits on its flat panels with the 3D beside them; the silhouette canvas stays mounted (hidden) so the rest of the Studio keeps its canvas.
+  const setBakedColors = useCallback((fn) => setCfg(c => ({ ...c, colors: fn(c.colors) })), []);
+  const setBakedDetails = useCallback((fn) => setCfg(c => ({ ...c, details: fn((c as any).details ?? {}) })), []);
+  const onPanelArt = useCallback((art: PanelArt) => {
+    panelArtRef.current = art.front.length || art.back.length ? art : null;
+    setPanelTick(t => t + 1);
+    return panelArtBytes(art) > PANEL_ART_MAX_BYTES ? 'full' as const : 'saved' as const;
+  }, []);
+  const wrapStage = (stage) => (!baked ? stage : (
+    <>
+      <div className="ds-panelws">
+        <Suspense fallback={<p className="ps-state">Loading the garment panels</p>}>
+          <PanelWorkspace key={`${baked.id}:${panelKey}`} embedded persist="design" asset={baked} handleRef={panelApi} readOnly={locked}
+            colors={cfg.colors} setColors={setBakedColors} details={(cfg as any).details ?? {}} setDetails={setBakedDetails}
+            initialArt={panelArtRef.current} onArt={onPanelArt} title={garmentLabel(cfg.garment)} subtitle="Base-size preview only. Garment size is chosen separately in the bulk order."
+            headerExtra={<button type="button" className="ps-btn ps-btn--quiet" onClick={changeGarment}>Change garment</button>}/>
+        </Suspense>
+      </div>
+      <div hidden aria-hidden="true" style={{ display: 'none' }}>{stage}</div>
+    </>
+  ));
+
   return (
     <>
       <DesignStudioStyles/>
@@ -1154,7 +1196,7 @@ export default function DesignStudio() {
         {/* ── TOP BAR ── */}
         <TopBar nav={nav} cfg={cfg} setCfg={locked ? () => {} : setCfg} undo={lock?.warn ? () => setWarnAsk(true) : undo} redo={lock?.warn ? () => setWarnAsk(true) : redo}
           canUndo={canUndo && !locked} canRedo={canRedo && !locked} status={locked ? null : status}
-          viewMode={viewMode} setViewMode={setViewMode} setHas3DLoaded={setHas3DLoaded}
+          viewMode={viewMode} setViewMode={setViewMode} setHas3DLoaded={setHas3DLoaded} hideViewToggle={!!baked}
           showShowcase={showShowcase} setShowShowcase={toggleShowcase} showcaseCount={locked || colorOnly ? 0 : showcaseCount}
           onChangeGarment={changeGarment} saveDesign={saveDesign} saving={saving} saved={saved} draftSaved={draftSaved} orderThis={orderThis} ordering={ordering}
           downloadImage={downloadImage} downloadPdf={downloadPdf} openPrintFiles={openPrintFiles} exporting={exporting}
@@ -1188,7 +1230,7 @@ export default function DesignStudio() {
             <PiecesRail {...pieceProps} other={railCompanion} readOnly={colorOnly}
               dock={{ layers, selectedId: selObj?.__layerId, onSelect: selectLayer, onToggleVisibility: toggleLayerVisibility, onAdd: () => setTool('assets'), onOpenLayers: () => setTool('layers') }}
               help={{ onTour: () => setHelp('tour'), onKeys: () => setHelp('keys'), onHowTo: () => setHelp('howto') }}/>}
-          drawer={
+          drawer={baked ? null :
             <ToolDrawer onlyTools={colorOnly ? ['color'] : null} tool={tool} setTool={setTool} onOpenTool={setTool} cfg={cfg} setCfg={setCfg}
               flyOpen={flyOpen} setFlyOpen={setFlyOpen} drawing={tool === 'draw' || pick === 'pen' || pick === 'line'}
               optsOpen={tool === 'draw' || pick === 'pen' || pick === 'line' || BOX_TOOLS.includes(pick)} endOpts={() => { setPick(null); if (tool === 'draw') setTool('assets'); }}
@@ -1205,13 +1247,13 @@ export default function DesignStudio() {
               renameLayer={renameLayer} deleteLayer={deleteLayer} reorderLayers={reorderLayers} pieceRole={uset?.active ?? null} trace={trace} setTrace={setTrace} status={locked ? null : status} onRemoveGarment={() => setAskRemove(true)}
               garmentExtra={<PieceActions {...pieceProps} other={railCompanion} readOnly={colorOnly} inSheet/>} sheetPing={sheetPing}
               more={{ onView: () => setViewOpen(true), onCopy: duplicateToEdit, canCopy: !!lock?.designId, copying, onTour: () => setHelp('tour'), onHowTo: () => setHelp('howto') }}/>}
-          canvas={
+          canvas={wrapStage(
             <CanvasViewport cfg={cfg} setCfg={setCfg} canvasWrapRef={canvasWrapRef} canvasEl={canvasEl} initFailed={initFailed}
               aiPulse={aiPulse} face={face} switchFace={switchFace} fullRef={fullRef}
               selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected} alignSelected={alignSelected} spotsForSelected={spotsForSelected} placeAtSelected={placeAtSelected} arrangeSelected={arrangeSelected} arrangeLayer={arrangeLayer} mirrorSelected={mirrorSelected} toggleSelectedLock={toggleSelectedLock} toggleLayerVisibility={toggleLayerVisibility} garmentRect={garmentRect}
               viewMode={viewMode} has3DLoaded={has3DLoaded} onLogoFile={onLogoFile} onPickZone={setActiveZone}
               onUndo={locked ? null : lock?.warn ? () => setWarnAsk(true) : undo}
-              rail={locked ? null : { history: { undo: lock?.warn ? () => setWarnAsk(true) : undo, redo: lock?.warn ? () => setWarnAsk(true) : redo, canUndo, canRedo }, onShapes: () => setAssetsTab('shapes'), tool, setTool, flyTool: flyOpen && tool !== 'draw' ? tool : null, openFly, closeFly: () => setFlyOpen(false), pick, setPick, erasing, setErasing, color: brushColor, setColor: changeBrushColor, size: brushSize, setSize: changeBrushSize, opacity: brushOpacity, setOpacity: changeBrushOpacity, smooth: brushSmooth, setSmooth: changeBrushSmooth, brushKind, setBrushKind: changeBrushKind, sides: shapeSides, setSides: setShapeSides, colourOnly: colorOnly }}
+              rail={locked || baked ? null : { history: { undo: lock?.warn ? () => setWarnAsk(true) : undo, redo: lock?.warn ? () => setWarnAsk(true) : redo, canUndo, canRedo }, onShapes: () => setAssetsTab('shapes'), tool, setTool, flyTool: flyOpen && tool !== 'draw' ? tool : null, openFly, closeFly: () => setFlyOpen(false), pick, setPick, erasing, setErasing, color: brushColor, setColor: changeBrushColor, size: brushSize, setSize: changeBrushSize, opacity: brushOpacity, setOpacity: changeBrushOpacity, smooth: brushSmooth, setSmooth: changeBrushSmooth, brushKind, setBrushKind: changeBrushKind, sides: shapeSides, setSides: setShapeSides, colourOnly: colorOnly }}
               zoom={zoom} setZoom={setZoom} snapshot={snapshot} overlays={overlays}
               blank={<GarmentPicker inline onExit={() => nav('/dashboard')} cfg={cfg} pieceRole={uset?.active ?? (pendingArt && artScope ? (artScope === 'bottom' ? 'bottom' : 'top') : null)} onPickPhoto={pickPhoto}
                 onPick3D={(d, f) => { keep3DRef.current = true; pickPhoto(d, f); setHas3DLoaded(true); setViewMode('3d'); }}
@@ -1219,7 +1261,7 @@ export default function DesignStudio() {
                 onUpload={null} pendingArt={pendingArt} onCancelArt={() => { setPendingArt(null); setArtRefused(null); }} onSketchArt={REF_PHOTO_TOOLS ? sketchPending : null}
                 artRefused={artRefused} artChecking={artChecking} onAttachRefused={attachRefusedArt} referenceName={logoUpload.reference?.name}
                 artScope={artScope} onArtScope={uset ? null : setArtScope}/>} setViewMode={setViewMode}
-              viewOpen={viewOpen} setViewOpen={setViewOpen} setCompanion={setCompanion} showSet={showSet} setSnapOptions={setSnapOptions} trace={trace} clearSelection={clearSelection}/>}/>
+              viewOpen={viewOpen} setViewOpen={setViewOpen} setCompanion={setCompanion} showSet={showSet} setSnapOptions={setSnapOptions} trace={trace} clearSelection={clearSelection}/>)}/>
 
         <StudioHelp mode={help} setMode={setHelp} ready={!!cfg.garment && !locked && !initFailed && !showInspo && !showShowcase}/>
 

@@ -25,6 +25,8 @@ import { LIGHT_PRESETS } from './design-studio/lightRig';
 import { scannedEntryFor, patternsFor3D } from './design-studio/garmentMeshManifest';
 import { DEFAULT_GARMENT_COLOR } from './design-studio/regionTexture';
 import ScannedGarmentMesh from './design-studio/ScannedGarmentMesh';
+import UvBakedGarmentMesh from './design-studio/UvBakedGarmentMesh';
+import { uvBakedAssetFor } from './design-studio/studioAssets';
 import GarmentMeshErrorBoundary from './design-studio/GarmentMeshErrorBoundary';
 
 // Touch devices render at most 1.5x; retina laptops keep 2x.
@@ -333,17 +335,22 @@ function GarmentMesh({ cfg, referenceTexture, overlays, exploded = false, onPick
   const primitive = isSkirt ? <SkirtMesh colors={colors} referenceTexture={referenceTexture}/>
     : isPants ? <PantsMesh colors={colors} referenceTexture={referenceTexture}/>
     : isShorts ? <ShortsMesh colors={colors} referenceTexture={referenceTexture}/> : shirt;
+  const fit = cfg.fit ?? cfg.gender;
+  const scannedMesh = scanned ? (
+    <GarmentMeshErrorBoundary key={`${gt}-${fit}`} fallback={primitive}>
+      <ScannedGarmentMesh manifest={scanned} colors={colors} patterns={patternsFor3D(scanned, cfg.patterns, { photoBase: !!target?.photo })} patternParams={cfg.patternParams} fit={fit} garment={cfg.garment} sleeve={cfg.sleeve} overlays={overlays} details={cfg.details}
+        exploded={exploded} onPickZone={onPickZone}/>
+    </GarmentMeshErrorBoundary>
+  ) : null;
+  // Tier 'uv-baked' (studioAssets.ts): a failed manifest or GLB load falls back to the scanned model, never to an empty stage.
+  const baked = uvBakedAssetFor(cfg.garment ?? cfg.garmentType, cfg.sleeve, fit);
+  if (baked) return (
+    <GarmentMeshErrorBoundary key={`${baked.id}-${baked.version}`} fallback={scannedMesh}>
+      <UvBakedGarmentMesh asset={baked} colors={colors} details={cfg.details} onPickZone={onPickZone}/>
+    </GarmentMeshErrorBoundary>
+  );
   // No model for this exact selection: render nothing rather than a generic or different garment (the UI keeps the design in 2D).
-  if (!scanned) return null;
-  {
-    const fit = cfg.fit ?? cfg.gender;
-    return (
-      <GarmentMeshErrorBoundary key={`${gt}-${fit}`} fallback={primitive}>
-        <ScannedGarmentMesh manifest={scanned} colors={colors} patterns={patternsFor3D(scanned, cfg.patterns, { photoBase: !!target?.photo })} patternParams={cfg.patternParams} fit={fit} garment={cfg.garment} sleeve={cfg.sleeve} overlays={overlays} details={cfg.details}
-          exploded={exploded} onPickZone={onPickZone}/>
-      </GarmentMeshErrorBoundary>
-    );
-  }
+  return scannedMesh;
 }
 
 // Uniform set preview: the top and the bottom each render their OWN model with their own colours (two separate pieces, never a

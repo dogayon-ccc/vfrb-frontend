@@ -1,0 +1,28 @@
+{
+  "master_id": "vfrb.scrub-top.pilot01",
+  "version": "0.1.0",
+  "master_source": {
+    "path": "garments/scrub-top-men-short.glb",
+    "sha256": "aed377b3b697b4cb08356bc28e93031db7b63ddc1fe47e81942f414ba8e24ec1",
+    "provenance_status": "UNCONFIRMED: single watertight connected thick-shell mesh, no UVs, glTF-Transform output; origin (Meshy/other) and licence not recorded in the supplied files",
+    "approved_for_catalog": false
+  },
+  "not_a_valid_master": [
+    "authored/scrub-top-vneck-short.glb (generator=trimesh: procedural Python geometry, forbidden as master; test fixture only)"
+  ],
+  "axes_blender": {"front": [0, -1, 0], "up": [0, 0, 1], "left": [1, 0, 0]},
+  "axes_gltf": {"front": [0, 0, 1], "up": [0, 1, 0], "left": [1, 0, 0]},
+  "clean": {"merge_distance_mu": 0.00001, "remove_loose": true, "triangulate": true, "decimate_ratio": null},
+  "atlas": {"tex_px": 2048, "pad_px": 8},
+  "regions": {
+    "body":          {"slot": 0, "views": ["front", "back"], "color": [0.85, 0.85, 0.85], "uv_strategy": "planar_front_back", "min_tris": 1000},
+    "sleeve_l":      {"slot": 1, "views": ["front", "back"], "color": [0.20, 0.60, 0.95], "uv_strategy": "cylinder", "axis": "pca", "seam": "down", "min_tris": 100},
+    "sleeve_r":      {"slot": 2, "views": ["front", "back"], "color": [0.95, 0.40, 0.30], "uv_strategy": "cylinder", "axis": "pca", "seam": "down", "min_tris": 100},
+    "neck_band":     {"slot": 3, "views": ["front", "back"], "color": [0.20, 0.80, 0.40], "uv_strategy": "cylinder", "axis": "up", "seam": "back", "min_tris": 50},
+    "chest_pocket":  {"slot": 4, "views": ["front"], "color": [0.95, 0.80, 0.20], "uv_strategy": "planar_front", "min_tris": 20},
+    "lower_pockets": {"slot": 5, "views": ["front"], "color": [0.70, 0.30, 0.85], "uv_strategy": "planar_front", "min_tris": 20}
+  },
+  "hint_boxes": {},
+  "limits": {"max_uv_overlap_pct": 0.5, "max_density_spread": 1.05, "min_outline_area_ratio": 0.01},
+  "material": {"base_color": [0.80, 0.80, 0.80, 1.0], "roughness": 0.9, "metallic": 0.0}
+}

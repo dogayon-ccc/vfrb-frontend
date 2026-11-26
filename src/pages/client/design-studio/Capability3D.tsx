@@ -4,7 +4,7 @@ import { CAP3D } from './glbSlots';
 
 const ICON = { verified: CheckCircle2, approx: Box, none: Frame, reference: Eye };
 const SHORT = { verified: 'Verified 3D', approx: 'Approx. 3D', none: '2D only', reference: 'Photo only' };
-export const TIER_CAP = { '2d-3d': 'verified', '2d-3d-approx': 'approx', 'editable-2d': 'none', reference: 'reference' };
+export const TIER_CAP = { '2d-3d': 'verified', '2d-3d-approx': 'approx', 'uv-baked': 'approx', 'editable-2d': 'none', reference: 'reference' };
 
 export default function Capability3D({ kind, className = '', title, short = false }: any) {
   const Icon = ICON[kind] ?? Frame;

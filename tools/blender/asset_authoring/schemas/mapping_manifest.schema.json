@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "VFRB 2D-3D mapping manifest",
+  "type": "object",
+  "required": ["mapping_version", "master_id", "source_sha256", "processed_sha256", "conventions", "parts", "panels"],
+  "properties": {
+    "mapping_version": {"type": "string"},
+    "master_id": {"type": "string"},
+    "source_sha256": {"type": "string"},
+    "processed_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "conventions": {"type": "object", "required": ["wearer_left", "uv_origin", "handedness_confirmed"]},
+    "parts": {"type": "object", "additionalProperties": {"required": ["node", "material", "panels"]}},
+    "panels": {"type": "array", "items": {"type": "object",
+      "required": ["id", "part", "view", "tri_count", "outline", "mesh", "projected_area_ratio", "grazing_pct"],
+      "properties": {"view": {"enum": ["front", "back"]},
+        "mesh": {"type": "object", "required": ["xy", "uv"], "description": "per-corner 2D panel coords and glTF UVs; the authoritative 2D->UV map"},
+        "affine_xy_to_uv": {"type": ["array", "null"], "description": "only when max error < 2e-3 UV; otherwise use mesh"}}}}
+  }
+}
