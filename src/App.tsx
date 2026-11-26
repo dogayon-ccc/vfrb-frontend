@@ -1,5 +1,6 @@
 // src/App.jsx — route config. All admin + customer pages lazy-loaded; only
 
+import { pilotEnabled } from './pages/client/design-studio/studioAssets';
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import { lazy, Suspense, useEffect } from 'react';
 import axios from 'axios';
@@ -94,6 +95,7 @@ const CustomerSettings    = lazy(() => import('./pages/client/AccountSettings'))
 
 // ── Design Studio — separately lazy (Fabric.js + Three.js are heavy) ─────────
 const DesignStudio = lazy(() => import('./pages/client/DesignStudio'));
+const PilotStudio = pilotEnabled() ? lazy(() => import('./pages/client/PilotStudio')) : null;
 const DevLayouts = import.meta.env.DEV ? lazy(() => import('./dev/layouts/DevLayouts')) : null;
 
 // ── Auth extras — lazy ────────────────────────────────────────────────────────
@@ -343,6 +345,12 @@ export default function App() {
               <Suspense fallback={null}><DesignStudio/></Suspense>
             </RequireAuth>
           }/>
+
+          {PilotStudio && <Route path="/design-studio/pilot" element={
+            <RequireAuth role="customer">
+              <Suspense fallback={null}><PilotStudio/></Suspense>
+            </RequireAuth>
+          }/>}
 
           {DevLayouts && <Route path="/dev/layouts" element={<Suspense fallback={null}><DevLayouts/></Suspense>}/>}
 

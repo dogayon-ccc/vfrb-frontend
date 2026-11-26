@@ -1,7 +1,7 @@
-import { Component } from 'react';
+import { Component, type ReactNode } from 'react';
 
 // A missing or corrupt GLB throws during render; show the primitive mesh instead of blanking the app.
-export default class GarmentMeshErrorBoundary extends Component {
+export default class GarmentMeshErrorBoundary extends Component<{ fallback?: ReactNode; children?: ReactNode }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
   render() { return this.state.failed ? this.props.fallback : this.props.children; }

@@ -485,7 +485,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const users = all.filter(([f, s]) => f !== 'GarmentPicker.tsx' && /<GarmentPicker\b/.test(s)).map(([f]) => f).sort();
   t('one garment picker component: only GarmentPicker lists garments or photos; used inline on the canvas (DesignStudio) and in the picker modal (InspoGallery)',
     pickers.length === 1 && pickers[0] === 'GarmentPicker.tsx' && users.join() === 'DesignStudio.tsx,InspoGallery.tsx' && !all.some(([f]) => /^FirstRunGallery\./.test(f))
-    && /tab=\{pickerTab\}/.test(get('DesignStudio.tsx')) && /setPickerTab\('templates'\)/.test(get('DesignStudio.tsx')) && /setPickerTab\('inspiration'\)/.test(get('DesignStudio.tsx')) && !/CATALOG|selectFamily/.test(get('TypePanel.tsx')));
+    && /tab=\{pickerTab\}/.test(get('DesignStudio.tsx')) && /pickerTabFor\(cfg as any\)/.test(get('DesignStudio.tsx')) && /cfg\?\.inspirationId \? 'inspiration' : 'templates'/.test(get('pickerTab.ts')) && /setPickerTab\('inspiration'\)/.test(get('DesignStudio.tsx')) && !/CATALOG|selectFamily/.test(get('TypePanel.tsx')));
   const undoUi = all.filter(([f, s]) => f !== 'TopBar.tsx' && /Undo2|Redo2|aria-label="(Undo|Redo)"|onClick=\{(history\.)?(undo|redo)\}/.test(s)).map(([f]) => f);
   t('undo/redo: the top bar has them; the only other copy is the tool rail\'s phone row (shown at 767 px and below, hidden above)', undoUi.length === 1 && undoUi[0] === 'ToolRail.tsx' && /\.ds-tools-hist\{display:none;/.test(dsCss) && /@media \(max-width:767px\)\{\s*\.ds-tools-hist\{display:inline-flex;\}/.test(dsCss) && /aria-label="Undo"/.test(get('TopBar.tsx')) && /aria-label="Redo"/.test(get('TopBar.tsx')));
   const drawer = get('ToolDrawer.tsx');
@@ -584,7 +584,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('every picker card shows its status badge (no hidden default) and the key lists the badges present; template cards and the carousel hero use the same four tiers as photos', !/!== def &&/.test(gp) && (gp.match(/<Badge icon=/g) ?? []).length === 2 && (gp.match(/<Capability3D kind=\{TIER_CAP\[/g) ?? []).length === 2 && (gp.match(/<Legend labels=\{PHOTO_LABEL\}/g) ?? []).length === 2 && !/TEMPLATE_STATUS/.test(gp));
   // Top bar: no Inspo, no menu (a menu with one item is never rendered).
   const tb = src('../src/pages/client/design-studio/TopBar.tsx');
-  t('top bar has no Inspo button and no overflow menu; Showcase is a direct button shown only with designs', !/<span>Inspo<|label: 'Inspo'|role="menu"|aria-haspopup/.test(tb) && /showcaseCount > 0 &&/.test(tb));
+  t('top bar has no Inspo button and no overflow menu; Showcase is a direct button shown only with designs', !/<span>Inspo<|label: 'Inspo'|role="menu"|aria-haspopup="menu"/.test(tb) && /showcaseCount > 0 &&/.test(tb));
   // Phone first run: no sheet, no Save/Order, no stage light until a garment exists.
   const ds = src('../src/pages/client/DesignStudio.tsx');
   t('phone first run hides the tabs and panel (the picker gets the full height) and the stage lanes (stage light) until a garment exists',
@@ -698,7 +698,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     /data-slot="align"/.test(ftb) && /n >= 3 && DISTRIBUTE/.test(ftb) && /alignSelected\('hcenter'\)/.test(ftb) && /function roving/.test(ftb)
     && (hook.match(/const arrangeSelected[\s\S]*?\}, \[pushHistory, bumpLayers\]\);/)?.[0].match(/pushHistory\(\)/g) ?? []).length === 1 && /\.ds-ftb button,[^{]*\{min-width:44px;min-height:44px;\}/.test(css));
   t('a multi-selection is saved, autosaved and put in history in canvas coordinates (members of an active selection are decomposed), never relative to the selection',
-    (hook.match(/plainObject\(o, OVERLAY_PROPS\)/g) ?? []).length === 1 && /const overlayJSON = canvas =>/.test(hook) && (hook.match(/overlayJSON\(/g) ?? []).length === 4 && !/o\.toObject\(OVERLAY_PROPS\)/.test(hook) && /export function plainObject/.test(layers) && /translateToGivenOrigin/.test(layers));
+    (hook.match(/plainObject\(o, OVERLAY_PROPS\)/g) ?? []).length === 1 && /const overlayJSON = \(canvas, ab = null\) =>/.test(hook) && (hook.match(/overlayJSON\(/g) ?? []).length === 4 && !/o\.toObject\(OVERLAY_PROPS\)/.test(hook) && /export function plainObject/.test(layers) && /translateToGivenOrigin/.test(layers));
   // 8. Navigation: Fit (Ctrl+0), Space-drag pan, pinch zoom on touch, existing pan limits kept.
   t('navigation: Fit button and Ctrl+0, Space-drag pan kept, two-finger pinch zoom clamped to the zoom range, pan limits re-applied; a zone opens its colours on a tap, not on the first finger of a pinch',
     /ctrl\('Fit', <Scan/.test(cv) && /e\.key === '0'/.test(cv) && /e\.code === 'Space'/.test(cv) && /setZoom\(clampZoom\(p\.z \* d \/ \(p\.d \|\| 1\)\)\)/.test(cv) && /limits\.current = panLimits\(/.test(cv) && /clampPan\(/.test(cv)
@@ -1321,7 +1321,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     (h => /restyleText\(obj, props\)\.then\(\(\) => \{ canvas\.renderAll\(\); if \(commit\) pushHistory\(\)/.test(h) && /moveInStack\(canvas, obj, where\)\) return;\s+canvas\.renderAll\(\);\s+pushHistory\(\);/.test(h))(rdx('../src/pages/client/design-studio/useGarmentCanvas.ts')));
   t('history: starts at an empty baseline (the first action is undoable); a design load restarts it, a side switch parks it, the export face swap keeps it; only the newest overlay load lands',
     (h => /history = useRef\(emptyHistory\(\)\)/.test(h) && /switchSide\(parkedHistory\.current/.test(h) && /if \(!keepHistory\) resetHistory\(\)/.test(h) && (h.match(/token !== overlayLoad\.current/g) ?? []).length === 3)(rdx('../src/pages/client/design-studio/useGarmentCanvas.ts'))
-    && (rdx('../src/pages/client/DesignStudio.tsx').match(/keepHistory: true/g) ?? []).length === 5 // export face swap x2 + AI undo (restore, then one pushed step) + set-piece render pass x2 (render, restore)
+    && (rdx('../src/pages/client/DesignStudio.tsx').match(/keepHistory: true/g) ?? []).length === 7 // export face swap x2 + AI undo (restore, then one pushed step) + set-piece render pass x2 (render, restore) + set print capture pass x2 (capture, restore)
     && /loadCanvasJSON\(aiPreview\.canvas, \{ keepHistory: true \}\)/.test(rdx('../src/pages/client/DesignStudio.tsx'))
     && /side: \{ from: face, to: newFace \}/.test(rdx('../src/pages/client/DesignStudio.tsx')));
   t('2D realism layers are decorative only: built from deco (never selectable, never saved)',
@@ -1564,7 +1564,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   // Layer tools: the inspector is reachable (no inner scroll trap); locked items cannot be aligned, duplicated or deleted from the toolbar.
   t('layer tools: the inspector never traps the wheel (inner panels inside the panel scroller do not scroll themselves); the floating toolbar respects a lock',
     /\.ds-panel-scroll \.ds-sum,\.ds-panel-scroll \.ds-ins\{overflow:visible;overscroll-behavior:auto;min-height:auto;\}/.test(rd('../src/pages/client/design-studio/DesignStudioStyles.tsx'))
-    && (rd('../src/pages/client/design-studio/FloatingToolbar.tsx').match(/disabled=\{locked\}/g) ?? []).length === 6); // align, duplicate, delete, forward, backward, mirror; Lock/Unlock and Hide stay enabled
+    && (rd('../src/pages/client/design-studio/FloatingToolbar.tsx').match(/disabled=\{locked\}/g) ?? []).length === 7); // align, place at, duplicate, delete, forward, backward, mirror; Lock/Unlock and Hide stay enabled
   t("rulers, grid and centre line measure the garment's own zones, never its drop shadow or edge shading",
     /export const isGarmentZone = o => !!o\.__garmentBase && o\.visible !== false && typeof o\.__zoneKey === 'string'/.test(rd('../src/pages/client/design-studio/canvasLayers.ts')) && /filter\(isGarmentZone\)/.test(rd('../src/pages/client/design-studio/canvasLayers.ts')));
   const cv2 = rd('../src/pages/client/design-studio/CanvasViewport.tsx');
@@ -1701,7 +1701,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('station: Inventory hides Export CSV/PDF and the Transaction log tab; Order detail hides Client materials',
     /\{!isStation\(\) && <>\s*<button[^\n]*exportStock\('csv'\)[\s\S]*?Export PDF'\}<\/button>\s*<\/>\}/.test(inv) && /isStation\(\) \? \[\] : \[\{ key:'logs'/.test(inv) && /tab==='logs' && !isStation\(\)/.test(inv) && /\{!isStation\(\) && <ClientMaterialsPanel/.test(od));
   t('station: can open /admin/settings for the Password section only (no settings fetches); owner gets their own-account tabs only and no company fetch',
-    JA.canOpen('/admin/settings', st) && JA.STATION_SETTINGS.join() === 'password' && /filter\(\(\[k\]\) => !station \|\| STATION_SETTINGS\.includes\(k\)\)/.test(se) && /if \(station\) return;\s*if \(!owner\) loadCompany/.test(se) && /OWNER_TABS = \['profile', 'notify', 'password'\]/.test(se)
+    JA.canOpen('/admin/settings', st) && JA.STATION_SETTINGS.join() === 'password' && /filter\(\(\[k\]\) => !station \|\| STATION_SETTINGS\.includes\(k\)\)/.test(se) && /if \(station\) return;\s*if \(!owner\) loadCompany/.test(se) && /OWNER_TABS = \['profile', 'notify', 'password', 'requirements'\]/.test(se)
     && JA.canOpen('/admin/settings', { role: 'manager' }) && JA.canOpen('/admin/settings', { role: 'owner' }) && !JA.canOpen('/admin/materials', st));
   t('station: sidebar footer role label wraps in full', JA.roleLabel(st) === 'Administrator (Station) · Cutting' && /\.adm-sb-user small \{[^}]*overflow-wrap: anywhere[^}]*\}/.test(lay) && !/\.adm-sb-user small \{[^}]*ellipsis/.test(lay));
 }
@@ -1909,8 +1909,8 @@ t('new families route to their own models per sleeve; no model for a sleeve they
     && GS.slot3DLabel({ state: 'verified' }) === '3D preview (approximate)' && GS.slot3DLabel({ state: 'verified', verification: { method: 'render-compare', date: '2026-11-02' } }) === '3D preview available' && GS.slot3DLabel({ state: 'none' }) === null);
   const ds = rd('src/pages/client/DesignStudio.tsx'), d3 = rd('src/pages/client/DesignStudio3D.tsx'), sm = rd('src/pages/client/design-studio/ScannedGarmentMesh.tsx'), cv = rd('src/pages/client/design-studio/CanvasViewport.tsx');
   const srcDir = urlx.fileURLToPath(new URL('../src', import.meta.url)), walk = d => fsx.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(`${d}/${e.name}`) : /\.[jt]sx?$/.test(e.name) ? [`${d}/${e.name}`] : []);
-  const graph3D = /(DesignStudio3D|ScannedGarmentMesh|ReferenceModel3D|garmentMeshManifest|regionShader|regionTexture|StageTowers3D|GarmentPreview3D|HeroTurntable|FabricStage3D|fabricMaterial)\.[jt]sx?$/;
-  const staticThree = walk(srcDir).filter(f => !graph3D.test(f) && /^import [^;]*from '(three|@react-three\/[a-z]+)'|^import [^;]*from '[./]+[^']*(DesignStudio3D|ScannedGarmentMesh|ReferenceModel3D|garmentMeshManifest|regionShader)'/m.test(rd(f)));
+  const graph3D = /(DesignStudio3D|ScannedGarmentMesh|ReferenceModel3D|garmentMeshManifest|regionShader|regionTexture|StageTowers3D|GarmentPreview3D|HeroTurntable|FabricStage3D|fabricMaterial|uvBake|UvBakedGarmentMesh|PilotViewport3D)\.[jt]sx?$/;
+  const staticThree = walk(srcDir).filter(f => !graph3D.test(f) && /^import [^;]*from '(three|@react-three\/[a-z]+)'|^import [^;]*from '[./]+[^']*(DesignStudio3D|ScannedGarmentMesh|ReferenceModel3D|garmentMeshManifest|regionShader|uvBake|UvBakedGarmentMesh|PilotViewport3D)'/m.test(rd(f)));
   t('three, R3F and the 3D scene load only through lazy imports (no static import outside the 3D modules)', staticThree.length === 0
     && /lazy\(\(\) => import\('\.\.\/DesignStudio3D'\)\)/.test(cv) && /lazy\(\(\) => import\('\.\/ReferenceModel3D'\)\)/.test(rd('src/pages/client/design-studio/GarmentPicker.tsx')));
   t('2D -> 3D sync is throttled (trailing timer, unchanged overlays keep their decals); textures and primitive materials are disposed; DPR capped on touch; no auto-rotate under reduced motion; fx note shown',
@@ -2037,8 +2037,8 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('polish nov9 S1: AI Materials order options show the customer status label, never the raw stage; AI Materials and Messages carry no off-brand hex colours; Messages inputs use the focus-ringed cx-in field',
     /statusLabel\(o\.status\)/.test(aim) && !/\(\{o\.status\}\)/.test(aim) && !hex(aim).length && !hex(msg).length
     && (msg.match(/className="cx-in"/g) || []).length >= 2 && !/outline: 'none'/.test(msg)); }
-{ const css = fsx.readFileSync(urlx.fileURLToPath(new URL('../src/styles/customer.css', import.meta.url)), 'utf8');
-  const at768 = css.slice(css.indexOf('@media(min-width:768px){\r\n  .cx-page.dx'), css.indexOf('@media(min-width:1024px){\r\n  .dx-hero'));
+{ const css = fsx.readFileSync(urlx.fileURLToPath(new URL('../src/styles/customer.css', import.meta.url)), 'utf8').replace(/\r\n/g, '\n'); // line-ending independent
+  const at768 = css.slice(css.indexOf('@media(min-width:768px){\n  .cx-page.dx'), css.indexOf('@media(min-width:1024px){\n  .dx-hero'));
   t('polish nov9 S2: tablets (768+) get the two-column dashboard hero and three recent designs; Settings menu narrows to 248px at 900-1199 so the form keeps its width',
     /\.dx-hero\{grid-template-columns:minmax\(0,7fr\) minmax\(0,5fr\)/.test(at768) && /\.dx-rd\{grid-template-columns:repeat\(3,/.test(at768)
     && /@media\(min-width:900px\) and \(max-width:1199px\)\{\.acct-split\{grid-template-columns:248px/.test(css)); }

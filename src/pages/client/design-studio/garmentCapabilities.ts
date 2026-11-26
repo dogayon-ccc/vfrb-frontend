@@ -543,3 +543,11 @@ export function get3DCapabilities(garment, fit, sleeve) {
   return { supported: true, model: g.models[key] ?? Object.values(g.models)[0], fitApplied: fits.includes(key) ? key : fits[0], customFabricTextures: false, ...g.capabilities };
 }
 
+// Tier 'uv-baked': the 2D panels are baked into a Blender-authored GLB (studioAssets.ts). Null while the asset's rights are pending and the pilot flag is off.
+import { UV_BAKED_TIER, uvBakedAssetFor } from './studioAssets';
+export { UV_BAKED_TIER, uvBakedAssetFor };
+export function uvBakedCapabilityFor(garment, sleeve, fit) {
+  const a = uvBakedAssetFor(garment, sleeve, fit);
+  if (!a) return null;
+  return { tier: UV_BAKED_TIER, assetId: a.id, assetVersion: a.version, rights: a.rights, sizes: 'base size only', zones: ['body', 'sleeve', 'sleeveR', 'collar', 'pocket'], text: true, logo: true, frontBack: true, limitations: [...a.limitations] };
+}

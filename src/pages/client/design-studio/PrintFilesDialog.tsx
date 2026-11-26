@@ -56,7 +56,7 @@ export default function PrintFilesDialog({ pieces, onSizes, meta, fileBase, onCl
     border: primary ? 'none' : '1px solid var(--border)', background: primary ? 'var(--teal, #028090)' : 'transparent', color: primary ? '#fff' : 'var(--ink)', flex: '1 1 160px' });
 
   return createPortal(
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, zIndex: 500, boxSizing: 'border-box' }} onClick={onClose}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, zIndex: 'var(--cx-z-modal)', boxSizing: 'border-box' }} onClick={onClose}>
       <div ref={ref} role="dialog" aria-modal="true" aria-labelledby="pf-title" tabIndex={-1} onClick={e => e.stopPropagation()}
         style={{ background: 'var(--bg-card)', color: 'var(--ink)', borderRadius: 16, width: '100%', maxWidth: 640, maxHeight: 'calc(100dvh - 32px)', display: 'flex', flexDirection: 'column', outline: 'none', overflow: 'hidden' }}>
         <header style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '18px 20px 12px' }}>
