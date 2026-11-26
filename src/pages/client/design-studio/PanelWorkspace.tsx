@@ -1,3 +1,4 @@
+import { hasScreenEyedropper, pickScreenColour } from './eyedropper';
 import { lazy, Suspense, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type ReactNode, type Ref } from 'react';
 import { Link } from 'react-router-dom';
 import { Canvas as FabricCanvas, FabricImage, FabricText, type FabricObject } from 'fabric';
@@ -95,6 +96,9 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
   const [mode, setMode] = useState<Mode>('split');
   const [side, setSide] = useState<PanelSide>('front');
   const [selPart, setSelPart] = useState('body');
+  // Eyedropper fallback for browsers without the screen EyeDropper API: arm it, then tap a part to copy its colour onto the target.
+  const [armed, setArmed] = useState<'part' | 'text' | null>(null);
+  const armObj = useRef<FabricObject | null>(null), takeRef = useRef<(node: string) => boolean>(() => false);
   const [sel, setSel] = useState<ArtInfo | null>(null);
   const [counts, setCounts] = useState<Record<PanelSide, number>>({ front: 0, back: 0 });
   const [svg, setSvg] = useState<{ state: 'loading' | 'error' | 'ready'; panels: Record<PanelSide, SvgPanel[]> }>({ state: 'loading', panels: { front: [], back: [] } });
@@ -186,7 +190,7 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
       c.on('mouse:down', (o: any) => {
         if (o.target || !o.e) return;
         const pt = o.e.touches?.[0] ?? o.e, hit = document.elementsFromPoint(pt.clientX, pt.clientY).find(e => (e as HTMLElement).dataset?.part) as HTMLElement | undefined;
-        if (hit?.dataset.part) setSelPart(hit.dataset.part);
+        if (hit?.dataset.part && !takeRef.current(hit.dataset.part)) setSelPart(hit.dataset.part);
       });
     }
 
@@ -297,6 +301,29 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
     o.set(props); o.setCoords(); c.requestRenderAll(); setArtTick(t => t + 1); syncSelection(side);
   };
 
+  const applyPicked = (target: 'part' | 'text', hex: string) => {
+    const h = hex.toUpperCase();
+    if (target === 'part') { setColor(selPart, h); return; }
+    const c = fcs.current[side], o = armObj.current ?? c?.getActiveObject();
+    if (!c || !o) return;
+    o.set({ fill: h }); o.setCoords(); c.requestRenderAll(); setArtTick(t => t + 1); syncSelection(side);
+  };
+  takeRef.current = (node: string) => {
+    if (!armed) return false;
+    applyPicked(armed, partColor(node)); armObj.current = null; setArmed(null); return true;
+  };
+  const eyedrop = (target: 'part' | 'text') => (
+    <button type="button" className="ps-btn ps-btn--quiet" aria-pressed={armed === target} disabled={readOnly}
+      onClick={async () => {
+        if (armed === target) { armObj.current = null; setArmed(null); return; }
+        if (target === 'text') armObj.current = fcs.current[side]?.getActiveObject() ?? null;
+        if (hasScreenEyedropper()) { const hex = await pickScreenColour(); if (hex) applyPicked(target, hex); armObj.current = null; return; }
+        setArmed(target);
+      }}>
+      {armed === target ? 'Tap a part to copy its colour (tap again to cancel)' : hasScreenEyedropper() ? 'Pick colour from screen' : 'Pick colour from a part'}
+    </button>
+  );
+
   const setWidthPct = (pct: number) => {
     const c = fcs.current[side], o = c?.getActiveObject(); if (!c || !o) return;
     o.scaleToWidth((c.getWidth() * pct) / 100); o.setCoords(); c.requestRenderAll(); setArtTick(t => t + 1); syncSelection(side);
@@ -388,7 +415,7 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
     <ul>
       {asset.parts.map(p => (
         <li key={p.node}>
-          <button type="button" className="ps-part" aria-pressed={selPart === p.node} onClick={() => setSelPart(p.node)}>
+          <button type="button" className="ps-part" aria-pressed={selPart === p.node} onClick={() => { if (!takeRef.current(p.node)) setSelPart(p.node); }}>
             <span className="ps-swatch" style={{ background: partColor(p.node) }} aria-hidden="true" />
             <span>{PART_LABEL[p.node] ?? p.node}</span>
             {hidden(p.node) && <span className="ps-hint">hidden</span>}
@@ -432,6 +459,7 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
           <button key={hex} type="button" className="ps-chip" style={{ background: hex }} aria-label={name} aria-pressed={partHex.toLowerCase() === hex.toLowerCase()} title={name} onClick={() => setColor(selPart, hex)} />
         ))}
       </div>
+      {eyedrop('part')}
       {!onThisSide && <p className="ps-note">This part has no panel on the {side}. Switch sides to see it.</p>}
       <label className="ps-field">Hex colour
         <input key={`${selPart}-${partHex}`} defaultValue={partHex} maxLength={7} inputMode="text" spellCheck={false}
@@ -462,6 +490,7 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
               <div className="ps-colors" role="group" aria-label="Text colour">
                 {PALETTE.map(([name, hex]) => <button key={hex} type="button" className="ps-chip" style={{ background: hex }} aria-label={`Text ${name}`} aria-pressed={sel.fill.toLowerCase() === hex.toLowerCase()} onClick={() => patch({ fill: hex })} />)}
               </div>
+              {eyedrop('text')}
             </>
           )}
           <label className="ps-field">Width, % of the panel
