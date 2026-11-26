@@ -1173,6 +1173,8 @@ export default function DesignStudio() {
   const wrapStage = (stage) => (!baked ? stage : (
     <>
       <div className="ds-panelws">
+        {/* The silhouette stage stays laid out at full size (visibility, not display:none) so its canvas measures real pixels and the next garment still fits when the client switches back to it. */}
+        <div aria-hidden="true" {...({ inert: '' } as object)} style={{ position: 'absolute', inset: 0, display: 'flex', visibility: 'hidden', pointerEvents: 'none' }}>{stage}</div>
         <Suspense fallback={<p className="ps-state">Loading the garment panels</p>}>
           <PanelWorkspace key={`${baked.id}:${panelKey}`} embedded persist="design" asset={baked} handleRef={panelApi} readOnly={locked}
             colors={cfg.colors} setColors={setBakedColors} details={(cfg as any).details ?? {}} setDetails={setBakedDetails}
@@ -1180,7 +1182,6 @@ export default function DesignStudio() {
             headerExtra={<button type="button" className="ps-btn ps-btn--quiet" onClick={changeGarment}>Change garment</button>}/>
         </Suspense>
       </div>
-      <div hidden aria-hidden="true" style={{ display: 'none' }}>{stage}</div>
     </>
   ));
 

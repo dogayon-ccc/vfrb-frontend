@@ -171,6 +171,7 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
   }, []);
 
   useEffect(() => {
+    let cancelled = false; // this run's canvases are disposed on cleanup: a restore still in flight must stop, not report a failure (StrictMode and late-arriving frames both re-run this effect)
     const made: FabricCanvas[] = [];
     for (const s of SIDES) {
       const host = fabricRoots.current[s]; if (!host) continue;
@@ -196,18 +197,27 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
         try {
           for (const s of SIDES) {
             const objs = init[s], c = fcs.current[s];
-            if (objs.length && c) { await c.loadFromJSON({ objects: objs }); c.getObjects().forEach(styleControls); c.requestRenderAll(); }
+            if (!objs.length || !c) continue;
+            await c.loadFromJSON({ objects: objs });
+            if (cancelled) return;
+            c.getObjects().forEach(styleControls); c.requestRenderAll();
           }
           setCounts({ front: fcs.current.front?.getObjects().length ?? 0, back: fcs.current.back?.getObjects().length ?? 0 });
           paintTex(); setPanelsVersion(v => v + 1);
-        } catch { setNotice('The saved artwork could not be opened and was left untouched.'); }
+        } catch (e) {
+          if (cancelled) return;
+          console.error('PanelWorkspace: saved artwork could not be restored', e);
+          setNotice('The saved artwork could not be opened and was left untouched.');
+        }
+        if (cancelled) return;
         loading.current = false;
       }
-      hydrated.current = true;
+      if (!cancelled) hydrated.current = true;
     })();
 
     return () => {
-      hydrated.current = false;
+      cancelled = true;
+      hydrated.current = false; loading.current = false;
       made.forEach(c => { c.off(); c.dispose(); });
       SIDES.forEach(s => fabricRoots.current[s]?.replaceChildren());
       fcs.current = {};
@@ -285,6 +295,24 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
 
   const removeActive = () => { const c = fcs.current[side], o = c?.getActiveObject(); if (!c || !o) return; c.remove(o); c.discardActiveObject(); c.requestRenderAll(); };
   const reorder = (up: boolean) => { const c = fcs.current[side], o = c?.getActiveObject(); if (!c || !o) return; up ? c.bringObjectForward(o) : c.sendObjectBackwards(o); c.requestRenderAll(); setArtTick(t => t + 1); };
+  const duplicate = async () => {
+    const c = fcs.current[side], o = c?.getActiveObject(); if (!c || !o || readOnly) return;
+    if (c.getObjects().length >= PANEL_ART_MAX_OBJECTS) return setProblem(`The ${side} holds at most ${PANEL_ART_MAX_OBJECTS} pieces of artwork. Delete one to add another.`);
+    try {
+      const copy = await o.clone();
+      copy.set({ left: (o.left ?? 0) + 24, top: (o.top ?? 0) + 24 }); styleControls(copy);
+      c.add(copy); c.setActiveObject(copy); c.requestRenderAll(); syncSelection(side);
+    } catch { setProblem('That piece of artwork could not be copied.'); }
+  };
+  const mirror = () => patch({ flipX: !(fcs.current[side]?.getActiveObject()?.flipX ?? false) });
+  // Align the selected artwork to the edges or centre of the panel's frame (its visible bounds, so rotation and scale are respected).
+  const alignTo = (edge: 'left' | 'centerX' | 'right' | 'top' | 'centerY' | 'bottom') => {
+    const c = fcs.current[side], o = c?.getActiveObject(); if (!c || !o) return;
+    const b = o.getBoundingRect(), W = c.getWidth(), H = c.getHeight();
+    const dx = edge === 'left' ? -b.left : edge === 'right' ? W - (b.left + b.width) : edge === 'centerX' ? (W - b.width) / 2 - b.left : 0;
+    const dy = edge === 'top' ? -b.top : edge === 'bottom' ? H - (b.top + b.height) : edge === 'centerY' ? (H - b.height) / 2 - b.top : 0;
+    o.set({ left: (o.left ?? 0) + dx, top: (o.top ?? 0) + dy }); o.setCoords(); c.requestRenderAll(); setArtTick(t => t + 1); syncSelection(side);
+  };
   const clearSide = () => { const c = fcs.current[side]; if (!c) return; c.remove(...c.getObjects()); c.discardActiveObject(); c.requestRenderAll(); setConfirmClear(false); };
 
   const onStageKey = (e: React.KeyboardEvent) => {
@@ -440,6 +468,17 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
             <input type="range" min={10} max={100} value={Math.round(sel.opacity * 100)} onChange={e => patch({ opacity: Number(e.target.value) / 100 })} />
             <output>{Math.round(sel.opacity * 100)}%</output>
           </label>
+          <div className="ps-row" role="group" aria-label="Align to the panel">
+            {([['left', 'Left'], ['centerX', 'Centre'], ['right', 'Right'], ['top', 'Top'], ['centerY', 'Middle'], ['bottom', 'Bottom']] as const).map(([k, label]) => (
+              <button key={k} type="button" className="ps-btn ps-btn--quiet" onClick={() => alignTo(k)}>{label}</button>
+            ))}
+          </div>
+          <div className="ps-row">
+            <button type="button" className="ps-btn ps-btn--quiet" onClick={() => patch({ angle: (sel.angle + 270) % 360 })}>Rotate 90° left</button>
+            <button type="button" className="ps-btn ps-btn--quiet" onClick={() => patch({ angle: (sel.angle + 90) % 360 })}>Rotate 90° right</button>
+            <button type="button" className="ps-btn" onClick={() => void duplicate()} disabled={readOnly}>Copy</button>
+            <button type="button" className="ps-btn" onClick={mirror}>Mirror</button>
+          </div>
           <div className="ps-row">
             <button type="button" className="ps-btn" onClick={() => reorder(true)}>Bring forward</button>
             <button type="button" className="ps-btn" onClick={() => reorder(false)}>Send back</button>

@@ -129,7 +129,7 @@
 @media (prefers-reduced-motion: reduce) { .ps *, .ps-gate * { transition: none !important; } }
 
 /* Embedded in the main Studio: the Studio's own chrome colours (dark teal rails, mint accent), the light cutting-mat stage for judging garment colour, one toolbar. */
-.ds-panelws { flex: 1; min-width: 0; min-height: 0; display: flex; order: 2; }
+.ds-panelws { flex: 1; min-width: 0; min-height: 0; display: flex; order: 2; position: relative; }
 .ds-panelws > .ps { flex: 1; height: 100%; min-height: 0; min-width: 0; }
 .ps[data-embedded="1"] {
   --ps-paper: var(--vf-chrome-2, #0b3a41); --ps-card: var(--vf-chrome, #072226); --ps-ink: #eaf6f4; --ps-ink-2: #a9c7c4;
@@ -158,3 +158,4 @@
   .ps[data-embedded="1"] .ps-stage { min-height: 50dvh; }
   .ps[data-embedded="1"] .ps-host { min-height: 46dvh; }
 }
+.ps[data-embedded="1"] .ps-panel .ps-state { bottom: 1.75rem; }
