@@ -28,6 +28,20 @@ export function bboxOf(d: string): Frame | null {
   return Number.isFinite(x0 + x1 + y0 + y1) ? { x0, x1, y0, y1 } : null;
 }
 
+// The traced body outline has gaps beside every pocket, wider than the pocket's own box. Each pocket row band is backed across the body's full width
+// (never wider than the body), so the gap shows the body colour instead of the page. Rows come from the pocket, columns from the body.
+export function pocketBackings(panels: readonly { part: string; d: string }[], pockets: ReadonlySet<string>): Frame[] {
+  const body = panels.filter(p => p.part === 'body').map(p => bboxOf(p.d)).find(Boolean);
+  if (!body) return [];
+  const pad = (body.y1 - body.y0) * 0.01, out: Frame[] = [];
+  for (const p of panels) {
+    if (!pockets.has(p.part)) continue;
+    const b = bboxOf(p.d);
+    if (b) out.push({ x0: body.x0, x1: body.x1, y0: Math.max(body.y0, b.y0 - pad), y1: Math.min(body.y1, b.y1 + pad) });
+  }
+  return out;
+}
+
 export const frameSize = (f: Frame) => ({ w: f.x1 - f.x0, h: f.y1 - f.y0 });
 
 // The panel canvas is `width` px wide; its height keeps the frame's aspect ratio.

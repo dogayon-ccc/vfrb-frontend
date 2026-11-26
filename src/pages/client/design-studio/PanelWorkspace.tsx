@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Canvas as FabricCanvas, FabricImage, FabricText, type FabricObject } from 'fabric';
 import { PANEL_ART_MAX_OBJECTS, type UvBakedAsset, type PanelArt } from './studioAssets';
 import {
-  parsePanelSvg, canvasSize, frameSize, panelTransform, bboxOf, PART_LABEL, sha256Hex,
+  parsePanelSvg, canvasSize, frameSize, panelTransform, pocketBackings, PART_LABEL, sha256Hex,
   type PanelSide, type SvgPanel,
 } from './pilotPanels';
 import { hasWebGL } from './webglSupport';
@@ -357,9 +357,8 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
       const k = t.width / w;
       ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, out.width, out.height);
       ctx.save(); ctx.scale(k, k); ctx.translate(f.x1, f.y1); ctx.scale(-1, 1);
-      for (const p of svg.panels[s]) {
-        if (!hidden(p.part) && POCKET_PARTS.has(p.part)) { const b = bboxOf(p.d); if (b) { ctx.fillStyle = partColor('body'); ctx.fillRect(b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0); } }
-      }
+      ctx.fillStyle = partColor('body');
+      for (const b of pocketBackings(svg.panels[s].filter(p => !hidden(p.part)), POCKET_PARTS)) ctx.fillRect(b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0);
       for (const p of svg.panels[s]) {
         if (hidden(p.part)) continue;
         const path = new Path2D(p.d), fill = partColor(p.part);
@@ -564,7 +563,7 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
                 {svg.state === 'ready' && (
                   <svg className="ps-outline" viewBox={`0 0 ${frameSize(frames[s]).w} ${frameSize(frames[s]).h}`} preserveAspectRatio="none" aria-hidden="true">
                     <g transform={panelTransform(frames[s])}>
-                      {svg.panels[s].filter(p => POCKET_PARTS.has(p.part) && !hidden(p.part)).map(p => { const b = bboxOf(p.d); return b ? <rect key={`under-${p.id}`} x={b.x0} y={b.y0} width={b.x1 - b.x0} height={b.y1 - b.y0} fill={partColor('body')} pointerEvents="none" /> : null; })}
+                      {pocketBackings(svg.panels[s].filter(p => !hidden(p.part)), POCKET_PARTS).map((b, i) => <rect key={`under-${i}`} x={b.x0} y={b.y0} width={b.x1 - b.x0} height={b.y1 - b.y0} fill={partColor('body')} pointerEvents="none" />)}
                       {svg.panels[s].filter(p => !hidden(p.part)).map(p => (
                         <path key={p.id} d={p.d} data-part={p.part} fill={partColor(p.part)} stroke={DETAIL_PARTS.has(p.part) ? edgeFor(partColor(p.part)) : partColor(p.part)} className={DETAIL_PARTS.has(p.part) ? 'ps-detail' : undefined} vectorEffect="non-scaling-stroke" />
                       ))}

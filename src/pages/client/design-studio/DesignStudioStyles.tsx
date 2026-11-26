@@ -1030,7 +1030,7 @@ export default function DesignStudioStyles() {
         /* Peek shows the bar only; the stage refits (ResizeObserver) whenever the sheet changes height */
         .ds-sheet[data-snap=peek]>:not(.ds-sheet-bar){display:none;}
         .ds-sheet[data-snap=half]{height:clamp(264px,37dvh,360px);}
-        .ds-sheet[data-snap=full]{height:min(85dvh,calc(100dvh - 56px - var(--ds-nav-h) - 64px));}
+        .ds-sheet[data-snap=full]{height:min(64dvh,calc(100dvh - 56px - var(--ds-nav-h) - 64px));} /* the stage always keeps about a third of the screen: a sheet that covers the garment cannot be used to edit it */
         .ds-sheet-bar{position:relative;display:flex;flex:none;align-items:center;gap:8px;min-height:52px;padding:6px 4px 2px 16px;touch-action:none;cursor:grab;}
         .ds-sheet-grip{position:absolute;top:6px;left:50%;width:36px;height:4px;margin-left:-18px;border-radius:2px;background:var(--cx-line-strong);}
         .ds-sheet-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:700 15px/1.2 var(--cx-sans);color:var(--cx-ink);}

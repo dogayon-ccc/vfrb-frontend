@@ -47,6 +47,17 @@ ok(bb && bb.x0 === -0.2 && bb.x1 === 0.3 && bb.y0 === 0.1 && bb.y1 === 0.5, 'bbo
 ok(bboxOf('') === null && bboxOf('M 1') === null, 'bboxOf rejects empty or odd coordinate lists');
 ok(bboxOf('M 1e-3 2 L 3 4 Z') !== null, 'bboxOf reads exponent numbers');
 
+// pocketBackings: against the real Pilot 01 front panels, the body colour must back every pocket row band across the body's own width.
+const PP = await import('data:text/javascript;base64,' + Buffer.from(ts.transpileModule(text('src/pages/client/design-studio/pilotPanels.ts').replace(/^import .*$/m, 'const cleanAssetRef = () => null;'), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText).toString('base64'));
+const frontSvg = fs.readFileSync(new URL('public/studio-assets/scrub-top-pilot01/panels_front.svg', root), 'utf8');
+const realPanels = PP.parsePanelSvg(frontSvg);
+const backs = PP.pocketBackings(realPanels, new Set(['chest_pocket', 'lower_pockets']));
+const bodyBox = bboxOf(realPanels.find(p => p.part === 'body').d);
+ok(backs.length === 2, 'one backing band per pocket part on the real front panels');
+ok(backs.every(b => b.x0 === bodyBox.x0 && b.x1 === bodyBox.x1 && b.y0 >= bodyBox.y0 && b.y1 <= bodyBox.y1), 'backing bands span the body width and stay inside the body box');
+ok(PP.pocketBackings(realPanels.filter(p => p.part !== 'body'), new Set(['chest_pocket'])).length === 0, 'no body panel, no backing');
+ok(PP.pocketBackings(realPanels.filter(p => p.part !== 'chest_pocket' && p.part !== 'lower_pockets'), new Set(['chest_pocket', 'lower_pockets'])).length === 0, 'a hidden pocket gets no backing');
+
 // The Studio must not leak dead tools or a second view switch for a baked garment.
 ok(/rail=\{locked \|\| baked \? null : \{ history:/.test(ds), 'the silhouette tool rail (brush, bucket, eraser) is not offered for a baked garment');
 ok(/hideViewToggle=\{!!baked\}/.test(ds) && /hideViewToggle = false/.test(text('src/pages/client/design-studio/TopBar.tsx')), 'the top-bar 2D/3D switch is hidden for a baked garment (the workspace has its own)');
