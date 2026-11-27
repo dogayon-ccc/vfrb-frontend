@@ -6,24 +6,25 @@ import UvBakedGarmentMesh, { type UvBakedGarmentMeshProps } from './UvBakedGarme
 import GarmentMeshErrorBoundary from './GarmentMeshErrorBoundary';
 import { LIGHT_PRESETS } from './lightRig';
 import type { PanelSide } from './pilotPanels';
+import { VIEW_ANGLES, type View3D } from './View3DButtons';
 
 const CALM = !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 const DPR: [number, number] = window.matchMedia('(pointer: coarse)').matches ? [1, 1.5] : [1, 2];
 
 // Turns the garment to the side whose panel is being edited (eases in ~0.3 s; reduced motion jumps).
-function Turn({ side, children }: { side: PanelSide; children: React.ReactNode }) {
+function Turn({ angle, children }: { angle: number; children: React.ReactNode }) {
   const ref = useRef<THREE.Group>(null);
   useFrame((_, dt) => {
     const g = ref.current; if (!g) return;
-    const target = side === 'back' ? Math.PI : 0;
+    const target = angle;
     g.rotation.y = CALM ? target : THREE.MathUtils.damp(g.rotation.y, target, 9, dt);
   });
   return <group ref={ref}>{children}</group>;
 }
 
-export interface PilotViewport3DProps extends UvBakedGarmentMeshProps { side: PanelSide; errorLabel: string }
+export interface PilotViewport3DProps extends UvBakedGarmentMeshProps { side: PanelSide; view?: View3D | null; resetKey?: number; errorLabel: string }
 
-export default function PilotViewport3D({ side, errorLabel, ...mesh }: PilotViewport3DProps) {
+export default function PilotViewport3D({ side, view = null, resetKey = 0, errorLabel, ...mesh }: PilotViewport3DProps) {
   const L = LIGHT_PRESETS.studio;
   return (
     <GarmentMeshErrorBoundary fallback={<div className="ps-3d-error" role="alert">{errorLabel}</div>}>
@@ -32,10 +33,10 @@ export default function PilotViewport3D({ side, errorLabel, ...mesh }: PilotView
         <directionalLight position={L.keyPos as [number, number, number]} intensity={L.key} />
         <directionalLight position={L.rimPos as [number, number, number]} intensity={L.rim} />
         <Suspense fallback={null}>
-          <Turn side={side}><UvBakedGarmentMesh {...mesh} /></Turn>
+          <Turn angle={VIEW_ANGLES[view ?? side]}><UvBakedGarmentMesh {...mesh} /></Turn>
         </Suspense>
         <ContactShadows position={[0, -0.58, 0]} opacity={0.35} scale={3} blur={2.4} far={1.2} frames={1} />
-        <OrbitControls enablePan={false} minDistance={1.5} maxDistance={4.5} minPolarAngle={Math.PI / 3} maxPolarAngle={2.3} />
+        <OrbitControls key={resetKey} enablePan={false} minDistance={1.5} maxDistance={4.5} minPolarAngle={Math.PI / 3} maxPolarAngle={2.3} />
       </Canvas>
     </GarmentMeshErrorBoundary>
   );

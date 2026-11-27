@@ -9,6 +9,13 @@ import {
   type PanelSide, type SvgPanel,
 } from './pilotPanels';
 import { panelSpots, spotScale, type PanelSpot } from './panelSpots';
+import { BASE_FONTS, makeShape, readArt, layerName, type ArtInfo, type ShapeKind } from './panelArtOps';
+import { ensureFonts } from './studioFonts';
+import PanelArtInspector, { type AlignEdge } from './PanelArtInspector';
+import PanelCanvasBar, { type PanelTool } from './PanelCanvasBar';
+import { usePanelHistory, type PanelSnapshot } from './usePanelHistory';
+import { panBy, usePair } from './panelStage';
+import View3DButtons, { type View3D } from './View3DButtons';
 import { hasWebGL } from './webglSupport';
 import { loadPanels, paintParts, partColorOf, partHidden, edgeFor, DETAIL_PARTS, POCKET_PARTS } from './panelFlat';
 import './pilotStudio.css';
@@ -21,14 +28,11 @@ const PALETTE: [string, string][] = [
   ['Navy', '#1B2A4A'], ['Royal blue', '#2A52A8'], ['Sky blue', '#87CEEB'], ['Forest green', '#006B54'], ['Maroon', '#7A0000'], ['Grey', '#808080'], ['Black', '#111111'],
   ['White', '#FFFFFF'], ['Red', '#C8102E'], ['Yellow', '#FFD100'], ['Orange', '#F57C00'], ['Purple', '#6A1B9A'], ['Teal', '#028090'], ['Pink', '#FFB6C1'],
 ];
-const FONTS: [string, string][] = [['Serif', '"DM Serif Display", Georgia, serif'], ['Sans', 'Arial, Helvetica, sans-serif'], ['Bold sans', '"Arial Black", Arial, sans-serif']];
 const MAX_UPLOAD = 4 * 1024 * 1024, UPLOAD_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
 const TEX_W = 1024;
 
 export type Mode = 'pattern' | 'split' | '3d';
 type Details = Record<string, { show: boolean }>;
-interface ArtInfo { kind: 'text' | 'image'; text: string; fill: string; font: string; size: number; angle: number; opacity: number; widthPct: number }
-
 const sheetSize = (host: { w: number; h: number }, aspect: number) => (host.w / host.h > aspect ? { w: host.h * aspect, h: host.h } : { w: host.w, h: host.w / aspect });
 
 function useNarrow() {
@@ -39,15 +43,6 @@ function useNarrow() {
 }
 
 const styleControls = (o: FabricObject) => o.set({ transparentCorners: false, cornerColor: '#016a77', cornerStrokeColor: '#ffffff', cornerStyle: 'rect', cornerSize: 22, touchCornerSize: 44, borderColor: '#016a77', borderDashArray: [6, 4], padding: 4 });
-
-function readArt(o: FabricObject | undefined, panelW: number): ArtInfo | null {
-  if (!o) return null;
-  const t = o as any, isText = o.type === 'text' || o.type === 'Text' || typeof t.text === 'string';
-  return {
-    kind: isText ? 'text' : 'image', text: isText ? String(t.text ?? '') : '', fill: isText && typeof t.fill === 'string' ? t.fill : '#000000', font: isText ? String(t.fontFamily ?? '') : '',
-    size: isText ? Math.round(t.fontSize * (t.scaleY ?? 1)) : 0, angle: Math.round(((o.angle ?? 0) % 360 + 360) % 360), opacity: o.opacity ?? 1, widthPct: Math.round((o.getScaledWidth() / panelW) * 100),
-  };
-}
 
 async function downscaleToDataUrl(file: File, max = 1024): Promise<string> {
   const url = URL.createObjectURL(file);
@@ -63,7 +58,7 @@ async function downscaleToDataUrl(file: File, max = 1024): Promise<string> {
 export type PanelDetails = Record<string, { show: boolean }>;
 
 // Imperative handle for the host Studio: a flat front/back picture of the design (for thumbnails and the order preview).
-export interface PanelWorkspaceHandle { preview: (side: PanelSide) => string | null }
+export interface PanelWorkspaceHandle { preview: (side: PanelSide) => string | null; undo: () => void; redo: () => void }
 
 export interface PanelWorkspaceProps {
   asset: UvBakedAsset;
@@ -86,9 +81,11 @@ export interface PanelWorkspaceProps {
   /** Controlled view: the host Studio's top-bar 2D/3D switch drives it. Omit for the standalone page. */
   mode?: Mode;
   onMode?: (m: Mode) => void;
+  /** Lets the host's own undo and redo buttons follow the panel timeline. */
+  onHistory?: (can: { undo: boolean; redo: boolean }) => void;
 }
 
-export function PanelWorkspace({ asset, colors, setColors, details, setDetails, initialArt, onArt, persist, embedded = false, title = 'Scrub top, short sleeve', subtitle = 'Pilot garment, base size only. Source licence not confirmed.', headerExtra, initialNotice = null, handleRef, readOnly = false, mode: modeProp, onMode: onModeProp }: PanelWorkspaceProps) {
+export function PanelWorkspace({ asset, colors, setColors, details, setDetails, initialArt, onArt, persist, embedded = false, title = 'Scrub top, short sleeve', subtitle = 'Pilot garment, base size only. Source licence not confirmed.', headerExtra, initialNotice = null, handleRef, readOnly = false, mode: modeProp, onMode: onModeProp, onHistory }: PanelWorkspaceProps) {
   const narrow = useNarrow();
   const [modeLocal, setModeLocal] = useState<Mode>(default2dMode);
   const mode = modeProp ?? modeLocal;
@@ -122,11 +119,17 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
   const loading = useRef(false);
   const [artTick, setArtTick] = useState(0);
   const fileInput = useRef<HTMLInputElement>(null);
+  const [tool, setTool] = useState<PanelTool>('select');
+  const [zoom, setZoom] = useState(1);
+  const [grid, setGrid] = useState(false);
+  const [view3d, setView3d] = useState<{ angle: View3D | null; reset: number }>({ angle: null, reset: 0 });
   const initialArtRef = useRef(initialArt), onArtRef = useRef(onArt);
+  const recordRef = useRef<() => void>(() => {}), resetRef = useRef<() => void>(() => {});
   onArtRef.current = onArt;
   const objectsOf = (c: FabricCanvas | undefined): unknown[] => ((c?.toJSON() as { objects?: unknown[] } | undefined)?.objects ?? []);
   const webgl = useMemo(() => hasWebGL(), []);
   const view = narrow && mode === 'split' ? 'pattern' : mode;
+  const pair = usePair() && view === 'pattern';
   const frames = asset.frames;
 
   const partColor = useCallback((node: string) => partColorOf(asset, colors, node), [asset, colors]);
@@ -187,6 +190,7 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
           // Text is measured when it is created, so every face the saved art uses must be loaded first or it is laid out in the fallback font.
           const faces = new Set<string>();
           for (const s of SIDES) for (const o of (init[s] ?? []) as any[]) if (typeof o?.fontFamily === 'string') faces.add(`${o.fontWeight ?? 'normal'} ${o.fontStyle ?? 'normal'} 64px ${o.fontFamily}`);
+          await ensureFonts(SIDES.flatMap(s => (init[s] ?? []) as any[]));
           await Promise.all([...faces].map(f => document.fonts.load(f).catch(() => [])));
           if (cancelled) return;
           for (const s of SIDES) {
@@ -209,12 +213,12 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
         // A failed restore leaves the canvases empty: autosave stays off so it cannot replace the saved artwork with nothing.
         if (!restored) return;
       }
-      if (!cancelled) hydrated.current = true;
+      if (!cancelled) { hydrated.current = true; recordRef.current(); }
     })();
 
     return () => {
       cancelled = true;
-      hydrated.current = false; loading.current = false;
+      hydrated.current = false; loading.current = false; resetRef.current();
       made.forEach(c => { c.off(); c.dispose(); });
       SIDES.forEach(s => fabricRoots.current[s]?.replaceChildren());
       fcs.current = {};
@@ -229,15 +233,15 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
       o.observe(el); return o;
     });
     return () => obs.forEach(o => o?.disconnect());
-  }, [view]);
+  }, [view, pair]);
 
   useEffect(() => { if (narrow && sel) setMtab('edit'); }, [narrow, !!sel]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sheets = useMemo(() => {
     const r = {} as Record<PanelSide, { w: number; h: number }>;
-    for (const s of SIDES) { const { w, h } = frameSize(frames[s]); r[s] = sheetSize(hostSize[s].w > 0 ? hostSize[s] : { w: 1, h: 1 }, w / h); }
+    for (const s of SIDES) { const { w, h } = frameSize(frames[s]), fit = sheetSize(hostSize[s].w > 0 ? hostSize[s] : { w: 1, h: 1 }, w / h); r[s] = { w: fit.w * zoom, h: fit.h * zoom }; }
     return r;
-  }, [hostSize, frames]);
+  }, [hostSize, frames, zoom]);
 
   useEffect(() => {
     for (const s of SIDES) { const c = fcs.current[s]; if (c && hostSize[s].w > 0) c.setDimensions({ width: Math.round(sheets[s].w), height: Math.round(sheets[s].h) }, { cssOnly: true }); }
@@ -254,17 +258,38 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
     return () => window.clearTimeout(t);
   }, [colors, details, artTick]);
 
+  const applySnapshot = useCallback(async (snap: PanelSnapshot) => {
+    loading.current = true;
+    try {
+      await ensureFonts(SIDES.flatMap(s => snap.art[s] as any[]));
+      for (const s of SIDES) {
+        const c = fcs.current[s]; if (!c) continue;
+        c.discardActiveObject(); await c.loadFromJSON({ objects: snap.art[s] });
+        c.getObjects().forEach(o => { styleControls(o); o.setCoords(); }); c.requestRenderAll();
+      }
+    } finally { loading.current = false; }
+    setSel(null); setColors(() => snap.colors); setDetails(() => snap.details);
+    setCounts({ front: fcs.current.front?.getObjects().length ?? 0, back: fcs.current.back?.getObjects().length ?? 0 });
+    setArtTick(t => t + 1); paintTex(); setPanelsVersion(v => v + 1);
+  }, [setColors, setDetails, paintTex]);
+  const history = usePanelHistory({
+    ready: hydrated, tick: [colors, details, artTick], apply: applySnapshot, onChange: onHistory,
+    read: () => ({ art: { front: objectsOf(fcs.current.front), back: objectsOf(fcs.current.back) }, colors, details }),
+  });
+  recordRef.current = history.record; resetRef.current = history.reset;
+
   const active = fcs.current[side];
   const add = (o: FabricObject) => {
     const c = fcs.current[side]; if (!c || readOnly) return;
     if (c.getObjects().length >= PANEL_ART_MAX_OBJECTS) return setProblem(`The ${side} holds at most ${PANEL_ART_MAX_OBJECTS} pieces of artwork. Delete one to add another.`);
-    styleControls(o); c.add(o); c.setActiveObject(o); c.requestRenderAll(); };
+    styleControls(o); c.add(o); c.setActiveObject(o); c.requestRenderAll(); setTool('select'); };
+  const addShape = (kind: ShapeKind) => { const c = fcs.current[side]; if (!c) return; setProblem(null); add(makeShape(kind, c.getWidth() / 2, c.getHeight() * 0.42)); };
 
   const addText = async () => {
     setProblem(null);
     try { await document.fonts.load('64px "DM Serif Display"'); } catch { /* falls back to Georgia */ }
     const c = fcs.current[side]; if (!c) return;
-    add(new FabricText('Your text', { left: c.getWidth() / 2, top: c.getHeight() * 0.3, originX: 'center', originY: 'center', fontSize: 72, fontFamily: FONTS[0][1], fill: '#FFFFFF' }));
+    add(new FabricText('Your text', { left: c.getWidth() / 2, top: c.getHeight() * 0.3, originX: 'center', originY: 'center', fontSize: 72, fontFamily: BASE_FONTS[0][1], textAlign: 'center', fill: '#FFFFFF' }));
   };
 
   const addLogo = async (file: File | undefined) => {
@@ -282,7 +307,7 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
 
   const patch = (props: Record<string, unknown>) => {
     const c = fcs.current[side], o = c?.getActiveObject(); if (!c || !o) return;
-    o.set(props); o.setCoords(); c.requestRenderAll(); setArtTick(t => t + 1); syncSelection(side);
+    o.set(props); (o as any).initDimensions?.(); o.dirty = true; o.setCoords(); c.requestRenderAll(); setArtTick(t => t + 1); syncSelection(side);
   };
 
   const applyPicked = (target: 'part' | 'text', hex: string) => {
@@ -290,7 +315,7 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
     if (target === 'part') { setColor(selPart, h); return; }
     const c = fcs.current[side], o = armObj.current ?? c?.getActiveObject();
     if (!c || !o) return;
-    o.set({ fill: h }); o.setCoords(); c.requestRenderAll(); setArtTick(t => t + 1); syncSelection(side);
+    o.set({ fill: h }); o.dirty = true; o.setCoords(); c.requestRenderAll(); setArtTick(t => t + 1); syncSelection(side);
   };
   takeRef.current = (node: string) => {
     if (!armed) return false;
@@ -326,7 +351,7 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
   };
   const mirror = () => patch({ flipX: !(fcs.current[side]?.getActiveObject()?.flipX ?? false) });
   // Align the selected artwork to the edges or centre of the panel's frame (its visible bounds, so rotation and scale are respected).
-  const alignTo = (edge: 'left' | 'centerX' | 'right' | 'top' | 'centerY' | 'bottom') => {
+  const alignTo = (edge: AlignEdge) => {
     const c = fcs.current[side], o = c?.getActiveObject(); if (!c || !o) return;
     const b = o.getBoundingRect(), W = c.getWidth(), H = c.getHeight();
     const dx = edge === 'left' ? -b.left : edge === 'right' ? W - (b.left + b.width) : edge === 'centerX' ? (W - b.width) / 2 - b.left : 0;
@@ -343,7 +368,7 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
   const clearSide = () => { const c = fcs.current[side]; if (!c) return; c.remove(...c.getObjects()); c.discardActiveObject(); c.requestRenderAll(); setConfirmClear(false); };
 
   const onStageKey = (e: React.KeyboardEvent) => {
-    const c = fcs.current[side], o = c?.getActiveObject(); if (!c || !o || (e.target as HTMLElement).tagName === 'INPUT') return;
+    const c = fcs.current[side], o = c?.getActiveObject(); if (!c || !o || readOnly || /^(INPUT|TEXTAREA|SELECT)$/.test((e.target as HTMLElement).tagName)) return;
     const step = e.shiftKey ? 10 : 1;
     if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); removeActive(); return; }
     if (e.key === 'Escape') { c.discardActiveObject(); c.requestRenderAll(); return; }
@@ -366,6 +391,7 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
   };
 
   useImperativeHandle(handleRef, () => ({
+    undo: history.undo, redo: history.redo,
     preview: (s: PanelSide) => {
       if (svg.state !== 'ready') return null;
       paintTex();
@@ -377,7 +403,7 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
       ctx.drawImage(t, 0, 0);
       try { return out.toDataURL('image/png'); } catch { return null; }
     },
-  }), [svg, asset, colors, details, texCanvases, paintTex]);
+  }), [svg, asset, colors, details, texCanvases, paintTex, history.undo, history.redo]);
 
   const part = asset.parts.find(p => p.node === selPart)!;
   const partHex = partColor(selPart);
@@ -387,7 +413,6 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
   const show3d = view !== 'pattern', showPanel = view !== '3d';
 
   const layerObjs = (fcs.current[side]?.getObjects() ?? []).slice().reverse();
-  const layerName = (o: FabricObject) => { const t = o as unknown as { text?: unknown }; return typeof t.text === 'string' && t.text ? t.text.slice(0, 24) : 'Logo image'; };
   const pickLayer = (o: FabricObject) => { const c = fcs.current[side]; if (!c) return; c.setActiveObject(o); c.requestRenderAll(); syncSelection(side); };
   const toggleLayer = (o: FabricObject) => { o.set({ visible: !o.visible }); const c = fcs.current[side]; c?.discardActiveObject(); c?.requestRenderAll(); setArtTick(t => t + 1); };
   const dropLayer = (o: FabricObject) => { const c = fcs.current[side]; if (!c) return; c.remove(o); c.discardActiveObject(); c.requestRenderAll(); };
@@ -411,7 +436,6 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
       <div className="ps-add">
         <button type="button" className="ps-btn" onClick={addText} disabled={svg.state !== 'ready' || readOnly}>Add text</button>
         <button type="button" className="ps-btn" onClick={() => fileInput.current?.click()} disabled={svg.state !== 'ready' || readOnly}>Upload logo</button>
-        <input ref={fileInput} type="file" accept={UPLOAD_TYPES.join(',')} hidden onChange={e => { void addLogo(e.target.files?.[0]); e.target.value = ''; }} />
       </div>
       <p className="ps-note">PNG, JPEG or WebP, up to 4 MB. New artwork goes on the {side}. Drag it onto a part.</p>
       {problem && <p className="ps-alert" role="alert">{problem}</p>}
@@ -455,62 +479,8 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
   );
 
   const artBlock = (
-    <section>
-      <h2>Artwork on the {side}</h2>
-      {!sel && <p className="ps-note">{counts[side] === 0 ? 'Nothing here yet. Use Add text or Upload logo.' : 'Select a piece of artwork on the panel to change it.'}</p>}
-      {sel && (
-        <div className="ps-art">
-          {sel.kind === 'text' && (
-            <>
-              <label className="ps-field">Text<input value={sel.text} maxLength={60} onChange={e => patch({ text: e.target.value })} /></label>
-              <label className="ps-field">Font
-                <select value={FONTS.find(f => f[1] === sel.font)?.[1] ?? ''} onChange={e => patch({ fontFamily: e.target.value })}>
-                  {FONTS.map(([n, v]) => <option key={n} value={v}>{n}</option>)}
-                </select>
-              </label>
-              <div className="ps-colors" role="group" aria-label="Text colour">
-                {PALETTE.map(([name, hex]) => <button key={hex} type="button" className="ps-chip" style={{ background: hex }} aria-label={`Text ${name}`} aria-pressed={sel.fill.toLowerCase() === hex.toLowerCase()} onClick={() => patch({ fill: hex })} />)}
-              </div>
-              {eyedrop('text')}
-            </>
-          )}
-          <label className="ps-field">Width, % of the panel
-            <input type="range" min={3} max={100} value={Math.min(100, Math.max(3, sel.widthPct))} onChange={e => setWidthPct(Number(e.target.value))} />
-            <output>{sel.widthPct}%</output>
-          </label>
-          <label className="ps-field">Rotation
-            <input type="range" min={0} max={359} value={sel.angle} onChange={e => patch({ angle: Number(e.target.value) })} />
-            <output>{sel.angle}°</output>
-          </label>
-          <label className="ps-field">Opacity
-            <input type="range" min={10} max={100} value={Math.round(sel.opacity * 100)} onChange={e => patch({ opacity: Number(e.target.value) / 100 })} />
-            <output>{Math.round(sel.opacity * 100)}%</output>
-          </label>
-          {spots.length > 0 && (
-            <div className="ps-row" role="group" aria-label="Place at">
-              {spots.map(sp => <button key={sp.id} type="button" className="ps-btn ps-btn--quiet" onClick={() => placeAt(sp)} disabled={readOnly}>{sp.label}</button>)}
-            </div>
-          )}
-          <div className="ps-row" role="group" aria-label="Align to the panel">
-            {([['left', 'Left'], ['centerX', 'Centre'], ['right', 'Right'], ['top', 'Top'], ['centerY', 'Middle'], ['bottom', 'Bottom']] as const).map(([k, label]) => (
-              <button key={k} type="button" className="ps-btn ps-btn--quiet" onClick={() => alignTo(k)}>{label}</button>
-            ))}
-          </div>
-          <div className="ps-row">
-            <button type="button" className="ps-btn ps-btn--quiet" onClick={() => patch({ angle: (sel.angle + 270) % 360 })}>Rotate 90° left</button>
-            <button type="button" className="ps-btn ps-btn--quiet" onClick={() => patch({ angle: (sel.angle + 90) % 360 })}>Rotate 90° right</button>
-            <button type="button" className="ps-btn" onClick={() => void duplicate()} disabled={readOnly}>Copy</button>
-            <button type="button" className="ps-btn" onClick={mirror}>Mirror</button>
-          </div>
-          <div className="ps-row">
-            <button type="button" className="ps-btn" onClick={() => reorder(true)}>Bring forward</button>
-            <button type="button" className="ps-btn" onClick={() => reorder(false)}>Send back</button>
-            <button type="button" className="ps-btn ps-btn--danger" onClick={removeActive}>Delete</button>
-          </div>
-          <p className="ps-note">Arrow keys nudge the selected artwork. Shift moves it ten steps.</p>
-        </div>
-      )}
-    </section>
+    <PanelArtInspector side={side} sel={sel} count={counts[side]} palette={PALETTE} spots={spots} readOnly={readOnly} textEyedropper={eyedrop('text')}
+      patch={patch} setWidthPct={setWidthPct} placeAt={placeAt} alignTo={alignTo} onCopy={() => void duplicate()} onMirror={mirror} onOrder={reorder} onDelete={removeActive} />
   );
 
   const panelBlock = (
@@ -548,7 +518,7 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
           ))}
         </div>
         <div className="ps-seg" role="group" aria-label="Garment side">
-          {SIDES.map(s => <button key={s} type="button" aria-pressed={side === s} onClick={() => { setSide(s); setSel(null); setConfirmClear(false); }}>{s === 'front' ? 'Front' : 'Back'}</button>)}
+          {SIDES.map(s => <button key={s} type="button" aria-pressed={side === s} onClick={() => { setSide(s); setSel(null); setConfirmClear(false); setView3d(v => ({ ...v, angle: null })); }}>{s === 'front' ? 'Front' : 'Back'}</button>)}
         </div>
         <p className="ps-save" role="status">{persist === 'design'
           ? (saveState === 'full' ? 'Artwork is too large to save. Use smaller images or fewer pieces.' : narrow && svg.state === 'ready' && counts[side] === 0 ? `No artwork on the ${side} yet. Add text or a logo, then drag it onto a part.` : 'Artwork saves with your design')
@@ -570,11 +540,18 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
         </aside>
       )}
 
-      <main className="ps-stage" data-split={view === 'split'}>
+      <main className="ps-stage" data-split={view === 'split'} data-pair={pair || undefined}>
+        <input ref={fileInput} type="file" accept={UPLOAD_TYPES.join(',')} hidden onChange={e => { void addLogo(e.target.files?.[0]); e.target.value = ''; }} />
+        {showPanel && (
+          <PanelCanvasBar tool={tool} setTool={setTool} zoom={zoom} setZoom={setZoom} grid={grid} setGrid={setGrid} disabled={svg.state !== 'ready' || readOnly}
+            onImage={() => fileInput.current?.click()} onText={() => void addText()} onShape={addShape}
+            history={embedded ? null : { undo: history.undo, redo: history.redo, canUndo: history.can.undo, canRedo: history.can.redo }} />
+        )}
         {SIDES.map(s => (
-          <section key={s} className="ps-panel" hidden={!showPanel || side !== s} aria-label={`${s} panel`} tabIndex={0} onKeyDown={s === side ? onStageKey : undefined}>
+          <section key={s} className="ps-panel" hidden={!showPanel || (!pair && side !== s)} aria-label={`${s} panel`} data-current={(pair && side === s) || undefined} tabIndex={0} onKeyDown={s === side ? onStageKey : undefined}
+            onPointerDownCapture={() => { if (side !== s) { fcs.current[side]?.discardActiveObject(); fcs.current[side]?.requestRenderAll(); setSide(s); setSel(null); setConfirmClear(false); } }}>
             <div className="ps-host" ref={el => { hosts.current[s] = el; }}>
-              <div className="ps-sheet" style={{ width: sheets[s].w, height: sheets[s].h }}>
+              <div className="ps-sheet" style={{ width: sheets[s].w, height: sheets[s].h }} data-grid={grid || undefined}>
                 {svg.state === 'ready' && (
                   <svg className="ps-outline" viewBox={`0 0 ${frameSize(frames[s]).w} ${frameSize(frames[s]).h}`} preserveAspectRatio="none" aria-hidden="true">
                     <g transform={panelTransform(frames[s])}>
@@ -593,11 +570,13 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
                   </svg>
                 )}
                 <div className="ps-fabric" ref={el => { fabricRoots.current[s] = el; }} />
+                {tool === 'pan' && <div className="ps-pan" onPointerDown={e => panBy(e, hosts.current[s])} aria-hidden="true" />}
               </div>
             </div>
+            {pair && <p className="ps-label">{s === 'front' ? 'Front panel' : 'Back panel'}</p>}
             {s === side && svg.state === 'loading' && <p className="ps-state">Loading the panel outlines</p>}
             {s === side && svg.state === 'error' && <p className="ps-state ps-alert" role="alert">The panel outlines could not be loaded. Reload the page to try again.</p>}
-            {s === side && svg.state === 'ready' && counts[s] === 0 && <p className="ps-state ps-state--hint" data-hint>No artwork on the {s} yet. Add text or upload a logo, then drag it onto a part.</p>}
+            {s === side && !pair && svg.state === 'ready' && counts[s] === 0 && <p className="ps-state ps-state--hint" data-hint>No artwork on the {s} yet. Add text or upload a logo, then drag it onto a part.</p>}
           </section>
         ))}
 
@@ -606,10 +585,11 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
             {!ready3d && webgl && <p className="ps-state">Preparing the 3D garment</p>}
             {webgl ? (
               <Suspense fallback={<p className="ps-state">Loading the 3D viewer</p>}>
-                <PilotViewport3D asset={asset} side={side} colors={colors} details={details} panels={texCanvases} panelsVersion={panelsVersion} onPickZone={pickFrom3D} onReady={() => setReady3d(true)}
+                <PilotViewport3D asset={asset} side={side} view={view3d.angle} resetKey={view3d.reset} colors={colors} details={details} panels={texCanvases} panelsVersion={panelsVersion} onPickZone={pickFrom3D} onReady={() => setReady3d(true)}
                   errorLabel="The 3D preview could not load. Your colours and artwork are still here and still save." />
               </Suspense>
             ) : <p className="ps-state ps-alert" role="alert">This browser cannot draw 3D. The panels still work.</p>}
+            {webgl && <View3DButtons side={side} view={view3d.angle} onView={angle => { if (angle === 'front' || angle === 'back') setSide(angle); setView3d(v => ({ ...v, angle })); }} onReset={() => setView3d(v => ({ angle: null, reset: v.reset + 1 }))} />}
           </section>
         )}
         {embedded && <p className="ps-foot">{subtitle}</p>}

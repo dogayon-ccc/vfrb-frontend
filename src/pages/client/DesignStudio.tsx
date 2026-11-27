@@ -119,6 +119,7 @@ export default function DesignStudio() {
   // Baked-panel garments (studioAssets.ts): artwork lives on the flat panels in PanelWorkspace, not on the silhouette canvas.
   const panelArtRef = useRef<PanelArt | null>(null);
   const panelApi = useRef<PanelWorkspaceHandle>(null);
+  const [panelCan, setPanelCan] = useState({ undo: false, redo: false });
   const [panelTick, setPanelTick] = useState(0);   // artwork changed: re-run the save checks
   const [panelKey, setPanelKey] = useState(0);     // artwork restored from a draft or saved design: reopen the panels with it
   const restorePanelArt = useCallback((art: PanelArt | null) => { panelArtRef.current = art; setPanelKey(k => k + 1); }, []);
@@ -384,8 +385,9 @@ export default function DesignStudio() {
       if (typing) return;
       const field = t?.tagName === 'INPUT' || t?.tagName === 'SELECT';
       if (lockRef.current?.warn && mod && /^[zy]$/i.test(e.key)) { e.preventDefault(); setWarnAsk(true); return; }
-      if (mod && e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
-      if (mod && (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey))) { e.preventDefault(); redo(); return; }
+      // A panel garment keeps its own timeline (artwork and part colours), so the keys go there.
+      if (mod && e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); if (bakedRef.current) panelApi.current?.undo(); else undo(); return; }
+      if (mod && (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey))) { e.preventDefault(); if (bakedRef.current) panelApi.current?.redo(); else redo(); return; }
       if (field || !selObj || selObj.__garmentBase || selObj.isEditing) return;
       if (mod && e.key.toLowerCase() === 'd') { e.preventDefault(); duplicateSelected(); return; }
       // Ctrl+] / Ctrl+[ forward / backward, with Shift to the front / back; Ctrl+Shift+L lock; Ctrl+Shift+H hide.
@@ -1207,7 +1209,7 @@ export default function DesignStudio() {
           <div className={`ds-panelws${wsAway ? ' ds-away' : ''}`} aria-hidden={wsAway || undefined} {...(wsAway ? ({ inert: '' } as object) : null)}>
             <Suspense fallback={<p className="ps-state">Loading the garment panels</p>}>
               <PanelWorkspace key={`${baked.id}:${panelKey}`} embedded persist="design" asset={baked} handleRef={panelApi} readOnly={locked}
-                mode={bakedMode} onMode={setBakedMode}
+                mode={bakedMode} onMode={setBakedMode} onHistory={setPanelCan}
                 colors={cfg.colors} setColors={setBakedColors} details={(cfg as any).details ?? {}} setDetails={setBakedDetails}
                 initialArt={panelArtRef.current} onArt={onPanelArt} title={garmentLabel(cfg.garment)} subtitle="Base-size preview only. Garment size is chosen separately in the bulk order."
                 headerExtra={<button type="button" className="ps-btn ps-btn--quiet" onClick={changeGarment}>Change garment</button>}/>
@@ -1229,8 +1231,8 @@ export default function DesignStudio() {
       <div className="ds" data-immersive={immersive || undefined} data-locked={locked || undefined} data-first={!cfg.garment || undefined} style={{ position:'relative' }}>
 
         {/* ── TOP BAR ── */}
-        <TopBar nav={nav} cfg={cfg} setCfg={locked ? () => {} : setCfg} undo={lock?.warn ? () => setWarnAsk(true) : undo} redo={lock?.warn ? () => setWarnAsk(true) : redo}
-          canUndo={canUndo && !locked} canRedo={canRedo && !locked} status={locked ? null : status}
+        <TopBar nav={nav} cfg={cfg} setCfg={locked ? () => {} : setCfg} undo={lock?.warn ? () => setWarnAsk(true) : baked ? () => panelApi.current?.undo() : undo} redo={lock?.warn ? () => setWarnAsk(true) : baked ? () => panelApi.current?.redo() : redo}
+          canUndo={(baked ? panelCan.undo : canUndo) && !locked} canRedo={(baked ? panelCan.redo : canRedo) && !locked} status={locked ? null : status}
           viewMode={baked ? (bakedMode === '3d' ? '3d' : '2d') : viewMode} setViewMode={baked ? ((m) => setBakedMode(m === '3d' ? '3d' : default2dMode())) : setViewMode} setHas3DLoaded={setHas3DLoaded}
           showShowcase={showShowcase} setShowShowcase={toggleShowcase} showcaseCount={locked || colorOnly ? 0 : showcaseCount}
           onChangeGarment={changeGarment} saveDesign={saveDesign} saving={saving} saved={saved} draftSaved={draftSaved} orderThis={orderThis} ordering={ordering}

@@ -172,3 +172,38 @@ body[data-baked-studio] #ds-navigator-slot, body[data-baked-studio] #ds-tool-slo
 .ps[data-embedded="1"] .ps-panel { padding-bottom: 2rem; }
 @media (max-width: 1279px) { .ps[data-embedded="1"] .ps-panel { padding-bottom: 3rem; } }
 @media (max-width: 900px) { .ps[data-embedded="1"] .ps-panel { padding-bottom: 0; } }
+
+/* Canvas toolbar, zoom and pan, grid, side-by-side panels and 3D view buttons. */
+.ps-stage { grid-template-rows: auto minmax(0, 1fr); }
+.ps-bar { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 0.15rem; padding: 0.35rem 0.5rem; }
+.ps-bar button, .ps-views button { min-height: 44px; min-width: 44px; padding: 0 0.65rem; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--ps-ink); font: inherit; font-size: 0.8125rem; font-weight: 600; cursor: pointer; }
+.ps-bar button:hover:not(:disabled), .ps-views button:hover { background: rgba(16, 48, 58, 0.08); }
+.ps-bar button[aria-pressed="true"], .ps-views button[aria-pressed="true"] { background: var(--ps-thread); color: #fff; }
+.ps-bar button:disabled { opacity: 0.4; cursor: not-allowed; }
+.ps-bar output { min-width: 3.25rem; color: var(--ps-ink); text-align: center; font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
+.ps-bar-sep { width: 1px; height: 1.5rem; margin: 0 0.35rem; background: var(--ps-line); }
+.ps-bar-flag { margin-left: 0.5rem; padding: 0.2rem 0.5rem; border: 1px dashed var(--ps-line); border-radius: 6px; font-size: 0.75rem; color: var(--ps-ink-2); }
+.ps-bar-menu { position: relative; }
+.ps-bar-pop { position: absolute; z-index: 5; top: calc(100% + 4px); left: 50%; transform: translateX(-50%); width: 17rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem; padding: 0.4rem; background: #fff; border: 1px solid var(--ps-line); border-radius: 10px; box-shadow: 0 8px 24px rgba(4, 17, 23, 0.18); }
+.ps-host { overflow: auto; align-items: flex-start; justify-content: flex-start; }
+.ps-sheet { margin: auto; }
+.ps-sheet[data-grid]::after { content: ''; position: absolute; inset: 0; pointer-events: none; background-image: linear-gradient(to right, rgba(16, 48, 58, 0.16) 1px, transparent 1px), linear-gradient(to bottom, rgba(16, 48, 58, 0.16) 1px, transparent 1px); background-size: 10cqw 10cqw; }
+.ps-sheet { container-type: size; }
+.ps-pan { position: absolute; inset: 0; z-index: 2; cursor: grab; touch-action: none; }
+.ps-pan:active { cursor: grabbing; }
+.ps-stage[data-pair] { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.ps-stage[data-pair] .ps-panel + .ps-panel { border-left: var(--ps-stitch); }
+.ps-label { margin: 0; padding: 0 0.5rem 0.35rem; text-align: center; font-size: 0.8125rem; color: var(--ps-ink-2); }
+.ps-panel[data-current] .ps-label { color: var(--ps-thread); font-weight: 700; }
+.ps-views { position: absolute; left: 0; right: 0; bottom: 2.25rem; display: flex; flex-wrap: wrap; justify-content: center; gap: 0.15rem; padding: 0 0.5rem; }
+fieldset.ps-art { border: 0; margin: 0; padding: 0; min-width: 0; }
+.ps-field textarea { min-height: 3.25rem; padding: 0.5rem 0.6rem; border: 1px solid var(--ps-line); border-radius: 6px; background: #fff; color: var(--ps-ink); font: inherit; resize: vertical; }
+.ps[data-embedded="1"] .ps-field textarea { background: rgba(255, 255, 255, 0.07); color: var(--ps-ink); }
+.ps[data-embedded="1"] .ps-field select option { background: #072226; color: #eaf6f4; }
+.ps-art .ps-btn[aria-pressed="true"] { background: var(--ps-thread); color: var(--ps-on-thread); }
+.ps-inline { display: flex; align-items: center; gap: 0.5rem; }
+input[type="color"].ps-chip { padding: 2px; background: transparent; }
+.ps-sub { margin: 0.9rem 0 0; font-size: 0.8125rem; font-weight: 700; color: var(--ps-ink); }
+.ps-sub + .ps-row { margin-top: 0.4rem; }
+@media (max-width: 900px) { .ps-bar { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; } .ps-bar > * { flex: none; } .ps-bar-menu { position: static; } .ps-bar-pop { top: 3.5rem; } .ps-views { bottom: 0.25rem; } }
+.ps-inline input[type="color"] { flex: none; } .ps-inline input[type="range"] { flex: 1; min-width: 0; }

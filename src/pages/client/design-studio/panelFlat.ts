@@ -2,6 +2,7 @@
 // PNG/PDF export and order thumbnails, so none of them depends on the panel workspace being mounted.
 import { StaticCanvas } from 'fabric';
 import type { UvBakedAsset, PanelArt } from './studioAssets';
+import { ensureFonts } from './studioFonts';
 import { parsePanelSvg, cleanOutline, canvasSize, frameSize, sha256Hex, withoutCarriageReturns, pocketBackings, envelopeOf, type PanelSide, type SvgPanel } from './pilotPanels';
 
 export const DEFAULT_PART_COLOR = '#1B2A4A';
@@ -77,6 +78,7 @@ export async function renderBakedFace(asset: UvBakedAsset, colors: Record<string
   paintParts(ctx, out.width, { asset, colors, details, panels, side });
   const objects = art?.[side] ?? [];
   if (objects.length) {
+    await ensureFonts(objects as any[]); // self-hosted faces register only when asked for
     await Promise.all(objects.map((o: any) => (o?.fontFamily ? document.fonts.load(`64px ${o.fontFamily}`).catch(() => []) : null)));
     const layer = new StaticCanvas(undefined, { width: base.width, height: base.height, enableRetinaScaling: false });
     try {
