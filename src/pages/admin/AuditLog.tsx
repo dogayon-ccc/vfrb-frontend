@@ -2,6 +2,7 @@
 // Manager and owner only. GET /api/admin/audit-logs; there is no write endpoint.
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import Pagination from '../../components/ui/Pagination';
 import { PageHeader, Panel, ErrorBlock, EmptyBlock, SkeletonRows } from '../../components/admin/AdminUI';
 
 const PER_PAGE = 20;
@@ -87,13 +88,7 @@ export default function AuditLog() {
         )}
       </Panel>
 
-      {!loading && !error && lastPage > 1 && (
-        <nav className="ui-pager" aria-label="Audit log pages">
-          <button className="adm-btn" style={{ minHeight: 44 }} disabled={page <= 1} onClick={() => load(page - 1)}>Previous</button>
-          <span style={{ fontSize: 13, color: 'var(--text-subtle)' }}>Page {page} of {lastPage}</span>
-          <button className="adm-btn" style={{ minHeight: 44 }} disabled={page >= lastPage} onClick={() => load(page + 1)}>Next</button>
-        </nav>
-      )}
+      {!loading && !error && <Pagination page={page} pages={lastPage} onPage={load} label="Audit log pages"/>}
     </>
   );
 }

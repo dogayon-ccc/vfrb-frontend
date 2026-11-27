@@ -1,3 +1,4 @@
+import Pagination from '../../components/ui/Pagination';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import { NavIcon } from '../../components/ui/icons';
@@ -171,15 +172,7 @@ export default function CustomersMaster() {
   const filtered = q || type !== 'all';
   const clear = () => { setSearch(''); setQ(''); setType('all'); setPage(1); };
 
-  const pager = meta.last_page > 1 && (
-    <nav className="cm-pager" aria-label="Customer pages">
-      <span>Page {meta.current_page} of {meta.last_page}, {meta.total} clients</span>
-      <div>
-        <button className="adm-btn" disabled={page <= 1 || loading} onClick={() => setPage((p) => p - 1)}><NavIcon name="back" size={14} color="currentColor" /> Previous</button>
-        <button className="adm-btn" disabled={page >= meta.last_page || loading} onClick={() => setPage((p) => p + 1)}>Next <NavIcon name="chevronRight" size={14} color="currentColor" /></button>
-      </div>
-    </nav>
-  );
+  const pager = <Pagination page={meta.current_page ?? page} pages={meta.last_page} onPage={setPage} label="Customer pages" total={meta.total} noun="clients" busy={loading}/>;
 
   return (
     <>

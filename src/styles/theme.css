@@ -1218,3 +1218,16 @@ input:focus, textarea:focus, select:focus {
   .ui-drawer { width: 100%; height: auto; max-height: 88vh; border-radius: 18px 18px 0 0; animation-name: uiSheetIn; }
 }
 @media (prefers-reduced-motion: reduce) { .ui-drawer, .ui-drawer-scrim { animation: none; } }
+
+/* Shared Pagination: count on the left, buttons on the right; stacked and centred on phones */
+.ui-pager { justify-content: space-between; padding: var(--space-3) var(--space-4); }
+.ui-pager-sum { font-weight: 600; color: var(--ink); }
+.ui-pager-btns { display: inline-flex; align-items: center; gap: var(--space-3); }
+.ui-pager-btns .adm-btn { display: inline-flex; align-items: center; gap: 6px; }
+.ui-pager-btns .adm-btn:disabled { opacity: .55; cursor: not-allowed; }
+@media (max-width: 767px) {
+  .ui-pager { justify-content: center; text-align: center; }
+  .ui-pager .ui-pager-sum { order: 0; flex-basis: 100%; text-align: center; }
+  .ui-pager-btns { width: 100%; justify-content: space-between; }
+  .ui-pager-at { order: 0; flex-basis: auto; font-size: var(--text-body); }
+}

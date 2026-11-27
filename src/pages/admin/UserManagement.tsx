@@ -6,6 +6,7 @@ import BottomSheet from '../../components/ui/BottomSheet';
 import { NavIcon } from '../../components/ui/icons';
 import { isAdmin, roleLabel, STAGES, STAGE_LABEL } from '../../utils/jobAccess';
 import { PASSWORD_RULE_TEXT, passwordOk } from '../../utils/passwordRules';
+import Pagination from '../../components/ui/Pagination';
 import { PillTabs, ErrorBlock, Panel, StatusPill, SearchBox, Avatar, SkeletonRows, Toast, useToast, useIsMobile } from '../../components/admin/AdminUI';
 
 const FONT = `ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif`;
@@ -387,18 +388,7 @@ export default function AdminUserManagement() {
   const pageRows = filtered.slice(first, first + PAGE_SIZE);
   const selected = filtered.find(u => u.user_id === selectedId) ?? pageRows[0] ?? null;
   const inactive = users.filter(u => u.is_active === false).length;
-  const pager = (
-    <div className="um-pager">
-      <span role="status">{first + 1}–{first + pageRows.length} of {filtered.length}{inactive ? `, ${inactive} inactive overall` : ''}</span>
-      {pages > 1 && (
-        <span className="um-pager-btns">
-          <button type="button" className="adm-btn" onClick={() => setPage(cur - 1)} disabled={cur === 1}>Previous</button>
-          <span>Page {cur} of {pages}</span>
-          <button type="button" className="adm-btn" onClick={() => setPage(cur + 1)} disabled={cur === pages}>Next</button>
-        </span>
-      )}
-    </div>
-  );
+  const pager = <Pagination always page={cur} pages={pages} onPage={setPage} label="User pages" total={filtered.length} from={first + 1} to={first + pageRows.length} noun="users" note={inactive ? `${inactive} inactive overall` : ''}/>;
 
   const counts = {};
   users.forEach(u => { counts[u.role] = (counts[u.role] ?? 0) + 1; });

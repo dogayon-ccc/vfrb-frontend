@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { Card, NavIcon } from '../../components/ui';
+import Pagination from '../../components/ui/Pagination';
 import { RecordedBy } from '../../components/admin/AdminUI';
 
 const ACTION_LABELS = {
@@ -156,19 +157,7 @@ export default function ActivityLog() {
         </Card>
       )}
 
-      {!loading && lastPage > 1 && (
-        <nav className="ui-pager" aria-label="Activity log pages">
-          <button disabled={page <= 1} onClick={() => load(page - 1)}
-            style={{ padding:'8px 14px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-card)', color: page<=1 ? 'var(--text-faint)' : 'var(--ink)', fontSize:13, fontWeight:600, cursor: page<=1 ? 'not-allowed' : 'pointer', fontFamily:'var(--font)' }}>
-            Previous
-          </button>
-          <span style={{ fontSize:13, color:'var(--text-subtle)' }}>Page {page} of {lastPage}</span>
-          <button disabled={page >= lastPage} onClick={() => load(page + 1)}
-            style={{ padding:'8px 14px', borderRadius:'var(--r-md)', border:'1px solid var(--border)', background:'var(--bg-card)', color: page>=lastPage ? 'var(--text-faint)' : 'var(--ink)', fontSize:13, fontWeight:600, cursor: page>=lastPage ? 'not-allowed' : 'pointer', fontFamily:'var(--font)' }}>
-            Next
-          </button>
-        </nav>
-      )}
+      {!loading && <Pagination page={page} pages={lastPage} onPage={load} label="Activity log pages"/>}
 
       <style>{`@keyframes al-shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}`}</style>
     </div>

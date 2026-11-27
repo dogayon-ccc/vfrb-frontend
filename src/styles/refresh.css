@@ -19,7 +19,7 @@
   --radius:      14px;
   --sidebar-w:   304px;
   --topbar-h:    72px;
-  --shell-pad:   clamp(16px, 2.4vw, 36px);
+  --shell-pad:   clamp(12px, 1.6vw, 28px);
 
   --color-page:    #f6f3ec;
   --color-surface: #efeae2;

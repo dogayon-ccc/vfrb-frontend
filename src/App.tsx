@@ -47,6 +47,8 @@ import CustomerLogin    from './pages/auth/Login';
 import UpdatePrompt from './components/UpdatePrompt';
 import { areaOf } from './utils/routeArea';
 import RouteVeil from './components/RouteVeil';
+import PageLoader from './components/ui/PageLoader';
+import RouteAnnouncer from './components/RouteAnnouncer';
 import VerifyEmail      from './pages/auth/VerifyEmail';
 import GoogleComplete   from './pages/auth/GoogleComplete';
 
@@ -137,9 +139,9 @@ function Prefetch() {
 
 // Each route gets its own boundary: router navigations run as transitions, which
 // keep the old page on screen instead of showing an already-mounted fallback.
-const SiteLoad  = ({ children }: any) => <Suspense fallback={null}>{children}</Suspense>;
+const SiteLoad  = ({ children }: any) => <Suspense fallback={<PageLoader full/>}>{children}</Suspense>;
 const SPLIT_AUTH = ['/login', '/forgot-password', '/reset-password'];
-const AuthLoad  = ({ children }: any) => <Suspense fallback={null}>{children}</Suspense>;
+const AuthLoad  = ({ children }: any) => <Suspense fallback={<PageLoader full/>}>{children}</Suspense>;
 // Only the signed-in shell's first (cold) load shows a skeleton, after 150 ms: dark for the admin shell, light and customer-shaped for customers.
 // Route-to-route hops and the top-level boundary stay empty, so there is no full-page route loading screen.
 const ShellLoad = ({ customer = false, children }: any) => <Suspense fallback={<Late><AppShellSkeleton customer={customer}/></Late>}>{children}</Suspense>;
@@ -239,6 +241,7 @@ export default function App() {
     <BrowserRouter>
       <ScrollTop/>
       <RouteVeil/>
+      <RouteAnnouncer/>
       <RouteMeta/>
       <Prefetch/>
       <StorageNotice/>
@@ -250,7 +253,7 @@ export default function App() {
         copyDescription="Add VFRB to your home screen for faster access and a full-screen app view — no browser address bar."
         appIconPath="/apple-touch-icon.png"
       />
-      <Suspense fallback={null}>
+      <Suspense fallback={<PageLoader full/>}>
         <Routes>
 
           {/* ── ROOT ──────────────────────────────────────────────────────── */}
@@ -342,17 +345,17 @@ export default function App() {
           {/* ── DESIGN STUDIO — full-screen, outside CustomerLayout ───────── */}
           <Route path="/design-studio" element={
             <RequireAuth role="customer">
-              <Suspense fallback={null}><DesignStudio/></Suspense>
+              <Suspense fallback={<PageLoader full label="Loading Design Studio"/>}><DesignStudio/></Suspense>
             </RequireAuth>
           }/>
 
           {PilotStudio && <Route path="/design-studio/pilot" element={
             <RequireAuth role="customer">
-              <Suspense fallback={null}><PilotStudio/></Suspense>
+              <Suspense fallback={<PageLoader full/>}><PilotStudio/></Suspense>
             </RequireAuth>
           }/>}
 
-          {DevLayouts && <Route path="/dev/layouts" element={<Suspense fallback={null}><DevLayouts/></Suspense>}/>}
+          {DevLayouts && <Route path="/dev/layouts" element={<Suspense fallback={<PageLoader full/>}><DevLayouts/></Suspense>}/>}
 
           {/* ── 404 ───────────────────────────────────────────────────────── */}
           <Route path="*" element={<NotFound/>}/>

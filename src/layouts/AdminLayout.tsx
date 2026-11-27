@@ -1,3 +1,4 @@
+import PageLoader from '../components/ui/PageLoader';
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
@@ -693,7 +694,7 @@ export default function AdminLayout() {
               </AlertBanner>
             )}
             <PageErrorBoundary resetKey={path}>
-              <div key={path} className="adm-page vfrb-page thread-page"><Suspense fallback={null}>{!canOpen(path, me) ? <AccessDenied what="This page"/> : <Outlet/>}</Suspense><ThreadPull/></div>
+              <div key={path} className="adm-page vfrb-page thread-page"><Suspense fallback={<PageLoader/>}>{!canOpen(path, me) ? <AccessDenied what="This page"/> : <Outlet/>}</Suspense><ThreadPull/></div>
             </PageErrorBoundary>
           </div>
         </main>

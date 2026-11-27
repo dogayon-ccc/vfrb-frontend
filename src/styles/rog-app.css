@@ -222,3 +222,7 @@
 }
 @media(min-width:1536px){.ds .ds-panel{width:clamp(392px,22vw,460px)}}
 @media(min-width:1024px) and (max-width:1279px){.ds .ds-panel{width:clamp(320px,29vw,360px)}}
+
+.pl--full{min-height:100dvh}
+.pl--full[data-on]{background:#041117}
+@media (prefers-reduced-motion:reduce){.pl-mark,.pl-bar i{animation:none}.pl-bar i{width:100%}}

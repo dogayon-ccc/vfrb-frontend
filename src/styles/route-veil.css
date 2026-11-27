@@ -21,3 +21,8 @@
 @keyframes rv-mark { 0%, 100% { opacity: 0; transform: scale(0.92); } 30%, 62% { opacity: 1; transform: scale(1); } }
 @keyframes rv-bar { to { transform: translateX(0); } }
 @media (prefers-reduced-motion: reduce) { .rv { display: none; } }
+
+/* Same-area page change: shorter wipe, same mark and bar */
+.rv--lite { animation-duration: 340ms; }
+.rv--lite .rv__mark { animation-duration: 340ms; }
+.rv--lite .rv__bar::after { animation-duration: 250ms; animation-delay: 30ms; }

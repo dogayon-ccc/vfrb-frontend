@@ -12,10 +12,10 @@ export function useAfter(ms = 150) {
 }
 
 // Suspense fallback: blank for 120 ms, then the VFRB mark in HUD brackets with a looping mint scan bar. Styles: rog-app.css (.pl-*).
-export default function PageLoader({ label = 'Loading page' }: any) {
+export default function PageLoader({ label = 'Loading page', full = false }: any) {
   const show = useAfter(120);
   return (
-    <div className="pl" role="status" aria-live="polite">
+    <div className={`pl${full ? ' pl--full' : ''}`} data-on={show || undefined} role="status" aria-live="polite">
       <span className="sr-only">{label}</span>
       {show && (
         <div className="pl-box" aria-hidden="true">
