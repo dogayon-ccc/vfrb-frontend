@@ -49,7 +49,7 @@
 .ps-add, .ps-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 
 .ps-stage { grid-area: stage; min-width: 0; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr); background: var(--ps-paper); }
-.ps-stage[data-split="true"] { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.ps-stage[data-split="true"] { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } /* the 2D panel is the working surface; 3D is the check */
 .ps-panel, .ps-3d { position: relative; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 .ps-stage[data-split="true"] .ps-panel { border-right: var(--ps-stitch); }
 .ps-panel:focus-visible { outline-offset: -3px; }
@@ -58,7 +58,7 @@
 .ps-outline { position: absolute; inset: 0; width: 100%; height: 100%; }
 .ps-outline path { stroke-width: 9; stroke-linejoin: round; cursor: pointer; }
 .ps-outline path.ps-detail { stroke-width: 1.25; }
-.ps-outline path.is-selected { stroke: var(--ps-thread); stroke-opacity: 0.6; stroke-width: 4; cursor: default; }
+.ps-outline path.is-selected { stroke: none; fill: var(--ps-thread); fill-opacity: 0.12; cursor: default; } /* a tint, not a stroke: the traced edges stay quiet */
 .ps-fabric { position: absolute; inset: 0; }
 .ps-fabric .canvas-container { position: absolute !important; inset: 0; width: 100% !important; height: 100% !important; }
 .ps-fabric canvas { position: absolute !important; }
@@ -150,7 +150,7 @@
 .ps[data-embedded="1"] .ps-chip[aria-pressed="true"] { outline-color: #fff; }
 .ps[data-embedded="1"] .ps-stage { --ps-paper: #e9eeea; --ps-card: #ffffff; --ps-ink: #10303a; --ps-ink-2: #3d5560; --ps-thread: #046a78; --ps-line: rgba(16, 48, 58, 0.28); background: var(--ps-paper); position: relative; }
 .ps[data-embedded="1"] .ps-sheet { background: #ffffff; }
-.ps[data-embedded="1"] .ps-outline path.is-selected { stroke: #046a78; stroke-width: 3; stroke-opacity: 0.9; }
+.ps[data-embedded="1"] .ps-outline path.is-selected { stroke: none; fill: #046a78; fill-opacity: 0.16; }
 @media (max-width: 1280px) { .ps[data-embedded="1"] { grid-template-columns: 4.5rem 11.5rem minmax(0, 1fr) 16rem; } }
 @media (max-width: 900px) {
   .ds-panelws { overflow-y: auto; }
