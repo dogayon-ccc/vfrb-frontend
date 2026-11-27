@@ -100,6 +100,7 @@ const inpStyle = { width:'100%', minHeight:44, padding:'9px 12px', borderRadius:
   fontSize:13, boxSizing:'border-box', fontFamily:'var(--font)', background:'var(--bg-card)', color:'var(--ink)' };
 const lblStyle = { display:'block', fontSize:13, fontWeight:700, color:'var(--text-subtle)', marginBottom:6, fontFamily:'var(--font)' };
 const peso = v => `₱${Number(v ?? 0).toLocaleString('en-PH', { minimumFractionDigits:2, maximumFractionDigits:2 })}`;
+const MAX_TOTAL = 99999999.99; // orders.agreed_total is decimal(10,2); the API enforces the same bound
 const PROPOSAL_LABEL = { pending:'Sent, waiting for the customer', accepted:'Accepted by the customer', declined:'Declined by the customer' };
 const apiError = (e, fallback) => {
   const fe = e.response?.data?.errors;
@@ -158,6 +159,7 @@ function ProposalPanel({ order, onUpdated }: any) {
 
   const canPropose = order.status === 'pending' && order.proposal_status !== 'accepted';
   const setSource = (order_type) => run('source', () => axios.patch(`/api/admin/orders/${id}`, { order_type }).then(r => ({ data: { order: r.data } })), 'Order source updated.');
+  const totalOk = total !== '' && Number(total) > 0 && Number(total) <= MAX_TOTAL;
   const dpDone = !!order.down_payment_received_at;
   const dpBlocked = ['completed', 'cancelled'].includes(order.status);
 
@@ -192,13 +194,15 @@ function ProposalPanel({ order, onUpdated }: any) {
               </div>
               <div>
                 <label style={lblStyle} htmlFor="adm-prop-total">Total (₱)</label>
-                <input id="adm-prop-total" type="number" min="0" step="0.01" value={total} onChange={e => setTotal(e.target.value)} style={inpStyle}/>
+                <input id="adm-prop-total" type="number" min="0.01" max={MAX_TOTAL} step="0.01" value={total} onChange={e => setTotal(e.target.value)} style={inpStyle}
+                  aria-invalid={total !== '' && !totalOk} aria-describedby="adm-prop-total-err"/>
+                {total !== '' && !totalOk && <p id="adm-prop-total-err" className="adm-prop-hint" role="alert" style={{ color:'var(--danger-text)' }}>Enter an amount above ₱0 and up to {peso(MAX_TOTAL)}.</p>}
               </div>
             </div>
             <label style={lblStyle} htmlFor="adm-prop-note">Note to the customer</label>
             <textarea id="adm-prop-note" rows={3} value={note} onChange={e => setNote(e.target.value)} style={{ ...inpStyle, resize:'vertical' }}
               placeholder="Fabric availability, any cheaper or better option, and why this date and total"/>
-            <button className="adm-btn primary" style={{ marginTop:12 }} disabled={!!busy || total === '' || note.trim().length < 10} onClick={sendProposal}>
+            <button className="adm-btn primary" style={{ marginTop:12 }} disabled={!!busy || !totalOk || note.trim().length < 10} onClick={sendProposal}>
               {busy === 'propose' ? 'Sending…' : order.proposal_status ? 'Send new proposal' : 'Send proposal'}
             </button>
           </>

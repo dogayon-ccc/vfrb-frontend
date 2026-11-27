@@ -1570,6 +1570,9 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const cv2 = rd('../src/pages/client/design-studio/CanvasViewport.tsx');
   t('full screen: the Fullscreen API on the Studio root with an app-level expanded fallback, the view restored on exit, a labelled toggle; Fit has its own icon',
     /el\.requestFullscreen\(\{ navigationUI: 'hide' \}\)/.test(cv2) && /setFull\('app'\)/.test(cv2) && /restoreView/.test(cv2) && /ctrl\(full \? 'Exit full screen' : 'Full screen'/.test(cv2) && /<Scan size/.test(cv2));
+  t('proposal form: the total must be above zero and within orders.agreed_total (decimal 10,2) before Send is enabled, matching the API rule',
+    (() => { const o = rd('../src/pages/admin/OrderDetail.tsx');
+      return /const MAX_TOTAL = 99999999\.99/.test(o) && /Number\(total\) > 0 && Number\(total\) <= MAX_TOTAL/.test(o) && /disabled=\{!!busy \|\| !totalOk \|\|/.test(o); })());
   t('3D orbit: the Studio and Pilot viewers stop at 60 degrees from straight overhead (30 above the horizon) so a bottom is never viewed down into its open waist',
     /minPolarAngle=\{Math\.PI \/ 3\}/.test(d3) && /minPolarAngle=\{Math\.PI \/ 3\}/.test(rd('../src/pages/client/design-studio/PilotViewport3D.tsx')));
   // 3D: derived bottoms and the gated Meshy pants are 2D only; Pants, Jogger Scrub Pants and the Scrub Top sketch use the authored meshes.
