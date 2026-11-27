@@ -31,7 +31,7 @@ function edgeFor(hex: string) {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.45 ? 'rgba(27,42,74,0.45)' : 'rgba(255,255,255,0.5)';
 }
 
-type Mode = 'pattern' | 'split' | '3d';
+export type Mode = 'pattern' | 'split' | '3d';
 type Details = Record<string, { show: boolean }>;
 interface ArtInfo { kind: 'text' | 'image'; text: string; fill: string; font: string; size: number; angle: number; opacity: number; widthPct: number }
 
@@ -89,11 +89,16 @@ export interface PanelWorkspaceProps {
   initialNotice?: string | null;
   handleRef?: Ref<PanelWorkspaceHandle>;
   readOnly?: boolean;
+  /** Controlled view: the host Studio's top-bar 2D/3D switch drives it. Omit for the standalone page. */
+  mode?: Mode;
+  onMode?: (m: Mode) => void;
 }
 
-export function PanelWorkspace({ asset, colors, setColors, details, setDetails, initialArt, onArt, persist, embedded = false, title = 'Scrub top, short sleeve', subtitle = 'Pilot garment, base size only. Source licence not confirmed.', headerExtra, initialNotice = null, handleRef, readOnly = false }: PanelWorkspaceProps) {
+export function PanelWorkspace({ asset, colors, setColors, details, setDetails, initialArt, onArt, persist, embedded = false, title = 'Scrub top, short sleeve', subtitle = 'Pilot garment, base size only. Source licence not confirmed.', headerExtra, initialNotice = null, handleRef, readOnly = false, mode: modeProp, onMode: onModeProp }: PanelWorkspaceProps) {
   const narrow = useNarrow();
-  const [mode, setMode] = useState<Mode>('split');
+  const [modeLocal, setModeLocal] = useState<Mode>('split');
+  const mode = modeProp ?? modeLocal;
+  const setMode = useCallback((m: Mode) => { if (onModeProp) onModeProp(m); else setModeLocal(m); }, [onModeProp]);
   const [side, setSide] = useState<PanelSide>('front');
   const [selPart, setSelPart] = useState('body');
   // Eyedropper fallback for browsers without the screen EyeDropper API: arm it, then tap a part to copy its colour onto the target.

@@ -13,6 +13,7 @@ import { useRovingGroups } from './design-studio/rovingKeys';
 import { analyzeImageFile, REF_NOT_FULL_SET } from './design-studio/referenceSketch';
 import { checkPerson, personGate } from './design-studio/personDetector';
 import { garmentLabel } from '../../utils/designName';
+import './design-studio/pilotStudio.css';
 import { uvBakedAssetFor, panelArtBytes, PANEL_ART_MAX_BYTES, type PanelArt } from './design-studio/studioAssets';
 import type { PanelWorkspaceHandle } from './design-studio/PanelWorkspace';
 const PanelWorkspace = lazy(() => import('./design-studio/PanelWorkspace'));
@@ -101,6 +102,9 @@ export default function DesignStudio() {
   const [viewMode,   setViewMode]   = useState<ViewMode>('2d');
   useEffect(() => { if (baked && viewMode !== '2d') setViewMode('2d'); }, [baked, viewMode]); // a baked garment has its own Panels/Split/3D switch in the workspace
   const [showSet, setShowSet] = useState(false); // both pieces drawn together, read-only
+  const [bakedMode, setBakedMode] = useState<'pattern' | 'split' | '3d'>('split'); // workspace view for a baked-panel garment; the top bar's 2D/3D switch drives it
+  // The silhouette stage's Navigator portals out of the stage into the pieces column; hide that slot while the panel workspace owns the screen.
+  useEffect(() => { document.body.toggleAttribute('data-baked-studio', !!baked && !showSet); return () => document.body.removeAttribute('data-baked-studio'); }, [baked, showSet]);
   const [snapshot,   setSnapshot]   = useState(null);
   const [overlays,   setOverlays]   = useState(null);
   // FIX (BUG-007): once the 3D view has been requested once, keep it mounted
@@ -1170,20 +1174,28 @@ export default function DesignStudio() {
     setPanelTick(t => t + 1);
     return panelArtBytes(art) > PANEL_ART_MAX_BYTES ? 'full' as const : 'saved' as const;
   }, []);
-  const wrapStage = (stage) => (!baked ? stage : (
-    <>
-      <div className="ds-panelws">
-        {/* The silhouette stage stays laid out at full size (visibility, not display:none) so its canvas measures real pixels and the next garment still fits when the client switches back to it. */}
-        <div aria-hidden="true" {...({ inert: '' } as object)} style={{ position: 'absolute', inset: 0, display: 'flex', visibility: 'hidden', pointerEvents: 'none' }}>{stage}</div>
-        <Suspense fallback={<p className="ps-state">Loading the garment panels</p>}>
-          <PanelWorkspace key={`${baked.id}:${panelKey}`} embedded persist="design" asset={baked} handleRef={panelApi} readOnly={locked}
-            colors={cfg.colors} setColors={setBakedColors} details={(cfg as any).details ?? {}} setDetails={setBakedDetails}
-            initialArt={panelArtRef.current} onArt={onPanelArt} title={garmentLabel(cfg.garment)} subtitle="Base-size preview only. Garment size is chosen separately in the bulk order."
-            headerExtra={<button type="button" className="ps-btn ps-btn--quiet" onClick={changeGarment}>Change garment</button>}/>
-        </Suspense>
-      </div>
-    </>
-  ));
+  // The silhouette stage must keep ONE position in the tree: its Fabric canvas is created once on mount, so moving the stage (as a wrapper did) remounts a fresh <canvas>
+  // the old Fabric instance is not bound to, and the next garment draws nothing. A baked garment shows the panel workspace and parks the stage off-screen at full size;
+  // Preview the set swaps them back so the set view (which lives in the stage) is visible.
+  const wrapStage = (stage) => {
+    const stageAway = !!baked && !showSet, wsAway = showSet;
+    return (
+      <>
+        {baked ? (
+          <div className={`ds-panelws${wsAway ? ' ds-away' : ''}`} aria-hidden={wsAway || undefined} {...(wsAway ? ({ inert: '' } as object) : null)}>
+            <Suspense fallback={<p className="ps-state">Loading the garment panels</p>}>
+              <PanelWorkspace key={`${baked.id}:${panelKey}`} embedded persist="design" asset={baked} handleRef={panelApi} readOnly={locked}
+                mode={bakedMode} onMode={setBakedMode}
+                colors={cfg.colors} setColors={setBakedColors} details={(cfg as any).details ?? {}} setDetails={setBakedDetails}
+                initialArt={panelArtRef.current} onArt={onPanelArt} title={garmentLabel(cfg.garment)} subtitle="Base-size preview only. Garment size is chosen separately in the bulk order."
+                headerExtra={<button type="button" className="ps-btn ps-btn--quiet" onClick={changeGarment}>Change garment</button>}/>
+            </Suspense>
+          </div>
+        ) : null}
+        <div className={`ds-stage-host${stageAway ? ' ds-away' : ''}`} aria-hidden={stageAway || undefined} {...(stageAway ? ({ inert: '' } as object) : null)}>{stage}</div>
+      </>
+    );
+  };
 
   return (
     <>
@@ -1197,7 +1209,7 @@ export default function DesignStudio() {
         {/* ── TOP BAR ── */}
         <TopBar nav={nav} cfg={cfg} setCfg={locked ? () => {} : setCfg} undo={lock?.warn ? () => setWarnAsk(true) : undo} redo={lock?.warn ? () => setWarnAsk(true) : redo}
           canUndo={canUndo && !locked} canRedo={canRedo && !locked} status={locked ? null : status}
-          viewMode={viewMode} setViewMode={setViewMode} setHas3DLoaded={setHas3DLoaded} hideViewToggle={!!baked}
+          viewMode={baked ? (bakedMode === '3d' ? '3d' : '2d') : viewMode} setViewMode={baked ? ((m) => setBakedMode(m === '3d' ? '3d' : 'split')) : setViewMode} setHas3DLoaded={setHas3DLoaded}
           showShowcase={showShowcase} setShowShowcase={toggleShowcase} showcaseCount={locked || colorOnly ? 0 : showcaseCount}
           onChangeGarment={changeGarment} saveDesign={saveDesign} saving={saving} saved={saved} draftSaved={draftSaved} orderThis={orderThis} ordering={ordering}
           downloadImage={downloadImage} downloadPdf={downloadPdf} openPrintFiles={openPrintFiles} exporting={exporting}

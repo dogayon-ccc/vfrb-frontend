@@ -60,7 +60,15 @@ ok(PP.pocketBackings(realPanels.filter(p => p.part !== 'chest_pocket' && p.part 
 
 // The Studio must not leak dead tools or a second view switch for a baked garment.
 ok(/rail=\{locked \|\| baked \? null : \{ history:/.test(ds), 'the silhouette tool rail (brush, bucket, eraser) is not offered for a baked garment');
-ok(/hideViewToggle=\{!!baked\}/.test(ds) && /hideViewToggle = false/.test(text('src/pages/client/design-studio/TopBar.tsx')), 'the top-bar 2D/3D switch is hidden for a baked garment (the workspace has its own)');
+ok(/viewMode=\{baked \? \(bakedMode === '3d' \? '3d' : '2d'\) : viewMode\}/.test(ds) && /setViewMode=\{baked \? \(\(m\) => setBakedMode\(m === '3d' \? '3d' : 'split'\)\) : setViewMode\}/.test(ds), 'the top-bar 2D/3D switch drives the panel workspace for a baked garment');
+ok(/mode=\{bakedMode\} onMode=\{setBakedMode\}/.test(ds) && /mode: modeProp/.test(ws) && /modeProp \?\? modeLocal/.test(ws), 'the workspace view is controlled by the Studio when embedded and local when standalone');
+// The silhouette stage keeps ONE tree position (Fabric binds to its <canvas> once); moving it left every later garment blank (the Jogger).
+ok(/<div className=\{`ds-stage-host\$\{stageAway \? ' ds-away' : ''\}`\}/.test(ds) && !/!baked \? stage :/.test(ds), 'the silhouette stage is always rendered in the same place (never remounted when a garment becomes baked or not)');
+ok(/\{baked \? \(\s*<div className=\{`ds-panelws/.test(ds) && /\) : null\}\s*<div className=\{`ds-stage-host/.test(ds), 'the workspace is a conditional sibling placed before the stage, so toggling it does not shift the stage');
+ok(/stageAway = !!baked && !showSet, wsAway = showSet/.test(ds), 'Preview the set swaps the stage (set view) back in and parks the workspace');
+const cssText = text('src/pages/client/design-studio/pilotStudio.css');
+ok(/\.ds-away \{ position: fixed !important;[^}]*opacity: 0;[^}]*pointer-events: none;/.test(cssText) && /body\[data-baked-studio\] #ds-navigator-slot/.test(cssText), 'a parked stage is full-size, invisible and inert; its Navigator slot is hidden');
+ok(/toggleAttribute\('data-baked-studio', !!baked && !showSet\)/.test(ds), 'the Navigator slot is hidden only while the workspace is on screen');
 ok(/if \(baked && viewMode !== '2d'\) setViewMode\('2d'\)/.test(ds), 'the hidden silhouette canvas never enters its own immersive 3D mode');
 ok(/drawer=\{baked \? null :/.test(ds), 'the silhouette tool drawer is not offered for a baked garment');
 ok(/ps-layers/.test(ws) && /Layers, \$\{side\}/.test(ws), 'the workspace lists layers with show/hide and delete');
