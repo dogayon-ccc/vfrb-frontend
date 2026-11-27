@@ -107,3 +107,88 @@ export const withoutCarriageReturns = (buf: ArrayBuffer): ArrayBuffer => {
   for (let i = 0; i < src.length; i++) if (src[i] !== 13) out[n++] = src[i];
   return out.slice(0, n).buffer;
 };
+
+// Display-only tidy-up of a traced outline: drops stray tracing fragments, squares the pockets and smooths the rest.
+// The pinned SVG files and the 3D UV bake are not touched, so artwork mapping is unaffected.
+type Pt = [number, number];
+const SQUARE_PARTS = new Set(['chest_pocket', 'lower_pockets']);
+
+const ringArea = (r: Pt[]) => Math.abs(r.reduce((a, p, i) => { const q = r[(i + r.length - 1) % r.length]; return a + q[0] * p[1] - p[0] * q[1]; }, 0) / 2);
+
+function simplify(pts: Pt[], eps: number): Pt[] {
+  if (pts.length < 3) return pts;
+  const [ax, ay] = pts[0], [bx, by] = pts[pts.length - 1], len = Math.hypot(bx - ax, by - ay);
+  let at = 0, far = 0;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const [x, y] = pts[i], d = len ? Math.abs((bx - ax) * (ay - y) - (ax - x) * (by - ay)) / len : Math.hypot(x - ax, y - ay);
+    if (d > far) { far = d; at = i; }
+  }
+  return far > eps ? [...simplify(pts.slice(0, at + 1), eps).slice(0, -1), ...simplify(pts.slice(at), eps)] : [pts[0], pts[pts.length - 1]];
+}
+
+// Even spacing then a moving average: mesh-triangle saw teeth (about 0.02 panel units) flatten while the silhouette keeps its shape.
+function smooth(ring: Pt[], step = 0.004, radius = 6, passes = 2): Pt[] {
+  const even: Pt[] = [];
+  ring.forEach((a, i) => {
+    const b = ring[(i + 1) % ring.length], n = Math.max(1, Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) / step));
+    for (let j = 0; j < n; j++) even.push([a[0] + ((b[0] - a[0]) * j) / n, a[1] + ((b[1] - a[1]) * j) / n]);
+  });
+  const N = even.length;
+  if (N <= radius * 4) return ring;
+  let out = even;
+  for (let pass = 0; pass < passes; pass++) {
+    const src = out;
+    out = src.map((_, i) => {
+      let x = 0, y = 0;
+      for (let k = -radius; k <= radius; k++) { const p = src[(i + k + N) % N]; x += p[0]; y += p[1]; }
+      return [x / (radius * 2 + 1), y / (radius * 2 + 1)] as Pt;
+    });
+  }
+  return out;
+}
+
+const toPath = (r: Pt[]) => `M${r.map(p => `${+p[0].toFixed(5)},${+p[1].toFixed(5)}`).join(' L')}Z`;
+
+export function cleanOutline(d: string, part: string): string {
+  const rings: Pt[][] = d.split('M').map(s => {
+    const n = s.match(/-?\d+(?:\.\d+)?(?:e-?\d+)?/gi)?.map(Number) ?? [];
+    return Array.from({ length: n.length >> 1 }, (_, i) => [n[i * 2], n[i * 2 + 1]] as Pt);
+  }).filter(r => r.length > 2);
+  const areas = rings.map(ringArea), max = Math.max(0, ...areas);
+  const kept = rings.filter((_, i) => areas[i] >= max * 0.08);
+  if (!kept.length) return d;
+  return kept.map(r => {
+    if (SQUARE_PARTS.has(part)) {
+      const xs = r.map(p => p[0]), ys = r.map(p => p[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+      return toPath([[x0, y0], [x1, y0], [x1, y1], [x0, y1]]);
+    }
+    const even = smooth(r), half = even.length >> 1; // a closed ring is simplified as two open halves
+    const out = [...simplify(even.slice(0, half + 1), 0.002).slice(0, -1), ...simplify([...even.slice(half), even[0]], 0.002).slice(0, -1)];
+    return toPath(out.length > 2 ? out : r);
+  }).join(' ');
+}
+
+// The body's outermost left and right edge on each row, as one path: inner slits and short side notches are bridged. Used to clip the pocket
+// backing bands so they close the traced gaps without sticking out past the sides.
+export function envelopeOf(d: string, step = 0.006): string {
+  const rings = d.split('M').map(s => s.match(/-?\d+(?:\.\d+)?(?:e-?\d+)?/gi)?.map(Number) ?? []).filter(n => n.length > 5);
+  const box = bboxOf(d), rows: [number, number, number][] = [];
+  if (!box) return '';
+  for (let y = box.y0 + step / 2; y < box.y1; y += step) {
+    let x0 = Infinity, x1 = -Infinity;
+    for (const n of rings) {
+      for (let i = 0; i < n.length; i += 2) {
+        const ax = n[i], ay = n[i + 1], bx = n[(i + 2) % n.length], by = n[(i + 3) % n.length];
+        if ((ay <= y) === (by <= y)) continue;
+        const x = ax + ((bx - ax) * (y - ay)) / (by - ay);
+        x0 = Math.min(x0, x); x1 = Math.max(x1, x);
+      }
+    }
+    if (x1 > x0) rows.push([y, x0, x1]);
+  }
+  // Vertical closing: bridges notches shorter than the window and leaves a steady taper or flare as it was.
+  const run = (a: number[], f: (...n: number[]) => number) => a.map((_, i) => f(...a.slice(Math.max(0, i - 28), i + 29)));
+  const lx = run(run(rows.map(r => r[1]), Math.min), Math.max), rx = run(run(rows.map(r => r[2]), Math.max), Math.min);
+  const left = rows.map((r, i) => `${lx[i].toFixed(5)},${r[0].toFixed(5)}`), right = rows.map((r, i) => `${rx[i].toFixed(5)},${r[0].toFixed(5)}`).reverse();
+  return left.length ? `M${[...left, ...right].join(' L')}Z` : '';
+}

@@ -13,5 +13,5 @@ for (const [side, pin] of pins) {
   ok(h(lf) === pin, `${side}: LF checkout matches the pin`);
   ok(h(crlf) === pin, `${side}: CRLF checkout matches the pin`);
 }
-ok(/withoutCarriageReturns\(await res\.arrayBuffer\(\)\)/.test(fs.readFileSync(new URL('src/pages/client/design-studio/PanelWorkspace.tsx', root), 'utf8')), 'the loader hashes the carriage-return-free bytes');
+ok(/sha256Hex\(withoutCarriageReturns\(buf\)\)/.test(fs.readFileSync(new URL('src/pages/client/design-studio/panelFlat.ts', root), 'utf8')), 'the loader hashes the carriage-return-free bytes');
 console.log(`${pass}/${pass + fail} passed`); process.exit(fail ? 1 : 0);

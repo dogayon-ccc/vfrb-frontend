@@ -137,7 +137,7 @@ class ThreeEB extends Component {
   }
 }
 
-export default function CanvasViewport({
+export default function CanvasViewport({ panelArt = null,
   cfg, setCfg, canvasWrapRef, canvasEl, aiPulse, face, switchFace, initFailed,
   selObj, deleteSelected, duplicateSelected, alignSelected, spotsForSelected = null, placeAtSelected = null, arrangeSelected, arrangeLayer = null, mirrorSelected = null, toggleSelectedLock = null, toggleLayerVisibility = null, updateSelected = null, pushHistory = null, garmentRect = null, viewMode, has3DLoaded, onLogoFile, zoom, setZoom, snapshot, overlays,
   blank = null, setViewMode, viewOpen, setViewOpen, setCompanion = null, showSet = false, setSnapOptions = null, trace = null, clearSelection = null, onPickZone = null, rail = null, onUndo = null, fullRef = null,
@@ -507,7 +507,7 @@ export default function CanvasViewport({
         {/* Skeleton until the garment base has drawn, so the stage is never blank while a photo or template loads. */}
         {show2D && cfg.garment && !garmentRect && !initFailed && <div className="ds-ref3d-skel" role="status"><span aria-hidden="true"/>Loading your design…</div>}
         {/* Set view: both pieces on one scale (2D). */}
-        {set2D && <SetView2D top={setCompanion.role === 'top' ? setCompanion.cfg : cfg} bottom={setCompanion.role === 'top' ? cfg : setCompanion.cfg}/>}
+        {set2D && <SetView2D top={setCompanion.role === 'top' ? setCompanion.cfg : { ...cfg, panelArt }} bottom={setCompanion.role === 'top' ? { ...cfg, panelArt } : setCompanion.cfg}/>}
         {/* Both panes stay mounted and only toggle visibility, so Fabric and WebGL keep their state; show2D also covers
             viewMode==='3d' before the 3D pane exists, so the workspace is never blank. Rulers are pinned outside the scaled wrapper. */}
         <StudioTip/>

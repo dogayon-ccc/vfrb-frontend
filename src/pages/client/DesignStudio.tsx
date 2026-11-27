@@ -16,6 +16,7 @@ import { garmentLabel } from '../../utils/designName';
 import './design-studio/pilotStudio.css';
 import { uvBakedAssetFor, panelArtBytes, PANEL_ART_MAX_BYTES, type PanelArt } from './design-studio/studioAssets';
 import type { PanelWorkspaceHandle } from './design-studio/PanelWorkspace';
+import { default2dMode } from './design-studio/panelMode';
 const PanelWorkspace = lazy(() => import('./design-studio/PanelWorkspace'));
 import {
   useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense,
@@ -33,6 +34,7 @@ import { hasBackView, templateIdFor, assetFor } from './design-studio/garmentAss
 import { getGarmentPaths, setCustomSpec } from './design-studio/garmentPaths';
 import { EXPORT_FACE_HEIGHT, designPng, designPdf, downloadBlobOrUrl, fitDraftPreview } from './design-studio/designExport';
 import PrintFilesDialog from './design-studio/PrintFilesDialog';
+import { renderBakedFaces, partColourRow } from './design-studio/panelFlat';
 import { ENTRIES as GALLERY } from './design-studio/designGallery';
 import CanvasViewport from './design-studio/CanvasViewport';
 import TopBar from './design-studio/TopBar';
@@ -102,7 +104,7 @@ export default function DesignStudio() {
   const [viewMode,   setViewMode]   = useState<ViewMode>('2d');
   useEffect(() => { if (baked && viewMode !== '2d') setViewMode('2d'); }, [baked, viewMode]); // a baked garment has its own Panels/Split/3D switch in the workspace
   const [showSet, setShowSet] = useState(false); // both pieces drawn together, read-only
-  const [bakedMode, setBakedMode] = useState<'pattern' | 'split' | '3d'>('split'); // workspace view for a baked-panel garment; the top bar's 2D/3D switch drives it
+  const [bakedMode, setBakedMode] = useState<'pattern' | 'split' | '3d'>(default2dMode); // baked-panel workspace view; the top bar's 2D/3D switch drives it
   // The silhouette stage's Navigator portals out of the stage into the pieces column; hide that slot while the panel workspace owns the screen.
   useEffect(() => { document.body.toggleAttribute('data-baked-studio', !!baked && !showSet); return () => document.body.removeAttribute('data-baked-studio'); }, [baked, showSet]);
   const [snapshot,   setSnapshot]   = useState(null);
@@ -434,9 +436,9 @@ export default function DesignStudio() {
   // via screenshot: an emoji added on front leaked onto the back export.
   const exportFrontBack = useCallback(() => whileSwapping(async () => {
     // Baked-panel garment: the picture is drawn from the panels, so no face swap on the hidden silhouette canvas is needed.
-    if (bakedRef.current && panelApi.current) {
-      const f = panelApi.current.preview('front');
-      if (f) return compositeFrontBack(f, panelApi.current.preview('back'));
+    if (bakedRef.current) {
+      const f = await renderBakedFaces(bakedRef.current, cfg.colors, (cfg as any).details ?? {}, panelArtRef.current, 1200, '#ffffff');
+      return compositeFrontBack(f.front, f.back);
     }
     const originalFace = face;
     let activeFace = originalFace;
@@ -461,7 +463,7 @@ export default function DesignStudio() {
     if (activeFace !== originalFace) await capture(originalFace);
 
     return compositeFrontBack(frontUrl, backUrl);
-  }), [face, getCanvasJSON, loadCanvasJSON, settleOverlays, whileSwapping, exportPNG, cfg.garment, cfg.sleeve, cfg.fit]);
+  }), [face, getCanvasJSON, loadCanvasJSON, settleOverlays, whileSwapping, exportPNG, cfg]);
 
   // AI design edits (B5). Every operation is re-checked against the template it lands on (the current one, or the template a
   // from-scratch brief maps to). Preview applies them to the one DesignState, so the 2D canvas and the 3D view show the same thing;
@@ -753,7 +755,9 @@ export default function DesignStudio() {
   // their sleeve and fit (each renders its own GLB with its own colours; no fused set model and no substitute).
   const companion = useMemo(() => {
     const snap = uset && uset.pieces[otherRole(uset.active)];
-    return snap?.garment ? { cfg: deserializeDesign(snap).cfg, role: otherRole(uset.active) } : null;
+    if (!snap?.garment) return null;
+    const other = deserializeDesign(snap);
+    return { cfg: { ...other.cfg, panelArt: other.panelArt }, role: otherRole(uset.active) };
   }, [uset]);
   const setCompanion = uset && pieceOf(cfg.garment) === uset.active ? companion : null;
   const railCompanion = uset && pieceOf(railCfg.garment) === uset.active ? companion : null;
@@ -906,7 +910,12 @@ export default function DesignStudio() {
   const renderOtherPiece = useCallback(piece => whileSwapping(async () => {
     const wait = ms => new Promise(r => setTimeout(r, ms));
     const keep = { cfg, face, faces: { ...faceJSON.current, [face]: getCanvasJSON() ?? [] } };
-    const { cfg: c, frontOverlays, backOverlays } = deserializeDesign(piece);
+    const { cfg: c, frontOverlays, backOverlays, panelArt } = deserializeDesign(piece);
+    const otherBaked = uvBakedAssetFor(c.garment, c.sleeve, c.fit);
+    if (otherBaked) {
+      try { const f = await renderBakedFaces(otherBaked, c.colors, (c as any).details ?? {}, panelArt, 1200, '#ffffff'); return await compositeFrontBack(f.front, f.back); }
+      catch { return null; }
+    }
     const shoot = async (f, want) => {
       setFace(f);
       await wait(150);
@@ -968,6 +977,10 @@ export default function DesignStudio() {
   // live canvas returns to the face the customer was on. Photo bases have no back, so they export front only.
   const [exporting, setExporting] = useState(null);
   const captureExportFaces = useCallback(() => whileSwapping(async () => {
+    if (bakedRef.current) { // the silhouette canvas holds none of a baked garment's part colours or artwork
+      const f = await renderBakedFaces(bakedRef.current, cfg.colors, (cfg as any).details ?? {}, panelArtRef.current, EXPORT_FACE_HEIGHT);
+      return [{ label: 'Front', url: f.front }, { label: 'Back', url: f.back }];
+    }
     const originalFace = face;
     let activeFace = originalFace;
     faceJSON.current[activeFace] = getCanvasJSON() ?? [];
@@ -993,7 +1006,7 @@ export default function DesignStudio() {
       await settleOverlays(faceJSON.current[originalFace] ?? []);
     }
     return faces.every(f => f.url) ? faces : null;
-  }), [face, getCanvasJSON, loadCanvasJSON, settleOverlays, whileSwapping, exportFace, cfg.garment, cfg.sleeve, cfg.fit]);
+  }), [face, getCanvasJSON, loadCanvasJSON, settleOverlays, whileSwapping, exportFace, cfg]);
 
   const exportName = ext => `vfrb-${(cfg.name?.trim() || cfg.garment || 'design').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${new Date().toLocaleDateString('en-CA')}.${ext}`; // local YYYY-MM-DD
 
@@ -1018,11 +1031,12 @@ export default function DesignStudio() {
       // Same zone list the dock shows: tipping only when the customer actually coloured it.
       const zones = zonesFor(cfg.garment, cfg.sleeve, cfg.fit).filter(z => (z !== 'tipping' || cfg.colors.tipping) && (z !== 'pocket' || cfg.details?.patchPocket?.show !== false));
       const photo = GALLERY.find(d => d.id === cfg.inspirationId);
-      const counts = { front: (faceJSON.current.front ?? []).length, back: (faceJSON.current.back ?? []).length };
+      const placed = bakedRef.current ? (panelArtRef.current ?? { front: [], back: [] }) : faceJSON.current;
+      const counts = { front: (placed.front ?? []).length, back: (placed.back ?? []).length };
       const rows = [
         ['Garment', [cfg.garment, cfg.sleeve && `${cfg.sleeve} sleeve`, cfg.fit && cfg.fit !== 'unisex' ? cfg.fit : null].filter(Boolean).join(', ')],
         ['Category', cfg.category],
-        ['Colours', zones.map(z => `${z}: ${cfg.colors[z] ?? '-'}`).join('  ')],
+        ['Colours', bakedRef.current ? partColourRow(bakedRef.current, cfg.colors, (cfg as any).details ?? {}) : zones.map(z => `${z}: ${cfg.colors[z] ?? '-'}`).join('  ')],
         ['Patterns', describePatterns(cfg.patterns, cfg.patternParams, cfg.colors, id => PATTERNS.find(p => p.id === id)?.label ?? id).join('  ') || 'Solid'],
         ...(isParametric(cfg.garment) ? [[isCustom(cfg.garment) ? 'Custom sketch' : 'Measurements', describeCustom(cfg.garment, cfg.custom).join('  ')]] : []),
         ['Details', describeDetails(cfg.details).join('  ') || 'As the template'],
@@ -1046,6 +1060,11 @@ export default function DesignStudio() {
   const [otherPrint, setOtherPrint] = useState<null | { role: string; garment: string; capture: any; sizes: Record<string, number> }>(null);
   const openPrintFiles = useCallback(async () => {
     if (!cfg.garment || exporting) return;
+    const otherSpec = uset && uset.pieces[otherRole(uset.active)];
+    if (bakedRef.current || (otherSpec?.garment && uvBakedAssetFor(otherSpec.garment, otherSpec.sleeve, otherSpec.fit))) {
+      flashError('Print files are not available for this garment: its panels are not calibrated to real sizes. Use PNG or PDF export.');
+      return;
+    }
     setExporting('print');
     try {
       const faces = await captureExportFaces();
@@ -1212,7 +1231,7 @@ export default function DesignStudio() {
         {/* ── TOP BAR ── */}
         <TopBar nav={nav} cfg={cfg} setCfg={locked ? () => {} : setCfg} undo={lock?.warn ? () => setWarnAsk(true) : undo} redo={lock?.warn ? () => setWarnAsk(true) : redo}
           canUndo={canUndo && !locked} canRedo={canRedo && !locked} status={locked ? null : status}
-          viewMode={baked ? (bakedMode === '3d' ? '3d' : '2d') : viewMode} setViewMode={baked ? ((m) => setBakedMode(m === '3d' ? '3d' : 'split')) : setViewMode} setHas3DLoaded={setHas3DLoaded}
+          viewMode={baked ? (bakedMode === '3d' ? '3d' : '2d') : viewMode} setViewMode={baked ? ((m) => setBakedMode(m === '3d' ? '3d' : default2dMode())) : setViewMode} setHas3DLoaded={setHas3DLoaded}
           showShowcase={showShowcase} setShowShowcase={toggleShowcase} showcaseCount={locked || colorOnly ? 0 : showcaseCount}
           onChangeGarment={changeGarment} saveDesign={saveDesign} saving={saving} saved={saved} draftSaved={draftSaved} orderThis={orderThis} ordering={ordering}
           downloadImage={downloadImage} downloadPdf={downloadPdf} openPrintFiles={openPrintFiles} exporting={exporting}
@@ -1264,7 +1283,7 @@ export default function DesignStudio() {
               garmentExtra={<PieceActions {...pieceProps} other={railCompanion} readOnly={colorOnly} inSheet/>} sheetPing={sheetPing}
               more={{ onView: () => setViewOpen(true), onCopy: duplicateToEdit, canCopy: !!lock?.designId, copying, onTour: () => setHelp('tour'), onHowTo: () => setHelp('howto') }}/>}
           canvas={wrapStage(
-            <CanvasViewport updateSelected={updateSelected} pushHistory={pushHistory} cfg={cfg} setCfg={setCfg} canvasWrapRef={canvasWrapRef} canvasEl={canvasEl} initFailed={initFailed}
+            <CanvasViewport panelArt={panelArtRef.current} updateSelected={updateSelected} pushHistory={pushHistory} cfg={cfg} setCfg={setCfg} canvasWrapRef={canvasWrapRef} canvasEl={canvasEl} initFailed={initFailed}
               aiPulse={aiPulse} face={face} switchFace={switchFace} fullRef={fullRef}
               selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected} alignSelected={alignSelected} spotsForSelected={spotsForSelected} placeAtSelected={placeAtSelected} arrangeSelected={arrangeSelected} arrangeLayer={arrangeLayer} mirrorSelected={mirrorSelected} toggleSelectedLock={toggleSelectedLock} toggleLayerVisibility={toggleLayerVisibility} garmentRect={garmentRect}
               viewMode={viewMode} has3DLoaded={has3DLoaded} onLogoFile={onLogoFile} onPickZone={setActiveZone}

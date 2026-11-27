@@ -1,20 +1,21 @@
+import { default2dMode } from './panelMode';
 import { hasScreenEyedropper, pickScreenColour } from './eyedropper';
 import { lazy, Suspense, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type ReactNode, type Ref } from 'react';
 import { Link } from 'react-router-dom';
 import { Canvas as FabricCanvas, FabricImage, FabricText, Point, type FabricObject } from 'fabric';
 import { PANEL_ART_MAX_OBJECTS, type UvBakedAsset, type PanelArt } from './studioAssets';
 import {
-  parsePanelSvg, canvasSize, frameSize, panelTransform, pocketBackings, PART_LABEL, sha256Hex, withoutCarriageReturns,
+  canvasSize, frameSize, panelTransform, pocketBackings, envelopeOf, PART_LABEL,
   type PanelSide, type SvgPanel,
 } from './pilotPanels';
 import { panelSpots, spotScale, type PanelSpot } from './panelSpots';
 import { hasWebGL } from './webglSupport';
+import { loadPanels, paintParts, partColorOf, partHidden, edgeFor, DETAIL_PARTS, POCKET_PARTS } from './panelFlat';
 import './pilotStudio.css';
 
 const PilotViewport3D = lazy(() => import('./PilotViewport3D'));
 
 const SIDES: PanelSide[] = ['front', 'back'];
-const DEFAULT_COLOR = '#1B2A4A';
 const HEX = /^#[0-9a-f]{6}$/i;
 const PALETTE: [string, string][] = [
   ['Navy', '#1B2A4A'], ['Royal blue', '#2A52A8'], ['Sky blue', '#87CEEB'], ['Forest green', '#006B54'], ['Maroon', '#7A0000'], ['Grey', '#808080'], ['Black', '#111111'],
@@ -23,14 +24,6 @@ const PALETTE: [string, string][] = [
 const FONTS: [string, string][] = [['Serif', '"DM Serif Display", Georgia, serif'], ['Sans', 'Arial, Helvetica, sans-serif'], ['Bold sans', '"Arial Black", Arial, sans-serif']];
 const MAX_UPLOAD = 4 * 1024 * 1024, UPLOAD_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
 const TEX_W = 1024;
-const DETAIL_PARTS = new Set(['chest_pocket', 'lower_pockets', 'neck_band']);
-const POCKET_PARTS = new Set(['chest_pocket', 'lower_pockets']); // rectangles: their traced outline has gaps, so a body-coloured box sits behind them
-
-// Light fills get a dark seam line and dark fills a light one, so pockets and the neck band stay readable at any colour.
-function edgeFor(hex: string) {
-  const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255);
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.45 ? 'rgba(27,42,74,0.45)' : 'rgba(255,255,255,0.5)';
-}
 
 export type Mode = 'pattern' | 'split' | '3d';
 type Details = Record<string, { show: boolean }>;
@@ -97,7 +90,7 @@ export interface PanelWorkspaceProps {
 
 export function PanelWorkspace({ asset, colors, setColors, details, setDetails, initialArt, onArt, persist, embedded = false, title = 'Scrub top, short sleeve', subtitle = 'Pilot garment, base size only. Source licence not confirmed.', headerExtra, initialNotice = null, handleRef, readOnly = false, mode: modeProp, onMode: onModeProp }: PanelWorkspaceProps) {
   const narrow = useNarrow();
-  const [modeLocal, setModeLocal] = useState<Mode>('split');
+  const [modeLocal, setModeLocal] = useState<Mode>(default2dMode);
   const mode = modeProp ?? modeLocal;
   const setMode = useCallback((m: Mode) => { if (onModeProp) onModeProp(m); else setModeLocal(m); }, [onModeProp]);
   const [side, setSide] = useState<PanelSide>('front');
@@ -136,28 +129,13 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
   const view = narrow && mode === 'split' ? 'pattern' : mode;
   const frames = asset.frames;
 
-  const partColor = useCallback((node: string) => {
-    const p = asset.parts.find(x => x.node === node)!;
-    return colors[p.colorKey] ?? (p.fallbackKey ? colors[p.fallbackKey] : undefined) ?? colors.body ?? DEFAULT_COLOR;
-  }, [asset, colors]);
-  const hidden = useCallback((node: string) => { const p = asset.parts.find(x => x.node === node); return !!(p?.detail && details[p.detail]?.show === false); }, [asset, details]);
+  const partColor = useCallback((node: string) => partColorOf(asset, colors, node), [asset, colors]);
+  const hidden = useCallback((node: string) => partHidden(asset, details, node), [asset, details]);
 
   useEffect(() => {
     let stale = false;
-    (async () => {
-      try {
-        const out = { front: [] as SvgPanel[], back: [] as SvgPanel[] };
-        for (const s of SIDES) {
-          const res = await fetch(asset.panelSvg[s].url);
-          if (!res.ok) throw new Error(`panel ${s}: ${res.status}`);
-          const buf = withoutCarriageReturns(await res.arrayBuffer()), hash = await sha256Hex(buf);
-          if (hash && hash !== asset.panelSvg[s].sha256) throw new Error(`panel ${s}: hash mismatch`);
-          out[s] = parsePanelSvg(new TextDecoder().decode(buf));
-          if (!out[s].length) throw new Error(`panel ${s}: no outlines`);
-        }
-        if (!stale) setSvg({ state: 'ready', panels: out });
-      } catch { if (!stale) setSvg(s => ({ ...s, state: 'error' })); }
-    })();
+    loadPanels(asset).then(out => { if (!stale) setSvg({ state: 'ready', panels: out }); })
+      .catch(() => { if (!stale) setSvg(s => ({ ...s, state: 'error' })); });
     return () => { stale = true; };
   }, [asset]);
 
@@ -391,25 +369,15 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
     preview: (s: PanelSide) => {
       if (svg.state !== 'ready') return null;
       paintTex();
-      const t = texCanvases[s], out = document.createElement('canvas'), ctx = out.getContext('2d'), f = frames[s], { w } = frameSize(f);
+      const t = texCanvases[s], out = document.createElement('canvas'), ctx = out.getContext('2d');
       if (!ctx) return null;
       out.width = t.width; out.height = t.height;
-      const k = t.width / w;
       ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, out.width, out.height);
-      ctx.save(); ctx.scale(k, k); ctx.translate(f.x1, f.y1); ctx.scale(-1, 1);
-      ctx.fillStyle = partColor('body');
-      for (const b of pocketBackings(svg.panels[s].filter(p => !hidden(p.part)), POCKET_PARTS)) ctx.fillRect(b.x0, b.y0, b.x1 - b.x0, b.y1 - b.y0);
-      for (const p of svg.panels[s]) {
-        if (hidden(p.part)) continue;
-        const path = new Path2D(p.d), fill = partColor(p.part);
-        ctx.fillStyle = fill; ctx.fill(path);
-        ctx.lineJoin = 'round'; ctx.lineWidth = (DETAIL_PARTS.has(p.part) ? 1.25 : 4) / k; ctx.strokeStyle = DETAIL_PARTS.has(p.part) ? edgeFor(fill) : fill; ctx.stroke(path);
-      }
-      ctx.restore();
+      paintParts(ctx, out.width, { asset, colors, details, panels: svg.panels[s], side: s });
       ctx.drawImage(t, 0, 0);
       try { return out.toDataURL('image/png'); } catch { return null; }
     },
-  }), [svg, frames, texCanvases, paintTex, hidden, partColor]);
+  }), [svg, asset, colors, details, texCanvases, paintTex]);
 
   const part = asset.parts.find(p => p.node === selPart)!;
   const partHex = partColor(selPart);
@@ -610,11 +578,15 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
                 {svg.state === 'ready' && (
                   <svg className="ps-outline" viewBox={`0 0 ${frameSize(frames[s]).w} ${frameSize(frames[s]).h}`} preserveAspectRatio="none" aria-hidden="true">
                     <g transform={panelTransform(frames[s])}>
-                      {pocketBackings(svg.panels[s].filter(p => !hidden(p.part)), POCKET_PARTS).map((b, i) => <rect key={`under-${i}`} x={b.x0} y={b.y0} width={b.x1 - b.x0} height={b.y1 - b.y0} fill={partColor('body')} pointerEvents="none" />)}
+                      <clipPath id={`ps-body-${s}`}><path d={envelopeOf(svg.panels[s].find(p => p.part === 'body')?.d ?? '')} /></clipPath>
+                      <g clipPath={`url(#ps-body-${s})`}>
+                        {pocketBackings(svg.panels[s].filter(p => !hidden(p.part)), POCKET_PARTS).map((b, i) => <rect key={`under-${i}`} x={b.x0} y={b.y0 - 0.03} width={b.x1 - b.x0} height={b.y1 - b.y0 + 0.06} fill={partColor('body')} pointerEvents="none" />)}
+                      </g>
                       {svg.panels[s].filter(p => !hidden(p.part)).map(p => (
                         <path key={p.id} d={p.d} data-part={p.part} fill={partColor(p.part)} stroke={DETAIL_PARTS.has(p.part) ? edgeFor(partColor(p.part)) : partColor(p.part)} className={DETAIL_PARTS.has(p.part) ? 'ps-detail' : undefined} vectorEffect="non-scaling-stroke" />
                       ))}
-                      {svg.panels[s].filter(p => p.part === selPart && !hidden(p.part)).map(p => (
+                      {/* The body ring runs around the pockets, so an outline on it looks like a tear. */}
+                      {svg.panels[s].filter(p => p.part === selPart && p.part !== 'body' && !hidden(p.part)).map(p => (
                         <path key={`sel-${p.id}`} d={p.d} className="is-selected" fill="none" vectorEffect="non-scaling-stroke" pointerEvents="none" />
                       ))}
                     </g>

@@ -32,7 +32,11 @@ ok((ds.match(/restorePanelArt\(panelArt\)/g) ?? []).length === 3, 'all three res
 ok(/serializeDesign\(\{ \.\.\.cfg, panelArt: panelArtRef\.current \}/.test(ds), 'the one snapshot serializer carries the panel art');
 ok(/\[cfg, locked, editTick, panelTick\]/.test(ds), 'autosave and the Unsaved check re-run when artwork changes');
 ok(/panelApi\.current\?\.preview\('front'\) \?\? exportPNG\(\)/.test(ds), 'the draft thumbnail comes from the panels for a baked garment');
-ok(/bakedRef\.current && panelApi\.current/.test(ds), 'the order preview comes from the panels for a baked garment');
+ok(/if \(bakedRef\.current\) \{\s+const f = await renderBakedFaces/.test(ds), 'the order preview is drawn from the design data for a baked garment');
+ok(/captureExportFaces = useCallback\(\(\) => whileSwapping\(async \(\) => \{\s+if \(bakedRef\.current\)/.test(ds), 'PNG and PDF export use the baked renderer, not the hidden silhouette canvas');
+ok(/const otherBaked = uvBakedAssetFor/.test(ds), 'a baked set piece that is not on the canvas keeps its colours and artwork in the order preview');
+ok(/Print files are not available for this garment/.test(ds), 'print files are refused for an uncalibrated baked garment');
+ok(/renderBakedFace\(asset/.test(text('src/pages/client/design-studio/SetView2D.tsx')), 'the set preview draws a baked piece from its design');
 ok(!/uvBakedAssetFor\(.*allowPending/.test(ds), 'the Studio does not bypass the rights gate');
 
 const ws = text('src/pages/client/design-studio/PanelWorkspace.tsx');
@@ -60,7 +64,9 @@ ok(PP.pocketBackings(realPanels.filter(p => p.part !== 'chest_pocket' && p.part 
 
 // The Studio must not leak dead tools or a second view switch for a baked garment.
 ok(/rail=\{locked \|\| baked \? null : \{ history:/.test(ds), 'the silhouette tool rail (brush, bucket, eraser) is not offered for a baked garment');
-ok(/viewMode=\{baked \? \(bakedMode === '3d' \? '3d' : '2d'\) : viewMode\}/.test(ds) && /setViewMode=\{baked \? \(\(m\) => setBakedMode\(m === '3d' \? '3d' : 'split'\)\) : setViewMode\}/.test(ds), 'the top-bar 2D/3D switch drives the panel workspace for a baked garment');
+ok(/whileSwapping, exportPNG, cfg\]\);/.test(ds), 'the order preview re-reads current colours (cfg is a dependency of exportFrontBack)');
+ok(/bakedRef\.current \? partColourRow\(/.test(ds), 'the PDF spec sheet lists every part colour of a baked garment');
+ok(/viewMode=\{baked \? \(bakedMode === '3d' \? '3d' : '2d'\) : viewMode\}/.test(ds) && /setViewMode=\{baked \? \(\(m\) => setBakedMode\(m === '3d' \? '3d' : default2dMode\(\)\)\) : setViewMode\}/.test(ds), 'the top-bar 2D/3D switch drives the panel workspace for a baked garment');
 ok(/mode=\{bakedMode\} onMode=\{setBakedMode\}/.test(ds) && /mode: modeProp/.test(ws) && /modeProp \?\? modeLocal/.test(ws), 'the workspace view is controlled by the Studio when embedded and local when standalone');
 // The silhouette stage keeps ONE tree position (Fabric binds to its <canvas> once); moving it left every later garment blank (the Jogger).
 ok(/<div className=\{`ds-stage-host\$\{stageAway \? ' ds-away' : ''\}`\}/.test(ds) && !/!baked \? stage :/.test(ds), 'the silhouette stage is always rendered in the same place (never remounted when a garment becomes baked or not)');
@@ -72,6 +78,23 @@ ok(/toggleAttribute\('data-baked-studio', !!baked && !showSet\)/.test(ds), 'the 
 ok(/if \(baked && viewMode !== '2d'\) setViewMode\('2d'\)/.test(ds), 'the hidden silhouette canvas never enters its own immersive 3D mode');
 ok(/drawer=\{baked \? null :/.test(ds), 'the silhouette tool drawer is not offered for a baked garment');
 ok(/ps-layers/.test(ws) && /Layers, \$\{side\}/.test(ws), 'the workspace lists layers with show/hide and delete');
+
+// cleanOutline (display-only tidy-up) against both real Pilot 01 panel files.
+for (const side of ['front', 'back']) {
+  const panels = PP.parsePanelSvg(fs.readFileSync(new URL(`public/studio-assets/scrub-top-pilot01/panels_${side}.svg`, root), 'utf8'));
+  for (const p of panels) {
+    const clean = PP.cleanOutline(p.d, p.part), a = bboxOf(p.d), b = bboxOf(clean);
+    const rings = clean.split('M').length - 1;
+    ok(rings >= 1 && rings <= 2 && /^[MLZ0-9eE.,\s-]+$/.test(clean), `${p.id}: at most two clean M/L/Z outlines (had ${p.d.split('M').length - 1})`);
+    ok(['x0', 'x1', 'y0', 'y1'].every(k => Math.abs(a[k] - b[k]) < 0.1), `${p.id}: the cleaned outline keeps the traced extent`);
+  }
+}
+ok(PP.cleanOutline('', 'body') === '', 'an empty outline is returned unchanged');
+
+const cleanBodyD = PP.cleanOutline(realPanels.find(p => p.part === 'body').d, 'body');
+const env = PP.envelopeOf(cleanBodyD), envBox = bboxOf(env), cleanBox = bboxOf(cleanBodyD);
+ok(env.split('M').length === 2 && ['x0', 'x1', 'y0', 'y1'].every(k => Math.abs(envBox[k] - cleanBox[k]) < 0.01), 'the body envelope is one outline with the body extent');
+ok(PP.envelopeOf('') === '', 'no body, no envelope');
 
 console.log(`${pass}/${pass + fail} passed`);
 process.exit(fail ? 1 : 0);
