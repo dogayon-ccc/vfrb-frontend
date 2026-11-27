@@ -689,7 +689,8 @@ export default function DesignStudio() {
   // Put a piece (serialized snapshot, or a fresh default garment for that role) on the canvas, front view.
   const loadPiece = useCallback((snap, role) => {
     const { cfg: c, frontOverlays, backOverlays, panelArt } = deserializeDesign(snap ?? { garment: DEFAULT_PIECE[role], category: cfg.category });
-    setCfg(p => ({ ...p, ...c, name: p.name?.trim() ? p.name : c.name, inspirationId: c.inspirationId ?? null }));
+    // The outgoing piece's baked-asset identity must not follow the design onto a different garment.
+    setCfg(({ assetId, assetVersion, mappingHash, ...p }: any) => ({ ...p, ...c, name: p.name?.trim() ? p.name : c.name, inspirationId: c.inspirationId ?? null })); // eslint-disable-line @typescript-eslint/no-unused-vars
     faceJSON.current = { front: frontOverlays, back: backOverlays };
     restorePanelArt(panelArt);
     // Already on the front: swap the overlays at once (the base redraw keeps them), so the previous piece's
@@ -713,17 +714,19 @@ export default function DesignStudio() {
   const pairWith = useCallback((fam, category, pick = {}) => {
     const role = pieceOf(cfg.garment), other = role && otherRole(role);
     if (!role || uset || pieceOf(fam.id) !== other) return;
+    if (swapping.current) { flashError(STILL_LOADING); return; }
     const piece = applyGarment({ ...cfg, inspirationId: null, details: {} }, fam.id, { ...(category ? { category } : {}), ...pick });
     setUset({ id: uid(), active: other, pieces: { [role]: pieceSnapshot(), [other]: null } });
     loadPiece(serializeDesign(piece, { overlays: [], frontOverlays: [], backOverlays: [] }), other);
-  }, [cfg, uset, pieceSnapshot, loadPiece]);
+  }, [cfg, uset, pieceSnapshot, loadPiece, flashError]);
 
   const switchPiece = useCallback((role) => {
     if (!uset || role === uset.active) return;
+    if (swapping.current) { flashError(STILL_LOADING); return; } // mid-swap the canvas is not the active piece: snapshotting it now would overwrite that piece
     const target = uset.pieces[role];
     setUset({ ...uset, active: role, pieces: { ...uset.pieces, [uset.active]: pieceOf(cfg.garment) === uset.active ? pieceSnapshot() : uset.pieces[uset.active] } });
     loadPiece(target, role);
-  }, [uset, cfg.garment, pieceSnapshot, loadPiece]);
+  }, [uset, cfg.garment, pieceSnapshot, loadPiece, flashError]);
 
   // "Apply to: Both": colour and pattern edits, and each logo or text added, also go onto the other piece's saved snapshot.
   // The first change after a piece switch is that piece loading, not an edit, so it only arms the mirror.
