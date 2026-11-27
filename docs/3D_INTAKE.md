@@ -8,6 +8,7 @@ A garment gets a 3D view only after its GLB passes every item below. Until then 
 - [ ] **Named parts**: every colour zone the 2D editor offers (body, sleeve, collar, pocket) is its own named node, listed in the entry's `parts` with `colorKey` and `zoneOf`. A fused mesh gets one body colour only and says so in `limitations`.
 - [ ] **UVs on decal parts**: a part with `decals: true` has UVs, and logos and text land on the front and back in the right place.
 - [ ] **Size**: GLB under 3 MB (Draco/meshopt allowed) and under 20,000 triangles per part.
+- [ ] **Optimized copy**: `node tools/glb-optimize.mjs <folder>` (setup line in the file header) audits every GLB and writes Draco copies to `optimized-glb/` without touching the source. Upload the copy only when its parity column reads `ok` (same triangles, UV bounds and part names). Never swap a hash-pinned `studio-assets` file.
 - [ ] **Licence**: the source and licence are recorded (`license`, slot `source`). No paid generation without approval.
 - [ ] **Hosting**: uploaded under `/models/...` on Cloudinary (`VITE_MODEL_BASE_URL`) and loads through `modelUrl()`. Source files in `public/models/` and `asset-staging/` are never replaced.
 - [ ] **Colour check**: each 2D colour change shows in 3D on the matching part, in both lighting presets.
