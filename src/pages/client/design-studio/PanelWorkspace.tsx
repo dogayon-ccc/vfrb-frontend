@@ -1,12 +1,13 @@
 import { hasScreenEyedropper, pickScreenColour } from './eyedropper';
 import { lazy, Suspense, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type ReactNode, type Ref } from 'react';
 import { Link } from 'react-router-dom';
-import { Canvas as FabricCanvas, FabricImage, FabricText, type FabricObject } from 'fabric';
+import { Canvas as FabricCanvas, FabricImage, FabricText, Point, type FabricObject } from 'fabric';
 import { PANEL_ART_MAX_OBJECTS, type UvBakedAsset, type PanelArt } from './studioAssets';
 import {
   parsePanelSvg, canvasSize, frameSize, panelTransform, pocketBackings, PART_LABEL, sha256Hex, withoutCarriageReturns,
   type PanelSide, type SvgPanel,
 } from './pilotPanels';
+import { panelSpots, spotScale, type PanelSpot } from './panelSpots';
 import { hasWebGL } from './webglSupport';
 import './pilotStudio.css';
 
@@ -354,6 +355,13 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
     const dy = edge === 'top' ? -b.top : edge === 'bottom' ? H - (b.top + b.height) : edge === 'centerY' ? (H - b.height) / 2 - b.top : 0;
     o.set({ left: (o.left ?? 0) + dx, top: (o.top ?? 0) + dy }); o.setCoords(); c.requestRenderAll(); setArtTick(t => t + 1); syncSelection(side);
   };
+  const spots = useMemo(() => (svg.state === 'ready' ? panelSpots(svg.panels[side], side, frames[side], TEX_W) : []), [svg, side, frames]);
+  const placeAt = (spot: PanelSpot) => {
+    const c = fcs.current[side], o = c?.getActiveObject(); if (!c || !o || readOnly) return;
+    const k = spotScale(o.getScaledWidth(), o.getScaledHeight(), spot);
+    o.set({ scaleX: (o.scaleX ?? 1) * k, scaleY: (o.scaleY ?? 1) * k });
+    o.setPositionByOrigin(new Point(spot.cx, spot.cy), 'center', 'center'); o.setCoords(); c.requestRenderAll(); setArtTick(t => t + 1); syncSelection(side);
+  };
   const clearSide = () => { const c = fcs.current[side]; if (!c) return; c.remove(...c.getObjects()); c.discardActiveObject(); c.requestRenderAll(); setConfirmClear(false); };
 
   const onStageKey = (e: React.KeyboardEvent) => {
@@ -510,6 +518,11 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
             <input type="range" min={10} max={100} value={Math.round(sel.opacity * 100)} onChange={e => patch({ opacity: Number(e.target.value) / 100 })} />
             <output>{Math.round(sel.opacity * 100)}%</output>
           </label>
+          {spots.length > 0 && (
+            <div className="ps-row" role="group" aria-label="Place at">
+              {spots.map(sp => <button key={sp.id} type="button" className="ps-btn ps-btn--quiet" onClick={() => placeAt(sp)} disabled={readOnly}>{sp.label}</button>)}
+            </div>
+          )}
           <div className="ps-row" role="group" aria-label="Align to the panel">
             {([['left', 'Left'], ['centerX', 'Centre'], ['right', 'Right'], ['top', 'Top'], ['centerY', 'Middle'], ['bottom', 'Bottom']] as const).map(([k, label]) => (
               <button key={k} type="button" className="ps-btn ps-btn--quiet" onClick={() => alignTo(k)}>{label}</button>
