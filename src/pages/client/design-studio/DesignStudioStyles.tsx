@@ -1579,6 +1579,19 @@ export default function DesignStudioStyles() {
         .ds-opts-preview{height:36px;}
       }
       .ds-part-bar{position:sticky;top:0;z-index:2;padding-bottom:4px;background:var(--cx-card);}
+      /* Studio rail: the first piece card is never clipped. Content starts at the top edge with real padding, scrolling keeps a 16px margin,
+         and the keyboard focus ring is drawn inside the card because the rail clips anything that sticks out of it. */
+      @media (min-width:1024px){
+        .ds-rail{justify-content:flex-start;padding-top:16px;scroll-padding-block:16px;overflow-clip-margin:0;}
+        .ds-rail>:first-child{margin-top:2px;}
+      }
+      .ds-rail-card:focus-visible{outline-offset:-3px;}
+      .ds-rail-thumb{overflow:hidden;}
+      /* Picker detail: the capability line is plain in-flow text that wraps, never a floating chip, and the sticky header (with the back button)
+         always stacks above anything that scrolls under it. */
+      .ds-pick-head{z-index:6;}
+      .ds-pick-tier{position:static;inset:auto;transform:none;display:flex;flex-wrap:nowrap;align-items:flex-start;justify-content:flex-start;gap:8px;max-width:100%;margin:0;white-space:normal;overflow-wrap:anywhere;text-align:left;}
+      .ds-pick-tier .ds-pick-badge{position:static;inset:auto;transform:none;flex:none;}
 `}</style>
   );
 }

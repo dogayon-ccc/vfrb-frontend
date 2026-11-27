@@ -389,6 +389,12 @@ function SetStack({ top, bottom, topOverlays = null, bottomOverlays = null }: an
   );
 }
 
+// Portrait canvases (phones) frame tighter: with the same margin a tall bottom such as the Jogger uses only a small part of a narrow stage.
+function FitBounds({ children }: { children: React.ReactNode }) {
+  const aspect = useThree(s => s.size.width / Math.max(1, s.size.height));
+  return <Bounds margin={aspect < 0.75 ? 1.25 : 1.5} maxDuration={0.3}>{children}</Bounds>;
+}
+
 // Frames whatever is on the stage once it has loaded (and again when it changes): the garment fills ~65% of the view height.
 // Also reports the garment's lowest point so the contact shadow sits right under it.
 function FitOnLoad({ dep, target, onFloor }: any) {
@@ -502,7 +508,7 @@ export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overla
           own "Loading 3D engine…" state for the lazy import; this only covers
           the brief GLB-parse window after that. */}
       {/* Margin 1.5: the framed garment spans ~65% of the stage height */}
-      <Bounds margin={1.5} maxDuration={0.3}>
+      <FitBounds>
         <Float speed={CALM ? 0 : 1.4} rotationIntensity={CALM ? 0 : 0.12} floatIntensity={CALM ? 0 : 0.22}>
           <Suspense fallback={null}>
             <group ref={garmentRef}>{companion
@@ -513,7 +519,7 @@ export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overla
             <FitOnLoad dep={`${cfg.garment}|${cfg.sleeve}|${cfg.fit}|${companion?.garment ?? ''}`} target={garmentRef} onFloor={setFloor}/>
           </Suspense>
         </Float>
-      </Bounds>
+      </FitBounds>
 
       {/* ── Ground shadow ── */}
       <ContactShadows key={`${floor.y.toFixed(3)}`}

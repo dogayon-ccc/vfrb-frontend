@@ -138,3 +138,6 @@ html[data-cx] .cm-shell{--cx-bar-h:64px;--topbar-h:64px;--cx-rail:220px;--cx-nav
 .cm-shell .cx-nav-item{font-size:12px}
 .cm-shell .cx-nav-ico{width:52px;height:30px}
 @media(min-width:768px) and (max-width:1023px){.cm-shell .cx-rail-link{justify-content:center;padding:0}}
+
+/* Anchors and focused controls scroll clear of the fixed bottom nav on phones and tablets. */
+@media (max-width:1023px){html[data-cx]{scroll-padding-bottom:calc(64px + 24px + env(safe-area-inset-bottom,0px))}}
