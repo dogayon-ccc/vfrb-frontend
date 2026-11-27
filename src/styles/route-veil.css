@@ -20,7 +20,17 @@
 }
 @keyframes rv-mark { 0%, 100% { opacity: 0; transform: scale(0.92); } 30%, 62% { opacity: 1; transform: scale(1); } }
 @keyframes rv-bar { to { transform: translateX(0); } }
-@media (prefers-reduced-motion: reduce) { .rv { display: none; } }
+/* Reduced motion: no wipe, no fade, no movement. Area changes show a small static VFRB mark at the top for 0.6s so loading is still signalled;
+   same-area page changes show nothing (their loaders and skeletons cover the wait). */
+@media (prefers-reduced-motion: reduce) {
+  .rv { inset: auto; top: 12px; left: 50%; width: 52px; height: 52px; margin-left: -26px; border-radius: 12px; background: #041117; box-shadow: 0 0 0 2px #02c39a;
+    clip-path: none; animation: rv-hold 600ms steps(1, end) both; }
+  .rv--boot { clip-path: none; animation-name: rv-hold; animation-duration: 600ms; }
+  .rv--lite { display: none; }
+  .rv__mark { width: 36px; height: 36px; opacity: 1; animation: none; }
+  .rv__bar { display: none; }
+}
+@keyframes rv-hold { 0%, 99% { visibility: visible; } 100% { visibility: hidden; } }
 
 /* Same-area page change: shorter wipe, same mark and bar */
 .rv--lite { animation-duration: 340ms; }
