@@ -1578,13 +1578,14 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const glbJ = f => { const b = fsx.readFileSync(MF.modelFile(urlx.fileURLToPath(new URL('../public' + f, import.meta.url)))), n = b.readUInt32LE(12); return JSON.parse(b.subarray(20, 20 + n).toString('utf8')); };
   const TOPP = ['body', 'chest_pocket', 'lower_pockets', 'neck_band', 'sleeve_l', 'sleeve_r'];
   const authored = { 'Scrub Top|Short|unisex': TOPP, 'Scrub Top|3/4|unisex': TOPP,
-    'Pants|null|null': ['back_pockets', 'fly', 'leg_l', 'leg_r', 'side_pockets', 'waistband'] };
-  t('authored meshes: Scrub Top sketch (Short, 3/4) and Pants each load a GLB of named parts, every part with UVs and normals, about 1.9 units tall; parts map to 2D zones and pockets follow the 2D details; Jogger Scrub Pants has no 3D model (dropped in cd551bc)',
+    'Pants|null|null': ['back_pockets', 'fly', 'leg_l', 'leg_r', 'side_pockets', 'waistband'],
+    'Jogger Scrub Pants|null|null': ['cuffs', 'drawstring', 'leg_l', 'leg_r', 'side_pockets', 'waistband'] };
+  t('authored meshes: Scrub Top sketch (Short, 3/4) and Pants and Jogger Scrub Pants each load a GLB of named parts, every part with UVs and normals, about 1.9 units tall; parts map to 2D zones and pockets follow the 2D details',
     Object.entries(authored).every(([k, parts]) => { const [g, s0, f0] = k.split('|'); const e = Cp.scannedEntryFor(g, s0 === 'null' ? null : s0, f0 === 'null' ? null : f0); if (!e || !/^\/models\/authored\//.test(Object.values(e.models)[0])) return false;
       const j = glbJ(Object.values(e.models)[0]), pos = j.meshes.map(m => j.accessors[m.primitives[0].attributes.POSITION]);
       return JSON.stringify(j.nodes.map(n => n.name).sort()) === JSON.stringify(parts) && j.meshes.every(m => ['POSITION', 'NORMAL', 'TEXCOORD_0'].every(a => a in m.primitives[0].attributes))
         && Math.max(...pos.map(a => a.max[1])) - Math.min(...pos.map(a => a.min[1])) > 1.75 && e.parts.every(p => parts.includes(p.node)); })
-    && !Cp.scannedEntryFor('Jogger Scrub Pants', null, null) && Cp.scannedEntryFor('Scrub Top', 'Short', 'unisex').parts.find(p => p.node === 'chest_pocket').detail === 'patchPocket' && Cp.scannedEntryFor('Scrub Top', 'Short', 'male')?.id === 'scrub-top'
+    && Cp.scannedEntryFor('Scrub Top', 'Short', 'unisex').parts.find(p => p.node === 'chest_pocket').detail === 'patchPocket' && Cp.scannedEntryFor('Scrub Top', 'Short', 'male')?.id === 'scrub-top'
     && /details\?\.\[part\.detail\]\?\.show === false/.test(rd('../src/pages/client/design-studio/ScannedGarmentMesh.tsx')) && /details=\{cfg\.details\}/.test(d3)
     && fsx.existsSync(urlx.fileURLToPath(new URL('./glb-extract/build_authored_garments.py', import.meta.url))));
 }

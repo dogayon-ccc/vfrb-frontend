@@ -399,6 +399,10 @@ const AUTHORED_GARMENTS = [
     { node: 'fly', colorKey: 'body', decals: false, zoneOf: zoneIs('body') },
     { node: 'back_pockets', colorKey: 'body', decals: false, zoneOf: zoneIs('body'), detail: 'backPockets' },
   ]),
+  authoredTrousers('pants-jogger-authored', /^jogger scrub pants$/i, '/models/authored/pants-jogger.glb', [
+    { node: 'cuffs', colorKey: 'body', decals: false, zoneOf: zoneIs('body') },
+    { node: 'drawstring', colorKey: 'body', decals: false, zoneOf: zoneIs('body') },
+  ]),
 ];
 
 // Pieces derived from the reference models (tools/glb-extract/derive_template.py, derivedFamilies.js): garment-only, recentred to height
