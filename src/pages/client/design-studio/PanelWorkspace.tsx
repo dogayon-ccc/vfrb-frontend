@@ -17,7 +17,7 @@ import { usePanelHistory, type PanelSnapshot } from './usePanelHistory';
 import { panBy, usePair, bindUndoKeys } from './panelStage';
 import View3DButtons, { type View3D } from './View3DButtons';
 import { hasWebGL } from './webglSupport';
-import { loadPanels, paintParts, partColorOf, partHidden, edgeFor, DETAIL_PARTS, POCKET_PARTS } from './panelFlat';
+import { loadPanels, paintParts, partColorOf, partHidden, edgeFor, DETAIL_PARTS, POCKET_PARTS, seamPanels, SEAM_FILL } from './panelFlat';
 import './pilotStudio.css';
 
 const PilotViewport3D = lazy(() => import('./PilotViewport3D'));
@@ -104,7 +104,6 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
   const [problem, setProblem] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<'idle' | 'saved' | 'full'>('idle');
   const [confirmClear, setConfirmClear] = useState(false);
-  const [tab, setTab] = useState<'parts' | 'add' | 'layers'>('parts');
   const [mtab, setMtab] = useState<'parts' | 'colour' | 'add' | 'layers' | 'edit'>('parts');
   const [hostSize, setHostSize] = useState<Record<PanelSide, { w: number; h: number }>>({ front: { w: 0, h: 0 }, back: { w: 0, h: 0 } });
 
@@ -498,9 +497,12 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
     </section>
   );
 
-  const desktopTabs: [typeof tab, string][] = [['parts', 'Parts'], ['add', 'Add'], ['layers', 'Layers']];
   const mobileTabs: [typeof mtab, string][] = [['parts', 'Parts'], ['colour', 'Colour'], ['add', 'Add'], ['layers', 'Layers'], ['edit', 'Edit']];
-  const activeTab = narrow ? mtab : tab;
+  // The desktop panel follows the selection: a selected piece of artwork brings its own controls to the top.
+  const fabricGroup = <section className="ps-group" key="fabric"><h2>Fabric</h2><div className="ps-partgrid">{partsBlock}</div>{colourBlock}</section>;
+  const artGroup = <div className="ps-group" key="art">{!sel && <section><h2>Add to the {side}</h2>{addBlock}</section>}{sel && artBlock}</div>;
+  const layerGroup = <section className="ps-group" key="layers"><h2>Layers, {side}</h2>{layersBlock}</section>;
+  const designPanel = sel ? [artGroup, layerGroup, fabricGroup] : [artGroup, fabricGroup, layerGroup];
 
   return (
     <div className="ps" data-view={view} data-embedded={embedded ? '1' : undefined}>
@@ -527,19 +529,10 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
           : (saveState === 'saved' ? 'Draft saved on this device' : saveState === 'full' ? 'Not saved: this device has no storage left. Download your panels.' : 'Changes save on this device')}</p>
       </header>
 
-      <nav className="ps-tabs" aria-label="Tools">
-        {(narrow ? mobileTabs : desktopTabs).map(([k, label]) => (
-          <button key={k} type="button" className="ps-tab" aria-pressed={activeTab === k} onClick={() => (narrow ? setMtab(k as typeof mtab) : setTab(k as typeof tab))}>{label}</button>
-        ))}
-      </nav>
-
-      {!narrow && (
-        <aside className="ps-parts" aria-label="Garment parts">
-          <h2>{tab === 'parts' ? 'Parts' : tab === 'add' ? `Add to the ${side}` : `Layers, ${side}`}</h2>
-          {tab === 'parts' && partsBlock}
-          {tab === 'add' && addBlock}
-          {tab === 'layers' && layersBlock}
-        </aside>
+      {narrow && (
+        <nav className="ps-tabs" aria-label="Tools">
+          {mobileTabs.map(([k, label]) => <button key={k} type="button" className="ps-tab" aria-pressed={mtab === k} onClick={() => setMtab(k)}>{label}</button>)}
+        </nav>
       )}
 
       <main className="ps-stage" data-split={view === 'split'} data-pair={pair || undefined}>
@@ -556,6 +549,7 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
                 {svg.state === 'ready' && (
                   <svg className="ps-outline" viewBox={`0 0 ${frameSize(frames[s]).w} ${frameSize(frames[s]).h}`} preserveAspectRatio="none" aria-hidden="true">
                     <g transform={panelTransform(frames[s])}>
+                      {seamPanels(svg.panels[s]).filter(p => !hidden(p.part)).map(p => <path key={`seam-${p.id}`} d={p.d} className="ps-seam" fill="none" stroke={partColor(p.part)} style={{ strokeWidth: (SEAM_FILL * sheets[s].w) / TEX_W }} vectorEffect="non-scaling-stroke" pointerEvents="none" />)}
                       <clipPath id={`ps-body-${s}`}><path d={envelopeOf(svg.panels[s].find(p => p.part === 'body')?.d ?? '')} /></clipPath>
                       <g clipPath={`url(#ps-body-${s})`}>
                         {pocketBackings(svg.panels[s].filter(p => !hidden(p.part)), POCKET_PARTS).map((b, i) => <rect key={`under-${i}`} x={b.x0} y={b.y0 - 0.03} width={b.x1 - b.x0} height={b.y1 - b.y0 + 0.06} fill={partColor('body')} pointerEvents="none" />)}
@@ -597,7 +591,7 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
       </main>
 
       <aside className="ps-inspector" aria-label="Inspector">
-        {!narrow && (<>{colourBlock}{artBlock}{panelBlock}</>)}
+        {!narrow && (<>{designPanel}{panelBlock}</>)}
         {narrow && mtab === 'parts' && <section><h2>Parts</h2>{partsBlock}</section>}
         {narrow && mtab === 'colour' && colourBlock}
         {narrow && mtab === 'add' && <section><h2>{`Add to the ${side}`}</h2>{addBlock}</section>}

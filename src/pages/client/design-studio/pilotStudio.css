@@ -207,3 +207,58 @@ input[type="color"].ps-chip { padding: 2px; background: transparent; }
 .ps-sub + .ps-row { margin-top: 0.4rem; }
 @media (max-width: 900px) { .ps-bar { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; } .ps-bar > * { flex: none; } .ps-bar-menu { position: static; } .ps-bar-pop { top: 3.5rem; } .ps-views { bottom: 0.25rem; } }
 .ps-inline input[type="color"] { flex: none; } .ps-inline input[type="range"] { flex: 1; min-width: 0; }
+
+/* Cutting-table layout: the garment pieces lie on a dotted mat, tools float over it, and one design panel sits on the right. */
+.ps, .ps[data-embedded="1"] { grid-template-columns: minmax(0, 1fr) 21rem; grid-template-areas: "top top" "stage inspector"; }
+.ps-stage, .ps[data-embedded="1"] .ps-stage { position: relative; grid-template-rows: minmax(0, 1fr); background: #d8e3df radial-gradient(circle, rgba(16, 48, 58, 0.22) 1px, transparent 1.6px) 0 0 / 22px 22px; }
+.ps-sheet, .ps[data-embedded="1"] .ps-sheet { background: transparent; border: 0; }
+.ps-outline { overflow: visible; filter: drop-shadow(0 1px 1px rgba(4, 17, 23, 0.35)) drop-shadow(0 10px 18px rgba(4, 17, 23, 0.18)); }
+.ps-outline path.ps-seam { cursor: default; }
+.ps-state--hint { text-shadow: 0 0 6px #d8e3df; }
+.ps-bar { display: contents; }
+.ps-rail, .ps-zoom, .ps-views { position: absolute; z-index: 4; display: flex; gap: 0.15rem; padding: 0.3rem; background: #ffffff; border: 1px solid rgba(16, 48, 58, 0.18); border-radius: 14px; box-shadow: 0 8px 22px rgba(4, 17, 23, 0.14); }
+.ps-rail { left: 0.75rem; top: 50%; transform: translateY(-50%); flex-direction: column; }
+.ps-zoom { left: 50%; bottom: 2.25rem; transform: translateX(-50%); align-items: center; white-space: nowrap; }
+.ps-stage[data-split="true"] .ps-zoom { left: 30%; }
+.ps-rail button, .ps-zoom button, .ps-views button, .ps-bar-pop button { min-height: 44px; min-width: 44px; padding: 0 0.6rem; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 10px; background: transparent; color: var(--ps-ink); font: inherit; font-size: 0.8125rem; font-weight: 600; cursor: pointer; }
+.ps-rail > button, .ps-rail .ps-bar-menu > button { width: 3.5rem; min-height: 3.25rem; flex-direction: column; gap: 0.15rem; padding: 0; font-size: 0.6875rem; }
+.ps-rail button:hover:not(:disabled), .ps-zoom button:hover:not(:disabled), .ps-views button:hover, .ps-bar-pop button:hover { background: rgba(16, 48, 58, 0.08); }
+.ps-rail button[aria-pressed="true"], .ps-rail button[aria-expanded="true"], .ps-zoom button[aria-pressed="true"], .ps-views button[aria-pressed="true"] { background: #072226; color: #7ff0d3; }
+.ps-rail button:disabled, .ps-zoom button:disabled { opacity: 0.35; cursor: not-allowed; }
+.ps-zoom output { min-width: 3.25rem; color: var(--ps-ink); text-align: center; font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
+.ps-bar-pop { top: 0; left: calc(100% + 0.75rem); transform: none; z-index: 6; }
+.ps-host { padding: 1rem 1rem 6.25rem; } /* room under the garment for the floating zoom bar */
+.ps-panel:first-of-type .ps-host { padding-left: 5.5rem; }
+.ps[data-embedded="1"] .ps-panel { padding-bottom: 0; }
+.ps .ps-panel .ps-state--hint { position: absolute; left: 5.5rem; right: 0; bottom: auto; top: 0.5rem; }
+.ps-label { position: absolute; left: 0; right: 0; top: 0.75rem; width: max-content; margin: 0 auto; padding: 0.15rem 0.6rem; border-radius: 999px; background: rgba(216, 227, 223, 0.92); z-index: 3; pointer-events: none; }
+.ps .ps-foot { width: max-content; max-width: calc(100% - 1rem); margin: 0 auto 0.25rem; padding: 0.2rem 0.65rem; border-radius: 999px; background: rgba(216, 227, 223, 0.92); z-index: 3; }
+.ps-stage[data-pair] .ps-panel + .ps-panel { border-left: 1px dashed rgba(16, 48, 58, 0.3); }
+.ps-views { top: 0.75rem; bottom: auto; left: 50%; right: auto; transform: translateX(-50%); flex-wrap: nowrap; padding: 0.25rem; white-space: nowrap; }
+.ps-3d { container-type: inline-size; }
+@container (max-width: 28rem) { .ps-views button { padding: 0 0.35rem; font-size: 0.75rem; } }
+@container (max-width: 22rem) { .ps-views { flex-wrap: wrap; justify-content: center; width: min(17rem, calc(100% - 1rem)); white-space: normal; } }
+.ps-inspector { gap: 1.1rem; }
+.ps-inspector .ps-group + .ps-group, .ps-inspector > section { padding-top: 1rem; border-top: var(--ps-stitch); }
+.ps-inspector .ps-group:first-child { padding-top: 0; border-top: 0; }
+.ps-group section + section { margin-top: 1rem; }
+.ps-partgrid ul { grid-template-columns: 1fr 1fr; gap: 0.3rem; margin-bottom: 1rem; }
+.ps-partgrid .ps-part { gap: 0.45rem; padding: 0 0.45rem; font-size: 0.8125rem; border-color: var(--ps-line); }
+.ps-partgrid .ps-hint { display: none; }
+.ps-inspector .ps-colors { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); justify-items: center; }
+@media (max-width: 1180px) { .ps, .ps[data-embedded="1"] { grid-template-columns: minmax(0, 1fr) 18rem; } }
+@media (max-width: 900px) {
+  .ps, .ps[data-embedded="1"] { grid-template-columns: minmax(0, 1fr); grid-template-areas: "top" "stage" "tabs" "inspector"; grid-template-rows: repeat(4, max-content); align-content: start; }
+  .ds-panelws > .ps { align-self: flex-start; }
+  .ps-stage, .ps[data-embedded="1"] .ps-stage { grid-template-rows: auto auto; min-height: max-content; align-content: start; }
+  .ps .ps-stage .ps-host, .ps[data-embedded="1"] .ps-stage .ps-host { flex: none; height: 50dvh; min-height: 19rem; } /* a fixed height, so zoom scrolls inside the mat and never spills over the tabs */
+  .ps-bar { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 0.35rem; padding: 0.4rem 0.5rem 0; min-width: 0; }
+  .ps-rail, .ps-zoom { position: static; transform: none; flex-direction: row; align-self: center; max-width: 100%; box-shadow: none; }
+  .ps-rail > button, .ps-rail .ps-bar-menu > button { width: 3.4rem; min-height: 48px; }
+  .ps-zoom { z-index: auto; overflow-x: auto; justify-content: safe center; } /* stays under the Shapes menu */
+  .ps-bar-flag { display: none; }
+  .ps-bar-menu { position: static; }
+  .ps-bar-pop { top: 4.5rem; left: 50%; transform: translateX(-50%); }
+  .ps-host, .ps-panel:first-of-type .ps-host { padding: 0.5rem; }
+  .ps-views { top: auto; bottom: 0.35rem; }
+}

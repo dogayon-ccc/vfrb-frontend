@@ -9,6 +9,9 @@ export const DEFAULT_PART_COLOR = '#1B2A4A';
 export const DETAIL_PARTS = new Set(['chest_pocket', 'lower_pockets', 'neck_band']);
 export const POCKET_PARTS = new Set(['chest_pocket', 'lower_pockets']); // the body colour backs these rows so no gap shows beside a pocket
 const ART_W = 1024; // panel artwork is stored in the coordinates of a 1024 px wide panel canvas
+export const SEAM_FILL = 20; // width, on a 1024 px panel, of the same-colour spread that closes the hairline gaps between traced pieces
+// The pieces that get that spread, body last so it wins where a sleeve meets it. Pockets and the neck band keep their exact outline.
+export const seamPanels = (panels: SvgPanel[]) => panels.filter(p => !DETAIL_PARTS.has(p.part)).sort((a, b) => Number(a.part === 'body') - Number(b.part === 'body'));
 
 export function partColorOf(asset: UvBakedAsset, colors: Record<string, string>, node: string): string {
   const p = asset.parts.find(x => x.node === node)!;
@@ -50,6 +53,8 @@ export interface FlatInput {
 export function paintParts(ctx: CanvasRenderingContext2D, width: number, { asset, colors, details, panels, side }: FlatInput) {
   const f = asset.frames[side], k = width / frameSize(f).w;
   ctx.save(); ctx.scale(k, k); ctx.translate(f.x1, f.y1); ctx.scale(-1, 1);
+  ctx.lineJoin = 'round'; ctx.lineWidth = SEAM_FILL * (width / ART_W) / k;
+  for (const p of seamPanels(panels)) { if (partHidden(asset, details, p.part)) continue; ctx.strokeStyle = partColorOf(asset, colors, p.part); ctx.stroke(new Path2D(p.d)); }
   const body = panels.find(p => p.part === 'body');
   if (body) {
     ctx.save(); ctx.clip(new Path2D(envelopeOf(body.d))); ctx.fillStyle = partColorOf(asset, colors, 'body');

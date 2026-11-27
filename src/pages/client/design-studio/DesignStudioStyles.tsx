@@ -230,7 +230,7 @@ export default function DesignStudioStyles() {
 
       .ds-panel{
         --text-2xs:13px;--text-xs:13px;--text-sm:15px;
-        order:3;width:clamp(344px,26vw,392px);flex-shrink:0;display:flex;flex-direction:column;overflow:hidden;
+        order:3;width:clamp(300px,22vw,344px);flex-shrink:0;display:flex;flex-direction:column;overflow:hidden;
         background:var(--bg-card);border-left:1px solid var(--border);box-shadow:var(--shadow-xs);
       }
       .ds-panel-body{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;}
@@ -257,12 +257,12 @@ export default function DesignStudioStyles() {
 
       /* Stage: a sage cutting mat with a faint 1 cm screen grid (decoration on the stage, never on the garment or the export) and a
          soft pool of light behind the garment. Dark swaps the mat tokens only; stage ink stays >= 4.5:1 on both. */
-      .ds-cv{--ds-mat:var(--vf-art-bg);--ds-mat-lit:#F4F5F2;--ds-mat-line:transparent;--ds-cut:#046A78;
+      .ds-cv{--ds-mat:var(--vf-art-bg);--ds-mat-lit:#F4F5F2;--ds-mat-line:transparent;--ds-mat-dot:rgb(16 48 58 / .2);--ds-cut:#046A78;
         --cx-stage:var(--ds-mat);--cx-stage-lit:var(--ds-mat-lit);
         order:2;flex:1;min-width:0;display:flex;flex-direction:column;position:relative;overflow:hidden;padding-bottom:var(--ds-pad-b);
-        background:linear-gradient(var(--ds-mat-line) 1px,transparent 1px) 0 0/1cm 1cm,linear-gradient(90deg,var(--ds-mat-line) 1px,transparent 1px) 0 0/1cm 1cm,
+        background:radial-gradient(circle,var(--ds-mat-dot) 1px,transparent 1.6px) 0 0/22px 22px,linear-gradient(var(--ds-mat-line) 1px,transparent 1px) 0 0/1cm 1cm,linear-gradient(90deg,var(--ds-mat-line) 1px,transparent 1px) 0 0/1cm 1cm,
           radial-gradient(ellipse 58% 52% at 50% 46%,var(--cx-stage-lit) 0%,var(--cx-stage) 72%);color:var(--cx-stage-ink);}
-      .ds-cv[data-stage=dark]{--ds-cut:var(--vf-mint);--ds-mat:var(--vf-chrome);--ds-mat-lit:var(--vf-chrome-2);--ds-mat-line:transparent;--cx-stage-ink:var(--vf-on-chrome);--cx-stage-ink-2:var(--vf-on-chrome-2);}
+      .ds-cv[data-stage=dark]{--ds-cut:var(--vf-mint);--ds-mat:var(--vf-chrome);--ds-mat-lit:var(--vf-chrome-2);--ds-mat-line:transparent;--ds-mat-dot:rgb(255 255 255 / .12);--cx-stage-ink:var(--vf-on-chrome);--cx-stage-ink-2:var(--vf-on-chrome-2);}
       .ds-cv[data-stage=dark] :is(.ds-lane,.ds-ruler,.ds-ruler-corner),.ds-pick[data-inline] .ds-pick-head{--cx-stage-ink:var(--vf-on-chrome);--cx-stage-ink-2:var(--vf-on-chrome-2);--cx-card:var(--vf-chrome);--cx-paper:var(--vf-chrome);--cx-paper-2:var(--vf-chrome);--cx-line:var(--vf-chrome-line);--cx-line-strong:rgb(var(--vf-mint-rgb) / .45);--cx-ink:var(--vf-on-chrome);--cx-ink-2:var(--vf-on-chrome-2);--cx-ink-3:var(--vf-on-chrome-3);
         --cx-hover:var(--vf-chrome-2);--cx-thread:var(--vf-mint);--cx-thread-ink:var(--vf-mint);--cx-on-thread:var(--vf-void);--cx-thread-tint:rgb(var(--vf-mint-rgb) / .16);}
       .ds-cv[data-stage=dark] .ds-lane .ds-tools{border-color:rgb(var(--vf-mint-rgb) / .45);}
@@ -859,6 +859,10 @@ export default function DesignStudioStyles() {
         /* An open flyout floats over the stage's left edge, so the garment is fitted into the space beside it instead of sitting half under it. */
         .ds-body:has(.ds-fly) .ds-stage-fit,.ds-body:has(.ds-fly) .ds-lane-bottom{margin-left:min(384px,38%);transition:margin-left .2s ease-out;}
         @media (prefers-reduced-motion:reduce){.ds-body:has(.ds-fly) .ds-stage-fit,.ds-body:has(.ds-fly) .ds-lane-bottom{transition:none;}}
+        /* narrow laptops: a slimmer flyout, and the garment moves fully clear of it */
+        @media (max-width:1279px){.ds .ds-panel.ds-fly{width:300px;}.ds .ds-body:has(.ds-fly) .ds-stage-fit,.ds .ds-body:has(.ds-fly) .ds-lane-bottom{margin-left:316px;}
+          .ds .ds-body:has(.ds-fly) .ds-ctrlbar{flex-wrap:wrap;justify-content:center;height:auto;}.ds .ds-body:has(.ds-fly) .ds-ctrlbar>.ds-ctrl{flex:0 0 auto;}
+          .ds .ds-fly .ds-subtabs{flex-wrap:wrap;height:auto;flex-shrink:0;}.ds .ds-fly .ds-subtabs>button{flex:1 1 calc(50% - 4px);}}
       }
 
       .ds-tools-size button{width:44px;height:44px;display:grid;place-items:center;border:0;border-radius:var(--cx-r-md);background:transparent;cursor:pointer;}
@@ -1525,13 +1529,20 @@ export default function DesignStudioStyles() {
         .ds-rail .ds-piece-add{width:44px;min-height:44px;padding:0;justify-content:center;}
         .ds-rail .ds-piece-add>span:not(.ds-piece-add-plus){position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);}
         .ds-rail-acts{align-items:center;}
-        .ds-tool-slot{width:100%;display:flex;justify-content:center;padding-top:10px;border-top:1px solid var(--cx-line);}
+        .ds-rail>:is(.ds-rail-card,.ds-rail-list,.ds-rail-acts){flex-shrink:0;}
+        .ds-tool-slot{width:100%;flex:0 1 auto;min-height:0;overflow-y:auto;scrollbar-width:thin;display:flex;justify-content:center;align-items:flex-start;padding-top:10px;border-top:1px solid var(--cx-line);}
         .ds-tool-slot .ds-tools{flex-direction:column;position:static;max-height:none;box-shadow:none;border:0;padding:0;background:transparent;}
         .ds-tool-slot .ds-tools .ds-tools-dock{display:inline-flex;}
         .ds-tool-slot .ds-tools .ds-tools-dock[data-last]{margin-bottom:5px;position:relative;}
         .ds-tool-slot .ds-tools .ds-tools-dock[data-last]::after{content:"";position:absolute;bottom:-4px;left:10px;right:10px;border-top:1px solid var(--cx-line);}
         .ds-tool-slot .ds-tools-ink{margin:6px 0 0;}
         .ds-tool-slot .ds-tools-size{flex-direction:column;margin:4px 0 0;padding:4px 0 0;border-left:0;border-top:1px solid var(--cx-line);}
+        /* two tools per row, so every tool and the ink dot show without scrolling at laptop heights */
+        .ds .ds-rail{width:104px;}
+        .ds .ds-rail .ds-rail-thumb>*{max-width:100%;max-height:100%;}
+        .ds .ds-tool-slot .ds-tools{display:grid;grid-template-columns:repeat(2,44px);gap:2px 4px;justify-content:center;justify-items:center;align-content:start;}
+        .ds .ds-tool-slot .ds-tools>:not(button){grid-column:1/-1;}
+        .ds .ds-tool-slot .ds-tools .ds-tools-dock[data-last]{grid-column:1/-1;}
         .ds-help{position:sticky;bottom:0;z-index:2;margin-top:auto;padding-bottom:max(12px,env(safe-area-inset-bottom,0px));background:var(--cx-card);box-shadow:0 -10px 10px -8px rgb(0 0 0 / .45);}
         .ds-phone-only{display:block;}
         .ds-nav-slot{position:absolute;left:128px;bottom:108px;z-index:6;width:152px;padding:8px;border:1px solid var(--cx-line);border-radius:14px;background:var(--cx-card);box-shadow:0 8px 24px -12px rgb(15 23 42 / .35);}
