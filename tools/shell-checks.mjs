@@ -20,4 +20,13 @@ for (const f of ['ActivityLog', 'AuditLog', 'UserManagement', 'CustomersMaster']
 }
 const pg = r('components/ui/Pagination.tsx');
 ok(/aria-label=\{label\}/.test(pg) && /role="status"/.test(pg) && /disabled=\{busy \|\| page <= 1\}/.test(pg), 'Pagination is labelled, announces its count and disables at the ends');
+
+// Customer canvas: motion only inside the no-preference block, no looping animation, picker list rule out-ranks the inline grid, new-design tile leads.
+const cv = r('styles/customer-canvas.css'), gate = cv.indexOf('@media (prefers-reduced-motion: no-preference)');
+ok(gate > 0 && [...cv.matchAll(/animation(-name)?:/g)].every(m => m.index > gate), 'every animation sits inside the no-preference block');
+ok(!/infinite/.test(cv), 'no looping animation in the customer canvas');
+ok(r('main.tsx').indexOf('customer-canvas.css') > r('main.tsx').indexOf('rog-app.css'), 'customer canvas loads after rog-app.css');
+ok(/\.ds \.ds-pick\[data-inline\] \.ds-pick-grid\[data-layout="list"\]/.test(cv), 'picker list view out-ranks the inline grid rule');
+const dash = r('pages/client/Dashboard.tsx');
+ok(dash.indexOf('cx-newtile') < dash.indexOf('draft && ('.concat('\n')) || dash.indexOf('cx-newtile') < dash.indexOf('designs.slice(0, draft'), 'Start a new design comes first in Recent designs');
 console.log(`${pass}/${pass + fail} passed`); process.exit(fail ? 1 : 0);

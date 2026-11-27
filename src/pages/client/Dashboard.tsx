@@ -197,6 +197,9 @@ export default function CustomerDashboard() {
         <section className="dx-sec" aria-labelledby="dz-h">
           <div className="cx-sec-h"><h2 id="dz-h">Recent designs</h2><Link to="/my-designs" className="cx-link">View all</Link></div>
           <ul className="dz-row">
+            <li><button type="button" className="cx-newtile" onClick={() => { try { sessionStorage.removeItem('studio_config'); } catch { /* storage unavailable */ } nav('/design-studio'); }}>
+              <strong>Start a new design</strong><span>Pick a garment and make it yours</span>
+            </button></li>
             {draft && (
               <li><button type="button" className="dz-tile" data-draft="" onClick={openStudio} aria-label={`Continue your draft, ${draftTitle}`}>
                 <span className="dz-art"><DesignThumb src={draft.preview_dataurl} garment={draft.studio_config.garment} colors={draft.studio_config.colors} name={draftTitle} scale={1.6} /></span>
@@ -212,9 +215,6 @@ export default function CustomerDashboard() {
                 </button></li>
               );
             })}
-            <li><button type="button" className="cx-newtile" onClick={() => { try { sessionStorage.removeItem('studio_config'); } catch { /* storage unavailable */ } nav('/design-studio'); }}>
-              <strong>Start a new design</strong><span>Pick a garment and make it yours</span>
-            </button></li>
           </ul>
         </section>
       )}

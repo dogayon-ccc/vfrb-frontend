@@ -1,0 +1,49 @@
+/* Customer canvas pass: more room for content, a working list view in the garment picker, and motion that marks a moment
+   (a page's first reveal, a progress bar filling, a press) instead of looping. Loads after rog-app.css; every animation is off under reduced motion. */
+
+/* ── Space: .cm-content already pads the page, so the page itself adds none (the two stacked to ~70px a side on desktop) ── */
+@media (min-width: 1280px) { .cm-shell .cx-page { padding-inline: 0; } }
+@media (min-width: 1024px) { .cm-shell .dz-art { aspect-ratio: 16 / 11; } }
+.cm-shell .dz-row { grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); }
+
+/* ── Garment picker: List really is one row per template (the inline picker's grid rule out-ranked it) ── */
+.ds .ds-pick[data-inline] .ds-pick-grid[data-layout="list"] { grid-template-columns: 1fr; gap: 8px; }
+@media (min-width: 900px) { .ds .ds-pick[data-inline] .ds-pick-grid[data-layout="list"] { grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); } }
+.ds .ds-pick[data-inline] .ds-pick-grid[data-layout="list"] .ds-pick-card strong { -webkit-line-clamp: 2; }
+
+/* ── Design tiles: the action shows on hover or focus, like a canvas thumbnail ── */
+.dz-art { position: relative; }
+.dz-art::after { content: "Open"; position: absolute; right: 10px; bottom: 10px; padding: 6px 12px; font: 700 13px/1 var(--cx-sans, system-ui); color: #fff; background: var(--vf-teal-ink, #046a78); clip-path: var(--vf-clip-12, none); opacity: 0; transform: translateY(6px); pointer-events: none; }
+.dz-tile[data-draft] .dz-art::after { content: "Continue"; }
+@media (hover: none) { .dz-art::after { display: none; } }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* One first-reveal per collection: items rise in a short sequence, capped at eight so a long list never waits. */
+  @keyframes cx-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+  .dz-row > li, .dx-olist > li, .ox-row, .od-card { animation: cx-rise .42s cubic-bezier(.16, 1, .3, 1) both; animation-delay: calc(var(--i, 0) * 55ms); }
+  .dz-row > li:nth-child(1), .dx-olist > li:nth-child(1), .ox-row:nth-child(1), .od-card:nth-child(1) { --i: 0; }
+  .dz-row > li:nth-child(2), .dx-olist > li:nth-child(2), .ox-row:nth-child(2), .od-card:nth-child(2) { --i: 1; }
+  .dz-row > li:nth-child(3), .dx-olist > li:nth-child(3), .ox-row:nth-child(3), .od-card:nth-child(3) { --i: 2; }
+  .dz-row > li:nth-child(4), .dx-olist > li:nth-child(4), .ox-row:nth-child(4), .od-card:nth-child(4) { --i: 3; }
+  .dz-row > li:nth-child(5), .dx-olist > li:nth-child(5), .ox-row:nth-child(5), .od-card:nth-child(5) { --i: 4; }
+  .dz-row > li:nth-child(6), .dx-olist > li:nth-child(6), .ox-row:nth-child(6), .od-card:nth-child(6) { --i: 5; }
+  .dz-row > li:nth-child(7), .dx-olist > li:nth-child(7), .ox-row:nth-child(7), .od-card:nth-child(7) { --i: 6; }
+  .dz-row > li:nth-child(n+8), .dx-olist > li:nth-child(n+8), .ox-row:nth-child(n+8), .od-card:nth-child(n+8) { --i: 7; }
+
+  /* Progress is shown being reached: the bar fills left to right, the current step's ring draws once. */
+  @keyframes cx-fill { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+  .ox-prog-bar i { animation: cx-fill .8s cubic-bezier(.22, 1, .36, 1) .2s both; }
+  @keyframes cx-ring { from { box-shadow: 0 0 0 0 rgb(2 195 154 / .55); } to { box-shadow: 0 0 0 10px rgb(2 195 154 / 0); } }
+  .ui-step[data-s="now"] .ui-step-dot { animation: cx-ring .9s ease-out .35s 1 both; }
+
+  /* Press and hover feedback */
+  .cm-shell .ui-btn, .cm-shell .cx-link, .cm-shell .ox-row { transition: transform .12s ease-out, box-shadow .18s, background-color .18s; }
+  .cm-shell .ui-btn:active { transform: scale(.97); }
+  .dz-art::after { transition: opacity .18s ease-out, transform .18s ease-out; }
+  .dz-tile:hover .dz-art::after, .dz-tile:focus-visible .dz-art::after { opacity: 1; transform: none; }
+  .dz-art > * { transition: transform .35s cubic-bezier(.16, 1, .3, 1); }
+  .dz-tile:hover .dz-art > * { transform: scale(1.04); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dz-tile:hover .dz-art::after, .dz-tile:focus-visible .dz-art::after { opacity: 1; transform: none; }
+}
