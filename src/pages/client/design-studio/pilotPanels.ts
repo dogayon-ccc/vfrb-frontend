@@ -98,3 +98,12 @@ export async function sha256Hex(buf: ArrayBuffer): Promise<string | null> {
   if (!globalThis.crypto?.subtle) return null;
   return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', buf)), b => b.toString(16).padStart(2, '0')).join('');
 }
+
+// Text assets (the panel SVGs) are pinned by their LF form: Git on Windows checks them out with CRLF, which must not change the hash.
+// Only carriage returns are dropped, so any other byte difference still fails the pin.
+export const withoutCarriageReturns = (buf: ArrayBuffer): ArrayBuffer => {
+  const src = new Uint8Array(buf), out = new Uint8Array(src.length);
+  let n = 0;
+  for (let i = 0; i < src.length; i++) if (src[i] !== 13) out[n++] = src[i];
+  return out.slice(0, n).buffer;
+};

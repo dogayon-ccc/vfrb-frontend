@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { Canvas as FabricCanvas, FabricImage, FabricText, type FabricObject } from 'fabric';
 import { PANEL_ART_MAX_OBJECTS, type UvBakedAsset, type PanelArt } from './studioAssets';
 import {
-  parsePanelSvg, canvasSize, frameSize, panelTransform, pocketBackings, PART_LABEL, sha256Hex,
+  parsePanelSvg, canvasSize, frameSize, panelTransform, pocketBackings, PART_LABEL, sha256Hex, withoutCarriageReturns,
   type PanelSide, type SvgPanel,
 } from './pilotPanels';
 import { hasWebGL } from './webglSupport';
@@ -144,7 +144,7 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
         for (const s of SIDES) {
           const res = await fetch(asset.panelSvg[s].url);
           if (!res.ok) throw new Error(`panel ${s}: ${res.status}`);
-          const buf = await res.arrayBuffer(), hash = await sha256Hex(buf);
+          const buf = withoutCarriageReturns(await res.arrayBuffer()), hash = await sha256Hex(buf);
           if (hash && hash !== asset.panelSvg[s].sha256) throw new Error(`panel ${s}: hash mismatch`);
           out[s] = parsePanelSvg(new TextDecoder().decode(buf));
           if (!out[s].length) throw new Error(`panel ${s}: no outlines`);

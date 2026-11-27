@@ -32,7 +32,7 @@ for (const a of M.UV_BAKED_ASSETS) {
   ok(Math.abs((hi[1] + lo[1]) / 2 * a.transform.scale + a.transform.position[1] - AUTHORED_CENTRE_Y) < 0.01, `${a.id}: vertical centre matches the authored scrub top`);
   ok(['rights_pending', 'approved'].includes(a.rights), `${a.id}: rights is a known value`);
   for (const v of ['front', 'back']) {
-    ok(sha(read('public' + a.panelSvg[v].url)) === a.panelSvg[v].sha256, `${a.id}: ${v} panel SVG sha256 matches the registry`);
+    ok(sha(read('public' + a.panelSvg[v].url).filter(b => b !== 13)) === a.panelSvg[v].sha256, `${a.id}: ${v} panel SVG sha256 matches the registry`);
     let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
     for (const p of m.panels) if (p.view === v) for (const t of p.mesh.xy) for (const [x, y] of t) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
     const f = a.frames[v];
