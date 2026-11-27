@@ -16,3 +16,14 @@ export function panBy(down: { clientX: number; clientY: number; preventDefault: 
   const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up); };
   window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
 }
+
+// Ctrl/Cmd+Z and Ctrl+Y (or Shift+Z), leaving text fields their own undo.
+export function bindUndoKeys(back: () => void, forward: () => void) {
+  const f = (e: KeyboardEvent) => {
+    const k = e.key.toLowerCase(), t = e.target as HTMLElement | null;
+    if (!(e.ctrlKey || e.metaKey) || (k !== 'z' && k !== 'y') || t?.tagName === 'TEXTAREA' || (t as HTMLInputElement | null)?.type === 'text') return;
+    e.preventDefault(); if (k === 'y' || e.shiftKey) forward(); else back();
+  };
+  window.addEventListener('keydown', f);
+  return () => window.removeEventListener('keydown', f);
+}

@@ -14,7 +14,7 @@ import { ensureFonts } from './studioFonts';
 import PanelArtInspector, { type AlignEdge } from './PanelArtInspector';
 import PanelCanvasBar, { type PanelTool } from './PanelCanvasBar';
 import { usePanelHistory, type PanelSnapshot } from './usePanelHistory';
-import { panBy, usePair } from './panelStage';
+import { panBy, usePair, bindUndoKeys } from './panelStage';
 import View3DButtons, { type View3D } from './View3DButtons';
 import { hasWebGL } from './webglSupport';
 import { loadPanels, paintParts, partColorOf, partHidden, edgeFor, DETAIL_PARTS, POCKET_PARTS } from './panelFlat';
@@ -277,6 +277,8 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
     read: () => ({ art: { front: objectsOf(fcs.current.front), back: objectsOf(fcs.current.back) }, colors, details }),
   });
   recordRef.current = history.record; resetRef.current = history.reset;
+  // Inside the Studio the top bar owns undo and redo; the standalone page takes the keys itself.
+  useEffect(() => embedded ? undefined : bindUndoKeys(history.undo, history.redo), [embedded, history.undo, history.redo]);
 
   const active = fcs.current[side];
   const add = (o: FabricObject) => {
@@ -544,8 +546,7 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
         <input ref={fileInput} type="file" accept={UPLOAD_TYPES.join(',')} hidden onChange={e => { void addLogo(e.target.files?.[0]); e.target.value = ''; }} />
         {showPanel && (
           <PanelCanvasBar tool={tool} setTool={setTool} zoom={zoom} setZoom={setZoom} grid={grid} setGrid={setGrid} disabled={svg.state !== 'ready' || readOnly}
-            onImage={() => fileInput.current?.click()} onText={() => void addText()} onShape={addShape}
-            history={embedded ? null : { undo: history.undo, redo: history.redo, canUndo: history.can.undo, canRedo: history.can.redo }} />
+            onImage={() => fileInput.current?.click()} onText={() => void addText()} onShape={addShape} />
         )}
         {SIDES.map(s => (
           <section key={s} className="ps-panel" hidden={!showPanel || (!pair && side !== s)} aria-label={`${s} panel`} data-current={(pair && side === s) || undefined} tabIndex={0} onKeyDown={s === side ? onStageKey : undefined}

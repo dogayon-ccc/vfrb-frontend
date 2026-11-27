@@ -9,10 +9,9 @@ export const clampZoom = (z: number) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Ma
 export interface PanelCanvasBarProps {
   tool: PanelTool; setTool: (t: PanelTool) => void; zoom: number; setZoom: (z: number) => void; grid: boolean; setGrid: (g: boolean) => void;
   disabled: boolean; onImage: () => void; onText: () => void; onShape: (k: ShapeKind) => void;
-  history: { undo: () => void; redo: () => void; canUndo: boolean; canRedo: boolean } | null;
 }
 
-export default function PanelCanvasBar({ tool, setTool, zoom, setZoom, grid, setGrid, disabled, onImage, onText, onShape, history }: PanelCanvasBarProps) {
+export default function PanelCanvasBar({ tool, setTool, zoom, setZoom, grid, setGrid, disabled, onImage, onText, onShape }: PanelCanvasBarProps) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -37,13 +36,6 @@ export default function PanelCanvasBar({ tool, setTool, zoom, setZoom, grid, set
           </div>
         )}
       </div>
-      {history && (
-        <>
-          <span className="ps-bar-sep" aria-hidden="true" />
-          <button type="button" onClick={history.undo} disabled={!history.canUndo}>Undo</button>
-          <button type="button" onClick={history.redo} disabled={!history.canRedo}>Redo</button>
-        </>
-      )}
       <span className="ps-bar-sep" aria-hidden="true" />
       <button type="button" aria-label="Zoom out" onClick={() => setZoom(clampZoom(zoom - ZOOM_STEP))} disabled={zoom <= ZOOM_MIN}>−</button>
       <output aria-label="Zoom level">{Math.round(zoom * 100)}%</output>
