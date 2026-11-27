@@ -529,7 +529,7 @@ export default function DesignStudio3D({ cfg = {}, overlayDataUrl = null, overla
         enablePan={false}
         enableDamping dampingFactor={0.08}
         autoRotate={spin && !exploded} autoRotateSpeed={1.6} onStart={() => setSpin(false)}
-        minPolarAngle={Math.PI / 5}
+        minPolarAngle={Math.PI / 3}
         maxPolarAngle={Math.PI * 0.75}
         minDistance={1.2} maxDistance={8}
       />

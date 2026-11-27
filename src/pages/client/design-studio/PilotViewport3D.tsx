@@ -35,7 +35,7 @@ export default function PilotViewport3D({ side, errorLabel, ...mesh }: PilotView
           <Turn side={side}><UvBakedGarmentMesh {...mesh} /></Turn>
         </Suspense>
         <ContactShadows position={[0, -0.58, 0]} opacity={0.35} scale={3} blur={2.4} far={1.2} frames={1} />
-        <OrbitControls enablePan={false} minDistance={1.5} maxDistance={4.5} minPolarAngle={0.5} maxPolarAngle={2.3} />
+        <OrbitControls enablePan={false} minDistance={1.5} maxDistance={4.5} minPolarAngle={Math.PI / 3} maxPolarAngle={2.3} />
       </Canvas>
     </GarmentMeshErrorBoundary>
   );

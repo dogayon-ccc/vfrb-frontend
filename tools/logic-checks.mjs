@@ -388,7 +388,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   t('design fingerprint differs for any real design change (colour, name, overlay text, overlay position)', [{ ...snap, colors: { ...snap.colors, body: '#123457' } }, { ...snap, name: named + '.' }, { ...snap, frontOverlays: [{ ...snap.frontOverlays[0], text: 'Nono' }] }, { ...snap, frontOverlays: [{ ...snap.frontOverlays[0], left: 10.6 }] }].every(x => H.draftFingerprint(x) !== fp) && H.draftFingerprint(null) === null);
   const src = p => fsx.readFileSync(urlx.fileURLToPath(new URL(p, import.meta.url)), 'utf8');
   const studio = src('../src/pages/client/DesignStudio.tsx'), wizard = src('../src/pages/client/OrderWizard.tsx');
-  t('Studio: every account draft write goes through one payload that always carries a preview and the design-name label', (studio.match(/axios\.post\('\/api\/customer\/drafts'/g) ?? []).length === 1 && /preview_dataurl: await fitDraftPreview\(exportPNG\(\)\)/.test(studio) && /label:\s+draftLabel\(cfg\)/.test(studio) && !/`\$\{cfg\.garment\} — \$\{cfg\.category\}`/.test(studio));
+  t('Studio: every account draft write goes through one payload that always carries a preview and the design-name label', (studio.match(/axios\.post\('\/api\/customer\/drafts'/g) ?? []).length === 1 && /preview_dataurl: await fitDraftPreview\(panelApi\.current\?\.preview\('front'\) \?\? exportPNG\(\)\)/.test(studio) && /label:\s+draftLabel\(cfg\)/.test(studio) && !/`\$\{cfg\.garment\} — \$\{cfg\.category\}`/.test(studio));
   const noClear = studio.replace(/const clearDesign = [\s\S]*?\[whileSwapping, loadCanvasJSON/, '');
   t('Order and save never delete the account draft; only an explicit Remove does, and only when it holds this design', noClear !== studio && !/drafts\/latest'\)/.test(noClear.replace(/axios\.get\('\/api\/customer\/drafts\/latest'\)/g, '')) && !/axios\.delete\([^)]*drafts/.test(noClear) && /ownsDraft = !lockRef\.current\?\.designId && \(lastSavedFp\.current \|\| accountCopy\.current\)/.test(studio))
   { const U2 = await L('/src/pages/client/design-studio/uniformSet.ts');
@@ -631,7 +631,7 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   { const sl = src('../src/pages/client/design-studio/StudioLayout.tsx'), ds0 = src('../src/pages/client/DesignStudio.tsx');
     t('Studio shell: StudioLayout owns the .ds-body grid, the toast and the locked (inert + gate) state; DesignStudio passes the rail, drawer and canvas as slots and no longer builds the grid itself',
       /className="ds-body"/.test(sl) && /locked \? \{ inert: '' \} : \{\}/.test(sl) && /aria-disabled=\{locked \|\| undefined\}/.test(sl) && /onPointerDownCapture=\{onGate\}[\s\S]*onKeyDownCapture=\{onGate\}/.test(sl) && /className="ds-toast"/.test(sl)
-      && /<StudioLayout locked=\{locked\} onGate=\{gateEdit\}/.test(ds0) && /rail=\{\s*<PiecesRail/.test(ds0) && /drawer=\{\s*<ToolDrawer/.test(ds0) && /canvas=\{\s*<CanvasViewport/.test(ds0)
+      && /<StudioLayout locked=\{locked\} onGate=\{gateEdit\}/.test(ds0) && /rail=\{\s*<PiecesRail/.test(ds0) && /drawer=\{(?:baked \? null :)?\s*<ToolDrawer/.test(ds0) && /canvas=\{(?:wrapStage\()?\s*<CanvasViewport/.test(ds0)
       && !/className="ds-body"/.test(ds0) && !/className="ds-toast"/.test(ds0)); }
   { const to = src('../src/pages/client/design-studio/ToolOptions.tsx'), hk = src('../src/pages/client/design-studio/useGarmentCanvas.ts'), tr = src('../src/pages/client/design-studio/ToolRail.tsx'), dsx = src('../src/pages/client/DesignStudio.tsx');
     t('tool options flyout: the active brush / eraser / pen / line shows its own size, opacity, smoothing and colour beside the rail (portaled into .ds-body, full width under the row on phones); the rail renders it only when editable',
@@ -812,10 +812,10 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const cvx = src('../src/pages/client/design-studio/CanvasViewport.tsx'), tdx = src('../src/pages/client/design-studio/ToolDrawer.tsx');
   const bar2D = cvx.slice(cvx.indexOf('{show2D ? (<>'), cvx.indexOf('</>) : (<>')), bar3D = cvx.slice(cvx.indexOf('</>) : (<>'), cvx.indexOf("ctrl(full ? 'Exit full screen'"));
   const snapH = k => css.match(new RegExp(`\\.ds-sheet\\[data-snap=${k}\\]\\{height:([^;]+);\\}`))?.[1] ?? '';
-  t('phone/tablet layout: the stage fills the column; the sheet opens at peek (its bar only) with half (37% of the height, 264-360 px) and full (<= 85%) heights, a 44px bar button and a drag; five-item bottom nav; stage bar of at most five labelled controls with hints outside it',
+  t('phone/tablet layout: the stage fills the column; the sheet opens at peek (its bar only) with half (37% of the height, 264-360 px) and full (<= 64%) heights, a 44px bar button and a drag; five-item bottom nav; stage bar of at most five labelled controls with hints outside it',
     /\.ds-lane-top:not\(\[data-notes\]\)\{flex-wrap:nowrap;/.test(css) && !/text-overflow:ellipsis/.test(css.match(/\.ds-ctx-chip\{[^}]*\}/)?.[0] ?? 'text-overflow:ellipsis')
     && /\.ds-cv\{flex:1 1 auto;min-height:0;\}/.test(css) && /\.ds-sheet\[data-snap=peek\]>:not\(\.ds-sheet-bar\)\{display:none;\}/.test(css)
-    && snapH('half') === 'clamp(264px,37dvh,360px)' && /^min\(85dvh,/.test(snapH('full')) && /useState\('peek'\)/.test(tdx) && /className="ds-sheet-toggle"[^>]*aria-expanded=\{(?:shownSnap|snap) !== 'peek'\}/.test(tdx)
+    && snapH('half') === 'clamp(264px,37dvh,360px)' && /^min\(64dvh,/.test(snapH('full')) && /useState\('peek'\)/.test(tdx) && /className="ds-sheet-toggle"[^>]*aria-expanded=\{(?:shownSnap|snap) !== 'peek'\}/.test(tdx)
     && /\.ds-sheet-toggle\{flex:none;width:44px;height:44px;/.test(css) && /onPointerDown=\{dragDown\}/.test(tdx) && /className="ds-sheet-status"/.test(tdx)
     && /\.ds-bnav\{display:grid;flex:none;grid-template-columns:repeat\(5,/.test(css)
     && (bar2D.match(/ctrl\('/g) ?? []).length + 1 <= 5 && (bar3D.match(/ctrl\(/g) ?? []).length + 1 <= 5 && /className="ds-stage-hint"/.test(cvx) && !/ds-stage-hint[^]*?<\/div>\s*<\/div>\s*\)\}\s*$/.test('')
@@ -1570,6 +1570,8 @@ t('new families route to their own models per sleeve; no model for a sleeve they
   const cv2 = rd('../src/pages/client/design-studio/CanvasViewport.tsx');
   t('full screen: the Fullscreen API on the Studio root with an app-level expanded fallback, the view restored on exit, a labelled toggle; Fit has its own icon',
     /el\.requestFullscreen\(\{ navigationUI: 'hide' \}\)/.test(cv2) && /setFull\('app'\)/.test(cv2) && /restoreView/.test(cv2) && /ctrl\(full \? 'Exit full screen' : 'Full screen'/.test(cv2) && /<Scan size/.test(cv2));
+  t('3D orbit: the Studio and Pilot viewers stop at 60 degrees from straight overhead (30 above the horizon) so a bottom is never viewed down into its open waist',
+    /minPolarAngle=\{Math\.PI \/ 3\}/.test(d3) && /minPolarAngle=\{Math\.PI \/ 3\}/.test(rd('../src/pages/client/design-studio/PilotViewport3D.tsx')));
   // 3D: derived bottoms and the gated Meshy pants are 2D only; Pants, Jogger Scrub Pants and the Scrub Top sketch use the authored meshes.
   t("3D gating: no derived bottom remains (removed 2026-10-16); Straight Slacks has no model of its own and reopens the rebuilt Men's Slacks; Men's Slacks is rebuilt (parametric 2D, keeps its name, no 3D); the Meshy pants file is never routed",
     DFx.DERIVED_FAMILIES.every(d => d.role !== 'bottom') && !Cp.has3DModel('Straight Slacks', null, null) && DFx.REMOVED_GARMENT['Straight Slacks'] === "Men's Slacks"
