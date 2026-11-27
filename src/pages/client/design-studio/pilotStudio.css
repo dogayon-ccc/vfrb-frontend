@@ -157,6 +157,7 @@
   .ds-panelws > .ps, .ps[data-embedded="1"] { height: auto; min-height: 100%; grid-template-columns: minmax(0, 1fr); }
   .ps[data-embedded="1"] .ps-stage { min-height: 50dvh; }
   .ps[data-embedded="1"] .ps-host { min-height: 46dvh; }
+  .ps-panel .ps-state[data-hint] { display: none; } /* phones: the same message lives in the status line, not over the garment */
 }
 .ps[data-embedded="1"] .ps-panel .ps-state { bottom: 1.75rem; }
 

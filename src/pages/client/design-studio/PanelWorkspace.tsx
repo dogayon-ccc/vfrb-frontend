@@ -583,7 +583,7 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
           {SIDES.map(s => <button key={s} type="button" aria-pressed={side === s} onClick={() => { setSide(s); setSel(null); setConfirmClear(false); }}>{s === 'front' ? 'Front' : 'Back'}</button>)}
         </div>
         <p className="ps-save" role="status">{persist === 'design'
-          ? (saveState === 'full' ? 'Artwork is too large to save. Use smaller images or fewer pieces.' : 'Artwork saves with your design')
+          ? (saveState === 'full' ? 'Artwork is too large to save. Use smaller images or fewer pieces.' : narrow && svg.state === 'ready' && counts[side] === 0 ? `No artwork on the ${side} yet. Add text or a logo, then drag it onto a part.` : 'Artwork saves with your design')
           : (saveState === 'saved' ? 'Draft saved on this device' : saveState === 'full' ? 'Not saved: this device has no storage left. Download your panels.' : 'Changes save on this device')}</p>
       </header>
 
@@ -625,7 +625,7 @@ export function PanelWorkspace({ asset, colors, setColors, details, setDetails, 
             </div>
             {s === side && svg.state === 'loading' && <p className="ps-state">Loading the panel outlines</p>}
             {s === side && svg.state === 'error' && <p className="ps-state ps-alert" role="alert">The panel outlines could not be loaded. Reload the page to try again.</p>}
-            {s === side && svg.state === 'ready' && counts[s] === 0 && <p className="ps-state ps-state--hint">No artwork on the {s} yet. Add text or upload a logo, then drag it onto a part.</p>}
+            {s === side && svg.state === 'ready' && counts[s] === 0 && <p className="ps-state ps-state--hint" data-hint>No artwork on the {s} yet. Add text or upload a logo, then drag it onto a part.</p>}
           </section>
         ))}
 
