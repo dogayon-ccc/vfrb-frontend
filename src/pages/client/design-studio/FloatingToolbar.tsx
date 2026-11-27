@@ -1,11 +1,12 @@
 // Contextual toolbar above the selection (below it when there is no room). Its slot holds alignment: centre one element on the
 // garment centre line, align 2+ to their shared bounds, distribute 3+. Each action is one undo step; arrow keys move between buttons.
-import { useLayoutEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, useMemo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Copy, Trash2, AlignStartVertical, AlignCenterVertical, AlignEndVertical, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal,
-  AlignHorizontalDistributeCenter, AlignVerticalDistributeCenter, FlipHorizontal2, ArrowUp, ArrowDown, Lock, LockOpen, EyeOff, MapPin } from 'lucide-react';
+  AlignHorizontalDistributeCenter, AlignVerticalDistributeCenter, FlipHorizontal2, ArrowUp, ArrowDown, Lock, LockOpen, EyeOff, MapPin, SlidersHorizontal } from 'lucide-react';
 import { shapeLabel } from './overlayTools';
 import { pocketLabel } from './pocketTools';
+import AdjustPopover from './AdjustPopover';
 
 const kindLabel = o => (o.__pocket ? pocketLabel(o.__pocket) : o.__artwork ? 'Artwork' : o.__logo ? 'Logo' : o.__shape ? shapeLabel(o) : o.__draw ? 'Drawing' : 'Text');
 const ALIGN = [['left', 'Align left edges', AlignStartVertical], ['hcenter', 'Align centres horizontally', AlignCenterVertical], ['right', 'Align right edges', AlignEndVertical],
@@ -23,7 +24,7 @@ function roving(e) {
   bs[d === -Infinity ? 0 : d === Infinity ? bs.length - 1 : (i + d + bs.length) % bs.length].focus();
 }
 
-export default function FloatingToolbar({ selObj, at, duplicateSelected, deleteSelected, alignSelected, spotsForSelected = null, placeAtSelected = null, arrangeSelected, arrangeLayer = null, mirrorSelected = null, toggleSelectedLock = null, toggleLayerVisibility = null }: any) {
+export default function FloatingToolbar({ selObj, at, duplicateSelected, deleteSelected, alignSelected, spotsForSelected = null, placeAtSelected = null, arrangeSelected, arrangeLayer = null, mirrorSelected = null, toggleSelectedLock = null, toggleLayerVisibility = null, garmentRect = null, updateSelected = null, pushHistory = null }: any) {
   const ref = useRef(null);
   const reduce = useReducedMotion();
   const [size, setSize] = useState({ w: 0, h: 0 });
@@ -37,7 +38,8 @@ export default function FloatingToolbar({ selObj, at, duplicateSelected, deleteS
   const above = at.top - gap - size.h >= clear;
   const left = Math.max(8, Math.min(at.w - size.w - 8, at.x - size.w / 2));
   const top = above ? at.top - gap - size.h : Math.min(at.h - size.h - 8, at.bottom + 12);
-  const [placeOpen, setPlaceOpen] = useState(false);
+  const [placeOpen, setPlaceOpen] = useState(false), [adjOpen, setAdjOpen] = useState(false);
+  useEffect(() => { setAdjOpen(false); setPlaceOpen(false); }, [selObj]); // a new selection starts with both popovers closed
   const spots = useMemo(() => (placeOpen && spotsForSelected && !multi ? spotsForSelected() : []), [placeOpen, spotsForSelected, multi, selObj, at?.x, at?.top]);
   const label = multi ? `${n} selected` : kindLabel(selObj);
   const locked = !multi && !!selObj.__locked; // a locked item keeps its place: no align, duplicate or delete until it is unlocked
@@ -70,6 +72,10 @@ export default function FloatingToolbar({ selObj, at, duplicateSelected, deleteS
           {spots.length === 0 && <span className="ds-ftb-spots-empty">No named spots on this view.</span>}
           {spots.map(s => <button key={s.id} type="button" disabled={!s.ok} title={s.reason || `Place at ${s.label}`} onClick={() => { placeAtSelected(s.id); setPlaceOpen(false); }}>{s.label}</button>)}
         </div>}
+      </span>}
+      {!multi && updateSelected && garmentRect && <span className="ds-ftb-place">
+        <button type="button" aria-expanded={adjOpen} aria-haspopup="true" onClick={() => setAdjOpen(o => !o)} aria-label="Size, position, rotation and opacity" title="Adjust"><SlidersHorizontal size={17} aria-hidden="true"/></button>
+        {adjOpen && <div className="ds-ftb-spots ds-ftb-adj"><AdjustPopover selObj={selObj} garmentRect={garmentRect} updateSelected={updateSelected} pushHistory={pushHistory}/></div>}
       </span>}
       {!multi && <button type="button" disabled={locked} onClick={duplicateSelected} aria-label="Duplicate" title="Duplicate (Ctrl+D)"><Copy size={17} aria-hidden="true"/></button>}
       <button type="button" className="ds-ftb-danger" disabled={locked} onClick={deleteSelected} aria-label="Delete" title="Delete (Del)"><Trash2 size={17} aria-hidden="true"/></button>

@@ -139,7 +139,7 @@ class ThreeEB extends Component {
 
 export default function CanvasViewport({
   cfg, setCfg, canvasWrapRef, canvasEl, aiPulse, face, switchFace, initFailed,
-  selObj, deleteSelected, duplicateSelected, alignSelected, spotsForSelected = null, placeAtSelected = null, arrangeSelected, arrangeLayer = null, mirrorSelected = null, toggleSelectedLock = null, toggleLayerVisibility = null, garmentRect = null, viewMode, has3DLoaded, onLogoFile, zoom, setZoom, snapshot, overlays,
+  selObj, deleteSelected, duplicateSelected, alignSelected, spotsForSelected = null, placeAtSelected = null, arrangeSelected, arrangeLayer = null, mirrorSelected = null, toggleSelectedLock = null, toggleLayerVisibility = null, updateSelected = null, pushHistory = null, garmentRect = null, viewMode, has3DLoaded, onLogoFile, zoom, setZoom, snapshot, overlays,
   blank = null, setViewMode, viewOpen, setViewOpen, setCompanion = null, showSet = false, setSnapOptions = null, trace = null, clearSelection = null, onPickZone = null, rail = null, onUndo = null, fullRef = null,
 }: any) {
   const paneRef = useRef(null);
@@ -559,7 +559,7 @@ export default function CanvasViewport({
           <AnimatePresence>
             {selObj && at && show2D && cfg.garment && <FloatingToolbar key="ftb" selObj={selObj} at={at} duplicateSelected={duplicateSelected} deleteSelected={deleteSelected}
               alignSelected={alignSelected} spotsForSelected={spotsForSelected} placeAtSelected={placeAtSelected} arrangeSelected={arrangeSelected}
-              arrangeLayer={arrangeLayer} mirrorSelected={mirrorSelected} toggleSelectedLock={toggleSelectedLock} toggleLayerVisibility={toggleLayerVisibility}/>}
+              arrangeLayer={arrangeLayer} mirrorSelected={mirrorSelected} toggleSelectedLock={toggleSelectedLock} toggleLayerVisibility={toggleLayerVisibility} garmentRect={garmentRect} updateSelected={updateSelected} pushHistory={pushHistory}/>}
           </AnimatePresence>
         </div>
 

@@ -126,6 +126,7 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   const redrawToken = useRef(0);
   // Overlay loads (reload, face switch, undo/redo) finish asynchronously (enliven, then web fonts); only the newest may land.
   const overlayLoad = useRef(0);
+  const pendingLoad = useRef<any>(null);
   // Latest props for exportFace, which polls across a face switch.
   const latest = useRef({ garment, sleeve, face, fit });
   latest.current = { garment, sleeve, face, fit };
@@ -1199,7 +1200,8 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
   // side { from, to }: the customer switching garment sides; each side resumes its own history.
   const loadCanvasJSON = useCallback((rawObjects, { keepHistory = false, side = null } = {}) => {
     const canvas = fc.current;
-    if (!canvas || !Array.isArray(rawObjects)) return;
+    if (!Array.isArray(rawObjects)) return;
+    if (!canvas) { pendingLoad.current = [rawObjects, { keepHistory, side }]; return; } // canvas still initialising: replay once ready, never drop saved artwork
     const objects = remapPlain(rawObjects, artboard.current, zonesResolver); // the other side's JSON may predate a garment switch
     if (side) {
       const s = switchSide(parkedHistory.current, side.from, history.current, side.to, entry(objects, liveLook.current));
@@ -1227,6 +1229,12 @@ export function useGarmentCanvas(canvasRef, garment, sleeve, face, colors, patte
         .catch(() => {});
     }).catch(() => {});
   }, [bumpLayers, resetHistory]);
+
+  useEffect(() => {
+    if (!ready || !pendingLoad.current) return;
+    const [objs, opts] = pendingLoad.current; pendingLoad.current = null;
+    loadCanvasJSON(objs, opts);
+  }, [ready, loadCanvasJSON]);
 
   // Forces a resize+redraw after e.g. an onboarding overlay closes and reveals the canvas
   // Re-paint after e.g. the onboarding overlay closes. Does NOT touch

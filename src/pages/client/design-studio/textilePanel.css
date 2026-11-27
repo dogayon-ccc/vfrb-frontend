@@ -52,3 +52,10 @@
 .ds-fab-sw { width: 100%; aspect-ratio: 1.6; border-radius: 8px; background: #c9d3df center / cover no-repeat; image-rendering: pixelated; }
 .ds-fab-note { margin: 0; font-size: 12px; color: var(--cx-ink-2, #64748b); }
 @media (prefers-reduced-motion: reduce) { .ds-fab-opt { transition: none; } }
+.ds-ftb-adj { width: 248px; display: block; }
+.ds-adj { display: grid; gap: 8px; }
+.ds-adj-g { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.ds-adj-f, .ds-adj-r { display: grid; gap: 2px; font-size: 12px; }
+.ds-adj-f input[type="number"] { min-height: 44px; width: 100%; padding: 0 8px; border-radius: 8px; border: 1px solid var(--vf-chrome-line, rgb(0 0 0 / .2)); background: transparent; color: inherit; }
+.ds-adj-r input[type="range"] { width: 100%; min-height: 32px; }
+.ds-ftb .ds-adj input:disabled { opacity: .5; }

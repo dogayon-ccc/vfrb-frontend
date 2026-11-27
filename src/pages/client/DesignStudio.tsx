@@ -1261,7 +1261,7 @@ export default function DesignStudio() {
               garmentExtra={<PieceActions {...pieceProps} other={railCompanion} readOnly={colorOnly} inSheet/>} sheetPing={sheetPing}
               more={{ onView: () => setViewOpen(true), onCopy: duplicateToEdit, canCopy: !!lock?.designId, copying, onTour: () => setHelp('tour'), onHowTo: () => setHelp('howto') }}/>}
           canvas={wrapStage(
-            <CanvasViewport cfg={cfg} setCfg={setCfg} canvasWrapRef={canvasWrapRef} canvasEl={canvasEl} initFailed={initFailed}
+            <CanvasViewport updateSelected={updateSelected} pushHistory={pushHistory} cfg={cfg} setCfg={setCfg} canvasWrapRef={canvasWrapRef} canvasEl={canvasEl} initFailed={initFailed}
               aiPulse={aiPulse} face={face} switchFace={switchFace} fullRef={fullRef}
               selObj={selObj} deleteSelected={deleteSelected} duplicateSelected={duplicateSelected} alignSelected={alignSelected} spotsForSelected={spotsForSelected} placeAtSelected={placeAtSelected} arrangeSelected={arrangeSelected} arrangeLayer={arrangeLayer} mirrorSelected={mirrorSelected} toggleSelectedLock={toggleSelectedLock} toggleLayerVisibility={toggleLayerVisibility} garmentRect={garmentRect}
               viewMode={viewMode} has3DLoaded={has3DLoaded} onLogoFile={onLogoFile} onPickZone={setActiveZone}
